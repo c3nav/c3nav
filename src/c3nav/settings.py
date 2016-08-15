@@ -32,6 +32,8 @@ else:
     else:
         SECRET_KEY = get_random_string(50, string.printable)
         with open(SECRET_FILE, 'w') as f:
+            os.chmod(SECRET_FILE, 0o600)
+            os.chown(SECRET_FILE, os.getuid(), os.getgid())
             f.write(SECRET_KEY)
 
 # Adjustable settings
@@ -54,7 +56,7 @@ DATABASES = {
 
 STATIC_URL = config.get('urls', 'static', fallback='/static/')
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = [n for n in config.get('django', 'hosts', fallback='').split(',') if n]
 
 LANGUAGE_CODE = config.get('locale', 'default', fallback='en')
 TIME_ZONE = config.get('locale', 'timezone', fallback='UTC')
@@ -78,6 +80,7 @@ CACHES = {
 }
 
 SESSION_COOKIE_DOMAIN = config.get('c3nav', 'cookie_domain', fallback=None)
+SESSION_COOKIE_SECURE = config.getboolean('c3nav', 'session_cookie_secure', fallback=False)
 
 # Internal settings
 STATIC_ROOT = os.path.join(os.path.dirname(__file__), 'static.dist')
