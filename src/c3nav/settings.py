@@ -102,6 +102,7 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'compressor',
     'bootstrap3',
+    'c3nav.control',
 ]
 
 MIDDLEWARE_CLASSES = [
@@ -167,6 +168,10 @@ STATICFILES_FINDERS = (
     'django.contrib.staticfiles.finders.FileSystemFinder',
     'django.contrib.staticfiles.finders.AppDirectoriesFinder',
     'compressor.finders.CompressorFinder',
+)
+
+STATICFILES_DIRS = (
+    os.path.join(BASE_DIR, 'static'),
 )
 
 COMPRESS_ENABLED = COMPRESS_OFFLINE = not debug_fallback
