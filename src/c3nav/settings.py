@@ -17,6 +17,8 @@ BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DATA_DIR = config.get('c3nav', 'datadir', fallback=os.environ.get('DATA_DIR', 'data'))
 LOG_DIR = os.path.join(DATA_DIR, 'logs')
 
+MAP_DIRS = config.get('c3nav', 'mapdir', fallback=None)
+
 if not os.path.exists(DATA_DIR):
     os.mkdir(DATA_DIR)
 if not os.path.exists(LOG_DIR):
@@ -103,6 +105,7 @@ INSTALLED_APPS = [
     'compressor',
     'bootstrap3',
     'c3nav.control',
+    'c3nav.mapdata',
 ]
 
 MIDDLEWARE_CLASSES = [
