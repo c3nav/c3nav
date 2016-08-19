@@ -1,5 +1,5 @@
-from .classes import MapDataManager
+from .classes import MapManager
 
 default_app_config = 'c3nav.mapdata.apps.MapdataConfig'
 
-objects = MapDataManager()
+mapmanager = MapManager()

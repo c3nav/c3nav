@@ -17,7 +17,7 @@ BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DATA_DIR = config.get('c3nav', 'datadir', fallback=os.environ.get('DATA_DIR', 'data'))
 LOG_DIR = os.path.join(DATA_DIR, 'logs')
 
-MAP_DIRS = config.get('c3nav', 'mapdir', fallback=None)
+MAP_DIRS = tuple(n for n in config.get('c3nav', 'mapdirs', fallback='').split(',') if n)
 
 if not os.path.exists(DATA_DIR):
     os.mkdir(DATA_DIR)
