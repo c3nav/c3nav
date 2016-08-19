@@ -12,6 +12,7 @@ class MapManager:
         self.main_pkg = None
         self.pkgs = OrderedDict()
         self.levels = []
+        self.sources_by_filename = OrderedDict()
 
     def add_map_dir(self, path):
         pkg = MapDataPackage(path)
@@ -24,17 +25,17 @@ class MapManager:
                                    'but '+self.main_pkg.name+' was there first.')
             self.main_pkg = pkg
             self.levels = pkg.levels
-            self.size = pkg.size
+            self.width = pkg.width
+            self.height = pkg.height
         else:
             if pkg.extends not in self.pkgs:
                 raise MapInitError('map package'+pkg.name+' extends '+pkg.exends+', which was not imported '
                                    'beforehand.')
 
-        self.pkgs[pkg.name] = pkg
+        for source in pkg.sources:
+            self.sources_by_filename[source.filename] = source
 
-    @property
-    def all_sources(self):
-        return sum((pkg.sources for pkg in self.pkgs), [])
+        self.pkgs[pkg.name] = pkg
 
 
 class MapDataPackage:
@@ -55,16 +56,21 @@ class MapDataPackage:
 
         self.extends = data.get('extends')
 
-        self.size = data.get('size')
+        self.width = data.get('width')
+        self.height = data.get('height')
 
-        self.sources = tuple(MapSource(self, name, source)
-                             for name, source in data.get('sources', {}).items())
+        self.sources = tuple(MapSource(self, source) for source in data.get('sources', []))
 
         self.levels = data.get('levels')
 
 
 class MapSource:
-    def __init__(self, pkg, name, data):
-        self.name = name
+    def __init__(self, pkg, data):
+        self.name = data['name']
+        self.filename = self.name+'.'+data['src'].split('.')[-1]
         self.src = os.path.join(pkg.path, data['src'])
         self.bounds = data['bounds']
+
+    @property
+    def jsbounds(self):
+        return json.dumps(self.bounds)
