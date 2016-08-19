@@ -5,3 +5,10 @@
     left:0;
     right:0;
 }
+.leaflet-control-layers-overlays label {
+    margin-bottom:0;
+}
+.leaflet-control-layers-overlays input[type="checkbox"] {
+    margin: 2px 0 0;
+    top:2px;
+}
