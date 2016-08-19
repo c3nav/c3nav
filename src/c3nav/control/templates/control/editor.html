@@ -15,11 +15,12 @@ var map = L.map('mapeditor', {
     crs: L.CRS.Simple,
 });
 
-layers = {
-{% for filename, source in map.sources_by_filename.items %}
-    "{{ source.name }}": L.imageOverlay('{% url 'map.source' filename=filename %}', {{ source.jsbounds }}),{% endfor %}
-}
-L.control.layers([], layers).addTo(map);
+{% for pkg in map.pkgs.values %}
+L.control.layers([], {
+    {% for source in pkg.sources %}
+    "{{ source.name }}": L.imageOverlay('{% url 'map.source' filename=source.filename %}', {{ source.jsbounds }}),{% endfor %}
+}).addTo(map);
+{% endfor %}
 L.control.scale({imperial: false}).addTo(map);
 
 </script>
