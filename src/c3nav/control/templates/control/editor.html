@@ -1,0 +1,25 @@
+{% extends 'control/base.html' %}
+{% block content %}
+<h1>Editor</h1>
+<div id="mapeditor"></div>
+{% endblock %}
+
+{% block addbottom %}
+<script type="text/javascript">
+var map = L.map('mapeditor', {
+    center: [120, 200],
+    zoom: 2,
+    maxBounds: [[0, 0], [{{ map.height }}, {{ map.width }}]],
+    maxZoom: 10,
+    minZoom: 1,
+    crs: L.CRS.Simple,
+});
+
+layers = {
+{% for filename, source in map.sources_by_filename.items %}
+    "{{ source.name }}": L.imageOverlay('{% url 'map.source' filename=filename %}', {{ source.jsbounds }}),{% endfor %}
+}
+L.control.layers([], layers).addTo(map);
+
+</script>
+{% endblock %}
