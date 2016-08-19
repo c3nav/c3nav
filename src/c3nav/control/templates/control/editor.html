@@ -20,6 +20,7 @@ layers = {
     "{{ source.name }}": L.imageOverlay('{% url 'map.source' filename=filename %}', {{ source.jsbounds }}),{% endfor %}
 }
 L.control.layers([], layers).addTo(map);
+L.control.scale({imperial: false}).addTo(map);
 
 </script>
 {% endblock %}
