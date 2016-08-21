@@ -1,6 +1,5 @@
 {% extends 'control/base.html' %}
 {% block content %}
-<h1>Editor</h1>
 <div id="mapeditor"></div>
 {% endblock %}
 
@@ -23,11 +22,9 @@ L.control.layers([], {
 {% endfor %}
 
 L.LevelControl = L.Control.extend({
-
     options: {
         position: 'bottomright'
     },
-
     onAdd: function (map) {
         var container = L.DomUtil.create('div', 'leaflet-control leaflet-bar leaflet-levels'), link;
         {% for level in map.levels reversed %}
@@ -37,9 +34,50 @@ L.LevelControl = L.Control.extend({
         {% endfor %}
         return container;
     }
-
 });
 map.addControl(new L.LevelControl());
+
+L.DrawControl = L.Control.extend({
+    options: {
+        position: 'topleft'
+    },
+    onAdd: function (map) {
+        var container = L.DomUtil.create('div', 'leaflet-control leaflet-bar'), link;
+
+        link = L.DomUtil.create('a', 'leaflet-biggericon', container);
+        link.href = '{% url "control.editor" level=level %}';
+        link.title = 'add building'
+        link.innerHTML = '🏠';
+
+        link = L.DomUtil.create('a', 'leaflet-biggericon', container);
+        link.href = '{% url "control.editor" level=level %}';
+        link.title = 'add room/area';
+        link.innerHTML = '⬠';
+
+        link = L.DomUtil.create('a', 'leaflet-biggericon', container);
+        link.href = '{% url "control.editor" level=level %}';
+        link.title = 'add obstacle'
+        link.innerHTML = '⬟';
+
+        link = L.DomUtil.create('a', 'leaflet-biggericon', container);
+        link.href = '{% url "control.editor" level=level %}';
+        link.title = 'add door';
+        link.innerHTML = '🚪';
+
+        link = L.DomUtil.create('a', '', container);
+        link.href = '{% url "control.editor" level=level %}';
+        link.title = 'add steps';
+        link.innerHTML = '┌┘';
+
+        link = L.DomUtil.create('a', 'leaflet-biggericon', container);
+        link.href = '{% url "control.editor" level=level %}';
+        link.title = 'add elevator';
+        link.innerHTML = '▴▾';
+
+        return container;
+    }
+});
+map.addControl(new L.DrawControl());
 
 
 L.control.scale({imperial: false}).addTo(map);
