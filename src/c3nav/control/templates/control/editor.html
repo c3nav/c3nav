@@ -21,6 +21,27 @@ L.control.layers([], {
     "{{ source.name }}": L.imageOverlay('{% url 'map.source' filename=source.filename %}', {{ source.jsbounds }}),{% endfor %}
 }).addTo(map);
 {% endfor %}
+
+L.LevelControl = L.Control.extend({
+
+    options: {
+        position: 'bottomright'
+    },
+
+    onAdd: function (map) {
+        var container = L.DomUtil.create('div', 'leaflet-control leaflet-bar leaflet-levels'), link;
+        {% for level in map.levels reversed %}
+        link = L.DomUtil.create('a', '{% if current_level == level %}current{% endif %}', container);
+        link.href = '{% url "control.editor" level=level %}';
+        link.innerHTML = '{{ level }}';
+        {% endfor %}
+        return container;
+    }
+
+});
+map.addControl(new L.LevelControl());
+
+
 L.control.scale({imperial: false}).addTo(map);
 
 </script>
