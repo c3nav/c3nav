@@ -17,5 +17,6 @@ def editor(request, level=None):
     if level not in mapmanager.levels:
         raise Http404('Level does not exist')
     return render(request, 'control/editor.html', {
-        'map': mapmanager
+        'map': mapmanager,
+        'current_level': level,
     })
