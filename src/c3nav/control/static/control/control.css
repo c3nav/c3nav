@@ -13,8 +13,11 @@
     top:2px;
 }
 
-.leaflet-biggericon {
+.leaflet-editbar a {
     font-size: 14px;
+}
+.leaflet-editbar a.current {
+    background-color:#FFFFDD;
 }
 .leaflet-levels a {
     font-size:16px;
