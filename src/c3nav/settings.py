@@ -16,6 +16,7 @@ config.read(['/etc/c3nav/c3nav.cfg', os.path.expanduser('~/.c3nav.cfg'), 'c3nav.
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DATA_DIR = config.get('c3nav', 'datadir', fallback=os.environ.get('DATA_DIR', 'data'))
 LOG_DIR = os.path.join(DATA_DIR, 'logs')
+MEDIA_ROOT = os.path.join(DATA_DIR, 'media')
 
 MAP_DIRS = tuple(n for n in config.get('c3nav', 'mapdirs', fallback='').split(',') if n)
 
@@ -23,6 +24,8 @@ if not os.path.exists(DATA_DIR):
     os.mkdir(DATA_DIR)
 if not os.path.exists(LOG_DIR):
     os.mkdir(LOG_DIR)
+if not os.path.exists(MEDIA_ROOT):
+    os.mkdir(MEDIA_ROOT)
 
 if config.has_option('django', 'secret'):
     SECRET_KEY = config.get('django', 'secret')
