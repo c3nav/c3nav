@@ -46,10 +46,10 @@ else:
 debug_fallback = "runserver" in sys.argv
 DEBUG = config.getboolean('django', 'debug', fallback=debug_fallback)
 
-db_backend = config.get('database', 'backend', fallback='spatialite')
+db_backend = config.get('database', 'backend', fallback='sqlite3')
 DATABASES = {
     'default': {
-        'ENGINE': 'django.contrib.gis.db.backends.' + db_backend,
+        'ENGINE': 'django.db.backends.' + db_backend,
         'NAME': config.get('database', 'name', fallback=os.path.join(DATA_DIR, 'db.sqlite3')),
         'USER': config.get('database', 'user', fallback=''),
         'PASSWORD': config.get('database', 'password', fallback=''),
@@ -58,7 +58,6 @@ DATABASES = {
         'CONN_MAX_AGE': 0 if db_backend == 'sqlite3' else 120
     }
 }
-SPATIALITE_LIBRARY_PATH = 'mod_spatialite'
 
 STATIC_URL = config.get('urls', 'static', fallback='/static/')
 
@@ -106,7 +105,6 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    'django.contrib.gis',
     'compressor',
     'bootstrap3',
     'c3nav.control',
