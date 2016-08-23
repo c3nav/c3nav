@@ -1,12 +1,10 @@
-from django.contrib.gis.db import models
+from django.db import models
 from django.utils.translation import ugettext_lazy as _
 
-from parler.models import TranslatedFields
-
-from ..models import TranslatableGeoModel
+from parler.models import TranslatedFields, TranslatableModel
 
 
-class MapPackage(TranslatableGeoModel):
+class MapPackage(TranslatableModel):
     """
     A c3nav map package
     """
@@ -21,7 +19,7 @@ class MapPackage(TranslatableGeoModel):
     )
 
 
-class MapLevel(TranslatableGeoModel):
+class MapLevel(TranslatableModel):
     """
     A map level (-1, 0, 1, 2…)
     """
@@ -30,7 +28,21 @@ class MapLevel(TranslatableGeoModel):
                                 verbose_name=_('map package'))
 
 
-class MapSource(TranslatableGeoModel):
+class BoundingBoxModel(models.Model):
+    bottom = models.DecimalField(_('bottom coordinate'), max_digits=6, decimal_places=2)
+    left = models.DecimalField(_('left coordinate'), max_digits=6, decimal_places=2)
+    top = models.DecimalField(_('top coordinate'), max_digits=6, decimal_places=2)
+    right = models.DecimalField(_('right coordinate'), max_digits=6, decimal_places=2)
+
+    @property
+    def bounds(self):
+        return ((self.bottom, self.left), (self.top, self.right))
+
+    class Meta:
+        abstract = True
+
+
+class MapSource(BoundingBoxModel):
     """
     A map source, images of levels that can be useful as backgrounds for the map editor
     """
@@ -38,5 +50,3 @@ class MapSource(TranslatableGeoModel):
     package = models.ForeignKey('MapPackage', on_delete=models.PROTECT, related_name='sources',
                                 verbose_name=_('map package'))
     image = models.FileField(_('source image'), upload_to='mapsources/')
-    bottom_left = models.PointField(_('bottom left coordinates'))
-    top_right = models.PointField(_('bottom left coordinates'))
