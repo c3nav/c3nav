@@ -18,8 +18,6 @@ DATA_DIR = config.get('c3nav', 'datadir', fallback=os.environ.get('DATA_DIR', 'd
 LOG_DIR = os.path.join(DATA_DIR, 'logs')
 MEDIA_ROOT = os.path.join(DATA_DIR, 'media')
 
-MAP_DIRS = tuple(n for n in config.get('c3nav', 'mapdirs', fallback='').split(',') if n)
-
 if not os.path.exists(DATA_DIR):
     os.mkdir(DATA_DIR)
 if not os.path.exists(LOG_DIR):
