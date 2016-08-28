@@ -2,6 +2,7 @@ db.sqlite3
 .secret
 static.dist
 c3nav.cfg
+/src/data
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
