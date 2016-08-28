@@ -10,7 +10,7 @@
 var map = L.map('mapeditor', {
     center: [120, 200],
     zoom: 2,
-    maxBounds: [[0, 0], [{{ map.height }}, {{ map.width }}]],
+    maxBounds: {{ bounds }},
     maxZoom: 10,
     minZoom: 1,
     crs: L.CRS.Simple,
@@ -19,10 +19,10 @@ var map = L.map('mapeditor', {
 });
 
 // Add Source Layers
-{% for pkg in map.pkgs.values %}
+{% for pkg in packages %}
 L.control.layers([], {
-    {% for source in pkg.sources %}
-    "{{ source.name }}": L.imageOverlay('{% url 'map.source' filename=source.filename %}', {{ source.jsbounds }}),{% endfor %}
+    {% for source in pkg.sources.all %}
+    "{{ source.name }}": L.imageOverlay('{% url 'map.source' source=source.name %}', {{ source.jsbounds }}),{% endfor %}
 }).addTo(map);
 {% endfor %}
 
@@ -33,10 +33,10 @@ L.LevelControl = L.Control.extend({
     },
     onAdd: function (map) {
         var container = L.DomUtil.create('div', 'leaflet-control leaflet-bar leaflet-levels'), link;
-        {% for level in map.levels reversed %}
+        {% for level in levels reversed %}
         link = L.DomUtil.create('a', '{% if current_level == level %}current{% endif %}', container);
-        link.href = '{% url "control.editor" level=level %}';
-        link.innerHTML = '{{ level }}';
+        link.href = '{% url "control.editor" level=level.name %}';
+        link.innerHTML = '{{ level.name }}';
         {% endfor %}
         return container;
     }

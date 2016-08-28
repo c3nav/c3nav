@@ -1,8 +1,9 @@
-from django.contrib.admin.views.decorators import staff_member_required
-from django.http import Http404
-from django.shortcuts import redirect, render
+import json
 
-from ..mapdata import mapmanager
+from django.contrib.admin.views.decorators import staff_member_required
+from django.shortcuts import get_object_or_404, redirect, render
+
+from ..mapdata.models import MapLevel, MapPackage, MapSource
 
 
 @staff_member_required
@@ -13,10 +14,12 @@ def dashboard(request):
 @staff_member_required
 def editor(request, level=None):
     if not level:
-        return redirect('control.editor', level=mapmanager.levels[0])
-    if level not in mapmanager.levels:
-        raise Http404('Level does not exist')
+        return redirect('control.editor', level=MapLevel.objects.first().name)
+
+    level = get_object_or_404(MapLevel, name=level)
     return render(request, 'control/editor.html', {
-        'map': mapmanager,
+        'bounds': json.dumps(MapSource.max_bounds()),
+        'packages': MapPackage.objects.all(),
+        'levels': MapLevel.objects.all(),
         'current_level': level,
     })
