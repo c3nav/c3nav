@@ -3,7 +3,7 @@ import json
 from django.contrib.admin.views.decorators import staff_member_required
 from django.shortcuts import get_object_or_404, redirect, render
 
-from ..mapdata.models import MapLevel, MapPackage, MapSource
+from ..mapdata.models import Level, Package, Source
 
 
 @staff_member_required
@@ -14,12 +14,12 @@ def dashboard(request):
 @staff_member_required
 def editor(request, level=None):
     if not level:
-        return redirect('control.editor', level=MapLevel.objects.first().name)
+        return redirect('control.editor', level=Level.objects.first().name)
 
-    level = get_object_or_404(MapLevel, name=level)
+    level = get_object_or_404(Level, name=level)
     return render(request, 'control/editor.html', {
-        'bounds': json.dumps(MapSource.max_bounds()),
-        'packages': MapPackage.objects.all(),
-        'levels': MapLevel.objects.all(),
+        'bounds': json.dumps(Source.max_bounds()),
+        'packages': Package.objects.all(),
+        'levels': Level.objects.all(),
         'current_level': level,
     })

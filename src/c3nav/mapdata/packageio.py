@@ -5,6 +5,7 @@ from collections import OrderedDict
 from django.core.files import File
 
 from django.core.management.base import CommandError
+from .models import Package, Level, Source
 
 
 class PackageIOError(CommandError):
