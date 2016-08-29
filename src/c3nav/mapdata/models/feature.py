@@ -1,7 +1,7 @@
 from django.db import models
 from django.utils.translation import ugettext_lazy as _
 
-from parler.models import TranslatedFields, TranslatableModel
+from parler.models import TranslatableModel, TranslatedFields
 
 
 class Feature(TranslatableModel):
