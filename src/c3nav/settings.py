@@ -17,6 +17,7 @@ BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DATA_DIR = config.get('c3nav', 'datadir', fallback=os.environ.get('DATA_DIR', 'data'))
 LOG_DIR = os.path.join(DATA_DIR, 'logs')
 MEDIA_ROOT = os.path.join(DATA_DIR, 'media')
+MAP_ROOT = os.path.join(DATA_DIR, 'map')
 
 if not os.path.exists(DATA_DIR):
     os.mkdir(DATA_DIR)
@@ -24,6 +25,8 @@ if not os.path.exists(LOG_DIR):
     os.mkdir(LOG_DIR)
 if not os.path.exists(MEDIA_ROOT):
     os.mkdir(MEDIA_ROOT)
+if not os.path.exists(MAP_ROOT):
+    os.mkdir(MAP_ROOT)
 
 if config.has_option('django', 'secret'):
     SECRET_KEY = config.get('django', 'secret')

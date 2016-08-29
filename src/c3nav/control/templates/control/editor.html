@@ -19,9 +19,9 @@ var map = L.map('mapeditor', {
 });
 
 // Add Source Layers
-{% for pkg in packages %}
+{% for source_list in sources %}
 L.control.layers([], {
-    {% for source in pkg.sources.all %}
+    {% for source in source_list %}
     "{{ source.name }}": L.imageOverlay('{% url 'map.source' source=source.name %}', {{ source.jsbounds }}),{% endfor %}
 }).addTo(map);
 {% endfor %}
