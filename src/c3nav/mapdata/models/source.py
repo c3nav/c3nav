@@ -1,22 +1,8 @@
 import json
-import os
+from collections import OrderedDict
 
-from django.conf import settings
-from django.core.files.storage import FileSystemStorage
-from django.db import models, transaction
-from django.dispatch import receiver
+from django.db import models
 from django.utils.translation import ugettext_lazy as _
-
-
-class SourceImageStorage(FileSystemStorage):
-    def get_available_name(self, name, *args, max_length=None, **kwargs):
-        if self.exists(name):
-            os.remove(os.path.join(settings.MEDIA_ROOT, name))
-        return super().get_available_name(name, *args, max_length, **kwargs)
-
-
-def map_source_filename(instance, filename):
-    return os.path.join('mapsources', '%s.%s' % (instance.name, filename.split('.')[-1]))
 
 
 class Source(models.Model):
@@ -26,9 +12,6 @@ class Source(models.Model):
     name = models.SlugField(_('source name'), max_length=50, unique=True)
     package = models.ForeignKey('Package', on_delete=models.CASCADE, related_name='sources',
                                 verbose_name=_('map package'))
-
-    image = models.FileField(_('source image'), max_length=70,
-                             upload_to=map_source_filename, storage=SourceImageStorage())
 
     bottom = models.DecimalField(_('bottom coordinate'), max_digits=6, decimal_places=2)
     left = models.DecimalField(_('left coordinate'), max_digits=6, decimal_places=2)
@@ -50,23 +33,30 @@ class Source(models.Model):
     def jsbounds(self):
         return json.dumps(((float(self.bottom), float(self.left)), (float(self.top), float(self.right))))
 
+    @classmethod
+    def fromfile(cls, data, package, name):
+        kwargs = {
+            'package': package,
+            'name': name,
+        }
 
-@receiver(models.signals.post_delete, sender=Source)
-def delete_image_on_mapsource_delete(sender, instance, **kwargs):
-    transaction.on_commit(lambda: instance.image.delete(save=False))
+        if 'bounds' not in data:
+            raise ValueError('%s.json: missing bounds.' % name)
 
+        bounds = data['bounds']
+        if len(bounds) != 2 or len(bounds[0]) != 2 or len(bounds[1]) != 2:
+            raise ValueError('pkg.json: Invalid bounds format.')
+        if not all(isinstance(i, (float, int)) for i in sum(bounds, [])):
+            raise ValueError('pkg.json: All bounds coordinates have to be int or float.')
+        if bounds[0][0] >= bounds[1][0] or bounds[0][1] >= bounds[1][1]:
+            raise ValueError('pkg.json: bounds: lower coordinate has to be first.')
+        (kwargs['bottom'], kwargs['left']), (kwargs['top'], kwargs['right']) = bounds
 
-@receiver(models.signals.pre_save, sender=Source)
-def delete_image_on_mapsource_change(sender, instance, **kwargs):
-    if not instance.pk:
-        return False
+        return kwargs
 
-    try:
-        old_file = Source.objects.get(pk=instance.pk).image
-    except Source.DoesNotExist:
-        return False
-
-    new_file = instance.image
-
-    if map_source_filename(instance, new_file.name) != old_file.name:
-        transaction.on_commit(lambda: old_file.delete(save=False))
+    def jsonize(self):
+        return OrderedDict((
+            ('name', self.name),
+            ('src', 'sources/'+self.get_export_filename()),
+            ('bounds', ((float(self.bottom), float(self.left)), (float(self.top), float(self.right)))),
+        ))

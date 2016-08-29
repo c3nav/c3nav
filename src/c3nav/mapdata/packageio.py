@@ -1,133 +1,157 @@
 import json
 import os
-from collections import OrderedDict
 
-from django.core.files import File
+from django.conf import settings
 from django.core.management.base import CommandError
 
 from .models import Level, Package, Source
 
 
-class PackageIOError(CommandError):
-    pass
+class ObjectCollection:
+    def __init__(self):
+        self.packages = {}
+        self.levels = {}
+        self.sources = {}
 
+    def add_package(self, package):
+        self._add(self.packages, 'package', package)
 
-class MapPackagesIO():
-    def __init__(self, directories):
-        print('Opening Map Packages…')
-        self.packages = OrderedDict()
-        self.levels = OrderedDict()
-        self.sources = OrderedDict()
+    def add_level(self, level):
+        self._add(self.levels, 'level', level)
 
-        for directory in directories:
-            print('- '+directory)
+    def add_source(self, source):
+        self._add(self.sources, 'source', source)
 
-            try:
-                package = json.load(open(os.path.join(directory, 'pkg.json')))
-            except FileNotFoundError:
-                raise PackageIOError('no pkg.json found in %s' % directory)
+    def add_packages(self, packages):
+        for package in packages:
+            self.add_package(package)
 
-            if package['name'] in self.packages:
-                raise PackageIOError('Duplicate package name: %s' % package['name'])
+    def add_levels(self, levels):
+        for level in levels:
+            self.add_level(level)
 
-            if 'bounds' in package:
-                self._validate_bounds(package['bounds'])
+    def add_sources(self, sources):
+        for source in sources:
+            self.add_source(source)
 
-            package['directory'] = directory
-            self.packages[package['name']] = package
+    def _add(self, container, name, item):
+        if item['name'] in container:
+            raise CommandError('Duplicate %s name: %s' % (name, item['name']))
+        container[item['name']] = item
 
-            for level in package.get('levels', []):
-                level = level.copy()
-                if level['name'] in self.levels:
-                    raise PackageIOError('Duplicate level name: %s in packages %s and %s' %
-                                         (level, self.levels[level]['name'], package['name']))
-
-                if not isinstance(level['altitude'], (int, float)):
-                    raise PackageIOError('levels: %s: altitude has to be int or float.' % level['name'])
-
-                level['package'] = package['name']
-                self.levels[level['name']] = level
-
-            for source in package.get('sources', []):
-                source = source.copy()
-                if source['name'] in self.sources:
-                    raise PackageIOError('Duplicate source name: %s in packages %s and %s' %
-                                         (source['name'], self.sources[source['name']]['name'], package['name']))
-
-                self._validate_bounds(source['bounds'], 'sources: %s: ' % source['name'])
-
-                source['filename'] = os.path.join(directory, source['src'])
-                if not os.path.isfile(source['filename']):
-                    raise PackageIOError('Source file not found: '+source['filename'])
-
-                source['package'] = package['name']
-                self.sources[source['name']] = source
-
-    def _validate_bounds(self, bounds, prefix=''):
-        if len(bounds) != 2 or len(bounds[0]) != 2 or len(bounds[1]) != 2:
-            raise PackageIOError(prefix+'Invalid bounds format.')
-        if not all(isinstance(i, (float, int)) for i in sum(bounds, [])):
-            raise PackageIOError(prefix+'All bounds coordinates have to be int or float.')
-        if bounds[0][0] >= bounds[1][0] or bounds[0][1] >= bounds[1][1]:
-            raise PackageIOError(prefix+'bounds: lower coordinate has to be first.')
-
-    def update_to_db(self):
-        from .models import MapPackage, MapLevel, MapSource
-        print('Updating Map database…')
-
-        # Add new Packages
-        packages = {}
-        print('- Updating packages…')
-        for name, package in self.packages.items():
-            bounds = package.get('bounds')
-            defaults = {
-                'bottom': bounds[0][0],
-                'left': bounds[0][1],
-                'top': bounds[1][0],
-                'right': bounds[1][1],
-            } if bounds else {}
-
-            package, created = MapPackage.objects.update_or_create(name=name, defaults=defaults)
-            packages[name] = package
+    def apply_to_db(self):
+        for name, package in tuple(self.packages.items()):
+            package, created = Package.objects.update_or_create(name=name, defaults=package)
+            self.packages[name] = package
             if created:
                 print('- Created package: '+name)
 
-        # Add new levels
-        print('- Updating levels…')
         for name, level in self.levels.items():
-            package, created = MapLevel.objects.update_or_create(name=name, defaults={
-                'package': packages[level['package']],
-                'altitude': level['altitude'],
-                'name': level['name'],
-            })
+            level['package'] = self.packages[level['package']]
+            level, created = Level.objects.update_or_create(name=name, defaults=level)
+            self.levels[name] = level
             if created:
                 print('- Created level: '+name)
 
-        # Add new map sources
-        print('- Updating sources…')
         for name, source in self.sources.items():
-            source, created = MapSource.objects.update_or_create(name=name, defaults={
-                'package': packages[source['package']],
-                'image': File(open(source['filename'], 'rb')),
-                'bottom': source['bounds'][0][0],
-                'left': source['bounds'][0][1],
-                'top': source['bounds'][1][0],
-                'right': source['bounds'][1][1],
-            })
+            source['package'] = self.packages[source['package']]
+            source, created = Source.objects.update_or_create(name=name, defaults=source)
+            self.sources[name] = source
             if created:
                 print('- Created source: '+name)
 
-        # Remove old sources
-        for source in MapSource.objects.exclude(name__in=self.sources.keys()):
+        for source in Source.objects.exclude(name__in=self.sources.keys()):
             print('- Deleted source: '+source.name)
             source.delete()
 
-        # Remove old levels
-        for level in MapLevel.objects.exclude(name__in=self.levels.keys()):
+        for level in Level.objects.exclude(name__in=self.levels.keys()):
             print('- Deleted level: '+level.name)
             level.delete()
 
-        # Remove old packages
-        for package in MapPackage.objects.exclude(name__in=self.packages.keys()):
+        for package in Package.objects.exclude(name__in=self.packages.keys()):
             print('- Deleted package: '+package.name)
             package.delete()
+
+
+def read_packages():
+    print('Detecting Map Packages…')
+
+    objects = ObjectCollection()
+    for directory in os.listdir(settings.MAP_ROOT):
+        print('\n'+directory)
+        if not os.path.isdir(os.path.join(settings.MAP_ROOT, directory)):
+            continue
+        read_package(directory, objects)
+
+    objects.apply_to_db()
+
+
+def read_package(directory, objects=None):
+    if objects is None:
+        objects = ObjectCollection()
+
+    path = os.path.join(settings.MAP_ROOT, directory)
+
+    # Main JSON
+    try:
+        package = json.load(open(os.path.join(path, 'pkg.json')))
+    except FileNotFoundError:
+        raise CommandError('no pkg.json found')
+
+    package = Package.fromfile(package, directory)
+    objects.add_package(package)
+    objects.add_levels(_read_folder(package['name'], Level, os.path.join(path, 'levels')))
+    objects.add_sources(_read_folder(package['name'], Source, os.path.join(path, 'sources'), check_sister_file=True))
+    return objects
+
+
+def _read_folder(package, cls, path, check_sister_file=False):
+    objects = []
+    if not os.path.isdir(path):
+        return []
+    for filename in os.listdir(path):
+        if not filename.endswith('.json'):
+            continue
+
+        full_filename = os.path.join(path, filename)
+        if not os.path.isfile(full_filename):
+            continue
+
+        name = filename[:-5]
+        if check_sister_file and os.path.isfile(name):
+            raise CommandError('%s: %s is missing.' % (filename, name))
+
+        objects.append(cls.fromfile(json.load(open(full_filename)), package, name))
+    return objects
+
+
+def _fromfile_validate(cls, data, name):
+    obj = cls.fromfile(json.loads(data), name=name)
+    formatted_data = json_encode(obj.tofile())
+    if data != formatted_data:
+        raise CommandError('%s.json is not correctly formatted, its contents are:\n---\n' +
+                           data+'\n---\nbut they should be\n---\n'+formatted_data+'\n---')
+
+
+def _json_encode_preencode(data, magic_marker):
+    if isinstance(data, dict):
+        data = data.copy()
+        for name, value in tuple(data.items()):
+            if name in ('bounds', ):
+                data[name] = magic_marker+json.dumps(value)+magic_marker
+            else:
+                data[name] = _json_encode_preencode(value, magic_marker)
+        return data
+    elif isinstance(data, (tuple, list)):
+        return tuple(_json_encode_preencode(value, magic_marker) for value in data)
+    else:
+        return data
+
+
+def json_encode(data):
+    magic_marker = '***JSON_MAGIC_MARKER***'
+    test_encode = json.dumps(data)
+    while magic_marker in test_encode:
+        magic_marker += '*'
+    result = json.dumps(_json_encode_preencode(data, magic_marker), indent=4)
+    return result.replace('"'+magic_marker, '').replace(magic_marker+'"', '')+'\n'

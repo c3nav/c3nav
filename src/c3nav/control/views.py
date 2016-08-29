@@ -19,7 +19,7 @@ def editor(request, level=None):
     level = get_object_or_404(Level, name=level)
     return render(request, 'control/editor.html', {
         'bounds': json.dumps(Source.max_bounds()),
-        'packages': Package.objects.all(),
+        'sources': [p.sources.all().order_by('name') for p in Package.objects.all()],
         'levels': Level.objects.all(),
         'current_level': level,
     })
