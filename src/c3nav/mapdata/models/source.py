@@ -2,10 +2,10 @@ import json
 import os
 
 from django.conf import settings
-from django.db import models, transaction
-from django.utils.translation import ugettext_lazy as _
-from django.dispatch import receiver
 from django.core.files.storage import FileSystemStorage
+from django.db import models, transaction
+from django.dispatch import receiver
+from django.utils.translation import ugettext_lazy as _
 
 
 class SourceImageStorage(FileSystemStorage):
