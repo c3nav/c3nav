@@ -1,5 +1,3 @@
-import sys
-
 from django.core.management.base import BaseCommand, CommandError
 
 from ...packageio import write_packages

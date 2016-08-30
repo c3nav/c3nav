@@ -1,7 +1,6 @@
 import difflib
 import json
 import os
-import sys
 from datetime import datetime
 
 from django.conf import settings

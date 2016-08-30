@@ -1,5 +1,4 @@
 import json
-import sys
 
 from django.core.management.base import CommandError
 
