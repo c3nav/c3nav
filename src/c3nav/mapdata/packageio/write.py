@@ -1,6 +1,7 @@
 import difflib
 import json
 import os
+import sys
 from datetime import datetime
 
 from django.conf import settings
@@ -51,7 +52,7 @@ def _write_folder(objects, path, prettify=False, check_only=False, check_sister_
 
             count += 1
             if check_only:
-                printlines(difflib.unified_diff(
+                sys.stdout.writelines(difflib.unified_diff(
                     list(open(full_filename)),
                     [],
                     fromfiledate=timezone.make_aware(
@@ -94,7 +95,7 @@ def _write_object(obj, path, filename, prettify=False, check_only=False):
             print('- Created: '+os.path.join(path, filename))
 
     if check_only:
-        printlines(difflib.unified_diff(
+        sys.stdout.write(difflib.unified_diff(
             [] if old_data is None else [(line+'\n') for line in old_data_encoded.split('\n')],
             [(line+'\n') for line in new_data_encoded.split('\n')],
             fromfiledate=timezone.make_aware(
