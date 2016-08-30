@@ -1,10 +1,8 @@
 from django.db import models
 from django.utils.translation import ugettext_lazy as _
 
-from parler.models import TranslatableModel, TranslatedFields
 
-
-class Feature(TranslatableModel):
+class Feature(models.Model):
     """
     A map feature
     """
@@ -20,6 +18,12 @@ class Feature(TranslatableModel):
     type = models.CharField(max_length=50, choices=TYPES)
     geometry = models.TextField()
 
-    translations = TranslatedFields(
-        title=models.CharField(_('package title'), max_length=50),
-    )
+
+class FeatureTitle(models.Model):
+    feature = models.ForeignKey('Feature', on_delete=models.CASCADE, related_name='titles',
+                                verbose_name=_('map package'))
+    language = models.CharField(max_length=50)
+    title = models.CharField(max_length=50)
+
+    class Meta:
+        unique_together = ('feature', 'language')
