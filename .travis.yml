@@ -1,0 +1,10 @@
+language: python
+python:
+    - "3.4"
+install:
+    - pip install -r src/requirements.txt
+before_script:
+    - cd src
+script:
+    - flake8 c3nav --max-line-length 120
+    - isort -c -rc .
