@@ -6,5 +6,5 @@ install:
 before_script:
     - cd src
 script:
-    - flake8 c3nav --max-line-length 120
+    - flake8 c3nav
     - isort -c -rc .
