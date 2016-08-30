@@ -40,6 +40,10 @@ class Package(models.Model):
 
         return kwargs
 
+    @property
+    def package(self):
+        return self
+
     def tofile(self):
         data = OrderedDict()
         data['name'] = self.name
