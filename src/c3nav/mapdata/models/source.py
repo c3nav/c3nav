@@ -1,5 +1,4 @@
 import json
-from collections import OrderedDict
 
 from django.db import models
 from django.utils.translation import ugettext_lazy as _
@@ -54,9 +53,7 @@ class Source(models.Model):
 
         return kwargs
 
-    def jsonize(self):
-        return OrderedDict((
-            ('name', self.name),
-            ('src', 'sources/'+self.get_export_filename()),
-            ('bounds', ((float(self.bottom), float(self.left)), (float(self.top), float(self.right)))),
-        ))
+    def tofile(self):
+        return {
+            'bounds': ((float(self.bottom), float(self.left)), (float(self.top), float(self.right)))
+        }
