@@ -1,12 +1,11 @@
 import json
 import os
-import sys
 
 from django.conf import settings
 from django.core.management.base import CommandError
 
 from ..models import Level, Package, Source
-from .utils import ObjectCollection, json_encode
+from .utils import ObjectCollection
 
 
 def read_packages():
