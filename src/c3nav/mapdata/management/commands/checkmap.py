@@ -3,7 +3,7 @@ import tempfile
 
 from django.core.management import call_command
 from django.core.management.base import BaseCommand
-from django.db import connections
+from django.db import connections, router
 
 
 class Command(BaseCommand):
@@ -21,6 +21,12 @@ class Command(BaseCommand):
             'ENGINE': 'django.db.backends.sqlite3',
             'NAME': tmp,
         }
+
+        # This is not nice, but the easiest way
+        def tmpdb(*args, **kwargs):
+            return 'tmpdb'
+        router.db_for_read = tmpdb
+        router.db_for_write = tmpdb
 
         try:
             call_command('migrate', database='tmpdb')
