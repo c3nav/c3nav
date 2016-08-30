@@ -13,12 +13,12 @@ from .utils import json_encode
 
 def write_packages(prettify=False, check_only=False):
     if not check_only:
-        sys.out.write('Writing Map Packages…')
+        print('Writing Map Packages…')
 
     count = 0
     for package in Package.objects.all():
         if not check_only:
-            sys.out.write('\n'+package.name)
+            print('\n'+package.name)
         count += write_package(package, prettify, check_only)
     return count
 
@@ -52,7 +52,7 @@ def _write_folder(objects, path, prettify=False, check_only=False, check_sister_
 
             count += 1
             if check_only:
-                sys.stdout.writelines(difflib.unified_diff(
+                printlines(difflib.unified_diff(
                     list(open(full_filename)),
                     [],
                     fromfiledate=timezone.make_aware(
@@ -82,20 +82,20 @@ def _write_object(obj, path, filename, prettify=False, check_only=False):
         old_data = json.loads(old_data_encoded, parse_int=float)
         if old_data != json.loads(new_data_encoded, parse_int=float):
             if not check_only:
-                sys.stdout.write('- Updated: '+os.path.join(path, filename))
+                print('- Updated: '+os.path.join(path, filename))
         elif old_data_encoded != new_data_encoded:
             if not prettify:
                 return 0
             if not check_only:
-                sys.stdout.write('- Beautified: '+os.path.join(path, filename))
+                print('- Beautified: '+os.path.join(path, filename))
         else:
             return 0
     else:
         if not check_only:
-            sys.stdout.write('- Created: '+os.path.join(path, filename))
+            print('- Created: '+os.path.join(path, filename))
 
     if check_only:
-        sys.stdout.writelines(difflib.unified_diff(
+        printlines(difflib.unified_diff(
             [] if old_data is None else [(line+'\n') for line in old_data_encoded.split('\n')],
             [(line+'\n') for line in new_data_encoded.split('\n')],
             fromfiledate=timezone.make_aware(

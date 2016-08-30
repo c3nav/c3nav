@@ -1,5 +1,6 @@
 import json
 import os
+import sys
 
 from django.conf import settings
 from django.core.management.base import CommandError
@@ -58,11 +59,3 @@ def _read_folder(package, cls, path, check_sister_file=False):
 
         objects.append(cls.fromfile(json.load(open(full_filename)), package, name))
     return objects
-
-
-def _fromfile_validate(cls, data, name):
-    obj = cls.fromfile(json.loads(data), name=name)
-    formatted_data = json_encode(obj.tofile())
-    if data != formatted_data:
-        raise CommandError('%s.json is not correctly formatted, its contents are:\n---\n' +
-                           data+'\n---\nbut they should be\n---\n'+formatted_data+'\n---')
