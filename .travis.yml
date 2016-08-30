@@ -2,7 +2,7 @@ language: python
 python:
     - "3.4"
 install:
-    - pip install -r src/requirements.txt
+    - pip install -r src/requirements_dev.txt
 before_script:
     - cd src
 script:
