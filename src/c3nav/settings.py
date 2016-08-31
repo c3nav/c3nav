@@ -108,8 +108,9 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'compressor',
     'bootstrap3',
-    'c3nav.control',
     'c3nav.mapdata',
+    'c3nav.editor',
+    'c3nav.control',
 ]
 
 MIDDLEWARE_CLASSES = [

@@ -1,4 +1,4 @@
-{% extends 'control/base.html' %}
+{% extends 'editor/base.html' %}
 {% load static %}
 {% block content %}
 <div id="mapeditor"></div>
@@ -22,7 +22,7 @@ var map = L.map('mapeditor', {
 {% for source_list in sources %}
 L.control.layers([], {
     {% for source in source_list %}
-    "{{ source.name }}": L.imageOverlay('{% url 'map.source' source=source.name %}', {{ source.jsbounds }}),{% endfor %}
+    "{{ source.name }}": L.imageOverlay('{% url 'editor.sources.image' source=source.name %}', {{ source.jsbounds }}),{% endfor %}
 }).addTo(map);
 {% endfor %}
 
@@ -34,8 +34,7 @@ L.LevelControl = L.Control.extend({
     onAdd: function (map) {
         var container = L.DomUtil.create('div', 'leaflet-control leaflet-bar leaflet-levels'), link;
         {% for level in levels reversed %}
-        link = L.DomUtil.create('a', '{% if current_level == level %}current{% endif %}', container);
-        link.href = '{% url "control.editor" level=level.name %}';
+        link = L.DomUtil.create('a', '{% if forloop.last %}current{% endif %}', container);
         link.innerHTML = '{{ level.name }}';
         {% endfor %}
         return container;
