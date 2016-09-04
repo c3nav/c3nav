@@ -10,6 +10,7 @@ class Package(models.Model):
     """
     name = models.CharField(_('package identifier'), unique=True, max_length=50,
                             help_text=_('e.g. de.c3nav.33c3.base'))
+    depends = models.ManyToManyField('Package')
 
     bottom = models.DecimalField(_('bottom coordinate'), null=True, max_digits=6, decimal_places=2)
     left = models.DecimalField(_('left coordinate'), null=True, max_digits=6, decimal_places=2)
@@ -27,6 +28,11 @@ class Package(models.Model):
         if 'name' not in data:
             raise ValueError('pkg.json: missing package name.')
         kwargs['name'] = data['name']
+
+        depends = data.get('depends', [])
+        if not isinstance(depends, list):
+            raise TypeError('pkg.json: depends has to be a list')
+        kwargs['depends'] = depends
 
         if 'bounds' in data:
             bounds = data['bounds']
@@ -49,5 +55,7 @@ class Package(models.Model):
         data['name'] = self.name
         if self.bottom is not None:
             data['bounds'] = ((float(self.bottom), float(self.left)), (float(self.top), float(self.right)))
+        if self.depends.exists():
+            data['depends'] = tuple(package.name for package in self.depends.all().order_by('name'))
 
         return data
