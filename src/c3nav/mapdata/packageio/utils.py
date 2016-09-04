@@ -39,7 +39,15 @@ class ObjectCollection:
 
     def apply_to_db(self):
         for name, package in tuple(self.packages.items()):
+            for depname in package['depends']:
+                if depname not in self.packages:
+                    raise CommandError('Missing dependency: %s' % depname)
+
+        for name, package in tuple(self.packages.items()):
+            package = package.copy()
+            orig_deps = package.pop('depends', [])
             package, created = Package.objects.update_or_create(name=name, defaults=package)
+            package.orig_deps = orig_deps
             self.packages[name] = package
             if created:
                 print('- Created package: '+name)
@@ -69,6 +77,20 @@ class ObjectCollection:
         for package in Package.objects.exclude(name__in=self.packages.keys()):
             print('- Deleted package: '+package.name)
             package.delete()
+
+        for name, package in tuple(self.packages.items()):
+            has_deps = []
+            for dependency in tuple(package.depends.all()):
+                if dependency.name not in package.orig_deps:
+                    package.depends.remove(dependency)
+                    print('- Removed dependency: '+dependency.name)
+                else:
+                    has_deps.append(dependency.name)
+
+            for depname in package.orig_deps:
+                if depname not in has_deps:
+                    package.depends.add(self.packages[depname])
+                    print('- Added dependency: '+depname)
 
 
 def _preencode(data, magic_marker):
