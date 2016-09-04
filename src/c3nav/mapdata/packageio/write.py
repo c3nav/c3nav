@@ -45,7 +45,7 @@ def _write_folder(objects, path, prettify=False, check_only=False, check_sister_
             count += _write_object(obj, path, filename, prettify, check_only)
 
     if os.path.isdir(full_path):
-        for filename in os.listdir(full_path):
+        for filename in sorted(os.listdir(full_path)):
             full_filename = os.path.join(full_path, filename)
             if filename in filenames or not filename.endswith('.json') or not os.path.isfile(full_filename):
                 continue

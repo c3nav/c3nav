@@ -44,7 +44,7 @@ def _read_folder(package, cls, path, check_sister_file=False):
     objects = []
     if not os.path.isdir(path):
         return []
-    for filename in os.listdir(path):
+    for filename in sorted(os.listdir(path)):
         if not filename.endswith('.json'):
             continue
 
