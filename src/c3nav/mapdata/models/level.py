@@ -6,7 +6,7 @@ class Level(models.Model):
     """
     A map level (-1, 0, 1, 2…)
     """
-    name = models.CharField(_('level name'), max_length=50, unique=True,
+    name = models.SlugField(_('level name'), primary_key=True, max_length=50,
                             help_text=_('Usually just an integer (e.g. -1, 0, 1, 2)'))
     altitude = models.DecimalField(_('level altitude'), null=True, max_digits=6, decimal_places=2)
     package = models.ForeignKey('Package', on_delete=models.CASCADE, related_name='levels',
@@ -21,8 +21,8 @@ class Level(models.Model):
             raise ValueError('%s.json: altitude has to be in or float.')
 
         return {
-            'package': package,
             'name': name,
+            'package': package,
             'altitude': data['altitude'],
         }
 
