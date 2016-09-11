@@ -5,12 +5,12 @@ from django.conf import settings
 from django.core.files import File
 from django.http import HttpResponse
 
-from rest_framework.viewsets import ReadOnlyModelViewSet
 from rest_framework.decorators import detail_route
+from rest_framework.viewsets import ReadOnlyModelViewSet
 
 from ...mapdata.models import Level, Package, Source
-from ..serializers import LevelSerializer, PackageSerializer, SourceSerializer
 from ..permissions import filter_source_queryset
+from ..serializers import LevelSerializer, PackageSerializer, SourceSerializer
 
 
 class LevelViewSet(ReadOnlyModelViewSet):
