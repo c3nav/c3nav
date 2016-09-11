@@ -59,3 +59,6 @@ class Package(models.Model):
             data['depends'] = tuple(package.name for package in self.depends.all().order_by('name'))
 
         return data
+
+    def __str__(self):
+        return self.name
