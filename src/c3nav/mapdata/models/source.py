@@ -8,7 +8,7 @@ class Source(models.Model):
     """
     A map source, images of levels that can be useful as backgrounds for the map editor
     """
-    name = models.SlugField(_('source name'), max_length=50, unique=True)
+    name = models.SlugField(_('source name'), primary_key=True, max_length=50)
     package = models.ForeignKey('Package', on_delete=models.CASCADE, related_name='sources',
                                 verbose_name=_('map package'))
 

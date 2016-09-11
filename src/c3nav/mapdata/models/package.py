@@ -8,7 +8,7 @@ class Package(models.Model):
     """
     A c3nav map package
     """
-    name = models.CharField(_('package identifier'), unique=True, max_length=50,
+    name = models.SlugField(_('package identifier'), primary_key=True, max_length=50,
                             help_text=_('e.g. de.c3nav.33c3.base'))
     depends = models.ManyToManyField('Package')
 
