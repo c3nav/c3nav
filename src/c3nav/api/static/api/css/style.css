@@ -1,0 +1,51 @@
+code, kbd, pre, samp {
+    font-family: Source Code Pro, Bitstream Vera Sans Mono, Menlo, Monaco, Consolas, "Courier New", monospace;
+}
+pre {
+    font-size:14px;
+}
+.page-header {
+    margin:0;
+}
+.page-header + div>p {
+    font-size:18px;
+    padding-bottom:10px;
+}
+.navbar-brand {
+    font-size:20px;
+    color:#333333;
+    cursor:default;
+}
+.navbar {
+    margin-bottom:15px;
+}
+.button-form {
+    margin-right:10px;
+}
+.request-info {
+    margin-top:5px;
+}
+.meta.nocode {
+    white-space:pre-line;
+}
+pre, pre.prettyprint {
+    background-color:transparent;
+    padding:0;
+    border:0;
+}
+.request-info > pre.prettyprint {
+    border-color:#DDDDDD;
+    border-style:solid;
+    border-width:0 0 1px;
+    padding:10px 0;
+}
+.breadcrumb {
+    padding:0;
+    background-color:transparent;
+    border:0;
+    font-size:16px;
+    margin-bottom:10px;
+}
+h1 {
+    margin-top:10px;
+}

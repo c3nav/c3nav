@@ -109,6 +109,7 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'compressor',
     'bootstrap3',
+    'c3nav.api',
     'rest_framework',
     'c3nav.mapdata',
     'c3nav.editor',
