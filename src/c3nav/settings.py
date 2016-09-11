@@ -46,6 +46,7 @@ else:
 
 debug_fallback = "runserver" in sys.argv
 DEBUG = config.getboolean('django', 'debug', fallback=debug_fallback)
+PUBLIC_PACKAGES = [n for n in config.get('c3nav', 'public_packages', fallback='').split(',') if n]
 
 db_backend = config.get('database', 'backend', fallback='sqlite3')
 DATABASES = {
@@ -108,6 +109,7 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'compressor',
     'bootstrap3',
+    'rest_framework',
     'c3nav.mapdata',
     'c3nav.editor',
     'c3nav.control',
@@ -135,6 +137,22 @@ WSGI_APPLICATION = 'c3nav.wsgi.application'
 USE_I18N = True
 USE_L10N = True
 USE_TZ = True
+
+REST_FRAMEWORK = {
+    'DEFAULT_VERSIONING_CLASS': 'rest_framework.versioning.URLPathVersioning',
+    'ALLOWED_VERSIONS': ['v1'],
+    'DEFAULT_VERSION': 'v1',
+    'DEFAULT_PERMISSION_CLASSES': (
+        'c3nav.api.permissions.LockedMapFeatures',
+    ),
+    'DEFAULT_FILTER_BACKENDS': (
+        'rest_framework.filters.DjangoFilterBackend',
+        'rest_framework.filters.OrderingFilter',
+        'rest_framework.filters.SearchFilter',
+    ),
+    'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.LimitOffsetPagination',
+    'PAGE_SIZE': 50
+}
 
 LOCALE_PATHS = (
     os.path.join(os.path.dirname(__file__), 'locale'),
