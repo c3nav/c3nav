@@ -12,8 +12,6 @@ def get_unlocked_packages(request):
 
 
 def can_access_package(request, package):
-    print(package.name == 'de.c3nav.33c3.base')
-    return package.name == 'de.c3nav.33c3.base'
     return settings.DEBUG or package.name in get_unlocked_packages(request)
 
 
