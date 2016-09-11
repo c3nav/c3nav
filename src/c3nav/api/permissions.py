@@ -1,7 +1,8 @@
-from rest_framework.permissions import BasePermission
-from rest_framework.exceptions import PermissionDenied
 from django.conf import settings
 from django.utils.translation import ugettext_lazy as _
+
+from rest_framework.exceptions import PermissionDenied
+from rest_framework.permissions import BasePermission
 
 from ..mapdata.models import Source
 
