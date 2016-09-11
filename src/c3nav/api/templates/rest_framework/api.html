@@ -1,0 +1,20 @@
+{% extends "rest_framework/base.html" %}
+{% load static %}
+{% load compress %}
+
+{% block title %}{% if name %}{{ name }} – {% endif %}c3nav API{% endblock %}
+
+{% block bootstrap_navbar_variant %}{% endblock %}
+
+{% block style %}
+{% compress css %}
+<link href="{% static 'bootstrap/css/bootstrap.css' %}" rel="stylesheet">
+<link href="{% static 'rest_framework/css/prettify.css' %}" rel="stylesheet">
+<link href="{% static 'rest_framework/css/default.css' %}" rel="stylesheet">
+<link href="{% static 'api/css/style.css' %}" rel="stylesheet">
+{% endcompress %}
+{% endblock %}
+
+{% block branding %}
+<span class="navbar-brand">c3nav API</span>
+{% endblock %}
