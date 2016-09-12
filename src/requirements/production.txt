@@ -1,0 +1,6 @@
+Django>=1.9,<1.10
+django-bootstrap3>=6.2,<6.3
+django-compressor==2.0
+csscompressor
+djangorestframework>=3.4,<3.5
+django-filter>=0.14,<0.15
