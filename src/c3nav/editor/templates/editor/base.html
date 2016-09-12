@@ -10,7 +10,7 @@
     {% compress css %}
     <link href="{% static 'bootstrap/css/bootstrap.css' %}" rel="stylesheet">
     <link href="{% static 'leaflet/leaflet.css' %}" rel="stylesheet">
-    <link href="{% static 'editor/editor.css' %}" rel="stylesheet">
+    <link href="{% static 'editor/css/editor.css' %}" rel="stylesheet">
     {% endcompress %}
   </head>
 
@@ -51,8 +51,7 @@
     <script type="text/javascript" src="{% static 'bootstrap/js/bootstrap.js' %}"></script>
     <script type="text/javascript" src="{% static 'leaflet/leaflet.js' %}"></script>
     <script type="text/javascript" src="{% static 'leaflet/leaflet.editable.js' %}"></script>
+    <script type="text/javascript" src="{% static 'editor/js/map.js' %}"></script>
     {% endcompress %}
-    {% block addbottom %}
-    {% endblock %}
   </body>
 </html>
