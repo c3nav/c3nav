@@ -23,7 +23,7 @@ class LevelSerializer(ModelSerializer):
 class PackageSerializer(BoundsMixin, ModelSerializer):
     class Meta:
         model = Package
-        fields = ('name', 'depends')
+        fields = ('name', 'home_repo', 'depends')
 
     def to_representation(self, obj):
         result = super().to_representation(obj)
