@@ -125,9 +125,17 @@ MIDDLEWARE_CLASSES = [
     'django.contrib.auth.middleware.SessionAuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
-    'htmlmin.middleware.HtmlMinifyMiddleware',
-    'htmlmin.middleware.MarkRequestMiddleware',
 ]
+
+try:
+    import htmlmin  # noqa
+except ImportError:
+    pass
+else:
+    MIDDLEWARE_CLASSES += [
+        'htmlmin.middleware.HtmlMinifyMiddleware',
+        'htmlmin.middleware.MarkRequestMiddleware',
+    ]
 
 # Security settings
 X_FRAME_OPTIONS = 'DENY'

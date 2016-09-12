@@ -7,7 +7,7 @@ python:
 
 install:
     - pip install --upgrade setuptools
-    - pip install -r src/requirements_dev.txt
+    - pip install -r src/requirements.txt -r src/requirements/dev.txt
 
 before_script:
     - cd src
