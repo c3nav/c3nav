@@ -49,3 +49,9 @@ pre, pre.prettyprint {
 h1 {
     margin-top:10px;
 }
+pre a:hover {
+    text-decoration:none;
+}
+pre a:hover > * {
+    text-decoration:underline;
+}
