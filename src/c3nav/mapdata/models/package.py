@@ -11,6 +11,7 @@ class Package(models.Model):
     name = models.SlugField(_('package identifier'), primary_key=True, max_length=50,
                             help_text=_('e.g. de.c3nav.33c3.base'))
     depends = models.ManyToManyField('Package')
+    home_repo = models.URLField(_('URL to the home git repository'), null=True)
 
     bottom = models.DecimalField(_('bottom coordinate'), null=True, max_digits=6, decimal_places=2)
     left = models.DecimalField(_('left coordinate'), null=True, max_digits=6, decimal_places=2)
@@ -34,6 +35,9 @@ class Package(models.Model):
             raise TypeError('pkg.json: depends has to be a list')
         kwargs['depends'] = depends
 
+        if 'home_repo' in data:
+            kwargs['home_repo'] = data['home_repo']
+
         if 'bounds' in data:
             bounds = data['bounds']
             if len(bounds) != 2 or len(bounds[0]) != 2 or len(bounds[1]) != 2:
@@ -53,10 +57,12 @@ class Package(models.Model):
     def tofile(self):
         data = OrderedDict()
         data['name'] = self.name
-        if self.bottom is not None:
-            data['bounds'] = ((float(self.bottom), float(self.left)), (float(self.top), float(self.right)))
+        if self.home_repo is not None:
+            data['home_repo'] = self.home_repo
         if self.depends.exists():
             data['depends'] = tuple(package.name for package in self.depends.all().order_by('name'))
+        if self.bottom is not None:
+            data['bounds'] = ((float(self.bottom), float(self.left)), (float(self.top), float(self.right)))
 
         return data
 
