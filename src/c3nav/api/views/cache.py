@@ -14,7 +14,7 @@ class CachedViewSetMixin:
         return cache_key
 
     def get_cache_params(self, request):
-        return ''
+        return request.META.get('HTTP_ACCEPT', '')
 
     def dispatch(self, request, *args, **kwargs):
         do_cache = request.method in ('GET', 'HEAD', 'OPTIONS')
