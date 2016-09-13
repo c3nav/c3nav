@@ -15,6 +15,7 @@ pre {
     font-size:20px;
     color:#333333;
     cursor:default;
+    margin-left:-15px;
 }
 .navbar {
     margin-bottom:15px;
