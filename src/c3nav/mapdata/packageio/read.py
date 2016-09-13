@@ -1,5 +1,6 @@
 import json
 import os
+import subprocess
 
 from django.conf import settings
 from django.core.management.base import CommandError
@@ -34,6 +35,16 @@ def read_package(directory, objects=None):
         raise CommandError('no pkg.json found')
 
     package = Package.fromfile(package, directory)
+
+    try:
+        result = subprocess.Popen(['git', '-C', path, 'rev-parse', '--verify', 'HEAD'], stdout=subprocess.PIPE)
+        returncode = result.wait()
+    except:
+        pass
+    else:
+        if returncode == 0:
+            package['commit_id'] = result.stdout.read().strip()
+
     objects.add_package(package)
     objects.add_levels(_read_folder(package['name'], Level, os.path.join(path, 'levels')))
     objects.add_sources(_read_folder(package['name'], Source, os.path.join(path, 'sources'), check_sister_file=True))
