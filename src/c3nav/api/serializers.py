@@ -1,17 +1,10 @@
 from django.conf import settings
+
 from rest_framework import serializers
 
 from ..editor.hosters import get_hoster_for_package
 from ..mapdata.models import Level, Package, Source
 from .permissions import can_access_package
-
-
-class BoundsMixin:
-    def to_representation(self, obj):
-        result = super().to_representation(obj)
-        if obj.bottom is not None:
-            result['bounds'] = ((obj.bottom, obj.left), (obj.top, obj.right))
-        return result
 
 
 class LevelSerializer(serializers.ModelSerializer):
@@ -20,10 +13,10 @@ class LevelSerializer(serializers.ModelSerializer):
         fields = ('name', 'altitude', 'package')
 
 
-class PackageSerializer(BoundsMixin, serializers.ModelSerializer):
+class PackageSerializer(serializers.ModelSerializer):
     class Meta:
         model = Package
-        fields = ('name', 'home_repo', 'depends')
+        fields = ('name', 'home_repo', 'depends', 'bounds')
 
     def to_representation(self, obj):
         result = super().to_representation(obj)
@@ -36,10 +29,10 @@ class PackageSerializer(BoundsMixin, serializers.ModelSerializer):
         return result
 
 
-class SourceSerializer(BoundsMixin, serializers.ModelSerializer):
+class SourceSerializer(serializers.ModelSerializer):
     class Meta:
         model = Source
-        fields = ('name', 'package')
+        fields = ('name', 'package', 'bounds')
 
 
 class HosterSerializer(serializers.Serializer):

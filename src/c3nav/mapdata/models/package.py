@@ -54,6 +54,12 @@ class Package(models.Model):
     def package(self):
         return self
 
+    @property
+    def bounds(self):
+        if self.bottom is None:
+            return None
+        return ((float(self.bottom), float(self.left)), (float(self.top), float(self.right)))
+
     def tofile(self):
         data = OrderedDict()
         data['name'] = self.name
