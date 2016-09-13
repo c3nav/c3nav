@@ -1,5 +1,3 @@
-import json
-
 from django.db import models
 from django.utils.translation import ugettext_lazy as _
 
@@ -26,11 +24,7 @@ class Source(models.Model):
 
     @property
     def bounds(self):
-        return ((self.bottom, self.left), (self.top, self.right))
-
-    @property
-    def jsbounds(self):
-        return json.dumps(((float(self.bottom), float(self.left)), (float(self.top), float(self.right))))
+        return ((float(self.bottom), float(self.left)), (float(self.top), float(self.right)))
 
     @classmethod
     def fromfile(cls, data, package, name):

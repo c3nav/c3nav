@@ -3,6 +3,7 @@ import json
 from django.core.management.base import CommandError
 
 from ..models import Level, Package, Source
+from ..utils import json_encoder_reindent
 
 
 class ObjectCollection:
@@ -93,25 +94,5 @@ class ObjectCollection:
                     print('- Added dependency: '+depname)
 
 
-def _preencode(data, magic_marker):
-    if isinstance(data, dict):
-        data = data.copy()
-        for name, value in tuple(data.items()):
-            if name in ('bounds', ):
-                data[name] = magic_marker+json.dumps(value)+magic_marker
-            else:
-                data[name] = _preencode(value, magic_marker)
-        return data
-    elif isinstance(data, (tuple, list)):
-        return tuple(_preencode(value, magic_marker) for value in data)
-    else:
-        return data
-
-
 def json_encode(data):
-    magic_marker = '***JSON_MAGIC_MARKER***'
-    test_encode = json.dumps(data)
-    while magic_marker in test_encode:
-        magic_marker += '*'
-    result = json.dumps(_preencode(data, magic_marker), indent=4)
-    return result.replace('"'+magic_marker, '').replace(magic_marker+'"', '')+'\n'
+    return json_encoder_reindent(json.dumps, data, indent=4)+'\n'
