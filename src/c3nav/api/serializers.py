@@ -41,7 +41,7 @@ class HosterSerializer(serializers.Serializer):
 
     def to_representation(self, obj):
         result = super().to_representation(obj)
-        result['packages'] = obj.get_packages().values_list('name', flat=True)
+        result['packages'] = tuple(obj.get_packages().values_list('name', flat=True))
         if 'request' in self.context:
             result['signed_in'] = obj.is_access_granted(self.context['request'])
         return result
