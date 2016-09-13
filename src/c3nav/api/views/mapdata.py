@@ -11,9 +11,10 @@ from rest_framework.viewsets import ReadOnlyModelViewSet
 from ...mapdata.models import Level, Package, Source
 from ..permissions import filter_source_queryset
 from ..serializers import LevelSerializer, PackageSerializer, SourceSerializer
+from .cache import AccessCachedViewSetMixin, CachedViewSetMixin
 
 
-class LevelViewSet(ReadOnlyModelViewSet):
+class LevelViewSet(CachedViewSetMixin, ReadOnlyModelViewSet):
     """
     Returns a list of all levels on the map.
     """
@@ -26,7 +27,7 @@ class LevelViewSet(ReadOnlyModelViewSet):
     search_fields = ('name',)
 
 
-class PackageViewSet(ReadOnlyModelViewSet):
+class PackageViewSet(AccessCachedViewSetMixin, ReadOnlyModelViewSet):
     """
     Returns a list of all packages the map consists of.
     """
@@ -39,7 +40,7 @@ class PackageViewSet(ReadOnlyModelViewSet):
     search_fields = ('name',)
 
 
-class SourceViewSet(ReadOnlyModelViewSet):
+class SourceViewSet(AccessCachedViewSetMixin, ReadOnlyModelViewSet):
     """
     Returns a list of source images (to use as a drafts).
     Call /sources/{name}/image to get the image.
