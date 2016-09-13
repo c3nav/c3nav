@@ -16,7 +16,7 @@ class LevelSerializer(serializers.ModelSerializer):
 class PackageSerializer(serializers.ModelSerializer):
     class Meta:
         model = Package
-        fields = ('name', 'home_repo', 'depends', 'bounds')
+        fields = ('name', 'home_repo', 'commit_id', 'depends', 'bounds')
 
     def to_representation(self, obj):
         result = super().to_representation(obj)
