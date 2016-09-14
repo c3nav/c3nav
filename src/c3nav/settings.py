@@ -88,6 +88,17 @@ CACHES = {
         'LOCATION': 'unique-snowflake',
     }
 }
+REAL_CACHE_USED = False
+SESSION_ENGINE = "django.contrib.sessions.backends.db"
+
+HAS_MEMCACHED = config.has_option('memcached', 'location')
+if HAS_MEMCACHED:
+    REAL_CACHE_USED = True
+    CACHES['default'] = {
+        'BACKEND': 'django.core.cache.backends.memcached.PyLibMCCache',
+        'LOCATION': config.get('memcached', 'location'),
+    }
+    SESSION_ENGINE = "django.contrib.sessions.backends.cached_db"
 
 SESSION_COOKIE_DOMAIN = config.get('c3nav', 'cookie_domain', fallback=None)
 SESSION_COOKIE_SECURE = config.getboolean('c3nav', 'session_cookie_secure', fallback=False)
