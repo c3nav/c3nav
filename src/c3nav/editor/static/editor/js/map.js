@@ -1,3 +1,40 @@
+function add_edit_button(map, container, type, icon, callback) {
+    $('<a href="#">').appendTo(container).text(icon).attr({
+        href: '#',
+        title: 'add '+name,
+        name: type
+    }).on('click', function(e) {
+        e.preventDefault();
+
+        // If we are currently adding a feature, don't start drawing another.
+        if (currently_adding !== null) {
+            return;
+        }
+
+        // If we are currently drawing a feature, don't start drawing another.
+        if (currently_drawing !== null) {
+            // If it is a feature of the same type, cancel it.
+            if (currently_drawing === type) {
+                $('.leaflet-editbar .current').removeClass('current');
+                currently_drawing = null;
+                map.editTools.stopDrawing();
+            }
+            return;
+        }
+
+        currently_drawing = type;
+        console.log(type);
+        $('.leaflet-editbar .current').removeClass('current');
+        $('.leaflet-editbar [name='+type+']').addClass('current');
+        options = feature_types[type];
+        if (options.type == 'polygon') {
+            map.editTools.startPolygon(null, options);
+        } else if (options.type == 'polyline') {
+            map.editTools.startPolyline(null, options);
+        }
+    });
+}
+
 if ($('#mapeditor').length) {
     // Init Map
     var map = L.map('mapeditor', {
@@ -9,51 +46,51 @@ if ($('#mapeditor').length) {
         closePopupOnClick: false,
     });
 
-    $.getJSON('/api/v1/map/packages/', function(packages) {
+    $.getJSON('/api/v1/packages/', function(packages) {
         var bounds = [[0, 0], [0, 0]];
         var pkg;
         for(var i=0;i<packages.length;i++) {
             pkg = packages[i];
-            if (pkg.bounds === undefined) continue;
+            if (pkg.bounds === null) continue;
             bounds = [[Math.min(bounds[0][0], pkg.bounds[0][0]), Math.min(bounds[0][1], pkg.bounds[0][1])],
                       [Math.max(bounds[1][0], pkg.bounds[1][0]), Math.max(bounds[1][1], pkg.bounds[1][1])]];
         }
         map.setMaxBounds(bounds);
         console.log(bounds);
         map.fitBounds(bounds, {padding: [30, 50]});
-    });
 
-    $.getJSON('/api/v1/map/sources/', function(sources) {
-        var layers = {};
-        var source;
-        for(var i=0;i<sources.length;i++) {
-            source = sources[i];
-            if (layers[source.package] === undefined) layers[source.package] = {}
-            layers[source.package][source.name] = L.imageOverlay('/api/v1/map/sources/'+source.name+'/image/', source.bounds);
-        }
-        for(group_name in layers) {
-            console.log(group_name);
-            L.control.layers([], layers[group_name]).addTo(map);
-        }
-    });
-
-    $.getJSON('/api/v1/map/levels/?ordering=-altitude', function(levels) {
-        L.LevelControl = L.Control.extend({
-            options: {
-                position: 'bottomright'
-            },
-            onAdd: function (map) {
-                var container = L.DomUtil.create('div', 'leaflet-control leaflet-bar leaflet-levels'), link;
-                var level;
-                for(var i=0;i<levels.length;i++) {
-                    level = levels[i];
-                    link = L.DomUtil.create('a', (i == levels.length-1) ? 'current' : '', container);
-                    link.innerHTML = level.name;
-                }
-                return container;
+        $.getJSON('/api/v1/sources/', function(sources) {
+            var layers = {};
+            var source;
+            for(var i=0;i<sources.length;i++) {
+                source = sources[i];
+                if (layers[source.package] === undefined) layers[source.package] = {};
+                layers[source.package][source.name] = L.imageOverlay('/api/v1/map/sources/'+source.name+'/image/', source.bounds);
+            }
+            for (var group_name in layers) {
+                console.log(group_name);
+                L.control.layers([], layers[group_name]).addTo(map);
             }
         });
-        map.addControl(new L.LevelControl());
+
+        $.getJSON('/api/v1/levels/?ordering=-altitude', function(levels) {
+            L.LevelControl = L.Control.extend({
+                options: {
+                    position: 'bottomright'
+                },
+                onAdd: function (map) {
+                    var container = L.DomUtil.create('div', 'leaflet-control leaflet-bar leaflet-levels'), link;
+                    var level;
+                    for(var i=0;i<levels.length;i++) {
+                        level = levels[i];
+                        link = L.DomUtil.create('a', (i == levels.length-1) ? 'current' : '', container);
+                        link.innerHTML = level.name;
+                    }
+                    return container;
+                }
+            });
+            map.addControl(new L.LevelControl());
+        });
     });
 
     // Default styles:
