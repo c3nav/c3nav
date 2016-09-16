@@ -56,7 +56,6 @@ if ($('#mapeditor').length) {
                       [Math.max(bounds[1][0], pkg.bounds[1][0]), Math.max(bounds[1][1], pkg.bounds[1][1])]];
         }
         map.setMaxBounds(bounds);
-        console.log(bounds);
         map.fitBounds(bounds, {padding: [30, 50]});
 
         $.getJSON('/api/v1/sources/', function(sources) {
@@ -64,13 +63,9 @@ if ($('#mapeditor').length) {
             var source;
             for(var i=0;i<sources.length;i++) {
                 source = sources[i];
-                if (layers[source.package] === undefined) layers[source.package] = {};
-                layers[source.package][source.name] = L.imageOverlay('/api/v1/map/sources/'+source.name+'/image/', source.bounds);
+                layers[source.name] = L.imageOverlay('/api/v1/sources/'+source.name+'/image/', source.bounds);
             }
-            for (var group_name in layers) {
-                console.log(group_name);
-                L.control.layers([], layers[group_name]).addTo(map);
-            }
+            L.control.layers([], layers).addTo(map);
         });
 
         $.getJSON('/api/v1/levels/?ordering=-altitude', function(levels) {
