@@ -13,12 +13,40 @@
     top:2px;
 }
 
-.leaflet-editbar a {
-    font-size: 14px;
+.leaflet-drawbar {
+    display:none;
+}
+.leaflet-drawbar a, .leaflet-drawbar a:hover {
+    font-size: 13px;
+    width:auto;
+    padding:0 6px;
+}
+
+.leaflet-editbar a, .leaflet-editbar a:hover {
+    font-size: 13px;
+    width:auto;
+    min-width:50px;
+    text-align:left;
+    padding:0 6px;
+    display:none;
 }
 .leaflet-editbar a.current {
-    background-color:#FFFFDD;
+    display:block;
+    font-weight:bold;
 }
+.leaflet-editbar.usable:hover a {
+    width:80px;
+    display:block;
+}
+.leaflet-editbar:not(.usable) a.current, .leaflet-editbar:not(:hover) a.current, .leaflet-drawbar a {
+    border-radius:4px;
+    border:0;
+}
+.leaflet-editbar:not(.usable) a.current:hover {
+    background-color:#FFFFFF;
+    cursor:default;
+}
+
 .leaflet-levels a {
     font-size:16px;
     color:#333333;
