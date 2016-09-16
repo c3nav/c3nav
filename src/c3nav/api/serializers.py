@@ -1,5 +1,4 @@
 from django.conf import settings
-
 from rest_framework import serializers
 
 from ..editor.hosters import get_hoster_for_package
