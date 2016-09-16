@@ -114,48 +114,11 @@ if ($('#mapeditor').length) {
             type: 'polygon',
             color: '#99CC00',
         },
-    }
+    };
 
     // Add drawing new features
     currently_drawing = null;
     currently_adding = null;
-    function add_edit_button(map, container, type, icon, callback) {
-        $('<a href="#">').appendTo(container).text(icon).attr({
-            href: '#',
-            title: 'add '+name,
-            name: type
-        }).on('click', function(e) {
-            e.preventDefault();
-
-            // If we are currently adding a feature, don't start drawing another.
-            if (currently_adding !== null) {
-                return;
-            }
-
-            // If we are currently drawing a feature, don't start drawing another.
-            if (currently_drawing !== null) {
-                // If it is a feature of the same type, cancel it.
-                if (currently_drawing === type) {
-                    $('.leaflet-editbar .current').removeClass('current');
-                    currently_drawing = null;
-                    map.editTools.stopDrawing();
-                }
-                return;
-            }
-
-            currently_drawing = type;
-            console.log(type);
-            $('.leaflet-editbar .current').removeClass('current');
-            $('.leaflet-editbar [name='+type+']').addClass('current');
-            options = feature_types[type];
-            if (options.type == 'polygon') {
-                map.editTools.startPolygon(null, options);
-            } else if (options.type == 'polyline') {
-                map.editTools.startPolyline(null, options);
-            }
-        });
-
-    }
     L.DrawControl = L.Control.extend({
         options: {
             position: 'topleft'
