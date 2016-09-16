@@ -1,6 +1,7 @@
 import base64
 
 from django.core.cache import cache
+from django.template.response import SimpleTemplateResponse
 from django.utils.cache import patch_vary_headers
 
 from ..permissions import get_unlocked_packages
@@ -25,7 +26,8 @@ class CachedViewSetMixin:
         response = super().dispatch(request, *args, **kwargs)
         patch_vary_headers(response, ['Cookie'])
         if do_cache:
-            response.render()
+            if isinstance(response, SimpleTemplateResponse):
+                response.render()
             cache.set(cache_key, response, 60)
         return response
 
