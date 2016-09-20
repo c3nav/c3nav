@@ -3,6 +3,8 @@ from collections import OrderedDict, namedtuple
 from django.db import models
 from django.utils.translation import ugettext_lazy as _
 
+from ..fields import GeometryField
+
 
 class FeatureType(namedtuple('FeatureType', ('name', 'title', 'title_plural', 'geomtype', 'color'))):
     def __init__(self, *args, **kwartgs):
@@ -27,8 +29,8 @@ class Feature(models.Model):
     name = models.SlugField(_('feature identifier'), primary_key=True, max_length=50, help_text=_('e.g. noc'))
     package = models.ForeignKey('Package', on_delete=models.CASCADE, related_name='features',
                                 verbose_name=_('map package'))
-    type = models.CharField(max_length=50, choices=TYPES)
-    geometry = models.TextField()
+    feature_type = models.CharField(max_length=50, choices=TYPES)
+    geometry = GeometryField()
 
 
 class FeatureTitle(models.Model):

@@ -4,3 +4,4 @@ django-compressor==2.1
 csscompressor
 djangorestframework>=3.4,<3.5
 django-filter>=0.14,<0.15
+shapely>=1.5,<1.6
