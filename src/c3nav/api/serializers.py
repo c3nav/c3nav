@@ -2,7 +2,8 @@ from django.conf import settings
 from rest_framework import serializers
 
 from ..editor.hosters import get_hoster_for_package
-from ..mapdata.models import Level, Package, Source
+from ..mapdata.models import Feature, Level, Package, Source
+from .fields import GeometryField
 from .permissions import can_access_package
 
 
@@ -40,6 +41,14 @@ class FeatureTypeSerializer(serializers.Serializer):
     title_plural = serializers.CharField()
     geomtype = serializers.CharField()
     color = serializers.CharField()
+
+
+class FeatureSerializer(serializers.ModelSerializer):
+    geometry = GeometryField()
+
+    class Meta:
+        model = Feature
+        fields = ('name', 'package', 'feature_type', 'geometry')
 
 
 class HosterSerializer(serializers.Serializer):
