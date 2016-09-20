@@ -30,7 +30,7 @@ editor = {
                 editcontrols.append(
                     $('<fieldset>').attr('name', feature_type.name).append(
                         $('<legend>').text(feature_type.title_plural).append(
-                            $('<button class="btn btn-primary btn-xs pull-right"><i class="glyphicon glyphicon-plus"></i></button>')
+                            $('<button class="btn btn-default btn-xs pull-right start-drawing"><i class="glyphicon glyphicon-plus"></i></button>')
                         )
                     )
                 );
@@ -126,7 +126,7 @@ editor = {
         });
         editor.map.addControl(new L.DrawControl());
 
-        $('#mapeditcontrols').on('click', 'fieldset legend .btn', function() {
+        $('#mapeditcontrols').on('click', '.start-drawing', function() {
             console.log($(this).closest('fieldset'));
             editor.start_drawing($(this).closest('fieldset').attr('name'));
         });
@@ -140,16 +140,17 @@ editor = {
                 closeButton: false,
                 autoClose: false,
             }).setContent('<img src="/static/img/loader.gif">').setLatLng(e.layer.getCenter()).openOn(editor.map);
-            console.log(e.layer.toGeoJSON());
+            $('.leaflet-drawbar').hide();
         }).on('editable:drawing:cancel', function (e) {
             if (editor._drawing !== null && editor._adding === null) {
                 e.layer.remove();
+                $('.start-drawing').prop('disabled', false);
             }
         });
     },
 
     start_drawing: function(feature_type) {
-        console.log(feature_type);
+        if (editor._drawing !== null || editor._adding !== null) return;
         editor._drawing = feature_type;
         var options = editor.feature_types[feature_type];
         if (options.geomtype == 'polygon') {
@@ -157,16 +158,14 @@ editor = {
         } else if (options.geomtype == 'polyline') {
             editor.map.editTools.startPolyline(null, options);
         }
-        $('.leaflet-editbar').toggleClass('usable', false);
-        $('#drawstart').hide();
-        $('#drawcancel').show();
+        $('.leaflet-drawbar').show();
+        $('.start-drawing').prop('disabled', true);
     },
     cancel_drawing: function() {
         if (editor._drawing === null || editor._adding !== null) return;
         editor.map.editTools.stopDrawing();
         editor._drawing = null;
-        $('#drawcancel').hide();
-        $('#drawstart').show();
+        $('.leaflet-drawbar').hide();
     },
 };
 
