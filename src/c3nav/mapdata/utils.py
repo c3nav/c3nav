@@ -1,4 +1,5 @@
 import json
+from collections import OrderedDict
 
 
 def _preencode(data, magic_marker):
@@ -27,3 +28,10 @@ def json_encoder_reindent(method, data, *args, **kwargs):
     else:
         magic_marker = magic_marker.encode()
         return result.replace(b'"'+magic_marker, b'').replace(magic_marker+b'"', b'')
+
+
+def sort_geojson(data):
+    return OrderedDict((
+        ('type', data['type']),
+        ('coordinates', data['coordinates']),
+    ))
