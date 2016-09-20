@@ -3,13 +3,14 @@ import os
 
 from django.conf import settings
 from django.core.files import File
-from django.http import HttpResponse
+from django.http import Http404, HttpResponse
 from rest_framework.decorators import detail_route
-from rest_framework.viewsets import ReadOnlyModelViewSet
+from rest_framework.response import Response
+from rest_framework.viewsets import ReadOnlyModelViewSet, ViewSet
 
-from ...mapdata.models import Level, Package, Source
+from ...mapdata.models import FEATURE_TYPES, Level, Package, Source
 from ..permissions import filter_source_queryset
-from ..serializers import LevelSerializer, PackageSerializer, SourceSerializer
+from ..serializers import FeatureTypeSerializer, LevelSerializer, PackageSerializer, SourceSerializer
 from .cache import AccessCachedViewSetMixin, CachedViewSetMixin
 
 
@@ -63,3 +64,18 @@ class SourceViewSet(AccessCachedViewSetMixin, ReadOnlyModelViewSet):
         for chunk in File(open(image_path, 'rb')).chunks():
             response.write(chunk)
         return response
+
+
+class FeatureTypeViewSet(ViewSet):
+    """
+    Get Feature types
+    """
+    def list(self, request, version=None):
+        serializer = FeatureTypeSerializer(FEATURE_TYPES.values(), many=True, context={'request': request})
+        return Response(serializer.data)
+
+    def retrieve(self, request, pk=None, version=None):
+        if pk not in FEATURE_TYPES:
+            raise Http404
+        serializer = FeatureTypeSerializer(FEATURE_TYPES[pk], context={'request': request})
+        return Response(serializer.data)

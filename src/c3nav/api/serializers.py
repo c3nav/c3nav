@@ -34,6 +34,14 @@ class SourceSerializer(serializers.ModelSerializer):
         fields = ('name', 'package', 'bounds')
 
 
+class FeatureTypeSerializer(serializers.Serializer):
+    name = serializers.CharField()
+    title = serializers.CharField()
+    title_plural = serializers.CharField()
+    geomtype = serializers.CharField()
+    color = serializers.CharField()
+
+
 class HosterSerializer(serializers.Serializer):
     name = serializers.CharField()
     base_url = serializers.CharField()
