@@ -3,6 +3,8 @@ from rest_framework import serializers
 from rest_framework.exceptions import ValidationError
 from shapely.geometry import mapping, shape
 
+from ..mapdata.utils import sort_geojson
+
 
 class GeometryField(serializers.DictField):
     """
@@ -13,7 +15,7 @@ class GeometryField(serializers.DictField):
     }
 
     def to_representation(self, obj):
-        geojson = mapping(obj)
+        geojson = sort_geojson(mapping(obj))
         return super().to_representation(geojson)
 
     def to_internal_value(self, data):
