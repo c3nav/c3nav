@@ -2,17 +2,20 @@ import json
 from collections import OrderedDict
 
 
-def _preencode(data, magic_marker):
+def _preencode(data, magic_marker, in_coords=False):
     if isinstance(data, dict):
         data = data.copy()
         for name, value in tuple(data.items()):
             if name in ('bounds', ):
                 data[name] = magic_marker+json.dumps(value)+magic_marker
             else:
-                data[name] = _preencode(value, magic_marker)
+                data[name] = _preencode(value, magic_marker, in_coords=(name == 'coordinates'))
         return data
     elif isinstance(data, (tuple, list)):
-        return tuple(_preencode(value, magic_marker) for value in data)
+        if in_coords and len(data) == 2 and isinstance(data[0], (int, float)) and isinstance(data[1], (int, float)):
+            return magic_marker+json.dumps(data)+magic_marker
+        else:
+            return tuple(_preencode(value, magic_marker, in_coords) for value in data)
     else:
         return data
 
