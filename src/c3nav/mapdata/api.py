@@ -6,12 +6,12 @@ from django.core.files import File
 from django.http import Http404, HttpResponse
 from rest_framework.decorators import detail_route
 from rest_framework.response import Response
-from rest_framework.viewsets import ReadOnlyModelViewSet, ViewSet
+from rest_framework.viewsets import ModelViewSet, ReadOnlyModelViewSet, ViewSet
 
-from ...mapdata.models import FEATURE_TYPES, Level, Package, Source
-from ..permissions import filter_source_queryset
-from ..serializers import FeatureTypeSerializer, LevelSerializer, PackageSerializer, SourceSerializer
 from .cache import AccessCachedViewSetMixin, CachedViewSetMixin
+from .models import FEATURE_TYPES, Feature, Level, Package, Source
+from .permissions import filter_source_queryset
+from .serializers import FeatureSerializer, FeatureTypeSerializer, LevelSerializer, PackageSerializer, SourceSerializer
 
 
 class LevelViewSet(CachedViewSetMixin, ReadOnlyModelViewSet):
@@ -79,3 +79,15 @@ class FeatureTypeViewSet(ViewSet):
             raise Http404
         serializer = FeatureTypeSerializer(FEATURE_TYPES[pk], context={'request': request})
         return Response(serializer.data)
+
+
+ParentModelViewSet = ModelViewSet if settings.DIRECT_EDITING else ReadOnlyModelViewSet
+
+
+class FeatureViewSet(ParentModelViewSet):
+    """
+    Get all Map Features including ones that are only part of the current session
+    """
+    queryset = Feature.objects.all()
+    serializer_class = FeatureSerializer
+    lookup_value_regex = '[^/]+'
