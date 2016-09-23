@@ -4,6 +4,8 @@ static.dist
 c3nav.cfg
 /src/data
 
+.idea
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
