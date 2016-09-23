@@ -59,4 +59,4 @@ class FeatureSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Feature
-        fields = ('name', 'package', 'feature_type', 'geometry')
+        fields = ('name', 'package', 'level', 'feature_type', 'geometry')
