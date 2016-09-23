@@ -37,7 +37,7 @@ class PackageSerializer(serializers.ModelSerializer):
     class Meta:
         model = Package
         fields = ('name', 'home_repo', 'commit_id', 'depends', 'bounds', 'public')
-        readonly_fields = ('commit_id', )
+        readonly_fields = ('commit_id',)
 
 
 class SourceSerializer(serializers.ModelSerializer):
@@ -59,4 +59,4 @@ class FeatureSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Feature
-        fields = ('name', 'package', 'level', 'feature_type', 'geometry')
+        fields = ('name', 'title', 'feature_type', 'level', 'titles', 'package', 'geometry')

@@ -4,9 +4,10 @@ import os
 from django.conf import settings
 from django.core.files import File
 from django.http import Http404, HttpResponse
+
 from rest_framework.decorators import detail_route
 from rest_framework.response import Response
-from rest_framework.viewsets import ModelViewSet, ReadOnlyModelViewSet, ViewSet
+from rest_framework.viewsets import ReadOnlyModelViewSet, ViewSet
 
 from .cache import AccessCachedViewSetMixin, CachedViewSetMixin
 from .models import FEATURE_TYPES, Feature, Level, Package, Source
@@ -70,6 +71,7 @@ class FeatureTypeViewSet(ViewSet):
     """
     Get Feature types
     """
+
     def list(self, request, version=None):
         serializer = FeatureTypeSerializer(FEATURE_TYPES.values(), many=True, context={'request': request})
         return Response(serializer.data)
@@ -81,13 +83,10 @@ class FeatureTypeViewSet(ViewSet):
         return Response(serializer.data)
 
 
-ParentModelViewSet = ModelViewSet if settings.DIRECT_EDITING else ReadOnlyModelViewSet
-
-
-class FeatureViewSet(ParentModelViewSet):
+class FeatureViewSet(ReadOnlyModelViewSet):
     """
     Get all Map Features including ones that are only part of the current session
     """
-    queryset = Feature.objects.all()
+    queryset = Feature.objects.all().prefetch_related('featuretitles')
     serializer_class = FeatureSerializer
     lookup_value_regex = '[^/]+'

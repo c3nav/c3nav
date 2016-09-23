@@ -112,7 +112,6 @@ LANGUAGE_COOKIE_NAME = 'c3nav_language'
 CSRF_COOKIE_NAME = 'c3nav_csrftoken'
 SESSION_COOKIE_HTTPONLY = True
 
-
 # Application definition
 
 INSTALLED_APPS = [
@@ -221,6 +220,10 @@ STATICFILES_FINDERS = (
     'django.contrib.staticfiles.finders.AppDirectoriesFinder',
     'compressor.finders.CompressorFinder',
 )
+
+BOOTSTRAP3 = {
+    'success_css_class': '',
+}
 
 STATICFILES_DIRS = (
     os.path.join(BASE_DIR, 'static'),

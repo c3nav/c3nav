@@ -1,10 +1,10 @@
+from django.conf import settings
 from django.db import transaction
 from django.http.response import Http404
 from django.shortcuts import render
 
 from c3nav.editor.forms import FeatureForm
 from c3nav.mapdata.models.feature import FEATURE_TYPES
-from c3nav.settings import DIRECT_EDITING
 
 
 def add_feature(request, feature_type):
@@ -15,13 +15,20 @@ def add_feature(request, feature_type):
     if request.method == 'POST':
         form = FeatureForm(request.POST, feature_type=feature_type)
         if form.is_valid():
-            if not DIRECT_EDITING:
+            if not settings.DIRECT_EDITING:
                 return render(request, 'editor/feature_success.html', {})
 
             with transaction.atomic():
                 feature = form.instance
                 feature.feature_type = feature_type.name
                 feature.save()
+
+                for language, title in form.titles.items():
+                    if title:
+                        feature.featuretitles.update_or_create(language=language, defaults={'title': title})
+                    else:
+                        feature.featuretitles.filter(language=language).delete()
+
             return render(request, 'editor/feature_success.html', {})
     else:
         form = FeatureForm(feature_type=feature_type)

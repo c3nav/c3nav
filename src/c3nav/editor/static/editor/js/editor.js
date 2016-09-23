@@ -1,7 +1,7 @@
 editor = {
     feature_types: {},
 
-    init: function() {
+    init: function () {
         // Init Map
         editor.map = L.map('map', {
             zoom: 2,
@@ -19,7 +19,7 @@ editor = {
         editor.get_sources();
         editor.get_levels();
 
-        $('#mapeditdetail').on('click', '#btn_abort', function() {
+        $('#mapeditdetail').on('click', '#btn_abort', function () {
             if (editor._adding !== null) {
                 editor._adding.remove();
                 editor._adding = null;
@@ -28,13 +28,13 @@ editor = {
                 $('#mapeditdetail').html('');
                 $('.start-drawing').prop('disabled', false);
             }
-        }).on('submit', 'form', function(e) {
+        }).on('submit', 'form', function (e) {
             e.preventDefault();
             var data = $(this).serialize();
             var action = $(this).attr('action');
             $('#mapeditcontrols').removeClass('detail');
             $('#mapeditdetail').html('');
-            $.post(action, data, function(data) {
+            $.post(action, data, function (data) {
                 var content = $(data);
                 if ($('<div>').append(content).find('form').length > 0) {
                     $('#mapeditdetail').html(content);
@@ -49,11 +49,11 @@ editor = {
         });
     },
 
-    get_feature_types: function() {
-        $.getJSON('/api/v1/featuretypes/', function(feature_types) {
+    get_feature_types: function () {
+        $.getJSON('/api/v1/featuretypes/', function (feature_types) {
             var feature_type;
             var editcontrols = $('#mapeditlist');
-            for(var i=0;i<feature_types.length;i++) {
+            for (var i = 0; i < feature_types.length; i++) {
                 feature_type = feature_types[i];
                 editor.feature_types[feature_type.name] = feature_type;
                 editcontrols.append(
@@ -68,16 +68,16 @@ editor = {
     },
 
     packages: {},
-    get_packages: function() {
-        $.getJSON('/api/v1/packages/', function(packages) {
+    get_packages: function () {
+        $.getJSON('/api/v1/packages/', function (packages) {
             var bounds = [[0, 0], [0, 0]];
             var pkg;
-            for(var i=0;i<packages.length;i++) {
+            for (var i = 0; i < packages.length; i++) {
                 pkg = packages[i];
                 editor.packages[pkg.name] = pkg;
                 if (pkg.bounds === null) continue;
                 bounds = [[Math.min(bounds[0][0], pkg.bounds[0][0]), Math.min(bounds[0][1], pkg.bounds[0][1])],
-                          [Math.max(bounds[1][0], pkg.bounds[1][0]), Math.max(bounds[1][1], pkg.bounds[1][1])]];
+                    [Math.max(bounds[1][0], pkg.bounds[1][0]), Math.max(bounds[1][1], pkg.bounds[1][1])]];
             }
             editor.map.setMaxBounds(bounds);
             editor.map.fitBounds(bounds, {padding: [30, 50]});
@@ -85,14 +85,14 @@ editor = {
     },
 
     sources: {},
-    get_sources: function() {
-        $.getJSON('/api/v1/sources/', function(sources) {
+    get_sources: function () {
+        $.getJSON('/api/v1/sources/', function (sources) {
             var layers = {};
             var source;
-            for(var i=0;i<sources.length;i++) {
+            for (var i = 0; i < sources.length; i++) {
                 source = sources[i];
                 editor.sources[source.name] = source;
-                source.layer = L.imageOverlay('/api/v1/sources/'+source.name+'/image/', source.bounds);
+                source.layer = L.imageOverlay('/api/v1/sources/' + source.name + '/image/', source.bounds);
                 layers[source.name] = source.layer;
             }
             L.control.layers([], layers).addTo(editor.map);
@@ -102,8 +102,8 @@ editor = {
     level_layers: {},
     levels: {},
     _level: null,
-    get_levels: function() {
-        $.getJSON('/api/v1/levels/?ordering=-altitude', function(levels) {
+    get_levels: function () {
+        $.getJSON('/api/v1/levels/?ordering=-altitude', function (levels) {
             L.LevelControl = L.Control.extend({
                 options: {
                     position: 'bottomright'
@@ -111,9 +111,9 @@ editor = {
                 onAdd: function () {
                     var container = L.DomUtil.create('div', 'leaflet-control leaflet-bar leaflet-levels'), link;
                     var level;
-                    for(var i=0;i<levels.length;i++) {
+                    for (var i = 0; i < levels.length; i++) {
                         level = levels[i];
-                        link = L.DomUtil.create('a', (i == levels.length-1) ? 'current' : '', container);
+                        link = L.DomUtil.create('a', (i == levels.length - 1) ? 'current' : '', container);
                         link.name = level.name;
                         link.innerHTML = level.name;
                         link.href = '';
@@ -123,7 +123,7 @@ editor = {
             });
             editor.map.addControl(new L.LevelControl());
 
-            $('.leaflet-levels').on('click', 'a', function(e) {
+            $('.leaflet-levels').on('click', 'a', function (e) {
                 e.preventDefault();
                 if (editor._drawing !== null || editor._adding !== null) return;
                 editor.level_layers[editor._level].remove();
@@ -134,19 +134,19 @@ editor = {
             });
 
             var level;
-            for(var i=0;i<levels.length;i++) {
+            for (var i = 0; i < levels.length; i++) {
                 level = levels[i];
                 editor.levels[level.name] = level;
                 editor.level_layers[level.name] = L.layerGroup();
             }
             editor.init_drawing();
 
-            editor._level = levels[levels.length-1].name;
+            editor._level = levels[levels.length - 1].name;
             editor.level_layers[editor._level].addTo(editor.map);
         });
     },
 
-    init_drawing: function() {
+    init_drawing: function () {
         // Add drawing new features
         editor._drawing = null;
         editor._adding = null;
@@ -155,13 +155,13 @@ editor = {
             options: {
                 position: 'topleft'
             },
-            onAdd: function() {
+            onAdd: function () {
                 var container = L.DomUtil.create('div', 'leaflet-control leaflet-bar leaflet-drawbar');
                 $('<a href="#" id="drawcancel">').appendTo(container).text('cancel').attr({
                     href: '#',
                     title: 'cancel drawing',
                     name: ''
-                }).on('click', function(e) {
+                }).on('click', function (e) {
                     e.preventDefault();
                     editor.cancel_drawing();
                 });
@@ -170,7 +170,7 @@ editor = {
         });
         editor.map.addControl(new L.DrawControl());
 
-        $('#mapeditlist').on('click', '.start-drawing', function() {
+        $('#mapeditlist').on('click', '.start-drawing', function () {
             console.log($(this).closest('fieldset'));
             editor.start_drawing($(this).closest('fieldset').attr('name'));
         });
@@ -180,9 +180,9 @@ editor = {
 
             e.layer.disableEdit();
             $('.leaflet-drawbar').hide();
-            var path = '/editor/features/'+editor._drawing+'/add';
+            var path = '/editor/features/' + editor._drawing + '/add';
             $('#mapeditcontrols').removeClass('list');
-            $('#mapeditdetail').html('<img src="/static/img/loader.gif">').load(path, function() {
+            $('#mapeditdetail').load(path, function () {
                 $('#mapeditcontrols').addClass('detail');
                 $('#id_level').val(editor._level);
                 $('#id_geometry').val(JSON.stringify(editor._adding.toGeoJSON().geometry));
@@ -196,7 +196,7 @@ editor = {
         });
     },
 
-    start_drawing: function(feature_type) {
+    start_drawing: function (feature_type) {
         if (editor._drawing !== null || editor._adding !== null) return;
         editor._drawing = feature_type;
         var options = editor.feature_types[feature_type];
@@ -208,7 +208,7 @@ editor = {
         $('.leaflet-drawbar').show();
         $('.start-drawing').prop('disabled', true);
     },
-    cancel_drawing: function() {
+    cancel_drawing: function () {
         if (editor._drawing === null || editor._adding !== null) return;
         editor.map.editTools.stopDrawing();
         editor._drawing = null;

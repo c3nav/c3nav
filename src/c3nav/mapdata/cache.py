@@ -40,4 +40,4 @@ class CachedViewSetMixin:
 
 class AccessCachedViewSetMixin(CachedViewSetMixin):
     def get_cache_params(self, request):
-        return super().get_cache_params(request)+'___'+'___'.join(get_unlocked_packages(request))
+        return super().get_cache_params(request) + '___' + '___'.join(get_unlocked_packages(request))
