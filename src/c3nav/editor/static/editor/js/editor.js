@@ -9,7 +9,7 @@ editor = {
             minZoom: 1,
             crs: L.CRS.Simple,
             editable: true,
-            closePopupOnClick: false,
+            closePopupOnClick: false
         });
 
         L.control.scale({imperial: false}).addTo(editor.map);
@@ -18,12 +18,41 @@ editor = {
         editor.get_packages();
         editor.get_sources();
         editor.get_levels();
+
+        $('#mapeditdetail').on('click', '#btn_abort', function() {
+            if (editor._adding !== null) {
+                editor._adding.remove();
+                editor._adding = null;
+                editor._drawing = null;
+                $('#mapeditcontrols').removeClass('detail').addClass('list');
+                $('#mapeditdetail').html('');
+                $('.start-drawing').prop('disabled', false);
+            }
+        }).on('submit', 'form', function(e) {
+            e.preventDefault();
+            var data = $(this).serialize();
+            var action = $(this).attr('action');
+            $('#mapeditcontrols').removeClass('detail');
+            $('#mapeditdetail').html('');
+            $.post(action, data, function(data) {
+                var content = $(data);
+                if ($('<div>').append(content).find('form').length > 0) {
+                    $('#mapeditdetail').html(content);
+                    $('#mapeditcontrols').addClass('detail');
+                } else {
+                    editor._adding = null;
+                    editor._drawing = null;
+                    $('.start-drawing').prop('disabled', false);
+                    $('#mapeditcontrols').addClass('list');
+                }
+            });
+        });
     },
 
     get_feature_types: function() {
         $.getJSON('/api/v1/featuretypes/', function(feature_types) {
             var feature_type;
-            var editcontrols = $('#mapeditcontrols');
+            var editcontrols = $('#mapeditlist');
             for(var i=0;i<feature_types.length;i++) {
                 feature_type = feature_types[i];
                 editor.feature_types[feature_type.name] = feature_type;
@@ -72,33 +101,48 @@ editor = {
 
     level_layers: {},
     levels: {},
+    _level: null,
     get_levels: function() {
         $.getJSON('/api/v1/levels/?ordering=-altitude', function(levels) {
             L.LevelControl = L.Control.extend({
                 options: {
                     position: 'bottomright'
                 },
-                onAdd: function (map) {
+                onAdd: function () {
                     var container = L.DomUtil.create('div', 'leaflet-control leaflet-bar leaflet-levels'), link;
                     var level;
                     for(var i=0;i<levels.length;i++) {
                         level = levels[i];
                         link = L.DomUtil.create('a', (i == levels.length-1) ? 'current' : '', container);
+                        link.name = level.name;
                         link.innerHTML = level.name;
+                        link.href = '';
                     }
                     return container;
                 }
             });
             editor.map.addControl(new L.LevelControl());
 
-            var level_layer, feature_layer, level;
+            $('.leaflet-levels').on('click', 'a', function(e) {
+                e.preventDefault();
+                if (editor._drawing !== null || editor._adding !== null) return;
+                editor.level_layers[editor._level].remove();
+                editor._level = $(this).attr('name');
+                editor.level_layers[editor._level].addTo(editor.map);
+                $('.leaflet-levels .current').removeClass('current');
+                $(this).addClass('current');
+            });
+
+            var level;
             for(var i=0;i<levels.length;i++) {
                 level = levels[i];
                 editor.levels[level.name] = level;
-                level_layer = L.layerGroup().addTo(editor.map);
-                editor.level_layers[level.name] = level_layer;
+                editor.level_layers[level.name] = L.layerGroup();
             }
             editor.init_drawing();
+
+            editor._level = levels[levels.length-1].name;
+            editor.level_layers[editor._level].addTo(editor.map);
         });
     },
 
@@ -111,7 +155,7 @@ editor = {
             options: {
                 position: 'topleft'
             },
-            onAdd: function (map) {
+            onAdd: function() {
                 var container = L.DomUtil.create('div', 'leaflet-control leaflet-bar leaflet-drawbar');
                 $('<a href="#" id="drawcancel">').appendTo(container).text('cancel').attr({
                     href: '#',
@@ -126,21 +170,24 @@ editor = {
         });
         editor.map.addControl(new L.DrawControl());
 
-        $('#mapeditcontrols').on('click', '.start-drawing', function() {
+        $('#mapeditlist').on('click', '.start-drawing', function() {
             console.log($(this).closest('fieldset'));
             editor.start_drawing($(this).closest('fieldset').attr('name'));
         });
 
         editor.map.on('editable:drawing:commit', function (e) {
-            editor._drawing = null;
             editor._adding = e.layer;
 
             e.layer.disableEdit();
-            L.popup({
-                closeButton: false,
-                autoClose: false,
-            }).setContent('<img src="/static/img/loader.gif">').setLatLng(e.layer.getCenter()).openOn(editor.map);
             $('.leaflet-drawbar').hide();
+            var path = '/editor/features/'+editor._drawing+'/add';
+            $('#mapeditcontrols').removeClass('list');
+            $('#mapeditdetail').html('<img src="/static/img/loader.gif">').load(path, function() {
+                $('#mapeditcontrols').addClass('detail');
+                $('#id_level').val(editor._level);
+                $('#id_geometry').val(JSON.stringify(editor._adding.toGeoJSON().geometry));
+            });
+
         }).on('editable:drawing:cancel', function (e) {
             if (editor._drawing !== null && editor._adding === null) {
                 e.layer.remove();
@@ -166,10 +213,10 @@ editor = {
         editor.map.editTools.stopDrawing();
         editor._drawing = null;
         $('.leaflet-drawbar').hide();
-    },
+    }
 };
 
 
-if ($('#mapeditcontrols').length) {
+if ($('#mapeditlist').length) {
     editor.init();
 }
