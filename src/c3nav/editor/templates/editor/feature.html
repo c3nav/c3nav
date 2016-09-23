@@ -1,0 +1,15 @@
+{% load bootstrap3 %}
+
+<h3>{% if new %}New{% else %}Edit{% endif %} {{ feature_type.title }}</h3>
+<form action="{{ path }}" method="post">
+    {% csrf_token %}
+    {% bootstrap_form form %}
+    {% buttons %}
+    <button id="btn_abort" class="btn btn-danger">
+        Cancel
+    </button>
+    <button type="submit" class="btn btn-primary pull-right">
+        Submit
+    </button>
+    {% endbuttons %}
+</form>

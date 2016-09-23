@@ -32,16 +32,49 @@
     color:#000000;
 }
 
+
 #mapeditcontrols {
     position:absolute;
     top:54px;
     bottom:0;
+    padding:0;
+    width:350px;
+    right:0;
+    overflow:hidden;
+    background-image:url('/static/img/loader.gif');
+    background-repeat:no-repeat;
+    background-position:center;
+}
+#mapeditcontrols > div {
+    position:absolute;
+    top:0;
+    bottom:0;
+    background-color:white;
     padding:8px;
     width:350px;
     right:0;
     overflow:auto;
 }
-#mapeditcontrols legend .btn {
+#mapeditcontrols > #mapeditdetail {
+    right:-350px;
+    transition: right 300ms;
+    -webkit-transition: right 300ms;
+    pointer-events: none;
+}
+#mapeditcontrols.detail #mapeditdetail {
+    right:0;
+    pointer-events: auto;
+}
+#mapeditcontrols > #mapeditlist {
+    display:none;
+}
+#mapeditcontrols.list > #mapeditlist {
+    display:block;
+}
+#mapeditdetail h3 {
+    margin-top:5px;
+}
+#mapeditlist legend .btn {
     padding-left:5.5px;
     padding-right:5.5px;
 }
