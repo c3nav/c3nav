@@ -12,6 +12,7 @@ from ..fields import GeometryField
 
 class FeatureType(namedtuple('FeatureType', ('name', 'title', 'title_plural', 'geomtype', 'color'))):
     def __init__(self, *args, **kwargs):
+        super().__init__()
         FEATURE_TYPES[self.name] = self
 
 
