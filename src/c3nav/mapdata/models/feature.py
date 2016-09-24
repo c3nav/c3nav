@@ -33,10 +33,10 @@ class Feature(models.Model):
     TYPES = tuple((name, t.title) for name, t in FEATURE_TYPES.items())
 
     name = models.SlugField(_('feature identifier'), primary_key=True, max_length=50, help_text=_('e.g. noc'))
-    package = models.ForeignKey('Package', on_delete=models.CASCADE, related_name='features',
+    package = models.ForeignKey('mapdata.Package', on_delete=models.CASCADE, related_name='features',
                                 verbose_name=_('map package'))
     feature_type = models.CharField(max_length=50, choices=TYPES)
-    level = models.ForeignKey('Level', on_delete=models.CASCADE, related_name='features',
+    level = models.ForeignKey('mapdata.Level', on_delete=models.CASCADE, related_name='features',
                               verbose_name=_('level'))
     geometry = GeometryField()
 
