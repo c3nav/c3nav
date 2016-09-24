@@ -28,6 +28,9 @@ class Source(models.Model):
     def bounds(self):
         return (float(self.bottom), float(self.left)), (float(self.top), float(self.right))
 
+    def tofilename(self):
+        return 'sources/%s.json' % self.name
+
     @classmethod
     def fromfile(cls, data):
         kwargs = {}

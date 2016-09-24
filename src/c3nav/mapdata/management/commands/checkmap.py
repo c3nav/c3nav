@@ -2,8 +2,11 @@ import os
 import tempfile
 
 from django.core.management import call_command
-from django.core.management.base import BaseCommand
+from django.core.management.base import BaseCommand, CommandError
 from django.db import connections, router
+
+from c3nav.mapdata.packageio.read import MapdataReader
+from c3nav.mapdata.packageio.write import MapdataWriter
 
 
 class Command(BaseCommand):
@@ -30,7 +33,17 @@ class Command(BaseCommand):
 
         try:
             call_command('migrate', database='tmpdb')
-            call_command('loadmap', yes=True)
-            call_command('dumpmap', prettify=options['prettify'], check_only=True)
+
+            reader = MapdataReader()
+            reader.read_packages()
+            reader.apply_to_db()
+
+            writer = MapdataWriter()
+            count = writer.prepare_write_packages(prettify=options['prettify'], diff=True)
+
+            if count:
+                raise CommandError('%s files affected.' % count)
+            else:
+                print('Everything ok!')
         finally:
             os.remove(tmp)
