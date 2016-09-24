@@ -10,106 +10,108 @@ from django.utils import timezone
 from c3nav.mapdata.utils import json_encoder_reindent
 
 from ..models import Package
+from .const import ordered_models
 
 
-def write_packages(prettify=False, check_only=False):
-    if not check_only:
+class MapdataWriter:
+    def __init__(self):
+        self.keep = set()
+        self.write = []
+        self.delete = []
+
+    def prepare_write_packages(self, prettify=False, diff=False):
         print('Writing Map Packages…')
 
-    count = 0
-    for package in Package.objects.all():
-        if not check_only:
-            print('\n'+package.name)
-        count += write_package(package, prettify, check_only)
-    return count
+        count = 0
+        for model in ordered_models:
+            for obj in model.objects.all().order_by('name').prefetch_related():
+                file_path = os.path.join(obj.package.directory, obj.tofilename())
+                full_file_path = os.path.join(settings.MAP_ROOT, file_path)
+                self.keep.add(file_path)
 
+                new_data = obj.tofile()
+                new_data_encoded = json_encode(new_data)
+                old_data = None
+                old_data_encoded = None
 
-def write_package(package, prettify=False, check_only=False):
-    count = 0
-    count += _write_object(package, package.directory, 'pkg.json', prettify, check_only)
-    count += _write_folder(package.levels.all(), os.path.join(package.directory, 'levels'), prettify, check_only)
-    count += _write_folder(package.sources.all(), os.path.join(package.directory, 'sources'), prettify, check_only,
-                           check_sister_file=True)
-    return count
+                if os.path.isfile(full_file_path):
+                    with open(full_file_path) as f:
+                        old_data_encoded = f.read()
+                    old_data = json.loads(old_data_encoded, parse_int=float)
 
+                    if old_data != json.loads(new_data_encoded, parse_int=float):
+                        if not diff:
+                            print('- Updated: ' + file_path)
+                    elif old_data_encoded != new_data_encoded:
+                        if not prettify:
+                            continue
+                        if not diff:
+                            print('- Prettified: ' + file_path)
+                    else:
+                        continue
+                else:
+                    if not diff:
+                        print('- Created: ' + file_path)
 
-def _write_folder(objects, path, prettify=False, check_only=False, check_sister_file=False):
-    count = 0
-    filenames = set()
-    full_path = os.path.join(settings.MAP_ROOT, path)
-    if objects:
-        if not os.path.isdir(full_path):
-            os.mkdir(full_path)
-        for obj in objects:
-            filename = '%s.json' % obj.name
-            filenames.add(filename)
-            count += _write_object(obj, path, filename, prettify, check_only)
+                if diff:
+                    sys.stdout.writelines(difflib.unified_diff(
+                        [] if old_data is None else [(line + '\n') for line in old_data_encoded.split('\n')],
+                        [(line + '\n') for line in new_data_encoded.split('\n')],
+                        fromfiledate=timezone.make_aware(
+                            datetime.fromtimestamp(0 if old_data is None else os.path.getmtime(full_file_path))
+                        ).isoformat(),
+                        tofiledate=timezone.now().isoformat(),
+                        fromfile=file_path,
+                        tofile=file_path
+                    ))
+                    print()
 
-    if os.path.isdir(full_path):
-        for filename in sorted(os.listdir(full_path)):
-            full_filename = os.path.join(full_path, filename)
-            if filename in filenames or not filename.endswith('.json') or not os.path.isfile(full_filename):
-                continue
+                self.write.append((file_path, new_data_encoded))
+                count += 1
 
-            count += 1
-            if check_only:
-                sys.stdout.writelines(difflib.unified_diff(
-                    list(open(full_filename)),
-                    [],
-                    fromfiledate=timezone.make_aware(
-                        datetime.fromtimestamp(os.path.getmtime(full_filename))
-                    ).isoformat(),
-                    tofiledate=timezone.make_aware(datetime.fromtimestamp(0)).isoformat(),
-                    fromfile=os.path.join(path, filename),
-                    tofile=os.path.join(path, filename)
-                ))
-            else:
-                os.remove(full_filename)
-                if check_sister_file and os.path.isfile(full_filename[:-5]):
-                    os.remove(full_filename[:-5])
-    return count
+        # Delete old files
+        for package_dir in Package.objects.all().values_list('directory', flat=True):
+            for path, sub_dirs, filenames in os.walk(os.path.join(settings.MAP_ROOT, package_dir)):
+                sub_dirs[:] = sorted([directory for directory in sub_dirs if not directory.startswith('.')])
+                for filename in sorted(filenames):
+                    if not filename.endswith('.json'):
+                        continue
+                    file_path = os.path.join(path[len(settings.MAP_ROOT) + 1:], filename)
+                    if file_path not in self.keep:
+                        if not diff:
+                            print('- Deleted: ' + file_path)
+                        else:
+                            full_file_path = os.path.join(path, filename)
+                            lines = list(open(full_file_path).readlines())
+                            if not lines:
+                                lines = ['\n']
+                            sys.stdout.writelines(difflib.unified_diff(
+                                lines,
+                                [],
+                                fromfiledate=timezone.make_aware(
+                                    datetime.fromtimestamp(os.path.getmtime(full_file_path))
+                                ).isoformat(),
+                                tofiledate=timezone.make_aware(
+                                    datetime.fromtimestamp(0)
+                                ).isoformat(),
+                                fromfile=file_path,
+                                tofile=file_path
+                            ))
+                            print()
+                        self.delete.append(file_path)
 
+        return count
 
-def _write_object(obj, path, filename, prettify=False, check_only=False):
-    full_path = os.path.join(settings.MAP_ROOT, path)
-    full_filename = os.path.join(full_path, filename)
-    new_data = obj.tofile()
-    new_data_encoded = json_encode(new_data)
-    old_data = None
-    old_data_encoded = None
-    if os.path.isfile(full_filename):
-        with open(full_filename) as f:
-            old_data_encoded = f.read()
-        old_data = json.loads(old_data_encoded, parse_int=float)
-        if old_data != json.loads(new_data_encoded, parse_int=float):
-            if not check_only:
-                print('- Updated: '+os.path.join(path, filename))
-        elif old_data_encoded != new_data_encoded:
-            if not prettify:
-                return 0
-            if not check_only:
-                print('- Beautified: '+os.path.join(path, filename))
-        else:
-            return 0
-    else:
-        if not check_only:
-            print('- Created: '+os.path.join(path, filename))
+    def do_write_packages(self):
+        for file_path, content in self.write:
+            full_file_path = os.path.join(settings.MAP_ROOT, file_path)
+            if content is not None:
+                with open(full_file_path, 'w') as f:
+                    f.write(content)
 
-    if check_only:
-        sys.stdout.writelines(difflib.unified_diff(
-            [] if old_data is None else [(line+'\n') for line in old_data_encoded.split('\n')],
-            [(line+'\n') for line in new_data_encoded.split('\n')],
-            fromfiledate=timezone.make_aware(
-                datetime.fromtimestamp(0 if old_data is None else os.path.getmtime(full_filename))
-            ).isoformat(),
-            tofiledate=timezone.now().isoformat(),
-            fromfile=os.path.join(path, filename),
-            tofile=os.path.join(path, filename)
-        ))
-    else:
-        with open(full_filename, 'w') as f:
-            f.write(new_data_encoded)
-    return 1
+        for file_path in self.delete:
+            full_file_path = os.path.join(settings.MAP_ROOT, file_path)
+            os.remove(full_file_path)
 
 
 def json_encode(data):

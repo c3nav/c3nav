@@ -24,6 +24,20 @@ class Package(models.Model):
 
     path_regex = r'^package.json$'
 
+    @property
+    def package(self):
+        return self
+
+    @property
+    def bounds(self):
+        if self.bottom is None:
+            return None
+        return (float(self.bottom), float(self.left)), (float(self.top), float(self.right))
+
+    @property
+    def public(self):
+        return self.name in settings.PUBLIC_PACKAGES
+
     @classmethod
     def fromfile(cls, data):
         kwargs = {}
@@ -53,19 +67,9 @@ class Package(models.Model):
 
         return kwargs
 
-    @property
-    def package(self):
-        return self
-
-    @property
-    def public(self):
-        return self.name in settings.PUBLIC_PACKAGES
-
-    @property
-    def bounds(self):
-        if self.bottom is None:
-            return None
-        return (float(self.bottom), float(self.left)), (float(self.top), float(self.right))
+    # noinspection PyMethodMayBeStatic
+    def tofilename(self):
+        return 'package.json'
 
     def tofile(self):
         data = OrderedDict()

@@ -6,16 +6,15 @@ import subprocess
 from django.conf import settings
 from django.core.management import CommandError
 
-from ..models import Feature, Level, Package, Source
+from ..models import Level, Package
+from .const import ordered_models
 
 
 class MapdataReader:
-    ordered_models = (Package, Level, Source, Feature)
-
     def __init__(self):
         self.content = {}
         self.package_names_by_dir = {}
-        self.saved_items = {model: {} for model in self.ordered_models}
+        self.saved_items = {model: {} for model in ordered_models}
 
     def read_packages(self):
         print('Detecting Map Packages…')
@@ -38,14 +37,14 @@ class MapdataReader:
 
     def _add_item(self, item):
         if item.package_dir not in self.content:
-            self.content[item.package_dir] = {model: [] for model in self.ordered_models}
+            self.content[item.package_dir] = {model: [] for model in ordered_models}
         self.content[item.package_dir][item.model].append(item)
 
     def add_file(self, package_dir, path, filename):
         file_path = os.path.join(package_dir, path, filename)
         relative_file_path = os.path.join(path, filename)
         print(file_path)
-        for model in self.ordered_models:
+        for model in ordered_models:
             if re.search(model.path_regex, relative_file_path):
                 self._add_item(ReaderItem(self, package_dir, path, filename, model))
                 break
@@ -86,13 +85,13 @@ class MapdataReader:
             print('')
             package_dir = package_dirs_by_name[package_name]
             items_by_model = self.content[package_dir]
-            for model in self.ordered_models:
+            for model in ordered_models:
                 items = items_by_model[model]
                 for item in items:
                     item.save()
 
         # Delete old entries
-        for model in reversed(self.ordered_models):
+        for model in reversed(ordered_models):
             queryset = model.objects.exclude(name__in=self.saved_items[model].keys())
             for name in queryset.values_list('name', flat=True):
                 print('- Deleted %s: %s' % (model.__name__, name))

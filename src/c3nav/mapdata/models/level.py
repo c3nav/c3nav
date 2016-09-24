@@ -14,6 +14,9 @@ class Level(models.Model):
 
     path_regex = r'^levels/'
 
+    def tofilename(self):
+        return 'levels/%s.json' % self.name
+
     @classmethod
     def fromfile(cls, data):
         if 'altitude' not in data:
