@@ -11,6 +11,7 @@ from ..fields import GeometryField
 
 
 class FeatureType(namedtuple('FeatureType', ('name', 'title', 'title_plural', 'geomtype', 'color'))):
+    # noinspection PyUnusedLocal
     def __init__(self, *args, **kwargs):
         super().__init__()
         FEATURE_TYPES[self.name] = self
@@ -41,6 +42,8 @@ class Feature(models.Model):
     level = models.ForeignKey(Level, on_delete=models.CASCADE, related_name='features',
                               verbose_name=_('level'))
     geometry = GeometryField()
+
+    path_regex = r'^features/('+'|'.join(name for name, title in TYPES)+')/'
 
     @property
     def titles(self):

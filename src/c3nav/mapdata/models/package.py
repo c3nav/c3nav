@@ -22,33 +22,34 @@ class Package(models.Model):
 
     directory = models.CharField(_('folder name'), max_length=100)
 
+    path_regex = r'^package.json$'
+
     @classmethod
-    def fromfile(cls, data, directory):
-        kwargs = {
-            'directory': directory
-        }
+    def fromfile(cls, data):
+        kwargs = {}
 
         if 'name' not in data:
-            raise ValueError('pkg.json: missing package name.')
+            raise ValueError('missing package name.')
         kwargs['name'] = data['name']
 
         depends = data.get('depends', [])
         if not isinstance(depends, list):
-            raise TypeError('pkg.json: depends has to be a list')
+            raise TypeError('depends has to be a list')
         kwargs['depends'] = depends
 
-        if 'home_repo' in data:
-            kwargs['home_repo'] = data['home_repo']
+        kwargs['home_repo'] = data['home_repo'] if 'home_repo' in data else None
 
         if 'bounds' in data:
             bounds = data['bounds']
             if len(bounds) != 2 or len(bounds[0]) != 2 or len(bounds[1]) != 2:
-                raise ValueError('pkg.json: Invalid bounds format.')
+                raise ValueError('Invalid bounds format.')
             if not all(isinstance(i, (float, int)) for i in sum(bounds, [])):
-                raise ValueError('pkg.json: All bounds coordinates have to be int or float.')
+                raise ValueError('All bounds coordinates have to be int or float.')
             if bounds[0][0] >= bounds[1][0] or bounds[0][1] >= bounds[1][1]:
-                raise ValueError('pkg.json: bounds: lower coordinate has to be first.')
-            (kwargs['bottom'], kwargs['left']), (kwargs['top'], kwargs['right']) = bounds
+                raise ValueError('bounds: lower coordinate has to be first.')
+        else:
+            bounds = (None, None), (None, None)
+        (kwargs['bottom'], kwargs['left']), (kwargs['top'], kwargs['right']) = bounds
 
         return kwargs
 
@@ -64,7 +65,7 @@ class Package(models.Model):
     def bounds(self):
         if self.bottom is None:
             return None
-        return ((float(self.bottom), float(self.left)), (float(self.top), float(self.right)))
+        return (float(self.bottom), float(self.left)), (float(self.top), float(self.right))
 
     def tofile(self):
         data = OrderedDict()

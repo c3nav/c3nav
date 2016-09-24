@@ -1,7 +1,7 @@
 from django.core.management.base import BaseCommand, CommandError
 from django.db import transaction
 
-from ...packageio import read_packages
+from ...packageio import MapdataReader
 
 
 class Command(BaseCommand):
@@ -12,8 +12,11 @@ class Command(BaseCommand):
                             help='don\'t ask for confirmation')
 
     def handle(self, *args, **options):
+        reader = MapdataReader()
+        reader.read_packages()
+
         with transaction.atomic():
-            read_packages()
+            reader.apply_to_db()
             print()
             if not options['yes'] and input('Confirm (y/N): ') != 'y':
                 raise CommandError('Aborted.')

@@ -7,8 +7,9 @@ from datetime import datetime
 from django.conf import settings
 from django.utils import timezone
 
+from c3nav.mapdata.utils import json_encoder_reindent
+
 from ..models import Package
-from .utils import json_encode
 
 
 def write_packages(prettify=False, check_only=False):
@@ -109,3 +110,7 @@ def _write_object(obj, path, filename, prettify=False, check_only=False):
         with open(full_filename, 'w') as f:
             f.write(new_data_encoded)
     return 1
+
+
+def json_encode(data):
+    return json_encoder_reindent(json.dumps, data, indent=4)+'\n'

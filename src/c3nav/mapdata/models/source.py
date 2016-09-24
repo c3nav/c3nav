@@ -1,19 +1,23 @@
 from django.db import models
 from django.utils.translation import ugettext_lazy as _
 
+from c3nav.mapdata.models import Package
+
 
 class Source(models.Model):
     """
     A map source, images of levels that can be useful as backgrounds for the map editor
     """
     name = models.SlugField(_('source name'), primary_key=True, max_length=50)
-    package = models.ForeignKey('Package', on_delete=models.CASCADE, related_name='sources',
+    package = models.ForeignKey(Package, on_delete=models.CASCADE, related_name='sources',
                                 verbose_name=_('map package'))
 
     bottom = models.DecimalField(_('bottom coordinate'), max_digits=6, decimal_places=2)
     left = models.DecimalField(_('left coordinate'), max_digits=6, decimal_places=2)
     top = models.DecimalField(_('top coordinate'), max_digits=6, decimal_places=2)
     right = models.DecimalField(_('right coordinate'), max_digits=6, decimal_places=2)
+
+    path_regex = r'^sources/'
 
     @classmethod
     def max_bounds(cls):
@@ -24,25 +28,22 @@ class Source(models.Model):
 
     @property
     def bounds(self):
-        return ((float(self.bottom), float(self.left)), (float(self.top), float(self.right)))
+        return (float(self.bottom), float(self.left)), (float(self.top), float(self.right))
 
     @classmethod
-    def fromfile(cls, data, package, name):
-        kwargs = {
-            'package': package,
-            'name': name,
-        }
+    def fromfile(cls, data):
+        kwargs = {}
 
         if 'bounds' not in data:
-            raise ValueError('%s.json: missing bounds.' % name)
+            raise ValueError('missing bounds.')
 
         bounds = data['bounds']
         if len(bounds) != 2 or len(bounds[0]) != 2 or len(bounds[1]) != 2:
-            raise ValueError('pkg.json: Invalid bounds format.')
+            raise ValueError('Invalid bounds format.')
         if not all(isinstance(i, (float, int)) for i in sum(bounds, [])):
-            raise ValueError('pkg.json: All bounds coordinates have to be int or float.')
+            raise ValueError('All bounds coordinates have to be int or float.')
         if bounds[0][0] >= bounds[1][0] or bounds[0][1] >= bounds[1][1]:
-            raise ValueError('pkg.json: bounds: lower coordinate has to be first.')
+            raise ValueError('bounds: lower coordinate has to be first.')
         (kwargs['bottom'], kwargs['left']), (kwargs['top'], kwargs['right']) = bounds
 
         return kwargs
