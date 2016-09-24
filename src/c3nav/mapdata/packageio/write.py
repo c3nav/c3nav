@@ -105,6 +105,10 @@ class MapdataWriter:
     def do_write_packages(self):
         for file_path, content in self.write:
             full_file_path = os.path.join(settings.MAP_ROOT, file_path)
+            try:
+                os.makedirs(os.path.join(os.path.split(full_file_path)[:-1]))
+            except os.error:
+                pass
             if content is not None:
                 with open(full_file_path, 'w') as f:
                     f.write(content)
