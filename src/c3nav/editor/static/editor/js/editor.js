@@ -114,7 +114,7 @@ editor = {
     set_current_level: function(name) {
         if (editor._creating !== null || editor._editing !== null) return;
         editor.level_layers[editor._level].remove();
-        editor._level = $(this).attr('name');
+        editor._level = name;
         editor.level_layers[editor._level].addTo(editor.map);
         $('.leaflet-levels .current').removeClass('current');
         $('.leaflet-levels a[name='+name+']').addClass('current');
