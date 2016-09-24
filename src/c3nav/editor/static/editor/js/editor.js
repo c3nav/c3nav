@@ -96,12 +96,7 @@ editor = {
 
             $('.leaflet-levels').on('click', 'a', function (e) {
                 e.preventDefault();
-                if (editor._creating !== null || editor._editing !== null) return;
-                editor.level_layers[editor._level].remove();
-                editor._level = $(this).attr('name');
-                editor.level_layers[editor._level].addTo(editor.map);
-                $('.leaflet-levels .current').removeClass('current');
-                $(this).addClass('current');
+                editor.set_current_level($(this).attr('name'));
             });
 
             var level;
@@ -115,6 +110,14 @@ editor = {
             editor._level = levels[levels.length - 1].name;
             editor.level_layers[editor._level].addTo(editor.map);
         });
+    },
+    set_current_level: function(name) {
+        if (editor._creating !== null || editor._editing !== null) return;
+        editor.level_layers[editor._level].remove();
+        editor._level = $(this).attr('name');
+        editor.level_layers[editor._level].addTo(editor.map);
+        $('.leaflet-levels .current').removeClass('current');
+        $('.leaflet-levels a[name='+name+']').addClass('current');
     },
 
     init_drawing: function () {
@@ -151,9 +154,11 @@ editor = {
 
         $('#mapeditdetail').on('click', '#btn_editing_cancel', editor.cancel_editing)
                            .on('submit', 'form', editor.submit_editing);
+
+        editor.get_features();
     },
 
-    reload_features: function (feature_type) {
+    get_features: function () {
         $('.start-drawing').prop('disabled', false);
         $('#mapeditcontrols').addClass('list');
     },
@@ -223,7 +228,7 @@ editor = {
             editor._creating = null;
             $('#mapeditcontrols').removeClass('detail');
             $('#mapeditdetail').html('');
-            editor.reload_features();
+            editor.get_features();
         }
     },
     submit_editing: function(e) {
@@ -240,7 +245,7 @@ editor = {
             } else {
                 editor._editing = null;
                 editor._creating = null;
-                editor.reload_features();
+                editor.get_features();
             }
         });
     }
