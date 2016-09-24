@@ -18,35 +18,6 @@ editor = {
         editor.get_packages();
         editor.get_sources();
         editor.get_levels();
-
-        $('#mapeditdetail').on('click', '#btn_abort', function () {
-            if (editor._adding !== null) {
-                editor._adding.remove();
-                editor._adding = null;
-                editor._drawing = null;
-                $('#mapeditcontrols').removeClass('detail').addClass('list');
-                $('#mapeditdetail').html('');
-                $('.start-drawing').prop('disabled', false);
-            }
-        }).on('submit', 'form', function (e) {
-            e.preventDefault();
-            var data = $(this).serialize();
-            var action = $(this).attr('action');
-            $('#mapeditcontrols').removeClass('detail');
-            $('#mapeditdetail').html('');
-            $.post(action, data, function (data) {
-                var content = $(data);
-                if ($('<div>').append(content).find('form').length > 0) {
-                    $('#mapeditdetail').html(content);
-                    $('#mapeditcontrols').addClass('detail');
-                } else {
-                    editor._adding = null;
-                    editor._drawing = null;
-                    $('.start-drawing').prop('disabled', false);
-                    $('#mapeditcontrols').addClass('list');
-                }
-            });
-        });
     },
 
     get_feature_types: function () {
@@ -125,7 +96,7 @@ editor = {
 
             $('.leaflet-levels').on('click', 'a', function (e) {
                 e.preventDefault();
-                if (editor._drawing !== null || editor._adding !== null) return;
+                if (editor._creating !== null || editor._editing !== null) return;
                 editor.level_layers[editor._level].remove();
                 editor._level = $(this).attr('name');
                 editor.level_layers[editor._level].addTo(editor.map);
@@ -148,8 +119,8 @@ editor = {
 
     init_drawing: function () {
         // Add drawing new features
-        editor._drawing = null;
-        editor._adding = null;
+        editor._creating = null;
+        editor._editing = null;
 
         L.DrawControl = L.Control.extend({
             options: {
@@ -163,7 +134,7 @@ editor = {
                     name: ''
                 }).on('click', function (e) {
                     e.preventDefault();
-                    editor.cancel_drawing();
+                    editor.cancel_creating();
                 });
                 return container;
             }
@@ -171,34 +142,25 @@ editor = {
         editor.map.addControl(new L.DrawControl());
 
         $('#mapeditlist').on('click', '.start-drawing', function () {
-            console.log($(this).closest('fieldset'));
-            editor.start_drawing($(this).closest('fieldset').attr('name'));
+            editor.start_creating($(this).closest('fieldset').attr('name'));
         });
 
-        editor.map.on('editable:drawing:commit', function (e) {
-            editor._adding = e.layer;
+        editor.map.on('editable:drawing:commit', editor.done_creating);
+        editor.map.on('editable:editing', editor.update_editing);
+        editor.map.on('editable:drawing:cancel', editor._canceled_creating);
 
-            e.layer.disableEdit();
-            $('.leaflet-drawbar').hide();
-            var path = '/editor/features/' + editor._drawing + '/add';
-            $('#mapeditcontrols').removeClass('list');
-            $('#mapeditdetail').load(path, function () {
-                $('#mapeditcontrols').addClass('detail');
-                $('#id_level').val(editor._level);
-                $('#id_geometry').val(JSON.stringify(editor._adding.toGeoJSON().geometry));
-            });
-
-        }).on('editable:drawing:cancel', function (e) {
-            if (editor._drawing !== null && editor._adding === null) {
-                e.layer.remove();
-                $('.start-drawing').prop('disabled', false);
-            }
-        });
+        $('#mapeditdetail').on('click', '#btn_editing_cancel', editor.cancel_editing)
+                           .on('submit', 'form', editor.submit_editing);
     },
 
-    start_drawing: function (feature_type) {
-        if (editor._drawing !== null || editor._adding !== null) return;
-        editor._drawing = feature_type;
+    reload_features: function (feature_type) {
+        $('.start-drawing').prop('disabled', false);
+        $('#mapeditcontrols').addClass('list');
+    },
+
+    start_creating: function (feature_type) {
+        if (editor._creating !== null || editor._editing !== null) return;
+        editor._creating = feature_type;
         var options = editor.feature_types[feature_type];
         if (options.geomtype == 'polygon') {
             editor.map.editTools.startPolygon(null, options);
@@ -208,11 +170,79 @@ editor = {
         $('.leaflet-drawbar').show();
         $('.start-drawing').prop('disabled', true);
     },
-    cancel_drawing: function () {
-        if (editor._drawing === null || editor._adding !== null) return;
+    cancel_creating: function () {
+        if (editor._creating === null || editor._editing !== null) return;
         editor.map.editTools.stopDrawing();
-        editor._drawing = null;
+        editor._creating = null;
         $('.leaflet-drawbar').hide();
+    },
+    _canceled_creating: function (e) {
+        if (editor._creating !== null && editor._editing === null) {
+            e.layer.remove();
+            $('.start-drawing').prop('disabled', false);
+        }
+    },
+    done_creating: function(e) {
+        if (editor._creating !== null && editor._editing === null) {
+            editor._editing = e.layer;
+            editor._editing.disableEdit();
+            editor.map.fitBounds(editor._editing.getBounds());
+
+            $('.leaflet-drawbar').hide();
+            var path = '/editor/features/' + editor._creating + '/add/';
+            $('#mapeditcontrols').removeClass('list');
+            $('#mapeditdetail').load(path, editor.edit_form_loaded);
+        }
+    },
+
+    start_editing: function () {
+        // todo
+    },
+    edit_form_loaded: function() {
+        $('#mapeditcontrols').addClass('detail');
+        $('#id_level').val(editor._level);
+        $('#id_geometry').val(JSON.stringify(editor._editing.toGeoJSON().geometry));
+        editor._editing.enableEdit();
+        if (editor._editing.options.geomtype == 'polygon') {
+            editor._editing.on('click', function (e) {
+                if ((e.originalEvent.ctrlKey || e.originalEvent.metaKey) && this.editEnabled()) {
+                    this.editor.newHole(e.latlng);
+                }
+            });
+        }
+    },
+    update_editing: function () {
+        if (editor._editing !== null) {
+            $('#id_geometry').val(JSON.stringify(editor._editing.toGeoJSON().geometry));
+        }
+    },
+    cancel_editing: function() {
+        if (editor._editing !== null) {
+            editor._editing.remove();
+            editor._editing = null;
+            editor._creating = null;
+            $('#mapeditcontrols').removeClass('detail');
+            $('#mapeditdetail').html('');
+            editor.reload_features();
+        }
+    },
+    submit_editing: function(e) {
+        e.preventDefault();
+        var data = $(this).serialize();
+        var action = $(this).attr('action');
+        $('#mapeditcontrols').removeClass('detail');
+        $('#mapeditdetail').html('');
+        $.post(action, data, function (data) {
+            var content = $(data);
+            if ($('<div>').append(content).find('form').length > 0) {
+                $('#mapeditdetail').html(content);
+                $('#mapeditcontrols').addClass('detail');
+            } else {
+                editor._editing = null;
+                editor._creating = null;
+                editor.reload_features();
+            }
+        });
     }
 };
 
