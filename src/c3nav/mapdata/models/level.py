@@ -1,8 +1,6 @@
 from django.db import models
 from django.utils.translation import ugettext_lazy as _
 
-from c3nav.mapdata.models import Package
-
 
 class Level(models.Model):
     """
@@ -11,7 +9,7 @@ class Level(models.Model):
     name = models.SlugField(_('level name'), primary_key=True, max_length=50,
                             help_text=_('Usually just an integer (e.g. -1, 0, 1, 2)'))
     altitude = models.DecimalField(_('level altitude'), null=True, max_digits=6, decimal_places=2)
-    package = models.ForeignKey(Package, on_delete=models.CASCADE, related_name='levels',
+    package = models.ForeignKey('Package', on_delete=models.CASCADE, related_name='levels',
                                 verbose_name=_('map package'))
 
     path_regex = r'^levels/'
