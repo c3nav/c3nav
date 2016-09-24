@@ -123,6 +123,7 @@ class ReaderItem:
         self.data = {'name': filename[:-5]}
 
         if self.model == Package:
+            self.data['directory'] = package_dir
             self.data['commit_id'] = None
             try:
                 full_package_dir = os.path.join(settings.MAP_ROOT, package_dir)
