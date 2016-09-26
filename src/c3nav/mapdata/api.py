@@ -85,7 +85,7 @@ class FeatureTypeViewSet(ViewSet):
 
 class FeatureViewSet(ReadOnlyModelViewSet):
     """
-    Get all Map Features including ones that are only part of the current session
+    Get all Map Features
     """
     queryset = Feature.objects.all()
     serializer_class = FeatureSerializer
