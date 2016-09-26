@@ -43,7 +43,7 @@ def add_feature(request, feature_type):
 
 def edit_feature(request, name):
     feature = get_object_or_404(Feature, name=name)
-    if not can_access_package(feature.package):
+    if not can_access_package(request, feature.package):
         raise PermissionDenied
     feature_type = FEATURE_TYPES.get(feature.feature_type)
 
