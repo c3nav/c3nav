@@ -21,13 +21,11 @@ def add_feature(request, feature_type):
             with transaction.atomic():
                 feature = form.instance
                 feature.feature_type = feature_type.name
-                feature.save()
-
+                feature.titles = {}
                 for language, title in form.titles.items():
                     if title:
-                        feature.featuretitles.update_or_create(language=language, defaults={'title': title})
-                    else:
-                        feature.featuretitles.filter(language=language).delete()
+                        feature.titles[language] = title
+                feature.save()
 
             return render(request, 'editor/feature_success.html', {})
     else:

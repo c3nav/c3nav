@@ -17,3 +17,16 @@ class GeometryField(models.TextField):
 
     def get_prep_value(self, value):
         return json.dumps(sort_geojson(mapping(value)))
+
+
+class JSONField(models.TextField):
+    def from_db_value(self, value, expression, connection, context):
+        if value is None:
+            return value
+        return json.loads(value)
+
+    def to_python(self, value):
+        return json.loads(value)
+
+    def get_prep_value(self, value):
+        return json.dumps(value)

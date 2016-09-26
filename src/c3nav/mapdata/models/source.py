@@ -32,7 +32,7 @@ class Source(models.Model):
         return 'sources/%s.json' % self.name
 
     @classmethod
-    def fromfile(cls, data):
+    def fromfile(cls, data, file_path):
         kwargs = {}
 
         if 'bounds' not in data:

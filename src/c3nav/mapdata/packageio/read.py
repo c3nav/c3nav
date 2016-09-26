@@ -136,7 +136,7 @@ class ReaderItem:
                     self.data['commit_id'] = result.stdout.read().strip()
 
         try:
-            add_data = self.model.fromfile(self.json_data)
+            add_data = self.model.fromfile(self.json_data, self.path_in_package)
         except Exception as e:
             raise CommandError('Could not load data: %s' % e)
         self.data.update(add_data)

@@ -39,7 +39,7 @@ class Package(models.Model):
         return self.name in settings.PUBLIC_PACKAGES
 
     @classmethod
-    def fromfile(cls, data):
+    def fromfile(cls, data, file_path):
         kwargs = {}
 
         if 'name' not in data:

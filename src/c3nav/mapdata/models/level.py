@@ -18,7 +18,7 @@ class Level(models.Model):
         return 'levels/%s.json' % self.name
 
     @classmethod
-    def fromfile(cls, data):
+    def fromfile(cls, data, file_path):
         if 'altitude' not in data:
             raise ValueError('missing altitude.')
 
