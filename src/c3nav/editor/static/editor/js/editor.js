@@ -352,15 +352,15 @@ editor = {
         }
     },
     submit_editing_btn_click: function(e) {
-        e.preventDefault();
-        $(this).closest('form').trigger('submit', $(this));
+        $(this).closest('form').data('btn', $(this)).clearQueue().delay(300).queue(function() {
+            $(this).data('button', null);
+        });
     },
-    submit_editing: function(e, btn) {
+    submit_editing: function(e) {
         e.preventDefault();
         var data = $(this).serialize();
-        console.log($(btn));
-        console.log($(btn).is('[name]'));
-        if (btn !== undefined && $(btn).is('[name]')) {
+        var btn = $(this).data('btn');
+        if (btn !== undefined && btn !== null && $(btn).is('[name]')) {
             data += '&'+$('<input>').attr('name', $(btn).attr('name')).val($(btn).val()).serialize();
         }
         var action = $(this).attr('action');
