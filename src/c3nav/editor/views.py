@@ -20,7 +20,7 @@ def add_feature(request, feature_type):
         raise Http404()
 
     if request.method == 'POST':
-        form = FeatureForm(request.POST, feature_type=feature_type)
+        form = FeatureForm(request.POST, feature_type=feature_type, request=request)
         if form.is_valid():
             feature = form.instance
             feature.feature_type = feature_type.name
@@ -38,7 +38,7 @@ def add_feature(request, feature_type):
 
             return render(request, 'editor/feature_success.html', {})
     else:
-        form = FeatureForm(feature_type=feature_type)
+        form = FeatureForm(feature_type=feature_type, request=request)
 
     return render(request, 'editor/feature.html', {
         'form': form,
@@ -71,7 +71,7 @@ def edit_feature(request, name):
                 'path': request.path
             })
 
-        form = FeatureForm(instance=feature, data=request.POST, feature_type=feature_type)
+        form = FeatureForm(instance=feature, data=request.POST, feature_type=feature_type, request=request)
         if form.is_valid():
             feature = form.instance
             feature.feature_type = feature_type.name
@@ -89,7 +89,7 @@ def edit_feature(request, name):
 
             return render(request, 'editor/feature_success.html', {})
     else:
-        form = FeatureForm(instance=feature, feature_type=feature_type)
+        form = FeatureForm(instance=feature, feature_type=feature_type, request=request)
 
     return render(request, 'editor/feature.html', {
         'form': form,

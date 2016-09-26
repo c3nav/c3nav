@@ -2,23 +2,38 @@ from collections import OrderedDict
 
 from django.conf import settings
 from django.forms import CharField, ModelForm, ValidationError
+from django.forms.models import ModelChoiceField
 from django.forms.widgets import HiddenInput
 from django.utils.translation import ugettext_lazy as _
 
+from c3nav.mapdata.models.package import Package
+from c3nav.mapdata.permissions import get_unlocked_packages
 from ..mapdata.models import Feature
 
 
 class FeatureForm(ModelForm):
-    def __init__(self, *args, feature_type, **kwargs):
+    def __init__(self, *args, feature_type, request=None, **kwargs):
         self.feature_type = feature_type
+        self.request = request
         super().__init__(*args, **kwargs)
         self.fields['level'].widget = HiddenInput()
         self.fields['geometry'].widget = HiddenInput()
 
         titles = OrderedDict((lang_code, '') for lang_code, language in settings.LANGUAGES)
         if self.instance is not None and self.instance.pk:
-            self.fields['name'].widget.attrs['readonly'] = True
-            titles.update(self.instance.titles)
+            self.fields['name'].disabled = True
+            if not settings.DIRECT_EDITING:
+                self.fields['package'].widget = HiddenInput()
+                self.fields['package'].disabled = True
+        else:
+            unlocked_packages = get_unlocked_packages(request)
+            if len(unlocked_packages) == 1:
+                self.fields['package'].widget = HiddenInput()
+                self.fields['package'].initial = next(iter(unlocked_packages))
+            else:
+                self.fields['package'] = ModelChoiceField(
+                    queryset=Package.objects.filter(name__in=unlocked_packages)
+                )
 
         language_titles = dict(settings.LANGUAGES)
         for language in titles.keys():
@@ -35,14 +50,6 @@ class FeatureForm(ModelForm):
             raise ValidationError(
                 _('You have to select a title in at least one language.')
             )
-
-    def clean_name(self):
-        if self.instance is not None and self.instance.pk and self.cleaned_data['name'] != self.instance.name:
-            raise ValidationError(
-                _('You cannot edit feature identifiers of existing objects.')
-            )
-
-        return self.cleaned_data['name']
 
     def get_languages(self):
         pass
