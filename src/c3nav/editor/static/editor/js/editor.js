@@ -359,6 +359,7 @@ editor = {
         });
     },
     submit_editing: function(e) {
+        if ($(this).attr('name') == 'redirect') return;
         e.preventDefault();
         var data = $(this).serialize();
         var btn = $(this).data('btn');
@@ -374,6 +375,7 @@ editor = {
             if ($('<div>').append(content).find('form').length > 0) {
                 $('#mapeditdetail').html(content);
                 $('#mapeditcontrols').addClass('detail');
+                $('#mapeditdetail').find('form[name=redirect]').submit();
                 if ($('#id_geometry').length) {
                     editor._editing.enableEdit();
                 }

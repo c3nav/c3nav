@@ -1,0 +1,27 @@
+{% extends 'editor/base.html' %}
+{% block content %}
+    {% if hoster %}
+        <h2>Sign in with {{ hoster.title }}</h2>
+        <p>Please sign in to continue and propose your edit.</p>
+        <p>
+            <a class="btn btn-lg btn-primary">Sign in with {{ hoster.title }}</a><br>
+            <small><em>
+                {{ hoster.name }} – {{ hoster.base_url }}
+            </small></em>
+        </p>
+        <p></p>
+        <p>Alternatively, you can copy your edit below and send it to the maps maintainer.</p>
+    {% else %}
+        <h2>Copy your edit</h2>
+        <p>In order to propose your edit, please copy it and send it to the maps maintainer.</p>
+        <p><em>You are seeing this message because there is no hoster defined for this map package.</em></p>
+    {% endif %}
+    <h3>Your Edit</h3>
+    <p><strong>Map Package:</strong> {{ package_name }}</p>
+    {% if file_contents %}
+        <p><strong>New content for file:</strong> <code>{{ file_path }}</code></p>
+        <pre>{{ file_contents }}</pre>
+    {% else %}
+        <p><strong>Delete file:</strong> <code>{{ file_path }}</code></p>
+    {% endif %}
+{% endblock %}
