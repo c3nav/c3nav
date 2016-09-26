@@ -324,8 +324,10 @@ editor = {
     edit_form_loaded: function() {
         $('#mapeditcontrols').addClass('detail');
         $('#id_level').val(editor._level);
-        $('#id_geometry').val(JSON.stringify(editor._editing.toGeoJSON().geometry));
-        editor._editing.enableEdit();
+        if ($('#id_geometry').length) {
+            $('#id_geometry').val(JSON.stringify(editor._editing.toGeoJSON().geometry));
+            editor._editing.enableEdit();
+        }
         if (editor._editing.options.geomtype == 'polygon') {
             editor._editing.on('click', function (e) {
                 if ((e.originalEvent.ctrlKey || e.originalEvent.metaKey) && this.editEnabled()) {
@@ -372,7 +374,9 @@ editor = {
             if ($('<div>').append(content).find('form').length > 0) {
                 $('#mapeditdetail').html(content);
                 $('#mapeditcontrols').addClass('detail');
-                editor._editing.enableEdit();
+                if ($('#id_geometry').length) {
+                    editor._editing.enableEdit();
+                }
             } else {
                 if (editor._creating !== null) {
                     editor._editing.remove();
