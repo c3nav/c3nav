@@ -1,5 +1,6 @@
 editor = {
     feature_types: {},
+    feature_types_order: [],
 
     init: function () {
         // Init Map
@@ -17,7 +18,6 @@ editor = {
         editor.get_feature_types();
         editor.get_packages();
         editor.get_sources();
-        editor.get_levels();
     },
 
     get_feature_types: function () {
@@ -27,6 +27,7 @@ editor = {
             for (var i = 0; i < feature_types.length; i++) {
                 feature_type = feature_types[i];
                 editor.feature_types[feature_type.name] = feature_type;
+                editor.feature_types_order.push(feature_type.name);
                 editcontrols.append(
                     $('<fieldset>').attr('name', feature_type.name).append(
                         $('<legend>').text(feature_type.title_plural).append(
@@ -35,6 +36,7 @@ editor = {
                     )
                 );
             }
+            editor.get_levels();
         });
     },
 
@@ -70,9 +72,9 @@ editor = {
         });
     },
 
-    level_layers: {},
     levels: {},
     _level: null,
+    level_feature_layers: {},
     get_levels: function () {
         $.getJSON('/api/v1/levels/?ordering=-altitude', function (levels) {
             L.LevelControl = L.Control.extend({
@@ -103,28 +105,32 @@ editor = {
             for (var i = 0; i < levels.length; i++) {
                 level = levels[i];
                 editor.levels[level.name] = level;
-                editor.level_layers[level.name] = L.layerGroup();
+                editor.level_feature_layers[level.name] = {};
+                for (var j = 0; j < editor.feature_types_order.length; j++) {
+                    editor.level_feature_layers[level.name][editor.feature_types_order[j]] = L.layerGroup();
+                }
             }
+            editor.set_current_level(levels[levels.length - 1].name);
             editor.init_drawing();
-
-            editor._level = levels[levels.length - 1].name;
-            editor.level_layers[editor._level].addTo(editor.map);
         });
     },
-    set_current_level: function(name) {
+    set_current_level: function(level_name) {
         if (editor._creating !== null || editor._editing !== null) return;
-        editor.level_layers[editor._level].remove();
-        editor._level = name;
-        editor.level_layers[editor._level].addTo(editor.map);
+        for (var i = 0; i < editor.feature_types_order.length; i++) {
+            if (editor._level !== null) {
+                editor.level_feature_layers[editor._level][editor.feature_types_order[i]].remove();
+            }
+            editor.level_feature_layers[level_name][editor.feature_types_order[i]].addTo(editor.map);
+        }
+        editor._level = level_name;
         $('.leaflet-levels .current').removeClass('current');
-        $('.leaflet-levels a[name='+name+']').addClass('current');
+        $('.leaflet-levels a[name='+level_name+']').addClass('current');
     },
 
+    _creating: null,
+    _editing: null,
     init_drawing: function () {
         // Add drawing new features
-        editor._creating = null;
-        editor._editing = null;
-
         L.DrawControl = L.Control.extend({
             options: {
                 position: 'topleft'
@@ -159,8 +165,32 @@ editor = {
     },
 
     get_features: function () {
-        $('.start-drawing').show();
-        $('#mapeditcontrols').addClass('list');
+        $.getJSON('/api/v1/features/', function(features) {
+            for (level in editor.level_layers) {
+                editor.level_layers[level].clearLayers();
+            }
+            var feature;
+            for (var i=0; i < features.length; i++) {
+                feature = features[i];
+                L.geoJSON({
+                    type: 'Feature',
+                    geometry: feature.geometry,
+                    properties: {
+                        name: feature.name,
+                        feature_type: feature.feature_type
+                    }
+                }, {
+                    style: editor._get_feature_style
+                }).addTo(editor.level_feature_layers[feature.level][feature.feature_type]);
+            }
+            $('.start-drawing').show();
+            $('#mapeditcontrols').addClass('list');
+            editor.set_current_level(editor._level);
+        });
+
+    },
+    _get_feature_style: function (feature) {
+        return editor.feature_types[feature.properties.feature_type];
     },
 
     start_creating: function (feature_type) {
@@ -223,7 +253,9 @@ editor = {
     },
     cancel_editing: function() {
         if (editor._editing !== null) {
-            editor._editing.remove();
+            if (editor._creating !== null) {
+                editor._editing.remove();
+            }
             editor._editing = null;
             editor._creating = null;
             $('#mapeditcontrols').removeClass('detail');
@@ -245,6 +277,9 @@ editor = {
                 $('#mapeditcontrols').addClass('detail');
                 editor._editing.enableEdit();
             } else {
+                if (editor._creating !== null) {
+                    editor._editing.remove();
+                }
                 editor._editing = null;
                 editor._creating = null;
                 editor.get_features();

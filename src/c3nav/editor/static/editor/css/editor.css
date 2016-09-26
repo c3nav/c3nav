@@ -81,3 +81,6 @@
 .start-drawing {
     display:none;
 }
+.leaflet-editable-drawing .leaflet-overlay-pane .leaflet-interactive {
+    cursor:crosshair;
+}
