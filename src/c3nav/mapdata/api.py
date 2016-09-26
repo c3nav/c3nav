@@ -87,6 +87,6 @@ class FeatureViewSet(ReadOnlyModelViewSet):
     """
     Get all Map Features including ones that are only part of the current session
     """
-    queryset = Feature.objects.all().prefetch_related('featuretitles')
+    queryset = Feature.objects.all()
     serializer_class = FeatureSerializer
     lookup_value_regex = '[^/]+'

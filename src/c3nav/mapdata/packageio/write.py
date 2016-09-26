@@ -106,7 +106,7 @@ class MapdataWriter:
         for file_path, content in self.write:
             full_file_path = os.path.join(settings.MAP_ROOT, file_path)
             try:
-                os.makedirs(os.path.join(os.path.split(full_file_path)[:-1]))
+                os.makedirs(os.path.join(*os.path.split(full_file_path)[0]))
             except os.error:
                 pass
             if content is not None:

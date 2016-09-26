@@ -55,6 +55,7 @@ class FeatureTypeSerializer(serializers.Serializer):
 
 
 class FeatureSerializer(serializers.ModelSerializer):
+    titles = serializers.JSONField()
     geometry = GeometryField()
 
     class Meta:
