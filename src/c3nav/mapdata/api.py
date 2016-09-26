@@ -4,7 +4,6 @@ import os
 from django.conf import settings
 from django.core.files import File
 from django.http import Http404, HttpResponse
-
 from rest_framework.decorators import detail_route
 from rest_framework.response import Response
 from rest_framework.viewsets import ReadOnlyModelViewSet, ViewSet

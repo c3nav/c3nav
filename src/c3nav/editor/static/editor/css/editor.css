@@ -78,9 +78,46 @@
     padding-left:5.5px;
     padding-right:5.5px;
 }
+legend {
+    margin: 0;
+}
 .start-drawing {
     display:none;
 }
 .leaflet-editable-drawing .leaflet-overlay-pane .leaflet-interactive {
     cursor:crosshair;
+}
+.feature_level_list {
+    list-style-type:none;
+    display:none;
+    margin-bottom:15px;
+    padding:0;
+}
+.feature_level_list li {
+    padding:5px 0 0;
+    border-style:solid;
+    border-width:0 0 1px;
+    border-color:#EEEEEE;
+}
+.feature_level_list li:hover, .feature_level_list li.hover {
+    background-color:#FFFFEE;
+}
+.feature_level_list p {
+    margin:0 0 5px;
+    cursor:default;
+}
+.feature_level_list p:first-child {
+    font-weight:bold;
+    font-size:16px;
+}
+.feature_level_list p:first-child em {
+    font-weight:normal;
+    font-size:14px;
+    padding-left:5px;
+}
+#map .leaflet-overlay-pane .c3nav-highlight {
+    pointer-events:none;
+}
+#btn_editing_cancel {
+    margin-right:8px;
 }
