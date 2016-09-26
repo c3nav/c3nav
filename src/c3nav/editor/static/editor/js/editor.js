@@ -237,11 +237,13 @@ editor = {
         var action = $(this).attr('action');
         $('#mapeditcontrols').removeClass('detail');
         $('#mapeditdetail').html('');
+        editor._editing.disableEdit();
         $.post(action, data, function (data) {
             var content = $(data);
             if ($('<div>').append(content).find('form').length > 0) {
                 $('#mapeditdetail').html(content);
                 $('#mapeditcontrols').addClass('detail');
+                editor._editing.enableEdit();
             } else {
                 editor._editing = null;
                 editor._creating = null;
