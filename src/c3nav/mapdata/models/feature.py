@@ -7,6 +7,7 @@ from django.utils.translation import get_language
 from shapely.geometry import mapping, shape
 
 from c3nav.mapdata.utils import sort_geojson
+
 from ..fields import GeometryField, JSONField
 
 
@@ -35,7 +36,7 @@ class Feature(models.Model):
     """
     TYPES = tuple((name, t.title) for name, t in FEATURE_TYPES.items())
 
-    name = models.SlugField(_('feature identifier'), primary_key=True, max_length=50, help_text=_('e.g. noc'))
+    name = models.SlugField(_('feature identifier'), primary_key=True, max_length=50)
     package = models.ForeignKey('mapdata.Package', on_delete=models.CASCADE, related_name='features',
                                 verbose_name=_('map package'))
     feature_type = models.CharField(max_length=50, choices=TYPES)

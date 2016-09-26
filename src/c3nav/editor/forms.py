@@ -17,6 +17,7 @@ class FeatureForm(ModelForm):
 
         titles = OrderedDict((lang_code, '') for lang_code, language in settings.LANGUAGES)
         if self.instance is not None and self.instance.pk:
+            self.fields['name'].widget.attrs['readonly'] = True
             titles.update(self.instance.titles)
 
         language_titles = dict(settings.LANGUAGES)
@@ -34,6 +35,14 @@ class FeatureForm(ModelForm):
             raise ValidationError(
                 _('You have to select a title in at least one language.')
             )
+
+    def clean_name(self):
+        if self.instance is not None and self.instance.pk and self.cleaned_data['name'] != self.instance.name:
+            raise ValidationError(
+                _('You cannot edit feature identifiers of existing objects.')
+            )
+
+        return self.cleaned_data['name']
 
     def get_languages(self):
         pass
