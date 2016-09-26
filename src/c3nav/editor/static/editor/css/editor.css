@@ -1,3 +1,9 @@
+body {
+    font-size:16px;
+}
+.btn-lg {
+    font-size:18px;
+}
 #map {
     position:absolute;
     top:54px;
