@@ -78,3 +78,6 @@
     padding-left:5.5px;
     padding-right:5.5px;
 }
+.start-drawing {
+    display:none;
+}

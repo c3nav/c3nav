@@ -159,7 +159,7 @@ editor = {
     },
 
     get_features: function () {
-        $('.start-drawing').prop('disabled', false);
+        $('.start-drawing').show();
         $('#mapeditcontrols').addClass('list');
     },
 
@@ -173,7 +173,7 @@ editor = {
             editor.map.editTools.startPolyline(null, options);
         }
         $('.leaflet-drawbar').show();
-        $('.start-drawing').prop('disabled', true);
+        $('.start-drawing').hide();
     },
     cancel_creating: function () {
         if (editor._creating === null || editor._editing !== null) return;
@@ -184,7 +184,7 @@ editor = {
     _canceled_creating: function (e) {
         if (editor._creating !== null && editor._editing === null) {
             e.layer.remove();
-            $('.start-drawing').prop('disabled', false);
+            $('.start-drawing').show();
         }
     },
     done_creating: function(e) {
