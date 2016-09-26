@@ -50,6 +50,9 @@ def edit_feature(request, name):
     if request.method == 'POST':
         if request.POST.get('delete') == '1':
             if request.POST.get('delete_confirm') == '1':
+                if not settings.DIRECT_EDITING:
+                    return render(request, 'editor/feature_success.html', {})
+
                 feature.delete()
                 return render(request, 'editor/feature_success.html', {})
 
