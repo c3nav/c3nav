@@ -6,8 +6,8 @@ import subprocess
 from django.conf import settings
 from django.core.management import CommandError
 
-from ..models import Level, Package
-from .const import ordered_models
+from c3nav.mapdata.models import Level, Package
+from c3nav.mapdata.packageio.const import ordered_models
 
 
 class MapdataReader:

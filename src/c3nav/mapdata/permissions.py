@@ -3,7 +3,7 @@ from django.utils.translation import ugettext_lazy as _
 from rest_framework.exceptions import PermissionDenied
 from rest_framework.permissions import BasePermission
 
-from .models import Source
+from c3nav.mapdata.models import Source
 
 
 def get_unlocked_packages(request):

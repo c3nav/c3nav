@@ -1,6 +1,6 @@
 from django.conf import settings
-from .github import GithubHoster  # noqa
-from .gitlab import GitlabHoster  # noqa
+from c3nav.editor.hosters.github import GithubHoster  # noqa
+from c3nav.editor.hosters.gitlab import GitlabHoster  # noqa
 
 from collections import OrderedDict
 

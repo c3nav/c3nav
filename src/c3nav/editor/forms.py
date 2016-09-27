@@ -6,9 +6,8 @@ from django.forms.models import ModelChoiceField
 from django.forms.widgets import HiddenInput
 from django.utils.translation import ugettext_lazy as _
 
-from c3nav.mapdata.models.package import Package
+from c3nav.mapdata.models import Feature, Package
 from c3nav.mapdata.permissions import get_unlocked_packages
-from ..mapdata.models import Feature
 
 
 class FeatureForm(ModelForm):

@@ -7,10 +7,9 @@ from datetime import datetime
 from django.conf import settings
 from django.utils import timezone
 
+from c3nav.mapdata.models import Package
+from c3nav.mapdata.packageio.const import ordered_models
 from c3nav.mapdata.utils import json_encoder_reindent
-
-from ..models import Package
-from .const import ordered_models
 
 
 class MapdataWriter:

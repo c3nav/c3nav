@@ -8,10 +8,11 @@ from rest_framework.decorators import detail_route
 from rest_framework.response import Response
 from rest_framework.viewsets import ReadOnlyModelViewSet, ViewSet
 
-from .cache import AccessCachedViewSetMixin, CachedViewSetMixin
-from .models import FEATURE_TYPES, Feature, Level, Package, Source
-from .permissions import filter_source_queryset
-from .serializers import FeatureSerializer, FeatureTypeSerializer, LevelSerializer, PackageSerializer, SourceSerializer
+from c3nav.mapdata.cache import AccessCachedViewSetMixin, CachedViewSetMixin
+from c3nav.mapdata.models import FEATURE_TYPES, Feature, Level, Package, Source
+from c3nav.mapdata.permissions import filter_source_queryset
+from c3nav.mapdata.serializers import (FeatureSerializer, FeatureTypeSerializer, LevelSerializer, PackageSerializer,
+                                       SourceSerializer)
 
 
 class LevelViewSet(CachedViewSetMixin, ReadOnlyModelViewSet):

@@ -2,8 +2,8 @@ from django.http import Http404
 from rest_framework.response import Response
 from rest_framework.viewsets import ViewSet
 
-from .hosters import hosters
-from .serializers import HosterSerializer
+from c3nav.editor.hosters import hosters
+from c3nav.editor.serializers import HosterSerializer
 
 
 class HosterViewSet(ViewSet):
