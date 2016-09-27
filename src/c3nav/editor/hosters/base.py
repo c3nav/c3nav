@@ -1,4 +1,4 @@
-from ...mapdata.models import Package
+from c3nav.mapdata.models import Package
 
 
 class Hoster:

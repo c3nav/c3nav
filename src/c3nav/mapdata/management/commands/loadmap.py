@@ -1,7 +1,7 @@
 from django.core.management.base import BaseCommand, CommandError
 from django.db import transaction
 
-from ...packageio import MapdataReader
+from c3nav.mapdata.packageio import MapdataReader
 
 
 class Command(BaseCommand):

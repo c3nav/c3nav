@@ -6,9 +6,8 @@ from django.utils.translation import ugettext_lazy as _
 from django.utils.translation import get_language
 from shapely.geometry import mapping, shape
 
+from c3nav.mapdata.fields import GeometryField, JSONField
 from c3nav.mapdata.utils import sort_geojson
-
-from ..fields import GeometryField, JSONField
 
 
 class FeatureType(namedtuple('FeatureType', ('name', 'title', 'title_plural', 'geomtype', 'color'))):

@@ -1,6 +1,6 @@
 from django.core.management.base import BaseCommand, CommandError
 
-from ...packageio import MapdataWriter
+from c3nav.mapdata.packageio import MapdataWriter
 
 
 class Command(BaseCommand):

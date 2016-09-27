@@ -1,4 +1,4 @@
-from .base import Hoster
+from c3nav.editor.hosters.base import Hoster
 
 
 class GithubHoster(Hoster):

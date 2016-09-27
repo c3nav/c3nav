@@ -3,8 +3,8 @@ from rest_framework import serializers
 from rest_framework.exceptions import ValidationError
 from shapely.geometry import mapping, shape
 
-from .models import Feature, Level, Package, Source
-from .utils import sort_geojson
+from c3nav.mapdata.models import Feature, Level, Package, Source
+from c3nav.mapdata.utils import sort_geojson
 
 
 class GeometryField(serializers.DictField):

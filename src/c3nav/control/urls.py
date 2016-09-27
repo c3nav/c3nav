@@ -1,7 +1,7 @@
 from django.conf.urls import url
 
-from . import views
+from c3nav.control.views import dashboard
 
 urlpatterns = [
-    url(r'^$', views.dashboard, name='control.dashboard'),
+    url(r'^$', dashboard, name='control.dashboard'),
 ]

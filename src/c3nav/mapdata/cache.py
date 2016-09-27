@@ -4,7 +4,7 @@ from django.core.cache import cache
 from django.template.response import SimpleTemplateResponse
 from django.utils.cache import patch_vary_headers
 
-from .permissions import get_unlocked_packages
+from c3nav.mapdata.permissions import get_unlocked_packages
 
 
 class CachedViewSetMixin:
