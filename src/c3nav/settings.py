@@ -101,6 +101,17 @@ if HAS_MEMCACHED:
     }
     SESSION_ENGINE = "django.contrib.sessions.backends.cached_db"
 
+HAS_CELERY_BROKER = config.has_option('celery', 'broker')
+if HAS_CELERY_BROKER:
+    BROKER_URL = config.get('celery', 'broker')
+    CELERY_RESULT_BACKEND = config.get('celery', 'backend')
+    CELERY_SEND_TASK_ERROR_EMAILS = bool(ADMINS)
+else:
+    CELERY_ALWAYS_EAGER = True
+CELERY_TASK_SERIALIZER = 'json'
+CELERY_ACCEPT_CONTENT = ['json']
+CELERY_RESULT_SERIALIZER = 'json'
+
 SESSION_COOKIE_DOMAIN = config.get('c3nav', 'cookie_domain', fallback=None)
 SESSION_COOKIE_SECURE = config.getboolean('c3nav', 'session_cookie_secure', fallback=False)
 
