@@ -1,4 +1,6 @@
 {% extends 'editor/base.html' %}
+{% load static %}
+{% load bootstrap3 %}
 {% block content %}
     {% if hoster %}
         {% if hoster_error %}
@@ -6,11 +8,30 @@
                 <p>{{ hoster_error }}</p>
             </div>
         {% endif %}
-
         {% if hoster_state == 'logged_in' %}
-            <h2>Submit a pull request</h2>
-            <p>blablabla #todo</p>
+            <h2>Propose Changes</h2>
+            <p>Please provide a short helpful title for your change.</p>
+            <form action="{% url 'editor.finalize' %}" method="POST">
+                {% csrf_token %}
+                <input type="hidden" name="data" value="{{ data }}">
+                {% bootstrap_form commit_form %}
+
+                {% buttons %}
+                    <button type="submit" class="btn btn-lg btn-primary">Create Pull Request</button><br>
+                    <small><em>
+                        {{ hoster.name }} – {{ hoster.base_url }}
+                    </em></small>
+                {% endbuttons %}
+
         {% elif hoster_state == 'checking' %}
+            <h2>Sign in with {{ hoster.title }}</h2>
+            <form action="{% url 'editor.finalize' %}" method="POST" data-check-hoster="{{ hoster.name }}">
+                {% csrf_token %}
+                <input type="hidden" name="data" value="{{ data }}">
+                <p><img src="{% static 'img/loader.gif' %}"></p>
+                <p><em>Checking authentication, please wait…</em></p>
+            </form>
+
         {% else %}
             {% if hoster_state == 'misssing_permissions' %}
                 <h2>Missing {{ hoster.title }} Permissions</h2>
@@ -20,14 +41,14 @@
                 <h2>Sign in with {{ hoster.title }}</h2>
                 <p>Please sign in to continue and propose your edit.</p>
             {% endif %}
-            <form action="{% url 'editor.finalize.oauth' %}" method="POST">
+            <form action="{% url 'editor.finalize.oauth' %}" method="POST" data-task="{{ task }}">
                 {% csrf_token %}
                 <input type="hidden" name="data" value="{{ data }}">
                 <p>
                     <button type="submit" class="btn btn-lg btn-primary">Sign in with {{ hoster.title }}</button><br>
                     <small><em>
                         {{ hoster.name }} – {{ hoster.base_url }}
-                    </small></em>
+                    </em></small>
                 </p>
             </form>
         {% endif %}
@@ -37,6 +58,7 @@
         <p>In order to propose your edit, please copy it and send it to the maps maintainer.</p>
         <p><em>You are seeing this message because there is no hoster defined for this map package.</em></p>
     {% endif %}
+
     <h3>Your Edit</h3>
     <p><strong>Map Package:</strong> {{ package_name }}</p>
     {% if file_contents %}
