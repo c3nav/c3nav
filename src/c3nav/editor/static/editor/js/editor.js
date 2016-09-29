@@ -395,3 +395,4 @@ editor = {
 if ($('#mapeditlist').length) {
     editor.init();
 }
+$('form[name=redirect]').submit();

@@ -24,7 +24,7 @@ class FeatureForm(ModelForm):
             if not settings.DIRECT_EDITING:
                 self.fields['package'].widget = HiddenInput()
                 self.fields['package'].disabled = True
-        else:
+        elif not settings.DIRECT_EDITING:
             unlocked_packages = get_unlocked_packages(request)
             if len(unlocked_packages) == 1:
                 self.fields['package'].widget = HiddenInput()
