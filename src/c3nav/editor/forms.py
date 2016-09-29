@@ -1,7 +1,7 @@
 from collections import OrderedDict
 
 from django.conf import settings
-from django.forms import CharField, ModelForm, ValidationError
+from django.forms import CharField, Form, ModelForm, ValidationError
 from django.forms.models import ModelChoiceField
 from django.forms.widgets import HiddenInput
 from django.utils.translation import ugettext_lazy as _
@@ -57,3 +57,7 @@ class FeatureForm(ModelForm):
         # generate extra fields in the number specified via extra_fields
         model = Feature
         fields = ['name', 'package', 'level', 'geometry']
+
+
+class CommitForm(Form):
+    commit_msg = CharField(label=_('Commit message'), max_length=100)

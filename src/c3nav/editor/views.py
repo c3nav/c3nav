@@ -1,12 +1,13 @@
 from django.conf import settings
 from django.core import signing
-from django.core.exceptions import PermissionDenied
+from django.core.exceptions import PermissionDenied, SuspiciousOperation
 from django.http.response import Http404
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import activate, get_language
 from django.views.decorators.http import require_POST
 
-from c3nav.editor.forms import FeatureForm
+from c3nav.editor.forms import CommitForm, FeatureForm
 from c3nav.editor.hosters import get_hoster_for_package, hosters
 from c3nav.mapdata.models.feature import FEATURE_TYPES, Feature
 from c3nav.mapdata.models.package import Package
@@ -30,8 +31,13 @@ def add_feature(request, feature_type):
                     feature.titles[language] = title
 
             if not settings.DIRECT_EDITING:
+                content = json_encode(feature.tofile())
+                language = get_language()
+                title_en = feature.titles.get('en', next(iter(feature.titles.values())))
+                commit_msg = 'Added %s: %s' % (str(feature_type.title).lower(), title_en)
+                activate(language)
                 return render(request, 'editor/feature_success.html', {
-                    'data': signing.dumps((feature.package.name, feature.tofilename(), json_encode(feature.tofile())))
+                    'data': signing.dumps((feature.package.name, feature.tofilename(), content, commit_msg))
                 })
 
             feature.save()
@@ -58,8 +64,12 @@ def edit_feature(request, name):
         if request.POST.get('delete') == '1':
             if request.POST.get('delete_confirm') == '1':
                 if not settings.DIRECT_EDITING:
+                    language = get_language()
+                    title_en = feature.titles.get('en', next(iter(feature.titles.values())))
+                    commit_msg = 'Deleted %s: %s' % (str(feature_type.title).lower(), title_en)
+                    activate(language)
                     return render(request, 'editor/feature_success.html', {
-                        'data': signing.dumps((feature.package.name, feature.tofilename(), None))
+                        'data': signing.dumps((feature.package.name, feature.tofilename(), None, commit_msg))
                     })
 
                 feature.delete()
@@ -81,8 +91,13 @@ def edit_feature(request, name):
                     feature.titles[language] = title
 
             if not settings.DIRECT_EDITING:
+                content = json_encode(feature.tofile())
+                language = get_language()
+                title_en = feature.titles.get('en', next(iter(feature.titles.values())))
+                commit_msg = 'Updated %s: %s' % (str(feature_type.title).lower(), title_en)
+                activate(language)
                 return render(request, 'editor/feature_success.html', {
-                    'data': signing.dumps((feature.package.name, feature.tofilename(), json_encode(feature.tofile())))
+                    'data': signing.dumps((feature.package.name, feature.tofilename(), content, commit_msg))
                 })
 
             feature.save()
@@ -102,13 +117,10 @@ def edit_feature(request, name):
 @require_POST
 def finalize(request):
     if 'data' not in request.POST:
-        return render(request, 'editor/error.html', {
-            'title': _('Missing data.'),
-            'description': _('Edit data is missing.')
-        }, status=400)
+        raise SuspiciousOperation('Missing data.')
     data = request.POST['data']
 
-    package_name, file_path, file_contents = signing.loads(data)
+    package_name, file_path, file_contents, commit_msg = signing.loads(data)
 
     package = Package.objects.filter(name=package_name).first()
     hoster = None
@@ -121,8 +133,16 @@ def finalize(request):
     hoster_state = hoster.get_state(request)
     hoster_error = hoster.get_error(request) if hoster_state == 'logged_out' else None
 
+    if request.method == 'POST' and 'commit_msg' in request.POST:
+        form = CommitForm(request.POST)
+        if form.is_valid() and hoster_state == 'logged_in':
+            pass
+    else:
+        form = CommitForm({'commit_msg': commit_msg})
+
     return render(request, 'editor/finalize.html', {
         'data': data,
+        'commit_form': form,
         'package_name': package_name,
         'hoster': hoster,
         'hoster_state': hoster_state,
@@ -146,7 +166,7 @@ def finalize_oauth_redirect(request):
         }, status=400)
     data = request.POST['data']
 
-    package_name, file_path, file_contents = signing.loads(data)
+    package_name, file_path, file_contents, commit_msg = signing.loads(data)
     package = Package.objects.filter(name=package_name).first()
     hoster = None
     if package is not None:
