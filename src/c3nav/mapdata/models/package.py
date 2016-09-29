@@ -12,7 +12,7 @@ class Package(models.Model):
     name = models.SlugField(_('package identifier'), primary_key=True, max_length=50,
                             help_text=_('e.g. de.c3nav.33c3.base'))
     depends = models.ManyToManyField('Package', blank=True)
-    home_repo = models.URLField(_('URL to the home git repository'), null=True,  blank=True)
+    home_repo = models.URLField(_('URL to the home git repository'), null=True, blank=True)
     commit_id = models.CharField(_('current commit id'), max_length=40, null=True, blank=True)
 
     bottom = models.DecimalField(_('bottom coordinate'), null=True, blank=True, max_digits=6, decimal_places=2)
