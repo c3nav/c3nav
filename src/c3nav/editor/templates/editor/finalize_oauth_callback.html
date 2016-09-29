@@ -4,7 +4,6 @@
 <form action="{% url 'editor.finalize' %}" method="POST" name="redirect">
     {% csrf_token %}
     <input type="hidden" name="data" value="{{ data }}">
-    <img src="{% static 'img/loader.gif' %}">
     Redirecting…
 </form>
 {% endblock %}
