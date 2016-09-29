@@ -11,14 +11,14 @@ class Package(models.Model):
     """
     name = models.SlugField(_('package identifier'), primary_key=True, max_length=50,
                             help_text=_('e.g. de.c3nav.33c3.base'))
-    depends = models.ManyToManyField('Package')
-    home_repo = models.URLField(_('URL to the home git repository'), null=True)
-    commit_id = models.CharField(_('current commit id'), max_length=40, null=True)
+    depends = models.ManyToManyField('Package', blank=True)
+    home_repo = models.URLField(_('URL to the home git repository'), null=True,  blank=True)
+    commit_id = models.CharField(_('current commit id'), max_length=40, null=True, blank=True)
 
-    bottom = models.DecimalField(_('bottom coordinate'), null=True, max_digits=6, decimal_places=2)
-    left = models.DecimalField(_('left coordinate'), null=True, max_digits=6, decimal_places=2)
-    top = models.DecimalField(_('top coordinate'), null=True, max_digits=6, decimal_places=2)
-    right = models.DecimalField(_('right coordinate'), null=True, max_digits=6, decimal_places=2)
+    bottom = models.DecimalField(_('bottom coordinate'), null=True, blank=True, max_digits=6, decimal_places=2)
+    left = models.DecimalField(_('left coordinate'), null=True, blank=True, max_digits=6, decimal_places=2)
+    top = models.DecimalField(_('top coordinate'), null=True, blank=True, max_digits=6, decimal_places=2)
+    right = models.DecimalField(_('right coordinate'), null=True, blank=True, max_digits=6, decimal_places=2)
 
     directory = models.CharField(_('folder name'), max_length=100)
 
