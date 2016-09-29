@@ -119,7 +119,7 @@ class Hoster(ABC):
         pass
 
     @abstractmethod
-    def do_request_access_token(self, code, state):
+    def do_request_access_token(self, *args, **kwargs):
         """
         Task method for requesting the access token asynchroniously.
         Return a tuple with a new state and the access_token, or an optional error string if the state is 'logged_out'.

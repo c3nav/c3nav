@@ -20,8 +20,12 @@ class GithubHoster(Hoster):
         oauth_csrf_token = get_random_string(42, string.ascii_letters+string.digits)
         self._get_session_data(request)['oauth_csrf_token'] = oauth_csrf_token
 
+        callback_uri = self._get_callback_uri(request).replace('://localhost:8000', 's://33c3.c3nav.de')
+        self._get_session_data(request)['callback_uri'] = callback_uri
+
         return 'https://github.com/login/oauth/authorize?%s' % urlencode((
             ('client_id', self._app_id),
+            ('redirect_uri', callback_uri),
             ('scope', 'public_repo'),
             ('state', oauth_csrf_token),
         ))
@@ -37,13 +41,16 @@ class GithubHoster(Hoster):
             raise SuspiciousOperation('OAuth CSRF token mismatch')
         session_data.pop('oauth_csrf_token')
 
-        self.request_access_token(request, code, state)
+        callback_uri = session_data.pop('callback_uri')
 
-    def do_request_access_token(self, code, state):
+        self.request_access_token(request, code, state, callback_uri)
+
+    def do_request_access_token(self, code, state, callback_uri):
         response = requests.post('https://github.com/login/oauth/access_token', data={
             'client_id': self._app_id,
             'client_secret': self._app_secret,
             'code': code,
+            'redirect_uri': callback_uri,
             'state': state
         }, headers={'Accept': 'application/json'}).json()
 
