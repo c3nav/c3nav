@@ -373,9 +373,8 @@ editor = {
         $.post(action, data, function (data) {
             var content = $(data);
             if ($('<div>').append(content).find('form').length > 0) {
-                $('#mapeditdetail').html(content);
                 $('#mapeditcontrols').addClass('detail');
-                $('#mapeditdetail').find('form[name=redirect]').submit();
+                $('#mapeditdetail').html(content).find('form[name=redirect]').submit();
                 if ($('#id_geometry').length) {
                     editor._editing.enableEdit();
                 }

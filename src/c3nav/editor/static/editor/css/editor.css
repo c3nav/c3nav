@@ -127,13 +127,3 @@ legend {
 #btn_editing_cancel {
     margin-right:8px;
 }
-
-form[name=redirect] button {
-    background-image: url('/static/img/loader.gif');
-    background-repeat: no-repeat;
-    background-color: transparent !important;
-    border: 0 !important;
-    margin: 0 !important;
-    padding: 50px 0 0 0;
-    cursor: wait !important;
-}
