@@ -3,7 +3,6 @@ from django.core import signing
 from django.core.exceptions import PermissionDenied, SuspiciousOperation
 from django.http.response import Http404
 from django.shortcuts import get_object_or_404, redirect, render
-from django.utils.translation import ugettext_lazy as _
 from django.utils.translation import activate, get_language
 from django.views.decorators.http import require_POST
 
