@@ -56,7 +56,7 @@ class Hoster(ABC):
         state = session_data.setdefault('state', 'logged_out')
 
         if state == 'checking':
-            task = request_access_token.AsyncResult(id=session_data.get('checking_progress_id'))
+            task = request_access_token.AsyncResult(task_id=session_data.get('checking_progress_id'))
             self._handle_checking_task(request, task, session_data)
             state = session_data['state']
 
