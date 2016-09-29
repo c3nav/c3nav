@@ -23,7 +23,7 @@ class GitlabHoster(Hoster):
         oauth_csrf_token = get_random_string(42, string.ascii_letters+string.digits)
         self._get_session_data(request)['oauth_csrf_token'] = oauth_csrf_token
 
-        callback_uri = self._get_callback_uri(request).replace('://localhost:8000', 's://33c3.c3nav.de')
+        callback_uri = self._get_callback_uri(request)
         self._get_session_data(request)['callback_uri'] = callback_uri
 
         return self.get_endpoint('/oauth/authorize?%s' % urlencode((
