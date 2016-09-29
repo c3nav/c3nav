@@ -160,10 +160,7 @@ def finalize_oauth_progress(request):
 @require_POST
 def finalize_oauth_redirect(request):
     if 'data' not in request.POST:
-        return render(request, 'editor/error.html', {
-            'title': _('Missing data.'),
-            'description': _('Edit data is missing.')
-        }, status=400)
+        raise SuspiciousOperation('Missing data.')
     data = request.POST['data']
 
     package_name, file_path, file_contents, commit_msg = signing.loads(data)
