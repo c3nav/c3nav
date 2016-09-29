@@ -1,15 +1,36 @@
 {% extends 'editor/base.html' %}
 {% block content %}
     {% if hoster %}
-        <h2>Sign in with {{ hoster.title }}</h2>
-        <p>Please sign in to continue and propose your edit.</p>
-        <p>
-            <a class="btn btn-lg btn-primary">Sign in with {{ hoster.title }}</a><br>
-            <small><em>
-                {{ hoster.name }} – {{ hoster.base_url }}
-            </small></em>
-        </p>
-        <p></p>
+        {% if hoster_error %}
+            <div class="alert alert-danger" role="alert">
+                <p>{{ hoster_error }}</p>
+            </div>
+        {% endif %}
+
+        {% if hoster_state == 'logged_in' %}
+            <h2>Submit a pull request</h2>
+            <p>blablabla #todo</p>
+        {% elif hoster_state == 'checking' %}
+        {% else %}
+            {% if hoster_state == 'misssing_permissions' %}
+                <h2>Missing {{ hoster.title }} Permissions</h2>
+                <p>c3nav is missing permissions that it needs to propose your edit.</p>
+                <p>Please click the button below to grant the missing permissions.</p>
+            {% else %}
+                <h2>Sign in with {{ hoster.title }}</h2>
+                <p>Please sign in to continue and propose your edit.</p>
+            {% endif %}
+            <form action="{% url 'editor.finalize.oauth' %}" method="POST">
+                {% csrf_token %}
+                <input type="hidden" name="data" value="{{ data }}">
+                <p>
+                    <button type="submit" class="btn btn-lg btn-primary">Sign in with {{ hoster.title }}</button><br>
+                    <small><em>
+                        {{ hoster.name }} – {{ hoster.base_url }}
+                    </small></em>
+                </p>
+            </form>
+        {% endif %}
         <p>Alternatively, you can copy your edit below and send it to the maps maintainer.</p>
     {% else %}
         <h2>Copy your edit</h2>
