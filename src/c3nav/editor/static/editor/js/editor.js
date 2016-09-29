@@ -116,7 +116,9 @@ editor = {
                     );
                 }
             }
-            editor.set_current_level(levels[levels.length - 1].name);
+            if (levels.length > 0) {
+                editor.set_current_level(levels[levels.length - 1].name);
+            }
             editor.init_features();
         });
     },
