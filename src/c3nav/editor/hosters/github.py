@@ -55,20 +55,28 @@ class GithubHoster(Hoster):
         }, headers={'Accept': 'application/json'}).json()
 
         if 'error' in response:
-            return ('logged_out',
-                    '%s: %s %s' % (response['error'], response['error_description'], response['error_uri']))
+            return {
+                'state': 'logged_out',
+                'error': '%s: %s %s' % (response['error'], response['error_description'], response['error_uri'])
+            }
 
         if 'public_repo' not in response['scope'].split(','):
-            return ('missing_permissions', response['access_token'])
+            return {
+                'state': 'missing_permissions',
+                'access_token': response['access_token']
+            }
 
-        return ('logged_in', response['access_token'])
+        return {
+            'state': 'logged_in',
+            'access_token': response['access_token']
+        }
 
     def do_check_access_token(self, access_token):
         response = requests.get('https://api.github.com/rate_limit', headers={'Authorization': 'token '+access_token})
         if response.status_code != 200:
-            return ('logged_out', '')
+            return {'state': 'logged_out'}
 
         if 'public_repo' not in (s.strip() for s in response.headers.get('X-OAuth-Scopes').split(',')):
-            return ('missing_permissions', None)
+            return {'state': 'missing_permissions'}
 
-        return ('logged_in', None)
+        return {'state': 'logged_in'}
