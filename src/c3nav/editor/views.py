@@ -99,7 +99,8 @@ def edit_feature(request, feature_type=None, name=None):
 def finalize(request):
     if 'data' not in request.POST:
         raise SuspiciousOperation('Missing data.')
-    data = signing.loads(request.POST['data'])
+    raw_data = request.POST['data']
+    data = signing.loads(raw_data)
 
     if data['type'] != 'editor.edit':
         raise SuspiciousOperation('Wrong data type.')
@@ -109,8 +110,12 @@ def finalize(request):
     if package is not None:
         hoster = get_hoster_for_package(package)
 
-    if request.POST.get('check'):
+    action = request.POST.get('action')
+    if action == 'check':
         hoster.check_state(request)
+    elif action == 'oauth':
+        hoster.set_tmp_data(request, raw_data)
+        return redirect(hoster.get_auth_uri(request))
 
     hoster_state = hoster.get_state(request)
     hoster_error = hoster.get_error(request) if hoster_state == 'logged_out' else None
@@ -123,7 +128,7 @@ def finalize(request):
         form = CommitForm({'commit_msg': data['commit_msg']})
 
     return render(request, 'editor/finalize.html', {
-        'data': request.POST['data'],
+        'data': raw_data,
         'action': data['action'],
         'commit_id': data['commit_id'],
         'commit_form': form,
@@ -136,30 +141,7 @@ def finalize(request):
     })
 
 
-@require_POST
-def finalize_oauth_progress(request):
-    pass
-
-
-@require_POST
-def finalize_oauth_redirect(request):
-    if 'data' not in request.POST:
-        raise SuspiciousOperation('Missing data.')
-    data = signing.loads(request.POST['data'])
-
-    if data['type'] != 'editor.edit':
-        raise SuspiciousOperation('Wrong data type.')
-
-    package = Package.objects.filter(name=data['package_name']).first()
-    hoster = None
-    if package is not None:
-        hoster = get_hoster_for_package(package)
-
-    hoster.set_tmp_data(request, data)
-    return redirect(hoster.get_auth_uri(request))
-
-
-def finalize_oauth_callback(request, hoster):
+def oauth_callback(request, hoster):
     hoster = hosters.get(hoster)
     if hoster is None:
         raise Http404
@@ -167,4 +149,4 @@ def finalize_oauth_callback(request, hoster):
     data = hoster.get_tmp_data(request)
     hoster.handle_callback_request(request)
 
-    return render(request, 'editor/finalize_oauth_callback.html', {'data': data})
+    return render(request, 'editor/oauth_callback.html', {'data': data})
