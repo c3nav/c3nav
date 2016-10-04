@@ -80,3 +80,6 @@ class GithubHoster(Hoster):
             return {'state': 'missing_permissions'}
 
         return {'state': 'logged_in'}
+
+    def do_submit_edit(self, access_token, data):
+        raise NotImplementedError

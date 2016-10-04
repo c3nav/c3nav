@@ -1,12 +1,16 @@
+import string
+
 from django.conf import settings
 from django.core import signing
 from django.core.exceptions import PermissionDenied, SuspiciousOperation
 from django.http.response import Http404
 from django.shortcuts import get_object_or_404, redirect, render
+from django.utils.crypto import get_random_string
 from django.views.decorators.http import require_POST
 
 from c3nav.editor.forms import CommitForm, FeatureForm
 from c3nav.editor.hosters import get_hoster_for_package, hosters
+from c3nav.editor.tasks import submit_edit
 from c3nav.mapdata.models.feature import FEATURE_TYPES, Feature
 from c3nav.mapdata.models.package import Package
 from c3nav.mapdata.packageio.write import json_encode
@@ -112,21 +116,40 @@ def finalize(request):
         hoster = get_hoster_for_package(package)
 
     action = request.POST.get('action')
+
+    if 'commit_msg' in request.POST or action == 'submit':
+        form = CommitForm(request.POST)
+    else:
+        form = CommitForm({'commit_msg': data['commit_msg']})
+
+    task = None
+    new_submit_token = False
     if action == 'check':
         hoster.check_state(request)
     elif action == 'oauth':
         hoster.set_tmp_data(request, raw_data)
         return redirect(hoster.get_auth_uri(request))
+    elif action == 'submit' and hoster.get_state(request) == 'logged_in':
+        if request.POST.get('editor_submit_token', '') != request.session.get('editor_submit_token', None):
+            raise SuspiciousOperation('Invalid submit token.')
+        if form.is_valid():
+            new_submit_token = True
+            data['commit_msg'] = form.cleaned_data['commit_msg']
+            task = hoster.submit_edit(request, data)
+    elif action == 'result':
+        if 'task' not in request.POST:
+            raise SuspiciousOperation('Missing task id.')
+        task = submit_edit.AsyncResult(task_id=request.POST['task'])
+        try:
+            task.ready()
+        except:
+            raise Http404()
+
+    if 'editor_submit_token' not in request.session or new_submit_token:
+        request.session['editor_submit_token'] = get_random_string(42, string.ascii_letters + string.digits)
 
     hoster_state = hoster.get_state(request)
     hoster_error = hoster.get_error(request) if hoster_state == 'logged_out' else None
-
-    if request.method == 'POST' and 'commit_msg' in request.POST:
-        form = CommitForm(request.POST)
-        if form.is_valid() and hoster_state == 'logged_in':
-            pass
-    else:
-        form = CommitForm({'commit_msg': data['commit_msg']})
 
     return render(request, 'editor/finalize.html', {
         'data': raw_data,
@@ -137,6 +160,9 @@ def finalize(request):
         'hoster': hoster,
         'hoster_state': hoster_state,
         'hoster_error': hoster_error,
+        'redirect': action == 'submit' and not settings.CELERY_ALWAYS_EAGER,
+        'editor_submit_token': request.session['editor_submit_token'],
+        'task': {'id': task.id, 'ready': task.ready(), 'result': task.result} if task is not None else None,
         'file_path': data['file_path'],
         'file_contents': data.get('content')
     })
