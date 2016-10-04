@@ -61,10 +61,23 @@
 
     <h3>Your Edit</h3>
     <p><strong>Map Package:</strong> {{ package_name }}</p>
-    {% if file_contents %}
-        <p><strong>New content for file:</strong> <code>{{ file_path }}</code></p>
-        <pre>{{ file_contents }}</pre>
-    {% else %}
-        <p><strong>Delete file:</strong> <code>{{ file_path }}</code></p>
+    <p>
+        <strong>
+            {% if action == 'create' %}
+                Create file:
+            {% elif action == 'edit' %}
+                Edit file:
+            {% elif action == 'delete' %}
+                Delete file:
+            {% endif %}
+        </strong>
+        <code>{{ file_path }}</code>
+    </p>
+    <p><strong>Parent commit id:</strong> <code>{{ commit_id }}</code></p>
+    {% if action != 'delete' %}
+        <p>
+            <strong>New file contents:</strong>
+            <pre>{{ file_contents }}</pre>
+        </p>
     {% endif %}
 {% endblock %}
