@@ -1,6 +1,7 @@
 from abc import ABC, abstractmethod
 from urllib.parse import urlparse, urlunparse
 
+from celery.result import AsyncResult
 from django.conf import settings
 from django.urls.base import reverse
 from django.utils.translation import ugettext_lazy as _
@@ -68,7 +69,7 @@ class Hoster(ABC):
         state = session_data.setdefault('state', 'logged_out')
 
         if state == 'checking':
-            task = request_access_token_task.AsyncResult(task_id=session_data.get('checking_progress_id'))
+            task = AsyncResult(id=session_data.get('checking_progress_id'))
             self._handle_checking_task(request, task, session_data)
             state = session_data['state']
 
