@@ -59,13 +59,19 @@ class GitlabHoster(Hoster):
         }).json()
 
         if 'error' in response:
-            return ('logged_out', '%s: %s' % (response['error'], response['error_description']))
+            return {
+                'state': 'logged_out',
+                'error': '%s: %s' % (response['error'], response['error_description'])
+            }
 
-        return ('logged_in', response['access_token'])
+        return {
+            'state': 'logged_in',
+            'access_token': response['access_token']
+        }
 
     def do_check_access_token(self, access_token):
         response = requests.get(self.get_endpoint('/user'), headers={'Authorization': 'Bearer '+access_token})
         if response.status_code != 200:
-            return ('logged_out', '')
+            return {'state': 'logged_out'}
 
-        return ('logged_in', None)
+        return {'state': 'logged_in'}

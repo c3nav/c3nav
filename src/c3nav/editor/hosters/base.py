@@ -99,13 +99,8 @@ class Hoster(ABC):
                 session_data['state'] = 'logged_out'
                 session_data['error'] = _('Internal error.')
             else:
-                state, content = task.result
-                if content:
-                    if state == 'logged_out':
-                        session_data['error'] = content
-                    else:
-                        session_data['access_token'] = content
-                session_data['state'] = state
+                result = task.result
+                session_data.update(result)  # updates 'state' key and optional 'error' and 'access_tokenÄ keys.
             session_data.pop('checking_progress_id')
 
     def request_access_token(self, request, *args, **kwargs):
@@ -137,7 +132,8 @@ class Hoster(ABC):
     def do_request_access_token(self, *args, **kwargs):
         """
         Task method for requesting the access token asynchroniously.
-        Return a tuple with a new state and the access_token, or an optional error string if the state is 'logged_out'.
+        Returns a dict with a 'state' key containing the new hoster state, an optional 'error' key containing an
+        error message and an optional 'access_token' keys containing a new access token.
         """
         pass
 
@@ -145,6 +141,6 @@ class Hoster(ABC):
     def do_check_access_token(self, access_token):
         """
         Task method for checking the access token asynchroniously.
-        Return a tuple with a new state and None, or an optional error string if the state is 'logged_out'.
+        Returns a dict with a 'state' key containing the new hoster state.
         """
         pass
