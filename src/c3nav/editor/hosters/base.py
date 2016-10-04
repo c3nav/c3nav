@@ -1,6 +1,7 @@
 from abc import ABC, abstractmethod
 
 from django.urls.base import reverse
+from django.utils.translation import ugettext_lazy as _
 
 from c3nav.editor.tasks import check_access_token, request_access_token
 from c3nav.mapdata.models import Package
@@ -83,14 +84,17 @@ class Hoster(ABC):
         Checks if the checking task is finished and if so handles its results.
         """
         if task.ready():
-            task.maybe_reraise()
-            state, content = task.result
-            if content:
-                if state == 'logged_out':
-                    session_data['error'] = content
-                else:
-                    session_data['access_token'] = content
-            session_data['state'] = state
+            if task.failed():
+                session_data['state'] = 'logged_out'
+                session_data['error'] = _('Internal error.')
+            else:
+                state, content = task.result
+                if content:
+                    if state == 'logged_out':
+                        session_data['error'] = content
+                    else:
+                        session_data['access_token'] = content
+                session_data['state'] = state
             session_data.pop('checking_progress_id')
 
     def request_access_token(self, request, *args, **kwargs):
