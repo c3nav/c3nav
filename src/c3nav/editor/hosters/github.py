@@ -43,7 +43,7 @@ class GithubHoster(Hoster):
 
         callback_uri = session_data.pop('callback_uri')
 
-        self.request_access_token(request, code, state, callback_uri)
+        self.request_access_token(code, state, callback_uri)
 
     def do_request_access_token(self, code, state, callback_uri):
         response = requests.post('https://github.com/login/oauth/access_token', data={
