@@ -5,7 +5,7 @@ from django.conf import settings
 from django.urls.base import reverse
 from django.utils.translation import ugettext_lazy as _
 
-from c3nav.editor.tasks import check_access_token, request_access_token, submit_edit
+from c3nav.editor.tasks import check_access_token_task, request_access_token_task, submit_edit_task
 from c3nav.mapdata.models import Package
 
 
@@ -68,7 +68,7 @@ class Hoster(ABC):
         state = session_data.setdefault('state', 'logged_out')
 
         if state == 'checking':
-            task = request_access_token.AsyncResult(task_id=session_data.get('checking_progress_id'))
+            task = request_access_token_task.AsyncResult(task_id=session_data.get('checking_progress_id'))
             self._handle_checking_task(request, task, session_data)
             state = session_data['state']
 
@@ -86,7 +86,7 @@ class Hoster(ABC):
 
         if state == 'logged_in':
             session_data['state'] = 'checking'
-            task = check_access_token.delay(hoster=self.name, access_token=session_data['access_token'])
+            task = check_access_token_task.delay(hoster=self.name, access_token=session_data['access_token'])
             session_data['checking_progress_id'] = task.id
             self._handle_checking_task(request, task, session_data)
 
@@ -110,13 +110,13 @@ class Hoster(ABC):
         args = (self.name, )+args
         session_data = self._get_session_data(request)
         session_data['state'] = 'checking'
-        task = request_access_token.apply_async(args=args, kwargs=kwargs)
+        task = request_access_token_task.apply_async(args=args, kwargs=kwargs)
         session_data['checking_progress_id'] = task.id
         self._handle_checking_task(request, task, session_data)
 
     def submit_edit(self, request, data):
         session_data = self._get_session_data(request)
-        task = submit_edit.apply_async(access_token=session_data['access_token'], data=data)
+        task = submit_edit_task.apply_async(access_token=session_data['access_token'], data=data)
         return task
 
     @abstractmethod
