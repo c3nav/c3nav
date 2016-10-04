@@ -3,7 +3,7 @@ from collections import OrderedDict, namedtuple
 
 from django.db import models
 from django.utils.translation import ugettext_lazy as _
-from django.utils.translation import get_language
+from django.utils.translation import activate, get_language
 from shapely.geometry import mapping, shape
 
 from c3nav.mapdata.fields import GeometryField, JSONField
@@ -15,6 +15,14 @@ class FeatureType(namedtuple('FeatureType', ('name', 'title', 'title_plural', 'g
     def __init__(self, *args, **kwargs):
         super().__init__()
         FEATURE_TYPES[self.name] = self
+
+    @property
+    def title_en(self):
+        language = get_language()
+        activate('en')
+        title = str(self.title)
+        activate(language)
+        return title
 
 
 FEATURE_TYPES = OrderedDict()
