@@ -36,7 +36,15 @@ def add_feature(request, feature_type):
                 commit_msg = 'Added %s: %s' % (str(feature_type.title).lower(), title_en)
                 activate(language)
                 return render(request, 'editor/feature_success.html', {
-                    'data': signing.dumps((feature.package.name, feature.tofilename(), content, commit_msg))
+                    'data': signing.dumps({
+                        'type': 'editor.edit',
+                        'action': 'create',
+                        'package_name': feature.package.name,
+                        'commit_id': feature.package.commit_id,
+                        'commit_msg': commit_msg,
+                        'file_path': feature.tofilename(),
+                        'content': content,
+                    })
                 })
 
             feature.save()
@@ -68,7 +76,14 @@ def edit_feature(request, name):
                     commit_msg = 'Deleted %s: %s' % (str(feature_type.title).lower(), title_en)
                     activate(language)
                     return render(request, 'editor/feature_success.html', {
-                        'data': signing.dumps((feature.package.name, feature.tofilename(), None, commit_msg))
+                        'data': signing.dumps({
+                            'type': 'editor.edit',
+                            'action': 'delete',
+                            'package_name': feature.package.name,
+                            'commit_id': feature.package.commit_id,
+                            'commit_msg': commit_msg,
+                            'file_path': feature.tofilename(),
+                        })
                     })
 
                 feature.delete()
@@ -96,7 +111,15 @@ def edit_feature(request, name):
                 commit_msg = 'Updated %s: %s' % (str(feature_type.title).lower(), title_en)
                 activate(language)
                 return render(request, 'editor/feature_success.html', {
-                    'data': signing.dumps((feature.package.name, feature.tofilename(), content, commit_msg))
+                    'data': signing.dumps({
+                        'type': 'editor.edit',
+                        'action': 'edit',
+                        'package_name': feature.package.name,
+                        'commit_id': feature.package.commit_id,
+                        'commit_msg': commit_msg,
+                        'file_path': feature.tofilename(),
+                        'content': content,
+                    })
                 })
 
             feature.save()
@@ -117,11 +140,12 @@ def edit_feature(request, name):
 def finalize(request):
     if 'data' not in request.POST:
         raise SuspiciousOperation('Missing data.')
-    data = request.POST['data']
+    data = signing.loads(request.POST['data'])
 
-    package_name, file_path, file_contents, commit_msg = signing.loads(data)
+    if data['type'] != 'editor.edit':
+        raise SuspiciousOperation('Wrong data type.')
 
-    package = Package.objects.filter(name=package_name).first()
+    package = Package.objects.filter(name=data['package_name']).first()
     hoster = None
     if package is not None:
         hoster = get_hoster_for_package(package)
@@ -137,17 +161,19 @@ def finalize(request):
         if form.is_valid() and hoster_state == 'logged_in':
             pass
     else:
-        form = CommitForm({'commit_msg': commit_msg})
+        form = CommitForm({'commit_msg': data['commit_msg']})
 
     return render(request, 'editor/finalize.html', {
-        'data': data,
+        'data': request.POST['data'],
+        'action': data['action'],
+        'commit_id': data['commit_id'],
         'commit_form': form,
-        'package_name': package_name,
+        'package_name': data['package_name'],
         'hoster': hoster,
         'hoster_state': hoster_state,
         'hoster_error': hoster_error,
-        'file_path': file_path,
-        'file_contents': file_contents
+        'file_path': data['file_path'],
+        'file_contents': data.get('content')
     })
 
 
@@ -160,10 +186,12 @@ def finalize_oauth_progress(request):
 def finalize_oauth_redirect(request):
     if 'data' not in request.POST:
         raise SuspiciousOperation('Missing data.')
-    data = request.POST['data']
+    data = signing.loads(request.POST['data'])
 
-    package_name, file_path, file_contents, commit_msg = signing.loads(data)
-    package = Package.objects.filter(name=package_name).first()
+    if data['type'] != 'editor.edit':
+        raise SuspiciousOperation('Wrong data type.')
+
+    package = Package.objects.filter(name=data['package_name']).first()
     hoster = None
     if package is not None:
         hoster = get_hoster_for_package(package)
