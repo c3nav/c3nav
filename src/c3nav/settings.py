@@ -51,6 +51,8 @@ DIRECT_EDITING = config.getboolean('c3nav', 'direct_editing', fallback=DEBUG)
 PUBLIC_PACKAGES = [n for n in config.get('c3nav', 'public_packages', fallback='').split(',') if n]
 
 EDITOR_HOSTERS = OrderedDict((name[7:], data) for name, data in config.items() if name.startswith('hoster:'))
+OAUTH_CALLBACK_SCHEME = config.get('c3nav', 'oauth_callback_scheme')
+OAUTH_CALLBACK_NETLOC = config.get('c3nav', 'oauth_callback_netloc')
 
 db_backend = config.get('database', 'backend', fallback='sqlite3')
 DATABASES = {

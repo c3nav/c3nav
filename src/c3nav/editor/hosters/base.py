@@ -1,5 +1,7 @@
 from abc import ABC, abstractmethod
+from urllib.parse import urlparse, urlunparse
 
+from django.conf import settings
 from django.urls.base import reverse
 from django.utils.translation import ugettext_lazy as _
 
@@ -19,7 +21,16 @@ class Hoster(ABC):
         return Package.objects.filter(home_repo__startswith=self.base_url)
 
     def _get_callback_uri(self, request):
-        return request.build_absolute_uri(reverse('editor.oauth.callback', kwargs={'hoster': self.name}))
+        uri = request.build_absolute_uri(reverse('editor.oauth.callback', kwargs={'hoster': self.name}))
+        if settings.OAUTH_CALLBACK_SCHEME is None and settings.OAUTH_CALLBACK_NETLOC is None:
+            return uri
+
+        parts = list(urlparse(uri))
+        if settings.OAUTH_CALLBACK_SCHEME is not None:
+            parts[0] = settings.OAUTH_CALLBACK_SCHEME
+        if settings.OAUTH_CALLBACK_NETLOC is not None:
+            parts[1] = settings.OAUTH_CALLBACK_NETLOC
+        return urlunparse(parts)
 
     def _get_session_data(self, request):
         request.session.modified = True
