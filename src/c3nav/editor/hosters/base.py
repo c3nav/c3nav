@@ -18,7 +18,7 @@ class Hoster(ABC):
         return Package.objects.filter(home_repo__startswith=self.base_url)
 
     def _get_callback_uri(self, request):
-        return request.build_absolute_uri(reverse('editor.finalize.oauth.callback', kwargs={'hoster': self.name}))
+        return request.build_absolute_uri(reverse('editor.oauth.callback', kwargs={'hoster': self.name}))
 
     def _get_session_data(self, request):
         request.session.modified = True

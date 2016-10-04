@@ -42,9 +42,10 @@
                 <h2>Sign in with {{ hoster.title }}</h2>
                 <p>Please sign in to continue and propose your edit.</p>
             {% endif %}
-            <form action="{% url 'editor.finalize.oauth' %}" method="POST" data-task="{{ task }}">
+            <form action="{% url 'editor.finalize' %}" method="POST" data-task="{{ task }}">
                 {% csrf_token %}
                 <input type="hidden" name="data" value="{{ data }}">
+                <input type="hidden" name="action" value="oauth">
                 <p>
                     <button type="submit" class="btn btn-lg btn-primary">Sign in with {{ hoster.title }}</button><br>
                     <small><em>

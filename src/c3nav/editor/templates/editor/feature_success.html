@@ -3,7 +3,7 @@
 <form action="{% url 'editor.finalize' %}" method="POST" name="redirect">
     {% csrf_token %}
     <input type="hidden" name="data" value="{{ data }}">
-    <input type="hidden" name="check" value="1">
+    <input type="hidden" name="action" value="check">
     <img src="{% static 'img/loader.gif' %}">
     Redirecting…
 </form>
