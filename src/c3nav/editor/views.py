@@ -3,7 +3,6 @@ from django.core import signing
 from django.core.exceptions import PermissionDenied, SuspiciousOperation
 from django.http.response import Http404
 from django.shortcuts import get_object_or_404, redirect, render
-from django.utils.translation import activate, get_language
 from django.views.decorators.http import require_POST
 
 from c3nav.editor.forms import CommitForm, FeatureForm
@@ -14,67 +13,27 @@ from c3nav.mapdata.packageio.write import json_encode
 from c3nav.mapdata.permissions import can_access_package
 
 
-def add_feature(request, feature_type):
-    feature_type = FEATURE_TYPES.get(feature_type)
-    if feature_type is None:
-        raise Http404()
-
-    if request.method == 'POST':
-        form = FeatureForm(request.POST, feature_type=feature_type, request=request)
-        if form.is_valid():
-            feature = form.instance
-            feature.feature_type = feature_type.name
-            feature.titles = {}
-            for language, title in form.titles.items():
-                if title:
-                    feature.titles[language] = title
-
-            if not settings.DIRECT_EDITING:
-                content = json_encode(feature.tofile())
-                language = get_language()
-                title_en = feature.titles.get('en', next(iter(feature.titles.values())))
-                commit_msg = 'Added %s: %s' % (str(feature_type.title).lower(), title_en)
-                activate(language)
-                return render(request, 'editor/feature_success.html', {
-                    'data': signing.dumps({
-                        'type': 'editor.edit',
-                        'action': 'create',
-                        'package_name': feature.package.name,
-                        'commit_id': feature.package.commit_id,
-                        'commit_msg': commit_msg,
-                        'file_path': feature.tofilename(),
-                        'content': content,
-                    })
-                })
-
-            feature.save()
-
-            return render(request, 'editor/feature_success.html', {})
+def edit_feature(request, feature_type=None, name=None):
+    if name is not None:
+        # Edit existing feature
+        feature = get_object_or_404(Feature, name=name)
+        if not can_access_package(request, feature.package):
+            raise PermissionDenied
+        feature_type = FEATURE_TYPES.get(feature.feature_type)
     else:
-        form = FeatureForm(feature_type=feature_type, request=request)
-
-    return render(request, 'editor/feature.html', {
-        'form': form,
-        'feature_type': feature_type,
-        'path': request.path,
-        'new': True
-    })
-
-
-def edit_feature(request, name):
-    feature = get_object_or_404(Feature, name=name)
-    if not can_access_package(request, feature.package):
-        raise PermissionDenied
-    feature_type = FEATURE_TYPES.get(feature.feature_type)
+        # Create new feature
+        feature = None
+        feature_type = FEATURE_TYPES.get(feature_type)
+        if feature_type is None:
+            raise Http404()
 
     if request.method == 'POST':
-        if request.POST.get('delete') == '1':
+        if feature is not None and request.POST.get('delete') == '1':
+            # Delete this feature!
             if request.POST.get('delete_confirm') == '1':
                 if not settings.DIRECT_EDITING:
-                    language = get_language()
                     title_en = feature.titles.get('en', next(iter(feature.titles.values())))
-                    commit_msg = 'Deleted %s: %s' % (str(feature_type.title).lower(), title_en)
-                    activate(language)
+                    commit_msg = 'Deleted %s: %s' % (feature_type.title_en.lower(), title_en)
                     return render(request, 'editor/feature_success.html', {
                         'data': signing.dumps({
                             'type': 'editor.edit',
@@ -97,6 +56,8 @@ def edit_feature(request, name):
 
         form = FeatureForm(instance=feature, data=request.POST, feature_type=feature_type, request=request)
         if form.is_valid():
+            # Update/create feature
+            commit_type = 'Created' if feature is None else 'Updated'
             feature = form.instance
             feature.feature_type = feature_type.name
             feature.titles = {}
@@ -106,10 +67,8 @@ def edit_feature(request, name):
 
             if not settings.DIRECT_EDITING:
                 content = json_encode(feature.tofile())
-                language = get_language()
                 title_en = feature.titles.get('en', next(iter(feature.titles.values())))
-                commit_msg = 'Updated %s: %s' % (str(feature_type.title).lower(), title_en)
-                activate(language)
+                commit_msg = '%s %s: %s' % (commit_type, feature_type.title_en.lower(), title_en)
                 return render(request, 'editor/feature_success.html', {
                     'data': signing.dumps({
                         'type': 'editor.edit',
@@ -132,7 +91,7 @@ def edit_feature(request, name):
         'form': form,
         'feature_type': feature_type,
         'path': request.path,
-        'new': False
+        'new': feature is None
     })
 
 
