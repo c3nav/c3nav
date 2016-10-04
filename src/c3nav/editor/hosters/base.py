@@ -5,7 +5,7 @@ from django.conf import settings
 from django.urls.base import reverse
 from django.utils.translation import ugettext_lazy as _
 
-from c3nav.editor.tasks import check_access_token, request_access_token
+from c3nav.editor.tasks import check_access_token, request_access_token, submit_edit
 from c3nav.mapdata.models import Package
 
 
@@ -114,6 +114,11 @@ class Hoster(ABC):
         session_data['checking_progress_id'] = task.id
         self._handle_checking_task(request, task, session_data)
 
+    def submit_edit(self, request, data):
+        session_data = self._get_session_data(request)
+        task = submit_edit.apply_async(access_token=session_data['access_token'], data=data)
+        return task
+
     @abstractmethod
     def get_auth_uri(self, request):
         """
@@ -133,7 +138,7 @@ class Hoster(ABC):
         """
         Task method for requesting the access token asynchroniously.
         Returns a dict with a 'state' key containing the new hoster state, an optional 'error' key containing an
-        error message and an optional 'access_token' keys containing a new access token.
+        error message and an optional 'access_token' key containing a new access token.
         """
         pass
 
@@ -142,5 +147,15 @@ class Hoster(ABC):
         """
         Task method for checking the access token asynchroniously.
         Returns a dict with a 'state' key containing the new hoster state.
+        """
+        pass
+
+    @abstractmethod
+    def do_submit_edit(self, access_token, data):
+        """
+        Task method for submitting an edit (e.g. creating a pull request).
+
+        Returns a dict with a 'success' key that contains a boolean, an optional 'error' key containing an error
+        message and an optional 'url' key containing an URL to the created pull request.
         """
         pass

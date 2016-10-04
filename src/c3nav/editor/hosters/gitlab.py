@@ -75,3 +75,6 @@ class GitlabHoster(Hoster):
             return {'state': 'logged_out'}
 
         return {'state': 'logged_in'}
+
+    def do_submit_edit(self, access_token, data):
+        raise NotImplementedError
