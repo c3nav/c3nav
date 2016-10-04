@@ -117,7 +117,7 @@ class Hoster(ABC):
 
     def submit_edit(self, request, data):
         session_data = self._get_session_data(request)
-        task = submit_edit_task.apply_async(access_token=session_data['access_token'], data=data)
+        task = submit_edit_task.delay(access_token=session_data['access_token'], data=data)
         return task
 
     @abstractmethod
