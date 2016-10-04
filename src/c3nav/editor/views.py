@@ -58,6 +58,7 @@ def edit_feature(request, feature_type=None, name=None):
         if form.is_valid():
             # Update/create feature
             commit_type = 'Created' if feature is None else 'Updated'
+            action = 'create' if feature is None else 'edit'
             feature = form.instance
             feature.feature_type = feature_type.name
             feature.titles = {}
@@ -72,7 +73,7 @@ def edit_feature(request, feature_type=None, name=None):
                 return render(request, 'editor/feature_success.html', {
                     'data': signing.dumps({
                         'type': 'editor.edit',
-                        'action': 'edit',
+                        'action': action,
                         'package_name': feature.package.name,
                         'commit_id': feature.package.commit_id,
                         'commit_msg': commit_msg,
