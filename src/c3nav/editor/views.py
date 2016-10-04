@@ -10,7 +10,7 @@ from django.views.decorators.http import require_POST
 
 from c3nav.editor.forms import CommitForm, FeatureForm
 from c3nav.editor.hosters import get_hoster_for_package, hosters
-from c3nav.editor.tasks import submit_edit
+from c3nav.editor.tasks import submit_edit_task
 from c3nav.mapdata.models.feature import FEATURE_TYPES, Feature
 from c3nav.mapdata.models.package import Package
 from c3nav.mapdata.packageio.write import json_encode
@@ -139,7 +139,7 @@ def finalize(request):
     elif action == 'result':
         if 'task' not in request.POST:
             raise SuspiciousOperation('Missing task id.')
-        task = submit_edit.AsyncResult(task_id=request.POST['task'])
+        task = submit_edit_task.AsyncResult(task_id=request.POST['task'])
         try:
             task.ready()
         except:
