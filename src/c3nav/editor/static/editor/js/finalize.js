@@ -1,6 +1,7 @@
 finalize = {
     hoster: null,
     state: 'checking',
+    submittask: null,
     init: function() {
         finalize.hoster = $('#hoster').attr('data-name');
         finalize._set_state('checking');
@@ -56,10 +57,21 @@ finalize = {
         });
     },
     handle_task_data: function(data) {
-        if (data.done && !data.success) {
-            $('#error').text(data.error).show();
-            finalize._set_state('logged_in');
+        finalize.submittask = data.id
+        if (data.done) {
+            if (!data.success) {
+                $('#error').text(data.error).show();
+                finalize._set_state('logged_in');
+            } else {
+                $('#pull_request_link').attr('href', data.result.url).text(data.result.url);
+                finalize._set_state('done');
+            }
+        } else {
+            window.setTimeout(finalize._check_submittask, 700);
         }
+    },
+    _check_submittask: function() {
+        $.getJSON('/api/v1/submittask/'+finalize.submittask+'/', finalize.handle_task_data);
     }
 };
 
