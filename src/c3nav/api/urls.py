@@ -1,7 +1,7 @@
 from django.conf.urls import include, url
 from rest_framework.routers import DefaultRouter
 
-from c3nav.editor.api import HosterViewSet
+from c3nav.editor.api import HosterViewSet, SubmitTaskViewSet
 from c3nav.mapdata.api import FeatureTypeViewSet, FeatureViewSet, LevelViewSet, PackageViewSet, SourceViewSet
 
 router = DefaultRouter()
@@ -11,6 +11,7 @@ router.register(r'sources', SourceViewSet)
 router.register(r'featuretypes', FeatureTypeViewSet, base_name='featuretype')
 router.register(r'features', FeatureViewSet)
 router.register(r'hosters', HosterViewSet, base_name='hoster')
+router.register(r'submittask', SubmitTaskViewSet, base_name='submittask')
 
 
 urlpatterns = [

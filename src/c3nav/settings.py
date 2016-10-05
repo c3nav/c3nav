@@ -180,6 +180,9 @@ REST_FRAMEWORK = {
     'DEFAULT_VERSIONING_CLASS': 'rest_framework.versioning.URLPathVersioning',
     'ALLOWED_VERSIONS': ['v1'],
     'DEFAULT_VERSION': 'v1',
+    'DEFAULT_AUTHENTICATION_CLASSES': (
+        'c3nav.api.authentication.ForceCSRFCheckSessionAuthentication',
+    ),
     'DEFAULT_PERMISSION_CLASSES': (
         'c3nav.mapdata.permissions.LockedMapFeatures',
     ),

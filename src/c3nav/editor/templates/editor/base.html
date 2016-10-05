@@ -8,9 +8,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>c3nav Map Editor</title>
     {% compress css %}
-    <link href="{% static 'bootstrap/css/bootstrap.css' %}" rel="stylesheet">
-    <link href="{% static 'leaflet/leaflet.css' %}" rel="stylesheet">
-    <link href="{% static 'editor/css/editor.css' %}" rel="stylesheet">
+        <link href="{% static 'bootstrap/css/bootstrap.css' %}" rel="stylesheet">
+        <link href="{% static 'leaflet/leaflet.css' %}" rel="stylesheet">
+        <link href="{% static 'editor/css/editor.css' %}" rel="stylesheet">
+        <link href="{% static 'editor/css/finalize.css' %}" rel="stylesheet">
     {% endcompress %}
   </head>
 
@@ -30,11 +31,12 @@
     </div>
 
     {% compress js %}
-    <script type="text/javascript" src="{% static 'jquery/jquery.js' %}"></script>
-    <script type="text/javascript" src="{% static 'bootstrap/js/bootstrap.js' %}"></script>
-    <script type="text/javascript" src="{% static 'leaflet/leaflet.js' %}"></script>
-    <script type="text/javascript" src="{% static 'leaflet/leaflet.editable.js' %}"></script>
-    <script type="text/javascript" src="{% static 'editor/js/editor.js' %}"></script>
+        <script type="text/javascript" src="{% static 'jquery/jquery.js' %}"></script>
+        <script type="text/javascript" src="{% static 'bootstrap/js/bootstrap.js' %}"></script>
+        <script type="text/javascript" src="{% static 'leaflet/leaflet.js' %}"></script>
+        <script type="text/javascript" src="{% static 'leaflet/leaflet.editable.js' %}"></script>
+        <script type="text/javascript" src="{% static 'editor/js/editor.js' %}"></script>
+        <script type="text/javascript" src="{% static 'editor/js/finalize.js' %}"></script>
     {% endcompress %}
   </body>
 </html>
