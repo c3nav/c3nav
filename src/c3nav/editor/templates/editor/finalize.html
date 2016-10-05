@@ -56,11 +56,11 @@
                 <p><em>Proposing your changes, please wait…</em></p>
             </div>
             <div class="hoster-state" data-state="done">
-                <h2>Proposing Changes…</h2>
-                <p><img src="{% static 'img/loader.gif' %}"></p>
-                <p><em>Proposing your changes, please wait…</em></p>
+                <h2>Pull Request created</h2>
+                <p>Click the link below to go to the pull request:</p>
+                <p><a href="" id="pull_request_link"></a></p>
             </div>
-            <p>Alternatively, you can copy your edit below and send it to the maps maintainer.</p>
+            <p id="alternatively">Alternatively, you can copy your edit below and send it to the maps maintainer.</p>
         </div>
      {% else %}
         <h2>Copy your edit</h2>
