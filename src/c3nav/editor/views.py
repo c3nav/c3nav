@@ -1,16 +1,12 @@
-import string
-
 from django.conf import settings
 from django.core import signing
 from django.core.exceptions import PermissionDenied, SuspiciousOperation
+from django.core.signing import BadSignature
 from django.http.response import Http404
-from django.shortcuts import get_object_or_404, redirect, render
-from django.utils.crypto import get_random_string
-from django.views.decorators.http import require_POST
+from django.shortcuts import get_object_or_404, render
 
-from c3nav.editor.forms import CommitForm, FeatureForm
+from c3nav.editor.forms import FeatureForm
 from c3nav.editor.hosters import get_hoster_for_package, hosters
-from c3nav.editor.tasks import submit_edit_task
 from c3nav.mapdata.models.feature import FEATURE_TYPES, Feature
 from c3nav.mapdata.models.package import Package
 from c3nav.mapdata.packageio.write import json_encode
@@ -100,12 +96,18 @@ def edit_feature(request, feature_type=None, name=None):
     })
 
 
-@require_POST
 def finalize(request):
+    if request.method != 'POST':
+        return render(request, 'editor/finalize_redirect.html', {})
+
     if 'data' not in request.POST:
         raise SuspiciousOperation('Missing data.')
     raw_data = request.POST['data']
-    data = signing.loads(raw_data)
+
+    try:
+        data = signing.loads(raw_data)
+    except BadSignature:
+        raise SuspiciousOperation('Bad Signature.')
 
     if data['type'] != 'editor.edit':
         raise SuspiciousOperation('Wrong data type.')
@@ -115,54 +117,15 @@ def finalize(request):
     if package is not None:
         hoster = get_hoster_for_package(package)
 
-    action = request.POST.get('action')
-
-    if 'commit_msg' in request.POST or action == 'submit':
-        form = CommitForm(request.POST)
-    else:
-        form = CommitForm({'commit_msg': data['commit_msg']})
-
-    task = None
-    new_submit_token = False
-    if action == 'check':
-        hoster.check_state(request)
-    elif action == 'oauth':
-        hoster.set_tmp_data(request, raw_data)
-        return redirect(hoster.get_auth_uri(request))
-    elif action == 'submit' and hoster.get_state(request) == 'logged_in':
-        if request.POST.get('editor_submit_token', '') != request.session.get('editor_submit_token', None):
-            raise SuspiciousOperation('Invalid submit token.')
-        if form.is_valid():
-            new_submit_token = True
-            data['commit_msg'] = form.cleaned_data['commit_msg']
-            task = hoster.submit_edit(request, data)
-    elif action == 'result':
-        if 'task' not in request.POST:
-            raise SuspiciousOperation('Missing task id.')
-        task = submit_edit_task.AsyncResult(task_id=request.POST['task'])
-        try:
-            task.ready()
-        except:
-            raise Http404()
-
-    if 'editor_submit_token' not in request.session or new_submit_token:
-        request.session['editor_submit_token'] = get_random_string(42, string.ascii_letters + string.digits)
-
-    hoster_state = hoster.get_state(request)
-    hoster_error = hoster.get_error(request) if hoster_state == 'logged_out' else None
+    hoster.check_state(request)
 
     return render(request, 'editor/finalize.html', {
+        'hoster': hoster,
         'data': raw_data,
         'action': data['action'],
         'commit_id': data['commit_id'],
-        'commit_form': form,
+        'commit_msg': data['commit_msg'],
         'package_name': data['package_name'],
-        'hoster': hoster,
-        'hoster_state': hoster_state,
-        'hoster_error': hoster_error,
-        'redirect': action == 'submit' and not settings.CELERY_ALWAYS_EAGER,
-        'editor_submit_token': request.session['editor_submit_token'],
-        'task': {'id': task.id, 'ready': task.ready(), 'result': task.result} if task is not None else None,
         'file_path': data['file_path'],
         'file_contents': data.get('content')
     })
@@ -173,7 +136,6 @@ def oauth_callback(request, hoster):
     if hoster is None:
         raise Http404
 
-    data = hoster.get_tmp_data(request)
     hoster.handle_callback_request(request)
 
-    return render(request, 'editor/oauth_callback.html', {'data': data})
+    return render(request, 'editor/finalize_redirect.html', {})

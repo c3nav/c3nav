@@ -394,17 +394,3 @@ editor = {
 if ($('#mapeditlist').length) {
     editor.init();
 }
-$('form[name=redirect]').submit();
-
-function check_hoster_form() {
-    $('form[data-check-hoster]').each(function() {
-        $.getJSON('/api/v1/hosters/'+$(this).attr('data-check-hoster')+'/state/', function(state) {
-            if (state == 'checking') {
-                window.setTimeout(check_hoster_form, 700);
-            } else {
-                $('form[data-check-hoster]').submit();
-            }
-        });
-    });
-}
-check_hoster_form();

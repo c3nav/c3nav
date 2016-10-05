@@ -45,21 +45,6 @@ class Hoster(ABC):
         if 'error' in session_data:
             return session_data.pop('error')
 
-    def set_tmp_data(self, request, data):
-        """
-        Save data before redirecting to the OAuth Provider.
-        """
-        self._get_session_data(request)['tmp_data'] = data
-
-    def get_tmp_data(self, request):
-        """
-        Get and forget data that was saved before redirecting to the OAuth Provider.
-        """
-        data = self._get_session_data(request)
-        if 'tmp_data' not in data:
-            return None
-        return data.pop('tmp_data')
-
     def get_state(self, request):
         """
         Get current hoster state for this user.
