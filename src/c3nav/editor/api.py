@@ -84,6 +84,8 @@ class HosterViewSet(ViewSet):
         if hoster != data_hoster:
             raise ValidationError('Wrong hoster.')
 
+        data['commit_msg'] = commit_msg
+
         task = hoster.submit_edit(request, data)
 
         serializer = TaskSerializer(task)
