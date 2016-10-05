@@ -58,7 +58,7 @@ finalize = {
         });
     },
     handle_task_data: function(data) {
-        finalize.submittask = data.id
+        finalize.submittask = data.id;
         if (data.done) {
             if (!data.success) {
                 $('#error').text(data.error).show();
