@@ -104,6 +104,7 @@ if HAS_MEMCACHED:
     SESSION_ENGINE = "django.contrib.sessions.backends.cached_db"
 
 HAS_CELERY_BROKER = config.has_option('celery', 'broker')
+CELERY_ALWAYS_EAGER = False
 if HAS_CELERY_BROKER:
     BROKER_URL = config.get('celery', 'broker')
     CELERY_RESULT_BACKEND = config.get('celery', 'backend')
