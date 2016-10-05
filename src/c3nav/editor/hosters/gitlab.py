@@ -102,7 +102,7 @@ class GitlabHoster(Hoster):
         branch_name = 'editor-%s' % uuid.uuid4()
         response = requests.post(endpoint_url('/projects/%d/repository/branches' % project['id']),
                                  data={'branch_name': branch_name, 'ref': data['commit_id']})
-        if response.status_code not in (200, 201):
+        if response.status_code != 201:
             return self._submit_error('Could not create branch.')
 
         # Make commit
