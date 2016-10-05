@@ -1,4 +1,7 @@
+import base64
 import string
+import time
+import uuid
 from urllib.parse import urlencode
 
 import requests
@@ -6,6 +9,7 @@ from django.core.exceptions import SuspiciousOperation
 from django.utils.crypto import get_random_string
 
 from c3nav.editor.hosters.base import Hoster
+from c3nav.mapdata.models.package import Package
 
 
 class GithubHoster(Hoster):
@@ -82,4 +86,109 @@ class GithubHoster(Hoster):
         return {'state': 'logged_in'}
 
     def do_submit_edit(self, access_token, data):
-        raise NotImplementedError
+        # Get endpoint URL with access token
+        def endpoint_url(endpoint):
+            return 'https://api.github.com/' + endpoint[1:] + '?access_token=' + access_token
+
+        # Check access token
+        state = self.do_check_access_token(access_token)['state']
+        if state == 'logged_out':
+            return self._submit_error('The access token is no longer working. Please sign in again.')
+        if state == 'missing_permissions':
+            return self._submit_error('Missing Permissions. Please sign in again.')
+
+        # Get Package from db
+        try:
+            package = Package.objects.get(name=data['package_name'])
+        except Package.DoesNotExist:
+            return self._submit_error('Could not find package.')
+
+        # Get repo name on this host, e.g. c3nav/c3nav
+        repo_name = '/'.join(package.home_repo[len(self.base_url):].split('/')[:2])
+
+        # todo: form
+
+        # Get user
+        response = requests.get(endpoint_url('/user'))
+        if response.status_code != 200:
+            return self._submit_error('Could not get user.')
+        user = response.json()
+
+        # Check if there is already a fork. If not, create one.
+        fork_name = user['login'] + '/' + repo_name.split('/')[1]
+        fork_created = False
+        for i in range(10):
+            response = requests.get(endpoint_url('/repos/%s' % fork_name), allow_redirects=False)
+            if response.status_code == 200:
+                # Something that could be a fork exists, check if it is one
+                fork = response.json()
+                if fork['fork'] and fork['parent']['full_name'] == repo_name:
+                    # It's a fork and it's the right one!
+                    break
+                else:
+                    return self._submit_error('Could not create fork: there already is a repo with the same name.')
+
+            elif response.status_code in (404, 301):
+                if not fork_created:
+                    # Fork does not exist, create it
+                    # Creating forks happens asynchroniously, so we will stay in the loop to check repeatedly if the
+                    # fork does exist until we run into a timeout.
+                    response = requests.post(endpoint_url('/repos/%s/forks' % repo_name))
+                    fork_created = True
+                else:
+                    # Fork was not created yet. Wait a moment, then try again.
+                    time.sleep(4)
+            else:
+                return self._submit_error('Could not check for existing fork: error %d' % response.status_code)
+
+        else:
+            # We checked multiple timeas and waited more than half a minute. Enough is enorugh.
+            return self._submit_error('Could not create fork: fork creation timeout.')
+
+        # Create branch
+        branch_name = 'editor-%s' % uuid.uuid4()
+        response = requests.post(endpoint_url('/repos/%s/git/refs' % fork_name),
+                                 json={'ref': 'refs/heads/'+branch_name, 'sha': data['commit_id']})
+        if response.status_code != 201:
+            return self._submit_error('Could not create branch.')
+
+        # Make commit
+        if data['action'] == 'create':
+            response = requests.put(endpoint_url('/repos/%s/contents/%s' % (fork_name, data['file_path'])),
+                                    json={'branch': branch_name, 'message': data['commit_msg'],
+                                          'content': base64.b64encode(data['content'].encode()).decode()})
+            if response.status_code != 201:
+                return self._submit_error('Could not create file.'+response.text)
+
+        else:
+            response = requests.get(endpoint_url('/repos/%s/contents/%s' % (fork_name, data['file_path'])),
+                                    params={'ref': data['commit_id']})
+            if response.status_code != 200:
+                return self._submit_error('Could not get file.')
+            file_sha = response.json()['sha']
+
+            if data['action'] == 'edit':
+                response = requests.put(endpoint_url('/repos/%s/contents/%s' % (fork_name, data['file_path'])),
+                                        json={'branch': branch_name, 'message': data['commit_msg'], 'sha': file_sha,
+                                              'content': base64.b64encode(data['content'].encode()).decode()})
+                if response.status_code != 200:
+                    return self._submit_error('Could not update file.')
+
+            elif data['action'] == 'delete':
+                response = requests.put(endpoint_url('/repos/%s/contents/%s' % (fork_name, data['file_path'])),
+                                        json={'branch': branch_name, 'message': data['commit_msg'], 'sha': file_sha})
+                if response.status_code != 200:
+                    return self._submit_error('Could not delete file.' + response.text)
+
+        # Create pull request
+        response = requests.post(endpoint_url('/repos/%s/pulls' % repo_name),
+                                 json={'base': 'master', 'head': '%s:%s' % (user['login'], branch_name),
+                                       'title': data['commit_msg']})
+        if response.status_code != 201:
+            return self._submit_error('Could not delete file.' + response.text)
+        merge_request = response.json()
+
+        return {
+            'success': True,
+            'url': merge_request['html_url']
+        }
