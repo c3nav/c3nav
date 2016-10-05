@@ -1,4 +1,5 @@
 import string
+import uuid
 from urllib.parse import urlencode, urljoin
 
 import requests
@@ -6,6 +7,7 @@ from django.core.exceptions import SuspiciousOperation
 from django.utils.crypto import get_random_string
 
 from c3nav.editor.hosters.base import Hoster
+from c3nav.mapdata.models.package import Package
 
 
 class GitlabHoster(Hoster):
@@ -77,4 +79,63 @@ class GitlabHoster(Hoster):
         return {'state': 'logged_in'}
 
     def do_submit_edit(self, access_token, data):
-        raise NotImplementedError
+        # Get endpoint URL with access token
+        def endpoint_url(endpoint):
+            return self.base_url + 'api/v3' + endpoint + '?access_token=' + access_token
+
+        # Get Package from db
+        try:
+            package = Package.objects.get(name=data['package_name'])
+        except Package.DoesNotExist:
+            return self._submit_error('Could not find package.')
+
+        # Get project name on this host, e.g. c3nav/c3nav
+        project_name = '/'.join(package.home_repo[len(self.base_url):].split('/')[:2])
+
+        # Get project from Gitlab API
+        response = requests.get(endpoint_url('/projects/' + project_name.replace('/', '%2F')))
+        if response.status_code != 200:
+            return self._submit_error('Could not find project.')
+        project = response.json()
+
+        # Create branch
+        branch_name = 'editor-%s' % uuid.uuid4()
+        response = requests.post(endpoint_url('/projects/%d/repository/branches' % project['id']),
+                                 data={'branch_name': branch_name, 'ref': data['commit_id']})
+        if response.status_code not in (200, 201):
+            return self._submit_error('Could not create branch.')
+
+        # Make commit
+        if data['action'] == 'create':
+            response = requests.post(endpoint_url('/projects/%d/repository/files' % project['id']),
+                                     data={'branch_name': branch_name, 'encoding': 'text', 'content': data['content'],
+                                           'file_path': data['file_path'], 'commit_message': data['commit_msg']})
+            if response.status_code != 201:
+                return self._submit_error('Could not create file.')
+
+        elif data['action'] == 'edit':
+            response = requests.put(endpoint_url('/projects/%d/repository/files' % project['id']),
+                                    data={'branch_name': branch_name, 'encoding': 'text', 'content': data['content'],
+                                          'file_path': data['file_path'], 'commit_message': data['commit_msg']})
+            if response.status_code != 200:
+                return self._submit_error('Could not update file.')
+
+        elif data['action'] == 'delete':
+            response = requests.delete(endpoint_url('/projects/%d/repository/files' % project['id']),
+                                       data={'branch_name': branch_name, 'file_path': data['file_path'],
+                                             'commit_message': data['commit_msg']})
+            if response.status_code != 200:
+                return self._submit_error('Could not delete file.' + response.text)
+
+        # Create merge request
+        response = requests.post(endpoint_url('/projects/%d/merge_requests' % project['id']),
+                                 data={'source_branch': branch_name, 'target_branch': 'master',
+                                       'title': data['commit_msg']})
+        if response.status_code != 201:
+            return self._submit_error('Could not create merge request.')
+        merge_request = response.json()
+
+        return {
+            'success': True,
+            'url': merge_request['web_url']
+        }

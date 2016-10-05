@@ -142,6 +142,12 @@ class Hoster(ABC):
         """
         pass
 
+    def _submit_error(self, error):
+        return {
+            'success': False,
+            'error': error
+        }
+
     @abstractmethod
     def do_submit_edit(self, access_token, data):
         """
