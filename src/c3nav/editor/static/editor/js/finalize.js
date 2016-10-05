@@ -26,6 +26,7 @@ finalize = {
     _set_state: function(state) {
         finalize.state = state;
         $('.hoster-state').hide().filter('[data-state='+state+']').show();
+        $('#alternatively').toggle(['progress', 'done'].indexOf(state) == -1);
     },
     _click_oauth_btn: function() {
         finalize._set_state('oauth');
