@@ -55,6 +55,8 @@ class Hoster(ABC):
 
         if state == 'checking':
             task = AsyncResult(id=session_data.get('checking_progress_id'))
+            if settings.CELERY_ALWAYS_EAGER:
+                task.maybe_reraise()
             self._handle_checking_task(request, task, session_data)
             state = session_data['state']
 
@@ -73,6 +75,8 @@ class Hoster(ABC):
         if state == 'logged_in':
             session_data['state'] = 'checking'
             task = check_access_token_task.delay(hoster=self.name, access_token=session_data['access_token'])
+            if settings.CELERY_ALWAYS_EAGER:
+                task.maybe_reraise()
             session_data['checking_progress_id'] = task.id
             self._handle_checking_task(request, task, session_data)
 
@@ -103,6 +107,8 @@ class Hoster(ABC):
     def submit_edit(self, request, data):
         session_data = self._get_session_data(request)
         task = submit_edit_task.delay(access_token=session_data['access_token'], data=data)
+        if settings.CELERY_ALWAYS_EAGER:
+            task.maybe_reraise()
         return task
 
     @abstractmethod
