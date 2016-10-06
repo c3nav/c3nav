@@ -84,7 +84,7 @@ class HosterViewSet(ViewSet):
 
         task = hoster.submit_edit(request, data)
 
-        serializer = TaskSerializer(task)
+        serializer = TaskSerializer(task, context={'request': request})
         return Response(serializer.data)
 
 
@@ -99,5 +99,5 @@ class SubmitTaskViewSet(ViewSet):
         except:
             raise Http404
 
-        serializer = TaskSerializer(task)
+        serializer = TaskSerializer(task, context={'request': request})
         return Response(serializer.data)
