@@ -14,7 +14,7 @@ finalize = {
         return $('#data').val();
     },
     _check_hoster: function() {
-        $.getJSON('/api/v1/hosters/'+finalize.hoster+'/state/', function(data) {
+        $.getJSON('/api/hosters/'+finalize.hoster+'/state/', function(data) {
             if (data.state == 'checking') {
                 window.setTimeout(finalize._check_hoster, 700);
             } else {
@@ -32,7 +32,7 @@ finalize = {
         finalize._set_state('oauth');
         $.ajax({
             type: "POST",
-            url: '/api/v1/hosters/'+finalize.hoster+'/auth_uri/',
+            url: '/api/hosters/'+finalize.hoster+'/auth_uri/',
             dataType: 'json',
             headers: {'X-CSRFToken': $('[name=csrfmiddlewaretoken]').val()},
             success: function(data) {
@@ -47,7 +47,7 @@ finalize = {
         finalize._set_state('progress');
         $.ajax({
             type: "POST",
-            url: '/api/v1/hosters/'+finalize.hoster+'/submit/',
+            url: '/api/hosters/'+finalize.hoster+'/submit/',
             data: {
                 'data': finalize.get_data(),
                 'commit_msg': commit_msg
@@ -72,7 +72,7 @@ finalize = {
         }
     },
     _check_submittask: function() {
-        $.getJSON('/api/v1/submittasks/'+finalize.submittask+'/', finalize.handle_task_data);
+        $.getJSON('/api/submittasks/'+finalize.submittask+'/', finalize.handle_task_data);
     }
 };
 

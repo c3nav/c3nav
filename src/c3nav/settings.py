@@ -178,9 +178,6 @@ USE_L10N = True
 USE_TZ = True
 
 REST_FRAMEWORK = {
-    'DEFAULT_VERSIONING_CLASS': 'rest_framework.versioning.NamespaceVersioning',
-    'ALLOWED_VERSIONS': ['v1'],
-    'DEFAULT_VERSION': 'v1',
     'DEFAULT_AUTHENTICATION_CLASSES': (
         'c3nav.api.authentication.ForceCSRFCheckSessionAuthentication',
     ),

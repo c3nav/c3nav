@@ -18,14 +18,14 @@ class HosterViewSet(ViewSet):
     """
     Get Package Hosters
     """
-    def retrieve(self, request, pk=None, version=None):
+    def retrieve(self, request, pk=None):
         if pk not in hosters:
             raise Http404
         serializer = HosterSerializer(hosters[pk])
         return Response(serializer.data)
 
     @detail_route(methods=['get'])
-    def state(self, request, pk=None, version=None):
+    def state(self, request, pk=None):
         if pk not in hosters:
             raise Http404
 
@@ -39,7 +39,7 @@ class HosterViewSet(ViewSet):
         )))
 
     @detail_route(methods=['post'])
-    def auth_uri(self, request, pk=None, version=None):
+    def auth_uri(self, request, pk=None):
         if pk not in hosters:
             raise Http404
         return Response({
@@ -47,7 +47,7 @@ class HosterViewSet(ViewSet):
         })
 
     @detail_route(methods=['post'])
-    def submit(self, request, pk=None, version=None):
+    def submit(self, request, pk=None):
         if pk not in hosters:
             raise Http404
         hoster = hosters[pk]
@@ -92,7 +92,7 @@ class SubmitTaskViewSet(ViewSet):
     """
     Get Submit Tasks
     """
-    def retrieve(self, request, pk=None, version=None):
+    def retrieve(self, request, pk=None):
         task = submit_edit_task.AsyncResult(task_id=pk)
         try:
             task.ready()

@@ -30,7 +30,7 @@ editor = {
     },
 
     get_feature_types: function () {
-        $.getJSON('/api/v1/featuretypes/', function (feature_types) {
+        $.getJSON('/api/featuretypes/', function (feature_types) {
             var feature_type;
             var editcontrols = $('#mapeditlist');
             for (var i = 0; i < feature_types.length; i++) {
@@ -51,7 +51,7 @@ editor = {
 
     packages: {},
     get_packages: function () {
-        $.getJSON('/api/v1/packages/', function (packages) {
+        $.getJSON('/api/packages/', function (packages) {
             var bounds = [[0, 0], [0, 0]];
             var pkg;
             for (var i = 0; i < packages.length; i++) {
@@ -68,13 +68,13 @@ editor = {
 
     sources: {},
     get_sources: function () {
-        $.getJSON('/api/v1/sources/', function (sources) {
+        $.getJSON('/api/sources/', function (sources) {
             var layers = {};
             var source;
             for (var i = 0; i < sources.length; i++) {
                 source = sources[i];
                 editor.sources[source.name] = source;
-                source.layer = L.imageOverlay('/api/v1/sources/' + source.name + '/image/', source.bounds);
+                source.layer = L.imageOverlay('/api/sources/' + source.name + '/image/', source.bounds);
                 layers[source.name] = source.layer;
             }
             L.control.layers([], layers).addTo(editor.map);
@@ -85,7 +85,7 @@ editor = {
     _level: null,
     level_feature_layers: {},
     get_levels: function () {
-        $.getJSON('/api/v1/levels/?ordering=-altitude', function (levels) {
+        $.getJSON('/api/levels/?ordering=-altitude', function (levels) {
             L.LevelControl = L.Control.extend({
                 options: {
                     position: 'bottomright'
@@ -184,7 +184,7 @@ editor = {
 
     features: {},
     get_features: function () {
-        $.getJSON('/api/v1/features/', function(features) {
+        $.getJSON('/api/features/', function(features) {
             var feature_type;
             for (var level in editor.levels) {
                 for (var j = 0; j < editor.feature_types_order.length; j++) {
