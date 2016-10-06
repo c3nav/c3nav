@@ -51,7 +51,7 @@ editor = {
 
     packages: {},
     get_packages: function () {
-        $.getJSON('/api/packages/', function (packages) {
+        $.getJSON('/api/packages/?sparse=1', function (packages) {
             var bounds = [[0, 0], [0, 0]];
             var pkg;
             for (var i = 0; i < packages.length; i++) {
@@ -68,7 +68,7 @@ editor = {
 
     sources: {},
     get_sources: function () {
-        $.getJSON('/api/sources/', function (sources) {
+        $.getJSON('/api/sources/?sparse=1', function (sources) {
             var layers = {};
             var source;
             for (var i = 0; i < sources.length; i++) {
@@ -85,7 +85,7 @@ editor = {
     _level: null,
     level_feature_layers: {},
     get_levels: function () {
-        $.getJSON('/api/levels/?ordering=-altitude', function (levels) {
+        $.getJSON('/api/levels/?sparse=1&ordering=-altitude', function (levels) {
             L.LevelControl = L.Control.extend({
                 options: {
                     position: 'bottomright'
@@ -184,7 +184,7 @@ editor = {
 
     features: {},
     get_features: function () {
-        $.getJSON('/api/features/', function(features) {
+        $.getJSON('/api/features/?sparse=1', function(features) {
             var feature_type;
             for (var level in editor.levels) {
                 for (var j = 0; j < editor.feature_types_order.length; j++) {

@@ -1,9 +1,13 @@
 from django.utils.translation import ugettext_lazy as _
 from rest_framework import serializers
 from rest_framework.exceptions import ValidationError
+from rest_framework.reverse import reverse
 from shapely.geometry import mapping, shape
 
+from c3nav.api.serializers import RecursiveSerializerMixin
+from c3nav.editor.hosters import get_hoster_for_package
 from c3nav.mapdata.models import Feature, Level, Package, Source
+from c3nav.mapdata.models.feature import FEATURE_TYPES
 from c3nav.mapdata.utils import sort_geojson
 
 
@@ -27,37 +31,77 @@ class GeometryField(serializers.DictField):
             raise ValidationError(_('Invalid GeoJSON.'))
 
 
-class LevelSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Level
-        fields = ('name', 'altitude', 'package')
+class PackageSerializer(RecursiveSerializerMixin, serializers.ModelSerializer):
+    hoster = serializers.SerializerMethodField()
+    depends = serializers.SerializerMethodField()
 
-
-class PackageSerializer(serializers.ModelSerializer):
     class Meta:
         model = Package
-        fields = ('name', 'home_repo', 'commit_id', 'depends', 'bounds', 'public')
-        readonly_fields = ('commit_id',)
+        fields = ('name', 'url', 'home_repo', 'commit_id', 'depends', 'bounds', 'public', 'hoster')
+        sparse_exclude = ('depends', 'hoster')
+        extra_kwargs = {
+            'url': {'view_name': 'api:package-detail'}
+        }
+
+    def get_depends(self, obj):
+        return self.recursive_value(PackageSerializer, obj.depends, many=True)
+
+    def get_hoster(self, obj):
+        from c3nav.editor.serializers import HosterSerializer
+        return self.recursive_value(HosterSerializer, get_hoster_for_package(obj))
 
 
-class SourceSerializer(serializers.ModelSerializer):
+class LevelSerializer(RecursiveSerializerMixin, serializers.ModelSerializer):
+    package = PackageSerializer(context={'sparse': True})
+
+    class Meta:
+        model = Level
+        fields = ('name', 'url', 'altitude', 'package')
+        sparse_exclude = ('package',)
+        extra_kwargs = {
+            'url': {'view_name': 'api:level-detail'}
+        }
+
+
+class SourceSerializer(RecursiveSerializerMixin, serializers.ModelSerializer):
+    image_url = serializers.SerializerMethodField()
+    package = PackageSerializer(context={'sparse': True})
+
     class Meta:
         model = Source
-        fields = ('name', 'package', 'bounds')
+        fields = ('name', 'url', 'image_url', 'package', 'bounds')
+        sparse_exclude = ('package', )
+        extra_kwargs = {
+            'url': {'view_name': 'api:source-detail'}
+        }
+
+    def get_image_url(self, obj):
+        return reverse('api:source-image', args=(obj.name, ), request=self.context.get('request'))
 
 
 class FeatureTypeSerializer(serializers.Serializer):
     name = serializers.CharField()
+    url = serializers.HyperlinkedIdentityField(view_name='api:featuretype-detail')
     title = serializers.CharField()
     title_plural = serializers.CharField()
     geomtype = serializers.CharField()
     color = serializers.CharField()
 
 
-class FeatureSerializer(serializers.ModelSerializer):
+class FeatureSerializer(RecursiveSerializerMixin, serializers.ModelSerializer):
     titles = serializers.JSONField()
+    feature_type = serializers.SerializerMethodField()
+    level = LevelSerializer()
+    package = PackageSerializer()
     geometry = GeometryField()
 
     class Meta:
         model = Feature
-        fields = ('name', 'title', 'feature_type', 'level', 'titles', 'package', 'geometry')
+        fields = ('name', 'url', 'title', 'feature_type', 'level', 'titles', 'package', 'geometry')
+        sparse_exclude = ('feature_type', 'level', 'package')
+        extra_kwargs = {
+            'url': {'view_name': 'api:feature-detail'}
+        }
+
+    def get_feature_type(self, obj):
+        return self.recursive_value(FeatureTypeSerializer, FEATURE_TYPES.get(obj.feature_type))

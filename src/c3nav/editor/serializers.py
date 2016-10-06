@@ -1,17 +1,28 @@
 from rest_framework import serializers
+from rest_framework.reverse import reverse
 
 
 class HosterSerializer(serializers.Serializer):
     name = serializers.CharField()
+    url = serializers.HyperlinkedIdentityField(view_name='api:hoster-detail')
+    state_url = serializers.SerializerMethodField()
+    auth_uri_url = serializers.SerializerMethodField()
+    submit_url = serializers.SerializerMethodField()
     base_url = serializers.CharField()
-    packages = serializers.SerializerMethodField()
 
-    def get_packages(self, obj):
-        return tuple(obj.get_packages().values_list('name', flat=True))
+    def get_state_url(self, obj):
+        return reverse('api:hoster-state', args=(obj.name, ), request=self.context.get('request'))
+
+    def get_auth_uri_url(self, obj):
+        return reverse('api:hoster-auth-uri', args=(obj.name, ), request=self.context.get('request'))
+
+    def get_submit_url(self, obj):
+        return reverse('api:hoster-submit', args=(obj.name, ), request=self.context.get('request'))
 
 
 class TaskSerializer(serializers.Serializer):
     id = serializers.CharField()
+    url = serializers.HyperlinkedIdentityField(view_name='api:hoster-detail', lookup_field='id', lookup_url_kwarg='pk')
     started = serializers.SerializerMethodField()
     done = serializers.SerializerMethodField()
     success = serializers.SerializerMethodField()

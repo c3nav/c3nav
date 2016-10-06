@@ -8,16 +8,15 @@ from rest_framework.decorators import detail_route
 from rest_framework.response import Response
 from rest_framework.viewsets import ReadOnlyModelViewSet, ViewSet
 
-from c3nav.mapdata.cache import AccessCachedViewSetMixin, CachedViewSetMixin
 from c3nav.mapdata.models import FEATURE_TYPES, Feature, Level, Package, Source
 from c3nav.mapdata.permissions import filter_source_queryset
 from c3nav.mapdata.serializers import (FeatureSerializer, FeatureTypeSerializer, LevelSerializer, PackageSerializer,
                                        SourceSerializer)
 
 
-class LevelViewSet(CachedViewSetMixin, ReadOnlyModelViewSet):
+class LevelViewSet(ReadOnlyModelViewSet):
     """
-    Returns a list of all levels on the map.
+    List and retrieve levels.
     """
     queryset = Level.objects.all()
     serializer_class = LevelSerializer
@@ -28,9 +27,9 @@ class LevelViewSet(CachedViewSetMixin, ReadOnlyModelViewSet):
     search_fields = ('name',)
 
 
-class PackageViewSet(AccessCachedViewSetMixin, ReadOnlyModelViewSet):
+class PackageViewSet(ReadOnlyModelViewSet):
     """
-    Returns a list of all packages the map consists of.
+    Retrieve packages the map consists of.
     """
     queryset = Package.objects.all()
     serializer_class = PackageSerializer
@@ -41,10 +40,9 @@ class PackageViewSet(AccessCachedViewSetMixin, ReadOnlyModelViewSet):
     search_fields = ('name',)
 
 
-class SourceViewSet(AccessCachedViewSetMixin, ReadOnlyModelViewSet):
+class SourceViewSet(ReadOnlyModelViewSet):
     """
-    Returns a list of source images (to use as a drafts).
-    Call /sources/{name}/image to get the image.
+    List and retrieve source images (to use as a drafts).
     """
     queryset = Source.objects.all()
     serializer_class = SourceSerializer
@@ -69,9 +67,8 @@ class SourceViewSet(AccessCachedViewSetMixin, ReadOnlyModelViewSet):
 
 class FeatureTypeViewSet(ViewSet):
     """
-    Get Feature types
+    List and retrieve feature types
     """
-
     def list(self, request):
         serializer = FeatureTypeSerializer(FEATURE_TYPES.values(), many=True, context={'request': request})
         return Response(serializer.data)
@@ -85,7 +82,7 @@ class FeatureTypeViewSet(ViewSet):
 
 class FeatureViewSet(ReadOnlyModelViewSet):
     """
-    Get all Map Features
+    List and retrieve map features you have access to
     """
     queryset = Feature.objects.all()
     serializer_class = FeatureSerializer

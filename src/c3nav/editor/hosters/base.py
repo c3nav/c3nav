@@ -15,11 +15,15 @@ class Hoster(ABC):
         self.name = name
         self.base_url = base_url
 
+    @property
+    def pk(self):
+        return self.name
+
     def get_packages(self):
         """
         Get a Queryset of all packages that can be handled by this hoster
         """
-        return Package.objects.filter(home_repo__startswith=self.base_url)
+        return Package.objects.filter(home_repo__startswith=self.base_url).order_by('name')
 
     def _get_callback_uri(self, request):
         uri = request.build_absolute_uri(reverse('editor.oauth.callback', kwargs={'hoster': self.name}))

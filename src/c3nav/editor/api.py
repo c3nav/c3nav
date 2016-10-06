@@ -16,12 +16,12 @@ from c3nav.mapdata.models.package import Package
 
 class HosterViewSet(ViewSet):
     """
-    Get Package Hosters
+    Retrieve and interact with package hosters
     """
     def retrieve(self, request, pk=None):
         if pk not in hosters:
             raise Http404
-        serializer = HosterSerializer(hosters[pk])
+        serializer = HosterSerializer(hosters[pk], context={'request': request})
         return Response(serializer.data)
 
     @detail_route(methods=['get'])
@@ -90,7 +90,7 @@ class HosterViewSet(ViewSet):
 
 class SubmitTaskViewSet(ViewSet):
     """
-    Get Submit Tasks
+    Get hoster submit tasks
     """
     def retrieve(self, request, pk=None):
         task = submit_edit_task.AsyncResult(task_id=pk)
