@@ -11,7 +11,7 @@ router.register(r'sources', SourceViewSet)
 router.register(r'featuretypes', FeatureTypeViewSet, base_name='featuretype')
 router.register(r'features', FeatureViewSet)
 router.register(r'hosters', HosterViewSet, base_name='hoster')
-router.register(r'submittask', SubmitTaskViewSet, base_name='submittask')
+router.register(r'submittasks', SubmitTaskViewSet, base_name='submittask')
 
 
 urlpatterns = [

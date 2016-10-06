@@ -72,7 +72,7 @@ finalize = {
         }
     },
     _check_submittask: function() {
-        $.getJSON('/api/v1/submittask/'+finalize.submittask+'/', finalize.handle_task_data);
+        $.getJSON('/api/v1/submittasks/'+finalize.submittask+'/', finalize.handle_task_data);
     }
 };
 
