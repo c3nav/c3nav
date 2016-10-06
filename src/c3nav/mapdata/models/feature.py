@@ -17,6 +17,10 @@ class FeatureType(namedtuple('FeatureType', ('name', 'title', 'title_plural', 'g
         FEATURE_TYPES[self.name] = self
 
     @property
+    def pk(self):
+        return self.name
+
+    @property
     def title_en(self):
         language = get_language()
         activate('en')
