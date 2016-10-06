@@ -43,4 +43,4 @@ class RecursiveSerializerMixin(serializers.Serializer):
     def recursive_value(self, serializer, obj, *args, **kwargs):
         if self.context.get('sparse'):
             return PkField().to_representation(obj)
-        return serializer(obj, *args, **kwargs, context=self.sparse_context()).data
+        return serializer(obj, context=self.sparse_context(), *args, **kwargs).data
