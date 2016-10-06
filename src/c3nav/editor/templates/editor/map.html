@@ -1,5 +1,15 @@
 {% extends 'editor/base.html' %}
 {% load static %}
+{% block addnav %}
+<div id="response_switch" class="navbar-collapse collapse">
+    <ul class="nav navbar-nav navbar-right">
+        <li>
+            <a href="#" id="show_map"s>&laquo; Show Map</a>
+            <a href="#" id="show_details"s>Show Details &raquo;</a>
+        </li>
+    </ul>
+</div>
+{% endblock %}
 {% block content %}
 <div id="map"></div>
 <div id="mapeditcontrols">

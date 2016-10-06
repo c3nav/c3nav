@@ -59,12 +59,12 @@ body {
     padding:8px;
     width:350px;
     right:0;
+    transition: right 300ms;
+    -webkit-transition: right 300ms;
     overflow:auto;
 }
 #mapeditcontrols > #mapeditdetail {
     right:-350px;
-    transition: right 300ms;
-    -webkit-transition: right 300ms;
     pointer-events: none;
 }
 #mapeditcontrols.detail #mapeditdetail {
@@ -126,4 +126,70 @@ legend {
 }
 #btn_editing_cancel {
     margin-right:8px;
+}
+
+#response_switch {
+    display:none;
+}
+
+@media (max-width: 767px) {
+    #mapeditcontrols {
+        width:100vw;
+    }
+    body:not(.controls) #mapeditcontrols {
+        pointer-events: none;
+        background-image:none;
+    }
+    #mapeditcontrols > div {
+        width:100vw;
+    }
+    body:not(.controls) #mapeditcontrols > div {
+        right:-100vw !important;
+    }
+    #mapeditcontrols:not(.detail) > #mapeditdetail {
+        right:-100vw;
+        pointer-events: none;
+    }
+    #map {
+        transition: left 300ms, right ;
+        -webkit-transition: left 300ms;
+        right: auto;
+        width:100vw;
+    }
+    body.controls #map {
+        left:-100vw;
+    }
+
+    .navbar-collapse.collapse {
+      display: block;
+    }
+    .navbar-nav>li, .navbar-header {
+      float: left;
+    }
+    .navbar-nav.navbar-right:last-child {
+      margin-right: -15px;
+    }
+    .navbar-right {
+      float: right;
+    }
+
+    #show_map {
+        display:none;
+    }
+    body.controls #show_map {
+        display:block;
+    }
+    body.controls #show_details {
+        display:none;
+    }
+    .navbar-nav {
+        margin:0;
+    }
+    .navbar-nav > li > a {
+        padding-top: 15px;
+        padding-bottom: 15px;
+    }
+    #response_switch {
+        display:block;
+    }
 }

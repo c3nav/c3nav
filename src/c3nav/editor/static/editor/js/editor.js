@@ -17,6 +17,13 @@ editor = {
         L.control.scale({imperial: false}).addTo(editor.map);
         editor._highlight_layer = L.layerGroup().addTo(editor.map);
 
+        $('#show_map').click(function() {
+            $('body').removeClass('controls');
+        });
+        $('#show_details').click(function() {
+            $('body').addClass('controls');
+        });
+
         editor.get_feature_types();
         editor.get_packages();
         editor.get_sources();
@@ -287,6 +294,7 @@ editor = {
         }
         $('.leaflet-drawbar').show();
         $('.start-drawing').hide();
+        $('body').removeClass('controls');
     },
     cancel_creating: function () {
         if (editor._creating === null || editor._editing !== null) return;
@@ -309,6 +317,7 @@ editor = {
             $('.leaflet-drawbar').hide();
             var path = '/editor/features/' + editor._creating + '/add/';
             $('#mapeditcontrols').removeClass('list');
+            $('body').addClass('controls');
             $('#mapeditdetail').load(path, editor.edit_form_loaded);
         }
     },
@@ -320,6 +329,7 @@ editor = {
         var path = '/editor/features/edit/' + name + '/';
         $('#mapeditcontrols').removeClass('list');
         $('#mapeditdetail').load(path, editor.edit_form_loaded);
+        $('body').addClass('controls');
     },
     edit_form_loaded: function() {
         $('#mapeditcontrols').addClass('detail');
@@ -385,6 +395,7 @@ editor = {
                 editor._editing = null;
                 editor._creating = null;
                 editor.get_features();
+                $('body').removeClass('controls');
             }
         });
     }
