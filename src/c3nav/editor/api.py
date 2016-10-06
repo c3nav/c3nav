@@ -18,10 +18,6 @@ class HosterViewSet(ViewSet):
     """
     Get Package Hosters
     """
-    def list(self, request, version=None):
-        serializer = HosterSerializer(hosters.values(), many=True)
-        return Response(serializer.data)
-
     def retrieve(self, request, pk=None, version=None):
         if pk not in hosters:
             raise Http404
