@@ -15,5 +15,5 @@ router.register(r'submittasks', SubmitTaskViewSet, base_name='submittask')
 
 
 urlpatterns = [
-    url(r'^(?P<version>v\d+)/', include(router.urls, namespace='v1')),
+    url(r'^v1/', include(router.urls, namespace='v1')),
 ]
