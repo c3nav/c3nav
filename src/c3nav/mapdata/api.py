@@ -58,7 +58,7 @@ class SourceViewSet(AccessCachedViewSetMixin, ReadOnlyModelViewSet):
         return filter_source_queryset(self.request, super().get_queryset())
 
     @detail_route(methods=['get'])
-    def image(self, request, pk=None, version=None):
+    def image(self, request, pk=None):
         source = self.get_object()
         response = HttpResponse(content_type=mimetypes.guess_type(source.name)[0])
         image_path = os.path.join(settings.MAP_ROOT, source.package.directory, 'sources', source.name)
@@ -72,11 +72,11 @@ class FeatureTypeViewSet(ViewSet):
     Get Feature types
     """
 
-    def list(self, request, version=None):
+    def list(self, request):
         serializer = FeatureTypeSerializer(FEATURE_TYPES.values(), many=True, context={'request': request})
         return Response(serializer.data)
 
-    def retrieve(self, request, pk=None, version=None):
+    def retrieve(self, request, pk=None):
         if pk not in FEATURE_TYPES:
             raise Http404
         serializer = FeatureTypeSerializer(FEATURE_TYPES[pk], context={'request': request})
