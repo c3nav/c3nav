@@ -128,8 +128,8 @@ legend {
     margin-right:8px;
 }
 
-#response_switch {
-    display:none;
+#responsive_switch {
+    display:none !important;
 }
 
 @media (max-width: 767px) {
