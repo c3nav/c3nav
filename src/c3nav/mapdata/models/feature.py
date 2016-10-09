@@ -7,7 +7,7 @@ from django.utils.translation import activate, get_language
 from shapely.geometry import mapping, shape
 
 from c3nav.mapdata.fields import GeometryField, JSONField
-from c3nav.mapdata.utils import sort_geojson
+from c3nav.mapdata.utils import format_geojson
 
 
 class FeatureType(namedtuple('FeatureType', ('name', 'title', 'title_plural', 'geomtype', 'color'))):
@@ -105,5 +105,5 @@ class Feature(models.Model):
         return OrderedDict((
             ('titles', OrderedDict(sorted(self.titles.items()))),
             ('level', self.level.name),
-            ('geometry', sort_geojson(mapping(self.geometry)))
+            ('geometry', format_geojson(mapping(self.geometry)))
         ))

@@ -8,7 +8,7 @@ from c3nav.api.serializers import RecursiveSerializerMixin
 from c3nav.editor.hosters import get_hoster_for_package
 from c3nav.mapdata.models import Feature, Level, Package, Source
 from c3nav.mapdata.models.feature import FEATURE_TYPES
-from c3nav.mapdata.utils import sort_geojson
+from c3nav.mapdata.utils import format_geojson
 
 
 class GeometryField(serializers.DictField):
@@ -20,7 +20,7 @@ class GeometryField(serializers.DictField):
     }
 
     def to_representation(self, obj):
-        geojson = sort_geojson(mapping(obj))
+        geojson = format_geojson(mapping(obj), round=False)
         return super().to_representation(geojson)
 
     def to_internal_value(self, data):
