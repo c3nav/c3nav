@@ -3,7 +3,7 @@ import json
 from django.db import models
 from shapely.geometry import mapping, shape
 
-from c3nav.mapdata.utils import sort_geojson
+from c3nav.mapdata.utils import format_geojson
 
 
 class GeometryField(models.TextField):
@@ -16,7 +16,7 @@ class GeometryField(models.TextField):
         return shape(json.loads(value))
 
     def get_prep_value(self, value):
-        return json.dumps(sort_geojson(mapping(value)))
+        return json.dumps(format_geojson(mapping(value)))
 
 
 class JSONField(models.TextField):

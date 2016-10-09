@@ -33,8 +33,15 @@ def json_encoder_reindent(method, data, *args, **kwargs):
         return result.replace(b'"'+magic_marker, b'').replace(magic_marker+b'"', b'')
 
 
-def sort_geojson(data):
+def format_geojson(data, round=True):
     return OrderedDict((
         ('type', data['type']),
-        ('coordinates', data['coordinates']),
+        ('coordinates', round_coordinates(data['coordinates']) if round else data['coordinates']),
     ))
+
+
+def round_coordinates(data):
+    if isinstance(data, (list, tuple)):
+        return tuple(round_coordinates(item) for item in data)
+    else:
+        return round(data, 2)
