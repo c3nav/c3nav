@@ -68,6 +68,9 @@ class Feature(models.Model):
     def tofilename(self):
         return 'features/%s/%s.json' % (self.feature_type, self.name)
 
+    def get_feature_type(self):
+        return FEATURE_TYPES[self.feature_type]
+
     @classmethod
     def fromfile(cls, data, file_path):
         kwargs = {}
