@@ -31,8 +31,8 @@ class FeatureType(namedtuple('FeatureType', ('name', 'title', 'title_plural', 'g
 
 FEATURE_TYPES = OrderedDict()
 FeatureType('building', _('Building'), _('Buildings'), 'polygon', '#333333')
-FeatureType('room', _('Room'), _('Rooms'), 'polygon', '#CCCCCC')
-FeatureType('outside', _('Outside Area'), _('Outside Areas'), 'polygon', '#EEEEEE')
+FeatureType('room', _('Room'), _('Rooms'), 'polygon', '#FFFFFF')
+FeatureType('outside', _('Outside Area'), _('Outside Areas'), 'polygon', '#FFFFFF')
 FeatureType('obstacle', _('Obstacle'), _('Obstacles'), 'polygon', '#999999')
 
 

@@ -36,6 +36,8 @@ editor = {
             for (var i = 0; i < feature_types.length; i++) {
                 feature_type = feature_types[i];
                 editor.feature_types[feature_type.name] = feature_type;
+                feature_type.weight = 1;
+                feature_type.fillOpacity = 0.6;
                 editor.feature_types_order.push(feature_type.name);
                 editcontrols.append(
                     $('<fieldset class="feature_list">').attr('name', feature_type.name).append(
@@ -237,9 +239,10 @@ editor = {
         L.geoJSON(editor.features[$(this).attr('name')].geometry, {
             style: function() {
                 return {
-                    color: '#FFFFEE',
-                    opacity: 0.5,
-                    fillOpacity: 0.5,
+                    color: '#FFFFDD',
+                    weight: 3,
+                    opacity: 0.7,
+                    fillOpacity: 0,
                     className: 'c3nav-highlight'
                 };
             }
@@ -259,9 +262,10 @@ editor = {
             L.geoJSON(e.layer.toGeoJSON(), {
                 style: function() {
                     return {
-                        color: '#FFFFEE',
-                        opacity: 0.5,
-                        fillOpacity: 0.5,
+                        color: '#FFFFDD',
+                        weight: 3,
+                        opacity: 0.7,
+                        fillOpacity: 0,
                         className: 'c3nav-highlight'
                     };
                 }
