@@ -189,7 +189,7 @@ legend {
         padding-top: 15px;
         padding-bottom: 15px;
     }
-    #response_switch {
-        display:block;
+    #responsive_switch {
+        display:block !important;
     }
 }
