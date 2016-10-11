@@ -20,18 +20,18 @@ class HosterViewSet(ViewSet):
     """
     lookup_field = 'name'
 
-    def retrieve(self, request, pk=None):
-        if pk not in hosters:
+    def retrieve(self, request, name=None):
+        if name not in hosters:
             raise Http404
-        serializer = HosterSerializer(hosters[pk], context={'request': request})
+        serializer = HosterSerializer(hosters[name], context={'request': request})
         return Response(serializer.data)
 
     @detail_route(methods=['get'])
-    def state(self, request, pk=None):
-        if pk not in hosters:
+    def state(self, request, name=None):
+        if name not in hosters:
             raise Http404
 
-        hoster = hosters[pk]
+        hoster = hosters[name]
         state = hoster.get_state(request)
         error = hoster.get_error(request) if state == 'logged_out' else None
 
@@ -41,18 +41,18 @@ class HosterViewSet(ViewSet):
         )))
 
     @detail_route(methods=['post'])
-    def auth_uri(self, request, pk=None):
-        if pk not in hosters:
+    def auth_uri(self, request, name=None):
+        if name not in hosters:
             raise Http404
         return Response({
-            'auth_uri': hosters[pk].get_auth_uri(request)
+            'auth_uri': hosters[name].get_auth_uri(request)
         })
 
     @detail_route(methods=['post'])
-    def submit(self, request, pk=None):
-        if pk not in hosters:
+    def submit(self, request, name=None):
+        if name not in hosters:
             raise Http404
-        hoster = hosters[pk]
+        hoster = hosters[name]
 
         if 'data' not in request.POST:
             raise ValidationError('Missing POST parameter: data')
@@ -94,10 +94,10 @@ class SubmitTaskViewSet(ViewSet):
     """
     Get hoster submit tasks
     """
-    lookup_field = 'id'
+    lookup_field = 'id_'
 
-    def retrieve(self, request, pk=None):
-        task = submit_edit_task.AsyncResult(task_id=pk)
+    def retrieve(self, request, id_=None):
+        task = submit_edit_task.AsyncResult(task_id=id_)
         try:
             task.ready()
         except:

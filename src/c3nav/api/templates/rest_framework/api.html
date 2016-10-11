@@ -24,11 +24,3 @@
 {% block branding %}
 <span class="navbar-brand">c3nav API</span>
 {% endblock %}
-
-
-{% block description %}
-{% if breadcrumblist|length == 1 %}
-<p>Welcome to the c3nav RESTful API.</p>
-<p><small><em>Add <code>?sparse=1</code> to any request to flatten its result.</em></small></p>
-{% else %}{{ description }}{% endif %}
-{% endblock %}
