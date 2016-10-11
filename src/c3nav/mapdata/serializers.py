@@ -68,6 +68,7 @@ class FeatureTypeSerializer(serializers.Serializer):
 
 
 class FeatureSerializer(serializers.ModelSerializer):
+    level = serializers.SlugRelatedField(slug_field='name', read_only=True)
     titles = serializers.JSONField()
     geometry = GeometryField()
 
