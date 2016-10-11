@@ -40,7 +40,7 @@ class PackageSerializer(RecursiveSerializerMixin, serializers.ModelSerializer):
         fields = ('name', 'url', 'home_repo', 'commit_id', 'depends', 'bounds', 'public', 'hoster')
         sparse_exclude = ('depends', 'hoster')
         extra_kwargs = {
-            'url': {'view_name': 'api:package-detail'}
+            'url': {'view_name': 'api:package-detail', 'lookup_field': 'name'}
         }
 
     def get_depends(self, obj):
@@ -59,7 +59,7 @@ class LevelSerializer(RecursiveSerializerMixin, serializers.ModelSerializer):
         fields = ('name', 'url', 'altitude', 'package')
         sparse_exclude = ('package',)
         extra_kwargs = {
-            'url': {'view_name': 'api:level-detail'}
+            'url': {'view_name': 'api:level-detail', 'lookup_field': 'name'}
         }
 
 
@@ -72,7 +72,7 @@ class SourceSerializer(RecursiveSerializerMixin, serializers.ModelSerializer):
         fields = ('name', 'url', 'image_url', 'package', 'bounds')
         sparse_exclude = ('package', )
         extra_kwargs = {
-            'url': {'view_name': 'api:source-detail'}
+            'url': {'view_name': 'api:source-detail', 'lookup_field': 'name'}
         }
 
     def get_image_url(self, obj):
@@ -100,7 +100,8 @@ class FeatureSerializer(RecursiveSerializerMixin, serializers.ModelSerializer):
         fields = ('name', 'url', 'title', 'feature_type', 'level', 'titles', 'package', 'geometry')
         sparse_exclude = ('feature_type', 'level', 'package')
         extra_kwargs = {
-            'url': {'view_name': 'api:feature-detail'}
+            'lookup_field': 'name',
+            'url': {'view_name': 'api:feature-detail', 'lookup_field': 'name'}
         }
 
     def get_feature_type(self, obj):

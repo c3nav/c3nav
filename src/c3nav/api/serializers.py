@@ -4,13 +4,13 @@ from django.db.models.manager import BaseManager
 from rest_framework import serializers
 
 
-class PkField(serializers.DictField):
+class RelatedNameField(serializers.DictField):
     """
     give primary key
     """
     def to_representation(self, obj):
-        if hasattr(obj, 'pk'):
-            return obj.pk
+        if hasattr(obj, 'name'):
+            return obj.name
         elif isinstance(obj, Iterable):
             return tuple(self.to_representation(elem) for elem in obj)
         elif isinstance(obj, BaseManager):
@@ -30,7 +30,7 @@ class RecursiveSerializerMixin(serializers.Serializer):
             for name in getattr(self.Meta, 'sparse_exclude', ()):
                 value = self.fields.get(name)
                 if value is not None and isinstance(value, serializers.Serializer):
-                    self.fields[name] = PkField()
+                    self.fields[name] = RelatedNameField()
 
             if request_sparse:
                 for name in tuple(self.fields):
@@ -42,5 +42,5 @@ class RecursiveSerializerMixin(serializers.Serializer):
 
     def recursive_value(self, serializer, obj, *args, **kwargs):
         if self.context.get('sparse'):
-            return PkField().to_representation(obj)
+            return RelatedNameField().to_representation(obj)
         return serializer(obj, context=self.sparse_context(), *args, **kwargs).data

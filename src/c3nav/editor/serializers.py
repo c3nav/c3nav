@@ -4,7 +4,7 @@ from rest_framework.reverse import reverse
 
 class HosterSerializer(serializers.Serializer):
     name = serializers.CharField()
-    url = serializers.HyperlinkedIdentityField(view_name='api:hoster-detail')
+    url = serializers.HyperlinkedIdentityField(view_name='api:hoster-detail', lookup_field='name')
     state_url = serializers.SerializerMethodField()
     auth_uri_url = serializers.SerializerMethodField()
     submit_url = serializers.SerializerMethodField()
@@ -22,7 +22,7 @@ class HosterSerializer(serializers.Serializer):
 
 class TaskSerializer(serializers.Serializer):
     id = serializers.CharField()
-    url = serializers.HyperlinkedIdentityField(view_name='api:hoster-detail', lookup_field='id', lookup_url_kwarg='pk')
+    url = serializers.HyperlinkedIdentityField(view_name='api:hoster-detail', lookup_field='id')
     started = serializers.SerializerMethodField()
     done = serializers.SerializerMethodField()
     success = serializers.SerializerMethodField()
