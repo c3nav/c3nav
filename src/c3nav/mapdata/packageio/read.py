@@ -146,9 +146,13 @@ class ReaderItem:
     }
 
     def save(self):
+        depends = []
         if self.model != Package:
             package_name = self.reader.package_names_by_dir[self.package_dir]
             self.data['package'] = self.reader.saved_items[Package][package_name].obj
+        else:
+            depends = [self.reader.saved_items[Package][name].obj.pk for name in self.data['depends']]
+            self.data.pop('depends')
 
         # Change name references to the referenced object
         for name, model in self.relations.items():
@@ -161,3 +165,8 @@ class ReaderItem:
 
         self.obj = obj
         self.reader.saved_items[self.model][obj.name] = self
+
+        if depends:
+            self.obj.depends.clear()
+            for dependency in depends:
+                self.obj.depends.add(dependency)

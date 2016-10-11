@@ -20,6 +20,7 @@ class LevelViewSet(ReadOnlyModelViewSet):
     """
     queryset = Level.objects.all()
     serializer_class = LevelSerializer
+    lookup_field = 'name'
     lookup_value_regex = '[^/]+'
     filter_fields = ('altitude', 'package')
     ordering_fields = ('altitude', 'package')
@@ -33,6 +34,7 @@ class PackageViewSet(ReadOnlyModelViewSet):
     """
     queryset = Package.objects.all()
     serializer_class = PackageSerializer
+    lookup_field = 'name'
     lookup_value_regex = '[^/]+'
     filter_fields = ('name', 'depends')
     ordering_fields = ('name',)
@@ -46,6 +48,7 @@ class SourceViewSet(ReadOnlyModelViewSet):
     """
     queryset = Source.objects.all()
     serializer_class = SourceSerializer
+    lookup_field = 'name'
     lookup_value_regex = '[^/]+'
     filter_fields = ('package',)
     ordering_fields = ('name', 'package')
@@ -69,6 +72,8 @@ class FeatureTypeViewSet(ViewSet):
     """
     List and retrieve feature types
     """
+    lookup_field = 'name'
+
     def list(self, request):
         serializer = FeatureTypeSerializer(FEATURE_TYPES.values(), many=True, context={'request': request})
         return Response(serializer.data)
@@ -86,4 +91,5 @@ class FeatureViewSet(ReadOnlyModelViewSet):
     """
     queryset = Feature.objects.all()
     serializer_class = FeatureSerializer
+    lookup_field = 'name'
     lookup_value_regex = '[^/]+'

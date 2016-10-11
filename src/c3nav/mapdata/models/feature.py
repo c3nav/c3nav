@@ -17,10 +17,6 @@ class FeatureType(namedtuple('FeatureType', ('name', 'title', 'title_plural', 'g
         FEATURE_TYPES[self.name] = self
 
     @property
-    def pk(self):
-        return self.name
-
-    @property
     def title_en(self):
         language = get_language()
         activate('en')
@@ -47,7 +43,7 @@ class Feature(models.Model):
     """
     TYPES = tuple((name, t.title) for name, t in FEATURE_TYPES.items())
 
-    name = models.SlugField(_('feature identifier'), primary_key=True, max_length=50)
+    name = models.SlugField(_('feature identifier'), unique=True, max_length=50)
     package = models.ForeignKey('mapdata.Package', on_delete=models.CASCADE, related_name='features',
                                 verbose_name=_('map package'))
     feature_type = models.CharField(max_length=50, choices=TYPES)

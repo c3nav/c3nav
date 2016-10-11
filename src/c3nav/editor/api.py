@@ -18,6 +18,8 @@ class HosterViewSet(ViewSet):
     """
     Retrieve and interact with package hosters
     """
+    lookup_field = 'name'
+
     def retrieve(self, request, pk=None):
         if pk not in hosters:
             raise Http404
@@ -92,6 +94,8 @@ class SubmitTaskViewSet(ViewSet):
     """
     Get hoster submit tasks
     """
+    lookup_field = 'id'
+
     def retrieve(self, request, pk=None):
         task = submit_edit_task.AsyncResult(task_id=pk)
         try:
