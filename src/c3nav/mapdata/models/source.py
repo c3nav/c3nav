@@ -1,21 +1,22 @@
 from django.db import models
 from django.utils.translation import ugettext_lazy as _
 
+from c3nav.mapdata.models.base import MapdataModel
 
-class Source(models.Model):
+
+class Source(MapdataModel):
     """
     A map source, images of levels that can be useful as backgrounds for the map editor
     """
-    name = models.SlugField(_('source name'), unique=True, max_length=50)
-    package = models.ForeignKey('mapdata.Package', on_delete=models.CASCADE, related_name='sources',
-                                verbose_name=_('map package'))
-
     bottom = models.DecimalField(_('bottom coordinate'), max_digits=6, decimal_places=2)
     left = models.DecimalField(_('left coordinate'), max_digits=6, decimal_places=2)
     top = models.DecimalField(_('top coordinate'), max_digits=6, decimal_places=2)
     right = models.DecimalField(_('right coordinate'), max_digits=6, decimal_places=2)
 
-    path_regex = r'^sources/'
+    class Meta:
+        verbose_name = _('Source')
+        verbose_name_plural = _('Sources')
+        default_related_name = 'sources'
 
     @classmethod
     def max_bounds(cls):
@@ -28,12 +29,9 @@ class Source(models.Model):
     def bounds(self):
         return (float(self.bottom), float(self.left)), (float(self.top), float(self.right))
 
-    def tofilename(self):
-        return 'sources/%s.json' % self.name
-
     @classmethod
     def fromfile(cls, data, file_path):
-        kwargs = {}
+        kwargs = super().fromfile(data, file_path)
 
         if 'bounds' not in data:
             raise ValueError('missing bounds.')
@@ -50,6 +48,6 @@ class Source(models.Model):
         return kwargs
 
     def tofile(self):
-        return {
-            'bounds': ((float(self.bottom), float(self.left)), (float(self.top), float(self.right)))
-        }
+        result = super().tofile()
+        result['bounds'] = ((float(self.bottom), float(self.left)), (float(self.top), float(self.right)))
+        return result

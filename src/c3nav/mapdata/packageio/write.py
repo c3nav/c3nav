@@ -24,7 +24,7 @@ class MapdataWriter:
         count = 0
         for model in ordered_models:
             for obj in model.objects.all().order_by('name').prefetch_related():
-                file_path = os.path.join(obj.package.directory, obj.tofilename())
+                file_path = os.path.join(obj.package.directory, obj.get_filename())
                 full_file_path = os.path.join(settings.MAP_ROOT, file_path)
                 self.keep.add(file_path)
 
