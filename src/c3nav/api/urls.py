@@ -15,7 +15,7 @@ router.register(r'levels', LevelViewSet)
 router.register(r'packages', PackageViewSet)
 router.register(r'sources', SourceViewSet)
 router.register(r'featuretypes', FeatureTypeViewSet, base_name='featuretype')
-router.register(r'features', FeatureViewSet)
+router.register(r'features', FeatureViewSet, base_name='feature')
 router.register(r'hosters', HosterViewSet, base_name='hoster')
 router.register(r'submittasks', SubmitTaskViewSet, base_name='submittask')
 

@@ -22,7 +22,17 @@ class Package(models.Model):
 
     directory = models.CharField(_('folder name'), max_length=100)
 
-    path_regex = r'^package.json$'
+    class Meta:
+        verbose_name = _('Map Package')
+        verbose_name_plural = _('Map Packages')
+        default_related_name = 'packages'
+
+    @classmethod
+    def get_path_regex(cls):
+        return '^package.json$'
+
+    def get_filename(self):
+        return 'package.json'
 
     @property
     def package(self):

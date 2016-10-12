@@ -5,9 +5,9 @@ from django.core.signing import BadSignature
 from django.http.response import Http404
 from django.shortcuts import get_object_or_404, render
 
-from c3nav.editor.forms import FeatureForm
+# from c3nav.editor.forms import FeatureForm
 from c3nav.editor.hosters import get_hoster_for_package, hosters
-from c3nav.mapdata.models.feature import FEATURE_TYPES, Feature
+from c3nav.mapdata.models.features import FEATURE_TYPES, Feature
 from c3nav.mapdata.models.package import Package
 from c3nav.mapdata.packageio.write import json_encode
 from c3nav.mapdata.permissions import can_access_package

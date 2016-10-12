@@ -60,18 +60,35 @@ class SourceSerializer(serializers.ModelSerializer):
 
 
 class FeatureTypeSerializer(serializers.Serializer):
-    name = serializers.CharField()
-    title = serializers.CharField()
-    title_plural = serializers.CharField()
+    name = serializers.SerializerMethodField()
+    title = serializers.SerializerMethodField()
+    title_plural = serializers.SerializerMethodField()
     geomtype = serializers.CharField()
     color = serializers.CharField()
 
+    def get_name(self, obj):
+        return obj.__name__.lower()
 
-class FeatureSerializer(serializers.ModelSerializer):
-    level = serializers.SlugRelatedField(slug_field='name', read_only=True)
-    titles = serializers.JSONField()
+    def get_title(self, obj):
+        return str(obj._meta.verbose_name)
+
+    def get_title_plural(self, obj):
+        return str(obj._meta.verbose_name_plural)
+
+
+class FeatureSerializer(serializers.Serializer):
+    name = serializers.CharField()
+    feature_type = serializers.SerializerMethodField()
+    level = serializers.SerializerMethodField()
+    package = serializers.SerializerMethodField()
     geometry = GeometryField()
 
-    class Meta:
-        model = Feature
-        fields = ('name', 'title', 'feature_type', 'level', 'titles', 'package', 'geometry')
+    def get_feature_type(self, obj):
+        return obj.__class__.__name__.lower()
+
+    def get_level(self, obj):
+        return obj.level.name
+
+    def get_package(self, obj):
+        return obj.package.name
+

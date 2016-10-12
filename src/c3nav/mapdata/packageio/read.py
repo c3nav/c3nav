@@ -2,6 +2,7 @@ import json
 import os
 import re
 import subprocess
+from collections import OrderedDict
 
 from django.conf import settings
 from django.core.management import CommandError
@@ -15,6 +16,8 @@ class MapdataReader:
         self.content = {}
         self.package_names_by_dir = {}
         self.saved_items = {model: {} for model in ordered_models}
+        self.path_regexes = OrderedDict((model, model.get_path_regex()) for model in ordered_models)
+        print(self.path_regexes)
 
     def read_packages(self):
         print('Detecting Map Packages…')
@@ -44,8 +47,8 @@ class MapdataReader:
         file_path = os.path.join(package_dir, path, filename)
         relative_file_path = os.path.join(path, filename)
         print(file_path)
-        for model in ordered_models:
-            if re.search(model.path_regex, relative_file_path):
+        for model, path_regex in self.path_regexes.items():
+            if re.search(path_regex, relative_file_path):
                 self._add_item(ReaderItem(self, package_dir, path, filename, model))
                 break
         else:
