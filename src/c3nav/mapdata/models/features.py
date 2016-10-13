@@ -23,8 +23,14 @@ class Feature(MapdataModel):
     level = models.ForeignKey('mapdata.Level', on_delete=models.CASCADE, verbose_name=_('level'))
     geometry = GeometryField()
 
+    EditorForm = None
+
     class Meta:
         abstract = True
+
+    @property
+    def title(self):
+        return self.name
 
     @classmethod
     def fromfile(cls, data, file_path):
