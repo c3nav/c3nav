@@ -1,19 +1,15 @@
 import mimetypes
 import os
-from itertools import chain
 
 from django.conf import settings
 from django.core.files import File
-from django.http import Http404, HttpResponse
+from django.http import HttpResponse
 from rest_framework.decorators import detail_route
-from rest_framework.response import Response
-from rest_framework.viewsets import ReadOnlyModelViewSet, ViewSet
+from rest_framework.viewsets import ReadOnlyModelViewSet
 
-from c3nav.mapdata.models import FEATURE_TYPES, Level, Package, Source
-from c3nav.mapdata.models.features import Feature
+from c3nav.mapdata.models import Level, Package, Source
 from c3nav.mapdata.permissions import filter_source_queryset
-from c3nav.mapdata.serializers import (FeatureSerializer, FeatureTypeSerializer, LevelSerializer, PackageSerializer,
-                                       SourceSerializer)
+from c3nav.mapdata.serializers.main import LevelSerializer, PackageSerializer, SourceSerializer
 
 
 class LevelViewSet(ReadOnlyModelViewSet):
@@ -68,38 +64,3 @@ class SourceViewSet(ReadOnlyModelViewSet):
         for chunk in File(open(image_path, 'rb')).chunks():
             response.write(chunk)
         return response
-
-
-class FeatureTypeViewSet(ViewSet):
-    """
-    List and retrieve feature types
-    """
-    lookup_field = 'name'
-
-    def list(self, request):
-        serializer = FeatureTypeSerializer(FEATURE_TYPES.values(), many=True, context={'request': request})
-        return Response(serializer.data)
-
-    def retrieve(self, request, pk=None):
-        if pk not in FEATURE_TYPES:
-            raise Http404
-        serializer = FeatureTypeSerializer(FEATURE_TYPES[pk], context={'request': request})
-        return Response(serializer.data)
-
-
-class FeatureViewSet(ReadOnlyModelViewSet):
-    """
-    List and retrieve map features you have access to
-    """
-    model = Feature
-    base_name = 'feature'
-    serializer_class = FeatureSerializer
-    lookup_field = 'name'
-    lookup_value_regex = '[^/]+'
-
-    def get_queryset(self):
-        querysets = []
-        for name, model in FEATURE_TYPES.items():
-            querysets.append(model.objects.all())
-        return chain(*querysets)
-

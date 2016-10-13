@@ -30,4 +30,3 @@ class MapdataModel(models.Model):
     class Meta:
         abstract = True
         unique_together = ('package', 'name')
-

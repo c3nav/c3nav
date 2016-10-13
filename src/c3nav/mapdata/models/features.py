@@ -1,16 +1,15 @@
-import os
 from collections import OrderedDict
 
 from django.db import models
 from django.utils.translation import ugettext_lazy as _
-from shapely.geometry.geo import shape, mapping
+from shapely.geometry.geo import mapping, shape
 
 from c3nav.mapdata.fields import GeometryField
 from c3nav.mapdata.models.base import MapdataModel
 from c3nav.mapdata.utils import format_geojson
 
-
 FEATURE_TYPES = OrderedDict()
+
 
 def register_featuretype(cls):
     FEATURE_TYPES[cls.__name__.lower()] = cls
@@ -77,5 +76,3 @@ class Room(Feature):
         verbose_name = _('Room')
         verbose_name_plural = _('Rooms')
         default_related_name = 'rooms'
-
-
