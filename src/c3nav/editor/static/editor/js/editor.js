@@ -186,41 +186,43 @@ editor = {
 
     features: {},
     get_features: function () {
-        $.getJSON('/api/features/', function(features) {
-            var feature_type;
-            for (var level in editor.levels) {
-                for (var j = 0; j < editor.feature_types_order.length; j++) {
-                    feature_type = editor.feature_types_order[j];
+        $.getJSON('/api/features/', function(all_features) {
+            $('.feature_level_list li').remove();
+            var feature_type, features, feature, layergroup;
+            for (var j = 0; j < editor.feature_types_order.length; j++) {
+                feature_type = editor.feature_types_order[j];
+                for (var level in editor.levels) {
                     editor.level_feature_layers[level][feature_type].clearLayers();
                 }
-            }
-            $('.feature_level_list li').remove();
-            var feature, layergroup;
-            for (var i=0; i < features.length; i++) {
-                feature = features[i];
-                layergroup = L.geoJSON({
-                    type: 'Feature',
-                    geometry: feature.geometry,
-                    properties: {
-                        name: feature.name,
-                        feature_type: feature.feature_type
-                    }
-                }, {
-                    style: editor._get_feature_style
-                }).on('mouseover', editor._hover_feature_layer)
-                  .on('mouseout', editor._unhover_feature_layer)
-                  .on('click', editor._click_feature_layer)
-                  .addTo(editor.level_feature_layers[feature.level][feature.feature_type]);
-                feature.layer = layergroup.getLayers()[0];
-                editor.features[feature.name] = feature;
+                features = all_features[editor.feature_types[feature_type].endpoint]
 
-                $('.feature_list[name='+feature.feature_type+'] > [data-level='+feature.level+']').append(
-                    $('<li>').attr('name', feature.name).append(
-                        $('<p>').text(feature.title).append(' ').append(
-                            $('<em>').text(feature.name)
+                for (var i = 0; i < features.length; i++) {
+                    feature = features[i];
+                    console.log(feature);
+                    layergroup = L.geoJSON({
+                        type: 'Feature',
+                        geometry: feature.geometry,
+                        properties: {
+                            name: feature.name,
+                            feature_type: feature_type
+                        }
+                    }, {
+                        style: editor._get_feature_style
+                    }).on('mouseover', editor._hover_feature_layer)
+                      .on('mouseout', editor._unhover_feature_layer)
+                      .on('click', editor._click_feature_layer)
+                      .addTo(editor.level_feature_layers[feature.level][feature_type]);
+                    feature.layer = layergroup.getLayers()[0];
+                    editor.features[feature.name] = feature;
+
+                    $('.feature_list[name=' + feature_type + '] > [data-level=' + feature.level + ']').append(
+                        $('<li>').attr('name', feature.name).append(
+                            $('<p>').text(feature.title).append(' ').append(
+                                $('<em>').text(feature.name)
+                            )
                         )
-                    )
-                );
+                    );
+                }
             }
             $('.start-drawing').show();
             $('#mapeditcontrols').addClass('list');
@@ -319,7 +321,8 @@ editor = {
             editor.map.fitBounds(editor._editing.getBounds());
 
             $('.leaflet-drawbar').hide();
-            var path = '/editor/features/' + editor._creating + '/add/';
+            var endpoint = editor.feature_types[editor._creating].endpoint;
+            var path = '/editor/' + endpoint + '/add/';
             $('#mapeditcontrols').removeClass('list');
             $('body').addClass('controls');
             $('#mapeditdetail').load(path, editor.edit_form_loaded);
@@ -330,7 +333,8 @@ editor = {
         if (editor._creating !== null || editor._editing !== null) return;
         editor._highlight_layer.clearLayers();
         editor._editing = editor.features[name].layer;
-        var path = '/editor/features/edit/' + name + '/';
+        var endpoint = editor.feature_types[editor._editing.feature.properties.feature_type].endpoint;
+        var path = '/editor/'+endpoint+'/edit/' + name + '/';
         $('#mapeditcontrols').removeClass('list');
         $('#mapeditdetail').load(path, editor.edit_form_loaded);
         $('body').addClass('controls');
