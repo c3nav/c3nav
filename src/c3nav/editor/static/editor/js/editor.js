@@ -321,8 +321,7 @@ editor = {
             editor.map.fitBounds(editor._editing.getBounds());
 
             $('.leaflet-drawbar').hide();
-            var endpoint = editor.feature_types[editor._creating].endpoint;
-            var path = '/editor/' + endpoint + '/add/';
+            var path = '/editor/features/' + editor._creating + '/add/';
             $('#mapeditcontrols').removeClass('list');
             $('body').addClass('controls');
             $('#mapeditdetail').load(path, editor.edit_form_loaded);
@@ -333,8 +332,7 @@ editor = {
         if (editor._creating !== null || editor._editing !== null) return;
         editor._highlight_layer.clearLayers();
         editor._editing = editor.features[name].layer;
-        var endpoint = editor.feature_types[editor._editing.feature.properties.feature_type].endpoint;
-        var path = '/editor/'+endpoint+'/edit/' + name + '/';
+        var path = '/editor/features/'+ editor._editing.feature.properties.feature_type +'/edit/' + name + '/';
         $('#mapeditcontrols').removeClass('list');
         $('#mapeditdetail').load(path, editor.edit_form_loaded);
         $('body').addClass('controls');
