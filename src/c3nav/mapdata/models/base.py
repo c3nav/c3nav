@@ -5,7 +5,7 @@ from django.utils.translation import ugettext_lazy as _
 
 
 class MapdataModel(models.Model):
-    name = models.SlugField(_('Name'), max_length=50)
+    name = models.SlugField(_('Name'), unique=True, max_length=50)
     package = models.ForeignKey('mapdata.Package', on_delete=models.CASCADE, verbose_name=_('map package'))
 
     @classmethod
@@ -29,4 +29,3 @@ class MapdataModel(models.Model):
 
     class Meta:
         abstract = True
-        unique_together = ('package', 'name')
