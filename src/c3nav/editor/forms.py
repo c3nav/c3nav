@@ -2,10 +2,9 @@ import json
 from collections import OrderedDict
 
 from django.conf import settings
-from django.forms import CharField, Form, ModelForm
+from django.forms import CharField, ModelForm
 from django.forms.models import ModelChoiceField
 from django.forms.widgets import HiddenInput
-from django.utils.translation import ugettext_lazy as _
 from shapely.geometry.geo import mapping
 
 from c3nav.mapdata.models import Package
@@ -80,9 +79,6 @@ def create_editor_form(feature_model, add_fields=None):
     feature_model.EditorForm = EditorForm
 
 
-create_editor_form(Inside)
-create_editor_form(Room)
-
-
-class CommitForm(Form):
-    commit_msg = CharField(label=_('Commit message'), max_length=100)
+def create_editor_forms():
+    create_editor_form(Inside)
+    create_editor_form(Room)
