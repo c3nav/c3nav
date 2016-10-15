@@ -186,7 +186,7 @@ editor = {
 
     features: {},
     get_features: function () {
-        $.getJSON('/api/features/', function(all_features) {
+        $.getJSON('/api/features/?ordering=name', function(all_features) {
             $('.feature_level_list li').remove();
             var feature_type, features, feature, layergroup;
             for (var j = 0; j < editor.feature_types_order.length; j++) {
