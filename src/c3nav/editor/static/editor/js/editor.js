@@ -36,8 +36,9 @@ editor = {
             for (var i = 0; i < feature_types.length; i++) {
                 feature_type = feature_types[i];
                 editor.feature_types[feature_type.name] = feature_type;
-                feature_type.weight = 1;
+                feature_type.weight = 0;
                 feature_type.fillOpacity = 0.6;
+                feature_type.smoothFactor = 0;
                 editor.feature_types_order.push(feature_type.name);
                 editcontrols.append(
                     $('<fieldset class="feature_list">').attr('name', feature_type.name).append(
