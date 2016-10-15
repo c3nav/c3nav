@@ -57,7 +57,7 @@ class SourceViewSet(ReadOnlyModelViewSet):
         return filter_source_queryset(self.request, super().get_queryset())
 
     @detail_route(methods=['get'])
-    def image(self, request, pk=None):
+    def image(self, request, name=None):
         source = self.get_object()
         response = HttpResponse(content_type=mimetypes.guess_type(source.name)[0])
         image_path = os.path.join(settings.MAP_ROOT, source.package.directory, 'sources', source.name)
