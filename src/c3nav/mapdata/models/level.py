@@ -11,8 +11,6 @@ class Level(MapdataModel):
     name = models.SlugField(_('level name'), unique=True, max_length=50,
                             help_text=_('Usually just an integer (e.g. -1, 0, 1, 2)'))
     altitude = models.DecimalField(_('level altitude'), null=True, max_digits=6, decimal_places=2)
-    package = models.ForeignKey('mapdata.Package', on_delete=models.CASCADE, related_name='levels',
-                                verbose_name=_('map package'))
 
     class Meta:
         verbose_name = _('Level')
