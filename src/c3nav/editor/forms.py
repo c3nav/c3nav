@@ -8,7 +8,7 @@ from django.forms.widgets import HiddenInput
 from shapely.geometry.geo import mapping
 
 from c3nav.mapdata.models import Package
-from c3nav.mapdata.models.features import Door, Inside, Obstacle, Room
+from c3nav.mapdata.models.features import Area, Building, Door, Obstacle
 from c3nav.mapdata.permissions import get_unlocked_packages
 
 
@@ -80,7 +80,7 @@ def create_editor_form(feature_model, add_fields=None):
 
 
 def create_editor_forms():
-    create_editor_form(Inside)
-    create_editor_form(Room)
+    create_editor_form(Building)
+    create_editor_form(Area)
     create_editor_form(Obstacle, ['height'])
     create_editor_form(Door)

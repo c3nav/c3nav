@@ -1,6 +1,6 @@
 from rest_framework import serializers
 
-from c3nav.mapdata.models.features import Door, Inside, Obstacle, Room
+from c3nav.mapdata.models.features import Area, Building, Door, Obstacle
 from c3nav.mapdata.serializers.fields import GeometryField
 
 
@@ -31,15 +31,15 @@ class FeatureSerializer(serializers.ModelSerializer):
     geometry = GeometryField()
 
 
-class InsideSerializer(FeatureSerializer):
+class BuildingSerializer(FeatureSerializer):
     class Meta:
-        model = Inside
+        model = Building
         fields = ('name', 'level', 'package', 'geometry')
 
 
-class RoomSerializer(FeatureSerializer):
+class AreaSerializer(FeatureSerializer):
     class Meta:
-        model = Room
+        model = Area
         fields = ('name', 'level', 'package', 'geometry')
 
 
