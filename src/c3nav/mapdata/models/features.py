@@ -82,3 +82,50 @@ class Room(Feature):
         verbose_name = _('Room')
         verbose_name_plural = _('Rooms')
         default_related_name = 'rooms'
+
+
+@register_featuretype
+class Obstacle(Feature):
+    """
+    An obstacle
+    """
+    height = models.DecimalField(_('height of the obstacle'), null=True, max_digits=4, decimal_places=2)
+
+    geomtype = 'polygon'
+    color = '#999999'
+
+    class Meta:
+        verbose_name = _('Obstacle')
+        verbose_name_plural = _('Obstacles')
+        default_related_name = 'obstacles'
+
+    @classmethod
+    def fromfile(cls, data, file_path):
+        kwargs = super().fromfile(data, file_path)
+
+        if 'height' in data:
+            if not isinstance(data['height'], (int, float)):
+                raise ValueError('altitude has to be int or float.')
+            kwargs['height'] = data['height']
+
+        return kwargs
+
+    def tofile(self):
+        result = super().tofile()
+        if self.height is not None:
+            result['height'] = float(self.level.name)
+        return result
+
+
+@register_featuretype
+class Door(Feature):
+    """
+    A connection between two rooms
+    """
+    geomtype = 'polygon'
+    color = '#FF00FF'
+
+    class Meta:
+        verbose_name = _('Door')
+        verbose_name_plural = _('Doors')
+        default_related_name = 'doors'
