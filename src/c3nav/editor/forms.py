@@ -13,8 +13,7 @@ from c3nav.mapdata.permissions import get_unlocked_packages
 
 
 class FeatureFormMixin(ModelForm):
-    def __init__(self, *args, feature_type, request=None, **kwargs):
-        self.feature_type = feature_type
+    def __init__(self, *args, request=None, **kwargs):
         self.request = request
         super().__init__(*args, **kwargs)
         creating = not self.instance.pk

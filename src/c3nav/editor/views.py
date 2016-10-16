@@ -52,7 +52,7 @@ def edit_feature(request, feature_type, name=None):
                 'path': request.path
             })
 
-        form = model.EditorForm(instance=feature, data=request.POST, feature_type=feature_type, request=request)
+        form = model.EditorForm(instance=feature, data=request.POST, request=request)
         if form.is_valid():
             # Update/create feature
             commit_type = 'Created' if feature is None else 'Updated'
@@ -85,7 +85,7 @@ def edit_feature(request, feature_type, name=None):
 
             return render(request, 'editor/feature_success.html', {})
     else:
-        form = model.EditorForm(instance=feature, feature_type=feature_type, request=request)
+        form = model.EditorForm(instance=feature, request=request)
 
     return render(request, 'editor/feature.html', {
         'form': form,
