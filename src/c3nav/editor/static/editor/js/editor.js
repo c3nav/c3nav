@@ -322,7 +322,7 @@ editor = {
             editor._editing.disableEdit();
             editor.map.fitBounds(editor._editing.getBounds());
 
-            $('#cancel_drawing').hide();
+            $('#cancel-drawing').hide();
             var path = '/editor/features/' + editor._creating + '/add/';
             $('#mapeditcontrols').removeClass('list');
             $('body').addClass('controls');
