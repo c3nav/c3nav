@@ -57,7 +57,7 @@ class Feature(MapdataModel):
 
 
 @register_featuretype
-class Inside(Feature):
+class Building(Feature):
     """
     The outline of a building on a specific level
     """
@@ -65,23 +65,23 @@ class Inside(Feature):
     color = '#333333'
 
     class Meta:
-        verbose_name = _('Inside Area')
-        verbose_name_plural = _('Inside Areas')
-        default_related_name = 'insides'
+        verbose_name = _('Building')
+        verbose_name_plural = _('Buildings')
+        default_related_name = 'buildings'
 
 
 @register_featuretype
-class Room(Feature):
+class Area(Feature):
     """
-    A room inside
+    An accessible area like a room. Can also be outside. Can overlap.
     """
     geomtype = 'polygon'
     color = '#FFFFFF'
 
     class Meta:
-        verbose_name = _('Room')
-        verbose_name_plural = _('Rooms')
-        default_related_name = 'rooms'
+        verbose_name = _('Area')
+        verbose_name_plural = _('Areas')
+        default_related_name = 'areas'
 
 
 @register_featuretype

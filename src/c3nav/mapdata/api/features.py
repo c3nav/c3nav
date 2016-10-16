@@ -5,9 +5,9 @@ from rest_framework.response import Response
 from rest_framework.viewsets import ReadOnlyModelViewSet, ViewSet
 
 from c3nav.mapdata.models import FEATURE_TYPES
-from c3nav.mapdata.models.features import Door, Inside, Obstacle, Room
-from c3nav.mapdata.serializers.features import (DoorSerializer, FeatureTypeSerializer, InsideSerializer,
-                                                ObstacleSerializer, RoomSerializer)
+from c3nav.mapdata.models.features import Area, Building, Door, Obstacle
+from c3nav.mapdata.serializers.features import (AreaSerializer, BuildingSerializer, DoorSerializer,
+                                                FeatureTypeSerializer, ObstacleSerializer)
 
 
 class FeatureTypeViewSet(ViewSet):
@@ -41,22 +41,22 @@ class FeatureViewSet(ViewSet):
         return Response(result)
 
 
-class InsideViewSet(ReadOnlyModelViewSet):
+class BuildingViewSet(ReadOnlyModelViewSet):
     """
     List and retrieve Inside Areas
     """
-    queryset = Inside.objects.all()
-    serializer_class = InsideSerializer
+    queryset = Building.objects.all()
+    serializer_class = BuildingSerializer
     lookup_field = 'name'
     lookup_value_regex = '[^/]+'
 
 
-class RoomViewSet(ReadOnlyModelViewSet):
+class AreaViewSet(ReadOnlyModelViewSet):
     """
-    List and retrieve Rooms
+    List and retrieve Areas
     """
-    queryset = Room.objects.all()
-    serializer_class = RoomSerializer
+    queryset = Area.objects.all()
+    serializer_class = AreaSerializer
     lookup_field = 'name'
     lookup_value_regex = '[^/]+'
 
