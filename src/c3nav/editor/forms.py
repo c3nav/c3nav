@@ -1,4 +1,5 @@
 import json
+import uuid
 from collections import OrderedDict
 
 from django.conf import settings
@@ -21,6 +22,9 @@ class FeatureFormMixin(ModelForm):
         # disable name on non-direct editing
         if not creating and not settings.DIRECT_EDITING:
             self.fields['name'].disabled = True
+
+        if creating and self._meta.model in (Door, ):
+            self.fields['name'].initial = uuid.uuid4()
 
         # restrict package choices and field_name
         if not creating:
