@@ -9,6 +9,7 @@ class FeatureTypeSerializer(serializers.Serializer):
     title = serializers.SerializerMethodField()
     title_plural = serializers.SerializerMethodField()
     endpoint = serializers.SerializerMethodField()
+    description = serializers.SerializerMethodField()
     geomtype = serializers.CharField()
     color = serializers.CharField()
 
@@ -23,6 +24,9 @@ class FeatureTypeSerializer(serializers.Serializer):
 
     def get_endpoint(self, obj):
         return obj._meta.default_related_name
+
+    def get_description(self, obj):
+        return str(obj.__doc__.strip())
 
 
 class FeatureSerializer(serializers.ModelSerializer):
