@@ -87,16 +87,24 @@ body {
 legend {
     margin: 0;
 }
-.start-drawing {
+#featuretype_dropdown_btn {
+    cursor:pointer;
+}
+#start-drawing, #cancel-drawing {
     display:none;
+    position: absolute;
+    right: 8px;
+    top: 8px;
 }
 .leaflet-editable-drawing .leaflet-overlay-pane .leaflet-interactive {
     cursor:crosshair;
 }
+.feature_list {
+    display:none;
+}
 .feature_level_list {
     list-style-type:none;
     display:none;
-    margin-bottom:15px;
     padding:0;
 }
 .feature_level_list li {
