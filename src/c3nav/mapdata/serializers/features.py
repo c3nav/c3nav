@@ -46,7 +46,7 @@ class AreaSerializer(FeatureSerializer):
 class ObstacleSerializer(FeatureSerializer):
     class Meta:
         model = Obstacle
-        fields = ('name', 'level', 'package', 'geometry')
+        fields = ('name', 'level', 'package', 'geometry', 'height')
 
 
 class DoorSerializer(FeatureSerializer):
