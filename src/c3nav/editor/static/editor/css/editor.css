@@ -19,16 +19,6 @@ body {
     top:2px;
 }
 
-.leaflet-drawbar {
-    display:none;
-}
-.leaflet-drawbar a, .leaflet-drawbar a:hover {
-    font-size: 13px;
-    width:auto;
-    padding:0 6px;
-}
-
-
 .leaflet-levels a {
     font-size:16px;
     color:#333333;
