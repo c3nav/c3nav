@@ -160,7 +160,6 @@ class ReaderItem:
         # Change name references to the referenced object
         for name, model in self.relations.items():
             if name in self.data:
-                print(name, self.data[name])
                 self.data[name] = self.reader.saved_items[model][self.data[name]].obj
 
         obj, created = self.model.objects.update_or_create(name=self.data['name'], defaults=self.data)
