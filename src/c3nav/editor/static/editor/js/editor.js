@@ -199,7 +199,6 @@ editor = {
 
                 for (var i = 0; i < features.length; i++) {
                     feature = features[i];
-                    console.log(feature);
                     layergroup = L.geoJSON({
                         type: 'Feature',
                         geometry: feature.geometry,
