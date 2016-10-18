@@ -6,6 +6,7 @@ from rest_framework.viewsets import ReadOnlyModelViewSet, ViewSet
 
 from c3nav.mapdata.models import FEATURE_TYPES
 from c3nav.mapdata.models.features import Area, Building, Door, Obstacle
+from c3nav.mapdata.permissions import PackageAccessMixin
 from c3nav.mapdata.serializers.features import (AreaSerializer, BuildingSerializer, DoorSerializer,
                                                 FeatureTypeSerializer, ObstacleSerializer)
 
@@ -41,7 +42,7 @@ class FeatureViewSet(ViewSet):
         return Response(result)
 
 
-class BuildingViewSet(ReadOnlyModelViewSet):
+class BuildingViewSet(PackageAccessMixin, ReadOnlyModelViewSet):
     """
     List and retrieve Inside Areas
     """
@@ -51,7 +52,7 @@ class BuildingViewSet(ReadOnlyModelViewSet):
     lookup_value_regex = '[^/]+'
 
 
-class AreaViewSet(ReadOnlyModelViewSet):
+class AreaViewSet(PackageAccessMixin, ReadOnlyModelViewSet):
     """
     List and retrieve Areas
     """
@@ -61,7 +62,7 @@ class AreaViewSet(ReadOnlyModelViewSet):
     lookup_value_regex = '[^/]+'
 
 
-class ObstacleViewSet(ReadOnlyModelViewSet):
+class ObstacleViewSet(PackageAccessMixin, ReadOnlyModelViewSet):
     """
     List and retrieve Obstcales
     """
@@ -71,7 +72,7 @@ class ObstacleViewSet(ReadOnlyModelViewSet):
     lookup_value_regex = '[^/]+'
 
 
-class DoorViewSet(ReadOnlyModelViewSet):
+class DoorViewSet(PackageAccessMixin, ReadOnlyModelViewSet):
     """
     List and retrieve Doors
     """

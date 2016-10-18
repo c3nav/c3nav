@@ -15,7 +15,7 @@ def can_access_package(request, package):
 
 
 def filter_source_queryset(request, queryset):
-    return queryset if settings.DEBUG else queryset.filter(package__name__in=get_unlocked_packages(request))
+    return queryset if settings.DIRECT_EDITING else queryset.filter(package__name__in=get_unlocked_packages(request))
 
 
 class LockedMapFeatures(BasePermission):
@@ -24,3 +24,8 @@ class LockedMapFeatures(BasePermission):
             if not can_access_package(request, obj.package):
                 raise PermissionDenied(_('This Source belongs to a package you don\'t have access to.'))
         return True
+
+
+class PackageAccessMixin:
+    def get_queryset(self):
+        return filter_source_queryset(self.request, super().get_queryset())
