@@ -261,7 +261,7 @@ editor = {
 
     _hover_feature_layer: function (e) {
         editor._unhover_feature_layer();
-        if (editor._editing === null && editor._creating === null) {
+        if (editor._editing === null && editor._creating === null && e.layer.feature.properties.feature_type == editor._feature_type) {
             editor._highlight_layer.clearLayers();
             L.geoJSON(e.layer.toGeoJSON(), {
                 style: function() {
