@@ -282,6 +282,7 @@ editor = {
         $('.feature_list .hover').removeClass('hover');
     },
     _click_feature_layer: function(e) {
+        if (e.layer.feature.properties.feature_type != editor._feature_type) return;
         editor.start_editing(e.layer.feature.properties.name);
         if ((e.originalEvent.ctrlKey || e.originalEvent.metaKey) && this.editEnabled()) {
             if (e.layer.feature.properties.geomtype == 'polygon') {
