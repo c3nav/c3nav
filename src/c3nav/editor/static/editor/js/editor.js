@@ -46,14 +46,8 @@ editor = {
                 feature_type.smoothFactor = 0;
                 editor.feature_types_order.push(feature_type.name);
                 listcontainer.append(
-                    $('<div class="feature_list">').attr('name', feature_type.name) /*.append(
-                        $('<legend>').append(
-                            $('<span>').text(feature_type.title_plural)
-                        ).append(
-                            $('<button class="btn btn-default btn-xs pull-right start-drawing"><i class="glyphicon glyphicon-plus"></i></button>')
-                        )
-                    )*/
-                )
+                    $('<div class="feature_list">').attr('name', feature_type.name)
+                );
                 dropdown.append(
                     $('<li>').attr('data-name', feature_type.name).append(
                         $('<a href="#">').text(feature_type.title_plural)
