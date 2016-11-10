@@ -16,7 +16,8 @@ class PackageSerializer(serializers.ModelSerializer):
         return self.recursive_value(PackageSerializer, obj.depends, many=True)
 
     def get_hoster(self, obj):
-        return get_hoster_for_package(obj).name
+        hoster = get_hoster_for_package(obj)
+        return hoster.name if hoster else None
 
 
 class LevelSerializer(serializers.ModelSerializer):
