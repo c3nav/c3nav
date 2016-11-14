@@ -1,29 +1,18 @@
-from collections import OrderedDict
-
 from django.db import models
 from django.utils.translation import ugettext_lazy as _
 from shapely.geometry.geo import mapping, shape
 
 from c3nav.mapdata.fields import GeometryField
-from c3nav.mapdata.models.base import MapdataModel
+from c3nav.mapdata.models.base import MapItem
 from c3nav.mapdata.utils import format_geojson
 
-FEATURE_TYPES = OrderedDict()
 
-
-def register_featuretype(cls):
-    FEATURE_TYPES[cls.__name__.lower()] = cls
-    return cls
-
-
-class Feature(MapdataModel):
+class GeometryMapItem(MapItem):
     """
     A map feature
     """
     level = models.ForeignKey('mapdata.Level', on_delete=models.CASCADE, verbose_name=_('level'))
     geometry = GeometryField()
-
-    EditorForm = None
 
     class Meta:
         abstract = True
@@ -56,8 +45,7 @@ class Feature(MapdataModel):
         return result
 
 
-@register_featuretype
-class Building(Feature):
+class Building(GeometryMapItem):
     """
     The outline of a building on a specific level
     """
@@ -70,8 +58,7 @@ class Building(Feature):
         default_related_name = 'buildings'
 
 
-@register_featuretype
-class Area(Feature):
+class Area(GeometryMapItem):
     """
     An accessible area like a room. Can also be outside. Can overlap.
     """
@@ -84,8 +71,7 @@ class Area(Feature):
         default_related_name = 'areas'
 
 
-@register_featuretype
-class Obstacle(Feature):
+class Obstacle(GeometryMapItem):
     """
     An obstacle
     """
@@ -117,8 +103,7 @@ class Obstacle(Feature):
         return result
 
 
-@register_featuretype
-class Door(Feature):
+class Door(GeometryMapItem):
     """
     A connection between two rooms
     """

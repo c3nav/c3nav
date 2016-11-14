@@ -1,10 +1,10 @@
 from rest_framework import serializers
 
-from c3nav.mapdata.models.features import Area, Building, Door, Obstacle
+from c3nav.mapdata.models.geometry import Area, Building, Door, Obstacle
 from c3nav.mapdata.serializers.fields import GeometryField
 
 
-class FeatureTypeSerializer(serializers.Serializer):
+class MapItemTypeSerializer(serializers.Serializer):
     name = serializers.SerializerMethodField()
     title = serializers.SerializerMethodField()
     title_plural = serializers.SerializerMethodField()
@@ -29,31 +29,31 @@ class FeatureTypeSerializer(serializers.Serializer):
         return str(obj.__doc__.strip())
 
 
-class FeatureSerializer(serializers.ModelSerializer):
+class MapItemSerializer(serializers.ModelSerializer):
     level = serializers.SlugRelatedField(slug_field='name', read_only=True)
     package = serializers.SlugRelatedField(slug_field='name', read_only=True)
     geometry = GeometryField()
 
 
-class BuildingSerializer(FeatureSerializer):
+class BuildingSerializer(MapItemSerializer):
     class Meta:
         model = Building
         fields = ('name', 'level', 'package', 'geometry')
 
 
-class AreaSerializer(FeatureSerializer):
+class AreaSerializer(MapItemSerializer):
     class Meta:
         model = Area
         fields = ('name', 'level', 'package', 'geometry')
 
 
-class ObstacleSerializer(FeatureSerializer):
+class ObstacleSerializer(MapItemSerializer):
     class Meta:
         model = Obstacle
         fields = ('name', 'level', 'package', 'geometry', 'height')
 
 
-class DoorSerializer(FeatureSerializer):
+class DoorSerializer(MapItemSerializer):
     class Meta:
         model = Door
         fields = ('name', 'level', 'package', 'geometry')

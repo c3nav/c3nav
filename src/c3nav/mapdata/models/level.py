@@ -1,10 +1,10 @@
 from django.db import models
 from django.utils.translation import ugettext_lazy as _
 
-from c3nav.mapdata.models.base import MapdataModel
+from c3nav.mapdata.models.base import MapItem
 
 
-class Level(MapdataModel):
+class Level(MapItem):
     """
     A map level (-1, 0, 1, 2…)
     """

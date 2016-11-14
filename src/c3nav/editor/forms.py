@@ -9,7 +9,7 @@ from django.forms.widgets import HiddenInput
 from shapely.geometry.geo import mapping
 
 from c3nav.mapdata.models import Package
-from c3nav.mapdata.models.features import Area, Building, Door, Obstacle
+from c3nav.mapdata.models.geometry import Area, Building, Door, Obstacle
 from c3nav.mapdata.permissions import get_unlocked_packages
 
 
