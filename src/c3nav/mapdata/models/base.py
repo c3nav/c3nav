@@ -1,12 +1,27 @@
 from collections import OrderedDict
 
 from django.db import models
+from django.db.models.base import ModelBase
 from django.utils.translation import ugettext_lazy as _
 
+MAPITEM_TYPES = OrderedDict()
 
-class MapdataModel(models.Model):
+
+class MapItemMeta(ModelBase):
+    def __new__(mcs, name, bases, attrs):
+        cls = super().__new__(mcs, name, bases, attrs)
+        if not cls._meta.abstract:
+            MAPITEM_TYPES[name.lower()] = cls
+        return cls
+
+
+class MapItem(models.Model, metaclass=MapItemMeta):
     name = models.SlugField(_('Name'), unique=True, max_length=50)
     package = models.ForeignKey('mapdata.Package', on_delete=models.CASCADE, verbose_name=_('map package'))
+
+    EditorForm = None
+    geomtype = None
+    color = None
 
     @classmethod
     def get_path_prefix(cls):
