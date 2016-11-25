@@ -14,7 +14,7 @@ svg_template = """<svg
 
 
 class Command(BaseCommand):
-    help = 'create svgs for each floor'
+    help = 'create svgs for each level'
 
     def add_arguments(self, parser):
         parser.add_argument('folder', help='folder, where the svgs should be stored')
