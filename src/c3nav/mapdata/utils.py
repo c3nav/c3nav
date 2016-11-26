@@ -1,6 +1,8 @@
 import json
 from collections import OrderedDict
 
+from shapely.geometry import Polygon
+
 
 def _preencode(data, magic_marker, in_coords=False):
     if isinstance(data, dict):
@@ -45,3 +47,18 @@ def round_coordinates(data):
         return tuple(round_coordinates(item) for item in data)
     else:
         return round(data, 2)
+
+
+def clean_geometry(geometry):
+    if geometry.is_valid:
+        return geometry
+
+    if isinstance(geometry, Polygon):
+        p = Polygon(list(geometry.exterior.coords))
+        for interior in geometry.interiors:
+            p = p.difference(Polygon(list(interior.coords)))
+
+        if p.is_valid:
+            return p
+
+    return geometry
