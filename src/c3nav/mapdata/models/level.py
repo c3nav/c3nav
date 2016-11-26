@@ -1,5 +1,7 @@
 from django.db import models
+from django.utils.functional import cached_property
 from django.utils.translation import ugettext_lazy as _
+from shapely.ops import cascaded_union
 
 from c3nav.mapdata.models.base import MapItem
 
@@ -16,6 +18,10 @@ class Level(MapItem):
         verbose_name = _('Level')
         verbose_name_plural = _('Levels')
         default_related_name = 'levels'
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.geometries = LevelGeometries(self)
 
     def tofilename(self):
         return 'levels/%s.json' % self.name
@@ -38,3 +44,16 @@ class Level(MapItem):
         result = super().tofile()
         result['altitude'] = float(self.altitude)
         return result
+
+
+class LevelGeometries():
+    def __init__(self, level):
+        self.level = level
+
+    @cached_property
+    def buildings(self):
+        return cascaded_union([building.geometry for building in self.level.buildings.all()])
+
+    @cached_property
+    def areas(self):
+        return cascaded_union([area.geometry for area in self.level.areas.all()])

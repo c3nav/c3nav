@@ -19,6 +19,7 @@ DATA_DIR = config.get('c3nav', 'datadir', fallback=os.environ.get('DATA_DIR', 'd
 LOG_DIR = os.path.join(DATA_DIR, 'logs')
 MEDIA_ROOT = os.path.join(DATA_DIR, 'media')
 MAP_ROOT = os.path.join(DATA_DIR, 'map')
+RENDER_ROOT = os.path.join(DATA_DIR, 'render')
 
 if not os.path.exists(DATA_DIR):
     os.mkdir(DATA_DIR)
@@ -28,6 +29,8 @@ if not os.path.exists(MEDIA_ROOT):
     os.mkdir(MEDIA_ROOT)
 if not os.path.exists(MAP_ROOT):
     os.mkdir(MAP_ROOT)
+if not os.path.exists(RENDER_ROOT):
+    os.mkdir(RENDER_ROOT)
 
 if config.has_option('django', 'secret'):
     SECRET_KEY = config.get('django', 'secret')
