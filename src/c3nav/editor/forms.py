@@ -23,7 +23,7 @@ class FeatureFormMixin(ModelForm):
         if not creating and not settings.DIRECT_EDITING:
             self.fields['name'].disabled = True
 
-        if creating and self._meta.model in (Door, ):
+        if creating and self._meta.model in (Door, Obstacle, ):
             self.fields['name'].initial = uuid.uuid4()
 
         # restrict package choices and field_name

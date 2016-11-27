@@ -4,48 +4,59 @@ from collections import OrderedDict
 
 from django.conf import settings
 from django.core.files import File
-from django.http import Http404, HttpResponse
+from django.http import HttpResponse
 from rest_framework.decorators import detail_route
 from rest_framework.response import Response
 from rest_framework.viewsets import ReadOnlyModelViewSet, ViewSet
 
-from c3nav.mapdata.models import MAPITEM_TYPES, Level, Package, Source
-from c3nav.mapdata.models.geometry import Area, Building, Door, Obstacle
-from c3nav.mapdata.permissions import PackageAccessMixin, filter_source_queryset
-from c3nav.mapdata.serializers.features import (AreaSerializer, BuildingSerializer, DoorSerializer,
-                                                MapItemTypeSerializer, ObstacleSerializer)
+from c3nav.mapdata.models import GEOMETRY_MAPITEM_TYPES, Level, Package, Source
+from c3nav.mapdata.permissions import filter_queryset_by_package_access
 from c3nav.mapdata.serializers.main import LevelSerializer, PackageSerializer, SourceSerializer
 
 
-class MapItemTypeViewSet(ViewSet):
+class GeometryStyleViewSet(ViewSet):
     """
-    List and retrieve feature types
+    List all geometry styles.
     """
-    lookup_field = 'name'
-
     def list(self, request):
-        serializer = MapItemTypeSerializer(MAPITEM_TYPES.values(), many=True, context={'request': request})
-        return Response(serializer.data)
-
-    def retrieve(self, request, pk=None):
-        if pk not in MAPITEM_TYPES:
-            raise Http404
-        serializer = MapItemTypeSerializer(MAPITEM_TYPES[pk], context={'request': request})
-        return Response(serializer.data)
+        styles = OrderedDict()
+        for mapitemtype in GEOMETRY_MAPITEM_TYPES.values():
+            styles.update(mapitemtype.get_styles())
+        return Response(styles)
 
 
-class MapItemViewSet(ViewSet):
+class GeometryViewSet(ViewSet):
     """
-    List all features.
-    This endpoint combines the list endpoints for all feature types.
+    List all geometries.
+    You can filter by adding one or more level, package, type or name GET parameters.
     """
 
     def list(self, request):
-        result = OrderedDict()
-        for name, model in MAPITEM_TYPES.items():
-            endpoint = model._meta.default_related_name
-            result[endpoint] = eval(model.__name__+'ViewSet').as_view({'get': 'list'})(request).data
-        return Response(result)
+        types = request.GET.getlist('type')
+        valid_types = list(GEOMETRY_MAPITEM_TYPES.keys())
+        if not types:
+            types = valid_types
+        else:
+            types = [t for t in types if t in valid_types]
+
+        levels = request.GET.getlist('levels')
+        packages = request.GET.getlist('package')
+        names = request.GET.getlist('name')
+
+        results = []
+        for t in types:
+            mapitemtype = GEOMETRY_MAPITEM_TYPES[t]
+            queryset = mapitemtype.objects.all()
+            if packages:
+                queryset = queryset.filter(package__name__in=packages)
+            if levels:
+                queryset = queryset.filter(level__name__in=levels)
+            if names:
+                queryset = queryset.filter(name__in=names)
+            queryset = filter_queryset_by_package_access(request, queryset)
+            queryset.prefetch_related('package', 'level').order_by('name')
+            results.extend(sum((obj.to_geojson() for obj in queryset), []))
+        return Response(results)
 
 
 class PackageViewSet(ReadOnlyModelViewSet):
@@ -90,7 +101,7 @@ class SourceViewSet(ReadOnlyModelViewSet):
     search_fields = ('name',)
 
     def get_queryset(self):
-        return filter_source_queryset(self.request, super().get_queryset())
+        return filter_queryset_by_package_access(self.request, super().get_queryset())
 
     @detail_route(methods=['get'])
     def image(self, request, name=None):
@@ -100,43 +111,3 @@ class SourceViewSet(ReadOnlyModelViewSet):
         for chunk in File(open(image_path, 'rb')).chunks():
             response.write(chunk)
         return response
-
-
-class BuildingViewSet(PackageAccessMixin, ReadOnlyModelViewSet):
-    """
-    List and retrieve Inside Areas
-    """
-    queryset = Building.objects.all()
-    serializer_class = BuildingSerializer
-    lookup_field = 'name'
-    lookup_value_regex = '[^/]+'
-
-
-class AreaViewSet(PackageAccessMixin, ReadOnlyModelViewSet):
-    """
-    List and retrieve Areas
-    """
-    queryset = Area.objects.all()
-    serializer_class = AreaSerializer
-    lookup_field = 'name'
-    lookup_value_regex = '[^/]+'
-
-
-class ObstacleViewSet(PackageAccessMixin, ReadOnlyModelViewSet):
-    """
-    List and retrieve Obstcales
-    """
-    queryset = Obstacle.objects.all()
-    serializer_class = ObstacleSerializer
-    lookup_field = 'name'
-    lookup_value_regex = '[^/]+'
-
-
-class DoorViewSet(PackageAccessMixin, ReadOnlyModelViewSet):
-    """
-    List and retrieve Doors
-    """
-    queryset = Door.objects.all()
-    serializer_class = DoorSerializer
-    lookup_field = 'name'
-    lookup_value_regex = '[^/]+'

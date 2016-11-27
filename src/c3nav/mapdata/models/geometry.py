@@ -1,4 +1,7 @@
+from collections import OrderedDict
+
 from django.db import models
+from django.db.models.base import ModelBase
 from django.utils.translation import ugettext_lazy as _
 from shapely.geometry.geo import mapping, shape
 
@@ -6,8 +9,18 @@ from c3nav.mapdata.fields import GeometryField
 from c3nav.mapdata.models.base import MapItem
 from c3nav.mapdata.utils import format_geojson
 
+GEOMETRY_MAPITEM_TYPES = OrderedDict()
 
-class GeometryMapItem(MapItem):
+
+class GeometryMapItemMeta(ModelBase):
+    def __new__(mcs, name, bases, attrs):
+        cls = super().__new__(mcs, name, bases, attrs)
+        if not cls._meta.abstract:
+            GEOMETRY_MAPITEM_TYPES[name.lower()] = cls
+        return cls
+
+
+class GeometryMapItem(MapItem, metaclass=GeometryMapItemMeta):
     """
     A map feature
     """
@@ -37,6 +50,27 @@ class GeometryMapItem(MapItem):
         kwargs['level'] = data['level']
 
         return kwargs
+
+    @classmethod
+    def get_styles(cls):
+        return {
+            cls.__name__.lower(): cls.color
+        }
+
+    def get_geojson_properties(self):
+        return OrderedDict((
+            ('type', self.__class__.__name__.lower()),
+            ('name', self.name),
+            ('package', self.package.name),
+            ('level', self.level.name),
+        ))
+
+    def to_geojson(self):
+        return [OrderedDict((
+            ('type', 'Feature'),
+            ('properties', self.get_geojson_properties()),
+            ('geometry', format_geojson(mapping(self.geometry), round=False)),
+        ))]
 
     def tofile(self):
         result = super().tofile()
@@ -84,6 +118,11 @@ class Obstacle(GeometryMapItem):
         verbose_name = _('Obstacle')
         verbose_name_plural = _('Obstacles')
         default_related_name = 'obstacles'
+
+    def get_geojson_properties(self):
+        result = super().get_geojson_properties()
+        result['height'] = float(self.height)
+        return result
 
     @classmethod
     def fromfile(cls, data, file_path):
