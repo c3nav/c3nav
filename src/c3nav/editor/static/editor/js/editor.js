@@ -13,9 +13,11 @@ editor = {
             editable: true,
             closePopupOnClick: false
         });
+        editor.map.on('click', function (e) {
+            editor.map.doubleClickZoom.enable();
+        });
 
         L.control.scale({imperial: false}).addTo(editor.map);
-        editor._highlight_layer = L.layerGroup().addTo(editor.map);
 
         $('#show_map').click(function() {
             $('body').removeClass('controls');
@@ -24,50 +26,17 @@ editor = {
             $('body').addClass('controls');
         });
 
-        editor.get_feature_types();
+        editor.init_geometries();
+        editor.init_sidebar();
         editor.get_packages();
         editor.get_sources();
+        editor.get_levels();
     },
 
-    _feature_type: null,
-    get_feature_types: function () {
-        $.getJSON('/api/featuretypes/', function (feature_types) {
-            var feature_type;
-            var listcontainer = $('#mapeditlist fieldset');
-            var dropdown = $('#featuretype_dropdown').on('click', 'a', function(e) {
-                e.preventDefault();
-                editor.set_current_feature_type($(this).parent().attr('data-name'));
-            });
-            for (var i = 0; i < feature_types.length; i++) {
-                feature_type = feature_types[i];
-                editor.feature_types[feature_type.name] = feature_type;
-                feature_type.weight = 0;
-                feature_type.fillOpacity = 0.6;
-                feature_type.smoothFactor = 0;
-                editor.feature_types_order.push(feature_type.name);
-                listcontainer.append(
-                    $('<div class="feature_list">').attr('name', feature_type.name)
-                );
-                dropdown.append(
-                    $('<li>').attr('data-name', feature_type.name).append(
-                        $('<a href="#">').text(feature_type.title_plural)
-                    )
-                );
-            }
-            editor.set_current_feature_type(editor.feature_types_order[0]);
-            editor.get_levels();
-        });
-    },
-    set_current_feature_type: function(feature_type) {
-        editor._feature_type = feature_type;
-        $('.feature_list').hide();
-        $('.feature_list[name='+feature_type+']').show();
-        $('#current_featuretype_title').text(editor.feature_types[feature_type].title_plural);
-        $('#create_featuretype_title').text(editor.feature_types[feature_type].title);
-    },
-
+    // packages
     packages: {},
     get_packages: function () {
+        // load packages
         $.getJSON('/api/packages/', function (packages) {
             var bounds = [[0, 0], [0, 0]];
             var pkg;
@@ -83,8 +52,10 @@ editor = {
         });
     },
 
+    // sources
     sources: {},
     get_sources: function () {
+        // load sources
         $.getJSON('/api/sources/', function (sources) {
             var layers = {};
             var source;
@@ -98,10 +69,11 @@ editor = {
         });
     },
 
+    // levels
     levels: {},
     _level: null,
-    level_feature_layers: {},
     get_levels: function () {
+        // load levels and set the lowest one afterwards
         $.getJSON('/api/levels/?ordering=-altitude', function (levels) {
             L.LevelControl = L.Control.extend({
                 options: {
@@ -127,137 +99,122 @@ editor = {
                 editor.set_current_level($(this).attr('name'));
             });
 
-            var level, feature_type;
-            for (var i = 0; i < levels.length; i++) {
-                level = levels[i];
-                editor.levels[level.name] = level;
-                editor.level_feature_layers[level.name] = {};
-                for (var j = 0; j < editor.feature_types_order.length; j++) {
-                    feature_type = editor.feature_types_order[j];
-                    editor.level_feature_layers[level.name][feature_type] = L.layerGroup();
-                    $('.feature_list[name='+feature_type+']').append(
-                        $('<ul class="feature_level_list">').attr('data-level', level.name)
-                    );
-                }
-            }
             editor.set_current_level(levels[levels.length - 1].name);
-            editor.init_features();
         });
     },
     set_current_level: function(level_name) {
-        if (editor._creating !== null || editor._editing !== null) return;
-        for (var i = 0; i < editor.feature_types_order.length; i++) {
-            if (editor._level !== null) {
-                editor.level_feature_layers[editor._level][editor.feature_types_order[i]].remove();
-            }
-            editor.level_feature_layers[level_name][editor.feature_types_order[i]].addTo(editor.map);
-        }
+        // sets the current level if the sidebar allows it
+        var level_switch = $('#mapeditcontrols ').find('[data-level-switch]');
+        if (level_switch.length === 0) return;
         editor._level = level_name;
         $('.leaflet-levels .current').removeClass('current');
         $('.leaflet-levels a[name='+level_name+']').addClass('current');
-        $('.feature_level_list').hide();
-        $('.feature_level_list[data-level='+level_name+']').show();
+        editor.get_geometries();
+
+        var level_switch_href = level_switch.attr('data-level-switch');
+        if (level_switch_href) {
+            editor.sidebar_get(level_switch_href.replace('LEVEL', level_name));
+        }
     },
 
-    _creating: null,
+    // geometries
+    _geometries_layer: null,
+    _highlight_layer: null,
+    _editing_layer: null,
+    _get_geometries_next_time: false,
+    _geometries: {},
+    _creating: false,
     _editing: null,
-    init_features: function () {
-        $('#start-drawing').click(editor._click_start_drawing);
-        $('#cancel-drawing').click(editor.cancel_creating);
+    init_geometries: function () {
+        // init geometries and edit listeners
+        editor._highlight_layer = L.layerGroup().addTo(editor.map);
+        editor._editing_layer = L.layerGroup().addTo(editor.map);
 
-        $('#mapeditlist').on('mouseenter', '.feature_level_list li', editor._hover_feature_detail)
-                         .on('mouseleave', '.feature_level_list li', editor._unhover_feature_detail)
-                         .on('click', '.feature_level_list li', editor._click_feature_detail);
+        $('#mapeditcontrols').on('mouseenter', '.itemtable tr[name]', editor._hover_mapitem_row)
+                             .on('mouseleave', '.itemtable tr[name]', editor._unhighlight_geometry);
 
-        editor.map.on('editable:drawing:commit', editor.done_creating);
-        editor.map.on('editable:editing', editor.update_editing);
+        editor.map.on('editable:drawing:commit', editor._done_creating);
+        editor.map.on('editable:editing', editor._update_editing);
         editor.map.on('editable:drawing:cancel', editor._canceled_creating);
-
-        $('#mapeditdetail').on('click', '#btn_editing_cancel', editor.cancel_editing)
-                           .on('click', 'button[type=submit]', editor.submit_editing_btn_click)
-                           .on('submit', 'form', editor.submit_editing)
-
-
-        editor.get_features();
     },
+    get_geometries: function () {
+        // reload geometries of current level
+        editor._geometries = {};
+        if (editor._geometries_layer !== null) {
+            editor.map.removeLayer(editor._geometries_layer);
+        }
+        $.getJSON('/api/geometries/?level='+String(editor._level), function(geometries) {
+            editor._geometries_layer = L.geoJSON(geometries, {
+                style: editor._get_geometry_style,
+                onEachFeature: editor._register_geojson_feature,
+            });
 
-    features: {},
-    get_features: function () {
-        $.getJSON('/api/features/?ordering=name', function(all_features) {
-            $('.feature_level_list li').remove();
-            var feature_type, features, feature, layergroup;
-            for (var j = 0; j < editor.feature_types_order.length; j++) {
-                feature_type = editor.feature_types_order[j];
-                for (var level in editor.levels) {
-                    editor.level_feature_layers[level][feature_type].clearLayers();
-                }
-                features = all_features[editor.feature_types[feature_type].endpoint]
-
-                for (var i = 0; i < features.length; i++) {
-                    feature = features[i];
-                    layergroup = L.geoJSON({
-                        type: 'Feature',
-                        geometry: feature.geometry,
-                        properties: {
-                            name: feature.name,
-                            feature_type: feature_type
-                        }
-                    }, {
-                        style: editor._get_feature_style
-                    }).on('mouseover', editor._hover_feature_layer)
-                      .on('mouseout', editor._unhover_feature_layer)
-                      .on('click', editor._click_feature_layer)
-                      .addTo(editor.level_feature_layers[feature.level][feature_type]);
-                    feature.layer = layergroup.getLayers()[0];
-                    editor.features[feature.name] = feature;
-
-                    $('.feature_list[name=' + feature_type + '] > [data-level=' + feature.level + ']').append(
-                        $('<li>').attr('name', feature.name).append(
-                            $('<p>').text(feature.title).append(' ').append(
-                                $('<em>').text(feature.name)
-                            )
-                        )
-                    );
-                }
-            }
-            $('#start-drawing').show();
-            $('#mapeditcontrols').addClass('list');
-            editor.set_current_level(editor._level);
+            editor._geometries_layer.addTo(editor.map);
         });
     },
-    _get_feature_style: function (feature) {
-        return editor.feature_types[feature.properties.feature_type];
+    _geometry_colors: {
+        'building': '#333333',
+        'area': '#FFFFFF',
+        'obstacle': '#999999',
+        'door': '#FF00FF',
+    },
+    _get_geometry_style: function (feature) {
+        // style callback for GeoJSON loader
+        return editor._get_mapitem_type_style(feature.properties.type);
+    },
+    _get_mapitem_type_style: function (mapitem_type) {
+        // get styles for a specific mapitem
+        return {
+            fillColor: editor._geometry_colors[mapitem_type],
+            weight: 0,
+            fillOpacity: 0.6,
+            smoothFactor: 0,
+        };
+    },
+    _register_geojson_feature: function (feature, layer) {
+        // onEachFeature callback for GeoJSON loader – register all needed events
+        editor._geometries[feature.properties.type+'-'+feature.properties.name] = layer;
+        layer.on('mouseover', editor._hover_geometry_layer)
+             .on('mouseout', editor._unhighlight_geometry)
+             .on('click', editor._click_geometry_layer)
+             .on('dblclick', editor._dblclick_geometry_layer)
     },
 
-    _click_start_drawing: function (e) {
-        editor.start_creating(editor._feature_type);
+    // hover and highlight geometries
+    _hover_mapitem_row: function (e) {
+        // hover callback for a itemtable row
+        editor._highlight_geometry($(this).closest('.itemtable').attr('data-mapitem-type'), $(this).attr('name'));
     },
-    _hover_feature_detail: function (e) {
-        editor._highlight_layer.clearLayers();
-        L.geoJSON(editor.features[$(this).attr('name')].geometry, {
-            style: function() {
-                return {
-                    color: '#FFFFDD',
-                    weight: 3,
-                    opacity: 0.7,
-                    fillOpacity: 0,
-                    className: 'c3nav-highlight'
-                };
-            }
-        }).addTo(editor._highlight_layer);
+    _hover_geometry_layer: function (e) {
+        // hover callback for a geometry layer
+        editor._highlight_geometry(e.target.feature.properties.type, e.target.feature.properties.name);
     },
-    _unhover_feature_detail: function () {
-        editor._highlight_layer.clearLayers();
+    _click_geometry_layer: function (e) {
+        // click callback for a geometry layer – scroll the corresponding itemtable row into view if it exists
+        var properties = e.target.feature.properties;
+        var row = $('.itemtable[data-mapitem-type='+properties.type+'] tr[name='+properties.name+']');
+        if (row.length) {
+            row[0].scrollIntoView();
+        }
     },
-    _click_feature_detail: function() {
-        editor.start_editing($(this).attr('name'));
+    _dblclick_geometry_layer: function (e) {
+        // dblclick callback for a geometry layer - edit this feature if the corresponding itemtable row exists
+        var properties = e.target.feature.properties;
+        var row = $('.itemtable[data-mapitem-type='+properties.type+'] tr[name='+properties.name+']');
+        if (row.length) {
+            row.find('td:last-child a').click();
+            editor.map.doubleClickZoom.disable();
+        }
     },
-
-    _hover_feature_layer: function (e) {
-        editor._unhover_feature_layer();
-        if (editor._editing === null && editor._creating === null && e.layer.feature.properties.feature_type == editor._feature_type) {
-            editor._highlight_layer.clearLayers();
-            L.geoJSON(e.layer.toGeoJSON(), {
+    _highlight_geometry: function(mapitem_type, name) {
+        // highlight a geometries layer and itemtable row if they both exist
+        var pk = mapitem_type+'-'+name;
+        editor._unhighlight_geometry();
+        var layer = editor._geometries[pk];
+        var row = $('.itemtable[data-mapitem-type='+mapitem_type+'] tr[name='+name+']');
+        if (layer !== undefined && row.length) {
+            row.addClass('highlight');
+            L.geoJSON(layer.feature, {
                 style: function() {
                     return {
                         color: '#FFFFDD',
@@ -269,142 +226,172 @@ editor = {
                 }
             }).addTo(editor._highlight_layer);
         }
-        $('.feature_list li[name='+e.layer.feature.properties.name+']').addClass('hover');
     },
-    _unhover_feature_layer: function (e) {
+    _unhighlight_geometry: function() {
+        // unhighlight whatever is highlighted currently
         editor._highlight_layer.clearLayers();
-        $('.feature_list .hover').removeClass('hover');
+        $('.itemtable .highlight').removeClass('highlight');
     },
-    _click_feature_layer: function(e) {
-        if (e.layer.feature.properties.feature_type != editor._feature_type) return;
-        editor.start_editing(e.layer.feature.properties.name);
-        if ((e.originalEvent.ctrlKey || e.originalEvent.metaKey) && this.editEnabled()) {
-            if (e.layer.feature.properties.geomtype == 'polygon') {
+
+    // edit and create geometries
+    _check_start_editing: function() {
+        // called on sidebar load. start editing or creating depending on how the sidebar may require it
+        var geometry_field = $('#mapeditcontrols').find('input[name=geometry]');
+        if (geometry_field.length) {
+            var form = geometry_field.closest('form');
+            var mapitem_type = form.attr('data-mapitem-type');
+            if (form.is('[data-name]')) {
+                // edit existing geometry
+                var name = form.attr('data-name');
+                var pk = mapitem_type+'-'+name;
+                editor._geometries_layer.removeLayer(editor._geometries[pk]);
+
+                editor._editing = L.geoJSON({
+                    type: 'Feature',
+                    geometry: JSON.parse(geometry_field.val()),
+                    properties: {
+                        type: mapitem_type,
+                    }
+                }, {
+                    style: editor._get_geometry_style
+                }).getLayers()[0];
+                editor._editing.on('click', editor._click_editing_layer);
+                editor._editing.addTo(editor._editing_layer);
+                editor._editing.enableEdit();
+            } else if (form.is('[data-geomtype]')) {
+                // create new geometry
+                var geomtype = form.attr('data-geomtype');
+
+                var options = editor._get_mapitem_type_style(mapitem_type);
+                if (geomtype == 'polygon') {
+                    editor.map.editTools.startPolygon(null, options);
+                } else if (geomtype == 'polyline') {
+                    editor.map.editTools.startPolyline(null, options);
+                }
+                editor._creating = true;
+                $('#id_level').val(editor._level);
+            }
+        } else if (editor._get_geometries_next_time) {
+            editor.get_geometries();
+            editor._get_geometries_next_time = false;
+        }
+    },
+    _cancel_editing: function() {
+        // called on sidebar unload. cancel all editing and creating.
+        if (editor._editing !== null) {
+            editor._editing_layer.clearLayers();
+            editor._editing.disableEdit();
+            editor._editing = null;
+            editor._get_geometries_next_time = true;
+        }
+        if (editor._creating) {
+            editor._creating = false;
+            editor.map.editTools.stopDrawing();
+        }
+    },
+    _canceled_creating: function (e) {
+        // called after we canceled creating so we can remove the temporary layer.
+        if (!editor._creating) {
+            e.layer.remove();
+        }
+    },
+    _click_editing_layer: function(e) {
+        // click callback for a currently edited layer. create a hole on ctrl+click.
+        if ((e.originalEvent.ctrlKey || e.originalEvent.metaKey)) {
+            if (e.target.feature.geometry.type == 'Polygon') {
                 this.editor.newHole(e.latlng);
             }
         }
     },
-
-    start_creating: function (feature_type) {
-        if (editor._creating !== null || editor._editing !== null) return;
-        editor._highlight_layer.clearLayers();
-        editor._creating = feature_type;
-        var options = editor.feature_types[feature_type];
-        if (options.geomtype == 'polygon') {
-            editor.map.editTools.startPolygon(null, options);
-        } else if (options.geomtype == 'polyline') {
-            editor.map.editTools.startPolyline(null, options);
-        }
-        $('#cancel-drawing').show();
-        $('#start-drawing').hide();
-        $('body').removeClass('controls');
-    },
-    cancel_creating: function () {
-        if (editor._creating === null || editor._editing !== null) return;
-        editor.map.editTools.stopDrawing();
-        editor._creating = null;
-        $('#cancel-drawing').hide();
-    },
-    _canceled_creating: function (e) {
-        if (editor._creating !== null && editor._editing === null) {
-            e.layer.remove();
-            $('#start-drawing').show();
-        }
-    },
-    done_creating: function(e) {
-        if (editor._creating !== null && editor._editing === null) {
+    _done_creating: function(e) {
+        // called when creating is completed (by clicking on the last point). fills in the form and switches to editing.
+        if (editor._creating) {
+            editor._creating = false;
             editor._editing = e.layer;
-            editor._editing.disableEdit();
-            editor.map.fitBounds(editor._editing.getBounds());
-
-            $('#cancel-drawing').hide();
-            var path = '/editor/features/' + editor._creating + '/add/';
-            $('#mapeditcontrols').removeClass('list');
-            $('body').addClass('controls');
-            $('#mapeditdetail').load(path, editor.edit_form_loaded);
+            editor._editing.addTo(editor._editing_layer);
+            editor._editin.on('click', editor._click_editing_layer);
+            editor._update_editing();
         }
     },
-
-    start_editing: function (name) {
-        if (editor._creating !== null || editor._editing !== null) return;
-        editor._highlight_layer.clearLayers();
-        editor._editing = editor.features[name].layer;
-        var path = '/editor/features/'+ editor._editing.feature.properties.feature_type +'/edit/' + name + '/';
-        $('#mapeditcontrols').removeClass('list');
-        $('#mapeditdetail').load(path, editor.edit_form_loaded);
-        $('body').addClass('controls');
-    },
-    edit_form_loaded: function() {
-        $('#mapeditcontrols').addClass('detail');
-        $('#id_level').val(editor._level);
-        if ($('#id_geometry').length) {
-            $('#id_geometry').val(JSON.stringify(editor._editing.toGeoJSON().geometry));
-            editor._editing.enableEdit();
-        }
-        if (editor._editing.options.geomtype == 'polygon') {
-            editor._editing.on('click', function (e) {
-                if ((e.originalEvent.ctrlKey || e.originalEvent.metaKey) && this.editEnabled()) {
-                    this.editor.newHole(e.latlng);
-                }
-            });
-        }
-    },
-    update_editing: function () {
+    _update_editing: function () {
+        // called if the temporary drawing layer changes. if we are in editing mode (not creating), update the form.
         if (editor._editing !== null) {
             $('#id_geometry').val(JSON.stringify(editor._editing.toGeoJSON().geometry));
         }
     },
-    cancel_editing: function() {
-        if (editor._editing !== null) {
-            if (editor._creating !== null) {
-                editor._editing.remove();
-            }
-            editor._editing = null;
-            editor._creating = null;
-            $('#mapeditcontrols').removeClass('detail');
-            $('#mapeditdetail').html('');
-            editor.get_features();
-        }
+
+    // sidebar
+    sidebar_location: null,
+    init_sidebar: function() {
+        // init the sidebar. sed listeners for form submits and link clicks
+        $('#mapeditcontrols').on('click', 'a[href]', editor._sidebar_link_click)
+                             .on('click', 'button[type=submit]', editor._sidebar_submit_btn_click)
+                             .on('submit', 'form', editor._sidebar_submit);;
+
+        editor.sidebar_get('mapitemtypes/'+String(editor._level)+'/');
     },
-    submit_editing_btn_click: function(e) {
+    sidebar_get: function(location) {
+        // load a new page into the sidebar using a GET request
+        editor._sidebar_unload();
+        $.get(location, editor._sidebar_loaded);
+    },
+    _sidebar_unload: function(location) {
+        // unload the sidebar. called on sidebar_get and form submit.
+        $('#mapeditcontrols').html('').addClass('loading');
+        editor._unhighlight_geometry();
+        editor._cancel_editing();
+    },
+    _sidebar_loaded: function(data) {
+        // sidebar was loaded. load the content. check if there are any redirects. call _check_start_editing.
+        var content = $(data);
+        var mapeditcontrols = $('#mapeditcontrols');
+        mapeditcontrols.html(content).removeClass('loading');
+
+        var redirect = mapeditcontrols.find('form[name=redirect]');
+        if (redirect.length) {
+            redirect.submit();
+            return;
+        }
+
+        redirect = $('span[data-redirect]');
+        if (redirect.length) {
+            editor.sidebar_get(redirect.attr('data-redirect').replace('LEVEL', editor._level));
+            return;
+        }
+
+        editor._check_start_editing();
+    },
+    _sidebar_link_click: function(e) {
+        // listener for link-clicks in the sidebar.
+        e.preventDefault();
+        var href = $(this).attr('href');
+        if ($(this).is('[data-insert-level]')) {
+            href = href.replace('LEVEL', editor._level);
+        }
+        editor.sidebar_get(href);
+    },
+    _sidebar_submit_btn_click: function(e) {
+        // listener for submit-button-clicks in the sidebar, so the submit event will know which button submitted.
         $(this).closest('form').data('btn', $(this)).clearQueue().delay(300).queue(function() {
             $(this).data('button', null);
         });
     },
-    submit_editing: function(e) {
+    _sidebar_submit: function(e) {
+        // listener for form submits in the sidebar.
         if ($(this).attr('name') == 'redirect') return;
         e.preventDefault();
+        editor._sidebar_unload();
         var data = $(this).serialize();
         var btn = $(this).data('btn');
         if (btn !== undefined && btn !== null && $(btn).is('[name]')) {
             data += '&'+$('<input>').attr('name', $(btn).attr('name')).val($(btn).val()).serialize();
         }
         var action = $(this).attr('action');
-        $('#mapeditcontrols').removeClass('detail');
-        $('#mapeditdetail').html('');
-        editor._editing.disableEdit();
-        $.post(action, data, function (data) {
-            var content = $(data);
-            if ($('<div>').append(content).find('form').length > 0) {
-                $('#mapeditcontrols').addClass('detail');
-                $('#mapeditdetail').html(content).find('form[name=redirect]').submit();
-                if ($('#id_geometry').length) {
-                    editor._editing.enableEdit();
-                }
-            } else {
-                if (editor._creating !== null) {
-                    editor._editing.remove();
-                }
-                editor._editing = null;
-                editor._creating = null;
-                editor.get_features();
-                $('body').removeClass('controls');
-            }
-        });
+        $.post(action, data, editor._sidebar_loaded);
     }
 };
 
 
-if ($('#mapeditlist').length) {
+if ($('#mapeditcontrols').length) {
     editor.init();
 }

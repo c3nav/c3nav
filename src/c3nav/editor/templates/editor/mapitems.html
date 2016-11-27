@@ -1,0 +1,22 @@
+{% load bootstrap3 %}
+
+<h3>{{ title }}{% if has_level %} <small>on level {{ level }}</small>{% endif %}</h3>
+<p><a href="{% url 'editor.mapitemtypes' level='LEVEL' %}" data-insert-level>&laquo; Back</a><p>
+<p><a href="{% url 'editor.mapitems.add' mapitem_type=mapitem_type %}">Add new</a><p>
+
+<table class="table table-condensed itemtable" data-mapitem-type="{{ mapitem_type }}">
+    <tbody>
+        {% for item in items %}
+            <tr name="{{ item.name }}">
+                <td>{{ item.name }}</td>
+                <td><a href="{% url 'editor.mapitems.edit' mapitem_type=mapitem_type name=item.name %}">Edit</a></td>
+            </tr>
+        {% endfor %}
+    </tbody>
+</table>
+
+{% if has_level %}
+    <span data-level-switch="{% url 'editor.mapitems.level' mapitem_type=mapitem_type level='LEVEL' %}"></span>
+{% else %}
+    <span data-level-switch></span>
+{% endif %}

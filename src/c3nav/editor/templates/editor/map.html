@@ -12,22 +12,7 @@
 {% endblock %}
 {% block content %}
 <div id="map"></div>
-<div id="mapeditcontrols">
-    <div id="mapeditlist">
-        <fieldset>
-            <legend>
-                <div class="dropdown">
-                    <span id="featuretype_dropdown_btn" class="dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-                        <span id="current_featuretype_title"></span>
-                        <span class="caret"></span>
-                    </span>
-                    <ul class="dropdown-menu" id="featuretype_dropdown" aria-labelledby="featuretype_dropdown_btn"></ul>
-                </div>
-                <button class="btn btn-default btn-xs pull-right" id="start-drawing">create new <span id="create_featuretype_title"></span></button>
-                <button class="btn btn-danger btn-xs pull-right" id="cancel-drawing">cancel creating</button>
-            </legend>
-        </fieldset>
-    </div>
-    <div id="mapeditdetail"></div>
+<div id="mapeditcontrols" class="loading">
+    <span data-level-switch="{% url 'editor.mapitemtypes' level='LEVEL' %}"></span>
 </div>
 {% endblock %}

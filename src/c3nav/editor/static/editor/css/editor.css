@@ -30,46 +30,39 @@ body {
 
 
 #mapeditcontrols {
-    position:absolute;
-    top:54px;
-    bottom:0;
-    padding:0;
-    width:350px;
-    right:0;
-    overflow:hidden;
+    position: absolute;
+    top: 54px;
+    bottom: 0;
+    width: 350px;
+    right: 0;
+    overflow: auto;
+    padding:8px;
+}
+#mapeditcontrols.loading {
     background-image:url('/static/img/loader.gif');
     background-repeat:no-repeat;
     background-position:center;
 }
-#mapeditcontrols > div {
-    position:absolute;
-    top:0;
-    bottom:0;
-    background-color:white;
-    padding:8px;
-    width:350px;
-    right:0;
-    transition: right 300ms;
-    -webkit-transition: right 300ms;
-    overflow:auto;
-}
-#mapeditcontrols > #mapeditdetail {
-    right:-350px;
-    pointer-events: none;
-}
-#mapeditcontrols.detail #mapeditdetail {
-    right:0;
-    pointer-events: auto;
-}
-#mapeditcontrols > #mapeditlist {
-    display:none;
-}
-#mapeditcontrols.list > #mapeditlist {
-    display:block;
-}
-#mapeditdetail h3 {
+#mapeditcontrols h3 {
     margin-top:5px;
 }
+a.list-group-item, a.list-group-item:hover {
+    color:#158cba;
+}
+a.list-group-item .badge {
+    font-size:14px;
+    font-weight:bold;
+}
+.itemtable td:last-child {
+    text-align:right;
+}
+.itemtable tr.highlight td {
+    background-color:#FFFFDD;
+}
+.cancel-btn {
+    margin-right:8px;
+}
+
 #mapeditlist legend .btn {
     padding-left:5.5px;
     padding-right:5.5px;
@@ -88,36 +81,6 @@ legend {
 }
 .leaflet-editable-drawing .leaflet-overlay-pane .leaflet-interactive {
     cursor:crosshair;
-}
-.feature_list {
-    display:none;
-}
-.feature_level_list {
-    list-style-type:none;
-    display:none;
-    padding:0;
-}
-.feature_level_list li {
-    padding:5px 0 0;
-    border-style:solid;
-    border-width:0 0 1px;
-    border-color:#EEEEEE;
-}
-.feature_level_list li:hover, .feature_level_list li.hover {
-    background-color:#FFFFEE;
-}
-.feature_level_list p {
-    margin:0 0 5px;
-    cursor:default;
-}
-.feature_level_list p:first-child {
-    font-weight:bold;
-    font-size:16px;
-}
-.feature_level_list p:first-child em {
-    font-weight:normal;
-    font-size:14px;
-    padding-left:5px;
 }
 #map .leaflet-overlay-pane .c3nav-highlight {
     pointer-events:none;

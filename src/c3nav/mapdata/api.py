@@ -39,7 +39,7 @@ class GeometryViewSet(ViewSet):
         else:
             types = [t for t in types if t in valid_types]
 
-        levels = request.GET.getlist('levels')
+        levels = request.GET.getlist('level')
         packages = request.GET.getlist('package')
         names = request.GET.getlist('name')
 
