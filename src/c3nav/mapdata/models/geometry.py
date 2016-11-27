@@ -1,18 +1,17 @@
 from collections import OrderedDict
 
 from django.db import models
-from django.db.models.base import ModelBase
 from django.utils.translation import ugettext_lazy as _
 from shapely.geometry.geo import mapping, shape
 
 from c3nav.mapdata.fields import GeometryField
-from c3nav.mapdata.models.base import MapItem
+from c3nav.mapdata.models.base import MapItem, MapItemMeta
 from c3nav.mapdata.utils import format_geojson
 
 GEOMETRY_MAPITEM_TYPES = OrderedDict()
 
 
-class GeometryMapItemMeta(ModelBase):
+class GeometryMapItemMeta(MapItemMeta):
     def __new__(mcs, name, bases, attrs):
         cls = super().__new__(mcs, name, bases, attrs)
         if not cls._meta.abstract:

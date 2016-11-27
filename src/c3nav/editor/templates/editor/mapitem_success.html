@@ -6,4 +6,6 @@
     <img src="{% static 'img/loader.gif' %}">
     Redirecting…
 </form>
+{% else %}
+    <span data-redirect="{% url 'editor.mapitems.level' mapitem_type=mapitem_type level='LEVEL' %}"></span>
 {% endif %}

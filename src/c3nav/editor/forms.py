@@ -13,7 +13,7 @@ from c3nav.mapdata.models.geometry import Area, Building, Door, Obstacle
 from c3nav.mapdata.permissions import get_unlocked_packages
 
 
-class FeatureFormMixin(ModelForm):
+class MapitemFormMixin(ModelForm):
     def __init__(self, *args, request=None, **kwargs):
         self.request = request
         super().__init__(*args, **kwargs)
@@ -73,13 +73,13 @@ class FeatureFormMixin(ModelForm):
             self.titles = titles
 
 
-def create_editor_form(feature_model, add_fields=None):
-    class EditorForm(FeatureFormMixin, ModelForm):
+def create_editor_form(mapdata_model, add_fields=None):
+    class EditorForm(MapitemFormMixin, ModelForm):
         class Meta:
-            model = feature_model
+            model = mapdata_model
             fields = ['name', 'package', 'level', 'geometry'] + (add_fields if add_fields is not None else [])
 
-    feature_model.EditorForm = EditorForm
+    mapdata_model.EditorForm = EditorForm
 
 
 def create_editor_forms():

@@ -1,0 +1,19 @@
+{% load bootstrap3 %}
+
+<h3>Mapitem types</h3>
+
+<div class="list-group">
+    {% for mapitemtype in mapitemtypes %}
+        {% if mapitemtype.has_level %}
+            {% url 'editor.mapitems.level' mapitem_type=mapitemtype.name level=level as list_url %}
+        {% else %}
+            {% url 'editor.mapitems' mapitem_type=mapitemtype.name as list_url %}
+        {% endif %}
+        <a href="{{ list_url }}" class="list-group-item">
+            {% if mapitemtype.has_level %}<span class="badge">{{ mapitemtype.count }}</span>{% endif %}
+            {{ mapitemtype.title }}
+        </a>
+    {% endfor %}
+</div>
+
+<span data-level-switch="{% url 'editor.mapitemtypes' level='LEVEL' %}"></span>
