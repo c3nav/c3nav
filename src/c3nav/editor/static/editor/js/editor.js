@@ -126,8 +126,8 @@ editor = {
         editor._highlight_layer = L.layerGroup().addTo(editor.map);
         editor._editing_layer = L.layerGroup().addTo(editor.map);
 
-        $('#mapeditcontrols').on('mouseenter', '.itemtable tr[name]', editor._hover_mapitem_row)
-                             .on('mouseleave', '.itemtable tr[name]', editor._unhighlight_geometry);
+        $('#mapeditcontrols').on('mouseenter', '.itemtable tr[data-name]', editor._hover_mapitem_row)
+                             .on('mouseleave', '.itemtable tr[data-name]', editor._unhighlight_geometry);
 
         editor.map.on('editable:drawing:commit', editor._done_creating);
         editor.map.on('editable:editing', editor._update_editing);
