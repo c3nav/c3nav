@@ -1,13 +1,14 @@
 from django.db import models
+from django.db.models import Model
 from django.utils.translation import ugettext_lazy as _
 
-from c3nav.mapdata.models.base import MapItem
 
-
-class Source(MapItem):
+class Source(Model):
     """
     A map source, images of levels that can be useful as backgrounds for the map editor
     """
+    name = models.SlugField(_('Name'), unique=True, max_length=50)
+    package = models.ForeignKey('mapdata.Package', on_delete=models.CASCADE, verbose_name=_('map package'))
     bottom = models.DecimalField(_('bottom coordinate'), max_digits=6, decimal_places=2)
     left = models.DecimalField(_('left coordinate'), max_digits=6, decimal_places=2)
     top = models.DecimalField(_('top coordinate'), max_digits=6, decimal_places=2)
