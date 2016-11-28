@@ -87,6 +87,9 @@ class LevelRenderer():
                                          stroke_color='#9E9E9E',
                                          stroke_width=3))
 
+        contents.append(self.polygon_svg(self.level.geometries.elevatorlevels,
+                                         fill_color='#9EF8FB'))
+
         contents.append(self.polygon_svg(self.level.geometries.walls_without_doors,
                                          fill_color='#949494',
                                          stroke_color='#757575',

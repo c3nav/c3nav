@@ -7,7 +7,7 @@ from collections import OrderedDict
 from django.conf import settings
 from django.core.management import CommandError
 
-from c3nav.mapdata.models import Level, Package
+from c3nav.mapdata.models import Elevator, Level, Package
 from c3nav.mapdata.packageio.const import ordered_models
 
 
@@ -146,6 +146,7 @@ class ReaderItem:
 
     relations = {
         'level': Level,
+        'elevator': Elevator,
     }
 
     def save(self):
