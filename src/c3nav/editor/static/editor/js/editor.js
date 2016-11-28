@@ -68,6 +68,7 @@ editor = {
     // levels
     levels: {},
     _level: null,
+    _loading_geometry: false,
     get_levels: function () {
         // load levels and set the lowest one afterwards
         $.getJSON('/api/levels/?ordering=-altitude', function (levels) {
@@ -100,8 +101,10 @@ editor = {
     },
     set_current_level: function(level_name) {
         // sets the current level if the sidebar allows it
+        if (editor._loading_geometry) return;
         var level_switch = $('#mapeditcontrols').find('[data-level-switch]');
         if (level_switch.length === 0) return;
+        editor._loading_geometry = true;
         editor._level = level_name;
         $('.leaflet-levels .current').removeClass('current');
         $('.leaflet-levels a[name='+level_name+']').addClass('current');
@@ -146,6 +149,7 @@ editor = {
             });
 
             editor._geometries_layer.addTo(editor.map);
+            editor._loading_geometry = false;
         });
     },
     _geometry_colors: {
