@@ -26,6 +26,8 @@ class GeometryMapItem(MapItem, metaclass=GeometryMapItemMeta):
     level = models.ForeignKey('mapdata.Level', on_delete=models.CASCADE, verbose_name=_('level'))
     geometry = GeometryField()
 
+    geomtype = None
+
     class Meta:
         abstract = True
 
