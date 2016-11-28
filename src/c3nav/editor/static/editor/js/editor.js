@@ -104,7 +104,7 @@ editor = {
     },
     set_current_level: function(level_name) {
         // sets the current level if the sidebar allows it
-        var level_switch = $('#mapeditcontrols ').find('[data-level-switch]');
+        var level_switch = $('#mapeditcontrols').find('[data-level-switch]');
         if (level_switch.length === 0) return;
         editor._level = level_name;
         $('.leaflet-levels .current').removeClass('current');
@@ -329,8 +329,6 @@ editor = {
         $('#mapeditcontrols').on('click', 'a[href]', editor._sidebar_link_click)
                              .on('click', 'button[type=submit]', editor._sidebar_submit_btn_click)
                              .on('submit', 'form', editor._sidebar_submit);;
-
-        editor.sidebar_get('mapitemtypes/'+String(editor._level)+'/');
     },
     sidebar_get: function(location) {
         // load a new page into the sidebar using a GET request
