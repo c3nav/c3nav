@@ -5,6 +5,7 @@ from django.utils.translation import ugettext_lazy as _
 from shapely.geometry.geo import mapping, shape
 
 from c3nav.mapdata.fields import GeometryField
+from c3nav.mapdata.models import Elevator
 from c3nav.mapdata.models.base import MapItem, MapItemMeta
 from c3nav.mapdata.utils import format_geojson
 
@@ -162,3 +163,44 @@ class Door(GeometryMapItem):
         verbose_name = _('Door')
         verbose_name_plural = _('Doors')
         default_related_name = 'doors'
+
+
+class ElevatorLevel(GeometryMapItem):
+    """
+    An elevator Level
+    """
+    elevator = models.ForeignKey(Elevator, on_delete=models.PROTECT, related_name='levels')
+    button = models.SlugField(_('Button label'), max_length=10)
+
+    geomtype = 'polygon'
+
+    class Meta:
+        verbose_name = _('Elevator Level')
+        verbose_name_plural = _('Elevator Levels')
+        default_related_name = 'elevatorlevels'
+
+    def get_geojson_properties(self):
+        result = super().get_geojson_properties()
+        result['elevator'] = self.elevator.name
+        result['button'] = self.button
+        return result
+
+    @classmethod
+    def fromfile(cls, data, file_path):
+        kwargs = super().fromfile(data, file_path)
+
+        if 'elevator' not in data:
+            raise ValueError('missing elevator.')
+        kwargs['elevator'] = data['elevator']
+
+        if 'button' not in data:
+            raise ValueError('missing button.')
+        kwargs['button'] = data['button']
+
+        return kwargs
+
+    def tofile(self):
+        result = super().tofile()
+        result['elevator'] = self.elevator.name
+        result['button'] = self.button
+        return result

@@ -80,7 +80,7 @@ class MapitemFormMixin(ModelForm):
 
 
 def create_editor_form(mapitemtype):
-    possible_fields = ['name', 'package', 'level', 'geometry', 'height']
+    possible_fields = ['name', 'package', 'level', 'geometry', 'height', 'elevator', 'button']
     existing_fields = [field for field in possible_fields if hasattr(mapitemtype, field)]
 
     class EditorForm(MapitemFormMixin, ModelForm):
