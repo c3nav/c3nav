@@ -4,7 +4,6 @@ import xml.etree.ElementTree as ET
 from django.conf import settings
 from django.db.models import Max, Min
 from shapely.affinity import scale
-from shapely.geometry import box
 
 from c3nav.mapdata.models import Package
 
@@ -64,8 +63,6 @@ class LevelRenderer():
             'transform': 'scale(1 -1) translate(0 -%d)' % (height),
         })
         svg.append(contents)
-
-        contents.append(self.polygon_svg(box(0, 0, width, height), fill_color='#000000'))
 
         contents.append(self.polygon_svg(self.level.geometries.buildings_with_holes,
                                          fill_color='#D5D5D5'))
