@@ -67,7 +67,7 @@ class LevelRenderer():
 
         contents.append(self.polygon_svg(box(0, 0, width, height), fill_color='#000000'))
 
-        contents.append(self.polygon_svg(self.level.geometries.buildings,
+        contents.append(self.polygon_svg(self.level.geometries.buildings_with_holes,
                                          fill_color='#D5D5D5'))
 
         contents.append(self.polygon_svg(self.level.geometries.outsides,
@@ -90,7 +90,7 @@ class LevelRenderer():
         contents.append(self.polygon_svg(self.level.geometries.elevatorlevels,
                                          fill_color='#9EF8FB'))
 
-        contents.append(self.polygon_svg(self.level.geometries.walls_without_doors,
+        contents.append(self.polygon_svg(self.level.geometries.walls,
                                          fill_color='#949494',
                                          stroke_color='#757575',
                                          stroke_width=3))

@@ -57,7 +57,7 @@ class LevelGeometries():
 
     @cached_property
     def rooms(self):
-        return cascaded_union([room.geometry for room in self.level.rooms.all()])
+        return cascaded_union([room.geometry for room in self.level.rooms.all()]).intersection(self.buildings)
 
     @cached_property
     def outsides(self):
@@ -81,7 +81,15 @@ class LevelGeometries():
 
     @cached_property
     def areas(self):
-        return cascaded_union([self.rooms, self.outsides, self.elevatorlevels]).intersection(self.buildings)
+        return cascaded_union([self.rooms, self.outsides, self.elevatorlevels])
+
+    @cached_property
+    def holes(self):
+        return cascaded_union([holes.geometry for holes in self.level.holes.all()]).intersection(self.areas)
+
+    @cached_property
+    def buildings_with_holes(self):
+        return self.buildings.difference(self.holes)
 
     @cached_property
     def areas_and_doors(self):
@@ -89,15 +97,11 @@ class LevelGeometries():
 
     @cached_property
     def walls(self):
-        return self.buildings.difference(self.areas)
-
-    @cached_property
-    def walls_without_doors(self):
-        return self.walls.difference(self.areas_and_doors)
+        return self.buildings.difference(self.areas_and_doors)
 
     @cached_property
     def walls_shadow(self):
-        return self.walls_without_doors.buffer(0.2, join_style=JOIN_STYLE.mitre).intersection(self.buildings)
+        return self.walls.buffer(0.2, join_style=JOIN_STYLE.mitre).intersection(self.buildings_with_holes)
 
     @cached_property
     def doors(self):

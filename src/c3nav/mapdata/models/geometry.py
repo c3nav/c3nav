@@ -165,6 +165,18 @@ class Door(GeometryMapItem):
         default_related_name = 'doors'
 
 
+class Hole(GeometryMapItem):
+    """
+    A hole in the ground of a room, e.g. for stairs.
+    """
+    geomtype = 'polygon'
+
+    class Meta:
+        verbose_name = _('Hole')
+        verbose_name_plural = _('Holes')
+        default_related_name = 'holes'
+
+
 class ElevatorLevel(GeometryMapItem):
     """
     An elevator Level

@@ -158,7 +158,8 @@ editor = {
         'outside': '#EEFFEE',
         'obstacle': '#999999',
         'door': '#FF00FF',
-        'elevatorlevel': '#9EF8FB'
+        'hole': '#66CC66',
+        'elevatorlevel': '#9EF8FB',
     },
     _get_geometry_style: function (feature) {
         // style callback for GeoJSON loader
