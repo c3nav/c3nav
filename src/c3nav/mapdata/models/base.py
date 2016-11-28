@@ -10,7 +10,7 @@ MAPITEM_TYPES = OrderedDict()
 class MapItemMeta(ModelBase):
     def __new__(mcs, name, bases, attrs):
         cls = super().__new__(mcs, name, bases, attrs)
-        if not cls._meta.abstract:
+        if not cls._meta.abstract and name != 'Source':
             MAPITEM_TYPES[name.lower()] = cls
         return cls
 
