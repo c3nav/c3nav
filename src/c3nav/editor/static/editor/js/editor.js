@@ -183,7 +183,7 @@ editor = {
     // hover and highlight geometries
     _hover_mapitem_row: function (e) {
         // hover callback for a itemtable row
-        editor._highlight_geometry($(this).closest('.itemtable').attr('data-mapitem-type'), $(this).attr('name'));
+        editor._highlight_geometry($(this).closest('.itemtable').attr('data-mapitem-type'), $(this).attr('data-name'));
     },
     _hover_geometry_layer: function (e) {
         // hover callback for a geometry layer
@@ -192,7 +192,7 @@ editor = {
     _click_geometry_layer: function (e) {
         // click callback for a geometry layer – scroll the corresponding itemtable row into view if it exists
         var properties = e.target.feature.properties;
-        var row = $('.itemtable[data-mapitem-type='+properties.type+'] tr[name="'+properties.name+'"]');
+        var row = $('.itemtable[data-mapitem-type='+properties.type+'] tr[data-name="'+properties.name+'"]');
         if (row.length) {
             row[0].scrollIntoView();
         }
@@ -200,7 +200,7 @@ editor = {
     _dblclick_geometry_layer: function (e) {
         // dblclick callback for a geometry layer - edit this feature if the corresponding itemtable row exists
         var properties = e.target.feature.properties;
-        var row = $('.itemtable[data-mapitem-type='+properties.type+'] tr[name="'+properties.name+'"]');
+        var row = $('.itemtable[data-mapitem-type='+properties.type+'] tr[data-name="'+properties.name+'"]');
         if (row.length) {
             row.find('td:last-child a').click();
             editor.map.doubleClickZoom.disable();
@@ -211,7 +211,7 @@ editor = {
         var pk = mapitem_type+'-'+name;
         editor._unhighlight_geometry();
         var layer = editor._geometries[pk];
-        var row = $('.itemtable[data-mapitem-type='+mapitem_type+'] tr[name="'+name+'"]');
+        var row = $('.itemtable[data-mapitem-type='+mapitem_type+'] tr[data-name="'+name+'"]');
         if (layer !== undefined && row.length) {
             row.addClass('highlight');
             L.geoJSON(layer.feature, {
