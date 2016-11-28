@@ -1,8 +1,4 @@
 editor = {
-    feature_types: {},
-    feature_types_order: [],
-    _highlight_layer: null,
-
     init: function () {
         // Init Map
         editor.map = L.map('map', {
@@ -13,7 +9,7 @@ editor = {
             editable: true,
             closePopupOnClick: false
         });
-        editor.map.on('click', function (e) {
+        editor.map.on('click', function () {
             editor.map.doubleClickZoom.enable();
         });
 
@@ -146,7 +142,7 @@ editor = {
         $.getJSON('/api/geometries/?level='+String(editor._level), function(geometries) {
             editor._geometries_layer = L.geoJSON(geometries, {
                 style: editor._get_geometry_style,
-                onEachFeature: editor._register_geojson_feature,
+                onEachFeature: editor._register_geojson_feature
             });
 
             editor._geometries_layer.addTo(editor.map);
@@ -156,7 +152,7 @@ editor = {
         'building': '#333333',
         'area': '#FFFFFF',
         'obstacle': '#999999',
-        'door': '#FF00FF',
+        'door': '#FF00FF'
     },
     _get_geometry_style: function (feature) {
         // style callback for GeoJSON loader
@@ -168,7 +164,7 @@ editor = {
             fillColor: editor._geometry_colors[mapitem_type],
             weight: 0,
             fillOpacity: 0.6,
-            smoothFactor: 0,
+            smoothFactor: 0
         };
     },
     _register_geojson_feature: function (feature, layer) {
@@ -181,7 +177,7 @@ editor = {
     },
 
     // hover and highlight geometries
-    _hover_mapitem_row: function (e) {
+    _hover_mapitem_row: function () {
         // hover callback for a itemtable row
         editor._highlight_geometry($(this).closest('.itemtable').attr('data-mapitem-type'), $(this).attr('data-name'));
     },
@@ -236,8 +232,15 @@ editor = {
     // edit and create geometries
     _check_start_editing: function() {
         // called on sidebar load. start editing or creating depending on how the sidebar may require it
-        var geometry_field = $('#mapeditcontrols').find('input[name=geometry]');
-        $('#id_name').focus();
+        var mapeditcontrols = $('#mapeditcontrols');
+        var geometry_field = mapeditcontrols.find('input[name=geometry]');
+
+        var id_name = $('#id_name');
+        id_name.focus();
+        if (mapeditcontrols.find('[data-new]').length) {
+            id_name.select();
+        }
+
         if (geometry_field.length) {
             var form = geometry_field.closest('form');
             var mapitem_type = form.attr('data-mapitem-type');
@@ -251,7 +254,7 @@ editor = {
                     type: 'Feature',
                     geometry: JSON.parse(geometry_field.val()),
                     properties: {
-                        type: mapitem_type,
+                        type: mapitem_type
                     }
                 }, {
                     style: editor._get_geometry_style
@@ -271,7 +274,6 @@ editor = {
                 }
                 editor._creating = true;
                 $('#id_level').val(editor._level);
-                $('#id_name').select();
             }
         } else if (editor._get_geometries_next_time) {
             editor.get_geometries();
@@ -328,14 +330,14 @@ editor = {
         // init the sidebar. sed listeners for form submits and link clicks
         $('#mapeditcontrols').on('click', 'a[href]', editor._sidebar_link_click)
                              .on('click', 'button[type=submit]', editor._sidebar_submit_btn_click)
-                             .on('submit', 'form', editor._sidebar_submit);;
+                             .on('submit', 'form', editor._sidebar_submit);
     },
     sidebar_get: function(location) {
         // load a new page into the sidebar using a GET request
         editor._sidebar_unload();
         $.get(location, editor._sidebar_loaded);
     },
-    _sidebar_unload: function(location) {
+    _sidebar_unload: function() {
         // unload the sidebar. called on sidebar_get and form submit.
         $('#mapeditcontrols').html('').addClass('loading');
         editor._unhighlight_geometry();
@@ -370,7 +372,7 @@ editor = {
         }
         editor.sidebar_get(href);
     },
-    _sidebar_submit_btn_click: function(e) {
+    _sidebar_submit_btn_click: function() {
         // listener for submit-button-clicks in the sidebar, so the submit event will know which button submitted.
         $(this).closest('form').data('btn', $(this)).clearQueue().delay(300).queue(function() {
             $(this).data('button', null);
