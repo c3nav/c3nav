@@ -237,6 +237,7 @@ editor = {
     _check_start_editing: function() {
         // called on sidebar load. start editing or creating depending on how the sidebar may require it
         var geometry_field = $('#mapeditcontrols').find('input[name=geometry]');
+        $('#id_name').focus();
         if (geometry_field.length) {
             var form = geometry_field.closest('form');
             var mapitem_type = form.attr('data-mapitem-type');
@@ -270,6 +271,7 @@ editor = {
                 }
                 editor._creating = true;
                 $('#id_level').val(editor._level);
+                $('#id_name').select();
             }
         } else if (editor._get_geometries_next_time) {
             editor.get_geometries();
