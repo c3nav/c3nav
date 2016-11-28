@@ -50,6 +50,9 @@ def round_coordinates(data):
 
 
 def clean_geometry(geometry):
+    """
+    if the given geometry is a Polygon and invalid, try to make it valid if it results in a Polygon (not MultiPolygon)
+    """
     if geometry.is_valid:
         return geometry
 
@@ -58,7 +61,7 @@ def clean_geometry(geometry):
         for interior in geometry.interiors:
             p = p.difference(Polygon(list(interior.coords)))
 
-        if p.is_valid:
+        if isinstance(p, Polygon) and p.is_valid:
             return p
 
     return geometry
