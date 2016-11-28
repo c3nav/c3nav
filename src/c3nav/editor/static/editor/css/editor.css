@@ -37,6 +37,7 @@ body {
     right: 0;
     overflow: auto;
     padding:8px;
+    background-color:#ffffff;
 }
 #mapeditcontrols.loading {
     background-image:url('/static/img/loader.gif');
@@ -85,9 +86,6 @@ legend {
 #map .leaflet-overlay-pane .c3nav-highlight {
     pointer-events:none;
 }
-#btn_editing_cancel {
-    margin-right:8px;
-}
 
 #responsive_switch {
     display:none !important;
@@ -95,21 +93,13 @@ legend {
 
 @media (max-width: 767px) {
     #mapeditcontrols {
+        transition: right 300ms;
+        -webkit-transition: right 300ms;
         width:100vw;
     }
     body:not(.controls) #mapeditcontrols {
         pointer-events: none;
-        background-image:none;
-    }
-    #mapeditcontrols > div {
-        width:100vw;
-    }
-    body:not(.controls) #mapeditcontrols > div {
-        right:-100vw !important;
-    }
-    #mapeditcontrols:not(.detail) > #mapeditdetail {
         right:-100vw;
-        pointer-events: none;
     }
     #map {
         transition: left 300ms, right ;
