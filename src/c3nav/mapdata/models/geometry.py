@@ -134,7 +134,7 @@ class Obstacle(GeometryMapItem):
     def tofile(self):
         result = super().tofile()
         if self.height is not None:
-            result['height'] = float(self.level.name)
+            result['height'] = float(self.height)
         return result
 
 
