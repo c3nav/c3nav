@@ -20,8 +20,6 @@ class MapItem(models.Model, metaclass=MapItemMeta):
     package = models.ForeignKey('mapdata.Package', on_delete=models.CASCADE, verbose_name=_('map package'))
 
     EditorForm = None
-    geomtype = None
-    color = None
 
     @classmethod
     def get_path_prefix(cls):
