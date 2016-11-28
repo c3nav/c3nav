@@ -22,7 +22,7 @@ class LevelRenderer():
         )
 
     @staticmethod
-    def polygon_svg(geometry, fill_color=None, stroke_width=0.0, stroke_color=None, filter=None):
+    def polygon_svg(geometry, fill_color=None, fill_opacity=None, stroke_width=0.0, stroke_color=None, filter=None):
         element = ET.fromstring(scale(geometry, xfact=32, yfact=32, origin=(0, 0)).svg(0, fill_color or '#FFFFFF'))
         if element.tag != 'g':
             new_element = ET.Element('g')
@@ -36,6 +36,9 @@ class LevelRenderer():
             if fill_color is None and 'fill' in path.attrib:
                 path.attrib.pop('fill')
                 path.set('fill-opacity', '0')
+
+            if fill_opacity is not None:
+                path.set('fill-opacity', str(fill_opacity))
 
             if stroke_color is not None:
                 path.set('stroke', stroke_color)
@@ -71,7 +74,8 @@ class LevelRenderer():
                                          fill_color='#DCE6DC'))
 
         contents.append(self.polygon_svg(self.level.geometries.walls_shadow,
-                                         fill_color='#CCCCCC'))
+                                         fill_color='#000000',
+                                         fill_opacity=0.05))
 
         contents.append(self.polygon_svg(self.level.geometries.doors,
                                          fill_color='#FFFFFF',
