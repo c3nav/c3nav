@@ -40,7 +40,7 @@ def list_mapitems(request, mapitem_type, level=None):
     if hasattr(mapitemtype, 'level') and level is None:
         raise Http404('Missing level.')
     elif not hasattr(mapitemtype, 'level') and level is not None:
-        raise redirect('editor.mapitems', mapitem_type=mapitem_type)
+        return redirect('editor.mapitems', mapitem_type=mapitem_type)
 
     queryset = mapitemtype.objects.all()
     if level is not None:
