@@ -154,7 +154,8 @@ editor = {
     },
     _geometry_colors: {
         'building': '#333333',
-        'area': '#FFFFFF',
+        'room': '#FFFFFF',
+        'outside': '#EEFFEE',
         'obstacle': '#999999',
         'door': '#FF00FF'
     },

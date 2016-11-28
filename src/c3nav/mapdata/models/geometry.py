@@ -92,16 +92,28 @@ class Building(GeometryMapItem):
         default_related_name = 'buildings'
 
 
-class Area(GeometryMapItem):
+class Room(GeometryMapItem):
     """
-    An accessible area like a room. Can also be outside. Can overlap.
+    An accessible area like a room. Can overlap.
     """
     geomtype = 'polygon'
 
     class Meta:
-        verbose_name = _('Area')
-        verbose_name_plural = _('Areas')
-        default_related_name = 'areas'
+        verbose_name = _('Room')
+        verbose_name_plural = _('Rooms')
+        default_related_name = 'rooms'
+
+
+class Outside(GeometryMapItem):
+    """
+    An accessible outdoor area like a court. Can overlap.
+    """
+    geomtype = 'polygon'
+
+    class Meta:
+        verbose_name = _('Outside Area')
+        verbose_name_plural = _('Outside Areas')
+        default_related_name = 'outsides'
 
 
 class Obstacle(GeometryMapItem):
