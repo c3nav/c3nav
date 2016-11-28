@@ -89,7 +89,7 @@ class LevelGeometries():
 
     @cached_property
     def walls_shadow(self):
-        return self.walls_without_doors.buffer(0.2, join_style=JOIN_STYLE.mitre).intersection(self.mapped)
+        return self.walls_without_doors.buffer(0.2, join_style=JOIN_STYLE.mitre).intersection(self.buildings)
 
     @cached_property
     def doors(self):
