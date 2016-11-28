@@ -1,15 +1,14 @@
 import json
-import uuid
+import time
 from collections import OrderedDict
 
 from django.conf import settings
-from django.forms import CharField, ModelForm
+from django.forms import CharField, ModelForm, ValidationError
 from django.forms.models import ModelChoiceField
 from django.forms.widgets import HiddenInput
 from shapely.geometry.geo import mapping
 
 from c3nav.mapdata.models import Package
-from c3nav.mapdata.models.geometry import Area, Building, Door, Obstacle
 from c3nav.mapdata.permissions import get_unlocked_packages
 
 
@@ -23,8 +22,8 @@ class MapitemFormMixin(ModelForm):
         if not creating and not settings.DIRECT_EDITING:
             self.fields['name'].disabled = True
 
-        if creating and self._meta.model in (Door, Obstacle, ):
-            self.fields['name'].initial = uuid.uuid4()
+        if creating:
+            self.fields['name'].initial = hex(int(time.time()*1000000))[2:]
 
         # restrict package choices and field_name
         if not creating:
@@ -44,16 +43,18 @@ class MapitemFormMixin(ModelForm):
                 )
         self.fields['package'].to_field_name = 'name'
 
-        # hide level widget and set field_name
-        self.fields['level'].widget = HiddenInput()
-        self.fields['level'].to_field_name = 'name'
-        if not creating:
-            self.initial['level'] = self.instance.level.name
+        if 'level' in self.fields:
+            # hide level widget and set field_name
+            self.fields['level'].widget = HiddenInput()
+            self.fields['level'].to_field_name = 'name'
+            if not creating:
+                self.initial['level'] = self.instance.level.name
 
-        # hide geometry widget
-        self.fields['geometry'].widget = HiddenInput()
-        if not creating:
-            self.initial['geometry'] = json.dumps(mapping(self.instance.geometry), separators=(',', ':'))
+        if 'geometry' in self.fields:
+            # hide geometry widget
+            self.fields['geometry'].widget = HiddenInput()
+            if not creating:
+                self.initial['geometry'] = json.dumps(mapping(self.instance.geometry), separators=(',', ':'))
 
         # parse titles
         self.titles = None
@@ -72,18 +73,25 @@ class MapitemFormMixin(ModelForm):
                                                              initial=titles[language].strip(), max_length=50)
             self.titles = titles
 
+    def clean(self):
+        if 'geometry' in self.fields:
+            if not self.cleaned_data.get('geometry'):
+                raise ValidationError('Missing geometry.')
 
-def create_editor_form(mapdata_model, add_fields=None):
+
+def create_editor_form(mapitemtype):
+    possible_fields = ['name', 'package', 'level', 'geometry', 'height']
+    existing_fields = [field for field in possible_fields if hasattr(mapitemtype, field)]
+
     class EditorForm(MapitemFormMixin, ModelForm):
         class Meta:
-            model = mapdata_model
-            fields = ['name', 'package', 'level', 'geometry'] + (add_fields if add_fields is not None else [])
+            model = mapitemtype
+            fields = existing_fields
 
-    mapdata_model.EditorForm = EditorForm
+    mapitemtype.EditorForm = EditorForm
 
 
 def create_editor_forms():
-    create_editor_form(Building)
-    create_editor_form(Area)
-    create_editor_form(Obstacle, ['height'])
-    create_editor_form(Door)
+    from c3nav.mapdata.models.base import MAPITEM_TYPES
+    for mapitemtype in MAPITEM_TYPES.values():
+        create_editor_form(mapitemtype)
