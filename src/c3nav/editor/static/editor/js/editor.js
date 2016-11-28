@@ -309,7 +309,7 @@ editor = {
             editor._creating = false;
             editor._editing = e.layer;
             editor._editing.addTo(editor._editing_layer);
-            editor._editin.on('click', editor._click_editing_layer);
+            editor._editing.on('click', editor._click_editing_layer);
             editor._update_editing();
         }
     },
