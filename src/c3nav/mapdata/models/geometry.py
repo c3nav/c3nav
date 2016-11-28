@@ -83,7 +83,6 @@ class Building(GeometryMapItem):
     The outline of a building on a specific level
     """
     geomtype = 'polygon'
-    color = '#333333'
 
     class Meta:
         verbose_name = _('Building')
@@ -96,7 +95,6 @@ class Area(GeometryMapItem):
     An accessible area like a room. Can also be outside. Can overlap.
     """
     geomtype = 'polygon'
-    color = '#FFFFFF'
 
     class Meta:
         verbose_name = _('Area')
@@ -111,7 +109,6 @@ class Obstacle(GeometryMapItem):
     height = models.DecimalField(_('height of the obstacle'), null=True, max_digits=4, decimal_places=2)
 
     geomtype = 'polygon'
-    color = '#999999'
 
     class Meta:
         verbose_name = _('Obstacle')
@@ -146,7 +143,6 @@ class Door(GeometryMapItem):
     A connection between two rooms
     """
     geomtype = 'polygon'
-    color = '#FF00FF'
 
     class Meta:
         verbose_name = _('Door')
