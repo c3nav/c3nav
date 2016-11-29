@@ -72,25 +72,25 @@ class LevelRenderer():
 
         contents.append(self.polygon_svg(self.level.geometries.walls_shadow,
                                          fill_color='#000000',
-                                         fill_opacity=0.05))
-
-        contents.append(self.polygon_svg(self.level.geometries.doors,
-                                         fill_color='#FFFFFF',
-                                         stroke_color='#CCCCCC',
-                                         stroke_width=2))
-
-        contents.append(self.polygon_svg(self.level.geometries.obstacles,
-                                         fill_color='#BDBDBD',
-                                         stroke_color='#9E9E9E',
-                                         stroke_width=3))
+                                         fill_opacity=0.06))
 
         contents.append(self.polygon_svg(self.level.geometries.elevatorlevels,
                                          fill_color='#9EF8FB'))
 
+        contents.append(self.polygon_svg(self.level.geometries.doors,
+                                         fill_color='#FFFFFF',
+                                         stroke_color='#3c3c3c',
+                                         stroke_width=1.5))
+
+        contents.append(self.polygon_svg(self.level.geometries.obstacles,
+                                         fill_color='#BDBDBD',
+                                         stroke_color='#9E9E9E',
+                                         stroke_width=1.5))
+
         contents.append(self.polygon_svg(self.level.geometries.walls,
                                          fill_color='#949494',
-                                         stroke_color='#757575',
-                                         stroke_width=3))
+                                         stroke_color='#3c3c3c',
+                                         stroke_width=1.5))
 
         return ET.tostring(svg).decode()
 
