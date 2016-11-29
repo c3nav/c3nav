@@ -14,6 +14,9 @@
             {% endif %}
             <tr data-name="{{ item.name }}">
                 <td>{{ item.name }}</td>
+                {% if has_elevator %}
+                    <td><a href="{% url 'editor.mapitems.edit' mapitem_type='elevator' name=item.elevator.name %}">{{ item.elevator }}</a></td>
+                {% endif %}
                 <td><a href="{% url 'editor.mapitems.edit' mapitem_type=mapitem_type name=item.name %}">Edit</a></td>
             </tr>
         {% endfor %}
