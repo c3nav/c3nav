@@ -17,6 +17,10 @@
                 <td><a href="{% url 'editor.mapitems.edit' mapitem_type=mapitem_type name=item.name %}">Edit</a></td>
             </tr>
         {% endfor %}
+        <tr>
+            <td><a href="{% url 'editor.mapitemtypes' level='LEVEL' %}" data-insert-level>&laquo; Back</a></td>
+            <td></td>
+        </tr>
     </tbody>
 </table>
 
