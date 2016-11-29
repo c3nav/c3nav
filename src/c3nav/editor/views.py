@@ -50,6 +50,7 @@ def list_mapitems(request, mapitem_type, level=None):
         'mapitem_type': mapitem_type,
         'title': mapitemtype._meta.verbose_name_plural,
         'has_level': level is not None,
+        'has_elevator': hasattr(mapitemtype, 'elevator'),
         'level': level,
         'items': filter_queryset_by_package_access(request, queryset),
     })
