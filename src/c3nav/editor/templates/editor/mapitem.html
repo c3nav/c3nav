@@ -1,6 +1,6 @@
 {% load bootstrap3 %}
 
-<h3>{% if new %}New{% else %}Edit{% endif %} {{ mapitem_type.title }}</h3>
+<h3>{% if new %}New{% else %}Edit{% endif %} {{ title }}</h3>
 <form action="{{ path }}" method="post" data-mapitem-type="{{ mapitem_type }}"{% if new %} data-new{% endif %}{% if not new %} data-name="{{ name }}"{% elif geomtype %} data-geomtype="{{ geomtype }}"{% endif %}>
     {% csrf_token %}
     {% bootstrap_form form %}
