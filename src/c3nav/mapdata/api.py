@@ -38,7 +38,12 @@ class GeometryViewSet(ViewSet):
             if packages:
                 queryset = queryset.filter(package__name__in=packages)
             if levels:
-                queryset = queryset.filter(level__name__in=levels)
+                if hasattr(mapitemtype, 'level'):
+                    queryset = queryset.filter(level__name__in=levels)
+                elif hasattr(mapitemtype, 'levels'):
+                    queryset = queryset.filter(levels__name__in=levels)
+                else:
+                    queryset = queryset.none()
             if names:
                 queryset = queryset.filter(name__in=names)
             queryset = filter_queryset_by_package_access(request, queryset)

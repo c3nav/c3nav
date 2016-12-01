@@ -46,6 +46,9 @@ class Level(MapItem):
         result['altitude'] = float(self.altitude)
         return result
 
+    def __str__(self):
+        return self.name
+
 
 class LevelGeometries():
     def __init__(self, level):
