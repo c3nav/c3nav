@@ -384,20 +384,25 @@ editor = {
     _sidebar_submit_btn_click: function() {
         // listener for submit-button-clicks in the sidebar, so the submit event will know which button submitted.
         $(this).closest('form').data('btn', $(this)).clearQueue().delay(300).queue(function() {
-            $(this).data('button', null);
+            $(this).data('btn', null);
         });
     },
     _sidebar_submit: function(e) {
         // listener for form submits in the sidebar.
         if ($(this).attr('name') == 'redirect') return;
         e.preventDefault();
-        editor._sidebar_unload();
         var data = $(this).serialize();
         var btn = $(this).data('btn');
-        if (btn !== undefined && btn !== null && $(btn).is('[name]')) {
-            data += '&'+$('<input>').attr('name', $(btn).attr('name')).val($(btn).val()).serialize();
+        if (btn !== undefined && btn !== null) {
+            if ($(btn).is('[name]')) {
+                data += '&' + $('<input>').attr('name', $(btn).attr('name')).val($(btn).val()).serialize();
+            }
+            if ($(btn).is('[data-reload-geometries]')) {
+                editor._get_geometries_next_time = true;
+            }
         }
         var action = $(this).attr('action');
+        editor._sidebar_unload();
         $.post(action, data, editor._sidebar_loaded);
     }
 };
