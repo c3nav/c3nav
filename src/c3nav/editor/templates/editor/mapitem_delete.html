@@ -7,10 +7,10 @@
     <input type="hidden" name="delete" value="1">
     <input type="hidden" name="name" value="{{ name }}">
     {% buttons %}
-    <a class="btn btn-default" href="{% url 'editor.mapitems' mapitem_type=mapitem_type level='LEVEL' %}" data-insert-level>
+    <a class="btn btn-default" href="{% url 'editor.mapitems.level' mapitem_type=mapitem_type level='LEVEL' %}" data-insert-level>
         Cancel
     </a>
-    <button type="submit" name="delete_confirm" value="1" class="btn btn-danger pull-right">
+    <button type="submit" name="delete_confirm" value="1" class="btn btn-danger pull-right" data-reload-geometries>
         Delete
     </button>
     {% endbuttons %}
