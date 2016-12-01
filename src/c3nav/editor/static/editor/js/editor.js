@@ -160,6 +160,7 @@ editor = {
         'door': '#FF00FF',
         'hole': '#66CC66',
         'elevatorlevel': '#9EF8FB',
+        'levelconnector': '#FFFF00'
     },
     _get_geometry_style: function (feature) {
         // style callback for GeoJSON loader
@@ -281,6 +282,7 @@ editor = {
                 }
                 editor._creating = true;
                 $('#id_level').val(editor._level);
+                $('#id_levels').find('option[value='+editor._level+']').prop('selected', true);
             }
         } else if (editor._get_geometries_next_time) {
             editor.get_geometries();

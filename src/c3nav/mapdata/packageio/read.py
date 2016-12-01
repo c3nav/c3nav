@@ -8,6 +8,7 @@ from django.conf import settings
 from django.core.management import CommandError
 
 from c3nav.mapdata.models import Elevator, Level, Package
+from c3nav.mapdata.models.geometry import LevelConnector
 from c3nav.mapdata.packageio.const import ordered_models
 
 
@@ -158,6 +159,11 @@ class ReaderItem:
             depends = [self.reader.saved_items[Package][name].obj.pk for name in self.data['depends']]
             self.data.pop('depends')
 
+        levels = []
+        if self.model == LevelConnector:
+            levels = [self.reader.saved_items[Level][name].obj.pk for name in self.data['levels']]
+            self.data.pop('levels')
+
         # Change name references to the referenced object
         for name, model in self.relations.items():
             if name in self.data:
@@ -174,3 +180,8 @@ class ReaderItem:
             self.obj.depends.clear()
             for dependency in depends:
                 self.obj.depends.add(dependency)
+
+        if levels:
+            self.obj.levels.clear()
+            for level in levels:
+                self.obj.levels.add(level)

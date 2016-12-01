@@ -6,6 +6,7 @@ from django.conf import settings
 from django.forms import CharField, ModelForm, ValidationError
 from django.forms.models import ModelChoiceField
 from django.forms.widgets import HiddenInput
+from django.utils.translation import ugettext_lazy as _
 from shapely.geometry.geo import mapping
 
 from c3nav.mapdata.models import Package
@@ -50,6 +51,10 @@ class MapitemFormMixin(ModelForm):
             if not creating:
                 self.initial['level'] = self.instance.level.name
 
+        if 'levels' in self.fields:
+            # set field_name
+            self.fields['levels'].to_field_name = 'name'
+
         if 'geometry' in self.fields:
             # hide geometry widget
             self.fields['geometry'].widget = HiddenInput()
@@ -73,6 +78,12 @@ class MapitemFormMixin(ModelForm):
                                                              initial=titles[language].strip(), max_length=50)
             self.titles = titles
 
+    def clean_levels(self):
+        levels = self.cleaned_data.get('levels')
+        if len(levels) < 2:
+            raise ValidationError(_('Please select at least two levels.'))
+        return levels
+
     def clean(self):
         if 'geometry' in self.fields:
             if not self.cleaned_data.get('geometry'):
@@ -80,7 +91,7 @@ class MapitemFormMixin(ModelForm):
 
 
 def create_editor_form(mapitemtype):
-    possible_fields = ['name', 'package', 'level', 'geometry', 'height', 'elevator', 'button']
+    possible_fields = ['name', 'package', 'level', 'levels', 'geometry', 'height', 'elevator', 'button']
     existing_fields = [field for field in possible_fields if hasattr(mapitemtype, field)]
 
     class EditorForm(MapitemFormMixin, ModelForm):

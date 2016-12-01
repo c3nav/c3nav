@@ -24,7 +24,6 @@ class GeometryMapItem(MapItem, metaclass=GeometryMapItemMeta):
     """
     A map feature
     """
-    level = models.ForeignKey('mapdata.Level', on_delete=models.CASCADE, verbose_name=_('level'))
     geometry = GeometryField()
 
     geomtype = None
@@ -47,10 +46,6 @@ class GeometryMapItem(MapItem, metaclass=GeometryMapItemMeta):
         except:
             raise ValueError(_('Invalid GeoJSON.'))
 
-        if 'level' not in data:
-            raise ValueError('missing level.')
-        kwargs['level'] = data['level']
-
         return kwargs
 
     @classmethod
@@ -64,7 +59,6 @@ class GeometryMapItem(MapItem, metaclass=GeometryMapItemMeta):
             ('type', self.__class__.__name__.lower()),
             ('name', self.name),
             ('package', self.package.name),
-            ('level', self.level.name),
         ))
 
     def to_geojson(self):
@@ -76,12 +70,81 @@ class GeometryMapItem(MapItem, metaclass=GeometryMapItemMeta):
 
     def tofile(self):
         result = super().tofile()
-        result['level'] = self.level.name
         result['geometry'] = format_geojson(mapping(self.geometry))
         return result
 
 
-class Building(GeometryMapItem):
+class GeometryMapItemWithLevel(GeometryMapItem):
+    """
+    A map feature
+    """
+    level = models.ForeignKey('mapdata.Level', on_delete=models.CASCADE, verbose_name=_('level'))
+
+    class Meta:
+        abstract = True
+
+    @classmethod
+    def fromfile(cls, data, file_path):
+        kwargs = super().fromfile(data, file_path)
+
+        if 'level' not in data:
+            raise ValueError('missing level.')
+        kwargs['level'] = data['level']
+
+        return kwargs
+
+    def get_geojson_properties(self):
+        result = super().get_geojson_properties()
+        result['level'] = float(self.level.name)
+        return result
+
+    def tofile(self):
+        result = super().tofile()
+        result['level'] = self.level.name
+        result.move_to_end('geometry')
+        return result
+
+
+class LevelConnector(GeometryMapItem):
+    """
+    A connector connecting levels
+    """
+    geomtype = 'polygon'
+    levels = models.ManyToManyField('mapdata.Level', verbose_name=_('levels'))
+
+    class Meta:
+        verbose_name = _('Level Connector')
+        verbose_name_plural = _('Level Connectors')
+        default_related_name = 'levelconnectors'
+
+    @classmethod
+    def fromfile(cls, data, file_path):
+        kwargs = super().fromfile(data, file_path)
+
+        if 'levels' not in data:
+            raise ValueError('missing levels.')
+        levels = data.get('levels', None)
+        if not isinstance(levels, list):
+            raise TypeError('levels has to be a list')
+        if len(levels) < 2:
+            raise ValueError('a level connector needs at least two levels')
+        kwargs['levels'] = levels
+
+        return kwargs
+
+    def get_geojson_properties(self):
+        result = super().get_geojson_properties()
+        result['levels'] = tuple(self.levels.all().order_by('name').values_list('name', flat=True))
+        return result
+
+    def tofile(self):
+        result = super().tofile()
+        result['levels'] = tuple(self.levels.all().order_by('name').values_list('name', flat=True))
+        result.move_to_end('geometry')
+        return result
+
+
+class Building(GeometryMapItemWithLevel):
     """
     The outline of a building on a specific level
     """
@@ -93,7 +156,7 @@ class Building(GeometryMapItem):
         default_related_name = 'buildings'
 
 
-class Room(GeometryMapItem):
+class Room(GeometryMapItemWithLevel):
     """
     An accessible area like a room. Can overlap.
     """
@@ -105,7 +168,7 @@ class Room(GeometryMapItem):
         default_related_name = 'rooms'
 
 
-class Outside(GeometryMapItem):
+class Outside(GeometryMapItemWithLevel):
     """
     An accessible outdoor area like a court. Can overlap.
     """
@@ -117,7 +180,7 @@ class Outside(GeometryMapItem):
         default_related_name = 'outsides'
 
 
-class Obstacle(GeometryMapItem):
+class Obstacle(GeometryMapItemWithLevel):
     """
     An obstacle
     """
@@ -153,7 +216,7 @@ class Obstacle(GeometryMapItem):
         return result
 
 
-class Door(GeometryMapItem):
+class Door(GeometryMapItemWithLevel):
     """
     A connection between two rooms
     """
@@ -165,7 +228,7 @@ class Door(GeometryMapItem):
         default_related_name = 'doors'
 
 
-class Hole(GeometryMapItem):
+class Hole(GeometryMapItemWithLevel):
     """
     A hole in the ground of a room, e.g. for stairs.
     """
@@ -177,11 +240,11 @@ class Hole(GeometryMapItem):
         default_related_name = 'holes'
 
 
-class ElevatorLevel(GeometryMapItem):
+class ElevatorLevel(GeometryMapItemWithLevel):
     """
     An elevator Level
     """
-    elevator = models.ForeignKey(Elevator, on_delete=models.PROTECT, related_name='levels')
+    elevator = models.ForeignKey(Elevator, on_delete=models.PROTECT)
     button = models.SlugField(_('Button label'), max_length=10)
 
     geomtype = 'polygon'

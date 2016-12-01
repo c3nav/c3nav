@@ -15,9 +15,13 @@ from c3nav.mapdata.permissions import can_access_package, filter_queryset_by_pac
 
 def list_mapitemtypes(request, level):
     def get_item_count(mapitemtype):
-        if not hasattr(mapitemtype, 'level'):
-            return 0
-        return filter_queryset_by_package_access(request, mapitemtype.objects.filter(level__name=level)).count()
+        if hasattr(mapitemtype, 'level'):
+            return filter_queryset_by_package_access(request, mapitemtype.objects.filter(level__name=level)).count()
+
+        if hasattr(mapitemtype, 'levels'):
+            return filter_queryset_by_package_access(request, mapitemtype.objects.filter(levels__name=level)).count()
+
+        return 0
 
     return render(request, 'editor/mapitemtypes.html', {
         'level': level,
@@ -25,7 +29,7 @@ def list_mapitemtypes(request, level):
             {
                 'name': name,
                 'title': mapitemtype._meta.verbose_name_plural,
-                'has_level': hasattr(mapitemtype, 'level'),
+                'has_level': hasattr(mapitemtype, 'level') or hasattr(mapitemtype, 'levels'),
                 'count': get_item_count(mapitemtype),
             } for name, mapitemtype in MAPITEM_TYPES.items()
         ],
@@ -37,14 +41,18 @@ def list_mapitems(request, mapitem_type, level=None):
     if mapitemtype is None:
         raise Http404('Unknown mapitemtype.')
 
-    if hasattr(mapitemtype, 'level') and level is None:
+    has_level = hasattr(mapitemtype, 'level') or hasattr(mapitemtype, 'levels')
+    if has_level and level is None:
         raise Http404('Missing level.')
-    elif not hasattr(mapitemtype, 'level') and level is not None:
+    elif not has_level and level is not None:
         return redirect('editor.mapitems', mapitem_type=mapitem_type)
 
     queryset = mapitemtype.objects.all()
     if level is not None:
-        queryset = queryset.filter(level__name=level)
+        if hasattr(mapitemtype, 'level'):
+            queryset = queryset.filter(level__name=level)
+        elif hasattr(mapitemtype, 'levels'):
+            queryset = queryset.filter(levels__name=level)
 
     return render(request, 'editor/mapitems.html', {
         'mapitem_type': mapitem_type,
@@ -105,7 +113,7 @@ def edit_mapitem(request, mapitem_type, name=None):
             # Update/create mapitem
             commit_type = 'Created' if mapitem is None else 'Updated'
             action = 'create' if mapitem is None else 'edit'
-            mapitem = form.instance
+            mapitem = form.save(commit=False)
 
             if form.titles is not None:
                 mapitem.titles = {}
@@ -130,6 +138,7 @@ def edit_mapitem(request, mapitem_type, name=None):
                 })
 
             mapitem.save()
+            form.save_m2m()
 
             return render(request, 'editor/mapitem_success.html', {
                 'mapitem_type': mapitem_type
