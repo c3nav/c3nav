@@ -139,7 +139,7 @@ class LevelConnector(GeometryMapItem):
 
     def tofile(self):
         result = super().tofile()
-        result['levels'] = tuple(self.levels.all().order_by('name').values_list('name', flat=True))
+        result['levels'] = sorted(self.levels.all().order_by('name').values_list('name', flat=True))
         result.move_to_end('geometry')
         return result
 

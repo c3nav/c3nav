@@ -87,7 +87,7 @@ class Package(models.Model):
         if self.home_repo is not None:
             data['home_repo'] = self.home_repo
         if self.depends.exists():
-            data['depends'] = tuple(self.depends.all().order_by('name').values_list('name', flat=True))
+            data['depends'] = sorted(self.depends.all().order_by('name').values_list('name', flat=True))
         if self.bottom is not None:
             data['bounds'] = ((float(self.bottom), float(self.left)), (float(self.top), float(self.right)))
 
