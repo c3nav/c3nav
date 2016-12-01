@@ -98,6 +98,7 @@ class MapdataWriter:
                             ))
                             print()
                         self.delete.append(file_path)
+                        count += 1
 
         return count
 
