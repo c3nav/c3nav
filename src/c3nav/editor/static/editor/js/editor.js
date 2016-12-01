@@ -375,6 +375,10 @@ editor = {
     _sidebar_link_click: function(e) {
         // listener for link-clicks in the sidebar.
         e.preventDefault();
+        if ($(this).is('[data-level-link]')) {
+            editor.set_current_level($(this).attr('data-level-link'));
+            return;
+        }
         var href = $(this).attr('href');
         if ($(this).is('[data-insert-level]')) {
             href = href.replace('LEVEL', editor._level);

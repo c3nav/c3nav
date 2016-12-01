@@ -17,6 +17,9 @@
                 {% if has_elevator %}
                     <td><a href="{% url 'editor.mapitems.edit' mapitem_type='elevator' name=item.elevator.name %}">{{ item.elevator }}</a></td>
                 {% endif %}
+                {% if has_levels %}
+                    <td>{% for level in item.levels.all %}{% if not forloop.first %}, {% endif %}<a href="" data-level-link="{{ level.name }}">{{ level.name }}</a>{% endfor %}</td>
+                {% endif %}
                 <td><a href="{% url 'editor.mapitems.edit' mapitem_type=mapitem_type name=item.name %}">Edit</a></td>
             </tr>
         {% endfor %}
