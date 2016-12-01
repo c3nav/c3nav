@@ -149,6 +149,7 @@ def edit_mapitem(request, mapitem_type, name=None):
     return render(request, 'editor/mapitem.html', {
         'form': form,
         'mapitem_type': mapitem_type,
+        'title': mapitemtype._meta.verbose_name,
         'has_geometry': hasattr(mapitemtype, 'geometry'),
         'name': orig_name,
         'geomtype': getattr(mapitemtype, 'geomtype', None),
