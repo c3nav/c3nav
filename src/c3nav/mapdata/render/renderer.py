@@ -16,13 +16,14 @@ class LevelRenderer():
     def get_dimensions():
         aggregate = Package.objects.all().aggregate(Max('right'), Min('left'), Max('top'), Min('bottom'))
         return (
-            (aggregate['right__max'] - aggregate['left__min']) * 32,
-            (aggregate['top__max'] - aggregate['bottom__min']) * 32
+            float(aggregate['right__max'] - aggregate['left__min']) * settings.RENDER_SCALE,
+            float(aggregate['top__max'] - aggregate['bottom__min']) * settings.RENDER_SCALE
         )
 
     @staticmethod
     def polygon_svg(geometry, fill_color=None, fill_opacity=None, stroke_width=0.0, stroke_color=None, filter=None):
-        element = ET.fromstring(scale(geometry, xfact=32, yfact=32, origin=(0, 0)).svg(0, fill_color or '#FFFFFF'))
+        scaled = scale(geometry, xfact=settings.render_scale, yfact=settings.render_scale, origin=(0, 0))
+        element = ET.fromstring(scaled.svg(0, fill_color or '#FFFFFF'))
         if element.tag != 'g':
             new_element = ET.Element('g')
             new_element.append(element)
@@ -30,7 +31,7 @@ class LevelRenderer():
 
         for path in element.findall('path'):
             path.attrib.pop('opacity')
-            path.set('stroke-width', str(stroke_width))
+            path.set('stroke-width', str(stroke_width * settings.RENDER_SCALE))
 
             if fill_color is None and 'fill' in path.attrib:
                 path.attrib.pop('fill')
@@ -80,17 +81,17 @@ class LevelRenderer():
         contents.append(self.polygon_svg(self.level.geometries.doors,
                                          fill_color='#FFFFFF',
                                          stroke_color='#3c3c3c',
-                                         stroke_width=1.5))
+                                         stroke_width=0.05))
 
         contents.append(self.polygon_svg(self.level.geometries.obstacles,
                                          fill_color='#BDBDBD',
                                          stroke_color='#9E9E9E',
-                                         stroke_width=1.5))
+                                         stroke_width=0.05))
 
         contents.append(self.polygon_svg(self.level.geometries.walls,
                                          fill_color='#949494',
                                          stroke_color='#3c3c3c',
-                                         stroke_width=1.5))
+                                         stroke_width=0.05))
 
         return ET.tostring(svg).decode()
 
