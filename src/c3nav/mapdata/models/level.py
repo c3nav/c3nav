@@ -91,6 +91,10 @@ class LevelGeometries():
         return cascaded_union([holes.geometry for holes in self.level.holes.all()]).intersection(self.areas)
 
     @cached_property
+    def accessible(self):
+        return self.areas.difference(self.holes).difference(self.obstacles)
+
+    @cached_property
     def buildings_with_holes(self):
         return self.buildings.difference(self.holes)
 
