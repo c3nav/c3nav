@@ -145,6 +145,7 @@ INSTALLED_APPS = [
     'c3nav.api',
     'rest_framework',
     'c3nav.mapdata',
+    'c3nav.routing',
     'c3nav.editor',
     'c3nav.control',
 ]
