@@ -23,7 +23,7 @@ class LevelRenderer():
 
     @staticmethod
     def polygon_svg(geometry, fill_color=None, fill_opacity=None, stroke_width=0.0, stroke_color=None, filter=None):
-        scaled = scale(geometry, xfact=settings.render_scale, yfact=settings.render_scale, origin=(0, 0))
+        scaled = scale(geometry, xfact=settings.RENDER_SCALE, yfact=settings.RENDER_SCALE, origin=(0, 0))
         element = ET.fromstring(scaled.svg(0, fill_color or '#FFFFFF'))
         if element.tag != 'g':
             new_element = ET.Element('g')
