@@ -1,6 +1,7 @@
 import os
 import xml.etree.ElementTree as ET
 
+import subprocess
 from django.conf import settings
 from django.db.models import Max, Min
 from shapely.affinity import scale
@@ -95,7 +96,23 @@ class LevelRenderer():
 
         return ET.tostring(svg).decode()
 
+    def _get_render_path(self, filename):
+        return os.path.join(settings.RENDER_ROOT, filename)
+
     def write_svg(self):
-        filename = os.path.join(settings.RENDER_ROOT, 'level-%s.svg' % self.level.name)
+        filename = self._get_render_path('level-%s.svg' % self.level.name)
         with open(filename, 'w') as f:
             f.write(self.get_svg())
+        return filename
+
+    def render_png(self):
+        svg_filename = self.write_svg()
+        filename = self._get_render_path('level-%s.png' % self.level.name)
+        subprocess.call(['rsvg-convert', svg_filename, '-o', filename])
+
+
+
+
+
+
+

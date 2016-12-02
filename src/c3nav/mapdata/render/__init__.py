@@ -5,4 +5,4 @@ from c3nav.mapdata.render.renderer import LevelRenderer  # noqa
 def render_all_levels():
     for level in Level.objects.all():
         renderer = LevelRenderer(level)
-        renderer.write_svg()
+        renderer.render_png()
