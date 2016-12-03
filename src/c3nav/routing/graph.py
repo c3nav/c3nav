@@ -1,17 +1,12 @@
 import os
-from math import atan2, pi, degrees
 
-from PIL import Image
-from PIL import ImageDraw
 from django.conf import settings
-from kombu.utils import cached_property
-from shapely.geometry import JOIN_STYLE
-from shapely.geometry import LineString
-from shapely.geometry import MultiPolygon
-from shapely.geometry import Point
-from shapely.geometry import Polygon
+from django.utils.functional import cached_property
+from PIL import Image, ImageDraw
+from shapely.geometry import JOIN_STYLE, LineString, Polygon
 
 from c3nav.mapdata.models import Level
+from c3nav.routing.utils import get_coords_angles, polygon_to_mpl_path
 
 
 class GraphLevel():
@@ -63,38 +58,9 @@ class GraphRoom():
         self.geometry = geometry
         self.points = []
 
-    def cleanup_coords(self, coords):
-        result = []
-        last_coord = coords[-1]
-        for coord in coords:
-            if ((coord[0] - last_coord[0]) ** 2 + (coord[1] - last_coord[1]) ** 2) ** 0.5 >= 0.01:
-                result.append(coord)
-            last_coord = coord
-        return result
+        self.clear_geometry = geometry.buffer(-0.3, join_style=JOIN_STYLE.mitre)
 
-    def coord_angle(self, coord1, coord2):
-        return degrees(atan2(-(coord2[1] - coord1[1]), coord2[0] - coord1[0])) % 360
-
-    def split_coords_by_angle(self, geom):
-        coords = list(self.cleanup_coords(geom.coords))
-        last_coords = coords[-2:]
-        last_angle = self.coord_angle(last_coords[-2], last_coords[-1])
-        left = []
-        right = []
-        for coord in coords:
-            angle = self.coord_angle(last_coords[-1], coord)
-            angle_diff = (last_angle-angle) % 360
-            if angle_diff < 180:
-                left.append(last_coords[-1])
-            else:
-                right.append(last_coords[-1])
-            last_coords.append(coord)
-            last_angle = angle
-
-        if not geom.is_ccw:
-            left, right = right, left
-
-        return left, right
+        self.mpl_path = polygon_to_mpl_path(geometry)
 
     def create_points(self):
         original_geometry = self.geometry
@@ -109,14 +75,41 @@ class GraphRoom():
             polygons = geometry.geoms
 
         for polygon in polygons:
-            left, right = self.split_coords_by_angle(polygon.exterior)
-            for x, y in right:
-                self.points.append(GraphPoint(self, x, y))
+            self._add_ring(polygon.exterior, want_left=False)
 
             for interior in polygon.interiors:
-                left, right = self.split_coords_by_angle(interior)
-                for x, y in left:
-                    self.points.append(GraphPoint(self, x, y))
+                self._add_ring(interior, want_left=True)
+
+    def _add_ring(self, geom, want_left):
+        """
+        add the points of a ring, but only those that have a specific direction change.
+        additionally removes unneeded points if the neighbors can be connected in self.clear_geometry
+        :param geom: LinearRing
+        :param want_left: True if the direction has to be left, False if it has to be right
+        """
+        coords = []
+        skipped = False
+        can_delete_last = False
+        for coord, is_left in get_coords_angles(geom):
+            if is_left != want_left:
+                skipped = True
+                continue
+
+            if not skipped and can_delete_last and len(coords) >= 2:
+                if LineString((coords[-2], coord)).within(self.clear_geometry):
+                    coords[-1] = coord
+                    continue
+
+            coords.append(coord)
+            can_delete_last = not skipped
+            skipped = False
+
+        if not skipped and can_delete_last and len(coords) >= 3:
+            if LineString((coords[-2], coords[0])).within(self.clear_geometry):
+                coords.pop()
+
+        for coord in coords:
+            self.points.append(GraphPoint(self, *coord))
 
 
 class GraphPoint():
@@ -143,5 +136,3 @@ class Graph():
         for level in self.levels.values():
             level.build()
             level.draw_png()
-
-
