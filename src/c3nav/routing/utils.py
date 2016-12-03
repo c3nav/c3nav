@@ -1,6 +1,5 @@
 from math import atan2, degrees
 
-import numpy as np
 from matplotlib.path import Path
 from shapely.geometry import Polygon
 
@@ -53,26 +52,30 @@ def get_coords_angles(geom):
     return result
 
 
-def polygon_to_mpl_path(polygon):
+def polygon_to_mpl_paths(polygon):
     """
-    convert a shapely Polygon to a matplotlib Path
-    :param polygon: shapely Polygon
+    convert a shapely Polygon or Multipolygon to a matplotlib Path
+    :param polygon: shapely Polygon or Multipolygon
     :return: matplotlib Path
     """
+    paths = []
+    for polygon in assert_multipolygon(polygon):
+        paths.append(linearring_to_mpl_path(polygon.exterior))
+        for interior in polygon.interiors:
+            paths.append(linearring_to_mpl_path(interior))
+    return paths
+
+
+def linearring_to_mpl_path(linearring):
     vertices = []
     codes = []
-    _mpl_add_linearring(polygon.exterior, vertices, codes)
-    for interior in polygon.interiors:
-        _mpl_add_linearring(interior, vertices, codes)
-    return Path(np.array(vertices), codes=codes)
-
-
-def _mpl_add_linearring(linearring, vertices, codes):
     coords = list(linearring.coords)
     vertices.extend(coords)
     vertices.append(coords[0])
     codes.append(Path.MOVETO)
-    codes.extend([Path.LINETO] * len(coords))
+    codes.extend([Path.LINETO] * (len(coords)-1))
+    codes.append(Path.CLOSEPOLY)
+    return Path(vertices, codes, readonly=True)
 
 
 def assert_multipolygon(geometry):
