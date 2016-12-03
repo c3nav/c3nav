@@ -1,13 +1,15 @@
 import os
-from itertools import permutations
+from itertools import combinations, permutations
 
+import numpy as np
 from django.conf import settings
 from django.utils.functional import cached_property
+from matplotlib.path import Path
 from PIL import Image, ImageDraw
 from shapely.geometry import JOIN_STYLE, LineString, Polygon
 
 from c3nav.mapdata.models import Level
-from c3nav.routing.utils import assert_multipolygon, get_coords_angles, get_nearest_point, polygon_to_mpl_path
+from c3nav.routing.utils import assert_multipolygon, get_coords_angles, get_nearest_point, polygon_to_mpl_paths
 
 
 class GraphLevel():
@@ -24,7 +26,9 @@ class GraphLevel():
         accessibles = self.level.geometries.accessible
         accessibles = [accessibles] if isinstance(accessibles, Polygon) else accessibles.geoms
         for geometry in accessibles:
-            self.rooms.append(GraphRoom(self, geometry))
+            room = GraphRoom(self, geometry)
+            if not room.empty:
+                self.rooms.append(room)
 
     def create_points(self):
         for room in self.rooms:
@@ -44,10 +48,13 @@ class GraphLevel():
                     room.points.append(point)
 
             if len(points) < 2:
-                print('waaaah')
+                print('door with <2 rooms (%d) detected!' % len(points))
 
             for from_point, to_point in permutations(points, 2):
                 from_point.connect_to(to_point)
+
+        for room in self.rooms:
+            room.connect_points()
 
     def _ellipse_bbox(self, x, y, height):
         x *= settings.RENDER_SCALE
@@ -69,10 +76,13 @@ class GraphLevel():
         i = 0
         for room in self.rooms:
             for point in room.points:
-                i += 1
-                draw.ellipse(self._ellipse_bbox(point.x, point.y, height), (255, 0, 0))
                 for otherpoint, connection in point.connections.items():
-                    draw.line(self._line_coords(point, otherpoint, height), fill=(255, 0, 0))
+                    draw.line(self._line_coords(point, otherpoint, height), fill=(255, 100, 100))
+
+            for point in room.points:
+                i += 1
+                draw.ellipse(self._ellipse_bbox(point.x, point.y, height), (200, 0, 0))
+
         print(i, 'points')
 
         im.save(graph_filename)
@@ -85,8 +95,10 @@ class GraphRoom():
         self.points = []
 
         self.clear_geometry = geometry.buffer(-0.3, join_style=JOIN_STYLE.mitre)
+        self.empty = self.clear_geometry.is_empty
 
-        self.mpl_path = polygon_to_mpl_path(geometry)
+        if not self.empty:
+            self.mpl_paths = polygon_to_mpl_paths(self.clear_geometry.buffer(0.01, join_style=JOIN_STYLE.mitre))
 
     def create_points(self):
         original_geometry = self.geometry
@@ -110,14 +122,21 @@ class GraphRoom():
             overlaps = polygon.buffer(0.62).intersection(geometry)
             if overlaps.is_empty:
                 continue
+
+            points = []
+
+            # overlaps to non-missing areas
             overlaps = assert_multipolygon(overlaps)
             for overlap in overlaps:
-                self.points.append(GraphPoint(self, *overlap.centroid.coords[0]))
+                points.append(self.add_point(overlap.centroid.coords[0]))
 
-            self._add_ring(polygon.exterior, want_left=False)
+            points += self._add_ring(polygon.exterior, want_left=False)
 
             for interior in polygon.interiors:
-                self._add_ring(interior, want_left=True)
+                points += self._add_ring(interior, want_left=True)
+
+            for from_point, to_point in permutations(points, 2):
+                from_point.connect_to(to_point)
 
     def _add_ring(self, geom, want_left):
         """
@@ -147,8 +166,27 @@ class GraphRoom():
             if LineString((coords[-2], coords[0])).within(self.clear_geometry):
                 coords.pop()
 
+        points = []
         for coord in coords:
-            self.points.append(GraphPoint(self, *coord))
+            points.append(self.add_point(coord))
+
+        return points
+
+    def add_point(self, coord):
+        point = GraphPoint(self, *coord)
+        self.points.append(point)
+        return point
+
+    def connect_points(self):
+        room_paths = self.mpl_paths
+        for point1, point2 in combinations(self.points, 2):
+            path = Path(np.vstack((point1.xy, point2.xy)))
+            for room_path in room_paths:
+                if room_path.intersects_path(path, False):
+                    break
+            else:
+                point1.connect_to(point2)
+                point2.connect_to(point1)
 
 
 class GraphPoint():
@@ -156,6 +194,7 @@ class GraphPoint():
         self.room = room
         self.x = x
         self.y = y
+        self.xy = (x, y)
         self.connections = {}
         self.connections_in = {}
 
@@ -171,10 +210,11 @@ class GraphPoint():
 
 class GraphConnection():
     def __init__(self, graph, from_point, to_point):
-        if to_point in from_point.connections:
-            raise ValueError('already connected')
-
         self.graph = graph
+
+        if to_point in from_point.connections:
+            self.graph.connections.remove(from_point.connections[to_point])
+
         from_point.connections[to_point] = self
         to_point.connections_in[from_point] = self
 
