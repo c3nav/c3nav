@@ -96,6 +96,7 @@ class MapitemFormMixin(ModelForm):
         if 'geometry' in self.fields:
             if not self.cleaned_data.get('geometry'):
                 raise ValidationError('Missing geometry.')
+        super().clean()
 
 
 def create_editor_form(mapitemtype):
