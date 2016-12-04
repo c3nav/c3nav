@@ -184,7 +184,7 @@ class Obstacle(GeometryMapItemWithLevel):
     """
     An obstacle
     """
-    crop_to_level = models.ForeignKey('mapdata.Level', on_delete=models.CASCADE, null=True,
+    crop_to_level = models.ForeignKey('mapdata.Level', on_delete=models.CASCADE, null=True, blank=True,
                                       verbose_name=_('crop to other level'), related_name='crops_obstacles')
 
     geomtype = 'polygon'
