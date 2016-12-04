@@ -8,11 +8,11 @@ def render_all_levels():
         renderers.append(LevelRenderer(level))
 
     for renderer in renderers:
-        pass#renderer.render_base()
+        renderer.render_base()
 
     for renderer in renderers:
         if not renderer.level.intermediate:
-            pass  #renderer.render_simple()
+            renderer.render_simple()
 
     for renderer in renderers:
         if not renderer.level.intermediate:

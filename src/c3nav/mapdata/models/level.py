@@ -1,8 +1,7 @@
 from django.db import models
 from django.utils.functional import cached_property
 from django.utils.translation import ugettext_lazy as _
-from shapely.geometry import CAP_STYLE
-from shapely.geometry import JOIN_STYLE
+from shapely.geometry import CAP_STYLE, JOIN_STYLE
 from shapely.ops import cascaded_union
 
 from c3nav.mapdata.models.base import MapItem
@@ -141,11 +140,8 @@ class LevelGeometries():
 
     def get_levelconnectors(self, to_level=None):
         queryset = self.level.levelconnectors.prefetch_related('levels')
-        print(to_level)
         if to_level is not None:
             queryset = queryset.filter(levels=to_level)
-        for item in queryset:
-            print(item.levels)
         return cascaded_union([levelconnector.geometry for levelconnector in queryset])
 
     @cached_property
