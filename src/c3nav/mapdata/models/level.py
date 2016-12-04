@@ -176,3 +176,12 @@ class LevelGeometries():
         if to_level is not None:
             shadows = shadows.intersection(to_level.geometries.accessible)
         return shadows
+
+    def hole_shadows(self):
+        holes = self.holes.buffer(0.1, join_style=JOIN_STYLE.mitre)
+        shadows = holes.difference(self.holes.buffer(-0.3, join_style=JOIN_STYLE.mitre))
+        qs = self.level.levelconnectors.prefetch_related('levels').filter(levels__altitude__lt=self.level.altitude)
+        print(self.level.name, qs)
+        connectors = cascaded_union([levelconnector.geometry for levelconnector in qs])
+        shadows = shadows.difference(connectors.buffer(0.3, join_style=JOIN_STYLE.mitre))
+        return shadows
