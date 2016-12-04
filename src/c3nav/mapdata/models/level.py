@@ -1,11 +1,10 @@
 from django.db import models
 from django.utils.functional import cached_property
 from django.utils.translation import ugettext_lazy as _
-from shapely.geometry import CAP_STYLE, JOIN_STYLE
+from shapely.geometry import JOIN_STYLE
 from shapely.ops import cascaded_union
 
 from c3nav.mapdata.models.base import MapItem
-from c3nav.mapdata.utils import assert_multipolygon
 
 
 class Level(MapItem):
@@ -149,15 +148,4 @@ class LevelGeometries():
         return self.get_levelconnectors()
 
     def intermediate_shadows(self, to_level=None):
-        rings = []
-        for polygon in assert_multipolygon(self.buildings):
-            rings.append(polygon.exterior)
-            rings.extend(polygon.interiors)
-
-        objects = []
-        levelconnectors = self.get_levelconnectors(to_level)
-        for ring in rings:
-            objects.append(ring.difference(levelconnectors))
-        lines = cascaded_union(objects)
-
-        return lines.buffer(0.1, cap_style=CAP_STYLE.flat, join_style=JOIN_STYLE.mitre)
+        return self.buildings.difference(self.get_levelconnectors(to_level))
