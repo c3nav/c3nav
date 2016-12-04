@@ -171,4 +171,8 @@ class LevelGeometries():
         return self.get_levelconnectors()
 
     def intermediate_shadows(self, to_level=None):
-        return self.buildings.difference(self.get_levelconnectors(to_level))
+        shadows = self.buildings.buffer(0.3, join_style=JOIN_STYLE.mitre)
+        shadows = shadows.difference(self.get_levelconnectors(to_level).buffer(0.5, join_style=JOIN_STYLE.mitre))
+        if to_level is not None:
+            shadows = shadows.intersection(to_level.geometries.accessible)
+        return shadows
