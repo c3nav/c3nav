@@ -145,6 +145,10 @@ class LevelGeometries():
         return self.buildings.difference(self.holes)
 
     @cached_property
+    def outsides_with_holes(self):
+        return self.outsides.difference(self.holes)
+
+    @cached_property
     def areas_and_doors(self):
         return cascaded_union([self.areas, self.raw_doors])
 
