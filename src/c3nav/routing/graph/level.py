@@ -53,6 +53,24 @@ class GraphLevel():
             for from_point, to_point in permutations(points, 2):
                 from_point.connect_to(to_point)
 
+        levelconnectors = self.level.geometries.levelconnectors
+        levelconnectors = assert_multipolygon(levelconnectors)
+        for levelconnector in self.level.levelconnectors.all():
+            polygon = levelconnector.geometry
+            center = polygon.centroid
+
+            for room in self.rooms:
+                if not polygon.intersects(room.geometry):
+                    continue
+
+                point = center
+                if not point.within(room.clear_geometry):
+                    point = get_nearest_point(room.clear_geometry, point)
+
+                point = GraphPoint(room, *point.coords[0])
+                room.points.append(point)
+                self.graph.add_levelconnector_point(levelconnector, point)
+
         for room in self.rooms:
             room.connect_points()
 
