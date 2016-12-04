@@ -33,6 +33,8 @@ def get_coords_angles(geom):
     :rtype: a list of ((x, y), is_left) tuples
     """
     coords = list(cleanup_coords(geom.coords))
+    if len(coords) < 3:
+        return []
     last_coords = coords[-2:]
     last_angle = coord_angle(last_coords[-2], last_coords[-1])
     result = []

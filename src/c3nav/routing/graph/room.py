@@ -38,10 +38,11 @@ class GraphRoom():
                 self._add_ring(interior, want_left=True)
 
         # now fill in missing doorways or similar
-        missing_geometry = self.clear_geometry.difference(geometry.buffer(0.61, join_style=JOIN_STYLE.mitre))
+        accessible_clear_geometry = geometry.buffer(0.31, join_style=JOIN_STYLE.mitre)
+        missing_geometry = self.clear_geometry.difference(accessible_clear_geometry)
         polygons = assert_multipolygon(missing_geometry)
         for polygon in polygons:
-            overlaps = polygon.buffer(0.62).intersection(geometry)
+            overlaps = polygon.buffer(0.02).intersection(accessible_clear_geometry)
             if overlaps.is_empty:
                 continue
 
