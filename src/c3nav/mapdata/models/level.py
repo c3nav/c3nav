@@ -174,9 +174,8 @@ class LevelGeometries():
     def intermediate_shadows(self):
         qs = self.level.levelconnectors.prefetch_related('levels').filter(levels__altitude__lt=self.level.altitude)
         connectors = cascaded_union([levelconnector.geometry for levelconnector in qs])
-
-        shadows = self.buildings.difference(connectors.buffer(0.3, join_style=JOIN_STYLE.mitre))
-        shadows = shadows.buffer(0.3, join_style=JOIN_STYLE.mitre)
+        shadows = self.buildings.difference(connectors.buffer(0.4, join_style=JOIN_STYLE.mitre))
+        shadows = shadows.buffer(0.3)
         return shadows
 
     @cached_property

@@ -197,9 +197,8 @@ class LevelRenderer():
             higher.append(level)
 
         contents = self.add_svg_content(svg)
-        accessible = self.level.geometries.accessible
         for level in higher:
-            contents.append(self.polygon_svg(level.geometries.intermediate_shadows.intersection(accessible),
+            contents.append(self.polygon_svg(level.geometries.intermediate_shadows,
                                              fill_color='#000000',
                                              fill_opacity=0.05))
 
