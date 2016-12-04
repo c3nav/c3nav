@@ -252,11 +252,13 @@ editor = {
         if (geometry_field.length) {
             var form = geometry_field.closest('form');
             var mapitem_type = form.attr('data-mapitem-type');
-            if (form.is('[data-name]')) {
+            if (geometry_field.val() != '') {
                 // edit existing geometry
-                var name = form.attr('data-name');
-                var pk = mapitem_type+'-'+name;
-                editor._geometries_layer.removeLayer(editor._geometries[pk]);
+                if (form.is('[data-name]')) {
+                    var name = form.attr('data-name');
+                    var pk = mapitem_type+'-'+name;
+                    editor._geometries_layer.removeLayer(editor._geometries[pk]);
+                }
 
                 editor._editing = L.geoJSON({
                     type: 'Feature',
