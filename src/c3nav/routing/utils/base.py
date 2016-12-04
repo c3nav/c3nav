@@ -1,17 +1,6 @@
 from shapely.geometry import Polygon
 
-
-def assert_multipolygon(geometry):
-    """
-    given a Polygon or a MultiPolygon, return a list of Polygons
-    :param geometry: a Polygon or a MultiPolygon
-    :return: a list of Polygons
-    """
-    if isinstance(geometry, Polygon):
-        polygons = [geometry]
-    else:
-        polygons = geometry.geoms
-    return polygons
+from c3nav.mapdata.utils import assert_multipolygon
 
 
 def get_nearest_point(polygon, point):

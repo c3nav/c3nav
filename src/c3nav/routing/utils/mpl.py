@@ -1,6 +1,6 @@
 from matplotlib.path import Path
 
-from c3nav.routing.utils.base import assert_multipolygon
+from c3nav.mapdata.utils import assert_multipolygon
 
 
 def polygon_to_mpl_paths(polygon):
