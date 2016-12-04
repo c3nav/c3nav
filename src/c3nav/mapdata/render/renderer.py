@@ -174,6 +174,11 @@ class LevelRenderer():
                 break
             higher.append(level)
 
+        contents = self.add_svg_content(svg)
+        for level in higher:
+            contents.append(self.polygon_svg(level.geometries.intermediate_shadows(to_level=self.level),
+                                             fill_color='#9E9E9E'))
+
         for level in higher:
             self.add_svg_image(svg, 'file://'+get_render_path('level-%s.base.png' % level.name))
 

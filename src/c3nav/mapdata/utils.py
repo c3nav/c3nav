@@ -65,3 +65,16 @@ def clean_geometry(geometry):
             return p
 
     return geometry
+
+
+def assert_multipolygon(geometry):
+    """
+    given a Polygon or a MultiPolygon, return a list of Polygons
+    :param geometry: a Polygon or a MultiPolygon
+    :return: a list of Polygons
+    """
+    if isinstance(geometry, Polygon):
+        polygons = [geometry]
+    else:
+        polygons = geometry.geoms
+    return polygons

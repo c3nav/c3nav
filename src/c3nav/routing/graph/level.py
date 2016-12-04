@@ -7,7 +7,8 @@ from shapely.geometry import JOIN_STYLE, Polygon
 
 from c3nav.routing.graph.point import GraphPoint
 from c3nav.routing.graph.room import GraphRoom
-from c3nav.routing.utils.base import assert_multipolygon, get_nearest_point
+from c3nav.routing.utils.base import get_nearest_point
+from c3nav.mapdata.utils import assert_multipolygon
 from c3nav.routing.utils.draw import _ellipse_bbox, _line_coords
 
 
