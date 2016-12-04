@@ -3,7 +3,7 @@ from itertools import permutations
 
 from django.conf import settings
 from PIL import Image, ImageDraw
-from shapely.geometry import JOIN_STYLE, Polygon
+from shapely.geometry import JOIN_STYLE
 
 from c3nav.mapdata.utils import assert_multipolygon
 from c3nav.routing.graph.point import GraphPoint
@@ -24,7 +24,7 @@ class GraphLevel():
 
     def collect_rooms(self):
         accessibles = self.level.geometries.accessible
-        accessibles = [accessibles] if isinstance(accessibles, Polygon) else accessibles.geoms
+        accessibles = assert_multipolygon(accessibles)
         for geometry in accessibles:
             room = GraphRoom(self, geometry)
             if not room.empty:
@@ -57,8 +57,8 @@ class GraphLevel():
             room.connect_points()
 
     def draw_png(self):
-        filename = os.path.join(settings.RENDER_ROOT, 'level-%s.png' % self.level.name)
-        graph_filename = os.path.join(settings.RENDER_ROOT, 'level-%s-graph.png' % self.level.name)
+        filename = os.path.join(settings.RENDER_ROOT, 'level-%s.base.png' % self.level.name)
+        graph_filename = os.path.join(settings.RENDER_ROOT, 'level-%s.graph.png' % self.level.name)
 
         im = Image.open(filename)
         height = im.size[1]
