@@ -172,6 +172,11 @@ class LevelRenderer():
         for level in lower:
             self.add_svg_image(svg, 'file://'+get_render_path('level-%s.base.png' % level.name))
 
+        contents = self.add_svg_content(svg)
+        contents.append(self.polygon_svg(self.level.geometries.hole_shadows(),
+                                         fill_color='#000000',
+                                         fill_opacity=0.1))
+
         filename = get_render_path('level-%s.simple.svg' % self.level.name)
         with open(filename, 'w') as f:
             f.write(ET.tostring(svg).decode())
@@ -195,7 +200,7 @@ class LevelRenderer():
         for level in higher:
             contents.append(self.polygon_svg(level.geometries.intermediate_shadows(to_level=self.level),
                                              fill_color='#000000',
-                                             fill_opacity=0.05))
+                                             fill_opacity=0.1))
 
         for level in higher:
             self.add_svg_image(svg, 'file://'+get_render_path('level-%s.base.png' % level.name))
