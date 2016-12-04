@@ -274,6 +274,7 @@ editor = {
                 editor._editing.enableEdit();
             } else if (form.is('[data-geomtype]')) {
                 // create new geometry
+                form.addClass('creation-lock');
                 var geomtype = form.attr('data-geomtype');
 
                 var options = editor._get_mapitem_type_style(mapitem_type);
@@ -326,6 +327,7 @@ editor = {
             editor._editing.addTo(editor._editing_layer);
             editor._editing.on('click', editor._click_editing_layer);
             editor._update_editing();
+            $('#mapeditcontrols').find('form.creation-lock').removeClass('creation-lock');
         }
     },
     _update_editing: function () {
