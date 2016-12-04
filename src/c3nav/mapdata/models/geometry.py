@@ -95,7 +95,7 @@ class GeometryMapItemWithLevel(GeometryMapItem):
 
     def get_geojson_properties(self):
         result = super().get_geojson_properties()
-        result['level'] = float(self.level.name)
+        result['level'] = self.level.name
         return result
 
     def tofile(self):
@@ -103,6 +103,42 @@ class GeometryMapItemWithLevel(GeometryMapItem):
         result['level'] = self.level.name
         result.move_to_end('geometry')
         return result
+
+
+class Building(GeometryMapItemWithLevel):
+    """
+    The outline of a building on a specific level
+    """
+    geomtype = 'polygon'
+
+    class Meta:
+        verbose_name = _('Building')
+        verbose_name_plural = _('Buildings')
+        default_related_name = 'buildings'
+
+
+class Room(GeometryMapItemWithLevel):
+    """
+    An accessible area like a room. Can overlap.
+    """
+    geomtype = 'polygon'
+
+    class Meta:
+        verbose_name = _('Room')
+        verbose_name_plural = _('Rooms')
+        default_related_name = 'rooms'
+
+
+class Outside(GeometryMapItemWithLevel):
+    """
+    An accessible outdoor area like a court. Can overlap.
+    """
+    geomtype = 'polygon'
+
+    class Meta:
+        verbose_name = _('Outside Area')
+        verbose_name_plural = _('Outside Areas')
+        default_related_name = 'outsides'
 
 
 class LevelConnector(GeometryMapItem):
@@ -142,42 +178,6 @@ class LevelConnector(GeometryMapItem):
         result['levels'] = sorted(self.levels.all().order_by('name').values_list('name', flat=True))
         result.move_to_end('geometry')
         return result
-
-
-class Building(GeometryMapItemWithLevel):
-    """
-    The outline of a building on a specific level
-    """
-    geomtype = 'polygon'
-
-    class Meta:
-        verbose_name = _('Building')
-        verbose_name_plural = _('Buildings')
-        default_related_name = 'buildings'
-
-
-class Room(GeometryMapItemWithLevel):
-    """
-    An accessible area like a room. Can overlap.
-    """
-    geomtype = 'polygon'
-
-    class Meta:
-        verbose_name = _('Room')
-        verbose_name_plural = _('Rooms')
-        default_related_name = 'rooms'
-
-
-class Outside(GeometryMapItemWithLevel):
-    """
-    An accessible outdoor area like a court. Can overlap.
-    """
-    geomtype = 'polygon'
-
-    class Meta:
-        verbose_name = _('Outside Area')
-        verbose_name_plural = _('Outside Areas')
-        default_related_name = 'outsides'
 
 
 class Obstacle(GeometryMapItemWithLevel):

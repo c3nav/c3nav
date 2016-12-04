@@ -20,6 +20,12 @@
                 {% if has_levels %}
                     <td>{% for level in item.levels.all %}{% if not forloop.first %}, {% endif %}<a href="" data-level-link="{{ level.name }}">{{ level.name }}</a>{% endfor %}</td>
                 {% endif %}
+                {% if has_altitude %}
+                    <td>{{ item.altitude }} m</td>
+                {% endif %}
+                {% if has_intermediate %}
+                    <td>{% if item.intermediate %}intermediate{% endif %}</td>
+                {% endif %}
                 <td><a href="{% url 'editor.mapitems.edit' mapitem_type=mapitem_type name=item.name %}">Edit</a></td>
             </tr>
         {% endfor %}
