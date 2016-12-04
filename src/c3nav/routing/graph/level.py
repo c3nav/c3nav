@@ -53,8 +53,6 @@ class GraphLevel():
             for from_point, to_point in permutations(points, 2):
                 from_point.connect_to(to_point)
 
-        levelconnectors = self.level.geometries.levelconnectors
-        levelconnectors = assert_multipolygon(levelconnectors)
         for levelconnector in self.level.levelconnectors.all():
             polygon = levelconnector.geometry
             center = polygon.centroid
