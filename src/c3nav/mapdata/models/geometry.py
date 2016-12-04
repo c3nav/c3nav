@@ -184,7 +184,8 @@ class Obstacle(GeometryMapItemWithLevel):
     """
     An obstacle
     """
-    height = models.DecimalField(_('height of the obstacle'), null=True, max_digits=4, decimal_places=2)
+    crop_to_level = models.ForeignKey('mapdata.Level', on_delete=models.CASCADE, null=True,
+                                      verbose_name=_('crop to other level'), related_name='crops_obstacles')
 
     geomtype = 'polygon'
 
@@ -193,26 +194,25 @@ class Obstacle(GeometryMapItemWithLevel):
         verbose_name_plural = _('Obstacles')
         default_related_name = 'obstacles'
 
-    def get_geojson_properties(self):
-        result = super().get_geojson_properties()
-        result['height'] = float(self.height)
-        return result
-
     @classmethod
     def fromfile(cls, data, file_path):
         kwargs = super().fromfile(data, file_path)
 
-        if 'height' in data:
-            if not isinstance(data['height'], (int, float)):
-                raise ValueError('altitude has to be int or float.')
-            kwargs['height'] = data['height']
+        if 'crop_to_level' in data:
+            kwargs['crop_to_level'] = data['crop_to_level']
 
         return kwargs
 
+    def get_geojson_properties(self):
+        result = super().get_geojson_properties()
+        if self.crop_to_level is not None:
+            result['crop_to_level'] = self.crop_to_level.name
+        return result
+
     def tofile(self):
         result = super().tofile()
-        if self.height is not None:
-            result['height'] = float(self.height)
+        if self.crop_to_level is not None:
+            result['crop_to_level'] = self.crop_to_level.name
         return result
 
 

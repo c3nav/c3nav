@@ -147,6 +147,7 @@ class ReaderItem:
 
     relations = {
         'level': Level,
+        'crop_to_level': Level,
         'elevator': Elevator,
     }
 
