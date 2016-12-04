@@ -91,7 +91,7 @@ class LevelRenderer():
         })
         svg.append(contents)
 
-    def render_base(self, png=True):
+    def render_base(self, png=True, show_accessibles=False):
         svg = self.create_svg()
         contents = self.add_svg_content(svg)
 
@@ -110,6 +110,23 @@ class LevelRenderer():
         contents.append(self.polygon_svg(self.level.geometries.walls_shadow,
                                          fill_color='#000000',
                                          fill_opacity=0.06))
+
+        if show_accessibles:
+            main_geometry = self.level.geometries.accessible.buffer(-0.6, join_style=JOIN_STYLE.mitre)
+            clear_geometry = self.level.geometries.accessible.buffer(-0.3, join_style=JOIN_STYLE.mitre)
+            missing_geometry = clear_geometry.difference(main_geometry.buffer(0.31, join_style=JOIN_STYLE.mitre))
+
+            contents.append(self.polygon_svg(clear_geometry,
+                                             fill_color='#FFFF00',
+                                             fill_opacity=0.5))
+
+            contents.append(self.polygon_svg(main_geometry,
+                                             fill_color='#009900',
+                                             fill_opacity=0.5))
+
+            contents.append(self.polygon_svg(missing_geometry,
+                                             fill_color='#FF9900',
+                                             fill_opacity=0.5))
 
         contents.append(self.polygon_svg(self.level.geometries.elevatorlevels,
                                          fill_color='#9EF8FB'))
