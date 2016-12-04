@@ -190,5 +190,5 @@ class LevelGeometries():
         qs = self.level.levelconnectors.prefetch_related('levels').filter(levels__altitude__lt=self.level.altitude)
         connectors = cascaded_union([levelconnector.geometry for levelconnector in qs])
 
-        shadows = shadows.difference(connectors.buffer(0.3, join_style=JOIN_STYLE.mitre))
+        shadows = shadows.difference(connectors.buffer(1.0, join_style=JOIN_STYLE.mitre))
         return shadows
