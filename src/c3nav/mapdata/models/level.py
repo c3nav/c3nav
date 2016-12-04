@@ -168,20 +168,24 @@ class LevelGeometries():
 
     @cached_property
     def levelconnectors(self):
-        return self.get_levelconnectors()
+        return cascaded_union([levelconnector.geometry for levelconnector in self.level.levelconnectors])
 
-    def intermediate_shadows(self, to_level=None):
-        shadows = self.buildings.buffer(0.3, join_style=JOIN_STYLE.mitre)
-        shadows = shadows.difference(self.get_levelconnectors(to_level).buffer(0.5, join_style=JOIN_STYLE.mitre))
-        if to_level is not None:
-            shadows = shadows.intersection(to_level.geometries.accessible)
+    @cached_property
+    def intermediate_shadows(self):
+        qs = self.level.levelconnectors.prefetch_related('levels').filter(levels__altitude__lt=self.level.altitude)
+        connectors = cascaded_union([levelconnector.geometry for levelconnector in qs])
+
+        shadows = self.buildings.difference(connectors.buffer(0.3, join_style=JOIN_STYLE.mitre))
+        shadows = shadows.buffer(0.3, join_style=JOIN_STYLE.mitre)
         return shadows
 
+    @cached_property
     def hole_shadows(self):
         holes = self.holes.buffer(0.1, join_style=JOIN_STYLE.mitre)
         shadows = holes.difference(self.holes.buffer(-0.3, join_style=JOIN_STYLE.mitre))
+
         qs = self.level.levelconnectors.prefetch_related('levels').filter(levels__altitude__lt=self.level.altitude)
-        print(self.level.name, qs)
         connectors = cascaded_union([levelconnector.geometry for levelconnector in qs])
+
         shadows = shadows.difference(connectors.buffer(0.3, join_style=JOIN_STYLE.mitre))
         return shadows

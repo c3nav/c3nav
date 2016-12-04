@@ -173,7 +173,7 @@ class LevelRenderer():
             self.add_svg_image(svg, 'file://'+get_render_path('level-%s.base.png' % level.name))
 
         contents = self.add_svg_content(svg)
-        contents.append(self.polygon_svg(self.level.geometries.hole_shadows(),
+        contents.append(self.polygon_svg(self.level.geometries.hole_shadows,
                                          fill_color='#000000',
                                          fill_opacity=0.1))
 
@@ -197,10 +197,11 @@ class LevelRenderer():
             higher.append(level)
 
         contents = self.add_svg_content(svg)
+        accessible = self.level.geometries.accessible
         for level in higher:
-            contents.append(self.polygon_svg(level.geometries.intermediate_shadows(to_level=self.level),
+            contents.append(self.polygon_svg(level.geometries.intermediate_shadows.intersection(accessible),
                                              fill_color='#000000',
-                                             fill_opacity=0.1))
+                                             fill_opacity=0.05))
 
         for level in higher:
             self.add_svg_image(svg, 'file://'+get_render_path('level-%s.base.png' % level.name))
