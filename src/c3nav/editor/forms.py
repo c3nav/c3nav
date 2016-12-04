@@ -51,6 +51,13 @@ class MapitemFormMixin(ModelForm):
             if not creating:
                 self.initial['level'] = self.instance.level.name
 
+        if 'crop_to_level' in self.fields:
+            # set field_name
+            self.fields['crop_to_level'].to_field_name = 'name'
+            if not creating and self.instance.crop_to_level is not None:
+                self.initial['crop_to_level'] = self.instance.crop_to_level.name
+            self.fields['crop_to_level'].queryset = self.fields['crop_to_level'].queryset.order_by('altitude')
+
         if 'levels' in self.fields:
             # set field_name
             self.fields['levels'].to_field_name = 'name'
@@ -93,7 +100,7 @@ class MapitemFormMixin(ModelForm):
 
 def create_editor_form(mapitemtype):
     possible_fields = ['name', 'package', 'altitude', 'level', 'intermediate', 'levels', 'geometry',
-                       'height', 'elevator', 'button']
+                       'elevator', 'button', 'crop_to_level']
     existing_fields = [field for field in possible_fields if hasattr(mapitemtype, field)]
 
     class EditorForm(MapitemFormMixin, ModelForm):
