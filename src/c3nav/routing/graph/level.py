@@ -74,7 +74,7 @@ class GraphLevel():
         for room in self.rooms:
             room.connect_points()
 
-    def draw_png(self):
+    def draw_png(self, points=True, lines=True):
         filename = os.path.join(settings.RENDER_ROOT, 'level-%s.base.png' % self.level.name)
         graph_filename = os.path.join(settings.RENDER_ROOT, 'level-%s.graph.png' % self.level.name)
 
@@ -83,14 +83,17 @@ class GraphLevel():
         draw = ImageDraw.Draw(im)
         i = 0
         for room in self.rooms:
-            for point in room.points:
-                for otherpoint, connection in point.connections.items():
-                    draw.line(_line_coords(point, otherpoint, height), fill=(255, 100, 100))
+            if lines:
+                for point in room.points:
+                    for otherpoint, connection in point.connections.items():
+                        draw.line(_line_coords(point, otherpoint, height), fill=(255, 100, 100))
 
-            for point in room.points:
-                i += 1
-                draw.ellipse(_ellipse_bbox(point.x, point.y, height), (200, 0, 0))
+            if points:
+                for point in room.points:
+                    i += 1
+                    draw.ellipse(_ellipse_bbox(point.x, point.y, height), (200, 0, 0))
 
-        print(i, 'points')
+        if points:
+            print('level %s: %d points' % (self.level.name, i))
 
         im.save(graph_filename)

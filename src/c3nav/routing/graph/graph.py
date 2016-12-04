@@ -8,20 +8,21 @@ from c3nav.routing.graph.level import GraphLevel
 class Graph():
     def __init__(self):
         self.levels = {}
+        for level in Level.objects.all():
+            self.levels[level.name] = GraphLevel(self, level)
+
         self.connections = []
         self.levelconnector_points = {}
 
     def build(self):
-        for level in Level.objects.all():
-            self.levels[level.name] = GraphLevel(self, level)
-
         for level in self.levels.values():
             level.build()
 
         self.connect_levelconnectors()
 
+    def draw_pngs(self, points=True, lines=True):
         for level in self.levels.values():
-            level.draw_png()
+            level.draw_png(points=points, lines=lines)
 
     def add_levelconnector_point(self, levelconnector, point):
         self.levelconnector_points.setdefault(levelconnector.name, []).append(point)
