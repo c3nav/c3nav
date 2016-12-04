@@ -102,7 +102,7 @@ class LevelRenderer():
                                              fill_color='#000000'))
 
         contents.append(self.polygon_svg(self.level.geometries.buildings_with_holes,
-                                         fill_color='#D5D5D5'))
+                                         fill_color=('#EBEBEB' if self.level.intermediate else '#D5D5D5')))
 
         contents.append(self.polygon_svg(self.level.geometries.outsides,
                                          fill_color='#DCE6DC'))
