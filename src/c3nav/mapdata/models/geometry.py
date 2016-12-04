@@ -141,6 +141,42 @@ class Outside(GeometryMapItemWithLevel):
         default_related_name = 'outsides'
 
 
+class Obstacle(GeometryMapItemWithLevel):
+    """
+    An obstacle
+    """
+    crop_to_level = models.ForeignKey('mapdata.Level', on_delete=models.CASCADE, null=True, blank=True,
+                                      verbose_name=_('crop to other level'), related_name='crops_obstacles')
+
+    geomtype = 'polygon'
+
+    class Meta:
+        verbose_name = _('Obstacle')
+        verbose_name_plural = _('Obstacles')
+        default_related_name = 'obstacles'
+
+    @classmethod
+    def fromfile(cls, data, file_path):
+        kwargs = super().fromfile(data, file_path)
+
+        if 'crop_to_level' in data:
+            kwargs['crop_to_level'] = data['crop_to_level']
+
+        return kwargs
+
+    def get_geojson_properties(self):
+        result = super().get_geojson_properties()
+        if self.crop_to_level is not None:
+            result['crop_to_level'] = self.crop_to_level.name
+        return result
+
+    def tofile(self):
+        result = super().tofile()
+        if self.crop_to_level is not None:
+            result['crop_to_level'] = self.crop_to_level.name
+        return result
+
+
 class LevelConnector(GeometryMapItem):
     """
     A connector connecting levels
@@ -177,42 +213,6 @@ class LevelConnector(GeometryMapItem):
         result = super().tofile()
         result['levels'] = sorted(self.levels.all().order_by('name').values_list('name', flat=True))
         result.move_to_end('geometry')
-        return result
-
-
-class Obstacle(GeometryMapItemWithLevel):
-    """
-    An obstacle
-    """
-    crop_to_level = models.ForeignKey('mapdata.Level', on_delete=models.CASCADE, null=True, blank=True,
-                                      verbose_name=_('crop to other level'), related_name='crops_obstacles')
-
-    geomtype = 'polygon'
-
-    class Meta:
-        verbose_name = _('Obstacle')
-        verbose_name_plural = _('Obstacles')
-        default_related_name = 'obstacles'
-
-    @classmethod
-    def fromfile(cls, data, file_path):
-        kwargs = super().fromfile(data, file_path)
-
-        if 'crop_to_level' in data:
-            kwargs['crop_to_level'] = data['crop_to_level']
-
-        return kwargs
-
-    def get_geojson_properties(self):
-        result = super().get_geojson_properties()
-        if self.crop_to_level is not None:
-            result['crop_to_level'] = self.crop_to_level.name
-        return result
-
-    def tofile(self):
-        result = super().tofile()
-        if self.crop_to_level is not None:
-            result['crop_to_level'] = self.crop_to_level.name
         return result
 
 
