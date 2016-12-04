@@ -49,11 +49,20 @@ class Level(MapItem):
 
         kwargs['altitude'] = data['altitude']
 
+        if 'intermediate' not in data:
+            raise ValueError('missing intermediate.')
+
+        if not isinstance(data['intermediate'], bool):
+            raise ValueError('intermediate has to be boolean.')
+
+        kwargs['intermediate'] = data['intermediate']
+
         return kwargs
 
     def tofile(self):
         result = super().tofile()
         result['altitude'] = float(self.altitude)
+        result['intermediate'] = self.intermediate
         return result
 
     def __str__(self):
