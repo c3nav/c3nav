@@ -14,6 +14,7 @@ class Level(MapItem):
     name = models.SlugField(_('level name'), unique=True, max_length=50,
                             help_text=_('Usually just an integer (e.g. -1, 0, 1, 2)'))
     altitude = models.DecimalField(_('level altitude'), null=True, max_digits=6, decimal_places=2)
+    intermediate = models.BooleanField(_('intermediate level'))
 
     class Meta:
         verbose_name = _('Level')
@@ -22,10 +23,19 @@ class Level(MapItem):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.geometries = LevelGeometries(self)
+
+    @cached_property
+    def geometries(self):
+        return LevelGeometries.by_level(self)
 
     def tofilename(self):
         return 'levels/%s.json' % self.name
+
+    def lower(self):
+        return Level.objects.filter(altitude__lt=self.altitude).order_by('altitude')
+
+    def higher(self):
+        return Level.objects.filter(altitude__gt=self.altitude).order_by('altitude')
 
     @classmethod
     def fromfile(cls, data, file_path):
@@ -51,16 +61,29 @@ class Level(MapItem):
 
 
 class LevelGeometries():
+    by_level_name = {}
+
+    @classmethod
+    def by_level(cls, level):
+        return cls.by_level_name.setdefault(level.name, cls(level))
+
     def __init__(self, level):
         self.level = level
 
     @cached_property
+    def raw_rooms(self):
+        return cascaded_union([room.geometry for room in self.level.rooms.all()])
+
+    @cached_property
     def buildings(self):
-        return cascaded_union([building.geometry for building in self.level.buildings.all()])
+        result = cascaded_union([building.geometry for building in self.level.buildings.all()])
+        if self.level.intermediate:
+            result = cascaded_union([result, self.raw_rooms])
+        return result
 
     @cached_property
     def rooms(self):
-        return cascaded_union([room.geometry for room in self.level.rooms.all()]).intersection(self.buildings)
+        return self.raw_rooms.intersection(self.buildings)
 
     @cached_property
     def outsides(self):
@@ -72,7 +95,7 @@ class LevelGeometries():
 
     @cached_property
     def obstacles(self):
-        return cascaded_union([obstacle.geometry for obstacle in self.level.obstacles.all()])
+        return cascaded_union([obstacle.geometry for obstacle in self.level.obstacles.all()]).intersection(self.mapped)
 
     @cached_property
     def raw_doors(self):

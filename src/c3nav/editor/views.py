@@ -47,7 +47,7 @@ def list_mapitems(request, mapitem_type, level=None):
     elif not has_level and level is not None:
         return redirect('editor.mapitems', mapitem_type=mapitem_type)
 
-    queryset = mapitemtype.objects.all()
+    queryset = mapitemtype.objects.all().order_by('name')
     if level is not None:
         if hasattr(mapitemtype, 'level'):
             queryset = queryset.filter(level__name=level)
@@ -60,6 +60,8 @@ def list_mapitems(request, mapitem_type, level=None):
         'has_level': level is not None,
         'has_elevator': hasattr(mapitemtype, 'elevator'),
         'has_levels': hasattr(mapitemtype, 'levels'),
+        'has_altitude': hasattr(mapitemtype, 'altitude'),
+        'has_intermediate': hasattr(mapitemtype, 'intermediate'),
         'level': level,
         'items': filter_queryset_by_package_access(request, queryset),
     })

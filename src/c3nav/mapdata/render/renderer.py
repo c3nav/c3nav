@@ -5,8 +5,21 @@ import xml.etree.ElementTree as ET
 from django.conf import settings
 from django.db.models import Max, Min
 from shapely.affinity import scale
+from shapely.geometry import JOIN_STYLE, box
 
 from c3nav.mapdata.models import Package
+
+
+def get_render_path(filename):
+    return os.path.join(settings.RENDER_ROOT, filename)
+
+
+def get_dimensions():
+    aggregate = Package.objects.all().aggregate(Max('right'), Min('left'), Max('top'), Min('bottom'))
+    return (
+        float(aggregate['right__max'] - aggregate['left__min']),
+        float(aggregate['top__max'] - aggregate['bottom__min']),
+    )
 
 
 class LevelRenderer():
@@ -15,11 +28,8 @@ class LevelRenderer():
 
     @staticmethod
     def get_dimensions():
-        aggregate = Package.objects.all().aggregate(Max('right'), Min('left'), Max('top'), Min('bottom'))
-        return (
-            float(aggregate['right__max'] - aggregate['left__min']) * settings.RENDER_SCALE,
-            float(aggregate['top__max'] - aggregate['bottom__min']) * settings.RENDER_SCALE
-        )
+        width, height = get_dimensions()
+        return (width * settings.RENDER_SCALE, height * settings.RENDER_SCALE)
 
     @staticmethod
     def polygon_svg(geometry, fill_color=None, fill_opacity=None, stroke_width=0.0, stroke_color=None, filter=None):
@@ -51,20 +61,45 @@ class LevelRenderer():
 
         return element
 
-    def get_svg(self):
+    def create_svg(self):
         width, height = self.get_dimensions()
-
         svg = ET.Element('svg', {
             'width': str(width),
             'height': str(height),
             'xmlns:svg': 'http://www.w3.org/2000/svg',
             'xmlns': 'http://www.w3.org/2000/svg',
+            'xmlns:xlink': 'http://www.w3.org/1999/xlink',
         })
+        return svg
 
+    def add_svg_content(self, svg):
+        width, height = self.get_dimensions()
         contents = ET.Element('g', {
             'transform': 'scale(1 -1) translate(0 -%d)' % (height),
         })
         svg.append(contents)
+        return contents
+
+    def add_svg_image(self, svg, image):
+        width, height = self.get_dimensions()
+        contents = ET.Element('image', {
+            'x': '0',
+            'y': '0',
+            'width': str(width),
+            'height': str(height),
+            'xlink:href': image
+        })
+        svg.append(contents)
+
+    def render_base(self, png=True):
+        svg = self.create_svg()
+        contents = self.add_svg_content(svg)
+
+        if not self.level.intermediate:
+            width, height = get_dimensions()
+            holes = self.level.geometries.holes.buffer(0.1, join_style=JOIN_STYLE.mitre)
+            contents.append(self.polygon_svg(box(0, 0, width, height).difference(holes),
+                                             fill_color='#000000'))
 
         contents.append(self.polygon_svg(self.level.geometries.buildings_with_holes,
                                          fill_color='#D5D5D5'))
@@ -94,18 +129,58 @@ class LevelRenderer():
                                          stroke_color='#3c3c3c',
                                          stroke_width=0.05))
 
-        return ET.tostring(svg).decode()
-
-    def _get_render_path(self, filename):
-        return os.path.join(settings.RENDER_ROOT, filename)
-
-    def write_svg(self):
-        filename = self._get_render_path('level-%s.svg' % self.level.name)
+        filename = get_render_path('level-%s.base.svg' % self.level.name)
         with open(filename, 'w') as f:
-            f.write(self.get_svg())
-        return filename
+            f.write(ET.tostring(svg).decode())
 
-    def render_png(self):
-        svg_filename = self.write_svg()
-        filename = self._get_render_path('level-%s.png' % self.level.name)
-        subprocess.call(['rsvg-convert', svg_filename, '-o', filename])
+        if png:
+            png_filename = get_render_path('level-%s.base.png' % self.level.name)
+            subprocess.call(['rsvg-convert', filename, '-o', png_filename])
+
+    def render_simple(self, png=True):
+        svg = self.create_svg()
+
+        lower = []
+        for level in self.level.lower():
+            lower.append(level)
+            if not level.intermediate:
+                lower = []
+        lower.append(self.level)
+
+        width, height = get_dimensions()
+        contents = self.add_svg_content(svg)
+        contents.append(self.polygon_svg(box(0, 0, width, height),
+                                         fill_color='#000000'))
+
+        for level in lower:
+            self.add_svg_image(svg, 'file://'+get_render_path('level-%s.base.png' % level.name))
+
+        filename = get_render_path('level-%s.simple.svg' % self.level.name)
+        with open(filename, 'w') as f:
+            f.write(ET.tostring(svg).decode())
+
+        if png:
+            png_filename = get_render_path('level-%s.simple.png' % self.level.name)
+            subprocess.call(['rsvg-convert', filename, '-o', png_filename])
+
+    def render_full(self, png=True):
+        svg = self.create_svg()
+
+        self.add_svg_image(svg, 'file://' + get_render_path('level-%s.simple.png' % self.level.name))
+
+        higher = []
+        for level in self.level.higher():
+            if not level.intermediate:
+                break
+            higher.append(level)
+
+        for level in higher:
+            self.add_svg_image(svg, 'file://'+get_render_path('level-%s.base.png' % level.name))
+
+        filename = get_render_path('level-%s.full.svg' % self.level.name)
+        with open(filename, 'w') as f:
+            f.write(ET.tostring(svg).decode())
+
+        if png:
+            png_filename = get_render_path('level-%s.full.png' % self.level.name)
+            subprocess.call(['rsvg-convert', filename, '-o', png_filename])

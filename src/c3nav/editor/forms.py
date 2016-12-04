@@ -54,6 +54,7 @@ class MapitemFormMixin(ModelForm):
         if 'levels' in self.fields:
             # set field_name
             self.fields['levels'].to_field_name = 'name'
+            self.fields['levels'].queryset = self.fields['levels'].queryset.order_by('altitude')
 
         if 'geometry' in self.fields:
             # hide geometry widget
@@ -91,7 +92,8 @@ class MapitemFormMixin(ModelForm):
 
 
 def create_editor_form(mapitemtype):
-    possible_fields = ['name', 'package', 'level', 'levels', 'geometry', 'height', 'elevator', 'button']
+    possible_fields = ['name', 'package', 'altitude', 'level', 'intermediate', 'levels', 'geometry',
+                       'height', 'elevator', 'button']
     existing_fields = [field for field in possible_fields if hasattr(mapitemtype, field)]
 
     class EditorForm(MapitemFormMixin, ModelForm):
