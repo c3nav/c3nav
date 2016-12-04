@@ -104,7 +104,21 @@ class LevelGeometries():
 
     @cached_property
     def obstacles(self):
-        return cascaded_union([obstacle.geometry for obstacle in self.level.obstacles.all()]).intersection(self.mapped)
+        levels_by_name = {}
+        obstacles_by_crop_to_level = {}
+        for obstacle in self.level.obstacles.all():
+            level_name = None if obstacle.crop_to_level is None else obstacle.crop_to_level.name
+            levels_by_name.setdefault(level_name, obstacle.crop_to_level)
+            obstacles_by_crop_to_level.setdefault(level_name, []).append(obstacle.geometry)
+
+        all_obstacles = []
+        for level_name, obstacles in obstacles_by_crop_to_level.items():
+            obstacles = cascaded_union(obstacles)
+            if level_name is not None:
+                obstacles = obstacles.intersection(levels_by_name[level_name].geometries.mapped)
+            all_obstacles.append(obstacles)
+
+        return cascaded_union(all_obstacles).intersection(self.mapped)
 
     @cached_property
     def raw_doors(self):
