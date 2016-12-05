@@ -1,3 +1,4 @@
+import numpy as np
 from django.conf import settings
 from django.utils.functional import cached_property
 
@@ -7,7 +8,7 @@ class GraphPoint():
         self.room = room
         self.x = x
         self.y = y
-        self.xy = (x, y)
+        self.xy = np.array((x, y))
         self.connections = {}
         self.connections_in = {}
         self.in_room_transfer_distances = None

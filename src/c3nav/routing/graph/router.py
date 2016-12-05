@@ -30,7 +30,7 @@ class Router():
                     if not global_routing:
                         self.transfer_points.add(point)
                     continue
-                matrix[pk, self.points_pk[to_point]] = 1
+                matrix[pk, self.points_pk[to_point]] = connection.distance
             if global_routing:
                 for to_point, distance in point.in_room_transfer_distances.items():
                     matrix[pk, self.points_pk[to_point]] = distance
