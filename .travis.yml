@@ -6,7 +6,7 @@ python:
     - "3.4"
 
 install:
-    - pip install --upgrade setuptools
+    - pip install --upgrade setuptools pip
     - pip install -r src/requirements.txt -r src/requirements/dev.txt
 
 before_script:
