@@ -9,8 +9,10 @@ class Command(BaseCommand):
     help = 'build the routing graph'
 
     def handle(self, *args, **options):
+        start = time.time()
         graph = Graph()
         graph.build()
+        print('Built in %.4fs' % (time.time() - start))
 
         start = time.time()
         graph.save()
