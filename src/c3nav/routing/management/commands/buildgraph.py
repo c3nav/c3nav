@@ -17,5 +17,5 @@ class Command(BaseCommand):
         print('Saved in %.4fs' % (time.time()-start))
 
         start = time.time()
-        graph.load()
+        Graph.load()
         print('Loaded in %.4fs' % (time.time() - start))
