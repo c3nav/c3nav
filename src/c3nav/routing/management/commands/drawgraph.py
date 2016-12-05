@@ -4,7 +4,7 @@ from c3nav.routing.graph import Graph
 
 
 class Command(BaseCommand):
-    help = 'graw the routing graph'
+    help = 'draw the routing graph'
 
     def add_arguments(self, parser):
         parser.add_argument('--no-points', action='store_const', dest='points', const=False, default=True,
