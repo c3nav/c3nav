@@ -6,6 +6,7 @@ from shapely.geometry import JOIN_STYLE, LineString
 
 from c3nav.mapdata.utils import assert_multipolygon
 from c3nav.routing.graph.point import GraphPoint
+from c3nav.routing.graph.router import Router
 from c3nav.routing.utils.coords import get_coords_angles
 from c3nav.routing.utils.mpl import polygon_to_mpl_paths
 
@@ -18,6 +19,8 @@ class GraphRoom():
 
         self.clear_geometry = geometry.buffer(-0.3, join_style=JOIN_STYLE.mitre)
         self.empty = self.clear_geometry.is_empty
+
+        self.router = Router()
 
         if mpl_paths is not None:
             self.mpl_paths = mpl_paths
@@ -62,6 +65,10 @@ class GraphRoom():
 
             for from_point, to_point in permutations(points, 2):
                 from_point.connect_to(to_point)
+
+    # noinspection PyTypeChecker
+    def build_router(self):
+        self.router.build(self.points)
 
     def _add_ring(self, geom, want_left):
         """

@@ -10,6 +10,7 @@ from c3nav.routing.graph.connection import GraphConnection
 from c3nav.routing.graph.level import GraphLevel
 from c3nav.routing.graph.point import GraphPoint
 from c3nav.routing.graph.room import GraphRoom
+from c3nav.routing.graph.router import Router
 
 
 class Graph():
@@ -24,6 +25,9 @@ class Graph():
         self.connections = []
         self.rooms = []
         self.levelconnector_points = {}
+
+        self.transfer_points = []
+        self.router = Router()
 
     def build(self):
         for level in self.levels.values():
@@ -88,9 +92,16 @@ class Graph():
             graph = cls.unserialize(pickle.load(f))
         return graph
 
-    def draw_pngs(self, points=True, lines=True):
+    def build_router(self):
+        for room in self.rooms:
+            room.build_router()
+            self.transfer_points.extend(room.router.transfer_points)
+
+        self.router.build(self.transfer_points, global_routing=True)
+
+    def draw_pngs(self, points=True, lines=True, transfer_points=False, transfer_lines=False):
         for level in self.levels.values():
-            level.draw_png(points=points, lines=lines)
+            level.draw_png(points, lines, transfer_points, transfer_lines)
 
     def add_levelconnector_point(self, levelconnector, point):
         self.levelconnector_points.setdefault(levelconnector.name, []).append(point)

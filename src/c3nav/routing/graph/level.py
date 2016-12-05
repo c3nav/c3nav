@@ -78,7 +78,7 @@ class GraphLevel():
         print('%d points' % len(self.points))
         print()
 
-    def draw_png(self, points=True, lines=True):
+    def draw_png(self, points=True, lines=True, transfer_points=False, transfer_lines=False):
         filename = os.path.join(settings.RENDER_ROOT, 'level-%s.base.png' % self.level.name)
         graph_filename = os.path.join(settings.RENDER_ROOT, 'level-%s.graph.png' % self.level.name)
 
@@ -93,5 +93,16 @@ class GraphLevel():
         if points:
             for point in self.points:
                 draw.ellipse(_ellipse_bbox(point.x, point.y, height), (200, 0, 0))
+
+        if transfer_lines:
+            for point in self.points:
+                if point.in_room_transfer_distances is not None:
+                    for otherpoint, distance in point.in_room_transfer_distances.items():
+                        draw.line(_line_coords(point, otherpoint, height), fill=(100, 100, 255))
+
+        if transfer_points:
+            for point in self.points:
+                if point.in_room_transfer_distances is not None:
+                    draw.ellipse(_ellipse_bbox(point.x, point.y, height), (0, 0, 200))
 
         im.save(graph_filename)

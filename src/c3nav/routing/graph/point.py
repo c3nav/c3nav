@@ -10,6 +10,7 @@ class GraphPoint():
         self.xy = (x, y)
         self.connections = {}
         self.connections_in = {}
+        self.in_room_transfer_distances = None
 
     @cached_property
     def ellipse_bbox(self):
