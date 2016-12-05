@@ -54,7 +54,7 @@ class Graph():
 
         rooms = tuple((room.level.level.name, room.geometry, room.mpl_paths) for room in self.rooms)
         points = tuple((point.room.i, point.x, point.y) for point in self.points)
-        connections = tuple((conn.from_point.i, conn.to_point.i) for conn in self.connections)
+        connections = tuple((conn.from_point.i, conn.to_point.i, conn.distance) for conn in self.connections)
 
         return (rooms, points, connections)
 
@@ -79,8 +79,8 @@ class Graph():
             room.level.rooms.append(room)
             room.level.points.extend(room.points)
 
-        for from_point, to_point in connections:
-            graph.add_connection(graph.points[from_point], graph.points[to_point])
+        for from_point, to_point, distance in connections:
+            graph.add_connection(graph.points[from_point], graph.points[to_point], distance)
 
         return graph
 
@@ -111,5 +111,5 @@ class Graph():
             for from_point, to_point in permutations(points, 2):
                 self.add_connection(from_point, to_point)
 
-    def add_connection(self, from_point, to_point):
-        self.connections.append(GraphConnection(self, from_point, to_point))
+    def add_connection(self, from_point, to_point, distance=None):
+        self.connections.append(GraphConnection(self, from_point, to_point, distance))
