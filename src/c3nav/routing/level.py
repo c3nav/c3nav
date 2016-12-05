@@ -50,7 +50,7 @@ class GraphLevel():
                     room.points.append(point)
 
             if len(points) < 2:
-                print('door with <2 rooms (%d) detected at %s' % (len(points), center))
+                print('door with <2 rooms (%d) detected at (%.2f, %.2f)' % (len(points), center.x, center.y))
 
             for from_point, to_point in permutations(points, 2):
                 from_point.connect_to(to_point)
