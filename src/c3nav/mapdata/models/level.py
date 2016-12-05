@@ -20,6 +20,7 @@ class Level(MapItem):
         verbose_name = _('Level')
         verbose_name_plural = _('Levels')
         default_related_name = 'levels'
+        ordering = ['altitude']
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)

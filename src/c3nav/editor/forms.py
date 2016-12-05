@@ -56,12 +56,10 @@ class MapitemFormMixin(ModelForm):
             self.fields['crop_to_level'].to_field_name = 'name'
             if not creating and self.instance.crop_to_level is not None:
                 self.initial['crop_to_level'] = self.instance.crop_to_level.name
-            self.fields['crop_to_level'].queryset = self.fields['crop_to_level'].queryset.order_by('altitude')
 
         if 'levels' in self.fields:
             # set field_name
             self.fields['levels'].to_field_name = 'name'
-            self.fields['levels'].queryset = self.fields['levels'].queryset.order_by('altitude')
 
         if 'geometry' in self.fields:
             # hide geometry widget

@@ -4,7 +4,7 @@ from c3nav.mapdata.render.renderer import LevelRenderer, get_render_path  # noqa
 
 def render_all_levels(show_accessibles=False):
     renderers = []
-    for level in Level.objects.all().order_by('altitude'):
+    for level in Level.objects.all():
         renderers.append(LevelRenderer(level))
 
     for renderer in renderers:
