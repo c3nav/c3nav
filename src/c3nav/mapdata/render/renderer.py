@@ -157,10 +157,12 @@ class LevelRenderer():
     def render_simple(self, png=True):
         svg = self.create_svg()
 
+        dark_lower = []
         lower = []
         for level in self.level.lower():
             lower.append(level)
             if not level.intermediate:
+                dark_lower.extend(lower)
                 lower = []
         lower.append(self.level)
 
@@ -169,13 +171,16 @@ class LevelRenderer():
         contents.append(self.polygon_svg(box(0, 0, width, height),
                                          fill_color='#000000'))
 
-        for level in lower:
+        for level in dark_lower:
             self.add_svg_image(svg, 'file://'+get_render_path('level-%s.base.png' % level.name))
 
         contents = self.add_svg_content(svg)
-        contents.append(self.polygon_svg(self.level.geometries.hole_shadows,
+        contents.append(self.polygon_svg(box(0, 0, width, height),
                                          fill_color='#000000',
                                          fill_opacity=0.1))
+
+        for level in lower:
+            self.add_svg_image(svg, 'file://'+get_render_path('level-%s.base.png' % level.name))
 
         filename = get_render_path('level-%s.simple.svg' % self.level.name)
         with open(filename, 'w') as f:
