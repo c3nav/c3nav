@@ -6,11 +6,11 @@ from itertools import permutations
 from django.conf import settings
 
 from c3nav.mapdata.models import Level
-from c3nav.routing.graph.connection import GraphConnection
-from c3nav.routing.graph.level import GraphLevel
-from c3nav.routing.graph.point import GraphPoint
-from c3nav.routing.graph.room import GraphRoom
-from c3nav.routing.graph.router import Router
+from c3nav.routing.connection import GraphConnection
+from c3nav.routing.level import GraphLevel
+from c3nav.routing.point import GraphPoint
+from c3nav.routing.room import GraphRoom
+from c3nav.routing.router import Router
 
 
 class Graph():

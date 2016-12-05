@@ -5,8 +5,8 @@ from matplotlib.path import Path
 from shapely.geometry import JOIN_STYLE, LineString
 
 from c3nav.mapdata.utils import assert_multipolygon
-from c3nav.routing.graph.point import GraphPoint
-from c3nav.routing.graph.router import Router
+from c3nav.routing.point import GraphPoint
+from c3nav.routing.router import Router
 from c3nav.routing.utils.coords import get_coords_angles
 from c3nav.routing.utils.mpl import polygon_to_mpl_paths
 
