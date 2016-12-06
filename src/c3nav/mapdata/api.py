@@ -1,5 +1,6 @@
 import mimetypes
 import os
+from collections import OrderedDict
 
 from django.conf import settings
 from django.core.files import File
@@ -11,6 +12,21 @@ from rest_framework.viewsets import ReadOnlyModelViewSet, ViewSet
 from c3nav.mapdata.models import GEOMETRY_MAPITEM_TYPES, Level, Package, Source
 from c3nav.mapdata.permissions import filter_queryset_by_package_access
 from c3nav.mapdata.serializers.main import LevelSerializer, PackageSerializer, SourceSerializer
+
+
+class GeometryTypeViewSet(ViewSet):
+    """
+    Lists all geometry types.
+    """
+
+    def list(self, request):
+        return Response([
+            OrderedDict((
+                ('name', name),
+                ('title', str(mapitemtype._meta.verbose_name)),
+                ('title_plural', str(mapitemtype._meta.verbose_name_plural)),
+            )) for name, mapitemtype in GEOMETRY_MAPITEM_TYPES.items()
+        ])
 
 
 class GeometryViewSet(ViewSet):

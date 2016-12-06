@@ -8,13 +8,14 @@ from rest_framework.response import Response
 from rest_framework.routers import SimpleRouter
 
 from c3nav.editor.api import HosterViewSet, SubmitTaskViewSet
-from c3nav.mapdata.api import GeometryViewSet, LevelViewSet, PackageViewSet, SourceViewSet
+from c3nav.mapdata.api import GeometryTypeViewSet, GeometryViewSet, LevelViewSet, PackageViewSet, SourceViewSet
 
 router = SimpleRouter()
 router.register(r'packages', PackageViewSet)
 router.register(r'levels', LevelViewSet)
 router.register(r'sources', SourceViewSet)
 
+router.register(r'geometrytypes', GeometryTypeViewSet, base_name='geometrytype')
 router.register(r'geometries', GeometryViewSet, base_name='geometry')
 
 router.register(r'hosters', HosterViewSet, base_name='hoster')
