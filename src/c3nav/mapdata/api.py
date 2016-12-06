@@ -64,10 +64,8 @@ class GeometryViewSet(ViewSet):
                 queryset = queryset.filter(name__in=names)
             queryset = filter_queryset_by_package_access(request, queryset)
             queryset = queryset.order_by('name')
-            print(mapitemtype)
             for field_name in ('package', 'level', 'levels', 'crop_to_level', 'elevator'):
                 if hasattr(mapitemtype, field_name):
-                    print(field_name)
                     queryset = queryset.prefetch_related(field_name)
             results.extend(sum((obj.to_geojson() for obj in queryset), []))
         return Response(results)
