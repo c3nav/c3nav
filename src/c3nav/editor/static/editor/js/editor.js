@@ -31,21 +31,61 @@ editor = {
 
     // packages
     packages: {},
+    _shown_packages: [],
     get_packages: function () {
         // load packages
         $.getJSON('/api/packages/', function (packages) {
+            var layers = {};
             var bounds = [[0, 0], [0, 0]];
-            var pkg;
+            var pkg, layer;
             for (var i = 0; i < packages.length; i++) {
                 pkg = packages[i];
                 editor.packages[pkg.name] = pkg;
+
+                layer = L.circle([-200, -200], 0.1);
+                layer._c3nav_package = pkg.name;
+                layer.on('add', editor._add_package_layer);
+                layer.on('remove', editor._remove_package_layer);
+                layer.addTo(editor.map);
+                layers[pkg.name] = layer;
+                editor._shown_packages.push(pkg.name);
+
                 if (pkg.bounds === null) continue;
                 bounds = [[Math.min(bounds[0][0], pkg.bounds[0][0]), Math.min(bounds[0][1], pkg.bounds[0][1])],
                     [Math.max(bounds[1][0], pkg.bounds[1][0]), Math.max(bounds[1][1], pkg.bounds[1][1])]];
             }
             editor.map.setMaxBounds(bounds);
             editor.map.fitBounds(bounds, {padding: [30, 50]});
+
+            var control = L.control.layers([], layers).addTo(editor.map);
+            $(control._layersLink).text('Packages');
         });
+    },
+    _add_package_layer: function(e) {
+        var pkg = e.target._c3nav_package;
+        var i =  editor._shown_packages.indexOf(pkg);
+        if (i == -1) {
+            if (editor._loading_geometry) {
+                e.target.remove();
+                return;
+            }
+            editor._loading_geometry = true;
+            editor._shown_packages.push(pkg);
+            editor.get_geometries();
+        }
+    },
+    _remove_package_layer: function(e) {
+        var pkg = e.target._c3nav_package;
+        var i =  editor._shown_packages.indexOf(pkg);
+        if (i > -1) {
+            if (editor._loading_geometry) {
+                e.target.addTo(map);
+                return;
+            }
+            editor._loading_geometry = true;
+            editor._shown_packages.splice(i, 1);
+            editor.get_geometries();
+        }
     },
 
     // sources
@@ -169,7 +209,7 @@ editor = {
         var type = e.target._c3nav_geometry_type;
         if (!editor._shown_geometry_types[type]) {
             if (editor._loading_geometry) {
-                e.target.addTo(map);
+                e.target.remove();
                 return;
             }
             editor._loading_geometry = true;
@@ -201,7 +241,11 @@ editor = {
                 geometrytypes += '&type=' + editor._geometry_types[i];
             }
         }
-        $.getJSON('/api/geometries/?level='+String(editor._level)+geometrytypes, function(geometries) {
+        packages = '';
+        for (var i = 0; i < editor._shown_packages.length; i++) {
+            packages += '&package=' + editor._shown_packages[i];
+        }
+        $.getJSON('/api/geometries/?level='+String(editor._level)+geometrytypes+packages, function(geometries) {
             editor._geometries_layer = L.geoJSON(geometries, {
                 style: editor._get_geometry_style,
                 onEachFeature: editor._register_geojson_feature
