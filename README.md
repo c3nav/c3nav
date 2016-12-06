@@ -1,2 +1,2 @@
-# c3nav-new
-New improved implementation of c3nav. Work in Progress.
+# c3nav
+New improved implementation of c3nav. Work in Progress. Installation docs coming soon.
