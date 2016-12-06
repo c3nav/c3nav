@@ -1,6 +1,8 @@
-from rest_framework.renderers import JSONRenderer
-from c3nav.mapdata.utils import json_encoder_reindent
 from functools import wraps
+
+from rest_framework.renderers import JSONRenderer
+
+from c3nav.mapdata.utils import json_encoder_reindent
 
 orig_render = JSONRenderer.render
 
