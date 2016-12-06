@@ -1,5 +1,6 @@
 from collections import OrderedDict
 
+from django.conf import settings
 from django.db import models
 from django.utils.translation import ugettext_lazy as _
 from shapely.geometry.geo import mapping, shape
@@ -25,6 +26,7 @@ class GeometryMapItem(MapItem, metaclass=GeometryMapItemMeta):
     A map feature
     """
     geometry = GeometryField()
+    cached_geojson = {}
 
     geomtype = None
 
@@ -62,6 +64,14 @@ class GeometryMapItem(MapItem, metaclass=GeometryMapItemMeta):
         ))
 
     def to_geojson(self):
+        if settings.DIRECT_EDITING:
+            return self._to_geojson()
+        key = (self.__class__, self.name)
+        if key not in self.cached_geojson:
+            self.cached_geojson[key] = self._to_geojson()
+        return self.cached_geojson[key]
+
+    def _to_geojson(self):
         return [OrderedDict((
             ('type', 'Feature'),
             ('properties', self.get_geojson_properties()),
