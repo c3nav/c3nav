@@ -69,52 +69,57 @@ editor = {
     // levels
     levels: {},
     _level: null,
-    _loading_geometry: false,
+    _loading_geometry: true,
+    _level_fake_layers: {},
     get_levels: function () {
         // load levels and set the lowest one afterwards
         $.getJSON('/api/levels/?ordering=-altitude', function (levels) {
-            L.LevelControl = L.Control.extend({
-                options: {
-                    position: 'bottomright'
-                },
-                onAdd: function () {
-                    var container = L.DomUtil.create('div', 'leaflet-control leaflet-bar leaflet-levels'), link;
-                    var level;
-                    for (var i = 0; i < levels.length; i++) {
-                        level = levels[i];
-                        link = L.DomUtil.create('a', (i == levels.length - 1) ? 'current' : '', container);
-                        link.name = level.name;
-                        link.innerHTML = level.name;
-                        link.href = '';
-                    }
-                    return container;
-                }
-            });
-            editor.map.addControl(new L.LevelControl());
+            var control = L.control.layers([], [], {
+                position: 'bottomright'
+            }).addTo(editor.map);
+            $(control._layersLink).text('Levels').parent().addClass('leaflet-levels');
 
-            $('.leaflet-levels').on('click', 'a', function (e) {
-                e.preventDefault();
-                editor.set_current_level($(this).attr('name'));
-            });
+            var level, layer;
+            for (var i = 0; i < levels.length; i++) {
+                level = levels[i];
+                layer = L.circle([-200, -200], 0.1);
+                layer._c3nav_level = level.name;
+                layer.on('add', editor._click_level);
+                editor._level_fake_layers[level.name] = layer;
+                control.addBaseLayer(layer, level.name);
+            }
 
+            editor._loading_geometry = false;
             editor.set_current_level(levels[levels.length - 1].name);
         });
     },
+    _click_level: function(e) {
+        if (editor._level === null) return;
+        var level = e.target._c3nav_level;
+        var success = editor.set_current_level(level);
+        if (!success) {
+            editor._level_fake_layers[level].remove();
+            editor._level_fake_layers[editor._level].addTo(editor.map);
+        }
+    },
     set_current_level: function(level_name) {
         // sets the current level if the sidebar allows it
-        if (editor._loading_geometry) return;
+        if (editor._loading_geometry) return false;
         var level_switch = $('#mapeditcontrols').find('[data-level-switch]');
         if (level_switch.length === 0) return;
         editor._loading_geometry = true;
+        if (editor._level !== null) {
+            editor._level_fake_layers[editor._level].remove();
+        }
+        editor._level_fake_layers[level_name].addTo(editor.map);
         editor._level = level_name;
-        $('.leaflet-levels .current').removeClass('current');
-        $('.leaflet-levels a[name='+level_name+']').addClass('current');
         editor.get_geometries();
 
         var level_switch_href = level_switch.attr('data-level-switch');
         if (level_switch_href) {
             editor.sidebar_get(level_switch_href.replace('LEVEL', level_name));
         }
+        return true;
     },
 
     // geometries
@@ -161,7 +166,6 @@ editor = {
         });
     },
     _add_geometrytype_layer: function(e) {
-
         var type = e.target._c3nav_geometry_type;
         if (!editor._shown_geometry_types[type]) {
             if (editor._loading_geometry) {
