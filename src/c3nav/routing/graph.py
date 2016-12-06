@@ -1,11 +1,11 @@
 import os
 import pickle
 from collections import OrderedDict
-from itertools import permutations
 
 from django.conf import settings
 
 from c3nav.mapdata.models import Level
+from c3nav.mapdata.models.geometry import LevelConnector
 from c3nav.routing.connection import GraphConnection
 from c3nav.routing.level import GraphLevel
 from c3nav.routing.point import GraphPoint
@@ -24,6 +24,7 @@ class Graph():
         self.points = []
         self.connections = []
         self.rooms = []
+        self.no_level_points = []
         self.levelconnector_points = {}
 
         self.transfer_points = []
@@ -34,13 +35,13 @@ class Graph():
             level.build()
 
         print('Total:')
-        self.points = sum((level.points for level in self.levels.values()), [])
         print('%d points' % len(self.points))
 
         self.rooms = sum((level.rooms for level in self.levels.values()), [])
         print('%d rooms' % len(self.rooms))
 
         self.connect_levelconnectors()
+        print('%d level transfer points' % len(self.no_level_points))
 
         print('%d connections' % len(self.connections))
         print()
@@ -52,8 +53,14 @@ class Graph():
         for i, point in enumerate(self.points):
             point.i = i
 
+        def i_or_none(obj):
+            return None if obj is None else obj.i
+
+        def name_or_none(obj):
+            return None if obj is None else obj.level.name
+
         rooms = tuple((room.level.level.name, room.geometry, room.mpl_paths) for room in self.rooms)
-        points = tuple((point.room.i, point.x, point.y) for point in self.points)
+        points = tuple((point.x, point.y, i_or_none(point.room), name_or_none(point.level)) for point in self.points)
         connections = tuple((conn.from_point.i, conn.to_point.i, conn.distance) for conn in self.connections)
 
         return (rooms, points, connections)
@@ -69,15 +76,12 @@ class Graph():
         graph = cls()
         rooms, points, connections = data
 
+        def by_key_or_none(collection, key):
+            return None if key is None else collection[key]
+
         graph.rooms = [GraphRoom(graph.levels[room[0]], room[1], room[2]) for room in rooms]
-        graph.points = [GraphPoint(graph.rooms[point[0]], point[1], point[2]) for point in points]
-
-        for point in graph.points:
-            point.room.points.append(point)
-
-        for room in graph.rooms:
-            room.level.rooms.append(room)
-            room.level.points.extend(room.points)
+        graph.points = [GraphPoint(point[0], point[1], by_key_or_none(graph.rooms, point[2]),
+                                   by_key_or_none(graph.levels, point[3]), graph) for point in points]
 
         for from_point, to_point, distance in connections:
             graph.add_connection(graph.points[from_point], graph.points[to_point], distance)
@@ -99,17 +103,20 @@ class Graph():
 
         self.router.build(self.transfer_points, global_routing=True)
 
-    def draw_pngs(self, points=True, lines=True, transfer_points=False, transfer_lines=False):
+    def draw_pngs(self, points=True, lines=True):
         for level in self.levels.values():
-            level.draw_png(points, lines, transfer_points, transfer_lines)
+            level.draw_png(points, lines)
 
     def add_levelconnector_point(self, levelconnector, point):
         self.levelconnector_points.setdefault(levelconnector.name, []).append(point)
 
     def connect_levelconnectors(self):
-        for levelconnector_name, points in self.levelconnector_points.items():
-            for from_point, to_point in permutations(points, 2):
-                self.add_connection(from_point, to_point)
+        for levelconnector in LevelConnector.objects.all():
+            center = levelconnector.geometry.centroid
+            center_point = GraphPoint(center.x, center.y, graph=self)
+            for point in self.levelconnector_points.get(levelconnector.name, []):
+                center_point.connect_to(point)
+                point.connect_to(center_point)
 
     def add_connection(self, from_point, to_point, distance=None):
         self.connections.append(GraphConnection(self, from_point, to_point, distance))
