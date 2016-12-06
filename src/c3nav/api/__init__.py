@@ -15,4 +15,4 @@ def nicer_renderer(self, data, accepted_media_type=None, renderer_context=None):
 
 
 # Monkey patch for nicer indentation in the django rest framework
-# JSONRenderer.render = nicer_renderer
+JSONRenderer.render = nicer_renderer
