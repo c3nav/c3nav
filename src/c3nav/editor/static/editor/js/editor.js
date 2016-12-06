@@ -61,7 +61,8 @@ editor = {
                 source.layer = L.imageOverlay('/api/sources/' + source.name + '/image/', source.bounds);
                 layers[source.name] = source.layer;
             }
-            L.control.layers([], layers).addTo(editor.map);
+            var control = L.control.layers([], layers).addTo(editor.map);
+            $(control._layersLink).text('Sources');
         });
     },
 
@@ -124,6 +125,8 @@ editor = {
     _geometries: {},
     _creating: false,
     _editing: null,
+    _geometry_types: [],
+    _shown_geometry_types: {},
     init_geometries: function () {
         // init geometries and edit listeners
         editor._highlight_layer = L.layerGroup().addTo(editor.map);
@@ -135,6 +138,52 @@ editor = {
         editor.map.on('editable:drawing:commit', editor._done_creating);
         editor.map.on('editable:editing', editor._update_editing);
         editor.map.on('editable:drawing:cancel', editor._canceled_creating);
+
+        editor._get_geometry_types();
+    },
+    _get_geometry_types: function() {
+        $.getJSON('/api/geometrytypes/', function(geometrytypes) {
+            var layers = {};
+            var geometrytype, layer;
+            for (var i = 0; i < geometrytypes.length; i++) {
+                geometrytype = geometrytypes[i];
+                layer = L.circle([-200, -200], 0.1);
+                layer._c3nav_geometry_type = geometrytype.name;
+                layer.on('add', editor._add_geometrytype_layer);
+                layer.on('remove', editor._remove_geometrytype_layer);
+                layer.addTo(editor.map);
+                layers[geometrytype.title_plural] = layer;
+                editor._geometry_types.push(geometrytype.name)
+                editor._shown_geometry_types[geometrytype.name] = true;
+            }
+            var control = L.control.layers([], layers).addTo(editor.map);
+            $(control._layersLink).text('Types');
+        });
+    },
+    _add_geometrytype_layer: function(e) {
+
+        var type = e.target._c3nav_geometry_type;
+        if (!editor._shown_geometry_types[type]) {
+            if (editor._loading_geometry) {
+                e.target.addTo(map);
+                return;
+            }
+            editor._loading_geometry = true;
+            editor._shown_geometry_types[type] = true;
+            editor.get_geometries();
+        }
+    },
+    _remove_geometrytype_layer: function(e) {
+        var type = e.target._c3nav_geometry_type;
+        if (editor._shown_geometry_types[type]) {
+            if (editor._loading_geometry) {
+                e.target.addTo(map);
+                return;
+            }
+            editor._loading_geometry = true;
+            editor._shown_geometry_types[type] = false;
+            editor.get_geometries();
+        }
     },
     get_geometries: function () {
         // reload geometries of current level
@@ -142,7 +191,13 @@ editor = {
         if (editor._geometries_layer !== null) {
             editor.map.removeLayer(editor._geometries_layer);
         }
-        $.getJSON('/api/geometries/?level='+String(editor._level), function(geometries) {
+        geometrytypes = '';
+        for (var i = 0; i < editor._geometry_types.length; i++) {
+            if (editor._shown_geometry_types[editor._geometry_types[i]]) {
+                geometrytypes += '&type=' + editor._geometry_types[i];
+            }
+        }
+        $.getJSON('/api/geometries/?level='+String(editor._level)+geometrytypes, function(geometries) {
             editor._geometries_layer = L.geoJSON(geometries, {
                 style: editor._get_geometry_style,
                 onEachFeature: editor._register_geojson_feature

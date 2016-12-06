@@ -19,6 +19,16 @@ body {
     top:2px;
 }
 
+.leaflet-control-layers-toggle {
+    color:#000000 !important;
+    font-size:14px;
+    text-align:center;
+    width:75px;
+    line-height:36px;
+    background-image:none;
+    padding:0 8px;
+}
+
 .leaflet-levels a {
     font-size:16px;
     color:#333333;
