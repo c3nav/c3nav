@@ -47,27 +47,39 @@ class GeometryViewSet(ViewSet):
         packages = request.GET.getlist('package')
         names = request.GET.getlist('name')
 
+        if levels:
+            levels = tuple(Level.objects.filter(name__in=levels))
+        if packages:
+            packages = tuple(Package.objects.filter(name__in=packages))
+
         results = []
         for t in types:
             mapitemtype = GEOMETRY_MAPITEM_TYPES[t]
             queryset = mapitemtype.objects.all()
             if packages:
-                queryset = queryset.filter(package__name__in=packages)
+                queryset = queryset.filter(package__in=packages)
             if levels:
                 if hasattr(mapitemtype, 'level'):
-                    queryset = queryset.filter(level__name__in=levels)
+                    queryset = queryset.filter(level__in=levels)
                 elif hasattr(mapitemtype, 'levels'):
-                    queryset = queryset.filter(levels__name__in=levels)
+                    queryset = queryset.filter(levels__in=levels)
                 else:
                     queryset = queryset.none()
             if names:
                 queryset = queryset.filter(name__in=names)
             queryset = filter_queryset_by_package_access(request, queryset)
             queryset = queryset.order_by('name')
-            for field_name in ('package', 'level', 'levels', 'crop_to_level', 'elevator'):
+
+            for field_name in ('package', 'level', 'crop_to_level', 'elevator'):
                 if hasattr(mapitemtype, field_name):
-                    queryset = queryset.prefetch_related(field_name)
+                    queryset = queryset.select_related(field_name)
+
+            for field_name in ('levels', ):
+                if hasattr(mapitemtype, field_name):
+                    queryset.prefetch_related(field_name)
+
             results.extend(sum((obj.to_geojson() for obj in queryset), []))
+
         return Response(results)
 
 
