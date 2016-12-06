@@ -14,6 +14,8 @@ from c3nav.routing.utils.mpl import polygon_to_mpl_paths
 class GraphRoom():
     def __init__(self, level, geometry, mpl_paths=None):
         self.level = level
+        self.graph = level.graph
+
         self.geometry = geometry
         self.points = []
 
@@ -22,10 +24,14 @@ class GraphRoom():
 
         self.router = Router()
 
-        if mpl_paths is not None:
-            self.mpl_paths = mpl_paths
-        elif not self.empty:
-            self.mpl_paths = polygon_to_mpl_paths(self.clear_geometry.buffer(0.01, join_style=JOIN_STYLE.mitre))
+        if not self.empty:
+            self.level.rooms.append(self)
+            self.graph.rooms.append(self)
+
+            if mpl_paths is not None:
+                self.mpl_paths = mpl_paths
+            elif not self.empty:
+                self.mpl_paths = polygon_to_mpl_paths(self.clear_geometry.buffer(0.01, join_style=JOIN_STYLE.mitre))
 
     def create_points(self):
         original_geometry = self.geometry
@@ -105,8 +111,7 @@ class GraphRoom():
         return points
 
     def add_point(self, coord):
-        point = GraphPoint(self, *coord)
-        self.points.append(point)
+        point = GraphPoint(coord[0], coord[1], self)
         return point
 
     def connect_points(self):
