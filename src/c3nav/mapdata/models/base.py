@@ -4,6 +4,8 @@ from django.db import models
 from django.db.models.base import ModelBase
 from django.utils.translation import ugettext_lazy as _
 
+from c3nav.mapdata.lastupdate import set_last_mapdata_update
+
 MAPITEM_TYPES = OrderedDict()
 
 
@@ -39,6 +41,10 @@ class MapItem(models.Model, metaclass=MapItemMeta):
 
     def tofile(self):
         return OrderedDict()
+
+    def save(self, *args, **kwargs):
+        with set_last_mapdata_update():
+            super().save(*args, **kwargs)
 
     class Meta:
         abstract = True

@@ -9,7 +9,7 @@ from django.utils import timezone
 
 from c3nav.mapdata.models import Package
 from c3nav.mapdata.packageio.const import ordered_models
-from c3nav.mapdata.utils import json_encoder_reindent
+from c3nav.mapdata.utils.json import json_encoder_reindent
 
 
 class MapdataWriter:

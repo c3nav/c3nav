@@ -3,7 +3,7 @@ from rest_framework import serializers
 from rest_framework.exceptions import ValidationError
 from shapely.geometry import mapping, shape
 
-from c3nav.mapdata.utils import format_geojson
+from c3nav.mapdata.utils.json import format_geojson
 
 
 class GeometryField(serializers.DictField):

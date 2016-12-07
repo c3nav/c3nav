@@ -3,16 +3,23 @@ from django.utils.translation import ugettext_lazy as _
 from rest_framework.exceptions import PermissionDenied
 from rest_framework.permissions import BasePermission
 
-from c3nav.mapdata.models import Package, Source
+from c3nav.mapdata.models import Source
+from c3nav.mapdata.utils.cache import get_packages_cached
 
 
-def get_unlocked_packages_names(request):
+def get_unlocked_packages_names(request, packages_cached=None):
+    if packages_cached is None:
+        packages_cached = get_packages_cached()
+    if settings.DIRECT_EDITING:
+        return packages_cached.keys()
     return set(settings.PUBLIC_PACKAGES) | set(request.session.get('unlocked_packages', ()))
 
 
-def get_unlocked_packages(request):
-    names = get_unlocked_packages_names(request)
-    return tuple(Package.objects.filter(name__in=names))
+def get_unlocked_packages(request, packages_cached=None):
+    if packages_cached is None:
+        packages_cached = get_packages_cached()
+    names = get_unlocked_packages_names(request, packages_cached=packages_cached)
+    return tuple(packages_cached[name] for name in names if name in packages_cached)
 
 
 def can_access_package(request, package):
