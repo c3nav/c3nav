@@ -8,7 +8,7 @@ from shapely.geometry.geo import mapping, shape
 from c3nav.mapdata.fields import GeometryField
 from c3nav.mapdata.models import Elevator
 from c3nav.mapdata.models.base import MapItem, MapItemMeta
-from c3nav.mapdata.utils import format_geojson
+from c3nav.mapdata.utils.json import format_geojson
 
 GEOMETRY_MAPITEM_TYPES = OrderedDict()
 

@@ -1,6 +1,7 @@
 from django.core.management.base import BaseCommand, CommandError
 from django.db import transaction
 
+from c3nav.mapdata.lastupdate import set_last_mapdata_update
 from c3nav.mapdata.packageio import MapdataReader
 
 
@@ -15,8 +16,9 @@ class Command(BaseCommand):
         reader = MapdataReader()
         reader.read_packages()
 
-        with transaction.atomic():
-            reader.apply_to_db()
-            print()
-            if not options['yes'] and input('Confirm (y/N): ') != 'y':
-                raise CommandError('Aborted.')
+        with set_last_mapdata_update():
+            with transaction.atomic():
+                reader.apply_to_db()
+                print()
+                if not options['yes'] and input('Confirm (y/N): ') != 'y':
+                    raise CommandError('Aborted.')

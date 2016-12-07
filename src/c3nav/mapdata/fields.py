@@ -6,7 +6,8 @@ from shapely import validation
 from shapely.geometry import mapping, shape
 from shapely.geometry.base import BaseGeometry
 
-from c3nav.mapdata.utils import clean_geometry, format_geojson
+from c3nav.mapdata.utils.geometry import clean_geometry
+from c3nav.mapdata.utils.json import format_geojson
 
 
 def validate_geometry(geometry):

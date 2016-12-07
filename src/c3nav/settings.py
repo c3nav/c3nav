@@ -187,16 +187,6 @@ REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': (
         'c3nav.api.authentication.ForceCSRFCheckSessionAuthentication',
     ),
-    'DEFAULT_PERMISSION_CLASSES': (
-        'c3nav.mapdata.permissions.LockedMapFeatures',
-    ),
-    'DEFAULT_FILTER_BACKENDS': (
-        'rest_framework.filters.DjangoFilterBackend',
-        'rest_framework.filters.OrderingFilter',
-        'rest_framework.filters.SearchFilter',
-    ),
-    'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.LimitOffsetPagination',
-    # 'PAGE_SIZE': 50
 }
 
 LOCALE_PATHS = (

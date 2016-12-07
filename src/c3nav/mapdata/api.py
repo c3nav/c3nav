@@ -10,15 +10,17 @@ from rest_framework.response import Response
 from rest_framework.viewsets import ReadOnlyModelViewSet, ViewSet
 
 from c3nav.mapdata.models import GEOMETRY_MAPITEM_TYPES, Level, Package, Source
-from c3nav.mapdata.permissions import filter_queryset_by_package_access
+from c3nav.mapdata.permissions import filter_queryset_by_package_access, get_unlocked_packages_names
 from c3nav.mapdata.serializers.main import LevelSerializer, PackageSerializer, SourceSerializer
+from c3nav.mapdata.utils.cache import (CachedReadOnlyViewSetMixin, cache_mapdata_api_response, get_levels_cached,
+                                       get_packages_cached)
 
 
 class GeometryTypeViewSet(ViewSet):
     """
     Lists all geometry types.
     """
-
+    @cache_mapdata_api_response()
     def list(self, request):
         return Response([
             OrderedDict((
@@ -32,41 +34,53 @@ class GeometryTypeViewSet(ViewSet):
 class GeometryViewSet(ViewSet):
     """
     List all geometries.
-    You can filter by adding one or more level, package, type or name GET parameters.
+    You can filter by adding a level GET parameter or one or more package or type GET parameters.
     """
-
     def list(self, request):
-        types = request.GET.getlist('type')
+        types = set(request.GET.getlist('type'))
         valid_types = list(GEOMETRY_MAPITEM_TYPES.keys())
         if not types:
             types = valid_types
         else:
-            types = [t for t in types if t in valid_types]
+            types = [t for t in valid_types if t in types]
 
-        levels = request.GET.getlist('level')
-        packages = request.GET.getlist('package')
-        names = request.GET.getlist('name')
+        level = None
+        if 'level' in request.GET:
+            levels_cached = get_levels_cached()
+            level_name = request.GET['level']
+            if level_name in levels_cached:
+                level = levels_cached[level_name]
 
-        if levels:
-            levels = tuple(Level.objects.filter(name__in=levels))
-        if packages:
-            packages = tuple(Package.objects.filter(name__in=packages))
+        packages_cached = get_packages_cached()
+        package_names = set(request.GET.getlist('package')) & set(get_unlocked_packages_names(request))
+        packages = [packages_cached[name] for name in package_names if name in packages_cached]
+        if len(packages) == len(packages_cached):
+            packages = []
+        package_ids = sorted([package.id for package in packages])
 
+        cache_key = '__'.join((
+            ','.join([str(i) for i in types]),
+            str(level.id) if level is not None else '',
+            ','.join([str(i) for i in package_ids]),
+        ))
+
+        return self._list(request, types=types, level=level, packages=packages, add_cache_key=cache_key)
+
+    @cache_mapdata_api_response()
+    def _list(self, request, types, level, packages):
         results = []
         for t in types:
             mapitemtype = GEOMETRY_MAPITEM_TYPES[t]
             queryset = mapitemtype.objects.all()
             if packages:
                 queryset = queryset.filter(package__in=packages)
-            if levels:
+            if level:
                 if hasattr(mapitemtype, 'level'):
-                    queryset = queryset.filter(level__in=levels)
+                    queryset = queryset.filter(level=level)
                 elif hasattr(mapitemtype, 'levels'):
-                    queryset = queryset.filter(levels__in=levels)
+                    queryset = queryset.filter(levels=level)
                 else:
                     queryset = queryset.none()
-            if names:
-                queryset = queryset.filter(name__in=names)
             queryset = filter_queryset_by_package_access(request, queryset)
             queryset = queryset.order_by('name')
 
@@ -83,7 +97,7 @@ class GeometryViewSet(ViewSet):
         return Response(results)
 
 
-class PackageViewSet(ReadOnlyModelViewSet):
+class PackageViewSet(CachedReadOnlyViewSetMixin, ReadOnlyModelViewSet):
     """
     Retrieve packages the map consists of.
     """
@@ -91,13 +105,10 @@ class PackageViewSet(ReadOnlyModelViewSet):
     serializer_class = PackageSerializer
     lookup_field = 'name'
     lookup_value_regex = '[^/]+'
-    filter_fields = ('name', 'depends')
-    ordering_fields = ('name',)
     ordering = ('name',)
-    search_fields = ('name',)
 
 
-class LevelViewSet(ReadOnlyModelViewSet):
+class LevelViewSet(CachedReadOnlyViewSetMixin, ReadOnlyModelViewSet):
     """
     List and retrieve levels.
     """
@@ -105,13 +116,10 @@ class LevelViewSet(ReadOnlyModelViewSet):
     serializer_class = LevelSerializer
     lookup_field = 'name'
     lookup_value_regex = '[^/]+'
-    filter_fields = ('altitude', 'package')
-    ordering_fields = ('altitude', 'package')
     ordering = ('altitude',)
-    search_fields = ('name',)
 
 
-class SourceViewSet(ReadOnlyModelViewSet):
+class SourceViewSet(CachedReadOnlyViewSetMixin, ReadOnlyModelViewSet):
     """
     List and retrieve source images (to use as a drafts).
     """
@@ -119,16 +127,18 @@ class SourceViewSet(ReadOnlyModelViewSet):
     serializer_class = SourceSerializer
     lookup_field = 'name'
     lookup_value_regex = '[^/]+'
-    filter_fields = ('package',)
-    ordering_fields = ('name', 'package')
     ordering = ('name',)
-    search_fields = ('name',)
+    include_package_access = True
 
     def get_queryset(self):
         return filter_queryset_by_package_access(self.request, super().get_queryset())
 
     @detail_route(methods=['get'])
     def image(self, request, name=None):
+        return self._image(request, name=name, add_cache_key=self._get_add_cache_key(request))
+
+    @cache_mapdata_api_response()
+    def _image(self, request, name=None):
         source = self.get_object()
         response = HttpResponse(content_type=mimetypes.guess_type(source.name)[0])
         image_path = os.path.join(settings.MAP_ROOT, source.package.directory, 'sources', source.name)

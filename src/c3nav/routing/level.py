@@ -4,7 +4,7 @@ from django.conf import settings
 from PIL import Image, ImageDraw
 from shapely.geometry import JOIN_STYLE
 
-from c3nav.mapdata.utils import assert_multipolygon
+from c3nav.mapdata.utils.geometry import assert_multipolygon
 from c3nav.routing.point import GraphPoint
 from c3nav.routing.room import GraphRoom
 from c3nav.routing.utils.base import get_nearest_point

@@ -4,6 +4,8 @@ from django.conf import settings
 from django.db import models
 from django.utils.translation import ugettext_lazy as _
 
+from c3nav.mapdata.lastupdate import set_last_mapdata_update
+
 
 class Package(models.Model):
     """
@@ -92,6 +94,10 @@ class Package(models.Model):
             data['bounds'] = ((float(self.bottom), float(self.left)), (float(self.top), float(self.right)))
 
         return data
+
+    def save(self, *args, **kwargs):
+        with set_last_mapdata_update():
+            super().save(*args, **kwargs)
 
     def __str__(self):
         return self.name
