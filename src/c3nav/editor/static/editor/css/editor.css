@@ -19,7 +19,7 @@ body {
     top:2px;
 }
 
-form button.btn.invisiblesubmit {
+form button.invisiblesubmit {
     overflow: visible;
     height: 0;
     width: 0;
