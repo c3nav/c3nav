@@ -1,7 +1,7 @@
 from django.db import models
 from django.utils.functional import cached_property
 from django.utils.translation import ugettext_lazy as _
-from shapely.geometry import JOIN_STYLE
+from shapely.geometry import CAP_STYLE, JOIN_STYLE
 from shapely.ops import cascaded_union
 
 from c3nav.mapdata.models.base import MapItem
@@ -200,8 +200,8 @@ class LevelGeometries():
         return cascaded_union([stair.geometry for stair in self.level.stairs.all()]).intersection(self.accessible)
 
     @cached_property
-    def stair_shadows(self):
-        shadows = []
+    def stair_areas(self):
+        left = []
         for stair in assert_multilinestring(self.stairs):
-            shadows.append(stair.parallel_offset(0.1, 'left', join_style=JOIN_STYLE.mitre))
-        return cascaded_union(shadows)
+            left.append(stair.parallel_offset(0.15, 'left', join_style=JOIN_STYLE.mitre))
+        return cascaded_union(left).buffer(0.20, join_style=JOIN_STYLE.mitre, cap_style=CAP_STYLE.flat)
