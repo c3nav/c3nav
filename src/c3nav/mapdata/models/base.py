@@ -46,5 +46,9 @@ class MapItem(models.Model, metaclass=MapItemMeta):
         with set_last_mapdata_update():
             super().save(*args, **kwargs)
 
+    def delete(self, *args, **kwargs):
+        with set_last_mapdata_update():
+            super().delete(*args, **kwargs)
+
     class Meta:
         abstract = True
