@@ -168,6 +168,7 @@ editor = {
     _editing_layer: null,
     _get_geometries_next_time: false,
     _geometries: {},
+    _geometries_shadows: {},
     _creating: false,
     _editing: null,
     _geometry_types: [],
@@ -232,6 +233,7 @@ editor = {
     get_geometries: function () {
         // reload geometries of current level
         editor._geometries = {};
+        editor._geometries_shadows = {};
         if (editor._geometries_layer !== null) {
             editor.map.removeLayer(editor._geometries_layer);
         }
@@ -263,24 +265,41 @@ editor = {
         'door': '#FF00FF',
         'hole': '#66CC66',
         'elevatorlevel': '#9EF8FB',
-        'levelconnector': '#FFFF00'
+        'levelconnector': '#FFFF00',
+        'shadow': '#000000',
+        'stair': '#FF0000'
+    },
+    _line_draw_geometry_style: function(style) {
+        style.stroke = true;
+        style.opacity = 0.6;
+        style.color = style.fillColor;
+        style.weight = 5;
+        return style;
     },
     _get_geometry_style: function (feature) {
         // style callback for GeoJSON loader
-        return editor._get_mapitem_type_style(feature.properties.type);
+        var style = editor._get_mapitem_type_style(feature.properties.type);
+        if (feature.geometry.type == 'LineString') {
+            style = editor._line_draw_geometry_style(style);
+        }
+        return style
     },
     _get_mapitem_type_style: function (mapitem_type) {
         // get styles for a specific mapitem
         return {
+            stroke: false,
             fillColor: editor._geometry_colors[mapitem_type],
-            weight: 0,
             fillOpacity: 0.6,
             smoothFactor: 0
         };
     },
     _register_geojson_feature: function (feature, layer) {
         // onEachFeature callback for GeoJSON loader – register all needed events
-        editor._geometries[feature.properties.type+'-'+feature.properties.name] = layer;
+        if (feature.properties.type == 'shadow') {
+            editor._geometries_shadows[feature.properties.original_type+'-'+feature.properties.original_name] = layer;
+        } else {
+            editor._geometries[feature.properties.type+'-'+feature.properties.name] = layer;
+        }
         layer.on('mouseover', editor._hover_geometry_layer)
              .on('mouseout', editor._unhighlight_geometry)
              .on('click', editor._click_geometry_layer)
@@ -361,6 +380,10 @@ editor = {
                     var name = form.attr('data-name');
                     var pk = mapitem_type+'-'+name;
                     editor._geometries_layer.removeLayer(editor._geometries[pk]);
+                    var shadow = editor._geometries_shadows[pk];
+                    if (shadow) {
+                        editor._geometries_layer.removeLayer(shadow);
+                    }
                 }
 
                 editor._editing = L.geoJSON({
@@ -384,6 +407,7 @@ editor = {
                 if (geomtype == 'polygon') {
                     editor.map.editTools.startPolygon(null, options);
                 } else if (geomtype == 'polyline') {
+                    options = editor._line_draw_geometry_style(options);
                     editor.map.editTools.startPolyline(null, options);
                 }
                 editor._creating = true;

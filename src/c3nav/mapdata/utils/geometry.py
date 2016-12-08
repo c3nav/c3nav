@@ -1,4 +1,4 @@
-from shapely.geometry import Polygon
+from shapely.geometry import LineString, Polygon
 
 
 def clean_geometry(geometry):
@@ -26,7 +26,16 @@ def assert_multipolygon(geometry):
     :return: a list of Polygons
     """
     if isinstance(geometry, Polygon):
-        polygons = [geometry]
-    else:
-        polygons = geometry.geoms
-    return polygons
+        return [geometry]
+    return geometry.geoms
+
+
+def assert_multilinestring(geometry):
+    """
+    given a Geometry or GeometryCollection, return a list of Geometries
+    :param geometry: a Geometry or a GeometryCollection
+    :return: a list of Geometries
+    """
+    if isinstance(geometry, LineString):
+        return [geometry]
+    return geometry.geoms

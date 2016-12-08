@@ -5,6 +5,7 @@ from shapely.geometry import JOIN_STYLE
 from shapely.ops import cascaded_union
 
 from c3nav.mapdata.models.base import MapItem
+from c3nav.mapdata.utils.geometry import assert_multilinestring
 
 
 class Level(MapItem):
@@ -193,3 +194,14 @@ class LevelGeometries():
 
         shadows = shadows.difference(connectors.buffer(1.0, join_style=JOIN_STYLE.mitre))
         return shadows
+
+    @cached_property
+    def stairs(self):
+        return cascaded_union([stair.geometry for stair in self.level.stairs.all()])
+
+    @cached_property
+    def stair_shadows(self):
+        shadows = []
+        for stair in assert_multilinestring(self.stairs):
+            shadows.append(stair.parallel_offset(0.1, 'left', join_style=JOIN_STYLE.mitre))
+        return cascaded_union(shadows)
