@@ -112,15 +112,14 @@ class LevelRenderer():
         contents.append(self.polygon_svg(self.level.geometries.outsides_with_holes,
                                          fill_color='#DCE6DC'))
 
-        contents.append(self.polygon_svg(self.level.geometries.stair_shadows,
-                                         stroke_color='#000000',
-                                         stroke_width=0.1,
-                                         stroke_opacity=0.1))
+        contents.append(self.polygon_svg(self.level.geometries.stair_areas,
+                                         fill_color='#000000',
+                                         fill_opacity=0.03))
 
         contents.append(self.polygon_svg(self.level.geometries.stairs,
                                          stroke_color='#000000',
                                          stroke_width=0.06,
-                                         stroke_opacity=0.3))
+                                         stroke_opacity=0.2))
 
         contents.append(self.polygon_svg(self.level.geometries.walls_shadow,
                                          fill_color='#000000',
