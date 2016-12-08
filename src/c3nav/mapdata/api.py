@@ -10,6 +10,7 @@ from rest_framework.response import Response
 from rest_framework.viewsets import ReadOnlyModelViewSet, ViewSet
 
 from c3nav.mapdata.models import GEOMETRY_MAPITEM_TYPES, Level, Package, Source
+from c3nav.mapdata.models.geometry import LineGeometryMapItemWithLevel
 from c3nav.mapdata.permissions import filter_queryset_by_package_access, get_unlocked_packages_names
 from c3nav.mapdata.serializers.main import LevelSerializer, PackageSerializer, SourceSerializer
 from c3nav.mapdata.utils.cache import (CachedReadOnlyViewSetMixin, cache_mapdata_api_response, get_levels_cached,
@@ -92,7 +93,10 @@ class GeometryViewSet(ViewSet):
                 if hasattr(mapitemtype, field_name):
                     queryset.prefetch_related(field_name)
 
-            results.extend(sum((obj.to_geojson() for obj in queryset), []))
+            if issubclass(mapitemtype, LineGeometryMapItemWithLevel):
+                results.extend(obj.to_shadow_geojson() for obj in queryset)
+
+            results.extend(obj.to_geojson() for obj in queryset)
 
         return Response(results)
 

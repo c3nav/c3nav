@@ -1,8 +1,8 @@
 from collections import OrderedDict
 
-from django.conf import settings
 from django.db import models
 from django.utils.translation import ugettext_lazy as _
+from shapely.geometry import CAP_STYLE, JOIN_STYLE
 from shapely.geometry.geo import mapping, shape
 
 from c3nav.mapdata.fields import GeometryField
@@ -26,7 +26,6 @@ class GeometryMapItem(MapItem, metaclass=GeometryMapItemMeta):
     A map feature
     """
     geometry = GeometryField()
-    cached_geojson = {}
 
     geomtype = None
 
@@ -50,12 +49,6 @@ class GeometryMapItem(MapItem, metaclass=GeometryMapItemMeta):
 
         return kwargs
 
-    @classmethod
-    def get_styles(cls):
-        return {
-            cls.__name__.lower(): cls.color
-        }
-
     def get_geojson_properties(self):
         return OrderedDict((
             ('type', self.__class__.__name__.lower()),
@@ -64,24 +57,19 @@ class GeometryMapItem(MapItem, metaclass=GeometryMapItemMeta):
         ))
 
     def to_geojson(self):
-        if settings.DIRECT_EDITING:
-            return self._to_geojson()
-        key = (self.__class__, self.name)
-        if key not in self.cached_geojson:
-            self.cached_geojson[key] = self._to_geojson()
-        return self.cached_geojson[key]
-
-    def _to_geojson(self):
-        return [OrderedDict((
+        return OrderedDict((
             ('type', 'Feature'),
             ('properties', self.get_geojson_properties()),
             ('geometry', format_geojson(mapping(self.geometry), round=False)),
-        ))]
+        ))
 
     def tofile(self):
         result = super().tofile()
         result['geometry'] = format_geojson(mapping(self.geometry))
         return result
+
+    def get_shadow_geojson(self):
+        return None
 
 
 class GeometryMapItemWithLevel(GeometryMapItem):
@@ -289,3 +277,42 @@ class ElevatorLevel(GeometryMapItemWithLevel):
         result['elevator'] = self.elevator.name
         result['button'] = self.button
         return result
+
+
+class LineGeometryMapItemWithLevel(GeometryMapItemWithLevel):
+    geomtype = 'polyline'
+
+    class Meta:
+        abstract = True
+
+    def to_geojson(self):
+        result = super().to_geojson()
+        original_geometry = result['geometry']
+        draw = self.geometry.buffer(0.05, join_style=JOIN_STYLE.mitre, cap_style=CAP_STYLE.flat)
+        result['geometry'] = format_geojson(mapping(draw))
+        result['original_geometry'] = original_geometry
+        return result
+
+    def to_shadow_geojson(self):
+        shadow = self.geometry.parallel_offset(0.03, 'left', join_style=JOIN_STYLE.mitre)
+        shadow = shadow.buffer(0.019, join_style=JOIN_STYLE.mitre, cap_style=CAP_STYLE.flat)
+        return OrderedDict((
+            ('type', 'Feature'),
+            ('properties', OrderedDict((
+                ('type', 'shadow'),
+                ('original_type', self.__class__.__name__.lower()),
+                ('original_name', self.name),
+                ('level', self.level.name),
+            ))),
+            ('geometry', format_geojson(mapping(shadow), round=False)),
+        ))
+
+
+class Stair(LineGeometryMapItemWithLevel):
+    """
+    A stair
+    """
+    class Meta:
+        verbose_name = _('Stair')
+        verbose_name_plural = _('Stairs')
+        default_related_name = 'stairs'

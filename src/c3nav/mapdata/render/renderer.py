@@ -32,7 +32,8 @@ class LevelRenderer():
         return (width * settings.RENDER_SCALE, height * settings.RENDER_SCALE)
 
     @staticmethod
-    def polygon_svg(geometry, fill_color=None, fill_opacity=None, stroke_width=0.0, stroke_color=None, filter=None):
+    def polygon_svg(geometry, fill_color=None, fill_opacity=None,
+                    stroke_width=0.0, stroke_color=None, stroke_opacity=None):
         scaled = scale(geometry, xfact=settings.RENDER_SCALE, yfact=settings.RENDER_SCALE, origin=(0, 0))
         element = ET.fromstring(scaled.svg(0, fill_color or '#FFFFFF'))
         if element.tag != 'g':
@@ -40,7 +41,11 @@ class LevelRenderer():
             new_element.append(element)
             element = new_element
 
-        for path in element.findall('path'):
+        paths = element.findall('polyline')
+        if len(paths) == 0:
+            paths = element.findall('path')
+
+        for path in paths:
             path.attrib.pop('opacity')
             path.set('stroke-width', str(stroke_width * settings.RENDER_SCALE))
 
@@ -56,8 +61,8 @@ class LevelRenderer():
             elif 'stroke' in path.attrib:
                 path.attrib.pop('stroke')
 
-            if filter is not None:
-                path.set('filter', filter)
+            if stroke_opacity is not None:
+                path.set('stroke-opacity', str(stroke_opacity))
 
         return element
 
@@ -106,6 +111,16 @@ class LevelRenderer():
 
         contents.append(self.polygon_svg(self.level.geometries.outsides_with_holes,
                                          fill_color='#DCE6DC'))
+
+        contents.append(self.polygon_svg(self.level.geometries.stair_shadows,
+                                         stroke_color='#000000',
+                                         stroke_width=0.1,
+                                         stroke_opacity=0.1))
+
+        contents.append(self.polygon_svg(self.level.geometries.stairs,
+                                         stroke_color='#000000',
+                                         stroke_width=0.06,
+                                         stroke_opacity=0.2))
 
         contents.append(self.polygon_svg(self.level.geometries.walls_shadow,
                                          fill_color='#000000',
