@@ -32,10 +32,13 @@ editor = {
     // packages
     packages: {},
     _shown_packages: [],
-    get_packages: function () {
+    _packages_control: null,
+    get_packages: function() {
+        editor._packages_control = L.control.layers().addTo(editor.map);
+        $(editor._packages_control._layersLink).text('Packages');
+
         // load packages
         $.getJSON('/api/packages/', function (packages) {
-            var layers = {};
             var bounds = [[0, 0], [0, 0]];
             var pkg, layer;
             for (var i = 0; i < packages.length; i++) {
@@ -47,7 +50,7 @@ editor = {
                 layer.on('add', editor._add_package_layer);
                 layer.on('remove', editor._remove_package_layer);
                 layer.addTo(editor.map);
-                layers[pkg.name] = layer;
+                editor._packages_control.addOverlay(layer, pkg.name);
                 editor._shown_packages.push(pkg.name);
 
                 if (pkg.bounds === null) continue;
@@ -56,9 +59,6 @@ editor = {
             }
             editor.map.setMaxBounds(bounds);
             editor.map.fitBounds(bounds, {padding: [30, 50]});
-
-            var control = L.control.layers([], layers).addTo(editor.map);
-            $(control._layersLink).text('Packages');
         });
     },
     _add_package_layer: function(e) {
@@ -92,17 +92,17 @@ editor = {
     sources: {},
     get_sources: function () {
         // load sources
+        editor._sources_control = L.control.layers().addTo(editor.map);
+        $(editor._sources_control._layersLink).text('Sources');
+
         $.getJSON('/api/sources/', function (sources) {
-            var layers = {};
             var source;
             for (var i = 0; i < sources.length; i++) {
                 source = sources[i];
                 editor.sources[source.name] = source;
                 source.layer = L.imageOverlay('/api/sources/' + source.name + '/image/', source.bounds);
-                layers[source.name] = source.layer;
+                editor._sources_control.addOverlay(source.layer, source.name);
             }
-            var control = L.control.layers([], layers).addTo(editor.map);
-            $(control._layersLink).text('Sources');
         });
     },
 
@@ -172,6 +172,7 @@ editor = {
     _editing: null,
     _geometry_types: [],
     _shown_geometry_types: {},
+    _geometry_types_control: null,
     init_geometries: function () {
         // init geometries and edit listeners
         editor._highlight_layer = L.layerGroup().addTo(editor.map);
@@ -187,8 +188,9 @@ editor = {
         editor._get_geometry_types();
     },
     _get_geometry_types: function() {
+        editor._geometry_types_control = L.control.layers().addTo(editor.map);
+        $(editor._geometry_types_control._layersLink).text('Types');
         $.getJSON('/api/geometrytypes/', function(geometrytypes) {
-            var layers = {};
             var geometrytype, layer;
             for (var i = 0; i < geometrytypes.length; i++) {
                 geometrytype = geometrytypes[i];
@@ -197,12 +199,10 @@ editor = {
                 layer.on('add', editor._add_geometrytype_layer);
                 layer.on('remove', editor._remove_geometrytype_layer);
                 layer.addTo(editor.map);
-                layers[geometrytype.title_plural] = layer;
+                editor._geometry_types_control.addOverlay(layer, geometrytype.title_plural);
                 editor._geometry_types.push(geometrytype.name)
                 editor._shown_geometry_types[geometrytype.name] = true;
             }
-            var control = L.control.layers([], layers).addTo(editor.map);
-            $(control._layersLink).text('Types');
         });
     },
     _add_geometrytype_layer: function(e) {
