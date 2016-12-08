@@ -82,13 +82,10 @@ class GraphRoom():
         stairs_areas = assert_multipolygon(stairs_areas.intersection(self.geometry))
         for polygon in stairs_areas:
             for ring in (polygon.exterior, )+tuple(polygon.interiors):
-                print('#')
                 for linestring in assert_multilinestring(ring.intersection(self.clear_geometry)):
-                    print(' -')
                     coords = tuple(linestring.coords)
                     start = 1
                     for segment in zip(coords[:-1], coords[1:]):
-                        print('  .')
                         path = Path(segment)
                         length = abs(np.linalg.norm(path.vertices[0] - path.vertices[1]))
                         for coord in tuple(path.interpolated(max(int(length / 1.0), 1)).vertices)[start:-1]:
