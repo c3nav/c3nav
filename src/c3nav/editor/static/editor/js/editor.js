@@ -463,6 +463,7 @@ editor = {
             editor._editing.on('click', editor._click_editing_layer);
             editor._update_editing();
             $('#mapeditcontrols').find('form.creation-lock').removeClass('creation-lock');
+            $('#id_name').focus();
         }
     },
     _update_editing: function () {
