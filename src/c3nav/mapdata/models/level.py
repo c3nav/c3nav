@@ -197,7 +197,7 @@ class LevelGeometries():
 
     @cached_property
     def stairs(self):
-        return cascaded_union([stair.geometry for stair in self.level.stairs.all()])
+        return cascaded_union([stair.geometry for stair in self.level.stairs.all()]).intersection(self.accessible)
 
     @cached_property
     def stair_shadows(self):
