@@ -1,18 +1,16 @@
 from itertools import combinations, permutations
 
-import numpy as np
-from matplotlib.path import Path
-from shapely.geometry import JOIN_STYLE, LineString
+from shapely.geometry import CAP_STYLE, JOIN_STYLE, LineString
 
 from c3nav.mapdata.utils.geometry import assert_multipolygon
 from c3nav.routing.point import GraphPoint
 from c3nav.routing.router import Router
 from c3nav.routing.utils.coords import get_coords_angles
-from c3nav.routing.utils.mpl import polygon_to_mpl_paths
+from c3nav.routing.utils.mpl import shapely_to_mpl
 
 
 class GraphRoom():
-    def __init__(self, level, geometry, mpl_paths=None):
+    def __init__(self, level, geometry, mpl_clear=None):
         self.level = level
         self.graph = level.graph
 
@@ -28,12 +26,12 @@ class GraphRoom():
             self.level.rooms.append(self)
             self.graph.rooms.append(self)
 
-            if mpl_paths is not None:
-                self.mpl_paths = mpl_paths
-            elif not self.empty:
-                self.mpl_paths = polygon_to_mpl_paths(self.clear_geometry.buffer(0.01, join_style=JOIN_STYLE.mitre))
+        self.mpl_clear = mpl_clear
 
-    def create_points(self):
+    def prepare_build(self):
+        self.mpl_clear = shapely_to_mpl(self.clear_geometry.buffer(0.01, join_style=JOIN_STYLE.mitre))
+
+    def build_points(self):
         original_geometry = self.geometry
         geometry = original_geometry.buffer(-0.6, join_style=JOIN_STYLE.mitre)
 
@@ -62,7 +60,7 @@ class GraphRoom():
             # overlaps to non-missing areas
             overlaps = assert_multipolygon(overlaps)
             for overlap in overlaps:
-                points.append(self.add_point(overlap.centroid.coords[0]))
+                points += self.add_point(overlap.centroid.coords[0])
 
             points += self._add_ring(polygon.exterior, want_left=False)
 
@@ -72,9 +70,15 @@ class GraphRoom():
             for from_point, to_point in permutations(points, 2):
                 from_point.connect_to(to_point)
 
-    # noinspection PyTypeChecker
-    def build_router(self):
-        self.router.build(self.points)
+        # points around steps
+        stairs_areas = self.level.level.geometries.stairs
+        stairs_areas = stairs_areas.buffer(0.3, join_style=JOIN_STYLE.mitre, cap_style=CAP_STYLE.flat)
+        stairs_areas = assert_multipolygon(stairs_areas.intersection(self.geometry))
+        for polygon in stairs_areas:
+            self._add_ring(polygon.exterior, want_left=True)
+
+            for interior in polygon.interiors:
+                self._add_ring(interior, want_left=False)
 
     def _add_ring(self, geom, want_left):
         """
@@ -106,21 +110,23 @@ class GraphRoom():
 
         points = []
         for coord in coords:
-            points.append(self.add_point(coord))
+            points += self.add_point(coord)
 
         return points
 
     def add_point(self, coord):
+        if not self.mpl_clear.contains_point(coord):
+            return []
         point = GraphPoint(coord[0], coord[1], self)
-        return point
+        return [point]
 
-    def connect_points(self):
-        room_paths = self.mpl_paths
+    def build_connections(self):
         for point1, point2 in combinations(self.points, 2):
-            path = Path(np.vstack((point1.xy, point2.xy)))
-            for room_path in room_paths:
-                if room_path.intersects_path(path, False):
-                    break
-            else:
-                point1.connect_to(point2)
-                point2.connect_to(point1)
+            path = point1.path_to(point2)
+            if self.mpl_clear.intersects_path(path):
+                continue
+            point1.connect_to(point2)
+            point2.connect_to(point1)
+
+    def build_router(self):
+        self.router.build(self.points)
