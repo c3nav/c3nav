@@ -1,11 +1,13 @@
 from itertools import combinations, permutations
 
+import numpy as np
+from matplotlib.path import Path
 from shapely.geometry import CAP_STYLE, JOIN_STYLE, LineString
 
-from c3nav.mapdata.utils.geometry import assert_multipolygon
+from c3nav.mapdata.utils.geometry import assert_multilinestring, assert_multipolygon
 from c3nav.routing.point import GraphPoint
 from c3nav.routing.router import Router
-from c3nav.routing.utils.coords import get_coords_angles
+from c3nav.routing.utils.coords import coord_angle, get_coords_angles
 from c3nav.routing.utils.mpl import shapely_to_mpl
 
 
@@ -30,6 +32,10 @@ class GraphRoom():
 
     def prepare_build(self):
         self.mpl_clear = shapely_to_mpl(self.clear_geometry.buffer(0.01, join_style=JOIN_STYLE.mitre))
+        self.mpl_stairs = ()
+        for stair_line in self.level.level.geometries.stairs:
+            coords = tuple(stair_line.coords)
+            self.mpl_stairs += tuple((Path(part), coord_angle(*part)) for part in zip(coords[:-1], coords[1:]))
 
     def build_points(self):
         original_geometry = self.geometry
@@ -75,10 +81,19 @@ class GraphRoom():
         stairs_areas = stairs_areas.buffer(0.3, join_style=JOIN_STYLE.mitre, cap_style=CAP_STYLE.flat)
         stairs_areas = assert_multipolygon(stairs_areas.intersection(self.geometry))
         for polygon in stairs_areas:
-            self._add_ring(polygon.exterior, want_left=True)
-
-            for interior in polygon.interiors:
-                self._add_ring(interior, want_left=False)
+            for ring in (polygon.exterior, )+tuple(polygon.interiors):
+                print('#')
+                for linestring in assert_multilinestring(ring.intersection(self.clear_geometry)):
+                    print(' -')
+                    coords = tuple(linestring.coords)
+                    start = 1
+                    for segment in zip(coords[:-1], coords[1:]):
+                        print('  .')
+                        path = Path(segment)
+                        length = abs(np.linalg.norm(path.vertices[0] - path.vertices[1]))
+                        for coord in tuple(path.interpolated(max(int(length / 1.0), 1)).vertices)[start:-1]:
+                            self.add_point(coord)
+                        start = 0
 
     def _add_ring(self, geom, want_left):
         """
@@ -121,12 +136,33 @@ class GraphRoom():
         return [point]
 
     def build_connections(self):
+        i = 0
         for point1, point2 in combinations(self.points, 2):
-            path = point1.path_to(point2)
+            path = Path(np.vstack((point1.xy, point2.xy)))
+
+            # lies within room
             if self.mpl_clear.intersects_path(path):
                 continue
+
+            # stair checker
+            angle = coord_angle(point1.xy, point2.xy)
+            valid = True
+            for stair_path, stair_angle in self.mpl_stairs:
+                if not path.intersects_path(stair_path):
+                    continue
+
+                angle_diff = ((stair_angle - angle + 180) % 360) - 180
+                up = angle_diff < 0  # noqa
+                if not (70 < abs(angle_diff) < 110):
+                    valid = False
+                    break
+
+            if not valid:
+                continue
+
             point1.connect_to(point2)
             point2.connect_to(point1)
+            i += 1
 
     def build_router(self):
         self.router.build(self.points)
