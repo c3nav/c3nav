@@ -6,7 +6,7 @@ class GraphConnection():
         self.graph = graph
         self.from_point = from_point
         self.to_point = to_point
-        self.distance = distance if distance is not None else np.linalg.norm(from_point.xy - to_point.xy)
+        self.distance = distance if distance is not None else abs(np.linalg.norm(from_point.xy - to_point.xy))
 
         if to_point in from_point.connections:
             self.graph.connections.remove(from_point.connections[to_point])

@@ -103,6 +103,35 @@ class GeometryMapItemWithLevel(GeometryMapItem):
         return result
 
 
+class LineGeometryMapItemWithLevel(GeometryMapItemWithLevel):
+    geomtype = 'polyline'
+
+    class Meta:
+        abstract = True
+
+    def to_geojson(self):
+        result = super().to_geojson()
+        original_geometry = result['geometry']
+        draw = self.geometry.buffer(0.05, join_style=JOIN_STYLE.mitre, cap_style=CAP_STYLE.flat)
+        result['geometry'] = format_geojson(mapping(draw))
+        result['original_geometry'] = original_geometry
+        return result
+
+    def to_shadow_geojson(self):
+        shadow = self.geometry.parallel_offset(0.03, 'left', join_style=JOIN_STYLE.mitre)
+        shadow = shadow.buffer(0.019, join_style=JOIN_STYLE.mitre, cap_style=CAP_STYLE.flat)
+        return OrderedDict((
+            ('type', 'Feature'),
+            ('properties', OrderedDict((
+                ('type', 'shadow'),
+                ('original_type', self.__class__.__name__.lower()),
+                ('original_name', self.name),
+                ('level', self.level.name),
+            ))),
+            ('geometry', format_geojson(mapping(shadow), round=False)),
+        ))
+
+
 class Building(GeometryMapItemWithLevel):
     """
     The outline of a building on a specific level
@@ -137,6 +166,16 @@ class Outside(GeometryMapItemWithLevel):
         verbose_name = _('Outside Area')
         verbose_name_plural = _('Outside Areas')
         default_related_name = 'outsides'
+
+
+class Stair(LineGeometryMapItemWithLevel):
+    """
+    A stair
+    """
+    class Meta:
+        verbose_name = _('Stair')
+        verbose_name_plural = _('Stairs')
+        default_related_name = 'stairs'
 
 
 class Obstacle(GeometryMapItemWithLevel):
@@ -277,42 +316,3 @@ class ElevatorLevel(GeometryMapItemWithLevel):
         result['elevator'] = self.elevator.name
         result['button'] = self.button
         return result
-
-
-class LineGeometryMapItemWithLevel(GeometryMapItemWithLevel):
-    geomtype = 'polyline'
-
-    class Meta:
-        abstract = True
-
-    def to_geojson(self):
-        result = super().to_geojson()
-        original_geometry = result['geometry']
-        draw = self.geometry.buffer(0.05, join_style=JOIN_STYLE.mitre, cap_style=CAP_STYLE.flat)
-        result['geometry'] = format_geojson(mapping(draw))
-        result['original_geometry'] = original_geometry
-        return result
-
-    def to_shadow_geojson(self):
-        shadow = self.geometry.parallel_offset(0.03, 'left', join_style=JOIN_STYLE.mitre)
-        shadow = shadow.buffer(0.019, join_style=JOIN_STYLE.mitre, cap_style=CAP_STYLE.flat)
-        return OrderedDict((
-            ('type', 'Feature'),
-            ('properties', OrderedDict((
-                ('type', 'shadow'),
-                ('original_type', self.__class__.__name__.lower()),
-                ('original_name', self.name),
-                ('level', self.level.name),
-            ))),
-            ('geometry', format_geojson(mapping(shadow), round=False)),
-        ))
-
-
-class Stair(LineGeometryMapItemWithLevel):
-    """
-    A stair
-    """
-    class Meta:
-        verbose_name = _('Stair')
-        verbose_name_plural = _('Stairs')
-        default_related_name = 'stairs'
