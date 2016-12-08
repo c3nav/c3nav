@@ -7,6 +7,7 @@
     <input type="hidden" name="delete" value="1">
     <input type="hidden" name="name" value="{{ name }}">
     {% buttons %}
+    <button class="invisiblesubmit" type="submit"></button>
     <a class="btn btn-default" href="{% url 'editor.mapitems.level' mapitem_type=mapitem_type level='LEVEL' %}" data-insert-level>
         Cancel
     </a>

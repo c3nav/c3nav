@@ -19,6 +19,16 @@ body {
     top:2px;
 }
 
+form button.btn.invisiblesubmit {
+    overflow: visible;
+    height: 0;
+    width: 0;
+    margin: 0;
+    border: 0;
+    padding: 0;
+    display: block;
+}
+
 .leaflet-control-layers-toggle {
     color:#000000 !important;
     font-size:14px;
