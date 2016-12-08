@@ -33,7 +33,7 @@ class GraphRoom():
     def prepare_build(self):
         self.mpl_clear = shapely_to_mpl(self.clear_geometry.buffer(0.01, join_style=JOIN_STYLE.mitre))
         self.mpl_stairs = ()
-        for stair_line in self.level.level.geometries.stairs:
+        for stair_line in assert_multilinestring(self.level.level.geometries.stairs):
             coords = tuple(stair_line.coords)
             self.mpl_stairs += tuple((Path(part), coord_angle(*part)) for part in zip(coords[:-1], coords[1:]))
 
