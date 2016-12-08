@@ -364,7 +364,6 @@ editor = {
     _check_start_editing: function() {
         // called on sidebar load. start editing or creating depending on how the sidebar may require it
         var mapeditcontrols = $('#mapeditcontrols');
-        var geometry_field = mapeditcontrols.find('input[name=geometry]');
 
         var id_name = $('#id_name');
         id_name.focus();
@@ -372,6 +371,14 @@ editor = {
             id_name.select();
         }
 
+        var package_field = mapeditcontrols.find('select[name=package]');
+        if (package_field.length) {
+            if (package_field.val() === '' && editor._shown_packages.length == 1) {
+                package_field.val(editor._shown_packages[0]);
+            }
+        }
+
+        var geometry_field = mapeditcontrols.find('input[name=geometry]');
         if (geometry_field.length) {
             var form = geometry_field.closest('form');
             var mapitem_type = form.attr('data-mapitem-type');
