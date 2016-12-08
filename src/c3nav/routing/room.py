@@ -1,4 +1,4 @@
-from itertools import combinations, permutations
+from itertools import combinations
 
 import numpy as np
 from matplotlib.path import Path
@@ -72,9 +72,6 @@ class GraphRoom():
 
             for interior in polygon.interiors:
                 points += self._add_ring(interior, want_left=True)
-
-            for from_point, to_point in permutations(points, 2):
-                from_point.connect_to(to_point)
 
         # points around steps
         stairs_areas = self.level.level.geometries.stairs
