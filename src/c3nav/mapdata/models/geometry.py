@@ -118,7 +118,7 @@ class LineGeometryMapItemWithLevel(GeometryMapItemWithLevel):
         return result
 
     def to_shadow_geojson(self):
-        shadow = self.geometry.parallel_offset(0.03, 'left', join_style=JOIN_STYLE.mitre)
+        shadow = self.geometry.parallel_offset(0.03, 'right', join_style=JOIN_STYLE.mitre)
         shadow = shadow.buffer(0.019, join_style=JOIN_STYLE.mitre, cap_style=CAP_STYLE.flat)
         return OrderedDict((
             ('type', 'Feature'),
