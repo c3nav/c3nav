@@ -185,6 +185,9 @@ editor = {
         editor.map.on('editable:drawing:commit', editor._done_creating);
         editor.map.on('editable:editing', editor._update_editing);
         editor.map.on('editable:drawing:cancel', editor._canceled_creating);
+        editor.map.on('editable:vertex:click', function () {
+            editor.map.doubleClickZoom.disable();
+        });
 
         editor._get_geometry_types();
     },
