@@ -5,6 +5,7 @@
     {% csrf_token %}
     {% bootstrap_form form %}
     {% buttons %}
+    <button class="invisiblesubmit" type="submit"></button>
     {% if not new %}
         <button type="submit" name="delete" value="1" class="btn btn-danger">
             Delete
