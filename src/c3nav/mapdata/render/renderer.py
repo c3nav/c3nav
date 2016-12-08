@@ -120,7 +120,7 @@ class LevelRenderer():
         contents.append(self.polygon_svg(self.level.geometries.stairs,
                                          stroke_color='#000000',
                                          stroke_width=0.06,
-                                         stroke_opacity=0.2))
+                                         stroke_opacity=0.3))
 
         contents.append(self.polygon_svg(self.level.geometries.walls_shadow,
                                          fill_color='#000000',
