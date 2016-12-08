@@ -105,6 +105,14 @@ class LevelGeometries():
         return cascaded_union([self.buildings, self.outsides])
 
     @cached_property
+    def lineobstacles(self):
+        lineobstacles = []
+        for obstacle in self.level.lineobstacles.all():
+            lineobstacles.append(obstacle.geometry.buffer(obstacle.width/2,
+                                                          join_style=JOIN_STYLE.mitre, cap_style=CAP_STYLE.flat))
+        return cascaded_union(lineobstacles)
+
+    @cached_property
     def obstacles(self):
         levels_by_name = {}
         obstacles_by_crop_to_level = {}
@@ -119,6 +127,7 @@ class LevelGeometries():
             if level_name is not None:
                 obstacles = obstacles.intersection(levels_by_name[level_name].geometries.mapped)
             all_obstacles.append(obstacles)
+        all_obstacles.extend(self.lineobstacles)
 
         return cascaded_union(all_obstacles).intersection(self.mapped)
 
