@@ -203,5 +203,5 @@ class LevelGeometries():
     def stair_areas(self):
         left = []
         for stair in assert_multilinestring(self.stairs):
-            left.append(stair.parallel_offset(0.15, 'left', join_style=JOIN_STYLE.mitre))
+            left.append(stair.parallel_offset(0.15, 'right', join_style=JOIN_STYLE.mitre))
         return cascaded_union(left).buffer(0.20, join_style=JOIN_STYLE.mitre, cap_style=CAP_STYLE.flat)
