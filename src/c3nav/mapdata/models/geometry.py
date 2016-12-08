@@ -103,7 +103,7 @@ class GeometryMapItemWithLevel(GeometryMapItem):
         return result
 
 
-class LineGeometryMapItemWithLevel(GeometryMapItemWithLevel):
+class DirectedLineGeometryMapItemWithLevel(GeometryMapItemWithLevel):
     geomtype = 'polyline'
 
     class Meta:
@@ -168,7 +168,7 @@ class Outside(GeometryMapItemWithLevel):
         default_related_name = 'outsides'
 
 
-class Stair(LineGeometryMapItemWithLevel):
+class Stair(DirectedLineGeometryMapItemWithLevel):
     """
     A stair
     """
@@ -176,6 +176,48 @@ class Stair(LineGeometryMapItemWithLevel):
         verbose_name = _('Stair')
         verbose_name_plural = _('Stairs')
         default_related_name = 'stairs'
+
+
+class LineObstacle(GeometryMapItemWithLevel):
+    """
+    An obstacle that is a line with a specific width
+    """
+    width = models.DecimalField(_('obstacle width'), max_digits=4, decimal_places=2, default=0.15)
+
+    geomtype = 'polyline'
+
+    class Meta:
+        verbose_name = _('Line Obstacle')
+        verbose_name_plural = _('Line Obstacles')
+        default_related_name = 'lineobstacles'
+
+    def to_geojson(self):
+        result = super().to_geojson()
+        original_geometry = result['geometry']
+        draw = self.geometry.buffer(self.width/2, join_style=JOIN_STYLE.mitre, cap_style=CAP_STYLE.flat)
+        result['geometry'] = format_geojson(mapping(draw))
+        result['original_geometry'] = original_geometry
+        return result
+
+    @classmethod
+    def fromfile(cls, data, file_path):
+        kwargs = super().fromfile(data, file_path)
+
+        if 'width' not in data:
+            raise ValueError('missing width.')
+        kwargs['width'] = data['width']
+
+        return kwargs
+
+    def get_geojson_properties(self):
+        result = super().get_geojson_properties()
+        result['width'] = float(self.width)
+        return result
+
+    def tofile(self):
+        result = super().tofile()
+        result['width'] = float(self.width)
+        return result
 
 
 class Obstacle(GeometryMapItemWithLevel):

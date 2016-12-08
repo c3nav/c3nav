@@ -261,6 +261,7 @@ editor = {
         'building': '#333333',
         'room': '#FFFFFF',
         'outside': '#EEFFEE',
+        'lineobstacle': '#999999',
         'obstacle': '#999999',
         'door': '#FF00FF',
         'hole': '#66CC66',
