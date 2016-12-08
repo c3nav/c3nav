@@ -25,13 +25,14 @@ class GraphLevel():
         print('%d rooms' % len(self.rooms))
 
         for room in self.rooms:
-            room.create_points()
+            room.prepare_build()
+            room.build_points()
 
         self.create_doors()
         self.create_levelconnectors()
 
         for room in self.rooms:
-            room.connect_points()
+            room.build_connections()
 
         print('%d points' % len(self.points))
         print('%d room transfer points' % len(self.no_room_points))

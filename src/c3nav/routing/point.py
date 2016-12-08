@@ -1,6 +1,7 @@
 import numpy as np
 from django.conf import settings
 from django.utils.functional import cached_property
+from matplotlib.path import Path
 
 
 class GraphPoint():
@@ -32,6 +33,9 @@ class GraphPoint():
         x = self.x * settings.RENDER_SCALE
         y = self.y * settings.RENDER_SCALE
         return ((x-5, y-5), (x+5, y+5))
+
+    def path_to(self, to_point):
+        return Path(np.vstack((self.xy, to_point.xy)))
 
     def connect_to(self, to_point):
         self.graph.add_connection(self, to_point)

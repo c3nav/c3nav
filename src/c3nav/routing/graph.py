@@ -59,7 +59,7 @@ class Graph():
         def name_or_none(obj):
             return None if obj is None else obj.level.name
 
-        rooms = tuple((room.level.level.name, room.geometry, room.mpl_paths) for room in self.rooms)
+        rooms = tuple((room.level.level.name, room.geometry, room.mpl_clear) for room in self.rooms)
         points = tuple((point.x, point.y, i_or_none(point.room), name_or_none(point.level)) for point in self.points)
         connections = tuple((conn.from_point.i, conn.to_point.i, conn.distance) for conn in self.connections)
 
