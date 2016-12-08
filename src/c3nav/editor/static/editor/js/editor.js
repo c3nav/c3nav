@@ -120,7 +120,7 @@ editor = {
             $(control._layersLink).text('Levels').parent().addClass('leaflet-levels');
 
             var level, layer;
-            for (var i = 0; i < levels.length; i++) {
+            for (var i = levels.length -1; i >= 0; i--) {
                 level = levels[i];
                 layer = L.circle([-200, -200], 0.1);
                 layer._c3nav_level = level.name;
@@ -130,7 +130,7 @@ editor = {
             }
 
             editor._loading_geometry = false;
-            editor.set_current_level(levels[levels.length - 1].name);
+            editor.set_current_level(levels[0].name);
         });
     },
     _click_level: function(e) {
