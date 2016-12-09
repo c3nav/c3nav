@@ -532,7 +532,6 @@ editor = {
         editor.sidebar_get(href);
     },
     _sidebar_submit_btn_click: function() {
-        console.log($(this))
         // listener for submit-button-clicks in the sidebar, so the submit event will know which button submitted.
         $(this).closest('form').data('btn', $(this)).clearQueue().delay(300).queue(function() {
             $(this).data('btn', null);
