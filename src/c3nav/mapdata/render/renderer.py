@@ -100,14 +100,15 @@ class LevelRenderer():
         svg = self.create_svg()
         contents = self.add_svg_content(svg)
 
+        MITRE = JOIN_STYLE.mitre
         if not self.level.intermediate:
             width, height = get_dimensions()
-            holes = self.level.geometries.holes.buffer(0.1, join_style=JOIN_STYLE.mitre)
+            holes = self.level.geometries.holes.buffer(0.1, join_style=MITRE)
             contents.append(self.polygon_svg(box(0, 0, width, height).difference(holes),
                                              fill_color='#000000'))
 
         contents.append(self.polygon_svg(self.level.geometries.buildings_with_holes,
-                                         fill_color=('#EBEBEB' if self.level.intermediate else '#D5D5D5')))
+                                         fill_color='#D5D5D5'))
 
         contents.append(self.polygon_svg(self.level.geometries.outsides_with_holes,
                                          fill_color='#DCE6DC'))
@@ -126,9 +127,9 @@ class LevelRenderer():
                                          fill_opacity=0.06))
 
         if show_accessibles:
-            main_geometry = self.level.geometries.accessible.buffer(-0.6, join_style=JOIN_STYLE.mitre)
-            clear_geometry = self.level.geometries.accessible.buffer(-0.3, join_style=JOIN_STYLE.mitre)
-            missing_geometry = clear_geometry.difference(main_geometry.buffer(0.31, join_style=JOIN_STYLE.mitre))
+            main_geometry = self.level.geometries.accessible.buffer(-0.6, join_style=MITRE)
+            clear_geometry = self.level.geometries.accessible.buffer(-0.3, join_style=MITRE)
+            missing_geometry = clear_geometry.difference(main_geometry.buffer(0.31, join_style=MITRE))
 
             contents.append(self.polygon_svg(clear_geometry,
                                              fill_color='#FFFF00',
@@ -150,7 +151,12 @@ class LevelRenderer():
                                          stroke_color='#3c3c3c',
                                          stroke_width=0.05))
 
-        contents.append(self.polygon_svg(self.level.geometries.obstacles,
+        contents.append(self.polygon_svg(self.level.geometries.uncropped_obstacles,
+                                         fill_color='#BDBDBD',
+                                         stroke_color='#9E9E9E',
+                                         stroke_width=0.05))
+
+        contents.append(self.polygon_svg(self.level.geometries.cropped_obstacles.buffer(-0.06, join_style=MITRE),
                                          fill_color='#BDBDBD',
                                          stroke_color='#9E9E9E',
                                          stroke_width=0.05))
@@ -219,7 +225,7 @@ class LevelRenderer():
         for level in higher:
             contents.append(self.polygon_svg(level.geometries.intermediate_shadows,
                                              fill_color='#000000',
-                                             fill_opacity=0.05))
+                                             fill_opacity=0.07))
 
         for level in higher:
             self.add_svg_image(svg, 'file://'+get_render_path('level-%s.base.png' % level.name))
