@@ -178,6 +178,42 @@ class Stair(DirectedLineGeometryMapItemWithLevel):
         default_related_name = 'stairs'
 
 
+class Obstacle(GeometryMapItemWithLevel):
+    """
+    An obstacle
+    """
+    crop_to_level = models.ForeignKey('mapdata.Level', on_delete=models.CASCADE, null=True, blank=True,
+                                      verbose_name=_('crop to other level'), related_name='crops_obstacles')
+
+    geomtype = 'polygon'
+
+    class Meta:
+        verbose_name = _('Obstacle')
+        verbose_name_plural = _('Obstacles')
+        default_related_name = 'obstacles'
+
+    @classmethod
+    def fromfile(cls, data, file_path):
+        kwargs = super().fromfile(data, file_path)
+
+        if 'crop_to_level' in data:
+            kwargs['crop_to_level'] = data['crop_to_level']
+
+        return kwargs
+
+    def get_geojson_properties(self):
+        result = super().get_geojson_properties()
+        if self.crop_to_level is not None:
+            result['crop_to_level'] = self.crop_to_level.name
+        return result
+
+    def tofile(self):
+        result = super().tofile()
+        if self.crop_to_level is not None:
+            result['crop_to_level'] = self.crop_to_level.name
+        return result
+
+
 class LineObstacle(GeometryMapItemWithLevel):
     """
     An obstacle that is a line with a specific width
@@ -217,42 +253,6 @@ class LineObstacle(GeometryMapItemWithLevel):
     def tofile(self):
         result = super().tofile()
         result['width'] = float(self.width)
-        return result
-
-
-class Obstacle(GeometryMapItemWithLevel):
-    """
-    An obstacle
-    """
-    crop_to_level = models.ForeignKey('mapdata.Level', on_delete=models.CASCADE, null=True, blank=True,
-                                      verbose_name=_('crop to other level'), related_name='crops_obstacles')
-
-    geomtype = 'polygon'
-
-    class Meta:
-        verbose_name = _('Obstacle')
-        verbose_name_plural = _('Obstacles')
-        default_related_name = 'obstacles'
-
-    @classmethod
-    def fromfile(cls, data, file_path):
-        kwargs = super().fromfile(data, file_path)
-
-        if 'crop_to_level' in data:
-            kwargs['crop_to_level'] = data['crop_to_level']
-
-        return kwargs
-
-    def get_geojson_properties(self):
-        result = super().get_geojson_properties()
-        if self.crop_to_level is not None:
-            result['crop_to_level'] = self.crop_to_level.name
-        return result
-
-    def tofile(self):
-        result = super().tofile()
-        if self.crop_to_level is not None:
-            result['crop_to_level'] = self.crop_to_level.name
         return result
 
 
