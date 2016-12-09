@@ -85,7 +85,7 @@ class GraphRoom():
                     for segment in zip(coords[:-1], coords[1:]):
                         path = Path(segment)
                         length = abs(np.linalg.norm(path.vertices[0] - path.vertices[1]))
-                        for coord in tuple(path.interpolated(max(int(length / 1.0), 1)).vertices)[start:-1]:
+                        for coord in tuple(path.interpolated(max(int(length / 1.0), 2)).vertices)[start:-1]:
                             self.add_point(coord)
                         start = 0
 
