@@ -36,7 +36,7 @@ class GraphLevel():
         self.points.extend(self.room_transfer_points)
 
         for room in self.rooms:
-            pass  # room.build_connections()
+            room.build_connections()
 
         print('%d points' % len(self.points))
         print('%d room transfer points' % len(self.room_transfer_points))
