@@ -15,34 +15,39 @@ class GraphLevel():
     def __init__(self, graph, level):
         self.graph = graph
         self.level = level
+
         self.points = []
-        self.no_room_points = []
+        self.room_transfer_points = []
         self.rooms = []
 
     def build(self):
+        print()
         print('Level %s:' % self.level.name)
         self.collect_rooms()
         print('%d rooms' % len(self.rooms))
 
         for room in self.rooms:
-            room.prepare_build()
             room.build_points()
 
         self.create_doors()
         self.create_levelconnectors()
 
+        self.points = sum((room.points for room in self.rooms), [])
+        self.points.extend(self.room_transfer_points)
+
         for room in self.rooms:
-            room.build_connections()
+            pass  # room.build_connections()
 
         print('%d points' % len(self.points))
-        print('%d room transfer points' % len(self.no_room_points))
-        print()
+        print('%d room transfer points' % len(self.room_transfer_points))
 
     def collect_rooms(self):
         accessibles = self.level.geometries.accessible
         accessibles = assert_multipolygon(accessibles)
         for geometry in accessibles:
-            GraphRoom(self, geometry)
+            room = GraphRoom(self, geometry)
+            if room.prepare_build():
+                self.rooms.append(room)
 
     def create_doors(self):
         doors = self.level.geometries.doors
@@ -50,22 +55,33 @@ class GraphLevel():
         for door in doors:
             polygon = door.buffer(0.01, join_style=JOIN_STYLE.mitre)
             center = door.centroid
-            center_point = GraphPoint(center.x, center.y, level=self)
 
             num_points = 0
+            connected_rooms = set()
+            points = []
             for room in self.rooms:
                 if not polygon.intersects(room.geometry):
                     continue
 
                 for subpolygon in assert_multipolygon(polygon.intersection(room.geometry)):
+                    connected_rooms.add(room)
                     nearest_point = get_nearest_point(room.clear_geometry, subpolygon.centroid)
                     point = GraphPoint(nearest_point.x, nearest_point.y, room)
-                    center_point.connect_to(point)
-                    point.connect_to(center_point)
-                    num_points += 1
+                    room.points.append(point)
+                    points.append(point)
 
-            if num_points < 2:
-                print('door with <2 num_points (%d) detected at (%.2f, %.2f)' % (num_points, center.x, center.y))
+            if len(points) < 2:
+                print('door with <2 points (%d) detected at (%.2f, %.2f)' % (num_points, center.x, center.y))
+                continue
+
+            center_point = GraphPoint(center.x, center.y, rooms=tuple(connected_rooms))
+            self.room_transfer_points.append(center_point)
+            for room in connected_rooms:
+                room.points.append(center_point)
+
+            for point in points:
+                center_point.connect_to(point)
+                point.connect_to(center_point)
 
     def create_levelconnectors(self):
         for levelconnector in self.level.levelconnectors.all():
@@ -80,6 +96,7 @@ class GraphLevel():
                     if not point.within(room.clear_geometry):
                         point = get_nearest_point(room.clear_geometry, point)
                     point = GraphPoint(point.x, point.y, room)
+                    room.points.append(point)
                     self.graph.add_levelconnector_point(levelconnector, point)
 
     def draw_png(self, points=True, lines=True):
@@ -98,12 +115,11 @@ class GraphLevel():
             for point in self.points:
                 draw.ellipse(_ellipse_bbox(point.x, point.y, height), (200, 0, 0))
 
-        for point in self.no_room_points:
+        for point in self.room_transfer_points:
             draw.ellipse(_ellipse_bbox(point.x, point.y, height), (0, 0, 255))
 
-        for point in self.points:
+        for point in self.room_transfer_points:
             for otherpoint, connection in point.connections.items():
-                if otherpoint in self.graph.no_level_points:
-                    draw.line(_line_coords(point, otherpoint, height), fill=(0, 255, 255))
+                draw.line(_line_coords(point, otherpoint, height), fill=(0, 255, 255))
 
         im.save(graph_filename)

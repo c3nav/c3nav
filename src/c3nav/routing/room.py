@@ -12,30 +12,27 @@ from c3nav.routing.utils.mpl import shapely_to_mpl
 
 
 class GraphRoom():
-    def __init__(self, level, geometry, mpl_clear=None):
+    def __init__(self, level, geometry=None, mpl_clear=None):
         self.level = level
         self.graph = level.graph
 
         self.geometry = geometry
-        self.points = []
-
-        self.clear_geometry = geometry.buffer(-0.3, join_style=JOIN_STYLE.mitre)
-        self.empty = self.clear_geometry.is_empty
-
-        self.router = Router()
-
-        if not self.empty:
-            self.level.rooms.append(self)
-            self.graph.rooms.append(self)
-
         self.mpl_clear = mpl_clear
 
+        self.points = []
+
     def prepare_build(self):
+        self.clear_geometry = self.geometry.buffer(-0.3, join_style=JOIN_STYLE.mitre)
+
+        if self.clear_geometry.is_empty:
+            return False
+
         self.mpl_clear = shapely_to_mpl(self.clear_geometry.buffer(0.01, join_style=JOIN_STYLE.mitre))
         self.mpl_stairs = ()
         for stair_line in assert_multilinestring(self.level.level.geometries.stairs):
             coords = tuple(stair_line.coords)
             self.mpl_stairs += tuple((Path(part), coord_angle(*part)) for part in zip(coords[:-1], coords[1:]))
+        return True
 
     def build_points(self):
         original_geometry = self.geometry
@@ -127,11 +124,13 @@ class GraphRoom():
         if not self.mpl_clear.contains_point(coord):
             return []
         point = GraphPoint(coord[0], coord[1], self)
+        self.points.append(point)
         return [point]
 
     def build_connections(self):
         i = 0
-        for point1, point2 in combinations(self.points, 2):
+        own_points = [point for point in self.points if point not in self.level.room_transfer_points]
+        for point1, point2 in combinations(own_points, 2):
             path = Path(np.vstack((point1.xy, point2.xy)))
 
             # lies within room
@@ -159,4 +158,5 @@ class GraphRoom():
             i += 1
 
     def build_router(self):
+        self.router = Router()
         self.router.build(self.points)

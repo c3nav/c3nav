@@ -12,6 +12,7 @@ class Command(BaseCommand):
         start = time.time()
         graph = Graph()
         graph.build()
+        print()
         print('Built in %.4fs' % (time.time() - start))
 
         start = time.time()
