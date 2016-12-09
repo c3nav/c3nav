@@ -188,6 +188,9 @@ editor = {
         editor.map.on('editable:vertex:click', function () {
             editor.map.doubleClickZoom.disable();
         });
+        editor.map.on('editable:vertex:ctrlclick editable:vertex:metakeyclick', function (e) {
+            e.vertex.continue();
+        });
 
         editor._get_geometry_types();
     },
