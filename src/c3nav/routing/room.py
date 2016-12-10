@@ -1,10 +1,9 @@
-from itertools import combinations
-
 import numpy as np
 from matplotlib.path import Path
 from shapely.geometry import CAP_STYLE, JOIN_STYLE, LineString
 
 from c3nav.mapdata.utils.geometry import assert_multilinestring, assert_multipolygon
+from c3nav.routing.area import GraphArea
 from c3nav.routing.point import GraphPoint
 from c3nav.routing.router import Router
 from c3nav.routing.utils.coords import coord_angle, get_coords_angles
@@ -19,6 +18,7 @@ class GraphRoom():
         self.geometry = geometry
         self.mpl_clear = mpl_clear
 
+        self.areas = []
         self.points = []
 
     # Building the Graph
@@ -33,7 +33,24 @@ class GraphRoom():
         for stair_line in assert_multilinestring(self.level.level.geometries.stairs):
             coords = tuple(stair_line.coords)
             self.mpl_stairs += tuple((Path(part), coord_angle(*part)) for part in zip(coords[:-1], coords[1:]))
+
+        self.isolated_areas = []
         return True
+
+    def build_areas(self):
+        stairs_areas = self.level.level.geometries.stairs
+        stairs_areas = stairs_areas.buffer(0.3, join_style=JOIN_STYLE.mitre, cap_style=CAP_STYLE.flat)
+        stairs_areas = stairs_areas.intersection(self.geometry)
+        self.stairs_areas = assert_multipolygon(stairs_areas)
+
+        isolated_areas = tuple(assert_multipolygon(stairs_areas.intersection(self.clear_geometry)))
+        isolated_areas += tuple(assert_multipolygon(self.clear_geometry.difference(stairs_areas)))
+
+        for isolated_area in isolated_areas:
+            mpl_clear = shapely_to_mpl(isolated_area.buffer(0.01, join_style=JOIN_STYLE.mitre))
+            mpl_stairs = tuple((stair, angle) for stair, angle in self.mpl_stairs
+                               if mpl_clear.intersects_path(stair, filled=True))
+            self.areas.append(GraphArea(self, mpl_clear, mpl_stairs))
 
     def build_points(self):
         original_geometry = self.geometry
@@ -72,20 +89,29 @@ class GraphRoom():
                 points += self._add_ring(interior, want_left=True)
 
         # points around steps
-        stairs_areas = self.level.level.geometries.stairs
-        stairs_areas = stairs_areas.buffer(0.3, join_style=JOIN_STYLE.mitre, cap_style=CAP_STYLE.flat)
-        stairs_areas = assert_multipolygon(stairs_areas.intersection(self.geometry))
-        for polygon in stairs_areas:
+        for polygon in self.stairs_areas:
             for ring in (polygon.exterior, )+tuple(polygon.interiors):
                 for linestring in assert_multilinestring(ring.intersection(self.clear_geometry)):
                     coords = tuple(linestring.coords)
-                    start = 1
+                    if len(coords) == 2:
+                        path = Path(coords)
+                        length = abs(np.linalg.norm(path.vertices[0] - path.vertices[1]))
+                        for coord in tuple(path.interpolated(int(length / 1.0 + 1)).vertices):
+                            self.add_point(coord)
+                        continue
+
+                    start = 0
                     for segment in zip(coords[:-1], coords[1:]):
                         path = Path(segment)
                         length = abs(np.linalg.norm(path.vertices[0] - path.vertices[1]))
-                        for coord in tuple(path.interpolated(max(int(length / 1.0), 2)).vertices)[start:-1]:
+                        if length < 1.0:
+                            coords = (path.vertices[1 if start == 0 else 0], )
+                        else:
+                            coords = tuple(path.interpolated(int(length / 1.0 + 0.5)).vertices)[start:]
+                        for coord in coords:
                             self.add_point(coord)
-                        start = 0
+                        start = 1
+            # break
 
     def _add_ring(self, geom, want_left):
         """
@@ -126,37 +152,13 @@ class GraphRoom():
             return []
         point = GraphPoint(coord[0], coord[1], self)
         self.points.append(point)
+        for area in self.areas:
+            area.add_point(point)
         return [point]
 
     def build_connections(self):
-        i = 0
-        own_points = [point for point in self.points if point not in self.level.room_transfer_points]
-        for point1, point2 in combinations(own_points, 2):
-            path = Path(np.vstack((point1.xy, point2.xy)))
-
-            # lies within room
-            if self.mpl_clear.intersects_path(path):
-                continue
-
-            # stair checker
-            angle = coord_angle(point1.xy, point2.xy)
-            valid = True
-            for stair_path, stair_angle in self.mpl_stairs:
-                if not path.intersects_path(stair_path):
-                    continue
-
-                angle_diff = ((stair_angle - angle + 180) % 360) - 180
-                up = angle_diff < 0  # noqa
-                if not (70 < abs(angle_diff) < 110):
-                    valid = False
-                    break
-
-            if not valid:
-                continue
-
-            self.graph.add_connection(point1, point2)
-            self.graph.add_connection(point2, point1)
-            i += 1
+        for area in self.areas:
+            area.build_connections()
 
     # Routing
     def build_router(self):
