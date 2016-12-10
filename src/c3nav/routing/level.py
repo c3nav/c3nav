@@ -20,6 +20,7 @@ class GraphLevel():
         self.room_transfer_points = []
         self.rooms = []
 
+    # Building the Graph
     def build(self):
         print()
         print('Level %s:' % self.level.name)
@@ -99,6 +100,7 @@ class GraphLevel():
                     room.points.append(point)
                     self.graph.add_levelconnector_point(levelconnector, point)
 
+    # Drawing
     def draw_png(self, points=True, lines=True):
         filename = os.path.join(settings.RENDER_ROOT, 'level-%s.base.png' % self.level.name)
         graph_filename = os.path.join(settings.RENDER_ROOT, 'level-%s.graph.png' % self.level.name)
@@ -123,3 +125,8 @@ class GraphLevel():
                 draw.line(_line_coords(point, otherpoint, height), fill=(0, 255, 255))
 
         im.save(graph_filename)
+
+    # Routing
+    def build_router(self):
+        for room in self.rooms:
+            room.build_router()

@@ -10,7 +10,6 @@ from c3nav.routing.connection import GraphConnection
 from c3nav.routing.level import GraphLevel
 from c3nav.routing.point import GraphPoint
 from c3nav.routing.room import GraphRoom
-from c3nav.routing.router import Router
 
 
 class Graph:
@@ -21,22 +20,37 @@ class Graph:
         for level in Level.objects.all():
             self.levels[level.name] = GraphLevel(self, level)
 
-        self.points = []
+        self.rooms = ()
+        self.points = ()
         self.connections = []
-        self.rooms = []
 
         self.level_transfer_points = []
         self.levelconnector_points = {}
 
+    # Building the Graph
     def build(self):
         for level in self.levels.values():
             level.build()
 
+        # collect rooms and points
         self.rooms = sum((level.rooms for level in self.levels.values()), [])
         self.points = sum((level.points for level in self.levels.values()), [])
 
+        # create connections between levels
         print()
         self.connect_levelconnectors()
+
+        # convert everything to tuples
+        self.rooms = tuple(self.rooms)
+        self.points = tuple(self.points)
+        self.connections = tuple(self.connections)
+
+        # give numbers to rooms and points
+        for i, room in enumerate(self.rooms):
+            room.i = i
+
+        for i, point in enumerate(self.points):
+            point.i = i
 
         print()
         print('Total:')
@@ -50,13 +64,41 @@ class Graph:
         for name, level in self.levels.items():
             print(('Level %s:' % name), *(sorted((len(room.points) for room in level.rooms), reverse=True)))
 
+    def add_connection(self, from_point, to_point, distance=None):
+        self.connections.append(GraphConnection(self, from_point, to_point, distance))
+
+    def add_levelconnector_point(self, levelconnector, point):
+        self.levelconnector_points.setdefault(levelconnector.name, []).append(point)
+
+    def connect_levelconnectors(self):
+        for levelconnector in LevelConnector.objects.all():
+            center = levelconnector.geometry.centroid
+            points = self.levelconnector_points.get(levelconnector.name, [])
+            rooms = tuple(set(sum((point.rooms for point in points), [])))
+
+            if len(rooms) < 2:
+                print('levelconnector %s on levels %s at (%.2f, %.2f) has <2 rooms (%d%s)!' %
+                      (levelconnector.name, ', '.join(level.name for level in levelconnector.levels.all()),
+                       center.x, center.y, len(rooms), (' on level '+rooms[0].level.level.name) if rooms else ''))
+                continue
+
+            center_point = GraphPoint(center.x, center.y, rooms=rooms)
+            self.points.append(center_point)
+
+            levels = tuple(set(room.level for room in rooms))
+            for level in levels:
+                level.room_transfer_points.append(center_point)
+                level.points.append(center_point)
+
+            for room in rooms:
+                room.points.append(center_point)
+
+            for point in points:
+                center_point.connect_to(point)
+                point.connect_to(center_point)
+
+    # Loading/Saving the Graph
     def serialize(self):
-        for i, room in enumerate(self.rooms):
-            room.i = i
-
-        for i, point in enumerate(self.points):
-            point.i = i
-
         rooms = tuple((room.level.level.name, room.mpl_clear) for room in self.rooms)
         points = tuple((point.x, point.y, tuple(room.i for room in point.rooms)) for point in self.points)
         connections = tuple((conn.from_point.i, conn.to_point.i, conn.distance) for conn in self.connections)
@@ -100,47 +142,12 @@ class Graph:
             graph = cls.unserialize(pickle.load(f))
         return graph
 
-    def build_router(self):
-        for room in self.rooms:
-            room.build_router()
-            self.transfer_points.extend(room.router.transfer_points)
-
-        self.router = Router()
-        self.router.build(self.transfer_points, global_routing=True)
-
+    # Drawing
     def draw_pngs(self, points=True, lines=True):
         for level in self.levels.values():
             level.draw_png(points, lines)
 
-    def add_levelconnector_point(self, levelconnector, point):
-        self.levelconnector_points.setdefault(levelconnector.name, []).append(point)
-
-    def connect_levelconnectors(self):
-        for levelconnector in LevelConnector.objects.all():
-            center = levelconnector.geometry.centroid
-            points = self.levelconnector_points.get(levelconnector.name, [])
-            rooms = tuple(set(sum((point.rooms for point in points), [])))
-
-            if len(rooms) < 2:
-                print('levelconnector %s on levels %s at (%.2f, %.2f) has <2 rooms (%d%s)!' %
-                      (levelconnector.name, ', '.join(level.name for level in levelconnector.levels.all()),
-                       center.x, center.y, len(rooms), (' on level '+rooms[0].level.level.name) if rooms else ''))
-                continue
-
-            center_point = GraphPoint(center.x, center.y, rooms=rooms)
-            self.points.append(center_point)
-
-            levels = tuple(set(room.level for room in rooms))
-            for level in levels:
-                level.room_transfer_points.append(center_point)
-                level.points.append(center_point)
-
-            for room in rooms:
-                room.points.append(center_point)
-
-            for point in points:
-                center_point.connect_to(point)
-                point.connect_to(center_point)
-
-    def add_connection(self, from_point, to_point, distance=None):
-        self.connections.append(GraphConnection(self, from_point, to_point, distance))
+    # Router
+    def build_router(self):
+        for level in self.levels.values():
+            level.build_router()
