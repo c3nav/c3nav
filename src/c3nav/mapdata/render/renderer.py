@@ -127,15 +127,16 @@ class LevelRenderer():
                                          fill_opacity=0.06))
 
         if show_accessibles:
-            main_geometry = self.level.geometries.accessible.buffer(-0.6, join_style=MITRE)
-            clear_geometry = self.level.geometries.accessible.buffer(-0.3, join_style=MITRE)
-            missing_geometry = clear_geometry.difference(main_geometry.buffer(0.31, join_style=MITRE))
+            narrowed_geometry = self.level.geometries.accessible.buffer(-0.6, join_style=MITRE)
+            clear_geometry = self.level.geometries.accessible.buffer(-0.3, join_style=JOIN_STYLE.mitre)
+            wide_geometry = narrowed_geometry.buffer(0.31, join_style=MITRE).intersection(clear_geometry)
+            missing_geometry = clear_geometry.difference(wide_geometry.buffer(0.01, join_style=MITRE))
 
             contents.append(self.polygon_svg(clear_geometry,
                                              fill_color='#FFFF00',
                                              fill_opacity=0.5))
 
-            contents.append(self.polygon_svg(main_geometry,
+            contents.append(self.polygon_svg(narrowed_geometry,
                                              fill_color='#009900',
                                              fill_opacity=0.5))
 

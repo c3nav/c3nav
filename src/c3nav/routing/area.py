@@ -33,7 +33,7 @@ class GraphArea():
 
                 angle_diff = ((stair_angle - angle + 180) % 360) - 180
                 up = angle_diff < 0  # noqa
-                if not (50 < abs(angle_diff) < 130):
+                if not (40 < abs(angle_diff) < 150):
                     valid = False
                     break
 
