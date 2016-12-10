@@ -27,8 +27,6 @@ class Router():
         for point, pk in self.points_pk.items():
             for to_point, connection in point.connections.items():
                 if to_point not in self.points_pk:
-                    if not global_routing:
-                        self.transfer_points.add(point)
                     continue
                 matrix[pk, self.points_pk[to_point]] = connection.distance
             if global_routing:

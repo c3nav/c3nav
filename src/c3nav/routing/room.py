@@ -21,6 +21,7 @@ class GraphRoom():
 
         self.points = []
 
+    # Building the Graph
     def prepare_build(self):
         self.clear_geometry = self.geometry.buffer(-0.3, join_style=JOIN_STYLE.mitre)
 
@@ -157,6 +158,7 @@ class GraphRoom():
             point2.connect_to(point1)
             i += 1
 
+    # Routing
     def build_router(self):
         self.router = Router()
         self.router.build(self.points)
