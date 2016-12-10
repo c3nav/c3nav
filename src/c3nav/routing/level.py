@@ -81,8 +81,8 @@ class GraphLevel():
                 room.points.append(center_point)
 
             for point in points:
-                center_point.connect_to(point)
-                point.connect_to(center_point)
+                self.graph.add_connection(center_point, point)
+                self.graph.add_connection(point, center_point)
 
     def create_levelconnectors(self):
         for levelconnector in self.level.levelconnectors.all():
