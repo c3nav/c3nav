@@ -154,8 +154,8 @@ class GraphRoom():
             if not valid:
                 continue
 
-            point1.connect_to(point2)
-            point2.connect_to(point1)
+            self.graph.add_connection(point1, point2)
+            self.graph.add_connection(point2, point1)
             i += 1
 
     # Routing

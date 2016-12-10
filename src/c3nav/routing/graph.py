@@ -20,8 +20,8 @@ class Graph:
         for level in Level.objects.all():
             self.levels[level.name] = GraphLevel(self, level)
 
-        self.rooms = ()
-        self.points = ()
+        self.rooms = []
+        self.points = []
         self.connections = []
 
         self.level_transfer_points = []
@@ -94,8 +94,8 @@ class Graph:
                 room.points.append(center_point)
 
             for point in points:
-                center_point.connect_to(point)
-                point.connect_to(center_point)
+                self.add_connection(center_point, point)
+                self.add_connection(point, center_point)
 
     # Loading/Saving the Graph
     def serialize(self):

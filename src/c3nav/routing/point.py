@@ -10,9 +10,6 @@ class GraphPoint():
         self.y = y
         self.xy = np.array((x, y))
 
-        # self.level = room.level
-        self.graph = self.rooms[0].graph
-
         self.connections = {}
         self.connections_in = {}
 
@@ -21,6 +18,3 @@ class GraphPoint():
         x = self.x * settings.RENDER_SCALE
         y = self.y * settings.RENDER_SCALE
         return ((x-5, y-5), (x+5, y+5))
-
-    def connect_to(self, to_point):
-        self.graph.add_connection(self, to_point)
