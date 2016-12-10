@@ -53,8 +53,8 @@ class GraphRoom():
             self.areas.append(GraphArea(self, mpl_clear, mpl_stairs))
 
     def build_points(self):
-        original_geometry = self.geometry
-        geometry = original_geometry.buffer(-0.6, join_style=JOIN_STYLE.mitre)
+        narrowed_geometry = self.geometry.buffer(-0.6, join_style=JOIN_STYLE.mitre)
+        geometry = narrowed_geometry.buffer(0.31, join_style=JOIN_STYLE.mitre).intersection(self.clear_geometry)
 
         if geometry.is_empty:
             return
