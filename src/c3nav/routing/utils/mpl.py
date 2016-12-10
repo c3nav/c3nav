@@ -20,9 +20,9 @@ class MplMultipolygonPath(MplPathProxy):
     def __init__(self, polygon):
         self.polygons = [MplPolygonPath(polygon) for polygon in assert_multipolygon(polygon)]
 
-    def intersects_path(self, path):
+    def intersects_path(self, path, filled=False):
         for polygon in self.polygons:
-            if polygon.intersects_path(path):
+            if polygon.intersects_path(path, filled=filled):
                 return True
         return False
 
@@ -38,14 +38,23 @@ class MplPolygonPath(MplPathProxy):
         self.exterior = linearring_to_mpl_path(polygon.exterior)
         self.interiors = [linearring_to_mpl_path(interior) for interior in polygon.interiors]
 
-    def intersects_path(self, path):
-        if self.exterior.intersects_path(path, filled=False):
-            return True
+    def intersects_path(self, path, filled=False):
+        if filled:
+            if not self.exterior.intersects_path(path, filled=True):
+                return False
 
-        for interior in self.interiors:
-            if interior.intersects_path(path, filled=False):
+            for interior in self.interiors:
+                if interior.contains_path(path):
+                    return False
+            return True
+        else:
+            if self.exterior.intersects_path(path, filled=False):
                 return True
-        return False
+
+            for interior in self.interiors:
+                if interior.intersects_path(path, filled=False):
+                    return True
+            return False
 
     def contains_point(self, point):
         if not self.exterior.contains_point(point):

@@ -28,6 +28,7 @@ class GraphLevel():
         print('%d rooms' % len(self.rooms))
 
         for room in self.rooms:
+            room.build_areas()
             room.build_points()
 
         self.create_doors()
@@ -67,7 +68,7 @@ class GraphLevel():
                 for subpolygon in assert_multipolygon(polygon.intersection(room.geometry)):
                     connected_rooms.add(room)
                     nearest_point = get_nearest_point(room.clear_geometry, subpolygon.centroid)
-                    point = GraphPoint(nearest_point.x, nearest_point.y, room)
+                    point, = room.add_point(nearest_point.coords[0])
                     room.points.append(point)
                     points.append(point)
 
@@ -96,7 +97,7 @@ class GraphLevel():
                     point = subpolygon.centroid
                     if not point.within(room.clear_geometry):
                         point = get_nearest_point(room.clear_geometry, point)
-                    point = GraphPoint(point.x, point.y, room)
+                    point, = room.add_point(point.coords[0])
                     room.points.append(point)
                     self.graph.add_levelconnector_point(levelconnector, point)
 
