@@ -111,7 +111,6 @@ class GraphRoom():
                         for coord in coords:
                             self.add_point(coord)
                         start = 1
-            # break
 
     def _add_ring(self, geom, want_left):
         """
