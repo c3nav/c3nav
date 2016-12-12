@@ -1,3 +1,10 @@
+(function () {
+    if(L.Browser.chrome && !('ontouchstart' in window)) {
+        L.Browser.pointer = false;
+        L.Browser.touch = false;
+    }
+}());
+
 editor = {
     init: function () {
         // Init Map
