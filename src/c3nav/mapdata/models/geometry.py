@@ -32,10 +32,6 @@ class GeometryMapItem(MapItem, metaclass=GeometryMapItemMeta):
     class Meta:
         abstract = True
 
-    @property
-    def title(self):
-        return self.name
-
     @classmethod
     def fromfile(cls, data, file_path):
         kwargs = super().fromfile(data, file_path)

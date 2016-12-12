@@ -61,6 +61,10 @@ class MapitemFormMixin(ModelForm):
             # set field_name
             self.fields['levels'].to_field_name = 'name'
 
+        if 'groups' in self.fields:
+            # set field_name
+            self.fields['groups'].to_field_name = 'name'
+
         if 'geometry' in self.fields:
             # hide geometry widget
             self.fields['geometry'].widget = HiddenInput()
@@ -94,12 +98,17 @@ class MapitemFormMixin(ModelForm):
         if 'geometry' in self.fields:
             if not self.cleaned_data.get('geometry'):
                 raise ValidationError('Missing geometry.')
+
+        if hasattr(self.instance, 'titles') and not any(self.titles.values()):
+            raise ValidationError(
+                _('You have to select a title in at least one language.')
+            )
         super().clean()
 
 
 def create_editor_form(mapitemtype):
     possible_fields = ['name', 'package', 'altitude', 'level', 'intermediate', 'levels', 'geometry',
-                       'elevator', 'button', 'crop_to_level', 'width']
+                       'elevator', 'button', 'crop_to_level', 'width', 'groups']
     existing_fields = [field for field in possible_fields if hasattr(mapitemtype, field)]
 
     class EditorForm(MapitemFormMixin, ModelForm):
