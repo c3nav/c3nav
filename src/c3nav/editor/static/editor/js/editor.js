@@ -462,7 +462,7 @@ editor = {
     _click_editing_layer: function(e) {
         // click callback for a currently edited layer. create a hole on ctrl+click.
         if ((e.originalEvent.ctrlKey || e.originalEvent.metaKey)) {
-            if (e.target.feature.geometry.type == 'Polygon') {
+            if (e.target instanceof L.Polygon) {
                 this.editor.newHole(e.latlng);
             }
         }
