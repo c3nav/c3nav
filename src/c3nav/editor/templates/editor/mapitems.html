@@ -13,7 +13,8 @@
                 </tr>
             {% endif %}
             <tr data-name="{{ item.name }}">
-                <td>{{ item.name }}</td>
+
+                <td>{% if item.title != item.name %}{{ item.title }} <small>{{ item.name }}</small>{% else %}{{ item.name }}{% endif %}</td>
                 {% if has_elevator %}
                     <td><a href="{% url 'editor.mapitems.edit' mapitem_type='elevator' name=item.elevator.name %}">{{ item.elevator }}</a></td>
                 {% endif %}

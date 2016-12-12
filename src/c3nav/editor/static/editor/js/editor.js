@@ -281,7 +281,8 @@ editor = {
         'elevatorlevel': '#9EF8FB',
         'levelconnector': '#FFFF00',
         'shadow': '#000000',
-        'stair': '#FF0000'
+        'stair': '#FF0000',
+        'areaofinterest': '#0099FF'
     },
     _line_draw_geometry_style: function(style) {
         style.stroke = true;
@@ -300,12 +301,19 @@ editor = {
     },
     _get_mapitem_type_style: function (mapitem_type) {
         // get styles for a specific mapitem
-        return {
+        var result = {
             stroke: false,
             fillColor: editor._geometry_colors[mapitem_type],
-            fillOpacity: 0.6,
+            fillOpacity: (mapitem_type == 'areaofinterest') ? 0.2 : 0.6,
             smoothFactor: 0
         };
+        if (mapitem_type == 'areaofinterest') {
+            result.fillOpacity = 0.02;
+            result.color = result.fillColor;
+            result.stroke = true;
+            result.weight = 1;
+        }
+        return result;
     },
     _register_geojson_feature: function (feature, layer) {
         // onEachFeature callback for GeoJSON loader – register all needed events
