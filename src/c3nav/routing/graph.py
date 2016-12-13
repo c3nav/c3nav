@@ -74,20 +74,22 @@ class Graph:
         for levelconnector in LevelConnector.objects.all():
             center = levelconnector.geometry.centroid
             points = self._built_levelconnector_points.get(levelconnector.name, [])
-            rooms = tuple(set(sum((point.rooms for point in points), [])))
+            rooms = set(point.room for point in points if point.room is not None)
+            connected_levels = set(room.level for room in rooms)
 
-            if len(rooms) < 2:
-                print('levelconnector %s on levels %s at (%.2f, %.2f) has <2 rooms (%d%s)!' %
-                      (levelconnector.name, ', '.join(level.name for level in levelconnector.levels.all()),
-                       center.x, center.y, len(rooms), (' on level '+rooms[0].level.level.name) if rooms else ''))
+            should_levels = tuple(level.name for level in levelconnector.levels.all())
+            missing_levels = set(should_levels) - set(level.level.name for level in connected_levels)
+
+            if missing_levels:
+                print('levelconnector %s on levels %s at (%.2f, %.2f) is not connected to levels %s!' %
+                      (levelconnector.name, ', '.join(should_levels), center.x, center.y, ', '.join(missing_levels)))
                 continue
 
-            center_point = GraphPoint(center.x, center.y, rooms=rooms)
+            center_point = GraphPoint(center.x, center.y, None)
             self.points.append(center_point)
             self._built_level_transfer_points.append(center_point)
 
-            levels = tuple(set(room.level for room in rooms))
-            for level in levels:
+            for level in connected_levels:
                 level._built_room_transfer_points.append(center_point)
                 level._built_points.append(center_point)
 
@@ -117,10 +119,13 @@ class Graph:
         levels, points, level_transfer_points = data
 
         graph = cls()
-        for name, level in graph.levels.items():
-            level.unserialize(levels[name])
 
-        graph.points = tuple(GraphPoint(*point) for point in points)
+        for name, level in levels.items():
+            graph.levels[name].unserialize(level)
+
+        rooms = sum((level.rooms for level in graph.levels.values()), ())
+
+        graph.points = tuple(GraphPoint(x, y, None if room is None else rooms[room]) for x, y, room in points)
         graph.level_transfer_points = level_transfer_points
 
         return graph

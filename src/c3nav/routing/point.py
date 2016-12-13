@@ -6,10 +6,10 @@ from c3nav.routing.connection import GraphConnection
 
 
 class GraphPoint():
-    def __init__(self, x, y, room=None, rooms=None):
-        self.rooms = rooms if rooms is not None else [room]
+    def __init__(self, x, y, room):
         self.x = x
         self.y = y
+        self.room = room
         self.xy = np.array((x, y))
 
         self.connections = {}
@@ -19,6 +19,7 @@ class GraphPoint():
         return (
             self.x,
             self.y,
+            None if self.room is None else self.room.i,
         )
 
     @cached_property
