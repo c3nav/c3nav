@@ -65,7 +65,7 @@ class Graph:
         print('%d points' % len(self.points))
         print('%d rooms' % sum(len(level.rooms) for level in self.levels.values()))
         print('%d level transfer points' % len(self.level_transfer_points))
-        print('%d connections' % sum(len(point.connections) for point in self.points))
+        print('%d connections' % sum(level.connection_count() for level in self.levels.values()))
 
     def add_levelconnector_point(self, levelconnector, point):
         self._built_levelconnector_points.setdefault(levelconnector.name, []).append(point)

@@ -20,6 +20,7 @@ class GraphRoom():
         self.areas = []
         self.points = None
         self.room_transfer_points = None
+        self.distances = np.zeros((1, ))
 
     def serialize(self):
         return (
@@ -27,12 +28,13 @@ class GraphRoom():
             [area.serialize() for area in self.areas],
             self.points,
             self.room_transfer_points,
+            self.distances,
         )
 
     @classmethod
     def unserialize(cls, level, data):
         room = cls(level)
-        room.mpl_clear, areas, room.points, room.room_transfer_points = data
+        room.mpl_clear, areas, room.points, room.room_transfer_points, room.distances = data
         room.areas = tuple(GraphArea(room, *area) for area in areas)
         return room
 
@@ -177,12 +179,26 @@ class GraphRoom():
 
     def build_connections(self):
         for area in self.areas:
-            area.build_connections()
+            pass  # area.build_connections()
+
+    def connection_count(self):
+        # print(np.count_nonzero(self.distances != np.inf))
+        return np.count_nonzero(self.distances != np.inf)
 
     def finish_build(self):
         self.areas = tuple(self.areas)
         self.points = np.array(tuple(point.i for point in self._built_points))
         self.room_transfer_points = np.array(tuple(i for i in self.points if i in self.level.room_transfer_points))
+
+        mapping = {from_i: to_i for to_i, from_i in enumerate(self.points)}
+
+        self.distances = np.empty(shape=(len(self.points), len(self.points)), dtype=np.float16)
+        self.distances[:] = np.inf
+
+        for from_point in self._built_points:
+            for to_point, connection in from_point.connections.items():
+                if to_point.i in mapping:
+                    self.distances[mapping[from_point.i], mapping[to_point.i]] = connection.distance
 
         for area in self.areas:
             area.finish_build()
