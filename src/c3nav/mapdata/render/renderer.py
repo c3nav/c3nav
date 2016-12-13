@@ -23,8 +23,18 @@ def get_dimensions():
 
 
 class LevelRenderer():
-    def __init__(self, level):
+    def __init__(self, level, only_public):
         self.level = level
+        self.only_public = only_public
+
+        self.geometries = self.get_geometries(level)
+
+    def get_geometries(self, level):
+        return level.public_geometries if self.only_public else level.geometries
+
+    def get_filename(self, mode, filetype, level=None):
+        return get_render_path('%s%s-level-%s.%s' % (('public-' if self.only_public else ''), mode,
+                                                     (self.level.name if level is None else level), filetype))
 
     @staticmethod
     def get_dimensions():
@@ -103,32 +113,32 @@ class LevelRenderer():
         MITRE = JOIN_STYLE.mitre
         if not self.level.intermediate:
             width, height = get_dimensions()
-            holes = self.level.geometries.holes.buffer(0.1, join_style=MITRE)
+            holes = self.geometries.holes.buffer(0.1, join_style=MITRE)
             contents.append(self.polygon_svg(box(0, 0, width, height).difference(holes),
                                              fill_color='#000000'))
 
-        contents.append(self.polygon_svg(self.level.geometries.buildings_with_holes,
+        contents.append(self.polygon_svg(self.geometries.buildings_with_holes,
                                          fill_color='#D5D5D5'))
 
-        contents.append(self.polygon_svg(self.level.geometries.outsides_with_holes,
+        contents.append(self.polygon_svg(self.geometries.outsides_with_holes,
                                          fill_color='#DCE6DC'))
 
-        contents.append(self.polygon_svg(self.level.geometries.stair_areas,
+        contents.append(self.polygon_svg(self.geometries.stair_areas,
                                          fill_color='#000000',
                                          fill_opacity=0.03))
 
-        contents.append(self.polygon_svg(self.level.geometries.stairs,
+        contents.append(self.polygon_svg(self.geometries.stairs,
                                          stroke_color='#000000',
                                          stroke_width=0.06,
                                          stroke_opacity=0.2))
 
-        contents.append(self.polygon_svg(self.level.geometries.walls_shadow,
+        contents.append(self.polygon_svg(self.geometries.walls_shadow,
                                          fill_color='#000000',
                                          fill_opacity=0.06))
 
         if show_accessibles:
-            narrowed_geometry = self.level.geometries.accessible.buffer(-0.6, join_style=MITRE)
-            clear_geometry = self.level.geometries.accessible.buffer(-0.3, join_style=JOIN_STYLE.mitre)
+            narrowed_geometry = self.geometries.accessible.buffer(-0.6, join_style=MITRE)
+            clear_geometry = self.geometries.accessible.buffer(-0.3, join_style=JOIN_STYLE.mitre)
             wide_geometry = narrowed_geometry.buffer(0.31, join_style=MITRE).intersection(clear_geometry)
             missing_geometry = clear_geometry.difference(wide_geometry.buffer(0.01, join_style=MITRE))
 
@@ -144,35 +154,35 @@ class LevelRenderer():
                                              fill_color='#FF9900',
                                              fill_opacity=0.5))
 
-        contents.append(self.polygon_svg(self.level.geometries.elevatorlevels,
+        contents.append(self.polygon_svg(self.geometries.elevatorlevels,
                                          fill_color='#9EF8FB'))
 
-        contents.append(self.polygon_svg(self.level.geometries.doors,
+        contents.append(self.polygon_svg(self.geometries.doors,
                                          fill_color='#FFFFFF',
                                          stroke_color='#3c3c3c',
                                          stroke_width=0.05))
 
-        contents.append(self.polygon_svg(self.level.geometries.uncropped_obstacles,
+        contents.append(self.polygon_svg(self.geometries.uncropped_obstacles,
                                          fill_color='#BDBDBD',
                                          stroke_color='#9E9E9E',
                                          stroke_width=0.05))
 
-        contents.append(self.polygon_svg(self.level.geometries.cropped_obstacles.buffer(-0.06, join_style=MITRE),
+        contents.append(self.polygon_svg(self.geometries.cropped_obstacles.buffer(-0.06, join_style=MITRE),
                                          fill_color='#BDBDBD',
                                          stroke_color='#9E9E9E',
                                          stroke_width=0.05))
 
-        contents.append(self.polygon_svg(self.level.geometries.walls,
+        contents.append(self.polygon_svg(self.geometries.walls,
                                          fill_color='#949494',
                                          stroke_color='#3c3c3c',
                                          stroke_width=0.05))
 
-        filename = get_render_path('level-%s.base.svg' % self.level.name)
+        filename = self.get_filename('base', 'svg')
         with open(filename, 'w') as f:
             f.write(ET.tostring(svg).decode())
 
         if png:
-            png_filename = get_render_path('level-%s.base.png' % self.level.name)
+            png_filename = self.get_filename('base', 'png')
             subprocess.call(['rsvg-convert', filename, '-o', png_filename])
 
     def render_simple(self, png=True):
@@ -193,7 +203,7 @@ class LevelRenderer():
                                          fill_color='#000000'))
 
         for level in dark_lower:
-            self.add_svg_image(svg, 'file://'+get_render_path('level-%s.base.png' % level.name))
+            self.add_svg_image(svg, 'file://'+self.get_filename('base', 'png', level=level))
 
         contents = self.add_svg_content(svg)
         contents.append(self.polygon_svg(box(0, 0, width, height),
@@ -201,20 +211,20 @@ class LevelRenderer():
                                          fill_opacity=0.1))
 
         for level in lower:
-            self.add_svg_image(svg, 'file://'+get_render_path('level-%s.base.png' % level.name))
+            self.add_svg_image(svg, 'file://'+self.get_filename('base', 'png', level=level))
 
-        filename = get_render_path('level-%s.simple.svg' % self.level.name)
+        filename = self.get_filename('simple', 'svg')
         with open(filename, 'w') as f:
             f.write(ET.tostring(svg).decode())
 
         if png:
-            png_filename = get_render_path('level-%s.simple.png' % self.level.name)
+            png_filename = self.get_filename('simple', 'png')
             subprocess.call(['rsvg-convert', filename, '-o', png_filename])
 
     def render_full(self, png=True):
         svg = self.create_svg()
 
-        self.add_svg_image(svg, 'file://' + get_render_path('level-%s.simple.png' % self.level.name))
+        self.add_svg_image(svg, 'file://' + self.get_filename('simple', 'png'))
 
         higher = []
         for level in self.level.higher():
@@ -224,17 +234,17 @@ class LevelRenderer():
 
         contents = self.add_svg_content(svg)
         for level in higher:
-            contents.append(self.polygon_svg(level.geometries.intermediate_shadows,
+            contents.append(self.polygon_svg(self.get_geometries(level).intermediate_shadows,
                                              fill_color='#000000',
                                              fill_opacity=0.07))
 
         for level in higher:
-            self.add_svg_image(svg, 'file://'+get_render_path('level-%s.base.png' % level.name))
+            self.add_svg_image(svg, 'file://'+self.get_filename('base', 'png', level=level))
 
-        filename = get_render_path('level-%s.full.svg' % self.level.name)
+        filename = self.get_filename('full', 'svg')
         with open(filename, 'w') as f:
             f.write(ET.tostring(svg).decode())
 
         if png:
-            png_filename = get_render_path('level-%s.full.png' % self.level.name)
+            png_filename = self.get_filename('full', 'png')
             subprocess.call(['rsvg-convert', filename, '-o', png_filename])

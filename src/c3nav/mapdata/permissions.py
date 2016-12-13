@@ -7,6 +7,11 @@ from c3nav.mapdata.models import Source
 from c3nav.mapdata.utils.cache import get_packages_cached
 
 
+def get_public_packages():
+    packages_cached = get_packages_cached()
+    return [packages_cached[name] for name in settings.PUBLIC_PACKAGES]
+
+
 def get_unlocked_packages_names(request, packages_cached=None):
     if packages_cached is None:
         packages_cached = get_packages_cached()
