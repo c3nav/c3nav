@@ -11,22 +11,40 @@ from c3nav.routing.utils.mpl import shapely_to_mpl
 
 
 class GraphRoom():
-    def __init__(self, level, geometry=None, mpl_clear=None):
+    def __init__(self, level):
         self.level = level
         self.graph = level.graph
 
-        self.geometry = geometry
-        self.mpl_clear = mpl_clear
+        self.mpl_clear = None
 
         self.areas = []
-        self.points = []
+        self.points = None
+        self.room_transfer_points = None
+
+    def serialize(self):
+        return (
+            self.mpl_clear,
+            [area.serialize() for area in self.areas],
+            self.points,
+            self.room_transfer_points,
+        )
+
+    @classmethod
+    def unserialize(cls, level, data):
+        room = cls(level)
+        room.mpl_clear, areas, room.points, room.room_transfer_points = data
+        room.areas = tuple(GraphArea(room, *area) for area in areas)
+        return room
 
     # Building the Graph
-    def prepare_build(self):
-        self.clear_geometry = self.geometry.buffer(-0.3, join_style=JOIN_STYLE.mitre)
+    def prepare_build(self, geometry):
+        self._built_geometry = geometry
+        self.clear_geometry = self._built_geometry.buffer(-0.3, join_style=JOIN_STYLE.mitre)
 
         if self.clear_geometry.is_empty:
             return False
+
+        self._built_points = []
 
         self.mpl_clear = shapely_to_mpl(self.clear_geometry.buffer(0.01, join_style=JOIN_STYLE.mitre))
         self.mpl_stairs = ()
@@ -40,7 +58,7 @@ class GraphRoom():
     def build_areas(self):
         stairs_areas = self.level.level.geometries.stairs
         stairs_areas = stairs_areas.buffer(0.3, join_style=JOIN_STYLE.mitre, cap_style=CAP_STYLE.flat)
-        stairs_areas = stairs_areas.intersection(self.geometry)
+        stairs_areas = stairs_areas.intersection(self._built_geometry)
         self.stairs_areas = assert_multipolygon(stairs_areas)
 
         isolated_areas = tuple(assert_multipolygon(stairs_areas.intersection(self.clear_geometry)))
@@ -50,10 +68,12 @@ class GraphRoom():
             mpl_clear = shapely_to_mpl(isolated_area.buffer(0.01, join_style=JOIN_STYLE.mitre))
             mpl_stairs = tuple((stair, angle) for stair, angle in self.mpl_stairs
                                if mpl_clear.intersects_path(stair, filled=True))
-            self.areas.append(GraphArea(self, mpl_clear, mpl_stairs))
+            area = GraphArea(self, mpl_clear, mpl_stairs)
+            area.prepare_build()
+            self.areas.append(area)
 
     def build_points(self):
-        narrowed_geometry = self.geometry.buffer(-0.6, join_style=JOIN_STYLE.mitre)
+        narrowed_geometry = self._built_geometry.buffer(-0.6, join_style=JOIN_STYLE.mitre)
         geometry = narrowed_geometry.buffer(0.31, join_style=JOIN_STYLE.mitre).intersection(self.clear_geometry)
 
         if geometry.is_empty:
@@ -150,7 +170,7 @@ class GraphRoom():
         if not self.mpl_clear.contains_point(coord):
             return []
         point = GraphPoint(coord[0], coord[1], self)
-        self.points.append(point)
+        self._built_points.append(point)
         for area in self.areas:
             area.add_point(point)
         return [point]
@@ -159,7 +179,15 @@ class GraphRoom():
         for area in self.areas:
             area.build_connections()
 
+    def finish_build(self):
+        self.areas = tuple(self.areas)
+        self.points = np.array(tuple(point.i for point in self._built_points))
+        self.room_transfer_points = np.array(tuple(i for i in self.points if i in self.level.room_transfer_points))
+
+        for area in self.areas:
+            area.finish_build()
+
     # Routing
     def build_router(self):
         self.router = Router()
-        self.router.build(self.points)
+        self.router.build(self._built_points)

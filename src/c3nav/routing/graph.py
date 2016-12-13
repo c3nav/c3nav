@@ -2,14 +2,13 @@ import os
 import pickle
 from collections import OrderedDict
 
+import numpy as np
 from django.conf import settings
 
 from c3nav.mapdata.models import Level
 from c3nav.mapdata.models.geometry import LevelConnector
-from c3nav.routing.connection import GraphConnection
 from c3nav.routing.level import GraphLevel
 from c3nav.routing.point import GraphPoint
-from c3nav.routing.room import GraphRoom
 
 
 class Graph:
@@ -20,60 +19,61 @@ class Graph:
         for level in Level.objects.all():
             self.levels[level.name] = GraphLevel(self, level)
 
-        self.rooms = []
         self.points = []
-        self.connections = []
-
-        self.level_transfer_points = []
-        self.levelconnector_points = {}
+        self.level_transfer_points = None
 
     # Building the Graph
     def build(self):
+        self._built_level_transfer_points = []
+        self._built_levelconnector_points = {}
+
         for level in self.levels.values():
             level.build()
 
         # collect rooms and points
-        self.rooms = sum((level.rooms for level in self.levels.values()), [])
-        self.points = sum((level.points for level in self.levels.values()), [])
+        rooms = sum((level.rooms for level in self.levels.values()), [])
+        self.points = sum((level._built_points for level in self.levels.values()), [])
 
         # create connections between levels
         print()
         self.connect_levelconnectors()
 
-        # convert everything to tuples
-        self.rooms = tuple(self.rooms)
+        # finishing build: creating numpy arrays and convert everything else to tuples
         self.points = tuple(self.points)
-        self.connections = tuple(self.connections)
 
-        # give numbers to rooms and points
-        for i, room in enumerate(self.rooms):
+        for i, room in enumerate(rooms):
             room.i = i
 
         for i, point in enumerate(self.points):
             point.i = i
 
+        self.level_transfer_points = np.array(tuple(point.i for point in self._built_level_transfer_points))
+
+        for level in self.levels.values():
+            level.finish_build()
+
         print()
         print('Total:')
-        print('%d points' % len(self.points))
-        print('%d rooms' % len(self.rooms))
-        print('%d level transfer points' % len(self.level_transfer_points))
-        print('%d connections' % len(self.connections))
+        self.print_stats()
 
         print()
         print('Points per room:')
         for name, level in self.levels.items():
             print(('Level %s:' % name), *(sorted((len(room.points) for room in level.rooms), reverse=True)))
 
-    def add_connection(self, from_point, to_point, distance=None):
-        self.connections.append(GraphConnection(self, from_point, to_point, distance))
+    def print_stats(self):
+        print('%d points' % len(self.points))
+        print('%d rooms' % sum(len(level.rooms) for level in self.levels.values()))
+        print('%d level transfer points' % len(self.level_transfer_points))
+        print('%d connections' % sum(len(point.connections) for point in self.points))
 
     def add_levelconnector_point(self, levelconnector, point):
-        self.levelconnector_points.setdefault(levelconnector.name, []).append(point)
+        self._built_levelconnector_points.setdefault(levelconnector.name, []).append(point)
 
     def connect_levelconnectors(self):
         for levelconnector in LevelConnector.objects.all():
             center = levelconnector.geometry.centroid
-            points = self.levelconnector_points.get(levelconnector.name, [])
+            points = self._built_levelconnector_points.get(levelconnector.name, [])
             rooms = tuple(set(sum((point.rooms for point in points), [])))
 
             if len(rooms) < 2:
@@ -84,26 +84,27 @@ class Graph:
 
             center_point = GraphPoint(center.x, center.y, rooms=rooms)
             self.points.append(center_point)
+            self._built_level_transfer_points.append(center_point)
 
             levels = tuple(set(room.level for room in rooms))
             for level in levels:
-                level.room_transfer_points.append(center_point)
-                level.points.append(center_point)
+                level._built_room_transfer_points.append(center_point)
+                level._built_points.append(center_point)
 
             for room in rooms:
-                room.points.append(center_point)
+                room._built_points.append(center_point)
 
             for point in points:
-                self.add_connection(center_point, point)
-                self.add_connection(point, center_point)
+                center_point.connect_to(point)
+                point.connect_to(center_point)
 
     # Loading/Saving the Graph
     def serialize(self):
-        rooms = tuple((room.level.level.name, room.mpl_clear) for room in self.rooms)
-        points = tuple((point.x, point.y, tuple(room.i for room in point.rooms)) for point in self.points)
-        connections = tuple((conn.from_point.i, conn.to_point.i, conn.distance) for conn in self.connections)
-
-        return rooms, points, connections
+        return (
+            {name: level.serialize() for name, level in self.levels.items()},
+            [point.serialize() for point in self.points],
+            self.level_transfer_points,
+        )
 
     def save(self, filename=None):
         if filename is None:
@@ -113,24 +114,14 @@ class Graph:
 
     @classmethod
     def unserialize(cls, data):
+        levels, points, level_transfer_points = data
+
         graph = cls()
-        rooms, points, connections = data
-
-        graph.rooms = [GraphRoom(graph.levels[room[0]], mpl_clear=room[1]) for room in rooms]
-        graph.points = [GraphPoint(point[0], point[1], rooms=tuple(graph.rooms[i] for i in point[2]))
-                        for point in points]
-
-        for point in graph.points:
-            for room in point.rooms:
-                room.points.append(point)
-
         for name, level in graph.levels.items():
-            level.rooms = [room for room in graph.rooms if room.level == level]
-            level.points = list(set(sum((room.points for room in level.rooms), [])))
-            level.room_transfer_points = [point for point in level.points if len(point.rooms) > 1]
+            level.unserialize(levels[name])
 
-        for from_point, to_point, distance in connections:
-            graph.add_connection(graph.points[from_point], graph.points[to_point], distance)
+        graph.points = tuple(GraphPoint(*point) for point in points)
+        graph.level_transfer_points = level_transfer_points
 
         return graph
 
@@ -140,6 +131,7 @@ class Graph:
             filename = cls.default_filename
         with open(filename, 'rb') as f:
             graph = cls.unserialize(pickle.load(f))
+        graph.print_stats()
         return graph
 
     # Drawing
