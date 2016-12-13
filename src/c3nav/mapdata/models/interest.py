@@ -80,3 +80,6 @@ class AreaOfInterest(GeometryMapItemWithLevel, MapItemOfInterestMixin):
         result['groups'] = sorted(self.groups.all().order_by('name').values_list('name', flat=True))
         result.move_to_end('geometry')
         return result
+
+    def __str__(self):
+        return self.title
