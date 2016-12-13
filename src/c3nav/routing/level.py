@@ -61,6 +61,9 @@ class GraphLevel():
         print('%d points' % len(self._built_points))
         print('%d room transfer points' % len(self._built_room_transfer_points))
 
+    def connection_count(self):
+        return sum(room.connection_count() for room in self.rooms)
+
     def collect_rooms(self):
         accessibles = self.level.geometries.accessible
         accessibles = assert_multipolygon(accessibles)
