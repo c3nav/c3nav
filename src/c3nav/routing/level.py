@@ -93,7 +93,7 @@ class GraphLevel():
                 print('door with <2 points (%d) detected at (%.2f, %.2f)' % (num_points, center.x, center.y))
                 continue
 
-            center_point = GraphPoint(center.x, center.y, rooms=tuple(connected_rooms))
+            center_point = GraphPoint(center.x, center.y, None)
             self._built_room_transfer_points.append(center_point)
             for room in connected_rooms:
                 room._built_points.append(center_point)
