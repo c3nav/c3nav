@@ -27,8 +27,12 @@ class Level(MapItem):
         super().__init__(*args, **kwargs)
 
     @cached_property
+    def public_geometries(self):
+        return LevelGeometries.by_level(self, only_public=True)
+
+    @cached_property
     def geometries(self):
-        return LevelGeometries.by_level(self)
+        return LevelGeometries.by_level(self, only_public=False)
 
     def tofilename(self):
         return 'levels/%s.json' % self.name
@@ -75,19 +79,29 @@ class LevelGeometries():
     by_level_name = {}
 
     @classmethod
-    def by_level(cls, level):
-        return cls.by_level_name.setdefault(level.name, cls(level))
+    def by_level(cls, level, only_public=True):
+        return cls.by_level_name.setdefault((level.name, only_public), cls(level, only_public=only_public))
 
-    def __init__(self, level):
+    def __init__(self, level, only_public=True):
         self.level = level
+        self.only_public = only_public
+
+        from c3nav.mapdata.permissions import get_public_packages
+        self.public_packages = get_public_packages()
+
+    def query(self, name):
+        queryset = getattr(self.level, name)
+        if not self.only_public:
+            return queryset.all()
+        return queryset.filter(package__in=self.public_packages)
 
     @cached_property
     def raw_rooms(self):
-        return cascaded_union([room.geometry for room in self.level.rooms.all()])
+        return cascaded_union([room.geometry for room in self.query('rooms')])
 
     @cached_property
     def buildings(self):
-        result = cascaded_union([building.geometry for building in self.level.buildings.all()])
+        result = cascaded_union([building.geometry for building in self.query('buildings')])
         if self.level.intermediate:
             result = cascaded_union([result, self.raw_rooms])
         return result
@@ -98,7 +112,7 @@ class LevelGeometries():
 
     @cached_property
     def outsides(self):
-        return cascaded_union([outside.geometry for outside in self.level.outsides.all()]).difference(self.buildings)
+        return cascaded_union([outside.geometry for outside in self.query('outsides')]).difference(self.buildings)
 
     @cached_property
     def mapped(self):
@@ -107,21 +121,21 @@ class LevelGeometries():
     @cached_property
     def lineobstacles(self):
         lineobstacles = []
-        for obstacle in self.level.lineobstacles.all():
+        for obstacle in self.query('lineobstacles'):
             lineobstacles.append(obstacle.geometry.buffer(obstacle.width/2,
                                                           join_style=JOIN_STYLE.mitre, cap_style=CAP_STYLE.flat))
         return cascaded_union(lineobstacles)
 
     @cached_property
     def uncropped_obstacles(self):
-        obstacles = [obstacle.geometry for obstacle in self.level.obstacles.filter(crop_to_level__isnull=True)]
+        obstacles = [obstacle.geometry for obstacle in self.query('obstacles').filter(crop_to_level__isnull=True)]
         return cascaded_union(obstacles).intersection(self.mapped)
 
     @cached_property
     def cropped_obstacles(self):
         levels_by_name = {}
         obstacles_by_crop_to_level = {}
-        for obstacle in self.level.obstacles.filter(crop_to_level__isnull=False):
+        for obstacle in self.query('obstacles').filter(crop_to_level__isnull=False):
             level_name = obstacle.crop_to_level.name
             levels_by_name.setdefault(level_name, obstacle.crop_to_level)
             obstacles_by_crop_to_level.setdefault(level_name, []).append(obstacle.geometry)
@@ -140,11 +154,11 @@ class LevelGeometries():
 
     @cached_property
     def raw_doors(self):
-        return cascaded_union([door.geometry for door in self.level.doors.all()]).intersection(self.mapped)
+        return cascaded_union([door.geometry for door in self.query('doors').all()]).intersection(self.mapped)
 
     @cached_property
     def elevatorlevels(self):
-        return cascaded_union([elevatorlevel.geometry for elevatorlevel in self.level.elevatorlevels.all()])
+        return cascaded_union([elevatorlevel.geometry for elevatorlevel in self.query('elevatorlevels').all()])
 
     @cached_property
     def areas(self):
@@ -152,7 +166,7 @@ class LevelGeometries():
 
     @cached_property
     def holes(self):
-        return cascaded_union([holes.geometry for holes in self.level.holes.all()]).intersection(self.areas)
+        return cascaded_union([holes.geometry for holes in self.query('holes').all()]).intersection(self.areas)
 
     @cached_property
     def accessible(self):
@@ -183,18 +197,18 @@ class LevelGeometries():
         return self.raw_doors.difference(self.areas)
 
     def get_levelconnectors(self, to_level=None):
-        queryset = self.level.levelconnectors.prefetch_related('levels')
+        queryset = self.query('levelconnectors').prefetch_related('levels')
         if to_level is not None:
             queryset = queryset.filter(levels=to_level)
         return cascaded_union([levelconnector.geometry for levelconnector in queryset])
 
     @cached_property
     def levelconnectors(self):
-        return cascaded_union([levelconnector.geometry for levelconnector in self.level.levelconnectors])
+        return cascaded_union([levelconnector.geometry for levelconnector in self.query('levelconnectors')])
 
     @cached_property
     def intermediate_shadows(self):
-        qs = self.level.levelconnectors.prefetch_related('levels').filter(levels__altitude__lt=self.level.altitude)
+        qs = self.query('levelconnectors').prefetch_related('levels').filter(levels__altitude__lt=self.level.altitude)
         connectors = cascaded_union([levelconnector.geometry for levelconnector in qs])
         shadows = self.buildings.difference(connectors.buffer(0.4, join_style=JOIN_STYLE.mitre))
         shadows = shadows.buffer(0.3)
@@ -205,7 +219,7 @@ class LevelGeometries():
         holes = self.holes.buffer(0.1, join_style=JOIN_STYLE.mitre)
         shadows = holes.difference(self.holes.buffer(-0.3, join_style=JOIN_STYLE.mitre))
 
-        qs = self.level.levelconnectors.prefetch_related('levels').filter(levels__altitude__lt=self.level.altitude)
+        qs = self.query('levelconnectors').prefetch_related('levels').filter(levels__altitude__lt=self.level.altitude)
         connectors = cascaded_union([levelconnector.geometry for levelconnector in qs])
 
         shadows = shadows.difference(connectors.buffer(1.0, join_style=JOIN_STYLE.mitre))
@@ -213,7 +227,7 @@ class LevelGeometries():
 
     @cached_property
     def stairs(self):
-        return cascaded_union([stair.geometry for stair in self.level.stairs.all()]).intersection(self.accessible)
+        return cascaded_union([stair.geometry for stair in self.query('stairs')]).intersection(self.accessible)
 
     @cached_property
     def stair_areas(self):
