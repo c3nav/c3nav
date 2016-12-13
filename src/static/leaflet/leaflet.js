@@ -747,7 +747,7 @@ L.Mixin = {Events: proto};
 		ielt9: ie && !document.addEventListener,
 
 		// @property edge: Boolean
-		// `true` for the Edge web browser.
+		// `true` for the Edge site browser.
 		edge: 'msLaunchUri' in navigator && !('documentMode' in document),
 
 		// @property webkit: Boolean
@@ -1919,7 +1919,7 @@ L.LatLngBounds.prototype = {
 	},
 
 	// @method toBBoxString(): String
-	// Returns a string with bounding box coordinates in a 'southwest_lng,southwest_lat,northeast_lng,northeast_lat' format. Useful for sending requests to web services that return geo data.
+	// Returns a string with bounding box coordinates in a 'southwest_lng,southwest_lat,northeast_lng,northeast_lat' format. Useful for sending requests to site services that return geo data.
 	toBBoxString: function () {
 		return [this.getWest(), this.getSouth(), this.getEast(), this.getNorth()].join(',');
 	},
@@ -2320,7 +2320,7 @@ L.Map = L.Evented.extend({
 
 		// @option transform3DLimit: Number = 2^23
 		// Defines the maximum size of a CSS translation transform. The default
-		// value should not be changed unless a web browser positions layers in
+		// value should not be changed unless a site browser positions layers in
 		// the wrong place after doing a large `panBy`.
 		transform3DLimit: 8388608, // Precision limit of a 32-bit float
 
@@ -8553,7 +8553,7 @@ L.circle = function (latlng, options, legacyOptions) {
  * Inherits `Renderer`.
  *
  * Due to [technical limitations](http://caniuse.com/#search=svg), SVG is not
- * available in all web browsers, notably Android 2.x and 3.x.
+ * available in all site browsers, notably Android 2.x and 3.x.
  *
  * Although SVG is not available on IE7 and IE8, these browsers support
  * [VML](https://en.wikipedia.org/wiki/Vector_Markup_Language)
@@ -8948,7 +8948,7 @@ if (L.Browser.vml) {
  * Inherits `Renderer`.
  *
  * Due to [technical limitations](http://caniuse.com/#search=canvas), Canvas is not
- * available in all web browsers, notably IE8, and overlapping geometries might
+ * available in all site browsers, notably IE8, and overlapping geometries might
  * not display properly in some edge cases.
  *
  * @example
@@ -10892,7 +10892,7 @@ L.Map.mergeOptions({
 	// @option touchZoom: Boolean|String = *
 	// Whether the map can be zoomed by touch-dragging with two fingers. If
 	// passed `'center'`, it will zoom to the center of the view regardless of
-	// where the touch events (fingers) were. Enabled for touch-capable web
+	// where the touch events (fingers) were. Enabled for touch-capable site
 	// browsers except for old Androids.
 	touchZoom: L.Browser.touch && !L.Browser.android23,
 
