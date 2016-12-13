@@ -39,7 +39,7 @@ class Graph:
         self.connect_levelconnectors()
 
         # finishing build: creating numpy arrays and convert everything else to tuples
-        self.points = tuple(self.points)
+        self.points = tuple(set(self.points))
 
         for i, room in enumerate(rooms):
             room.i = i
