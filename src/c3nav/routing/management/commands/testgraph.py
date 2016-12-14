@@ -16,4 +16,3 @@ class Command(BaseCommand):
         start = time.time()
         graph.build_router()
         print('Routers built in %.4fs' % (time.time() - start))
-        print('%s transfer points' % len(graph.transfer_points))
