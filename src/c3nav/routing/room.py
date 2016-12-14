@@ -1,11 +1,12 @@
 import numpy as np
 from matplotlib.path import Path
+from scipy.sparse.csgraph._shortest_path import shortest_path
+from scipy.sparse.csgraph._tools import csgraph_from_dense
 from shapely.geometry import CAP_STYLE, JOIN_STYLE, LineString
 
 from c3nav.mapdata.utils.geometry import assert_multilinestring, assert_multipolygon
 from c3nav.routing.area import GraphArea
 from c3nav.routing.point import GraphPoint
-from c3nav.routing.router import Router
 from c3nav.routing.utils.coords import coord_angle, get_coords_angles
 from c3nav.routing.utils.mpl import shapely_to_mpl
 
@@ -182,7 +183,7 @@ class GraphRoom():
             area.build_connections()
 
     def connection_count(self):
-        return np.count_nonzero(self.distances != np.inf)
+        return np.count_nonzero(self.distances >= 0)
 
     def finish_build(self):
         self.areas = tuple(self.areas)
@@ -202,5 +203,7 @@ class GraphRoom():
 
     # Routing
     def build_router(self):
-        self.router = Router()
-        self.router.build(self._built_points)
+        # noinspection PyTypeChecker
+        g_sparse = csgraph_from_dense(self.distances, null_value=np.inf)
+        shortest_paths, predecessors = shortest_path(g_sparse, return_predecessors=True)
+        return shortest_paths, predecessors
