@@ -132,27 +132,39 @@ class GraphLevel():
 
     # Drawing
     def draw_png(self, points=True, lines=True):
-        filename = os.path.join(settings.RENDER_ROOT, 'level-%s.base.png' % self.level.name)
-        graph_filename = os.path.join(settings.RENDER_ROOT, 'level-%s.graph.png' % self.level.name)
+        filename = os.path.join(settings.RENDER_ROOT, 'base-level-%s.png' % self.level.name)
+        graph_filename = os.path.join(settings.RENDER_ROOT, 'graph-level-%s.png' % self.level.name)
 
         im = Image.open(filename)
         height = im.size[1]
         draw = ImageDraw.Draw(im)
         if lines:
-            for point in self.points:
-                for otherpoint, connection in point.connections.items():
-                    draw.line(_line_coords(point, otherpoint, height), fill=(255, 100, 100))
+            for room in self.rooms:
+                # noinspection PyTypeChecker
+                for from_i, to_i in np.argwhere(room.distances != np.inf):
+                    draw.line(_line_coords(self.graph.points[room.points[from_i]],
+                                           self.graph.points[room.points[to_i]], height), fill=(255, 100, 100))
 
         if points:
-            for point in self.points:
+            for point_i in self.points:
+                point = self.graph.points[point_i]
                 draw.ellipse(_ellipse_bbox(point.x, point.y, height), (200, 0, 0))
 
-        for point in self._built_room_transfer_points:
-            draw.ellipse(_ellipse_bbox(point.x, point.y, height), (0, 0, 255))
+            for point_i in self.room_transfer_points:
+                point = self.graph.points[point_i]
+                draw.ellipse(_ellipse_bbox(point.x, point.y, height), (0, 0, 255))
 
-        for point in self._built_room_transfer_points:
-            for otherpoint, connection in point.connections.items():
-                draw.line(_line_coords(point, otherpoint, height), fill=(0, 255, 255))
+            for point_i in self.level_transfer_points:
+                point = self.graph.points[point_i]
+                draw.ellipse(_ellipse_bbox(point.x, point.y, height), (0, 180, 0))
+
+        if lines:
+            for room in self.rooms:
+                # noinspection PyTypeChecker
+                for from_i, to_i in np.argwhere(room.distances != np.inf):
+                    if room.points[from_i] in room.room_transfer_points:
+                        draw.line(_line_coords(self.graph.points[room.points[from_i]],
+                                               self.graph.points[room.points[to_i]], height), fill=(0, 255, 255))
 
         im.save(graph_filename)
 
