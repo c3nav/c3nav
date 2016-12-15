@@ -1,10 +1,35 @@
-from django.utils.translation import ugettext_lazy as _
+from django.shortcuts import redirect, render
 
-from c3nav.mapdata.utils.cache import get_levels_cached
+from c3nav.mapdata.locations import get_location
 
 
-def main(request):
-    get_levels_cached()
-    _
-    src = request.POST if request.method == 'POST' else request.GET
-    src == 5
+def main(request, origin=None, destination=None):
+    do_redirect = False
+
+    if origin:
+        origin_obj = get_location(request, origin)
+        if origin_obj.name != origin:
+            do_redirect = True
+        origin = origin_obj
+
+    if destination:
+        destination_obj = get_location(request, destination)
+        if destination_obj.name != destination:
+            do_redirect = True
+        destination = destination_obj
+
+    if do_redirect:
+        new_url = '/'
+        if origin:
+            new_url += origin.name+'/'
+            if destination:
+                new_url += destination.name + '/'
+        elif destination:
+            new_url += '_/' + destination.name + '/'
+
+        redirect(new_url)
+
+    return render(request, 'site/main.html', {
+        'origin': origin,
+        'destination': destination
+    })

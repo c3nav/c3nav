@@ -6,6 +6,9 @@ body {
 .locationselect .input-lg {
     height: 62px;
 }
+.locationselect > div {
+    position:relative;
+}
 .locationselect .locationselect-selected {
     display:none;
 }
@@ -14,6 +17,21 @@ body {
 }
 .locationselect.selected .locationselect-input {
     display:none;
+}
+.locationselect .icons {
+    height:48px;
+    position:absolute;
+    right:7px;
+    top:7px;
+    opacity:0.5;
+}
+.locationselect .icons a {
+    display:inline-block;
+    width:48px;
+    height:48px;
+}
+.locationselect .icons .reset {
+    background-image:url('/static/site/img/icons/cross.svg');
 }
 
 
