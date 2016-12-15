@@ -39,7 +39,7 @@ class MapItemOfInterestMixin:
         return result
 
 
-class GroupOfInterest(MapItem, MapItemOfInterestMixin):
+class GroupOfInterest(MapItemOfInterestMixin, MapItem):
     titles = JSONField()
 
     class Meta:
@@ -48,7 +48,7 @@ class GroupOfInterest(MapItem, MapItemOfInterestMixin):
         default_related_name = 'groupsofinterest'
 
 
-class AreaOfInterest(GeometryMapItemWithLevel, MapItemOfInterestMixin):
+class AreaOfInterest(MapItemOfInterestMixin, GeometryMapItemWithLevel):
     titles = JSONField()
     groups = models.ManyToManyField(GroupOfInterest, verbose_name=_('Groups of Interest'), blank=True)
 
