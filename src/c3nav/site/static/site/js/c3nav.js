@@ -27,9 +27,19 @@ c3nav = {
             }
         };
 
+        c3nav.update_history_state(true);
         c3nav.init_typeahead($('.locationselect input:text'));
 
         $('.locationselect:not(.selected) .locationselect-input .tt-input').first().focus();
+        $('.locationselect .icons .reset').click(c3nav._locationselect_reset)
+    },
+
+    _locationselect_reset: function(e) {
+        e.preventDefault();
+        var locationselect = $(this).closest('.locationselect');
+        locationselect.find('.name-field').val('');
+        locationselect.removeClass('selected').find('.tt-input').focus().keyup().removeData('enter_item');
+        c3nav.update_history_state();
     },
 
     init_typeahead: function(elem) {
@@ -58,6 +68,7 @@ c3nav = {
         selected.find('.subtitle').text(item.subtitle);
         selected.find('.name-field').val(item.name);
         e.target.blur();
+        c3nav.update_history_state();
 
         $('.locationselect:not(.selected) .locationselect-input .tt-input').first().focus();
     },
@@ -66,6 +77,26 @@ c3nav = {
     },
     _typeahead_cursorchange: function(e, item) {
         $(e.target).data('enter_item', item);
+    },
+
+    update_history_state: function(e, replace) {
+        var origin = $(':input[name=origin]').val();
+        var destination = $(':input[name=destination]').val();
+        url = '/';
+        if (origin !== '') {
+            url += origin + '/'
+            if (destination !== '') {
+                url += destination + '/'
+            }
+        } else if (destination !== '') {
+            url += '_/' + destination + '/'
+        }
+        if (replace) {
+            history.replaceState({}, '', url);
+        } else {
+            history.pushState({}, '', url);
+        }
+
     }
 };
 $(document).ready(c3nav.init);
