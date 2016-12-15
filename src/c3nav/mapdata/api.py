@@ -4,12 +4,13 @@ from collections import OrderedDict
 
 from django.conf import settings
 from django.core.files import File
-from django.http import HttpResponse
+from django.http import Http404, HttpResponse
 from rest_framework.decorators import detail_route
 from rest_framework.response import Response
 from rest_framework.viewsets import ReadOnlyModelViewSet, ViewSet
 
-from c3nav.mapdata.models import GEOMETRY_MAPITEM_TYPES, Level, Package, Source
+from c3nav.mapdata.locations import AreaOfInterestLocation, GroupOfInterestLocation, get_location
+from c3nav.mapdata.models import GEOMETRY_MAPITEM_TYPES, AreaOfInterest, GroupOfInterest, Level, Package, Source
 from c3nav.mapdata.models.geometry import DirectedLineGeometryMapItemWithLevel
 from c3nav.mapdata.permissions import filter_queryset_by_package_access, get_unlocked_packages_names
 from c3nav.mapdata.serializers.main import LevelSerializer, PackageSerializer, SourceSerializer
@@ -149,3 +150,27 @@ class SourceViewSet(CachedReadOnlyViewSetMixin, ReadOnlyModelViewSet):
         for chunk in File(open(image_path, 'rb')).chunks():
             response.write(chunk)
         return response
+
+
+class LocationViewSet(CachedReadOnlyViewSetMixin, ViewSet):
+    """
+    List and retrieve locations
+    """
+    lookup_field = 'name'
+    include_package_access = True
+
+    def list(self, request, **kwargs):
+        locations = []
+        for area in filter_queryset_by_package_access(request, AreaOfInterest.objects.all()):
+            locations.append(AreaOfInterestLocation.from_cache(area))
+
+        for group in filter_queryset_by_package_access(request, GroupOfInterest.objects.all()):
+            locations.append(GroupOfInterestLocation.from_cache(group))
+
+        return Response([location.to_json() for location in locations])
+
+    def retrieve(self, request, name=None, **kwargs):
+        location = get_location(request, name)
+        if location is None:
+            raise Http404
+        return Response(location.to_json())
