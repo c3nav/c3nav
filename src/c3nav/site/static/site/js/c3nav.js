@@ -10,7 +10,10 @@ c3nav = {
             identify: function(data) {
                 return data.name;
             },
-            prefetch: '/api/locations/'
+            prefetch: {
+                url: '/api/locations/',
+                cache: false
+            }
         });
         c3nav._typeahead_options = {
             source: c3nav._typeahead_locations,
