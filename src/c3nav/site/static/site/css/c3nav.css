@@ -1,0 +1,74 @@
+body {
+    font-size:16px;
+}
+
+
+.locationselect .input-lg {
+    height: 62px;
+}
+.locationselect .locationselect-selected {
+    display:none;
+}
+.locationselect.selected .locationselect-selected {
+    display:block;
+}
+.locationselect.selected .locationselect-input {
+    display:none;
+}
+
+
+.location {
+    font-size:18px;
+}
+.location small {
+    font-size:14px;
+    display:block;
+}
+.location.form-control {
+    padding: 9px 16px;
+    -webkit-box-shadow: none;
+    box-shadow: none;
+}
+
+
+/* Typehead */
+.twitter-typeahead {
+    display:block !important;
+}
+.tt-input {
+    margin-bottom: 0;
+}
+.tt-hint {
+	color: #999;
+}
+.tt-menu {
+    width:100%;
+	min-width: 160px;
+    margin-top:-1px;
+	padding: 0;
+    overflow:hidden;
+    padding-bottom:4px;
+}
+.tt-dataset {
+    background-color: #ffffff;
+    border-width: 1px;
+	border-style: solid;
+    border-color: #cccccc #66afe9 #66afe9;
+	border-radius: 0 0 4px 4px;
+    margin:0 6px;
+    -webkit-box-shadow: 0 0 8px rgba(102, 175, 233, 0.6);
+    box-shadow: 0 0 8px rgba(102, 175, 233, 0.6);
+}
+.tt-suggestion {
+	padding: 6px 10px;
+}
+.tt-suggestion.tt-cursor {
+	color: #fff;
+	background-color: #428bca;
+}
+.tt-suggestion.tt-cursor a {
+	color: #fff;
+}
+.tt-suggestion p {
+	margin: 0;
+}

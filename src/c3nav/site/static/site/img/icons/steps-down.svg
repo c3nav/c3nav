@@ -1,0 +1,90 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<svg
+   xmlns:dc="http://purl.org/dc/elements/1.1/"
+   xmlns:cc="http://creativecommons.org/ns#"
+   xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+   xmlns:svg="http://www.w3.org/2000/svg"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   height="365.145"
+   id="svg1368"
+   width="439.752"
+   version="1.1"
+   inkscape:version="0.91 r13725"
+   sodipodi:docname="icon_stairs_down.svg">
+  <metadata
+     id="metadata13">
+    <rdf:RDF>
+      <cc:Work
+         rdf:about="">
+        <dc:format>image/svg+xml</dc:format>
+        <dc:type
+           rdf:resource="http://purl.org/dc/dcmitype/StillImage" />
+      </cc:Work>
+    </rdf:RDF>
+  </metadata>
+  <sodipodi:namedview
+     pagecolor="#ffffff"
+     bordercolor="#666666"
+     borderopacity="1"
+     objecttolerance="10"
+     gridtolerance="10"
+     guidetolerance="10"
+     inkscape:pageopacity="0"
+     inkscape:pageshadow="2"
+     inkscape:window-width="785"
+     inkscape:window-height="480"
+     id="namedview11"
+     showgrid="false"
+     inkscape:zoom="0.64631861"
+     inkscape:cx="219.87601"
+     inkscape:cy="182.57249"
+     inkscape:window-x="0"
+     inkscape:window-y="27"
+     inkscape:window-maximized="0"
+     inkscape:current-layer="svg1368" />
+  <defs
+     id="defs1370">
+    <marker
+       id="ArrowEnd"
+       markerHeight="3"
+       markerUnits="strokeWidth"
+       markerWidth="4"
+       orient="auto"
+       refX="0"
+       refY="5"
+       viewBox="0 0 10 10">
+      <path
+         d="M 0 0 L 10 5 L 0 10 z"
+         id="path1373" />
+    </marker>
+    <marker
+       id="ArrowStart"
+       markerHeight="3"
+       markerUnits="strokeWidth"
+       markerWidth="4"
+       orient="auto"
+       refX="10"
+       refY="5"
+       viewBox="0 0 10 10">
+      <path
+         d="M 10 0 L 0 5 L 10 10 z"
+         id="path1376" />
+    </marker>
+  </defs>
+  <g
+     id="g1378"
+     transform="matrix(-1,0,0,1,439.752,0)">
+    <path
+       d="m 0,323.974 80.05,0 0,-81.475 79.534,0 0,-82.025 80.789,0 0,-80.5 80.241,0 0,-79.974 119.138,0 0,40.804 -79.202,0 0,80.278 -80.332,0 0,81.408 -80.168,0 0,80.984 -80.5,0 0,81.671 -119.55,0 0,-41.171 z"
+       id="path1380"
+       style="fill:#000000;stroke:none"
+       inkscape:connector-curvature="0" />
+    <path
+       d="m 266.757,363.56 70.793,0 c 19.5,0 20.25,-30 0,-30 l -36.287,0 69.012,-69.012 c 15.299,-15.299 -6.34,-37.438 -22.593,-21.185 l -67.985,68.173 0,-35.915 c 0.103,-19.5 -30.147,-20.25 -30.193,0 l 0,70.353 c 0,10.5 7.046,17.586 17.253,17.586 z"
+       id="path1382"
+       style="fill:#000000;stroke:none"
+       inkscape:connector-curvature="0" />
+  </g>
+</svg>

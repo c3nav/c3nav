@@ -1,23 +1,17 @@
 {% extends 'site/base.html' %}
+
 {% load static %}
+{% load i18n %}
+
 {% block content %}
 <form>
     <div class="row">
-        <div class="form-group col-md-6">
-            <label for="from">From</label>
-            <input type="text" class="form-control input-lg" id="from">
-        </div>
-        <div class="form-group col-md-6">
-            <label for="to">To</label>
-            <input type="text" class="form-control input-lg" id="to">
-        </div>
+        {% trans "Origin" as heading %}
+        {% include 'site/fragment_location.html' with name='origin' location=origin heading=heading %}
+
+        {% trans "Destination" as heading %}
+        {% include 'site/fragment_location.html' with name='destination' location=destination heading=heading %}
     </div>
-    <div class="row">
-        <div class="form-group col-md-6">
-        </div>
-        <div class="form-group col-md-6">
-            <button type="submit" class="btn btn-primary btn-lg">Get me There</button>
-        </div>
-    </div>
+
 </form>
 {% endblock %}

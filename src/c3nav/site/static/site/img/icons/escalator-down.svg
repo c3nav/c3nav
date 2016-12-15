@@ -1,0 +1,114 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<svg
+   xmlns:dc="http://purl.org/dc/elements/1.1/"
+   xmlns:cc="http://creativecommons.org/ns#"
+   xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+   xmlns:svg="http://www.w3.org/2000/svg"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   height="399.325"
+   id="svg3948"
+   width="511.443"
+   version="1.1"
+   inkscape:version="0.91 r13725"
+   sodipodi:docname="icon_elevator_down.svg">
+  <metadata
+     id="metadata19">
+    <rdf:RDF>
+      <cc:Work
+         rdf:about="">
+        <dc:format>image/svg+xml</dc:format>
+        <dc:type
+           rdf:resource="http://purl.org/dc/dcmitype/StillImage" />
+      </cc:Work>
+    </rdf:RDF>
+  </metadata>
+  <sodipodi:namedview
+     pagecolor="#ffffff"
+     bordercolor="#666666"
+     borderopacity="1"
+     objecttolerance="10"
+     gridtolerance="10"
+     guidetolerance="10"
+     inkscape:pageopacity="0"
+     inkscape:pageshadow="2"
+     inkscape:window-width="1225"
+     inkscape:window-height="649"
+     id="namedview17"
+     showgrid="false"
+     inkscape:zoom="0.59099729"
+     inkscape:cx="255.7215"
+     inkscape:cy="199.66251"
+     inkscape:window-x="0"
+     inkscape:window-y="27"
+     inkscape:window-maximized="0"
+     inkscape:current-layer="svg3948" />
+  <defs
+     id="defs3950">
+    <marker
+       id="ArrowEnd"
+       markerHeight="3"
+       markerUnits="strokeWidth"
+       markerWidth="4"
+       orient="auto"
+       refX="0"
+       refY="5"
+       viewBox="0 0 10 10">
+      <path
+         d="M 0 0 L 10 5 L 0 10 z"
+         id="path3953" />
+    </marker>
+    <marker
+       id="ArrowStart"
+       markerHeight="3"
+       markerUnits="strokeWidth"
+       markerWidth="4"
+       orient="auto"
+       refX="10"
+       refY="5"
+       viewBox="0 0 10 10">
+      <path
+         d="M 10 0 L 0 5 L 10 10 z"
+         id="path3956" />
+    </marker>
+  </defs>
+  <g
+     id="g3958"
+     transform="matrix(-1,0,0,1,511.443,0)">
+    <g
+       id="g3960">
+      <g
+         id="g3962">
+        <g
+           id="g3964">
+          <path
+             d="m 216.402,67.777 c 18.715,0 33.887,-15.174 33.887,-33.888 C 250.289,15.172 235.117,0 216.402,0 c -18.716,0 -33.888,15.172 -33.888,33.889 0,18.714 15.172,33.888 33.888,33.888 z"
+             id="path3966"
+             style="fill:#000000;stroke:none"
+             inkscape:connector-curvature="0" />
+          <path
+             d="M 216.402,33.889"
+             id="path3968"
+             style="fill:#000000;stroke:none"
+             inkscape:connector-curvature="0" />
+        </g>
+        <path
+           d="m 249.95,128.779 0,-21.353 c 0,-45.5 -67.095,-45 -67.095,0 l 0,87.109 0.132,0 -63.393,63.391 c -5.979,5.979 -6.708,6.239 -18.45,6.239 -0.01,0.01 -38.758,0 -38.758,0 -39,0 -62.386,35.048 -62.386,64.761 0,29.713 23.386,67.274 65.845,67.274 0,0 52.747,0 69.041,0 16.295,0 36.048,-6.229 52.343,-21.565 L 389.366,173.109 c 4.314,-3.834 6.71,-5.031 14.139,-5.031 0,0 27.867,0 49.913,0 24.025,0 58.025,-27.228 58.025,-66.478 0,-38.849 -34.25,-64.75 -60,-64.836 l -78.807,0 c -16.294,0 -37.25,6.662 -49.75,19.162 l -72.938,72.853 0.002,0 z"
+           id="path3970"
+           style="fill:#000000;stroke:none"
+           inkscape:connector-curvature="0" />
+      </g>
+      <path
+         d="m 305.161,399.325 70.793,0 c 19.5,0 20.25,-30 0,-30 l -36.287,0 69.012,-69.012 c 15.299,-15.3 -6.339,-37.438 -22.593,-21.185 l -67.985,68.173 0,-35.916 c 0.103,-19.5 -30.147,-20.25 -30.193,0 l 0,70.354 c 0,10.5 7.046,17.586 17.253,17.586 z"
+         id="path3972"
+         style="fill:#000000;stroke:none"
+         inkscape:connector-curvature="0" />
+    </g>
+    <path
+       d="m 377.429,70.311 70.905,0 c 17.253,0 28.859,19.287 28.859,30.789 0,11.502 -8.234,32.969 -29.321,32.969 l -42.629,0 c -18.05,0 -26.05,2.531 -36.441,12.922 l -203.68,203.68 c -8.236,8.255 -18.69,11.522 -32.109,11.522 l -67.168,0 c -17.253,0 -32.459,-14.597 -32.459,-33.767 0,-19.17 14.5,-29.911 29.5,-29.911 l 46.081,0 c 13.419,0 22.251,-3.834 29.919,-11.502 L 346.004,79.896 c 8.522,-8.52 16.941,-9.585 31.425,-9.585 z"
+       id="path3974"
+       style="fill:#ffffff;stroke:none"
+       inkscape:connector-curvature="0" />
+  </g>
+</svg>
