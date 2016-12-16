@@ -10,6 +10,7 @@ from c3nav.routing.point import GraphPoint
 from c3nav.routing.room import GraphRoom
 from c3nav.routing.utils.base import get_nearest_point
 from c3nav.routing.utils.draw import _ellipse_bbox, _line_coords
+from c3nav.routing.utils.mpl import shapely_to_mpl
 
 
 class GraphLevel():
@@ -21,6 +22,7 @@ class GraphLevel():
         self.points = []
         self.room_transfer_points = None
         self.level_transfer_points = None
+        self.arealocation_points = None
 
     def serialize(self):
         return (
@@ -28,10 +30,11 @@ class GraphLevel():
             self.points,
             self.room_transfer_points,
             self.level_transfer_points,
+            self.arealocation_points,
         )
 
     def unserialize(self, data):
-        rooms, self.points, self.room_transfer_points, self.level_transfer_points = data
+        rooms, self.points, self.room_transfer_points, self.level_transfer_points, self.arealocation_points = data
         self.rooms = tuple(GraphRoom.unserialize(self, room) for room in rooms)
 
     # Building the Graph
@@ -58,8 +61,11 @@ class GraphLevel():
         for room in self.rooms:
             room.build_connections()
 
+        self.collect_arealocations()
+
         print('%d points' % len(self._built_points))
         print('%d room transfer points' % len(self._built_room_transfer_points))
+        print('%d area locations' % len(self._built_arealocations))
 
     def connection_count(self):
         return sum(room.connection_count() for room in self.rooms)
@@ -121,14 +127,30 @@ class GraphLevel():
                     room._built_points.append(point)
                     self.graph.add_levelconnector_point(levelconnector, point)
 
+    def collect_arealocations(self):
+        self._built_arealocations = {}
+        for arealocation in self.level.arealocations.all():
+            self._built_arealocations[arealocation.name] = shapely_to_mpl(arealocation.geometry)
+
     def finish_build(self):
         self.rooms = tuple(self.rooms)
         self.points = np.array(tuple(point.i for point in self._built_points))
         self.room_transfer_points = np.array(tuple(point.i for point in self._built_room_transfer_points))
         self.level_transfer_points = np.array(tuple(i for i in self.points if i in self.graph.level_transfer_points))
 
+        self.collect_arealocation_points()
+
         for room in self.rooms:
             room.finish_build()
+
+    def collect_arealocation_points(self):
+        self.arealocation_points = {}
+        for name, mpl_arealocation in self._built_arealocations.items():
+            rooms = [room for room in self.rooms
+                     if room.mpl_clear.intersects_path(mpl_arealocation.exterior, filled=True)]
+            possible_points = set(sum((room._built_points for room in rooms), []))
+            self.arealocation_points[name] = np.array(tuple(point.i for point in possible_points
+                                                      if mpl_arealocation.contains_point(point.xy)))
 
     # Drawing
     def draw_png(self, points=True, lines=True):
