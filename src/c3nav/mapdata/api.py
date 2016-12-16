@@ -9,9 +9,9 @@ from rest_framework.decorators import detail_route
 from rest_framework.response import Response
 from rest_framework.viewsets import ReadOnlyModelViewSet, ViewSet
 
-from c3nav.mapdata.locations import AreaOfInterestLocation, GroupOfInterestLocation, get_location
-from c3nav.mapdata.models import GEOMETRY_MAPITEM_TYPES, AreaOfInterest, GroupOfInterest, Level, Package, Source
+from c3nav.mapdata.models import GEOMETRY_MAPITEM_TYPES, AreaLocation, Level, LocationGroup, Package, Source
 from c3nav.mapdata.models.geometry import DirectedLineGeometryMapItemWithLevel
+from c3nav.mapdata.models.locations import get_location
 from c3nav.mapdata.permissions import filter_queryset_by_package_access, get_unlocked_packages_names
 from c3nav.mapdata.serializers.main import LevelSerializer, PackageSerializer, SourceSerializer
 from c3nav.mapdata.utils.cache import (CachedReadOnlyViewSetMixin, cache_mapdata_api_response, get_levels_cached,
@@ -161,13 +161,9 @@ class LocationViewSet(CachedReadOnlyViewSetMixin, ViewSet):
 
     def list(self, request, **kwargs):
         locations = []
-        for area in filter_queryset_by_package_access(request, AreaOfInterest.objects.all()):
-            locations.append(AreaOfInterestLocation.from_cache(area))
-
-        for group in filter_queryset_by_package_access(request, GroupOfInterest.objects.all()):
-            locations.append(GroupOfInterestLocation.from_cache(group))
-
-        return Response([location.to_json() for location in locations])
+        locations += list(filter_queryset_by_package_access(request, AreaLocation.objects.all()))
+        locations += list(filter_queryset_by_package_access(request, LocationGroup.objects.all()))
+        return Response([location.to_location_json() for location in locations])
 
     def retrieve(self, request, name=None, **kwargs):
         location = get_location(request, name)

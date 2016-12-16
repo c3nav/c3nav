@@ -7,7 +7,7 @@ from collections import OrderedDict
 from django.conf import settings
 from django.core.management import CommandError
 
-from c3nav.mapdata.models import AreaOfInterest, Elevator, GroupOfInterest, Level, Package
+from c3nav.mapdata.models import AreaLocation, Elevator, Level, LocationGroup, Package
 from c3nav.mapdata.models.geometry import LevelConnector
 from c3nav.mapdata.packageio.const import ordered_models
 
@@ -166,8 +166,8 @@ class ReaderItem:
             self.data.pop('levels')
 
         groups = []
-        if self.model == AreaOfInterest:
-            groups = [self.reader.saved_items[GroupOfInterest][name].obj.pk for name in self.data['groups']]
+        if self.model == AreaLocation:
+            groups = [self.reader.saved_items[LocationGroup][name].obj.pk for name in self.data['groups']]
             self.data.pop('groups')
 
         # Change name references to the referenced object

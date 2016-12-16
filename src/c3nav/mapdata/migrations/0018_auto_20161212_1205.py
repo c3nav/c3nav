@@ -3,7 +3,7 @@
 from __future__ import unicode_literals
 
 import c3nav.mapdata.fields
-import c3nav.mapdata.models.interest
+import c3nav.mapdata.models.locations
 from django.db import migrations, models
 import django.db.models.deletion
 
@@ -28,7 +28,7 @@ class Migration(migrations.Migration):
                 'verbose_name_plural': 'Areas of Interest',
                 'verbose_name': 'Area of Interest',
             },
-            bases=(models.Model, c3nav.mapdata.models.interest.MapItemOfInterestMixin),
+            bases=(models.Model, c3nav.mapdata.models.locations.LocationModelMixin),
         ),
         migrations.CreateModel(
             name='GroupOfInterest',
@@ -43,7 +43,7 @@ class Migration(migrations.Migration):
                 'verbose_name_plural': 'Groups of Interest',
                 'verbose_name': 'Group of Interest',
             },
-            bases=(models.Model, c3nav.mapdata.models.interest.MapItemOfInterestMixin),
+            bases=(models.Model, c3nav.mapdata.models.locations.LocationModelMixin),
         ),
         migrations.AddField(
             model_name='areaofinterest',

@@ -1,6 +1,6 @@
 from django.shortcuts import redirect, render
 
-from c3nav.mapdata.locations import get_location
+from c3nav.mapdata.models.locations import get_location
 
 
 def main(request, origin=None, destination=None):
