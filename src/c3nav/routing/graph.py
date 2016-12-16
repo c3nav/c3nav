@@ -12,6 +12,8 @@ from c3nav.routing.point import GraphPoint
 
 
 class Graph:
+    graph_cached = None
+    graph_cached_date = None
     default_filename = os.path.join(settings.DATA_DIR, 'graph.pickle')
 
     def __init__(self):
@@ -132,10 +134,26 @@ class Graph:
 
     @classmethod
     def load(cls, filename=None):
+        do_cache = False
         if filename is None:
+            do_cache = True
             filename = cls.default_filename
+
+        graph_mtime = None
+        if do_cache:
+            graph_mtime = os.path.getmtime(filename)
+            if cls.graph_cached is not None:
+                if cls.graph_cached_date == graph_mtime:
+                    return cls.graph_cached
+
         with open(filename, 'rb') as f:
             graph = cls.unserialize(pickle.load(f))
+
+        if do_cache:
+            cls.graph_cached_date = graph_mtime
+            cls.graph_cached = graph
+            print(cls.graph_cached, cls.graph_cached_date)
+
         graph.print_stats()
         return graph
 
