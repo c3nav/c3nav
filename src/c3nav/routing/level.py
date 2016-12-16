@@ -1,8 +1,11 @@
 import os
+from collections import namedtuple
 
 import numpy as np
 from django.conf import settings
 from PIL import Image, ImageDraw
+from scipy.sparse.csgraph._shortest_path import shortest_path
+from scipy.sparse.csgraph._tools import csgraph_from_dense
 from shapely.geometry import JOIN_STYLE
 
 from c3nav.mapdata.utils.geometry import assert_multipolygon
@@ -134,9 +137,9 @@ class GraphLevel():
 
     def finish_build(self):
         self.rooms = tuple(self.rooms)
-        self.points = np.array(tuple(point.i for point in self._built_points))
-        self.room_transfer_points = np.array(tuple(point.i for point in self._built_room_transfer_points))
-        self.level_transfer_points = np.array(tuple(i for i in self.points if i in self.graph.level_transfer_points))
+        self.points = tuple(point.i for point in self._built_points)
+        self.room_transfer_points = tuple(point.i for point in self._built_room_transfer_points)
+        self.level_transfer_points = tuple(i for i in self.points if i in self.graph.level_transfer_points)
 
         self.collect_arealocation_points()
 
@@ -148,9 +151,9 @@ class GraphLevel():
         for name, mpl_arealocation in self._built_arealocations.items():
             rooms = [room for room in self.rooms
                      if room.mpl_clear.intersects_path(mpl_arealocation.exterior, filled=True)]
-            possible_points = set(sum((room._built_points for room in rooms), []))
-            self.arealocation_points[name] = np.array(tuple(point.i for point in possible_points
-                                                      if mpl_arealocation.contains_point(point.xy)))
+            possible_points = tuple(point for point in sum((room._built_points for room in rooms), []) if point.room)
+            self.arealocation_points[name] = tuple(point.i for point in possible_points
+                                                   if mpl_arealocation.contains_point(point.xy))
 
     # Drawing
     def draw_png(self, points=True, lines=True):
@@ -191,6 +194,35 @@ class GraphLevel():
         im.save(graph_filename)
 
     # Routing
-    def build_router(self):
-        for room in self.rooms:
-            room.build_router()
+    def build_routers(self):
+        room_routers = {}
+
+        empty_distances = np.empty(shape=(len(self.room_transfer_points),) * 2, dtype=np.float16)
+        empty_distances[:] = np.inf
+
+        sparse_distances = empty_distances.copy()
+
+        room_transfers = np.zeros(shape=(len(self.room_transfer_points),) * 2, dtype=np.int16)
+        room_transfers[:] = -1
+
+        for i, room in enumerate(self.rooms):
+            router = room.build_router()
+            room_routers[room] = router
+
+            room_distances = empty_distances.copy()
+            in_room_i = np.array(tuple(room.points.index(point) for point in room.room_transfer_points))
+            in_level_i = np.array(tuple(self.room_transfer_points.index(point)
+                                        for point in room.room_transfer_points))
+
+            room_distances[in_level_i[:, None], in_level_i] = router.shortest_paths[in_room_i[:, None], in_room_i]
+
+            better = room_distances < sparse_distances
+            sparse_distances[better.transpose()] = room_distances[better.transpose()]
+            room_transfers[better.transpose()] = i
+
+        g_sparse = csgraph_from_dense(sparse_distances, null_value=np.inf)
+        shortest_paths, predecessors = shortest_path(g_sparse, return_predecessors=True)
+        return LevelRouter(shortest_paths, predecessors, room_transfers), room_routers
+
+
+LevelRouter = namedtuple('LevelRouter', ('shortest_paths', 'predecessors', 'rooms_transfers', ))
