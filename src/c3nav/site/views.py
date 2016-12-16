@@ -1,6 +1,7 @@
 from django.shortcuts import redirect, render
 
 from c3nav.mapdata.models.locations import get_location
+from c3nav.routing.graph import Graph
 
 
 def main(request, origin=None, destination=None):
@@ -28,6 +29,12 @@ def main(request, origin=None, destination=None):
             new_url += '_/' + destination.name + '/'
 
         redirect(new_url)
+
+    if origin and destination:
+        graph = Graph.load()
+        route = graph.get_route(origin, destination)
+
+    print(route)
 
     return render(request, 'site/main.html', {
         'origin': origin,
