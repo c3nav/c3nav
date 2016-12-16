@@ -2,13 +2,13 @@ c3nav = {
     init: function() {
         c3nav._typeahead_locations = new Bloodhound({
             datumTokenizer: function(data) {
-                var result = [data.name]
+                var result = [data.id]
                 result = result.concat(data.title.split(' '));
                 return result
             },
             queryTokenizer: Bloodhound.tokenizers.whitespace,
             identify: function(data) {
-                return data.name;
+                return data.id;
             },
             prefetch: {
                 url: '/api/locations/',
@@ -37,7 +37,7 @@ c3nav = {
     _locationselect_reset: function(e) {
         e.preventDefault();
         var locationselect = $(this).closest('.locationselect');
-        locationselect.find('.name-field').val('');
+        locationselect.find('.id-field').val('');
         locationselect.removeClass('selected').find('.tt-input').focus().keyup().removeData('enter_item');
         c3nav.update_history_state();
     },
@@ -66,7 +66,7 @@ c3nav = {
         var selected = locationselect.find('.locationselect-selected');
         selected.find('.title').text(item.title);
         selected.find('.subtitle').text(item.subtitle);
-        selected.find('.name-field').val(item.name);
+        selected.find('.id-field').val(item.id);
         e.target.blur();
         c3nav.update_history_state();
 

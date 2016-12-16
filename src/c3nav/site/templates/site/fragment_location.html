@@ -3,7 +3,7 @@
     <label for="{ name }}_input">{{ heading }}</label>
     <div class="locationselect {% if location %} selected{% endif %}">
         <div class="locationselect-input">
-            <input type="text" class="form-control input-lg" id="{ name }}_input" name="{{ name }}_search" placeholder="{% trans 'Search any Location…' %}">
+            <input type="text" class="form-control input-lg" id="{{ name }}_input" name="{{ name }}_search" placeholder="{% trans 'Search any Location…' %}">
         </div>
         <div class="locationselect-selected">
             <div class="location form-control input-lg">
@@ -13,7 +13,7 @@
             <div class="icons">
                 <a href="" class="reset"></a>
             </div>
-            <input type="hidden" name="{{ name }}" value="{{ location.name }}" class="name-field">
+            <input type="hidden" name="{{ name }}" value="{{ location.location_id }}" class="id-field">
         </div>
     </div>
 </div>
