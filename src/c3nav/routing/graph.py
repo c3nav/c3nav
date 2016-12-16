@@ -1,22 +1,26 @@
 import os
 import pickle
-from collections import OrderedDict
+from collections import OrderedDict, namedtuple
 
 import numpy as np
 from django.conf import settings
+from scipy.sparse.csgraph._shortest_path import shortest_path
+from scipy.sparse.csgraph._tools import csgraph_from_dense
 
 from c3nav.mapdata.models import Level
 from c3nav.mapdata.models.geometry import LevelConnector
+from c3nav.mapdata.models.locations import AreaLocation, Location, LocationGroup, PointLocation
 from c3nav.routing.level import GraphLevel
 from c3nav.routing.point import GraphPoint
 
 
 class Graph:
     graph_cached = None
-    graph_cached_date = None
+    graph_cached_mtime = None
     default_filename = os.path.join(settings.DATA_DIR, 'graph.pickle')
 
-    def __init__(self):
+    def __init__(self, mtime=None):
+        self.mtime = mtime
         self.levels = OrderedDict()
         for level in Level.objects.all():
             self.levels[level.name] = GraphLevel(self, level)
@@ -49,7 +53,7 @@ class Graph:
         for i, point in enumerate(self.points):
             point.i = i
 
-        self.level_transfer_points = np.array(tuple(point.i for point in self._built_level_transfer_points))
+        self.level_transfer_points = tuple(point.i for point in self._built_level_transfer_points)
 
         for level in self.levels.values():
             level.finish_build()
@@ -117,10 +121,10 @@ class Graph:
             pickle.dump(self.serialize(), f)
 
     @classmethod
-    def unserialize(cls, data):
+    def unserialize(cls, data, mtime):
         levels, points, level_transfer_points = data
 
-        graph = cls()
+        graph = cls(mtime=mtime)
 
         for name, level in levels.items():
             graph.levels[name].unserialize(level)
@@ -129,6 +133,12 @@ class Graph:
 
         graph.points = tuple(GraphPoint(x, y, None if room is None else rooms[room]) for x, y, room in points)
         graph.level_transfer_points = level_transfer_points
+
+        for i, room in enumerate(rooms):
+            room.i = i
+
+        for i, point in enumerate(graph.points):
+            point.i = i
 
         return graph
 
@@ -143,16 +153,15 @@ class Graph:
         if do_cache:
             graph_mtime = os.path.getmtime(filename)
             if cls.graph_cached is not None:
-                if cls.graph_cached_date == graph_mtime:
+                if cls.graph_cached_mtime == graph_mtime:
                     return cls.graph_cached
 
         with open(filename, 'rb') as f:
-            graph = cls.unserialize(pickle.load(f))
+            graph = cls.unserialize(pickle.load(f), graph_mtime)
 
         if do_cache:
-            cls.graph_cached_date = graph_mtime
+            cls.graph_cached_mtime = graph_mtime
             cls.graph_cached = graph
-            print(cls.graph_cached, cls.graph_cached_date)
 
         graph.print_stats()
         return graph
@@ -163,6 +172,38 @@ class Graph:
             level.draw_png(points, lines)
 
     # Router
-    def build_router(self):
-        for level in self.levels.values():
-            level.build_router()
+    def build_routers(self):
+        level_routers = {}
+        room_routers = {}
+
+        empty_distances = np.empty(shape=(len(self.level_transfer_points),) * 2, dtype=np.float16)
+        empty_distances[:] = np.inf
+
+        sparse_distances = empty_distances.copy()
+
+        sparse_levels = np.zeros(shape=(len(self.level_transfer_points),) * 2, dtype=np.int16)
+        sparse_levels[:] = -1
+
+        for i, level in enumerate(self.levels.values()):
+            router, add_room_routers = level.build_routers()
+            level_routers[level] = router
+            room_routers.update(add_room_routers)
+
+            level_distances = empty_distances.copy()
+            in_level_i = np.array(tuple(level.room_transfer_points.index(point)
+                                        for point in level.level_transfer_points))
+            in_graph_i = np.array(tuple(self.level_transfer_points.index(point)
+                                        for point in level.level_transfer_points))
+            level_distances[in_graph_i[:, None], in_graph_i] = router.shortest_paths[in_level_i[:, None], in_level_i]
+
+            better = level_distances < sparse_distances
+            sparse_distances[better.transpose()] = level_distances[better.transpose()]
+            sparse_levels[better.transpose()] = i
+
+        g_sparse = csgraph_from_dense(sparse_distances, null_value=np.inf)
+        shortest_paths, predecessors = shortest_path(g_sparse, return_predecessors=True)
+        return GraphRouter(shortest_paths, predecessors), level_routers, room_routers
+
+
+
+GraphRouter = namedtuple('GraphRouter', ('shortest_paths', 'predecessors', ))

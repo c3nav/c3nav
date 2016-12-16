@@ -1,4 +1,7 @@
+from collections import namedtuple
+
 import numpy as np
+from django.core.cache import cache
 from matplotlib.path import Path
 from scipy.sparse.csgraph._shortest_path import shortest_path
 from scipy.sparse.csgraph._tools import csgraph_from_dense
@@ -187,8 +190,8 @@ class GraphRoom():
 
     def finish_build(self):
         self.areas = tuple(self.areas)
-        self.points = np.array(tuple(point.i for point in self._built_points))
-        self.room_transfer_points = np.array(tuple(i for i in self.points if i in self.level.room_transfer_points))
+        self.points = tuple(point.i for point in self._built_points)
+        self.room_transfer_points = tuple(i for i in self.points if i in self.level.room_transfer_points)
 
         mapping = {point.i: i for i, point in enumerate(self._built_points)}
         self.distances = np.empty(shape=(len(self._built_points), len(self._built_points)), dtype=np.float16)
@@ -203,7 +206,17 @@ class GraphRoom():
 
     # Routing
     def build_router(self):
-        # noinspection PyTypeChecker
+        cache_key = 'c3nav__graph__roomrouter__%s__%s' % (self.graph.mtime, self.i)
+        roomrouter = cache.get(cache_key)
+        if not roomrouter:
+            roomrouter = self._build_router()
+            cache.set(cache_key, roomrouter, 600)
+        return roomrouter
+
+    def _build_router(self):
         g_sparse = csgraph_from_dense(self.distances, null_value=np.inf)
         shortest_paths, predecessors = shortest_path(g_sparse, return_predecessors=True)
-        return shortest_paths, predecessors
+        return RoomRouter(shortest_paths, predecessors)
+
+
+RoomRouter = namedtuple('RoomRouter', ('shortest_paths', 'predecessors', ))

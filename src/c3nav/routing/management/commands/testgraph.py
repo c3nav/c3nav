@@ -14,5 +14,9 @@ class Command(BaseCommand):
         print('Graph loaded in %.4fs' % (time.time() - start))
 
         start = time.time()
-        graph.build_router()
+        graph.build_routers()
         print('Routers built in %.4fs' % (time.time() - start))
+
+        start = time.time()
+        graph.build_routers()
+        print('Routers built (2nd time, cached) in %.4fs' % (time.time() - start))
