@@ -186,8 +186,6 @@ class GraphRoom():
         return [point]
 
     def build_connections(self):
-        print('\n\n')
-        print('room')
         for area in self.areas:
             area.build_connections()
 
