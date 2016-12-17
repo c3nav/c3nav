@@ -5,7 +5,7 @@ from django.conf import settings
 from shapely.affinity import scale
 from shapely.geometry import JOIN_STYLE, box
 
-from c3nav.mapdata.render.utils import get_dimensions, get_render_path
+from c3nav.mapdata.utils.misc import get_dimensions, get_render_dimensions, get_render_path
 
 
 class LevelRenderer():
@@ -20,11 +20,6 @@ class LevelRenderer():
 
     def get_filename(self, mode, filetype, level=None):
         return get_render_path(filetype, self.level.name if level is None else level, mode, self.only_public)
-
-    @staticmethod
-    def get_dimensions():
-        width, height = get_dimensions()
-        return (width * settings.RENDER_SCALE, height * settings.RENDER_SCALE)
 
     @staticmethod
     def polygon_svg(geometry, fill_color=None, fill_opacity=None,
@@ -62,7 +57,7 @@ class LevelRenderer():
         return element
 
     def create_svg(self):
-        width, height = self.get_dimensions()
+        width, height = get_render_dimensions()
         svg = ET.Element('svg', {
             'width': str(width),
             'height': str(height),
@@ -73,7 +68,7 @@ class LevelRenderer():
         return svg
 
     def add_svg_content(self, svg):
-        width, height = self.get_dimensions()
+        width, height = get_render_dimensions()
         contents = ET.Element('g', {
             'transform': 'scale(1 -1) translate(0 -%d)' % (height),
         })
@@ -81,7 +76,7 @@ class LevelRenderer():
         return contents
 
     def add_svg_image(self, svg, image):
-        width, height = self.get_dimensions()
+        width, height = get_render_dimensions()
         contents = ET.Element('image', {
             'x': '0',
             'y': '0',

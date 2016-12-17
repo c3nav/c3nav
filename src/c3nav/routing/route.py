@@ -1,139 +1,7 @@
-from abc import ABC, abstractmethod
-
 import numpy as np
 from django.utils.functional import cached_property
 
-
-class RouteSegment(ABC):
-    def __init__(self, routers, router, from_point, to_point):
-        """
-        :param router: a Router (RoomRouter, GraphRouter, …)
-        :param from_point: in-router index of first point
-        :param to_point: in-router index of last point
-        """
-        self.routers = routers
-        self.router = router
-        self.from_point = int(from_point)
-        self.to_point = int(to_point)
-
-    def as_route(self):
-        return SegmentRoute([self])
-
-    def _get_points(self):
-        points = [self.to_point]
-        first = self.from_point
-        current = self.to_point
-        while current != first:
-            current = self.router.predecessors[first, current]
-            points.append(current)
-        return tuple(reversed(points))
-
-    @abstractmethod
-    def get_connections(self):
-        pass
-
-    @cached_property
-    def distance(self):
-        return self.router.shortest_paths[self.from_point, self.to_point]
-
-
-class RoomRouteSegment(RouteSegment):
-    def __init__(self, room, routers, from_point, to_point):
-        """
-        Route segment within a Room
-        :param room: GraphRoom
-        """
-        super().__init__(routers, routers[room], from_point, to_point)
-        self.room = room
-        self.global_from_point = room.points[from_point]
-        self.global_to_point = room.points[to_point]
-
-    def get_connections(self):
-        points = self._get_points()
-        return tuple(self.room.get_connection(from_point, to_point)
-                     for from_point, to_point in zip(points[:-1], points[1:]))
-
-    def __repr__(self):
-        return ('<RoomRouteSegment in %r from points %d to %d with distance %f>' %
-                (self.room, self.from_point, self.to_point, self.distance))
-
-
-class LevelRouteSegment(RouteSegment):
-    def __init__(self, level, routers, from_point, to_point):
-        """
-        Route segment within a Level (from room transfer point to room transfer point)
-        :param level: GraphLevel
-        """
-        super().__init__(routers, routers[level], from_point, to_point)
-        self.level = level
-        self.global_from_point = level.room_transfer_points[from_point]
-        self.global_to_point = level.room_transfer_points[to_point]
-
-    def split(self):
-        segments = []
-        points = self._get_points()
-        for from_point, to_point in zip(points[:-1], points[1:]):
-            room = self.level.rooms[self.router.room_transfers[from_point, to_point]]
-            global_from_point = self.level.room_transfer_points[from_point]
-            global_to_point = self.level.room_transfer_points[to_point]
-            segments.append(RoomRouteSegment(room, self.routers,
-                                             from_point=room.points.index(global_from_point),
-                                             to_point=room.points.index(global_to_point)))
-        return tuple(segments)
-
-    def get_connections(self):
-        return sum((segment.get_connections() for segment in self.split()), ())
-
-    def __repr__(self):
-        return ('<LevelRouteSegment in %r from points %d to %d with distance %f>' %
-                (self.level, self.from_point, self.to_point, self.distance))
-
-
-class GraphRouteSegment(RouteSegment):
-    def __init__(self, graph, routers, from_point, to_point):
-        """
-        Route segment within a Graph (from level transfer point to level transfer point)
-        :param graph: Graph
-        """
-        super().__init__(routers, routers[graph], from_point, to_point)
-        self.graph = graph
-        self.global_from_point = graph.level_transfer_points[from_point]
-        self.global_to_point = graph.level_transfer_points[to_point]
-
-    def split(self):
-        segments = []
-        points = self._get_points()
-        for from_point, to_point in zip(points[:-1], points[1:]):
-            level = self.graph.levels[self.router.level_transfers[from_point, to_point]]
-            global_from_point = self.graph.level_transfer_points[from_point]
-            global_to_point = self.graph.level_transfer_points[to_point]
-            segments.append(LevelRouteSegment(level, self.routers,
-                                              from_point=level.room_transfer_points.index(global_from_point),
-                                              to_point=level.room_transfer_points.index(global_to_point)))
-        return tuple(segments)
-
-    def get_connections(self):
-        return sum((segment.get_connections() for segment in self.split()), ())
-
-    def __repr__(self):
-        return ('<GraphRouteSegment in %r from points %d to %d with distance %f>' %
-                (self.graph, self.from_point, self.to_point, self.distance))
-
-
-class SegmentRoute:
-    def __init__(self, segments, distance=None):
-        self.segments = sum(((item.segments if isinstance(item, SegmentRoute) else (item,))
-                             for item in segments if item.from_point != item.to_point), ())
-        self.distance = sum(segment.distance for segment in self.segments)
-        self.from_point = segments[0].global_from_point
-        self.to_point = segments[-1].global_to_point
-
-    def __repr__(self):
-        return ('<SegmentedRoute (\n    %s\n) distance=%f>' %
-                ('\n    '.join(repr(segment) for segment in self.segments), self.distance))
-
-    def split(self):
-        return Route(sum((segment.get_connections() for segment in self.segments), ()))
+from c3nav.mapdata.utils.misc import get_dimensions
 
 
 class Route:
@@ -146,6 +14,73 @@ class Route:
     def __repr__(self):
         return ('<Route (\n    %s\n) distance=%f>' %
                 ('\n    '.join(repr(connection) for connection in self.connections), self.distance))
+
+    @cached_property
+    def routeparts(self):
+        routeparts = []
+        connections = []
+        level = self.connections[0].from_point.level
+
+        for connection in self.connections:
+            connections.append(connection)
+            point = connection.to_point
+            if point.level and point.level != level:
+                routeparts.append(RoutePart(level, connections))
+                level = point.level
+                connections = []
+
+        if connections:
+            routeparts.append(RoutePart(level, connections))
+        print(routeparts)
+        return tuple(routeparts)
+
+
+class RoutePart:
+    def __init__(self, level, connections):
+        self.level = level
+        self.level_name = level.level.name
+        self.connections = connections
+
+        width, height = get_dimensions()
+
+        points = (connections[0].from_point, ) + tuple(connection.to_point for connection in connections)
+        for point in points:
+            point.svg_x = point.x * 6
+            point.svg_y = (height - point.y) * 6
+
+        x, y = zip(*((point.svg_x, point.svg_y) for point in points if point.level == level))
+
+        self.distance = sum(connection.distance for connection in connections)
+
+        # bounds for rendering
+        self.min_x = min(x) - 20
+        self.max_x = max(x) + 20
+        self.min_y = min(y) - 20
+        self.max_y = max(y) + 20
+
+        width = self.max_x - self.min_x
+        height = self.max_y - self.min_y
+
+        if width < 150:
+            self.min_x -= (10 - width) / 2
+            self.max_x += (10 - width) / 2
+
+        if height < 150:
+            self.min_y -= (10 - height) / 2
+            self.max_y += (10 - height) / 2
+
+        self.width = self.max_x - self.min_x
+        self.height = self.max_y - self.min_y
+
+    def __str__(self):
+        return repr(self.__dict__)
+
+
+class RouteLine:
+    def __init__(self, from_point, to_point, distance):
+        self.from_point = from_point
+        self.to_point = to_point
+        self.distance = distance
 
 
 class NoRoute:

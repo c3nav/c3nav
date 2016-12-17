@@ -2,6 +2,7 @@
 
 {% load static %}
 {% load i18n %}
+{% load route_render %}
 
 {% block content %}
 <form>
@@ -12,6 +13,34 @@
         {% trans "Destination" as heading %}
         {% include 'site/fragment_location.html' with name='destination' location=destination heading=heading %}
     </div>
-
 </form>
+
+    {% if route %}
+        <h2>Your Route</h2>
+        <div class="routeparts">
+            {% for routepart in route.routeparts %}
+                <svg xmlns="http://www.w3.org/2000/svg" class="map" data-level="{{ routepart.level_name }}"
+                     viewBox="0 0 {{ routepart.width }} {{ routepart.height }}"
+                     style="max-height:{% if routepart.height > 300 %}300{% else %}{{ routepart.height }}{% endif %}px">
+                    <defs>
+                        <marker id="arrow-{{ forloop.counter0 }}" markerWidth="4" markerHeight="4" refX="2.5" refY="2" orient="auto">
+                            <path d="M0,0 L3,2 L0,4 L0,0" style="fill: #FF0000; stroke: 0;"></path>
+                        </marker>
+                    </defs>
+
+                    <image width="{{ svg_width }}" height="{{ svg_height }}" x="{{ routepart.min_x | negate }}" y="{{ routepart.min_y | negate }}" xlink:href="/map/{{ routepart.level_name }}.png"></image>
+
+                    <g class="connections">
+                        {% for c in routepart.connections %}
+                            <line x1="{{ c.from_point.svg_x | subtract:routepart.min_x }}"
+                                  y1="{{ c.from_point.svg_y | subtract:routepart.min_y }}"
+                                  x2="{{ c.to_point.svg_x | subtract:routepart.min_x }}"
+                                  y2="{{ c.to_point.svg_y | subtract:routepart.min_y }}"
+                                  marker-end="url(#arrow-{{ forloop.parentloop.counter0 }})"></line>
+                        {% endfor %}
+                    </g>
+                </svg>
+            {% endfor %}
+        </div>
+    {% endif %}
 {% endblock %}

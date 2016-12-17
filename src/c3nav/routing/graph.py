@@ -12,7 +12,8 @@ from c3nav.mapdata.models.geometry import LevelConnector
 from c3nav.mapdata.models.locations import AreaLocation, Location, LocationGroup, PointLocation
 from c3nav.routing.level import GraphLevel
 from c3nav.routing.point import GraphPoint
-from c3nav.routing.route import GraphRouteSegment, LevelRouteSegment, NoRoute, RoomRouteSegment, SegmentRoute
+from c3nav.routing.route import NoRoute
+from c3nav.routing.routesegments import GraphRouteSegment, LevelRouteSegment, RoomRouteSegment, SegmentRoute
 
 
 class Graph:
