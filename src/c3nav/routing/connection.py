@@ -6,6 +6,3 @@ class GraphConnection():
         self.from_point = from_point
         self.to_point = to_point
         self.distance = distance if distance is not None else abs(np.linalg.norm(from_point.xy - to_point.xy))
-
-    def serialize(self):
-        return (self.distance, )

@@ -12,7 +12,7 @@ from c3nav.mapdata.models.geometry import LevelConnector
 from c3nav.mapdata.models.locations import AreaLocation, Location, LocationGroup, PointLocation
 from c3nav.routing.level import GraphLevel
 from c3nav.routing.point import GraphPoint
-from c3nav.routing.route import GraphRouteSegment, LevelRouteSegment, NoRoute, RoomRouteSegment, Route
+from c3nav.routing.route import GraphRouteSegment, LevelRouteSegment, NoRoute, RoomRouteSegment, SegmentRoute
 
 
 class Graph:
@@ -181,8 +181,8 @@ class Graph:
 
         sparse_distances = empty_distances.copy()
 
-        sparse_levels = np.zeros(shape=(len(self.level_transfer_points),) * 2, dtype=np.int16)
-        sparse_levels[:] = -1
+        level_transfers = np.zeros(shape=(len(self.level_transfer_points),) * 2, dtype=np.int16)
+        level_transfers[:] = -1
 
         for i, level in enumerate(self.levels.values()):
             routers.update(level.build_routers())
@@ -197,12 +197,12 @@ class Graph:
 
             better = level_distances < sparse_distances
             sparse_distances[better.transpose()] = level_distances[better.transpose()]
-            sparse_levels[better.transpose()] = i
+            level_transfers[better.transpose()] = i
 
         g_sparse = csgraph_from_dense(sparse_distances, null_value=np.inf)
         shortest_paths, predecessors = shortest_path(g_sparse, return_predecessors=True)
 
-        routers[self] = GraphRouter(shortest_paths, predecessors)
+        routers[self] = GraphRouter(shortest_paths, predecessors, level_transfers)
         return routers
 
     def get_location_points(self, location: Location):
@@ -295,9 +295,10 @@ class Graph:
                 from_point, to_point = np.argwhere(shortest_paths == distance)[0]
                 from_point = o_points[from_point]
                 to_point = d_points[to_point]
-                best_route = Route((orig_room_transfers[level.room_transfer_points[from_point]],
-                                    LevelRouteSegment(level, routers, from_point, to_point),
-                                    dest_room_transfers[level.room_transfer_points[to_point]]), distance=distance)
+                best_route = SegmentRoute((orig_room_transfers[level.room_transfer_points[from_point]],
+                                           LevelRouteSegment(level, routers, from_point, to_point),
+                                           dest_room_transfers[level.room_transfer_points[to_point]]),
+                                          distance=distance)
 
         # get reachable level transfer points and their distance
         # as a dictionary: global transfer point index => Route
@@ -327,9 +328,10 @@ class Graph:
                 from_point, to_point = np.argwhere(shortest_paths == distance)[0]
                 from_point = o_points[from_point]
                 to_point = d_points[to_point]
-                best_route = Route((orig_level_transfers[self.level_transfer_points[from_point]],
-                                    GraphRouteSegment(self, routers, from_point, to_point),
-                                    dest_level_transfers[self.level_transfer_points[to_point]]), distance=distance)
+                best_route = SegmentRoute((orig_level_transfers[self.level_transfer_points[from_point]],
+                                           GraphRouteSegment(self, routers, from_point, to_point),
+                                           dest_level_transfers[self.level_transfer_points[to_point]]),
+                                          distance=distance)
 
         return best_route
 
@@ -395,9 +397,9 @@ class Graph:
                         segments.insert(0, all_room_transfers[room_transfer_i])
                     else:
                         segments.append(all_room_transfers[room_transfer_i])
-                    level_transfers[transfer_i] = Route(segments, distance)
+                    level_transfers[transfer_i] = SegmentRoute(segments, distance)
 
         return level_transfers
 
 
-GraphRouter = namedtuple('GraphRouter', ('shortest_paths', 'predecessors', ))
+GraphRouter = namedtuple('GraphRouter', ('shortest_paths', 'predecessors', 'level_transfers', ))
