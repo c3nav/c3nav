@@ -354,7 +354,7 @@ class Graph:
                 to_i = room_transfer_points[to_i] if mode == 'orig' else points[to_i]
 
                 transfer_i = room.points[to_i if mode == 'orig' else from_i]
-                if transfer_i not in room_transfers or room_transfers[transfer_i].distance < distance:
+                if transfer_i not in room_transfers or room_transfers[transfer_i].distance > distance:
                     room_transfers[transfer_i] = RoomRouteSegment(room, routers, from_i, to_i)
 
         return room_transfers
@@ -389,7 +389,7 @@ class Graph:
 
                 transfer_i = level.room_transfer_points[to_i if mode == 'orig' else from_i]
                 room_transfer_i = level.room_transfer_points[from_i if mode == 'orig' else to_i]
-                if transfer_i not in level_transfers or level_transfers[transfer_i].distance < distance:
+                if transfer_i not in level_transfers or level_transfers[transfer_i].distance > distance:
                     segments = [LevelRouteSegment(level, routers, from_i, to_i)]
                     if mode == 'orig':
                         segments.insert(0, all_room_transfers[room_transfer_i])
