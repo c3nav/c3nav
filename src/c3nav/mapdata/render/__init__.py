@@ -1,5 +1,5 @@
 from c3nav.mapdata.models import Level
-from c3nav.mapdata.render.renderer import LevelRenderer, get_render_path  # noqa
+from c3nav.mapdata.render.renderer import LevelRenderer  # noqa
 
 
 def render_all_levels(show_accessibles=False):
