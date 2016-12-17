@@ -195,7 +195,7 @@ class GraphLevel():
 
     # Routing
     def build_routers(self):
-        room_routers = {}
+        routers = {}
 
         empty_distances = np.empty(shape=(len(self.room_transfer_points),) * 2, dtype=np.float16)
         empty_distances[:] = np.inf
@@ -207,7 +207,7 @@ class GraphLevel():
 
         for i, room in enumerate(self.rooms):
             router = room.build_router()
-            room_routers[room] = router
+            routers[room] = router
 
             room_distances = empty_distances.copy()
             in_room_i = np.array(tuple(room.points.index(point) for point in room.room_transfer_points))
@@ -222,7 +222,9 @@ class GraphLevel():
 
         g_sparse = csgraph_from_dense(sparse_distances, null_value=np.inf)
         shortest_paths, predecessors = shortest_path(g_sparse, return_predecessors=True)
-        return LevelRouter(shortest_paths, predecessors, room_transfers), room_routers
+
+        routers[self] = LevelRouter(shortest_paths, predecessors, room_transfers)
+        return routers
 
 
 LevelRouter = namedtuple('LevelRouter', ('shortest_paths', 'predecessors', 'rooms_transfers', ))
