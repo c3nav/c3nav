@@ -174,8 +174,7 @@ class Graph:
 
     # Router
     def build_routers(self):
-        level_routers = {}
-        room_routers = {}
+        routers = {}
 
         empty_distances = np.empty(shape=(len(self.level_transfer_points),) * 2, dtype=np.float16)
         empty_distances[:] = np.inf
@@ -186,9 +185,8 @@ class Graph:
         sparse_levels[:] = -1
 
         for i, level in enumerate(self.levels.values()):
-            router, add_room_routers = level.build_routers()
-            level_routers[level] = router
-            room_routers.update(add_room_routers)
+            routers.update(level.build_routers())
+            router = routers[level]
 
             level_distances = empty_distances.copy()
             in_level_i = np.array(tuple(level.room_transfer_points.index(point)
@@ -203,7 +201,9 @@ class Graph:
 
         g_sparse = csgraph_from_dense(sparse_distances, null_value=np.inf)
         shortest_paths, predecessors = shortest_path(g_sparse, return_predecessors=True)
-        return GraphRouter(shortest_paths, predecessors), level_routers, room_routers
+
+        routers[self] = GraphRouter(shortest_paths, predecessors)
+        return routers
 
     def get_location_points(self, location: Location):
         if isinstance(location, PointLocation):
@@ -229,7 +229,7 @@ class Graph:
         best_route = NoRoute
 
         # get routers
-        graph_router, level_routers, room_routers = self.build_routers()
+        routers = self.build_routers()
 
         # route within room
         orig_rooms = set(point.room for point in orig_points)
@@ -243,8 +243,8 @@ class Graph:
         # if the points have common rooms, search for routes within those rooms
         if common_rooms:
             for room in common_rooms:
-                shortest_paths = room_routers[room].shortest_paths[orig_room_points[room][:, None],
-                                                                   dest_room_points[room]]
+                shortest_paths = routers[room].shortest_paths[orig_room_points[room][:, None],
+                                                              dest_room_points[room]]
                 distance = shortest_paths.min()
 
                 # Is this route better than the previous ones?
@@ -255,12 +255,12 @@ class Graph:
                 from_point, to_point = np.argwhere(shortest_paths == distance)[0]
                 from_point = orig_room_points[from_point]
                 to_point = dest_room_points[to_point]
-                best_route = RoomRouteSegment(room, room_routers[room], from_point, to_point).as_route()
+                best_route = RoomRouteSegment(room, routers, from_point, to_point).as_route()
 
         # get reachable room transfer points and their distance
         # as a dictionary: global transfer point index => RoomRouteSegment
-        orig_room_transfers = self._room_transfers(orig_rooms, orig_room_points, room_routers, mode='orig')
-        dest_room_transfers = self._room_transfers(dest_rooms, dest_room_points, room_routers, mode='dest')
+        orig_room_transfers = self._room_transfers(orig_rooms, orig_room_points, routers, mode='orig')
+        dest_room_transfers = self._room_transfers(dest_rooms, dest_room_points, routers, mode='dest')
 
         # route within level
         orig_levels = set(room.level for room in orig_rooms)
@@ -278,7 +278,7 @@ class Graph:
             for level in common_levels:
                 o_points = orig_room_transfer_points[level]
                 d_points = dest_room_transfer_points[level]
-                shortest_paths = level_routers[level].shortest_paths[o_points[:, None], d_points]
+                shortest_paths = routers[level].shortest_paths[o_points[:, None], d_points]
 
                 # add distances to the the room transfer points to the rows and columns
                 shortest_paths += np.array(tuple(orig_room_transfers[level.room_transfer_points[in_level_i]].distance
@@ -296,13 +296,13 @@ class Graph:
                 from_point = o_points[from_point]
                 to_point = d_points[to_point]
                 best_route = Route((orig_room_transfers[level.room_transfer_points[from_point]],
-                                    LevelRouteSegment(level, level_routers[level], from_point, to_point),
+                                    LevelRouteSegment(level, routers, from_point, to_point),
                                     dest_room_transfers[level.room_transfer_points[to_point]]), distance=distance)
 
         # get reachable level transfer points and their distance
         # as a dictionary: global transfer point index => Route
-        orig_level_transfers = self._level_transfers(orig_levels, orig_room_transfers, level_routers, mode='orig')
-        dest_level_transfers = self._level_transfers(orig_levels, dest_room_transfers, level_routers, mode='dest')
+        orig_level_transfers = self._level_transfers(orig_levels, orig_room_transfers, routers, mode='orig')
+        dest_level_transfers = self._level_transfers(orig_levels, dest_room_transfers, routers, mode='dest')
 
         # get reachable roomtransfer points for each level (points as room transfer point index within level)
         orig_level_transfer_points = self._allowed_points_index(self.level_transfer_points, orig_level_transfers)
@@ -312,7 +312,7 @@ class Graph:
         if True:
             o_points = orig_level_transfer_points
             d_points = dest_level_transfer_points
-            shortest_paths = graph_router.shortest_paths[o_points[:, None], d_points]
+            shortest_paths = routers[self].shortest_paths[o_points[:, None], d_points]
 
             # add distances to the the room transfer points to the rows and columns
             shortest_paths += np.array(tuple(orig_level_transfers[self.level_transfer_points[in_graph_i]].distance
@@ -328,12 +328,12 @@ class Graph:
                 from_point = o_points[from_point]
                 to_point = d_points[to_point]
                 best_route = Route((orig_level_transfers[self.level_transfer_points[from_point]],
-                                    GraphRouteSegment(self, graph_router, from_point, to_point),
+                                    GraphRouteSegment(self, routers, from_point, to_point),
                                     dest_level_transfers[self.level_transfer_points[to_point]]), distance=distance)
 
         return best_route
 
-    def _room_transfers(self, rooms, room_points, room_routers, mode):
+    def _room_transfers(self, rooms, room_points, routers, mode):
         if mode not in ('orig', 'dest'):
             raise ValueError
 
@@ -343,9 +343,9 @@ class Graph:
 
             points = room_points[room]
             if mode == 'orig':
-                shortest_paths = room_routers[room].shortest_paths[points[:, None], room_transfer_points]
+                shortest_paths = routers[room].shortest_paths[points[:, None], room_transfer_points]
             else:
-                shortest_paths = room_routers[room].shortest_paths[room_transfer_points[:, None], points]
+                shortest_paths = routers[room].shortest_paths[room_transfer_points[:, None], points]
 
             # noinspection PyTypeChecker
             for from_i, to_i in np.argwhere(shortest_paths != np.inf):
@@ -355,11 +355,11 @@ class Graph:
 
                 transfer_i = room.points[to_i if mode == 'orig' else from_i]
                 if transfer_i not in room_transfers or room_transfers[transfer_i].distance < distance:
-                    room_transfers[transfer_i] = RoomRouteSegment(room, room_routers[room], from_i, to_i)
+                    room_transfers[transfer_i] = RoomRouteSegment(room, routers, from_i, to_i)
 
         return room_transfers
 
-    def _level_transfers(self, levels, all_room_transfers, level_routers, mode):
+    def _level_transfers(self, levels, all_room_transfers, routers, mode):
         if mode not in ('orig', 'dest'):
             raise ValueError
 
@@ -375,10 +375,10 @@ class Graph:
             distances = np.array(distances)
 
             if mode == 'orig':
-                shortest_paths = level_routers[level].shortest_paths[points[:, None], level_transfer_points]
+                shortest_paths = routers[level].shortest_paths[points[:, None], level_transfer_points]
                 shortest_paths += distances[:, None]
             else:
-                shortest_paths = level_routers[level].shortest_paths[level_transfer_points[:, None], points]
+                shortest_paths = routers[level].shortest_paths[level_transfer_points[:, None], points]
                 shortest_paths += distances
 
             # noinspection PyTypeChecker
@@ -390,7 +390,7 @@ class Graph:
                 transfer_i = level.room_transfer_points[to_i if mode == 'orig' else from_i]
                 room_transfer_i = level.room_transfer_points[from_i if mode == 'orig' else to_i]
                 if transfer_i not in level_transfers or level_transfers[transfer_i].distance < distance:
-                    segments = [LevelRouteSegment(level, level_routers[level], from_i, to_i)]
+                    segments = [LevelRouteSegment(level, routers, from_i, to_i)]
                     if mode == 'orig':
                         segments.insert(0, all_room_transfers[room_transfer_i])
                     else:

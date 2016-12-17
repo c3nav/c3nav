@@ -18,13 +18,22 @@ class RouteSegment(ABC):
     def as_route(self):
         return Route([self])
 
+    def _get_points(self):
+        points = [self.to_point]
+        first = self.from_point
+        current = self.to_point
+        while current != first:
+            current = self.router.predecessors[first, current]
+            points.append(current)
+        return tuple(reversed(points))
+
     @cached_property
     def distance(self):
         return self.router.shortest_paths[self.from_point, self.to_point]
 
 
 class RoomRouteSegment(RouteSegment):
-    def __init__(self, room, router, from_point, to_point):
+    def __init__(self, room, routers, from_point, to_point):
         """
         Route segment within a Room
         :param room: GraphRoom
@@ -32,7 +41,7 @@ class RoomRouteSegment(RouteSegment):
         :param from_point: in-room index of first point
         :param to_point: in-room index of last point
         """
-        super().__init__(router, from_point, to_point)
+        super().__init__(routers[room], from_point, to_point)
         self.room = room
         self.global_from_point = room.points[from_point]
         self.global_to_point = room.points[to_point]
@@ -43,12 +52,12 @@ class RoomRouteSegment(RouteSegment):
 
 
 class LevelRouteSegment(RouteSegment):
-    def __init__(self, level, router, from_point, to_point):
+    def __init__(self, level, routers, from_point, to_point):
         """
         Route segment within a Level (from room transfer point to room transfer point)
         :param level: GraphLevel
         """
-        super().__init__(router, from_point, to_point)
+        super().__init__(routers[level], from_point, to_point)
         self.level = level
         self.global_from_point = level.room_transfer_points[from_point]
         self.global_to_point = level.room_transfer_points[to_point]
@@ -59,12 +68,12 @@ class LevelRouteSegment(RouteSegment):
 
 
 class GraphRouteSegment(RouteSegment):
-    def __init__(self, graph, router, from_point, to_point):
+    def __init__(self, graph, routers, from_point, to_point):
         """
         Route segment within a Graph (from level transfer point to level transfer point)
         :param graph: Graph
         """
-        super().__init__(router, from_point, to_point)
+        super().__init__(routers[graph], from_point, to_point)
         self.graph = graph
         self.global_from_point = graph.level_transfer_points[from_point]
         self.global_to_point = graph.level_transfer_points[to_point]
