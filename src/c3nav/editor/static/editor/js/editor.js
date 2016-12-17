@@ -282,7 +282,7 @@ editor = {
         'levelconnector': '#FFFF00',
         'shadow': '#000000',
         'stair': '#FF0000',
-        'areaofinterest': '#0099FF'
+        'arealocation': '#0099FF'
     },
     _line_draw_geometry_style: function(style) {
         style.stroke = true;
@@ -304,10 +304,10 @@ editor = {
         var result = {
             stroke: false,
             fillColor: editor._geometry_colors[mapitem_type],
-            fillOpacity: (mapitem_type == 'areaofinterest') ? 0.2 : 0.6,
+            fillOpacity: (mapitem_type == 'arealocation') ? 0.2 : 0.6,
             smoothFactor: 0
         };
-        if (mapitem_type == 'areaofinterest') {
+        if (mapitem_type == 'arealocation') {
             result.fillOpacity = 0.02;
             result.color = result.fillColor;
             result.stroke = true;

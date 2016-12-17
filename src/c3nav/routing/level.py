@@ -156,6 +156,12 @@ class GraphLevel():
                                                    if mpl_arealocation.contains_point(point.xy))
 
     # Drawing
+    ctype_colors = {
+        '': (50, 200, 0),
+        'steps_up': (255, 50, 50),
+        'steps_down': (255, 50, 50),
+    }
+
     def draw_png(self, points=True, lines=True):
         filename = os.path.join(settings.RENDER_ROOT, 'base-level-%s.png' % self.level.name)
         graph_filename = os.path.join(settings.RENDER_ROOT, 'graph-level-%s.png' % self.level.name)
@@ -163,12 +169,17 @@ class GraphLevel():
         im = Image.open(filename)
         height = im.size[1]
         draw = ImageDraw.Draw(im)
+
         if lines:
             for room in self.rooms:
                 # noinspection PyTypeChecker
-                for from_i, to_i in np.argwhere(room.distances != np.inf):
+                for ctype, from_i, to_i in np.argwhere(room.distances != np.inf):
                     draw.line(_line_coords(self.graph.points[room.points[from_i]],
-                                           self.graph.points[room.points[to_i]], height), fill=(255, 100, 100))
+                                           self.graph.points[room.points[to_i]], height),
+                              fill=self.ctype_colors[room.ctypes[ctype]])
+                    if room.ctypes[ctype] == 'steps_up':
+                        point = self.graph.points[room.points[from_i]]
+                        draw.ellipse(_ellipse_bbox(point.x, point.y, height), (0, 255, 255))
 
         if points:
             for point_i in self.points:
@@ -186,7 +197,7 @@ class GraphLevel():
         if lines:
             for room in self.rooms:
                 # noinspection PyTypeChecker
-                for from_i, to_i in np.argwhere(room.distances != np.inf):
+                for ctype, from_i, to_i in np.argwhere(room.distances != np.inf):
                     if room.points[from_i] in room.room_transfer_points:
                         draw.line(_line_coords(self.graph.points[room.points[from_i]],
                                                self.graph.points[room.points[to_i]], height), fill=(0, 255, 255))
@@ -194,7 +205,7 @@ class GraphLevel():
         im.save(graph_filename)
 
     # Routing
-    def build_routers(self):
+    def build_routers(self, allowed_ctypes):
         routers = {}
 
         empty_distances = np.empty(shape=(len(self.room_transfer_points),) * 2, dtype=np.float16)
@@ -206,7 +217,7 @@ class GraphLevel():
         room_transfers[:] = -1
 
         for i, room in enumerate(self.rooms):
-            router = room.build_router()
+            router = room.build_router(allowed_ctypes)
             routers[room] = router
 
             room_distances = empty_distances.copy()
