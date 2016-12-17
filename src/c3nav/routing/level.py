@@ -57,6 +57,7 @@ class GraphLevel():
 
         self.create_doors()
         self.create_levelconnectors()
+        self.create_elevatorlevels()
 
         self._built_points = sum((room._built_points for room in self.rooms), [])
         self._built_points.extend(self._built_room_transfer_points)
@@ -130,6 +131,28 @@ class GraphLevel():
                     room._built_points.append(point)
                     self.graph.add_levelconnector_point(levelconnector, point)
 
+    def create_elevatorlevels(self):
+        for elevatorlevel in self.level.elevatorlevels.all():
+            center = elevatorlevel.geometry.centroid
+            mpl_elevatorlevel = shapely_to_mpl(elevatorlevel.geometry)
+            for room in self.rooms:
+                if not room.mpl_clear.contains_point(center.coords[0]):
+                    continue
+
+                room._built_is_elevatorlevel = True
+
+                points = [point for point in room._built_points if mpl_elevatorlevel.contains_point(point.xy)]
+                if not points:
+                    print('elevatorlevel %s has 0 points!' % (elevatorlevel.name))
+                    break
+                elif len(points) > 1:
+                    print('elevatorlevel %s has > 2 points!' % (elevatorlevel.name))
+                    break
+
+                point = points[0]
+                self.graph.add_elevatorlevel_point(elevatorlevel, point)
+                break
+
     def collect_arealocations(self):
         self._built_arealocations = {}
         for arealocation in self.level.arealocations.all():
@@ -160,6 +183,8 @@ class GraphLevel():
         '': (50, 200, 0),
         'steps_up': (255, 50, 50),
         'steps_down': (255, 50, 50),
+        'elevator_up': (200, 0, 200),
+        'elevator_down': (200, 0, 200),
     }
 
     def draw_png(self, points=True, lines=True):

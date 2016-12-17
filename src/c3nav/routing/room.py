@@ -55,6 +55,7 @@ class GraphRoom():
             return False
 
         self._built_points = []
+        self._built_is_elevatorlevel = False
 
         self.mpl_clear = shapely_to_mpl(self.clear_geometry.buffer(0.01, join_style=JOIN_STYLE.mitre))
         self.mpl_stairs = ()
@@ -186,6 +187,9 @@ class GraphRoom():
         return [point]
 
     def build_connections(self):
+        if self._built_is_elevatorlevel:
+            return
+
         for area in self.areas:
             area.build_connections()
 
@@ -221,6 +225,7 @@ class GraphRoom():
     # Routing
     def build_router(self, allowed_ctypes):
         ctypes = tuple(i for i, ctype in enumerate(self.ctypes) if ctype in allowed_ctypes)
+        print(self.ctypes)
         cache_key = ('c3nav__graph__roomrouter__%s__%s__%s' %
                      (self.graph.mtime, self.i, ','.join(str(i) for i in ctypes)))
         roomrouter = cache.get(cache_key)

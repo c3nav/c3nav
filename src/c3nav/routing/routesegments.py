@@ -105,7 +105,7 @@ class GraphRouteSegment(RouteSegment):
         segments = []
         points = self._get_points()
         for from_point, to_point in zip(points[:-1], points[1:]):
-            level = self.graph.levels[self.router.level_transfers[from_point, to_point]]
+            level = tuple(self.graph.levels.values())[self.router.level_transfers[from_point, to_point]]
             global_from_point = self.graph.level_transfer_points[from_point]
             global_to_point = self.graph.level_transfer_points[to_point]
             segments.append(LevelRouteSegment(level, self.routers,
@@ -128,6 +128,8 @@ class SegmentRoute:
         self.distance = sum(segment.distance for segment in self.segments)
         self.from_point = segments[0].global_from_point
         self.to_point = segments[-1].global_to_point
+        self.global_from_point = self.from_point
+        self.global_to_point = self.to_point
 
     def __repr__(self):
         return ('<SegmentedRoute (\n    %s\n) distance=%f>' %
