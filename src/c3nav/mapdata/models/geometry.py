@@ -1,6 +1,7 @@
 from collections import OrderedDict
 
 from django.db import models
+from django.utils.functional import cached_property
 from django.utils.translation import ugettext_lazy as _
 from shapely.geometry import CAP_STYLE, JOIN_STYLE
 from shapely.geometry.geo import mapping, shape
@@ -321,6 +322,7 @@ class ElevatorLevel(GeometryMapItemWithLevel):
     """
     elevator = models.ForeignKey(Elevator, on_delete=models.PROTECT)
     button = models.SlugField(_('Button label'), max_length=10)
+    override_altitude = models.DecimalField(_('override level altitude'), null=True, max_digits=6, decimal_places=2)
 
     geomtype = 'polygon'
 
@@ -347,10 +349,21 @@ class ElevatorLevel(GeometryMapItemWithLevel):
             raise ValueError('missing button.')
         kwargs['button'] = data['button']
 
+        if 'override_altitude' in data:
+            kwargs['override_altitude'] = data['override_altitude']
+
         return kwargs
 
     def tofile(self):
         result = super().tofile()
         result['elevator'] = self.elevator.name
         result['button'] = self.button
+        if self.override_altitude is not None:
+            result['override_altitude'] = float(self.override_altitude)
         return result
+
+    @cached_property
+    def altitude(self):
+        if self.override_altitude is not None:
+            return self.override_altitude
+        return self.level.altitude

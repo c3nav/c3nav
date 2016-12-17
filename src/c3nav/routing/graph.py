@@ -132,7 +132,7 @@ class Graph:
                     room.level._built_room_transfer_points.append(center_point)
                     room.level._built_points.append(center_point)
 
-                direction_up = level2.level.altitude > level1.level.altitude
+                direction_up = level2.altitude > level1.altitude
 
                 point1.connect_to(center_point, ctype=('elevator_up' if direction_up else 'elevator_down'))
                 center_point.connect_to(point2, ctype=('elevator_up' if direction_up else 'elevator_down'))

@@ -3,6 +3,7 @@ import time
 from collections import OrderedDict
 
 from django.conf import settings
+from django.db.models import Field
 from django.forms import CharField, ModelForm, ValidationError
 from django.forms.models import ModelChoiceField
 from django.forms.widgets import HiddenInput
@@ -108,8 +109,8 @@ class MapitemFormMixin(ModelForm):
 
 def create_editor_form(mapitemtype):
     possible_fields = ['name', 'package', 'altitude', 'level', 'intermediate', 'levels', 'geometry',
-                       'elevator', 'button', 'crop_to_level', 'width', 'groups']
-    existing_fields = [field for field in possible_fields if hasattr(mapitemtype, field)]
+                       'elevator', 'button', 'crop_to_level', 'width', 'groups', 'override_altitude']
+    existing_fields = [field for field in possible_fields if isinstance(getattr(mapitemtype, field, None), Field)]
 
     class EditorForm(MapitemFormMixin, ModelForm):
         class Meta:

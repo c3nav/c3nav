@@ -13,10 +13,11 @@
                 </tr>
             {% endif %}
             <tr data-name="{{ item.name }}">
-
                 <td>{% if item.title != item.name %}{{ item.title }} <small>{{ item.name }}</small>{% else %}{{ item.name }}{% endif %}</td>
                 {% if has_elevator %}
                     <td><a href="{% url 'editor.mapitems.edit' mapitem_type='elevator' name=item.elevator.name %}">{{ item.elevator }}</a></td>
+                    <td>{{ item.button }}</td>
+                    <td>{% if item.override_altitude %}{{ item.override_altitude }} m{% endif %}</td>
                 {% endif %}
                 {% if has_levels %}
                     <td>{% for level in item.levels.all %}{% if not forloop.first %}, {% endif %}<a href="" data-level-link="{{ level.name }}">{{ level.name }}</a>{% endfor %}</td>
