@@ -9,6 +9,7 @@ from shapely.geometry import CAP_STYLE, JOIN_STYLE, LineString
 
 from c3nav.mapdata.utils.geometry import assert_multilinestring, assert_multipolygon
 from c3nav.routing.area import GraphArea
+from c3nav.routing.connection import GraphConnection
 from c3nav.routing.point import GraphPoint
 from c3nav.routing.utils.coords import coord_angle, get_coords_angles
 from c3nav.routing.utils.mpl import shapely_to_mpl
@@ -217,6 +218,9 @@ class GraphRoom():
         g_sparse = csgraph_from_dense(self.distances, null_value=np.inf)
         shortest_paths, predecessors = shortest_path(g_sparse, return_predecessors=True)
         return RoomRouter(shortest_paths, predecessors)
+
+    def get_connection(self, from_i, to_i):
+        return GraphConnection(self.graph.points[self.points[from_i]], self.graph.points[self.points[to_i]])
 
 
 RoomRouter = namedtuple('RoomRouter', ('shortest_paths', 'predecessors', ))

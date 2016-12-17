@@ -227,4 +227,4 @@ class GraphLevel():
         return routers
 
 
-LevelRouter = namedtuple('LevelRouter', ('shortest_paths', 'predecessors', 'rooms_transfers', ))
+LevelRouter = namedtuple('LevelRouter', ('shortest_paths', 'predecessors', 'room_transfers', ))
