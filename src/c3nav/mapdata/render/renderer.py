@@ -1,25 +1,11 @@
-import os
 import subprocess
 import xml.etree.ElementTree as ET
 
 from django.conf import settings
-from django.db.models import Max, Min
 from shapely.affinity import scale
 from shapely.geometry import JOIN_STYLE, box
 
-from c3nav.mapdata.models import Package
-
-
-def get_render_path(filename):
-    return os.path.join(settings.RENDER_ROOT, filename)
-
-
-def get_dimensions():
-    aggregate = Package.objects.all().aggregate(Max('right'), Min('left'), Max('top'), Min('bottom'))
-    return (
-        float(aggregate['right__max'] - aggregate['left__min']),
-        float(aggregate['top__max'] - aggregate['bottom__min']),
-    )
+from c3nav.mapdata.render.utils import get_dimensions, get_render_path
 
 
 class LevelRenderer():
@@ -33,8 +19,7 @@ class LevelRenderer():
         return level.public_geometries if self.only_public else level.geometries
 
     def get_filename(self, mode, filetype, level=None):
-        return get_render_path('%s%s-level-%s.%s' % (('public-' if self.only_public else ''), mode,
-                                                     (self.level.name if level is None else level), filetype))
+        return get_render_path(filetype, self.level.name if level is None else level, mode, self.only_public)
 
     @staticmethod
     def get_dimensions():
