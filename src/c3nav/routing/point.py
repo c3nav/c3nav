@@ -15,6 +15,10 @@ class GraphPoint():
         self.connections = {}
         self.connections_in = {}
 
+    @cached_property
+    def level(self):
+        return self.room and self.room.level
+
     def serialize(self):
         return (
             self.x,
@@ -32,3 +36,6 @@ class GraphPoint():
         connection = GraphConnection(self, other_point)
         self.connections[other_point] = connection
         other_point.connections_in[self] = connection
+
+    def __repr__(self):
+        return '<GraphPoint x=%f y=%f room=%s>' % (self.x, self.y, (id(self.room) if self.room else None))
