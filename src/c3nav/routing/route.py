@@ -41,36 +41,36 @@ class RoutePart:
         self.level_name = level.level.name
         self.connections = connections
 
-        width, height = get_dimensions()
+        svg_width, svg_height = get_dimensions()
 
         points = (connections[0].from_point, ) + tuple(connection.to_point for connection in connections)
         for point in points:
             point.svg_x = point.x * 6
-            point.svg_y = (height - point.y) * 6
+            point.svg_y = (svg_height - point.y) * 6
 
         x, y = zip(*((point.svg_x, point.svg_y) for point in points if point.level == level))
 
         self.distance = sum(connection.distance for connection in connections)
 
         # bounds for rendering
-        self.min_x = min(x) - 20
-        self.max_x = max(x) + 20
-        self.min_y = min(y) - 20
-        self.max_y = max(y) + 20
+        self.svg_min_x = min(x) - 20
+        self.svg_max_x = max(x) + 20
+        self.svg_min_y = min(y) - 20
+        self.svg_max_y = max(y) + 20
 
-        width = self.max_x - self.min_x
-        height = self.max_y - self.min_y
+        svg_width = self.svg_max_x - self.svg_min_x
+        svg_height = self.svg_max_y - self.svg_min_y
 
-        if width < 150:
-            self.min_x -= (10 - width) / 2
-            self.max_x += (10 - width) / 2
+        if svg_width < 150:
+            self.svg_min_x -= (10 - svg_width) / 2
+            self.svg_max_x += (10 - svg_width) / 2
 
-        if height < 150:
-            self.min_y -= (10 - height) / 2
-            self.max_y += (10 - height) / 2
+        if svg_height < 150:
+            self.svg_min_y += (10 - svg_height) / 2
+            self.svg_max_y -= (10 - svg_height) / 2
 
-        self.width = self.max_x - self.min_x
-        self.height = self.max_y - self.min_y
+        self.svg_width = self.svg_max_x - self.svg_min_x
+        self.svg_height = self.svg_max_y - self.svg_min_y
 
     def __str__(self):
         return repr(self.__dict__)

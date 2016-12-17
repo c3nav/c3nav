@@ -22,10 +22,12 @@ class GraphRoom():
 
         self.mpl_clear = None
 
+        self.i = None
         self.areas = []
         self.points = None
         self.room_transfer_points = None
         self.distances = np.zeros((1, ))
+        self.ctypes = None
 
     def serialize(self):
         return (
@@ -34,12 +36,13 @@ class GraphRoom():
             self.points,
             self.room_transfer_points,
             self.distances,
+            self.ctypes,
         )
 
     @classmethod
     def unserialize(cls, level, data):
         room = cls(level)
-        room.mpl_clear, areas, room.points, room.room_transfer_points, room.distances = data
+        room.mpl_clear, areas, room.points, room.room_transfer_points, room.distances, room.ctypes = data
         room.areas = tuple(GraphArea(room, *area) for area in areas)
         return room
 
@@ -183,6 +186,8 @@ class GraphRoom():
         return [point]
 
     def build_connections(self):
+        print('\n\n')
+        print('room')
         for area in self.areas:
             area.build_connections()
 
@@ -195,32 +200,49 @@ class GraphRoom():
         self.room_transfer_points = tuple(i for i in self.points if i in self.level.room_transfer_points)
 
         mapping = {point.i: i for i, point in enumerate(self._built_points)}
-        self.distances = np.empty(shape=(len(self._built_points), len(self._built_points)), dtype=np.float16)
-        self.distances[:] = np.inf
+
+        empty = np.empty(shape=(len(self._built_points), len(self._built_points)), dtype=np.float16)
+        empty[:] = np.inf
+
+        ctypes = []
+        distances = {}
         for from_point in self._built_points:
             for to_point, connection in from_point.connections.items():
                 if to_point.i in mapping:
-                    self.distances[mapping[from_point.i], mapping[to_point.i]] = connection.distance
+                    if connection.ctype not in distances:
+                        ctypes.append(connection.ctype)
+                        distances[connection.ctype] = empty.copy()
+                    distances[connection.ctype][mapping[from_point.i], mapping[to_point.i]] = connection.distance
+
+        self.ctypes = tuple(ctypes)
+        self.distances = np.array(tuple(distances[ctype] for ctype in ctypes))
 
         for area in self.areas:
             area.finish_build()
 
     # Routing
-    def build_router(self):
-        cache_key = 'c3nav__graph__roomrouter__%s__%s' % (self.graph.mtime, self.i)
+    def build_router(self, allowed_ctypes):
+        ctypes = tuple(i for i, ctype in enumerate(self.ctypes) if ctype in allowed_ctypes)
+        cache_key = ('c3nav__graph__roomrouter__%s__%s__%s' %
+                     (self.graph.mtime, self.i, ','.join(str(i) for i in ctypes)))
         roomrouter = cache.get(cache_key)
         if not roomrouter:
-            roomrouter = self._build_router()
+            roomrouter = self._build_router(ctypes)
             cache.set(cache_key, roomrouter, 600)
         return roomrouter
 
-    def _build_router(self):
-        g_sparse = csgraph_from_dense(self.distances, null_value=np.inf)
+    def _build_router(self, ctypes):
+        g_sparse = csgraph_from_dense(np.amin(self.distances[ctypes, :, :], 0), null_value=np.inf)
         shortest_paths, predecessors = shortest_path(g_sparse, return_predecessors=True)
         return RoomRouter(shortest_paths, predecessors)
 
     def get_connection(self, from_i, to_i):
-        return GraphConnection(self.graph.points[self.points[from_i]], self.graph.points[self.points[to_i]])
+        stack = self.distances[:, from_i, to_i]
+        min_i = stack.argmin()
+        distance = stack[min_i]
+        ctype = self.ctypes[min_i]
+        return GraphConnection(self.graph.points[self.points[from_i]], self.graph.points[self.points[to_i]],
+                               distance=distance, ctype=ctype)
 
 
 RoomRouter = namedtuple('RoomRouter', ('shortest_paths', 'predecessors', ))

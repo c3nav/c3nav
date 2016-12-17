@@ -174,7 +174,7 @@ class Graph:
             level.draw_png(points, lines)
 
     # Router
-    def build_routers(self):
+    def build_routers(self, allowed_ctypes):
         routers = {}
 
         empty_distances = np.empty(shape=(len(self.level_transfer_points),) * 2, dtype=np.float16)
@@ -186,7 +186,7 @@ class Graph:
         level_transfers[:] = -1
 
         for i, level in enumerate(self.levels.values()):
-            routers.update(level.build_routers())
+            routers.update(level.build_routers(allowed_ctypes))
             router = routers[level]
 
             level_distances = empty_distances.copy()
@@ -220,7 +220,7 @@ class Graph:
     def _allowed_points_index(self, points, allowed_points_i):
         return np.array(tuple(i for i, point in enumerate(points) if point in allowed_points_i))
 
-    def get_route(self, origin: Location, destination: Location):
+    def get_route(self, origin: Location, destination: Location, allowed_ctypes):
         orig_points_i = set(self.get_location_points(origin))
         dest_points_i = set(self.get_location_points(destination))
 
@@ -230,7 +230,7 @@ class Graph:
         best_route = NoRoute
 
         # get routers
-        routers = self.build_routers()
+        routers = self.build_routers(allowed_ctypes)
 
         # route within room
         orig_rooms = set(point.room for point in orig_points)
@@ -273,6 +273,7 @@ class Graph:
                                      for level in orig_levels}
         dest_room_transfer_points = {level: self._allowed_points_index(level.room_transfer_points, dest_room_transfers)
                                      for level in dest_levels}
+        print(dest_room_transfer_points)
 
         # if the points have common rooms, search for routes within thos levels
         if common_levels:
@@ -305,10 +306,12 @@ class Graph:
         # as a dictionary: global transfer point index => Route
         orig_level_transfers = self._level_transfers(orig_levels, orig_room_transfers, routers, mode='orig')
         dest_level_transfers = self._level_transfers(orig_levels, dest_room_transfers, routers, mode='dest')
+        print(orig_levels, dest_room_transfers, dest_level_transfers)
 
-        # get reachable roomtransfer points for each level (points as room transfer point index within level)
+        # get reachable leveltransfer points (points as level transfer point index within graph)
         orig_level_transfer_points = self._allowed_points_index(self.level_transfer_points, orig_level_transfers)
         dest_level_transfer_points = self._allowed_points_index(self.level_transfer_points, dest_level_transfers)
+        print(dest_level_transfer_points)
 
         # search a route within the whole graph
         if True:

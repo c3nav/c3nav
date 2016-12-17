@@ -37,12 +37,20 @@ class GraphArea():
             # stair checker
             angle = coord_angle(point1.xy, point2.xy)
             valid = True
+            direction_up = None
             for stair_path, stair_angle in self.mpl_stairs:
                 if not path.intersects_path(stair_path):
                     continue
 
                 angle_diff = ((stair_angle - angle + 180) % 360) - 180
-                up = angle_diff < 0  # noqa
+
+                new_direction_up = (angle_diff > 0)
+                if direction_up is None:
+                    direction_up = new_direction_up
+                elif direction_up != new_direction_up:
+                    valid = False
+                    break
+
                 if not (40 < abs(angle_diff) < 150):
                     valid = False
                     break
@@ -50,8 +58,8 @@ class GraphArea():
             if not valid:
                 continue
 
-            point1.connect_to(point2)
-            point2.connect_to(point1)
+            point1.connect_to(point2, ctype={True: 'steps_up', False: 'steps_down'}.get(direction_up, ''))
+            point2.connect_to(point1, ctype={True: 'steps_down', False: 'steps_up'}.get(direction_up, ''))
 
     def add_point(self, point):
         if not self.mpl_clear.contains_point(point.xy):

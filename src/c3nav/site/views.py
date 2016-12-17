@@ -42,7 +42,7 @@ def main(request, origin=None, destination=None):
     route = None
     if origin and destination:
         graph = Graph.load()
-        route = graph.get_route(origin, destination)
+        route = graph.get_route(origin, destination, ('', 'steps_down', 'steps_up'))
         route = route.split()
         print(route)
 
