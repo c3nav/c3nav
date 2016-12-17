@@ -27,11 +27,10 @@ class Route:
             if point.level and point.level != level:
                 routeparts.append(RoutePart(level, connections))
                 level = point.level
-                connections = []
+                connections = [connection]
 
         if connections:
             routeparts.append(RoutePart(level, connections))
-        print(routeparts)
         return tuple(routeparts)
 
 

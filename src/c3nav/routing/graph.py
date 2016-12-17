@@ -1,13 +1,14 @@
 import os
 import pickle
 from collections import OrderedDict, namedtuple
+from itertools import combinations
 
 import numpy as np
 from django.conf import settings
 from scipy.sparse.csgraph._shortest_path import shortest_path
 from scipy.sparse.csgraph._tools import csgraph_from_dense
 
-from c3nav.mapdata.models import Level
+from c3nav.mapdata.models import Elevator, Level
 from c3nav.mapdata.models.geometry import LevelConnector
 from c3nav.mapdata.models.locations import AreaLocation, Location, LocationGroup, PointLocation
 from c3nav.routing.level import GraphLevel
@@ -29,11 +30,14 @@ class Graph:
 
         self.points = []
         self.level_transfer_points = None
+        self.elevatorlevel_points = None
 
     # Building the Graph
     def build(self):
         self._built_level_transfer_points = []
         self._built_levelconnector_points = {}
+
+        self._built_elevatorlevel_points = {}
 
         for level in self.levels.values():
             level.build()
@@ -45,6 +49,7 @@ class Graph:
         # create connections between levels
         print()
         self.connect_levelconnectors()
+        self.connect_elevators()
 
         # finishing build: creating numpy arrays and convert everything else to tuples
         self.points = tuple(set(self.points))
@@ -78,6 +83,9 @@ class Graph:
     def add_levelconnector_point(self, levelconnector, point):
         self._built_levelconnector_points.setdefault(levelconnector.name, []).append(point)
 
+    def add_elevatorlevel_point(self, elevatorlevel, point):
+        self._built_elevatorlevel_points[elevatorlevel.name] = point
+
     def connect_levelconnectors(self):
         for levelconnector in LevelConnector.objects.all():
             center = levelconnector.geometry.centroid
@@ -107,6 +115,30 @@ class Graph:
             for point in points:
                 center_point.connect_to(point)
                 point.connect_to(center_point)
+
+    def connect_elevators(self):
+        for elevator in Elevator.objects.all():
+            elevatorlevels = tuple(elevator.elevatorlevels.all())
+            for level1, level2 in combinations(elevatorlevels, 2):
+                point1 = self._built_elevatorlevel_points[level1.name]
+                point2 = self._built_elevatorlevel_points[level2.name]
+
+                center_point = GraphPoint((point1.x+point2.x)/2, (point1.y+point2.y)/2, None)
+                self.points.append(center_point)
+                self._built_level_transfer_points.append(center_point)
+
+                for room in (point1.room, point2.room):
+                    room._built_points.append(center_point)
+                    room.level._built_room_transfer_points.append(center_point)
+                    room.level._built_points.append(center_point)
+
+                direction_up = level2.level.altitude > level1.level.altitude
+
+                point1.connect_to(center_point, ctype=('elevator_up' if direction_up else 'elevator_down'))
+                center_point.connect_to(point2, ctype=('elevator_up' if direction_up else 'elevator_down'))
+
+                point2.connect_to(center_point, ctype=('elevator_down' if direction_up else 'elevator_up'))
+                center_point.connect_to(point1, ctype=('elevator_down' if direction_up else 'elevator_up'))
 
     # Loading/Saving the Graph
     def serialize(self):
@@ -273,9 +305,8 @@ class Graph:
                                      for level in orig_levels}
         dest_room_transfer_points = {level: self._allowed_points_index(level.room_transfer_points, dest_room_transfers)
                                      for level in dest_levels}
-        print(dest_room_transfer_points)
 
-        # if the points have common rooms, search for routes within thos levels
+        # if the points have common rooms, search for routes within those levels
         if common_levels:
             for level in common_levels:
                 o_points = orig_room_transfer_points[level]
@@ -305,13 +336,11 @@ class Graph:
         # get reachable level transfer points and their distance
         # as a dictionary: global transfer point index => Route
         orig_level_transfers = self._level_transfers(orig_levels, orig_room_transfers, routers, mode='orig')
-        dest_level_transfers = self._level_transfers(orig_levels, dest_room_transfers, routers, mode='dest')
-        print(orig_levels, dest_room_transfers, dest_level_transfers)
+        dest_level_transfers = self._level_transfers(dest_levels, dest_room_transfers, routers, mode='dest')
 
         # get reachable leveltransfer points (points as level transfer point index within graph)
         orig_level_transfer_points = self._allowed_points_index(self.level_transfer_points, orig_level_transfers)
         dest_level_transfer_points = self._allowed_points_index(self.level_transfer_points, dest_level_transfers)
-        print(dest_level_transfer_points)
 
         # search a route within the whole graph
         if True:
@@ -327,6 +356,7 @@ class Graph:
             distance = shortest_paths.min()
 
             # Is this route better than the previous ones?
+            print('vialevels', distance, best_route.distance)
             if distance < best_route.distance:
                 # noinspection PyTypeChecker
                 from_point, to_point = np.argwhere(shortest_paths == distance)[0]
