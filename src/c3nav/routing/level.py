@@ -177,9 +177,6 @@ class GraphLevel():
                     draw.line(_line_coords(self.graph.points[room.points[from_i]],
                                            self.graph.points[room.points[to_i]], height),
                               fill=self.ctype_colors[room.ctypes[ctype]])
-                    if room.ctypes[ctype] == 'steps_up':
-                        point = self.graph.points[room.points[from_i]]
-                        draw.ellipse(_ellipse_bbox(point.x, point.y, height), (0, 255, 255))
 
         if points:
             for point_i in self.points:
