@@ -108,9 +108,9 @@ class MapitemFormMixin(ModelForm):
 
 
 def create_editor_form(mapitemtype):
-    possible_fields = ['name', 'package', 'altitude', 'level', 'intermediate', 'levels', 'geometry',
+    possible_fields = ['name', 'package', 'altitude', 'level', 'intermediate', 'levels', 'geometry', 'direction',
                        'elevator', 'button', 'crop_to_level', 'width', 'groups', 'override_altitude']
-    existing_fields = [field for field in possible_fields if isinstance(getattr(mapitemtype, field, None), Field)]
+    existing_fields = [field.name for field in mapitemtype._meta.get_fields() if field.name in possible_fields]
 
     class EditorForm(MapitemFormMixin, ModelForm):
         class Meta:
