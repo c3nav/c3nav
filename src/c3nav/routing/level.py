@@ -264,8 +264,8 @@ class GraphLevel():
     # Drawing
     ctype_colors = {
         '': (50, 200, 0),
-        'steps_up': (255, 50, 50),
-        'steps_down': (255, 50, 50),
+        'stairs_up': (255, 50, 50),
+        'stairs_down': (255, 50, 50),
         'escalator_up': (255, 150, 0),
         'escalator_down': (200, 100, 0),
         'elevator_up': (200, 0, 200),
