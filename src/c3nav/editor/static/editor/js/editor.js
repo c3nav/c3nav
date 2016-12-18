@@ -276,15 +276,16 @@ editor = {
         'outside': '#EEFFEE',
         'lineobstacle': '#999999',
         'obstacle': '#999999',
-        'door': '#FF00FF',
-        'hole': '#66CC66',
+        'door': '#66FF00',
+        'hole': '#66CC99',
         'elevatorlevel': '#9EF8FB',
         'levelconnector': '#FFFF00',
         'shadow': '#000000',
         'stair': '#FF0000',
         'arealocation': '#0099FF',
         'escalator': '#FF9900',
-        'escalatorslope': '#DD7700'
+        'escalatorslope': '#DD7700',
+        'oneway': '#FF00FF'
     },
     _line_draw_geometry_style: function(style) {
         style.stroke = true;

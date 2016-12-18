@@ -223,6 +223,16 @@ class Stair(DirectedLineGeometryMapItemWithLevel):
         default_related_name = 'stairs'
 
 
+class OneWay(DirectedLineGeometryMapItemWithLevel):
+    """
+    A one way obstacle
+    """
+    class Meta:
+        verbose_name = _('Oneway')
+        verbose_name_plural = _('Oneways')
+        default_related_name = 'oneways'
+
+
 class Obstacle(GeometryMapItemWithLevel):
     """
     An obstacle
