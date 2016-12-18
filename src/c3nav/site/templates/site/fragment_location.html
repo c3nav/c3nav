@@ -1,6 +1,6 @@
 {% load i18n %}
 <div class="form-group col-md-6">
-    <label for="{ name }}_input">{{ heading }}</label>
+    <label for="{{ name }}_input">{{ heading }}</label>
     <div class="locationselect {% if location %} selected{% endif %}">
         <div class="locationselect-input">
             <input type="text" class="form-control input-lg" id="{{ name }}_input" name="{{ name }}_search" placeholder="{% trans 'Search any Location…' %}">
