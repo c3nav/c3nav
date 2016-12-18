@@ -88,7 +88,7 @@ Always do this after updating the mapdata. You can skip this step if you only wa
 
 ```
 python3 manage.py rendermap
-python3 manage.py builder
+python3 manage.py buildgrap
 ```
 
 FYI: You can find the renderings in the following folder: `data/render/`
@@ -99,7 +99,7 @@ FYI: You can find the renderings in the following folder: `data/render/`
 python3 manage.py runserver
 ```
 
-You can now reach your c3nav instance at http://localhost:8000/. The editor can be found at http://localhost:8000/editor/.
+You can now reach your c3nav instance at http://localhost:8000/. The editor can be found at http://localhost:8000/editor/. **Never use this server for production purposes!**
 
 ## Other things you can do now:
 
