@@ -157,6 +157,14 @@ class LevelGeometries():
         return cascaded_union([door.geometry for door in self.query('doors').all()]).intersection(self.mapped)
 
     @cached_property
+    def raw_escalators(self):
+        return cascaded_union([escalator.geometry for escalator in self.query('escalators').all()])
+
+    @cached_property
+    def escalators(self):
+        return self.raw_escalators.intersection(self.accessible)
+
+    @cached_property
     def elevatorlevels(self):
         return cascaded_union([elevatorlevel.geometry for elevatorlevel in self.query('elevatorlevels').all()])
 
