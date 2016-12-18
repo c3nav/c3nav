@@ -3,7 +3,6 @@ import time
 from collections import OrderedDict
 
 from django.conf import settings
-from django.db.models import Field
 from django.forms import CharField, ModelForm, ValidationError
 from django.forms.models import ModelChoiceField
 from django.forms.widgets import HiddenInput

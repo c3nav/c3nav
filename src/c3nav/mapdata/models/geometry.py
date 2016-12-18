@@ -165,6 +165,54 @@ class Outside(GeometryMapItemWithLevel):
         default_related_name = 'outsides'
 
 
+class Escalator(GeometryMapItemWithLevel):
+    """
+    An escalator area
+    """
+    DIRECTIONS = (
+        (True, _('up')),
+        (False, _('down')),
+    )
+    direction = models.BooleanField(verbose_name=_('direction'), choices=DIRECTIONS)
+
+    geomtype = 'polygon'
+
+    class Meta:
+        verbose_name = _('Escalator')
+        verbose_name_plural = _('Escalators')
+        default_related_name = 'escalators'
+
+    @classmethod
+    def fromfile(cls, data, file_path):
+        kwargs = super().fromfile(data, file_path)
+
+        if 'direction' not in data:
+            raise ValueError('missing direction.')
+        kwargs['direction'] = data['direction']
+
+        return kwargs
+
+    def get_geojson_properties(self):
+        result = super().get_geojson_properties()
+        result['direction'] = 'up' if self.direction else 'down'
+        return result
+
+    def tofile(self):
+        result = super().tofile()
+        result['direction'] = self.direction
+        return result
+
+
+class EscalatorSlope(DirectedLineGeometryMapItemWithLevel):
+    """
+    An escalator slope, indicating which side of the escalator is up
+    """
+    class Meta:
+        verbose_name = _('Escalator Slope')
+        verbose_name_plural = _('Escalator Slopes')
+        default_related_name = 'escalatorslopes'
+
+
 class Stair(DirectedLineGeometryMapItemWithLevel):
     """
     A stair

@@ -282,7 +282,9 @@ editor = {
         'levelconnector': '#FFFF00',
         'shadow': '#000000',
         'stair': '#FF0000',
-        'arealocation': '#0099FF'
+        'arealocation': '#0099FF',
+        'escalator': '#FF9900',
+        'escalatorslope': '#DD7700'
     },
     _line_draw_geometry_style: function(style) {
         style.stroke = true;
