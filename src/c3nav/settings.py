@@ -10,7 +10,7 @@ from django.utils.crypto import get_random_string
 from django.utils.translation import ugettext_lazy as _
 
 config = configparser.RawConfigParser()
-config.read(['/etc/c3nav/c3nav.cfg', os.path.expanduser('~/.c3nav.cfg'), 'c3nav.cfg'],
+config.read(['/etc/c3nav/c3nav.cfg', os.path.expanduser('~/.c3nav.cfg'), os.environ.get('C3NAV_CONFIG', 'c3nav.cfg')],
             encoding='utf-8')
 
 # Build paths inside the project like this: os.path.join(BASE_DIR, ...)
