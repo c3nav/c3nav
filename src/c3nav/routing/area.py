@@ -58,7 +58,7 @@ class GraphArea():
                     break
 
             if not valid:
-                break
+                continue
 
             # escalator checker
             angle = coord_angle(point1.xy, point2.xy)
