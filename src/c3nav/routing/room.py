@@ -6,12 +6,13 @@ from matplotlib.path import Path
 from scipy.sparse.csgraph._shortest_path import shortest_path
 from scipy.sparse.csgraph._tools import csgraph_from_dense
 from shapely.geometry import CAP_STYLE, JOIN_STYLE, LineString
+from shapely.ops import cascaded_union
 
 from c3nav.mapdata.utils.geometry import assert_multilinestring, assert_multipolygon
 from c3nav.routing.area import GraphArea
 from c3nav.routing.connection import GraphConnection
 from c3nav.routing.point import GraphPoint
-from c3nav.routing.utils.coords import coord_angle, get_coords_angles
+from c3nav.routing.utils.coords import get_coords_angles
 from c3nav.routing.utils.mpl import shapely_to_mpl
 
 
@@ -58,10 +59,10 @@ class GraphRoom():
         self._built_is_elevatorlevel = False
 
         self.mpl_clear = shapely_to_mpl(self.clear_geometry.buffer(0.01, join_style=JOIN_STYLE.mitre))
-        self.mpl_stairs = ()
-        for stair_line in assert_multilinestring(self.level.level.geometries.stairs):
-            coords = tuple(stair_line.coords)
-            self.mpl_stairs += tuple((Path(part), coord_angle(*part)) for part in zip(coords[:-1], coords[1:]))
+        self.mpl_stairs = tuple((stair, angle) for stair, angle in self.level.mpl_stairs
+                                if self.mpl_clear.intersects_path(stair, filled=True))
+        self._built_escalators = tuple(escalator for escalator in self.level._built_escalators
+                                       if self.mpl_clear.intersects_path(escalator.mpl_geom.exterior, filled=True))
 
         self.isolated_areas = []
         return True
@@ -70,16 +71,25 @@ class GraphRoom():
         stairs_areas = self.level.level.geometries.stairs
         stairs_areas = stairs_areas.buffer(0.3, join_style=JOIN_STYLE.mitre, cap_style=CAP_STYLE.flat)
         stairs_areas = stairs_areas.intersection(self._built_geometry)
-        self.stairs_areas = assert_multipolygon(stairs_areas)
+        self._built_isolated_areas = tuple(assert_multipolygon(stairs_areas))
+
+        escalators_areas = self.level.level.geometries.escalators
+        escalators_areas = escalators_areas.intersection(self._built_geometry)
+        self._built_isolated_areas += tuple(assert_multipolygon(escalators_areas))
+
+        escalators_and_stairs = cascaded_union((stairs_areas, escalators_areas))
 
         isolated_areas = tuple(assert_multipolygon(stairs_areas.intersection(self.clear_geometry)))
-        isolated_areas += tuple(assert_multipolygon(self.clear_geometry.difference(stairs_areas)))
+        isolated_areas += tuple(assert_multipolygon(escalators_areas.intersection(self.clear_geometry)))
+        isolated_areas += tuple(assert_multipolygon(self.clear_geometry.difference(escalators_and_stairs)))
 
         for isolated_area in isolated_areas:
             mpl_clear = shapely_to_mpl(isolated_area.buffer(0.01, join_style=JOIN_STYLE.mitre))
             mpl_stairs = tuple((stair, angle) for stair, angle in self.mpl_stairs
                                if mpl_clear.intersects_path(stair, filled=True))
-            area = GraphArea(self, mpl_clear, mpl_stairs)
+            escalators = tuple(escalator for escalator in self._built_escalators
+                               if escalator.mpl_geom.intersects_path(mpl_clear.exterior, filled=True))
+            area = GraphArea(self, mpl_clear, mpl_stairs, escalators)
             area.prepare_build()
             self.areas.append(area)
 
@@ -120,7 +130,7 @@ class GraphRoom():
                 points += self._add_ring(interior, want_left=True)
 
         # points around steps
-        for polygon in self.stairs_areas:
+        for polygon in self._built_isolated_areas:
             for ring in (polygon.exterior, )+tuple(polygon.interiors):
                 for linestring in assert_multilinestring(ring.intersection(self.clear_geometry)):
                     coords = tuple(linestring.coords)
@@ -225,7 +235,6 @@ class GraphRoom():
     # Routing
     def build_router(self, allowed_ctypes):
         ctypes = tuple(i for i, ctype in enumerate(self.ctypes) if ctype in allowed_ctypes)
-        print(self.ctypes)
         cache_key = ('c3nav__graph__roomrouter__%s__%s__%s' %
                      (self.graph.mtime, self.i, ','.join(str(i) for i in ctypes)))
         roomrouter = cache.get(cache_key)

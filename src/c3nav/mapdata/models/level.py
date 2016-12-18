@@ -238,6 +238,10 @@ class LevelGeometries():
         return cascaded_union([stair.geometry for stair in self.query('stairs')]).intersection(self.accessible)
 
     @cached_property
+    def escalatorslopes(self):
+        return cascaded_union([s.geometry for s in self.query('escalatorslopes')]).intersection(self.accessible)
+
+    @cached_property
     def stair_areas(self):
         left = []
         for stair in assert_multilinestring(self.stairs):

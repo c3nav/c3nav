@@ -3,15 +3,17 @@ from collections import namedtuple
 
 import numpy as np
 from django.conf import settings
+from matplotlib.path import Path
 from PIL import Image, ImageDraw
 from scipy.sparse.csgraph._shortest_path import shortest_path
 from scipy.sparse.csgraph._tools import csgraph_from_dense
 from shapely.geometry import JOIN_STYLE
 
-from c3nav.mapdata.utils.geometry import assert_multipolygon
+from c3nav.mapdata.utils.geometry import assert_multilinestring, assert_multipolygon
 from c3nav.routing.point import GraphPoint
 from c3nav.routing.room import GraphRoom
 from c3nav.routing.utils.base import get_nearest_point
+from c3nav.routing.utils.coords import coord_angle
 from c3nav.routing.utils.draw import _ellipse_bbox, _line_coords
 from c3nav.routing.utils.mpl import shapely_to_mpl
 
@@ -48,6 +50,9 @@ class GraphLevel():
         self._built_points = []
         self._built_room_transfer_points = []
 
+        self.collect_stairs()
+        self.collect_escalators()
+
         self.collect_rooms()
         print('%d rooms' % len(self.rooms))
 
@@ -73,6 +78,30 @@ class GraphLevel():
 
     def connection_count(self):
         return sum(room.connection_count() for room in self.rooms)
+
+    def collect_stairs(self):
+        self.mpl_stairs = ()
+        for stair_line in assert_multilinestring(self.level.geometries.stairs):
+            coords = tuple(stair_line.coords)
+            self.mpl_stairs += tuple((Path(part), coord_angle(*part)) for part in zip(coords[:-1], coords[1:]))
+
+    def collect_escalators(self):
+        self.mpl_escalatorslopes = ()
+        for escalatorslope_line in assert_multilinestring(self.level.geometries.escalatorslopes):
+            coords = tuple(escalatorslope_line.coords)
+            self.mpl_escalatorslopes += tuple((Path(part), coord_angle(*part))
+                                              for part in zip(coords[:-1], coords[1:]))
+
+        self._built_escalators = []
+        for escalator in self.level.escalators.all():
+            mpl_escalator = shapely_to_mpl(escalator.geometry)
+            for slope_line, angle in self.mpl_escalatorslopes:
+                if mpl_escalator.intersects_path(slope_line, filled=True):
+                    self._built_escalators.append(EscalatorData(mpl_escalator, escalator.direction, slope_line, angle))
+                    break
+            else:
+                print('Escalator %s has no slope line!' % escalator.name)
+                continue
 
     def collect_rooms(self):
         accessibles = self.level.geometries.accessible
@@ -183,6 +212,8 @@ class GraphLevel():
         '': (50, 200, 0),
         'steps_up': (255, 50, 50),
         'steps_down': (255, 50, 50),
+        'escalator_up': (255, 150, 0),
+        'escalator_down': (200, 100, 0),
         'elevator_up': (200, 0, 200),
         'elevator_down': (200, 0, 200),
     }
@@ -260,3 +291,4 @@ class GraphLevel():
 
 
 LevelRouter = namedtuple('LevelRouter', ('shortest_paths', 'predecessors', 'room_transfers', ))
+EscalatorData = namedtuple('EscalatorData', ('mpl_geom', 'direction_up', 'slope', 'angle'))

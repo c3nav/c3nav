@@ -25,6 +25,8 @@ def assert_multipolygon(geometry):
     :param geometry: a Polygon or a MultiPolygon
     :return: a list of Polygons
     """
+    if geometry.is_empty:
+        return []
     if isinstance(geometry, Polygon):
         return [geometry]
     return geometry.geoms
@@ -36,6 +38,8 @@ def assert_multilinestring(geometry):
     :param geometry: a Geometry or a GeometryCollection
     :return: a list of Geometries
     """
+    if geometry.is_empty:
+        return []
     if isinstance(geometry, LineString):
         return [geometry]
     return geometry.geoms
