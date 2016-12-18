@@ -83,8 +83,8 @@ class GraphArea():
                 continue
 
             if stair_direction_up is not None:
-                point1.connect_to(point2, ctype=('steps_up' if stair_direction_up else 'steps_down'))
-                point2.connect_to(point1, ctype=('steps_down' if stair_direction_up else 'steps_up'))
+                point1.connect_to(point2, ctype=('stairs_up' if stair_direction_up else 'stairs_down'))
+                point2.connect_to(point1, ctype=('stairs_down' if stair_direction_up else 'stairs_up'))
             elif escalator_direction_up is not None:
                 if not escalator_swap_direction:
                     point1.connect_to(point2, ctype=('escalator_up' if escalator_direction_up else 'escalator_down'))
