@@ -181,6 +181,10 @@ class LevelGeometries():
         return self.areas.difference(self.holes).difference(self.obstacles)
 
     @cached_property
+    def accessible_without_oneways(self):
+        return self.accessible.difference(self.oneways_buffered)
+
+    @cached_property
     def buildings_with_holes(self):
         return self.buildings.difference(self.holes)
 
@@ -240,6 +244,18 @@ class LevelGeometries():
     @cached_property
     def escalatorslopes(self):
         return cascaded_union([s.geometry for s in self.query('escalatorslopes')]).intersection(self.accessible)
+
+    @cached_property
+    def oneways_raw(self):
+        return cascaded_union([oneway.geometry for oneway in self.query('oneways')])
+
+    @cached_property
+    def oneways(self):
+        return self.oneways_raw.intersection(self.accessible)
+
+    @cached_property
+    def oneways_buffered(self):
+        return self.oneways_raw.buffer(0.05, join_style=JOIN_STYLE.mitre, cap_style=CAP_STYLE.square)
 
     @cached_property
     def stair_areas(self):

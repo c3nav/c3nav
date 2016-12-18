@@ -7,7 +7,7 @@ from matplotlib.path import Path
 from PIL import Image, ImageDraw
 from scipy.sparse.csgraph._shortest_path import shortest_path
 from scipy.sparse.csgraph._tools import csgraph_from_dense
-from shapely.geometry import JOIN_STYLE
+from shapely.geometry import CAP_STYLE, JOIN_STYLE, LineString
 
 from c3nav.mapdata.utils.geometry import assert_multilinestring, assert_multipolygon
 from c3nav.routing.point import GraphPoint
@@ -61,6 +61,7 @@ class GraphLevel():
             room.build_points()
 
         self.create_doors()
+        self.create_oneways()
         self.create_levelconnectors()
         self.create_elevatorlevels()
 
@@ -103,8 +104,15 @@ class GraphLevel():
                 print('Escalator %s has no slope line!' % escalator.name)
                 continue
 
+    def collect_oneways(self):
+        self._built_oneways = ()
+        for oneway_line in assert_multilinestring(self.level.geometries.oneways):
+            coords = tuple(oneway_line.coords)
+            self._built_oneways += tuple((Path(part), coord_angle(*part))
+                                         for part in zip(coords[:-1], coords[1:]))
+
     def collect_rooms(self):
-        accessibles = self.level.geometries.accessible
+        accessibles = self.level.geometries.accessible_without_oneways
         accessibles = assert_multipolygon(accessibles)
         for geometry in accessibles:
             room = GraphRoom(self)
@@ -143,6 +151,52 @@ class GraphLevel():
             for point in points:
                 center_point.connect_to(point)
                 point.connect_to(center_point)
+
+    def create_oneways(self):
+        oneways = self.level.geometries.oneways
+        oneways = assert_multilinestring(oneways)
+
+        segments = ()
+        for oneway in oneways:
+            coords = tuple(oneway.coords)
+            segments += tuple((Path(part), coord_angle(*part))
+                              for part in zip(coords[:-1], coords[1:]))
+
+        for oneway, oneway_angle in segments:
+            line_string = LineString(tuple(oneway.vertices))
+            polygon = line_string.buffer(0.10, join_style=JOIN_STYLE.mitre, cap_style=CAP_STYLE.flat)
+            center = polygon.centroid
+
+            num_points = 0
+            connected_rooms = set()
+            points = []
+            for room in self.rooms:
+                if not polygon.intersects(room._built_geometry):
+                    continue
+
+                for subpolygon in assert_multipolygon(polygon.intersection(room._built_geometry)):
+                    connected_rooms.add(room)
+                    nearest_point = get_nearest_point(room.clear_geometry, subpolygon.centroid)
+                    point, = room.add_point(nearest_point.coords[0])
+                    points.append(point)
+
+            if len(points) < 2:
+                print('oneway with <2 points (%d) detected at (%.2f, %.2f)' % (num_points, center.x, center.y))
+                continue
+
+            center_point = GraphPoint(center.x, center.y, None)
+            self._built_room_transfer_points.append(center_point)
+            for room in connected_rooms:
+                room._built_points.append(center_point)
+
+            for point in points:
+                angle = coord_angle(point.xy, center_point.xy)
+                angle_diff = ((oneway_angle - angle + 180) % 360) - 180
+                direction_up = (angle_diff > 0)
+                if direction_up:
+                    point.connect_to(center_point)
+                else:
+                    center_point.connect_to(point)
 
     def create_levelconnectors(self):
         for levelconnector in self.level.levelconnectors.all():
