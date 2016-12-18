@@ -7,12 +7,13 @@ from c3nav.routing.utils.coords import coord_angle
 
 
 class GraphArea():
-    def __init__(self, room, mpl_clear, mpl_stairs, points=None):
+    def __init__(self, room, mpl_clear, mpl_stairs, escalators, points=None):
         self.room = room
         self.graph = room.graph
 
         self.mpl_clear = mpl_clear
         self.mpl_stairs = mpl_stairs
+        self.escalators = escalators
 
         self.points = points
 
@@ -20,6 +21,7 @@ class GraphArea():
         return (
             self.mpl_clear,
             self.mpl_stairs,
+            self.escalators,
             self.points,
         )
 
@@ -37,7 +39,7 @@ class GraphArea():
             # stair checker
             angle = coord_angle(point1.xy, point2.xy)
             valid = True
-            direction_up = None
+            stair_direction_up = None
             for stair_path, stair_angle in self.mpl_stairs:
                 if not path.intersects_path(stair_path):
                     continue
@@ -45,9 +47,9 @@ class GraphArea():
                 angle_diff = ((stair_angle - angle + 180) % 360) - 180
 
                 new_direction_up = (angle_diff > 0)
-                if direction_up is None:
-                    direction_up = new_direction_up
-                elif direction_up != new_direction_up:
+                if stair_direction_up is None:
+                    stair_direction_up = new_direction_up
+                elif stair_direction_up != new_direction_up:
                     valid = False
                     break
 
@@ -56,10 +58,41 @@ class GraphArea():
                     break
 
             if not valid:
+                break
+
+            # escalator checker
+            angle = coord_angle(point1.xy, point2.xy)
+            valid = True
+            escalator_direction_up = None
+            escalator_swap_direction = False
+            for escalator in self.escalators:
+                if not escalator.mpl_geom.intersects_path(path, filled=True):
+                    continue
+
+                if escalator_direction_up is not None:
+                    # only one escalator per connection
+                    valid = False
+                    break
+
+                angle_diff = ((escalator.angle - angle + 180) % 360) - 180
+
+                escalator_direction_up = (angle_diff > 0)
+                escalator_swap_direction = (escalator_direction_up != escalator.direction_up)
+
+            if not valid:
                 continue
 
-            point1.connect_to(point2, ctype={True: 'steps_up', False: 'steps_down'}.get(direction_up, ''))
-            point2.connect_to(point1, ctype={True: 'steps_down', False: 'steps_up'}.get(direction_up, ''))
+            if stair_direction_up is not None:
+                point1.connect_to(point2, ctype=('steps_up' if stair_direction_up else 'steps_down'))
+                point2.connect_to(point1, ctype=('steps_down' if stair_direction_up else 'steps_up'))
+            elif escalator_direction_up is not None:
+                if not escalator_swap_direction:
+                    point1.connect_to(point2, ctype=('escalator_up' if escalator_direction_up else 'escalator_down'))
+                else:
+                    point2.connect_to(point1, ctype=('escalator_down' if escalator_direction_up else 'escalator_up'))
+            else:
+                point1.connect_to(point2)
+                point2.connect_to(point1)
 
     def add_point(self, point):
         if not self.mpl_clear.contains_point(point.xy):
