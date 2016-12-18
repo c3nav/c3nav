@@ -229,8 +229,8 @@ class Graph:
             level_distances[in_graph_i[:, None], in_graph_i] = router.shortest_paths[in_level_i[:, None], in_level_i]
 
             better = level_distances < sparse_distances
-            sparse_distances[better.transpose()] = level_distances[better.transpose()]
-            level_transfers[better.transpose()] = i
+            sparse_distances[better] = level_distances[better]
+            level_transfers[better] = i
 
         g_sparse = csgraph_from_dense(sparse_distances, null_value=np.inf)
         shortest_paths, predecessors = shortest_path(g_sparse, return_predecessors=True)

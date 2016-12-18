@@ -248,10 +248,9 @@ class GraphLevel():
                                         for point in room.room_transfer_points))
 
             room_distances[in_level_i[:, None], in_level_i] = router.shortest_paths[in_room_i[:, None], in_room_i]
-
             better = room_distances < sparse_distances
-            sparse_distances[better.transpose()] = room_distances[better.transpose()]
-            room_transfers[better.transpose()] = i
+            sparse_distances[better] = room_distances[better]
+            room_transfers[better] = i
 
         g_sparse = csgraph_from_dense(sparse_distances, null_value=np.inf)
         shortest_paths, predecessors = shortest_path(g_sparse, return_predecessors=True)
