@@ -112,6 +112,9 @@ class LevelRenderer():
                                          stroke_width=0.06,
                                          stroke_opacity=0.2))
 
+        contents.append(self.polygon_svg(self.geometries.escalators,
+                                         fill_color='#B3B3B3'))
+
         contents.append(self.polygon_svg(self.geometries.walls_shadow,
                                          fill_color='#000000',
                                          fill_opacity=0.06))
@@ -143,13 +146,19 @@ class LevelRenderer():
                                          stroke_width=0.05))
 
         contents.append(self.polygon_svg(self.geometries.uncropped_obstacles,
-                                         fill_color='#BDBDBD',
-                                         stroke_color='#9E9E9E',
+                                         fill_color='#A6A6A6',
+                                         stroke_color='#919191',
                                          stroke_width=0.05))
 
         contents.append(self.polygon_svg(self.geometries.cropped_obstacles.buffer(-0.06, join_style=MITRE),
-                                         fill_color='#BDBDBD',
-                                         stroke_color='#9E9E9E',
+                                         fill_color='#A6A6A6',
+                                         stroke_color='#919191',
+                                         stroke_width=0.05))
+
+        wider_escalators = self.geometries.escalators.buffer(0.3, join_style=MITRE)
+        contents.append(self.polygon_svg(wider_escalators.intersection(self.geometries.uncropped_obstacles),
+                                         fill_color='#666666',
+                                         stroke_color='#666666',
                                          stroke_width=0.05))
 
         contents.append(self.polygon_svg(self.geometries.walls,
