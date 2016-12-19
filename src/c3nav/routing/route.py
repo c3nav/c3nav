@@ -19,37 +19,50 @@ class Route:
     def routeparts(self):
         routeparts = []
         connections = []
+        add_connections = []
         level = self.connections[0].from_point.level
 
         for connection in self.connections:
             connections.append(connection)
             point = connection.to_point
             if point.level and point.level != level:
-                routeparts.append(RoutePart(level, connections))
+                if routeparts:
+                    routeparts[-1].connections.extend(connections[:1])
+                routeparts.append(RoutePart(level, add_connections+connections))
                 level = point.level
-                connections = [connection]
+                add_connections = connections[-3:]
+                connections = []
 
         if connections:
-            routeparts.append(RoutePart(level, connections))
+            if routeparts:
+                routeparts[-1].connections.extend(connections[:1])
+            routeparts.append(RoutePart(level, add_connections+connections))
+
+        routeparts = [routepart for routepart in routeparts if not routepart.level.intermediate]
+
+        for routepart in routeparts:
+            routepart.render_svg_coordinates()
+
         return tuple(routeparts)
 
 
 class RoutePart:
-    def __init__(self, level, connections):
-        self.level = level
-        self.level_name = level.level.name
+    def __init__(self, graphlevel, connections):
+        self.graphlevel = graphlevel
+        self.level = graphlevel.level
         self.connections = connections
 
+    def render_svg_coordinates(self):
         svg_width, svg_height = get_dimensions()
 
-        points = (connections[0].from_point, ) + tuple(connection.to_point for connection in connections)
+        points = (self.connections[0].from_point, ) + tuple(connection.to_point for connection in self.connections)
         for point in points:
             point.svg_x = point.x * 6
             point.svg_y = (svg_height - point.y) * 6
 
-        x, y = zip(*((point.svg_x, point.svg_y) for point in points if point.level == level))
+        x, y = zip(*((point.svg_x, point.svg_y) for point in points if point.level == self.graphlevel))
 
-        self.distance = sum(connection.distance for connection in connections)
+        self.distance = sum(connection.distance for connection in self.connections)
 
         # bounds for rendering
         self.svg_min_x = min(x) - 20

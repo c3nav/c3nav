@@ -21,7 +21,7 @@ ctype_mapping = {
 
 
 def get_ctypes(prefix, value):
-    return tuple((prefix+'_'+direction) for direction in ctype_mapping.get(value, ('up', 'dowm')))
+    return tuple((prefix+'_'+direction) for direction in ctype_mapping.get(value, ('up', 'down')))
 
 
 def main(request, origin=None, destination=None):
