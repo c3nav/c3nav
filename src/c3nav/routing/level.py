@@ -9,6 +9,7 @@ from scipy.sparse.csgraph._shortest_path import shortest_path
 from scipy.sparse.csgraph._tools import csgraph_from_dense
 from shapely.geometry import CAP_STYLE, JOIN_STYLE, LineString
 
+from c3nav.mapdata.permissions import get_public_packages, get_public_private_area
 from c3nav.mapdata.utils.geometry import assert_multilinestring, assert_multipolygon
 from c3nav.routing.point import GraphPoint
 from c3nav.routing.room import GraphRoom
@@ -65,14 +66,15 @@ class GraphLevel():
         self.create_levelconnectors()
         self.create_elevatorlevels()
 
+        self.collect_arealocations()
+
         self._built_points = sum((room._built_points for room in self.rooms), [])
         self._built_points.extend(self._built_room_transfer_points)
 
         for room in self.rooms:
             room.build_connections()
 
-        self.collect_arealocations()
-
+        print('%d excludables' % len(self._built_excludables))
         print('%d points' % len(self._built_points))
         print('%d room transfer points' % len(self._built_room_transfer_points))
         print('%d area locations' % len(self._built_arealocations))
@@ -118,6 +120,24 @@ class GraphLevel():
             room = GraphRoom(self)
             if room.prepare_build(geometry):
                 self.rooms.append(room)
+
+    def collect_arealocations(self):
+        public_packages = get_public_packages()
+
+        self._built_arealocations = {}
+        self._built_excludables = {}
+        for arealocation in self.level.arealocations.all():
+            self._built_arealocations[arealocation.name] = shapely_to_mpl(arealocation.geometry)
+            if arealocation.routing_inclusion != 'default' or arealocation.package not in public_packages:
+                self._built_excludables[arealocation.name] = arealocation.geometry
+
+        public_area, private_area = get_public_private_area(self.level)
+
+        self._built_arealocations[':public'] = shapely_to_mpl(public_area)
+        self._built_excludables[':public'] = public_area
+
+        self._built_arealocations[':private'] = shapely_to_mpl(private_area)
+        self._built_excludables[':private'] = private_area
 
     def create_doors(self):
         doors = self.level.geometries.doors
@@ -235,11 +255,6 @@ class GraphLevel():
                 point = points[0]
                 self.graph.add_elevatorlevel_point(elevatorlevel, point)
                 break
-
-    def collect_arealocations(self):
-        self._built_arealocations = {}
-        for arealocation in self.level.arealocations.all():
-            self._built_arealocations[arealocation.name] = shapely_to_mpl(arealocation.geometry)
 
     def finish_build(self):
         self.rooms = tuple(self.rooms)
