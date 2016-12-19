@@ -1,0 +1,8 @@
+{% load i18n %}
+
+<select name="{{ name }}" id="{{ name }}-select" class="form-control">
+    <option value="yes"{% if value == 'yes' %} selected{% endif %}>{% trans 'allow' %}</option>
+    <option value="up"{% if value == 'up' %} selected{% endif %}>{% trans 'only upwards' %}</option>
+    <option value="down"{% if value == 'down' %} selected{% endif %}>{% trans 'only downwards' %}</option>
+    <option value="no"{% if value == 'no' %} selected{% endif %}>{% trans 'avoid' %}</option>
+</select>
