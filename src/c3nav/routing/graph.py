@@ -208,7 +208,7 @@ class Graph:
             level.draw_png(points, lines)
 
     # Router
-    def build_routers(self, allowed_ctypes):
+    def build_routers(self, allowed_ctypes, public, nonpublic, avoid, include):
         routers = {}
 
         empty_distances = np.empty(shape=(len(self.level_transfer_points),) * 2, dtype=np.float16)
@@ -220,7 +220,7 @@ class Graph:
         level_transfers[:] = -1
 
         for i, level in enumerate(self.levels.values()):
-            routers.update(level.build_routers(allowed_ctypes))
+            routers.update(level.build_routers(allowed_ctypes, public, nonpublic, avoid, include))
             router = routers[level]
 
             level_distances = empty_distances.copy()
@@ -254,7 +254,7 @@ class Graph:
     def _allowed_points_index(self, points, allowed_points_i):
         return np.array(tuple(i for i, point in enumerate(points) if point in allowed_points_i))
 
-    def get_route(self, origin: Location, destination: Location, allowed_ctypes):
+    def get_route(self, origin: Location, destination: Location, allowed_ctypes, public, nonpublic, avoid, include):
         orig_points_i = set(self.get_location_points(origin))
         dest_points_i = set(self.get_location_points(destination))
 
@@ -264,7 +264,7 @@ class Graph:
         best_route = NoRoute
 
         # get routers
-        routers = self.build_routers(allowed_ctypes)
+        routers = self.build_routers(allowed_ctypes, public, nonpublic, avoid, include)
 
         # route within room
         orig_rooms = set(point.room for point in orig_points)

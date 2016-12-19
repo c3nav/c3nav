@@ -44,7 +44,8 @@ def main(request, origin=None, destination=None):
         allowed_ctypes += get_ctypes('escalator', request.POST.get('escalators'))
         allowed_ctypes += get_ctypes('elevator', request.POST.get('elevators'))
 
-        route = graph.get_route(origin, destination, allowed_ctypes)
+        route = graph.get_route(origin, destination, allowed_ctypes,
+                                public=True, nonpublic=False, avoid=(), include=())
         route = route.split()
         route.create_routeparts()
 
