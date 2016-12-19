@@ -68,6 +68,10 @@ class GeometryViewSet(ViewSet):
 
         return self._list(request, types=types, level=level, packages=packages, add_cache_key=cache_key)
 
+    @staticmethod
+    def compare_by_location_type(x: AreaLocation, y: AreaLocation):
+        return AreaLocation.LOCATION_TYPES.index(x.location_type) - AreaLocation.LOCATION_TYPES.index(y.location_type)
+
     @cache_mapdata_api_response()
     def _list(self, request, types, level, packages):
         results = []
@@ -93,6 +97,9 @@ class GeometryViewSet(ViewSet):
             for field_name in ('levels', ):
                 if hasattr(mapitemtype, field_name):
                     queryset.prefetch_related(field_name)
+
+            if issubclass(mapitemtype, AreaLocation):
+                queryset = sorted(queryset, key=AreaLocation.get_sort_key)
 
             if issubclass(mapitemtype, DirectedLineGeometryMapItemWithLevel):
                 results.extend(obj.to_shadow_geojson() for obj in queryset)
@@ -161,8 +168,9 @@ class LocationViewSet(CachedReadOnlyViewSetMixin, ViewSet):
 
     def list(self, request, **kwargs):
         locations = []
-        locations += list(filter_queryset_by_package_access(request, AreaLocation.objects.all()))
-        locations += list(filter_queryset_by_package_access(request, LocationGroup.objects.all()))
+        locations += sorted(filter_queryset_by_package_access(request, AreaLocation.objects.filter(can_search=True)),
+                            key=AreaLocation.get_sort_key)
+        locations += list(filter_queryset_by_package_access(request, LocationGroup.objects.filter(can_search=True)))
         return Response([location.to_location_json() for location in locations])
 
     def retrieve(self, request, name=None, **kwargs):
