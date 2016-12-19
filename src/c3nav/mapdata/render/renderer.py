@@ -83,7 +83,7 @@ class LevelRenderer():
             'y': '0',
             'width': str(width),
             'height': str(height),
-            'xlink:href': os.path.abspath(image)
+            'xlink:href': 'file://'+os.path.abspath(image)
         })
         svg.append(contents)
 
@@ -193,7 +193,7 @@ class LevelRenderer():
                                          fill_color='#000000'))
 
         for level in dark_lower:
-            self.add_svg_image(svg, 'file://'+self.get_filename('base', 'png', level=level))
+            self.add_svg_image(svg, self.get_filename('base', 'png', level=level))
 
         contents = self.add_svg_content(svg)
         contents.append(self.polygon_svg(box(0, 0, width, height),
@@ -201,7 +201,7 @@ class LevelRenderer():
                                          fill_opacity=0.1))
 
         for level in lower:
-            self.add_svg_image(svg, 'file://'+self.get_filename('base', 'png', level=level))
+            self.add_svg_image(svg, self.get_filename('base', 'png', level=level))
 
         filename = self.get_filename('simple', 'svg')
         with open(filename, 'w') as f:
@@ -214,7 +214,7 @@ class LevelRenderer():
     def render_full(self, png=True):
         svg = self.create_svg()
 
-        self.add_svg_image(svg, 'file://' + self.get_filename('simple', 'png'))
+        self.add_svg_image(svg, self.get_filename('simple', 'png'))
 
         higher = []
         for level in self.level.higher():
@@ -229,7 +229,7 @@ class LevelRenderer():
                                              fill_opacity=0.07))
 
         for level in higher:
-            self.add_svg_image(svg, 'file://'+self.get_filename('base', 'png', level=level))
+            self.add_svg_image(svg, self.get_filename('base', 'png', level=level))
 
         filename = self.get_filename('full', 'svg')
         with open(filename, 'w') as f:
