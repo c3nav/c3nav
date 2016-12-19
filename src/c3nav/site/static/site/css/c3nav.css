@@ -181,4 +181,5 @@ circle.pos {
     box-sizing:border-box;
     width:auto;
     vertical-align:middle;
+    line-height: 1.42857143;
 }

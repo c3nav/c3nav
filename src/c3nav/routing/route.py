@@ -3,6 +3,7 @@ import copy
 import numpy as np
 from django.utils.translation import ugettext_lazy as _
 
+from c3nav.mapdata.models import AreaLocation
 from c3nav.mapdata.utils.misc import get_dimensions
 
 
@@ -50,6 +51,20 @@ class Route:
 
         self.routeparts = routeparts
 
+    @staticmethod
+    def describe_point(point):
+        print(point.arealocations)
+        locations = sorted(AreaLocation.objects.filter(location_type__in=('room', 'level', 'area'),
+                                                       name__in=point.arealocations),
+                           key=AreaLocation.get_sort_key)
+
+        if not locations:
+            return _('Unknown Location'),  _('Unknown Location')
+        elif locations[0].location_type == 'level':
+            return _('Unknown Location'), locations[0].title
+        else:
+            return locations[0].title, locations[0].subtitle
+
     def describe(self, routeparts):
         for i, routepart in enumerate(routeparts):
             for j, line in enumerate(routepart.lines):
@@ -75,13 +90,19 @@ class Route:
 
                 line.icon = line.ctype or line.turning
 
-                if from_room is None:
-                    line.ignore = True
-                    line.arrow = True
-
                 distance = line.distance
 
-                if line.ctype_main in ('stairs', 'escalator', 'elevator'):
+                if from_room is None:
+                    line.arrow = True
+                    if j+1 < len(routepart.lines) and routepart.lines[j+1].ctype_main == 'elevator':
+                        line.ignore = True
+                    elif j > 0 and (routepart.lines[j-1].ignore or routepart.lines[j-1].ctype_main == 'elevator'):
+                        line.ignore = True
+                    else:
+                        line.icon = 'location'
+                        line.title, line.description = self.describe_point(line.to_point)
+
+                elif line.ctype_main in ('stairs', 'escalator', 'elevator'):
                     line.description = {
                         'stairs_up': _('Go up the stairs.'),
                         'stairs_down': _('Go down the stairs.'),
@@ -103,6 +124,7 @@ class Route:
                     if j > 0:
                         if routepart.lines[j-1].ctype_main == 'elevator':
                             line.arrow = False
+                            line.ignore = True
 
                     if j+1 < len(routepart.lines):
                         if routepart.lines[j+1].to_point.room.level.level.intermediate:
@@ -156,6 +178,7 @@ class Route:
 
                 line.desc_distance = distance
 
+                # line.ignore = False
                 if line.ignore:
                     line.icon = None
                     line.description = None
@@ -168,6 +191,22 @@ class Route:
             last_lines = [line for line in routepart.lines if line.ctype_main != 'elevator']
             if len(last_lines) > 1:
                 last_lines[-1].arrow = True
+
+            unignored_lines = [i for i, line in enumerate(routepart.lines) if line.description]
+            if unignored_lines:
+                first_unignored_i = unignored_lines[0]
+                if first_unignored_i > 0:
+                    first_unignored = routepart.lines[first_unignored_i]
+                    point = first_unignored.from_point if first_unignored.from_point.room else first_unignored.to_point
+
+                    line = routepart.lines[first_unignored_i-1]
+                    line.ignore = False
+                    line.icon = 'location'
+                    line.title, line.description = self.describe_point(point)
+
+        last_line = routeparts[-1].lines[-1]
+        if last_line.icon == 'location':
+            last_line.ignore = True
 
 
 class RoutePart:
@@ -229,6 +268,7 @@ class RouteLine:
         self.can_merge_to_next = False
 
         self.icon = None
+        self.title = None
         self.description = None
 
 
