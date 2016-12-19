@@ -7,6 +7,7 @@ from PIL import Image, ImageDraw
 
 from c3nav.mapdata.models import Level
 from c3nav.mapdata.models.locations import get_location
+from c3nav.mapdata.permissions import get_excludables_includables
 from c3nav.mapdata.render.compose import composer
 from c3nav.mapdata.utils.misc import get_dimensions
 from c3nav.routing.graph import Graph
@@ -35,6 +36,8 @@ def main(request, origin=None, destination=None):
         if destination is None:
             raise Http404
 
+    excludables, includables = get_excludables_includables()
+
     route = None
     if request.method in ('GET', 'POST') and origin and destination:
         graph = Graph.load()
@@ -44,8 +47,17 @@ def main(request, origin=None, destination=None):
         allowed_ctypes += get_ctypes('escalator', request.POST.get('escalators'))
         allowed_ctypes += get_ctypes('elevator', request.POST.get('elevators'))
 
-        route = graph.get_route(origin, destination, allowed_ctypes,
-                                public=True, nonpublic=False, avoid=(), include=())
+        include = request.POST.getlist('include')
+        avoid = request.POST.getlist('avoid')
+
+        include = set(include) & set(includables)
+        avoid = set(avoid) & set(excludables)
+
+        public = ':public' not in avoid
+        nonpublic = ':nonpublic' in include
+
+        route = graph.get_route(origin, destination, allowed_ctypes, public=public, nonpublic=nonpublic,
+                                avoid=avoid-set(':public'), include=include-set(':nonpublic'))
         route = route.split()
         route.create_routeparts()
 
@@ -67,6 +79,10 @@ def main(request, origin=None, destination=None):
     return render(request, 'site/main.html', {
         'origin': origin,
         'destination': destination,
+
+        'excludables': excludables.items(),
+        'includables': includables.items(),
+
         'route': route,
         'width': width,
         'height': height,

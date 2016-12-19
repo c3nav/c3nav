@@ -136,8 +136,8 @@ class GraphLevel():
         self._built_arealocations[':public'] = public_area
         self._built_excludables[':public'] = public_area
 
-        self._built_arealocations[':private'] = private_area
-        self._built_excludables[':private'] = private_area
+        self._built_arealocations[':nonpublic'] = private_area
+        self._built_excludables[':nonpublic'] = private_area
 
         # add points inside arealocations to be able to route to its borders
         for excludable in self._built_arealocations.values():
