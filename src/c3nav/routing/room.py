@@ -39,13 +39,14 @@ class GraphRoom():
             self.distances,
             self.ctypes,
             self.excludables,
+            self.excludable_points,
         )
 
     @classmethod
     def unserialize(cls, level, data):
         room = cls(level)
         (room.mpl_clear, areas, room.points, room.room_transfer_points,
-         room.distances, room.ctypes, room.edcludables) = data
+         room.distances, room.ctypes, room.edcludables, room.excludable_points) = data
         room.areas = tuple(GraphArea(room, *area) for area in areas)
         return room
 
@@ -216,6 +217,12 @@ class GraphRoom():
         self.points = tuple(point.i for point in self._built_points)
         self.room_transfer_points = tuple(i for i in self.points if i in self.level.room_transfer_points)
         self.excludables = tuple(self.excludables)
+
+        excludable_points = list()
+        for excludable in self.excludables:
+            points = self.level.arealocation_points[excludable]
+            excludable_points.append(np.array(tuple(i for i in self.points if i in points)))
+        self.excludable_points = np.array(excludable_points)
 
         mapping = {point.i: i for i, point in enumerate(self._built_points)}
 
