@@ -1,8 +1,8 @@
 import os
 
 from django.conf import settings
-from django.http import HttpResponse
-from django.shortcuts import get_object_or_404, redirect, render
+from django.http import Http404, HttpResponse
+from django.shortcuts import get_object_or_404, render
 from PIL import Image, ImageDraw
 
 from c3nav.mapdata.models import Level
@@ -12,37 +12,39 @@ from c3nav.mapdata.utils.misc import get_dimensions
 from c3nav.routing.graph import Graph
 from c3nav.routing.utils.draw import _line_coords
 
+ctype_mapping = {
+    'yes': ('up', 'down'),
+    'up': ('up', ),
+    'down': ('down', ),
+    'no': ()
+}
+
+
+def get_ctypes(prefix, value):
+    return tuple((prefix+'_'+direction) for direction in ctype_mapping.get(value, ('up', 'dowm')))
+
 
 def main(request, origin=None, destination=None):
-    do_redirect = False
-
     if origin:
-        origin_obj = get_location(request, origin)
-        if origin_obj.name != origin:
-            do_redirect = True
-        origin = origin_obj
+        origin = get_location(request, origin)
+        if origin is None:
+            raise Http404
 
     if destination:
-        destination_obj = get_location(request, destination)
-        if destination_obj.name != destination:
-            do_redirect = True
-        destination = destination_obj
-
-    if do_redirect:
-        new_url = '/'
-        if origin:
-            new_url += origin.name+'/'
-            if destination:
-                new_url += destination.name + '/'
-        elif destination:
-            new_url += '_/' + destination.name + '/'
-
-        redirect(new_url)
+        destination = get_location(request, destination)
+        if destination is None:
+            raise Http404
 
     route = None
-    if origin and destination:
+    if request.method == 'POST' and origin and destination:
         graph = Graph.load()
-        route = graph.get_route(origin, destination, ('', 'escalator_down', 'escalator_up'))
+
+        allowed_ctypes = ('', )
+        allowed_ctypes += get_ctypes('stairs', request.POST.get('stairs'))
+        allowed_ctypes += get_ctypes('escalator', request.POST.get('escalators'))
+        allowed_ctypes += get_ctypes('elevator', request.POST.get('elevators'))
+
+        route = graph.get_route(origin, destination, allowed_ctypes)
         print(route)
         route = route.split()
         print(route)
