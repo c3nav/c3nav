@@ -16,42 +16,27 @@
     <div class="row settings">
         <div class="form-group col-md-2">
             <label for="stairs-select">{% trans 'Stairs' %}</label>
-            <select name="stairs" id="stairs-select" class="form-control">
-                <option value="yes">{% trans 'allow' %}</option>
-                <option value="up">{% trans 'only upwards' %}</option>
-                <option value="down">{% trans 'only downwards' %}</option>
-                <option value="no">{% trans 'avoid' %}</option>
-            </select>
+            {% include 'site/fragment_select.html' with name='stairs' value=stairs %}
         </div>
         <div class="form-group col-md-2">
             <label for="escalators-select">{% trans 'Escalators' %}</label>
-            <select name="escalators" id="escalator-select" class="form-control">
-                <option value="yes">{% trans 'allow' %}</option>
-                <option value="up">{% trans 'only upwards' %}</option>
-                <option value="down">{% trans 'only downwards' %}</option>
-                <option value="no">{% trans 'avoid' %}</option>
-            </select>
+            {% include 'site/fragment_select.html' with name='escalators' value=escalators %}
         </div>
         <div class="form-group col-md-2">
             <label for="elevators-select">{% trans 'Elevators' %}</label>
-            <select name="elevators" id="elevators-select" class="form-control">
-                <option value="yes">{% trans 'allow' %}</option>
-                <option value="up">{% trans 'only upwards' %}</option>
-                <option value="down">{% trans 'only downwards' %}</option>
-                <option value="no">{% trans 'avoid' %}</option>
-            </select>
+            {% include 'site/fragment_select.html' with name='elevators' value=elevators %}
         </div>
         <div class="form-group col-md-6">
-            <label>{% trans 'Include / Avoid:' %}</label>
+            <label>{% trans 'Include / Avoid areas' %}</label>
             <p class="form-control-static">
                 {% for name, includable in includables %}
                     <label class="checkbox-inline">
-                        <input type="checkbox" name="include" value="{{ name }}"> {% blocktrans %}Include {{ includable }}{% endblocktrans %}
+                        <input type="checkbox" name="include" value="{{ name }}"{% if name in include %} checked{% endif %}> {% blocktrans %}Include {{ includable }}{% endblocktrans %}
                     </label>
                 {% endfor %}
                 {% for name, excludable in excludables %}
                     <label class="checkbox-inline">
-                        <input type="checkbox" name="avoid" value="{{ name }}"> {% blocktrans %}Avoid {{ excludable }}{% endblocktrans %}
+                        <input type="checkbox" name="avoid" value="{{ name }}"{% if name in avoid %} checked{% endif %}> {% blocktrans %}Avoid {{ excludable }}{% endblocktrans %}
                     </label>
                 {% endfor %}
             </p>
@@ -61,7 +46,7 @@
         <div class="form-group col-md-6">
             <div class="checkbox">
                 <label>
-                    <input type="checkbox">  {% trans 'Save Settings in cookie' %}
+                    <input type="checkbox" name="save_settings" value="1"{% if save_settings %} checked{% endif %}>  {% trans 'Save Settings in cookie' %}
                 </label>
             </div>
         </div>
