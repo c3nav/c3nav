@@ -169,7 +169,7 @@ class LocationViewSet(CachedReadOnlyViewSetMixin, ViewSet):
     def list(self, request, **kwargs):
         locations = []
         locations += sorted(filter_queryset_by_package_access(request, AreaLocation.objects.filter(can_search=True)),
-                            key=AreaLocation.get_sort_key)
+                            key=AreaLocation.get_sort_key, reverse=True)
         locations += list(filter_queryset_by_package_access(request, LocationGroup.objects.filter(can_search=True)))
         return Response([location.to_location_json() for location in locations])
 
