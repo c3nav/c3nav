@@ -7,8 +7,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2016-12-19 14:10+0000\n"
-"PO-Revision-Date: 2016-12-19 15:11+0100\n"
+"POT-Creation-Date: 2016-12-19 17:07+0000\n"
+"PO-Revision-Date: 2016-12-19 18:08+0100\n"
 "Last-Translator: Nicole Klünder <nomoketo@nomoketo.de>\n"
 "Language-Team: \n"
 "Language: de\n"
@@ -64,7 +64,7 @@ msgstr "Gebäude"
 msgid "Buildings"
 msgstr "Gebäude"
 
-#: c3nav/mapdata/models/geometry.py:151
+#: c3nav/mapdata/models/geometry.py:151 c3nav/mapdata/models/locations.py:109
 msgid "Room"
 msgstr "Raum"
 
@@ -208,7 +208,7 @@ msgstr "Bodenhöhe"
 msgid "intermediate level"
 msgstr "Zwischenetage"
 
-#: c3nav/mapdata/models/level.py:21
+#: c3nav/mapdata/models/level.py:21 c3nav/mapdata/models/locations.py:107
 msgid "Level"
 msgstr "Etage"
 
@@ -216,19 +216,43 @@ msgstr "Etage"
 msgid "Levels"
 msgstr "Etagen"
 
-#: c3nav/mapdata/models/locations.py:72
+#: c3nav/mapdata/models/locations.py:72 c3nav/mapdata/models/locations.py:117
+msgid "can be searched"
+msgstr "zur Suche zugelassen"
+
+#: c3nav/mapdata/models/locations.py:75
 msgid "Location Group"
 msgstr "Ortgruppe"
 
-#: c3nav/mapdata/models/locations.py:73 c3nav/mapdata/models/locations.py:83
+#: c3nav/mapdata/models/locations.py:76 c3nav/mapdata/models/locations.py:119
 msgid "Location Groups"
 msgstr "Ortgruppen"
 
-#: c3nav/mapdata/models/locations.py:88
+#: c3nav/mapdata/models/locations.py:108
+msgid "General Area"
+msgstr "Allgemeiner Bereich"
+
+#: c3nav/mapdata/models/locations.py:110
+msgid "Room Segment"
+msgstr "Raumteil"
+
+#: c3nav/mapdata/models/locations.py:111
+msgid "Point of Interest"
+msgstr "Ort von Interesse"
+
+#: c3nav/mapdata/models/locations.py:115
+msgid "Location Type"
+msgstr "Orttyp"
+
+#: c3nav/mapdata/models/locations.py:118
+msgid "can be used to describe a position"
+msgstr "can zum beschreiben einer Position genutzt werden"
+
+#: c3nav/mapdata/models/locations.py:124
 msgid "Area Location"
 msgstr "Ortbereich"
 
-#: c3nav/mapdata/models/locations.py:89
+#: c3nav/mapdata/models/locations.py:125
 msgid "Area Locations"
 msgstr "Ortbereiche"
 
@@ -288,63 +312,67 @@ msgstr "Vorlagen"
 msgid "This Source belongs to a package you don't have access to."
 msgstr "Diese Vorlage gehört zu einem Paket, auf das du kein Zugriff hast."
 
-#: c3nav/routing/route.py:86
+#: c3nav/routing/route.py:62 c3nav/routing/route.py:64
+msgid "Unknown Location"
+msgstr "Unbekannter Ort"
+
+#: c3nav/routing/route.py:107
 msgid "Go up the stairs."
 msgstr "Geh die Treppe nach oben."
 
-#: c3nav/routing/route.py:87
+#: c3nav/routing/route.py:108
 msgid "Go down the stairs."
 msgstr "Geh die Treppe nach unten."
 
-#: c3nav/routing/route.py:88
+#: c3nav/routing/route.py:109
 msgid "Take the escalator upwards."
 msgstr "Fahr die Rolltreppe hoch."
 
-#: c3nav/routing/route.py:89
+#: c3nav/routing/route.py:110
 msgid "Take the escalator downwards."
 msgstr "Fahr die Rolltreppe runter."
 
-#: c3nav/routing/route.py:90
+#: c3nav/routing/route.py:111
 msgid "Take the elevator upwards."
 msgstr "Fahr mit dem Aufzug nach oben."
 
-#: c3nav/routing/route.py:91
+#: c3nav/routing/route.py:112
 msgid "Take the elevator downwards."
 msgstr "Fahr mit den Aufzug nach unten."
 
-#: c3nav/routing/route.py:116
+#: c3nav/routing/route.py:138
 msgid "Go through the door on the left."
 msgstr "Geh links durch die Tür."
 
-#: c3nav/routing/route.py:117
+#: c3nav/routing/route.py:139
 msgid "Go through the door on the right."
 msgstr "Geh rechts durch die Tür."
 
-#: c3nav/routing/route.py:118
+#: c3nav/routing/route.py:140
 msgid "Go through the door."
 msgstr "Geh durch die Tür."
 
-#: c3nav/routing/route.py:147
+#: c3nav/routing/route.py:169
 #, python-format
 msgid "Turn light to the left and continue for %(d).1f meters."
 msgstr "Gehe schräg nach links %(d).1f m weiter."
 
-#: c3nav/routing/route.py:148
+#: c3nav/routing/route.py:170
 #, python-format
 msgid "Turn light to the right and continue for %(d).1f meters."
 msgstr "Gehe schräg nach rechts %(d).1f m weiter."
 
-#: c3nav/routing/route.py:149
+#: c3nav/routing/route.py:171
 #, python-format
 msgid "Turn left and continue for %(d).1f meters."
 msgstr "Gehe nach links %(d).1f m weiter."
 
-#: c3nav/routing/route.py:150
+#: c3nav/routing/route.py:172
 #, python-format
 msgid "Turn right and continue for %(d).1f meters."
 msgstr "Gehe nach rechts %(d).1f m weiter."
 
-#: c3nav/routing/route.py:151
+#: c3nav/routing/route.py:173
 #, python-format
 msgid "Continue for %(d).1f meters."
 msgstr "Gehe %(d).1f m weiter geradeaus."
@@ -364,10 +392,6 @@ msgstr "Tipp einen beliebigen Ort ein…"
 #: c3nav/site/templates/site/fragment_route.html:5
 msgid "Your Route"
 msgstr "Deine Route"
-
-#: c3nav/site/templates/site/fragment_route.html:50
-msgid "You have reached your destination."
-msgstr "Du hast dein Ziel erreich."
 
 #: c3nav/site/templates/site/main.html:10
 msgid "Origin"
@@ -405,3 +429,6 @@ msgstr "vermeiden"
 #: c3nav/site/templates/site/main.html:46
 msgid "Get Route"
 msgstr "Route berechnen"
+
+#~ msgid "You have reached your destination."
+#~ msgstr "Du hast dein Ziel erreich."
