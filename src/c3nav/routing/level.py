@@ -284,14 +284,22 @@ class GraphLevel():
 
     def collect_arealocation_points(self):
         self.arealocation_points = {}
+
+        for room in self.rooms:
+            room.excludables = []
+
         for name, arealocation in self._built_arealocations.items():
             mpl_area = shapely_to_mpl(arealocation)
 
             rooms = [room for room in self.rooms
                      if any(room.mpl_clear.intersects_path(exterior, filled=True) for exterior in mpl_area.exteriors)]
             possible_points = tuple(point for point in sum((room._built_points for room in rooms), []) if point.room)
-            self.arealocation_points[name] = tuple(point.i for point in possible_points
-                                                   if mpl_area.contains_point(point.xy))
+            points = tuple(point for point in possible_points if mpl_area.contains_point(point.xy))
+            self.arealocation_points[name] = tuple(point.i for point in points)
+
+            if name in self._built_excludables:
+                for room in set(point.room for point in points):
+                    room.excludables.append(name)
 
     # Drawing
     ctype_colors = {
