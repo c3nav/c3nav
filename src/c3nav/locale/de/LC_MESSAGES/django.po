@@ -1,0 +1,338 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
+# This file is distributed under the same license as the PACKAGE package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: \n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2016-12-19 00:34+0000\n"
+"PO-Revision-Date: 2016-12-19 01:53+0100\n"
+"Language: de\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+"Last-Translator: Nicole Klünder <nomoketo@nomoketo.de>\n"
+"Language-Team: \n"
+"X-Generator: Poedit 1.8.11\n"
+
+#: c3nav/editor/forms.py:94
+msgid "Please select at least two levels."
+msgstr "Bitte wähle mindestens zwei Etagen."
+
+#: c3nav/editor/forms.py:104
+msgid "You have to select a title in at least one language."
+msgstr "Du musst einen Titel für mindestens eine Sprache wählen."
+
+#: c3nav/editor/hosters/base.py:90
+msgid "Internal error."
+msgstr "Interner Fehler."
+
+#: c3nav/mapdata/models/base.py:22
+msgid "Name"
+msgstr "Name"
+
+#: c3nav/mapdata/models/base.py:23
+msgid "map package"
+msgstr "Kartenpaket"
+
+#: c3nav/mapdata/models/collections.py:11
+msgid "Elevator"
+msgstr "Aufzug"
+
+#: c3nav/mapdata/models/collections.py:12
+#: c3nav/site/templates/site/main.html:36
+msgid "Elevators"
+msgstr "Aufzüge"
+
+#: c3nav/mapdata/models/geometry.py:45 c3nav/mapdata/serializers/fields.py:14
+#: c3nav/mapdata/serializers/fields.py:26
+msgid "Invalid GeoJSON."
+msgstr "Invalides GeoJSON."
+
+#: c3nav/mapdata/models/geometry.py:76
+msgid "level"
+msgstr "Etage"
+
+#: c3nav/mapdata/models/geometry.py:139
+msgid "Building"
+msgstr "Gebäude"
+
+#: c3nav/mapdata/models/geometry.py:140
+msgid "Buildings"
+msgstr "Gebäude"
+
+#: c3nav/mapdata/models/geometry.py:151
+msgid "Room"
+msgstr "Raum"
+
+#: c3nav/mapdata/models/geometry.py:152
+msgid "Rooms"
+msgstr "Räume"
+
+#: c3nav/mapdata/models/geometry.py:163
+msgid "Outside Area"
+msgstr "Außenbereich"
+
+#: c3nav/mapdata/models/geometry.py:164
+msgid "Outside Areas"
+msgstr "Außenbereiche"
+
+#: c3nav/mapdata/models/geometry.py:173
+msgid "up"
+msgstr "hoch"
+
+#: c3nav/mapdata/models/geometry.py:174
+msgid "down"
+msgstr "runter"
+
+#: c3nav/mapdata/models/geometry.py:176
+msgid "direction"
+msgstr "Richtung"
+
+#: c3nav/mapdata/models/geometry.py:181
+msgid "Escalator"
+msgstr "Rolltreppe"
+
+#: c3nav/mapdata/models/geometry.py:182 c3nav/site/templates/site/main.html:27
+msgid "Escalators"
+msgstr "Rolltreppen"
+
+#: c3nav/mapdata/models/geometry.py:211
+msgid "Escalator Slope"
+msgstr "Rolltreppensteigung"
+
+#: c3nav/mapdata/models/geometry.py:212
+msgid "Escalator Slopes"
+msgstr "Rolltreppensteigungen"
+
+#: c3nav/mapdata/models/geometry.py:221
+msgid "Stair"
+msgstr "Stufe"
+
+#: c3nav/mapdata/models/geometry.py:222 c3nav/site/templates/site/main.html:18
+msgid "Stairs"
+msgstr "Stufen"
+
+#: c3nav/mapdata/models/geometry.py:231
+msgid "Oneway"
+msgstr "Einbahnweg"
+
+#: c3nav/mapdata/models/geometry.py:232
+msgid "Oneways"
+msgstr "Einbahnwege"
+
+#: c3nav/mapdata/models/geometry.py:241
+msgid "crop to other level"
+msgstr "Auf andere Etage zuschneiden"
+
+#: c3nav/mapdata/models/geometry.py:246
+msgid "Obstacle"
+msgstr "Hindernis"
+
+#: c3nav/mapdata/models/geometry.py:247
+msgid "Obstacles"
+msgstr "Hindernisse"
+
+#: c3nav/mapdata/models/geometry.py:276
+msgid "obstacle width"
+msgstr "Hindernisbreite"
+
+#: c3nav/mapdata/models/geometry.py:281
+msgid "Line Obstacle"
+msgstr "Linienhindernis"
+
+#: c3nav/mapdata/models/geometry.py:282
+msgid "Line Obstacles"
+msgstr "Linienhindernisse"
+
+#: c3nav/mapdata/models/geometry.py:319
+msgid "levels"
+msgstr "Etagen"
+
+#: c3nav/mapdata/models/geometry.py:322
+msgid "Level Connector"
+msgstr "Etagenverbinder"
+
+#: c3nav/mapdata/models/geometry.py:323
+msgid "Level Connectors"
+msgstr "Etagenverbinder"
+
+#: c3nav/mapdata/models/geometry.py:360
+msgid "Door"
+msgstr "Tür"
+
+#: c3nav/mapdata/models/geometry.py:361
+msgid "Doors"
+msgstr "Türen"
+
+#: c3nav/mapdata/models/geometry.py:372
+msgid "Hole"
+msgstr "Loch"
+
+#: c3nav/mapdata/models/geometry.py:373
+msgid "Holes"
+msgstr "Löcher"
+
+#: c3nav/mapdata/models/geometry.py:382
+msgid "Button label"
+msgstr "Knopfbeschriftung"
+
+#: c3nav/mapdata/models/geometry.py:383
+msgid "override level altitude"
+msgstr "Bodenhöhe der Etage überschreiben"
+
+#: c3nav/mapdata/models/geometry.py:388
+msgid "Elevator Level"
+msgstr "Aufzugetage"
+
+#: c3nav/mapdata/models/geometry.py:389
+msgid "Elevator Levels"
+msgstr "Aufzugetagen"
+
+#: c3nav/mapdata/models/level.py:15
+msgid "level name"
+msgstr "Etagenname"
+
+#: c3nav/mapdata/models/level.py:16
+msgid "Usually just an integer (e.g. -1, 0, 1, 2)"
+msgstr "Üblicherweise eine Zahl (z.b. -1, 0, 1, 2)"
+
+#: c3nav/mapdata/models/level.py:17
+msgid "level altitude"
+msgstr "Bodenhöhe"
+
+#: c3nav/mapdata/models/level.py:18
+msgid "intermediate level"
+msgstr "Zwischenetage"
+
+#: c3nav/mapdata/models/level.py:21
+msgid "Level"
+msgstr "Etage"
+
+#: c3nav/mapdata/models/level.py:22
+msgid "Levels"
+msgstr "Etagen"
+
+#: c3nav/mapdata/models/locations.py:72
+msgid "Location Group"
+msgstr "Ortgruppe"
+
+#: c3nav/mapdata/models/locations.py:73 c3nav/mapdata/models/locations.py:83
+msgid "Location Groups"
+msgstr "Ortgruppen"
+
+#: c3nav/mapdata/models/locations.py:88
+msgid "Area Location"
+msgstr "Ortbereich"
+
+#: c3nav/mapdata/models/locations.py:89
+msgid "Area Locations"
+msgstr "Ortbereiche"
+
+#: c3nav/mapdata/models/package.py:14
+msgid "package identifier"
+msgstr "Paket ID"
+
+#: c3nav/mapdata/models/package.py:15
+msgid "e.g. de.c3nav.33c3.base"
+msgstr "z.b. de.c3nav.33c3.base"
+
+#: c3nav/mapdata/models/package.py:17
+msgid "URL to the home git repository"
+msgstr "URL des originalen git repos"
+
+#: c3nav/mapdata/models/package.py:18
+msgid "current commit id"
+msgstr "aktuelle commit id"
+
+#: c3nav/mapdata/models/package.py:20 c3nav/mapdata/models/source.py:11
+msgid "bottom coordinate"
+msgstr "untere koordinate"
+
+#: c3nav/mapdata/models/package.py:21 c3nav/mapdata/models/source.py:12
+msgid "left coordinate"
+msgstr "linke koordinate"
+
+#: c3nav/mapdata/models/package.py:22 c3nav/mapdata/models/source.py:13
+msgid "top coordinate"
+msgstr "obere koordinate"
+
+#: c3nav/mapdata/models/package.py:23 c3nav/mapdata/models/source.py:14
+msgid "right coordinate"
+msgstr "rechte koordinate"
+
+#: c3nav/mapdata/models/package.py:25
+msgid "folder name"
+msgstr "Verzeichnisname"
+
+#: c3nav/mapdata/models/package.py:28
+msgid "Map Package"
+msgstr "Kartenpaket"
+
+#: c3nav/mapdata/models/package.py:29
+msgid "Map Packages"
+msgstr "Kartenpakete"
+
+#: c3nav/mapdata/models/source.py:17
+msgid "Source"
+msgstr "Vorlage"
+
+#: c3nav/mapdata/models/source.py:18
+msgid "Sources"
+msgstr "Vorlagen"
+
+#: c3nav/mapdata/permissions.py:42
+msgid "This Source belongs to a package you don't have access to."
+msgstr "Diese Vorlage gehört zu einem Paket, auf das du kein Zugriff hast."
+
+#: c3nav/settings.py:198
+msgid "English"
+msgstr "Englisch"
+
+#: c3nav/settings.py:199
+msgid "German"
+msgstr "Deutsch"
+
+#: c3nav/site/templates/site/fragment_location.html:6
+msgid "Search any Location…"
+msgstr "Tipp einen beliebigen Ort ein…"
+
+#: c3nav/site/templates/site/main.html:10
+msgid "Origin"
+msgstr "Start"
+
+#: c3nav/site/templates/site/main.html:13
+msgid "Destination"
+msgstr "Ziel"
+
+#: c3nav/site/templates/site/main.html:20
+#: c3nav/site/templates/site/main.html:29
+#: c3nav/site/templates/site/main.html:38
+msgid "allow"
+msgstr "erlaubt"
+
+#: c3nav/site/templates/site/main.html:21
+#: c3nav/site/templates/site/main.html:30
+#: c3nav/site/templates/site/main.html:39
+msgid "only upwards"
+msgstr "nur nach oben"
+
+#: c3nav/site/templates/site/main.html:22
+#: c3nav/site/templates/site/main.html:31
+#: c3nav/site/templates/site/main.html:40
+msgid "only downwards"
+msgstr "nur nach unten"
+
+#: c3nav/site/templates/site/main.html:23
+#: c3nav/site/templates/site/main.html:32
+#: c3nav/site/templates/site/main.html:41
+msgid "avoid"
+msgstr "vermeiden"
+
+#: c3nav/site/templates/site/main.html:45
+#: c3nav/site/templates/site/main.html:46
+msgid "Get Route"
+msgstr "Route berechnen"
