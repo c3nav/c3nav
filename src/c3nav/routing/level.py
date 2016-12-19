@@ -127,16 +127,16 @@ class GraphLevel():
         self._built_arealocations = {}
         self._built_excludables = {}
         for arealocation in self.level.arealocations.all():
-            self._built_arealocations[arealocation.name] = shapely_to_mpl(arealocation.geometry)
+            self._built_arealocations[arealocation.name] = arealocation.geometry
             if arealocation.routing_inclusion != 'default' or arealocation.package not in public_packages:
                 self._built_excludables[arealocation.name] = arealocation.geometry
 
         public_area, private_area = get_public_private_area(self.level)
 
-        self._built_arealocations[':public'] = shapely_to_mpl(public_area)
+        self._built_arealocations[':public'] = public_area
         self._built_excludables[':public'] = public_area
 
-        self._built_arealocations[':private'] = shapely_to_mpl(private_area)
+        self._built_arealocations[':private'] = private_area
         self._built_excludables[':private'] = private_area
 
     def create_doors(self):
@@ -269,12 +269,14 @@ class GraphLevel():
 
     def collect_arealocation_points(self):
         self.arealocation_points = {}
-        for name, mpl_arealocation in self._built_arealocations.items():
+        for name, arealocation in self._built_arealocations.items():
+            mpl_area = shapely_to_mpl(arealocation)
+
             rooms = [room for room in self.rooms
-                     if room.mpl_clear.intersects_path(mpl_arealocation.exterior, filled=True)]
+                     if any(room.mpl_clear.intersects_path(exterior, filled=True) for exterior in mpl_area.exteriors)]
             possible_points = tuple(point for point in sum((room._built_points for room in rooms), []) if point.room)
             self.arealocation_points[name] = tuple(point.i for point in possible_points
-                                                   if mpl_arealocation.contains_point(point.xy))
+                                                   if mpl_area.contains_point(point.xy))
 
     # Drawing
     ctype_colors = {
