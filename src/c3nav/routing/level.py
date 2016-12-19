@@ -126,10 +126,10 @@ class GraphLevel():
 
         self._built_arealocations = {}
         self._built_excludables = {}
-        for arealocation in self.level.arealocations.all():
-            self._built_arealocations[arealocation.name] = arealocation.geometry
-            if arealocation.routing_inclusion != 'default' or arealocation.package not in public_packages:
-                self._built_excludables[arealocation.name] = arealocation.geometry
+        for excludable in self.level.arealocations.all():
+            self._built_arealocations[excludable.name] = excludable.geometry
+            if excludable.routing_inclusion != 'default' or excludable.package not in public_packages:
+                self._built_excludables[excludable.name] = excludable.geometry
 
         public_area, private_area = get_public_private_area(self.level)
 
@@ -138,6 +138,21 @@ class GraphLevel():
 
         self._built_arealocations[':private'] = private_area
         self._built_excludables[':private'] = private_area
+
+        # add points inside arealocations to be able to route to its borders
+        for excludable in self._built_arealocations.values():
+            smaller = excludable.buffer(-0.05, join_style=JOIN_STYLE.mitre)
+            for room in self.rooms:
+                room.add_points_on_rings(assert_multipolygon(smaller))
+
+        # add points outside excludables so if excluded you can walk around them
+        for excludable in self._built_excludables.values():
+            for polygon in assert_multipolygon(excludable.buffer(0.28, join_style=JOIN_STYLE.mitre)):
+                for room in self.rooms:
+                    room._add_ring(polygon.exterior, want_left=True)
+
+                    for interior in polygon.interiors:
+                        room._add_ring(interior, want_left=False)
 
     def create_doors(self):
         doors = self.level.geometries.doors

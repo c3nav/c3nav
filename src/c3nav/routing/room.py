@@ -129,28 +129,7 @@ class GraphRoom():
                 points += self._add_ring(interior, want_left=True)
 
         # points around steps
-        for polygon in self._built_isolated_areas:
-            for ring in (polygon.exterior, )+tuple(polygon.interiors):
-                for linestring in assert_multilinestring(ring.intersection(self.clear_geometry)):
-                    coords = tuple(linestring.coords)
-                    if len(coords) == 2:
-                        path = Path(coords)
-                        length = abs(np.linalg.norm(path.vertices[0] - path.vertices[1]))
-                        for coord in tuple(path.interpolated(int(length / 1.0 + 1)).vertices):
-                            self.add_point(coord)
-                        continue
-
-                    start = 0
-                    for segment in zip(coords[:-1], coords[1:]):
-                        path = Path(segment)
-                        length = abs(np.linalg.norm(path.vertices[0] - path.vertices[1]))
-                        if length < 1.0:
-                            coords = (path.vertices[1 if start == 0 else 0], )
-                        else:
-                            coords = tuple(path.interpolated(int(length / 1.0 + 0.5)).vertices)[start:]
-                        for coord in coords:
-                            self.add_point(coord)
-                        start = 1
+        self.add_points_on_rings(self._built_isolated_areas)
 
     def _add_ring(self, geom, want_left):
         """
@@ -185,6 +164,30 @@ class GraphRoom():
             points += self.add_point(coord)
 
         return points
+
+    def add_points_on_rings(self, areas):
+        for polygon in areas:
+            for ring in (polygon.exterior,) + tuple(polygon.interiors):
+                for linestring in assert_multilinestring(ring.intersection(self.clear_geometry)):
+                    coords = tuple(linestring.coords)
+                    if len(coords) == 2:
+                        path = Path(coords)
+                        length = abs(np.linalg.norm(path.vertices[0] - path.vertices[1]))
+                        for coord in tuple(path.interpolated(int(length / 1.0 + 1)).vertices):
+                            self.add_point(coord)
+                        continue
+
+                    start = 0
+                    for segment in zip(coords[:-1], coords[1:]):
+                        path = Path(segment)
+                        length = abs(np.linalg.norm(path.vertices[0] - path.vertices[1]))
+                        if length < 1.0:
+                            coords = (path.vertices[1 if start == 0 else 0],)
+                        else:
+                            coords = tuple(path.interpolated(int(length / 1.0 + 0.5)).vertices)[start:]
+                        for coord in coords:
+                            self.add_point(coord)
+                        start = 1
 
     def add_point(self, coord):
         if not self.mpl_clear.contains_point(coord):
