@@ -1,5 +1,6 @@
 import os
 
+from django.conf import settings
 from django.http import HttpResponse
 from PIL import Image
 
@@ -30,8 +31,14 @@ class LevelComposer:
     def _get_public_level_image(self, level):
         return self._get_image(get_render_path('png', level.name, 'full', True))
 
+    def _get_complete_level_image(self, level):
+        return self._get_image(get_render_path('png', level.name, 'full', False))
+
     def get_level_image(self, request, level):
-        img = self._get_public_level_image(level)
+        if settings.DIRECT_EDITING:
+            img = self._get_complete_level_image(level)
+        else:
+            img = self._get_public_level_image(level)
         response = HttpResponse(content_type="image/png")
         img.save(response, 'PNG')
         return response
