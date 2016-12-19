@@ -4,7 +4,7 @@
 <div class="routeparts">
     {% for routepart in route.routeparts %}
         <svg xmlns="http://www.w3.org/2000/svg" class="map" data-level="{{ routepart.level_name }}"
-             viewBox="0 0 {{ routepart.svg_width }} {{ routepart.svg_height }}"
+             viewBox="0 0 {{ routepart.svg_width | stringformat:"f" }} {{ routepart.svg_height | stringformat:"f" }}"
              style="max-height:{% if routepart.svg_height > 300 %}300{% else %}{{ routepart.svg_height }}{% endif %}px">
             <defs>
                 <marker id="arrow-{{ forloop.counter0 }}" markerWidth="4" markerHeight="4" refX="2.5" refY="2" orient="auto">
@@ -12,14 +12,16 @@
                 </marker>
             </defs>
 
-            <image width="{{ svg_width }}" height="{{ svg_height }}" x="{{ routepart.svg_min_x | negate }}" y="{{ routepart.svg_min_y | negate }}" xlink:href="/map/{{ routepart.level_name }}.png"></image>
+            <image width="{{ svg_width | stringformat:"f" }}" height="{{ svg_height | stringformat:"f" }}"
+                   x="{{ routepart.svg_min_x | negate | stringformat:"f" }}" y="{{ routepart.svg_min_y | negate | stringformat:"f" }}"
+                   xlink:href="/map/{{ routepart.level_name }}.png"></image>
 
             <g class="connections">
                 {% for c in routepart.connections %}
-                    <line x1="{{ c.from_point.svg_x | subtract:routepart.svg_min_x }}"
-                          y1="{{ c.from_point.svg_y | subtract:routepart.svg_min_y }}"
-                          x2="{{ c.to_point.svg_x | subtract:routepart.svg_min_x }}"
-                          y2="{{ c.to_point.svg_y | subtract:routepart.svg_min_y }}"
+                    <line x1="{{ c.from_point.svg_x | subtract:routepart.svg_min_x  | stringformat:"f"}}"
+                          y1="{{ c.from_point.svg_y | subtract:routepart.svg_min_y | stringformat:"f" }}"
+                          x2="{{ c.to_point.svg_x | subtract:routepart.svg_min_x | stringformat:"f" }}"
+                          y2="{{ c.to_point.svg_y | subtract:routepart.svg_min_y | stringformat:"f" }}"
                           marker-end="url(#arrow-{{ forloop.parentloop.counter0 }})"></line>
                 {% endfor %}
             </g>
