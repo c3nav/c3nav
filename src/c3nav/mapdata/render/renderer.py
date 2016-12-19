@@ -1,3 +1,4 @@
+import os
 import subprocess
 import xml.etree.ElementTree as ET
 
@@ -82,7 +83,7 @@ class LevelRenderer():
             'y': '0',
             'width': str(width),
             'height': str(height),
-            'xlink:href': image
+            'xlink:href': os.path.abspath(image)
         })
         svg.append(contents)
 
