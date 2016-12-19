@@ -150,7 +150,7 @@ class AreaLocation(LocationModelMixin, GeometryMapItemWithLevel):
         for location_type in reversed(self.LOCATION_TYPES_ORDER[:area_location_i]):
             for arealocation in AreaLocation.objects.filter(location_type=location_type, level=self.level):
                 intersection_area = arealocation.geometry.intersection(self.geometry).area
-                if intersection_area and my_area / intersection_area > 0.99:
+                if intersection_area and intersection_area / my_area > 0.99:
                     in_areas.append(arealocation)
 
         return in_areas
