@@ -46,7 +46,7 @@ class GraphRoom():
     def unserialize(cls, level, data):
         room = cls(level)
         (room.mpl_clear, areas, room.points, room.room_transfer_points,
-         room.distances, room.ctypes, room.edcludables, room.excludable_points) = data
+         room.distances, room.ctypes, room.excludables, room.excludable_points) = data
         room.areas = tuple(GraphArea(room, *area) for area in areas)
         return room
 
@@ -221,7 +221,7 @@ class GraphRoom():
         excludable_points = list()
         for excludable in self.excludables:
             points = self.level.arealocation_points[excludable]
-            excludable_points.append(np.array(tuple(i for i in self.points if i in points)))
+            excludable_points.append(np.array(tuple((i in points) for i in self.points)))
         self.excludable_points = np.array(excludable_points)
 
         mapping = {point.i: i for i, point in enumerate(self._built_points)}
@@ -248,19 +248,44 @@ class GraphRoom():
     # Routing
     router_cache = {}
 
-    def build_router(self, allowed_ctypes):
+    def build_router(self, allowed_ctypes, public, nonpublic, avoid, include):
         ctypes = tuple(i for i, ctype in enumerate(self.ctypes) if ctype in allowed_ctypes)
-        cache_key = ('c3nav__graph__roomrouter__%s__%s__%s' %
-                     (self.graph.mtime, self.i, ','.join(str(i) for i in ctypes)))
+        avoid = tuple(i for i, excludable in enumerate(self.excludables) if excludable in avoid)
+        include = tuple(i for i, excludable in enumerate(self.excludables) if excludable in include)
+        cache_key = ('c3nav__graph__roomrouter__%s__%s__%s__%d,%d__%s__%s' %
+                     (self.graph.mtime, self.i, ','.join(str(i) for i in ctypes),
+                      public, nonpublic, ','.join(str(i) for i in avoid), ','.join(str(i) for i in include)))
 
         roomrouter = self.router_cache.get(cache_key)
         if not roomrouter:
-            roomrouter = self._build_router(ctypes)
+            roomrouter = self._build_router(ctypes, public, nonpublic, avoid, include)
             self.router_cache[cache_key] = roomrouter
         return roomrouter
 
-    def _build_router(self, ctypes):
-        g_sparse = csgraph_from_dense(np.amin(self.distances[ctypes, :, :], 0), null_value=np.inf)
+    def _build_router(self, ctypes, public, nonpublic, avoid, include):
+        distances = np.amin(self.distances[ctypes, :, :], axis=0)
+        orig_distances = None
+        if include:
+            orig_distances = distances.copy()
+
+        if ':public' in self.excludables and not public:
+            points, = self.excludable_points[self.excludables.index(':public')].nonzero()
+            distances[points[:, None], points] *= 1000
+
+        if ':private' in self.excludables and not nonpublic:
+            points, = self.excludable_points[self.excludables.index(':private')].nonzero()
+            print(points)
+            distances[points[:, None], points] = np.inf
+
+        if avoid:
+            points, = self.excludable_points[avoid, :].any(axis=0).nonzero()
+            distances[points[:, None], points] *= 1000
+
+        if include:
+            points, = self.excludable_points[include, :].any(axis=0).nonzero()
+            distances[points[:, None], points] = orig_distances[points[:, None], points]
+
+        g_sparse = csgraph_from_dense(distances, null_value=np.inf)
         shortest_paths, predecessors = shortest_path(g_sparse, return_predecessors=True)
         return RoomRouter(shortest_paths, predecessors)
 
