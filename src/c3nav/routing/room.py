@@ -1,7 +1,6 @@
 from collections import namedtuple
 
 import numpy as np
-from django.core.cache import cache
 from matplotlib.path import Path
 from scipy.sparse.csgraph._shortest_path import shortest_path
 from scipy.sparse.csgraph._tools import csgraph_from_dense
@@ -233,14 +232,17 @@ class GraphRoom():
             area.finish_build()
 
     # Routing
+    router_cache = {}
+
     def build_router(self, allowed_ctypes):
         ctypes = tuple(i for i, ctype in enumerate(self.ctypes) if ctype in allowed_ctypes)
         cache_key = ('c3nav__graph__roomrouter__%s__%s__%s' %
                      (self.graph.mtime, self.i, ','.join(str(i) for i in ctypes)))
-        roomrouter = cache.get(cache_key)
+
+        roomrouter = self.router_cache.get(cache_key)
         if not roomrouter:
             roomrouter = self._build_router(ctypes)
-            cache.set(cache_key, roomrouter, 600)
+            self.router_cache[cache_key] = roomrouter
         return roomrouter
 
     def _build_router(self, ctypes):
