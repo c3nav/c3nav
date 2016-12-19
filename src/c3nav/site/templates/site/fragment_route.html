@@ -5,7 +5,7 @@
     {% for routepart in route.routeparts %}
         <svg xmlns="http://www.w3.org/2000/svg" class="map" data-level="{{ routepart.level_name }}"
              viewBox="0 0 {{ routepart.svg_width | stringformat:"f" }} {{ routepart.svg_height | stringformat:"f" }}"
-             style="max-height:{% if routepart.svg_height > 300 %}300{% else %}{{ routepart.svg_height }}{% endif %}px">
+             style="max-height:{% if routepart.svg_height > 300 %}300{% else %}{{ routepart.svg_height | stringformat:"f" }}{% endif %}px">
             <defs>
                 <marker id="arrow-{{ forloop.counter0 }}" markerWidth="4" markerHeight="4" refX="2.5" refY="2" orient="auto">
                     <path d="M0,0 L3,2 L0,4 L0,0" style="fill: #FF0000; stroke: 0;"></path>
