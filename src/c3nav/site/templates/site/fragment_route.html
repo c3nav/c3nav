@@ -1,11 +1,12 @@
+{% load static %}
+{% load i18n %}
 {% load route_render %}
 
-<h2>Your Route</h2>
+<h2>{% trans 'Your Route' %}</h2>
 <div class="routeparts">
-
     {% for routepart in route.routeparts %}
-        <div class="row">
-            <div class="form-group col-md-6">
+        <div class="row routepart">
+            <div class="col-md-6">
                 <svg xmlns="http://www.w3.org/2000/svg" class="map" data-level="{{ routepart.level.name }}"
                      viewBox="0 0 {{ routepart.svg_width | stringformat:"f" }} {{ routepart.svg_height | stringformat:"f" }}"
                      style="max-height:{% if routepart.svg_height > 300 %}300{% else %}{{ routepart.svg_height | stringformat:"f" }}{% endif %}px">
@@ -20,15 +21,37 @@
                            xlink:href="/map/{{ routepart.level.name }}.png"></image>
 
                     <g class="connections">
-                        {% for c in routepart.connections %}
-                            <line x1="{{ c.from_point.svg_x | subtract:routepart.svg_min_x  | stringformat:"f"}}"
-                                  y1="{{ c.from_point.svg_y | subtract:routepart.svg_min_y | stringformat:"f" }}"
-                                  x2="{{ c.to_point.svg_x | subtract:routepart.svg_min_x | stringformat:"f" }}"
-                                  y2="{{ c.to_point.svg_y | subtract:routepart.svg_min_y | stringformat:"f" }}"
-                                  marker-end="url(#arrow-{{ forloop.parentloop.counter0 }})"></line>
+                        {% for line in routepart.lines %}
+                            <line x1="{{ line.from_point.svg_x | subtract:routepart.svg_min_x  | stringformat:"f"}}"
+                                  y1="{{ line.from_point.svg_y | subtract:routepart.svg_min_y | stringformat:"f" }}"
+                                  x2="{{ line.to_point.svg_x | subtract:routepart.svg_min_x | stringformat:"f" }}"
+                                  y2="{{ line.to_point.svg_y | subtract:routepart.svg_min_y | stringformat:"f" }}"
+                                  {% if line.arrow %}marker-end="url(#arrow-{{ forloop.parentloop.counter0 }})"{% endif %}></line>
                         {% endfor %}
                     </g>
                 </svg>
+            </div>
+            <div class="col-md-6">
+                <div class="desc">
+                    <div class="icon location"></div>
+                    <p>{{ routepart.line | safe }}</p>
+                </div>
+                {% for line in routepart.lines %}
+                    {% if not line.ignore %}
+                        <div class="desc">
+                            <div class="icon {{ line.icon }}"></div>
+                            <p>{{ line.description }}</p>
+                        </div>
+                    {% endif %}
+                {% endfor %}
+                {% if forloop.last %}
+                <div class="desc">
+                    <div class="icon destination"></div>
+                    <p>{% trans 'You have reached your destination.' %}
+                       {% if destination_title %}<br><strong>{{ destination_title }}</strong>{% endif %}</p>
+                </div>
+                {% endif %}
+            </div>
             </div>
         </div>
     {% endfor %}

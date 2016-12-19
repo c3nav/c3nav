@@ -36,7 +36,7 @@ def main(request, origin=None, destination=None):
             raise Http404
 
     route = None
-    if request.method == 'POST' and origin and destination:
+    if request.method in ('GET', 'POST') and origin and destination:
         graph = Graph.load()
 
         allowed_ctypes = ('', )
@@ -45,9 +45,8 @@ def main(request, origin=None, destination=None):
         allowed_ctypes += get_ctypes('elevator', request.POST.get('elevators'))
 
         route = graph.get_route(origin, destination, allowed_ctypes)
-        print(route)
         route = route.split()
-        print(route)
+        route.create_routeparts()
 
         if False:
             filename = os.path.join(settings.RENDER_ROOT, 'base-level-0.png')

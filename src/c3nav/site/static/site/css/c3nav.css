@@ -31,7 +31,7 @@ body {
     height:48px;
 }
 .locationselect .icons .reset {
-    background-image:url('/static/site/img/icons/cross.svg');
+    background-image:url('../img/icons/cross.svg');
 }
 
 
@@ -95,6 +95,7 @@ svg {
     width:100%;
     height:auto;
     vertical-align:bottom;
+    margin-bottom:10px;
 }
 line {
     stroke:#FF0000;
@@ -108,4 +109,76 @@ circle.pos {
     fill:#3399FF;
     stroke-width:10px;
     stroke:rgba(51, 153, 255, 0.2);
+}
+
+.routepart {
+    margin-bottom:20px;
+}
+
+.desc {
+    line-height:35px;
+    position:relative;
+    min-height:35px;
+    margin-bottom:8px;
+}
+.desc .icon {
+    display:inline-block;
+    vertical-align:middle;
+    width:35px;
+    height:35px;
+    text-align:center;
+
+    background-image:url('../img/icons/arrow.svg');
+    background-repeat: no-repeat;
+    background-size: contain;
+    background-position:center;
+}
+.desc .icon.light_right {
+    transform: rotate(45deg);
+}
+.desc .icon.light_left {
+    transform: rotate(-45deg);
+}
+.desc .icon.right {
+    transform: rotate(90deg);
+}
+.desc .icon.left {
+    transform: rotate(-90deg);
+}
+.desc .icon.location {
+    background-image:url('../img/icons/location.svg');
+}
+.desc .icon.stairs_up {
+    background-image:url('../img/icons/stairs-up.svg');
+}
+.desc .icon.stairs_down {
+    background-image:url('../img/icons/stairs-down.svg');
+}
+.desc .icon.escalator_up {
+    background-image:url('../img/icons/escalator-up.svg');
+}
+.desc .icon.escalator_down {
+    background-image:url('../img/icons/escalator-down.svg');
+}
+.desc .icon.elevator_up {
+    background-image:url('../img/icons/elevator-up.svg');
+}
+.desc .icon.elevator_down {
+    background-image:url('../img/icons/elevator-down.svg');
+}
+.desc .icon.destination {
+    background-image:url('../img/icons/destination.svg');
+}
+
+.desc .icon img {
+    max-width:35px;
+}
+.desc p {
+    white-space:normal;
+    display:inline-block;
+    padding-left:8px;
+    margin:0;
+    box-sizing:border-box;
+    width:auto;
+    vertical-align:middle;
 }

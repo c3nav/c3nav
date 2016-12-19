@@ -7,15 +7,15 @@ msgid ""
 msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2016-12-19 00:34+0000\n"
-"PO-Revision-Date: 2016-12-19 01:53+0100\n"
+"POT-Creation-Date: 2016-12-19 14:10+0000\n"
+"PO-Revision-Date: 2016-12-19 15:11+0100\n"
+"Last-Translator: Laura Klünder <laura@codingcatgirl.de>\n"
+"Language-Team: \n"
 "Language: de\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
-"Last-Translator: Laura Klünder <laura@codingcatgirl.de>\n"
-"Language-Team: \n"
 "X-Generator: Poedit 1.8.11\n"
 
 #: c3nav/editor/forms.py:94
@@ -288,17 +288,86 @@ msgstr "Vorlagen"
 msgid "This Source belongs to a package you don't have access to."
 msgstr "Diese Vorlage gehört zu einem Paket, auf das du kein Zugriff hast."
 
-#: c3nav/settings.py:198
+#: c3nav/routing/route.py:86
+msgid "Go up the stairs."
+msgstr "Geh die Treppe nach oben."
+
+#: c3nav/routing/route.py:87
+msgid "Go down the stairs."
+msgstr "Geh die Treppe nach unten."
+
+#: c3nav/routing/route.py:88
+msgid "Take the escalator upwards."
+msgstr "Fahr die Rolltreppe hoch."
+
+#: c3nav/routing/route.py:89
+msgid "Take the escalator downwards."
+msgstr "Fahr die Rolltreppe runter."
+
+#: c3nav/routing/route.py:90
+msgid "Take the elevator upwards."
+msgstr "Fahr mit dem Aufzug nach oben."
+
+#: c3nav/routing/route.py:91
+msgid "Take the elevator downwards."
+msgstr "Fahr mit den Aufzug nach unten."
+
+#: c3nav/routing/route.py:116
+msgid "Go through the door on the left."
+msgstr "Geh links durch die Tür."
+
+#: c3nav/routing/route.py:117
+msgid "Go through the door on the right."
+msgstr "Geh rechts durch die Tür."
+
+#: c3nav/routing/route.py:118
+msgid "Go through the door."
+msgstr "Geh durch die Tür."
+
+#: c3nav/routing/route.py:147
+#, python-format
+msgid "Turn light to the left and continue for %(d).1f meters."
+msgstr "Gehe schräg nach links %(d).1f m weiter."
+
+#: c3nav/routing/route.py:148
+#, python-format
+msgid "Turn light to the right and continue for %(d).1f meters."
+msgstr "Gehe schräg nach rechts %(d).1f m weiter."
+
+#: c3nav/routing/route.py:149
+#, python-format
+msgid "Turn left and continue for %(d).1f meters."
+msgstr "Gehe nach links %(d).1f m weiter."
+
+#: c3nav/routing/route.py:150
+#, python-format
+msgid "Turn right and continue for %(d).1f meters."
+msgstr "Gehe nach rechts %(d).1f m weiter."
+
+#: c3nav/routing/route.py:151
+#, python-format
+msgid "Continue for %(d).1f meters."
+msgstr "Gehe %(d).1f m weiter geradeaus."
+
+#: c3nav/settings.py:199
 msgid "English"
 msgstr "Englisch"
 
-#: c3nav/settings.py:199
+#: c3nav/settings.py:200
 msgid "German"
 msgstr "Deutsch"
 
 #: c3nav/site/templates/site/fragment_location.html:6
 msgid "Search any Location…"
 msgstr "Tipp einen beliebigen Ort ein…"
+
+#: c3nav/site/templates/site/fragment_route.html:5
+msgid "Your Route"
+msgstr "Deine Route"
+
+#: c3nav/site/templates/site/fragment_route.html:50
+msgid "You have reached your destination."
+msgstr "Du hast dein Ziel erreich."
 
 #: c3nav/site/templates/site/main.html:10
 msgid "Origin"

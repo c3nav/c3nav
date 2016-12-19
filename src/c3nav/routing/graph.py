@@ -123,22 +123,24 @@ class Graph:
                 point1 = self._built_elevatorlevel_points[level1.name]
                 point2 = self._built_elevatorlevel_points[level2.name]
 
-                center_point = GraphPoint((point1.x+point2.x)/2, (point1.y+point2.y)/2, None)
-                self.points.append(center_point)
-                self._built_level_transfer_points.append(center_point)
+                center = GraphPoint((point1.x+point2.x)/2, (point1.y+point2.y)/2, None)
+                self.points.append(center)
+                self._built_level_transfer_points.append(center)
 
                 for room in (point1.room, point2.room):
-                    room._built_points.append(center_point)
-                    room.level._built_room_transfer_points.append(center_point)
-                    room.level._built_points.append(center_point)
+                    room._built_points.append(center)
+                    room.level._built_room_transfer_points.append(center)
+                    room.level._built_points.append(center)
 
                 direction_up = level2.altitude > level1.altitude
 
-                point1.connect_to(center_point, ctype=('elevator_up' if direction_up else 'elevator_down'))
-                center_point.connect_to(point2, ctype=('elevator_up' if direction_up else 'elevator_down'))
+                dist = abs(level2.altitude-level1.altitude)
 
-                point2.connect_to(center_point, ctype=('elevator_down' if direction_up else 'elevator_up'))
-                center_point.connect_to(point1, ctype=('elevator_down' if direction_up else 'elevator_up'))
+                point1.connect_to(center, ctype=('elevator_up' if direction_up else 'elevator_down'), distance=dist)
+                center.connect_to(point2, ctype=('elevator_up' if direction_up else 'elevator_down'), distance=dist)
+
+                point2.connect_to(center, ctype=('elevator_down' if direction_up else 'elevator_up'), distance=dist)
+                center.connect_to(point1, ctype=('elevator_down' if direction_up else 'elevator_up'), distance=dist)
 
     # Loading/Saving the Graph
     def serialize(self):
