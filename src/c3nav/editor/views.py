@@ -7,6 +7,7 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import translation
 
 from c3nav.editor.hosters import get_hoster_for_package, hosters
+from c3nav.mapdata.models import AreaLocation
 from c3nav.mapdata.models.base import MAPITEM_TYPES
 from c3nav.mapdata.models.package import Package
 from c3nav.mapdata.packageio.write import json_encode
@@ -53,6 +54,9 @@ def list_mapitems(request, mapitem_type, level=None):
             queryset = queryset.filter(level__name=level)
         elif hasattr(mapitemtype, 'levels'):
             queryset = queryset.filter(levels__name=level)
+
+    if issubclass(mapitemtype, AreaLocation):
+        queryset = sorted(queryset, key=AreaLocation.get_sort_key)
 
     return render(request, 'editor/mapitems.html', {
         'mapitem_type': mapitem_type,

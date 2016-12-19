@@ -1,11 +1,13 @@
 import re
 from collections import OrderedDict
 
+from django.core.cache import cache
 from django.db import models
 from django.utils.functional import cached_property
 from django.utils.translation import ugettext_lazy as _
 
 from c3nav.mapdata.fields import JSONField
+from c3nav.mapdata.lastupdate import get_last_mapdata_update
 from c3nav.mapdata.models import Level
 from c3nav.mapdata.models.base import MapItem
 from c3nav.mapdata.models.geometry import GeometryMapItemWithLevel
@@ -67,6 +69,7 @@ class LocationModelMixin(Location):
 
 class LocationGroup(LocationModelMixin, MapItem):
     titles = JSONField()
+    can_search = models.BooleanField(default=True, verbose_name=_('can be searched'))
 
     class Meta:
         verbose_name = _('Location Group')
@@ -77,9 +80,42 @@ class LocationGroup(LocationModelMixin, MapItem):
     def location_id(self):
         return 'g:'+self.name
 
+    @classmethod
+    def fromfile(cls, data, file_path):
+        kwargs = super().fromfile(data, file_path)
+
+        if 'can_search' not in data:
+            raise ValueError('Missing can_search')
+        can_search = data['can_search']
+        if not isinstance(can_search, bool):
+            raise ValueError('can_search has to be boolean!')
+        kwargs['can_search'] = can_search
+
+        return kwargs
+
+    def tofile(self):
+        result = super().tofile()
+        result['can_search'] = self.can_search
+        return result
+
+    def __str__(self):
+        return self.title
+
 
 class AreaLocation(LocationModelMixin, GeometryMapItemWithLevel):
+    LOCATION_TYPES = (
+        ('level', _('Level')),
+        ('area', _('General Area')),
+        ('room', _('Room')),
+        ('roomsegment', _('Room Segment')),
+        ('poi', _('Point of Interest')),
+    )
+    LOCATION_TYPES_ORDER = tuple(name for name, title in LOCATION_TYPES)
+
+    location_type = models.CharField(max_length=20, verbose_name=_('Location Type'), choices=LOCATION_TYPES)
     titles = JSONField()
+    can_search = models.BooleanField(default=True, verbose_name=_('can be searched'))
+    can_describe = models.BooleanField(default=True, verbose_name=_('can be used to describe a position'))
     groups = models.ManyToManyField(LocationGroup, verbose_name=_('Location Groups'), blank=True)
 
     geomtype = 'polygon'
@@ -93,6 +129,45 @@ class AreaLocation(LocationModelMixin, GeometryMapItemWithLevel):
     def location_id(self):
         return self.name
 
+    def get_in_areas(self):
+        last_update = get_last_mapdata_update()
+        if last_update is None:
+            return self._get_in_areas()
+
+        cache_key = 'c3nav__mapdata__location__in__areas__'+last_update.isoformat()+'__'+self.name,
+        in_areas = cache.get(cache_key)
+        if not in_areas:
+            in_areas = self._get_in_areas()
+            cache.set(cache_key, in_areas, 900)
+
+        return in_areas
+
+    def _get_in_areas(self):
+        my_area = self.geometry.area
+
+        in_areas = []
+        area_location_i = self.get_sort_key(self)
+        for location_type in reversed(self.LOCATION_TYPES_ORDER[:area_location_i]):
+            for arealocation in AreaLocation.objects.filter(location_type=location_type, level=self.level):
+                intersection_area = arealocation.geometry.intersection(self.geometry).area
+                if intersection_area and my_area / intersection_area > 0.99:
+                    in_areas.append(arealocation)
+
+        return in_areas
+
+    @property
+    def subtitle(self):
+        return self.get_subtitle()
+
+    def get_subtitle(self):
+        items = [self.get_location_type_display()]
+        items += [area.title for area in self.get_in_areas()]
+        return ', '.join(items)
+
+    @classmethod
+    def get_sort_key(cls, arealocation):
+        return cls.LOCATION_TYPES_ORDER.index(arealocation.location_type)
+
     @classmethod
     def fromfile(cls, data, file_path):
         kwargs = super().fromfile(data, file_path)
@@ -101,6 +176,27 @@ class AreaLocation(LocationModelMixin, GeometryMapItemWithLevel):
         if not isinstance(groups, list):
             raise TypeError('groups has to be a list')
         kwargs['groups'] = groups
+
+        if 'location_type' not in data:
+            raise ValueError('Missing location type')
+        location_type = data['location_type']
+        if location_type not in dict(cls.LOCATION_TYPES):
+            raise ValueError('Invalid location type')
+        kwargs['location_tyoe'] = location_type
+
+        if 'can_search' not in data:
+            raise ValueError('Missing can_search')
+        can_search = data['can_search']
+        if not isinstance(can_search, bool):
+            raise ValueError('can_search has to be boolean!')
+        kwargs['can_search'] = can_search
+
+        if 'can_describe' not in data:
+            raise ValueError('Missing can_describe')
+        can_describe = data['can_describe']
+        if not isinstance(can_describe, bool):
+            raise ValueError('can_describe has to be boolean!')
+        kwargs['can_describe'] = can_describe
 
         return kwargs
 
@@ -112,6 +208,9 @@ class AreaLocation(LocationModelMixin, GeometryMapItemWithLevel):
     def tofile(self):
         result = super().tofile()
         result['groups'] = sorted(self.groups.all().order_by('name').values_list('name', flat=True))
+        result['location_type'] = self.location_type
+        result['can_search'] = self.can_search
+        result['can_describe'] = self.can_describe
         result.move_to_end('geometry')
         return result
 
