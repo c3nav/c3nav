@@ -56,7 +56,7 @@ class Route:
         print(point.arealocations)
         locations = sorted(AreaLocation.objects.filter(location_type__in=('room', 'level', 'area'),
                                                        name__in=point.arealocations),
-                           key=AreaLocation.get_sort_key)
+                           key=AreaLocation.get_sort_key, reverse=True)
 
         if not locations:
             return _('Unknown Location'),  _('Unknown Location')
