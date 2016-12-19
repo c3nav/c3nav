@@ -5,7 +5,7 @@ from shapely.geometry import CAP_STYLE, JOIN_STYLE
 from shapely.ops import cascaded_union
 
 from c3nav.mapdata.models.base import MapItem
-from c3nav.mapdata.utils.geometry import assert_multilinestring
+from c3nav.mapdata.utils.geometry import assert_multilinestring, assert_multipolygon
 
 
 class Level(MapItem):
@@ -144,7 +144,7 @@ class LevelGeometries():
         for level_name, obstacles in obstacles_by_crop_to_level.items():
             obstacles = cascaded_union(obstacles).intersection(levels_by_name[level_name].geometries.mapped)
             all_obstacles.append(obstacles)
-        all_obstacles.extend(self.lineobstacles)
+        all_obstacles.extend(assert_multipolygon(self.lineobstacles))
 
         return cascaded_union(all_obstacles).intersection(self.mapped)
 
