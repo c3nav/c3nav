@@ -263,29 +263,26 @@ class GraphRoom():
         return roomrouter
 
     def _build_router(self, ctypes, public, nonpublic, avoid, include):
-        distances = np.amin(self.distances[ctypes, :, :], axis=0)
-        orig_distances = None
-        if include:
-            orig_distances = distances.copy()
+        distances = np.amin(self.distances[ctypes, :, :], axis=0).astype(np.float32)
+        factors = np.ones_like(distances, dtype=np.float16)
 
         if ':public' in self.excludables and not public:
             points, = self.excludable_points[self.excludables.index(':public')].nonzero()
-            distances[points[:, None], points] *= 1000
+            factors[points[:, None], points] = 1000
 
-        if ':private' in self.excludables and not nonpublic:
-            points, = self.excludable_points[self.excludables.index(':private')].nonzero()
-            print(points)
-            distances[points[:, None], points] = np.inf
+        if ':nonpublic' in self.excludables and not nonpublic:
+            points, = self.excludable_points[self.excludables.index(':nonpublic')].nonzero()
+            factors[points[:, None], points] = np.inf
 
         if avoid:
-            points, = self.excludable_points[avoid, :].any(axis=0).nonzero()
-            distances[points[:, None], points] *= 1000
+            points, = self.excludable_points[avoid].any(axis=0).nonzero()
+            factors[points[:, None], points] = 1000
 
         if include:
-            points, = self.excludable_points[include, :].any(axis=0).nonzero()
-            distances[points[:, None], points] = orig_distances[points[:, None], points]
+            points, = self.excludable_points[include].any(axis=0).nonzero()
+            factors[points[:, None], points] = 1
 
-        g_sparse = csgraph_from_dense(distances, null_value=np.inf)
+        g_sparse = csgraph_from_dense(distances*factors, null_value=np.inf)
         shortest_paths, predecessors = shortest_path(g_sparse, return_predecessors=True)
         return RoomRouter(shortest_paths, predecessors)
 

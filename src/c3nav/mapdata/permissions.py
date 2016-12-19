@@ -1,3 +1,5 @@
+from collections import OrderedDict
+
 from django.conf import settings
 from django.utils.translation import ugettext_lazy as _
 from rest_framework.exceptions import PermissionDenied
@@ -43,6 +45,17 @@ def get_public_private_area(level):
     public_area = level.public_geometries.areas_and_doors
     private_area = everything.difference(public_area)
     return public_area, private_area
+
+
+def get_excludables_includables():
+    excludables = []
+    includables = []
+    if settings.DEBUG:
+        excludables.append((':public', _('public areas')))
+        includables.append((':nonpublic', _('non-public areas')))
+    else:
+        pass
+    return OrderedDict(excludables), OrderedDict(includables)
 
 
 class LockedMapFeatures(BasePermission):

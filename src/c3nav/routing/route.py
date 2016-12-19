@@ -53,7 +53,6 @@ class Route:
 
     @staticmethod
     def describe_point(point):
-        print(point.arealocations)
         locations = sorted(AreaLocation.objects.filter(location_type__in=('room', 'level', 'area'),
                                                        name__in=point.arealocations),
                            key=AreaLocation.get_sort_key, reverse=True)
