@@ -137,10 +137,10 @@ class Route:
                                 last.arrow = False
                                 line.turning = 'left'
                                 distance += last.desc_distance
-                            elif last.turning.endswith('left') and line.turning.endswith('left'):
+                            elif line.turning == '':
                                 last.ignore = True
                                 last.arrow = False
-                                line.turning = 'left'
+                                line.turning = last.turning
                                 distance += last.desc_distance
 
                     line.description = {
