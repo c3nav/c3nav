@@ -33,8 +33,8 @@ class GraphPoint():
         y = self.y * settings.RENDER_SCALE
         return ((x-5, y-5), (x+5, y+5))
 
-    def connect_to(self, other_point, ctype=''):
-        connection = GraphConnection(self, other_point, ctype=ctype)
+    def connect_to(self, other_point, ctype='', distance=None):
+        connection = GraphConnection(self, other_point, ctype=ctype, distance=distance)
         self.connections[other_point] = connection
         other_point.connections_in[self] = connection
 
