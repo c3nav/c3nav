@@ -328,9 +328,9 @@ class GraphLevel():
             routers[room] = router
 
             room_distances = empty_distances.copy()
-            in_room_i = np.array(tuple(room.points.index(point) for point in room.room_transfer_points))
+            in_room_i = np.array(tuple(room.points.index(point) for point in room.room_transfer_points), dtype=int)
             in_level_i = np.array(tuple(self.room_transfer_points.index(point)
-                                        for point in room.room_transfer_points))
+                                        for point in room.room_transfer_points), dtype=int)
 
             room_distances[in_level_i[:, None], in_level_i] = router.shortest_paths[in_room_i[:, None], in_room_i]
             better = room_distances < sparse_distances

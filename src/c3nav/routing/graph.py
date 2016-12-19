@@ -223,9 +223,9 @@ class Graph:
 
             level_distances = empty_distances.copy()
             in_level_i = np.array(tuple(level.room_transfer_points.index(point)
-                                        for point in level.level_transfer_points))
+                                        for point in level.level_transfer_points), dtype=int)
             in_graph_i = np.array(tuple(self.level_transfer_points.index(point)
-                                        for point in level.level_transfer_points))
+                                        for point in level.level_transfer_points), dtype=int)
             level_distances[in_graph_i[:, None], in_graph_i] = router.shortest_paths[in_level_i[:, None], in_level_i]
 
             better = level_distances < sparse_distances
@@ -375,7 +375,8 @@ class Graph:
 
         room_transfers = {}
         for room in rooms:
-            room_transfer_points = np.array(tuple(room.points.index(point) for point in room.room_transfer_points))
+            room_transfer_points = np.array(tuple(room.points.index(point)
+                                                  for point in room.room_transfer_points), dtype=int)
 
             points = room_points[room]
             if mode == 'orig':
@@ -402,7 +403,7 @@ class Graph:
         level_transfers = {}
         for level in levels:
             level_transfer_points = np.array(tuple(level.room_transfer_points.index(point)
-                                                   for point in level.level_transfer_points))
+                                                   for point in level.level_transfer_points), dtype=int)
 
             points, distances = zip(*(tuple((level.room_transfer_points.index(point), segment.distance)
                                             for point, segment in all_room_transfers.items()
