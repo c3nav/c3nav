@@ -32,23 +32,24 @@
                 </svg>
             </div>
             <div class="col-md-6">
+                {% if forloop.first %}
                 <div class="desc">
                     <div class="icon location"></div>
-                    <p>{{ routepart.line | safe }}</p>
+                    <p><strong>{{ origin.title }}</strong><br>{{ origin.subtitle }}</p>
                 </div>
+                {% endif %}
                 {% for line in routepart.lines %}
                     {% if not line.ignore %}
                         <div class="desc">
                             <div class="icon {{ line.icon }}"></div>
-                            <p>{{ line.description }}</p>
+                            <p>{% if line.title %}<strong>{{ line.title }}</strong><br>{% endif %}{{ line.description }}</p>
                         </div>
                     {% endif %}
                 {% endfor %}
                 {% if forloop.last %}
                 <div class="desc">
                     <div class="icon destination"></div>
-                    <p>{% trans 'You have reached your destination.' %}
-                       {% if destination_title %}<br><strong>{{ destination_title }}</strong>{% endif %}</p>
+                    <p><strong>{{ destination.title }}</strong><br>{{ destination.subtitle }}</p>
                 </div>
                 {% endif %}
             </div>

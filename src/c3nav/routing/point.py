@@ -38,5 +38,9 @@ class GraphPoint():
         self.connections[other_point] = connection
         other_point.connections_in[self] = connection
 
+    @cached_property
+    def arealocations(self):
+        return tuple(name for name, points_i in self.level.arealocation_points.items() if self.i in points_i)
+
     def __repr__(self):
         return '<GraphPoint x=%f y=%f room=%s>' % (self.x, self.y, (id(self.room) if self.room else None))
