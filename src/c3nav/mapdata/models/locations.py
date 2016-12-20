@@ -238,7 +238,7 @@ def get_location(request, name):
         level = levels.get(match.group('level'))
         if level is None:
             return None
-        return PointLocation(level=level, x=int(match.group('x')), y=int(match.group('y')))
+        return PointLocation(level=level, x=int(match.group('x'))/100, y=int(match.group('y'))/100)
 
     if name.startswith('g:'):
         return filter_queryset_by_package_access(request, LocationGroup.objects.filter(name=name[2:])).first()
@@ -282,7 +282,7 @@ class PointLocation(Location):
 
     @cached_property
     def location_id(self):
-        return 'c:%s:%d:%d' % (self.level.name, self.x, self.y)
+        return 'c:%s:%d:%d' % (self.level.name, self.x*100, self.y*100)
 
     @property
     def title(self) -> str:

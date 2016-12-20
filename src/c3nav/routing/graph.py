@@ -242,6 +242,7 @@ class Graph:
 
     def get_location_points(self, location: Location):
         if isinstance(location, PointLocation):
+            return self.levels[level.name].points_from()
             return 'bla'
         elif isinstance(location, AreaLocation):
             return self.levels[location.level.name].arealocation_points[location.name]
