@@ -30,8 +30,8 @@ c3nav = {
         };
 
         c3nav.init_typeahead($('.locationselect input:text'));
+        c3nav.locationselect_focus();
 
-        $('.locationselect:not(.selected) .locationselect-input .tt-input').first().focus();
         $('.locationselect .icons .reset').click(c3nav._locationselect_reset);
         $('#route-from-here').click(c3nav._click_route_from_here);
         $('#route-to-here').click(c3nav._click_route_to_here);
