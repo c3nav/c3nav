@@ -1,7 +1,7 @@
 from datetime import timedelta
 
 from django.http import Http404
-from django.shortcuts import get_object_or_404, render
+from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.utils import timezone
 
@@ -9,6 +9,7 @@ from c3nav.mapdata.models import Level
 from c3nav.mapdata.models.locations import get_location, search_location
 from c3nav.mapdata.permissions import get_excludables_includables
 from c3nav.mapdata.render.compose import composer
+from c3nav.mapdata.utils.cache import get_levels_cached
 from c3nav.mapdata.utils.misc import get_dimensions
 from c3nav.routing.graph import Graph
 
@@ -49,38 +50,68 @@ def main(request, location=None, origin=None, destination=None):
 
     mode = 'location' if not origin and not destination else 'route'
 
+    active_field = None
+    if not origin and not destination:
+        active_field = 'location'
+    elif origin and not destination:
+        active_field = 'destination'
+    elif destination and not origin:
+        active_field = 'origin'
+
     ctx = {
         'location': location,
         'origin': origin,
         'destination': destination,
         'mode': mode,
+        'active_field': active_field,
     }
 
-    search = None
-    if not origin and not destination:
-        search = 'location'
-    elif origin and not destination:
-        search = 'destination'
-    elif destination and not origin:
-        search = 'origin'
+    width, height = get_dimensions()
+    levels = tuple(name for name, level in get_levels_cached().items() if not level.intermediate)
 
-    if search is not None:
-        search_query = request.POST.get(search+'_search', '').strip() or None
+    ctx.update({
+        'width': width,
+        'height': height,
+        'svg_width': int(width * 6),
+        'svg_height': int(height * 6),
+        'levels': levels,
+    })
+
+    map_level = request.GET.get('map-level')
+    if map_level in levels:
+        ctx.update({
+            'map_level': map_level
+        })
+
+        if 'x' in request.POST and 'y' in request.POST:
+            x = request.POST.get('x')
+            y = request.POST.get('y')
+            if x.isnumeric() and y.isnumeric():
+                coords = 'c:%s:%d:%d' % (map_level, int(int(x)/6*100), int(int(y)/6*100))
+                if active_field == 'origin':
+                    return redirect('site.route', origin=coords, destination=destination.location_id)
+                elif active_field == 'destination':
+                    return redirect('site.route', origin=origin.location_id, destination=coords)
+                elif active_field == 'location':
+                    return redirect('site.location', location=coords)
+
+    if active_field is not None:
+        search_query = request.POST.get(active_field+'_search', '').strip() or None
         if search_query:
             results = search_location(request, search_query)
 
-            url = 'site.location' if search == 'location' else 'site.route'
+            url = 'site.location' if active_field == 'location' else 'site.route'
             kwargs = {}
             if origin:
                 kwargs['origin'] = origin.location_id
             if destination:
                 kwargs['destination'] = destination.location_id
             for result in results:
-                kwargs[search] = result.location_id
+                kwargs[active_field] = result.location_id
                 result.url = reverse(url, kwargs=kwargs)
 
             ctx.update({
-                'search': search,
+                'search': active_field,
                 'search_query': search_query,
                 'search_results': results,
             })
@@ -158,15 +189,6 @@ def main(request, location=None, origin=None, destination=None):
         ctx.update({
             'route': route,
         })
-
-    width, height = get_dimensions()
-
-    ctx.update({
-        'width': width,
-        'height': height,
-        'svg_width': width*6,
-        'svg_height': height*6,
-    })
 
     response = render(request, 'site/main.html', ctx)
 

@@ -292,7 +292,7 @@ class PointLocation(Location):
     def subtitle(self) -> str:
         return 'Coordinates'
 
-    def to_location_json(self):
+    def to_json(self):
         result = super().to_location_json()
         result['level'] = self.level.name
         result['x'] = self.x

@@ -4,7 +4,7 @@
 {% load i18n %}
 
 {% block content %}
-<form method="post" class="main-view mode-{{ mode }}{% if origin and destination %} can-route{% endif %}">
+<form method="post" class="main-view mode-{{ mode }}{% if origin and destination %} can-route{% endif %}" data-svg-width="{{ svg_width }}" data-svg-height="{{ svg_height }}">
     {% csrf_token %}
     <div class="row locations">
         {% trans "Location" as heading %}

@@ -1,4 +1,5 @@
 from calendar import timegm
+from collections import OrderedDict
 from functools import wraps
 
 from django.core.cache import cache
@@ -90,7 +91,7 @@ class CachedReadOnlyViewSetMixin():
 @cache_result('c3nav__mapdata__levels')
 def get_levels_cached():
     from c3nav.mapdata.models import Level
-    return {level.name: level for level in Level.objects.all()}
+    return OrderedDict((level.name, level) for level in Level.objects.all())
 
 
 @cache_result('c3nav__mapdata__packages')

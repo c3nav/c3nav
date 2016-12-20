@@ -1,5 +1,5 @@
 {% load i18n %}
-<div class="col-md-{% if name == 'location' %}12{% else %}6{% endif %} location-group {{ name }}-select{% if location %} selected{% endif %}">
+<div class="col-md-{% if name == 'location' %}12{% else %}6{% endif %} location-group {{ name }}-select{% if location %} selected{% endif %}{% if active_field == name and map_level %} map{% endif %}">
     <div class="form-group{% if search == name and not search_results %} has-error{% endif %}" data-name="{{ name }}">
         <label for="{{ name }}_input">{{ heading }}</label>
         <div class="locationselect">
@@ -23,6 +23,27 @@
                         </div>
                     </span>
                 {% endif %}
+                <div class="icons">
+                    <a href="?map-level={{ levels.0 }}" class="map"></a>
+                </div>
+            </div>
+            <div class="locationselect-map">
+                <div class="map-container">
+                    <div class="dummy" style="width:{{ svg_width }}px;height:{{ svg_height }}px;"></div>
+                    {% if map_level %}
+                        <input type="image" src="/map/{{ map_level }}.png" width="{{ svg_width }}" height="{{ svg_height }}">
+                        <p class="scroll-hint">{% trans 'You have Javascript deactivated. Please scroll in this direction ⇘' %}</p>
+                    {% endif %}
+                </div>
+                <div class="map-buttons">
+                    <div class="btn-group level-selector" role="group">
+                        {% for level in levels %}
+                            <a href="?map-level={{ level }}" data-level="{{ level }}" class="btn btn-default{% if level == map_level %} active{% endif %}">{{ level }}</a>
+                        {% endfor %}
+                    </div>
+                    <a href="?" class="btn btn-default close-map">{% trans 'close' %}</a>
+                </div>
+                <span class="help-block">{% trans 'Click or tap the desired location on the map.' %}</span>
             </div>
             <div class="locationselect-selected">
                 <div class="location form-control input-lg">
@@ -52,7 +73,7 @@
             </div>
         </div>
     {% endif %}
-    {% if not location %}
+    {% if not location and not map_level %}
         <noscript>
             <button type="submit" class="btn btn-primary btn-block">{% trans 'Search' %}</button>
         </noscript>
