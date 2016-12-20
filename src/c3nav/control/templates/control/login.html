@@ -1,0 +1,24 @@
+{% extends 'control/base.html' %}
+
+{% load bootstrap3 %}
+{% load i18n %}
+
+{% block bodyclass %}login{% endblock %}
+
+{% block content %}
+<form method="POST">
+    {% csrf_token %}
+    <fieldset>
+        <legend>{% trans 'Log in' %}</legend>
+        {% bootstrap_form form %}
+        <div class="form-group">
+            <button type="submit" class="btn btn-primary btn-block btn-lg">{% trans 'Log in' %}</button>
+        </div>
+    </fieldset>
+    <p>{% blocktrans %}This is the non-public backend for creation of auth tokens.{% endblocktrans %}</p>
+
+    <p><a class="btn btn-sm btn-default btn-block" href="{% url 'control.prove' %}">
+        {% blocktrans %}Prove that you should have access{% endblocktrans %}
+    </a></p>
+</form>
+{% endblock %}

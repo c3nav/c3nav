@@ -139,3 +139,12 @@ class GitlabHoster(Hoster):
             'success': True,
             'url': merge_request['web_url']
         }
+
+    def get_user_id_with_access_token(self, access_token):
+        if not access_token.strip():
+            return None
+
+        response = requests.get(self.base_url + 'api/v3/user?private_token=' + access_token)
+        if response.status_code != 200:
+            return None
+        return str(response.json()['id'])

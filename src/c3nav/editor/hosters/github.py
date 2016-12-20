@@ -192,3 +192,7 @@ class GithubHoster(Hoster):
             'success': True,
             'url': merge_request['html_url']
         }
+
+    def get_user_id_with_access_token(self, access_token):
+        # Todo: Implement this
+        return None

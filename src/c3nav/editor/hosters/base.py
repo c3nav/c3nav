@@ -157,3 +157,10 @@ class Hoster(ABC):
         message and an optional 'url' key containing an URL to the created pull request.
         """
         pass
+
+    @abstractmethod
+    def get_user_id_with_access_token(self, access_token) -> str:
+        """
+        Get User ID of the User with this access token or None if the access token does not work.
+        """
+        pass

@@ -1,0 +1,11 @@
+body {
+    font-size:16px;
+}
+
+h1 {
+    margin-bottom:20px;
+}
+
+.login .container {
+    max-width:420px;
+}

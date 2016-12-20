@@ -1,0 +1,41 @@
+{% extends 'control/base.html' %}
+
+{% load bootstrap3 %}
+{% load i18n %}
+
+{% block bodyclass %}login{% endblock %}
+
+{% block content %}
+<form method="POST">
+    {% csrf_token %}
+    <fieldset>
+        <legend>{% trans 'Prove access rights' %}</legend>
+        <p>{% blocktrans %}Please enter a valid authentication code for the hosters of the following non-public map packages:{% endblocktrans %}</p>
+        {% if success %}
+            <div class="alert alert-success">
+                <strong>{% trans 'Thanks – you get full access to the map!' %}</strong>
+            </div>
+        {% elif hosters %}
+            {% if error %}
+                <div class="alert alert-dismissible alert-danger">
+                    <button type="button" class="close" data-dismiss="alert">×</button>
+                    <strong>{% trans 'Sorry.' %}</strong> {% trans 'One or more access tokens were not correct.' %}
+                  </div>
+            {% endif %}
+            {% for package in hosters %}
+                 <div class="form-group">
+                    <label for="hoster{{ forloop.counter0 }}">{{ package.name }}</label>
+                    <input type="password" class="form-control" id="hoster{{ forloop.counter0 }}" name="{{ package.name }}" placeholder="{% trans 'Access Token' %}">
+                 </div>
+            {% endfor %}
+            <div class="form-group">
+                <button type="submit" class="btn btn-primary btn-block btn-lg">{% trans 'Submit' %}</button>
+            </div>
+        {% else %}
+            <div class="alert alert-info">
+                <strong>{% trans 'Sorry, this service is currently not available.' %}</strong>
+            </div>
+        {% endif %}
+    </fieldset>
+</form>
+{% endblock %}
