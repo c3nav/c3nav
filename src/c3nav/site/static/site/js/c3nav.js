@@ -1,6 +1,6 @@
 c3nav = {
     init: function() {
-        if (!$('#c3nav-main').length) return;
+        if (!$('#main_view').length) return;
 
         c3nav._typeahead_locations = new Bloodhound({
             datumTokenizer: function(data) {
