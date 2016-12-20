@@ -294,5 +294,15 @@ class GraphRoom():
         return GraphConnection(self.graph.points[self.points[from_i]], self.graph.points[self.points[to_i]],
                                distance=distance, ctype=ctype)
 
+    def contains_point(self, point):
+        return self.mpl_clear.contains_point(point)
+
+    def connected_points(self, point, mode):
+        connections = {}
+        for area in self.areas:
+            if area.contains_point(point):
+                connections.update(area.connected_points(point, mode))
+        return connections
+
 
 RoomRouter = namedtuple('RoomRouter', ('shortest_paths', 'predecessors', ))

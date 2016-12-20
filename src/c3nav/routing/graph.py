@@ -240,14 +240,19 @@ class Graph:
         routers[self] = GraphRouter(shortest_paths, predecessors, level_transfers)
         return routers
 
-    def get_location_points(self, location: Location):
+    def get_location_points(self, location: Location, mode):
         if isinstance(location, PointLocation):
-            return self.levels[level.name].points_from()
-            return 'bla'
+            points = self.levels[location.level.name].connected_points(np.array((location.x, location.y)), mode)
+            points, distances = zip(*((point_i, distance) for point_i, (distance, ctype) in points.items()))
+            points = np.array(points)
+            distances = np.array(distances)
+            return points, distances
         elif isinstance(location, AreaLocation):
-            return self.levels[location.level.name].arealocation_points[location.name]
+            points = self.levels[location.level.name].arealocation_points[location.name]
+            return points, None
         elif isinstance(location, LocationGroup):
-            return np.hstack(tuple(self.get_location_points(area) for area in location.locationareas))
+            points = set(np.hstack(tuple(self.get_location_points(area) for area in location.locationareas)))
+            return points, None
 
     def _get_points_by_i(self, points):
         return tuple(self.points[i] for i in points)
@@ -256,8 +261,8 @@ class Graph:
         return np.array(tuple(i for i, point in enumerate(points) if point in allowed_points_i))
 
     def get_route(self, origin: Location, destination: Location, allowed_ctypes, public, nonpublic, avoid, include):
-        orig_points_i = set(self.get_location_points(origin))
-        dest_points_i = set(self.get_location_points(destination))
+        orig_points_i, orig_distances = self.get_location_points(origin, 'orig')
+        dest_points_i, dest_distances = self.get_location_points(destination, 'dest')
 
         orig_points = self._get_points_by_i(orig_points_i)
         dest_points = self._get_points_by_i(dest_points_i)
@@ -275,6 +280,15 @@ class Graph:
         # get origin points for each room (points as point index within room)
         orig_room_points = {room: self._allowed_points_index(room.points, orig_points_i) for room in orig_rooms}
         dest_room_points = {room: self._allowed_points_index(room.points, dest_points_i) for room in dest_rooms}
+
+        # add distances to room routers
+        if orig_distances is not None:
+            for room in orig_rooms:
+                routers[room].shortest_paths[orig_room_points[room], :] += orig_distances[:, None]
+
+        if dest_distances is not None:
+            for room in dest_rooms:
+                routers[room].shortest_paths[:, dest_room_points[room]] += dest_distances
 
         # if the points have common rooms, search for routes within those rooms
         if common_rooms:
@@ -438,6 +452,9 @@ class Graph:
                     level_transfers[transfer_i] = SegmentRoute(segments, distance)
 
         return level_transfers
+
+    def get_nearest_point(self, level, x, y):
+        return self.levels[level.name].nearest_point(np.array((x, y)), 'orig')
 
 
 GraphRouter = namedtuple('GraphRouter', ('shortest_paths', 'predecessors', 'level_transfers', ))

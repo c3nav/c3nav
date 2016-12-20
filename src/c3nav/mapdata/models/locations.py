@@ -172,8 +172,14 @@ class AreaLocation(LocationModelMixin, GeometryMapItemWithLevel):
     def subtitle(self):
         return self.get_subtitle()
 
-    def get_subtitle(self):
-        items = [self.get_location_type_display()]
+    @property
+    def subtitle_without_type(self):
+        return self.get_subtitle(with_type=False)
+
+    def get_subtitle(self, with_type=True):
+        items = []
+        if with_type:
+            items += [self.get_location_type_display()]
         items += [area.title for area in self.get_in_areas()]
         return ', '.join(items)
 
@@ -284,13 +290,37 @@ class PointLocation(Location):
     def location_id(self):
         return 'c:%s:%d:%d' % (self.level.name, self.x*100, self.y*100)
 
+    @cached_property
+    def description(self):
+        from c3nav.routing.graph import Graph
+        graph = Graph.load()
+        point = graph.get_nearest_point(self.level, self.x, self.y)
+        if point is None:
+            return _('Unreachable Coordinates'), ''
+
+        locations = sorted(AreaLocation.objects.filter(name__in=point.arealocations, can_describe=True),
+                           key=AreaLocation.get_sort_key, reverse=True)
+
+        if not locations:
+            return _('Coordinates'), ''
+
+        location = locations[0]
+        if location.contains(self.x, self.y):
+            return (_('Coordinates in %(location)s') % {'location': location.title}), location.subtitle_without_type
+        else:
+            return (_('Coordinates near %(location)s') % {'location': location.title}), location.subtitle_without_type
+
     @property
     def title(self) -> str:
-        return 'Custom location'
+        return self.description[0]
 
     @property
     def subtitle(self) -> str:
-        return 'Coordinates'
+        add_subtitle = self.description[1]
+        subtitle = '%s:%d:%d' % (self.level.name, self.x*100, self.y*100)
+        if add_subtitle:
+            subtitle += ' - '+add_subtitle
+        return subtitle
 
     def to_json(self):
         result = super().to_location_json()
