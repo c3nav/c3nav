@@ -1,6 +1,10 @@
 c3nav = {
     init: function() {
-        if (!$('.main-view').length) return;
+        c3nav.main_view = $('.main-view');
+        if (!c3nav.main_view.length) return;
+
+        c3nav.svg_width = parseInt(c3nav.main_view.attr('data-svg-width'));
+        c3nav.svg_height = parseInt(c3nav.main_view.attr('data-svg-height'));
 
         c3nav._typeahead_locations = new Bloodhound({
             datumTokenizer: function(data) {
@@ -33,6 +37,10 @@ c3nav = {
         c3nav.locationselect_focus();
 
         $('.locationselect .icons .reset').click(c3nav._locationselect_reset);
+        $('.locationselect .icons .map').click(c3nav._locationselect_activate_map);
+        $('.locationselect .close-map').click(c3nav._locationselect_close_map);
+        $('.locationselect .level-selector a').click(c3nav._locationselect_click_level);
+        $('.locationselect .map-container').on('click', 'img', c3nav._locationselect_click_image);
         $('#route-from-here').click(c3nav._click_route_from_here);
         $('#route-to-here').click(c3nav._click_route_to_here);
 
@@ -47,6 +55,49 @@ c3nav = {
         location_group.find('.tt-suggestion').remove();
         c3nav._locations_changed();
     },
+    _locationselect_activate_map: function(e) {
+        e.preventDefault();
+        var location_group = $(this).closest('.location-group');
+        location_group.addClass('map');
+        var map_container = location_group.find('.map-container');
+        console.log(c3nav.svg_height-(map_container.height()/2));
+        map_container.scrollTop((c3nav.svg_height-map_container.height())/2).scrollLeft((c3nav.svg_width-map_container.width())/2);
+        location_group.find('.level-selector a').first().click();
+    },
+    _locationselect_close_map: function(e) {
+        e.preventDefault();
+        var location_group = $(this).closest('.location-group');
+        location_group.removeClass('map').find('.tt-input').focus();
+    },
+    _locationselect_click_level: function(e) {
+        e.preventDefault();
+        var location_group = $(this).closest('.location-group');
+        var map_container = location_group.find('.map-container');
+        var level = $(this).attr('data-level');
+        map_container.find('img').remove();
+        map_container.append($('<img>').attr({
+            'src': '/map/'+level+'.png',
+            'width': c3nav.svg_width,
+            'height': c3nav.svg_height
+        }));
+        map_container.attr('data-level', level);
+    },
+    _locationselect_click_image: function(e) {
+        var level = $(e.delegateTarget).attr('data-level');
+        var coords = 'c:'+level+':'+parseInt(e.offsetX/6*100)+':'+parseInt(e.offsetY/6*100);
+        var location_group = $(this).closest('.location-group');
+        location_group.removeClass('map').addClass('selected');
+        var selected = location_group.find('.locationselect-selected');
+        selected.find('.title').text('');
+        selected.find('.subtitle').text('');
+        selected.find('.id-field').val(coords);
+        $.getJSON('/api/locations/'+coords, function(data) {
+            selected.find('.title').text(data.title);
+            selected.find('.subtitle').text(data.subtitle);
+        });
+        c3nav._locations_changed();
+        c3nav.locationselect_focus();
+    },
     locationselect_focus: function() {
         $('.location-group:visible:not(.selected) .locationselect-input .tt-input').first().focus();
     },
@@ -59,7 +110,7 @@ c3nav = {
     },
     _click_route_x_here: function(e, location_group) {
         e.preventDefault();
-        $('.main-view').removeClass('mode-location').addClass('mode-route');
+        c3nav.main_view.removeClass('mode-location').addClass('mode-route');
         from_group = $('.location-select');
         from_group.removeClass('selected');
         location_group.addClass('selected').find('.id-field').val(from_group.find('.id-field').val());
@@ -107,8 +158,9 @@ c3nav = {
 
     _locations_changed: function(e) {
         var url;
-        if ($('.main-view').is('.mode-location')) {
-            url = '/l/'+$(':input[name=location]').val()+'/';
+        if (c3nav.main_view.is('.mode-location')) {
+            var location = $(':input[name=location]').val()
+            url = (location !== '') ? '/l/'+location+'/' : '/';
         } else {
             var origin = $(':input[name=origin]').val();
             var destination = $(':input[name=destination]').val();
