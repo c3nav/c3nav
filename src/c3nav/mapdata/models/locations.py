@@ -66,7 +66,7 @@ class LocationModelMixin(Location):
         if 'routing_inclusion' not in data:
             raise ValueError('Missing routing inclusion')
         routing_inclusion = data['routing_inclusion']
-        if routing_inclusion not in dict(cls.LOCATION_TYPES):
+        if routing_inclusion not in dict(LOCATION_ROUTING_INCLUSION):
             raise ValueError('Invalid routing inclusion')
         kwargs['routing_inclusion'] = routing_inclusion
 
