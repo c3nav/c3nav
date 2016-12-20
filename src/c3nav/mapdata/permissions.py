@@ -16,6 +16,11 @@ def get_public_packages():
     return [packages_cached[name] for name in settings.PUBLIC_PACKAGES]
 
 
+def get_nonpublic_packages():
+    packages_cached = get_packages_cached()
+    return [package for name, package in packages_cached.items() if name not in settings.PUBLIC_PACKAGES]
+
+
 def get_unlocked_packages_names(request, packages_cached=None):
     if packages_cached is None:
         packages_cached = get_packages_cached()

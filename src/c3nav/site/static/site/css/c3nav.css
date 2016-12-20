@@ -183,3 +183,8 @@ circle.pos {
     vertical-align:middle;
     line-height: 1.42857143;
 }
+
+
+.login .container {
+    max-width:420px;
+}

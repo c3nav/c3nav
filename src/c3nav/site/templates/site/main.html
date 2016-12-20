@@ -4,7 +4,7 @@
 {% load i18n %}
 
 {% block content %}
-<form method="post">
+<form method="post" id="main_view">
     {% csrf_token %}
     <div class="row">
         {% trans "Origin" as heading %}
