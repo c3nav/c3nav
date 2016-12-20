@@ -3,6 +3,7 @@ from collections import OrderedDict
 
 from django.core.cache import cache
 from django.db import models
+from django.db.models import Q
 from django.utils.functional import cached_property
 from django.utils.translation import ugettext_lazy as _
 
@@ -243,6 +244,34 @@ def get_location(request, name):
         return filter_queryset_by_package_access(request, LocationGroup.objects.filter(name=name[2:])).first()
 
     return filter_queryset_by_package_access(request, AreaLocation.objects.filter(name=name)).first()
+
+
+def filter_words(queryset, words):
+    for word in words:
+        queryset = queryset.filter(Q(name__icontains=word) | Q(titles__icontains=word))
+    return queryset
+
+
+def search_location(request, search):
+    results = []
+    location = get_location(request, search)
+    if location:
+        results.append(location)
+
+    words = search.split(' ')[:10]
+
+    queryset = AreaLocation.objects.all()
+    if isinstance(location, AreaLocation):
+        queryset.exclude(name=location.name)
+    results += sorted(filter_words(filter_queryset_by_package_access(request, queryset), words),
+                      key=AreaLocation.get_sort_key, reverse=True)
+
+    queryset = LocationGroup.objects.all()
+    if isinstance(location, LocationGroup):
+        queryset.exclude(name=location.name)
+    results += list(filter_words(filter_queryset_by_package_access(request, queryset), words)[:10])
+
+    return results
 
 
 class PointLocation(Location):

@@ -2,10 +2,11 @@ from datetime import timedelta
 
 from django.http import Http404
 from django.shortcuts import get_object_or_404, render
+from django.urls import reverse
 from django.utils import timezone
 
 from c3nav.mapdata.models import Level
-from c3nav.mapdata.models.locations import get_location
+from c3nav.mapdata.models.locations import get_location, search_location
 from c3nav.mapdata.permissions import get_excludables_includables
 from c3nav.mapdata.render.compose import composer
 from c3nav.mapdata.utils.misc import get_dimensions
@@ -30,17 +31,61 @@ def reverse_ctypes(ctypes, name):
         return 'down' if name + '_down' in ctypes else 'no'
 
 
-def main(request, origin=None, destination=None):
-    if origin:
-        origin = get_location(request, origin)
-        if origin is None:
-            raise Http404
+def get_location_or_404(request, location):
+    if location is None:
+        return None
 
-    if destination:
-        destination = get_location(request, destination)
-        if destination is None:
-            raise Http404
+    location = get_location(request, location)
+    if location is None:
+        raise Http404
 
+    return location
+
+
+def main(request, location=None, origin=None, destination=None):
+    location = get_location_or_404(request, location)
+    origin = get_location_or_404(request, origin)
+    destination = get_location_or_404(request, destination)
+
+    mode = 'location' if not origin and not destination else 'route'
+
+    ctx = {
+        'location': location,
+        'origin': origin,
+        'destination': destination,
+        'mode': mode,
+    }
+
+    search = None
+    if not origin and not destination:
+        search = 'location'
+    elif origin and not destination:
+        search = 'destination'
+    elif destination and not origin:
+        search = 'origin'
+
+    if search is not None:
+        search_query = request.POST.get(search+'_search', '').strip() or None
+        if search_query:
+            results = search_location(request, search_query)
+
+            url = 'site.location' if search == 'location' else 'site.route'
+            kwargs = {}
+            if origin:
+                kwargs['origin'] = origin.location_id
+            if destination:
+                kwargs['destination'] = destination.location_id
+            for result in results:
+                kwargs[search] = result.location_id
+                result.url = reverse(url, kwargs=kwargs)
+
+            ctx.update({
+                'search': search,
+                'search_query': search_query,
+                'search_results': results,
+            })
+
+    # everything about settings
     include = ()
     avoid = ()
     stairs = 'yes'
@@ -50,7 +95,6 @@ def main(request, origin=None, destination=None):
     save_settings = False
     if 'c3nav_settings' in request.COOKIES:
         cookie_value = request.COOKIES['c3nav_settings']
-        print(cookie_value)
 
         if isinstance(cookie_value, dict):
             stairs = cookie_value.get('stairs', stairs)
@@ -65,7 +109,7 @@ def main(request, origin=None, destination=None):
 
         save_settings = True
 
-    if request.method in 'POST':
+    if request.method == 'POST':
         stairs = request.POST.get('stairs', stairs)
         escalators = request.POST.get('escalators', escalators)
         elevators = request.POST.get('elevators', elevators)
@@ -86,11 +130,22 @@ def main(request, origin=None, destination=None):
     include = set(include) & set(includables)
     avoid = set(avoid) & set(excludables)
 
-    if request.method in 'POST':
+    if request.method == 'POST':
         save_settings = request.POST.get('save_settings', '') == '1'
 
-    route = None
-    if request.method in 'POST' and origin and destination:
+    ctx.update({
+        'stairs': stairs,
+        'escalators': escalators,
+        'elevators': elevators,
+        'excludables': excludables.items(),
+        'includables': includables.items(),
+        'include': include,
+        'avoid': avoid,
+        'save_settings': save_settings,
+    })
+
+    # routing
+    if request.method == 'POST' and origin and destination:
         public = ':public' not in avoid
         nonpublic = ':nonpublic' in include
 
@@ -100,29 +155,22 @@ def main(request, origin=None, destination=None):
         route = route.split()
         route.create_routeparts()
 
+        ctx.update({
+            'route': route,
+        })
+
     width, height = get_dimensions()
 
-    response = render(request, 'site/main.html', {
-        'origin': origin,
-        'destination': destination,
-
-        'stairs': stairs,
-        'escalators': escalators,
-        'elevators': elevators,
-        'excludables': excludables.items(),
-        'includables': includables.items(),
-        'include': include,
-        'avoid': avoid,
-        'save_settings': save_settings,
-
-        'route': route,
+    ctx.update({
         'width': width,
         'height': height,
         'svg_width': width*6,
         'svg_height': height*6,
     })
 
-    if request.method in 'POST' and save_settings:
+    response = render(request, 'site/main.html', ctx)
+
+    if request.method == 'POST' and save_settings:
         cookie_value = {
             'stairs': stairs,
             'escalators': escalators,

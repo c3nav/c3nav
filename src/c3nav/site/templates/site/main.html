@@ -4,54 +4,62 @@
 {% load i18n %}
 
 {% block content %}
-<form method="post" id="main_view">
+<form method="post" class="main-view mode-{{ mode }}{% if origin and destination %} can-route{% endif %}">
     {% csrf_token %}
-    <div class="row">
+    <div class="row locations">
+        {% trans "Location" as heading %}
+        {% url 'site.index' as reset_url %}
+        {% include 'site/fragment_location.html' with name='location' location=location heading=heading reset_url=reset_url %}
+
         {% trans "Origin" as heading %}
-        {% include 'site/fragment_location.html' with name='origin' location=origin heading=heading %}
+        {% url 'site.destination' destination=destination.location_id as reset_url %}
+        {% include 'site/fragment_location.html' with name='origin' location=origin heading=heading reset_url=reset_url %}
 
         {% trans "Destination" as heading %}
-        {% include 'site/fragment_location.html' with name='destination' location=destination heading=heading %}
+        {% url 'site.origin' origin=origin.location_id as reset_url %}
+        {% include 'site/fragment_location.html' with name='destination' location=destination heading=heading reset_url=reset_url %}
     </div>
-    <div class="row settings">
-        <div class="form-group col-md-2">
-            <label for="stairs-select">{% trans 'Stairs' %}</label>
-            {% include 'site/fragment_select.html' with name='stairs' value=stairs %}
-        </div>
-        <div class="form-group col-md-2">
-            <label for="escalators-select">{% trans 'Escalators' %}</label>
-            {% include 'site/fragment_select.html' with name='escalators' value=escalators %}
-        </div>
-        <div class="form-group col-md-2">
-            <label for="elevators-select">{% trans 'Elevators' %}</label>
-            {% include 'site/fragment_select.html' with name='elevators' value=elevators %}
-        </div>
-        <div class="form-group col-md-6">
-            <label>{% trans 'Include / Avoid areas' %}</label>
-            <p class="form-control-static">
-                {% for name, includable in includables %}
-                    <label class="checkbox-inline">
-                        <input type="checkbox" name="include" value="{{ name }}"{% if name in include %} checked{% endif %}> {% blocktrans %}Include {{ includable }}{% endblocktrans %}
-                    </label>
-                {% endfor %}
-                {% for name, excludable in excludables %}
-                    <label class="checkbox-inline">
-                        <input type="checkbox" name="avoid" value="{{ name }}"{% if name in avoid %} checked{% endif %}> {% blocktrans %}Avoid {{ excludable }}{% endblocktrans %}
-                    </label>
-                {% endfor %}
-            </p>
-        </div>
-    </div>
-    <div class="row">
-        <div class="form-group col-md-6">
-            <div class="checkbox">
-                <label>
-                    <input type="checkbox" name="save_settings" value="1"{% if save_settings %} checked{% endif %}>  {% trans 'Save Settings in cookie' %}
-                </label>
+    <div class="routing">
+        <div class="row settings">
+            <div class="form-group col-md-2">
+                <label for="stairs-select">{% trans 'Stairs' %}</label>
+                {% include 'site/fragment_select.html' with name='stairs' value=stairs %}
+            </div>
+            <div class="form-group col-md-2">
+                <label for="escalators-select">{% trans 'Escalators' %}</label>
+                {% include 'site/fragment_select.html' with name='escalators' value=escalators %}
+            </div>
+            <div class="form-group col-md-2">
+                <label for="elevators-select">{% trans 'Elevators' %}</label>
+                {% include 'site/fragment_select.html' with name='elevators' value=elevators %}
+            </div>
+            <div class="form-group col-md-6">
+                <label>{% trans 'Include / Avoid areas' %}</label>
+                <p class="form-control-static">
+                    {% for name, includable in includables %}
+                        <label class="checkbox-inline">
+                            <input type="checkbox" name="include" value="{{ name }}"{% if name in include %} checked{% endif %}> {% blocktrans %}Include {{ includable }}{% endblocktrans %}
+                        </label>
+                    {% endfor %}
+                    {% for name, excludable in excludables %}
+                        <label class="checkbox-inline">
+                            <input type="checkbox" name="avoid" value="{{ name }}"{% if name in avoid %} checked{% endif %}> {% blocktrans %}Avoid {{ excludable }}{% endblocktrans %}
+                        </label>
+                    {% endfor %}
+                </p>
             </div>
         </div>
-        <div class="form-group col-md-6">
-            <button type="submit" id="submitbtn" class="btn btn-block btn-lg btn-primary">{% trans 'Get Route' %}</button>
+        <div class="row">
+            <div class="form-group col-md-6">
+                <div class="checkbox">
+                    <label>
+                        <input type="checkbox" name="save_settings" value="1"{% if save_settings %} checked{% endif %}>  {% trans 'Save Settings in cookie' %}
+                    </label>
+                </div>
+            </div>
+            <div class="form-group col-md-6">
+                <button type="submit" id="submitbtn" class="btn btn-block btn-lg btn-primary">{% trans 'Get Route' %}</button>
+            </div>
         </div>
     </div>
 </form>
