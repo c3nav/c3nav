@@ -13,13 +13,18 @@
         <p>{% blocktrans %}Please enter a valid authentication code for the hosters of the following non-public map packages:{% endblocktrans %}</p>
         {% if success %}
             <div class="alert alert-success">
-                <strong>{% trans 'Thanks – you get full access to the map!' %}</strong>
+                <strong>{% trans 'Thanks – you get full access to the map!' %}</strong><br>
+                {{ token }}
             </div>
         {% elif hosters %}
             {% if error %}
                 <div class="alert alert-dismissible alert-danger">
                     <button type="button" class="close" data-dismiss="alert">×</button>
-                    <strong>{% trans 'Sorry.' %}</strong> {% trans 'One or more access tokens were not correct.' %}
+                    {% if error == 'invalid' %}
+                        <strong>{% trans 'Sorry.' %}</strong> {% trans 'One or more access tokens were not correct.' %}
+                    {% elif error == 'duplicate' %}
+                        <strong>{% trans 'Sorry.' %}</strong> {% trans 'You already have an access token.' %}
+                    {% endif %}
                   </div>
             {% endif %}
             {% for package in hosters %}

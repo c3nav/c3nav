@@ -147,4 +147,4 @@ class GitlabHoster(Hoster):
         response = requests.get(self.base_url + 'api/v3/user?private_token=' + access_token)
         if response.status_code != 200:
             return None
-        return str(response.json()['id'])
+        return self.base_url+'user/'+str(response.json()['id'])
