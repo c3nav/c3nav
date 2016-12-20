@@ -84,7 +84,7 @@ c3nav = {
     },
     _locationselect_click_image: function(e) {
         var level = $(e.delegateTarget).attr('data-level');
-        var coords = 'c:'+level+':'+parseInt(e.offsetX/6*100)+':'+parseInt(e.offsetY/6*100);
+        var coords = 'c:'+level+':'+parseInt(e.offsetX/6*100)+':'+parseInt((c3nav.svg_height-e.offsetY)/6*100);
         var location_group = $(this).closest('.location-group');
         location_group.removeClass('map').addClass('selected');
         var selected = location_group.find('.locationselect-selected');

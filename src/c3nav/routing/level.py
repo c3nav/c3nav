@@ -3,6 +3,7 @@ from collections import namedtuple
 
 import numpy as np
 from django.conf import settings
+from django.core.cache import cache
 from matplotlib.path import Path
 from PIL import Image, ImageDraw
 from scipy.sparse.csgraph._shortest_path import shortest_path
@@ -382,6 +383,38 @@ class GraphLevel():
 
         routers[self] = LevelRouter(shortest_paths, predecessors, room_transfers)
         return routers
+
+    def nearest_point(self, point, mode):
+        cache_key = ('c3nav__routing__nearest_point__%s__%s__%.2f_%.2f__%s' %
+                     (self.graph.mtime, self.level.name, point[0], point[1], mode))
+        points = cache.get(cache_key, None)
+        if points is None:
+            points = self._nearest_point(point, mode)
+            cache.set(cache_key, points, 60)
+        return points
+
+    def _nearest_point(self, point, mode):
+        points = self.connected_points(point, mode)
+        if not points:
+            return None
+
+        nearest_point = min(points.items(), key=lambda x: x[1][0])
+        return self.graph.points[nearest_point[0]]
+
+    def connected_points(self, point, mode):
+        cache_key = ('c3nav__routing__connected_points__%s__%s__%.2f_%.2f__%s' %
+                     (self.graph.mtime, self.level.name, point[0], point[1], mode))
+        points = cache.get(cache_key, None)
+        if points is None:
+            points = self._connected_points(point, mode)
+            cache.set(cache_key, points, 60)
+        return points
+
+    def _connected_points(self, point, mode):
+        for room in self.rooms:
+            if room.contains_point(point):
+                return room.connected_points(point, mode)
+        return {}
 
 
 LevelRouter = namedtuple('LevelRouter', ('shortest_paths', 'predecessors', 'room_transfers', ))

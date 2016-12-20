@@ -3,7 +3,7 @@ from collections import OrderedDict
 from django.db import models
 from django.utils.functional import cached_property
 from django.utils.translation import ugettext_lazy as _
-from shapely.geometry import CAP_STYLE, JOIN_STYLE
+from shapely.geometry import CAP_STYLE, JOIN_STYLE, Point
 from shapely.geometry.geo import mapping, shape
 
 from c3nav.mapdata.fields import GeometryField
@@ -67,6 +67,9 @@ class GeometryMapItem(MapItem, metaclass=GeometryMapItemMeta):
 
     def get_shadow_geojson(self):
         return None
+
+    def contains(self, x, y):
+        return self.geometry.contains(Point(x, y))
 
 
 class GeometryMapItemWithLevel(GeometryMapItem):

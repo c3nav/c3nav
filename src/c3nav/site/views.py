@@ -87,7 +87,7 @@ def main(request, location=None, origin=None, destination=None):
             x = request.POST.get('x')
             y = request.POST.get('y')
             if x.isnumeric() and y.isnumeric():
-                coords = 'c:%s:%d:%d' % (map_level, int(int(x)/6*100), int(int(y)/6*100))
+                coords = 'c:%s:%d:%d' % (map_level, int(int(x)/6*100), height-int(int(y)/6*100))
                 if active_field == 'origin':
                     return redirect('site.route', origin=coords, destination=destination.location_id)
                 elif active_field == 'destination':

@@ -31,7 +31,7 @@ class GraphArea():
     def build_connections(self):
         for point1, point2 in combinations(self._built_points, 2):
 
-            there, back = self.check_connection(point1, point2)
+            there, back = self.check_connection(point1.xy, point2.xy)
 
             if there is not None:
                 point1.connect_to(point2, ctype=there)
@@ -40,14 +40,14 @@ class GraphArea():
                 point2.connect_to(point1, ctype=back)
 
     def check_connection(self, point1, point2):
-        path = Path(np.vstack((point1.xy, point2.xy)))
+        path = Path(np.vstack((point1, point2)))
 
         # lies within room
         if self.mpl_clear.intersects_path(path):
             return None, None
 
         # stair checker
-        angle = coord_angle(point1.xy, point2.xy)
+        angle = coord_angle(point1, point2)
         stair_direction_up = None
         for stair_path, stair_angle in self.mpl_stairs:
             if not path.intersects_path(stair_path):
@@ -65,7 +65,7 @@ class GraphArea():
                 return None, None
 
         # escalator checker
-        angle = coord_angle(point1.xy, point2.xy)
+        angle = coord_angle(point1, point2)
         escalator_direction_up = None
         escalator_swap_direction = False
         for escalator in self.escalators:
@@ -102,3 +102,18 @@ class GraphArea():
 
     def finish_build(self):
         self.points = np.array(tuple(point.i for point in self._built_points))
+
+    def contains_point(self, point):
+        return self.mpl_clear.contains_point(point)
+
+    def connected_points(self, point, mode):
+        connections = {}
+        for point_i in self.points:
+            other_point = self.graph.points[point_i]
+
+            there, back = self.check_connection(point, other_point.xy)
+            ctype = there if mode == 'orig' else back
+            if ctype is not None:
+                distance = np.linalg.norm(point - other_point.xy)
+                connections[point_i] = (distance, ctype)
+        return connections
