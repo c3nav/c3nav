@@ -44,7 +44,7 @@ c3nav = {
         var location_group = $(this).closest('.location-group');
         location_group.find('.id-field').val('');
         location_group.removeClass('selected').find('.tt-input').focus().removeData('enter_item');
-        location_group,find('.tt-suggestion').remove();
+        location_group.find('.tt-suggestion').remove();
         c3nav._locations_changed();
     },
     locationselect_focus: function() {
