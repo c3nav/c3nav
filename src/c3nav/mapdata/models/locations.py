@@ -194,7 +194,7 @@ class AreaLocation(LocationModelMixin, GeometryMapItemWithLevel):
         location_type = data['location_type']
         if location_type not in dict(cls.LOCATION_TYPES):
             raise ValueError('Invalid location type')
-        kwargs['location_tyoe'] = location_type
+        kwargs['location_type'] = location_type
 
         if 'can_search' not in data:
             raise ValueError('Missing can_search')
