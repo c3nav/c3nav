@@ -269,7 +269,7 @@ class Graph:
         orig_points_i, orig_distances, orig_ctypes = self.get_location_points(origin, 'orig')
         dest_points_i, dest_distances, dest_ctypes = self.get_location_points(destination, 'dest')
 
-        if not orig_points_i or not dest_points_i:
+        if not len(orig_points_i) or not len(dest_points_i):
             raise NoRouteFound()
 
         add_orig_point = origin if isinstance(origin, PointLocation) else None
