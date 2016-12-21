@@ -11,9 +11,10 @@ from scipy.sparse.csgraph._tools import csgraph_from_dense
 from c3nav.mapdata.models import Elevator, Level
 from c3nav.mapdata.models.geometry import LevelConnector
 from c3nav.mapdata.models.locations import AreaLocation, Location, LocationGroup, PointLocation
+from c3nav.routing.connection import GraphConnection
 from c3nav.routing.level import GraphLevel
 from c3nav.routing.point import GraphPoint
-from c3nav.routing.route import NoRoute
+from c3nav.routing.route import NoRoute, Route
 from c3nav.routing.routesegments import (GraphRouteSegment, LevelRouteSegment, RoomRouteSegment, SegmentRoute,
                                          SegmentRouteWrapper)
 
@@ -280,6 +281,14 @@ class Graph:
         orig_rooms = set(point.room for point in orig_points)
         dest_rooms = set(point.room for point in dest_points)
         common_rooms = orig_rooms & dest_rooms
+
+        if add_orig_point and add_dest_point and common_rooms:
+            room = tuple(common_rooms)[0]
+            ctype = room.check_connection((add_orig_point.x, add_orig_point.y), (add_dest_point.x, add_dest_point.y))
+            if ctype is not None:
+                from_point = GraphPoint(add_orig_point.x, add_orig_point.y, room)
+                to_point = GraphPoint(add_dest_point.x, add_dest_point.y, room)
+                return Route((GraphConnection(from_point, to_point, ctype=ctype), ))
 
         # get origin points for each room (points as point index within room)
         orig_room_points = {room: self._allowed_points_index(room.points, orig_points_i) for room in orig_rooms}

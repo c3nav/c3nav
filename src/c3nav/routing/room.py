@@ -304,5 +304,15 @@ class GraphRoom():
                 connections.update(area.connected_points(point, mode))
         return connections
 
+    def check_connection(self, from_point, to_point):
+        from_point = np.array(from_point)
+        to_point = np.array(to_point)
+        for area in self.areas:
+            if area.contains_point(from_point) and area.contains_point(to_point):
+                there, back = area.check_connection(from_point, to_point)
+                if there is not None:
+                    return there
+        return None
+
 
 RoomRouter = namedtuple('RoomRouter', ('shortest_paths', 'predecessors', ))
