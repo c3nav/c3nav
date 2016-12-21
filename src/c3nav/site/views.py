@@ -1,16 +1,18 @@
+import mimetypes
 from datetime import timedelta
 
-from django.http import Http404
+from django.core.files import File
+from django.http import Http404, HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.utils import timezone
 
+from c3nav.access.apply import get_visible_areas
 from c3nav.mapdata.inclusion import get_includables_avoidables, parse_include_avoid
 from c3nav.mapdata.models import Level
-from c3nav.mapdata.models.locations import get_location, search_location
-from c3nav.mapdata.render.compose import composer
+from c3nav.mapdata.search import get_location, search_location
 from c3nav.mapdata.utils.cache import get_levels_cached
-from c3nav.mapdata.utils.misc import get_dimensions
+from c3nav.mapdata.utils.misc import get_dimensions, get_render_path
 from c3nav.routing.exceptions import AlreadyThere, NoRouteFound, NotYetRoutable
 from c3nav.routing.graph import Graph
 
@@ -68,6 +70,7 @@ def main(request, location=None, origin=None, destination=None):
 
         'full_access': request.c3nav_full_access,
         'access_list': request.c3nav_access_list,
+        'visible_areas': get_visible_areas(request),
     }
 
     width, height = get_dimensions()
@@ -209,6 +212,18 @@ def main(request, location=None, origin=None, destination=None):
     return response
 
 
-def level_image(request, level):
+def level_image(request, area, level):
     level = get_object_or_404(Level, name=level, intermediate=False)
-    return composer.get_level_image(request, level)
+    if area == ':base':
+        img = get_render_path('png', level.name, 'full', True)
+    elif area == ':full':
+        if not request.c3nav_full_access:
+            raise Http404
+        img = get_render_path('png', level.name, 'full', False)
+    else:
+        raise Http404
+
+    response = HttpResponse(content_type=mimetypes.guess_type(img)[0])
+    for chunk in File(open(img, 'rb')).chunks():
+        response.write(chunk)
+    return response

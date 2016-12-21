@@ -1,6 +1,7 @@
 import re
 from datetime import timedelta
 
+from django.conf import settings
 from django.db import transaction
 from django.db.models import Q
 from django.utils import timezone
@@ -17,8 +18,8 @@ class AccessTokenMiddleware:
         request.c3nav_access = None
         request.c3nav_new_access = False
 
-        request.c3nav_full_access = False
-        request.c3nav_access_list = None
+        request.c3nav_full_access = settings.DEBUG
+        request.c3nav_access_list = ()
 
         access_cookie = request.COOKIES.get('c3nav_access')
         if access_cookie and re.match(r'^[0-9]+:[a-zA-Z0-9]+$', access_cookie):

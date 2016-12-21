@@ -1,5 +1,6 @@
 from django.conf import settings
 
+from c3nav.mapdata.inclusion import get_maybe_invisible_areas_names
 from c3nav.mapdata.utils.cache import get_packages_cached
 
 
@@ -29,3 +30,9 @@ def can_access_package(request, package):
 
 def filter_queryset_by_package_access(request, queryset):
     return queryset if request.c3nav_full_access else queryset.filter(package__in=get_unlocked_packages(request))
+
+
+def get_visible_areas(request):
+    areas = [':full' if request.c3nav_full_access else ':base']
+    areas += [name for name in get_maybe_invisible_areas_names() if name in request.c3nav_access_list]
+    return areas

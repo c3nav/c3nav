@@ -12,7 +12,7 @@ from rest_framework.viewsets import ReadOnlyModelViewSet, ViewSet
 from c3nav.access.apply import filter_queryset_by_package_access, get_unlocked_packages_names
 from c3nav.mapdata.models import GEOMETRY_MAPITEM_TYPES, AreaLocation, Level, LocationGroup, Package, Source
 from c3nav.mapdata.models.geometry import DirectedLineGeometryMapItemWithLevel
-from c3nav.mapdata.models.locations import get_location
+from c3nav.mapdata.search import get_location
 from c3nav.mapdata.serializers.main import LevelSerializer, PackageSerializer, SourceSerializer
 from c3nav.mapdata.utils.cache import (CachedReadOnlyViewSetMixin, cache_mapdata_api_response, get_levels_cached,
                                        get_packages_cached)

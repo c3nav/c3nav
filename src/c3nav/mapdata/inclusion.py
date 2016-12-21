@@ -1,9 +1,7 @@
 from collections import OrderedDict
 
-from django.conf import settings
 from django.utils.translation import ugettext_lazy as _
 
-from c3nav.access.apply import can_access_package
 from c3nav.mapdata.models import AreaLocation, LocationGroup
 
 
@@ -29,20 +27,21 @@ def get_includables_avoidables(request):
     locations = list(AreaLocation.objects.exclude(routing_inclusion='default'))
     locations += list(LocationGroup.objects.exclude(routing_inclusion='default'))
 
-    if settings.DEBUG:
+    if request.c3nav_full_access:
         includables.append((':nonpublic', _('non-public areas')))
         avoidables.append((':public', _('public areas')))
+
+    from c3nav.access.apply import can_access_package
 
     for location in locations:
         item = (location.location_id, location.title)
 
-        # Todo: allow by access token
         if not can_access_package(request, location.package):
             continue
 
-        # Todo: allow by access token
-        if location.routing_inclusion == 'needs_permission' and not settings.DEBUG:
-            continue
+        if location.routing_inclusion == 'needs_permission':
+            if not request.c3nav_full_access and location.location_id not in request.c3nav_access_list:
+                continue
 
         if location.routing_inclusion == 'allow_avoid':
             avoidables.append(item)
@@ -50,6 +49,14 @@ def get_includables_avoidables(request):
             includables.append(item)
 
     return OrderedDict(includables), OrderedDict(avoidables)
+
+
+def get_maybe_invisible_areas():
+    return AreaLocation.objects.exclude(routing_inclusion='default')
+
+
+def get_maybe_invisible_areas_names():
+    return tuple(area.name for area in get_maybe_invisible_areas())
 
 
 def parse_include_avoid(request, include_input, avoid_input):
