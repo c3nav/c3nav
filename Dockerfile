@@ -1,13 +1,12 @@
 FROM debian:jessie
 
+WORKDIR /
+
 RUN apt-get update && apt-get install -y locales git build-essential \
     python3 python3-pip python3-dev \
     libpq-dev libmysqlclient-dev libmemcached-dev libgeos-dev gettext \
-    librsvg2-bin --no-install-recommends
-
-WORKDIR /
-
-RUN dpkg-reconfigure locales \
+    librsvg2-bin --no-install-recommends \
+ && dpkg-reconfigure locales \
  && locale-gen C.UTF-8 \
  && /usr/sbin/update-locale LANG=C.UTF-8 \
  && apt-get clean \
