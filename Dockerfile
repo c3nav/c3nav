@@ -1,7 +1,5 @@
 FROM debian:jessie
 
-WORKDIR /
-
 RUN apt-get update && apt-get install -y locales git build-essential \
     python3 python3-pip python3-dev \
     libpq-dev libmysqlclient-dev libmemcached-dev libgeos-dev gettext \
