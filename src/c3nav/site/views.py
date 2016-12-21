@@ -11,7 +11,7 @@ from c3nav.mapdata.permissions import get_excludables_includables
 from c3nav.mapdata.render.compose import composer
 from c3nav.mapdata.utils.cache import get_levels_cached
 from c3nav.mapdata.utils.misc import get_dimensions
-from c3nav.routing.exceptions import AlreadyThere, NoRouteFound
+from c3nav.routing.exceptions import AlreadyThere, NoRouteFound, NotYetRoutable
 from c3nav.routing.graph import Graph
 
 ctype_mapping = {
@@ -190,6 +190,8 @@ def main(request, location=None, origin=None, destination=None):
             ctx.update({'error': 'noroutefound'})
         except AlreadyThere:
             ctx.update({'error': 'alreadythere'})
+        except NotYetRoutable:
+            ctx.update({'error': 'notyetroutable'})
         else:
             ctx.update({'route': route})
 

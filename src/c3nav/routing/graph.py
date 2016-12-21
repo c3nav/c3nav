@@ -12,7 +12,7 @@ from c3nav.mapdata.models import Elevator, Level
 from c3nav.mapdata.models.geometry import LevelConnector
 from c3nav.mapdata.models.locations import AreaLocation, Location, LocationGroup, PointLocation
 from c3nav.routing.connection import GraphConnection
-from c3nav.routing.exceptions import AlreadyThere, NoRouteFound
+from c3nav.routing.exceptions import AlreadyThere, NoRouteFound, NotYetRoutable
 from c3nav.routing.level import GraphLevel
 from c3nav.routing.point import GraphPoint
 from c3nav.routing.route import NoRoute, Route
@@ -252,12 +252,15 @@ class Graph:
             points = np.array(points)
             distances = np.array(distances)
             return points, distances, ctypes
-        elif isinstance(location, AreaLocation):
-            points = self.levels[location.level.name].arealocation_points[location.name]
-            return points, None, None
-        elif isinstance(location, LocationGroup):
-            points = set(np.hstack(tuple(self.get_location_points(area) for area in location.locationareas)))
-            return points, None, None
+        try:
+            if isinstance(location, AreaLocation):
+                points = self.levels[location.level.name].arealocation_points[location.name]
+                return points, None, None
+            elif isinstance(location, LocationGroup):
+                points = set(np.hstack(tuple(self.get_location_points(area) for area in location.locationareas)))
+                return points, None, None
+        except KeyError:
+            raise NotYetRoutable
 
     def _get_points_by_i(self, points):
         return tuple(self.points[i] for i in points)

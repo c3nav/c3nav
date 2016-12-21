@@ -77,6 +77,11 @@
 <div class="alert alert-success">
     <strong>{% trans 'Congratulations, you are already there!' %}</strong>
 </div>
+    {% elif error == 'notyetroutable' %}
+<div class="alert alert-danger">
+    <strong>{% trans 'One or both of your locations are not in the routing table yet.' %}</strong>
+    <p>{% trans 'Please try again in a few minutes.' %}</p>
+</div>
 {% endif %}
 {% if route %}
 {% include 'site/fragment_route.html' %}
