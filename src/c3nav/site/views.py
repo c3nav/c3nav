@@ -223,6 +223,8 @@ def map_image(request, area, level):
         if not request.c3nav_full_access:
             raise Http404
         img = get_render_path('png', level.name, 'full', False)
+    elif area in request.c3nav_access_list:
+        img = get_render_path(area+'.png', level.name, 'full', False)
     else:
         raise Http404
 
