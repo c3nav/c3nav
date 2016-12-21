@@ -29,7 +29,7 @@ admin.site.register(User, UserAdmin)
 class AccessTokenInline(admin.TabularInline):
     model = AccessToken
     show_change_link = True
-    readonly_fields = ('author', 'permissions', 'description', 'creation_date', 'expires', 'expired')
+    readonly_fields = ('author', 'permissions', 'description', 'creation_date', 'activated', 'expires', 'expired')
 
     def has_add_permission(self, request):
         return False
@@ -55,9 +55,9 @@ class AccessTokenInstanceInline(admin.TabularInline):
 @admin.register(AccessToken)
 class AccessTokenAdmin(admin.ModelAdmin):
     inlines = (AccessTokenInstanceInline,)
-    list_display = ('__str__', 'user', 'permissions', 'author', 'creation_date', 'expires', 'expired')
-    fields = ('user', 'permissions', 'author', 'creation_date', 'expires', 'expired')
-    readonly_fields = ('user', 'creation_date', 'expired')
+    list_display = ('__str__', 'user', 'permissions', 'author', 'creation_date', 'activated', 'expires', 'expired')
+    fields = ('user', 'permissions', 'author', 'creation_date', 'activated', 'expires', 'expired')
+    readonly_fields = ('user', 'creation_date', 'activated', 'expired')
 
     def has_add_permission(self, request):
         return False
