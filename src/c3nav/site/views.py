@@ -183,7 +183,6 @@ def main(request, location=None, origin=None, destination=None):
         graph = Graph.load()
         route = graph.get_route(origin, destination, allowed_ctypes, public=public, nonpublic=nonpublic,
                                 avoid=avoid-set(':public'), include=include-set(':nonpublic'))
-        route = route.split()
         route.create_routeparts()
 
         ctx.update({

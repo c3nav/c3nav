@@ -402,6 +402,7 @@ class Graph:
             dest_ctype = dest_ctypes[tuple(dest_points_i).index(best_route.to_point)] if add_dest_point else None
             best_route = SegmentRouteWrapper(best_route, orig_point=add_orig_point, dest_point=add_dest_point,
                                              orig_ctype=orig_ctype, dest_ctype=dest_ctype)
+            best_route = best_route.split()
         return best_route
 
     def _room_transfers(self, rooms, room_points, routers, mode):
