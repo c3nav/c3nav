@@ -263,7 +263,10 @@ class GraphRoom():
         return roomrouter
 
     def _build_router(self, ctypes, public, nonpublic, avoid, include):
-        distances = np.amin(self.distances[ctypes, :, :], axis=0).astype(np.float32)
+        ctype_factors = np.ones((len(self.ctypes), 1, 1))*1000
+        ctype_factors[ctypes] = 1
+
+        distances = np.amin(self.distances*ctype_factors, axis=0).astype(np.float32)
         factors = np.ones_like(distances, dtype=np.float16)
 
         if ':public' in self.excludables and not public:

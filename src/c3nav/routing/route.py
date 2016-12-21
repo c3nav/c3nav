@@ -14,6 +14,8 @@ class Route:
         self.from_point = connections[0].from_point
         self.to_point = connections[-1].to_point
 
+        self.ctypes_exception = None
+
         self.routeparts = None
 
     def __repr__(self):
@@ -209,6 +211,14 @@ class Route:
         last_line = routeparts[-1].lines[-1]
         if last_line.icon == 'location':
             last_line.ignore = True
+
+    def check_allowed_ctypes(self, allowed_ctypes):
+        allowed_ctypes = set(allowed_ctypes)
+        self.ctypes_exception = False
+        for connection in self.connections:
+            if connection.ctype not in allowed_ctypes:
+                self.ctypes_exception = True
+                return
 
 
 class RoutePart:
