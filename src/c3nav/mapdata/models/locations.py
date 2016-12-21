@@ -8,12 +8,12 @@ from django.db.models import Q
 from django.utils.functional import cached_property
 from django.utils.translation import ugettext_lazy as _
 
+from c3nav.access.apply import filter_queryset_by_package_access
 from c3nav.mapdata.fields import JSONField
 from c3nav.mapdata.lastupdate import get_last_mapdata_update
 from c3nav.mapdata.models import Level
 from c3nav.mapdata.models.base import MapItem
 from c3nav.mapdata.models.geometry import GeometryMapItemWithLevel
-from c3nav.mapdata.permissions import filter_queryset_by_package_access
 from c3nav.mapdata.utils.cache import get_levels_cached
 
 

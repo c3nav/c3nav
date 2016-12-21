@@ -1,5 +1,7 @@
 {% load static %}
 {% load compress %}
+{% load i18n %}
+
 <!DOCTYPE html>
 <html lang="en">
   <head>
@@ -19,6 +21,27 @@
         <h1>c3nav</h1>
         {% block content %}
         {% endblock %}
+
+        <footer>
+            <a href="https://github.com/c3nav/c3nav">GitHub</a>
+            - <a href="https://twitter.com/c3nav">Twitter</a>
+            – <a href="{% url 'editor.index' %}">{% trans 'Editor' %}</a>
+            – <a href="/api/">{% trans 'API' %}</a>
+            {% if full_access or access_list %}
+                <br><small>
+                {% if full_access %}
+                    {% trans 'full access unlocked' %}
+                {% else %}
+                    {{ access_list }}
+                    {% blocktrans count count=access_list|length %}
+                    one area unlocked
+                    {% plural %}
+                    {{ count }} areas unlocked
+                    {% endblocktrans %}
+                {% endif %}
+                </small>
+            {% endif %}
+        </footer>
     </div>
 
     {% compress js %}

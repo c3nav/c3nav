@@ -86,7 +86,7 @@ class LevelGeometries():
         self.level = level
         self.only_public = only_public
 
-        from c3nav.mapdata.permissions import get_public_packages
+        from c3nav.access.apply import get_public_packages
         self.public_packages = get_public_packages()
 
     def query(self, name):

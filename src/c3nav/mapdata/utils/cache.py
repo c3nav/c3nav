@@ -62,7 +62,7 @@ class CachedReadOnlyViewSetMixin():
     include_package_access = False
 
     def _get_unlocked_packages_ids(self, request):
-        from c3nav.mapdata.permissions import get_unlocked_packages
+        from c3nav.access.apply import get_unlocked_packages
         return ','.join(str(i) for i in sorted(package.id for package in get_unlocked_packages(request)))
 
     def _get_add_cache_key(self, request, add_cache_key=''):

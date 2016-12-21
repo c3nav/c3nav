@@ -6,12 +6,12 @@ from django.http.response import Http404
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import translation
 
+from c3nav.access.apply import can_access_package, filter_queryset_by_package_access
 from c3nav.editor.hosters import get_hoster_for_package, hosters
 from c3nav.mapdata.models import AreaLocation
 from c3nav.mapdata.models.base import MAPITEM_TYPES
 from c3nav.mapdata.models.package import Package
 from c3nav.mapdata.packageio.write import json_encode
-from c3nav.mapdata.permissions import can_access_package, filter_queryset_by_package_access
 
 
 def list_mapitemtypes(request, level):

@@ -4,9 +4,9 @@ from django.contrib.auth.decorators import login_required
 from django.db import transaction
 from django.shortcuts import get_object_or_404, render
 
+from c3nav.access.apply import get_nonpublic_packages
 from c3nav.access.models import AccessToken, AccessUser
 from c3nav.editor.hosters import get_hoster_for_package
-from c3nav.mapdata.permissions import get_nonpublic_packages
 
 
 @login_required(login_url='/access/login/')
@@ -54,7 +54,7 @@ def prove(request):
             else:
                 user = AccessUser.objects.create(user_url=user_id)
 
-        token = user.new_token(permissions=':all', description='automatically created')
+        token = user.new_token(permissions=':full', description='automatically created')
         return render(request, 'access/prove.html', context={
             'hosters': hosters,
             'success': True,

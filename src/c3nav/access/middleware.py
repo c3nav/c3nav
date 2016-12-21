@@ -17,6 +17,9 @@ class AccessTokenMiddleware:
         request.c3nav_access = None
         request.c3nav_new_access = False
 
+        request.c3nav_full_access = False
+        request.c3nav_access_list = None
+
         access_cookie = request.COOKIES.get('c3nav_access')
         if access_cookie and re.match(r'^[0-9]+:[a-zA-Z0-9]+$', access_cookie):
             pk, secret = access_cookie.split(':')
@@ -30,6 +33,9 @@ class AccessTokenMiddleware:
                 request.c3nav_access_instance = access_instance
                 request.c3nav_access = access_instance.access_token
                 request.c3nav_access.instances.filter(creation_date__lt=access_instance.creation_date).delete()
+
+                request.c3nav_full_access = request.c3nav_access.full_access
+                request.c3nav_access_list = request.c3nav_access.permissions_list
 
         response = self.get_response(request)
 

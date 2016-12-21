@@ -10,8 +10,9 @@ from scipy.sparse.csgraph._shortest_path import shortest_path
 from scipy.sparse.csgraph._tools import csgraph_from_dense
 from shapely.geometry import CAP_STYLE, JOIN_STYLE, LineString
 
-from c3nav.mapdata.permissions import get_public_packages, get_public_private_area
+from c3nav.access.apply import get_public_packages
 from c3nav.mapdata.utils.geometry import assert_multilinestring, assert_multipolygon
+from c3nav.mapdata.utils.misc import get_public_private_area
 from c3nav.routing.point import GraphPoint
 from c3nav.routing.room import GraphRoom
 from c3nav.routing.utils.base import get_nearest_point
