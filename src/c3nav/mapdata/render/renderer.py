@@ -6,7 +6,8 @@ from django.conf import settings
 from shapely.affinity import scale
 from shapely.geometry import JOIN_STYLE, box
 
-from c3nav.mapdata.utils.misc import get_dimensions, get_render_dimensions, get_render_path
+from c3nav.mapdata.inclusion import get_maybe_invisible_areas
+from c3nav.mapdata.utils.misc import get_dimensions, get_public_private_area, get_render_dimensions, get_render_path
 
 
 class LevelRenderer():
@@ -86,6 +87,7 @@ class LevelRenderer():
             'xlink:href': 'file://'+os.path.abspath(image)
         })
         svg.append(contents)
+        return contents
 
     def render_base(self, png=True, show_accessibles=False):
         svg = self.create_svg()
@@ -238,3 +240,41 @@ class LevelRenderer():
         if png:
             png_filename = self.get_filename('full', 'png')
             subprocess.call(['rsvg-convert', filename, '-o', png_filename])
+
+    def add_clippath(self, svg):
+        defs = ET.Element('defs')
+        svg.append(defs)
+        clippath = ET.Element('clipPath', {
+            'id': 'clip-path',
+        })
+        defs.append(clippath)
+        return self.add_svg_content(clippath)
+
+    def render_segments(self, png=True):
+        if self.only_public:
+            return
+
+        for area in get_maybe_invisible_areas():
+            svg = self.create_svg()
+
+            public_area, private_area = get_public_private_area(self.level)
+
+            if area.level == self.level:
+                clippath = self.add_clippath(svg)
+
+                geometry = area.geometry.intersection(self.level.geometries.areas_and_doors)
+                geometry = geometry.buffer(-0.1, join_style=JOIN_STYLE.mitre)
+                geometry = geometry.intersection(private_area).buffer(1.5, join_style=JOIN_STYLE.mitre)
+                polygon = self.polygon_svg(geometry)
+                clippath.append(polygon)
+
+                image = self.add_svg_image(svg, self.get_filename('simple', 'png'))
+                image.attrib['clip-path'] = 'url(#clip-path)'
+
+            filename = self.get_filename('full', area.location_id+'.svg')
+            with open(filename, 'w') as f:
+                f.write(ET.tostring(svg).decode())
+
+            if png:
+                png_filename = self.get_filename('full', area.location_id+'.png')
+                subprocess.call(['rsvg-convert', filename, '-o', png_filename])

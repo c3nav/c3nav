@@ -19,3 +19,7 @@ def render_all_levels(show_accessibles=False):
     for renderer in renderers:
         if not renderer.level.intermediate:
             renderer.render_full()
+
+    for renderer in renderers:
+        if not renderer.level.intermediate:
+            renderer.render_segments()
