@@ -191,7 +191,6 @@ def main(request, location=None, origin=None, destination=None):
         except AlreadyThere:
             ctx.update({'error': 'alreadythere'})
         else:
-            route.create_routeparts()
             ctx.update({'route': route})
 
     response = render(request, 'site/main.html', ctx)

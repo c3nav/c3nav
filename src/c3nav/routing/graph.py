@@ -443,7 +443,10 @@ class Graph:
         dest_ctype = dest_ctypes[tuple(dest_points_i).index(best_route.to_point)] if add_dest_point else None
         best_route = SegmentRouteWrapper(best_route, orig_point=add_orig_point, dest_point=add_dest_point,
                                          orig_ctype=orig_ctype, dest_ctype=dest_ctype)
-        return best_route.split()
+        best_route = best_route.split()
+        best_route.create_routeparts()
+        best_route.check_allowed_ctypes(allowed_ctypes)
+        return best_route
 
     def _room_transfers(self, rooms, room_points, routers, mode):
         if mode not in ('orig', 'dest'):
