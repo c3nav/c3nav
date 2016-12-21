@@ -45,6 +45,14 @@ c3nav = {
         $('#route-from-here').click(c3nav._click_route_from_here);
         $('#route-to-here').click(c3nav._click_route_to_here);
 
+        $('.showsettings').show();
+        $('.savesettings, .settings').hide();
+        $('.showsettings a').click(function(e) {
+            e.preventDefault();
+            $('.showsettings').hide();
+            $('.savesettings, .settings').show();
+        });
+
         window.onpopstate = c3nav._onpopstate;
     },
 

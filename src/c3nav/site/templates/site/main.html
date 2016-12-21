@@ -51,15 +51,22 @@
             </div>
         </div>
         <div class="row">
-            <div class="form-group col-md-6">
-                <div class="checkbox">
-                    <label>
-                        <input type="checkbox" name="save_settings" value="1"{% if save_settings %} checked{% endif %}>  {% trans 'Save Settings in cookie' %}
-                    </label>
+            <div class="col-md-6">
+                <div class="form-group">
+                    <div class="checkbox savesettings">
+                        <label>
+                            <input type="checkbox" name="save_settings" value="1"{% if save_settings %} checked{% endif %}>  {% trans 'Save Settings in cookie' %}
+                        </label>
+                    </div>
+                    <div class="showsettings form-control-static">
+                        <a href="#">{% trans 'Edit Settings' %}</a>
+                    </div>
                 </div>
             </div>
-            <div class="form-group col-md-6">
-                <button type="submit" id="submitbtn" class="btn btn-block btn-lg btn-primary">{% trans 'Get Route' %}</button>
+            <div class="col-md-6">
+                <div class="form-group">
+                    <button type="submit" id="submitbtn" class="btn btn-block btn-lg btn-primary">{% trans 'Get Route' %}</button>
+                </div>
             </div>
         </div>
     </div>

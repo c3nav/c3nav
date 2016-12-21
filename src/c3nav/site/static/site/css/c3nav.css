@@ -269,3 +269,12 @@ circle.pos {
 footer {
     text-align:center;
 }
+.showsettings {
+    display:none;
+}
+@media (min-width: 992px) {
+    .showsettings {
+        padding-top: 18px;
+        padding-bottom: 18px;
+    }
+}
