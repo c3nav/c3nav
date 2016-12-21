@@ -3,7 +3,7 @@ from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
 from django.contrib.auth.models import User
 from django.utils.translation import ugettext_lazy as _
 
-from c3nav.control.models import AccessOperator, AccessToken, AccessTokenInstance, AccessUser
+from c3nav.access.models import AccessOperator, AccessToken, AccessTokenInstance, AccessUser
 
 
 class AccessOperatorInline(admin.StackedInline):
@@ -29,7 +29,7 @@ admin.site.register(User, UserAdmin)
 class AccessTokenInline(admin.TabularInline):
     model = AccessToken
     show_change_link = True
-    readonly_fields = ('author', 'permissions', 'description', 'creation_date', 'expires')
+    readonly_fields = ('author', 'permissions', 'description', 'creation_date', 'expires', 'expired')
 
     def has_add_permission(self, request):
         return False
@@ -55,9 +55,9 @@ class AccessTokenInstanceInline(admin.TabularInline):
 @admin.register(AccessToken)
 class AccessTokenAdmin(admin.ModelAdmin):
     inlines = (AccessTokenInstanceInline,)
-    list_display = ('__str__', 'user', 'permissions', 'author', 'creation_date', 'expires')
-    fields = ('user', 'permissions', 'author', 'creation_date', 'expires')
-    readonly_fields = ('user', 'creation_date')
+    list_display = ('__str__', 'user', 'permissions', 'author', 'creation_date', 'expires', 'expired')
+    fields = ('user', 'permissions', 'author', 'creation_date', 'expires', 'expired')
+    readonly_fields = ('user', 'creation_date', 'expired')
 
     def has_add_permission(self, request):
         return False

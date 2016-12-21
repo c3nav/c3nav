@@ -1,4 +1,4 @@
-{% extends 'control/base.html' %}
+{% extends 'access/base.html' %}
 
 {% load bootstrap3 %}
 {% load i18n %}
@@ -14,8 +14,10 @@
         {% if success %}
             <div class="alert alert-success">
                 <strong>{% trans 'Thanks – you get full access to the map!' %}</strong><br>
-                {{ token }}
+                {% if replaced %}{% trans 'All previous tokens have been invalidated.' %}<br>{% endif %}
             </div>
+            {% include 'access/fragment_token.html' with token=token %}
+
         {% elif hosters %}
             {% if error %}
                 <div class="alert alert-dismissible alert-danger">
@@ -23,7 +25,7 @@
                     {% if error == 'invalid' %}
                         <strong>{% trans 'Sorry.' %}</strong> {% trans 'One or more access tokens were not correct.' %}
                     {% elif error == 'duplicate' %}
-                        <strong>{% trans 'Sorry.' %}</strong> {% trans 'You already have an access token.' %}
+                        <strong>{% trans 'Sorry.' %}</strong> {% trans 'You already have a valid access token.' %}
                     {% endif %}
                   </div>
             {% endif %}
@@ -33,6 +35,11 @@
                     <input type="password" class="form-control" id="hoster{{ forloop.counter0 }}" name="{{ package.name }}" placeholder="{% trans 'Access Token' %}">
                  </div>
             {% endfor %}
+            <div class="checkbox">
+                <label>
+                    <input type="checkbox" name="replace" value="1"> {% trans 'Invalidate previus token(s).' %}
+                </label>
+            </div>
             <div class="form-group">
                 <button type="submit" class="btn btn-primary btn-block btn-lg">{% trans 'Submit' %}</button>
             </div>

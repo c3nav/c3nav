@@ -3,6 +3,8 @@ from datetime import timedelta
 
 from django.contrib.auth.models import User
 from django.db import models, transaction
+from django.db.models import Q
+from django.urls import reverse
 from django.utils import timezone
 from django.utils.crypto import get_random_string
 from django.utils.translation import ugettext_lazy as _
@@ -35,6 +37,14 @@ class AccessUser(models.Model):
         verbose_name = _('Access User')
         verbose_name_plural = _('Access Users')
 
+    @property
+    def valid_tokens(self):
+        return self.tokens.filter(Q(expired=False) | Q(expires__isnull=False, expires__lt=timezone.now()))
+
+    def new_token(self, **kwargs):
+        kwargs['secret'] = get_random_string(42, string.ascii_letters + string.digits)
+        return self.tokens.create(**kwargs)
+
     def __str__(self):
         return self.user_url
 
@@ -47,10 +57,19 @@ class AccessToken(models.Model):
     description = models.CharField(_('description'), max_length=200)
     creation_date = models.DateTimeField(_('creation date'), auto_now_add=True)
     expires = models.DateTimeField(null=True, blank=True)
+    expired = models.BooleanField(_('is expired'), default=False)
+    activated = models.BooleanField(_('activated'), default=False)
+    secret = models.CharField(_('activation secret'), max_length=42)
 
     class Meta:
         verbose_name = _('Access Token')
         verbose_name_plural = _('Access Tokens')
+
+    @property
+    def activation_url(self):
+        if self.activated:
+            return None
+        return reverse('access.activate', kwargs={'pk': self.pk, 'secret': self.secret})
 
     def new_instance(self):
         with transaction.atomic():
