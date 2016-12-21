@@ -22,8 +22,8 @@ WORKDIR /c3nav/src
 
 COPY deployment/docker/c3nav.bash /usr/local/bin/c3nav
 
-RUN pip3 install -U pip wheel setuptools \
- && pip3 install -r requirements.txt -r requirements/mysql.txt -r requirements/postgres.txt \
+RUN pip3 install -U pip wheel setuptools
+RUN pip3 install -r requirements.txt -r requirements/mysql.txt -r requirements/postgres.txt \
 	-r requirements/memcached.txt -r requirements/redis.txt gunicorn \
  && mkdir /static \
  && chown -R c3navuser:c3navuser /static /c3nav /data \
