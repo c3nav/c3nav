@@ -151,7 +151,7 @@ INSTALLED_APPS = [
     'c3nav.editor',
 ]
 
-MIDDLEWARE_CLASSES = [
+MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.locale.LocaleMiddleware',
@@ -161,6 +161,7 @@ MIDDLEWARE_CLASSES = [
     'django.contrib.auth.middleware.SessionAuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'c3nav.access.middleware.AccessTokenMiddleware',
 ]
 
 try:
@@ -168,7 +169,7 @@ try:
 except ImportError:
     pass
 else:
-    MIDDLEWARE_CLASSES += [
+    MIDDLEWARE += [
         'htmlmin.middleware.HtmlMinifyMiddleware',
         'htmlmin.middleware.MarkRequestMiddleware',
     ]
