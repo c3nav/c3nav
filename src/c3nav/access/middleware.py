@@ -14,8 +14,8 @@ class AccessTokenMiddleware:
 
     def __call__(self, request):
         request.c3nav_access_instance = None
-        request.c3nav_access_token = None
-        request.c3nav_new_access_token = False
+        request.c3nav_access = None
+        request.c3nav_new_access = False
 
         access_cookie = request.COOKIES.get('c3nav_access')
         if access_cookie and re.match(r'^[0-9]+:[a-zA-Z0-9]+$', access_cookie):
@@ -28,19 +28,19 @@ class AccessTokenMiddleware:
             access_instance = queryset.select_related('access_token').first()
             if access_instance:
                 request.c3nav_access_instance = access_instance
-                request.c3nav_access_token = access_instance.access_token
-                request.c3nav_access_token.instances.filter(creation_date__lt=access_instance.creation_date).delete()
+                request.c3nav_access = access_instance.access_token
+                request.c3nav_access.instances.filter(creation_date__lt=access_instance.creation_date).delete()
 
         response = self.get_response(request)
 
-        if request.c3nav_access_token is not None:
+        if request.c3nav_access is not None:
             with transaction.atomic():
-                cookie_value = request.c3nav_access_token.new_instance()
+                cookie_value = request.c3nav_access.new_instance()
                 response.set_cookie('c3nav_access', cookie_value, expires=timezone.now() + timedelta(days=30))
 
-                if request.c3nav_new_access_token:
-                    request.c3nav_access_token.activated = True
-                    request.c3nav_access_token.save()
+                if request.c3nav_new_access:
+                    request.c3nav_access.activated = True
+                    request.c3nav_access.save()
 
                     if request.c3nav_access_instance:
                         access_token = request.c3nav_access_instance.access_token
