@@ -2,6 +2,8 @@ from abc import ABC, abstractmethod
 
 from django.utils.functional import cached_property
 
+from c3nav.routing.connection import GraphConnection
+from c3nav.routing.point import GraphPoint
 from c3nav.routing.route import Route
 
 
@@ -135,5 +137,36 @@ class SegmentRoute:
         return ('<SegmentedRoute (\n    %s\n) distance=%f>' %
                 ('\n    '.join(repr(segment) for segment in self.segments), self.distance))
 
+    def rawsplit(self):
+        return sum((segment.get_connections() for segment in self.segments), ())
+
     def split(self):
-        return Route(sum((segment.get_connections() for segment in self.segments), ()))
+        return Route(self.rawsplit())
+
+
+class SegmentRouteWrapper:
+    def __init__(self, segmentroute: SegmentRoute, orig_point, dest_point, orig_ctype, dest_ctype):
+        self.segmentroute = segmentroute
+        self.orig_point = orig_point
+        self.dest_point = dest_point
+        self.orig_ctype = orig_ctype
+        self.dest_ctype = dest_ctype
+
+    def __repr__(self):
+        return ('<SegmentedRouteWrapper %s, add_orig_point=%s, add_dest_point=%s>' %
+                (repr(self.segmentroute), repr(self.orig_point), repr(self.dest_point)))
+
+    def split(self):
+        connections = self.segmentroute.rawsplit()
+
+        if self.orig_point:
+            first_point = connections[0].from_point
+            orig_point = GraphPoint(self.orig_point.x, self.orig_point.y, first_point.room)
+            connections = (GraphConnection(orig_point, first_point, ctype=self.orig_ctype),) + connections
+
+        if self.dest_point:
+            last_point = connections[-1].to_point
+            dest_point = GraphPoint(self.dest_point.x, self.dest_point.y, last_point.room)
+            connections = connections + (GraphConnection(last_point, dest_point, ctype=self.dest_ctype), )
+
+        return Route(connections)
