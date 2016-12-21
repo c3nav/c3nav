@@ -38,10 +38,9 @@
                 <div class="map-buttons">
                     <div class="btn-group level-selector" role="group">
                         {% for level in levels %}
-                            <a href="?map-level={{ level }}" data-level="{{ level }}" class="btn btn-default{% if level == map_level %} active{% endif %}">{{ level }}</a>
+                            <a href="?map-level={{ level }}" data-level="{{ level }}" class="btn btn-sm btn-default{% if level == map_level %} active{% endif %}">{{ level }}</a>
                         {% endfor %}
-                    </div>
-                    <a href="?" class="btn btn-default close-map">{% trans 'close' %}</a>
+                    </div><a href="?" class="btn btn-sm btn-default close-map">{% trans 'close' %}</a>
                 </div>
                 <span class="help-block">{% trans 'Click or tap the desired location on the map.' %}</span>
             </div>
