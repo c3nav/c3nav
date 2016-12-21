@@ -5,6 +5,7 @@ c3nav = {
 
         c3nav.svg_width = parseInt(c3nav.main_view.attr('data-svg-width'));
         c3nav.svg_height = parseInt(c3nav.main_view.attr('data-svg-height'));
+        c3nav.visible_areas = c3nav.main_view.attr('data-visible-areas').split(';');
 
         c3nav._typeahead_locations = new Bloodhound({
             datumTokenizer: function(data) {
@@ -77,11 +78,13 @@ c3nav = {
         $(this).siblings().removeClass('active');
         $(this).addClass('active');
         map_container.find('img').remove();
-        map_container.append($('<img>').attr({
-            'src': '/map/'+level+'.png',
-            'width': c3nav.svg_width,
-            'height': c3nav.svg_height
-        }));
+        for (var i=0;i<c3nav.visible_areas.length;i++) {
+            map_container.append($('<img>').attr({
+                'src': '/map/'+level+'/'+c3nav.visible_areas[i]+'.png',
+                'width': c3nav.svg_width,
+                'height': c3nav.svg_height
+            }));
+        }
         map_container.attr('data-level', level);
     },
     _locationselect_click_image: function(e) {

@@ -31,8 +31,10 @@
                 <div class="map-container">
                     <div class="dummy" style="width:{{ svg_width }}px;height:{{ svg_height }}px;"></div>
                     {% if map_level %}
-                        <input type="image" src="/map/{{ map_level }}.png" width="{{ svg_width }}" height="{{ svg_height }}">
-                        <p class="scroll-hint">{% trans 'You have Javascript deactivated. Please scroll in this direction ⇘' %}</p>
+                        {% for area in visible_areas %}
+                            <input type="image" src="{% url 'site.level_image' level=map_level area=area %}" width="{{ svg_width }}" height="{{ svg_height }}">
+                        {% endfor %}
+                        <p class="scroll-hint">{% trans 'Javascript is disabled. Please scroll in this direction ⇘' %}</p>
                     {% endif %}
                 </div>
                 <div class="map-buttons">

@@ -1,20 +1,16 @@
-import re
 from collections import OrderedDict
 
 import numpy as np
 from django.core.cache import cache
 from django.db import models
-from django.db.models import Q
 from django.utils.functional import cached_property
 from django.utils.translation import ugettext_lazy as _
 
-from c3nav.access.apply import filter_queryset_by_package_access
 from c3nav.mapdata.fields import JSONField
 from c3nav.mapdata.lastupdate import get_last_mapdata_update
 from c3nav.mapdata.models import Level
 from c3nav.mapdata.models.base import MapItem
 from c3nav.mapdata.models.geometry import GeometryMapItemWithLevel
-from c3nav.mapdata.utils.cache import get_levels_cached
 
 
 class Location:
@@ -236,49 +232,6 @@ class AreaLocation(LocationModelMixin, GeometryMapItemWithLevel):
 
     def __str__(self):
         return self.title
-
-
-def get_location(request, name):
-    match = re.match('^c:(?P<level>[a-z0-9-_]+):(?P<x>[0-9]+):(?P<y>[0-9]+)$', name)
-    if match:
-        levels = get_levels_cached()
-        level = levels.get(match.group('level'))
-        if level is None:
-            return None
-        return PointLocation(level=level, x=int(match.group('x'))/100, y=int(match.group('y'))/100)
-
-    if name.startswith('g:'):
-        return filter_queryset_by_package_access(request, LocationGroup.objects.filter(name=name[2:])).first()
-
-    return filter_queryset_by_package_access(request, AreaLocation.objects.filter(name=name)).first()
-
-
-def filter_words(queryset, words):
-    for word in words:
-        queryset = queryset.filter(Q(name__icontains=word) | Q(titles__icontains=word))
-    return queryset
-
-
-def search_location(request, search):
-    results = []
-    location = get_location(request, search)
-    if location:
-        results.append(location)
-
-    words = search.split(' ')[:10]
-
-    queryset = AreaLocation.objects.all()
-    if isinstance(location, AreaLocation):
-        queryset.exclude(name=location.name)
-    results += sorted(filter_words(filter_queryset_by_package_access(request, queryset), words),
-                      key=AreaLocation.get_sort_key, reverse=True)
-
-    queryset = LocationGroup.objects.all()
-    if isinstance(location, LocationGroup):
-        queryset.exclude(name=location.name)
-    results += list(filter_words(filter_queryset_by_package_access(request, queryset), words)[:10])
-
-    return results
 
 
 class PointLocation(Location):
