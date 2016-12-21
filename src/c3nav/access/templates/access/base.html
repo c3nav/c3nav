@@ -9,14 +9,14 @@
     <title>c3nav control panel</title>
     {% compress css %}
         <link href="{% static 'bootstrap/css/bootstrap.css' %}" rel="stylesheet">
-        <link href="{% static 'control/css/c3nav-control.css' %}" rel="stylesheet">
+        <link href="{% static 'access/css/c3nav-access.css' %}" rel="stylesheet">
     {% endcompress %}
   </head>
 
   <body class="{% block bodyclass %}{% endblock %}">
 
     <div class="container" id="main">
-        <h1>c3nav control panel</h1>
+        <h1>c3nav access control</h1>
         {% block content %}
         {% endblock %}
     </div>

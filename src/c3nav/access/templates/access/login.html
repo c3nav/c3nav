@@ -1,4 +1,4 @@
-{% extends 'control/base.html' %}
+{% extends 'access/base.html' %}
 
 {% load bootstrap3 %}
 {% load i18n %}
@@ -17,7 +17,7 @@
     </fieldset>
     <p>{% blocktrans %}This is the non-public backend for creation of auth tokens.{% endblocktrans %}</p>
 
-    <p><a class="btn btn-sm btn-default btn-block" href="{% url 'control.prove' %}">
+    <p><a class="btn btn-sm btn-default btn-block" href="{% url 'access.prove' %}">
         {% blocktrans %}Prove that you should have access{% endblocktrans %}
     </a></p>
 </form>
