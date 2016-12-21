@@ -1,6 +1,7 @@
 import re
 from collections import OrderedDict
 
+import numpy as np
 from django.core.cache import cache
 from django.db import models
 from django.db.models import Q
@@ -289,6 +290,10 @@ class PointLocation(Location):
     @cached_property
     def location_id(self):
         return 'c:%s:%d:%d' % (self.level.name, self.x*100, self.y*100)
+
+    @cached_property
+    def xy(self):
+        return np.array((self.x, self.y))
 
     @cached_property
     def description(self):

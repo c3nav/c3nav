@@ -12,6 +12,7 @@ from c3nav.mapdata.models import Elevator, Level
 from c3nav.mapdata.models.geometry import LevelConnector
 from c3nav.mapdata.models.locations import AreaLocation, Location, LocationGroup, PointLocation
 from c3nav.routing.connection import GraphConnection
+from c3nav.routing.exceptions import AlreadyThere, NoRouteFound
 from c3nav.routing.level import GraphLevel
 from c3nav.routing.point import GraphPoint
 from c3nav.routing.route import NoRoute, Route
@@ -245,7 +246,9 @@ class Graph:
     def get_location_points(self, location: Location, mode):
         if isinstance(location, PointLocation):
             points = self.levels[location.level.name].connected_points(np.array((location.x, location.y)), mode)
-            points, distances, ctypes = zip(*((point, distance, ctype)for point, (distance, ctype) in points.items()))
+            if not points:
+                return (), None, None
+            points, distances, ctypes = zip(*((point, distance, ctype) for point, (distance, ctype) in points.items()))
             points = np.array(points)
             distances = np.array(distances)
             return points, distances, ctypes
@@ -266,11 +269,15 @@ class Graph:
         orig_points_i, orig_distances, orig_ctypes = self.get_location_points(origin, 'orig')
         dest_points_i, dest_distances, dest_ctypes = self.get_location_points(destination, 'dest')
 
+        if not orig_points_i or not dest_points_i:
+            raise NoRouteFound()
+
         add_orig_point = origin if isinstance(origin, PointLocation) else None
         add_dest_point = destination if isinstance(destination, PointLocation) else None
 
         orig_points = self._get_points_by_i(orig_points_i)
         dest_points = self._get_points_by_i(dest_points_i)
+        common_points = tuple(set(orig_points) & set(dest_points))
 
         best_route = NoRoute
 
@@ -282,6 +289,7 @@ class Graph:
         dest_rooms = set(point.room for point in dest_points)
         common_rooms = orig_rooms & dest_rooms
 
+        # rooms are directly connectable
         if add_orig_point and add_dest_point and common_rooms:
             room = tuple(common_rooms)[0]
             ctype = room.check_connection((add_orig_point.x, add_orig_point.y), (add_dest_point.x, add_dest_point.y))
@@ -289,6 +297,37 @@ class Graph:
                 from_point = GraphPoint(add_orig_point.x, add_orig_point.y, room)
                 to_point = GraphPoint(add_dest_point.x, add_dest_point.y, room)
                 return Route((GraphConnection(from_point, to_point, ctype=ctype), ))
+
+        if common_points:
+            # same location
+            if not add_orig_point and not add_dest_point:
+                raise AlreadyThere()
+
+            # points are connectable with only one via
+            best_point = None
+            best_distance = np.inf
+            for point in common_points:
+                distance = 0
+                if add_orig_point:
+                    distance += abs(np.linalg.norm(add_orig_point.xy - point.xy))
+                if add_dest_point:
+                    distance += abs(np.linalg.norm(add_dest_point.xy - point.xy))
+                if distance < best_distance:
+                    best_distance = distance
+                    best_point = point
+
+            connections = []
+            if add_orig_point:
+                from_point = GraphPoint(add_orig_point.x, add_orig_point.y, best_point.room)
+                ctype = orig_ctypes[tuple(orig_points_i).index(best_point.i)]
+                connections.append(GraphConnection(from_point, best_point, ctype=ctype))
+
+            if add_dest_point:
+                to_point = GraphPoint(add_dest_point.x, add_dest_point.y, best_point.room)
+                ctype = dest_ctypes[tuple(dest_points_i).index(best_point.i)]
+                connections.append(GraphConnection(best_point, to_point, ctype=ctype))
+
+            return Route(connections)
 
         # get origin points for each room (points as point index within room)
         orig_room_points = {room: self._allowed_points_index(room.points, orig_points_i) for room in orig_rooms}
@@ -397,13 +436,14 @@ class Graph:
                                            dest_level_transfers[self.level_transfer_points[to_point]]),
                                           distance=distance)
 
-        if best_route is not NoRoute:
-            orig_ctype = orig_ctypes[tuple(orig_points_i).index(best_route.from_point)] if add_orig_point else None
-            dest_ctype = dest_ctypes[tuple(dest_points_i).index(best_route.to_point)] if add_dest_point else None
-            best_route = SegmentRouteWrapper(best_route, orig_point=add_orig_point, dest_point=add_dest_point,
-                                             orig_ctype=orig_ctype, dest_ctype=dest_ctype)
-            best_route = best_route.split()
-        return best_route
+        if best_route is NoRoute:
+            raise NoRouteFound()
+
+        orig_ctype = orig_ctypes[tuple(orig_points_i).index(best_route.from_point)] if add_orig_point else None
+        dest_ctype = dest_ctypes[tuple(dest_points_i).index(best_route.to_point)] if add_dest_point else None
+        best_route = SegmentRouteWrapper(best_route, orig_point=add_orig_point, dest_point=add_dest_point,
+                                         orig_ctype=orig_ctype, dest_ctype=dest_ctype)
+        return best_route.split()
 
     def _room_transfers(self, rooms, room_points, routers, mode):
         if mode not in ('orig', 'dest'):
