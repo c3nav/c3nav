@@ -55,6 +55,8 @@ def list_mapitems(request, mapitem_type, level=None):
         elif hasattr(mapitemtype, 'levels'):
             queryset = queryset.filter(levels__name=level)
 
+    queryset = filter_queryset_by_package_access(request, queryset)
+
     if issubclass(mapitemtype, AreaLocation):
         queryset = sorted(queryset, key=AreaLocation.get_sort_key)
 
@@ -67,7 +69,7 @@ def list_mapitems(request, mapitem_type, level=None):
         'has_altitude': hasattr(mapitemtype, 'altitude'),
         'has_intermediate': hasattr(mapitemtype, 'intermediate'),
         'level': level,
-        'items': filter_queryset_by_package_access(request, queryset),
+        'items': queryset,
     })
 
 
