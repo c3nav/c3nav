@@ -14,7 +14,8 @@ from c3nav.mapdata.models.locations import AreaLocation, Location, LocationGroup
 from c3nav.routing.level import GraphLevel
 from c3nav.routing.point import GraphPoint
 from c3nav.routing.route import NoRoute
-from c3nav.routing.routesegments import GraphRouteSegment, LevelRouteSegment, RoomRouteSegment, SegmentRoute
+from c3nav.routing.routesegments import (GraphRouteSegment, LevelRouteSegment, RoomRouteSegment, SegmentRoute,
+                                         SegmentRouteWrapper)
 
 
 class Graph:
@@ -243,16 +244,16 @@ class Graph:
     def get_location_points(self, location: Location, mode):
         if isinstance(location, PointLocation):
             points = self.levels[location.level.name].connected_points(np.array((location.x, location.y)), mode)
-            points, distances = zip(*((point_i, distance) for point_i, (distance, ctype) in points.items()))
+            points, distances, ctypes = zip(*((point, distance, ctype)for point, (distance, ctype) in points.items()))
             points = np.array(points)
             distances = np.array(distances)
-            return points, distances
+            return points, distances, ctypes
         elif isinstance(location, AreaLocation):
             points = self.levels[location.level.name].arealocation_points[location.name]
-            return points, None
+            return points, None, None
         elif isinstance(location, LocationGroup):
             points = set(np.hstack(tuple(self.get_location_points(area) for area in location.locationareas)))
-            return points, None
+            return points, None, None
 
     def _get_points_by_i(self, points):
         return tuple(self.points[i] for i in points)
@@ -261,8 +262,11 @@ class Graph:
         return np.array(tuple(i for i, point in enumerate(points) if point in allowed_points_i))
 
     def get_route(self, origin: Location, destination: Location, allowed_ctypes, public, nonpublic, avoid, include):
-        orig_points_i, orig_distances = self.get_location_points(origin, 'orig')
-        dest_points_i, dest_distances = self.get_location_points(destination, 'dest')
+        orig_points_i, orig_distances, orig_ctypes = self.get_location_points(origin, 'orig')
+        dest_points_i, dest_distances, dest_ctypes = self.get_location_points(destination, 'dest')
+
+        add_orig_point = origin if isinstance(origin, PointLocation) else None
+        add_dest_point = destination if isinstance(destination, PointLocation) else None
 
         orig_points = self._get_points_by_i(orig_points_i)
         dest_points = self._get_points_by_i(dest_points_i)
@@ -384,6 +388,11 @@ class Graph:
                                            dest_level_transfers[self.level_transfer_points[to_point]]),
                                           distance=distance)
 
+        if best_route is not NoRoute:
+            orig_ctype = orig_ctypes[tuple(orig_points_i).index(best_route.from_point)] if add_orig_point else None
+            dest_ctype = dest_ctypes[tuple(dest_points_i).index(best_route.to_point)] if add_dest_point else None
+            best_route = SegmentRouteWrapper(best_route, orig_point=add_orig_point, dest_point=add_dest_point,
+                                             orig_ctype=orig_ctype, dest_ctype=dest_ctype)
         return best_route
 
     def _room_transfers(self, rooms, room_points, routers, mode):
