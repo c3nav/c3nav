@@ -248,41 +248,37 @@ class GraphRoom():
     # Routing
     router_cache = {}
 
-    def build_router(self, allowed_ctypes, public, nonpublic, avoid, include):
+    def build_router(self, allowed_ctypes, allow_nonpublic, avoid, include):
         ctypes = tuple(i for i, ctype in enumerate(self.ctypes) if ctype in allowed_ctypes)
         avoid = tuple(i for i, excludable in enumerate(self.excludables) if excludable in avoid)
         include = tuple(i for i, excludable in enumerate(self.excludables) if excludable in include)
-        cache_key = ('c3nav__graph__roomrouter__%s__%s__%s__%d,%d__%s__%s' %
+        cache_key = ('c3nav__graph__roomrouter__%s__%s__%s__%d__%s__%s' %
                      (self.graph.mtime, self.i, ','.join(str(i) for i in ctypes),
-                      public, nonpublic, ','.join(str(i) for i in avoid), ','.join(str(i) for i in include)))
+                      allow_nonpublic, ','.join(str(i) for i in avoid), ','.join(str(i) for i in include)))
 
         roomrouter = self.router_cache.get(cache_key)
         if not roomrouter:
-            roomrouter = self._build_router(ctypes, public, nonpublic, avoid, include)
+            roomrouter = self._build_router(ctypes, allow_nonpublic, avoid, include)
             self.router_cache[cache_key] = roomrouter
         return roomrouter
 
-    def _build_router(self, ctypes, public, nonpublic, avoid, include):
+    def _build_router(self, ctypes, allow_nonpublic, avoid, include):
         ctype_factors = np.ones((len(self.ctypes), 1, 1))*1000
         ctype_factors[ctypes, :, :] = 1
 
         distances = np.amin(self.distances*ctype_factors, axis=0).astype(np.float32)
         factors = np.ones_like(distances, dtype=np.float16)
 
-        if ':public' in self.excludables and not public:
-            points, = self.excludable_points[self.excludables.index(':public')].nonzero()
-            factors[points[:, None], points] = 1000
-
-        if ':nonpublic' in self.excludables and not nonpublic:
+        if ':nonpublic' in self.excludables and ':nonpublic' not in include:
             points, = self.excludable_points[self.excludables.index(':nonpublic')].nonzero()
-            factors[points[:, None], points] = np.inf
+            factors[points[:, None], points] = 1000 if allow_nonpublic else np.inf
 
         if avoid:
-            points, = self.excludable_points[avoid].any(axis=0).nonzero()
-            factors[points[:, None], points] = 1000
+            points, = self.excludable_points[avoid, :].any(axis=0).nonzero()
+            factors[points[:, None], points] = np.maximum(factors[points[:, None], points], 1000)
 
         if include:
-            points, = self.excludable_points[include].any(axis=0).nonzero()
+            points, = self.excludable_points[include, :].any(axis=0).nonzero()
             factors[points[:, None], points] = 1
 
         g_sparse = csgraph_from_dense(distances*factors, null_value=np.inf)

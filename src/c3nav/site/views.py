@@ -5,9 +5,9 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.utils import timezone
 
+from c3nav.mapdata.inclusion import get_includables_avoidables, parse_include_avoid
 from c3nav.mapdata.models import Level
 from c3nav.mapdata.models.locations import get_location, search_location
-from c3nav.mapdata.permissions import get_excludables_includables
 from c3nav.mapdata.render.compose import composer
 from c3nav.mapdata.utils.cache import get_levels_cached
 from c3nav.mapdata.utils.misc import get_dimensions
@@ -158,9 +158,8 @@ def main(request, location=None, origin=None, destination=None):
     escalators = reverse_ctypes(allowed_ctypes, 'escalator')
     elevators = reverse_ctypes(allowed_ctypes, 'elevator')
 
-    excludables, includables = get_excludables_includables()
-    include = set(include) & set(includables)
-    avoid = set(avoid) & set(excludables)
+    includables, avoidables = get_includables_avoidables(request)
+    allow_nonpublic, include, avoid = parse_include_avoid(request, include, avoid)
 
     if request.method == 'POST':
         save_settings = request.POST.get('save_settings', '') == '1'
@@ -169,7 +168,7 @@ def main(request, location=None, origin=None, destination=None):
         'stairs': stairs,
         'escalators': escalators,
         'elevators': elevators,
-        'excludables': excludables.items(),
+        'excludables': avoidables.items(),
         'includables': includables.items(),
         'include': include,
         'avoid': avoid,
@@ -178,13 +177,10 @@ def main(request, location=None, origin=None, destination=None):
 
     # routing
     if request.method == 'POST' and origin and destination:
-        public = ':public' not in avoid
-        nonpublic = ':nonpublic' in include
-
         graph = Graph.load()
 
         try:
-            route = graph.get_route(origin, destination, allowed_ctypes, public=public, nonpublic=nonpublic,
+            route = graph.get_route(origin, destination, allowed_ctypes, allow_nonpublic=allow_nonpublic,
                                     avoid=avoid-set(':public'), include=include-set(':nonpublic'))
         except NoRouteFound:
             ctx.update({'error': 'noroutefound'})
