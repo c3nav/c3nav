@@ -1,14 +1,17 @@
 import mimetypes
+from calendar import timegm
 from datetime import timedelta
 
 from django.core.files import File
-from django.http import Http404, HttpResponse
+from django.http import Http404, HttpResponse, HttpResponseNotModified
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.utils import timezone
+from django.utils.http import http_date, parse_http_date_safe
 
 from c3nav.access.apply import get_visible_areas
 from c3nav.mapdata.inclusion import get_includables_avoidables, parse_include_avoid
+from c3nav.mapdata.lastupdate import get_last_mapdata_update
 from c3nav.mapdata.models import Level
 from c3nav.mapdata.search import get_location, search_location
 from c3nav.mapdata.utils.cache import get_levels_cached
@@ -212,7 +215,7 @@ def main(request, location=None, origin=None, destination=None):
     return response
 
 
-def level_image(request, area, level):
+def map_image(request, area, level):
     level = get_object_or_404(Level, name=level, intermediate=False)
     if area == ':base':
         img = get_render_path('png', level.name, 'full', True)
@@ -223,7 +226,20 @@ def level_image(request, area, level):
     else:
         raise Http404
 
+    last_update = get_last_mapdata_update()
+
+    if_modified_since = request.META.get('HTTP_IF_MODIFIED_SINCE')
+    if if_modified_since:
+        if_modified_since = parse_http_date_safe(if_modified_since)
+        if if_modified_since != last_update:
+            return HttpResponseNotModified()
+
     response = HttpResponse(content_type=mimetypes.guess_type(img)[0])
     for chunk in File(open(img, 'rb')).chunks():
         response.write(chunk)
+
+    last_modified = http_date(timegm(last_update.utctimetuple()))
+    response['Last-Modifed'] = last_modified
+    response['Expires'] = last_modified
+    response['Cache-Control'] = 'max-age=0, must-revalidate'
     return response
