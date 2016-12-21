@@ -353,7 +353,7 @@ class GraphLevel():
         im.save(graph_filename)
 
     # Routing
-    def build_routers(self, allowed_ctypes, public, nonpublic, avoid, include):
+    def build_routers(self, allowed_ctypes, allow_nonpublic, avoid, include):
         routers = {}
 
         empty_distances = np.empty(shape=(len(self.room_transfer_points),) * 2, dtype=np.float16)
@@ -365,7 +365,7 @@ class GraphLevel():
         room_transfers[:] = -1
 
         for i, room in enumerate(self.rooms):
-            router = room.build_router(allowed_ctypes, public, nonpublic, avoid, include)
+            router = room.build_router(allowed_ctypes, allow_nonpublic, avoid, include)
             routers[room] = router
 
             room_distances = empty_distances.copy()

@@ -88,9 +88,9 @@ class LocationModelMixin(Location):
 
 LOCATION_ROUTING_INCLUSION = (
     ('default', _('Default, include if map package is unlocked')),
-    ('allow_exclude', _('Included, but allow excluding')),
-    ('allow_include', _('Excluded, but allow including')),
-    ('needs_permission', _('Excluded, needs permission to include')),
+    ('allow_avoid', _('Included, but allow excluding')),
+    ('allow_include', _('Avoided, but allow including')),
+    ('needs_permission', _('Avoided, needs permission to include')),
 )
 
 
