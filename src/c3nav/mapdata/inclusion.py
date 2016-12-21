@@ -31,16 +31,11 @@ def get_includables_avoidables(request):
         includables.append((':nonpublic', _('non-public areas')))
         avoidables.append((':public', _('public areas')))
 
-    from c3nav.access.apply import can_access_package
-
     for location in locations:
         item = (location.location_id, location.title)
 
-        if not can_access_package(request, location.package):
-            continue
-
-        if location.routing_inclusion == 'needs_permission':
-            if not request.c3nav_full_access and location.location_id not in request.c3nav_access_list:
+        if not location.location_id not in request.c3nav_access_list and not request.c3nav_full_access:
+            if location.routing_inclusion == 'needs_permission':
                 continue
 
         if location.routing_inclusion == 'allow_avoid':
