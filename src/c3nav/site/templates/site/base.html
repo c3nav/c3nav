@@ -22,25 +22,7 @@
         {% block content %}
         {% endblock %}
 
-        <footer>
-            <a href="https://github.com/c3nav/c3nav">GitHub</a>
-            - <a href="https://twitter.com/c3nav">Twitter</a>
-            – <a href="{% url 'editor.index' %}">{% trans 'Editor' %}</a>
-            – <a href="/api/">{% trans 'API' %}</a>
-            {% if full_access or access_list %}
-                <br><small>
-                {% if full_access %}
-                    {% trans 'full access unlocked' %}
-                {% else %}
-                    {% blocktrans count count=access_list|length %}
-                    {{ count }} one area unlocked
-                    {% plural %}
-                    {{ count }} areas unlocked
-                    {% endblocktrans %}
-                {% endif %}
-                </small>
-            {% endif %}
-        </footer>
+        {% include 'site/footer.html' %}
     </div>
 
     {% compress js %}

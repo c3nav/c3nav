@@ -205,11 +205,6 @@ template_loaders = (
     'django.template.loaders.filesystem.Loader',
     'django.template.loaders.app_directories.Loader',
 )
-if not DEBUG:
-    template_loaders = (
-        ('django.template.loaders.cached.Loader', template_loaders),
-    )
-
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
@@ -220,6 +215,7 @@ TEMPLATES = [
                 'django.template.context_processors.debug',
                 'django.template.context_processors.i18n',
                 'django.template.context_processors.request',
+                'django.template.context_processors.request',
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
             ],
@@ -227,6 +223,11 @@ TEMPLATES = [
         },
     },
 ]
+if not DEBUG:
+    template_loaders = (
+        ('django.template.loaders.cached.Loader', template_loaders),
+    )
+
 
 STATICFILES_FINDERS = (
     'django.contrib.staticfiles.finders.FileSystemFinder',

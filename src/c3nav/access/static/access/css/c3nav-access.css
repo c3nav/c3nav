@@ -9,3 +9,19 @@ h1 {
 .login .container {
     max-width:420px;
 }
+
+
+footer {
+    text-align:center;
+}
+.languages {
+    margin-bottom:0;
+    height:2px;
+}
+.languages button {
+    text-transform:none;
+    font-weight:normal;
+    margin-top:0 !important;
+    border-width:0 !important;
+    padding:0;
+}

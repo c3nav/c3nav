@@ -11,5 +11,6 @@ urlpatterns = [
     url(r'^editor/', include(c3nav.editor.urls)),
     url(r'^api/', include(c3nav.api.urls, namespace='api')),
     url(r'^admin/', admin.site.urls),
+    url(r'^locales/', include('django.conf.urls.i18n')),
     url(r'^', include(c3nav.site.urls)),
 ]
