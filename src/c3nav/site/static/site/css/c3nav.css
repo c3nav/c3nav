@@ -10,7 +10,6 @@ body, .btn {
     display:none
 }
 
-
 .locationselect .input-lg {
     height: 62px;
 }
@@ -68,7 +67,7 @@ body, .btn {
 .locationselect-map .map-container {
     width:100%;
     overflow:auto;
-    height:200px;
+    height:300px;
     position:relative;
 }
 .locationselect-map .map-container img, .locationselect-map .map-container input {
@@ -80,6 +79,9 @@ body, .btn {
     position:absolute;
     top:8px;
     left:8px;
+}
+.locationselect-map .close-map {
+    margin-left:8px;
 }
 .locationselect-map .scroll-hint {
     color:#FFFFFF;
@@ -253,4 +255,12 @@ circle.pos {
     width:auto;
     vertical-align:middle;
     line-height: 1.42857143;
+}
+
+
+.locationselect-selected.loading .location,
+.locationselect-map .map-container {
+    background-image:url('/static/img/loader.gif');
+    background-repeat:no-repeat;
+    background-position:center;
 }

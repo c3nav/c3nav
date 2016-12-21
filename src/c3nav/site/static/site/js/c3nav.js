@@ -74,6 +74,8 @@ c3nav = {
         var location_group = $(this).closest('.location-group');
         var map_container = location_group.find('.map-container');
         var level = $(this).attr('data-level');
+        $(this).siblings().removeClass('active');
+        $(this).addClass('active');
         map_container.find('img').remove();
         map_container.append($('<img>').attr({
             'src': '/map/'+level+'.png',
@@ -91,9 +93,11 @@ c3nav = {
         selected.find('.title').text('');
         selected.find('.subtitle').text('');
         selected.find('.id-field').val(coords);
+        selected.addClass('loading');
         $.getJSON('/api/locations/'+coords, function(data) {
             selected.find('.title').text(data.title);
             selected.find('.subtitle').text(data.subtitle);
+            selected.removeClass('loading');
         });
         c3nav._locations_changed();
         c3nav.locationselect_focus();
