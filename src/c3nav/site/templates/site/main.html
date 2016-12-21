@@ -64,6 +64,20 @@
     </div>
 </form>
 
+{% if error == 'noroutefound' %}
+<div class="alert alert-danger">
+    <strong>{% trans 'Sorry, no Route could be found.' %}</strong>
+    <p>
+        {% blocktrans %}
+            Your origin or your destination is not within an accessible area or there is no possible route between them.
+        {% endblocktrans %}
+    </p>
+</div>
+{% elif error == 'alreadythere' %}
+<div class="alert alert-success">
+    <strong>{% trans 'Congratulations, you are already there!' %}</strong>
+</div>
+{% endif %}
 {% if route %}
 {% include 'site/fragment_route.html' %}
 {% endif %}

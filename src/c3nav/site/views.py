@@ -11,6 +11,7 @@ from c3nav.mapdata.permissions import get_excludables_includables
 from c3nav.mapdata.render.compose import composer
 from c3nav.mapdata.utils.cache import get_levels_cached
 from c3nav.mapdata.utils.misc import get_dimensions
+from c3nav.routing.exceptions import AlreadyThere, NoRouteFound
 from c3nav.routing.graph import Graph
 
 ctype_mapping = {
@@ -181,13 +182,17 @@ def main(request, location=None, origin=None, destination=None):
         nonpublic = ':nonpublic' in include
 
         graph = Graph.load()
-        route = graph.get_route(origin, destination, allowed_ctypes, public=public, nonpublic=nonpublic,
-                                avoid=avoid-set(':public'), include=include-set(':nonpublic'))
-        route.create_routeparts()
 
-        ctx.update({
-            'route': route,
-        })
+        try:
+            route = graph.get_route(origin, destination, allowed_ctypes, public=public, nonpublic=nonpublic,
+                                    avoid=avoid-set(':public'), include=include-set(':nonpublic'))
+        except NoRouteFound:
+            ctx.update({'error': 'noroutefound'})
+        except AlreadyThere:
+            ctx.update({'error': 'alreadythere'})
+        else:
+            route.create_routeparts()
+            ctx.update({'route': route})
 
     response = render(request, 'site/main.html', ctx)
 
