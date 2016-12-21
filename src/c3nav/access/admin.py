@@ -51,13 +51,16 @@ class AccessTokenInstanceInline(admin.TabularInline):
     def has_add_permission(self, request):
         return False
 
+    def has_change_permission(self, request, obj=None):
+        return False
+
 
 @admin.register(AccessToken)
 class AccessTokenAdmin(admin.ModelAdmin):
     inlines = (AccessTokenInstanceInline,)
     list_display = ('__str__', 'user', 'permissions', 'author', 'creation_date', 'activated', 'expires', 'expired')
-    fields = ('user', 'permissions', 'author', 'creation_date', 'activated', 'expires', 'expired')
-    readonly_fields = ('user', 'creation_date', 'activated', 'expired')
+    fields = ('user', 'permissions', 'author', 'creation_date', 'activated', 'expires', 'expired', 'description')
+    readonly_fields = ('user', 'creation_date', 'activated', 'expired', 'description')
 
     def has_add_permission(self, request):
         return False
