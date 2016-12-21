@@ -20,6 +20,9 @@ class Route:
         return ('<Route (\n    %s\n) distance=%f>' %
                 ('\n    '.join(repr(connection) for connection in self.connections), self.distance))
 
+    def split(self):
+        return self
+
     def create_routeparts(self):
         routeparts = []
         connections = []
