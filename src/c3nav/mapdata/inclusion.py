@@ -3,8 +3,8 @@ from collections import OrderedDict
 from django.conf import settings
 from django.utils.translation import ugettext_lazy as _
 
+from c3nav.access.apply import can_access_package
 from c3nav.mapdata.models import AreaLocation, LocationGroup
-from c3nav.mapdata.permissions import can_access_package
 
 
 def get_default_include_avoid():

@@ -9,8 +9,8 @@ from django.forms.widgets import HiddenInput
 from django.utils.translation import ugettext_lazy as _
 from shapely.geometry.geo import mapping
 
+from c3nav.access.apply import get_unlocked_packages
 from c3nav.mapdata.models import Package
-from c3nav.mapdata.permissions import get_unlocked_packages
 
 
 class MapitemFormMixin(ModelForm):

@@ -7,6 +7,7 @@ from django.db.models import Q
 from django.urls import reverse
 from django.utils import timezone
 from django.utils.crypto import get_random_string
+from django.utils.functional import cached_property
 from django.utils.translation import ugettext_lazy as _
 
 
@@ -64,6 +65,14 @@ class AccessToken(models.Model):
     class Meta:
         verbose_name = _('Access Token')
         verbose_name_plural = _('Access Tokens')
+
+    @cached_property
+    def permissions_list(self):
+        return self.permissions.split(';')
+
+    @cached_property
+    def full_access(self):
+        return ':full' in self.permissions_list
 
     @property
     def activation_url(self):

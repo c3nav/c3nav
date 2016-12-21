@@ -2,6 +2,7 @@ import os
 
 from django.conf import settings
 from django.db.models import Max, Min
+from shapely.geometry import box
 
 from c3nav.mapdata.models import Package
 from c3nav.mapdata.utils.cache import cache_result
@@ -25,3 +26,11 @@ def get_render_dimensions():
 def get_render_path(filetype, level, mode, public):
     return os.path.join(settings.RENDER_ROOT,
                         '%s%s-level-%s.%s' % (('public-' if public else ''), mode, level, filetype))
+
+
+def get_public_private_area(level):
+    width, height = get_dimensions()
+    everything = box(0, 0, width, height)
+    public_area = level.public_geometries.areas_and_doors
+    private_area = everything.difference(public_area)
+    return public_area, private_area

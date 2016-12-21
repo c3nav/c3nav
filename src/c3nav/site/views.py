@@ -65,6 +65,9 @@ def main(request, location=None, origin=None, destination=None):
         'destination': destination,
         'mode': mode,
         'active_field': active_field,
+
+        'full_access': request.c3nav_full_access,
+        'access_list': request.c3nav_access_list,
     }
 
     width, height = get_dimensions()
