@@ -9,6 +9,10 @@ h1 {
 .login .container {
     max-width:420px;
 }
+.pager .middle {
+    top:3px;
+    position:relative;
+}
 
 
 footer {
@@ -24,4 +28,13 @@ footer {
     margin-top:0 !important;
     border-width:0 !important;
     padding:0;
+}
+
+
+.table .btn {
+    font-size:14px;
+}
+.table tbody tr td {
+    min-height: 29px;
+    line-height:29px;
 }

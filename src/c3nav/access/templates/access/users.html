@@ -1,0 +1,54 @@
+{% extends 'access/loggedin_base.html' %}
+
+{% load bootstrap3 %}
+{% load i18n %}
+
+{% block content %}
+    <h2>Users</h2>
+    <table class="table">
+        <thead>
+            <tr>
+                <th>{% trans 'ID' %}</th>
+                <th>{% trans 'Name' %}</th>
+                <th>{% trans 'Author' %}</th>
+                <th>{% trans 'Description' %}</th>
+                <th>{% trans 'Active Tokens' %}</th>
+                <th>{% trans 'Creation Date' %}</th>
+                <th>{% trans 'Details' %}</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for user in users %}
+                <tr>
+                    <td>{{ user.id }}</td>
+                    <td>{{ user.user_url }}</td>
+                    <td>{% if user.author %}{{ user.author }}{% endif %}</td>
+                    <td>{{ user.description }}</td>
+                    <td>{{ user.valid_tokens.count }}</td>
+                    <td>{{ user.creation_date|date:"SHORT_DATETIME_FORMAT" }}</td>
+                    <td><a href="{% url 'access.user' pk=user.pk %}">{% trans 'Details' %}</td>
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <ul class="pager">
+        {% if users.has_previous %}
+            <li class="previous"><a href="{% url 'acces.users' page=users.previous_page_number %}">« {% trans 'previous' %}</a></li>
+        {% else %}
+            <li class="previous disabled"><a href="#">« {% trans 'previous' %}</a></li>
+        {% endif %}
+
+        <li class="middle">
+            {% blocktrans with number=users.number total=users.paginator.num_pages %}
+            Page {{ number }} of {{ total }}
+            {% endblocktrans %}
+        </li>
+
+        {% if users.has_next %}
+            <li class="next"><a href="{% url 'acces.users' page=users.next_page_number %}">{% trans 'next' %} »</a></li>
+        {% else %}
+            <li class="next disabled"><a href="#">{% trans 'next' %} »</a></li>
+        {% endif %}
+    </ul>
+{% endblock %}
