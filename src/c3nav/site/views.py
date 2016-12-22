@@ -1,4 +1,3 @@
-from calendar import timegm
 from datetime import timedelta
 
 import qrcode
@@ -7,7 +6,6 @@ from django.http import Http404, HttpResponse, HttpResponseNotModified
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.utils import timezone
-from django.utils.http import http_date, parse_http_date_safe
 
 from c3nav.access.apply import get_visible_areas
 from c3nav.mapdata.inclusion import get_includables_avoidables, parse_include_avoid
@@ -246,18 +244,17 @@ def map_image(request, area, level):
         raise Http404
 
     last_update = get_last_mapdata_update()
+    etag = '-'.join(str(i) for i in last_update.timetuple())
 
-    if_modified_since = request.META.get('HTTP_IF_MODIFIED_SINCE')
-    if if_modified_since:
-        if_modified_since = parse_http_date_safe(if_modified_since)
-        if if_modified_since != last_update:
+    if_none_match = request.META.get('HTTP_IF_NONE_MATCH')
+    if if_none_match:
+        if if_none_match != etag:
             return HttpResponseNotModified()
 
     response = HttpResponse(content_type='image/png')
     for chunk in File(open(img, 'rb')).chunks():
         response.write(chunk)
 
-    last_modified = http_date(timegm(last_update.utctimetuple()))
-    response['Last-Modifed'] = last_modified
-    response['Cache-Control'] = 'max-age=30, must-revalidate'
+    response['E-Tag'] = etag
+    response['Cache-Control'] = 'no-cache'
     return response
