@@ -259,6 +259,5 @@ def map_image(request, area, level):
 
     last_modified = http_date(timegm(last_update.utctimetuple()))
     response['Last-Modifed'] = last_modified
-    response['Expires'] = last_modified
-    response['Cache-Control'] = 'max-age=0, must-revalidate'
+    response['Cache-Control'] = 'max-age=30, must-revalidate'
     return response
