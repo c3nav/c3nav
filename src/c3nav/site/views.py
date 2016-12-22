@@ -256,5 +256,4 @@ def map_image(request, area, level):
         response.write(chunk)
 
     response['E-Tag'] = etag
-    response['Cache-Control'] = 'no-cache'
     return response
