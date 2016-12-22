@@ -264,6 +264,9 @@ circle.pos {
     background-repeat:no-repeat;
     background-position:center;
 }
+.only-if-selected {
+    margin-bottom:16px;
+}
 
 
 footer {
