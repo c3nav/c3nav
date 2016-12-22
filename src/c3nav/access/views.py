@@ -1,17 +1,19 @@
 from collections import OrderedDict
 
 from django.contrib.auth.decorators import login_required
+from django.core.paginator import EmptyPage, PageNotAnInteger, Paginator
 from django.db import transaction
-from django.shortcuts import get_object_or_404, render
+from django.shortcuts import get_object_or_404, redirect, render
 
 from c3nav.access.apply import get_nonpublic_packages
+from c3nav.access.forms import AccessTokenForm
 from c3nav.access.models import AccessToken, AccessUser
 from c3nav.editor.hosters import get_hoster_for_package
 
 
 @login_required(login_url='/access/login/')
 def dashboard(request):
-    return render(request, 'access/dashboard.html')
+    return redirect('access.users')
 
 
 def prove(request):
@@ -74,4 +76,71 @@ def activate_token(request, pk, secret):
     request.c3nav_new_access = True
     return render(request, 'access/activate.html', context={
         'success': True,
+    })
+
+
+@login_required(login_url='/access/login/')
+def user_list(request, page=1):
+    queryset = AccessUser.objects.all()
+    paginator = Paginator(queryset, 25)
+
+    try:
+        users = paginator.page(page)
+    except PageNotAnInteger:
+        return redirect('access.users')
+    except EmptyPage:
+        return redirect('access.users')
+
+    return render(request, 'access/users.html', {
+        'users': users,
+    })
+
+
+@login_required(login_url='/access/login/')
+def user_detail(request, pk):
+    user = get_object_or_404(AccessUser, id=pk)
+
+    tokens = user.tokens.order_by('-creation_date')
+
+    if request.method == 'POST':
+        if 'expire' in request.POST:
+            token = get_object_or_404(AccessToken, user=user, id=request.POST['expire'])
+            token.expired = True
+            token.save()
+            return redirect('access.user', pk=user.id)
+
+        new_token_form = AccessTokenForm(data=request.POST, request=request)
+        if new_token_form.is_valid():
+            token = new_token_form.instance
+            token.user = user
+            token.secret = AccessToken.create_secret()
+
+            author = None
+            try:
+                author = request.user.operator
+            except:
+                pass
+
+            token.author = author
+            token.save()
+
+            return redirect('access.user.token', user=user.id, token=token.id)
+    else:
+        new_token_form = AccessTokenForm(request=request)
+
+    return render(request, 'access/user.html', {
+        'user': user,
+        'new_token_form': new_token_form,
+        'tokens': tokens,
+    })
+
+
+@login_required(login_url='/access/login/')
+def show_user_token(request, user, token):
+    user = get_object_or_404(AccessUser, id=user)
+    token = get_object_or_404(AccessToken, user=user, id=token, activated=False)
+
+    return render(request, 'access/user_token.html', {
+        'user': user,
+        'tokens': token,
     })

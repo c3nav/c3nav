@@ -10,10 +10,12 @@ from django.utils.crypto import get_random_string
 from django.utils.functional import cached_property
 from django.utils.translation import ugettext_lazy as _
 
+from c3nav.mapdata.models import AreaLocation
+
 
 class AccessOperator(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='operator')
-    description = models.TextField(_('description'), null=True, blank=True)
+    description = models.TextField(_('description'), blank=True)
     can_award_permissions = models.CharField(_('can award permissions'), max_length=2048)
     access_from = models.DateTimeField(_('has access from'), null=True, blank=True)
     access_until = models.DateTimeField(_('has access until'), null=True, blank=True)
@@ -31,7 +33,7 @@ class AccessUser(models.Model):
                                 help_text=_('Usually an URL to a profile somewhere'))
     author = models.ForeignKey(AccessOperator, on_delete=models.PROTECT, null=True, blank=True,
                                verbose_name=_('creator'))
-    description = models.TextField(_('description'), max_length=200, null=True, blank=True)
+    description = models.TextField(_('description'), max_length=200, blank=True)
     creation_date = models.DateTimeField(_('creation date'), auto_now_add=True)
 
     class Meta:
@@ -43,7 +45,7 @@ class AccessUser(models.Model):
         return self.tokens.filter(Q(expired=False) | Q(expires__isnull=False, expires__lt=timezone.now()))
 
     def new_token(self, **kwargs):
-        kwargs['secret'] = get_random_string(42, string.ascii_letters + string.digits)
+        kwargs['secret'] = AccessToken.create_secret()
         return self.tokens.create(**kwargs)
 
     def __str__(self):
@@ -71,14 +73,26 @@ class AccessToken(models.Model):
         return self.permissions.split(';')
 
     @cached_property
+    def permissions_list_objects(self):
+        return AreaLocation.objects.filter(name__in=self.permissions_list)
+
+    @cached_property
     def full_access(self):
         return ':full' in self.permissions_list
+
+    @property
+    def is_expired(self):
+        return self.expired or (self.expires is not None and self.expires < timezone.now())
 
     @property
     def activation_url(self):
         if self.activated:
             return None
         return reverse('access.activate', kwargs={'pk': self.pk, 'secret': self.secret})
+
+    @staticmethod
+    def create_secret():
+        return get_random_string(42, string.ascii_letters + string.digits)
 
     def new_instance(self):
         with transaction.atomic():
@@ -88,7 +102,7 @@ class AccessToken(models.Model):
 
             self.instances.filter(expires__isnull=False, expires__lt=timezone.now()).delete()
 
-            secret = get_random_string(42, string.ascii_letters+string.digits)
+            secret = self.create_secret()
             self.instances.create(secret=secret)
         return '%d:%s' % (self.pk, secret)
 
