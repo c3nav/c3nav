@@ -1,5 +1,15 @@
 {% load i18n %}
 
-<p>
-    <a href="{{ token.activation_url }}" class="btn btn-default btn-block">{% trans 'Activate token on this device' %}</a>
-</p>
+<div class="token">
+    <p>
+        <img src="{{ token.qr_url }}">
+    </p>
+    <p>
+        <a href="{{ token.activation_url }}" class="btn btn-default btn-block">{% trans 'Activate token on this device' %}</a>
+    </p>
+    <p>
+        {% blocktrans %}
+            This link QR Code / Link only works once. If you want access on multiple devices, you need multiple tokens.
+        {% endblocktrans %}
+    </p>
+</div>

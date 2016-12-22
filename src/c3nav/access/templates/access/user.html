@@ -69,7 +69,7 @@
                     <td>
                         {% if not token.is_expired %}
                             <button class="btn btn-xs btn-danger" type="submit" name="expire" value="{{ token.id }}">{% trans 'Expire' %}</button>
-                            {% if not token.activated or 1 %}
+                            {% if not token.activated %}
                                 <a href="{% url 'access.user.token' user=user.id token=token.id %}" class="btn btn-xs btn-success" type="submit" name="activate" value="{{ token.id }}">{% trans 'Activate' %}</a>
                             {% endif %}
                         {% endif %}

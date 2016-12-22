@@ -10,3 +10,4 @@ requests>=2.11,<2.12
 Pillow>=3.4.2,<3.5
 matplotlib>=1.5.3,<1.6
 scipy>=0.18.1,<0.19
+qrcode>=5.3,<5.4

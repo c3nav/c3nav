@@ -1,4 +1,3 @@
-import mimetypes
 from calendar import timegm
 from datetime import timedelta
 
@@ -236,7 +235,7 @@ def map_image(request, area, level):
         if if_modified_since != last_update:
             return HttpResponseNotModified()
 
-    response = HttpResponse(content_type=mimetypes.guess_type(img)[0])
+    response = HttpResponse(content_type='image/png')
     for chunk in File(open(img, 'rb')).chunks():
         response.write(chunk)
 

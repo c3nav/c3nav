@@ -1,9 +1,12 @@
 from collections import OrderedDict
 
+import qrcode
 from django.contrib.auth.decorators import login_required
 from django.core.paginator import EmptyPage, PageNotAnInteger, Paginator
 from django.db import transaction
+from django.http import HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
+from django.urls import reverse
 
 from c3nav.access.apply import get_nonpublic_packages
 from c3nav.access.forms import AccessTokenForm
@@ -79,6 +82,23 @@ def activate_token(request, pk, secret):
     })
 
 
+def token_qr(request, pk, secret):
+    get_object_or_404(AccessToken, expired=False, activated=False, id=pk, secret=secret)
+
+    qr = qrcode.QRCode(
+        version=1,
+        error_correction=qrcode.constants.ERROR_CORRECT_L,
+        box_size=10,
+        border=4,
+    )
+    qr.add_data(request.build_absolute_uri(reverse('access.activate', kwargs={'pk': pk, 'secret': secret})))
+    qr.make(fit=True)
+
+    response = HttpResponse(content_type='image/png')
+    qr.make_image().save(response, 'PNG')
+    return response
+
+
 @login_required(login_url='/access/login/')
 def user_list(request, page=1):
     queryset = AccessUser.objects.all()
@@ -138,9 +158,9 @@ def user_detail(request, pk):
 @login_required(login_url='/access/login/')
 def show_user_token(request, user, token):
     user = get_object_or_404(AccessUser, id=user)
-    token = get_object_or_404(AccessToken, user=user, id=token, activated=False)
+    token = get_object_or_404(AccessToken, user=user, id=token)
 
     return render(request, 'access/user_token.html', {
         'user': user,
-        'tokens': token,
+        'token': token,
     })

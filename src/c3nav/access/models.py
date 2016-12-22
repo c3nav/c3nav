@@ -90,6 +90,12 @@ class AccessToken(models.Model):
             return None
         return reverse('access.activate', kwargs={'pk': self.pk, 'secret': self.secret})
 
+    @property
+    def qr_url(self):
+        if self.activated:
+            return None
+        return reverse('access.qr', kwargs={'pk': self.pk, 'secret': self.secret})
+
     @staticmethod
     def create_secret():
         return get_random_string(42, string.ascii_letters + string.digits)
