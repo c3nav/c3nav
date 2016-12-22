@@ -3,9 +3,6 @@ FROM python:slim
 RUN apt-get update && apt-get install -y git build-essential \
     libpq-dev libmysqlclient-dev libmemcached-dev libgeos-dev gettext \
     librsvg2-bin --no-install-recommends \
- && dpkg-reconfigure locales \
- && locale-gen C.UTF-8 \
- && /usr/sbin/update-locale LANG=C.UTF-8 \
  && apt-get clean \
  && rm -rf /var/lib/apt/lists/* \
  && mkdir /etc/c3nav && mkdir /data && mkdir /data/map
