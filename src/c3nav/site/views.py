@@ -1,6 +1,7 @@
 from calendar import timegm
 from datetime import timedelta
 
+import qrcode
 from django.core.files import File
 from django.http import Http404, HttpResponse, HttpResponseNotModified
 from django.shortcuts import get_object_or_404, redirect, render
@@ -46,6 +47,23 @@ def get_location_or_404(request, location):
         raise Http404
 
     return location
+
+
+def qr_code(request, location):
+    location = get_location_or_404(request, location)
+
+    qr = qrcode.QRCode(
+        version=1,
+        error_correction=qrcode.constants.ERROR_CORRECT_L,
+        box_size=10,
+        border=4,
+    )
+    qr.add_data(request.build_absolute_uri(reverse('site.location', kwargs={'location': location.location_id})))
+    qr.make(fit=True)
+
+    response = HttpResponse(content_type='image/png')
+    qr.make_image().save(response, 'PNG')
+    return response
 
 
 def main(request, location=None, origin=None, destination=None):
