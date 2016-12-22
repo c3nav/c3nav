@@ -200,7 +200,7 @@ class LevelRenderer():
         contents = self.add_svg_content(svg)
         contents.append(self.polygon_svg(box(0, 0, width, height),
                                          fill_color='#000000',
-                                         fill_opacity=0.1))
+                                         fill_opacity=0.05))
 
         for level in lower:
             self.add_svg_image(svg, self.get_filename('base', 'png', level=level))
