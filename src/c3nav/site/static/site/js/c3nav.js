@@ -6,6 +6,7 @@ c3nav = {
         c3nav.svg_width = parseInt(c3nav.main_view.attr('data-svg-width'));
         c3nav.svg_height = parseInt(c3nav.main_view.attr('data-svg-height'));
         c3nav.visible_areas = c3nav.main_view.attr('data-visible-areas').split(';');
+        c3nav.qr_modal = $('#qr_modal');
 
         c3nav._typeahead_locations = new Bloodhound({
             datumTokenizer: function(data) {
@@ -39,11 +40,16 @@ c3nav = {
 
         $('.locationselect .icons .reset').click(c3nav._locationselect_reset);
         $('.locationselect .icons .map').click(c3nav._locationselect_activate_map);
+        $('.locationselect .icons .link').click(c3nav._locationselect_click_link);
         $('.locationselect .close-map').click(c3nav._locationselect_close_map);
         $('.locationselect .level-selector a').click(c3nav._locationselect_click_level);
         $('.locationselect .map-container').on('click', 'img', c3nav._locationselect_click_image);
         $('#route-from-here').click(c3nav._click_route_from_here);
         $('#route-to-here').click(c3nav._click_route_to_here);
+
+        c3nav.qr_modal.find('button').click(function() {
+            c3nav.qr_modal.hide();
+        });
 
         $('.showsettings').show();
         $('.savesettings, .settings').hide();
@@ -64,12 +70,18 @@ c3nav = {
         location_group.find('.tt-suggestion').remove();
         c3nav._locations_changed();
     },
+    _locationselect_click_link: function(e) {
+        e.preventDefault();
+        var location_id = $(this).closest('.location-group').find('.id-field').val();
+        c3nav.qr_modal.find('strong').text(window.location.origin+'/l/'+location_id+'/');
+        c3nav.qr_modal.find('img').attr('src', '/qr/'+location_id+'.png');
+        c3nav.qr_modal.show();
+    },
     _locationselect_activate_map: function(e) {
         e.preventDefault();
         var location_group = $(this).closest('.location-group');
         location_group.addClass('map');
         var map_container = location_group.find('.map-container');
-        console.log(c3nav.svg_height-(map_container.height()/2));
         map_container.scrollTop((c3nav.svg_height-map_container.height())/2).scrollLeft((c3nav.svg_width-map_container.width())/2);
         location_group.find('.level-selector a').first().click();
     },

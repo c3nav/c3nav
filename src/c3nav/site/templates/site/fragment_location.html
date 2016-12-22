@@ -52,9 +52,7 @@
                     <small class="subtitle">{{ location.subtitle }}</small>
                 </div>
                 <div class="icons">
-                    {% if name != 'location' %}
-                        <a href="{% if location %}{% url 'site.location' location=location.location_id %}{% endif %}" class="link"></a>
-                    {% endif %}
+                    <a href="{% if location %}{% url 'site.location' location=location.location_id %}{% endif %}" class="link"></a>
                     <a href="{{ reset_url }}" class="reset"></a>
                 </div>
                 <input type="hidden" name="{{ name }}" value="{{ location.location_id }}" class="id-field">
