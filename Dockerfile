@@ -18,8 +18,10 @@ WORKDIR /c3nav/src
 COPY deployment/docker/c3nav.bash /usr/local/bin/c3nav
 
 RUN pip install -U pip wheel setuptools
-RUN pip install -r requirements.txt -r requirements/production-extra.txt -r requirements/postgres.txt \
-                -r requirements/memcached.txt -r requirements/redis.txt gunicorn \
+RUN pip install matplotlib --only-binary :all:
+RUN pip install -r requirements.txt -r requirements/production-extra.txt -r requirements/htmlmin.txt
+                -r requirements/postgres.txt -r requirements/memcached.txt -r requirements/redis.txt gunicorn \
+
  && chmod +x /usr/local/bin/c3nav
 
 RUN python manage.py collectstatic --no-input \
