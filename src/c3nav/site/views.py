@@ -248,7 +248,7 @@ def map_image(request, area, level):
 
     if_none_match = request.META.get('HTTP_IF_NONE_MATCH')
     if if_none_match:
-        if if_none_match != etag:
+        if if_none_match == etag:
             return HttpResponseNotModified()
 
     response = HttpResponse(content_type='image/png')
