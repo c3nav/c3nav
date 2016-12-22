@@ -255,5 +255,6 @@ def map_image(request, area, level):
     for chunk in File(open(img, 'rb')).chunks():
         response.write(chunk)
 
-    response['E-Tag'] = etag
+    response['ETag'] = etag
+    response['Cache-Control'] = 'no-cache'
     return response
