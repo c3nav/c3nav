@@ -28,7 +28,7 @@ def can_access_package(request, package):
     return request.c3nav_full_access or package.name in get_unlocked_packages_names(request)
 
 
-def filter_queryset_by_package_access(request, queryset):
+def filter_queryset_by_access(request, queryset):
     return queryset if request.c3nav_full_access else queryset.filter(package__in=get_unlocked_packages(request))
 
 

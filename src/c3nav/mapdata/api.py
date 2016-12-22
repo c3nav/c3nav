@@ -9,7 +9,7 @@ from rest_framework.decorators import detail_route
 from rest_framework.response import Response
 from rest_framework.viewsets import ReadOnlyModelViewSet, ViewSet
 
-from c3nav.access.apply import filter_queryset_by_package_access, get_unlocked_packages_names
+from c3nav.access.apply import filter_queryset_by_access, get_unlocked_packages_names
 from c3nav.mapdata.models import GEOMETRY_MAPITEM_TYPES, AreaLocation, Level, LocationGroup, Package, Source
 from c3nav.mapdata.models.geometry import DirectedLineGeometryMapItemWithLevel
 from c3nav.mapdata.search import get_location
@@ -87,7 +87,7 @@ class GeometryViewSet(ViewSet):
                     queryset = queryset.filter(levels=level)
                 else:
                     queryset = queryset.none()
-            queryset = filter_queryset_by_package_access(request, queryset)
+            queryset = filter_queryset_by_access(request, queryset)
             queryset = queryset.order_by('name')
 
             for field_name in ('package', 'level', 'crop_to_level', 'elevator'):
@@ -143,7 +143,7 @@ class SourceViewSet(CachedReadOnlyViewSetMixin, ReadOnlyModelViewSet):
     include_package_access = True
 
     def get_queryset(self):
-        return filter_queryset_by_package_access(self.request, super().get_queryset())
+        return filter_queryset_by_access(self.request, super().get_queryset().filter(can_search=True))
 
     @detail_route(methods=['get'])
     def image(self, request, name=None):
@@ -168,9 +168,9 @@ class LocationViewSet(CachedReadOnlyViewSetMixin, ViewSet):
 
     def list(self, request, **kwargs):
         locations = []
-        locations += sorted(filter_queryset_by_package_access(request, AreaLocation.objects.filter(can_search=True)),
+        locations += sorted(filter_queryset_by_access(request, AreaLocation.objects.filter(can_search=True)),
                             key=AreaLocation.get_sort_key, reverse=True)
-        locations += list(filter_queryset_by_package_access(request, LocationGroup.objects.filter(can_search=True)))
+        locations += list(filter_queryset_by_access(request, LocationGroup.objects.filter(can_search=True)))
         return Response([location.to_location_json() for location in locations])
 
     def retrieve(self, request, name=None, **kwargs):

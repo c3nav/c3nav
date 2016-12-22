@@ -6,7 +6,7 @@ from django.http.response import Http404
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import translation
 
-from c3nav.access.apply import can_access_package, filter_queryset_by_package_access
+from c3nav.access.apply import can_access_package, filter_queryset_by_access
 from c3nav.editor.hosters import get_hoster_for_package, hosters
 from c3nav.mapdata.models import AreaLocation
 from c3nav.mapdata.models.base import MAPITEM_TYPES
@@ -17,10 +17,10 @@ from c3nav.mapdata.packageio.write import json_encode
 def list_mapitemtypes(request, level):
     def get_item_count(mapitemtype):
         if hasattr(mapitemtype, 'level'):
-            return filter_queryset_by_package_access(request, mapitemtype.objects.filter(level__name=level)).count()
+            return filter_queryset_by_access(request, mapitemtype.objects.filter(level__name=level)).count()
 
         if hasattr(mapitemtype, 'levels'):
-            return filter_queryset_by_package_access(request, mapitemtype.objects.filter(levels__name=level)).count()
+            return filter_queryset_by_access(request, mapitemtype.objects.filter(levels__name=level)).count()
 
         return 0
 
@@ -55,7 +55,7 @@ def list_mapitems(request, mapitem_type, level=None):
         elif hasattr(mapitemtype, 'levels'):
             queryset = queryset.filter(levels__name=level)
 
-    queryset = filter_queryset_by_package_access(request, queryset)
+    queryset = filter_queryset_by_access(request, queryset)
 
     if issubclass(mapitemtype, AreaLocation):
         queryset = sorted(queryset, key=AreaLocation.get_sort_key)

@@ -213,7 +213,6 @@ class AreaLocation(LocationModelMixin, GeometryMapItemWithLevel):
 
     def get_geojson_properties(self):
         result = super().get_geojson_properties()
-        result['groups'] = tuple(self.groups.all().order_by('name').values_list('name', flat=True))
         return result
 
     def tofile(self):
