@@ -2,7 +2,7 @@ from collections import OrderedDict
 
 from django.utils.translation import ugettext_lazy as _
 
-from c3nav.mapdata.models import AreaLocation, LocationGroup
+from c3nav.mapdata.models import AreaLocation
 
 
 def get_default_include_avoid():
@@ -10,7 +10,6 @@ def get_default_include_avoid():
     avoid = set()
 
     locations = list(AreaLocation.objects.exclude(routing_inclusion='default'))
-    locations += list(LocationGroup.objects.exclude(routing_inclusion='default'))
 
     for location in locations:
         if location.routing_inclusion != 'allow_avoid':
@@ -25,7 +24,6 @@ def get_includables_avoidables(request):
     avoidables = []
 
     locations = list(AreaLocation.objects.exclude(routing_inclusion='default'))
-    locations += list(LocationGroup.objects.exclude(routing_inclusion='default'))
 
     if request.c3nav_full_access:
         includables.append((':nonpublic', _('non-public areas')))

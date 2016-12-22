@@ -61,20 +61,12 @@ class LocationModelMixin(Location):
             raise ValueError('can_search has to be boolean!')
         kwargs['can_search'] = can_search
 
-        if 'routing_inclusion' not in data:
-            raise ValueError('Missing routing inclusion')
-        routing_inclusion = data['routing_inclusion']
-        if routing_inclusion not in dict(LOCATION_ROUTING_INCLUSION):
-            raise ValueError('Invalid routing inclusion')
-        kwargs['routing_inclusion'] = routing_inclusion
-
         return kwargs
 
     def tofile(self):
         result = super().tofile()
         result['titles'] = OrderedDict(sorted(self.titles.items()))
         result['can_search'] = self.can_search
-        result['routing_inclusion'] = self.routing_inclusion
         return result
 
     @property
@@ -82,19 +74,9 @@ class LocationModelMixin(Location):
         return self._meta.verbose_name
 
 
-LOCATION_ROUTING_INCLUSION = (
-    ('default', _('Default, include if map package is unlocked')),
-    ('allow_avoid', _('Included, but allow excluding')),
-    ('allow_include', _('Avoided, but allow including')),
-    ('needs_permission', _('Avoided, needs permission to include')),
-)
-
-
 class LocationGroup(LocationModelMixin, MapItem):
     titles = JSONField()
     can_search = models.BooleanField(default=True, verbose_name=_('can be searched'))
-    routing_inclusion = models.CharField(max_length=20, choices=LOCATION_ROUTING_INCLUSION, default='default',
-                                         verbose_name=_('Routing Inclusion'))
 
     class Meta:
         verbose_name = _('Location Group')
@@ -118,6 +100,12 @@ class AreaLocation(LocationModelMixin, GeometryMapItemWithLevel):
         ('poi', _('Point of Interest')),
     )
     LOCATION_TYPES_ORDER = tuple(name for name, title in LOCATION_TYPES)
+    ROUTING_INCLUSIONS = (
+        ('default', _('Default, include if map package is unlocked')),
+        ('allow_avoid', _('Included, but allow excluding')),
+        ('allow_include', _('Avoided, but allow including')),
+        ('needs_permission', _('Avoided, needs permission to include')),
+    )
 
     location_type = models.CharField(max_length=20, choices=LOCATION_TYPES, verbose_name=_('Location Type'))
     titles = JSONField()
@@ -125,7 +113,7 @@ class AreaLocation(LocationModelMixin, GeometryMapItemWithLevel):
 
     can_search = models.BooleanField(default=True, verbose_name=_('can be searched'))
     can_describe = models.BooleanField(default=True, verbose_name=_('can be used to describe a position'))
-    routing_inclusion = models.CharField(max_length=20, choices=LOCATION_ROUTING_INCLUSION, default='default',
+    routing_inclusion = models.CharField(max_length=20, choices=ROUTING_INCLUSIONS, default='default',
                                          verbose_name=_('Routing Inclusion'))
 
     geomtype = 'polygon'
@@ -214,6 +202,13 @@ class AreaLocation(LocationModelMixin, GeometryMapItemWithLevel):
             raise ValueError('can_describe has to be boolean!')
         kwargs['can_describe'] = can_describe
 
+        if 'routing_inclusion' not in data:
+            raise ValueError('Missing routing inclusion')
+        routing_inclusion = data['routing_inclusion']
+        if routing_inclusion not in dict(cls.ROUTING_INCLUSIONS):
+            raise ValueError('Invalid routing inclusion')
+        kwargs['routing_inclusion'] = routing_inclusion
+
         return kwargs
 
     def get_geojson_properties(self):
@@ -227,6 +222,7 @@ class AreaLocation(LocationModelMixin, GeometryMapItemWithLevel):
         result['location_type'] = self.location_type
         result['can_search'] = self.can_search
         result['can_describe'] = self.can_describe
+        result['routing_inclusion'] = self.routing_inclusion
         result.move_to_end('geometry')
         return result
 
