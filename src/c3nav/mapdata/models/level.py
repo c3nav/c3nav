@@ -178,7 +178,7 @@ class LevelGeometries():
 
     @cached_property
     def accessible(self):
-        return self.areas.difference(self.holes).difference(self.obstacles)
+        return self.areas.difference(cascaded_union([self.holes, self.obstacles]))
 
     @cached_property
     def accessible_without_oneways(self):
