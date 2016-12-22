@@ -1,1 +1,0 @@
-django-htmlmin>=0.10,<0.11
