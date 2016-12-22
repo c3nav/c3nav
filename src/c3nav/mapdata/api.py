@@ -143,7 +143,7 @@ class SourceViewSet(CachedReadOnlyViewSetMixin, ReadOnlyModelViewSet):
     include_package_access = True
 
     def get_queryset(self):
-        return filter_queryset_by_access(self.request, super().get_queryset().filter(can_search=True))
+        return filter_queryset_by_access(self.request, super().get_queryset().all())
 
     @detail_route(methods=['get'])
     def image(self, request, name=None):
