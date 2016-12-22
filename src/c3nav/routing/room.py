@@ -133,6 +133,7 @@ class GraphRoom():
                 points += self._add_ring(interior, want_left=True)
 
         # points around steps
+        print(self._built_isolated_areas)
         self.add_points_on_rings(self._built_isolated_areas)
 
     def _add_ring(self, geom, want_left):

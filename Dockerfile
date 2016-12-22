@@ -1,16 +1,13 @@
-FROM debian:jessie
+FROM python:alpine
 
-RUN apt-get update && apt-get install -y locales git build-essential \
-    python3 python3-pip python3-dev \
-    libpq-dev libmysqlclient-dev libmemcached-dev libgeos-dev gettext \
-    librsvg2-bin --no-install-recommends \
- && dpkg-reconfigure locales \
- && locale-gen C.UTF-8 \
- && /usr/sbin/update-locale LANG=C.UTF-8 \
- && apt-get clean \
- && rm -rf /var/lib/apt/lists/* \
- && useradd -ms /bin/bash -d /c3nav -u 15371 c3navuser \
- && mkdir /etc/c3nav && mkdir /data && mkdir /data/map
+RUN echo "@testing http://dl-4.alpinelinux.org/alpine/edge/testing" >> /etc/apk/repositories \
+ && echo "@community http://dl-4.alpinelinux.org/alpine/edge/community" >> /etc/apk/repositories \
+ && apk update \
+ && apk add --update git g++ libc-dev tcl tk libpq libjpeg-turbo-dev lapack@community openblas@community postgresql-dev libmemcached geos@testing gettext librsvg-dev \
+ && mkdir /etc/c3nav \
+ && mkdir /data \
+ && mkdir /data/map \
+ && ln -s /usr/include/locale.h /usr/include/xlocale.h
 
 ENV LC_ALL C.UTF-8
 
@@ -19,14 +16,13 @@ WORKDIR /c3nav/src
 
 COPY deployment/docker/c3nav.bash /usr/local/bin/c3nav
 
-RUN pip3 install -U pip wheel setuptools
-RUN pip3 install -r requirements.txt -r requirements/mysql.txt -r requirements/postgres.txt \
-	-r requirements/memcached.txt -r requirements/redis.txt gunicorn \
- && mkdir /static \
- && chown -R c3navuser:c3navuser /static /c3nav /data \
+RUN pip install -r requirements.txt -r requirements/production-extra.txt -r requirements/postgres.txt \
+                -r requirements/memcached.txt -r requirements/redis.txt gunicorn \
  && chmod +x /usr/local/bin/c3nav
 
-USER c3navuser
+RUN python manage.py collectstatic
+ &&	python manage.py compress
+ &&	python manage.py compilemessages
 
 EXPOSE 8000
 
