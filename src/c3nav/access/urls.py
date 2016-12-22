@@ -1,12 +1,13 @@
 from django.conf.urls import url
 from django.contrib.auth import views as auth_views
 
-from c3nav.access.views import activate_token, dashboard, prove, show_user_token, user_detail, user_list
+from c3nav.access.views import activate_token, dashboard, prove, show_user_token, token_qr, user_detail, user_list
 
 urlpatterns = [
     url(r'^$', dashboard, name='access.dashboard'),
     url(r'^prove/$', prove, name='access.prove'),
     url(r'^activate/(?P<pk>[0-9]+):(?P<secret>[a-zA-Z0-9]+)/$', activate_token, name='access.activate'),
+    url(r'^qr/(?P<pk>[0-9]+):(?P<secret>[a-zA-Z0-9]+).png$', token_qr, name='access.qr'),
     url(r'^users/$', user_list, name='access.users'),
     url(r'^users/(?P<page>[0-9]+)/$', user_list, name='access.users'),
     url(r'^user/(?P<pk>[0-9]+)/$', user_detail, name='access.user'),

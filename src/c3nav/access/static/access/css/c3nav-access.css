@@ -38,3 +38,7 @@ footer {
     min-height: 29px;
     line-height:29px;
 }
+
+.token img {
+    width:100%;
+}
