@@ -29,7 +29,7 @@ def assert_multipolygon(geometry):
         return []
     if isinstance(geometry, Polygon):
         return [geometry]
-    return geometry.geoms
+    return [geom for geom in geometry.geoms if isinstance(geom, Polygon)]
 
 
 def assert_multilinestring(geometry):
