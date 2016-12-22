@@ -3,6 +3,8 @@
 {% load static %}
 {% load i18n %}
 
+{% block bodyclass %} nomobileclient{% endblock %}
+
 {% block content %}
 <form method="post" class="main-view mode-{{ mode }}{% if origin and destination %} can-route{% endif %}"
       data-svg-width="{{ svg_width }}" data-svg-height="{{ svg_height }}" data-visible-areas="{{ visible_areas | join:';' }}"
@@ -95,7 +97,13 @@
         <div class="inner">
             <p><img src="/qr/c:0:1:1.png"></p>
             <p><strong>https://c3nav.de/lalala.png</strong></p>
-            <p><button class="btn btn-default">{% trans 'close' %}</button></p>
+            <p>
+                <span class="app-onlya">
+                    <button class="btn btn-default share">{% trans 'share' %}</button>
+                    <button class="btn btn-default shortcut">{% trans 'shortcut' %}</button>
+                </span>
+                <button class="btn btn-default qr-close">{% trans 'close' %}</button>
+            </p>
         </div>
     </div>
 {% if route %}

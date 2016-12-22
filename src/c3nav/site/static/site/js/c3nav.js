@@ -8,6 +8,11 @@ c3nav = {
         c3nav.visible_areas = c3nav.main_view.attr('data-visible-areas').split(';');
         c3nav.qr_modal = $('#qr_modal');
 
+        c3nav.mobileclient = (typeof mobileclient !== "undefined")
+        if (c3nav.mobileclient) {
+            $('body').removeClass('nomobileclient');
+        }
+
         c3nav._typeahead_locations = new Bloodhound({
             datumTokenizer: function(data) {
                 var result = [data.id]
@@ -47,8 +52,14 @@ c3nav = {
         $('#route-from-here').click(c3nav._click_route_from_here);
         $('#route-to-here').click(c3nav._click_route_to_here);
 
-        c3nav.qr_modal.find('button').click(function() {
+        c3nav.qr_modal.find('.qr-close').click(function() {
             c3nav.qr_modal.hide();
+        });
+        c3nav.qr_modal.find('.share').click(function() {
+            mobileclient.shareUrl(c3nav.qr_modal.find('strong').text());
+        });
+        c3nav.qr_modal.find('.shortcut').click(function() {
+            mobileclient.createShortcut(c3nav.qr_modal.find('strong').text(), c3nav.qr_modal.data('title'));
         });
 
         $('.showsettings').show();
@@ -72,9 +83,12 @@ c3nav = {
     },
     _locationselect_click_link: function(e) {
         e.preventDefault();
-        var location_id = $(this).closest('.location-group').find('.id-field').val();
+        var location_group = $(this).closest('.location-group');
+        var location_id = location_group.find('.id-field').val();
+        var location_title = location_group.find('.title').text();
         c3nav.qr_modal.find('strong').text(window.location.origin+'/l/'+location_id+'/');
         c3nav.qr_modal.find('img').attr('src', '/qr/'+location_id+'.png');
+        c3nav.qr_modal.data('title', location_title)
         c3nav.qr_modal.show();
     },
     _locationselect_activate_map: function(e) {

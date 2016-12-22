@@ -313,3 +313,11 @@ footer {
     width:400px;
     max-width:95vw;
 }
+#qr_modal button {
+    margin:0 4px 8px;
+}
+
+
+.nomobileclient .app-only {
+    display:none;
+}
