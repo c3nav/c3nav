@@ -165,7 +165,7 @@ class AreaLocation(LocationModelMixin, GeometryMapItemWithLevel):
         items = []
         if with_type:
             items += [self.get_location_type_display()]
-        items += [area.title for area in self.get_in_areas()]
+        items += [area.title for area in self.get_in_areas() if area.can_describe]
         return ', '.join(items)
 
     @classmethod
