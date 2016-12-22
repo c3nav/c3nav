@@ -2,7 +2,7 @@ import re
 
 from django.db.models import Q
 
-from c3nav.access.apply import filter_queryset_by_package_access
+from c3nav.access.apply import filter_queryset_by_access
 from c3nav.mapdata.models import AreaLocation, LocationGroup
 from c3nav.mapdata.models.locations import PointLocation
 from c3nav.mapdata.utils.cache import get_levels_cached
@@ -18,9 +18,9 @@ def get_location(request, name):
         return PointLocation(level=level, x=int(match.group('x'))/100, y=int(match.group('y'))/100)
 
     if name.startswith('g:'):
-        return filter_queryset_by_package_access(request, LocationGroup.objects.filter(name=name[2:])).first()
+        return filter_queryset_by_access(request, LocationGroup.objects.filter(name=name[2:], can_search=True)).first()
 
-    return filter_queryset_by_package_access(request, AreaLocation.objects.filter(name=name)).first()
+    return filter_queryset_by_access(request, AreaLocation.objects.filter(name=name), can_search=True).first()
 
 
 def filter_words(queryset, words):
@@ -37,15 +37,15 @@ def search_location(request, search):
 
     words = search.split(' ')[:10]
 
-    queryset = AreaLocation.objects.all()
+    queryset = AreaLocation.objects.filter(can_seach=True)
     if isinstance(location, AreaLocation):
         queryset.exclude(name=location.name)
-    results += sorted(filter_words(filter_queryset_by_package_access(request, queryset), words),
+    results += sorted(filter_words(filter_queryset_by_access(request, queryset), words),
                       key=AreaLocation.get_sort_key, reverse=True)
 
-    queryset = LocationGroup.objects.all()
+    queryset = LocationGroup.objects.filter(can_seach=True)
     if isinstance(location, LocationGroup):
-        queryset.exclude(name=location.name)
-    results += list(filter_words(filter_queryset_by_package_access(request, queryset), words)[:10])
+        queryset.exclude(name='g:'+location.name)
+    results += list(filter_words(filter_queryset_by_access(request, queryset), words)[:10])
 
     return results
