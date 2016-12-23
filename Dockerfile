@@ -15,7 +15,7 @@ COPY deployment/docker/c3nav.bash /usr/local/bin/c3nav
 RUN pip install -r requirements.txt -r requirements/mysql.txt -r requirements/postgres.txt \
 	-r requirements/memcached.txt -r requirements/redis.txt gunicorn \
  && mkdir /static \
- && chmod +x /usr/local/bin/c3nav
+ && chmod +x /usr/local/bin/c3nav \
  && python manage.py collectstatic --no-input \
  &&	python manage.py compress \
  &&	python manage.py compilemessages
