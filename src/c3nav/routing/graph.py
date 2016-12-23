@@ -381,11 +381,15 @@ class Graph:
         dest_room_transfer_points = {level: self._allowed_points_index(level.room_transfer_points, dest_room_transfers)
                                      for level in dest_levels}
 
-        # if the points have common rooms, search for routes within those levels
+        # if the points have common levels, search for routes within those levels
         if common_levels:
             for level in common_levels:
                 o_points = orig_room_transfer_points[level]
                 d_points = dest_room_transfer_points[level]
+
+                if not len(orig_points) or not len(dest_points):
+                    continue
+
                 shortest_paths = routers[level].shortest_paths[o_points[:, None], d_points]
 
                 # add distances to the the room transfer points to the rows and columns
@@ -418,9 +422,9 @@ class Graph:
         dest_level_transfer_points = self._allowed_points_index(self.level_transfer_points, dest_level_transfers)
 
         # search a route within the whole graph
-        if True:
-            o_points = orig_level_transfer_points
-            d_points = dest_level_transfer_points
+        o_points = orig_level_transfer_points
+        d_points = dest_level_transfer_points
+        if len(o_points) and len(d_points):
             shortest_paths = routers[self].shortest_paths[o_points[:, None], d_points]
 
             # add distances to the the room transfer points to the rows and columns
