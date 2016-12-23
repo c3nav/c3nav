@@ -20,7 +20,7 @@ def get_location(request, name):
     if name.startswith('g:'):
         return filter_queryset_by_access(request, LocationGroup.objects.filter(name=name[2:], can_search=True)).first()
 
-    return filter_queryset_by_access(request, AreaLocation.objects.filter(name=name), can_search=True).first()
+    return filter_queryset_by_access(request, AreaLocation.objects.filter(name=name, can_search=True)).first()
 
 
 def filter_words(queryset, words):
