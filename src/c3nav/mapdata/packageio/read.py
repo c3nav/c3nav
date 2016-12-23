@@ -96,10 +96,11 @@ class MapdataReader:
 
         # Delete old entries
         for model in reversed(ordered_models):
-            queryset = model.objects.exclude(name__in=self.saved_items[model].keys())
-            for name in queryset.values_list('name', flat=True):
-                print('- Deleted %s: %s' % (model.__name__, name))
-            queryset.delete()
+            saved = set(self.saved_items[model].keys())
+            for obj in model.objects.all():
+                if obj.name not in saved:
+                    print('- Deleted %s: %s' % (model.__name__, obj.name))
+                    obj.delete()
 
 
 class ReaderItem:
