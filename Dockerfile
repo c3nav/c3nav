@@ -1,34 +1,24 @@
-FROM python:alpine
+FROM python:slim
 
-RUN echo "@testing http://dl-4.alpinelinux.org/alpine/edge/testing" >> /etc/apk/repositories \
- && echo "@community http://dl-4.alpinelinux.org/alpine/edge/community" >> /etc/apk/repositories \
- && apk update \
- && apk add --update git g++ libc-dev tcl tk lapack-dev@community openblas@community gfortran libpq \
-                     libjpeg-turbo-dev postgresql-dev cyrus-sasl-dev libmemcached-dev geos@testing gettext librsvg-dev \
- && mkdir /etc/c3nav \
- && mkdir /data \
- && mkdir /data/map \
- && ln -s /usr/include/locale.h /usr/include/xlocale.h
-
-ENV LC_ALL C.UTF-8
+RUN apt-get update && apt-get install -y git build-essential \
+    libpq-dev libmysqlclient-dev libmemcached-dev libgeos-dev gettext \
+    librsvg2-bin --no-install-recommends \
+ && apt-get clean \
+ && rm -rf /var/lib/apt/lists/* \
+ && mkdir /etc/c3nav && mkdir /data && mkdir /data/map
 
 COPY src /c3nav/src
 WORKDIR /c3nav/src
 
 COPY deployment/docker/c3nav.bash /usr/local/bin/c3nav
 
-RUN pip install -U pip wheel setuptools
-RUN pip install matplotlib --only-binary :all:
-RUN pip install -r requirements.txt -r requirements/production-extra.txt -r requirements/htmlmin.txt
-                -r requirements/postgres.txt -r requirements/memcached.txt -r requirements/redis.txt gunicorn \
-
+RUN pip install -r requirements.txt -r requirements/mysql.txt -r requirements/postgres.txt \
+	-r requirements/memcached.txt -r requirements/redis.txt gunicorn \
+ && mkdir /static \
  && chmod +x /usr/local/bin/c3nav
-
-RUN python manage.py collectstatic --no-input \
+ && python manage.py collectstatic --no-input \
  &&	python manage.py compress \
  &&	python manage.py compilemessages
-
-EXPOSE 8000
 
 ENTRYPOINT ["c3nav"]
 CMD ["all"]
