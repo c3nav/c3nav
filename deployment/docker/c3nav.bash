@@ -8,14 +8,10 @@ NUM_WORKERS=10
 if [ ! -d /data/logs ]; then
     mkdir /data/logs;
 fi
-if [ ! -d /data/media ]; then
-    mkdir /data/media;
-fi
 
 ls /data/map
 
 python3 manage.py migrate --noinput
-python3 manage.py loadmap -y
 
 if [ "$1" == "webworker" ]; then
     exec gunicorn c3nav.wsgi \
@@ -30,6 +26,12 @@ fi
 if [ "$1" == "taskworker" ]; then
     export C_FORCE_ROOT=True
     exec celery -A c3nav worker -l info
+fi
+
+if [ "$1" == "loadmap" ]; then
+    echo ""
+    echo "### loading map..."
+    python3 manage.py loadmap -y
 fi
 
 if [ "$1" == "checkmap" ]; then
@@ -56,6 +58,10 @@ fi
 
 if [ "$1" == "all" ]; then
     echo ""
+    echo "### loading map..."
+    python3 manage.py loadmap -y
+
+    echo ""
     echo "### rendering map..."
     python3 manage.py rendermap
 
@@ -68,5 +74,5 @@ if [ "$1" == "all" ]; then
     exec python3 manage.py runserver 0.0.0.0:8000
 fi
 
-echo "Specify argument: webworker|taskworker|checkmap|editor|build|all"
+echo "Specify argument: webworker|taskworker|loadmap|checkmap|editor|build|all"
 exit 1
