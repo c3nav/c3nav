@@ -53,7 +53,12 @@ if [ "$1" == "build" ]; then
 
     echo ""
     echo "### building graph..."
-    exec python manage.py buildgraph
+    python manage.py buildgraph
+
+    echo ""
+    echo "### chowning /data/…"
+    USER_ID=${LOCAL_USER_ID:-9001}
+    exec chown -R $USER_ID $DATA_DIR
 fi
 
 if [ "$1" == "load_build" ]; then
@@ -67,7 +72,13 @@ if [ "$1" == "load_build" ]; then
 
     echo ""
     echo "### building graph..."
-    exec python manage.py buildgraph
+    python manage.py buildgraph
+
+
+    echo ""
+    echo "### chowning /data/…"
+    USER_ID=${LOCAL_USER_ID:-9001}
+    exec chown -R $USER_ID $DATA_DIR
 fi
 
 if [ "$1" == "all" ]; then
