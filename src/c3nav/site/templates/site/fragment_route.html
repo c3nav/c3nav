@@ -21,9 +21,12 @@
                         </marker>
                     </defs>
 
-                    <image width="{{ svg_width | stringformat:"f" }}" height="{{ svg_height | stringformat:"f" }}"
-                           x="{{ routepart.svg_min_x | negate | stringformat:"f" }}" y="{{ routepart.svg_min_y | negate | stringformat:"f" }}"
-                           xlink:href="/map/{{ routepart.level.name }}.png"></image>
+                    {% for area in visible_areas %}
+                        <image width="{{ svg_width | stringformat:"f" }}" height="{{ svg_height | stringformat:"f" }}"
+                               x="{{ routepart.svg_min_x | negate | stringformat:"f" }}" y="{{ routepart.svg_min_y | negate | stringformat:"f" }}"
+                               xlink:href="{% url 'site.level_image' level=routepart.level.name area=area %}"></image>
+                    {% endfor %}
+
 
                     <g class="connections">
                         {% for line in routepart.lines %}
