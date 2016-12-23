@@ -405,7 +405,7 @@ class GraphLevel():
         cache_key = ('c3nav__routing__connected_points__%s__%s__%.2f_%.2f__%s' %
                      (self.graph.mtime, self.level.name, point[0], point[1], mode))
         points = cache.get(cache_key, None)
-        if points is None:
+        if points is None or True:
             points = self._connected_points(point, mode)
             cache.set(cache_key, points, 60)
         return points

@@ -249,8 +249,8 @@ class Graph:
             if not points:
                 return (), None, None
             points, distances, ctypes = zip(*((point, distance, ctype) for point, (distance, ctype) in points.items()))
+            distances = {points[i]: distance for i, distance in enumerate(distances)}
             points = np.array(points)
-            distances = np.array(distances)
             return points, distances, ctypes
         try:
             if isinstance(location, AreaLocation):
@@ -339,12 +339,13 @@ class Graph:
         # add distances to room routers
         if orig_distances is not None:
             for room in orig_rooms:
-                print(orig_distances[:, None].shape)
-                routers[room].shortest_paths[orig_room_points[room], :] += orig_distances[:, None]
+                distances = np.array(tuple(orig_distances[room.points[i]] for i in orig_room_points[room]))
+                routers[room].shortest_paths[orig_room_points[room], :] += distances[:, None]
 
         if dest_distances is not None:
             for room in dest_rooms:
-                routers[room].shortest_paths[:, dest_room_points[room]] += dest_distances
+                distances = np.array(tuple(dest_distances[room.points[i]] for i in dest_room_points[room]))
+                routers[room].shortest_paths[:, dest_room_points[room]] += distances
 
         # if the points have common rooms, search for routes within those rooms
         if common_rooms:
