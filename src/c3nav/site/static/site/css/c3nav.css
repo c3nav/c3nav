@@ -322,3 +322,12 @@ footer {
 .nomobileclient .app-only {
     display:none;
 }
+
+
+h1 a {
+    color:#333333;
+}
+h1 a:hover {
+    text-decoration:none;
+    color:#333333;
+}
