@@ -391,6 +391,8 @@ class GraphLevel():
         if nearest_point is None:
             nearest_point = self._nearest_point(point, mode)
             cache.set(cache_key, nearest_point, 60)
+        if nearest_point is None:
+            return None
         return self.graph.points[nearest_point]
 
     def _nearest_point(self, point, mode):

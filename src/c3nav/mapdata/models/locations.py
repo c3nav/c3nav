@@ -210,16 +210,15 @@ class AreaLocation(LocationModelMixin, GeometryMapItemWithLevel):
 
     @property
     def subtitle(self):
-        return self.get_subtitle(with_type=False)
+        return self.get_subtitle()
 
     @property
     def subtitle_without_type(self):
-        return self.get_subtitle(with_type=False)
+        return self.get_subtitle()
 
-    def get_subtitle(self, with_type=True):
+    def get_subtitle(self):
         items = []
-        if with_type:
-            items += [self.get_location_type_display()]
+        items += [group.title for group in self.groups.all()]
         items += [area.title for area in self.get_in_areas() if area.can_describe]
         return ', '.join(items)
 
