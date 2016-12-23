@@ -303,6 +303,7 @@ footer {
     height:100%;
     background-color:rgba(0, 0, 0, 0.2);
     display:none;
+    z-index:100;
 }
 #qr_modal .inner {
     background-color:#FFFFFF;
