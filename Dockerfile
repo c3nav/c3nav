@@ -10,6 +10,8 @@ RUN apt-get update && apt-get install -y git build-essential \
 COPY src /c3nav/src
 WORKDIR /c3nav/src
 
+ENV DATA_DIR /data
+
 COPY deployment/docker/c3nav.bash /usr/local/bin/c3nav
 
 RUN pip install -r requirements.txt -r requirements/mysql.txt -r requirements/postgres.txt \
