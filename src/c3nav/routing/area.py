@@ -118,6 +118,6 @@ class GraphArea():
             there, back = self.check_connection(point, other_point.xy)
             ctype = there if mode == 'orig' else back
             if ctype is not None:
-                distance = np.linalg.norm(point - other_point.xy)
+                distance = abs(np.linalg.norm(point - other_point.xy))
                 connections[point_i] = (distance, ctype)
         return connections
