@@ -20,7 +20,7 @@ if [ "$1" == "webworker" ]; then
         --max-requests 1200 \
         --max-requests-jitter 50 \
         --log-level=info \
-        --bind=unix:/tmp/c3nav.sock
+        --bind=127.0.0.1:8000
 fi
 
 if [ "$1" == "taskworker" ]; then
