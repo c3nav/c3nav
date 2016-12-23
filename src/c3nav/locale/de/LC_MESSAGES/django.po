@@ -7,8 +7,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2016-12-23 21:54+0000\n"
-"PO-Revision-Date: 2016-12-19 18:08+0100\n"
+"POT-Creation-Date: 2016-12-23 22:32+0000\n"
+"PO-Revision-Date: 2016-12-23 23:33+0100\n"
 "Last-Translator: Laura Klünder <laura@codingcatgirl.de>\n"
 "Language-Team: \n"
 "Language: de\n"
@@ -20,246 +20,237 @@ msgstr ""
 
 #: c3nav/access/admin.py:17 c3nav/access/templates/access/user.html:38
 msgid "Permissions"
-msgstr ""
+msgstr "Zugänge"
 
 #: c3nav/access/admin.py:19
 msgid "Important dates"
-msgstr ""
+msgstr "Wichtige Daten"
 
 #: c3nav/access/forms.py:29
 msgid "Full Permissions"
-msgstr ""
+msgstr "Voller Zugang"
 
 #: c3nav/access/models.py:18 c3nav/access/models.py:36
 #: c3nav/access/models.py:60
-#, fuzzy
-#| msgid "direction"
 msgid "description"
-msgstr "Richtung"
+msgstr "Beschreibung"
 
 #: c3nav/access/models.py:19
 msgid "can award permissions"
-msgstr ""
+msgstr "kann Zugänge verteilen"
 
 #: c3nav/access/models.py:20
 msgid "has access from"
-msgstr ""
+msgstr "hat Zugang von"
 
 #: c3nav/access/models.py:21
 msgid "has access until"
-msgstr ""
+msgstr "hat Zugang bis"
 
 #: c3nav/access/models.py:24 c3nav/access/models.py:25
 msgid "Access Operator"
-msgstr ""
+msgstr "Zugangsverwalter"
 
 #: c3nav/access/models.py:32
 msgid "access name"
-msgstr ""
+msgstr "Zugangsname"
 
 #: c3nav/access/models.py:33
 msgid "Usually an URL to a profile somewhere"
-msgstr ""
+msgstr "üblicherweise eine URL zu einem Profil irgendwo"
 
 #: c3nav/access/models.py:35 c3nav/access/models.py:58
-#, fuzzy
-#| msgid "Elevator"
 msgid "creator"
-msgstr "Aufzug"
+msgstr "Ersteller"
 
 #: c3nav/access/models.py:37 c3nav/access/models.py:61
 #: c3nav/access/models.py:123
-#, fuzzy
-#| msgid "Location Type"
 msgid "creation date"
-msgstr "Orttyp"
+msgstr "Erstellungsdatum"
 
 #: c3nav/access/models.py:40 c3nav/access/models.py:57
 msgid "Access User"
-msgstr ""
+msgstr "Zugangsnutzer"
 
 #: c3nav/access/models.py:41
 msgid "Access Users"
-msgstr ""
+msgstr "Zugangsnutzer"
 
 #: c3nav/access/models.py:59
 msgid "permissions"
-msgstr ""
+msgstr "Zugänge"
 
 #: c3nav/access/models.py:63
 msgid "is expired"
-msgstr ""
+msgstr "abgelaufen"
 
 #: c3nav/access/models.py:64
 msgid "activated"
-msgstr ""
+msgstr "aktiviert"
 
 #: c3nav/access/models.py:65
 msgid "activation secret"
-msgstr ""
+msgstr "Aktivierungstoken"
 
 #: c3nav/access/models.py:68 c3nav/access/models.py:116
 #: c3nav/access/models.py:121 c3nav/access/templates/access/prove.html:35
 msgid "Access Token"
-msgstr ""
+msgstr "Zugangstoken"
 
 #: c3nav/access/models.py:69
 msgid "Access Tokens"
-msgstr ""
+msgstr "Zugangstoken"
 
 #: c3nav/access/models.py:122
 msgid "access secret"
-msgstr ""
+msgstr "Zugangsschlüssel"
 
 #: c3nav/access/models.py:127
 msgid "Access Token Instance"
-msgstr ""
+msgstr "Zugangstokeninstanz"
 
 #: c3nav/access/models.py:128
-msgid "Access Tokens Instance"
-msgstr ""
+msgid "Access Token Instances"
+msgstr "Zugangstokeninstanzen"
 
 #: c3nav/access/templates/access/activate.html:11
 msgid "Your access token was installed on your device!"
-msgstr ""
+msgstr "Der Zugangstoken wurde auf deinem Gerät aktiviert!"
 
 #: c3nav/access/templates/access/fragment_token.html:8
 msgid "Activate token on this device"
-msgstr ""
+msgstr "Token auf diesem Gerät aktivieren!"
 
 #: c3nav/access/templates/access/fragment_token.html:11
 msgid ""
-"\n"
-"            This link QR Code / Link only works once. If you want access on "
-"multiple devices, you need multiple tokens.\n"
-"        "
+"This link QR Code / Link only works once. If you want access on multiple "
+"devices, you need multiple tokens."
 msgstr ""
+"Dieser QR Code / link funktioniert nur einmal. Wenn du auf mehreren Geräten "
+"zugang willst, brauchst du mehrere Token."
 
 #: c3nav/access/templates/access/loggedin_base.html:7
 msgid "Users"
-msgstr ""
+msgstr "Nutzer"
 
 #: c3nav/access/templates/access/loggedin_base.html:8
 msgid "Log out"
-msgstr ""
+msgstr "Anmelden"
 
 #: c3nav/access/templates/access/login.html:12
 #: c3nav/access/templates/access/login.html:15
 msgid "Log in"
-msgstr ""
+msgstr "Abmelden"
 
 #: c3nav/access/templates/access/login.html:18
-msgid "This is the non-public backend for creation of auth tokens."
+msgid "This is the non-public backend for creation of access tokens."
 msgstr ""
+"Das hier ist das nichtöffentliche Backend zum Erstellen von Zugangstokens."
 
 #: c3nav/access/templates/access/login.html:21
 msgid "Prove that you should have access"
-msgstr ""
+msgstr "Beweise dass du Zugang haben solltest"
 
 #: c3nav/access/templates/access/prove.html:12
 msgid "Prove access rights"
-msgstr ""
+msgstr "Zugangsrechte beweisen"
 
 #: c3nav/access/templates/access/prove.html:13
 msgid ""
 "Please enter a valid authentication code for the hosters of the following "
 "non-public map packages:"
 msgstr ""
+"Bitte gebe einen gültigen API Token für die Hoster der folgenden "
+"nichtöffentlichen Kartenpakete an:"
 
 #: c3nav/access/templates/access/prove.html:16
 msgid "Thanks – you get full access to the map!"
-msgstr ""
+msgstr "Danke – du kriegst vollen Zugang zur Karte!"
 
 #: c3nav/access/templates/access/prove.html:17
 msgid "All previous tokens have been invalidated."
-msgstr ""
+msgstr "Alle bisherigen Token wurden deaktiviert."
 
 #: c3nav/access/templates/access/prove.html:26
 #: c3nav/access/templates/access/prove.html:28
 msgid "Sorry."
-msgstr ""
+msgstr "Sorry."
 
 #: c3nav/access/templates/access/prove.html:26
 msgid "One or more access tokens were not correct."
-msgstr ""
+msgstr "Ein oder mehrere Token waren ungültig."
 
 #: c3nav/access/templates/access/prove.html:28
 msgid "You already have a valid access token."
-msgstr ""
+msgstr "Du hast bereits einen gültigen Zugangstoken."
 
 #: c3nav/access/templates/access/prove.html:40
 msgid "Invalidate previous token(s)."
-msgstr ""
+msgstr "Bisherige token invalidieren."
 
 #: c3nav/access/templates/access/prove.html:44
 msgid "Submit"
-msgstr ""
+msgstr "Absenden"
 
 #: c3nav/access/templates/access/prove.html:48
 msgid "Sorry, this service is currently not available."
-msgstr ""
+msgstr "Sorry, dieses Feature is aktuell nicht verfügbar."
 
 #: c3nav/access/templates/access/user.html:16
 msgid "Add new access token"
-msgstr ""
+msgstr "Neuen "
 
 #: c3nav/access/templates/access/user.html:22
 msgid "Add"
-msgstr ""
+msgstr "Hinzufügen"
 
 #: c3nav/access/templates/access/user.html:35
 #: c3nav/access/templates/access/users.html:11
 msgid "ID"
-msgstr ""
+msgstr "ID"
 
 #: c3nav/access/templates/access/user.html:36
 #: c3nav/access/templates/access/users.html:14
-#, fuzzy
-#| msgid "Destination"
 msgid "Description"
-msgstr "Ziel"
+msgstr "Beschreibung"
 
 #: c3nav/access/templates/access/user.html:37
 #: c3nav/access/templates/access/users.html:13
 msgid "Author"
-msgstr ""
+msgstr "Autor"
 
 #: c3nav/access/templates/access/user.html:39
 #: c3nav/access/templates/access/users.html:16
 msgid "Creation Date"
-msgstr ""
+msgstr "Erstellungsdatum"
 
 #: c3nav/access/templates/access/user.html:40
-#, fuzzy
-#| msgid "direction"
 msgid "Expiration"
-msgstr "Richtung"
+msgstr "Ablaufdatum"
 
 #: c3nav/access/templates/access/user.html:41
-#, fuzzy
-#| msgid "direction"
 msgid "Action"
-msgstr "Richtung"
+msgstr "Aktion"
 
 #: c3nav/access/templates/access/user.html:62
 msgid "expired"
-msgstr ""
+msgstr "abgelaufen"
 
 #: c3nav/access/templates/access/user.html:66
 msgid "never"
-msgstr ""
+msgstr "nie"
 
 #: c3nav/access/templates/access/user.html:71
 msgid "Expire"
-msgstr ""
+msgstr "Invalidieren"
 
 #: c3nav/access/templates/access/user.html:73
 msgid "Activate"
-msgstr ""
+msgstr "Aktivieren"
 
 #: c3nav/access/templates/access/user_token.html:12
 msgid "back to user"
-msgstr ""
+msgstr "zurück zum Nutzer"
 
 #: c3nav/access/templates/access/users.html:12 c3nav/mapdata/models/base.py:22
 msgid "Name"
@@ -267,30 +258,27 @@ msgstr "Name"
 
 #: c3nav/access/templates/access/users.html:15
 msgid "Active Tokens"
-msgstr ""
+msgstr "Aktive Token"
 
 #: c3nav/access/templates/access/users.html:17
 #: c3nav/access/templates/access/users.html:29
 msgid "Details"
-msgstr ""
+msgstr "Details"
 
 #: c3nav/access/templates/access/users.html:37
 #: c3nav/access/templates/access/users.html:39
 msgid "previous"
-msgstr ""
+msgstr "vorherige"
 
 #: c3nav/access/templates/access/users.html:43
 #, python-format
-msgid ""
-"\n"
-"            Page %(number)s of %(total)s\n"
-"            "
-msgstr ""
+msgid "Page %(number)s of %(total)s"
+msgstr "Seite %(number)s von %(total)s"
 
+#: c3nav/access/templates/access/users.html:47
 #: c3nav/access/templates/access/users.html:49
-#: c3nav/access/templates/access/users.html:51
 msgid "next"
-msgstr ""
+msgstr "nächste"
 
 #: c3nav/editor/forms.py:94
 msgid "Please select at least two levels."
@@ -306,11 +294,11 @@ msgstr "Interner Fehler."
 
 #: c3nav/mapdata/inclusion.py:29
 msgid "non-public areas"
-msgstr ""
+msgstr "nichtöffentliche Bereiche"
 
 #: c3nav/mapdata/inclusion.py:30
 msgid "public areas"
-msgstr ""
+msgstr "öffentliche Bereiche"
 
 #: c3nav/mapdata/models/base.py:23
 msgid "map package"
@@ -342,7 +330,7 @@ msgstr "Gebäude"
 msgid "Buildings"
 msgstr "Gebäude"
 
-#: c3nav/mapdata/models/geometry.py:154 c3nav/mapdata/models/locations.py:154
+#: c3nav/mapdata/models/geometry.py:154 c3nav/mapdata/models/locations.py:153
 msgid "Room"
 msgstr "Raum"
 
@@ -486,7 +474,7 @@ msgstr "Bodenhöhe"
 msgid "intermediate level"
 msgstr "Zwischenetage"
 
-#: c3nav/mapdata/models/level.py:21 c3nav/mapdata/models/locations.py:152
+#: c3nav/mapdata/models/level.py:21 c3nav/mapdata/models/locations.py:151
 msgid "Level"
 msgstr "Etage"
 
@@ -494,99 +482,94 @@ msgstr "Etage"
 msgid "Levels"
 msgstr "Etagen"
 
-#: c3nav/mapdata/models/locations.py:80 c3nav/mapdata/models/locations.py:170
+#: c3nav/mapdata/models/locations.py:80 c3nav/mapdata/models/locations.py:169
 msgid "can be searched"
 msgstr "zur Suche zugelassen"
 
 #: c3nav/mapdata/models/locations.py:81
 msgid "describes a compiled room"
-msgstr ""
+msgstr "zusammengesetzter Raum"
 
 #: c3nav/mapdata/models/locations.py:84
 msgid "Location Group"
 msgstr "Ortgruppe"
 
-#: c3nav/mapdata/models/locations.py:85 c3nav/mapdata/models/locations.py:168
+#: c3nav/mapdata/models/locations.py:85 c3nav/mapdata/models/locations.py:167
 msgid "Location Groups"
 msgstr "Ortgruppen"
 
 #: c3nav/mapdata/models/locations.py:121
-#, fuzzy, python-format
-#| msgid "Area Location"
+#, python-format
 msgid "%d location"
 msgid_plural "%d locations"
-msgstr[0] "Ortbereich"
-msgstr[1] "Ortbereich"
+msgstr[0] "%d Ort"
+msgstr[1] "%d Orte"
 
-#: c3nav/mapdata/models/locations.py:153
+#: c3nav/mapdata/models/locations.py:152
 msgid "General Area"
 msgstr "Allgemeiner Bereich"
 
-#: c3nav/mapdata/models/locations.py:155
+#: c3nav/mapdata/models/locations.py:154
 msgid "Room Segment"
 msgstr "Raumteil"
 
-#: c3nav/mapdata/models/locations.py:156
+#: c3nav/mapdata/models/locations.py:155
 msgid "Point of Interest"
 msgstr "Ort von Interesse"
 
-#: c3nav/mapdata/models/locations.py:160
+#: c3nav/mapdata/models/locations.py:159
 msgid "Default, include if map package is unlocked"
-msgstr ""
+msgstr "Standard: einbeziehen wenn das Kartenpaket zugänglich ist"
+
+#: c3nav/mapdata/models/locations.py:160
+msgid "Included, but allow excluding"
+msgstr "Einbeziehen, aber Vermeiden erlauben"
 
 #: c3nav/mapdata/models/locations.py:161
-msgid "Included, but allow excluding"
-msgstr ""
+msgid "Avoided, but allow including"
+msgstr "Vermeiden, aber Einbeziehen erlauben"
 
 #: c3nav/mapdata/models/locations.py:162
-msgid "Avoided, but allow including"
-msgstr ""
+msgid "Excluded, needs permission to include"
+msgstr "Vermeiden, Erlaubnis zum Einbeziehen notwendig"
 
-#: c3nav/mapdata/models/locations.py:163
-msgid "Avoided, needs permission to include"
-msgstr ""
-
-#: c3nav/mapdata/models/locations.py:166
+#: c3nav/mapdata/models/locations.py:165
 msgid "Location Type"
 msgstr "Orttyp"
 
-#: c3nav/mapdata/models/locations.py:171
+#: c3nav/mapdata/models/locations.py:170
 msgid "can be used to describe a position"
 msgstr "can zum beschreiben einer Position genutzt werden"
 
-#: c3nav/mapdata/models/locations.py:173
+#: c3nav/mapdata/models/locations.py:172
 msgid "Routing Inclusion"
-msgstr ""
+msgstr "Routeneinbeziehung"
 
-#: c3nav/mapdata/models/locations.py:178
+#: c3nav/mapdata/models/locations.py:177
 msgid "Area Location"
 msgstr "Ortbereich"
 
-#: c3nav/mapdata/models/locations.py:179
+#: c3nav/mapdata/models/locations.py:178
 msgid "Area Locations"
 msgstr "Ortbereiche"
 
-#: c3nav/mapdata/models/locations.py:308
-#, fuzzy
-#| msgid "left coordinate"
+#: c3nav/mapdata/models/locations.py:306
 msgid "Unreachable Coordinates"
-msgstr "linke koordinate"
+msgstr "Unerreichbare Koordinaten"
 
-#: c3nav/mapdata/models/locations.py:314
-#, fuzzy
-#| msgid "top coordinate"
+#: c3nav/mapdata/models/locations.py:312
 msgid "Coordinates"
-msgstr "obere koordinate"
+msgstr "Koordinaten"
+
+#: c3nav/mapdata/models/locations.py:316
+#, python-format
+msgid "Coordinates in %(location)s"
+msgstr "Koordinaten innerhalb %(location)s"
 
 #: c3nav/mapdata/models/locations.py:318
 #, python-format
-msgid "Coordinates in %(location)s"
-msgstr ""
-
-#: c3nav/mapdata/models/locations.py:320
-#, python-format
 msgid "Coordinates near %(location)s"
-msgstr ""
+msgstr "Koordinaten in der Nähe von %(location)s"
 
 #: c3nav/mapdata/models/package.py:14
 msgid "package identifier"
@@ -715,28 +698,34 @@ msgstr "Deutsch"
 
 #: c3nav/site/templates/site/footer.html:6
 msgid "Editor"
-msgstr ""
+msgstr "Editor"
 
 #: c3nav/site/templates/site/footer.html:7
 msgid "API"
-msgstr ""
+msgstr "API"
 
 #: c3nav/site/templates/site/footer.html:23
 msgid "full access unlocked"
-msgstr ""
+msgstr "voller Zugang freigeschaltet"
 
 #: c3nav/site/templates/site/footer.html:25
 #, python-format
 msgid ""
 "\n"
-"            %(count)s area unlocked\n"
+"                %(count)s area unlocked\n"
 "            "
 msgid_plural ""
 "\n"
-"            %(count)s areas unlocked\n"
+"                %(count)s areas unlocked\n"
 "            "
 msgstr[0] ""
+"\n"
+"            %(count)s Bereich freigeschaltet\n"
+"            "
 msgstr[1] ""
+"\n"
+"            %(count)s Bereiche freigeschaltet\n"
+"            "
 
 #: c3nav/site/templates/site/fragment_location.html:11
 msgid "Search any Location…"
@@ -744,32 +733,32 @@ msgstr "Tipp einen beliebigen Ort ein…"
 
 #: c3nav/site/templates/site/fragment_location.html:37
 msgid "Javascript is disabled. Please scroll in this direction ⇘"
-msgstr ""
+msgstr "Javascript ist deaktiviert. Bitte in diese Richtung scrollen ⇘"
 
 #: c3nav/site/templates/site/fragment_location.html:45
 #: c3nav/site/templates/site/main.html:105
 msgid "close"
-msgstr ""
+msgstr "schließen"
 
 #: c3nav/site/templates/site/fragment_location.html:47
 msgid "Click or tap the desired location on the map."
-msgstr ""
+msgstr "Klick oder berühre den gewünschte Ort auf der Karte"
 
 #: c3nav/site/templates/site/fragment_location.html:62
 msgid "No location matched your search query."
-msgstr ""
+msgstr "Kein Ort passt zu deiner Suchanfrage."
 
 #: c3nav/site/templates/site/fragment_location.html:68
 msgid "Route to here"
-msgstr ""
+msgstr "Route hierhin"
 
 #: c3nav/site/templates/site/fragment_location.html:71
 msgid "Route from here"
-msgstr ""
+msgstr "Route von hier aus"
 
 #: c3nav/site/templates/site/fragment_location.html:77
 msgid "Search"
-msgstr ""
+msgstr "Suchen"
 
 #: c3nav/site/templates/site/fragment_route.html:5
 msgid "Your Route"
@@ -777,7 +766,7 @@ msgstr "Deine Route"
 
 #: c3nav/site/templates/site/fragment_route.html:8
 msgid "This Route contains way types you wanted to avoid."
-msgstr ""
+msgstr "Diese Route enthält Wegtypen die du vermeiden wolltest."
 
 #: c3nav/site/templates/site/fragment_select.html:4
 msgid "allow"
@@ -796,10 +785,8 @@ msgid "avoid"
 msgstr "vermeiden"
 
 #: c3nav/site/templates/site/main.html:13
-#, fuzzy
-#| msgid "Location Type"
 msgid "Location"
-msgstr "Orttyp"
+msgstr "Ort"
 
 #: c3nav/site/templates/site/main.html:17
 msgid "Origin"
@@ -811,25 +798,25 @@ msgstr "Ziel"
 
 #: c3nav/site/templates/site/main.html:40
 msgid "Include / Avoid areas"
-msgstr ""
+msgstr "Bereiche einbeziehen / vermeiden"
 
 #: c3nav/site/templates/site/main.html:44
 #, python-format
 msgid "Include %(includable)s"
-msgstr ""
+msgstr "%(includable)s einbeziehen"
 
 #: c3nav/site/templates/site/main.html:49
 #, python-format
 msgid "Avoid %(excludable)s"
-msgstr ""
+msgstr "%(excludable)s vermeiden"
 
 #: c3nav/site/templates/site/main.html:60
 msgid "Save Settings in cookie"
-msgstr ""
+msgstr "Einstellungen in Cookie speichern"
 
 #: c3nav/site/templates/site/main.html:64
 msgid "Edit Settings"
-msgstr ""
+msgstr "Einstellungen bearbeiten"
 
 #: c3nav/site/templates/site/main.html:70
 msgid "Get Route"
@@ -837,7 +824,7 @@ msgstr "Route berechnen"
 
 #: c3nav/site/templates/site/main.html:79
 msgid "Sorry, no Route could be found."
-msgstr ""
+msgstr "Sorry, es konnte keine Route gefunden werden."
 
 #: c3nav/site/templates/site/main.html:81
 msgid ""
@@ -846,26 +833,34 @@ msgid ""
 "or there is no possible route between them.\n"
 "        "
 msgstr ""
+"\n"
+"            Dein Start oder dein Ziel sind nicht innerhalb eines "
+"zugänglichen Bereiches oder es gibt keine mögliche Route zwischen ihnen.\n"
+"        "
 
 #: c3nav/site/templates/site/main.html:88
 msgid "Congratulations, you are already there!"
-msgstr ""
+msgstr "Herzlichen Glückwunsch, du bist bereits da!"
 
 #: c3nav/site/templates/site/main.html:92
 msgid "One or both of your locations are not in the routing table yet."
 msgstr ""
+"Ein oder mehrere deiner Wegpunkte sind noch nicht in der Routingtabelle."
 
 #: c3nav/site/templates/site/main.html:93
 msgid "Please try again in a few minutes."
-msgstr ""
+msgstr "Bitte versuch es in wenigen Minuten erneut."
 
 #: c3nav/site/templates/site/main.html:102
 msgid "share"
-msgstr ""
+msgstr "Teilen"
 
 #: c3nav/site/templates/site/main.html:103
 msgid "shortcut"
-msgstr ""
+msgstr "Verknüpfung"
+
+#~ msgid "Access Tokens Instance"
+#~ msgstr "Zugangtokeninstanzen"
 
 #~ msgid "This Source belongs to a package you don't have access to."
 #~ msgstr "Diese Vorlage gehört zu einem Paket, auf das du kein Zugriff hast."

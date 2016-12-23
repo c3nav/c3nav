@@ -159,7 +159,7 @@ class AreaLocation(LocationModelMixin, GeometryMapItemWithLevel):
         ('default', _('Default, include if map package is unlocked')),
         ('allow_avoid', _('Included, but allow excluding')),
         ('allow_include', _('Avoided, but allow including')),
-        ('needs_permission', _('Avoided, needs permission to include')),
+        ('needs_permission', _('Excluded, needs permission to include')),
     )
 
     location_type = models.CharField(max_length=20, choices=LOCATION_TYPES, verbose_name=_('Location Type'))
