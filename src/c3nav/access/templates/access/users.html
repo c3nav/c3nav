@@ -40,9 +40,7 @@
         {% endif %}
 
         <li class="middle">
-            {% blocktrans with number=users.number total=users.paginator.num_pages %}
-            Page {{ number }} of {{ total }}
-            {% endblocktrans %}
+            {% blocktrans with number=users.number total=users.paginator.num_pages %}Page {{ number }} of {{ total }}{% endblocktrans %}
         </li>
 
         {% if users.has_next %}

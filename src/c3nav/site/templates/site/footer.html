@@ -23,9 +23,9 @@
             {% trans 'full access unlocked' %}
         {% else %}
             {% blocktrans count count=access_list|length %}
-            {{ count }} area unlocked
+                {{ count }} area unlocked
             {% plural %}
-            {{ count }} areas unlocked
+                {{ count }} areas unlocked
             {% endblocktrans %}
         {% endif %}
         </small>

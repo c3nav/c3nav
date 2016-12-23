@@ -125,4 +125,4 @@ class AccessTokenInstance(models.Model):
 
     class Meta:
         verbose_name = _('Access Token Instance')
-        verbose_name_plural = _('Access Tokens Instance')
+        verbose_name_plural = _('Access Token Instances')
