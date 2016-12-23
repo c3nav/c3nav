@@ -35,7 +35,7 @@ if not os.path.exists(RENDER_ROOT):
 if config.has_option('django', 'secret'):
     SECRET_KEY = config.get('django', 'secret')
 else:
-    SECRET_FILE = os.path.join(BASE_DIR, '.secret')
+    SECRET_FILE = os.path.join(DATA_DIR, '.secret')
     if os.path.exists(SECRET_FILE):
         with open(SECRET_FILE, 'r') as f:
             SECRET_KEY = f.read().strip()
