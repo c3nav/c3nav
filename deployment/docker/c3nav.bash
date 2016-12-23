@@ -14,6 +14,8 @@ ls /data/map
 if [ "$1" == "webworker" ]; then
     python manage.py migrate --noinput
     python manage.py loadmap -y
+    mkdir -p /static.dist
+    cp -r /c3nav/src/c3nav/static.dist/* /static.dist/
 
     exec gunicorn c3nav.wsgi \
         --name c3nav \
