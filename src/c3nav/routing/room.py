@@ -276,15 +276,18 @@ class GraphRoom():
 
         if ':nonpublic' in self.excludables and ':nonpublic' not in include:
             points, = self.excludable_points[self.excludables.index(':nonpublic')].nonzero()
-            factors[points[:, None], points] = 1000 if allow_nonpublic else np.inf
+            factors[points[:, None], :] = 1000 if allow_nonpublic else np.inf
+            factors[:, points] = 1000 if allow_nonpublic else np.inf
 
         if avoid:
             points, = self.excludable_points[avoid, :].any(axis=0).nonzero()
-            factors[points[:, None], points] = np.maximum(factors[points[:, None], points], 1000)
+            factors[points[:, None], :] = np.maximum(factors[points[:, None], :], 1000)
+            factors[:, points] = np.maximum(factors[:, points], 1000)
 
         if include:
             points, = self.excludable_points[include, :].any(axis=0).nonzero()
-            factors[points[:, None], points] = 1
+            factors[points[:, None], :] = 1
+            factors[:, points] = 1
 
         g_sparse = csgraph_from_dense(distances*factors, null_value=np.inf)
         shortest_paths, predecessors = shortest_path(g_sparse, return_predecessors=True)

@@ -3,6 +3,7 @@ import os
 from django.conf import settings
 from django.db.models import Max, Min
 from shapely.geometry import box
+from shapely.ops import cascaded_union
 
 from c3nav.mapdata.models import Package
 from c3nav.mapdata.utils.cache import cache_result
@@ -29,8 +30,12 @@ def get_render_path(filetype, level, mode, public):
 
 
 def get_public_private_area(level):
+    from c3nav.mapdata.models import AreaLocation
+
     width, height = get_dimensions()
     everything = box(0, 0, width, height)
-    public_area = level.public_geometries.areas_and_doors
+    needs_permission = [location.geometry
+                        for location in AreaLocation.objects.filter(routing_inclusion='needs_permission')]
+    public_area = level.public_geometries.areas_and_doors.difference(cascaded_union(needs_permission))
     private_area = everything.difference(public_area)
     return public_area, private_area
