@@ -339,6 +339,7 @@ class Graph:
         # add distances to room routers
         if orig_distances is not None:
             for room in orig_rooms:
+                print(orig_distances[:, None].shape)
                 routers[room].shortest_paths[orig_room_points[room], :] += orig_distances[:, None]
 
         if dest_distances is not None:
