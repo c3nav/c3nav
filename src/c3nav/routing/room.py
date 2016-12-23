@@ -215,6 +215,11 @@ class GraphRoom():
     def finish_build(self):
         self.areas = tuple(self.areas)
         self.points = tuple(point.i for point in self._built_points)
+
+        set_points = set(self.points)
+        if len(self.points) != len(set_points):
+            print('ERROR: POINTS DOUBLE-ADDED (ROOM)', len(self.points), len(set_points))
+
         self.room_transfer_points = tuple(i for i in self.points if i in self.level.room_transfer_points)
         self.excludables = tuple(self.excludables)
 
