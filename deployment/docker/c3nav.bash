@@ -31,7 +31,7 @@ fi
 if [ "$1" == "loadmap" ]; then
     echo ""
     echo "### loading map..."
-    python3 manage.py loadmap -y
+    exec python3 manage.py loadmap -y
 fi
 
 if [ "$1" == "checkmap" ]; then
