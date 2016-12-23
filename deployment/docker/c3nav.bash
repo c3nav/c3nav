@@ -11,9 +11,9 @@ fi
 
 ls /data/map
 
-python manage.py migrate --noinput
-
 if [ "$1" == "webworker" ]; then
+    python manage.py migrate --noinput
+
     exec gunicorn c3nav.wsgi \
         --name c3nav \
         --workers $NUM_WORKERS \
@@ -27,6 +27,8 @@ if [ "$1" == "taskworker" ]; then
     export C_FORCE_ROOT=True
     exec celery -A c3nav worker -l info
 fi
+
+python manage.py migrate --noinput
 
 if [ "$1" == "loadmap" ]; then
     echo ""
