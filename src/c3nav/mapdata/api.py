@@ -9,7 +9,7 @@ from rest_framework.decorators import detail_route
 from rest_framework.response import Response
 from rest_framework.viewsets import ReadOnlyModelViewSet, ViewSet
 
-from c3nav.access.apply import filter_queryset_by_access, get_unlocked_packages_names
+from c3nav.access.apply import filter_arealocations_by_access, filter_queryset_by_access, get_unlocked_packages_names
 from c3nav.mapdata.models import GEOMETRY_MAPITEM_TYPES, AreaLocation, Level, LocationGroup, Package, Source
 from c3nav.mapdata.models.geometry import DirectedLineGeometryMapItemWithLevel
 from c3nav.mapdata.search import get_location
@@ -159,16 +159,17 @@ class SourceViewSet(CachedReadOnlyViewSetMixin, ReadOnlyModelViewSet):
         return response
 
 
-class LocationViewSet(CachedReadOnlyViewSetMixin, ViewSet):
+class LocationViewSet(ViewSet):
     """
     List and retrieve locations
+    Dont cache this, because it depends on access_list
     """
     lookup_field = 'name'
     include_package_access = True
 
     def list(self, request, **kwargs):
         locations = []
-        locations += sorted(filter_queryset_by_access(request, AreaLocation.objects.filter(can_search=True)),
+        locations += sorted(filter_arealocations_by_access(request, AreaLocation.objects.filter(can_search=True)),
                             key=AreaLocation.get_sort_key, reverse=True)
         locations += list(filter_queryset_by_access(request, LocationGroup.objects.filter(can_search=True)))
         return Response([location.to_location_json() for location in locations])
