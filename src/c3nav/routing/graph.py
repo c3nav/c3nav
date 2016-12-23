@@ -257,7 +257,8 @@ class Graph:
                 points = self.levels[location.level.name].arealocation_points[location.name]
                 return points, None, None
             elif isinstance(location, LocationGroup):
-                points = set(np.hstack(tuple(self.get_location_points(area) for area in location.locationareas)))
+                points = tuple(np.hstack(tuple(self.get_location_points(area, mode)[0]
+                                         for area in location.arealocations.all())))
                 return points, None, None
         except KeyError:
             raise NotYetRoutable
