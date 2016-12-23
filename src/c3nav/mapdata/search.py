@@ -38,13 +38,18 @@ def search_location(request, search):
 
     words = search.split(' ')[:10]
 
+    queryset = LocationGroup.objects.filter(can_seach=True, compiled_room=True)
+    if isinstance(location, LocationGroup):
+        queryset.exclude(name='g:' + location.name)
+    results += list(filter_words(filter_queryset_by_access(request, queryset), words)[:10])
+
     queryset = AreaLocation.objects.filter(can_seach=True)
     if isinstance(location, AreaLocation):
         queryset.exclude(name=location.name)
     results += sorted(filter_words(filter_arealocations_by_access(request, queryset), words),
                       key=AreaLocation.get_sort_key, reverse=True)
 
-    queryset = LocationGroup.objects.filter(can_seach=True)
+    queryset = LocationGroup.objects.filter(can_seach=True, compiled_room=False)
     if isinstance(location, LocationGroup):
         queryset.exclude(name='g:'+location.name)
     results += list(filter_words(filter_queryset_by_access(request, queryset), words)[:10])

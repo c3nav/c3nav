@@ -78,6 +78,7 @@ class LocationModelMixin(Location):
 class LocationGroup(LocationModelMixin, MapItem):
     titles = JSONField()
     can_search = models.BooleanField(default=True, verbose_name=_('can be searched'))
+    compiled_room = models.BooleanField(default=False, verbose_name=_('describes a compiled room'))
 
     class Meta:
         verbose_name = _('Location Group')
@@ -88,12 +89,62 @@ class LocationGroup(LocationModelMixin, MapItem):
     def location_id(self):
         return 'g:'+self.name
 
+    def get_in_levels(self):
+        last_update = get_last_mapdata_update()
+        if last_update is None:
+            return self._get_in_levels()
+
+        cache_key = 'c3nav__mapdata__locationgroup__in_levels__'+last_update.isoformat()+'__'+self.name,
+        in_levels = cache.get(cache_key)
+        if not in_levels:
+            in_levels = self._get_in_levels()
+            cache.set(cache_key, in_levels, 900)
+
+        return in_levels
+
+    def _get_in_levels(self):
+        level_ids = set()
+        in_levels = []
+        for arealocation in self.arealocations.all():
+            for area in arealocation.get_in_areas():
+                if area.location_type == 'level' and area.id not in level_ids:
+                    level_ids.add(area.id)
+                    in_levels.append(area)
+
+        in_levels = sorted(in_levels, key=lambda area: area.level.altitude)
+        return in_levels
+
     @property
     def subtitle(self):
+        if self.compiled_room:
+            return ', '.join(area.title for area in self.get_in_levels())
         return ungettext_lazy('%d location', '%d locations') % self.arealocations.count()
 
     def __str__(self):
         return self.title
+
+    @classmethod
+    def fromfile(cls, data, file_path):
+        kwargs = super().fromfile(data, file_path)
+
+        if 'compiled_room' not in data:
+            raise ValueError('Missing compiled_room')
+        compiled_room = data['compiled_room']
+        if not isinstance(compiled_room, bool):
+            raise ValueError('compiled_room has to be boolean!')
+        kwargs['compiled_room'] = compiled_room
+
+        return kwargs
+
+    def get_geojson_properties(self):
+        result = super().get_geojson_properties()
+        return result
+
+    def tofile(self):
+        result = super().tofile()
+        result['compiled_room'] = self.compiled_room
+        result.move_to_end('geometry')
+        return result
 
 
 class AreaLocation(LocationModelMixin, GeometryMapItemWithLevel):
@@ -137,7 +188,7 @@ class AreaLocation(LocationModelMixin, GeometryMapItemWithLevel):
         if last_update is None:
             return self._get_in_areas()
 
-        cache_key = 'c3nav__mapdata__location__in__areas__'+last_update.isoformat()+'__'+self.name,
+        cache_key = 'c3nav__mapdata__location__in_areas__'+last_update.isoformat()+'__'+self.name,
         in_areas = cache.get(cache_key)
         if not in_areas:
             in_areas = self._get_in_areas()
@@ -160,7 +211,7 @@ class AreaLocation(LocationModelMixin, GeometryMapItemWithLevel):
 
     @property
     def subtitle(self):
-        return self.get_subtitle()
+        return self.get_subtitle(with_type=False)
 
     @property
     def subtitle_without_type(self):

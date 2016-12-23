@@ -169,9 +169,12 @@ class LocationViewSet(ViewSet):
 
     def list(self, request, **kwargs):
         locations = []
+        locations += list(filter_queryset_by_access(request, LocationGroup.objects.filter(can_search=True,
+                                                                                          compiled_room=True)))
         locations += sorted(filter_arealocations_by_access(request, AreaLocation.objects.filter(can_search=True)),
                             key=AreaLocation.get_sort_key, reverse=True)
-        locations += list(filter_queryset_by_access(request, LocationGroup.objects.filter(can_search=True)))
+        locations += list(filter_queryset_by_access(request, LocationGroup.objects.filter(can_search=True,
+                                                                                          compiled_room=False)))
         return Response([location.to_location_json() for location in locations])
 
     def retrieve(self, request, name=None, **kwargs):

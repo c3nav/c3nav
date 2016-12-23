@@ -109,7 +109,7 @@ class MapitemFormMixin(ModelForm):
 def create_editor_form(mapitemtype):
     possible_fields = ['name', 'package', 'altitude', 'level', 'intermediate', 'levels', 'geometry', 'direction',
                        'elevator', 'button', 'crop_to_level', 'width', 'groups', 'override_altitude',
-                       'location_type', 'can_search', 'can_describe', 'routing_inclusion']
+                       'location_type', 'can_search', 'can_describe', 'routing_inclusion', 'compiled_room']
     existing_fields = [field.name for field in mapitemtype._meta.get_fields() if field.name in possible_fields]
 
     class EditorForm(MapitemFormMixin, ModelForm):
