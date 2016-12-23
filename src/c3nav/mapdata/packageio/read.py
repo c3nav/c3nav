@@ -47,7 +47,6 @@ class MapdataReader:
     def add_file(self, package_dir, path, filename):
         file_path = os.path.join(package_dir, path, filename)
         relative_file_path = os.path.join(path, filename)
-        print(file_path)
         for model, path_regex in self.path_regexes.items():
             if re.search(path_regex, relative_file_path):
                 self._add_item(ReaderItem(self, package_dir, path, filename, model))
