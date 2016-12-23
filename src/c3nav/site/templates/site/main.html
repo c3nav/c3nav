@@ -7,7 +7,7 @@
 
 {% block content %}
 <form method="post" class="main-view mode-{{ mode }}{% if origin and destination %} can-route{% endif %}"
-      data-svg-width="{{ svg_width }}" data-svg-height="{{ svg_height }}" data-visible-areas="{{ visible_areas | join:';' }}"
+      data-svg-width="{{ svg_width }}" data-svg-height="{{ svg_height }}" data-visible-areas="{{ visible_areas | join:';' }}">
     {% csrf_token %}
     <div class="row locations">
         {% trans "Location" as heading %}
