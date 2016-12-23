@@ -143,7 +143,6 @@ class LocationGroup(LocationModelMixin, MapItem):
     def tofile(self):
         result = super().tofile()
         result['compiled_room'] = self.compiled_room
-        result.move_to_end('geometry')
         return result
 
 
