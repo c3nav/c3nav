@@ -248,7 +248,6 @@ class GraphLevel():
                     if not point.within(room.clear_geometry):
                         point = get_nearest_point(room.clear_geometry, point)
                     point, = room.add_point(point.coords[0])
-                    room._built_points.append(point)
                     self.graph.add_levelconnector_point(levelconnector, point)
 
     def create_elevatorlevels(self):
