@@ -20,7 +20,7 @@ if [ "$1" == "webworker" ]; then
         --max-requests 1200 \
         --max-requests-jitter 50 \
         --log-level=info \
-        --bind=127.0.0.1:8000
+        --bind [::]:8000
 fi
 
 if [ "$1" == "taskworker" ]; then
