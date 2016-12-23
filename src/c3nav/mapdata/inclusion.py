@@ -32,7 +32,7 @@ def get_includables_avoidables(request):
     for location in locations:
         item = (location.location_id, location.title)
 
-        if not location.location_id not in request.c3nav_access_list and not request.c3nav_full_access:
+        if location.location_id not in request.c3nav_access_list and not request.c3nav_full_access:
             if location.routing_inclusion == 'needs_permission':
                 continue
 

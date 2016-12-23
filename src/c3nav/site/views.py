@@ -183,7 +183,9 @@ def main(request, location=None, origin=None, destination=None):
     elevators = reverse_ctypes(allowed_ctypes, 'elevator')
 
     includables, avoidables = get_includables_avoidables(request)
+    print(includables, avoidables)
     allow_nonpublic, include, avoid = parse_include_avoid(request, include, avoid)
+    print(allow_nonpublic, include, avoid)
 
     if request.method == 'POST':
         save_settings = request.POST.get('save_settings', '') == '1'
