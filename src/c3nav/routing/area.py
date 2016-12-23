@@ -103,6 +103,10 @@ class GraphArea():
     def finish_build(self):
         self.points = np.array(tuple(point.i for point in self._built_points))
 
+        set_points = set(self.points)
+        if len(self.points) != len(set_points):
+            print('ERROR: POINTS DOUBLE-ADDED (AREA)', len(self.points), len(set_points))
+
     def contains_point(self, point):
         return self.mpl_clear.contains_point(point)
 
