@@ -47,7 +47,7 @@ class Source(MapItem):
 
         return kwargs
 
-    def tofile(self):
+    def tofile(self, form=None):
         result = super().tofile()
         result['bounds'] = ((float(self.bottom), float(self.left)), (float(self.top), float(self.right)))
         return result

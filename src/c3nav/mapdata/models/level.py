@@ -65,7 +65,7 @@ class Level(MapItem):
 
         return kwargs
 
-    def tofile(self):
+    def tofile(self, form=None):
         result = super().tofile()
         result['altitude'] = float(self.altitude)
         result['intermediate'] = self.intermediate

@@ -83,7 +83,7 @@ class Package(models.Model):
     def tofilename(self):
         return 'package.json'
 
-    def tofile(self):
+    def tofile(self, form=None):
         data = OrderedDict()
         data['name'] = self.name
         if self.home_repo is not None:
