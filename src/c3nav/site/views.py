@@ -213,6 +213,7 @@ def main(request, location=None, origin=None, destination=None):
         except NotYetRoutable:
             ctx.update({'error': 'notyetroutable'})
         else:
+            route.describe(allowed_ctypes)
             ctx.update({'route': route})
 
     response = render(request, 'site/main.html', ctx)

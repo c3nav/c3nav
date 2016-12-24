@@ -269,7 +269,8 @@ class Graph:
     def _allowed_points_index(self, points, allowed_points_i):
         return np.array(tuple(i for i, point in enumerate(points) if point in allowed_points_i))
 
-    def get_route(self, origin: Location, destination: Location, allowed_ctypes, allow_nonpublic, avoid, include):
+    def get_route(self, origin: Location, destination: Location,
+                  allowed_ctypes, allow_nonpublic, avoid, include, visible_nonpublic_areas=None):
         orig_points_i, orig_distances, orig_ctypes = self.get_location_points(origin, 'orig')
         dest_points_i, dest_distances, dest_ctypes = self.get_location_points(destination, 'dest')
 
@@ -453,8 +454,6 @@ class Graph:
         best_route = SegmentRouteWrapper(best_route, orig_point=add_orig_point, dest_point=add_dest_point,
                                          orig_ctype=orig_ctype, dest_ctype=dest_ctype)
         best_route = best_route.split()
-        best_route.create_routeparts()
-        best_route.check_allowed_ctypes(allowed_ctypes)
         return best_route
 
     def _room_transfers(self, rooms, room_points, routers, mode):
