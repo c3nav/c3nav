@@ -50,7 +50,7 @@ else:
 
 debug_fallback = "runserver" in sys.argv
 DEBUG = config.getboolean('django', 'debug', fallback=debug_fallback)
-DIRECT_EDITING = False # config.getboolean('c3nav', 'direct_editing', fallback=DEBUG)
+DIRECT_EDITING = config.getboolean('c3nav', 'direct_editing', fallback=DEBUG)
 PUBLIC_PACKAGES = [n for n in config.get('c3nav', 'public_packages', fallback='').split(',') if n]
 
 EDITOR_HOSTERS = OrderedDict((name[7:], data) for name, data in config.items() if name.startswith('hoster:'))
