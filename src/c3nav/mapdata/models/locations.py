@@ -62,6 +62,13 @@ class LocationModelMixin(Location):
             raise ValueError('can_search has to be boolean!')
         kwargs['can_search'] = can_search
 
+        if 'can_describe' not in data:
+            raise ValueError('Missing can_describe')
+        can_describe = data['can_describe']
+        if not isinstance(can_describe, bool):
+            raise ValueError('can_describe has to be boolean!')
+        kwargs['can_describe'] = can_describe
+
         return kwargs
 
     def tofile(self, form=None):
@@ -78,7 +85,8 @@ class LocationModelMixin(Location):
 class LocationGroup(LocationModelMixin, MapItem):
     titles = JSONField()
     can_search = models.BooleanField(default=True, verbose_name=_('can be searched'))
-    compiled_room = models.BooleanField(default=False, verbose_name=_('describes a compiled room'))
+    can_describe = models.BooleanField(default=True, verbose_name=_('can be used to describe a position'))
+    compiled_room = models.BooleanField(default=False, verbose_name=_('is a compiled room'))
 
     class Meta:
         verbose_name = _('Location Group')
@@ -242,20 +250,6 @@ class AreaLocation(LocationModelMixin, GeometryMapItemWithLevel):
             raise ValueError('Invalid location type')
         kwargs['location_type'] = location_type
 
-        if 'can_search' not in data:
-            raise ValueError('Missing can_search')
-        can_search = data['can_search']
-        if not isinstance(can_search, bool):
-            raise ValueError('can_search has to be boolean!')
-        kwargs['can_search'] = can_search
-
-        if 'can_describe' not in data:
-            raise ValueError('Missing can_describe')
-        can_describe = data['can_describe']
-        if not isinstance(can_describe, bool):
-            raise ValueError('can_describe has to be boolean!')
-        kwargs['can_describe'] = can_describe
-
         if 'routing_inclusion' not in data:
             raise ValueError('Missing routing inclusion')
         routing_inclusion = data['routing_inclusion']
@@ -276,8 +270,6 @@ class AreaLocation(LocationModelMixin, GeometryMapItemWithLevel):
         else:
             result['groups'] = sorted(self.groups.all().order_by('name').values_list('name', flat=True))
         result['location_type'] = self.location_type
-        result['can_search'] = self.can_search
-        result['can_describe'] = self.can_describe
         result['routing_inclusion'] = self.routing_inclusion
         result.move_to_end('geometry')
         return result
