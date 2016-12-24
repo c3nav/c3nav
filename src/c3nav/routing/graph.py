@@ -388,7 +388,7 @@ class Graph:
                 o_points = orig_room_transfer_points[level]
                 d_points = dest_room_transfer_points[level]
 
-                if not len(orig_points) or not len(dest_points):
+                if not len(o_points) or not len(d_points):
                     continue
 
                 shortest_paths = routers[level].shortest_paths[o_points[:, None], d_points]
