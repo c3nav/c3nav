@@ -305,7 +305,7 @@ class PointLocation(Location):
         point = graph.get_nearest_point(self.level, self.x, self.y)
 
         if point is None or (':nonpublic' in point.arealocations and self.request.c3nav_full_access and
-                             not len(set(self.request.c3nav_access_list) - set(point.arealocations))):
+                             not len(set(self.request.c3nav_access_list) & set(point.arealocations))):
             return _('Unreachable Coordinates'), ''
 
         locations = sorted(AreaLocation.objects.filter(name__in=point.arealocations, can_describe=True),
