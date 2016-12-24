@@ -52,8 +52,6 @@ class Route:
         for routepart in routeparts:
             routepart.render_svg_coordinates()
 
-        self.describe(routeparts)
-
         self.routeparts = routeparts
 
     @staticmethod
@@ -69,8 +67,10 @@ class Route:
         else:
             return locations[0].title, locations[0].subtitle
 
-    def describe(self, routeparts):
-        for i, routepart in enumerate(routeparts):
+    def describe(self, allowed_ctypes):
+        self.create_routeparts()
+
+        for i, routepart in enumerate(self.routeparts):
             for j, line in enumerate(routepart.lines):
                 from_room = line.from_point.room
                 to_room = line.to_point.room
@@ -208,17 +208,17 @@ class Route:
                     line.icon = 'location'
                     line.title, line.description = self.describe_point(point)
 
-        last_line = routeparts[-1].lines[-1]
+        last_line = self.routeparts[-1].lines[-1]
         if last_line.icon == 'location':
             last_line.ignore = True
 
-    def check_allowed_ctypes(self, allowed_ctypes):
+        # check allowed ctypes
         allowed_ctypes = set(allowed_ctypes)
         self.ctypes_exception = False
         for connection in self.connections:
             if connection.ctype not in allowed_ctypes:
                 self.ctypes_exception = True
-                return
+                break
 
 
 class RoutePart:
