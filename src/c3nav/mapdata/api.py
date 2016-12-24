@@ -162,8 +162,8 @@ class SourceViewSet(CachedReadOnlyViewSetMixin, ReadOnlyModelViewSet):
 class LocationViewSet(ViewSet):
     """
     List and retrieve locations
-    Dont cache this, because it depends on access_list
     """
+    # We don't cache this, because it depends on access_list
     lookup_field = 'name'
     include_package_access = True
 
