@@ -194,7 +194,11 @@ c3nav = {
         $(e.target).val('');
     },
     _typeahead_cursorchange: function(e, item) {
-        $(e.target).data('enter_item', item);
+        if (item === undefined) {
+            $(e.target).removeData('enter_item');
+        } else {
+            $(e.target).data('enter_item', item);
+        }
     },
 
     _locations_changed: function(e) {
