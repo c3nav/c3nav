@@ -629,23 +629,23 @@ msgstr "Unbekannter Ort"
 
 #: c3nav/routing/route.py:111
 msgid "Go up the stairs."
-msgstr "Geh die Treppe nach oben."
+msgstr "Gehe die Treppe nach oben."
 
 #: c3nav/routing/route.py:112
 msgid "Go down the stairs."
-msgstr "Geh die Treppe nach unten."
+msgstr "Gehe die Treppe nach unten."
 
 #: c3nav/routing/route.py:113
 msgid "Take the escalator upwards."
-msgstr "Fahr die Rolltreppe hoch."
+msgstr "Fahre die Rolltreppe hoch."
 
 #: c3nav/routing/route.py:114
 msgid "Take the escalator downwards."
-msgstr "Fahr die Rolltreppe runter."
+msgstr "Fahre die Rolltreppe runter."
 
 #: c3nav/routing/route.py:115
 msgid "Take the elevator upwards."
-msgstr "Fahr mit dem Aufzug nach oben."
+msgstr "Fahre mit dem Aufzug nach oben."
 
 #: c3nav/routing/route.py:116
 msgid "Take the elevator downwards."
@@ -653,15 +653,15 @@ msgstr "Fahr mit den Aufzug nach unten."
 
 #: c3nav/routing/route.py:142
 msgid "Go through the door on the left."
-msgstr "Geh links durch die Tür."
+msgstr "Gehe links durch die Tür."
 
 #: c3nav/routing/route.py:143
 msgid "Go through the door on the right."
-msgstr "Geh rechts durch die Tür."
+msgstr "Gehe rechts durch die Tür."
 
 #: c3nav/routing/route.py:144
 msgid "Go through the door."
-msgstr "Geh durch die Tür."
+msgstr "Gehe durch die Tür."
 
 #: c3nav/routing/route.py:173
 #, python-format
