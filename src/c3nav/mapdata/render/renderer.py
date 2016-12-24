@@ -106,6 +106,19 @@ class LevelRenderer():
         contents.append(self.polygon_svg(self.geometries.outsides_with_holes,
                                          fill_color='#DCE6DC'))
 
+        for location in self.level.arealocations.all():
+            color = None
+            if location.color:
+                color = location.color
+            else:
+                colorgroup = location.groups.filter(color__isnull=False).first()
+                if colorgroup:
+                    color = colorgroup.color
+
+            if color:
+                contents.append(self.polygon_svg(location.geometry.intersection(self.geometries.accessible),
+                                                 fill_color=color))
+
         contents.append(self.polygon_svg(self.geometries.stair_areas,
                                          fill_color='#000000',
                                          fill_opacity=0.03))
