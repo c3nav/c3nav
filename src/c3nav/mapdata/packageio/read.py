@@ -142,6 +142,7 @@ class ReaderItem:
         try:
             add_data = self.model.fromfile(self.json_data, self.path_in_package)
         except Exception as e:
+            raise
             raise CommandError('Could not load data: %s' % e)
         self.data.update(add_data)
 

@@ -69,7 +69,7 @@ class LocationModelMixin(Location):
             raise ValueError('can_describe has to be boolean!')
         kwargs['can_describe'] = can_describe
 
-        if 'color' not in data:
+        if 'color' in data:
             color = data['color']
             if not isinstance(color, str):
                 raise ValueError('color has to be str!')
