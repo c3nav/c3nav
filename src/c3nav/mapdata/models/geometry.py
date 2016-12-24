@@ -60,7 +60,7 @@ class GeometryMapItem(MapItem, metaclass=GeometryMapItemMeta):
             ('geometry', format_geojson(mapping(self.geometry), round=False)),
         ))
 
-    def tofile(self):
+    def tofile(self, form=None):
         result = super().tofile()
         result['geometry'] = format_geojson(mapping(self.geometry))
         return result
@@ -96,7 +96,7 @@ class GeometryMapItemWithLevel(GeometryMapItem):
         result['level'] = self.level.name
         return result
 
-    def tofile(self):
+    def tofile(self, form=None):
         result = super().tofile()
         result['level'] = self.level.name
         result.move_to_end('geometry')
@@ -200,7 +200,7 @@ class Escalator(GeometryMapItemWithLevel):
         result['direction'] = 'up' if self.direction else 'down'
         return result
 
-    def tofile(self):
+    def tofile(self, form=None):
         result = super().tofile()
         result['direction'] = self.direction
         return result
@@ -265,7 +265,7 @@ class Obstacle(GeometryMapItemWithLevel):
             result['crop_to_level'] = self.crop_to_level.name
         return result
 
-    def tofile(self):
+    def tofile(self, form=None):
         result = super().tofile()
         if self.crop_to_level is not None:
             result['crop_to_level'] = self.crop_to_level.name
@@ -308,7 +308,7 @@ class LineObstacle(GeometryMapItemWithLevel):
         result['width'] = float(self.width)
         return result
 
-    def tofile(self):
+    def tofile(self, form=None):
         result = super().tofile()
         result['width'] = float(self.width)
         return result
@@ -346,7 +346,7 @@ class LevelConnector(GeometryMapItem):
         result['levels'] = tuple(self.levels.all().order_by('name').values_list('name', flat=True))
         return result
 
-    def tofile(self):
+    def tofile(self, form=None):
         result = super().tofile()
         result['levels'] = sorted(self.levels.all().order_by('name').values_list('name', flat=True))
         result.move_to_end('geometry')
@@ -415,7 +415,7 @@ class ElevatorLevel(GeometryMapItemWithLevel):
 
         return kwargs
 
-    def tofile(self):
+    def tofile(self, form=None):
         result = super().tofile()
         result['elevator'] = self.elevator.name
         result['button'] = self.button

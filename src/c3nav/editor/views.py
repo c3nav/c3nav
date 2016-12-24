@@ -131,7 +131,7 @@ def edit_mapitem(request, mapitem_type, name=None):
                         mapitem.titles[language] = title
 
             if not settings.DIRECT_EDITING:
-                content = json_encode(mapitem.tofile())
+                content = json_encode(mapitem.tofile(form=form))
                 with translation.override('en'):
                     commit_msg = '%s %s: %s' % (commit_type, mapitemtype._meta.verbose_name, mapitem.title)
                 return render(request, 'editor/mapitem_success.html', {

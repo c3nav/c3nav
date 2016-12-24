@@ -49,7 +49,7 @@ class MapItem(models.Model, metaclass=MapItemMeta):
         kwargs = {}
         return kwargs
 
-    def tofile(self):
+    def tofile(self, form=None):
         return OrderedDict()
 
     def save(self, *args, **kwargs):

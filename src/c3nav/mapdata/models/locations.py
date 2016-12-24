@@ -64,8 +64,8 @@ class LocationModelMixin(Location):
 
         return kwargs
 
-    def tofile(self):
-        result = super().tofile()
+    def tofile(self, form=None):
+        result = super().tofile(form=form)
         result['titles'] = OrderedDict(sorted(self.titles.items()))
         result['can_search'] = self.can_search
         return result
@@ -140,7 +140,7 @@ class LocationGroup(LocationModelMixin, MapItem):
         result = super().get_geojson_properties()
         return result
 
-    def tofile(self):
+    def tofile(self, form=None):
         result = super().tofile()
         result['compiled_room'] = self.compiled_room
         return result
@@ -269,9 +269,12 @@ class AreaLocation(LocationModelMixin, GeometryMapItemWithLevel):
         result = super().get_geojson_properties()
         return result
 
-    def tofile(self):
-        result = super().tofile()
-        result['groups'] = sorted(self.groups.all().order_by('name').values_list('name', flat=True))
+    def tofile(self, form=None):
+        result = super().tofile(form=form)
+        if form is not None:
+            result['groups'] = sorted(group.name for group in form.cleaned_data['groups'])
+        else:
+            result['groups'] = sorted(self.groups.all().order_by('name').values_list('name', flat=True))
         result['location_type'] = self.location_type
         result['can_search'] = self.can_search
         result['can_describe'] = self.can_describe
