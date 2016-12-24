@@ -135,13 +135,7 @@ def user_detail(request, pk):
             token.user = user
             token.secret = AccessToken.create_secret()
 
-            author = None
-            try:
-                author = request.user.operator
-            except:
-                pass
-
-            token.author = author
+            token.author = request.user
             token.save()
 
             return redirect('access.user.token', user=user.id, token=token.id)
