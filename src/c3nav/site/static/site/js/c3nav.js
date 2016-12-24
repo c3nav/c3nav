@@ -30,6 +30,7 @@ c3nav = {
         });
         c3nav._typeahead_options = {
             source: c3nav._typeahead_locations,
+            limit: 7,
             display: function(item) {
                 return item.title;
             },
