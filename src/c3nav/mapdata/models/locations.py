@@ -69,12 +69,22 @@ class LocationModelMixin(Location):
             raise ValueError('can_describe has to be boolean!')
         kwargs['can_describe'] = can_describe
 
+        if 'color' not in data:
+            color = data['color']
+            if not isinstance(color, str):
+                raise ValueError('color has to be str!')
+            if color:
+                kwargs['color'] = color
+
         return kwargs
 
     def tofile(self, form=None):
         result = super().tofile(form=form)
         result['titles'] = OrderedDict(sorted(self.titles.items()))
         result['can_search'] = self.can_search
+        result['can_describe'] = self.can_describe
+        if self.color:
+            result['color'] = self.color
         return result
 
     @property
@@ -86,6 +96,8 @@ class LocationGroup(LocationModelMixin, MapItem):
     titles = JSONField()
     can_search = models.BooleanField(default=True, verbose_name=_('can be searched'))
     can_describe = models.BooleanField(default=True, verbose_name=_('can be used to describe a position'))
+    color = models.CharField(null=True, blank=True, max_length=16, verbose_name=_('background color'),
+                             help_text=_('if set, has to be a valid color for svg images'))
     compiled_room = models.BooleanField(default=False, verbose_name=_('is a compiled room'))
 
     class Meta:
@@ -176,6 +188,8 @@ class AreaLocation(LocationModelMixin, GeometryMapItemWithLevel):
 
     can_search = models.BooleanField(default=True, verbose_name=_('can be searched'))
     can_describe = models.BooleanField(default=True, verbose_name=_('can be used to describe a position'))
+    color = models.CharField(null=True, blank=True, max_length=16, verbose_name=_('background color'),
+                             help_text=_('if set, has to be a valid color for svg images'))
     routing_inclusion = models.CharField(max_length=20, choices=ROUTING_INCLUSIONS, default='default',
                                          verbose_name=_('Routing Inclusion'))
 
