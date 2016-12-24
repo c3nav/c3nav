@@ -15,7 +15,7 @@ def get_location(request, name):
         level = levels.get(match.group('level'))
         if level is None:
             return None
-        return PointLocation(level=level, x=int(match.group('x'))/100, y=int(match.group('y'))/100)
+        return PointLocation(level=level, x=int(match.group('x'))/100, y=int(match.group('y'))/100, request=request)
 
     if name.startswith('g:'):
         queryset = LocationGroup.objects.filter(Q(name=name[2:], can_search=True))
