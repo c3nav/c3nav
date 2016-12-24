@@ -226,7 +226,7 @@ class AreaLocation(LocationModelMixin, GeometryMapItemWithLevel):
 
     def get_subtitle(self):
         items = []
-        items += [group.title for group in self.groups.all()]
+        items += [group.title for group in self.groups.filter(can_describe=True)]
         items += [area.title for area in self.get_in_areas() if area.can_describe]
         return ', '.join(items)
 
