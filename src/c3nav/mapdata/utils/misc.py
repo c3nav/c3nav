@@ -35,7 +35,8 @@ def get_public_private_area(level):
     width, height = get_dimensions()
     everything = box(0, 0, width, height)
     needs_permission = [location.geometry
-                        for location in AreaLocation.objects.filter(routing_inclusion='needs_permission')]
+                        for location in AreaLocation.objects.filter(level=level,
+                                                                    routing_inclusion='needs_permission')]
     public_area = level.public_geometries.areas_and_doors.difference(cascaded_union(needs_permission))
     private_area = everything.difference(public_area)
     return public_area, private_area
