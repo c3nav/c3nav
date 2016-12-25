@@ -271,6 +271,9 @@ class GraphRoom():
         ctype_factors = np.ones((len(self.ctypes), 1, 1))*1000
         ctype_factors[ctypes, :, :] = 1
 
+        if not self.distances.size:
+            return RoomRouter(np.ones((0, 0), dtype=int), np.ones((0, 0), dtype=int))
+
         distances = np.amin(self.distances*ctype_factors, axis=0).astype(np.float32)
         factors = np.ones_like(distances, dtype=np.float16)
 
