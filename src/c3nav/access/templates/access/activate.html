@@ -10,5 +10,7 @@
         <div class="alert alert-success">
             <strong>{% trans 'Your access token was installed on your device!' %}</strong>
         </div>
+    {% else %}
+        {% include 'access/fragment_token.html' %}
     {% endif %}
 {% endblock %}

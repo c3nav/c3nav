@@ -75,10 +75,15 @@ def prove(request):
 
 def activate_token(request, pk, secret):
     token = get_object_or_404(AccessToken, expired=False, activated=False, id=pk, secret=secret)
-    request.c3nav_access = token
-    request.c3nav_new_access = True
+    if request.method == 'POST':
+        request.c3nav_access = token
+        request.c3nav_new_access = True
+        return render(request, 'access/activate.html', context={
+            'success': True,
+        })
+
     return render(request, 'access/activate.html', context={
-        'success': True,
+        'token': token,
     })
 
 
