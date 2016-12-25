@@ -12,7 +12,7 @@ fi
 ls /data/map
 
 if [ "$1" == "webworker" ]; then
-    until psql -h "postgres" -U "c3nav" -c '\l'; do
+    while ! nc postgres 5432; do
         >&2 echo "Postgres is unavailable! waiting…"
         sleep 1
     done
@@ -39,7 +39,7 @@ if [ "$1" == "webworker" ]; then
 fi
 
 if [ "$1" == "taskworker" ]; then
-    until psql -h "postgres" -U "c3nav" -c '\l'; do
+    while ! nc postgres 5432; do
         >&2 echo "Postgres is unavailable! waiting…"
         sleep 1
     done
