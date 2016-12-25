@@ -286,6 +286,9 @@ class Graph:
             if not len(orig_points_i) or not len(dest_points_i):
                 raise AlreadyThere()
 
+        #if set(orig_points_i) & set(dest_points_i):
+        #    raise AlreadyThere()
+
         add_orig_point = origin if isinstance(origin, PointLocation) else None
         add_dest_point = destination if isinstance(destination, PointLocation) else None
 
@@ -371,8 +374,8 @@ class Graph:
 
                 # noinspection PyTypeChecker
                 from_point, to_point = np.argwhere(shortest_paths == distance)[0]
-                from_point = orig_room_points[from_point]
-                to_point = dest_room_points[to_point]
+                from_point = orig_room_points[room][from_point]
+                to_point = dest_room_points[room][to_point]
                 best_route = RoomRouteSegment(room, routers, from_point, to_point).as_route()
 
         # get reachable room transfer points and their distance
