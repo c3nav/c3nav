@@ -12,6 +12,18 @@ fi
 ls /data/map
 
 if [ "$1" == "webworker" ]; then
+    until psql -h "postgres" -U "c3nav" -c '\l'; do
+        >&2 echo "Postgres is unavailable! waiting…"
+        sleep 1
+    done
+    >&2 echo "Postgres is available! continuing…"
+
+    while ! nc redis 6379; do
+        >&2 echo "Redis is unavailable - sleeping"
+        sleep 1
+    done
+    >&2 echo "Redis is available! continuing…"
+
     python manage.py migrate --noinput
     python manage.py loadmap -y
     mkdir -p /static.dist
@@ -27,6 +39,18 @@ if [ "$1" == "webworker" ]; then
 fi
 
 if [ "$1" == "taskworker" ]; then
+    until psql -h "postgres" -U "c3nav" -c '\l'; do
+        >&2 echo "Postgres is unavailable! waiting…"
+        sleep 1
+    done
+    >&2 echo "Postgres is available! continuing…"
+
+    while ! nc redis 6379; do
+        >&2 echo "Redis is unavailable - sleeping"
+        sleep 1
+    done
+    >&2 echo "Redis is available! continuing…"
+
     export C_FORCE_ROOT=True
     exec celery -A c3nav worker -l info
 fi
