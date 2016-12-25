@@ -277,6 +277,15 @@ class Graph:
         if not len(orig_points_i) or not len(dest_points_i):
             raise NoRouteFound()
 
+        if orig_distances is None and dest_distances is None:
+            if set(dest_points_i) & set(orig_points_i):
+                orig_points_i = tuple(set(orig_points_i) - set(dest_points_i))
+            if set(dest_points_i) & set(orig_points_i):
+                dest_points_i = tuple(set(dest_points_i) - set(orig_points_i))
+
+            if not len(orig_points_i) or not len(dest_points_i):
+                raise AlreadyThere()
+
         add_orig_point = origin if isinstance(origin, PointLocation) else None
         add_dest_point = destination if isinstance(destination, PointLocation) else None
 
@@ -306,7 +315,8 @@ class Graph:
         if common_points:
             # same location
             if not add_orig_point and not add_dest_point:
-                raise AlreadyThere()
+                #raise TypeError
+                pass#raise AlreadyThere()
 
             # points are connectable with only one via
             best_point = None
