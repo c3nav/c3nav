@@ -103,8 +103,6 @@ c3nav = {
             origin_select.find('.id_field').val(dest_id);
             origin_select.find('.locationselect-selected .location').html(dest_html);
         }
-
-
     },
     _locationselect_reset: function(e) {
         e.preventDefault();
