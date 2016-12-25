@@ -39,6 +39,12 @@ if [ "$1" == "loadmap" ]; then
     exec python manage.py loadmap -y
 fi
 
+if [ "$1" == "dumpmap" ]; then
+    echo ""
+    echo "### dumping map..."
+    exec python manage.py dumpmap -y
+fi
+
 if [ "$1" == "check" ]; then
     echo ""
     echo "### checking map..."
@@ -69,11 +75,6 @@ if [ "$1" == "build" ]; then
     echo ""
     echo "### building graph..."
     python manage.py buildgraph
-
-    echo ""
-    echo "### chowning /data/…"
-    USER_ID=${LOCAL_USER_ID:-9001}
-    exec chown -R $USER_ID $DATA_DIR
 fi
 
 if [ "$1" == "load_build" ]; then
@@ -89,10 +90,9 @@ if [ "$1" == "load_build" ]; then
     echo "### building graph..."
     python manage.py buildgraph
 
-
     echo ""
     echo "### chowning /data/…"
-    USER_ID=${LOCAL_USER_ID:-9001}
+    USER_ID=${LOCAL_USER_ID:0}
     exec chown -R $USER_ID $DATA_DIR
 fi
 
@@ -114,5 +114,5 @@ if [ "$1" == "all" ]; then
     exec python manage.py runserver 0.0.0.0:8000
 fi
 
-echo "Specify argument: webworker|taskworker|loadmap|checkmap|editor|build|all"
+echo "Specify argument: webworker|taskworker|loadmap|dumpmap|check|load_check|editor|build|load_build|all"
 exit 1
