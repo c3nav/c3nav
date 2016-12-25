@@ -50,6 +50,7 @@ c3nav = {
         $('.locationselect .close-map').click(c3nav._locationselect_close_map);
         $('.locationselect .level-selector a').click(c3nav._locationselect_click_level);
         $('.locationselect .map-container').on('click', 'img', c3nav._locationselect_click_image);
+        $('.location-group .swap').click(c3nav.swap_locations);
         $('#route-from-here').click(c3nav._click_route_from_here);
         $('#route-to-here').click(c3nav._click_route_to_here);
 
@@ -74,6 +75,37 @@ c3nav = {
         window.onpopstate = c3nav._onpopstate;
     },
 
+    swap_locations: function(e) {
+        e.preventDefault();
+        var origin_select = $('.origin-select');
+        var destination_select = $('.destination-select');
+        var has_orig = origin_select.is('.selected');
+        var has_dest = destination_select.is('.selected');
+
+        var orig_id = '',
+            orig_html = '',
+            dest_id = '',
+            dest_html = '';
+
+        if (has_orig) {
+            orig_id = origin_select.find('.id-field').val();
+            orig_html = origin_select.find('.locationselect-selected .location').html();
+        }
+        if (has_dest) {
+            dest_id = destination_select.find('.id-field').val();
+            dest_html = destination_select.find('.locationselect-selected .location').html();
+            destination_select.toggleClass('selected', has_orig);
+            destination_select.find('.id_field').val(orig_id);
+            destination_select.find('.locationselect-selected .location').html(orig_html);
+        }
+        if (has_orig) {
+            origin_select.toggleClass('selected', has_dest);
+            origin_select.find('.id_field').val(dest_id);
+            origin_select.find('.locationselect-selected .location').html(dest_html);
+        }
+
+
+    },
     _locationselect_reset: function(e) {
         e.preventDefault();
         var location_group = $(this).closest('.location-group');
