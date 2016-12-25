@@ -250,7 +250,7 @@ class Graph:
                 return (), None, None
             points, distances, ctypes = zip(*((point, distance, ctype) for point, (distance, ctype) in points.items()))
             distances = {points[i]: distance for i, distance in enumerate(distances)}
-            points = np.array(points)
+            points = np.array(points, dtype=np.int)
             return points, distances, ctypes
         try:
             if isinstance(location, AreaLocation):
@@ -258,7 +258,7 @@ class Graph:
                 return points, None, None
             elif isinstance(location, LocationGroup):
                 points = tuple(np.hstack(tuple(self.get_location_points(area, mode)[0]
-                                         for area in location.arealocations.all())))
+                                         for area in location.arealocations.all())).astype(np.int))
                 return points, None, None
         except KeyError:
             raise NotYetRoutable
