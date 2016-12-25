@@ -7,8 +7,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2016-12-23 22:32+0000\n"
-"PO-Revision-Date: 2016-12-24 02:59+0100\n"
+"POT-Creation-Date: 2016-12-25 10:49+0000\n"
+"PO-Revision-Date: 2016-12-25 11:51+0100\n"
 "Last-Translator: Nicole Klünder <nomoketo@nomoketo.de>\n"
 "Language-Team: \n"
 "Language: de\n"
@@ -117,11 +117,15 @@ msgstr "Zugangstokeninstanzen"
 msgid "Your access token was installed on your device!"
 msgstr "Der Zugangstoken wurde auf deinem Gerät aktiviert!"
 
-#: c3nav/access/templates/access/fragment_token.html:8
+#: c3nav/access/templates/access/fragment_token.html:9
+msgid "Link to this token / in this QR code"
+msgstr "Link zu diesem Token / in diesem QR Code"
+
+#: c3nav/access/templates/access/fragment_token.html:11
 msgid "Activate token on this device"
 msgstr "Token auf diesem Gerät aktivieren!"
 
-#: c3nav/access/templates/access/fragment_token.html:11
+#: c3nav/access/templates/access/fragment_token.html:14
 msgid ""
 "This link QR Code / Link only works once. If you want access on multiple "
 "devices, you need multiple tokens."
@@ -280,6 +284,14 @@ msgstr "Seite %(number)s von %(total)s"
 msgid "next"
 msgstr "nächste"
 
+#: c3nav/access/templates/access/users.html:57
+msgid "Add new access user"
+msgstr "Neuen Zugangsnutzer erstellen"
+
+#: c3nav/access/templates/access/users.html:63
+msgid "Add new User"
+msgstr "Neuen Nutzer erstellen"
+
 #: c3nav/editor/forms.py:94
 msgid "Please select at least two levels."
 msgstr "Bitte wähle mindestens zwei Etagen."
@@ -330,7 +342,7 @@ msgstr "Gebäude"
 msgid "Buildings"
 msgstr "Gebäude"
 
-#: c3nav/mapdata/models/geometry.py:154 c3nav/mapdata/models/locations.py:153
+#: c3nav/mapdata/models/geometry.py:154 c3nav/mapdata/models/locations.py:173
 msgid "Room"
 msgstr "Raum"
 
@@ -474,7 +486,7 @@ msgstr "Bodenhöhe"
 msgid "intermediate level"
 msgstr "Zwischenetage"
 
-#: c3nav/mapdata/models/level.py:21 c3nav/mapdata/models/locations.py:151
+#: c3nav/mapdata/models/level.py:21 c3nav/mapdata/models/locations.py:171
 msgid "Level"
 msgstr "Etage"
 
@@ -482,91 +494,99 @@ msgstr "Etage"
 msgid "Levels"
 msgstr "Etagen"
 
-#: c3nav/mapdata/models/locations.py:80 c3nav/mapdata/models/locations.py:169
+#: c3nav/mapdata/models/locations.py:97 c3nav/mapdata/models/locations.py:189
 msgid "can be searched"
 msgstr "zur Suche zugelassen"
 
-#: c3nav/mapdata/models/locations.py:81
-msgid "describes a compiled room"
+#: c3nav/mapdata/models/locations.py:98 c3nav/mapdata/models/locations.py:190
+msgid "can be used to describe a position"
+msgstr "can zum beschreiben einer Position genutzt werden"
+
+#: c3nav/mapdata/models/locations.py:99 c3nav/mapdata/models/locations.py:191
+msgid "background color"
+msgstr "Hintergrundfarbe"
+
+#: c3nav/mapdata/models/locations.py:100 c3nav/mapdata/models/locations.py:192
+msgid "if set, has to be a valid color for svg images"
+msgstr "muss, falls gesetzt, eine gültige SVG Farbe sein"
+
+#: c3nav/mapdata/models/locations.py:101
+msgid "is a compiled room"
 msgstr "zusammengesetzter Raum"
 
-#: c3nav/mapdata/models/locations.py:84
+#: c3nav/mapdata/models/locations.py:104
 msgid "Location Group"
 msgstr "Ortgruppe"
 
-#: c3nav/mapdata/models/locations.py:85 c3nav/mapdata/models/locations.py:167
+#: c3nav/mapdata/models/locations.py:105 c3nav/mapdata/models/locations.py:187
 msgid "Location Groups"
 msgstr "Ortgruppen"
 
-#: c3nav/mapdata/models/locations.py:121
+#: c3nav/mapdata/models/locations.py:141
 #, python-format
 msgid "%d location"
 msgid_plural "%d locations"
 msgstr[0] "%d Ort"
 msgstr[1] "%d Orte"
 
-#: c3nav/mapdata/models/locations.py:152
+#: c3nav/mapdata/models/locations.py:172
 msgid "General Area"
 msgstr "Allgemeiner Bereich"
 
-#: c3nav/mapdata/models/locations.py:154
+#: c3nav/mapdata/models/locations.py:174
 msgid "Room Segment"
 msgstr "Raumteil"
 
-#: c3nav/mapdata/models/locations.py:155
+#: c3nav/mapdata/models/locations.py:175
 msgid "Point of Interest"
 msgstr "Ort von Interesse"
 
-#: c3nav/mapdata/models/locations.py:159
+#: c3nav/mapdata/models/locations.py:179
 msgid "Default, include if map package is unlocked"
 msgstr "Standard: einbeziehen wenn das Kartenpaket zugänglich ist"
 
-#: c3nav/mapdata/models/locations.py:160
+#: c3nav/mapdata/models/locations.py:180
 msgid "Included, but allow excluding"
 msgstr "Einbeziehen, aber Vermeiden erlauben"
 
-#: c3nav/mapdata/models/locations.py:161
+#: c3nav/mapdata/models/locations.py:181
 msgid "Avoided, but allow including"
 msgstr "Vermeiden, aber Einbeziehen erlauben"
 
-#: c3nav/mapdata/models/locations.py:162
+#: c3nav/mapdata/models/locations.py:182
 msgid "Excluded, needs permission to include"
 msgstr "Vermeiden, Erlaubnis zum Einbeziehen notwendig"
 
-#: c3nav/mapdata/models/locations.py:165
+#: c3nav/mapdata/models/locations.py:185
 msgid "Location Type"
 msgstr "Orttyp"
 
-#: c3nav/mapdata/models/locations.py:170
-msgid "can be used to describe a position"
-msgstr "can zum beschreiben einer Position genutzt werden"
-
-#: c3nav/mapdata/models/locations.py:172
+#: c3nav/mapdata/models/locations.py:194
 msgid "Routing Inclusion"
 msgstr "Routeneinbeziehung"
 
-#: c3nav/mapdata/models/locations.py:177
+#: c3nav/mapdata/models/locations.py:199
 msgid "Area Location"
 msgstr "Ortbereich"
 
-#: c3nav/mapdata/models/locations.py:178
+#: c3nav/mapdata/models/locations.py:200
 msgid "Area Locations"
 msgstr "Ortbereiche"
 
-#: c3nav/mapdata/models/locations.py:306
+#: c3nav/mapdata/models/locations.py:318
 msgid "Unreachable Coordinates"
 msgstr "Unerreichbare Koordinaten"
 
-#: c3nav/mapdata/models/locations.py:312
+#: c3nav/mapdata/models/locations.py:324
 msgid "Coordinates"
 msgstr "Koordinaten"
 
-#: c3nav/mapdata/models/locations.py:316
+#: c3nav/mapdata/models/locations.py:328
 #, python-format
 msgid "Coordinates in %(location)s"
 msgstr "Koordinaten innerhalb %(location)s"
 
-#: c3nav/mapdata/models/locations.py:318
+#: c3nav/mapdata/models/locations.py:330
 #, python-format
 msgid "Coordinates near %(location)s"
 msgstr "Koordinaten in der Nähe von %(location)s"
@@ -623,7 +643,7 @@ msgstr "Vorlage"
 msgid "Sources"
 msgstr "Vorlagen"
 
-#: c3nav/routing/route.py:66 c3nav/routing/route.py:68
+#: c3nav/routing/route.py:64 c3nav/routing/route.py:66
 msgid "Unknown Location"
 msgstr "Unbekannter Ort"
 
@@ -727,36 +747,42 @@ msgstr[1] ""
 "            %(count)s Bereiche freigeschaltet\n"
 "            "
 
-#: c3nav/site/templates/site/fragment_location.html:11
+#: c3nav/site/templates/site/fragment_location.html:8
+#: c3nav/site/templates/site/fragment_location.html:10
+#: c3nav/site/templates/site/fragment_location.html:13
+msgid "swap"
+msgstr "vertauschen"
+
+#: c3nav/site/templates/site/fragment_location.html:23
 msgid "Search any Location…"
 msgstr "Tipp einen beliebigen Ort ein…"
 
-#: c3nav/site/templates/site/fragment_location.html:37
+#: c3nav/site/templates/site/fragment_location.html:49
 msgid "Javascript is disabled. Please scroll in this direction ⇘"
 msgstr "Javascript ist deaktiviert. Bitte in diese Richtung scrollen ⇘"
 
-#: c3nav/site/templates/site/fragment_location.html:45
+#: c3nav/site/templates/site/fragment_location.html:57
 #: c3nav/site/templates/site/main.html:105
 msgid "close"
 msgstr "schließen"
 
-#: c3nav/site/templates/site/fragment_location.html:47
+#: c3nav/site/templates/site/fragment_location.html:59
 msgid "Click or tap the desired location on the map."
 msgstr "Klick oder berühre den gewünschte Ort auf der Karte"
 
-#: c3nav/site/templates/site/fragment_location.html:62
+#: c3nav/site/templates/site/fragment_location.html:74
 msgid "No location matched your search query."
 msgstr "Kein Ort passt zu deiner Suchanfrage."
 
-#: c3nav/site/templates/site/fragment_location.html:68
+#: c3nav/site/templates/site/fragment_location.html:80
 msgid "Route to here"
 msgstr "Route hierhin"
 
-#: c3nav/site/templates/site/fragment_location.html:71
+#: c3nav/site/templates/site/fragment_location.html:83
 msgid "Route from here"
 msgstr "Route von hier aus"
 
-#: c3nav/site/templates/site/fragment_location.html:77
+#: c3nav/site/templates/site/fragment_location.html:89
 msgid "Search"
 msgstr "Suchen"
 
