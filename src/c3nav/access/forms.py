@@ -21,7 +21,8 @@ def get_permissions_field(request):
     elif has_operator:
         can_award = request.user.operator.can_award_permissions.split(';')
         can_full = ':full' in can_award
-        locations = locations.filter(name__in=can_award)
+        if not can_full:
+            locations = locations.filter(name__in=can_award)
     else:
         locations = []
 
