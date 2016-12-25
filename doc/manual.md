@@ -111,7 +111,7 @@ FYI: You can find the renderings in the following folder: `data/render/`
 python3 manage.py runserver
 ```
 
-You can now reach your c3nav instance at [http://localhost:8000/]. The editor can be found at [http://localhost:8000/editor/]. **Never use this server for production purposes!**
+You can now reach your c3nav instance at [localhost:8000/](http://localhost:8000/). The editor can be found at [localhost:8000/editor/](http://localhost:8000/editor/). **Never use this server for production purposes!**
 
 ## Other things you can do now:
 

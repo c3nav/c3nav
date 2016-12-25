@@ -58,7 +58,7 @@ docker run --rm --name c3nav-33c3 -v `pwd`/33c3-data:/data c3nav/c3nav build
 
 ## run c3nav
 
-This will run a development server that you can reach at [http://localhost:8042/]. The editor can be found at [http://localhost:8042/editor/]. **Never use this server for production purposes!**
+This will run a development server that you can reach at [localhost:8042/](http://localhost:8042/). The editor can be found at [localhost:8042/editor/](http://localhost:8042/editor/). **Never use this server for production purposes!**
 
 ```
 docker run --rm --name c3nav-33c3 -p 8042:8000 -v `pwd`/33c3-data:/data c3nav/c3nav runlocal
@@ -71,5 +71,3 @@ After changing stuff with the editor, you may want to export the changes into th
 ```
 docker run --rm --name c3nav-33c3 -v `pwd`/33c3-data:/data c3nav/c3nav dumpmap
 ```
-
-This will dump all map data the map data repos you cloned in step 2.
