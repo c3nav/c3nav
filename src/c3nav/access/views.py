@@ -9,7 +9,7 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 
 from c3nav.access.apply import get_nonpublic_packages
-from c3nav.access.forms import AccessTokenForm
+from c3nav.access.forms import AccessTokenForm, AccessUserForm
 from c3nav.access.models import AccessToken, AccessUser
 from c3nav.editor.hosters import get_hoster_for_package
 
@@ -111,8 +111,20 @@ def user_list(request, page=1):
     except EmptyPage:
         return redirect('access.users')
 
+    if request.method == 'POST':
+        new_user_form = AccessUserForm(data=request.POST)
+        if new_user_form.is_valid():
+            user = new_user_form.instance
+            user.author = request.user
+            user.save()
+
+            return redirect('access.user', pk=user.id)
+    else:
+        new_user_form = AccessUserForm()
+
     return render(request, 'access/users.html', {
         'users': users,
+        'new_user_form': new_user_form,
     })
 
 

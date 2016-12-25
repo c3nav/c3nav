@@ -49,4 +49,22 @@
             <li class="next disabled"><a href="#">{% trans 'next' %} »</a></li>
         {% endif %}
     </ul>
+
+    <form method="POST">
+
+    <div class="panel panel-default">
+        <div class="panel-body">
+            <h4>{% trans 'Add new access user' %}</h4>
+            <div class="row">
+                {% csrf_token %}
+                {% bootstrap_form new_user_form form_group_class='form-group col-md-4' %}
+                <div class="form-group col-md-4">
+                    <label class="control-label">&nbsp;</label>
+                    <button type="submit" name="create" class="btn btn-primary btn-block btn-sm">{% trans 'Add new User' %}</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    </form>
 {% endblock %}
