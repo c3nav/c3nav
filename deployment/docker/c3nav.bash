@@ -18,6 +18,8 @@ if [ "$1" == "webworker" ]; then
     done
     >&2 echo "Postgres is available! continuing…"
 
+    sleep 2
+
     while ! nc redis 6379; do
         >&2 echo "Redis is unavailable - sleeping"
         sleep 1
@@ -44,6 +46,8 @@ if [ "$1" == "taskworker" ]; then
         sleep 1
     done
     >&2 echo "Postgres is available! continuing…"
+
+    sleep 2
 
     while ! nc redis 6379; do
         >&2 echo "Redis is unavailable - sleeping"
