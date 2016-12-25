@@ -61,7 +61,7 @@ if [ "$1" == "load_check" ]; then
     exec python manage.py checkmap
 fi
 
-if [ "$1" == "editor" ]; then
+if [ "$1" == "runlocal" ]; then
     echo ""
     echo "### starting editor..."
     exec python manage.py runserver 0.0.0.0:8000
@@ -114,5 +114,5 @@ if [ "$1" == "all" ]; then
     exec python manage.py runserver 0.0.0.0:8000
 fi
 
-echo "Specify argument: webworker|taskworker|loadmap|dumpmap|check|load_check|editor|build|load_build|all"
+echo "Specify argument: webworker|taskworker|loadmap|dumpmap|check|load_check|runlocal|build|load_build|all"
 exit 1
