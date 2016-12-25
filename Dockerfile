@@ -1,6 +1,6 @@
 FROM python:slim
 
-RUN apt-get update && apt-get install -y git build-essential \
+RUN apt-get update && apt-get install -y git build-essential netcat-openbsd \
     libpq-dev libmysqlclient-dev libmemcached-dev libgeos-dev gettext \
     librsvg2-bin --no-install-recommends \
  && apt-get clean \
