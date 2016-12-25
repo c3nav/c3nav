@@ -24,7 +24,7 @@ Create a folder for all your c3nav stuff and clone the c3nav repository.
 ```
 mkdir c3nav
 cd c3nav
-git clone git@github.com:c3nav/c3nav.git
+git clone https://github.com/c3nav/c3nav.git
 cd c3nav
 ```
 
@@ -45,9 +45,15 @@ Always run the latter command before executing anything from c3nav.
 ```
 cd src/
 pip3 install -U pip wheel setuptools
-pip3 install -r requirements.txt -r requirements/mysql.txt -r requirements/postgres.txt \
-	     -r requirements/memcached.txt -r requirements/redis.txt gunicorn
+pip3 install -r requirements.txt
 ```
+
+*Skip to the next step if you just want a development setup or use the editor.*
+
+Wanna use redis, mysql, postgres, memcached or deploy c3nav in a public place?
+
+pip3 install -r requirements/mysql.txt -r requirements/postgres.txt \
+             -r requirements/memcached.txt -r requirements/redis.txt gunicorn
 
 ### Add Configuration
 
@@ -61,7 +67,13 @@ This will create the needed database tables (and a temporary database, if you di
 python3 manage.py migrate
 ```
 
-This also creates the data folder for c3nav.
+### Build the translations
+
+You can skip this step if English is enough for you.
+
+```
+python3 manage.py compilemessages
+```
 
 ### Clone the map packages
 
@@ -69,8 +81,8 @@ For the 33c3, this would be c3nav-cch and c3nav-33c3:
 
 ```
 cd data/maps/
-git clone git@github.com:c3nav/c3nav-cch.git
-git clone git@github.com:c3nav/c3nav-33c3.git
+git clone https://github.com/c3nav/c3nav-cch.git
+git clone https://github.com/c3nav/c3nav-33c3.git
 ```
 
 ### Load the map packages
@@ -99,7 +111,7 @@ FYI: You can find the renderings in the following folder: `data/render/`
 python3 manage.py runserver
 ```
 
-You can now reach your c3nav instance at http://localhost:8000/. The editor can be found at http://localhost:8000/editor/. **Never use this server for production purposes!**
+You can now reach your c3nav instance at [http://localhost:8000/]. The editor can be found at [http://localhost:8000/editor/]. **Never use this server for production purposes!**
 
 ## Other things you can do now:
 

@@ -1,44 +1,75 @@
-# Install c3nav using docker
+# Set up c3nav using docker
 
-The easiest way to try out install c3nav. Here's how to do it. This is just a simple temporary setup. There will be more information soon about setting up a production setup with docker.
+The easiest way to set up c3nav. Here's how to do it. This is just a simple temporary setup. There will be more information soon about setting up a production setup with docker.
 
-After installing docker, create a folder for all your c3nav stuff, clone the c3nav repository and build the docker image:
+## Get the docker container
+
+aka. how to get the latest version.
+
+### from Dockerhub
+
+the images on dockerhub should are automatically built by the c3nav gitlab and should always be pretty much up to date
 
 ```
-mkdir c3nav
-cd c3nav
-git clone git@github.com:c3nav/c3nav.git
+docker pull c3nav/c3nav
+```
+
+### from source
+
+if you want to make _sure_ to get the newest version.
+
+```
+git clone https://github.com/c3nav/c3nav.git
 cd c3nav
 docker build -t c3nav .
-```
-
-Select the map packages you want to use. For the 33c3, this would be c3nav-cch and c3nav-33c3:
-
-```
 cd ..
-mkdir maps
-cd maps
+```
+
+Keep in mind that you will have to replace `c3nav/c3nav` with `c3nav` in all `docker run` commands below.
+
+## Create data and get maps
+
+Create a data directory somewhere and clone the mappackages you want to use into it.
+
+```
+# example for the 33c3
+mkdir -p 33c3-data/map/
+cd 33c3-data/map/
 git clone git@github.com:c3nav/c3nav-cch.git
 git clone git@github.com:c3nav/c3nav-33c3.git
+cd ../../
 ```
 
-You can now start c3nav by starting the docker container. Don't forget to change the package paths (everything before the colon) according to your setup. You can change the name of the container to your liking.
+## load map data
+
+This will read all the map data into a temporary SQLite database.
 
 ```
-docker run --rm --name c3nav-33c3 -p 8345:8000 \
-    -v ~/c3nav/maps/c3nav-cch:/data/map/c3nav-cch \
-    -v ~/c3nav/maps/c3nav-33c3:/data/map/c3nav-33c3 \
-    c3nav all
+docker run --rm --name c3nav-33c3 -v `pwd`/33c3-data:/data c3nav/c3nav loadmap
 ```
 
-This will read all the map data into a temporary SQLite database, render the map, build the graph and start a development server at http://localhost:8345/.
+## render map and build graph
 
-To add a custom file (to use a proper database, memcached, celery and so on, you can!) Create an empty folder with your c3nav.cfg file in it and it as an additional volume to your docker command. : `-v ~/c3nav/33c3-config:/etc/pretix`
+This will take a while. You can skip this if you dont't want routing but just want to use the editor.
 
-Other options (instead of `all`) are:
+```
+docker run --rm --name c3nav-33c3 -v `pwd`/33c3-data:/data c3nav/c3nav build
+```
 
-- `editor`: just start a development server without rendering the map and building the graph first. this is sufficient to use the editor.
-- `checkmap`: check if the package files are valid and formatted/indented currectly and optionally reindent them correctly (do this if you altered map package files manually).
-- `build`: render the map and build the graph
+## run c3nav
 
-Every command will read all map packages into the database and overwrite all changes. There is currently no way to export the changes made with the editor into the package folders (with docker) yet, but there will be soon. 
+This will run a development server that you can reach at [http://localhost:8042/]. The editor can be found at [http://localhost:8042/editor/]. **Never use this server for production purposes!**
+
+```
+docker run --rm --name c3nav-33c3 -p 8042:8000 -v `pwd`/33c3-data:/data c3nav/c3nav runlocal
+```
+
+## after editing map data: save the map
+
+After changing stuff with the editor, you may want to export the changes into the map package folders to submit a pull request. You can do so by running:
+
+```
+docker run --rm --name c3nav-33c3 -v `pwd`/33c3-data:/data c3nav/c3nav dumpmap
+```
+
+This will dump all map data the map data repos you cloned in step 2.
