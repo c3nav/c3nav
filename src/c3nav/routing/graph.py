@@ -315,8 +315,7 @@ class Graph:
         if common_points:
             # same location
             if not add_orig_point and not add_dest_point:
-                #raise TypeError
-                pass#raise AlreadyThere()
+                raise AlreadyThere()
 
             # points are connectable with only one via
             best_point = None
