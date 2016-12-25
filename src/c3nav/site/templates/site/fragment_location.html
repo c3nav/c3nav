@@ -2,6 +2,18 @@
 <div class="col-md-{% if name == 'location' %}12{% else %}6{% endif %} location-group {{ name }}-select{% if location %} selected{% endif %}{% if active_field == name and map_level %} map{% endif %}">
     <div class="form-group{% if search == name and not search_results %} has-error{% endif %}" data-name="{{ name }}">
         <label for="{{ name }}_input">{{ heading }}</label>
+        {% if name == 'destination' %}
+            {% if origin %}
+                {% if destination %}
+                    <a class="swap pull-right" href="{% url 'site.route' origin=destination.location_id destination=origin.location_id %}">{% trans 'swap' %}</a>
+                {% else %}
+                    <a class="swap pull-right" href="{% url 'site.destination' destination=origin.location_id %}">{% trans 'swap' %}</a>
+                {% endif %}
+            {% elif destination %}
+                <a class="swap pull-right" href="{% url 'site.origin' destination=destination.location_id %}">{% trans 'swap' %}</a>
+            {% endif %}
+        {% endif %}
+
         <div class="locationselect">
             <div class="locationselect-input">
                 {% if search == name and search_results %}
