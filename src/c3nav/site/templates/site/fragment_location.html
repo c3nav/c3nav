@@ -5,13 +5,14 @@
         {% if name == 'destination' %}
             {% if origin %}
                 {% if destination %}
-                    <a class="swap pull-right" href="{% url 'site.route' origin=destination.location_id destination=origin.location_id %}">{% trans 'swap' %}</a>
+                    {% url 'site.route' origin=destination.location_id destination=origin.location_id as swap_url %}
                 {% else %}
-                    <a class="swap pull-right" href="{% url 'site.destination' destination=origin.location_id %}">{% trans 'swap' %}</a>
+                    {% url 'site.destination' destination=origin.location_id as swap_url %}
                 {% endif %}
             {% elif destination %}
-                <a class="swap pull-right" href="{% url 'site.origin' destination=destination.location_id %}">{% trans 'swap' %}</a>
+                {% url 'site.origin' destination=destination.location_id as swap_url %}
             {% endif %}
+            <a class="swap pull-right" href="{{ swap_url }}">{% trans 'swap' %}</a>
         {% endif %}
 
         <div class="locationselect">
