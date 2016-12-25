@@ -1,7 +1,7 @@
 from django.forms import ModelForm, MultipleChoiceField
 from django.utils.translation import ugettext_lazy as _
 
-from c3nav.access.models import AccessToken
+from c3nav.access.models import AccessToken, AccessUser
 from c3nav.mapdata.models import AreaLocation
 
 
@@ -47,3 +47,9 @@ class AccessTokenForm(ModelForm):
             data = [':full']
         data = ';'.join(data)
         return data
+
+
+class AccessUserForm(ModelForm):
+    class Meta:
+        model = AccessUser
+        fields = ['user_url', 'description']

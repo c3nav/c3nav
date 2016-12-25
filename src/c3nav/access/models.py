@@ -31,7 +31,7 @@ class AccessOperator(models.Model):
 class AccessUser(models.Model):
     user_url = models.CharField(_('access name'), unique=True, max_length=200,
                                 help_text=_('Usually an URL to a profile somewhere'))
-    author = models.ForeignKey(AccessOperator, on_delete=models.PROTECT, null=True, blank=True,
+    author = models.ForeignKey(User, on_delete=models.PROTECT, null=True, blank=True,
                                verbose_name=_('creator'))
     description = models.TextField(_('description'), max_length=200, blank=True)
     creation_date = models.DateTimeField(_('creation date'), auto_now_add=True)
