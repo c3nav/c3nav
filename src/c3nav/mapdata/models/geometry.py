@@ -383,7 +383,8 @@ class ElevatorLevel(GeometryMapItemWithLevel):
     """
     elevator = models.ForeignKey(Elevator, on_delete=models.PROTECT)
     button = models.SlugField(_('Button label'), max_length=10)
-    override_altitude = models.DecimalField(_('override level altitude'), null=True, max_digits=6, decimal_places=2)
+    override_altitude = models.DecimalField(_('override level altitude'),
+                                            blank=True, null=True, max_digits=6, decimal_places=2)
 
     geomtype = 'polygon'
 
