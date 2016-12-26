@@ -56,12 +56,24 @@ This will take a while. You can skip this if you dont't want routing but just wa
 docker run --rm --name c3nav-33c3 -v `pwd`/33c3-data:/data c3nav/c3nav build
 ```
 
+## add django configuration file
+You need a configuration file in the docker container for django to run correctly.
+Create the file `33c3-data/c3nav.cfg` with the following content
+
+``` 
+[c3nav]
+public_packages=de.c3nav.cch,de.c3nav.33c3
+[django]
+hosts=*
+
+``` 
+
 ## run c3nav
 
 This will run a development server that you can reach at [localhost:8042/](http://localhost:8042/). The editor can be found at [localhost:8042/editor/](http://localhost:8042/editor/). **Never use this server for production purposes!**
 
 ```
-docker run --rm --name c3nav-33c3 -p 8042:8000 -v `pwd`/33c3-data:/data c3nav/c3nav runlocal
+docker run --rm --name c3nav-33c3 -p 8042:8000 -v `pwd`/33c3-data:/data -v `pwd`/33c3-data/c3nav.cfg:/etc/c3nav/c3nav.cfg  c3nav/c3nav runlocal
 ```
 
 ## after editing map data: save the map
