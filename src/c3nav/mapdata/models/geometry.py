@@ -168,6 +168,18 @@ class Outside(GeometryMapItemWithLevel):
         default_related_name = 'outsides'
 
 
+class StuffedArea(GeometryMapItemWithLevel):
+    """
+    A slow area with many tables or similar. Avoid it from routing by slowing it a bit down
+    """
+    geomtype = 'polygon'
+
+    class Meta:
+        verbose_name = _('Stuffed Area')
+        verbose_name_plural = _('Stuffed Areas')
+        default_related_name = 'stuffedareas'
+
+
 class Escalator(GeometryMapItemWithLevel):
     """
     An escalator area

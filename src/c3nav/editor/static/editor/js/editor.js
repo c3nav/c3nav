@@ -285,7 +285,8 @@ editor = {
         'arealocation': '#0099FF',
         'escalator': '#FF9900',
         'escalatorslope': '#DD7700',
-        'oneway': '#FF00FF'
+        'oneway': '#FF00FF',
+        'stuffedarea': '#D9A3A3'
     },
     _line_draw_geometry_style: function(style) {
         style.stroke = true;
