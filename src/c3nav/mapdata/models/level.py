@@ -263,3 +263,7 @@ class LevelGeometries():
         for stair in assert_multilinestring(self.stairs):
             left.append(stair.parallel_offset(0.15, 'right', join_style=JOIN_STYLE.mitre))
         return cascaded_union(left).buffer(0.20, join_style=JOIN_STYLE.mitre, cap_style=CAP_STYLE.flat)
+
+    @cached_property
+    def stuffedareas(self):
+        return cascaded_union([stuffedarea.geometry for stuffedarea in self.query('stuffedareas')])
