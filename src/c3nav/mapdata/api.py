@@ -1,15 +1,18 @@
+import hashlib
+import json
 import mimetypes
 import os
 from collections import OrderedDict
 
 from django.conf import settings
 from django.core.files import File
-from django.http import Http404, HttpResponse
+from django.http import Http404, HttpResponse, HttpResponseNotModified
 from rest_framework.decorators import detail_route
 from rest_framework.response import Response
 from rest_framework.viewsets import ReadOnlyModelViewSet, ViewSet
 
 from c3nav.access.apply import filter_arealocations_by_access, filter_queryset_by_access, get_unlocked_packages_names
+from c3nav.mapdata.lastupdate import get_last_mapdata_update
 from c3nav.mapdata.models import GEOMETRY_MAPITEM_TYPES, AreaLocation, Level, LocationGroup, Package, Source
 from c3nav.mapdata.models.geometry import DirectedLineGeometryMapItemWithLevel
 from c3nav.mapdata.search import get_location
@@ -172,11 +175,25 @@ class LocationViewSet(ViewSet):
         return queryset.filter(can_search=True).order_by('name')
 
     def list(self, request, **kwargs):
+        etag = hashlib.sha256(json.dumps({
+            'full_access': request.c3nav_full_access,
+            'access_list': request.c3nav_access_list,
+            'last_update': get_last_mapdata_update().isoformat()
+        }))
+
+        if_none_match = request.META.get('HTTP_IF_NONE_MATCH')
+        if if_none_match:
+            if if_none_match == etag:
+                return HttpResponseNotModified()
+
         locations = []
         locations += list(filter_queryset_by_access(request, self._filter(LocationGroup.objects.all())))
         locations += sorted(filter_arealocations_by_access(request, self._filter(AreaLocation.objects.all())),
                             key=AreaLocation.get_sort_key, reverse=True)
-        return Response([location.to_location_json() for location in locations])
+
+        response = Response([location.to_location_json() for location in locations])
+        response['ETag'] = etag
+        response['Cache-Control'] = 'no-cache'
 
     def retrieve(self, request, name=None, **kwargs):
         location = get_location(request, name)
