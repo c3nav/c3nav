@@ -319,7 +319,7 @@ class GraphRoom():
         to_point = np.array(to_point)
         for area in self.areas:
             if area.contains_point(from_point) and area.contains_point(to_point):
-                there, back = area.check_connection(from_point, to_point)
+                there, back, distance = area.check_connection(from_point, to_point)
                 if there is not None:
                     return there
         return None
