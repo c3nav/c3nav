@@ -2,7 +2,7 @@
 {% load i18n %}
 {% load route_render %}
 
-<h2>{% trans 'Your Route' %}</h2>
+<h2>{% trans 'Your Route' %} <small>{{ route.distance | stringformat:".1f" }}m</small></h2>
 {% if route.ctypes_exception %}
 <div class="alert alert-warning">
     <strong>{% trans 'This Route contains way types you wanted to avoid.' %}</strong>
