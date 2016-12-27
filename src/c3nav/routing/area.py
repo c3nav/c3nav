@@ -31,20 +31,21 @@ class GraphArea():
     def build_connections(self):
         for point1, point2 in combinations(self._built_points, 2):
 
-            there, back = self.check_connection(point1.xy, point2.xy)
+            there, back, distance = self.check_connection(point1.xy, point2.xy)
 
             if there is not None:
-                point1.connect_to(point2, ctype=there)
+                point1.connect_to(point2, distance=distance, ctype=there)
 
             if back is not None:
-                point2.connect_to(point1, ctype=back)
+                point2.connect_to(point1, distance=distance, ctype=back)
 
     def check_connection(self, point1, point2):
         path = Path(np.vstack((point1, point2)))
+        distance = abs(np.linalg.norm(point1 - point2))
 
         # lies within room
         if self.mpl_clear.intersects_path(path):
-            return None, None
+            return None, None, None
 
         # stair checker
         angle = coord_angle(point1, point2)
@@ -59,10 +60,10 @@ class GraphArea():
             if stair_direction_up is None:
                 stair_direction_up = new_direction_up
             elif stair_direction_up != new_direction_up:
-                return None, None
+                return None, None, None
 
             if not (40 < abs(angle_diff) < 150):
-                return None, None
+                return None, None, None
 
         # escalator checker
         angle = coord_angle(point1, point2)
@@ -74,7 +75,7 @@ class GraphArea():
 
             if escalator_direction_up is not None:
                 # only one escalator per connection
-                return None, None
+                return None, None, None
 
             angle_diff = ((escalator.angle - angle + 180) % 360) - 180
 
@@ -85,14 +86,15 @@ class GraphArea():
             return (
                 ('stairs_up' if stair_direction_up else 'stairs_down'),
                 ('stairs_down' if stair_direction_up else 'stairs_up'),
+                distance,
             )
         elif escalator_direction_up is not None:
             if not escalator_swap_direction:
-                return ('escalator_up' if escalator_direction_up else 'escalator_down'), None
+                return ('escalator_up' if escalator_direction_up else 'escalator_down'), None, distance
             else:
-                return None, ('escalator_down' if escalator_direction_up else 'escalator_up')
+                return None, ('escalator_down' if escalator_direction_up else 'escalator_up'), distance
 
-        return '', ''
+        return '', '', distance
 
     def add_point(self, point):
         if not self.mpl_clear.contains_point(point.xy):
@@ -115,9 +117,8 @@ class GraphArea():
         for point_i in self.points:
             other_point = self.graph.points[point_i]
 
-            there, back = self.check_connection(point, other_point.xy)
+            there, back, distance = self.check_connection(point, other_point.xy)
             ctype = there if mode == 'orig' else back
             if ctype is not None:
-                distance = abs(np.linalg.norm(point - other_point.xy))
                 connections[point_i] = (distance, ctype)
         return connections
