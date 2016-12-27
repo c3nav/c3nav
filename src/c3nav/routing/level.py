@@ -69,6 +69,7 @@ class GraphLevel():
         self.create_elevatorlevels()
 
         self.collect_arealocations()
+        self.collect_stuffedareas()
 
         self._built_points = sum((room._built_points for room in self.rooms), [])
         self._built_points.extend(self._built_room_transfer_points)
@@ -155,6 +156,15 @@ class GraphLevel():
 
                     for interior in polygon.interiors:
                         room._add_ring(interior, want_left=False)
+
+    def collect_stuffedareas(self):
+        self._built_stuffedareas = self.level.geometries.stuffedareas
+        for polygon in assert_multipolygon(self._built_stuffedareas.buffer(0.05, join_style=JOIN_STYLE.mitre)):
+            for room in self.rooms:
+                room._add_ring(polygon.exterior, want_left=True)
+
+                for interior in polygon.interiors:
+                    room._add_ring(interior, want_left=False)
 
     def create_doors(self):
         doors = self.level.geometries.doors

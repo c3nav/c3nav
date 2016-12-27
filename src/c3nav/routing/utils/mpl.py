@@ -82,7 +82,7 @@ def shapely_to_mpl(geometry):
     """
     if isinstance(geometry, Polygon):
         return MplPolygonPath(geometry)
-    elif isinstance(geometry, MultiPolygon):
+    elif isinstance(geometry, MultiPolygon) or geometry.is_empty:
         return MplMultipolygonPath(geometry)
     raise TypeError
 
