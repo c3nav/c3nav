@@ -1,5 +1,6 @@
 from calendar import timegm
 from collections import OrderedDict
+from django.db.models import Q
 from functools import wraps
 
 from django.core.cache import cache
@@ -98,3 +99,13 @@ def get_levels_cached():
 def get_packages_cached():
     from c3nav.mapdata.models import Package
     return {package.name: package for package in Package.objects.all()}
+
+
+@cache_result('c3nav__mapdata__bssids')
+def get_bssid_areas_cached():
+    from c3nav.mapdata.models import AreaLocation
+    bssids = {}
+    for area in AreaLocation.objects.filter(~Q(bssids='')):
+        for bssid in area.bssids.split('\n'):
+            bssids[bssid] = area.name
+    return bssids

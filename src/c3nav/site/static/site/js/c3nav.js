@@ -8,8 +8,8 @@ c3nav = {
         c3nav.visible_areas = c3nav.main_view.attr('data-visible-areas').split(';');
         c3nav.qr_modal = $('#qr_modal');
 
-        c3nav.mobileclient = (typeof mobileclient !== "undefined")
-        if (c3nav.mobileclient) {
+        c3nav.mobileclient = (typeof mobileclient !== "undefined");
+        if (c3nav.mobileclient || true) {
             $('body').removeClass('nomobileclient');
         }
 

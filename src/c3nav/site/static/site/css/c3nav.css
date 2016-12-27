@@ -46,6 +46,9 @@ body, .btn {
 .locationselect .icons .map {
     background-image:url('../img/icons/map.svg');
 }
+.locationselect .icons .locate {
+    background-image:url('../img/icons/locate.svg');
+}
 
 .location-group .only-if-selected {
     display:none;
