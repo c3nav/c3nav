@@ -179,7 +179,7 @@ class LocationViewSet(ViewSet):
             'full_access': request.c3nav_full_access,
             'access_list': request.c3nav_access_list,
             'last_update': get_last_mapdata_update().isoformat()
-        }))
+        }).encode()).hexdigest()
 
         if_none_match = request.META.get('HTTP_IF_NONE_MATCH')
         if if_none_match:
@@ -194,6 +194,7 @@ class LocationViewSet(ViewSet):
         response = Response([location.to_location_json() for location in locations])
         response['ETag'] = etag
         response['Cache-Control'] = 'no-cache'
+        return response
 
     def retrieve(self, request, name=None, **kwargs):
         location = get_location(request, name)
