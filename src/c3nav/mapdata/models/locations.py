@@ -7,7 +7,7 @@ from django.utils.functional import cached_property
 from django.utils.translation import ugettext_lazy as _
 from django.utils.translation import ungettext_lazy
 
-from c3nav.mapdata.fields import JSONField
+from c3nav.mapdata.fields import JSONField, validate_bssid_lines
 from c3nav.mapdata.lastupdate import get_last_mapdata_update
 from c3nav.mapdata.models import Level
 from c3nav.mapdata.models.base import MapItem
@@ -192,6 +192,7 @@ class AreaLocation(LocationModelMixin, GeometryMapItemWithLevel):
                              help_text=_('if set, has to be a valid color for svg images'))
     routing_inclusion = models.CharField(max_length=20, choices=ROUTING_INCLUSIONS, default='default',
                                          verbose_name=_('Routing Inclusion'))
+    bssids = models.TextField(blank=True, validators=[validate_bssid_lines], verbose_name=_('BSSIDs'))
 
     geomtype = 'polygon'
 
@@ -271,6 +272,9 @@ class AreaLocation(LocationModelMixin, GeometryMapItemWithLevel):
             raise ValueError('Invalid routing inclusion')
         kwargs['routing_inclusion'] = routing_inclusion
 
+        kwargs['bssids'] = data.get('bssids', '')
+        validate_bssid_lines(kwargs['bssids'])
+
         return kwargs
 
     def get_geojson_properties(self):
@@ -285,6 +289,8 @@ class AreaLocation(LocationModelMixin, GeometryMapItemWithLevel):
             result['groups'] = sorted(self.groups.all().order_by('name').values_list('name', flat=True))
         result['location_type'] = self.location_type
         result['routing_inclusion'] = self.routing_inclusion
+        if self.bssids:
+            result['bssids'] = self.bssids
         result.move_to_end('geometry')
         return result
 
