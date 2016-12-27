@@ -1,12 +1,12 @@
 from django.forms import ModelForm, MultipleChoiceField
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import ugettext_lazy as _, ungettext_lazy
 
 from c3nav.access.models import AccessToken, AccessUser
 from c3nav.mapdata.models import AreaLocation
 
 
 def get_permissions_field(request):
-    locations = AreaLocation.objects.filter(routing_inclusion='needs_permission')
+    locations = AreaLocation.objects.filter(routing_inclusion='needs_permission').order_by('name')
 
     has_operator = True
     try:
@@ -25,6 +25,27 @@ def get_permissions_field(request):
             locations = locations.filter(name__in=can_award)
     else:
         locations = []
+
+    if can_full:
+        OPTIONS.append((':full', _('Full Permissions')))
+
+    locationgroups = {}
+    locationgroups_count = {}
+    for location in locations:
+        for group in location.groups.all():
+            if group.location_id not in locationgroups:
+                locationgroups[group.location_id] = group
+                locationgroups_count[group.location_id] = 0
+            locationgroups_count[group.location_id] += 1
+
+    locationgroup_options = []
+    for location_id, group in locationgroups.items():
+        locationgroup_options.append((location_id, _('%(grouptitle)s (%(count)s nonpublic locations)') % {
+            'grouptitle': group.title,
+            'count': locationgroups_count[location_id]
+        }))
+
+    OPTIONS += sorted(locationgroup_options)
 
     if can_full:
         OPTIONS.append((':full', _('Full Permissions')))
