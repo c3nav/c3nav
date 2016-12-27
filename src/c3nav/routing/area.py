@@ -47,6 +47,9 @@ class GraphArea():
         if self.mpl_clear.intersects_path(path):
             return None, None, None
 
+        if self.room.stuffedareas.intersects_path(path, filled=True):
+            distance *= 2.5
+
         # stair checker
         angle = coord_angle(point1, point2)
         stair_direction_up = None

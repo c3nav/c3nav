@@ -29,6 +29,7 @@ class GraphRoom():
         self.distances = np.zeros((1, ))
         self.ctypes = None
         self.excludables = None
+        self.stuffedareas = None
 
     def serialize(self):
         return (
@@ -40,13 +41,14 @@ class GraphRoom():
             self.ctypes,
             self.excludables,
             self.excludable_points,
+            self.stuffedareas,
         )
 
     @classmethod
     def unserialize(cls, level, data):
         room = cls(level)
         (room.mpl_clear, areas, room.points, room.room_transfer_points,
-         room.distances, room.ctypes, room.excludables, room.excludable_points) = data
+         room.distances, room.ctypes, room.excludables, room.excludable_points, room.stuffedareas) = data
         room.areas = tuple(GraphArea(room, *area) for area in areas)
         return room
 
@@ -205,6 +207,8 @@ class GraphRoom():
     def build_connections(self):
         if self._built_is_elevatorlevel:
             return
+
+        self.stuffedareas = shapely_to_mpl(self.level._built_stuffedareas.intersection(self._built_geometry))
 
         for area in self.areas:
             area.build_connections()
