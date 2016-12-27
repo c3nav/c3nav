@@ -7,7 +7,9 @@ from collections import OrderedDict
 from django.conf import settings
 from django.core.files import File
 from django.http import Http404, HttpResponse, HttpResponseNotModified
-from rest_framework.decorators import detail_route
+from django.http import HttpResponseBadRequest
+from django.views.decorators.csrf import csrf_exempt
+from rest_framework.decorators import detail_route, list_route, api_view
 from rest_framework.response import Response
 from rest_framework.viewsets import ReadOnlyModelViewSet, ViewSet
 
@@ -18,7 +20,7 @@ from c3nav.mapdata.models.geometry import DirectedLineGeometryMapItemWithLevel
 from c3nav.mapdata.search import get_location
 from c3nav.mapdata.serializers.main import LevelSerializer, PackageSerializer, SourceSerializer
 from c3nav.mapdata.utils.cache import (CachedReadOnlyViewSetMixin, cache_mapdata_api_response, get_levels_cached,
-                                       get_packages_cached)
+                                       get_packages_cached, get_bssid_areas_cached)
 
 
 class GeometryTypeViewSet(ViewSet):
@@ -201,3 +203,20 @@ class LocationViewSet(ViewSet):
         if location is None:
             raise Http404
         return Response(location.to_json())
+
+    @list_route(methods=['POST'])
+    def wifilocate(self, request):
+        stations = json.loads(request.POST['stations'])[:200]
+        if not stations:
+            return Response({})
+
+        bssids = get_bssid_areas_cached()
+        stations = sorted(stations, key=lambda l: l['level'])
+        for station in stations:
+            area_name = bssids.get(station['bssid'])
+            if area_name is not None:
+                location = get_location(request, area_name)
+                if location is not None:
+                    return Response({'location': location.to_location_json()});
+
+        return Response({'location': None})

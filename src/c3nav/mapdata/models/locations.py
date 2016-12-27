@@ -347,7 +347,7 @@ class PointLocation(Location):
             subtitle += ' - '+add_subtitle
         return subtitle
 
-    def to_json(self):
+    def to_location_json(self):
         result = super().to_location_json()
         result['level'] = self.level.name
         result['x'] = self.x
