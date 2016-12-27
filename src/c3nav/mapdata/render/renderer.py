@@ -119,6 +119,10 @@ class LevelRenderer():
                 contents.append(self.polygon_svg(location.geometry.intersection(self.geometries.accessible),
                                                  fill_color=color))
 
+        contents.append(self.polygon_svg(self.geometries.stuffedareas,
+                                         fill_color='#000000',
+                                         fill_opacity=0.03))
+
         contents.append(self.polygon_svg(self.geometries.stair_areas,
                                          fill_color='#000000',
                                          fill_opacity=0.03))
