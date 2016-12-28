@@ -16,14 +16,17 @@ body, .btn {
 .locationselect > div {
     position:relative;
 }
-.locationselect .locationselect-selected {
+.locationselect .locationselect-selected, .locationselect .locationselect-error {
     display:none;
 }
 .location-group.selected .locationselect-selected {
     display:block;
 }
-.location-group.selected .locationselect-input {
+.location-group.selected .locationselect-input, .location-group.error .locationselect-input {
     display:none;
+}
+.location-group.error .locationselect-error {
+    display:block;
 }
 .locationselect .icons {
     height:48px;
@@ -37,7 +40,7 @@ body, .btn {
     width:48px;
     height:48px;
 }
-.locationselect .icons .reset {
+.locationselect .icons .reset, .locationselect .icons .errorreset {
     background-image:url('../img/icons/cross.svg');
 }
 .locationselect .icons .link {
@@ -55,6 +58,9 @@ body, .btn {
 }
 .location-group.selected .only-if-selected {
     display:block;
+}
+.location-group.selected.loading .only-if-selected {
+    display:none;
 }
 
 .locationselect-map {
@@ -261,7 +267,7 @@ circle.pos {
 }
 
 
-.locationselect-selected.loading .location,
+.location-group.selected.loading .locationselect-selected .location,
 .locationselect-map .map-container {
     background-image:url('/static/img/loader.gif');
     background-repeat:no-repeat;

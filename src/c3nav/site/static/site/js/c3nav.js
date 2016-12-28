@@ -45,8 +45,10 @@ c3nav = {
         c3nav.locationselect_focus();
 
         $('.locationselect .icons .reset').click(c3nav._locationselect_reset);
+        $('.locationselect .icons .errorreset').click(c3nav._locationselect_errorreset);
         $('.locationselect .icons .map').click(c3nav._locationselect_activate_map);
         $('.locationselect .icons .link').click(c3nav._locationselect_click_link);
+        $('.locationselect .icons .locate').click(c3nav._locationselect_click_locate);
         $('.locationselect .close-map').click(c3nav._locationselect_close_map);
         $('.locationselect .level-selector a').click(c3nav._locationselect_click_level);
         $('.locationselect .map-container').on('click', 'img', c3nav._locationselect_click_image);
@@ -112,6 +114,12 @@ c3nav = {
         location_group.find('.tt-suggestion').remove();
         c3nav._locations_changed();
     },
+    _locationselect_errorreset: function(e) {
+        e.preventDefault();
+        var location_group = $(this).closest('.location-group');
+        location_group.removeClass('error').find('.tt-input').focus();
+        location_group.find('.tt-suggestion').remove();
+    },
     _locationselect_click_link: function(e) {
         e.preventDefault();
         var location_group = $(this).closest('.location-group');
@@ -121,6 +129,33 @@ c3nav = {
         c3nav.qr_modal.find('img').attr('src', '/qr/'+location_id+'.png');
         c3nav.qr_modal.data('title', location_title)
         c3nav.qr_modal.show();
+    },
+    _locationselect_click_locate: function(e) {
+        e.preventDefault();
+        var location_group = $(this).closest('.location-group');
+        location_group.addClass('selected').addClass('loading');
+        var selected = location_group.find('.locationselect-selected');
+        selected.find('.title').text('');
+        selected.find('.subtitle').text('');
+        selected.find('.id-field').val('');
+
+        $.ajax({
+            type: "POST",
+            url: '/api/locations/wifilocate/',
+            data: { stations: JSON.stringify(mobileclient.getNearbyStations()) },
+            dataType: 'json',
+            success: function(data) {
+                location_group.removeClass('loading');
+                var location = data.location;
+                if (location === null) {
+                    location_group.addClass('error').removeClass('selected');
+                } else {
+                    selected.find('.id-field').val(location.id);
+                    selected.find('.title').text(location.title);
+                    selected.find('.subtitle').text(location.subtitle);
+                }
+            }
+        });
     },
     _locationselect_activate_map: function(e) {
         e.preventDefault();
@@ -156,16 +191,15 @@ c3nav = {
         var level = $(e.delegateTarget).attr('data-level');
         var coords = 'c:'+level+':'+parseInt(e.offsetX/6*100)+':'+parseInt((c3nav.svg_height-e.offsetY)/6*100);
         var location_group = $(this).closest('.location-group');
-        location_group.removeClass('map').addClass('selected');
+        location_group.removeClass('map').addClass('selected').addClass('loading');
         var selected = location_group.find('.locationselect-selected');
         selected.find('.title').text('');
         selected.find('.subtitle').text('');
         selected.find('.id-field').val(coords);
-        selected.addClass('loading');
         $.getJSON('/api/locations/'+coords, function(data) {
             selected.find('.title').text(data.title);
             selected.find('.subtitle').text(data.subtitle);
-            selected.removeClass('loading');
+            selected.closest('.location-group').removeClass('loading');
         });
         c3nav._locations_changed();
         c3nav.locationselect_focus();
