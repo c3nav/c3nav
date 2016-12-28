@@ -107,5 +107,5 @@ def get_bssid_areas_cached():
     bssids = {}
     for area in AreaLocation.objects.filter(~Q(bssids='')):
         for bssid in area.bssids.split('\n'):
-            bssids[bssid] = area.name
+            bssids[bssid.strip()] = area.name
     return bssids

@@ -71,6 +71,16 @@
                 </div>
                 <input type="hidden" name="{{ name }}" value="{{ location.location_id }}" class="id-field">
             </div>
+
+            <div class="locationselect-error">
+                <div class="location form-control input-lg">
+                    <span class="title">{% trans 'Sorry, we could not detect your position.' %}</span>
+                    <small class="subtitle">{% trans 'Wifi mapping may not yet be available in the entire building.' %}</small>
+                </div>
+                <div class="icons">
+                    <a href="{{ reset_url }}" class="errorreset"></a>
+                </div>
+            </div>
         </div>
         {% if search == name and not search_results %}
             <span class="help-block">{% trans 'No location matched your search query.' %}</span>
