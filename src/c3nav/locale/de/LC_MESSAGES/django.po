@@ -7,8 +7,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2016-12-25 10:49+0000\n"
-"PO-Revision-Date: 2016-12-25 11:51+0100\n"
+"POT-Creation-Date: 2016-12-28 09:33+0000\n"
+"PO-Revision-Date: 2016-12-28 10:37+0100\n"
 "Last-Translator: Nicole Klünder <nomoketo@nomoketo.de>\n"
 "Language-Team: \n"
 "Language: de\n"
@@ -26,9 +26,14 @@ msgstr "Zugänge"
 msgid "Important dates"
 msgstr "Wichtige Daten"
 
-#: c3nav/access/forms.py:29
+#: c3nav/access/forms.py:31 c3nav/access/forms.py:52
 msgid "Full Permissions"
 msgstr "Voller Zugang"
+
+#: c3nav/access/forms.py:44
+#, python-format
+msgid "%(grouptitle)s (%(count)s nonpublic locations)"
+msgstr "%(grouptitle)s (%(count)s nichtöffentliche Orte)"
 
 #: c3nav/access/models.py:18 c3nav/access/models.py:36
 #: c3nav/access/models.py:60
@@ -304,6 +309,10 @@ msgstr "Du musst einen Titel für mindestens eine Sprache wählen."
 msgid "Internal error."
 msgstr "Interner Fehler."
 
+#: c3nav/mapdata/fields.py:15
+msgid "please enter a newline seperated lowercase list of BSSIDs"
+msgstr "bitte gib Zeile für Zeile klein geschriebene BSSIDs ein"
+
 #: c3nav/mapdata/inclusion.py:29
 msgid "non-public areas"
 msgstr "nichtöffentliche Bereiche"
@@ -358,115 +367,123 @@ msgstr "Außenbereich"
 msgid "Outside Areas"
 msgstr "Außenbereiche"
 
-#: c3nav/mapdata/models/geometry.py:176
+#: c3nav/mapdata/models/geometry.py:178
+msgid "Stuffed Area"
+msgstr "Vollgestopfter Bereich"
+
+#: c3nav/mapdata/models/geometry.py:179
+msgid "Stuffed Areas"
+msgstr "Vollgestopfte Bereiche"
+
+#: c3nav/mapdata/models/geometry.py:188
 msgid "up"
 msgstr "hoch"
 
-#: c3nav/mapdata/models/geometry.py:177
+#: c3nav/mapdata/models/geometry.py:189
 msgid "down"
 msgstr "runter"
 
-#: c3nav/mapdata/models/geometry.py:179
+#: c3nav/mapdata/models/geometry.py:191
 msgid "direction"
 msgstr "Richtung"
 
-#: c3nav/mapdata/models/geometry.py:184
+#: c3nav/mapdata/models/geometry.py:196
 msgid "Escalator"
 msgstr "Rolltreppe"
 
-#: c3nav/mapdata/models/geometry.py:185 c3nav/site/templates/site/main.html:32
+#: c3nav/mapdata/models/geometry.py:197 c3nav/site/templates/site/main.html:32
 msgid "Escalators"
 msgstr "Rolltreppen"
 
-#: c3nav/mapdata/models/geometry.py:214
+#: c3nav/mapdata/models/geometry.py:226
 msgid "Escalator Slope"
 msgstr "Rolltreppensteigung"
 
-#: c3nav/mapdata/models/geometry.py:215
+#: c3nav/mapdata/models/geometry.py:227
 msgid "Escalator Slopes"
 msgstr "Rolltreppensteigungen"
 
-#: c3nav/mapdata/models/geometry.py:224
+#: c3nav/mapdata/models/geometry.py:236
 msgid "Stair"
 msgstr "Stufe"
 
-#: c3nav/mapdata/models/geometry.py:225 c3nav/site/templates/site/main.html:28
+#: c3nav/mapdata/models/geometry.py:237 c3nav/site/templates/site/main.html:28
 msgid "Stairs"
 msgstr "Stufen"
 
-#: c3nav/mapdata/models/geometry.py:234
+#: c3nav/mapdata/models/geometry.py:246
 msgid "Oneway"
 msgstr "Einbahnweg"
 
-#: c3nav/mapdata/models/geometry.py:235
+#: c3nav/mapdata/models/geometry.py:247
 msgid "Oneways"
 msgstr "Einbahnwege"
 
-#: c3nav/mapdata/models/geometry.py:244
+#: c3nav/mapdata/models/geometry.py:256
 msgid "crop to other level"
 msgstr "Auf andere Etage zuschneiden"
 
-#: c3nav/mapdata/models/geometry.py:249
+#: c3nav/mapdata/models/geometry.py:261
 msgid "Obstacle"
 msgstr "Hindernis"
 
-#: c3nav/mapdata/models/geometry.py:250
+#: c3nav/mapdata/models/geometry.py:262
 msgid "Obstacles"
 msgstr "Hindernisse"
 
-#: c3nav/mapdata/models/geometry.py:279
+#: c3nav/mapdata/models/geometry.py:291
 msgid "obstacle width"
 msgstr "Hindernisbreite"
 
-#: c3nav/mapdata/models/geometry.py:284
+#: c3nav/mapdata/models/geometry.py:296
 msgid "Line Obstacle"
 msgstr "Linienhindernis"
 
-#: c3nav/mapdata/models/geometry.py:285
+#: c3nav/mapdata/models/geometry.py:297
 msgid "Line Obstacles"
 msgstr "Linienhindernisse"
 
-#: c3nav/mapdata/models/geometry.py:322
+#: c3nav/mapdata/models/geometry.py:334
 msgid "levels"
 msgstr "Etagen"
 
-#: c3nav/mapdata/models/geometry.py:325
+#: c3nav/mapdata/models/geometry.py:337
 msgid "Level Connector"
 msgstr "Etagenverbinder"
 
-#: c3nav/mapdata/models/geometry.py:326
+#: c3nav/mapdata/models/geometry.py:338
 msgid "Level Connectors"
 msgstr "Etagenverbinder"
 
-#: c3nav/mapdata/models/geometry.py:363
+#: c3nav/mapdata/models/geometry.py:375
 msgid "Door"
 msgstr "Tür"
 
-#: c3nav/mapdata/models/geometry.py:364
+#: c3nav/mapdata/models/geometry.py:376
 msgid "Doors"
 msgstr "Türen"
 
-#: c3nav/mapdata/models/geometry.py:375
+#: c3nav/mapdata/models/geometry.py:387
 msgid "Hole"
 msgstr "Loch"
 
-#: c3nav/mapdata/models/geometry.py:376
+#: c3nav/mapdata/models/geometry.py:388
 msgid "Holes"
 msgstr "Löcher"
 
-#: c3nav/mapdata/models/geometry.py:385
+#: c3nav/mapdata/models/geometry.py:397
 msgid "Button label"
 msgstr "Knopfbeschriftung"
 
-#: c3nav/mapdata/models/geometry.py:386
+#: c3nav/mapdata/models/geometry.py:398
 msgid "override level altitude"
 msgstr "Bodenhöhe der Etage überschreiben"
 
-#: c3nav/mapdata/models/geometry.py:391
+#: c3nav/mapdata/models/geometry.py:404
 msgid "Elevator Level"
 msgstr "Aufzugetage"
 
-#: c3nav/mapdata/models/geometry.py:392
+#: c3nav/mapdata/models/geometry.py:405
 msgid "Elevator Levels"
 msgstr "Aufzugetagen"
 
@@ -565,28 +582,32 @@ msgstr "Orttyp"
 msgid "Routing Inclusion"
 msgstr "Routeneinbeziehung"
 
-#: c3nav/mapdata/models/locations.py:199
+#: c3nav/mapdata/models/locations.py:195
+msgid "BSSIDs"
+msgstr "BSSIDs"
+
+#: c3nav/mapdata/models/locations.py:200
 msgid "Area Location"
 msgstr "Ortbereich"
 
-#: c3nav/mapdata/models/locations.py:200
+#: c3nav/mapdata/models/locations.py:201
 msgid "Area Locations"
 msgstr "Ortbereiche"
 
-#: c3nav/mapdata/models/locations.py:318
+#: c3nav/mapdata/models/locations.py:324
 msgid "Unreachable Coordinates"
 msgstr "Unerreichbare Koordinaten"
 
-#: c3nav/mapdata/models/locations.py:324
+#: c3nav/mapdata/models/locations.py:330
 msgid "Coordinates"
 msgstr "Koordinaten"
 
-#: c3nav/mapdata/models/locations.py:328
+#: c3nav/mapdata/models/locations.py:334
 #, python-format
 msgid "Coordinates in %(location)s"
 msgstr "Koordinaten innerhalb %(location)s"
 
-#: c3nav/mapdata/models/locations.py:330
+#: c3nav/mapdata/models/locations.py:336
 #, python-format
 msgid "Coordinates near %(location)s"
 msgstr "Koordinaten in der Nähe von %(location)s"
@@ -708,11 +729,11 @@ msgstr "Gehe nach rechts %(d).1f m weiter."
 msgid "Continue for %(d).1f meters."
 msgstr "Gehe %(d).1f m weiter geradeaus."
 
-#: c3nav/settings.py:200
+#: c3nav/settings.py:203
 msgid "English"
 msgstr "Englisch"
 
-#: c3nav/settings.py:201
+#: c3nav/settings.py:204
 msgid "German"
 msgstr "Deutsch"
 
@@ -747,42 +768,48 @@ msgstr[1] ""
 "            %(count)s Bereiche freigeschaltet\n"
 "            "
 
-#: c3nav/site/templates/site/fragment_location.html:8
-#: c3nav/site/templates/site/fragment_location.html:10
-#: c3nav/site/templates/site/fragment_location.html:13
+#: c3nav/site/templates/site/fragment_location.html:15
 msgid "swap"
 msgstr "vertauschen"
 
-#: c3nav/site/templates/site/fragment_location.html:23
+#: c3nav/site/templates/site/fragment_location.html:24
 msgid "Search any Location…"
 msgstr "Tipp einen beliebigen Ort ein…"
 
-#: c3nav/site/templates/site/fragment_location.html:49
+#: c3nav/site/templates/site/fragment_location.html:51
 msgid "Javascript is disabled. Please scroll in this direction ⇘"
 msgstr "Javascript ist deaktiviert. Bitte in diese Richtung scrollen ⇘"
 
-#: c3nav/site/templates/site/fragment_location.html:57
+#: c3nav/site/templates/site/fragment_location.html:59
 #: c3nav/site/templates/site/main.html:105
 msgid "close"
 msgstr "schließen"
 
-#: c3nav/site/templates/site/fragment_location.html:59
+#: c3nav/site/templates/site/fragment_location.html:61
 msgid "Click or tap the desired location on the map."
 msgstr "Klick oder berühre den gewünschte Ort auf der Karte"
 
-#: c3nav/site/templates/site/fragment_location.html:74
+#: c3nav/site/templates/site/fragment_location.html:77
+msgid "Sorry, we could not detect your position."
+msgstr "Sorry, wir konnten dich nicht finden."
+
+#: c3nav/site/templates/site/fragment_location.html:78
+msgid "Wifi mapping may not yet be available in the entire building."
+msgstr "Ortung ist möglicherweise noch nicht im ganzen Gebäude verfügbar sein."
+
+#: c3nav/site/templates/site/fragment_location.html:86
 msgid "No location matched your search query."
 msgstr "Kein Ort passt zu deiner Suchanfrage."
 
-#: c3nav/site/templates/site/fragment_location.html:80
+#: c3nav/site/templates/site/fragment_location.html:92
 msgid "Route to here"
 msgstr "Route hierhin"
 
-#: c3nav/site/templates/site/fragment_location.html:83
+#: c3nav/site/templates/site/fragment_location.html:95
 msgid "Route from here"
 msgstr "Route von hier aus"
 
-#: c3nav/site/templates/site/fragment_location.html:89
+#: c3nav/site/templates/site/fragment_location.html:101
 msgid "Search"
 msgstr "Suchen"
 
