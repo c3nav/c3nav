@@ -322,7 +322,7 @@ footer {
 }
 
 
-.nomobileclient .app-only {
+body.nomobileclient .app-only {
     display:none;
 }
 
