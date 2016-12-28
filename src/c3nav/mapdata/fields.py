@@ -11,7 +11,7 @@ from shapely.geometry.base import BaseGeometry
 from c3nav.mapdata.utils.geometry import clean_geometry
 from c3nav.mapdata.utils.json import format_geojson
 
-validate_bssid_lines = RegexValidator(regex=r'^([0-9a-f]{2}(:[0-9a-f]{2}){5}(\n[0-9a-f]{2}(:[0-9a-f]{2}){5})*)?$',
+validate_bssid_lines = RegexValidator(regex=r'^([0-9a-f]{2}(:[0-9a-f]{2}){5}(\r?\n[0-9a-f]{2}(:[0-9a-f]{2}){5})*)?$',
                                       message=_('please enter a newline seperated lowercase list of BSSIDs'))
 
 
