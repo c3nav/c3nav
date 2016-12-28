@@ -202,7 +202,7 @@ class LocationViewSet(ViewSet):
         location = get_location(request, name)
         if location is None:
             raise Http404
-        return Response(location.to_json())
+        return Response(location.to_location_json())
 
     @list_route(methods=['POST'])
     def wifilocate(self, request):
