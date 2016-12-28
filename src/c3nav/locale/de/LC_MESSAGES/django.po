@@ -203,7 +203,7 @@ msgstr "Absenden"
 
 #: c3nav/access/templates/access/prove.html:48
 msgid "Sorry, this service is currently not available."
-msgstr "Sorry, dieses Feature is aktuell nicht verfügbar."
+msgstr "Entschuldigung, dieses Feature is aktuell nicht verfügbar."
 
 #: c3nav/access/templates/access/user.html:16
 msgid "Add new access token"
@@ -272,7 +272,7 @@ msgstr "Aktive Token"
 #: c3nav/access/templates/access/users.html:17
 #: c3nav/access/templates/access/users.html:29
 msgid "Details"
-msgstr "Details"
+msgstr "Detail"
 
 #: c3nav/access/templates/access/users.html:37
 #: c3nav/access/templates/access/users.html:39
@@ -791,7 +791,7 @@ msgstr "Klick oder berühre den gewünschte Ort auf der Karte"
 
 #: c3nav/site/templates/site/fragment_location.html:77
 msgid "Sorry, we could not detect your position."
-msgstr "Sorry, wir konnten dich nicht finden."
+msgstr "Entschuldigung, wir konnten dich nicht finden."
 
 #: c3nav/site/templates/site/fragment_location.html:78
 msgid "Wifi mapping may not yet be available in the entire building."
@@ -877,7 +877,7 @@ msgstr "Route berechnen"
 
 #: c3nav/site/templates/site/main.html:79
 msgid "Sorry, no Route could be found."
-msgstr "Sorry, es konnte keine Route gefunden werden."
+msgstr "Entschuldigung, es konnte keine Route gefunden werden."
 
 #: c3nav/site/templates/site/main.html:81
 msgid ""
