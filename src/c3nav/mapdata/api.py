@@ -207,7 +207,7 @@ class LocationViewSet(ViewSet):
     @list_route(methods=['POST'])
     def wifilocate(self, request):
         stations = json.loads(request.POST['stations'])[:200]
-        print(stations)
+        open('stations.json', 'w').write(repr(stations))
         if not stations:
             return Response({})
 
