@@ -127,35 +127,8 @@ c3nav = {
         var location_title = location_group.find('.title').text();
         c3nav.qr_modal.find('strong').text(window.location.origin+'/l/'+location_id+'/');
         c3nav.qr_modal.find('img').attr('src', '/qr/'+location_id+'.png');
-        c3nav.qr_modal.data('title', location_title)
+        c3nav.qr_modal.data('title', location_title);
         c3nav.qr_modal.show();
-    },
-    _locationselect_click_locate: function(e) {
-        e.preventDefault();
-        var location_group = $(this).closest('.location-group');
-        location_group.addClass('selected').addClass('loading');
-        var selected = location_group.find('.locationselect-selected');
-        selected.find('.title').text('');
-        selected.find('.subtitle').text('');
-        selected.find('.id-field').val('');
-
-        $.ajax({
-            type: "POST",
-            url: '/api/locations/wifilocate/',
-            data: { stations: mobileclient.getNearbyStations() },
-            dataType: 'json',
-            success: function(data) {
-                location_group.removeClass('loading');
-                var location = data.location;
-                if (location === null) {
-                    location_group.addClass('error').removeClass('selected');
-                } else {
-                    selected.find('.id-field').val(location.id);
-                    selected.find('.title').text(location.title);
-                    selected.find('.subtitle').text(location.subtitle);
-                }
-            }
-        });
     },
     _locationselect_activate_map: function(e) {
         e.preventDefault();
@@ -206,6 +179,51 @@ c3nav = {
     },
     locationselect_focus: function() {
         $('.location-group:visible:not(.selected) .locationselect-input .tt-input').first().focus();
+    },
+
+
+    _last_scan: 0,
+    _scan_for: [],
+    _scan_now: function() {
+        if (c3nav._last_scan < (new Date().getTime() / 1000 - 3000)) {
+            c3nav._last_scan = new Date().getTime() / 1000;
+            mobileclient.scanNow();
+        } else {
+            nearby_stations_available();
+        }
+    },
+    _locationselect_click_locate: function(e) {
+        e.preventDefault();
+        var location_group = $(this).closest('.location-group');
+        location_group.addClass('loading').addClass('selected');
+        c3nav._scan_for.push(location_group.attr('data-name'));
+        c3nav._scan_now();
+    },
+    nearby_stations_available: function() {
+        $.ajax({
+            type: "POST",
+            url: '/api/locations/wifilocate/',
+            data: { stations: mobileclient.getNearbyStations() },
+            dataType: 'json',
+            success: c3nav._wifilocate_callback
+        });
+    },
+    _wifilocate_callback: function(data) {
+        var location_group, selected;
+        var location = data.location;
+        for(var i=0;i<c3nav._scan_for.length;i++) {
+            location_group = $('.location-group[data-name='+c3nav._scan_for[i]+']');
+            location_group.removeClass('loading');
+            selected = location_group.find('.locationselect-selected');
+            if (location === null) {
+                location_group.addClass('error').removeClass('selected');
+            } else {
+                selected.find('.id-field').val(location.id);
+                selected.find('.title').text(location.title);
+                selected.find('.subtitle').text(location.subtitle);
+            }
+        }
+        c3nav._scan_for = [];
     },
 
     _click_route_from_here: function(e) {
@@ -288,4 +306,9 @@ c3nav = {
     }
 
 };
+function nearby_stations_available() {
+    c3nav.nearby_stations_available();
+}
+// mobileclient = { getNearbyStations: function() { return '[{"bssid": "00:00:00:00:00:01", "level": 10}]'; }, scanNow: function() { nearby_stations_available(); } };
+
 $(document).ready(c3nav.init);

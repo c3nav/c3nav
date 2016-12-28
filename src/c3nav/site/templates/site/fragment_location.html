@@ -1,6 +1,6 @@
 {% load i18n %}
-<div class="col-md-{% if name == 'location' %}12{% else %}6{% endif %} location-group {{ name }}-select{% if location %} selected{% endif %}{% if active_field == name and map_level %} map{% endif %}">
-    <div class="form-group{% if search == name and not search_results %} has-error{% endif %}" data-name="{{ name }}">
+<div class="col-md-{% if name == 'location' %}12{% else %}6{% endif %} location-group {{ name }}-select{% if location %} selected{% endif %}{% if active_field == name and map_level %} map{% endif %}" data-name="{{ name }}">
+    <div class="form-group{% if search == name and not search_results %} has-error{% endif %}">
         <label for="{{ name }}_input">{{ heading }}</label>
         {% if name == 'destination' %}
             {% if origin %}
