@@ -100,118 +100,118 @@ msgstr "aktiveeritud saladus"
 #: c3nav/access/models.py:68 c3nav/access/models.py:116
 #: c3nav/access/models.py:121 c3nav/access/templates/access/prove.html:35
 msgid "Access Token"
-msgstr "Zugangstoken"
+msgstr "Juurdepääs žetoon"
 
 #: c3nav/access/models.py:69
 msgid "Access Tokens"
-msgstr "Zugangstoken"
+msgstr "Jurdepääs žetoonid"
 
 #: c3nav/access/models.py:122
 msgid "access secret"
-msgstr "Zugangsschlüssel"
+msgstr "Jurdepääs saladus"
 
 #: c3nav/access/models.py:127
 msgid "Access Token Instance"
-msgstr "Zugangstokeninstanz"
+msgstr "Jurdepääs žetoonid näide"
 
 #: c3nav/access/models.py:128
 msgid "Access Token Instances"
-msgstr "Zugangstokeninstanzen"
+msgstr "Jurdepääs žetoonid näided"
 
 #: c3nav/access/templates/access/activate.html:11
 msgid "Your access token was installed on your device!"
-msgstr "Der Zugangstoken wurde auf deinem Gerät aktiviert!"
+msgstr Sinu jurdepääs žetoonid sinu aparaatst!"
 
 #: c3nav/access/templates/access/fragment_token.html:9
 msgid "Link to this token / in this QR code"
-msgstr "Link zu diesem Token / in diesem QR Code"
+msgstr "Ühendama žetoonidis / QR koodis"
 
 #: c3nav/access/templates/access/fragment_token.html:11
 msgid "Activate token on this device"
-msgstr "Token auf diesem Gerät aktivieren!"
+msgstr "Aktiveerima žetoonid aparaatst!"
 
 #: c3nav/access/templates/access/fragment_token.html:14
 msgid ""
 "This link QR Code / Link only works once. If you want access on multiple "
 "devices, you need multiple tokens."
 msgstr ""
-"Dieser QR Code / link funktioniert nur einmal. Wenn du auf mehreren Geräten "
-"zugang willst, brauchst du mehrere Token."
+"QR koodis / ühendama töötab  üks eine. Sinu kasutaja mitmene aparaast, "
+"kasutaja mitmene žetoonid."
 
 #: c3nav/access/templates/access/loggedin_base.html:7
 msgid "Users"
-msgstr "Nutzer"
+msgstr "Kasutajad"
 
 #: c3nav/access/templates/access/loggedin_base.html:8
 msgid "Log out"
-msgstr "Abmelden"
+msgstr "Välja logima"
 
 #: c3nav/access/templates/access/login.html:12
 #: c3nav/access/templates/access/login.html:15
 msgid "Log in"
-msgstr "Anmelden"
+msgstr "Sisse logima"
 
 #: c3nav/access/templates/access/login.html:18
 msgid "This is the non-public backend for creation of access tokens."
 msgstr ""
-"Das hier ist das nichtöffentliche Backend zum Erstellen von Zugangstokens."
+"Isiklikk hooldus žetoonid loomine"
 
 #: c3nav/access/templates/access/login.html:21
 msgid "Prove that you should have access"
-msgstr "Beweise dass du Zugang haben solltest"
+msgstr "Tõestima sinu juurdepääs õigus"
 
 #: c3nav/access/templates/access/prove.html:12
 msgid "Prove access rights"
-msgstr "Zugangsrechte beweisen"
+msgstr "Tõestima juurdepääs õigus"
 
 #: c3nav/access/templates/access/prove.html:13
 msgid ""
 "Please enter a valid authentication code for the hosters of the following "
 "non-public map packages:"
 msgstr ""
-"Bitte gebe einen gültigen API Token für die Hoster der folgenden "
-"nichtöffentlichen Kartenpakete an:"
+"Palun saada ehtne kood jaoks hostia "
+"isikliik plaan pakendama"
 
 #: c3nav/access/templates/access/prove.html:16
 msgid "Thanks – you get full access to the map!"
-msgstr "Danke – du kriegst vollen Zugang zur Karte!"
+msgstr "Aitäh – sinu kõik plaan juurdepääs!"
 
 #: c3nav/access/templates/access/prove.html:17
 msgid "All previous tokens have been invalidated."
-msgstr "Alle bisherigen Token wurden deaktiviert."
+msgstr "Kõik žetoonid tühistatud."
 
 #: c3nav/access/templates/access/prove.html:26
 #: c3nav/access/templates/access/prove.html:28
 msgid "Sorry."
-msgstr "Sorry."
+msgstr "Vabandust."
 
 #: c3nav/access/templates/access/prove.html:26
 msgid "One or more access tokens were not correct."
-msgstr "Ein oder mehrere Token waren ungültig."
+msgstr "Üks või rohkem žetoonid ebaõige."
 
 #: c3nav/access/templates/access/prove.html:28
 msgid "You already have a valid access token."
-msgstr "Du hast bereits einen gültigen Zugangstoken."
+msgstr "Sinu oma õige žetoonid."
 
 #: c3nav/access/templates/access/prove.html:40
 msgid "Invalidate previous token(s)."
-msgstr "Bisherige token invalidieren."
+msgstr "Annulleerima eelnev žetoonid"
 
 #: c3nav/access/templates/access/prove.html:44
 msgid "Submit"
-msgstr "Absenden"
+msgstr "Esitama"
 
 #: c3nav/access/templates/access/prove.html:48
 msgid "Sorry, this service is currently not available."
-msgstr "Sorry, dieses Feature is aktuell nicht verfügbar."
+msgstr "Vabandust, teenindus praegu ei tõõta."
 
 #: c3nav/access/templates/access/user.html:16
 msgid "Add new access token"
-msgstr "Neuen "
+msgstr "Lisa uus žetoonid "
 
 #: c3nav/access/templates/access/user.html:22
 msgid "Add"
-msgstr "Hinzufügen"
+msgstr "Lisa"
 
 #: c3nav/access/templates/access/user.html:35
 #: c3nav/access/templates/access/users.html:11
@@ -221,143 +221,143 @@ msgstr "ID"
 #: c3nav/access/templates/access/user.html:36
 #: c3nav/access/templates/access/users.html:14
 msgid "Description"
-msgstr "Beschreibung"
+msgstr "Kirjeldus"
 
 #: c3nav/access/templates/access/user.html:37
 #: c3nav/access/templates/access/users.html:13
 msgid "Author"
-msgstr "Autor"
+msgstr "Kijanik"
 
 #: c3nav/access/templates/access/user.html:39
 #: c3nav/access/templates/access/users.html:16
 msgid "Creation Date"
-msgstr "Erstellungsdatum"
+msgstr "Loomine kuupäev"
 
 #: c3nav/access/templates/access/user.html:40
 msgid "Expiration"
-msgstr "Ablaufdatum"
+msgstr "Aegumine"
 
 #: c3nav/access/templates/access/user.html:41
 msgid "Action"
-msgstr "Aktion"
+msgstr "Tegevus"
 
 #: c3nav/access/templates/access/user.html:62
 msgid "expired"
-msgstr "abgelaufen"
+msgstr "Aegmined"
 
 #: c3nav/access/templates/access/user.html:66
 msgid "never"
-msgstr "nie"
+msgstr "Mitte kunagi"
 
 #: c3nav/access/templates/access/user.html:71
 msgid "Expire"
-msgstr "Invalidieren"
+msgstr "Maksvusetu"
 
 #: c3nav/access/templates/access/user.html:73
 msgid "Activate"
-msgstr "Aktivieren"
+msgstr "Aktiveerima"
 
 #: c3nav/access/templates/access/user_token.html:12
 msgid "back to user"
-msgstr "zurück zum Nutzer"
+msgstr "Tulu kasutaja"
 
 #: c3nav/access/templates/access/users.html:12 c3nav/mapdata/models/base.py:22
 msgid "Name"
-msgstr "Name"
+msgstr "Nimi"
 
 #: c3nav/access/templates/access/users.html:15
 msgid "Active Tokens"
-msgstr "Aktive Token"
+msgstr "Tegev žetoonid"
 
 #: c3nav/access/templates/access/users.html:17
 #: c3nav/access/templates/access/users.html:29
 msgid "Details"
-msgstr "Details"
+msgstr "Toimkond"
 
 #: c3nav/access/templates/access/users.html:37
 #: c3nav/access/templates/access/users.html:39
 msgid "previous"
-msgstr "vorherige"
+msgstr "eelnev"
 
 #: c3nav/access/templates/access/users.html:43
 #, python-format
 msgid "Page %(number)s of %(total)s"
-msgstr "Seite %(number)s von %(total)s"
+msgstr "Lehekülg %(number)s / %(total)s"
 
 #: c3nav/access/templates/access/users.html:47
 #: c3nav/access/templates/access/users.html:49
 msgid "next"
-msgstr "nächste"
+msgstr "järgmine"
 
 #: c3nav/access/templates/access/users.html:57
 msgid "Add new access user"
-msgstr "Neuen Zugangsnutzer erstellen"
+msgstr "Lisa uus juurdepääs kasutaja"
 
 #: c3nav/access/templates/access/users.html:63
 msgid "Add new User"
-msgstr "Neuen Nutzer erstellen"
+msgstr "Lisa uus kasutaja"
 
 #: c3nav/editor/forms.py:94
 msgid "Please select at least two levels."
-msgstr "Bitte wähle mindestens zwei Etagen."
+msgstr "Palun valima kaks või rohkem võrdne."
 
 #: c3nav/editor/forms.py:104
 msgid "You have to select a title in at least one language."
-msgstr "Du musst einen Titel für mindestens eine Sprache wählen."
+msgstr "Palun valima pealkiri uks või rohkem keel."
 
 #: c3nav/editor/hosters/base.py:90
 msgid "Internal error."
-msgstr "Interner Fehler."
+msgstr "Sisemine eksitus."
 
 #: c3nav/mapdata/fields.py:15
 msgid "please enter a newline seperated lowercase list of BSSIDs"
-msgstr "bitte gib Zeile für Zeile klein geschriebene BSSIDs ein"
+msgstr "palun sisse uus rida väiketäht nimekiri BSSIDs"
 
 #: c3nav/mapdata/inclusion.py:29
 msgid "non-public areas"
-msgstr "nichtöffentliche Bereiche"
+msgstr "eraviisiline piirkond"
 
 #: c3nav/mapdata/inclusion.py:30
 msgid "public areas"
-msgstr "öffentliche Bereiche"
+msgstr "avalik piirkond
 
 #: c3nav/mapdata/models/base.py:23
 msgid "map package"
-msgstr "Kartenpaket"
+msgstr "plaan pakett"
 
 #: c3nav/mapdata/models/collections.py:11
 msgid "Elevator"
-msgstr "Aufzug"
+msgstr "Tõstuk"
 
 #: c3nav/mapdata/models/collections.py:12
 #: c3nav/site/templates/site/main.html:36
 msgid "Elevators"
-msgstr "Aufzüge"
+msgstr "Tõstukid"
 
 #: c3nav/mapdata/models/geometry.py:45 c3nav/mapdata/serializers/fields.py:14
 #: c3nav/mapdata/serializers/fields.py:26
 msgid "Invalid GeoJSON."
-msgstr "Invalides GeoJSON."
+msgstr "Vigane GeoJSON."
 
 #: c3nav/mapdata/models/geometry.py:79
 msgid "level"
-msgstr "Etage"
+msgstr "korrus"
 
 #: c3nav/mapdata/models/geometry.py:142
 msgid "Building"
-msgstr "Gebäude"
+msgstr "Ehitis"
 
 #: c3nav/mapdata/models/geometry.py:143
 msgid "Buildings"
-msgstr "Gebäude"
+msgstr "Ehitud"
 
 #: c3nav/mapdata/models/geometry.py:154 c3nav/mapdata/models/locations.py:173
 msgid "Room"
-msgstr "Raum"
+msgstr "Tuba"
 
 #: c3nav/mapdata/models/geometry.py:155
 msgid "Rooms"
-msgstr "Räume"
+msgstr "Tubad"
 
 #: c3nav/mapdata/models/geometry.py:166
 msgid "Outside Area"
