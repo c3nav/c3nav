@@ -9,7 +9,7 @@ msgstr ""
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2016-12-28 09:33+0000\n"
 "PO-Revision-Date: 2016-12-28 10:37+0100\n"
-"Last-Translator: Nicole Klünder <nomoketo@nomoketo.de>\n"
+"Last-Translator: Benson Muite <benson_muite@emailplus.org>\n"
 "Language-Team: \n"
 "Language: de\n"
 "MIME-Version: 1.0\n"
@@ -183,7 +183,7 @@ msgstr "Alle bisherigen Token wurden deaktiviert."
 #: c3nav/access/templates/access/prove.html:26
 #: c3nav/access/templates/access/prove.html:28
 msgid "Sorry."
-msgstr "Sorry."
+msgstr "Entschuldigung."
 
 #: c3nav/access/templates/access/prove.html:26
 msgid "One or more access tokens were not correct."
