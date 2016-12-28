@@ -208,7 +208,7 @@ class LocationViewSet(ViewSet):
     def wifilocate(self, request):
         stations = json.loads(request.POST['stations'])[:200]
         if not stations:
-            return Response({})
+            return Response({'location': None})
 
         bssids = get_bssid_areas_cached()
         stations = sorted(stations, key=lambda l: l['level'])
