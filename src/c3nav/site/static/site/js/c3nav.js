@@ -9,7 +9,7 @@ c3nav = {
         c3nav.qr_modal = $('#qr_modal');
 
         c3nav.mobileclient = (typeof mobileclient !== "undefined");
-        if (c3nav.mobileclient || true) {
+        if (c3nav.mobileclient) {
             $('body').removeClass('nomobileclient');
         }
 
