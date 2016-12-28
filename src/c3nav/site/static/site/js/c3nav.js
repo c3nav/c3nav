@@ -142,7 +142,7 @@ c3nav = {
         $.ajax({
             type: "POST",
             url: '/api/locations/wifilocate/',
-            data: { stations: JSON.stringify(mobileclient.getNearbyStations()) },
+            data: { stations: mobileclient.getNearbyStations() },
             dataType: 'json',
             success: function(data) {
                 location_group.removeClass('loading');
