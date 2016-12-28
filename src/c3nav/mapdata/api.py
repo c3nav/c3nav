@@ -213,7 +213,7 @@ class LocationViewSet(ViewSet):
         bssids = get_bssid_areas_cached()
         stations = sorted(stations, key=lambda l: l['level'])
         for station in stations:
-            area_name = bssids.get(station['bssid'])
+            area_name = bssids.get(station['bssid'].lower())
             if area_name is not None:
                 location = get_location(request, area_name)
                 if location is not None:
