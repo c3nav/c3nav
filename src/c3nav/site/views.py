@@ -3,6 +3,7 @@ from datetime import timedelta
 import qrcode
 from django.core.files import File
 from django.http import Http404, HttpResponse, HttpResponseNotModified
+from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.utils import timezone
@@ -215,6 +216,12 @@ def main(request, location=None, origin=None, destination=None):
         else:
             route.describe(allowed_ctypes)
             ctx.update({'route': route})
+
+    if request.GET.get('format') == 'json':
+        if 'error' in ctx:
+            return JsonResponse({'error': ctx['error']})
+        if 'route' in ctx:
+            return JsonResponse({'route': ctx['route'].serialize()})
 
     response = render(request, 'site/main.html', ctx)
 
