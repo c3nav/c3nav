@@ -1,3 +1,5 @@
+from collections import OrderedDict
+
 import copy
 
 import numpy as np
@@ -17,6 +19,12 @@ class Route:
         self.ctypes_exception = None
 
         self.routeparts = None
+
+    def serialize(self):
+        return OrderedDict((
+            ('distance', float(self.distance)),
+            ('routeparts', [routepart.serialize() for routepart in self.routeparts]),
+        ))
 
     def __repr__(self):
         return ('<Route (\n    %s\n) distance=%f>' %
@@ -227,6 +235,12 @@ class RoutePart:
         self.level = graphlevel.level
         self.lines = lines
 
+    def serialize(self):
+        return OrderedDict((
+            ('level', self.level.name),
+            ('lines', [line.serialize() for line in self.lines]),
+        ))
+
     def render_svg_coordinates(self):
         svg_width, svg_height = get_dimensions()
 
@@ -282,6 +296,17 @@ class RouteLine:
         self.icon = None
         self.title = None
         self.description = None
+
+    def serialize(self):
+        return OrderedDict((
+            ('from_point', tuple(self.from_point.xy)),
+            ('to_point', tuple(self.to_point.xy)),
+            ('distance', float(self.distance)),
+            ('icon', self.icon),
+            ('ignore', self.ignore),
+            ('title', self.title),
+            ('description', self.description),
+        ))
 
 
 class NoRoute:
