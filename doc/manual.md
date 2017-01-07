@@ -11,9 +11,9 @@ Install the needed dependencies.
 #### Debian
 
 ```
-apt-get install -y build-essential gettext libfreetype6-dev libgeos-dev \
-    libmemcached-dev libmysqlclient-dev libpq-dev librsvg2-bin \
-    pkg-config python3 python3-dev python3-pip python3-venv \    
+apt-get install -y build-essential gettext gfortran libfreetype6-dev libgeos-dev \
+    libjpeg-dev libmemcached-dev liblapack-dev libmysqlclient-dev libopenblas-dev \
+    libpq-dev librsvg2-bin pkg-config python3 python3-dev python3-pip python3-venv
 ```
 
 Feel free to add guides for other operating systems.
