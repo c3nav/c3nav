@@ -101,7 +101,7 @@ Always do this after updating the mapdata. You can skip this step if you only wa
 
 ```
 python3 manage.py rendermap
-python3 manage.py buildgrap
+python3 manage.py buildgraph
 ```
 
 FYI: You can find the renderings in the following folder: `data/render/`
