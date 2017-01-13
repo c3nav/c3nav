@@ -2,8 +2,7 @@ from datetime import timedelta
 
 import qrcode
 from django.core.files import File
-from django.http import Http404, HttpResponse, HttpResponseNotModified
-from django.http import JsonResponse
+from django.http import Http404, HttpResponse, HttpResponseNotModified, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.utils import timezone
