@@ -286,7 +286,7 @@ class Graph:
             if not len(orig_points_i) or not len(dest_points_i):
                 raise AlreadyThere()
 
-        #if set(orig_points_i) & set(dest_points_i):
+        # if set(orig_points_i) & set(dest_points_i):
         #    raise AlreadyThere()
 
         add_orig_point = origin if isinstance(origin, PointLocation) else None

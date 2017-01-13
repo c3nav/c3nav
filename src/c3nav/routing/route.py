@@ -1,6 +1,5 @@
-from collections import OrderedDict
-
 import copy
+from collections import OrderedDict
 
 import numpy as np
 from django.utils.translation import ugettext_lazy as _
