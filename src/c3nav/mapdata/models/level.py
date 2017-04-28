@@ -34,42 +34,11 @@ class Level(MapItem):
     def geometries(self):
         return LevelGeometries.by_level(self, only_public=False)
 
-    def tofilename(self):
-        return 'levels/%s.json' % self.name
-
     def lower(self):
         return Level.objects.filter(altitude__lt=self.altitude).order_by('altitude')
 
     def higher(self):
         return Level.objects.filter(altitude__gt=self.altitude).order_by('altitude')
-
-    @classmethod
-    def fromfile(cls, data, file_path):
-        kwargs = super().fromfile(data, file_path)
-
-        if 'altitude' not in data:
-            raise ValueError('missing altitude.')
-
-        if not isinstance(data['altitude'], (int, float)):
-            raise ValueError('altitude has to be int or float.')
-
-        kwargs['altitude'] = data['altitude']
-
-        if 'intermediate' not in data:
-            raise ValueError('missing intermediate.')
-
-        if not isinstance(data['intermediate'], bool):
-            raise ValueError('intermediate has to be boolean.')
-
-        kwargs['intermediate'] = data['intermediate']
-
-        return kwargs
-
-    def tofile(self, form=None):
-        result = super().tofile()
-        result['altitude'] = float(self.altitude)
-        result['intermediate'] = self.intermediate
-        return result
 
     def __str__(self):
         return self.name

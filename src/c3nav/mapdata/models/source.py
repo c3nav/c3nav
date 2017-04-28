@@ -28,26 +28,3 @@ class Source(MapItem):
     @property
     def bounds(self):
         return (float(self.bottom), float(self.left)), (float(self.top), float(self.right))
-
-    @classmethod
-    def fromfile(cls, data, file_path):
-        kwargs = super().fromfile(data, file_path)
-
-        if 'bounds' not in data:
-            raise ValueError('missing bounds.')
-
-        bounds = data['bounds']
-        if len(bounds) != 2 or len(bounds[0]) != 2 or len(bounds[1]) != 2:
-            raise ValueError('Invalid bounds format.')
-        if not all(isinstance(i, (float, int)) for i in sum(bounds, [])):
-            raise ValueError('All bounds coordinates have to be int or float.')
-        if bounds[0][0] >= bounds[1][0] or bounds[0][1] >= bounds[1][1]:
-            raise ValueError('bounds: lower coordinate has to be first.')
-        (kwargs['bottom'], kwargs['left']), (kwargs['top'], kwargs['right']) = bounds
-
-        return kwargs
-
-    def tofile(self, form=None):
-        result = super().tofile()
-        result['bounds'] = ((float(self.bottom), float(self.left)), (float(self.top), float(self.right)))
-        return result

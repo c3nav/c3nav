@@ -38,55 +38,6 @@ class LocationModelMixin(Location):
         result['titles'] = OrderedDict(sorted(self.titles.items()))
         return result
 
-    @classmethod
-    def fromfile(cls, data, file_path):
-        kwargs = super().fromfile(data, file_path)
-
-        if 'titles' not in data:
-            raise ValueError('missing titles.')
-        titles = data['titles']
-        if not isinstance(titles, dict):
-            raise ValueError('Invalid titles format.')
-        if any(not isinstance(lang, str) for lang in titles.keys()):
-            raise ValueError('titles: All languages have to be strings.')
-        if any(not isinstance(title, str) for title in titles.values()):
-            raise ValueError('titles: All titles have to be strings.')
-        if any(not title for title in titles.values()):
-            raise ValueError('titles: Titles must not be empty strings.')
-        kwargs['titles'] = titles
-
-        if 'can_search' not in data:
-            raise ValueError('Missing can_search')
-        can_search = data['can_search']
-        if not isinstance(can_search, bool):
-            raise ValueError('can_search has to be boolean!')
-        kwargs['can_search'] = can_search
-
-        if 'can_describe' not in data:
-            raise ValueError('Missing can_describe')
-        can_describe = data['can_describe']
-        if not isinstance(can_describe, bool):
-            raise ValueError('can_describe has to be boolean!')
-        kwargs['can_describe'] = can_describe
-
-        if 'color' in data:
-            color = data['color']
-            if not isinstance(color, str):
-                raise ValueError('color has to be str!')
-            if color:
-                kwargs['color'] = color
-
-        return kwargs
-
-    def tofile(self, form=None):
-        result = super().tofile(form=form)
-        result['titles'] = OrderedDict(sorted(self.titles.items()))
-        result['can_search'] = self.can_search
-        result['can_describe'] = self.can_describe
-        if self.color:
-            result['color'] = self.color
-        return result
-
     @property
     def subtitle(self):
         return self._meta.verbose_name
@@ -143,26 +94,8 @@ class LocationGroup(LocationModelMixin, MapItem):
     def __str__(self):
         return self.title
 
-    @classmethod
-    def fromfile(cls, data, file_path):
-        kwargs = super().fromfile(data, file_path)
-
-        if 'compiled_room' not in data:
-            raise ValueError('Missing compiled_room')
-        compiled_room = data['compiled_room']
-        if not isinstance(compiled_room, bool):
-            raise ValueError('compiled_room has to be boolean!')
-        kwargs['compiled_room'] = compiled_room
-
-        return kwargs
-
     def get_geojson_properties(self):
         result = super().get_geojson_properties()
-        return result
-
-    def tofile(self, form=None):
-        result = super().tofile()
-        result['compiled_room'] = self.compiled_room
         return result
 
 
@@ -249,49 +182,8 @@ class AreaLocation(LocationModelMixin, GeometryMapItemWithLevel):
     def get_sort_key(cls, arealocation):
         return cls.LOCATION_TYPES_ORDER.index(arealocation.location_type)
 
-    @classmethod
-    def fromfile(cls, data, file_path):
-        kwargs = super().fromfile(data, file_path)
-
-        groups = data.get('groups', [])
-        if not isinstance(groups, list):
-            raise TypeError('groups has to be a list')
-        kwargs['groups'] = groups
-
-        if 'location_type' not in data:
-            raise ValueError('Missing location type')
-        location_type = data['location_type']
-        if location_type not in dict(cls.LOCATION_TYPES):
-            raise ValueError('Invalid location type')
-        kwargs['location_type'] = location_type
-
-        if 'routing_inclusion' not in data:
-            raise ValueError('Missing routing inclusion')
-        routing_inclusion = data['routing_inclusion']
-        if routing_inclusion not in dict(cls.ROUTING_INCLUSIONS):
-            raise ValueError('Invalid routing inclusion')
-        kwargs['routing_inclusion'] = routing_inclusion
-
-        kwargs['bssids'] = data.get('bssids', '')
-        validate_bssid_lines(kwargs['bssids'])
-
-        return kwargs
-
     def get_geojson_properties(self):
         result = super().get_geojson_properties()
-        return result
-
-    def tofile(self, form=None):
-        result = super().tofile(form=form)
-        if form is not None:
-            result['groups'] = sorted(group.name for group in form.cleaned_data['groups'])
-        else:
-            result['groups'] = sorted(self.groups.all().order_by('name').values_list('name', flat=True))
-        result['location_type'] = self.location_type
-        result['routing_inclusion'] = self.routing_inclusion
-        if self.bssids:
-            result['bssids'] = self.bssids
-        result.move_to_end('geometry')
         return result
 
     def __str__(self):

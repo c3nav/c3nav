@@ -4,7 +4,7 @@ from django.db import models
 from django.utils.functional import cached_property
 from django.utils.translation import ugettext_lazy as _
 from shapely.geometry import CAP_STYLE, JOIN_STYLE, Point
-from shapely.geometry.geo import mapping, shape
+from shapely.geometry.geo import mapping
 
 from c3nav.mapdata.fields import GeometryField
 from c3nav.mapdata.models import Elevator
@@ -33,19 +33,6 @@ class GeometryMapItem(MapItem, metaclass=GeometryMapItemMeta):
     class Meta:
         abstract = True
 
-    @classmethod
-    def fromfile(cls, data, file_path):
-        kwargs = super().fromfile(data, file_path)
-
-        if 'geometry' not in data:
-            raise ValueError('missing geometry.')
-        try:
-            kwargs['geometry'] = shape(data['geometry'])
-        except:
-            raise ValueError(_('Invalid GeoJSON.'))
-
-        return kwargs
-
     def get_geojson_properties(self):
         return OrderedDict((
             ('type', self.__class__.__name__.lower()),
@@ -59,11 +46,6 @@ class GeometryMapItem(MapItem, metaclass=GeometryMapItemMeta):
             ('properties', self.get_geojson_properties()),
             ('geometry', format_geojson(mapping(self.geometry), round=False)),
         ))
-
-    def tofile(self, form=None):
-        result = super().tofile()
-        result['geometry'] = format_geojson(mapping(self.geometry))
-        return result
 
     def get_shadow_geojson(self):
         return None
@@ -81,25 +63,9 @@ class GeometryMapItemWithLevel(GeometryMapItem):
     class Meta:
         abstract = True
 
-    @classmethod
-    def fromfile(cls, data, file_path):
-        kwargs = super().fromfile(data, file_path)
-
-        if 'level' not in data:
-            raise ValueError('missing level.')
-        kwargs['level'] = data['level']
-
-        return kwargs
-
     def get_geojson_properties(self):
         result = super().get_geojson_properties()
         result['level'] = self.level.name
-        return result
-
-    def tofile(self, form=None):
-        result = super().tofile()
-        result['level'] = self.level.name
-        result.move_to_end('geometry')
         return result
 
 
@@ -197,24 +163,9 @@ class Escalator(GeometryMapItemWithLevel):
         verbose_name_plural = _('Escalators')
         default_related_name = 'escalators'
 
-    @classmethod
-    def fromfile(cls, data, file_path):
-        kwargs = super().fromfile(data, file_path)
-
-        if 'direction' not in data:
-            raise ValueError('missing direction.')
-        kwargs['direction'] = data['direction']
-
-        return kwargs
-
     def get_geojson_properties(self):
         result = super().get_geojson_properties()
         result['direction'] = 'up' if self.direction else 'down'
-        return result
-
-    def tofile(self, form=None):
-        result = super().tofile()
-        result['direction'] = self.direction
         return result
 
 
@@ -242,23 +193,8 @@ class Obstacle(GeometryMapItemWithLevel):
         verbose_name_plural = _('Obstacles')
         default_related_name = 'obstacles'
 
-    @classmethod
-    def fromfile(cls, data, file_path):
-        kwargs = super().fromfile(data, file_path)
-
-        if 'crop_to_level' in data:
-            kwargs['crop_to_level'] = data['crop_to_level']
-
-        return kwargs
-
     def get_geojson_properties(self):
         result = super().get_geojson_properties()
-        if self.crop_to_level is not None:
-            result['crop_to_level'] = self.crop_to_level.name
-        return result
-
-    def tofile(self, form=None):
-        result = super().tofile()
         if self.crop_to_level is not None:
             result['crop_to_level'] = self.crop_to_level.name
         return result
@@ -285,23 +221,8 @@ class LineObstacle(GeometryMapItemWithLevel):
         result['original_geometry'] = original_geometry
         return result
 
-    @classmethod
-    def fromfile(cls, data, file_path):
-        kwargs = super().fromfile(data, file_path)
-
-        if 'width' not in data:
-            raise ValueError('missing width.')
-        kwargs['width'] = data['width']
-
-        return kwargs
-
     def get_geojson_properties(self):
         result = super().get_geojson_properties()
-        result['width'] = float(self.width)
-        return result
-
-    def tofile(self, form=None):
-        result = super().tofile()
         result['width'] = float(self.width)
         return result
 
@@ -318,30 +239,9 @@ class LevelConnector(GeometryMapItem):
         verbose_name_plural = _('Level Connectors')
         default_related_name = 'levelconnectors'
 
-    @classmethod
-    def fromfile(cls, data, file_path):
-        kwargs = super().fromfile(data, file_path)
-
-        if 'levels' not in data:
-            raise ValueError('missing levels.')
-        levels = data.get('levels', None)
-        if not isinstance(levels, list):
-            raise TypeError('levels has to be a list')
-        if len(levels) < 2:
-            raise ValueError('a level connector needs at least two levels')
-        kwargs['levels'] = levels
-
-        return kwargs
-
     def get_geojson_properties(self):
         result = super().get_geojson_properties()
         result['levels'] = tuple(self.levels.all().order_by('name').values_list('name', flat=True))
-        return result
-
-    def tofile(self, form=None):
-        result = super().tofile()
-        result['levels'] = sorted(self.levels.all().order_by('name').values_list('name', flat=True))
-        result.move_to_end('geometry')
         return result
 
 
@@ -389,31 +289,6 @@ class ElevatorLevel(GeometryMapItemWithLevel):
         result = super().get_geojson_properties()
         result['elevator'] = self.elevator.name
         result['button'] = self.button
-        return result
-
-    @classmethod
-    def fromfile(cls, data, file_path):
-        kwargs = super().fromfile(data, file_path)
-
-        if 'elevator' not in data:
-            raise ValueError('missing elevator.')
-        kwargs['elevator'] = data['elevator']
-
-        if 'button' not in data:
-            raise ValueError('missing button.')
-        kwargs['button'] = data['button']
-
-        if 'override_altitude' in data:
-            kwargs['override_altitude'] = data['override_altitude']
-
-        return kwargs
-
-    def tofile(self, form=None):
-        result = super().tofile()
-        result['elevator'] = self.elevator.name
-        result['button'] = self.button
-        if self.override_altitude is not None:
-            result['override_altitude'] = float(self.override_altitude)
         return result
 
     @cached_property
