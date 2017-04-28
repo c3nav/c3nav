@@ -2,6 +2,8 @@
 
 indoor navigation for chaos and other events. See it live at [c3nav.de](https://c3nav.de/).
 
+**c3nav is currently in development. for the last stable version checkout the commit tagged `33c3`.**
+
 ## Installation
 
 - [Manually](doc/manual.md)
