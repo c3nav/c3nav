@@ -218,16 +218,6 @@ class Escalator(GeometryMapItemWithLevel):
         return result
 
 
-class EscalatorSlope(DirectedLineGeometryMapItemWithLevel):
-    """
-    An escalator slope, indicating which side of the escalator is up
-    """
-    class Meta:
-        verbose_name = _('Escalator Slope')
-        verbose_name_plural = _('Escalator Slopes')
-        default_related_name = 'escalatorslopes'
-
-
 class Stair(DirectedLineGeometryMapItemWithLevel):
     """
     A stair
@@ -236,16 +226,6 @@ class Stair(DirectedLineGeometryMapItemWithLevel):
         verbose_name = _('Stair')
         verbose_name_plural = _('Stairs')
         default_related_name = 'stairs'
-
-
-class OneWay(DirectedLineGeometryMapItemWithLevel):
-    """
-    A one way obstacle
-    """
-    class Meta:
-        verbose_name = _('Oneway')
-        verbose_name_plural = _('Oneways')
-        default_related_name = 'oneways'
 
 
 class Obstacle(GeometryMapItemWithLevel):
