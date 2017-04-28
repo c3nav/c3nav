@@ -33,25 +33,6 @@ class MapItem(models.Model, metaclass=MapItemMeta):
             return self.titles[lang]
         return next(iter(self.titles.values())) if self.titles else self.name
 
-    @classmethod
-    def get_path_prefix(cls):
-        return cls._meta.default_related_name + '/'
-
-    @classmethod
-    def get_path_regex(cls):
-        return r'^' + cls.get_path_prefix()
-
-    def get_filename(self):
-        return self._meta.default_related_name + '/' + self.name + '.json'
-
-    @classmethod
-    def fromfile(cls, data, file_path):
-        kwargs = {}
-        return kwargs
-
-    def tofile(self, form=None):
-        return OrderedDict()
-
     def save(self, *args, **kwargs):
         with set_last_mapdata_update():
             super().save(*args, **kwargs)

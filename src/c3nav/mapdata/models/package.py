@@ -1,5 +1,3 @@
-from collections import OrderedDict
-
 from django.conf import settings
 from django.db import models
 from django.utils.translation import ugettext_lazy as _
@@ -29,13 +27,6 @@ class Package(models.Model):
         verbose_name_plural = _('Map Packages')
         default_related_name = 'packages'
 
-    @classmethod
-    def get_path_regex(cls):
-        return '^package.json$'
-
-    def get_filename(self):
-        return 'package.json'
-
     @property
     def package(self):
         return self
@@ -49,51 +40,6 @@ class Package(models.Model):
     @property
     def public(self):
         return self.name in settings.PUBLIC_PACKAGES
-
-    @classmethod
-    def fromfile(cls, data, file_path):
-        kwargs = {}
-
-        if 'name' not in data:
-            raise ValueError('missing package name.')
-        kwargs['name'] = data['name']
-
-        depends = data.get('depends', [])
-        if not isinstance(depends, list):
-            raise TypeError('depends has to be a list')
-        kwargs['depends'] = depends
-
-        kwargs['home_repo'] = data['home_repo'] if 'home_repo' in data else None
-
-        if 'bounds' in data:
-            bounds = data['bounds']
-            if len(bounds) != 2 or len(bounds[0]) != 2 or len(bounds[1]) != 2:
-                raise ValueError('Invalid bounds format.')
-            if not all(isinstance(i, (float, int)) for i in sum(bounds, [])):
-                raise ValueError('All bounds coordinates have to be int or float.')
-            if bounds[0][0] >= bounds[1][0] or bounds[0][1] >= bounds[1][1]:
-                raise ValueError('bounds: lower coordinate has to be first.')
-        else:
-            bounds = (None, None), (None, None)
-        (kwargs['bottom'], kwargs['left']), (kwargs['top'], kwargs['right']) = bounds
-
-        return kwargs
-
-    # noinspection PyMethodMayBeStatic
-    def tofilename(self):
-        return 'package.json'
-
-    def tofile(self, form=None):
-        data = OrderedDict()
-        data['name'] = self.name
-        if self.home_repo is not None:
-            data['home_repo'] = self.home_repo
-        if self.depends.exists():
-            data['depends'] = sorted(self.depends.all().order_by('name').values_list('name', flat=True))
-        if self.bottom is not None:
-            data['bounds'] = ((float(self.bottom), float(self.left)), (float(self.top), float(self.right)))
-
-        return data
 
     def save(self, *args, **kwargs):
         with set_last_mapdata_update():
