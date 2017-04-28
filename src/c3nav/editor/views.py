@@ -11,7 +11,6 @@ from c3nav.editor.hosters import get_hoster_for_package, hosters
 from c3nav.mapdata.models import AreaLocation
 from c3nav.mapdata.models.base import MAPITEM_TYPES
 from c3nav.mapdata.models.package import Package
-from c3nav.mapdata.packageio.write import json_encode
 
 
 def list_mapitemtypes(request, level):
@@ -131,7 +130,8 @@ def edit_mapitem(request, mapitem_type, name=None):
                         mapitem.titles[language] = title
 
             if not settings.DIRECT_EDITING:
-                content = json_encode(mapitem.tofile(form=form))
+                # todo: suggest changes
+                content = ''
                 with translation.override('en'):
                     commit_msg = '%s %s: %s' % (commit_type, mapitemtype._meta.verbose_name, mapitem.title)
                 return render(request, 'editor/mapitem_success.html', {
