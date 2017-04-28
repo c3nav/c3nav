@@ -17,8 +17,3 @@ script:
     - isort -c -rc .
     - python manage.py collectstatic --noinput
     - python manage.py compress
-
-notifications:
-    webhooks:
-        urls:
-            - https://hooks.c3nav.de
