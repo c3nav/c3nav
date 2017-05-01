@@ -118,6 +118,7 @@ class AreaLocation(LocationModelMixin, GeometryMapItemWithLevel):
     location_type = models.CharField(max_length=20, choices=LOCATION_TYPES, verbose_name=_('Location Type'))
     titles = JSONField()
     groups = models.ManyToManyField(LocationGroup, verbose_name=_('Location Groups'), blank=True)
+    public = models.BooleanField(verbose_name=_('public'))
 
     can_search = models.BooleanField(default=True, verbose_name=_('can be searched'))
     can_describe = models.BooleanField(default=True, verbose_name=_('can be used to describe a position'))
