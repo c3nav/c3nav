@@ -115,6 +115,7 @@ class Room(GeometryMapItemWithLevel):
     An accessible area like a room. Can overlap.
     """
     geomtype = 'polygon'
+    public = models.BooleanField(verbose_name=_('public'))
 
     class Meta:
         verbose_name = _('Room')
@@ -127,6 +128,7 @@ class Outside(GeometryMapItemWithLevel):
     An accessible outdoor area like a court. Can overlap.
     """
     geomtype = 'polygon'
+    public = models.BooleanField(verbose_name=_('public'))
 
     class Meta:
         verbose_name = _('Outside Area')
@@ -277,6 +279,7 @@ class ElevatorLevel(GeometryMapItemWithLevel):
     button = models.SlugField(_('Button label'), max_length=10)
     override_altitude = models.DecimalField(_('override level altitude'),
                                             blank=True, null=True, max_digits=6, decimal_places=2)
+    public = models.BooleanField(verbose_name=_('public'))
 
     geomtype = 'polygon'
 
