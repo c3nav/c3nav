@@ -1,11 +1,8 @@
 import hashlib
 import json
 import mimetypes
-import os
 from collections import OrderedDict
 
-from django.conf import settings
-from django.core.files import File
 from django.http import Http404, HttpResponse, HttpResponseNotModified
 from rest_framework.decorators import detail_route, list_route
 from rest_framework.response import Response
@@ -156,9 +153,7 @@ class SourceViewSet(CachedReadOnlyViewSetMixin, ReadOnlyModelViewSet):
     def _image(self, request, name=None):
         source = self.get_object()
         response = HttpResponse(content_type=mimetypes.guess_type(source.name)[0])
-        image_path = os.path.join(settings.MAP_ROOT, source.package.directory, 'sources', source.name)
-        for chunk in File(open(image_path, 'rb')).chunks():
-            response.write(chunk)
+        response.write(source.image)
         return response
 
 

@@ -12,6 +12,7 @@ class Source(MapItem):
     left = models.DecimalField(_('left coordinate'), max_digits=6, decimal_places=2)
     top = models.DecimalField(_('top coordinate'), max_digits=6, decimal_places=2)
     right = models.DecimalField(_('right coordinate'), max_digits=6, decimal_places=2)
+    image = models.BinaryField(_('image data'))  # todo migrate to better storage
 
     class Meta:
         verbose_name = _('Source')
