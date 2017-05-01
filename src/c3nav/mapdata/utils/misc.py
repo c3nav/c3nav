@@ -1,21 +1,16 @@
 import os
 
 from django.conf import settings
-from django.db.models import Max, Min
 from shapely.geometry import box
 from shapely.ops import cascaded_union
 
-from c3nav.mapdata.models import Package
 from c3nav.mapdata.utils.cache import cache_result
 
 
 @cache_result('c3nav__mapdata__dimensions')
 def get_dimensions():
-    aggregate = Package.objects.all().aggregate(Max('right'), Min('left'), Max('top'), Min('bottom'))
-    return (
-        float(aggregate['right__max'] - aggregate['left__min']),
-        float(aggregate['top__max'] - aggregate['bottom__min']),
-    )
+    # todo calculate this
+    return (400, 240)
 
 
 @cache_result('c3nav__mapdata__render_dimensions')

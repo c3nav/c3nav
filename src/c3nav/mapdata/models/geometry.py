@@ -37,7 +37,6 @@ class GeometryMapItem(MapItem, metaclass=GeometryMapItemMeta):
         return OrderedDict((
             ('type', self.__class__.__name__.lower()),
             ('name', self.name),
-            ('package', self.package.name),
         ))
 
     def to_geojson(self):
@@ -122,6 +121,11 @@ class Room(GeometryMapItemWithLevel):
         verbose_name_plural = _('Rooms')
         default_related_name = 'rooms'
 
+    def get_geojson_properties(self):
+        result = super().get_geojson_properties()
+        result['public'] = self.public
+        return result
+
 
 class Outside(GeometryMapItemWithLevel):
     """
@@ -134,6 +138,11 @@ class Outside(GeometryMapItemWithLevel):
         verbose_name = _('Outside Area')
         verbose_name_plural = _('Outside Areas')
         default_related_name = 'outsides'
+
+    def get_geojson_properties(self):
+        result = super().get_geojson_properties()
+        result['public'] = self.public
+        return result
 
 
 class StuffedArea(GeometryMapItemWithLevel):
@@ -290,6 +299,7 @@ class ElevatorLevel(GeometryMapItemWithLevel):
 
     def get_geojson_properties(self):
         result = super().get_geojson_properties()
+        result['public'] = self.public
         result['elevator'] = self.elevator.name
         result['button'] = self.button
         return result

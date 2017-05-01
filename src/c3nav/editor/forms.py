@@ -4,13 +4,9 @@ from collections import OrderedDict
 
 from django.conf import settings
 from django.forms import CharField, ModelForm, ValidationError
-from django.forms.models import ModelChoiceField
 from django.forms.widgets import HiddenInput
 from django.utils.translation import ugettext_lazy as _
 from shapely.geometry.geo import mapping
-
-from c3nav.access.apply import get_unlocked_packages
-from c3nav.mapdata.models import Package
 
 
 class MapitemFormMixin(ModelForm):
@@ -25,24 +21,6 @@ class MapitemFormMixin(ModelForm):
 
         if creating:
             self.fields['name'].initial = hex(int(time.time()*1000000))[2:]
-
-        # restrict package choices and field_name
-        if not creating:
-            if not settings.DIRECT_EDITING:
-                self.fields['package'].widget = HiddenInput()
-                self.fields['package'].disabled = True
-            self.initial['package'] = self.instance.package.name
-        elif not settings.DIRECT_EDITING:
-            unlocked_packages = get_unlocked_packages(request)
-            if len(unlocked_packages) == 1:
-                self.fields['package'].widget = HiddenInput()
-                self.fields['package'].initial = next(iter(unlocked_packages))
-                self.fields['package'].disabled = True
-            else:
-                self.fields['package'] = ModelChoiceField(
-                    queryset=Package.objects.filter(name__in=unlocked_packages),
-                )
-        self.fields['package'].to_field_name = 'name'
 
         if 'level' in self.fields:
             # hide level widget and set field_name
@@ -107,7 +85,7 @@ class MapitemFormMixin(ModelForm):
 
 
 def create_editor_form(mapitemtype):
-    possible_fields = ['name', 'package', 'altitude', 'level', 'intermediate', 'levels', 'geometry', 'direction',
+    possible_fields = ['name', 'public', 'altitude', 'level', 'intermediate', 'levels', 'geometry', 'direction',
                        'elevator', 'button', 'crop_to_level', 'width', 'groups', 'override_altitude', 'color',
                        'location_type', 'can_search', 'can_describe', 'routing_inclusion', 'compiled_room', 'bssids']
     existing_fields = [field.name for field in mapitemtype._meta.get_fields() if field.name in possible_fields]

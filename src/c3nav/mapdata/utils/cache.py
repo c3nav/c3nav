@@ -60,16 +60,8 @@ def cache_mapdata_api_response(timeout=900):
 
 
 class CachedReadOnlyViewSetMixin():
-    include_package_access = False
-
-    def _get_unlocked_packages_ids(self, request):
-        from c3nav.access.apply import get_unlocked_packages
-        return ','.join(str(i) for i in sorted(package.id for package in get_unlocked_packages(request)))
-
     def _get_add_cache_key(self, request, add_cache_key=''):
         cache_key = add_cache_key
-        if self.include_package_access:
-            cache_key += '__'+self._get_unlocked_packages_ids(request)
         return cache_key
 
     def list(self, request, *args, **kwargs):
@@ -93,12 +85,6 @@ class CachedReadOnlyViewSetMixin():
 def get_levels_cached():
     from c3nav.mapdata.models import Level
     return OrderedDict((level.name, level) for level in Level.objects.all())
-
-
-@cache_result('c3nav__mapdata__packages')
-def get_packages_cached():
-    from c3nav.mapdata.models import Package
-    return {package.name: package for package in Package.objects.all()}
 
 
 @cache_result('c3nav__mapdata__bssids')

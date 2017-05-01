@@ -20,7 +20,6 @@ class MapItemMeta(ModelBase):
 
 class MapItem(models.Model, metaclass=MapItemMeta):
     name = models.SlugField(_('Name'), unique=True, max_length=50)
-    package = models.ForeignKey('mapdata.Package', on_delete=models.CASCADE, verbose_name=_('map package'))
 
     EditorForm = None
 

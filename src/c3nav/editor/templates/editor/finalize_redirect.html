@@ -1,9 +1,0 @@
-{% extends 'editor/base.html' %}
-{% load static %}
-{% block content %}
-<form action="{% url 'editor.finalize' %}" method="POST" id="finalize-redirect">
-    {% csrf_token %}
-    <img src="{% static 'img/loader.gif' %}">
-    Redirecting…
-</form>
-{% endblock %}
