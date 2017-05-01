@@ -10,7 +10,6 @@ from scipy.sparse.csgraph._shortest_path import shortest_path
 from scipy.sparse.csgraph._tools import csgraph_from_dense
 from shapely.geometry import CAP_STYLE, JOIN_STYLE, LineString
 
-from c3nav.access.apply import get_public_packages
 from c3nav.mapdata.utils.geometry import assert_multilinestring, assert_multipolygon
 from c3nav.mapdata.utils.misc import get_public_private_area
 from c3nav.routing.point import GraphPoint
@@ -125,13 +124,11 @@ class GraphLevel():
                 self.rooms.append(room)
 
     def collect_arealocations(self):
-        public_packages = get_public_packages()
-
         self._built_arealocations = {}
         self._built_excludables = {}
         for excludable in self.level.arealocations.all():
             self._built_arealocations[excludable.name] = excludable.geometry
-            if excludable.routing_inclusion != 'default' or excludable.package not in public_packages:
+            if excludable.routing_inclusion != 'default' or not excludable.public:
                 self._built_excludables[excludable.name] = excludable.geometry
 
         public_area, private_area = get_public_private_area(self.level)

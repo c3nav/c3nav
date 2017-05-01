@@ -31,68 +31,12 @@ editor = {
 
         editor.init_geometries();
         editor.init_sidebar();
-        editor.get_packages();
         editor.get_sources();
         editor.get_levels();
-    },
 
-    // packages
-    packages: {},
-    _shown_packages: [],
-    _packages_control: null,
-    get_packages: function() {
-        editor._packages_control = L.control.layers().addTo(editor.map);
-        $(editor._packages_control._layersLink).text('Packages');
-
-        // load packages
-        $.getJSON('/api/packages/', function (packages) {
-            var bounds = [[0, 0], [0, 0]];
-            var pkg, layer;
-            for (var i = 0; i < packages.length; i++) {
-                pkg = packages[i];
-                editor.packages[pkg.name] = pkg;
-
-                layer = L.circle([-200, -200], 0.1);
-                layer._c3nav_package = pkg.name;
-                layer.on('add', editor._add_package_layer);
-                layer.on('remove', editor._remove_package_layer);
-                layer.addTo(editor.map);
-                editor._packages_control.addOverlay(layer, pkg.name);
-                editor._shown_packages.push(pkg.name);
-
-                if (pkg.bounds === null) continue;
-                bounds = [[Math.min(bounds[0][0], pkg.bounds[0][0]), Math.min(bounds[0][1], pkg.bounds[0][1])],
-                    [Math.max(bounds[1][0], pkg.bounds[1][0]), Math.max(bounds[1][1], pkg.bounds[1][1])]];
-            }
-            editor.map.setMaxBounds(bounds);
-            editor.map.fitBounds(bounds, {padding: [30, 50]});
-        });
-    },
-    _add_package_layer: function(e) {
-        var pkg = e.target._c3nav_package;
-        var i =  editor._shown_packages.indexOf(pkg);
-        if (i == -1) {
-            if (editor._loading_geometry) {
-                e.target.remove();
-                return;
-            }
-            editor._loading_geometry = true;
-            editor._shown_packages.push(pkg);
-            editor.get_geometries();
-        }
-    },
-    _remove_package_layer: function(e) {
-        var pkg = e.target._c3nav_package;
-        var i =  editor._shown_packages.indexOf(pkg);
-        if (i > -1) {
-            if (editor._loading_geometry) {
-                e.target.addTo(map);
-                return;
-            }
-            editor._loading_geometry = true;
-            editor._shown_packages.splice(i, 1);
-            editor.get_geometries();
-        }
+        bounds = [[0.0, 0.0], [240.0, 400.0]];
+        editor.map.setMaxBounds(bounds);
+        editor.map.fitBounds(bounds, {padding: [30, 50]});
     },
 
     // sources
@@ -256,11 +200,7 @@ editor = {
                 geometrytypes += '&type=' + editor._geometry_types[i];
             }
         }
-        packages = '';
-        for (var i = 0; i < editor._shown_packages.length; i++) {
-            packages += '&package=' + editor._shown_packages[i];
-        }
-        $.getJSON('/api/geometries/?level='+String(editor._level)+geometrytypes+packages, function(geometries) {
+        $.getJSON('/api/geometries/?level='+String(editor._level)+geometrytypes, function(geometries) {
             editor._geometries_layer = L.geoJSON(geometries, {
                 style: editor._get_geometry_style,
                 onEachFeature: editor._register_geojson_feature
@@ -394,13 +334,6 @@ editor = {
         id_name.focus();
         if (mapeditcontrols.find('[data-new]').length) {
             id_name.select();
-        }
-
-        var package_field = mapeditcontrols.find('select[name=package]');
-        if (package_field.length) {
-            if (package_field.val() === '' && editor._shown_packages.length == 1) {
-                package_field.val(editor._shown_packages[0]);
-            }
         }
 
         var geometry_field = mapeditcontrols.find('input[name=geometry]');

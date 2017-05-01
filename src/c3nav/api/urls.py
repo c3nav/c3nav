@@ -7,12 +7,9 @@ from rest_framework.generics import GenericAPIView
 from rest_framework.response import Response
 from rest_framework.routers import SimpleRouter
 
-from c3nav.editor.api import HosterViewSet, SubmitTaskViewSet
-from c3nav.mapdata.api import (GeometryTypeViewSet, GeometryViewSet, LevelViewSet, LocationViewSet, PackageViewSet,
-                               SourceViewSet)
+from c3nav.mapdata.api import (GeometryTypeViewSet, GeometryViewSet, LevelViewSet, LocationViewSet, SourceViewSet)
 
 router = SimpleRouter()
-router.register(r'packages', PackageViewSet)
 router.register(r'levels', LevelViewSet)
 router.register(r'sources', SourceViewSet)
 
@@ -20,9 +17,6 @@ router.register(r'geometrytypes', GeometryTypeViewSet, base_name='geometrytype')
 router.register(r'geometries', GeometryViewSet, base_name='geometry')
 
 router.register(r'locations', LocationViewSet, base_name='location')
-
-router.register(r'hosters', HosterViewSet, base_name='hoster')
-router.register(r'submittasks', SubmitTaskViewSet, base_name='submittask')
 
 
 class APIRoot(GenericAPIView):

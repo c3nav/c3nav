@@ -1,9 +1,0 @@
-{% extends 'editor/base.html' %}
-{% load static %}
-{% block content %}
-<form action="{% url 'editor.finalize' %}" method="POST" name="redirect">
-    {% csrf_token %}
-    <input type="hidden" name="data" value="{{ data }}">
-    Redirecting…
-</form>
-{% endblock %}

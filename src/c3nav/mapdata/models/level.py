@@ -55,14 +55,11 @@ class LevelGeometries():
         self.level = level
         self.only_public = only_public
 
-        from c3nav.access.apply import get_public_packages
-        self.public_packages = get_public_packages()
-
     def query(self, name):
         queryset = getattr(self.level, name)
         if not self.only_public:
             return queryset.all()
-        return queryset.filter(package__in=self.public_packages)
+        return queryset.filter(public=True)
 
     @cached_property
     def raw_rooms(self):

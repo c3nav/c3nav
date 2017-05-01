@@ -109,7 +109,7 @@ class AreaLocation(LocationModelMixin, GeometryMapItemWithLevel):
     )
     LOCATION_TYPES_ORDER = tuple(name for name, title in LOCATION_TYPES)
     ROUTING_INCLUSIONS = (
-        ('default', _('Default, include if map package is unlocked')),
+        ('default', _('Default, include it is unlocked')),
         ('allow_avoid', _('Included, but allow excluding')),
         ('allow_include', _('Avoided, but allow including')),
         ('needs_permission', _('Excluded, needs permission to include')),
