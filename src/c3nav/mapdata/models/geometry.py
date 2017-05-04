@@ -109,35 +109,32 @@ class Building(GeometryMapItemWithLevel):
         default_related_name = 'buildings'
 
 
-class Room(GeometryMapItemWithLevel):
+class Area(GeometryMapItemWithLevel):
     """
-    An accessible area like a room. Can overlap.
-    """
-    geomtype = 'polygon'
-    public = models.BooleanField(verbose_name=_('public'))
-
-    class Meta:
-        verbose_name = _('Room')
-        verbose_name_plural = _('Rooms')
-        default_related_name = 'rooms'
-
-    def get_geojson_properties(self):
-        result = super().get_geojson_properties()
-        result['public'] = self.public
-        return result
-
-
-class Outside(GeometryMapItemWithLevel):
-    """
-    An accessible outdoor area like a court. Can overlap.
+    An accessible area. Shouldn't overlap.
     """
     geomtype = 'polygon'
+
+    CATEGORIES = (
+        ('', _('normal')),
+        ('stairs', _('stairs')),
+        ('escalator', _('escalator')),
+        ('elevator', _('elevator')),
+    )
+    LAYERS = (
+        ('', _('normal')),
+        ('upper', _('upper')),
+        ('lowerr', _('lower')),
+    )
+
     public = models.BooleanField(verbose_name=_('public'))
+    categories = models.CharField(verbose_name=_('category'), choices=CATEGORIES, max_length=16)
+    layer = models.CharField(verbose_name=_('layer'), choices=LAYERS, max_length=16)
 
     class Meta:
-        verbose_name = _('Outside Area')
-        verbose_name_plural = _('Outside Areas')
-        default_related_name = 'outsides'
+        verbose_name = _('Area')
+        verbose_name_plural = _('Areas')
+        default_related_name = 'areas'
 
     def get_geojson_properties(self):
         result = super().get_geojson_properties()
