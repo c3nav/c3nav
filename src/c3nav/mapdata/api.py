@@ -1,8 +1,8 @@
-import hashlib
 import json
 import mimetypes
-from collections import OrderedDict
 
+import hashlib
+from collections import OrderedDict
 from django.http import Http404, HttpResponse, HttpResponseNotModified
 from rest_framework.decorators import detail_route, list_route
 from rest_framework.response import Response
@@ -11,7 +11,7 @@ from rest_framework.viewsets import ReadOnlyModelViewSet, ViewSet
 from c3nav.access.apply import filter_arealocations_by_access, filter_queryset_by_access
 from c3nav.mapdata.lastupdate import get_last_mapdata_update
 from c3nav.mapdata.models import GEOMETRY_MAPITEM_TYPES, AreaLocation, Level, LocationGroup, Source
-from c3nav.mapdata.models.geometry import DirectedLineGeometryMapItemWithLevel
+from c3nav.mapdata.models.geometry import Stair
 from c3nav.mapdata.search import get_location
 from c3nav.mapdata.serializers.main import LevelSerializer, SourceSerializer
 from c3nav.mapdata.utils.cache import (CachedReadOnlyViewSetMixin, cache_mapdata_api_response, get_bssid_areas_cached,
@@ -91,7 +91,7 @@ class GeometryViewSet(ViewSet):
             if issubclass(mapitemtype, AreaLocation):
                 queryset = sorted(queryset, key=AreaLocation.get_sort_key)
 
-            if issubclass(mapitemtype, DirectedLineGeometryMapItemWithLevel):
+            if issubclass(mapitemtype, Stair):
                 results.extend(obj.to_shadow_geojson() for obj in queryset)
 
             results.extend(obj.to_geojson() for obj in queryset)
