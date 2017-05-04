@@ -68,6 +68,23 @@ class GeometryMapItemWithLevel(GeometryMapItem):
         return result
 
 
+class GeometryMapItemWithArea(GeometryMapItem):
+    """
+    A map feature
+    """
+    level = models.ForeignKey('mapdata.Level', on_delete=models.CASCADE, verbose_name=_('level'))
+    area = models.ForeignKey('mapdata.Area', on_delete=models.CASCADE, verbose_name=_('area'))
+
+    class Meta:
+        abstract = True
+
+    def get_geojson_properties(self):
+        result = super().get_geojson_properties()
+        result['level'] = self.level.name
+        result['area'] = self.area.name
+        return result
+
+
 class Building(GeometryMapItemWithLevel):
     """
     The outline of a building on a specific level
@@ -113,7 +130,7 @@ class Area(GeometryMapItemWithLevel):
         return result
 
 
-class StuffedArea(GeometryMapItemWithLevel):
+class StuffedArea(GeometryMapItemWithArea):
     """
     A slow area with many tables or similar. Avoid it from routing by slowing it a bit down
     """
@@ -125,7 +142,7 @@ class StuffedArea(GeometryMapItemWithLevel):
         default_related_name = 'stuffedareas'
 
 
-class Escalator(GeometryMapItemWithLevel):
+class Escalator(GeometryMapItemWithArea):
     """
     An escalator area
     """
@@ -148,7 +165,7 @@ class Escalator(GeometryMapItemWithLevel):
         return result
 
 
-class Stair(GeometryMapItemWithLevel):
+class Stair(GeometryMapItemWithArea):
     """
     A stair
     """
@@ -182,7 +199,7 @@ class Stair(GeometryMapItemWithLevel):
         ))
 
 
-class Obstacle(GeometryMapItemWithLevel):
+class Obstacle(GeometryMapItemWithArea):
     """
     An obstacle
     """
@@ -203,7 +220,7 @@ class Obstacle(GeometryMapItemWithLevel):
         return result
 
 
-class LineObstacle(GeometryMapItemWithLevel):
+class LineObstacle(GeometryMapItemWithArea):
     """
     An obstacle that is a line with a specific width
     """
@@ -216,11 +233,14 @@ class LineObstacle(GeometryMapItemWithLevel):
         verbose_name_plural = _('Line Obstacles')
         default_related_name = 'lineobstacles'
 
+    @property
+    def buffered_geometry(self):
+        return self.geometry.buffer(self.width / 2, join_style=JOIN_STYLE.mitre, cap_style=CAP_STYLE.flat)
+
     def to_geojson(self):
         result = super().to_geojson()
         original_geometry = result['geometry']
-        draw = self.geometry.buffer(self.width/2, join_style=JOIN_STYLE.mitre, cap_style=CAP_STYLE.flat)
-        result['geometry'] = format_geojson(mapping(draw))
+        result['geometry'] = format_geojson(mapping(self.buffered_geometry))
         result['original_geometry'] = original_geometry
         return result
 
