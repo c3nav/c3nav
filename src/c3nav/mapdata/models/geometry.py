@@ -235,24 +235,6 @@ class LineObstacle(GeometryMapItemWithLevel):
         return result
 
 
-class LevelConnector(GeometryMapItem):
-    """
-    A connector connecting levels
-    """
-    geomtype = 'polygon'
-    levels = models.ManyToManyField('mapdata.Level', verbose_name=_('levels'))
-
-    class Meta:
-        verbose_name = _('Level Connector')
-        verbose_name_plural = _('Level Connectors')
-        default_related_name = 'levelconnectors'
-
-    def get_geojson_properties(self):
-        result = super().get_geojson_properties()
-        result['levels'] = tuple(self.levels.all().order_by('name').values_list('name', flat=True))
-        return result
-
-
 class Door(GeometryMapItemWithLevel):
     """
     A connection between two rooms

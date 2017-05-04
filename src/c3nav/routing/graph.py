@@ -9,7 +9,6 @@ from scipy.sparse.csgraph._shortest_path import shortest_path
 from scipy.sparse.csgraph._tools import csgraph_from_dense
 
 from c3nav.mapdata.models import Elevator, Level
-from c3nav.mapdata.models.geometry import LevelConnector
 from c3nav.mapdata.models.locations import AreaLocation, Location, LocationGroup, PointLocation
 from c3nav.routing.connection import GraphConnection
 from c3nav.routing.exceptions import AlreadyThere, NoRouteFound, NotYetRoutable
@@ -90,6 +89,7 @@ class Graph:
         self._built_elevatorlevel_points[elevatorlevel.name] = point
 
     def connect_levelconnectors(self):
+        from c3nav.mapdata.models.geometry import LevelConnector
         for levelconnector in LevelConnector.objects.all():
             center = levelconnector.geometry.centroid
             points = self._built_levelconnector_points.get(levelconnector.name, [])
