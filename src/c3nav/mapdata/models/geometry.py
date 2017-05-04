@@ -128,7 +128,7 @@ class Area(GeometryMapItemWithLevel):
     )
 
     public = models.BooleanField(verbose_name=_('public'))
-    categories = models.CharField(verbose_name=_('category'), choices=CATEGORIES, max_length=16)
+    category = models.CharField(verbose_name=_('category'), choices=CATEGORIES, max_length=16)
     layer = models.CharField(verbose_name=_('layer'), choices=LAYERS, max_length=16)
 
     class Meta:
