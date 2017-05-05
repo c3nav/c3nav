@@ -79,6 +79,8 @@ class Area(LevelFeature):
 
     def get_geojson_properties(self):
         result = super().get_geojson_properties()
+        result['category'] = self.category
+        result['layer'] = self.layer
         result['public'] = self.public
         return result
 
@@ -93,29 +95,6 @@ class StuffedArea(AreaFeature):
         verbose_name = _('Stuffed Area')
         verbose_name_plural = _('Stuffed Areas')
         default_related_name = 'stuffedareas'
-
-
-class Escalator(AreaFeature):
-    """
-    An escalator area
-    """
-    DIRECTIONS = (
-        (True, _('up')),
-        (False, _('down')),
-    )
-    direction = models.BooleanField(verbose_name=_('direction'), choices=DIRECTIONS)
-
-    geomtype = 'polygon'
-
-    class Meta:
-        verbose_name = _('Escalator')
-        verbose_name_plural = _('Escalators')
-        default_related_name = 'escalators'
-
-    def get_geojson_properties(self):
-        result = super().get_geojson_properties()
-        result['direction'] = 'up' if self.direction else 'down'
-        return result
 
 
 class Stair(AreaFeature):
@@ -146,7 +125,7 @@ class Stair(AreaFeature):
                 ('type', 'shadow'),
                 ('original_type', self.__class__.__name__.lower()),
                 ('original_name', self.name),
-                ('level', self.level.name),
+                ('area', self.area.name),
             ))),
             ('geometry', format_geojson(mapping(shadow), round=False)),
         ))
@@ -156,21 +135,12 @@ class Obstacle(AreaFeature):
     """
     An obstacle
     """
-    crop_to_level = models.ForeignKey('mapdata.Level', on_delete=models.CASCADE, null=True, blank=True,
-                                      verbose_name=_('crop to other level'), related_name='crops_obstacles')
-
     geomtype = 'polygon'
 
     class Meta:
         verbose_name = _('Obstacle')
         verbose_name_plural = _('Obstacles')
         default_related_name = 'obstacles'
-
-    def get_geojson_properties(self):
-        result = super().get_geojson_properties()
-        if self.crop_to_level is not None:
-            result['crop_to_level'] = self.crop_to_level.name
-        return result
 
 
 class LineObstacle(AreaFeature):
