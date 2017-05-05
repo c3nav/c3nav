@@ -15,7 +15,6 @@ class Level(Feature):
     name = models.SlugField(_('level name'), unique=True, max_length=50,
                             help_text=_('Usually just an integer (e.g. -1, 0, 1, 2)'))
     altitude = models.DecimalField(_('level altitude'), null=False, unique=True, max_digits=6, decimal_places=2)
-    intermediate = models.BooleanField(_('intermediate level'))
 
     class Meta:
         verbose_name = _('Level')
