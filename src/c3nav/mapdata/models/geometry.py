@@ -1,11 +1,9 @@
 from collections import OrderedDict
 from django.db import models
-from django.utils.functional import cached_property
 from django.utils.translation import ugettext_lazy as _
 from shapely.geometry import CAP_STYLE, JOIN_STYLE
 from shapely.geometry.geo import mapping
 
-from c3nav.mapdata.models import Elevator
 from c3nav.mapdata.models.base import GeometryFeature
 from c3nav.mapdata.utils.json import format_geojson
 
@@ -227,34 +225,3 @@ class Hole(LevelFeature):
         verbose_name = _('Hole')
         verbose_name_plural = _('Holes')
         default_related_name = 'holes'
-
-
-class ElevatorLevel(LevelFeature):
-    """
-    An elevator Level
-    """
-    elevator = models.ForeignKey(Elevator, on_delete=models.PROTECT)
-    button = models.SlugField(_('Button label'), max_length=10)
-    override_altitude = models.DecimalField(_('override level altitude'),
-                                            blank=True, null=True, max_digits=6, decimal_places=2)
-    public = models.BooleanField(verbose_name=_('public'))
-
-    geomtype = 'polygon'
-
-    class Meta:
-        verbose_name = _('Elevator Level')
-        verbose_name_plural = _('Elevator Levels')
-        default_related_name = 'elevatorlevels'
-
-    def get_geojson_properties(self):
-        result = super().get_geojson_properties()
-        result['public'] = self.public
-        result['elevator'] = self.elevator.name
-        result['button'] = self.button
-        return result
-
-    @cached_property
-    def altitude(self):
-        if self.override_altitude is not None:
-            return self.override_altitude
-        return self.level.altitude
