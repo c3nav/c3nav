@@ -4,6 +4,7 @@ import mimetypes
 import hashlib
 from collections import OrderedDict
 from django.http import Http404, HttpResponse, HttpResponseNotModified
+from django.shortcuts import get_object_or_404
 from rest_framework.decorators import detail_route, list_route
 from rest_framework.response import Response
 from rest_framework.viewsets import ReadOnlyModelViewSet, ViewSet
@@ -48,10 +49,7 @@ class GeometryViewSet(ViewSet):
 
         level = None
         if 'level' in request.GET:
-            levels_cached = get_levels_cached()
-            level_name = request.GET['level']
-            if level_name in levels_cached:
-                level = levels_cached[level_name]
+            level = get_object_or_404(Level, id=request.GET['level'])
 
         cache_key = '__'.join((
             ','.join([str(i) for i in types]),
@@ -78,7 +76,7 @@ class GeometryViewSet(ViewSet):
                 else:
                     queryset = queryset.none()
             queryset = filter_queryset_by_access(request, queryset)
-            queryset = queryset.order_by('name')
+            queryset = queryset.order_by('id')
 
             for field_name in ('level', 'crop_to_level', 'elevator'):
                 if hasattr(mapitemtype, field_name):
@@ -105,9 +103,7 @@ class LevelViewSet(CachedReadOnlyViewSetMixin, ReadOnlyModelViewSet):
     """
     queryset = Level.objects.all()
     serializer_class = LevelSerializer
-    lookup_field = 'name'
-    lookup_value_regex = '[^/]+'
-    ordering = ('altitude',)
+    lookup_field = 'id'
 
 
 class SourceViewSet(CachedReadOnlyViewSetMixin, ReadOnlyModelViewSet):
@@ -116,9 +112,7 @@ class SourceViewSet(CachedReadOnlyViewSetMixin, ReadOnlyModelViewSet):
     """
     queryset = Source.objects.all()
     serializer_class = SourceSerializer
-    lookup_field = 'name'
-    lookup_value_regex = '[^/]+'
-    ordering = ('name',)
+    lookup_field = 'id'
 
     def get_queryset(self):
         return filter_queryset_by_access(self.request, super().get_queryset().all())
@@ -140,11 +134,11 @@ class LocationViewSet(ViewSet):
     List and retrieve locations
     """
     # We don't cache this, because it depends on access_list
-    lookup_field = 'name'
+    lookup_field = 'location_id'
 
     @staticmethod
     def _filter(queryset):
-        return queryset.filter(can_search=True).order_by('name')
+        return queryset.filter(can_search=True).order_by('id')
 
     def list(self, request, **kwargs):
         etag = hashlib.sha256(json.dumps({
@@ -168,8 +162,8 @@ class LocationViewSet(ViewSet):
         response['Cache-Control'] = 'no-cache'
         return response
 
-    def retrieve(self, request, name=None, **kwargs):
-        location = get_location(request, name)
+    def retrieve(self, request, location_id=None, **kwargs):
+        location = get_location(request, location_id)
         if location is None:
             raise Http404
         return Response(location.to_location_json())

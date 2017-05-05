@@ -8,8 +8,8 @@ from c3nav.mapdata.models.locations import PointLocation
 from c3nav.mapdata.utils.cache import get_levels_cached
 
 
-def get_location(request, name):
-    match = re.match('^c:(?P<level>[a-z0-9-_]+):(?P<x>[0-9]+):(?P<y>[0-9]+)$', name)
+def get_location(request, location_id):
+    match = re.match('^c:(?P<level>[a-z0-9-_]+):(?P<x>[0-9]+):(?P<y>[0-9]+)$', location_id)
     if match:
         levels = get_levels_cached()
         level = levels.get(match.group('level'))
@@ -17,11 +17,11 @@ def get_location(request, name):
             return None
         return PointLocation(level=level, x=int(match.group('x'))/100, y=int(match.group('y'))/100, request=request)
 
-    if name.startswith('g:'):
-        queryset = LocationGroup.objects.filter(Q(name=name[2:], can_search=True))
+    if location_id.startswith('g:'):
+        queryset = LocationGroup.objects.filter(Q(slug=location_id[2:], can_search=True))
         return filter_queryset_by_access(request, queryset).first()
 
-    return filter_arealocations_by_access(request, AreaLocation.objects.filter(name=name, can_search=True)).first()
+    return filter_arealocations_by_access(request, AreaLocation.objects.filter(slug=location_id, can_search=True)).first()
 
 
 def filter_words(queryset, words):

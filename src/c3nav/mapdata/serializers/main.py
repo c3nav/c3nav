@@ -6,10 +6,10 @@ from c3nav.mapdata.models import Level, Source
 class LevelSerializer(serializers.ModelSerializer):
     class Meta:
         model = Level
-        fields = ('name', 'altitude')
+        fields = ('id', 'name', 'altitude')
 
 
 class SourceSerializer(serializers.ModelSerializer):
     class Meta:
         model = Source
-        fields = ('name', 'bounds')
+        fields = ('id', 'name', 'bounds')

@@ -32,8 +32,6 @@ class FeatureBase(ModelBase):
 
 
 class Feature(models.Model, metaclass=FeatureBase):
-    name = models.SlugField(_('Name'), unique=True, max_length=50)
-
     EditorForm = None
 
     @property
@@ -71,7 +69,7 @@ class GeometryFeature(Feature):
     def get_geojson_properties(self):
         return OrderedDict((
             ('type', self.__class__.__name__.lower()),
-            ('name', self.name),
+            ('id', self.id),
         ))
 
     def to_geojson(self):
