@@ -1,4 +1,5 @@
 from collections import OrderedDict
+
 from django.db import models
 from django.utils.translation import ugettext_lazy as _
 from shapely.geometry import CAP_STYLE, JOIN_STYLE
