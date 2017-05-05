@@ -23,8 +23,6 @@ def merge_areas(apps, schema_editor):
                 else:
                     break
 
-    return
-
 
 class Migration(migrations.Migration):
 
