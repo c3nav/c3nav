@@ -9,5 +9,5 @@ urlpatterns = [
     url(r'^mapitems/(?P<mapitem_type>[^/]+)/list/$', list_mapitems, name='editor.mapitems'),
     url(r'^mapitems/(?P<mapitem_type>[^/]+)/list/(?P<level>[^/]+)/$', list_mapitems, name='editor.mapitems.level'),
     url(r'^mapitems/(?P<mapitem_type>[^/]+)/add/$', edit_mapitem, name='editor.mapitems.add'),
-    url(r'^mapitems/(?P<mapitem_type>[^/]+)/edit/(?P<name>[^/]+)/$', edit_mapitem, name='editor.mapitems.edit'),
+    url(r'^mapitems/(?P<mapitem_type>[^/]+)/edit/(?P<id>[^/]+)/$', edit_mapitem, name='editor.mapitems.edit'),
 ]

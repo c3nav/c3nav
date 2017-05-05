@@ -4,11 +4,12 @@ from django.http.response import Http404
 from django.shortcuts import get_object_or_404, redirect, render
 
 from c3nav.access.apply import can_access, filter_queryset_by_access
-from c3nav.mapdata.models import AreaLocation
+from c3nav.mapdata.models import AreaLocation, Level
 from c3nav.mapdata.models.base import FEATURE_TYPES
 
 
 def list_mapitemtypes(request, level):
+    level = get_object_or_404()
     def get_item_count(mapitemtype):
         if hasattr(mapitemtype, 'level'):
             return filter_queryset_by_access(request, mapitemtype.objects.filter(level__name=level)).count()
@@ -43,11 +44,13 @@ def list_mapitems(request, mapitem_type, level=None):
         return redirect('editor.mapitems', mapitem_type=mapitem_type)
 
     queryset = mapitemtype.objects.all().order_by('name')
+
     if level is not None:
+        level = get_object_or_404(Level, level)
         if hasattr(mapitemtype, 'level'):
-            queryset = queryset.filter(level__name=level)
+            queryset = queryset.filter(level=level)
         elif hasattr(mapitemtype, 'levels'):
-            queryset = queryset.filter(levels__name=level)
+            queryset = queryset.filter(levels=level)
 
     queryset = filter_queryset_by_access(request, queryset)
 
@@ -62,7 +65,7 @@ def list_mapitems(request, mapitem_type, level=None):
         'has_levels': hasattr(mapitemtype, 'levels'),
         'has_altitude': hasattr(mapitemtype, 'altitude'),
         'has_intermediate': hasattr(mapitemtype, 'intermediate'),
-        'level': level,
+        'level': level.id,
         'items': queryset,
     })
 

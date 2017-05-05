@@ -25,7 +25,8 @@ class Location:
 
     def to_location_json(self):
         return OrderedDict((
-            ('id', self.location_id),
+            ('id', self.id),
+            ('location_id', self.location_id),
             ('title', str(self.title)),
             ('subtitle', str(self.subtitle)),
         ))
@@ -35,6 +36,7 @@ class Location:
 class LocationModelMixin(Location):
     def get_geojson_properties(self):
         result = super().get_geojson_properties()
+        result['slug'] = self.slug
         result['titles'] = OrderedDict(sorted(self.titles.items()))
         return result
 
@@ -44,6 +46,7 @@ class LocationModelMixin(Location):
 
 
 class LocationGroup(LocationModelMixin, Feature):
+    slug = models.SlugField(_('Name'), unique=True, max_length=50)
     titles = JSONField()
     can_search = models.BooleanField(default=True, verbose_name=_('can be searched'))
     can_describe = models.BooleanField(default=True, verbose_name=_('can be used to describe a position'))
@@ -58,14 +61,14 @@ class LocationGroup(LocationModelMixin, Feature):
 
     @cached_property
     def location_id(self):
-        return 'g:'+self.name
+        return 'g:'+self.slug
 
     def get_in_levels(self):
         last_update = get_last_mapdata_update()
         if last_update is None:
             return self._get_in_levels()
 
-        cache_key = 'c3nav__mapdata__locationgroup__in_levels__'+last_update.isoformat()+'__'+self.name,
+        cache_key = 'c3nav__mapdata__locationgroup__in_levels__'+last_update.isoformat()+'__'+str(self.id),
         in_levels = cache.get(cache_key)
         if not in_levels:
             in_levels = self._get_in_levels()
@@ -115,6 +118,7 @@ class AreaLocation(LocationModelMixin, LevelFeature):
         ('needs_permission', _('Excluded, needs permission to include')),
     )
 
+    slug = models.SlugField(_('Name'), unique=True, max_length=50)
     location_type = models.CharField(max_length=20, choices=LOCATION_TYPES, verbose_name=_('Location Type'))
     titles = JSONField()
     groups = models.ManyToManyField(LocationGroup, verbose_name=_('Location Groups'), blank=True)
@@ -137,14 +141,14 @@ class AreaLocation(LocationModelMixin, LevelFeature):
 
     @cached_property
     def location_id(self):
-        return self.name
+        return self.slug
 
     def get_in_areas(self):
         last_update = get_last_mapdata_update()
         if last_update is None:
             return self._get_in_areas()
 
-        cache_key = 'c3nav__mapdata__location__in_areas__'+last_update.isoformat()+'__'+self.name,
+        cache_key = 'c3nav__mapdata__location__in_areas__'+last_update.isoformat()+'__'+str(self.id),
         in_areas = cache.get(cache_key)
         if not in_areas:
             in_areas = self._get_in_areas()

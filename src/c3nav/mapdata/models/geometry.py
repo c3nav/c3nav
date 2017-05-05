@@ -19,7 +19,7 @@ class LevelFeature(GeometryFeature):
 
     def get_geojson_properties(self):
         result = super().get_geojson_properties()
-        result['level'] = self.level.name
+        result['level'] = self.level.id
         return result
 
 
@@ -34,7 +34,7 @@ class AreaFeature(GeometryFeature):
 
     def get_geojson_properties(self):
         result = super().get_geojson_properties()
-        result['area'] = self.area.name
+        result['area'] = self.area.id
         return result
 
 
@@ -124,8 +124,8 @@ class Stair(AreaFeature):
             ('properties', OrderedDict((
                 ('type', 'shadow'),
                 ('original_type', self.__class__.__name__.lower()),
-                ('original_name', self.name),
-                ('area', self.area.name),
+                ('original_id', self.id),
+                ('area', self.area.id),
             ))),
             ('geometry', format_geojson(mapping(shadow), round=False)),
         ))
