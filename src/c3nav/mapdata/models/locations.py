@@ -10,8 +10,8 @@ from django.utils.translation import ungettext_lazy
 from c3nav.mapdata.fields import JSONField, validate_bssid_lines
 from c3nav.mapdata.lastupdate import get_last_mapdata_update
 from c3nav.mapdata.models import Level
-from c3nav.mapdata.models.base import MapItem
-from c3nav.mapdata.models.geometry import GeometryMapItemWithLevel
+from c3nav.mapdata.models.base import Feature
+from c3nav.mapdata.models.geometry import LevelFeature
 
 
 class Location:
@@ -43,7 +43,7 @@ class LocationModelMixin(Location):
         return self._meta.verbose_name
 
 
-class LocationGroup(LocationModelMixin, MapItem):
+class LocationGroup(LocationModelMixin, Feature):
     titles = JSONField()
     can_search = models.BooleanField(default=True, verbose_name=_('can be searched'))
     can_describe = models.BooleanField(default=True, verbose_name=_('can be used to describe a position'))
@@ -99,7 +99,7 @@ class LocationGroup(LocationModelMixin, MapItem):
         return result
 
 
-class AreaLocation(LocationModelMixin, GeometryMapItemWithLevel):
+class AreaLocation(LocationModelMixin, LevelFeature):
     LOCATION_TYPES = (
         ('level', _('Level')),
         ('area', _('General Area')),

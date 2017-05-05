@@ -1,61 +1,18 @@
 from collections import OrderedDict
-
 from django.db import models
 from django.utils.functional import cached_property
 from django.utils.translation import ugettext_lazy as _
-from shapely.geometry import CAP_STYLE, JOIN_STYLE, Point
+from shapely.geometry import CAP_STYLE, JOIN_STYLE
 from shapely.geometry.geo import mapping
 
-from c3nav.mapdata.fields import GeometryField
 from c3nav.mapdata.models import Elevator
-from c3nav.mapdata.models.base import MapItem, MapItemMeta
+from c3nav.mapdata.models.base import GeometryFeature
 from c3nav.mapdata.utils.json import format_geojson
 
-GEOMETRY_MAPITEM_TYPES = OrderedDict()
 
-
-class GeometryMapItemMeta(MapItemMeta):
-    def __new__(mcs, name, bases, attrs):
-        cls = super().__new__(mcs, name, bases, attrs)
-        if not cls._meta.abstract:
-            GEOMETRY_MAPITEM_TYPES[name.lower()] = cls
-        return cls
-
-
-class GeometryMapItem(MapItem, metaclass=GeometryMapItemMeta):
+class LevelFeature(GeometryFeature):
     """
-    A map feature
-    """
-    geometry = GeometryField()
-
-    geomtype = None
-
-    class Meta:
-        abstract = True
-
-    def get_geojson_properties(self):
-        return OrderedDict((
-            ('type', self.__class__.__name__.lower()),
-            ('name', self.name),
-        ))
-
-    def to_geojson(self):
-        return OrderedDict((
-            ('type', 'Feature'),
-            ('properties', self.get_geojson_properties()),
-            ('geometry', format_geojson(mapping(self.geometry), round=False)),
-        ))
-
-    def get_shadow_geojson(self):
-        return None
-
-    def contains(self, x, y):
-        return self.geometry.contains(Point(x, y))
-
-
-class GeometryMapItemWithLevel(GeometryMapItem):
-    """
-    A map feature
+    a map feature that has a geometry and belongs to a level
     """
     level = models.ForeignKey('mapdata.Level', on_delete=models.CASCADE, verbose_name=_('level'))
 
@@ -68,9 +25,9 @@ class GeometryMapItemWithLevel(GeometryMapItem):
         return result
 
 
-class GeometryMapItemWithArea(GeometryMapItem):
+class AreaFeature(GeometryFeature):
     """
-    A map feature
+    a map feature that has a geometry and belongs to an area
     """
     area = models.ForeignKey('mapdata.Area', on_delete=models.CASCADE, verbose_name=_('area'))
 
@@ -83,7 +40,7 @@ class GeometryMapItemWithArea(GeometryMapItem):
         return result
 
 
-class Building(GeometryMapItemWithLevel):
+class Building(LevelFeature):
     """
     The outline of a building on a specific level
     """
@@ -95,7 +52,7 @@ class Building(GeometryMapItemWithLevel):
         default_related_name = 'buildings'
 
 
-class Area(GeometryMapItemWithLevel):
+class Area(LevelFeature):
     """
     An accessible area. Shouldn't overlap.
     """
@@ -128,7 +85,7 @@ class Area(GeometryMapItemWithLevel):
         return result
 
 
-class StuffedArea(GeometryMapItemWithArea):
+class StuffedArea(AreaFeature):
     """
     A slow area with many tables or similar. Avoid it from routing by slowing it a bit down
     """
@@ -140,7 +97,7 @@ class StuffedArea(GeometryMapItemWithArea):
         default_related_name = 'stuffedareas'
 
 
-class Escalator(GeometryMapItemWithArea):
+class Escalator(AreaFeature):
     """
     An escalator area
     """
@@ -163,7 +120,7 @@ class Escalator(GeometryMapItemWithArea):
         return result
 
 
-class Stair(GeometryMapItemWithArea):
+class Stair(AreaFeature):
     """
     A stair
     """
@@ -197,7 +154,7 @@ class Stair(GeometryMapItemWithArea):
         ))
 
 
-class Obstacle(GeometryMapItemWithArea):
+class Obstacle(AreaFeature):
     """
     An obstacle
     """
@@ -218,7 +175,7 @@ class Obstacle(GeometryMapItemWithArea):
         return result
 
 
-class LineObstacle(GeometryMapItemWithArea):
+class LineObstacle(AreaFeature):
     """
     An obstacle that is a line with a specific width
     """
@@ -248,7 +205,7 @@ class LineObstacle(GeometryMapItemWithArea):
         return result
 
 
-class Door(GeometryMapItemWithLevel):
+class Door(LevelFeature):
     """
     A connection between two rooms
     """
@@ -260,7 +217,7 @@ class Door(GeometryMapItemWithLevel):
         default_related_name = 'doors'
 
 
-class Hole(GeometryMapItemWithLevel):
+class Hole(LevelFeature):
     """
     A hole in the ground of a room, e.g. for stairs.
     """
@@ -272,7 +229,7 @@ class Hole(GeometryMapItemWithLevel):
         default_related_name = 'holes'
 
 
-class ElevatorLevel(GeometryMapItemWithLevel):
+class ElevatorLevel(LevelFeature):
     """
     An elevator Level
     """

@@ -5,7 +5,7 @@ from django.shortcuts import get_object_or_404, redirect, render
 
 from c3nav.access.apply import can_access, filter_queryset_by_access
 from c3nav.mapdata.models import AreaLocation
-from c3nav.mapdata.models.base import MAPITEM_TYPES
+from c3nav.mapdata.models.base import FEATURE_TYPES
 
 
 def list_mapitemtypes(request, level):
@@ -26,13 +26,13 @@ def list_mapitemtypes(request, level):
                 'title': mapitemtype._meta.verbose_name_plural,
                 'has_level': hasattr(mapitemtype, 'level') or hasattr(mapitemtype, 'levels'),
                 'count': get_item_count(mapitemtype),
-            } for name, mapitemtype in MAPITEM_TYPES.items()
+            } for name, mapitemtype in FEATURE_TYPES.items()
         ],
     })
 
 
 def list_mapitems(request, mapitem_type, level=None):
-    mapitemtype = MAPITEM_TYPES.get(mapitem_type)
+    mapitemtype = FEATURE_TYPES.get(mapitem_type)
     if mapitemtype is None:
         raise Http404('Unknown mapitemtype.')
 
@@ -68,7 +68,7 @@ def list_mapitems(request, mapitem_type, level=None):
 
 
 def edit_mapitem(request, mapitem_type, name=None):
-    mapitemtype = MAPITEM_TYPES.get(mapitem_type)
+    mapitemtype = FEATURE_TYPES.get(mapitem_type)
     if mapitemtype is None:
         raise Http404()
 
