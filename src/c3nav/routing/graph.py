@@ -120,7 +120,7 @@ class Graph:
                 point.connect_to(center_point)
 
     def connect_elevators(self):
-        for elevator in Elevator.objects.all():
+        for elevator in Elevator.objects.all():  # noqa
             elevatorlevels = tuple(elevator.elevatorlevels.all())
             for level1, level2 in combinations(elevatorlevels, 2):
                 point1 = self._built_elevatorlevel_points[level1.name]

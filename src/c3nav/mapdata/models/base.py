@@ -2,9 +2,8 @@ from collections import OrderedDict
 
 from django.db import models
 from django.db.models.base import ModelBase
-from django.utils.translation import ugettext_lazy as _
 from django.utils.translation import get_language
-from shapely.geometry import mapping, Point
+from shapely.geometry import Point, mapping
 
 from c3nav.mapdata.fields import GeometryField
 from c3nav.mapdata.lastupdate import set_last_mapdata_update

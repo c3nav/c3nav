@@ -10,6 +10,7 @@ from c3nav.mapdata.models.base import FEATURE_TYPES
 
 def list_mapitemtypes(request, level):
     level = get_object_or_404()
+
     def get_item_count(mapitemtype):
         if hasattr(mapitemtype, 'level'):
             return filter_queryset_by_access(request, mapitemtype.objects.filter(level__name=level)).count()

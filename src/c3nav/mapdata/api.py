@@ -1,8 +1,8 @@
+import hashlib
 import json
 import mimetypes
-
-import hashlib
 from collections import OrderedDict
+
 from django.http import Http404, HttpResponse, HttpResponseNotModified
 from django.shortcuts import get_object_or_404
 from rest_framework.decorators import detail_route, list_route
@@ -15,8 +15,7 @@ from c3nav.mapdata.models import GEOMETRY_FEATURE_TYPES, AreaLocation, Level, Lo
 from c3nav.mapdata.models.geometry import Stair
 from c3nav.mapdata.search import get_location
 from c3nav.mapdata.serializers.main import LevelSerializer, SourceSerializer
-from c3nav.mapdata.utils.cache import (CachedReadOnlyViewSetMixin, cache_mapdata_api_response, get_bssid_areas_cached,
-                                       get_levels_cached)
+from c3nav.mapdata.utils.cache import CachedReadOnlyViewSetMixin, cache_mapdata_api_response, get_bssid_areas_cached
 
 
 class GeometryTypeViewSet(ViewSet):
