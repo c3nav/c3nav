@@ -72,7 +72,6 @@ class GeometryMapItemWithArea(GeometryMapItem):
     """
     A map feature
     """
-    level = models.ForeignKey('mapdata.Level', on_delete=models.CASCADE, verbose_name=_('level'))
     area = models.ForeignKey('mapdata.Area', on_delete=models.CASCADE, verbose_name=_('area'))
 
     class Meta:
@@ -80,7 +79,6 @@ class GeometryMapItemWithArea(GeometryMapItem):
 
     def get_geojson_properties(self):
         result = super().get_geojson_properties()
-        result['level'] = self.level.name
         result['area'] = self.area.name
         return result
 
