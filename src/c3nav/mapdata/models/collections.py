@@ -1,9 +1,9 @@
 from django.utils.translation import ugettext_lazy as _
 
-from c3nav.mapdata.models.base import MapItem
+from c3nav.mapdata.models.base import Feature
 
 
-class Elevator(MapItem):
+class Elevator(Feature):
     """
     An elevator.
     """
