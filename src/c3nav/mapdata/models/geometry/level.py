@@ -42,9 +42,9 @@ class Building(LevelFeature):
         default_related_name = 'buildings'
 
 
-class Area(LevelFeature):
+class Space(LevelFeature):
     """
-    An accessible area. Shouldn't overlap.
+    An accessible space. Shouldn't overlap.
     """
     geomtype = 'polygon'
 
