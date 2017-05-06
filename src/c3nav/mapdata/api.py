@@ -11,8 +11,9 @@ from rest_framework.viewsets import ReadOnlyModelViewSet, ViewSet
 
 from c3nav.access.apply import filter_arealocations_by_access, filter_queryset_by_access
 from c3nav.mapdata.lastupdate import get_last_mapdata_update
-from c3nav.mapdata.models import GEOMETRY_FEATURE_TYPES, AreaLocation, Level, LocationGroup, Source
-from c3nav.mapdata.models.geometry import Stair
+from c3nav.mapdata.models import AreaLocation, Level, LocationGroup, Source
+from c3nav.mapdata.models.geometry.area import Stair
+from c3nav.mapdata.models.geometry.base import GEOMETRY_FEATURE_TYPES
 from c3nav.mapdata.search import get_location
 from c3nav.mapdata.serializers.main import LevelSerializer, SourceSerializer
 from c3nav.mapdata.utils.cache import CachedReadOnlyViewSetMixin, cache_mapdata_api_response, get_bssid_areas_cached
