@@ -7,33 +7,33 @@ from c3nav.mapdata.models.geometry.base import GeometryFeature, GeometryFeatureB
 from c3nav.mapdata.utils.json import format_geojson
 
 
-AREA_FEATURE_TYPES = OrderedDict()
+SPACE_FEATURE_TYPES = OrderedDict()
 
 
-class AreaFeatureBase(GeometryFeatureBase):
+class SpaceFeatureBase(GeometryFeatureBase):
     def __new__(mcs, name, bases, attrs):
         cls = super().__new__(mcs, name, bases, attrs)
         if not cls._meta.abstract:
-            AREA_FEATURE_TYPES[name.lower()] = cls
+            SPACE_FEATURE_TYPES[name.lower()] = cls
         return cls
 
 
-class AreaFeature(GeometryFeature, metaclass=AreaFeatureBase):
+class SpaceFeature(GeometryFeature, metaclass=SpaceFeatureBase):
     """
-    a map feature that has a geometry and belongs to an area
+    a map feature that has a geometry and belongs to a space
     """
-    area = models.ForeignKey('mapdata.Area', on_delete=models.CASCADE, verbose_name=_('area'))
+    space = models.ForeignKey('mapdata.Space', on_delete=models.CASCADE, verbose_name=_('space'))
 
     class Meta:
         abstract = True
 
     def get_geojson_properties(self):
         result = super().get_geojson_properties()
-        result['area'] = self.area.id
+        result['space'] = self.space.id
         return result
 
 
-class StuffedArea(AreaFeature):
+class StuffedArea(SpaceFeature):
     """
     A slow area with many tables or similar. Avoid it from routing by slowing it a bit down
     """
@@ -45,7 +45,7 @@ class StuffedArea(AreaFeature):
         default_related_name = 'stuffedareas'
 
 
-class Stair(AreaFeature):
+class Stair(SpaceFeature):
     """
     A stair
     """
@@ -73,13 +73,13 @@ class Stair(AreaFeature):
                 ('type', 'shadow'),
                 ('original_type', self.__class__.__name__.lower()),
                 ('original_id', self.id),
-                ('area', self.area.id),
+                ('space', self.space.id),
             ))),
             ('geometry', format_geojson(mapping(shadow), round=False)),
         ))
 
 
-class Obstacle(AreaFeature):
+class Obstacle(SpaceFeature):
     """
     An obstacle
     """
@@ -91,7 +91,7 @@ class Obstacle(AreaFeature):
         default_related_name = 'obstacles'
 
 
-class LineObstacle(AreaFeature):
+class LineObstacle(SpaceFeature):
     """
     An obstacle that is a line with a specific width
     """
