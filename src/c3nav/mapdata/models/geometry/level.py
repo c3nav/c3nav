@@ -60,7 +60,7 @@ class Space(LevelFeature):
         ('lowerr', _('lower')),
     )
 
-    public = models.BooleanField(verbose_name=_('public'))
+    public = models.BooleanField(verbose_name=_('public'), default=True)
     category = models.CharField(verbose_name=_('category'), choices=CATEGORIES, max_length=16)
     layer = models.CharField(verbose_name=_('layer'), choices=LAYERS, max_length=16)
 
