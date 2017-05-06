@@ -11,7 +11,7 @@ from c3nav.mapdata.fields import JSONField, validate_bssid_lines
 from c3nav.mapdata.lastupdate import get_last_mapdata_update
 from c3nav.mapdata.models import Level
 from c3nav.mapdata.models.base import Feature
-from c3nav.mapdata.models.geometry import LevelFeature
+from c3nav.mapdata.models.geometry.level import LevelFeature
 
 
 class Location:
