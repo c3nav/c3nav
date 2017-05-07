@@ -1,4 +1,5 @@
 from collections import OrderedDict
+
 from django.db import models
 from django.utils.translation import ugettext_lazy as _
 
@@ -7,7 +8,7 @@ from c3nav.mapdata.models.geometry.base import GeometryFeature, GeometryFeatureB
 LEVEL_FEATURE_TYPES = OrderedDict()
 
 
-class LevelFeatureBase(GeometryFeatureBase):
+class SectionFeatureBase(GeometryFeatureBase):
     def __new__(mcs, name, bases, attrs):
         cls = super().__new__(mcs, name, bases, attrs)
         if not cls._meta.abstract:
@@ -15,22 +16,22 @@ class LevelFeatureBase(GeometryFeatureBase):
         return cls
 
 
-class LevelFeature(GeometryFeature, metaclass=LevelFeatureBase):
+class SectionFeature(GeometryFeature, metaclass=SectionFeatureBase):
     """
-    a map feature that has a geometry and belongs to a level
+    a map feature that has a geometry and belongs to a section
     """
-    level = models.ForeignKey('mapdata.Level', on_delete=models.CASCADE, verbose_name=_('level'))
+    section = models.ForeignKey('mapdata.Section', on_delete=models.CASCADE, verbose_name=_('section'))
 
     class Meta:
         abstract = True
 
     def get_geojson_properties(self):
         result = super().get_geojson_properties()
-        result['level'] = self.level.id
+        result['section'] = self.section.id
         return result
 
 
-class Building(LevelFeature):
+class Building(SectionFeature):
     """
     The outline of a building on a specific level
     """
@@ -42,7 +43,7 @@ class Building(LevelFeature):
         default_related_name = 'buildings'
 
 
-class Space(LevelFeature):
+class Space(SectionFeature):
     """
     An accessible space. Shouldn't overlap.
     """
@@ -77,7 +78,7 @@ class Space(LevelFeature):
         return result
 
 
-class Door(LevelFeature):
+class Door(SectionFeature):
     """
     A connection between two rooms
     """
@@ -89,7 +90,7 @@ class Door(LevelFeature):
         default_related_name = 'doors'
 
 
-class Hole(LevelFeature):
+class Hole(SectionFeature):
     """
     A hole in the ground of a room, e.g. for stairs.
     """

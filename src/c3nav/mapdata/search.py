@@ -5,17 +5,17 @@ from django.db.models import Q
 from c3nav.access.apply import filter_arealocations_by_access, filter_queryset_by_access
 from c3nav.mapdata.models import AreaLocation, LocationGroup
 from c3nav.mapdata.models.locations import PointLocation
-from c3nav.mapdata.utils.cache import get_levels_cached
+from c3nav.mapdata.utils.cache import get_sections_cached
 
 
 def get_location(request, location_id):
-    match = re.match('^c:(?P<level>[a-z0-9-_]+):(?P<x>[0-9]+):(?P<y>[0-9]+)$', location_id)
+    match = re.match('^c:(?P<section>[0-9]+):(?P<x>[0-9]+):(?P<y>[0-9]+)$', location_id)
     if match:
-        levels = get_levels_cached()
-        level = levels.get(match.group('level'))
-        if level is None:
+        levels = get_sections_cached()
+        section = levels.get(int(match.group('section')))
+        if section is None:
             return None
-        return PointLocation(level=level, x=int(match.group('x'))/100, y=int(match.group('y'))/100, request=request)
+        return PointLocation(section=section, x=int(match.group('x')) / 100, y=int(match.group('y')) / 100, request=request)
 
     if location_id.startswith('g:'):
         queryset = LocationGroup.objects.filter(Q(slug=location_id[2:], can_search=True))

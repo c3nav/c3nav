@@ -1,11 +1,12 @@
 from rest_framework import serializers
 
-from c3nav.mapdata.models import Level, Source
+from c3nav.mapdata.models.section import Section
+from c3nav.mapdata.models.source import Source
 
 
-class LevelSerializer(serializers.ModelSerializer):
+class SectionSerializer(serializers.ModelSerializer):
     class Meta:
-        model = Level
+        model = Section
         fields = ('id', 'name', 'altitude')
 
 

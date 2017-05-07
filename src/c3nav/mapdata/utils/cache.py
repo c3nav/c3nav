@@ -81,10 +81,10 @@ class CachedReadOnlyViewSetMixin():
         return super().retrieve(request, *args, **kwargs)
 
 
-@cache_result('c3nav__mapdata__levels')
-def get_levels_cached():
-    from c3nav.mapdata.models import Level
-    return OrderedDict((level.name, level) for level in Level.objects.all())
+@cache_result('c3nav__mapdata__sections')
+def get_sections_cached():
+    from c3nav.mapdata.models.section import Section
+    return OrderedDict((section.id, section) for section in Section.objects.all())
 
 
 @cache_result('c3nav__mapdata__bssids')

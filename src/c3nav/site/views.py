@@ -10,9 +10,9 @@ from django.utils import timezone
 from c3nav.access.apply import get_visible_areas
 from c3nav.mapdata.inclusion import get_includables_avoidables, parse_include_avoid
 from c3nav.mapdata.lastupdate import get_last_mapdata_update
-from c3nav.mapdata.models import Level
+from c3nav.mapdata.models.section import Section
 from c3nav.mapdata.search import get_location, search_location
-from c3nav.mapdata.utils.cache import get_levels_cached
+from c3nav.mapdata.utils.cache import get_sections_cached
 from c3nav.mapdata.utils.misc import get_dimensions, get_render_path
 from c3nav.routing.exceptions import AlreadyThere, NoRouteFound, NotYetRoutable
 from c3nav.routing.graph import Graph
@@ -92,18 +92,18 @@ def main(request, location=None, origin=None, destination=None):
     }
 
     width, height = get_dimensions()
-    levels = tuple(name for name, level in get_levels_cached().items() if not level.intermediate)
+    sections = tuple(section for id_, section in get_sections_cached().items())
 
     ctx.update({
         'width': width,
         'height': height,
         'svg_width': int(width * 6),
         'svg_height': int(height * 6),
-        'levels': levels,
+        'sections': sections,
     })
 
     map_level = request.GET.get('map-level')
-    if map_level in levels:
+    if map_level in sections:
         ctx.update({
             'map_level': map_level
         })
@@ -238,7 +238,7 @@ def main(request, location=None, origin=None, destination=None):
 
 
 def map_image(request, area, level):
-    level = get_object_or_404(Level, name=level, intermediate=False)
+    level = get_object_or_404(Section, name=level, intermediate=False)
     if area == ':base':
         img = get_render_path('png', level.name, 'full', True)
     elif area == ':full':

@@ -9,9 +9,9 @@ from django.utils.translation import ungettext_lazy
 
 from c3nav.mapdata.fields import JSONField, validate_bssid_lines
 from c3nav.mapdata.lastupdate import get_last_mapdata_update
-from c3nav.mapdata.models import Level
 from c3nav.mapdata.models.base import Feature
-from c3nav.mapdata.models.geometry.level import LevelFeature
+from c3nav.mapdata.models.geometry.section import SectionFeature
+from c3nav.mapdata.models.section import Section
 
 
 class Location:
@@ -85,7 +85,7 @@ class LocationGroup(LocationModelMixin, Feature):
                     level_ids.add(area.id)
                     in_levels.append(area)
 
-        in_levels = sorted(in_levels, key=lambda area: area.level.altitude)
+        in_levels = sorted(in_levels, key=lambda area: area.section.altitude)
         return in_levels
 
     @property
@@ -102,7 +102,7 @@ class LocationGroup(LocationModelMixin, Feature):
         return result
 
 
-class AreaLocation(LocationModelMixin, LevelFeature):
+class AreaLocation(LocationModelMixin, SectionFeature):
     LOCATION_TYPES = (
         ('level', _('Level')),
         ('area', _('General Area')),
@@ -162,7 +162,7 @@ class AreaLocation(LocationModelMixin, LevelFeature):
         in_areas = []
         area_location_i = self.get_sort_key(self)
         for location_type in reversed(self.LOCATION_TYPES_ORDER[:area_location_i]):
-            for arealocation in AreaLocation.objects.filter(location_type=location_type, level=self.level):
+            for arealocation in AreaLocation.objects.filter(location_type=location_type, section=self.section):
                 intersection_area = arealocation.geometry.intersection(self.geometry).area
                 if intersection_area and intersection_area / my_area > 0.99:
                     in_areas.append(arealocation)
@@ -196,15 +196,15 @@ class AreaLocation(LocationModelMixin, LevelFeature):
 
 
 class PointLocation(Location):
-    def __init__(self, level: Level, x: int, y: int, request):
-        self.level = level
+    def __init__(self, section: Section, x: int, y: int, request):
+        self.section = section
         self.x = x
         self.y = y
         self.request = request
 
     @cached_property
     def location_id(self):
-        return 'c:%s:%d:%d' % (self.level.name, self.x*100, self.y*100)
+        return 'c:%d:%d:%d' % (self.section.id, self.x * 100, self.y * 100)
 
     @cached_property
     def xy(self):
@@ -214,7 +214,7 @@ class PointLocation(Location):
     def description(self):
         from c3nav.routing.graph import Graph
         graph = Graph.load()
-        point = graph.get_nearest_point(self.level, self.x, self.y)
+        point = graph.get_nearest_point(self.section, self.x, self.y)
 
         if point is None or (':nonpublic' in point.arealocations and not self.request.c3nav_full_access and
                              not len(set(self.request.c3nav_access_list) & set(point.arealocations))):
@@ -239,14 +239,14 @@ class PointLocation(Location):
     @property
     def subtitle(self) -> str:
         add_subtitle = self.description[1]
-        subtitle = '%s:%d:%d' % (self.level.name, self.x*100, self.y*100)
+        subtitle = '%s:%d:%d' % (self.section.name, self.x * 100, self.y * 100)
         if add_subtitle:
             subtitle += ' - '+add_subtitle
         return subtitle
 
     def to_location_json(self):
         result = super().to_location_json()
-        result['level'] = self.level.name
+        result['section'] = self.section.id
         result['x'] = self.x
         result['y'] = self.y
         return result
