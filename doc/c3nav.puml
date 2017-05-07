@@ -1,0 +1,75 @@
+@startuml
+abstract class Feature {
+    {static} EditorForm: Form
+}
+
+class Source {
+    name: str
+    bottom: Decimal
+    left: Decimal
+    top: Decimal
+    right: Decimal
+    image: file
+}
+Feature <|-- Source
+
+class Section {
+    name: str
+    altitude: Decimal
+}
+Feature <|-- Section
+
+abstract class GeometryFeature {
+    {static} geomtype: str
+    geometry: Geometry
+}
+Feature <|-- GeometryFeature
+
+abstract class SectionFeature {
+    section: Section
+}
+Section *-- SectionFeature: section
+GeometryFeature <|-- SectionFeature
+
+class Building {
+}
+SectionFeature <|-- Building
+
+class Space {
+    public: bool
+    category: str
+    layer: str
+}
+SectionFeature <|-- Space
+
+class Door {
+}
+SectionFeature <|-- Door
+
+class Hole {
+}
+SectionFeature <|-- Hole
+
+abstract class SpaceFeature {
+    space: Space
+}
+Space *-- SpaceFeature: space
+GeometryFeature <|-- SpaceFeature
+
+class StuffedArea {
+}
+SpaceFeature <|-- StuffedArea
+
+class Stair {
+}
+SpaceFeature <|-- Stair
+
+class Obstacle {
+}
+SpaceFeature <|-- Obstacle
+
+class LineObstacle {
+    width: Decimal
+}
+SpaceFeature <|-- LineObstacle
+@enduml
