@@ -1,11 +1,11 @@
-from c3nav.mapdata.models import Level
+from c3nav.mapdata.models.section import Section
 from c3nav.mapdata.render.renderer import LevelRenderer  # noqa
 
 
 def render_all_levels(show_accessibles=False):
 
     renderers = []
-    for level in Level.objects.all():
+    for level in Section.objects.all():
         renderers.append(LevelRenderer(level, only_public=False))
         renderers.append(LevelRenderer(level, only_public=True))
 

@@ -8,18 +8,17 @@ from c3nav.mapdata.models.base import Feature
 from c3nav.mapdata.utils.geometry import assert_multilinestring, assert_multipolygon
 
 
-class Level(Feature):
+class Section(Feature):
     """
-    A map level (-1, 0, 1, 2…)
+    A map section like a level
     """
-    name = models.SlugField(_('level name'), unique=True, max_length=50,
-                            help_text=_('Usually just an integer (e.g. -1, 0, 1, 2)'))
-    altitude = models.DecimalField(_('level altitude'), null=False, unique=True, max_digits=6, decimal_places=2)
+    name = models.SlugField(_('section name'), unique=True, max_length=50)
+    altitude = models.DecimalField(_('section altitude'), null=False, unique=True, max_digits=6, decimal_places=2)
 
     class Meta:
-        verbose_name = _('Level')
-        verbose_name_plural = _('Levels')
-        default_related_name = 'levels'
+        verbose_name = _('Section')
+        verbose_name_plural = _('Sections')
+        default_related_name = 'sections'
         ordering = ['altitude']
 
     def __init__(self, *args, **kwargs):
@@ -27,35 +26,35 @@ class Level(Feature):
 
     @cached_property
     def public_geometries(self):
-        return LevelGeometries.by_level(self, only_public=True)
+        return SectionGeometries.by_section(self, only_public=True)
 
     @cached_property
     def geometries(self):
-        return LevelGeometries.by_level(self, only_public=False)
+        return SectionGeometries.by_section(self, only_public=False)
 
     def lower(self):
-        return Level.objects.filter(altitude__lt=self.altitude).order_by('altitude')
+        return Section.objects.filter(altitude__lt=self.altitude).order_by('altitude')
 
     def higher(self):
-        return Level.objects.filter(altitude__gt=self.altitude).order_by('altitude')
+        return Section.objects.filter(altitude__gt=self.altitude).order_by('altitude')
 
     def __str__(self):
         return self.name
 
 
-class LevelGeometries():
-    by_level_name = {}
+class SectionGeometries():
+    by_section_id = {}
 
     @classmethod
-    def by_level(cls, level, only_public=True):
-        return cls.by_level_name.setdefault((level.name, only_public), cls(level, only_public=only_public))
+    def by_section(cls, section, only_public=True):
+        return cls.by_section_id.setdefault((section.id, only_public), cls(section, only_public=only_public))
 
-    def __init__(self, level, only_public=True):
-        self.level = level
+    def __init__(self, section, only_public=True):
+        self.section = section
         self.only_public = only_public
 
     def query(self, name):
-        queryset = getattr(self.level, name)
+        queryset = getattr(self.section, name)
         if not self.only_public:
             return queryset.all()
         return queryset.filter(public=True)
@@ -67,7 +66,7 @@ class LevelGeometries():
     @cached_property
     def buildings(self):
         result = cascaded_union([building.geometry for building in self.query('buildings')])
-        if self.level.intermediate:
+        if self.section.intermediate:
             result = cascaded_union([result, self.raw_rooms])
         return result
 
@@ -181,7 +180,7 @@ class LevelGeometries():
 
     @cached_property
     def intermediate_shadows(self):
-        qs = self.query('levelconnectors').prefetch_related('levels').filter(levels__altitude__lt=self.level.altitude)
+        qs = self.query('levelconnectors').prefetch_related('levels').filter(levels__altitude__lt=self.section.altitude)
         connectors = cascaded_union([levelconnector.geometry for levelconnector in qs])
         shadows = self.buildings.difference(connectors.buffer(0.4, join_style=JOIN_STYLE.mitre))
         shadows = shadows.buffer(0.3)
@@ -192,7 +191,7 @@ class LevelGeometries():
         holes = self.holes.buffer(0.1, join_style=JOIN_STYLE.mitre)
         shadows = holes.difference(self.holes.buffer(-0.3, join_style=JOIN_STYLE.mitre))
 
-        qs = self.query('levelconnectors').prefetch_related('levels').filter(levels__altitude__lt=self.level.altitude)
+        qs = self.query('levelconnectors').prefetch_related('levels').filter(levels__altitude__lt=self.section.altitude)
         connectors = cascaded_union([levelconnector.geometry for levelconnector in qs])
 
         shadows = shadows.difference(connectors.buffer(1.0, join_style=JOIN_STYLE.mitre))

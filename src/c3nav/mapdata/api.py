@@ -4,18 +4,18 @@ import mimetypes
 from collections import OrderedDict
 
 from django.http import Http404, HttpResponse, HttpResponseNotModified
-from django.shortcuts import get_object_or_404
 from rest_framework.decorators import detail_route, list_route
 from rest_framework.response import Response
 from rest_framework.viewsets import ReadOnlyModelViewSet, ViewSet
 
 from c3nav.access.apply import filter_arealocations_by_access, filter_queryset_by_access
 from c3nav.mapdata.lastupdate import get_last_mapdata_update
-from c3nav.mapdata.models import AreaLocation, Level, LocationGroup, Source
-from c3nav.mapdata.models.geometry.space import Stair
+from c3nav.mapdata.models import AreaLocation, LocationGroup, Source
 from c3nav.mapdata.models.geometry.base import GEOMETRY_FEATURE_TYPES
+from c3nav.mapdata.models.geometry.space import Stair
+from c3nav.mapdata.models.section import Section
 from c3nav.mapdata.search import get_location
-from c3nav.mapdata.serializers.main import LevelSerializer, SourceSerializer
+from c3nav.mapdata.serializers.main import SectionSerializer, SourceSerializer
 from c3nav.mapdata.utils.cache import CachedReadOnlyViewSetMixin, cache_mapdata_api_response, get_bssid_areas_cached
 
 
@@ -37,7 +37,6 @@ class GeometryTypeViewSet(ViewSet):
 class GeometryViewSet(ViewSet):
     """
     List all geometries.
-    You can filter by adding a level GET parameter.
     """
     def list(self, request):
         types = set(request.GET.getlist('type'))
@@ -47,44 +46,24 @@ class GeometryViewSet(ViewSet):
         else:
             types = [t for t in valid_types if t in types]
 
-        level = None
-        if 'level' in request.GET:
-            level = get_object_or_404(Level, id=request.GET['level'])
-
         cache_key = '__'.join((
             ','.join([str(i) for i in types]),
-            str(level.id) if level is not None else '',
         ))
 
-        return self._list(request, types=types, level=level, add_cache_key=cache_key)
+        return self._list(request, types=types, add_cache_key=cache_key)
 
     @staticmethod
     def compare_by_location_type(x: AreaLocation, y: AreaLocation):
         return AreaLocation.LOCATION_TYPES.index(x.location_type) - AreaLocation.LOCATION_TYPES.index(y.location_type)
 
     @cache_mapdata_api_response()
-    def _list(self, request, types, level):
+    def _list(self, request, types):
         results = []
         for t in types:
             mapitemtype = GEOMETRY_FEATURE_TYPES[t]
             queryset = mapitemtype.objects.all()
-            if level:
-                if hasattr(mapitemtype, 'level'):
-                    queryset = queryset.filter(level=level)
-                elif hasattr(mapitemtype, 'levels'):
-                    queryset = queryset.filter(levels=level)
-                else:
-                    queryset = queryset.none()
             queryset = filter_queryset_by_access(request, queryset)
             queryset = queryset.order_by('id')
-
-            for field_name in ('level', 'crop_to_level', 'elevator'):
-                if hasattr(mapitemtype, field_name):
-                    queryset = queryset.select_related(field_name)
-
-            for field_name in ('levels', ):
-                if hasattr(mapitemtype, field_name):
-                    queryset.prefetch_related(field_name)
 
             if issubclass(mapitemtype, AreaLocation):
                 queryset = sorted(queryset, key=AreaLocation.get_sort_key)
@@ -97,12 +76,12 @@ class GeometryViewSet(ViewSet):
         return Response(results)
 
 
-class LevelViewSet(CachedReadOnlyViewSetMixin, ReadOnlyModelViewSet):
+class SectionViewSet(CachedReadOnlyViewSetMixin, ReadOnlyModelViewSet):
     """
-    List and retrieve levels.
+    List and retrieve sections.
     """
-    queryset = Level.objects.all()
-    serializer_class = LevelSerializer
+    queryset = Section.objects.all()
+    serializer_class = SectionSerializer
     lookup_field = 'id'
 
 

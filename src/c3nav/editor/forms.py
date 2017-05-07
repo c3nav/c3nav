@@ -22,22 +22,9 @@ class MapitemFormMixin(ModelForm):
         if creating:
             self.fields['name'].initial = hex(int(time.time()*1000000))[2:]
 
-        if 'level' in self.fields:
-            # hide level widget and set field_name
-            self.fields['level'].widget = HiddenInput()
-            self.fields['level'].to_field_name = 'name'
-            if not creating:
-                self.initial['level'] = self.instance.level.name
-
-        if 'crop_to_level' in self.fields:
-            # set field_name
-            self.fields['crop_to_level'].to_field_name = 'name'
-            if not creating and self.instance.crop_to_level is not None:
-                self.initial['crop_to_level'] = self.instance.crop_to_level.name
-
-        if 'levels' in self.fields:
-            # set field_name
-            self.fields['levels'].to_field_name = 'name'
+        if 'section' in self.fields:
+            # hide section widget
+            self.fields['section'].widget = HiddenInput()
 
         if 'groups' in self.fields:
             # set field_name
@@ -65,12 +52,6 @@ class MapitemFormMixin(ModelForm):
                                                              required=False,
                                                              initial=titles[language].strip(), max_length=50)
             self.titles = titles
-
-    def clean_levels(self):
-        levels = self.cleaned_data.get('levels')
-        if len(levels) < 2:
-            raise ValidationError(_('Please select at least two levels.'))
-        return levels
 
     def clean(self):
         if 'geometry' in self.fields:

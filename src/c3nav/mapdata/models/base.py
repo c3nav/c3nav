@@ -1,4 +1,5 @@
 from collections import OrderedDict
+
 from django.db import models
 from django.db.models.base import ModelBase
 from django.utils.translation import get_language
@@ -38,5 +39,3 @@ class Feature(models.Model, metaclass=FeatureBase):
 
     class Meta:
         abstract = True
-
-

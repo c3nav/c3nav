@@ -7,10 +7,10 @@ from rest_framework.generics import GenericAPIView
 from rest_framework.response import Response
 from rest_framework.routers import SimpleRouter
 
-from c3nav.mapdata.api import GeometryTypeViewSet, GeometryViewSet, LevelViewSet, LocationViewSet, SourceViewSet
+from c3nav.mapdata.api import GeometryTypeViewSet, GeometryViewSet, LocationViewSet, SectionViewSet, SourceViewSet
 
 router = SimpleRouter()
-router.register(r'levels', LevelViewSet)
+router.register(r'sections', SectionViewSet)
 router.register(r'sources', SourceViewSet)
 
 router.register(r'geometrytypes', GeometryTypeViewSet, base_name='geometrytype')

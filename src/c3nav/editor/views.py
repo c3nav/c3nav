@@ -4,54 +4,49 @@ from django.http.response import Http404
 from django.shortcuts import get_object_or_404, redirect, render
 
 from c3nav.access.apply import can_access, filter_queryset_by_access
-from c3nav.mapdata.models import AreaLocation, Level
+from c3nav.mapdata.models import AreaLocation, Section
 from c3nav.mapdata.models.base import FEATURE_TYPES
 
 
-def list_mapitemtypes(request, level):
-    level = get_object_or_404()
+def list_mapitemtypes(request, section):
+    section = get_object_or_404(Section, pk=section)
 
     def get_item_count(mapitemtype):
-        if hasattr(mapitemtype, 'level'):
-            return filter_queryset_by_access(request, mapitemtype.objects.filter(level__name=level)).count()
-
-        if hasattr(mapitemtype, 'levels'):
-            return filter_queryset_by_access(request, mapitemtype.objects.filter(levels__name=level)).count()
+        if hasattr(mapitemtype, 'section'):
+            return filter_queryset_by_access(request, mapitemtype.objects.filter(section=section)).count()
 
         return 0
 
     return render(request, 'editor/mapitemtypes.html', {
-        'level': level,
+        'section': section,
         'mapitemtypes': [
             {
                 'name': name,
                 'title': mapitemtype._meta.verbose_name_plural,
-                'has_level': hasattr(mapitemtype, 'level') or hasattr(mapitemtype, 'levels'),
+                'has_section': hasattr(mapitemtype, 'section'),
                 'count': get_item_count(mapitemtype),
             } for name, mapitemtype in FEATURE_TYPES.items()
         ],
     })
 
 
-def list_mapitems(request, mapitem_type, level=None):
+def list_mapitems(request, mapitem_type, section=None):
     mapitemtype = FEATURE_TYPES.get(mapitem_type)
     if mapitemtype is None:
         raise Http404('Unknown mapitemtype.')
 
-    has_level = hasattr(mapitemtype, 'level') or hasattr(mapitemtype, 'levels')
-    if has_level and level is None:
-        raise Http404('Missing level.')
-    elif not has_level and level is not None:
+    has_section = hasattr(mapitemtype, 'section')
+    if has_section and section is None:
+        raise Http404('Missing section.')
+    elif not has_section and section is not None:
         return redirect('editor.mapitems', mapitem_type=mapitem_type)
 
     queryset = mapitemtype.objects.all().order_by('name')
 
-    if level is not None:
-        level = get_object_or_404(Level, level)
-        if hasattr(mapitemtype, 'level'):
-            queryset = queryset.filter(level=level)
-        elif hasattr(mapitemtype, 'levels'):
-            queryset = queryset.filter(levels=level)
+    if section is not None:
+        section = get_object_or_404(Section, section)
+        if hasattr(mapitemtype, 'section'):
+            queryset = queryset.filter(section=section)
 
     queryset = filter_queryset_by_access(request, queryset)
 
@@ -61,12 +56,9 @@ def list_mapitems(request, mapitem_type, level=None):
     return render(request, 'editor/mapitems.html', {
         'mapitem_type': mapitem_type,
         'title': mapitemtype._meta.verbose_name_plural,
-        'has_level': level is not None,
-        'has_elevator': hasattr(mapitemtype, 'elevator'),
-        'has_levels': hasattr(mapitemtype, 'levels'),
+        'has_section': section is not None,
         'has_altitude': hasattr(mapitemtype, 'altitude'),
-        'has_intermediate': hasattr(mapitemtype, 'intermediate'),
-        'level': level.id,
+        'section': section.id,
         'items': queryset,
     })
 

@@ -1,11 +1,11 @@
 from collections import OrderedDict
+
 from django.db import models
 from django.utils.translation import ugettext_lazy as _
-from shapely.geometry import JOIN_STYLE, CAP_STYLE, mapping
+from shapely.geometry import CAP_STYLE, JOIN_STYLE, mapping
 
 from c3nav.mapdata.models.geometry.base import GeometryFeature, GeometryFeatureBase
 from c3nav.mapdata.utils.json import format_geojson
-
 
 SPACE_FEATURE_TYPES = OrderedDict()
 

@@ -1,5 +1,6 @@
 from collections import OrderedDict
-from shapely.geometry import mapping, Point
+
+from shapely.geometry import Point, mapping
 
 from c3nav.mapdata.fields import GeometryField
 from c3nav.mapdata.models.base import Feature, FeatureBase

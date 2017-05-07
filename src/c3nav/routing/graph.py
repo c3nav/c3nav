@@ -8,8 +8,8 @@ from django.conf import settings
 from scipy.sparse.csgraph._shortest_path import shortest_path
 from scipy.sparse.csgraph._tools import csgraph_from_dense
 
-from c3nav.mapdata.models import Level
 from c3nav.mapdata.models.locations import AreaLocation, Location, LocationGroup, PointLocation
+from c3nav.mapdata.models.section import Section
 from c3nav.routing.connection import GraphConnection
 from c3nav.routing.exceptions import AlreadyThere, NoRouteFound, NotYetRoutable
 from c3nav.routing.level import GraphLevel
@@ -27,7 +27,7 @@ class Graph:
     def __init__(self, mtime=None):
         self.mtime = mtime
         self.levels = OrderedDict()
-        for level in Level.objects.all():
+        for level in Section.objects.all():
             self.levels[level.name] = GraphLevel(self, level)
 
         self.points = []
@@ -245,7 +245,7 @@ class Graph:
 
     def get_location_points(self, location: Location, mode):
         if isinstance(location, PointLocation):
-            points = self.levels[location.level.name].connected_points(np.array((location.x, location.y)), mode)
+            points = self.levels[location.section.name].connected_points(np.array((location.x, location.y)), mode)
             if not points:
                 return (), None, None
             points, distances, ctypes = zip(*((point, distance, ctype) for point, (distance, ctype) in points.items()))
