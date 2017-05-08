@@ -1,8 +1,6 @@
 from collections import OrderedDict
-
 from shapely.geometry import Point, mapping
 
-from c3nav.mapdata.fields import GeometryField
 from c3nav.mapdata.models.base import Feature, FeatureBase
 from c3nav.mapdata.utils.json import format_geojson
 
@@ -21,9 +19,6 @@ class GeometryFeature(Feature, metaclass=GeometryFeatureBase):
     """
     A map feature with a geometry
     """
-    geometry = GeometryField()
-
-    geomtype = None
 
     class Meta:
         abstract = True
