@@ -4,6 +4,7 @@ from django.db import models
 from django.utils.translation import ugettext_lazy as _
 from shapely.geometry import CAP_STYLE, JOIN_STYLE, mapping
 
+from c3nav.mapdata.fields import GeometryField
 from c3nav.mapdata.models.geometry.base import GeometryFeature, GeometryFeatureBase
 from c3nav.mapdata.utils.json import format_geojson
 
@@ -37,7 +38,7 @@ class StuffedArea(SpaceFeature):
     """
     A slow area with many tables or similar. Avoid it from routing by slowing it a bit down
     """
-    geomtype = 'polygon'
+    geometry = GeometryField('polygon')
 
     class Meta:
         verbose_name = _('Stuffed Area')
@@ -49,7 +50,7 @@ class Stair(SpaceFeature):
     """
     A stair
     """
-    geomtype = 'polyline'
+    geometry = GeometryField('polyline')
 
     class Meta:
         verbose_name = _('Stair')
@@ -83,7 +84,7 @@ class Obstacle(SpaceFeature):
     """
     An obstacle
     """
-    geomtype = 'polygon'
+    geometry = GeometryField('polygon')
 
     class Meta:
         verbose_name = _('Obstacle')
@@ -95,9 +96,8 @@ class LineObstacle(SpaceFeature):
     """
     An obstacle that is a line with a specific width
     """
+    geometry = GeometryField('polyline')
     width = models.DecimalField(_('obstacle width'), max_digits=4, decimal_places=2, default=0.15)
-
-    geomtype = 'polyline'
 
     class Meta:
         verbose_name = _('Line Obstacle')

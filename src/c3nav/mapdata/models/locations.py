@@ -7,7 +7,7 @@ from django.utils.functional import cached_property
 from django.utils.translation import ugettext_lazy as _
 from django.utils.translation import ungettext_lazy
 
-from c3nav.mapdata.fields import JSONField, validate_bssid_lines
+from c3nav.mapdata.fields import JSONField, validate_bssid_lines, GeometryField
 from c3nav.mapdata.lastupdate import get_last_mapdata_update
 from c3nav.mapdata.models.base import Feature
 from c3nav.mapdata.models.geometry.section import SectionFeature
@@ -118,6 +118,7 @@ class AreaLocation(LocationModelMixin, SectionFeature):
         ('needs_permission', _('Excluded, needs permission to include')),
     )
 
+    geometry = GeometryField('polygon')
     slug = models.SlugField(_('Name'), unique=True, max_length=50)
     location_type = models.CharField(max_length=20, choices=LOCATION_TYPES, verbose_name=_('Location Type'))
     titles = JSONField()
@@ -131,8 +132,6 @@ class AreaLocation(LocationModelMixin, SectionFeature):
     routing_inclusion = models.CharField(max_length=20, choices=ROUTING_INCLUSIONS, default='default',
                                          verbose_name=_('Routing Inclusion'))
     bssids = models.TextField(blank=True, validators=[validate_bssid_lines], verbose_name=_('BSSIDs'))
-
-    geomtype = 'polygon'
 
     class Meta:
         verbose_name = _('Area Location')

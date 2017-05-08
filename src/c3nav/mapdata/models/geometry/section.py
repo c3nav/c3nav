@@ -3,6 +3,7 @@ from collections import OrderedDict
 from django.db import models
 from django.utils.translation import ugettext_lazy as _
 
+from c3nav.mapdata.fields import GeometryField
 from c3nav.mapdata.models.geometry.base import GeometryFeature, GeometryFeatureBase
 
 LEVEL_FEATURE_TYPES = OrderedDict()
@@ -35,7 +36,7 @@ class Building(SectionFeature):
     """
     The outline of a building on a specific level
     """
-    geomtype = 'polygon'
+    geometry = GeometryField('polygon')
 
     class Meta:
         verbose_name = _('Building')
@@ -47,7 +48,7 @@ class Space(SectionFeature):
     """
     An accessible space. Shouldn't overlap.
     """
-    geomtype = 'polygon'
+    geometry = GeometryField('polygon')
 
     CATEGORIES = (
         ('', _('normal')),
@@ -82,7 +83,7 @@ class Door(SectionFeature):
     """
     A connection between two rooms
     """
-    geomtype = 'polygon'
+    geometry = GeometryField('polygon')
 
     class Meta:
         verbose_name = _('Door')
@@ -94,7 +95,7 @@ class Hole(SectionFeature):
     """
     A hole in the ground of a room, e.g. for stairs.
     """
-    geomtype = 'polygon'
+    geometry = GeometryField('polygon')
 
     class Meta:
         verbose_name = _('Hole')
