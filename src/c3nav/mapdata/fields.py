@@ -5,7 +5,7 @@ from django.core.validators import RegexValidator
 from django.db import models
 from django.utils.translation import ugettext_lazy as _
 from shapely import validation
-from shapely.geometry import mapping, shape, Polygon, LineString
+from shapely.geometry import LineString, Polygon, mapping, shape
 from shapely.geometry.base import BaseGeometry
 
 from c3nav.mapdata.utils.geometry import clean_geometry

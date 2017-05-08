@@ -1,12 +1,13 @@
-import numpy as np
 from collections import OrderedDict
+
+import numpy as np
 from django.core.cache import cache
 from django.db import models
 from django.utils.functional import cached_property
 from django.utils.translation import ugettext_lazy as _
 from django.utils.translation import ungettext_lazy
 
-from c3nav.mapdata.fields import JSONField, validate_bssid_lines, GeometryField
+from c3nav.mapdata.fields import GeometryField, JSONField, validate_bssid_lines
 from c3nav.mapdata.lastupdate import get_last_mapdata_update
 from c3nav.mapdata.models.base import EditorFormMixin
 from c3nav.mapdata.models.section import Section

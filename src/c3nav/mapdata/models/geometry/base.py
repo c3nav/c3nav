@@ -1,4 +1,5 @@
 from collections import OrderedDict
+
 from shapely.geometry import Point, mapping
 
 from c3nav.mapdata.models.base import EditorFormMixin

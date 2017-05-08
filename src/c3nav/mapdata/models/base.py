@@ -1,10 +1,6 @@
 from collections import OrderedDict
 
-from django.db import models
-from django.db.models.base import ModelBase
 from django.utils.translation import get_language
-
-from c3nav.mapdata.lastupdate import set_last_mapdata_update
 
 FEATURE_TYPES = OrderedDict()
 
