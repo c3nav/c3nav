@@ -1,43 +1,27 @@
 from collections import OrderedDict
-
 from django.db import models
 from django.utils.translation import ugettext_lazy as _
 from shapely.geometry import CAP_STYLE, JOIN_STYLE, mapping
 
 from c3nav.mapdata.fields import GeometryField
-from c3nav.mapdata.models.geometry.base import GeometryFeature, GeometryFeatureBase
+from c3nav.mapdata.models.geometry.base import GeometryMixin
 from c3nav.mapdata.utils.json import format_geojson
 
 SPACE_FEATURE_TYPES = OrderedDict()
 
 
-class SpaceFeatureBase(GeometryFeatureBase):
-    def __new__(mcs, name, bases, attrs):
-        cls = super().__new__(mcs, name, bases, attrs)
-        if not cls._meta.abstract:
-            SPACE_FEATURE_TYPES[name.lower()] = cls
-        return cls
-
-
-class SpaceFeature(GeometryFeature, metaclass=SpaceFeatureBase):
-    """
-    a map feature that has a geometry and belongs to a space
-    """
-    space = models.ForeignKey('mapdata.Space', on_delete=models.CASCADE, verbose_name=_('space'))
-
-    class Meta:
-        abstract = True
-
+class SpaceGeometryMixin(GeometryMixin):
     def get_geojson_properties(self):
         result = super().get_geojson_properties()
         result['space'] = self.space.id
         return result
 
 
-class StuffedArea(SpaceFeature):
+class StuffedArea(SpaceGeometryMixin, models.Model):
     """
     A slow area with many tables or similar. Avoid it from routing by slowing it a bit down
     """
+    space = models.ForeignKey('mapdata.Space', on_delete=models.CASCADE, verbose_name=_('space'))
     geometry = GeometryField('polygon')
 
     class Meta:
@@ -46,10 +30,11 @@ class StuffedArea(SpaceFeature):
         default_related_name = 'stuffedareas'
 
 
-class Stair(SpaceFeature):
+class Stair(SpaceGeometryMixin, models.Model):
     """
     A stair
     """
+    space = models.ForeignKey('mapdata.Space', on_delete=models.CASCADE, verbose_name=_('space'))
     geometry = GeometryField('polyline')
 
     class Meta:
@@ -80,10 +65,11 @@ class Stair(SpaceFeature):
         ))
 
 
-class Obstacle(SpaceFeature):
+class Obstacle(SpaceGeometryMixin, models.Model):
     """
     An obstacle
     """
+    space = models.ForeignKey('mapdata.Space', on_delete=models.CASCADE, verbose_name=_('space'))
     geometry = GeometryField('polygon')
 
     class Meta:
@@ -92,10 +78,11 @@ class Obstacle(SpaceFeature):
         default_related_name = 'obstacles'
 
 
-class LineObstacle(SpaceFeature):
+class LineObstacle(SpaceGeometryMixin, models.Model):
     """
     An obstacle that is a line with a specific width
     """
+    space = models.ForeignKey('mapdata.Space', on_delete=models.CASCADE, verbose_name=_('space'))
     geometry = GeometryField('polyline')
     width = models.DecimalField(_('obstacle width'), max_digits=4, decimal_places=2, default=0.15)
 

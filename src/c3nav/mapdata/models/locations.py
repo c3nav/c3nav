@@ -1,6 +1,5 @@
-from collections import OrderedDict
-
 import numpy as np
+from collections import OrderedDict
 from django.core.cache import cache
 from django.db import models
 from django.utils.functional import cached_property
@@ -9,8 +8,7 @@ from django.utils.translation import ungettext_lazy
 
 from c3nav.mapdata.fields import JSONField, validate_bssid_lines, GeometryField
 from c3nav.mapdata.lastupdate import get_last_mapdata_update
-from c3nav.mapdata.models.base import Feature
-from c3nav.mapdata.models.geometry.section import SectionFeature
+from c3nav.mapdata.models.base import EditorFormMixin
 from c3nav.mapdata.models.section import Section
 
 
@@ -45,7 +43,7 @@ class LocationModelMixin(Location):
         return self._meta.verbose_name
 
 
-class LocationGroup(LocationModelMixin, Feature):
+class LocationGroup(LocationModelMixin, EditorFormMixin, models.Model):
     slug = models.SlugField(_('Name'), unique=True, max_length=50)
     titles = JSONField()
     can_search = models.BooleanField(default=True, verbose_name=_('can be searched'))
@@ -102,7 +100,7 @@ class LocationGroup(LocationModelMixin, Feature):
         return result
 
 
-class AreaLocation(LocationModelMixin, SectionFeature):
+class AreaLocation(models.Model):
     LOCATION_TYPES = (
         ('level', _('Level')),
         ('area', _('General Area')),
@@ -118,6 +116,7 @@ class AreaLocation(LocationModelMixin, SectionFeature):
         ('needs_permission', _('Excluded, needs permission to include')),
     )
 
+    section = models.ForeignKey('mapdata.Section', on_delete=models.CASCADE, verbose_name=_('section'))
     geometry = GeometryField('polygon')
     slug = models.SlugField(_('Name'), unique=True, max_length=50)
     location_type = models.CharField(max_length=20, choices=LOCATION_TYPES, verbose_name=_('Location Type'))

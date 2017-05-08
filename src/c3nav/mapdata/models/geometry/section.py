@@ -1,41 +1,25 @@
 from collections import OrderedDict
-
 from django.db import models
 from django.utils.translation import ugettext_lazy as _
 
 from c3nav.mapdata.fields import GeometryField
-from c3nav.mapdata.models.geometry.base import GeometryFeature, GeometryFeatureBase
+from c3nav.mapdata.models.geometry.base import GeometryMixin
 
 LEVEL_FEATURE_TYPES = OrderedDict()
 
 
-class SectionFeatureBase(GeometryFeatureBase):
-    def __new__(mcs, name, bases, attrs):
-        cls = super().__new__(mcs, name, bases, attrs)
-        if not cls._meta.abstract:
-            LEVEL_FEATURE_TYPES[name.lower()] = cls
-        return cls
-
-
-class SectionFeature(GeometryFeature, metaclass=SectionFeatureBase):
-    """
-    a map feature that has a geometry and belongs to a section
-    """
-    section = models.ForeignKey('mapdata.Section', on_delete=models.CASCADE, verbose_name=_('section'))
-
-    class Meta:
-        abstract = True
-
+class SectionGeometryMixin(GeometryMixin):
     def get_geojson_properties(self):
         result = super().get_geojson_properties()
         result['section'] = self.section.id
         return result
 
 
-class Building(SectionFeature):
+class Building(SectionGeometryMixin, models.Model):
     """
     The outline of a building on a specific level
     """
+    section = models.ForeignKey('mapdata.Section', on_delete=models.CASCADE, verbose_name=_('section'))
     geometry = GeometryField('polygon')
 
     class Meta:
@@ -44,10 +28,11 @@ class Building(SectionFeature):
         default_related_name = 'buildings'
 
 
-class Space(SectionFeature):
+class Space(SectionGeometryMixin, models.Model):
     """
     An accessible space. Shouldn't overlap.
     """
+    section = models.ForeignKey('mapdata.Section', on_delete=models.CASCADE, verbose_name=_('section'))
     geometry = GeometryField('polygon')
 
     CATEGORIES = (
@@ -79,10 +64,11 @@ class Space(SectionFeature):
         return result
 
 
-class Door(SectionFeature):
+class Door(SectionGeometryMixin, models.Model):
     """
     A connection between two rooms
     """
+    section = models.ForeignKey('mapdata.Section', on_delete=models.CASCADE, verbose_name=_('section'))
     geometry = GeometryField('polygon')
 
     class Meta:
@@ -91,10 +77,11 @@ class Door(SectionFeature):
         default_related_name = 'doors'
 
 
-class Hole(SectionFeature):
+class Hole(SectionGeometryMixin, models.Model):
     """
     A hole in the ground of a room, e.g. for stairs.
     """
+    section = models.ForeignKey('mapdata.Section', on_delete=models.CASCADE, verbose_name=_('section'))
     geometry = GeometryField('polygon')
 
     class Meta:
