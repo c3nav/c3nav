@@ -4,11 +4,11 @@ from django.utils.translation import ugettext_lazy as _
 from shapely.geometry import CAP_STYLE, JOIN_STYLE
 from shapely.ops import cascaded_union
 
-from c3nav.mapdata.models.base import Feature
+from c3nav.mapdata.models.base import EditorFormMixin
 from c3nav.mapdata.utils.geometry import assert_multilinestring, assert_multipolygon
 
 
-class Section(Feature):
+class Section(EditorFormMixin, models.Model):
     """
     A map section like a level
     """

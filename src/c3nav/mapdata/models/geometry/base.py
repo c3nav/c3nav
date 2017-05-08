@@ -1,25 +1,16 @@
 from collections import OrderedDict
 from shapely.geometry import Point, mapping
 
-from c3nav.mapdata.models.base import Feature, FeatureBase
+from c3nav.mapdata.models.base import EditorFormMixin
 from c3nav.mapdata.utils.json import format_geojson
 
 GEOMETRY_FEATURE_TYPES = OrderedDict()
 
 
-class GeometryFeatureBase(FeatureBase):
-    def __new__(mcs, name, bases, attrs):
-        cls = super().__new__(mcs, name, bases, attrs)
-        if not cls._meta.abstract:
-            GEOMETRY_FEATURE_TYPES[name.lower()] = cls
-        return cls
-
-
-class GeometryFeature(Feature, metaclass=GeometryFeatureBase):
+class GeometryMixin(EditorFormMixin):
     """
     A map feature with a geometry
     """
-
     class Meta:
         abstract = True
 

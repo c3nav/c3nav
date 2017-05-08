@@ -1,10 +1,10 @@
 from django.db import models
 from django.utils.translation import ugettext_lazy as _
 
-from c3nav.mapdata.models.base import Feature
+from c3nav.mapdata.models.base import EditorFormMixin
 
 
-class Source(Feature):
+class Source(EditorFormMixin, models.Model):
     """
     A map source, images of levels that can be useful as backgrounds for the map editor
     """
