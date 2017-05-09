@@ -21,6 +21,23 @@ class SectionGeometryMixin(GeometryMixin):
         return result
 
 
+class LevelSectionGeometryMixin(SectionGeometryMixin):
+    LEVELS = (
+        ('', _('normal')),
+        ('upper', _('upper')),
+        ('lower', _('lower')),
+    )
+    level = models.CharField(verbose_name=_('level'), choices=LEVELS, default='', max_length=16)
+
+    class Meta:
+        abstract = True
+
+    def get_geojson_properties(self):
+        result = super().get_geojson_properties()
+        result['level'] = self.level
+        return result
+
+
 class Building(SectionGeometryMixin, models.Model):
     """
     The outline of a building on a specific level
@@ -33,9 +50,9 @@ class Building(SectionGeometryMixin, models.Model):
         default_related_name = 'buildings'
 
 
-class Space(SectionGeometryMixin, models.Model):
+class Space(LevelSectionGeometryMixin, models.Model):
     """
-    An accessible space. Shouldn't overlap.
+    An accessible space. Shouldn't overlap with spaces on same secion and level.
     """
 
     CATEGORIES = (
@@ -44,20 +61,14 @@ class Space(SectionGeometryMixin, models.Model):
         ('escalator', _('escalator')),
         ('elevator', _('elevator')),
     )
-    LEVELS = (
-        ('', _('normal')),
-        ('upper', _('upper')),
-        ('lower', _('lower')),
-    )
     geometry = GeometryField('polygon')
     public = models.BooleanField(verbose_name=_('public'), default=True)
     category = models.CharField(verbose_name=_('category'), choices=CATEGORIES, default='', max_length=16)
-    level = models.CharField(verbose_name=_('level'), choices=LEVELS, default='', max_length=16)
 
     class Meta:
-        verbose_name = _('Area')
-        verbose_name_plural = _('Areas')
-        default_related_name = 'areas'
+        verbose_name = _('Space')
+        verbose_name_plural = _('Spaces')
+        default_related_name = 'spaces'
 
     def get_geojson_properties(self):
         result = super().get_geojson_properties()
@@ -67,9 +78,9 @@ class Space(SectionGeometryMixin, models.Model):
         return result
 
 
-class Door(SectionGeometryMixin, models.Model):
+class Door(LevelSectionGeometryMixin, models.Model):
     """
-    A connection between two rooms
+    A connection between two spaces
     """
     geometry = GeometryField('polygon')
 
