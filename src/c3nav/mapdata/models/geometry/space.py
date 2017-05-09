@@ -12,6 +12,11 @@ SPACE_MODELS = OrderedDict()
 
 
 class SpaceGeometryMixin(GeometryMixin):
+    space = models.ForeignKey('mapdata.Space', on_delete=models.CASCADE, verbose_name=_('space'))
+
+    class Meta:
+        abstract = True
+
     def get_geojson_properties(self):
         result = super().get_geojson_properties()
         result['space'] = self.space.id
@@ -22,7 +27,6 @@ class StuffedArea(SpaceGeometryMixin, models.Model):
     """
     A slow area with many tables or similar. Avoid it from routing by slowing it a bit down
     """
-    space = models.ForeignKey('mapdata.Space', on_delete=models.CASCADE, verbose_name=_('space'))
     geometry = GeometryField('polygon')
 
     class Meta:
@@ -35,7 +39,6 @@ class Stair(SpaceGeometryMixin, models.Model):
     """
     A stair
     """
-    space = models.ForeignKey('mapdata.Space', on_delete=models.CASCADE, verbose_name=_('space'))
     geometry = GeometryField('polyline')
 
     class Meta:
@@ -70,7 +73,6 @@ class Obstacle(SpaceGeometryMixin, models.Model):
     """
     An obstacle
     """
-    space = models.ForeignKey('mapdata.Space', on_delete=models.CASCADE, verbose_name=_('space'))
     geometry = GeometryField('polygon')
 
     class Meta:
@@ -83,7 +85,6 @@ class LineObstacle(SpaceGeometryMixin, models.Model):
     """
     An obstacle that is a line with a specific width
     """
-    space = models.ForeignKey('mapdata.Space', on_delete=models.CASCADE, verbose_name=_('space'))
     geometry = GeometryField('polyline')
     width = models.DecimalField(_('obstacle width'), max_digits=4, decimal_places=2, default=0.15)
 

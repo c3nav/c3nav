@@ -1,12 +1,16 @@
 from collections import OrderedDict
+from django.db import models
 
 from django.utils.translation import get_language
 
 EDITOR_FORM_MODELS = OrderedDict()
 
 
-class EditorFormMixin:
+class EditorFormMixin(models.Model):
     EditorForm = None
+
+    class Meta:
+        abstract = True
 
     @property
     def title(self):

@@ -2,6 +2,7 @@ from collections import OrderedDict
 
 from shapely.geometry import Point, mapping
 
+from c3nav.mapdata.fields import GeometryField
 from c3nav.mapdata.models.base import EditorFormMixin
 from c3nav.mapdata.utils.json import format_geojson
 
@@ -12,6 +13,8 @@ class GeometryMixin(EditorFormMixin):
     """
     A map feature with a geometry
     """
+    geometry = None
+
     class Meta:
         abstract = True
 
