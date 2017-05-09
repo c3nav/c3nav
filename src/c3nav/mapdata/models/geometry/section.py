@@ -6,7 +6,7 @@ from django.utils.translation import ugettext_lazy as _
 from c3nav.mapdata.fields import GeometryField
 from c3nav.mapdata.models.geometry.base import GeometryMixin
 
-LEVEL_FEATURE_TYPES = OrderedDict()
+SECTION_MODELS = OrderedDict()
 
 
 class SectionGeometryMixin(GeometryMixin):
@@ -33,8 +33,6 @@ class Space(SectionGeometryMixin, models.Model):
     """
     An accessible space. Shouldn't overlap.
     """
-    section = models.ForeignKey('mapdata.Section', on_delete=models.CASCADE, verbose_name=_('section'))
-    geometry = GeometryField('polygon')
 
     CATEGORIES = (
         ('', _('normal')),
@@ -48,6 +46,8 @@ class Space(SectionGeometryMixin, models.Model):
         ('lowerr', _('lower')),
     )
 
+    section = models.ForeignKey('mapdata.Section', on_delete=models.CASCADE, verbose_name=_('section'))
+    geometry = GeometryField('polygon')
     public = models.BooleanField(verbose_name=_('public'), default=True)
     category = models.CharField(verbose_name=_('category'), choices=CATEGORIES, max_length=16)
     layer = models.CharField(verbose_name=_('layer'), choices=LAYERS, max_length=16)
