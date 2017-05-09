@@ -15,9 +15,9 @@ validate_bssid_lines = RegexValidator(regex=r'^([0-9a-f]{2}(:[0-9a-f]{2}){5}(\r?
                                       message=_('please enter a newline seperated lowercase list of BSSIDs'))
 
 
-def validate_geometry(geometry):
+def validate_geometry(geometry: BaseGeometry):
     if not isinstance(geometry, BaseGeometry):
-        raise ValidationError('GeometryField expexted a Shapely BaseGeometry child-class.')
+        raise ValidationError('GeometryField expected a Shapely BaseGeometry child-class.')
 
     if not geometry.is_valid:
         raise ValidationError('Invalid geometry: %s' % validation.explain_validity(geometry))
