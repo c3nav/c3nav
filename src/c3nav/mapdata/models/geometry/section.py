@@ -10,6 +10,11 @@ SECTION_MODELS = OrderedDict()
 
 
 class SectionGeometryMixin(GeometryMixin):
+    section = models.ForeignKey('mapdata.Section', on_delete=models.CASCADE, verbose_name=_('section'))
+
+    class Meta:
+        abstract = True
+
     def get_geojson_properties(self):
         result = super().get_geojson_properties()
         result['section'] = self.section.id
@@ -20,7 +25,6 @@ class Building(SectionGeometryMixin, models.Model):
     """
     The outline of a building on a specific level
     """
-    section = models.ForeignKey('mapdata.Section', on_delete=models.CASCADE, verbose_name=_('section'))
     geometry = GeometryField('polygon')
 
     class Meta:
@@ -45,8 +49,6 @@ class Space(SectionGeometryMixin, models.Model):
         ('upper', _('upper')),
         ('lowerr', _('lower')),
     )
-
-    section = models.ForeignKey('mapdata.Section', on_delete=models.CASCADE, verbose_name=_('section'))
     geometry = GeometryField('polygon')
     public = models.BooleanField(verbose_name=_('public'), default=True)
     category = models.CharField(verbose_name=_('category'), choices=CATEGORIES, max_length=16)
@@ -69,7 +71,6 @@ class Door(SectionGeometryMixin, models.Model):
     """
     A connection between two rooms
     """
-    section = models.ForeignKey('mapdata.Section', on_delete=models.CASCADE, verbose_name=_('section'))
     geometry = GeometryField('polygon')
 
     class Meta:
@@ -82,7 +83,6 @@ class Hole(SectionGeometryMixin, models.Model):
     """
     A hole in the ground of a room, e.g. for stairs.
     """
-    section = models.ForeignKey('mapdata.Section', on_delete=models.CASCADE, verbose_name=_('section'))
     geometry = GeometryField('polygon')
 
     class Meta:
