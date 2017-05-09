@@ -2,10 +2,10 @@ from collections import OrderedDict
 
 from django.utils.translation import get_language
 
-FEATURE_TYPES = OrderedDict()
+EDITOR_FORM_MODELS = OrderedDict()
 
 
-class EditorFormMixin():
+class EditorFormMixin:
     EditorForm = None
 
     @property

@@ -5,7 +5,7 @@ from shapely.geometry import Point, mapping
 from c3nav.mapdata.models.base import EditorFormMixin
 from c3nav.mapdata.utils.json import format_geojson
 
-GEOMETRY_FEATURE_TYPES = OrderedDict()
+GEOMETRY_MODELS = OrderedDict()
 
 
 class GeometryMixin(EditorFormMixin):
@@ -29,7 +29,7 @@ class GeometryMixin(EditorFormMixin):
         ))
 
     def get_shadow_geojson(self):
-        return None
+        pass
 
     def contains(self, x, y):
         return self.geometry.contains(Point(x, y))

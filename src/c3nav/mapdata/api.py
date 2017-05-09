@@ -11,7 +11,7 @@ from rest_framework.viewsets import ReadOnlyModelViewSet, ViewSet
 from c3nav.access.apply import filter_arealocations_by_access, filter_queryset_by_access
 from c3nav.mapdata.lastupdate import get_last_mapdata_update
 from c3nav.mapdata.models import AreaLocation, LocationGroup, Source
-from c3nav.mapdata.models.geometry.base import GEOMETRY_FEATURE_TYPES
+from c3nav.mapdata.models.geometry.base import GEOMETRY_MODELS
 from c3nav.mapdata.models.geometry.space import Stair
 from c3nav.mapdata.models.section import Section
 from c3nav.mapdata.search import get_location
@@ -30,7 +30,7 @@ class GeometryTypeViewSet(ViewSet):
                 ('name', name),
                 ('title', str(mapitemtype._meta.verbose_name)),
                 ('title_plural', str(mapitemtype._meta.verbose_name_plural)),
-            )) for name, mapitemtype in GEOMETRY_FEATURE_TYPES.items()
+            )) for name, mapitemtype in GEOMETRY_MODELS.items()
         ])
 
 
@@ -40,7 +40,7 @@ class GeometryViewSet(ViewSet):
     """
     def list(self, request):
         types = set(request.GET.getlist('type'))
-        valid_types = list(GEOMETRY_FEATURE_TYPES.keys())
+        valid_types = list(GEOMETRY_MODELS.keys())
         if not types:
             types = valid_types
         else:
@@ -60,7 +60,7 @@ class GeometryViewSet(ViewSet):
     def _list(self, request, types):
         results = []
         for t in types:
-            mapitemtype = GEOMETRY_FEATURE_TYPES[t]
+            mapitemtype = GEOMETRY_MODELS[t]
             queryset = mapitemtype.objects.all()
             queryset = filter_queryset_by_access(request, queryset)
             queryset = queryset.order_by('id')

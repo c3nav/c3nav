@@ -8,7 +8,7 @@ from c3nav.mapdata.fields import GeometryField
 from c3nav.mapdata.models.geometry.base import GeometryMixin
 from c3nav.mapdata.utils.json import format_geojson
 
-SPACE_FEATURE_TYPES = OrderedDict()
+SPACE_MODELS = OrderedDict()
 
 
 class SpaceGeometryMixin(GeometryMixin):
@@ -105,5 +105,6 @@ class LineObstacle(SpaceGeometryMixin, models.Model):
 
     def get_geojson_properties(self):
         result = super().get_geojson_properties()
+        # noinspection PyTypeChecker
         result['width'] = float(self.width)
         return result

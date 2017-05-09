@@ -80,6 +80,6 @@ def create_editor_form(mapitemtype):
 
 
 def create_editor_forms():
-    from c3nav.mapdata.models.base import FEATURE_TYPES
-    for mapitemtype in FEATURE_TYPES.values():
+    from c3nav.mapdata.models.base import EDITOR_FORM_MODELS
+    for mapitemtype in EDITOR_FORM_MODELS.values():
         create_editor_form(mapitemtype)
