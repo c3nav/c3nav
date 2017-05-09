@@ -44,15 +44,15 @@ class Space(SectionGeometryMixin, models.Model):
         ('escalator', _('escalator')),
         ('elevator', _('elevator')),
     )
-    LAYERS = (
+    LEVELS = (
         ('', _('normal')),
         ('upper', _('upper')),
-        ('lowerr', _('lower')),
+        ('lower', _('lower')),
     )
     geometry = GeometryField('polygon')
     public = models.BooleanField(verbose_name=_('public'), default=True)
     category = models.CharField(verbose_name=_('category'), choices=CATEGORIES, default='', max_length=16)
-    layer = models.CharField(verbose_name=_('layer'), choices=LAYERS, default='', max_length=16)
+    level = models.CharField(verbose_name=_('level'), choices=LEVELS, default='', max_length=16)
 
     class Meta:
         verbose_name = _('Area')
@@ -62,7 +62,7 @@ class Space(SectionGeometryMixin, models.Model):
     def get_geojson_properties(self):
         result = super().get_geojson_properties()
         result['category'] = self.category
-        result['layer'] = self.layer
+        result['level'] = self.level
         result['public'] = self.public
         return result
 
