@@ -51,8 +51,8 @@ class Space(SectionGeometryMixin, models.Model):
     )
     geometry = GeometryField('polygon')
     public = models.BooleanField(verbose_name=_('public'), default=True)
-    category = models.CharField(verbose_name=_('category'), choices=CATEGORIES, max_length=16)
-    layer = models.CharField(verbose_name=_('layer'), choices=LAYERS, max_length=16)
+    category = models.CharField(verbose_name=_('category'), choices=CATEGORIES, default='', max_length=16)
+    layer = models.CharField(verbose_name=_('layer'), choices=LAYERS, default='', max_length=16)
 
     class Meta:
         verbose_name = _('Area')
@@ -81,7 +81,7 @@ class Door(SectionGeometryMixin, models.Model):
 
 class Hole(SectionGeometryMixin, models.Model):
     """
-    A hole in the ground of a room, e.g. for stairs.
+    A hole in the ground of a section (all spaces with layer "normal" and buildings), e.g. for stairs.
     """
     geometry = GeometryField('polygon')
 
