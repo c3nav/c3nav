@@ -2,7 +2,6 @@ from collections import OrderedDict
 
 from shapely.geometry import Point, mapping
 
-from c3nav.mapdata.fields import GeometryField
 from c3nav.mapdata.models.base import EditorFormMixin
 from c3nav.mapdata.utils.json import format_geojson
 
@@ -18,13 +17,13 @@ class GeometryMixin(EditorFormMixin):
     class Meta:
         abstract = True
 
-    def get_geojson_properties(self):
+    def get_geojson_properties(self) -> dict:
         return OrderedDict((
             ('type', self.__class__.__name__.lower()),
             ('id', self.id),
         ))
 
-    def to_geojson(self):
+    def to_geojson(self) -> dict:
         return OrderedDict((
             ('type', 'Feature'),
             ('properties', self.get_geojson_properties()),
@@ -34,5 +33,5 @@ class GeometryMixin(EditorFormMixin):
     def get_shadow_geojson(self):
         pass
 
-    def contains(self, x, y):
+    def contains(self, x, y) -> bool:
         return self.geometry.contains(Point(x, y))
