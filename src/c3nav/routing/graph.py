@@ -8,7 +8,7 @@ from django.conf import settings
 from scipy.sparse.csgraph._shortest_path import shortest_path
 from scipy.sparse.csgraph._tools import csgraph_from_dense
 
-from c3nav.mapdata.models.locations import AreaLocation, Location, LocationGroup, PointLocation
+from c3nav.mapdata.models.locations import Location, LocationGroup, PointLocation
 from c3nav.mapdata.models.section import Section
 from c3nav.routing.connection import GraphConnection
 from c3nav.routing.exceptions import AlreadyThere, NoRouteFound, NotYetRoutable

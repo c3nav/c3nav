@@ -2,8 +2,6 @@ from collections import OrderedDict
 
 from django.utils.translation import ugettext_lazy as _
 
-from c3nav.mapdata.models import AreaLocation
-
 
 def get_default_include_avoid():
     include = set()

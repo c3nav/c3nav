@@ -4,7 +4,6 @@ from collections import OrderedDict
 import numpy as np
 from django.utils.translation import ugettext_lazy as _
 
-from c3nav.mapdata.models import AreaLocation
 from c3nav.mapdata.utils.misc import get_dimensions
 
 
