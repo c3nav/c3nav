@@ -6,6 +6,7 @@ from shapely.geometry import CAP_STYLE, JOIN_STYLE, mapping
 
 from c3nav.mapdata.fields import GeometryField
 from c3nav.mapdata.models.geometry.base import GeometryMixin
+from c3nav.mapdata.models.locations import SpecificLocation
 from c3nav.mapdata.utils.json import format_geojson
 
 SPACE_MODELS = OrderedDict()
@@ -23,7 +24,7 @@ class SpaceGeometryMixin(GeometryMixin):
         return result
 
 
-class Area(SpaceGeometryMixin, models.Model):
+class Area(SpecificLocation, SpaceGeometryMixin, models.Model):
     """
     An area in a space.
     """
@@ -112,7 +113,7 @@ class LineObstacle(SpaceGeometryMixin, models.Model):
         return result
 
 
-class Point(SpaceGeometryMixin, models.Model):
+class Point(SpecificLocation, SpaceGeometryMixin, models.Model):
     """
     An point in a space.
     """

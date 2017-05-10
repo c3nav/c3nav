@@ -10,10 +10,51 @@ from django.utils.translation import ungettext_lazy
 from c3nav.mapdata.fields import GeometryField, JSONField, validate_bssid_lines
 from c3nav.mapdata.lastupdate import get_last_mapdata_update
 from c3nav.mapdata.models.base import EditorFormMixin
-from c3nav.mapdata.models.section import Section
 
 
-class Location:
+class LocationSlug(models.Model):
+    slug = models.SlugField(_('name'), unique=True, null=True, max_length=50)
+
+    class Meta:
+        verbose_name = _('Slug for Location')
+        verbose_name_plural = _('Slugs für Locations')
+        default_related_name = 'locationslugs'
+
+
+class LocationModelMixin:
+    pass
+
+
+class Location(LocationSlug, models.Model):
+    titles = JSONField(default={})
+    can_search = models.BooleanField(default=True, verbose_name=_('can be searched'))
+    can_describe = models.BooleanField(default=True, verbose_name=_('can be used to describe a position'))
+    color = models.CharField(null=True, blank=True, max_length=16, verbose_name=_('background color'),
+                             help_text=_('if set, has to be a valid color for svg images'))
+    public = models.BooleanField(verbose_name=_('public'), default=True)
+
+    class Meta:
+        abstract = True
+
+    def get_geojson_properties(self):
+        result = super().get_geojson_properties()
+        result['slug'] = self.slug_ptr.slug
+        result['titles'] = OrderedDict(sorted(self.titles.items()))
+        return result
+
+    @property
+    def subtitle(self):
+        return self._meta.verbose_name
+
+
+class SpecificLocation(Location, models.Model):
+    groups = models.ManyToManyField('mapdata.LocationGroup', verbose_name=_('Location Groups'), blank=True)
+
+    class Meta:
+        abstract = True
+
+
+class LegacyLocation:
     @property
     def location_id(self):
         raise NotImplementedError
@@ -31,26 +72,7 @@ class Location:
         ))
 
 
-# noinspection PyUnresolvedReferences
-class LocationModelMixin(Location):
-    def get_geojson_properties(self):
-        result = super().get_geojson_properties()
-        result['slug'] = self.slug
-        result['titles'] = OrderedDict(sorted(self.titles.items()))
-        return result
-
-    @property
-    def subtitle(self):
-        return self._meta.verbose_name
-
-
-class LocationGroup(LocationModelMixin, EditorFormMixin, models.Model):
-    slug = models.SlugField(_('Name'), unique=True, max_length=50)
-    titles = JSONField()
-    can_search = models.BooleanField(default=True, verbose_name=_('can be searched'))
-    can_describe = models.BooleanField(default=True, verbose_name=_('can be used to describe a position'))
-    color = models.CharField(null=True, blank=True, max_length=16, verbose_name=_('background color'),
-                             help_text=_('if set, has to be a valid color for svg images'))
+class LocationGroup(Location, EditorFormMixin, models.Model):
     compiled_room = models.BooleanField(default=False, verbose_name=_('is a compiled room'))
 
     class Meta:
@@ -194,8 +216,8 @@ class AreaLocation(models.Model):
         return self.title
 
 
-class PointLocation(Location):
-    def __init__(self, section: Section, x: int, y: int, request):
+class PointLocation(LegacyLocation):
+    def __init__(self, section: 'Section', x: int, y: int, request):
         self.section = section
         self.x = x
         self.y = y
