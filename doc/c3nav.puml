@@ -1,6 +1,7 @@
 @startuml
-abstract class Feature {
-    {static} EditorForm: Form
+class Section {
+    name: str
+    altitude: Decimal
 }
 
 class Source {
@@ -11,65 +12,127 @@ class Source {
     right: Decimal
     image: file
 }
-Feature <|-- Source
 
-class Section {
-    name: str
-    altitude: Decimal
+abstract class GeometryMixin {
+    geometry:
 }
-Feature <|-- Section
 
-abstract class GeometryFeature {
-    {static} geomtype: str
-    geometry: Geometry
+abstract class SectionGeometryMixin {
 }
-Feature <|-- GeometryFeature
-
-abstract class SectionFeature {
-    section: Section
-}
-Section *-- SectionFeature: section
-GeometryFeature <|-- SectionFeature
+GeometryMixin <|-- SectionGeometryMixin
+Section "1" *-- "*" SectionGeometryMixin: section
 
 class Building {
+    geometry: polygon
 }
-SectionFeature <|-- Building
+SectionGeometryMixin <|-- Building
+
+class Category << (E,#FF7700) >> {
+    <i>empty string</i>
+    stairs
+    escalator
+    elevator
+}
+
+class Level << (E,#FF7700) >> {
+    <i>empty string</i>
+    upper
+    lower
+}
 
 class Space {
+    geometry: polygon
     public: bool
-    category: str
-    layer: str
 }
-SectionFeature <|-- Space
+SectionGeometryMixin <|-- Space
+Category "1" <-- Space: category
+Level "1" <-- Space: level
 
 class Door {
+    geometry: polygon
 }
-SectionFeature <|-- Door
+SectionGeometryMixin <|-- Door
+Level "1" <-- Door: level
 
 class Hole {
+    geometry: polygon
 }
-SectionFeature <|-- Hole
+SectionGeometryMixin <|-- Hole
 
-abstract class SpaceFeature {
-    space: Space
+abstract class SpaceGeometryMixin {
 }
-Space *-- SpaceFeature: space
-GeometryFeature <|-- SpaceFeature
+GeometryMixin <|-- SpaceGeometryMixin
+Space "1" *-- "*" SpaceGeometryMixin: space
 
-class StuffedArea {
+class Area {
+    geometry: polygon
 }
-SpaceFeature <|-- StuffedArea
+SpaceGeometryMixin <|-- Area
+
+class Point {
+    geometry: point
+}
+SpaceGeometryMixin <|-- Point
 
 class Stair {
+    geometry: linestring
 }
-SpaceFeature <|-- Stair
+SpaceGeometryMixin <|-- Stair
 
 class Obstacle {
+    geometry: polygon
 }
-SpaceFeature <|-- Obstacle
+SpaceGeometryMixin <|-- Obstacle
 
 class LineObstacle {
-    width: Decimal
+    geometry: linestring
 }
-SpaceFeature <|-- LineObstacle
+SpaceGeometryMixin <|-- LineObstacle
+
+abstract class Location {
+    titles: dict
+    public: bool
+    can_search: bool
+    can_describe: bool
+    color: str
+}
+
+abstract class SpecificLocation {
+
+}
+SpecificLocation --|> Location
+Section --|> SpecificLocation
+Space --|> SpecificLocation
+Area --|> SpecificLocation
+Point --|> SpecificLocation
+
+class LocationGroup {
+    compiled_room: bool
+    compiled_area: bool
+}
+LocationGroup --|> Location
+SpecificLocation "*" --o "*" LocationGroup: groups
+
+class LocationSlug {
+    slug: str
+}
+
+Location "1" -- "1" LocationSlug
+
+class GraphNode {
+    x: int
+    y: int
+    transfer: bool
+    desc: json
+}
+Space "1" *-- "*" GraphNode: space
+
+class GraphLine {
+    category: str
+}
+GraphNode "1" *-- "*" GraphLine: start
+GraphNode "1" *-- "*" GraphLine: end
+
+hide methods
+
 @enduml
