@@ -33,7 +33,7 @@ class Area(SpaceGeometryMixin, models.Model):
     class Meta:
         verbose_name = _('Area')
         verbose_name_plural = _('Areas')
-        default_related_name = 'stuffedareas'
+        default_related_name = 'areas'
 
 
 class Stair(SpaceGeometryMixin, models.Model):
