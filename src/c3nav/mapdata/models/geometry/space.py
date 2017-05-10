@@ -40,7 +40,7 @@ class Stair(SpaceGeometryMixin, models.Model):
     """
     A stair
     """
-    geometry = GeometryField('polyline')
+    geometry = GeometryField('linestring')
 
     class Meta:
         verbose_name = _('Stair')
@@ -86,7 +86,7 @@ class LineObstacle(SpaceGeometryMixin, models.Model):
     """
     An obstacle that is a line with a specific width
     """
-    geometry = GeometryField('polyline')
+    geometry = GeometryField('linestring')
     width = models.DecimalField(_('obstacle width'), max_digits=4, decimal_places=2, default=0.15)
 
     class Meta:
