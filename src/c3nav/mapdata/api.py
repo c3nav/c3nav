@@ -10,7 +10,7 @@ from rest_framework.viewsets import ReadOnlyModelViewSet, ViewSet
 
 from c3nav.access.apply import filter_arealocations_by_access, filter_queryset_by_access
 from c3nav.mapdata.lastupdate import get_last_mapdata_update
-from c3nav.mapdata.models import AreaLocation, LocationGroup, Source
+from c3nav.mapdata.models import LocationGroup, Source
 from c3nav.mapdata.models.geometry.base import GEOMETRY_MODELS
 from c3nav.mapdata.models.geometry.space import Stair
 from c3nav.mapdata.models.section import Section
@@ -53,7 +53,7 @@ class GeometryViewSet(ViewSet):
         return self._list(request, types=types, add_cache_key=cache_key)
 
     @staticmethod
-    def compare_by_location_type(x: AreaLocation, y: AreaLocation):
+    def compare_by_location_type(x, y):
         return AreaLocation.LOCATION_TYPES.index(x.location_type) - AreaLocation.LOCATION_TYPES.index(y.location_type)
 
     @cache_mapdata_api_response()

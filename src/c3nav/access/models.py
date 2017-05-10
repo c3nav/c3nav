@@ -10,8 +10,6 @@ from django.utils.crypto import get_random_string
 from django.utils.functional import cached_property
 from django.utils.translation import ugettext_lazy as _
 
-from c3nav.mapdata.models import AreaLocation
-
 
 class AccessOperator(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='operator')
