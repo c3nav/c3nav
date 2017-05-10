@@ -5,6 +5,7 @@ from django.utils.translation import ugettext_lazy as _
 
 from c3nav.mapdata.fields import GeometryField
 from c3nav.mapdata.models.geometry.base import GeometryMixin
+from c3nav.mapdata.models.locations import SpecificLocation
 
 SECTION_MODELS = OrderedDict()
 
@@ -50,7 +51,7 @@ class Building(SectionGeometryMixin, models.Model):
         default_related_name = 'buildings'
 
 
-class Space(LevelSectionGeometryMixin, models.Model):
+class Space(SpecificLocation, LevelSectionGeometryMixin, models.Model):
     """
     An accessible space. Shouldn't overlap with spaces on same secion and level.
     """

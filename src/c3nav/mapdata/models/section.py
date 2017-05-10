@@ -5,10 +5,11 @@ from shapely.geometry import CAP_STYLE, JOIN_STYLE
 from shapely.ops import cascaded_union
 
 from c3nav.mapdata.models.base import EditorFormMixin
+from c3nav.mapdata.models.locations import SpecificLocation
 from c3nav.mapdata.utils.geometry import assert_multilinestring, assert_multipolygon
 
 
-class Section(EditorFormMixin, models.Model):
+class Section(SpecificLocation, EditorFormMixin, models.Model):
     """
     A map section like a level
     """
