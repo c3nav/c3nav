@@ -74,6 +74,7 @@ class LegacyLocation:
 
 class LocationGroup(Location, EditorFormMixin, models.Model):
     compiled_room = models.BooleanField(default=False, verbose_name=_('is a compiled room'))
+    compiled_area = models.BooleanField(default=False, verbose_name=_('is a compiled area'))
 
     class Meta:
         verbose_name = _('Location Group')
