@@ -110,3 +110,15 @@ class LineObstacle(SpaceGeometryMixin, models.Model):
         # noinspection PyTypeChecker
         result['width'] = float(self.width)
         return result
+
+
+class Point(SpaceGeometryMixin, models.Model):
+    """
+    An point in a space.
+    """
+    geometry = GeometryField('point')
+
+    class Meta:
+        verbose_name = _('Point')
+        verbose_name_plural = _('Points')
+        default_related_name = 'points'
