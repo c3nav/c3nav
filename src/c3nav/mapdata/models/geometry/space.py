@@ -23,15 +23,16 @@ class SpaceGeometryMixin(GeometryMixin):
         return result
 
 
-class StuffedArea(SpaceGeometryMixin, models.Model):
+class Area(SpaceGeometryMixin, models.Model):
     """
-    A slow area with many tables or similar. Avoid it from routing by slowing it a bit down
+    An area in a space.
     """
     geometry = GeometryField('polygon')
+    stuffed = models.BooleanField(verbose_name=_('stuffed area'))
 
     class Meta:
-        verbose_name = _('Stuffed Area')
-        verbose_name_plural = _('Stuffed Areas')
+        verbose_name = _('Area')
+        verbose_name_plural = _('Areas')
         default_related_name = 'stuffedareas'
 
 
