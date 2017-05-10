@@ -29,7 +29,7 @@ class Area(SpecificLocation, SpaceGeometryMixin, models.Model):
     An area in a space.
     """
     geometry = GeometryField('polygon')
-    stuffed = models.BooleanField(verbose_name=_('stuffed area'))
+    stuffed = models.BooleanField(verbose_name=_('stuffed area'), default=False)
 
     class Meta:
         verbose_name = _('Area')
