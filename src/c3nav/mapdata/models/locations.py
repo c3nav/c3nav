@@ -1,5 +1,3 @@
-from collections import OrderedDict
-
 import numpy as np
 from django.core.cache import cache
 from django.db import models
@@ -7,13 +5,24 @@ from django.utils.functional import cached_property
 from django.utils.translation import ugettext_lazy as _
 from django.utils.translation import get_language, ungettext_lazy
 
-from c3nav.mapdata.fields import GeometryField, JSONField, validate_bssid_lines
+from c3nav.mapdata.fields import JSONField
 from c3nav.mapdata.lastupdate import get_last_mapdata_update
 from c3nav.mapdata.models.base import EditorFormMixin
+
+LOCATION_MODELS = []
 
 
 class LocationSlug(models.Model):
     slug = models.SlugField(_('name'), unique=True, null=True, max_length=50)
+
+    def get_child(self):
+        # todo: cache this
+        for model in LOCATION_MODELS:
+            try:
+                return getattr(self, model._meta.default_related_name)
+            except AttributeError:
+                pass
+        return None
 
     class Meta:
         verbose_name = _('Slug for Location')
@@ -25,7 +34,7 @@ class LocationModelMixin:
     pass
 
 
-class Location(LocationSlug, models.Model):
+class Location(LocationSlug, EditorFormMixin, models.Model):
     titles = JSONField(default={})
     can_search = models.BooleanField(default=True, verbose_name=_('can be searched'))
     can_describe = models.BooleanField(default=True, verbose_name=_('can be used to describe a position'))
@@ -36,10 +45,14 @@ class Location(LocationSlug, models.Model):
     class Meta:
         abstract = True
 
-    def get_geojson_properties(self):
-        result = super().get_geojson_properties()
-        result['slug'] = self.slug_ptr.slug
-        result['titles'] = OrderedDict(sorted(self.titles.items()))
+    def _serialize(self, **kwargs):
+        result = super()._serialize(**kwargs)
+        result['slug'] = self.slug
+        result['titles'] = self.titles
+        result['can_search'] = self.can_search
+        result['can_describe'] = self.can_search
+        result['color'] = self.color
+        result['public'] = self.public
         return result
 
     @property
@@ -62,23 +75,10 @@ class SpecificLocation(Location, models.Model):
     class Meta:
         abstract = True
 
-
-class LegacyLocation:
-    @property
-    def location_id(self):
-        raise NotImplementedError
-
-    @property
-    def subtitle(self):
-        raise NotImplementedError
-
-    def to_location_json(self):
-        return OrderedDict((
-            ('id', self.id),
-            ('location_id', self.location_id),
-            ('title', str(self.title)),
-            ('subtitle', str(self.subtitle)),
-        ))
+    def _serialize(self, **kwargs):
+        result = super()._serialize(**kwargs)
+        result['groups'] = list(self.groups.values_list('id', flat=True))
+        return result
 
 
 class LocationGroup(Location, EditorFormMixin, models.Model):
@@ -128,12 +128,14 @@ class LocationGroup(Location, EditorFormMixin, models.Model):
     def __str__(self):
         return self.title
 
-    def get_geojson_properties(self):
-        result = super().get_geojson_properties()
+    def _serialize(self, **kwargs):
+        result = super()._serialize(**kwargs)
+        result['compiled_room'] = self.compiled_room
+        result['compiled_area'] = self.compiled_area
         return result
 
 
-class PointLocation(LegacyLocation):
+class PointLocation:
     def __init__(self, section: 'Section', x: int, y: int, request):
         self.section = section
         self.x = x
@@ -158,6 +160,7 @@ class PointLocation(LegacyLocation):
                              not len(set(self.request.c3nav_access_list) & set(point.arealocations))):
             return _('Unreachable Coordinates'), ''
 
+        AreaLocation = None
         locations = sorted(AreaLocation.objects.filter(name__in=point.arealocations, can_describe=True),
                            key=AreaLocation.get_sort_key, reverse=True)
 

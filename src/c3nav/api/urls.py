@@ -7,16 +7,25 @@ from rest_framework.generics import GenericAPIView
 from rest_framework.response import Response
 from rest_framework.routers import SimpleRouter
 
-from c3nav.mapdata.api import GeometryTypeViewSet, GeometryViewSet, LocationViewSet, SectionViewSet, SourceViewSet
+from c3nav.mapdata.api import (AreaViewSet, BuildingViewSet, DoorViewSet, HoleViewSet, LineObstacleViewSet,
+                               LocationGroupViewSet, LocationViewSet, ObstacleViewSet, PointViewSet, SectionViewSet,
+                               SourceViewSet, SpaceViewSet, StairViewSet)
 
 router = SimpleRouter()
 router.register(r'sections', SectionViewSet)
+router.register(r'buildings', BuildingViewSet)
+router.register(r'spaces', SpaceViewSet)
+router.register(r'doors', DoorViewSet)
+router.register(r'holes', HoleViewSet)
+router.register(r'areas', AreaViewSet)
+router.register(r'stairs', StairViewSet)
+router.register(r'obstacles', ObstacleViewSet)
+router.register(r'lineobstacles', LineObstacleViewSet)
+router.register(r'points', PointViewSet)
 router.register(r'sources', SourceViewSet)
 
-router.register(r'geometrytypes', GeometryTypeViewSet, base_name='geometrytype')
-router.register(r'geometries', GeometryViewSet, base_name='geometry')
-
-router.register(r'locations', LocationViewSet, base_name='location')
+router.register(r'locations', LocationViewSet)
+router.register(r'locationgroups', LocationGroupViewSet)
 
 
 class APIRoot(GenericAPIView):
@@ -32,7 +41,7 @@ class APIRoot(GenericAPIView):
         urls = OrderedDict()
         for urlpattern in router.urls:
             name = urlpattern.name
-            url = self._format_pattern(urlpattern.regex.pattern)
+            url = self._format_pattern(urlpattern.regex.pattern).replace('{pk}', '{id}')
             base = url.split('/', 1)[0]
             if '-' in name:
                 urls.setdefault(base, OrderedDict())[name.split('-', 1)[1]] = url

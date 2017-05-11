@@ -39,8 +39,11 @@ class Section(SpecificLocation, EditorFormMixin, models.Model):
     def higher(self):
         return Section.objects.filter(altitude__gt=self.altitude).order_by('altitude')
 
-    def __str__(self):
-        return self.name
+    def _serialize(self, section=True, **kwargs):
+        result = super()._serialize(**kwargs)
+        result['name'] = self.name
+        result['altitude'] = float(str(self.altitude))
+        return result
 
 
 class SectionGeometries():

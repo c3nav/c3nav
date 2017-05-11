@@ -1,5 +1,3 @@
-from collections import OrderedDict
-
 from django.db import models
 from django.utils.translation import ugettext_lazy as _
 
@@ -7,7 +5,7 @@ from c3nav.mapdata.fields import GeometryField
 from c3nav.mapdata.models.geometry.base import GeometryMixin
 from c3nav.mapdata.models.locations import SpecificLocation
 
-SECTION_MODELS = OrderedDict()
+SECTION_MODELS = []
 
 
 class SectionGeometryMixin(GeometryMixin):
@@ -16,9 +14,15 @@ class SectionGeometryMixin(GeometryMixin):
     class Meta:
         abstract = True
 
-    def get_geojson_properties(self):
+    def get_geojson_properties(self) -> dict:
         result = super().get_geojson_properties()
-        result['section'] = self.section.id
+        result['layer'] = getattr(self, 'level', 'base')
+        return result
+
+    def _serialize(self, section=True, **kwargs):
+        result = super()._serialize(**kwargs)
+        if section:
+            result['section'] = self.section.id
         return result
 
 
@@ -32,11 +36,6 @@ class LevelSectionGeometryMixin(SectionGeometryMixin):
 
     class Meta:
         abstract = True
-
-    def get_geojson_properties(self):
-        result = super().get_geojson_properties()
-        result['level'] = self.level
-        return result
 
 
 class Building(SectionGeometryMixin, models.Model):
@@ -55,7 +54,6 @@ class Space(SpecificLocation, LevelSectionGeometryMixin, models.Model):
     """
     An accessible space. Shouldn't overlap with spaces on same secion and level.
     """
-
     CATEGORIES = (
         ('', _('normal')),
         ('stairs', _('stairs')),
@@ -63,7 +61,6 @@ class Space(SpecificLocation, LevelSectionGeometryMixin, models.Model):
         ('elevator', _('elevator')),
     )
     geometry = GeometryField('polygon')
-    public = models.BooleanField(verbose_name=_('public'), default=True)
     category = models.CharField(verbose_name=_('category'), choices=CATEGORIES, default='', max_length=16)
 
     class Meta:
@@ -71,11 +68,12 @@ class Space(SpecificLocation, LevelSectionGeometryMixin, models.Model):
         verbose_name_plural = _('Spaces')
         default_related_name = 'spaces'
 
-    def get_geojson_properties(self):
-        result = super().get_geojson_properties()
-        result['category'] = self.category
-        result['level'] = self.level
-        result['public'] = self.public
+    def _serialize(self, space=True, **kwargs):
+        result = super()._serialize(**kwargs)
+        if space:
+            result['category'] = self.category
+            result['level'] = self.level
+            result['public'] = self.public
         return result
 
 

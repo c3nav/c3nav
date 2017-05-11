@@ -34,10 +34,11 @@ class MapdataConfig(AppConfig):
             if geometry is None:
                 raise TypeError(_('Model %s has GeometryMixin as base class but has no geometry field.') % cls)
 
+        from c3nav.mapdata.models.locations import Location, LOCATION_MODELS
+        LOCATION_MODELS.extend(self._get_submodels(Location))
+
         from c3nav.mapdata.models.geometry.section import SectionGeometryMixin, SECTION_MODELS
-        for cls in self._get_submodels(SectionGeometryMixin):
-            SECTION_MODELS[cls.__name__] = cls
+        SECTION_MODELS.extend(self._get_submodels(SectionGeometryMixin))
 
         from c3nav.mapdata.models.geometry.space import SpaceGeometryMixin, SPACE_MODELS
-        for cls in self._get_submodels(SpaceGeometryMixin):
-            SPACE_MODELS[cls.__name__] = cls
+        SPACE_MODELS.extend(self._get_submodels(SpaceGeometryMixin))

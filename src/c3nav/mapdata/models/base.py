@@ -10,3 +10,13 @@ class EditorFormMixin(models.Model):
 
     class Meta:
         abstract = True
+
+    def serialize(self, **kwargs):
+        return self._serialize(**kwargs)
+
+    def _serialize(self, include_type=False, **kwargs):
+        result = OrderedDict()
+        if include_type:
+            result['type'] = self.__class__.__name__.lower()
+        result['id'] = self.id
+        return result

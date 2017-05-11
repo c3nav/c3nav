@@ -6,7 +6,7 @@ def _preencode(data, magic_marker, in_coords=False):
     if isinstance(data, dict):
         data = data.copy()
         for name, value in tuple(data.items()):
-            if name in ('bounds', ):
+            if name in ('bounds', 'groups'):
                 data[name] = magic_marker+json.dumps(value)+magic_marker
             else:
                 data[name] = _preencode(value, magic_marker, in_coords=(name == 'coordinates'))
