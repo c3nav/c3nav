@@ -10,14 +10,11 @@ from rest_framework.mixins import RetrieveModelMixin
 from rest_framework.response import Response
 from rest_framework.viewsets import GenericViewSet, ReadOnlyModelViewSet
 
-from c3nav.access.apply import filter_queryset_by_access
 from c3nav.mapdata.models import Building, Door, Hole, LocationGroup, Source, Space
 from c3nav.mapdata.models.geometry.section import SECTION_MODELS
 from c3nav.mapdata.models.geometry.space import SPACE_MODELS, Area, LineObstacle, Obstacle, Point, Stair
 from c3nav.mapdata.models.locations import LOCATION_MODELS, Location, LocationRedirect, LocationSlug
 from c3nav.mapdata.models.section import Section
-from c3nav.mapdata.serializers.main import SourceSerializer
-from c3nav.mapdata.utils.cache import CachedReadOnlyViewSetMixin
 
 
 class MapdataViewSet(ReadOnlyModelViewSet):
@@ -157,12 +154,8 @@ class LocationViewSet(RetrieveModelMixin, GenericViewSet):
         return MapdataViewSet.list_types(LOCATION_MODELS, geomtype=False)
 
 
-class SourceViewSet(CachedReadOnlyViewSetMixin, ReadOnlyModelViewSet):
+class SourceViewSet(MapdataViewSet):
     queryset = Source.objects.all()
-    serializer_class = SourceSerializer
-
-    def get_queryset(self):
-        return filter_queryset_by_access(self.request, super().get_queryset().all())
 
     @detail_route(methods=['get'])
     def image(self, request, pk=None):

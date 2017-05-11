@@ -11,7 +11,7 @@ from c3nav.access.apply import get_visible_areas
 from c3nav.mapdata.inclusion import get_includables_avoidables, parse_include_avoid
 from c3nav.mapdata.lastupdate import get_last_mapdata_update
 from c3nav.mapdata.models.section import Section
-from c3nav.mapdata.search import get_location, search_location
+from c3nav.mapdata.search import search_location
 from c3nav.mapdata.utils.cache import get_sections_cached
 from c3nav.mapdata.utils.misc import get_dimensions, get_render_path
 from c3nav.routing.exceptions import AlreadyThere, NoRouteFound, NotYetRoutable
@@ -40,6 +40,7 @@ def get_location_or_404(request, location):
     if location is None:
         return None
 
+    get_location = None
     location = get_location(request, location)
     if location is None:
         raise Http404
