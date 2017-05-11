@@ -28,7 +28,7 @@ class Migration(migrations.Migration):
                 'verbose_name_plural': 'Areas of Interest',
                 'verbose_name': 'Area of Interest',
             },
-            bases=(models.Model, c3nav.mapdata.models.locations.LocationModelMixin),
+            bases=(models.Model, ),
         ),
         migrations.CreateModel(
             name='GroupOfInterest',
@@ -43,7 +43,7 @@ class Migration(migrations.Migration):
                 'verbose_name_plural': 'Groups of Interest',
                 'verbose_name': 'Group of Interest',
             },
-            bases=(models.Model, c3nav.mapdata.models.locations.LocationModelMixin),
+            bases=(models.Model, ),
         ),
         migrations.AddField(
             model_name='areaofinterest',

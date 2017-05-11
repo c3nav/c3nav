@@ -27,6 +27,13 @@ class Source(EditorFormMixin, models.Model):
         return ((float(result['bottom__min']), float(result['left__min'])),
                 (float(result['top__max']), float(result['right__max'])))
 
+    def _serialize(self, section=True, **kwargs):
+        result = super()._serialize(**kwargs)
+        result['name'] = self.name
+        result['bounds'] = self.bounds
+        return result
+
     @property
     def bounds(self):
+        # noinspection PyTypeChecker
         return (float(self.bottom), float(self.left)), (float(self.top), float(self.right))

@@ -39,10 +39,6 @@ class LocationSlug(SerializableMixin, models.Model):
         default_related_name = 'locationslugs'
 
 
-class LocationModelMixin:
-    pass
-
-
 class Location(LocationSlug, EditorFormMixin, models.Model):
     titles = JSONField(default={})
     can_search = models.BooleanField(default=True, verbose_name=_('can be searched'))
@@ -97,12 +93,10 @@ class Location(LocationSlug, EditorFormMixin, models.Model):
 
     @property
     def title(self):
-        if not hasattr(self, 'titles'):
-            return self.name
         lang = get_language()
         if lang in self.titles:
             return self.titles[lang]
-        return next(iter(self.titles.values())) if self.titles else self.name
+        return next(iter(self.titles.values())) if self.titles else (self._meta.verbose_name+' '+(self.slug or self.id))
 
     @property
     def subtitle(self):
@@ -130,44 +124,6 @@ class LocationGroup(Location, EditorFormMixin, models.Model):
         verbose_name_plural = _('Location Groups')
         default_related_name = 'locationgroups'
 
-    @cached_property
-    def location_id(self):
-        return 'g:'+self.slug
-
-    def get_in_levels(self):
-        last_update = get_last_mapdata_update()
-        if last_update is None:
-            return self._get_in_levels()
-
-        cache_key = 'c3nav__mapdata__locationgroup__in_levels__'+last_update.isoformat()+'__'+str(self.id),
-        in_levels = cache.get(cache_key)
-        if not in_levels:
-            in_levels = self._get_in_levels()
-            cache.set(cache_key, in_levels, 900)
-
-        return in_levels
-
-    def _get_in_levels(self):
-        level_ids = set()
-        in_levels = []
-        for arealocation in self.arealocations.all():
-            for area in arealocation.get_in_areas():
-                if area.location_type == 'level' and area.id not in level_ids:
-                    level_ids.add(area.id)
-                    in_levels.append(area)
-
-        in_levels = sorted(in_levels, key=lambda area: area.section.altitude)
-        return in_levels
-
-    @property
-    def subtitle(self):
-        if self.compiled_room:
-            return ', '.join(area.title for area in self.get_in_levels())
-        return ungettext_lazy('%d location', '%d locations') % self.arealocations.count()
-
-    def __str__(self):
-        return self.title
-
     def _serialize(self, **kwargs):
         result = super()._serialize(**kwargs)
         result['compiled_room'] = self.compiled_room
@@ -191,61 +147,3 @@ class LocationRedirect(LocationSlug):
 
     class Meta:
         default_related_name = 'redirect'
-
-
-class PointLocation:
-    def __init__(self, section: 'Section', x: int, y: int, request):
-        self.section = section
-        self.x = x
-        self.y = y
-        self.request = request
-
-    @cached_property
-    def location_id(self):
-        return 'c:%d:%d:%d' % (self.section.id, self.x * 100, self.y * 100)
-
-    @cached_property
-    def xy(self):
-        return np.array((self.x, self.y))
-
-    @cached_property
-    def description(self):
-        from c3nav.routing.graph import Graph
-        graph = Graph.load()
-        point = graph.get_nearest_point(self.section, self.x, self.y)
-
-        if point is None or (':nonpublic' in point.arealocations and not self.request.c3nav_full_access and
-                             not len(set(self.request.c3nav_access_list) & set(point.arealocations))):
-            return _('Unreachable Coordinates'), ''
-
-        AreaLocation = None
-        locations = sorted(AreaLocation.objects.filter(name__in=point.arealocations, can_describe=True),
-                           key=AreaLocation.get_sort_key, reverse=True)
-
-        if not locations:
-            return _('Coordinates'), ''
-
-        location = locations[0]
-        if location.contains(self.x, self.y):
-            return (_('Coordinates in %(location)s') % {'location': location.title}), location.subtitle_without_type
-        else:
-            return (_('Coordinates near %(location)s') % {'location': location.title}), location.subtitle_without_type
-
-    @property
-    def title(self) -> str:
-        return self.description[0]
-
-    @property
-    def subtitle(self) -> str:
-        add_subtitle = self.description[1]
-        subtitle = '%s:%d:%d' % (self.section.name, self.x * 100, self.y * 100)
-        if add_subtitle:
-            subtitle += ' - '+add_subtitle
-        return subtitle
-
-    def to_location_json(self):
-        result = super().to_location_json()
-        result['section'] = self.section.id
-        result['x'] = self.x
-        result['y'] = self.y
-        return result
