@@ -30,6 +30,18 @@ class GeometryMixin(EditorFormMixin):
             ('geometry', format_geojson(mapping(self.geometry), round=False)),
         ))
 
+    def serialize(self, geometry=True, **kwargs):
+        result = super().serialize(geometry=geometry, **kwargs)
+        if geometry:
+            result.move_to_end('geometry')
+        return result
+
+    def _serialize(self, geometry=True, **kwargs):
+        result = super()._serialize(**kwargs)
+        if geometry:
+            result['geometry'] = format_geojson(mapping(self.geometry), round=False)
+        return result
+
     def get_shadow_geojson(self):
         pass
 

@@ -9,7 +9,7 @@ from c3nav.mapdata.models.geometry.base import GeometryMixin
 from c3nav.mapdata.models.locations import SpecificLocation
 from c3nav.mapdata.utils.json import format_geojson
 
-SPACE_MODELS = OrderedDict()
+SPACE_MODELS = []
 
 
 class SpaceGeometryMixin(GeometryMixin):
@@ -18,9 +18,10 @@ class SpaceGeometryMixin(GeometryMixin):
     class Meta:
         abstract = True
 
-    def get_geojson_properties(self):
-        result = super().get_geojson_properties()
-        result['space'] = self.space.id
+    def _serialize(self, space=True, **kwargs):
+        result = super()._serialize(**kwargs)
+        if space:
+            result['space'] = self.space.id
         return result
 
 
@@ -35,6 +36,11 @@ class Area(SpecificLocation, SpaceGeometryMixin, models.Model):
         verbose_name = _('Area')
         verbose_name_plural = _('Areas')
         default_related_name = 'areas'
+
+    def _serialize(self, **kwargs):
+        result = super()._serialize(**kwargs)
+        result['stuffed'] = self.stuffed
+        return result
 
 
 class Stair(SpaceGeometryMixin, models.Model):
@@ -65,7 +71,6 @@ class Stair(SpaceGeometryMixin, models.Model):
                 ('type', 'shadow'),
                 ('original_type', self.__class__.__name__.lower()),
                 ('original_id', self.id),
-                ('space', self.space.id),
             ))),
             ('geometry', format_geojson(mapping(shadow), round=False)),
         ))
@@ -95,6 +100,19 @@ class LineObstacle(SpaceGeometryMixin, models.Model):
         verbose_name_plural = _('Line Obstacles')
         default_related_name = 'lineobstacles'
 
+    def serialize(self, geometry=True, **kwargs):
+        result = super().serialize(geometry=geometry, **kwargs)
+        if geometry:
+            result.move_to_end('buffered_geometry')
+        return result
+
+    def _serialize(self, geometry=True, **kwargs):
+        result = super()._serialize(geometry=geometry, **kwargs)
+        result['width'] = float(str(self.width))
+        if geometry:
+            result['buffered_geometry'] = format_geojson(mapping(self.buffered_geometry))
+        return result
+
     @property
     def buffered_geometry(self):
         return self.geometry.buffer(self.width / 2, join_style=JOIN_STYLE.mitre, cap_style=CAP_STYLE.flat)
@@ -104,12 +122,6 @@ class LineObstacle(SpaceGeometryMixin, models.Model):
         original_geometry = result['geometry']
         result['geometry'] = format_geojson(mapping(self.buffered_geometry))
         result['original_geometry'] = original_geometry
-        return result
-
-    def get_geojson_properties(self):
-        result = super().get_geojson_properties()
-        # noinspection PyTypeChecker
-        result['width'] = float(self.width)
         return result
 
 
