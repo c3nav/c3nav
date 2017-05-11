@@ -1,4 +1,5 @@
 import numpy as np
+from django.apps import apps
 from django.core.cache import cache
 from django.db import models
 from django.utils.functional import cached_property
@@ -7,17 +8,25 @@ from django.utils.translation import get_language, ungettext_lazy
 
 from c3nav.mapdata.fields import JSONField
 from c3nav.mapdata.lastupdate import get_last_mapdata_update
-from c3nav.mapdata.models.base import EditorFormMixin
+from c3nav.mapdata.models.base import EditorFormMixin, SerializableMixin
 
 LOCATION_MODELS = []
 
 
-class LocationSlug(models.Model):
+class LocationSlug(SerializableMixin, models.Model):
+    LOCATION_TYPE_CODES = {
+        'Section': 'se',
+        'Space': 'sp',
+        'Area': 'a',
+        'Point': 'p',
+        'LocationGroup': 'g'
+    }
+    LOCATION_TYPE_BY_CODE = {code: model_name for model_name, code in LOCATION_TYPE_CODES.items()}
     slug = models.SlugField(_('name'), unique=True, null=True, max_length=50)
 
     def get_child(self):
         # todo: cache this
-        for model in LOCATION_MODELS:
+        for model in LOCATION_MODELS+[LocationRedirect]:
             try:
                 return getattr(self, model._meta.default_related_name)
             except AttributeError:
@@ -47,13 +56,44 @@ class Location(LocationSlug, EditorFormMixin, models.Model):
 
     def _serialize(self, **kwargs):
         result = super()._serialize(**kwargs)
-        result['slug'] = self.slug
+        result['slug'] = self.get_slug()
         result['titles'] = self.titles
         result['can_search'] = self.can_search
         result['can_describe'] = self.can_search
         result['color'] = self.color
         result['public'] = self.public
         return result
+
+    def get_slug(self):
+        if self.slug is None:
+            code = self.LOCATION_TYPE_CODES.get(self.__class__.__name__)
+            if code is not None:
+                return code+':'+str(self.id)
+        return self.slug
+
+    @classmethod
+    def get_by_slug(cls, slug, queryset=None):
+        if queryset is None:
+            queryset = LocationSlug.objects.all()
+
+        if ':' in slug:
+            code, pk = slug.split(':', 1)
+            model_name = cls.LOCATION_TYPE_BY_CODE.get(code)
+            if model_name is None or not pk.isdigit():
+                return None
+
+            model = apps.get_model('mapdata', model_name)
+            try:
+                location = model.objects.get(pk=pk)
+            except model.DoesNotExist:
+                return None
+
+            if location.slug is not None:
+                return LocationRedirect(slug=slug, target=location)
+
+            return location
+
+        return queryset.filter(slug=slug).first()
 
     @property
     def title(self):
@@ -133,6 +173,24 @@ class LocationGroup(Location, EditorFormMixin, models.Model):
         result['compiled_room'] = self.compiled_room
         result['compiled_area'] = self.compiled_area
         return result
+
+
+class LocationRedirect(LocationSlug):
+    target = models.ForeignKey(LocationSlug, verbose_name=_('target'), related_name='redirects')
+
+    def _serialize(self, with_type=True, **kwargs):
+        result = super()._serialize(with_type=with_type, **kwargs)
+        if type(self.target) == LocationSlug:
+            result['target'] = self.target.get_child().slug
+        else:
+            result['target'] = self.target.slug
+        if with_type:
+            result['type'] = 'redirect'
+        result.pop('id')
+        return result
+
+    class Meta:
+        default_related_name = 'redirect'
 
 
 class PointLocation:

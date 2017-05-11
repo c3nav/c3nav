@@ -5,9 +5,7 @@ from django.db import models
 EDITOR_FORM_MODELS = OrderedDict()
 
 
-class EditorFormMixin(models.Model):
-    EditorForm = None
-
+class SerializableMixin(models.Model):
     class Meta:
         abstract = True
 
@@ -29,3 +27,10 @@ class EditorFormMixin(models.Model):
             result['type'] = self.__class__.__name__.lower()
         result['id'] = self.id
         return result
+
+
+class EditorFormMixin(SerializableMixin, models.Model):
+    EditorForm = None
+
+    class Meta:
+        abstract = True
