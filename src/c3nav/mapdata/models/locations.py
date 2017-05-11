@@ -5,7 +5,7 @@ from django.core.cache import cache
 from django.db import models
 from django.utils.functional import cached_property
 from django.utils.translation import ugettext_lazy as _
-from django.utils.translation import ungettext_lazy
+from django.utils.translation import get_language, ungettext_lazy
 
 from c3nav.mapdata.fields import GeometryField, JSONField, validate_bssid_lines
 from c3nav.mapdata.lastupdate import get_last_mapdata_update
@@ -41,6 +41,15 @@ class Location(LocationSlug, models.Model):
         result['slug'] = self.slug_ptr.slug
         result['titles'] = OrderedDict(sorted(self.titles.items()))
         return result
+
+    @property
+    def title(self):
+        if not hasattr(self, 'titles'):
+            return self.name
+        lang = get_language()
+        if lang in self.titles:
+            return self.titles[lang]
+        return next(iter(self.titles.values())) if self.titles else self.name
 
     @property
     def subtitle(self):
