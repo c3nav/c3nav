@@ -2,6 +2,7 @@ import mimetypes
 from itertools import chain
 
 from django.http import HttpResponse
+from django.shortcuts import redirect
 from django.utils.translation import ugettext_lazy as _
 from rest_framework.decorators import detail_route, list_route
 from rest_framework.exceptions import NotFound, ValidationError
@@ -13,7 +14,7 @@ from c3nav.access.apply import filter_queryset_by_access
 from c3nav.mapdata.models import Building, Door, Hole, LocationGroup, Source, Space
 from c3nav.mapdata.models.geometry.section import SECTION_MODELS
 from c3nav.mapdata.models.geometry.space import SPACE_MODELS, Area, LineObstacle, Obstacle, Point, Stair
-from c3nav.mapdata.models.locations import LOCATION_MODELS, LocationSlug
+from c3nav.mapdata.models.locations import LOCATION_MODELS, Location, LocationRedirect, LocationSlug
 from c3nav.mapdata.models.section import Section
 from c3nav.mapdata.serializers.main import SourceSerializer
 from c3nav.mapdata.utils.cache import CachedReadOnlyViewSetMixin
@@ -137,11 +138,19 @@ class LocationGroupViewSet(MapdataViewSet):
 
 
 class LocationViewSet(RetrieveModelMixin, GenericViewSet):
+    """ Add ?show_redirect=1 to suppress redirects and show them as JSON. """
     queryset = LocationSlug.objects.all()
     lookup_field = 'slug'
 
-    def retrieve(self, request, *args, **kwargs):
-        return Response(self.get_object().get_child().serialize(include_type=True))
+    def retrieve(self, request, slug=None, *args, **kwargs):
+        result = Location.get_by_slug(slug, self.get_queryset())
+        if result is None:
+            raise NotFound
+        if isinstance(result, LocationRedirect):
+            if 'show_redirects' in request.GET:
+                return Response(result.serialize(include_type=True))
+            return redirect('../'+result.target.slug)  # todo: why does redirect/reverse not work here?
+        return Response(result.get_child().serialize(include_type=True))
 
     @list_route(methods=['get'])
     def types(self, request):
