@@ -30,6 +30,13 @@ class GeometryMixin(EditorFormMixin):
             ('geometry', format_geojson(mapping(self.geometry), round=False)),
         ))
 
+    @classmethod
+    def serialize_type(cls, geomtype=True, **kwargs):
+        result = super().serialize_type()
+        if geomtype:
+            result['geomtype'] = cls._meta.get_field('geometry').geomtype
+        return result
+
     def serialize(self, geometry=True, **kwargs):
         result = super().serialize(geometry=geometry, **kwargs)
         if geometry:

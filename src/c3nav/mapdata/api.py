@@ -1,26 +1,26 @@
 import mimetypes
-from collections import OrderedDict
 from itertools import chain
 
 from django.http import HttpResponse
 from django.utils.translation import ugettext_lazy as _
 from rest_framework.decorators import detail_route, list_route
 from rest_framework.exceptions import NotFound, ValidationError
+from rest_framework.mixins import RetrieveModelMixin
 from rest_framework.response import Response
-from rest_framework.viewsets import ReadOnlyModelViewSet
+from rest_framework.viewsets import GenericViewSet, ReadOnlyModelViewSet
 
 from c3nav.access.apply import filter_queryset_by_access
 from c3nav.mapdata.models import Building, Door, Hole, LocationGroup, Source, Space
 from c3nav.mapdata.models.geometry.section import SECTION_MODELS
 from c3nav.mapdata.models.geometry.space import SPACE_MODELS, Area, LineObstacle, Obstacle, Point, Stair
-from c3nav.mapdata.models.locations import LocationSlug
+from c3nav.mapdata.models.locations import LOCATION_MODELS, LocationSlug
 from c3nav.mapdata.models.section import Section
 from c3nav.mapdata.serializers.main import SourceSerializer
 from c3nav.mapdata.utils.cache import CachedReadOnlyViewSetMixin
 
 
 class MapdataViewSet(ReadOnlyModelViewSet):
-    def list(self, request):
+    def list(self, request, *args, **kwargs):
         qs = self.get_queryset()
         geometry = ('geometry' in request.GET)
         if qs.model in SECTION_MODELS and 'section' in request.GET:
@@ -41,18 +41,13 @@ class MapdataViewSet(ReadOnlyModelViewSet):
             qs = qs.filter(space=space)
         return Response([obj.serialize(geometry=geometry) for obj in qs.order_by('id')])
 
-    def retrieve(self, request, pk=None):
+    def retrieve(self, request, *args, **kwargs):
         return Response(self.get_object().serialize())
 
-    def list_geometrytypes(self, models_list):
+    @staticmethod
+    def list_types(models_list, **kwargs):
         return Response([
-            OrderedDict((
-                ('name', model.__name__.lower()),
-                ('name_plural', model._meta.default_related_name),
-                ('geomtype', model._meta.get_field('geometry').geomtype),
-                ('title', str(model._meta.verbose_name)),
-                ('title_plural', str(model._meta.verbose_name_plural)),
-            )) for model in models_list
+            model.serialize_type(**kwargs) for model in models_list
         ])
 
 
@@ -61,7 +56,7 @@ class SectionViewSet(MapdataViewSet):
 
     @list_route(methods=['get'])
     def geometrytypes(self, request):
-        return self.list_geometrytypes(SECTION_MODELS)
+        return self.list_types(SECTION_MODELS)
 
     @detail_route(methods=['get'])
     def geometries(self, requests, pk=None):
@@ -87,7 +82,7 @@ class SpaceViewSet(MapdataViewSet):
 
     @list_route(methods=['get'])
     def geometrytypes(self, request):
-        return self.list_geometrytypes(SPACE_MODELS)
+        return self.list_types(SPACE_MODELS)
 
     @detail_route(methods=['get'])
     def geometries(self, requests, pk=None):
@@ -141,12 +136,16 @@ class LocationGroupViewSet(MapdataViewSet):
     queryset = LocationGroup.objects.all()
 
 
-class LocationViewSet(MapdataViewSet):
+class LocationViewSet(RetrieveModelMixin, GenericViewSet):
     queryset = LocationSlug.objects.all()
     lookup_field = 'slug'
 
-    def retrieve(self, request, slug=None):
+    def retrieve(self, request, *args, **kwargs):
         return Response(self.get_object().get_child().serialize(include_type=True))
+
+    @list_route(methods=['get'])
+    def types(self, request):
+        return MapdataViewSet.list_types(LOCATION_MODELS, geomtype=False)
 
 
 class SourceViewSet(CachedReadOnlyViewSetMixin, ReadOnlyModelViewSet):
