@@ -103,11 +103,8 @@ class Location(LocationSlug, EditorFormMixin, models.Model):
         lang = get_language()
         if lang in self.titles:
             return self.titles[lang]
-        return next(iter(self.titles.values())) if self.titles else (self._meta.verbose_name+' '+(self.slug or self.id))
-
-    @property
-    def subtitle(self):
-        return self._meta.verbose_name
+        return (next(iter(self.titles.values())) if self.titles else
+                (self._meta.verbose_name+' '+(self.slug or str(self.id))))
 
 
 class SpecificLocation(Location, models.Model):
