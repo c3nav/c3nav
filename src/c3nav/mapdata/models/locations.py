@@ -1,15 +1,9 @@
-from collections import OrderedDict
-
-import numpy as np
 from django.apps import apps
-from django.core.cache import cache
 from django.db import models
-from django.utils.functional import cached_property
 from django.utils.translation import ugettext_lazy as _
-from django.utils.translation import get_language, ungettext_lazy
+from django.utils.translation import get_language
 
 from c3nav.mapdata.fields import JSONField
-from c3nav.mapdata.lastupdate import get_last_mapdata_update
 from c3nav.mapdata.models.base import EditorFormMixin, SerializableMixin
 
 LOCATION_MODELS = []
