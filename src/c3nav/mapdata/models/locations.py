@@ -33,6 +33,14 @@ class LocationSlug(SerializableMixin, models.Model):
                 pass
         return None
 
+    def get_slug(self):
+        return self.slug
+
+    def _serialize(self, **kwargs):
+        result = super()._serialize(**kwargs)
+        result['slug'] = self.get_slug()
+        return result
+
     class Meta:
         verbose_name = _('Slug for Location')
         verbose_name_plural = _('Slugs für Locations')
@@ -52,7 +60,6 @@ class Location(LocationSlug, EditorFormMixin, models.Model):
 
     def _serialize(self, **kwargs):
         result = super()._serialize(**kwargs)
-        result['slug'] = self.get_slug()
         result['titles'] = self.titles
         result['can_search'] = self.can_search
         result['can_describe'] = self.can_search
