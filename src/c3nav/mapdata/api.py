@@ -153,6 +153,10 @@ class LocationViewSet(RetrieveModelMixin, GenericViewSet):
     def types(self, request):
         return MapdataViewSet.list_types(LOCATION_MODELS, geomtype=False)
 
+    @list_route(methods=['get'])
+    def redirects(self, request):
+        return Response([obj.serialize(include_type=False) for obj in LocationRedirect.objects.all().order_by('id')])
+
 
 class SourceViewSet(MapdataViewSet):
     queryset = Source.objects.all()
