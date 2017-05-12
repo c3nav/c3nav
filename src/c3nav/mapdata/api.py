@@ -138,6 +138,7 @@ class LocationGroupViewSet(MapdataViewSet):
 class LocationViewSet(RetrieveModelMixin, GenericViewSet):
     """
     only accesses locations that have can_search or can_describe set to true.
+    add ?detailed=1 to show all attributes.
     /{id}/ add ?show_redirect=1 to suppress redirects and show them as JSON.
     /search/ only accesses locations that have can_search set to true. Add GET Parameter “s” to search.
     """
@@ -147,7 +148,7 @@ class LocationViewSet(RetrieveModelMixin, GenericViewSet):
     def list(self, request, *args, **kwargs):
         queryset = sorted(chain(*(model.objects.filter(Q(can_search=True) | Q(can_describe=True))
                                   for model in LOCATION_MODELS)), key=lambda obj: obj.id)
-        return Response([obj.serialize(include_type=True) for obj in queryset])
+        return Response([obj.serialize(include_type=True, detailed='detailed' in request.GET) for obj in queryset])
 
     def retrieve(self, request, slug=None, *args, **kwargs):
         result = Location.get_by_slug(slug, self.get_queryset())
@@ -157,7 +158,7 @@ class LocationViewSet(RetrieveModelMixin, GenericViewSet):
             if 'show_redirects' in request.GET:
                 return Response(result.serialize(include_type=True))
             return redirect('../'+result.target.slug)  # todo: why does redirect/reverse not work here?
-        return Response(result.get_child().serialize(include_type=True))
+        return Response(result.get_child().serialize(include_type=True, detailed='detailed' in request.GET))
 
     @list_route(methods=['get'])
     def types(self, request):

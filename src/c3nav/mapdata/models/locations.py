@@ -1,3 +1,5 @@
+from collections import OrderedDict
+
 import numpy as np
 from django.apps import apps
 from django.core.cache import cache
@@ -57,6 +59,13 @@ class Location(LocationSlug, EditorFormMixin, models.Model):
 
     class Meta:
         abstract = True
+
+    def serialize(self, detailed=True, **kwargs):
+        result = super().serialize(**kwargs)
+        if not detailed:
+            for key in set(result.keys()) - {'type', 'id', 'slug', 'title', 'target'}:
+                result.pop(key)
+        return result
 
     def _serialize(self, **kwargs):
         result = super()._serialize(**kwargs)
