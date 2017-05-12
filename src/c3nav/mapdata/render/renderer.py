@@ -2,12 +2,11 @@ import os
 import subprocess
 import xml.etree.ElementTree as ET
 
-from django.conf import settings
-from shapely.affinity import scale
 from shapely.geometry import JOIN_STYLE, box
 
 from c3nav.mapdata.inclusion import get_maybe_invisible_areas
 from c3nav.mapdata.utils.misc import get_dimensions, get_public_private_area, get_render_dimensions, get_render_path
+
 
 
 class LevelRenderer():
@@ -22,41 +21,6 @@ class LevelRenderer():
 
     def get_filename(self, mode, filetype, level=None):
         return get_render_path(filetype, self.level.name if level is None else level, mode, self.only_public)
-
-    @staticmethod
-    def polygon_svg(geometry, fill_color=None, fill_opacity=None,
-                    stroke_width=0.0, stroke_color=None, stroke_opacity=None):
-        scaled = scale(geometry, xfact=settings.RENDER_SCALE, yfact=settings.RENDER_SCALE, origin=(0, 0))
-        element = ET.fromstring(scaled.svg(0, fill_color or '#FFFFFF'))
-        if element.tag != 'g':
-            new_element = ET.Element('g')
-            new_element.append(element)
-            element = new_element
-
-        paths = element.findall('polyline')
-        if len(paths) == 0:
-            paths = element.findall('path')
-
-        for path in paths:
-            path.attrib.pop('opacity')
-            path.set('stroke-width', str(stroke_width * settings.RENDER_SCALE))
-
-            if fill_color is None and 'fill' in path.attrib:
-                path.attrib.pop('fill')
-                path.set('fill-opacity', '0')
-
-            if fill_opacity is not None:
-                path.set('fill-opacity', str(fill_opacity))
-
-            if stroke_color is not None:
-                path.set('stroke', stroke_color)
-            elif 'stroke' in path.attrib:
-                path.attrib.pop('stroke')
-
-            if stroke_opacity is not None:
-                path.set('stroke-opacity', str(stroke_opacity))
-
-        return element
 
     def create_svg(self):
         width, height = get_render_dimensions()
