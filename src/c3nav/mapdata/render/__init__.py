@@ -1,8 +1,6 @@
-from c3nav.mapdata.models.section import Section
-from c3nav.mapdata.render.renderer import LevelRenderer  # noqa
-
-
 def render_all_levels(show_accessibles=False):
+    from c3nav.mapdata.models.section import Section
+    from c3nav.mapdata.render.renderer import LevelRenderer  # noqa
 
     renderers = []
     for level in Section.objects.all():

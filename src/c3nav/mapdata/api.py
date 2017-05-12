@@ -69,6 +69,12 @@ class SectionViewSet(MapdataViewSet):
             results.append(door)
         return Response([obj.to_geojson() for obj in results])
 
+    @detail_route(methods=['get'])
+    def svg(self, requests, pk=None):
+        section = self.get_object()
+        response = HttpResponse(section.render_svg(), 'image/svg+xml')
+        return response
+
 
 class BuildingViewSet(MapdataViewSet):
     """ Add ?geometry=1 to get geometries, add ?section=<id> to filter by section. """
