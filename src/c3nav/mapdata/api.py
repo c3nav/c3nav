@@ -168,6 +168,21 @@ class LocationViewSet(RetrieveModelMixin, GenericViewSet):
     def redirects(self, request):
         return Response([obj.serialize(include_type=False) for obj in LocationRedirect.objects.all().order_by('id')])
 
+    @list_route(methods=['get'])
+    def search(self, request):
+        # todo: implement caching here
+        results = sorted(chain(*(model.objects.filter(can_search=True)
+                                  for model in LOCATION_MODELS)), key=lambda obj: obj.id)
+        search = request.GET.get('s')
+        if not search:
+            return Response([obj.serialize(include_type=True, detailed='detailed' in request.GET) for obj in results])
+
+        words = search.lower().split(' ')[:10]
+        for word in words:
+            results = [r for r in results if (word in r.title.lower() or (r.slug and word in r.slug.lower()))]
+        # todo: rank results
+        return Response([obj.serialize(include_type=True, detailed='detailed' in request.GET) for obj in results])
+
 
 class SourceViewSet(MapdataViewSet):
     queryset = Source.objects.all()
