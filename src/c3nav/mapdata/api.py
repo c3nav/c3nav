@@ -1,6 +1,7 @@
 import mimetypes
 from itertools import chain
 
+from django.db.models import Q
 from django.http import HttpResponse
 from django.shortcuts import redirect
 from django.utils.translation import ugettext_lazy as _
@@ -135,9 +136,18 @@ class LocationGroupViewSet(MapdataViewSet):
 
 
 class LocationViewSet(RetrieveModelMixin, GenericViewSet):
-    """ Add ?show_redirect=1 to suppress redirects and show them as JSON. """
+    """
+    only accesses locations that have can_search or can_describe set to true.
+    /{id}/ add ?show_redirect=1 to suppress redirects and show them as JSON.
+    /search/ only accesses locations that have can_search set to true. Add GET Parameter “s” to search.
+    """
     queryset = LocationSlug.objects.all()
     lookup_field = 'slug'
+
+    def list(self, request, *args, **kwargs):
+        queryset = sorted(chain(*(model.objects.filter(Q(can_search=True) | Q(can_describe=True))
+                                  for model in LOCATION_MODELS)), key=lambda obj: obj.id)
+        return Response([obj.serialize(include_type=True) for obj in queryset])
 
     def retrieve(self, request, slug=None, *args, **kwargs):
         result = Location.get_by_slug(slug, self.get_queryset())
