@@ -61,6 +61,7 @@ class Location(LocationSlug, EditorFormMixin, models.Model):
     def _serialize(self, **kwargs):
         result = super()._serialize(**kwargs)
         result['titles'] = self.titles
+        result['title'] = self.title
         result['can_search'] = self.can_search
         result['can_describe'] = self.can_search
         result['color'] = self.color
