@@ -11,7 +11,7 @@ orig_render = JSONRenderer.render
 def nicer_renderer(self, data, accepted_media_type=None, renderer_context=None):
     if self.get_indent(accepted_media_type, renderer_context) is None:
         return orig_render(self, data, accepted_media_type, renderer_context)
-    shorten_limit = 5 if 'geometry' in data[0] else 50
+    shorten_limit = 5 if any(('geometry' in item) for item in data[:50]) else 50
     shorten = isinstance(data, (list, tuple)) and len(data) > shorten_limit
     orig_len = None
     if shorten:
