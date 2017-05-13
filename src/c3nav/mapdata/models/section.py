@@ -79,9 +79,10 @@ class Section(SpecificLocation, EditorFormMixin, models.Model):
         for space in space_levels['']:
             spaces_by_color.setdefault(space.get_color(), []).append(space)
         spaces_by_color.pop(None, None)
+        spaces_by_color.pop('', None)
         for i, (color, color_spaces) in enumerate(spaces_by_color.items()):
             geometries = cascaded_union(tuple(space.geometry for space in color_spaces))
-            svg.add_geometry(geometries, fill_color=color or '#d1d1d1')
+            svg.add_geometry(geometries, fill_color=color)
 
         # calculate walls
         wall_geometry = building_geometries.difference(space_geometries['']).difference(door_geometries)
