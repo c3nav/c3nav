@@ -1,3 +1,4 @@
+import re
 import xml.etree.ElementTree as ET
 from abc import ABC
 
@@ -59,7 +60,8 @@ class SVGImage(SVGGroup):
             defid = self.new_defid()
 
         scaled = scale(geometry, xfact=self.scale, yfact=self.scale, origin=(0, 0))
-        element = ET.fromstring(scaled.svg(0, '#FFFFFF'))
+        re_string = re.sub(r'([0-9]+)\.0', r'\1', re.sub(r'([0-9]+\.[0-9])[0-9]+', r'\1', scaled.svg(0, '#FFFFFF')))
+        element = ET.fromstring(re_string)
         if element.tag != 'g':
             new_element = ET.Element('g')
             new_element.append(element)
