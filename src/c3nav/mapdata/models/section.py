@@ -59,23 +59,20 @@ class Section(SpecificLocation, EditorFormMixin, models.Model):
 
         hole_geometries = cascaded_union(tuple(h.geometry for h in self.holes.all()))
         hole_geometries = hole_geometries.intersection(space_geometries[''])
-        hole_svg = svg.add_geometry(hole_geometries, defid='holes')
-        hole_mask = svg.add_mask(hole_svg, inverted=True, defid='holes-mask')
 
         lower_spaces_by_color = {}
         for space in space_levels['lower']:
             lower_spaces_by_color.setdefault(space.get_color(), []).append(space)
         for i, (color, color_spaces) in enumerate(lower_spaces_by_color.items()):
             geometries = cascaded_union(tuple(space.geometry for space in color_spaces))
-            space_lower_svg = svg.add_geometry(geometries, defid='spaces-lower-'+str(i))
-            svg.use_geometry(space_lower_svg, fill_color=color or '#d1d1d1')
+            svg.add_geometry(geometries, fill_color=color or '#d1d1d1')
 
         # draw space background
         door_geometries = cascaded_union(tuple(d.geometry for d in self.doors.all()))
         section_geometry = cascaded_union((space_geometries[''], building_geometries, door_geometries))
         section_geometry = section_geometry.difference(hole_geometries)
-        section_clip = svg.add_geometry(section_geometry, defid='section', as_clip_path=True)
-        svg.use_geometry(fill_color='#d1d1d1', clip_path=section_clip)
+        section_clip = svg.register_geometry(section_geometry, defid='section', as_clip_path=True)
+        svg.add_geometry(fill_color='#d1d1d1', clip_path=section_clip)
 
         # color in spaces
         spaces_by_color = {}
@@ -84,27 +81,22 @@ class Section(SpecificLocation, EditorFormMixin, models.Model):
         spaces_by_color.pop(None, None)
         for i, (color, color_spaces) in enumerate(spaces_by_color.items()):
             geometries = cascaded_union(tuple(space.geometry for space in color_spaces))
-            space_svg = svg.add_geometry(geometries, defid='spaces-color-' + str(i))
-            svg.use_geometry(space_svg, fill_color=color or '#d1d1d1')
+            svg.add_geometry(geometries, fill_color=color or '#d1d1d1')
 
         # calculate walls
         wall_geometry = building_geometries.difference(space_geometries['']).difference(door_geometries)
-        wall_svg = svg.add_geometry(wall_geometry, 'walls')
 
         # draw wall shadow
         wall_dilated_geometry = wall_geometry.buffer(0.7, join_style=JOIN_STYLE.mitre)
-        wall_dilated_svg = svg.add_geometry(wall_dilated_geometry, 'wall-shadows')
-        svg.use_geometry(wall_dilated_svg, fill_color='#000000', opacity=0.1, filter='wallblur', clip_path=section_clip)
+        svg.add_geometry(wall_dilated_geometry, fill_color='#000000', opacity=0.1, filter='wallblur', clip_path=section_clip)
 
         # draw walls
-        svg.use_geometry(wall_svg, fill_color='#929292')
-        svg.use_geometry(wall_svg, stroke_color='#333333', stroke_width=0.07)
+        svg.add_geometry(wall_geometry, fill_color='#929292', stroke_color='#333333', stroke_width=0.07)
 
         # draw doors
         door_geometries = cascaded_union(tuple(d.geometry for d in self.doors.all()))
         door_geometries = door_geometries.difference(space_geometries[''])
-        door_svg = svg.add_geometry(door_geometries, defid='doors')
-        svg.use_geometry(door_svg, fill_color='#ffffff', stroke_color='#929292', stroke_width=0.07)
+        svg.add_geometry(door_geometries, fill_color='#ffffff', stroke_color='#929292', stroke_width=0.07)
 
         # draw upper spaces
         upper_spaces_by_color = {}
@@ -112,7 +104,6 @@ class Section(SpecificLocation, EditorFormMixin, models.Model):
             upper_spaces_by_color.setdefault(space.get_color(), []).append(space)
         for i, (color, color_spaces) in enumerate(upper_spaces_by_color.items()):
             geometries = cascaded_union(tuple(space.geometry for space in color_spaces))
-            space_upper_svg = svg.add_geometry(geometries, defid='spaces-upper-' + str(i))
-            svg.use_geometry(space_upper_svg, fill_color=color or '#d1d1d1')
+            svg.add_geometry(geometries, fill_color=color or '#d1d1d1')
 
         return svg.get_xml()
