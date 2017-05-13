@@ -47,11 +47,8 @@ class SVGImage:
         self.def_i += 1
         return defid
 
-    def add_geometry(self, geometry, defid=None, as_clip_path=False, comment=None):
-        if defid is None:
-            defid = self.new_defid()
-
-        geometry = scale(geometry, xfact=1, yfact=-1, origin=(self.width/2, self.height/2))
+    def _create_geometry(self, geometry):
+        geometry = scale(geometry, xfact=1, yfact=-1, origin=(self.width / 2, self.height / 2))
         geometry = scale(geometry, xfact=self.scale, yfact=self.scale, origin=(0, 0))
         re_string = re.sub(r'([0-9]+)\.0', r'\1', re.sub(r'([0-9]+\.[0-9])[0-9]+', r'\1', geometry.svg(0, '#FFFFFF')))
         element = ET.fromstring(re_string)
@@ -59,20 +56,25 @@ class SVGImage:
             new_element = ET.Element('g')
             new_element.append(element)
             element = new_element
-        if as_clip_path:
-            element.tag = 'clipPath'
-
         paths = element.findall('polyline')
         if len(paths) == 0:
             paths = element.findall('path')
-
         for path in paths:
             path.attrib.pop('opacity', None)
             path.attrib.pop('fill', None)
             path.attrib.pop('fill-rule', None)
             path.attrib.pop('stroke', None)
             path.attrib.pop('stroke-width', None)
+        return element
 
+    def register_geometry(self, geometry, defid=None, as_clip_path=False, comment=None):
+        if defid is None:
+            defid = self.new_defid()
+
+        element = self._create_geometry(geometry)
+
+        if as_clip_path:
+            element.tag = 'clipPath'
         element.set('id', defid)
         self.defs.append(element)
         return defid
@@ -104,10 +106,13 @@ class SVGImage:
         self.defs.append(clippath)
         return defid
 
-    def use_geometry(self, geometry=None, fill_color=None, fill_opacity=None, opacity=None, mask=None, filter=None,
+    def add_geometry(self, geometry=None, fill_color=None, fill_opacity=None, opacity=None, mask=None, filter=None,
                      stroke_width=0.0, stroke_color=None, stroke_opacity=None, stroke_linejoin=None, clip_path=None):
         if geometry:
-            element = ET.Element('use', {'xlink:href': '#'+geometry})
+            if isinstance(geometry, str):
+                element = ET.Element('use', {'xlink:href': '#'+geometry})
+            else:
+                element = self._create_geometry(geometry)
         else:
             element = ET.Element('rect', {'width': '100%', 'height': '100%'})
         element.set('fill', fill_color or 'none')
