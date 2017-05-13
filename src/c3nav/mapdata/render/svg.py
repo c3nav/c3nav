@@ -13,14 +13,6 @@ class SVGImage:
         self.defs = ET.Element('defs')
         self.def_i = 0
 
-        # blur_filter = ET.Element('filter', {'id': 'wallblur-old'})
-        # blur_filter.append(ET.Element('feFlood', {'flood-color': '#DDDDDD', 'result': 'flooded'}))
-        # blur_filter.append(ET.Element('feComposite', {'in': 'flooded', 'in2': 'SourceAlpha', 'operator': 'out', 'result': 'outer'}))
-        # blur_filter.append(ET.Element('feMorphology', {'operator': 'dilate', 'in': 'outer', 'radius': str(0.7*self.scale), 'result': 'dilated'}))
-        # blur_filter.append(ET.Element('feGaussianBlur', {'in': 'dilated', 'stdDeviation': str(0.7*self.scale), 'result': 'blurred'}))
-        # blur_filter.append(ET.Element('feComposite', {'in': 'blurred', 'in2': 'SourceAlpha', 'operator': 'in', 'result': 'inner'}))
-        # blur_filter.append(ET.Element('feBlend', {'in': 'SourceGraphic', 'in2': 'inner', 'mode': 'multiply'}))
-
         blur_filter = ET.Element('filter', {'id': 'wallblur'})
         blur_filter.append(ET.Element('feGaussianBlur',
                                       {'in': 'SourceGraphic',
@@ -79,24 +71,6 @@ class SVGImage:
         self.defs.append(element)
         return defid
 
-    def add_mask(self, *geometries, inverted=False, subtract=False, defid=None):
-        if defid is None:
-            defid = self.new_defid()
-
-        mask = ET.Element('mask', {'id': defid})
-        mask.append(ET.Element('rect', {'width': '100%', 'height': '100%',
-                                        'fill': 'white' if inverted else 'black'}))
-        if subtract:
-            mask.append(ET.Element('use', {'xlink:href': '#'+geometries[0],
-                                           'fill': 'black' if inverted else 'white'}))
-            geometries = geometries[1:]
-
-        for geometry in geometries:
-            mask.append(ET.Element('use', {'xlink:href': '#'+geometry,
-                                           'fill': 'black' if inverted != subtract else 'white'}))
-        self.defs.append(mask)
-        return defid
-
     def add_clip_path(self, *geometries, inverted=False, subtract=False, defid=None):
         if defid is None:
             defid = self.new_defid()
@@ -106,7 +80,7 @@ class SVGImage:
         self.defs.append(clippath)
         return defid
 
-    def add_geometry(self, geometry=None, fill_color=None, fill_opacity=None, opacity=None, mask=None, filter=None,
+    def add_geometry(self, geometry=None, fill_color=None, fill_opacity=None, opacity=None, filter=None,
                      stroke_width=0.0, stroke_color=None, stroke_opacity=None, stroke_linejoin=None, clip_path=None):
         if geometry:
             if isinstance(geometry, str):
@@ -130,8 +104,6 @@ class SVGImage:
             element.set('opacity', str(opacity))
         if filter:
             element.set('filter', 'url(#'+filter+')')
-        if mask:
-            element.set('mask', 'url(#'+mask+')')
         if clip_path:
             element.set('clip-path', 'url(#'+clip_path+')')
 
