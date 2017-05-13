@@ -54,7 +54,7 @@ class Section(SpecificLocation, EditorFormMixin, models.Model):
             space_levels[space.level].append(space)
         space_geometries = {
             level: cascaded_union(tuple((s.geometry.difference(building_geometries) if s.outside else s.geometry)
-                                         for s in level_spaces))
+                                        for s in level_spaces))
             for level, level_spaces in space_levels.items()}
 
         hole_geometries = cascaded_union(tuple(h.geometry for h in self.holes.all()))
