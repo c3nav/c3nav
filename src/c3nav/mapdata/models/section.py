@@ -73,8 +73,9 @@ class Section(SpecificLocation, EditorFormMixin, models.Model):
         # draw space background
         door_geometries = cascaded_union(tuple(d.geometry for d in self.doors.all()))
         section_geometry = cascaded_union((space_geometries[''], building_geometries, door_geometries))
-        section_svg = svg.add_geometry(section_geometry, defid='section')
-        svg.use_geometry(section_svg, fill_color='#d1d1d1', mask=hole_mask)
+        section_geometry = section_geometry.difference(hole_geometries)
+        section_clip = svg.add_geometry(section_geometry, defid='section', as_clip_path=True)
+        svg.use_geometry(fill_color='#d1d1d1', clip_path=section_clip)
 
         # color in spaces
         spaces_by_color = {}
@@ -89,12 +90,11 @@ class Section(SpecificLocation, EditorFormMixin, models.Model):
         # calculate walls
         wall_geometry = building_geometries.difference(space_geometries['']).difference(door_geometries)
         wall_svg = svg.add_geometry(wall_geometry, 'walls')
-        accessible_mask = svg.add_mask(section_svg, wall_svg, hole_svg, subtract=True, defid='accessible')
 
         # draw wall shadow
         wall_dilated_geometry = wall_geometry.buffer(0.7, join_style=JOIN_STYLE.mitre)
         wall_dilated_svg = svg.add_geometry(wall_dilated_geometry, 'wall-shadows')
-        svg.use_geometry(wall_dilated_svg, fill_color='rgba(0, 0, 0, 0.1)', mask=accessible_mask, filter='wallblur')
+        svg.use_geometry(wall_dilated_svg, fill_color='#000000', opacity=0.1, filter='wallblur', clip_path=section_clip)
 
         # draw walls
         svg.use_geometry(wall_svg, fill_color='#929292')
