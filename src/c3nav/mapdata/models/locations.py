@@ -110,6 +110,14 @@ class Location(LocationSlug, EditorFormMixin, models.Model):
         return (next(iter(self.titles.values())) if self.titles else
                 (self._meta.verbose_name+' '+(self.slug or str(self.id))))
 
+    def get_color(self):
+        if self.color:
+            return self.color
+        color_group = self.groups.filter(color__isnull=False).order_by('-compiled_area', '-compiled_room').first()
+        if color_group:
+            return color_group.color
+        return None
+
 
 class SpecificLocation(Location, models.Model):
     groups = models.ManyToManyField('mapdata.LocationGroup', verbose_name=_('Location Groups'), blank=True)

@@ -77,6 +77,16 @@ class Space(SpecificLocation, LevelSectionGeometryMixin, models.Model):
             result['public'] = self.public
         return result
 
+    def get_color(self):
+        color = {
+            'stairs': '#dddddd',
+            'escalator': '#a9a9a9',
+            'elevator': '#00ffff',
+        }.get(self.category)
+        if not color:
+            color = super().get_color()
+        return color
+
 
 class Door(LevelSectionGeometryMixin, models.Model):
     """
