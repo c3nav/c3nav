@@ -34,6 +34,17 @@ class SVGImage(SVGGroup):
         self.defs = ET.Element('defs')
         self.def_i = 0
 
+        # blur_filter = ET.Element('filter', {'id': 'wallblur-old'})
+        # blur_filter.append(ET.Element('feFlood', {'flood-color': '#DDDDDD', 'result': 'flooded'}))
+        # blur_filter.append(ET.Element('feComposite', {'in': 'flooded', 'in2': 'SourceAlpha', 'operator': 'out', 'result': 'outer'}))
+        # blur_filter.append(ET.Element('feMorphology', {'operator': 'dilate', 'in': 'outer', 'radius': str(0.7*self.scale), 'result': 'dilated'}))
+        # blur_filter.append(ET.Element('feGaussianBlur', {'in': 'dilated', 'stdDeviation': str(0.7*self.scale), 'result': 'blurred'}))
+        # blur_filter.append(ET.Element('feComposite', {'in': 'blurred', 'in2': 'SourceAlpha', 'operator': 'in', 'result': 'inner'}))
+        # blur_filter.append(ET.Element('feBlend', {'in': 'SourceGraphic', 'in2': 'inner', 'mode': 'multiply'}))
+
+        blur_filter = ET.Element('filter', {'id': 'wallblur'})
+        blur_filter.append(ET.Element('feGaussianBlur', {'stdDeviation': str(0.7 * self.scale)}))
+        self.defs.append(blur_filter)
         # blur_filter = ET.Element('filter', {'id': 'wallblur'})
         # blur_filter.append(ET.Element('feGaussianBlur', {'in': 'SourceGraphic', 'stdDeviation': str(5*self.scale)}))
         # self.defs.append(blur_filter)
@@ -82,14 +93,21 @@ class SVGImage(SVGGroup):
         self.defs.append(element)
         return defid
 
-    def add_mask(self, *geometries, inverted=False, defid=None):
+    def add_mask(self, *geometries, inverted=False, subtract=False, defid=None):
         if defid is None:
             defid = self.new_defid()
 
         mask = ET.Element('mask', {'id': defid})
-        mask.append(ET.Element('rect', {'width': '100%', 'height': '100%', 'fill': 'white' if inverted else 'black'}))
+        mask.append(ET.Element('rect', {'width': '100%', 'height': '100%',
+                                        'fill': 'white' if inverted else 'black'}))
+        if subtract:
+            mask.append(ET.Element('use', {'xlink:href': '#'+geometries[0],
+                                           'fill': 'black' if inverted else 'white'}))
+            geometries = geometries[1:]
+
         for geometry in geometries:
-            mask.append(ET.Element('use', {'xlink:href': '#'+geometry, 'fill': 'black' if inverted else 'white'}))
+            mask.append(ET.Element('use', {'xlink:href': '#'+geometry,
+                                           'fill': 'black' if inverted != subtract else 'white'}))
         self.defs.append(mask)
         return defid
 
