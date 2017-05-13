@@ -113,7 +113,7 @@ class Location(LocationSlug, EditorFormMixin, models.Model):
     def get_color(self):
         if self.color:
             return self.color
-        color_group = self.groups.filter(color__isnull=False).order_by('-compiled_area', '-compiled_room').first()
+        color_group = self.groups.filter(color__isnull=False).order_by('compiled_area', 'compiled_room').first()
         if color_group:
             return color_group.color
         return None
