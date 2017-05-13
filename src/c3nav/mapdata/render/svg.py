@@ -1,5 +1,6 @@
 import re
 import xml.etree.ElementTree as ET
+from itertools import chain
 
 from shapely.affinity import scale
 
@@ -50,15 +51,13 @@ class SVGImage:
             new_element = ET.Element('g')
             new_element.append(element)
             element = new_element
-        paths = element.findall('polyline')
-        if len(paths) == 0:
-            paths = element.findall('path')
-        for path in paths:
-            path.attrib.pop('opacity', None)
-            path.attrib.pop('fill', None)
-            path.attrib.pop('fill-rule', None)
-            path.attrib.pop('stroke', None)
-            path.attrib.pop('stroke-width', None)
+
+        for elem in chain(element.findall('polyline'), element.findall('path')):
+            elem.attrib.pop('opacity', None)
+            elem.attrib.pop('fill', None)
+            elem.attrib.pop('fill-rule', None)
+            elem.attrib.pop('stroke', None)
+            elem.attrib.pop('stroke-width', None)
         return element
 
     def register_geometry(self, geometry, defid=None, as_clip_path=False, comment=None):
