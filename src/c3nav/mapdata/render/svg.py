@@ -4,30 +4,12 @@ import xml.etree.ElementTree as ET
 from shapely.affinity import scale
 
 
-class SVGGroup:
+class SVGImage:
     def __init__(self, width: int, height: int, scale: float=1):
         self.width = width
         self.height = height
         self.scale = scale
-        self.g = ET.Element('g', {
-            'transform': 'scale(1 -1) translate(0 -%d)' % (self.height*scale),
-        })
-
-    def get_element(self):
-        return self.g
-
-    def get_xml(self):
-        return ET.tostring(self.get_element()).decode()
-
-    def add_group(self):
-        group = SVGGroup(self.width, self.height, self.scale)
-        self.g.append(group)
-        return group
-
-
-class SVGImage(SVGGroup):
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
+        self.g = ET.Element('g', {})
         self.defs = ET.Element('defs')
         self.def_i = 0
 
@@ -57,6 +39,9 @@ class SVGImage(SVGGroup):
         root.append(self.g)
         return root
 
+    def get_xml(self):
+        return ET.tostring(self.get_element()).decode()
+
     def new_defid(self):
         defid = 's'+str(self.def_i)
         self.def_i += 1
@@ -66,8 +51,9 @@ class SVGImage(SVGGroup):
         if defid is None:
             defid = self.new_defid()
 
-        scaled = scale(geometry, xfact=self.scale, yfact=self.scale, origin=(0, 0))
-        re_string = re.sub(r'([0-9]+)\.0', r'\1', re.sub(r'([0-9]+\.[0-9])[0-9]+', r'\1', scaled.svg(0, '#FFFFFF')))
+        geometry = scale(geometry, xfact=1, yfact=-1, origin=(self.width/2, self.height/2))
+        geometry = scale(geometry, xfact=self.scale, yfact=self.scale, origin=(0, 0))
+        re_string = re.sub(r'([0-9]+)\.0', r'\1', re.sub(r'([0-9]+\.[0-9])[0-9]+', r'\1', geometry.svg(0, '#FFFFFF')))
         element = ET.fromstring(re_string)
         if element.tag != 'g':
             new_element = ET.Element('g')
