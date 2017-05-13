@@ -80,7 +80,7 @@ class Space(SpecificLocation, LevelSectionGeometryMixin, models.Model):
     def get_color(self):
         color = {
             'stairs': '#dddddd',
-            'escalator': '#a9a9a9',
+            'escalator': '#bbbbbb',
             'elevator': '#00ffff',
         }.get(self.category)
         if not color:
