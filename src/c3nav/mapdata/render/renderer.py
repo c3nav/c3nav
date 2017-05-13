@@ -8,7 +8,6 @@ from c3nav.mapdata.inclusion import get_maybe_invisible_areas
 from c3nav.mapdata.utils.misc import get_dimensions, get_public_private_area, get_render_dimensions, get_render_path
 
 
-
 class LevelRenderer():
     def __init__(self, level, only_public):
         self.level = level

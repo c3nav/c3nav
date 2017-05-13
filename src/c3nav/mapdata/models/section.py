@@ -2,6 +2,7 @@ from django.conf import settings
 from django.db import models
 from django.utils.functional import cached_property
 from django.utils.translation import ugettext_lazy as _
+from shapely.geometry import JOIN_STYLE
 from shapely.ops import cascaded_union
 
 from c3nav.mapdata.models.base import EditorFormMixin
@@ -67,27 +68,35 @@ class Section(SpecificLocation, EditorFormMixin, models.Model):
 
         hole_geometries = cascaded_union(tuple(h.geometry for h in self.holes.all()))
         hole_geometries = hole_geometries.intersection(space_geometries[''])
-        hole_svg = svg.add_geometry(hole_geometries, 'holes')
+        hole_svg = svg.add_geometry(hole_geometries, defid='holes')
         hole_mask = svg.add_mask(hole_svg, inverted=True, defid='holes-mask')
 
         space_lower_svg = svg.add_geometry(space_geometries['lower'], defid='spaces-lower')
         svg.use_geometry(space_lower_svg, fill_color='#d1d1d1')
 
-        space_svg = svg.add_geometry(space_geometries[''], defid='spaces')
-        space_hole_mask = svg.add_mask(space_svg, hole_svg, inverted=True, defid='spaces_mask')
-        svg.use_geometry(space_svg, fill_color='#d1d1d1', mask=hole_mask)
+        door_geometries = cascaded_union(tuple(d.geometry for d in self.doors.all()))
+        section_geometry = cascaded_union((space_geometries[''], building_geometries, door_geometries))
+        section_svg = svg.add_geometry(section_geometry, defid='section')
+        svg.use_geometry(section_svg, fill_color='#d1d1d1', mask=hole_mask)
 
-        building_svg = svg.add_geometry(building_geometries, 'buildings')
-        svg.use_geometry(building_svg, fill_color='#929292', mask=space_hole_mask)
+        wall_geometry = building_geometries.difference(space_geometries['']).difference(door_geometries)
+        wall_svg = svg.add_geometry(wall_geometry, 'walls')
+        svg.use_geometry(wall_svg, fill_color='#929292')
 
-        svg.use_geometry(space_svg, stroke_color='#333333', stroke_width=0.08)
-        svg.use_geometry(building_svg, stroke_color='#333333', stroke_width=0.10)
+        accessible_mask = svg.add_mask(section_svg, wall_svg, hole_svg, subtract=True, defid='accessible')
+
+        wall_dilated_geometry = wall_geometry.buffer(0.7, join_style=JOIN_STYLE.mitre)
+        wall_dilated_svg = svg.add_geometry(wall_dilated_geometry, 'wall-shadows')
+        svg.use_geometry(wall_dilated_svg, fill_color='rgba(0, 0, 0, 0.1)', mask=accessible_mask, filter='wallblur')
+
+        svg.use_geometry(wall_svg, stroke_color='#333333', stroke_width=0.07)
 
         door_geometries = cascaded_union(tuple(d.geometry for d in self.doors.all()))
         door_geometries = door_geometries.difference(space_geometries[''])
         door_svg = svg.add_geometry(door_geometries, defid='doors')
-        svg.use_geometry(door_svg, fill_color='#ffffff')
+        svg.use_geometry(door_svg, fill_color='#ffffff', stroke_color='#929292', stroke_width=0.07)
 
         space_upper_svg = svg.add_geometry(space_geometries['upper'], defid='spaces-upper')
         svg.use_geometry(space_upper_svg, fill_color='#d1d1d1')
+
         return svg.get_xml()
