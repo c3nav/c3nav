@@ -42,6 +42,12 @@ class Area(SpecificLocation, SpaceGeometryMixin, models.Model):
         result['stuffed'] = self.stuffed
         return result
 
+    def get_color(self):
+        color = super().get_color()
+        if not color and self.stuffed:
+            color = 'rgba(0, 0, 0, 0.04)'
+        return color
+
 
 class Stair(SpaceGeometryMixin, models.Model):
     """
