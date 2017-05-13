@@ -1,10 +1,7 @@
 import re
 import xml.etree.ElementTree as ET
-from abc import ABC
 
 from shapely.affinity import scale
-
-from c3nav.mapdata.utils.misc import get_render_dimensions
 
 
 class SVGGroup:
