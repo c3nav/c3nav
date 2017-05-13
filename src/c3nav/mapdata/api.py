@@ -178,7 +178,7 @@ class LocationViewSet(RetrieveModelMixin, GenericViewSet):
     def search(self, request):
         # todo: implement caching here
         results = sorted(chain(*(model.objects.filter(can_search=True)
-                                  for model in LOCATION_MODELS)), key=lambda obj: obj.id)
+                                 for model in LOCATION_MODELS)), key=lambda obj: obj.id)
         search = request.GET.get('s')
         if not search:
             return Response([obj.serialize(include_type=True, detailed='detailed' in request.GET) for obj in results])
