@@ -38,6 +38,31 @@ class Section(SpecificLocation, EditorFormMixin, models.Model):
         result['altitude'] = float(str(self.altitude))
         return result
 
+    def _render_space_ground(self, svg, space):
+        areas_by_color = {}
+        for area in space.areas.all():
+            areas_by_color.setdefault(area.get_color(), []).append(area)
+        areas_by_color.pop(None, None)
+        areas_by_color.pop('', None)
+        for i, (color, color_areas) in enumerate(areas_by_color.items()):
+            geometries = cascaded_union(tuple(area.geometry for area in color_areas)).intersection(space.geometry)
+            svg.add_geometry(geometries, fill_color=color)
+
+        stair_geometries = tuple(stair.geometry for stair in space.stairs.all())
+        svg.add_geometry(cascaded_union(stair_geometries).intersection(space.geometry),
+                         stroke_width=0.06, stroke_color='#000000', opacity=0.15)
+        for i in range(2):
+            svg.add_geometry(cascaded_union(tuple(g.parallel_offset(0.06+0.04*i, 'right', join_style=JOIN_STYLE.mitre)
+                                                  for g in stair_geometries)).intersection(space.geometry),
+                             stroke_width=0.04, stroke_color='#000000', opacity=0.07-0.05*i)
+
+    def _render_space_inventory(self, svg, space):
+        obstacle_geometries = cascaded_union(
+            tuple(obstacle.geometry for obstacle in space.obstacles.all()) +
+            tuple(obstacle.buffered_geometry for obstacle in space.lineobstacles.all())
+        ).intersection(space.geometry)
+        svg.add_geometry(obstacle_geometries, fill_color='#999999')
+
     def render_svg(self):
         width, height = get_dimensions()
         svg = SVGImage(width=width, height=height, scale=settings.RENDER_SCALE)
@@ -67,6 +92,10 @@ class Section(SpecificLocation, EditorFormMixin, models.Model):
             geometries = cascaded_union(tuple(space.geometry for space in color_spaces))
             svg.add_geometry(geometries, fill_color=color or '#d1d1d1')
 
+        for space in space_levels['lower']:
+            self._render_space_ground(svg, space)
+            self._render_space_inventory(svg, space)
+
         # draw space background
         door_geometries = cascaded_union(tuple(d.geometry for d in self.doors.all()))
         section_geometry = cascaded_union((space_geometries[''], building_geometries, door_geometries))
@@ -84,12 +113,18 @@ class Section(SpecificLocation, EditorFormMixin, models.Model):
             geometries = cascaded_union(tuple(space.geometry for space in color_spaces))
             svg.add_geometry(geometries, fill_color=color)
 
+        for space in space_levels['']:
+            self._render_space_ground(svg, space)
+
         # calculate walls
         wall_geometry = building_geometries.difference(space_geometries['']).difference(door_geometries)
 
         # draw wall shadow
         wall_dilated_geometry = wall_geometry.buffer(0.7, join_style=JOIN_STYLE.mitre)
         svg.add_geometry(wall_dilated_geometry, fill_color='#000000', opacity=0.1, filter='wallblur', clip_path=section_clip)
+
+        for space in space_levels['']:
+            self._render_space_inventory(svg, space)
 
         # draw walls
         svg.add_geometry(wall_geometry, fill_color='#929292', stroke_color='#333333', stroke_width=0.07)
@@ -106,5 +141,9 @@ class Section(SpecificLocation, EditorFormMixin, models.Model):
         for i, (color, color_spaces) in enumerate(upper_spaces_by_color.items()):
             geometries = cascaded_union(tuple(space.geometry for space in color_spaces))
             svg.add_geometry(geometries, fill_color=color or '#d1d1d1')
+
+        for space in space_levels['upper']:
+            self._render_space_ground(svg, space)
+            self._render_space_inventory(svg, space)
 
         return svg.get_xml()
