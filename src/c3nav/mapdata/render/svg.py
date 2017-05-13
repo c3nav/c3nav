@@ -82,7 +82,7 @@ class SVGImage:
 
     def add_geometry(self, geometry=None, fill_color=None, fill_opacity=None, opacity=None, filter=None,
                      stroke_width=0.0, stroke_color=None, stroke_opacity=None, stroke_linejoin=None, clip_path=None):
-        if geometry:
+        if geometry is not None:
             if isinstance(geometry, str):
                 element = ET.Element('use', {'xlink:href': '#'+geometry})
             else:
