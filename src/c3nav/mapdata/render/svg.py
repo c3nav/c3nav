@@ -39,11 +39,13 @@ class SVGImage:
         self.def_i += 1
         return defid
 
+    def _trim_decimals(self, data):
+        return re.sub(r'([0-9]+)\.0', r'\1', re.sub(r'([0-9]+\.[0-9])[0-9]+', r'\1', data))
+
     def _create_geometry(self, geometry):
         geometry = scale(geometry, xfact=1, yfact=-1, origin=(self.width / 2, self.height / 2))
         geometry = scale(geometry, xfact=self.scale, yfact=self.scale, origin=(0, 0))
-        re_string = re.sub(r'([0-9]+)\.0', r'\1', re.sub(r'([0-9]+\.[0-9])[0-9]+', r'\1', geometry.svg(0, '#FFFFFF')))
-        element = ET.fromstring(re_string)
+        element = ET.fromstring(self._trim_decimals(geometry.svg(0, '#FFFFFF')))
         if element.tag != 'g':
             new_element = ET.Element('g')
             new_element.append(element)
@@ -93,17 +95,17 @@ class SVGImage:
             element = ET.Element('rect', {'width': '100%', 'height': '100%'})
         element.set('fill', fill_color or 'none')
         if fill_opacity:
-            element.set('fill-opacity', str(fill_opacity))
+            element.set('fill-opacity', str(fill_opacity)[:4])
         if stroke_width:
-            element.set('stroke-width', str(stroke_width * self.scale))
+            element.set('stroke-width', self._trim_decimals(str(stroke_width * self.scale)))
         if stroke_color:
             element.set('stroke', stroke_color)
         if stroke_opacity:
-            element.set('stroke-opacity', str(stroke_opacity))
+            element.set('stroke-opacity', str(stroke_opacity)[:4])
         if stroke_linejoin:
-            element.set('stroke-linejoin', str(stroke_linejoin))
+            element.set('stroke-linejoin', stroke_linejoin)
         if opacity:
-            element.set('opacity', str(opacity))
+            element.set('opacity', str(opacity)[:4])
         if filter:
             element.set('filter', 'url(#'+filter+')')
         if clip_path:
