@@ -40,11 +40,10 @@ class SVGImage(SVGGroup):
         # blur_filter.append(ET.Element('feBlend', {'in': 'SourceGraphic', 'in2': 'inner', 'mode': 'multiply'}))
 
         blur_filter = ET.Element('filter', {'id': 'wallblur'})
-        blur_filter.append(ET.Element('feGaussianBlur', {'stdDeviation': str(0.7 * self.scale)}))
+        blur_filter.append(ET.Element('feGaussianBlur',
+                                      {'in': 'SourceGraphic',
+                                       'stdDeviation': str(int(0.7 * self.scale))}))
         self.defs.append(blur_filter)
-        # blur_filter = ET.Element('filter', {'id': 'wallblur'})
-        # blur_filter.append(ET.Element('feGaussianBlur', {'in': 'SourceGraphic', 'stdDeviation': str(5*self.scale)}))
-        # self.defs.append(blur_filter)
 
     def get_element(self):
         root = ET.Element('svg', {
@@ -63,7 +62,7 @@ class SVGImage(SVGGroup):
         self.def_i += 1
         return defid
 
-    def add_geometry(self, geometry, defid=None, comment=None):
+    def add_geometry(self, geometry, defid=None, as_clip_path=False, comment=None):
         if defid is None:
             defid = self.new_defid()
 
@@ -74,6 +73,8 @@ class SVGImage(SVGGroup):
             new_element = ET.Element('g')
             new_element.append(element)
             element = new_element
+        if as_clip_path:
+            element.tag = 'clipPath'
 
         paths = element.findall('polyline')
         if len(paths) == 0:
@@ -108,50 +109,21 @@ class SVGImage(SVGGroup):
         self.defs.append(mask)
         return defid
 
-    def add_union(self, *geometries, wall_shadow=False, defid=None):
+    def add_clip_path(self, *geometries, inverted=False, subtract=False, defid=None):
         if defid is None:
             defid = self.new_defid()
 
-        element = ET.Element('g', {'id': defid})
-        for geometry in geometries:
-            newelem = ET.Element('use', {'xlink:href': '#'+geometry})
-            if wall_shadow:
-                newelem.set('filter', 'url(#wallshadow)')
-            element.append(newelem)
-        self.defs.append(element)
+        clippath = ET.Element('clipPath', {'id': defid})
+        clippath.append(ET.Element('use', {'xlink:href': '#' + geometries[0]}))
+        self.defs.append(clippath)
         return defid
 
-    def add_intersection(self, geometry1, geometry2, defid=None):
-        if defid is None:
-            defid = self.new_defid()
-
-        mask = ET.Element('mask', {'id': defid+'-mask'})
-        mask.append(ET.Element('rect', {'width': '100%', 'height': '100%', 'fill': 'black'}))
-        mask.append(ET.Element('use', {'xlink:href': '#'+geometry2, 'fill': 'white'}))
-        self.defs.append(mask)
-
-        element = ET.Element('g', {'id': defid, 'mask': 'url(#'+defid+'-mask)'})
-        element.append(ET.Element('use', {'xlink:href': '#'+geometry1}))
-        self.defs.append(element)
-        return defid
-
-    def add_difference(self, geometry1, geometry2, defid=None):
-        if defid is None:
-            defid = self.new_defid()
-
-        mask = ET.Element('mask', {'id': defid+'-mask'})
-        mask.append(ET.Element('rect', {'width': '100%', 'height': '100%', 'fill': 'white'}))
-        mask.append(ET.Element('use', {'xlink:href': '#'+geometry2, 'fill': 'black'}))
-        self.defs.append(mask)
-
-        element = ET.Element('g', {'id': defid, 'mask': 'url(#'+defid+'-mask)'})
-        element.append(ET.Element('use', {'xlink:href': '#' + geometry1}))
-        self.defs.append(element)
-        return defid
-
-    def use_geometry(self, geometry, fill_color=None, fill_opacity=None, opacity=None, mask=None, filter=None,
-                     stroke_width=0.0, stroke_color=None, stroke_opacity=None, stroke_linejoin=None):
-        element = ET.Element('use', {'xlink:href': '#'+geometry})
+    def use_geometry(self, geometry=None, fill_color=None, fill_opacity=None, opacity=None, mask=None, filter=None,
+                     stroke_width=0.0, stroke_color=None, stroke_opacity=None, stroke_linejoin=None, clip_path=None):
+        if geometry:
+            element = ET.Element('use', {'xlink:href': '#'+geometry})
+        else:
+            element = ET.Element('rect', {'width': '100%', 'height': '100%'})
         element.set('fill', fill_color or 'none')
         if fill_opacity:
             element.set('fill-opacity', str(fill_opacity))
@@ -165,10 +137,12 @@ class SVGImage(SVGGroup):
             element.set('stroke-linejoin', str(stroke_linejoin))
         if opacity:
             element.set('opacity', str(opacity))
-        if mask:
-            element.set('mask', 'url(#'+mask+')')
         if filter:
             element.set('filter', 'url(#'+filter+')')
+        if mask:
+            element.set('mask', 'url(#'+mask+')')
+        if clip_path:
+            element.set('clip-path', 'url(#'+clip_path+')')
 
         self.g.append(element)
         return element
