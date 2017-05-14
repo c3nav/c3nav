@@ -3,7 +3,6 @@ from django.core.exceptions import PermissionDenied
 from django.http.response import Http404
 from django.shortcuts import get_object_or_404, redirect, render
 
-from c3nav.access.apply import can_access, filter_queryset_by_access
 from c3nav.mapdata.models import Section
 from c3nav.mapdata.models.base import EDITOR_FORM_MODELS
 
