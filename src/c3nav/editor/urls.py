@@ -1,10 +1,11 @@
 from django.conf.urls import url
-from django.views.generic import TemplateView
 
-from c3nav.editor.views import edit_mapitem, list_mapitems, list_mapitemtypes
+from c3nav.editor.views import edit_mapitem, list_mapitems, list_mapitemtypes, main_index, sections_list
 
 urlpatterns = [
-    url(r'^$', TemplateView.as_view(template_name='editor/map.html'), name='editor.index'),
+    url(r'^$', main_index, name='editor.index'),
+    url(r'^sections/$', sections_list, name='editor.sections'),
+    url(r'^sections/(?P<section>[0-9]+)/$', main_index, name='editor.index'),
     url(r'^mapitemtypes/(?P<level>[^/]+)/$', list_mapitemtypes, name='editor.mapitemtypes'),
     url(r'^mapitems/(?P<mapitem_type>[^/]+)/list/$', list_mapitems, name='editor.mapitems'),
     url(r'^mapitems/(?P<mapitem_type>[^/]+)/list/(?P<sectionl>[0-9]+)/$', list_mapitems, name='editor.mapitems.level'),
