@@ -5,7 +5,12 @@
     }
 }());
 
+
 editor = {
+    options: {
+		position: 'bottomright'
+	},
+
     init: function () {
         // Init Map
         editor.map = L.map('map', {
@@ -29,10 +34,11 @@ editor = {
             $('body').addClass('controls');
         });
 
+        editor._section_control = new SectionControl().addTo(editor.map);
+
         editor.init_geometries();
         editor.init_sidebar();
         editor.get_sources();
-        editor.get_levels();
 
         bounds = [[0.0, 0.0], [240.0, 400.0]];
         editor.map.setMaxBounds(bounds);
@@ -44,7 +50,6 @@ editor = {
     get_sources: function () {
         // load sources
         editor._sources_control = L.control.layers().addTo(editor.map);
-        $(editor._sources_control._layersLink).text('Sources');
 
         $.getJSON('/api/sources/', function (sources) {
             var source;
@@ -57,60 +62,101 @@ editor = {
         });
     },
 
-    // levels
-    levels: {},
-    _level: null,
-    _loading_geometry: true,
-    _level_fake_layers: {},
-    get_levels: function () {
-        // load levels and set the lowest one afterwards
-        $.getJSON('/api/levels/?ordering=-altitude', function (levels) {
-            var control = L.control.layers([], [], {
-                position: 'bottomright'
-            }).addTo(editor.map);
-            $(control._layersLink).text('Levels').parent().addClass('leaflet-levels');
+    // sidebar
+    get_location_path: function () {
+        return window.location.pathname + window.location.search;
+    },
+    init_sidebar: function() {
+        // init the sidebar. sed listeners for form submits and link clicks
+        $('#mapeditcontrols').on('click', 'a[href]', editor._sidebar_link_click)
+                             .on('click', 'button[type=submit]', editor._sidebar_submit_btn_click)
+                             .on('submit', 'form', editor._sidebar_submit);
+        var location_path = editor.get_location_path();
+        editor.sidebar_get(location_path);
+        history.replaceState({}, '', location_path);
+        window.onpopstate = function() {
+            editor.sidebar_get(editor.get_location_path());
+        };
+    },
+    sidebar_get: function(location) {
+        // load a new page into the sidebar using a GET request
+        var location_path = editor.get_location_path();
+        if ($('#mapeditcontrols').html() !== '') {
+            history.pushState({}, '', location);
+        }
+        editor._sidebar_unload();
+        $.get(location, editor._sidebar_loaded).fail(editor._sidebar_error);
+    },
+    _sidebar_unload: function() {
+        // unload the sidebar. called on sidebar_get and form submit.
+        editor._section_control.disable();
+        $('#mapeditcontrols').html('').addClass('loading');
+        editor._unhighlight_geometry();
+        editor._cancel_editing();
+    },
+    _sidebar_loaded: function(data) {
+        // sidebar was loaded. load the content. check if there are any redirects. call _check_start_editing.
+        var content = $(data);
+        var mapeditcontrols = $('#mapeditcontrols');
+        mapeditcontrols.html(content).removeClass('loading');
 
-            var level, layer;
-            for (var i = levels.length -1; i >= 0; i--) {
-                level = levels[i];
-                layer = L.circle([-200, -200], 0.1);
-                layer._c3nav_level = level.name;
-                layer.on('add', editor._click_level);
-                editor._level_fake_layers[level.name] = layer;
-                control.addBaseLayer(layer, level.name);
+        redirect = $('span[data-redirect]');
+        if (redirect.length) {
+            editor.sidebar_get(redirect.attr('data-redirect'));
+            return;
+        }
+
+        sections = $('[data-sections]');
+        if (sections.length) {
+            var sections = sections.find('a');
+            editor._section_control.clearSections();
+            for(var i=0;i<sections.length;i++) {
+                var section = $(sections[i]);
+                editor._section_control.addSection(section.text(), section.attr('href'), section.is('.current'));
             }
+            if (sections.length > 1) {
+                editor._section_control.enable();
+            } else {
+                editor._section_control.disable();
+            }
+            editor._section_control.show()
+        } else {
+            editor._section_control.hide();
+        }
 
-            editor._loading_geometry = false;
-            editor.set_current_level(levels[0].name);
+        editor._check_start_editing();
+    },
+    _sidebar_error: function(data) {
+        $('#mapeditcontrols').html('<h3>Error '+data.status+'</h3>'+data.statusText).removeClass('loading');
+        editor._section_control.hide();
+    },
+    _sidebar_link_click: function(e) {
+        // listener for link-clicks in the sidebar.
+        e.preventDefault();
+        editor.sidebar_get($(this).attr('href'));
+    },
+    _sidebar_submit_btn_click: function() {
+        // listener for submit-button-clicks in the sidebar, so the submit event will know which button submitted.
+        $(this).closest('form').data('btn', $(this)).clearQueue().delay(300).queue(function() {
+            $(this).data('btn', null);
         });
     },
-    _click_level: function(e) {
-        if (editor._level === null) return;
-        var level = e.target._c3nav_level;
-        var success = editor.set_current_level(level);
-        if (!success) {
-            editor._level_fake_layers[level].remove();
-            editor._level_fake_layers[editor._level].addTo(editor.map);
+    _sidebar_submit: function(e) {
+        // listener for form submits in the sidebar.
+        e.preventDefault();
+        var data = $(this).serialize();
+        var btn = $(this).data('btn');
+        if (btn !== undefined && btn !== null) {
+            if ($(btn).is('[name]')) {
+                data += '&' + $('<input>').attr('name', $(btn).attr('name')).val($(btn).val()).serialize();
+            }
+            if ($(btn).is('[data-reload-geometries]')) {
+                editor._get_geometries_next_time = true;
+            }
         }
-    },
-    set_current_level: function(level_name) {
-        // sets the current level if the sidebar allows it
-        if (editor._loading_geometry) return false;
-        var level_switch = $('#mapeditcontrols').find('[data-level-switch]');
-        if (level_switch.length === 0) return;
-        editor._loading_geometry = true;
-        if (editor._level !== null) {
-            editor._level_fake_layers[editor._level].remove();
-        }
-        editor._level_fake_layers[level_name].addTo(editor.map);
-        editor._level = level_name;
-        editor.get_geometries();
-
-        var level_switch_href = level_switch.attr('data-level-switch');
-        if (level_switch_href) {
-            editor.sidebar_get(level_switch_href.replace('LEVEL', level_name));
-        }
-        return true;
+        var action = $(this).attr('action');
+        editor._sidebar_unload();
+        $.post(action, data, editor._sidebar_loaded);
     },
 
     // geometries
@@ -122,9 +168,6 @@ editor = {
     _geometries_shadows: {},
     _creating: false,
     _editing: null,
-    _geometry_types: [],
-    _shown_geometry_types: {},
-    _geometry_types_control: null,
     init_geometries: function () {
         // init geometries and edit listeners
         editor._highlight_layer = L.layerGroup().addTo(editor.map);
@@ -142,50 +185,6 @@ editor = {
         editor.map.on('editable:vertex:ctrlclick editable:vertex:metakeyclick', function (e) {
             e.vertex.continue();
         });
-
-        editor._get_geometry_types();
-    },
-    _get_geometry_types: function() {
-        editor._geometry_types_control = L.control.layers().addTo(editor.map);
-        $(editor._geometry_types_control._layersLink).text('Types');
-        $.getJSON('/api/geometrytypes/', function(geometrytypes) {
-            var geometrytype, layer;
-            for (var i = 0; i < geometrytypes.length; i++) {
-                geometrytype = geometrytypes[i];
-                layer = L.circle([-200, -200], 0.1);
-                layer._c3nav_geometry_type = geometrytype.name;
-                layer.on('add', editor._add_geometrytype_layer);
-                layer.on('remove', editor._remove_geometrytype_layer);
-                layer.addTo(editor.map);
-                editor._geometry_types_control.addOverlay(layer, geometrytype.title_plural);
-                editor._geometry_types.push(geometrytype.name)
-                editor._shown_geometry_types[geometrytype.name] = true;
-            }
-        });
-    },
-    _add_geometrytype_layer: function(e) {
-        var type = e.target._c3nav_geometry_type;
-        if (!editor._shown_geometry_types[type]) {
-            if (editor._loading_geometry) {
-                e.target.remove();
-                return;
-            }
-            editor._loading_geometry = true;
-            editor._shown_geometry_types[type] = true;
-            editor.get_geometries();
-        }
-    },
-    _remove_geometrytype_layer: function(e) {
-        var type = e.target._c3nav_geometry_type;
-        if (editor._shown_geometry_types[type]) {
-            if (editor._loading_geometry) {
-                e.target.addTo(map);
-                return;
-            }
-            editor._loading_geometry = true;
-            editor._shown_geometry_types[type] = false;
-            editor.get_geometries();
-        }
     },
     get_geometries: function () {
         // reload geometries of current level
@@ -194,13 +193,7 @@ editor = {
         if (editor._geometries_layer !== null) {
             editor.map.removeLayer(editor._geometries_layer);
         }
-        geometrytypes = '';
-        for (var i = 0; i < editor._geometry_types.length; i++) {
-            if (editor._shown_geometry_types[editor._geometry_types[i]]) {
-                geometrytypes += '&type=' + editor._geometry_types[i];
-            }
-        }
-        $.getJSON('/api/geometries/?level='+String(editor._level)+geometrytypes, function(geometries) {
+        $.getJSON('/api/geometries/?level='+String(editor._level), function(geometries) {
             editor._geometries_layer = L.geoJSON(geometries, {
                 style: editor._get_geometry_style,
                 onEachFeature: editor._register_geojson_feature
@@ -426,85 +419,104 @@ editor = {
         if (editor._editing !== null) {
             $('#id_geometry').val(JSON.stringify(editor._editing.toGeoJSON().geometry));
         }
-    },
-
-    // sidebar
-    sidebar_location: null,
-    init_sidebar: function() {
-        // init the sidebar. sed listeners for form submits and link clicks
-        $('#mapeditcontrols').on('click', 'a[href]', editor._sidebar_link_click)
-                             .on('click', 'button[type=submit]', editor._sidebar_submit_btn_click)
-                             .on('submit', 'form', editor._sidebar_submit);
-    },
-    sidebar_get: function(location) {
-        // load a new page into the sidebar using a GET request
-        editor._sidebar_unload();
-        $.get(location, editor._sidebar_loaded);
-    },
-    _sidebar_unload: function() {
-        // unload the sidebar. called on sidebar_get and form submit.
-        $('#mapeditcontrols').html('').addClass('loading');
-        editor._unhighlight_geometry();
-        editor._cancel_editing();
-    },
-    _sidebar_loaded: function(data) {
-        // sidebar was loaded. load the content. check if there are any redirects. call _check_start_editing.
-        var content = $(data);
-        var mapeditcontrols = $('#mapeditcontrols');
-        mapeditcontrols.html(content).removeClass('loading');
-
-        var redirect = mapeditcontrols.find('form[name=redirect]');
-        if (redirect.length) {
-            redirect.submit();
-            return;
-        }
-
-        redirect = $('span[data-redirect]');
-        if (redirect.length) {
-            editor.sidebar_get(redirect.attr('data-redirect').replace('LEVEL', editor._level));
-            return;
-        }
-
-        editor._check_start_editing();
-    },
-    _sidebar_link_click: function(e) {
-        // listener for link-clicks in the sidebar.
-        e.preventDefault();
-        if ($(this).is('[data-level-link]')) {
-            editor.set_current_level($(this).attr('data-level-link'));
-            return;
-        }
-        var href = $(this).attr('href');
-        if ($(this).is('[data-insert-level]')) {
-            href = href.replace('LEVEL', editor._level);
-        }
-        editor.sidebar_get(href);
-    },
-    _sidebar_submit_btn_click: function() {
-        // listener for submit-button-clicks in the sidebar, so the submit event will know which button submitted.
-        $(this).closest('form').data('btn', $(this)).clearQueue().delay(300).queue(function() {
-            $(this).data('btn', null);
-        });
-    },
-    _sidebar_submit: function(e) {
-        // listener for form submits in the sidebar.
-        if ($(this).attr('name') == 'redirect') return;
-        e.preventDefault();
-        var data = $(this).serialize();
-        var btn = $(this).data('btn');
-        if (btn !== undefined && btn !== null) {
-            if ($(btn).is('[name]')) {
-                data += '&' + $('<input>').attr('name', $(btn).attr('name')).val($(btn).val()).serialize();
-            }
-            if ($(btn).is('[data-reload-geometries]')) {
-                editor._get_geometries_next_time = true;
-            }
-        }
-        var action = $(this).attr('action');
-        editor._sidebar_unload();
-        $.post(action, data, editor._sidebar_loaded);
     }
 };
+
+
+SectionControl = L.Control.extend({
+    options: {
+		position: 'bottomright'
+	},
+
+	onAdd: function (map) {
+		this._container = L.DomUtil.create('div', 'leaflet-control-sections leaflet-bar');
+		this._sectionButtons = [];
+		this._disabled = true;
+		this.hide();
+
+		if (!L.Browser.android) {
+            L.DomEvent.on(this._container, {
+                mouseenter: this.expand,
+                mouseleave: this.collapse
+            }, this);
+        }
+
+        if (L.Browser.touch) {
+            L.DomEvent
+                .on(this._container, 'click', L.DomEvent.stop)
+                .on(this._container, 'click', this.collapse, this);
+        } else {
+            L.DomEvent.on(this._container, 'focus', this.expand, this);
+        }
+
+        this._map.on('click', this.collapse, this);
+
+		return this._container;
+	},
+
+	addSection: function (title, href, current) {
+		var link = L.DomUtil.create('a', (current ? 'current' : ''), this._container);
+		link.innerHTML = title;
+		link.href = href;
+
+		L.DomEvent
+		    .on(link, 'mousedown dblclick', L.DomEvent.stopPropagation)
+		    .on(link, 'click', this._sectionClick, this)
+
+        this._sectionButtons.push(link);
+		return link;
+	},
+
+    clearSections: function() {
+        for (var i = 0; i < this._sectionButtons.length; i++) {
+            L.DomUtil.remove(this._sectionButtons[i]);
+        }
+        this._sectionButtons = [];
+    },
+
+    disable: function () {
+        for (var i = 0; i < this._sectionButtons.length; i++) {
+            L.DomUtil.addClass(this._sectionButtons[i], 'leaflet-disabled');
+        }
+        this.collapse();
+        this._disabled = true;
+    },
+
+    enable: function () {
+        for (var i = 0; i < this._sectionButtons.length; i++) {
+            L.DomUtil.removeClass(this._sectionButtons[i], 'leaflet-disabled');
+        }
+        this._disabled = false;
+    },
+
+    hide: function () {
+        this._container.style.display = 'none';
+    },
+
+    show: function () {
+        this._container.style.display = '';
+    },
+
+    _sectionClick: function (e) {
+        console.log('click');
+        e.preventDefault();
+        if (!this._disabled) {
+            editor.sidebar_get(e.target.href);
+            this.collapse();
+        }
+	},
+
+    expand: function () {
+        if (this._disabled) return;
+		L.DomUtil.addClass(this._container, 'leaflet-control-sections-expanded');
+		return this;
+	},
+
+	collapse: function () {
+		L.DomUtil.removeClass(this._container, 'leaflet-control-sections-expanded');
+		return this;
+	}
+});
 
 
 if ($('#mapeditcontrols').length) {

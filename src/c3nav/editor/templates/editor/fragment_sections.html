@@ -1,0 +1,13 @@
+{% if sections %}
+    <ul data-sections>
+        {% for s in sections %}
+            <li>
+                <a href="{% url section_url section=s.id %}"{% if section == s %} class="current"{% endif %}>{{ s.title }}</a>
+            </li>
+        {% endfor %}
+    </ul>
+{% elif section %}
+    <ul data-sections>
+        <li class="current"><a href="{% url section_url section=section.id %}">{{ section.title }}</a></li>
+    </ul>
+{% endif %}

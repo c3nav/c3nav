@@ -1,10 +1,49 @@
+from functools import wraps
+
 from django.conf import settings
 from django.core.exceptions import PermissionDenied
 from django.http.response import Http404
 from django.shortcuts import get_object_or_404, redirect, render
+from django.urls import reverse
 
 from c3nav.mapdata.models import Section
 from c3nav.mapdata.models.base import EDITOR_FORM_MODELS
+
+
+def sidebar_view(func):
+    @wraps(func)
+    def with_ajax_check(request, *args, **kwargs):
+        if not request.is_ajax():
+            return render(request, 'editor/map.html', {})
+        return func(request, *args, **kwargs)
+    return with_ajax_check
+
+
+@sidebar_view
+def main_index(request, section=None):
+    if section is None:
+        first_section = Section.objects.first()
+        if first_section:
+            return render(request, 'editor/redirect.html', {
+                'target': reverse('editor.index', kwargs={'section': first_section.id})
+            })
+        else:
+            return render(request, 'editor/redirect.html', {
+                'target': reverse('editor.sections')
+            })
+    else:
+        section = get_object_or_404(Section, pk=section)
+
+    return render(request, 'editor/index.html', {
+        'sections': Section.objects.all(),
+        'section': section,
+        'section_url': 'editor.index',
+    })
+
+
+@sidebar_view
+def sections_list(request):
+    return render(request, 'editor/sections.html', {})
 
 
 def list_mapitemtypes(request, section):
@@ -13,7 +52,6 @@ def list_mapitemtypes(request, section):
     def get_item_count(mapitemtype):
         if hasattr(mapitemtype, 'section'):
             return filter_queryset_by_access(request, mapitemtype.objects.filter(section=section)).count()
-
         return 0
 
     return render(request, 'editor/mapitemtypes.html', {
