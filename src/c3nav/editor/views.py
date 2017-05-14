@@ -5,6 +5,7 @@ from django.core.exceptions import PermissionDenied
 from django.http.response import Http404
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
+from django.views.decorators.cache import never_cache
 
 from c3nav.mapdata.models import Section
 from c3nav.mapdata.models.base import EDITOR_FORM_MODELS
@@ -16,7 +17,7 @@ def sidebar_view(func):
         if not request.is_ajax():
             return render(request, 'editor/map.html', {})
         return func(request, *args, **kwargs)
-    return with_ajax_check
+    return never_cache(with_ajax_check)
 
 
 @sidebar_view
