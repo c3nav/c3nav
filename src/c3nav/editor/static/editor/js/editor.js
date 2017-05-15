@@ -432,6 +432,7 @@ SectionControl = L.Control.extend({
 		this._container = L.DomUtil.create('div', 'leaflet-control-sections leaflet-bar');
 		this._sectionButtons = [];
 		this._disabled = true;
+		this._expanded = false;
 		this.hide();
 
 		if (!L.Browser.android) {
@@ -441,11 +442,7 @@ SectionControl = L.Control.extend({
             }, this);
         }
 
-        if (L.Browser.touch) {
-            L.DomEvent
-                .on(this._container, 'click', L.DomEvent.stop)
-                .on(this._container, 'click', this.collapse, this);
-        } else {
+        if (!L.Browser.touch) {
             L.DomEvent.on(this._container, 'focus', this.expand, this);
         }
 
@@ -461,7 +458,7 @@ SectionControl = L.Control.extend({
 
 		L.DomEvent
 		    .on(link, 'mousedown dblclick', L.DomEvent.stopPropagation)
-		    .on(link, 'click', this._sectionClick, this)
+		    .on(link, 'click', this._sectionClick, this);
 
         this._sectionButtons.push(link);
 		return link;
@@ -498,9 +495,12 @@ SectionControl = L.Control.extend({
     },
 
     _sectionClick: function (e) {
-        console.log('click');
         e.preventDefault();
-        if (!this._disabled) {
+        e.stopPropagation();
+        if (!this._expanded) {
+            this.expand();
+        } else if (!this._disabled) {
+            $(e.target).addClass('current').siblings().removeClass('current');
             editor.sidebar_get(e.target.href);
             this.collapse();
         }
@@ -508,11 +508,13 @@ SectionControl = L.Control.extend({
 
     expand: function () {
         if (this._disabled) return;
+        this._expanded = true;
 		L.DomUtil.addClass(this._container, 'leaflet-control-sections-expanded');
 		return this;
 	},
 
 	collapse: function () {
+        this._expanded = false;
 		L.DomUtil.removeClass(this._container, 'leaflet-control-sections-expanded');
 		return this;
 	}
