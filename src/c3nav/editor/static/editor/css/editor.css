@@ -41,11 +41,8 @@ nav.navbar {
     width: 350px;
     height: 100%;
     overflow: auto;
-    background-color:#ffffff;
     z-index:2;
-    background-image:url('/static/img/loader.gif');
-    background-repeat:no-repeat;
-    background-position:center;
+    background: #ffffff url('/static/img/loader.gif') no-repeat center;
     transition: width 300ms;
     -webkit-transition: width 300ms;
 }
@@ -81,8 +78,8 @@ a.list-group-item .badge {
 }
 
 #mapeditlist legend .btn {
-    padding-left:5.5px;
-    padding-right:5.5px;
+    padding-left:6px;
+    padding-right:6px;
 }
 legend {
     margin: 0;

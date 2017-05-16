@@ -40,7 +40,7 @@ editor = {
         editor.init_sidebar();
         editor.get_sources();
 
-        bounds = [[0.0, 0.0], [240.0, 400.0]];
+        var bounds = [[0.0, 0.0], [240.0, 400.0]];
         editor.map.setMaxBounds(bounds);
         editor.map.fitBounds(bounds, {padding: [30, 50]});
     },
@@ -80,7 +80,6 @@ editor = {
     },
     sidebar_get: function(location) {
         // load a new page into the sidebar using a GET request
-        var location_path = editor.get_location_path();
         if ($('#sidebarcontent').html() !== '') {
             history.pushState({}, '', location);
         }
@@ -99,15 +98,15 @@ editor = {
         var content = $(data);
         $('#sidebar').removeClass('loading').find('.content').html(content);
 
-        redirect = $('span[data-redirect]');
+        var redirect = $('span[data-redirect]');
         if (redirect.length) {
             editor.sidebar_get(redirect.attr('data-redirect'));
             return;
         }
 
         sections = $('[data-sections]');
-        $('body').toggleClass('map-enabled', sections.length);
         if (sections.length) {
+            $('body').addClass('map-enabled');
             var sections = sections.find('a');
             editor._section_control.clearSections();
             for(var i=0;i<sections.length;i++) {
@@ -121,7 +120,7 @@ editor = {
             }
             editor._section_control.show()
         } else {
-            $('body'y).removeClass('.show-map');
+            $('body').removeClass('map-enabled').removeClass('show-map');
             editor._section_control.hide();
         }
 
@@ -174,8 +173,8 @@ editor = {
         editor._highlight_layer = L.layerGroup().addTo(editor.map);
         editor._editing_layer = L.layerGroup().addTo(editor.map);
 
-        $('#sidebar .content').on('mouseenter', '.itemtable tr[data-name]', editor._hover_mapitem_row)
-                              .on('mouseleave', '.itemtable tr[data-name]', editor._unhighlight_geometry);
+        $('#sidebar').find('.content').on('mouseenter', '.itemtable tr[data-name]', editor._hover_mapitem_row)
+                                      .on('mouseleave', '.itemtable tr[data-name]', editor._unhighlight_geometry);
 
         editor.map.on('editable:drawing:commit', editor._done_creating);
         editor.map.on('editable:editing', editor._update_editing);
@@ -229,7 +228,7 @@ editor = {
     _get_geometry_style: function (feature) {
         // style callback for GeoJSON loader
         var style = editor._get_mapitem_type_style(feature.properties.type);
-        if (feature.geometry.type == 'LineString') {
+        if (feature.geometry.type === 'LineString') {
             style = editor._line_draw_geometry_style(style);
         }
         return style
@@ -239,10 +238,10 @@ editor = {
         var result = {
             stroke: false,
             fillColor: editor._geometry_colors[mapitem_type],
-            fillOpacity: (mapitem_type == 'arealocation') ? 0.2 : 0.6,
+            fillOpacity: (mapitem_type === 'arealocation') ? 0.2 : 0.6,
             smoothFactor: 0
         };
-        if (mapitem_type == 'arealocation') {
+        if (mapitem_type === 'arealocation') {
             result.fillOpacity = 0.02;
             result.color = result.fillColor;
             result.stroke = true;
@@ -252,7 +251,9 @@ editor = {
     },
     _register_geojson_feature: function (feature, layer) {
         // onEachFeature callback for GeoJSON loader – register all needed events
-        if (feature.properties.type == 'shadow') {
+        if (feature.properties.type === 'shadow') {
+            /** @namespace feature.properties.original_name */
+            /** @namespace feature.properties.original_type */
             editor._geometries_shadows[feature.properties.original_type+'-'+feature.properties.original_name] = layer;
         } else {
             editor._geometries[feature.properties.type+'-'+feature.properties.name] = layer;
@@ -319,7 +320,7 @@ editor = {
     // edit and create geometries
     _check_start_editing: function() {
         // called on sidebar load. start editing or creating depending on how the sidebar may require it
-        var sidebarcontent = $('#sidebar .content');
+        var sidebarcontent = $('#sidebar').find('.content');
 
         var id_name = $('#id_name');
         id_name.focus();
@@ -331,7 +332,7 @@ editor = {
         if (geometry_field.length) {
             var form = geometry_field.closest('form');
             var mapitem_type = form.attr('data-mapitem-type');
-            if (geometry_field.val() != '') {
+            if (geometry_field.val() !== '') {
                 // edit existing geometry
                 if (form.is('[data-name]')) {
                     var name = form.attr('data-name');
@@ -361,9 +362,9 @@ editor = {
                 var geomtype = form.attr('data-geomtype');
 
                 var options = editor._get_mapitem_type_style(mapitem_type);
-                if (geomtype == 'polygon') {
+                if (geomtype === 'polygon') {
                     editor.map.editTools.startPolygon(null, options);
-                } else if (geomtype == 'polyline') {
+                } else if (geomtype === 'polyline') {
                     options = editor._line_draw_geometry_style(options);
                     editor.map.editTools.startPolyline(null, options);
                 }
@@ -411,7 +412,7 @@ editor = {
             editor._editing.addTo(editor._editing_layer);
             editor._editing.on('click', editor._click_editing_layer);
             editor._update_editing();
-            $('#sidebar .content').find('form.creation-lock').removeClass('creation-lock');
+            $('#sidebar').find('.content').find('form.creation-lock').removeClass('creation-lock');
             $('#id_name').focus();
         }
     },
@@ -429,7 +430,7 @@ SectionControl = L.Control.extend({
 		position: 'bottomright'
 	},
 
-	onAdd: function (map) {
+	onAdd: function () {
 		this._container = L.DomUtil.create('div', 'leaflet-control-sections leaflet-bar');
 		this._sectionButtons = [];
 		this._disabled = true;
