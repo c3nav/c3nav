@@ -85,7 +85,6 @@ def edit(request, pk=None, model=None):
             'back_url': reverse(request.resolver_match.url_name[:-4]+'list'),
         })
 
-
     if request.method == 'POST':
         if obj is not None and request.POST.get('delete') == '1':
             # Delete this mapitem!
