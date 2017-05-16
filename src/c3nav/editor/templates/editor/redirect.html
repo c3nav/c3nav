@@ -1,1 +1,1 @@
-<span data-redirect="{{ target }}"></span>
+<span data-redirect="{% if target %}{{ target }}{% elif back_url %}{{ back_url }}{% endif %}"></span>

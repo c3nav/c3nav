@@ -4,7 +4,7 @@
 <h3>{% trans 'Sections' %}</h3>
 <div class="list-group">
     {% for s in sections %}
-        <a href="{% url 'editor.section' section=s.id %}" class="list-group-item">
+        <a href="{% url 'editor.section' pk=s.pk %}" class="list-group-item">
             {{ s.title }}
         </a>
     {% endfor %}
