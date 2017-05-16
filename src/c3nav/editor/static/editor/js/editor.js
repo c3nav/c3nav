@@ -322,12 +322,6 @@ editor = {
         // called on sidebar load. start editing or creating depending on how the sidebar may require it
         var sidebarcontent = $('#sidebar').find('.content');
 
-        var id_name = $('#id_name');
-        id_name.focus();
-        if (sidebarcontent.find('[data-new]').length) {
-            id_name.select();
-        }
-
         var geometry_field = sidebarcontent.find('input[name=geometry]');
         if (geometry_field.length) {
             var form = geometry_field.closest('form');
