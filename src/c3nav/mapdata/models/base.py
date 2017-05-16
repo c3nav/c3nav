@@ -34,3 +34,7 @@ class EditorFormMixin(SerializableMixin, models.Model):
 
     class Meta:
         abstract = True
+
+    @property
+    def title(self):
+        return self._meta.verbose_name+' '+str(self.id)

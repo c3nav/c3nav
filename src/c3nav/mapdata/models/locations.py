@@ -105,10 +105,13 @@ class Location(LocationSlug, EditorFormMixin, models.Model):
     @property
     def title(self):
         lang = get_language()
-        if lang in self.titles:
-            return self.titles[lang]
-        return (next(iter(self.titles.values())) if self.titles else
-                (self._meta.verbose_name+' '+(self.slug or str(self.id))))
+        if self.titles:
+            if lang in self.titles:
+                return self.titles[lang]
+            return next(iter(self.titles.values()))
+        if self.slug:
+            return self._meta.verbose_name + ' ' + self.slug
+        return super().title
 
     def get_color(self):
         if self.color:
