@@ -5,6 +5,7 @@ from django.core.exceptions import PermissionDenied
 from django.http import HttpResponseRedirect
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
+from django.utils.translation import ugettext_lazy as _
 from django.views.decorators.cache import never_cache
 
 from c3nav.mapdata.models import Section
@@ -77,6 +78,13 @@ def edit(request, pk=None, model=None):
             'section': obj.space.section,
             'back_url': reverse('editor.space', kwargs={'pk': obj.space.pk}),
         })
+    else:
+        if not request.resolver_match.url_name.endswith('.edit'):
+            raise ValueError('url_name does not end with .edit')
+        ctx.update({
+            'back_url': reverse(request.resolver_match.url_name[:-4]+'list'),
+        })
+
 
     if request.method == 'POST':
         if obj is not None and request.POST.get('delete') == '1':
@@ -118,3 +126,39 @@ def edit(request, pk=None, model=None):
     })
 
     return render(request, 'editor/edit.html', ctx)
+
+
+@sidebar_view
+def list_objects(request, model=None, section=None, space=None):
+    model = EDITOR_FORM_MODELS[model]
+    if not request.resolver_match.url_name.endswith('.list'):
+        raise ValueError('url_name does not end with .list')
+
+    # noinspection PyProtectedMember
+    ctx = {
+        'create_url': request.resolver_match.url_name[:-4]+'create',
+        'edit_url': request.resolver_match.url_name[:-4]+'edit',
+        'path': request.path,
+        'model_name': model.__name__.lower(),
+        'model_title': model._meta.verbose_name,
+        'model_title_plural': model._meta.verbose_name_plural,
+        'objects': model.objects.all().order_by('id'),
+    }
+
+    if space is not None:
+        ctx.update({
+            'back_url': reverse('editor.space', kwargs={'pk': space}),
+            'back_title': _('back to space'),
+        })
+    elif section is not None:
+        ctx.update({
+            'back_url': reverse('editor.space', kwargs={'pk': space}),
+            'back_title': _('back to space'),
+        })
+    else:
+        ctx.update({
+            'back_url': reverse('editor.index'),
+            'back_title': _('back to overview'),
+        })
+
+    return render(request, 'editor/list.html', ctx)

@@ -1,0 +1,33 @@
+{% load bootstrap3 %}
+{% load i18n %}
+
+{% include 'editor/fragment_sections.html' %}
+
+<a class="btn btn-default btn-sm pull-right" accesskey="n" href="{% url create_url %}">
+    {% blocktrans %}New {{ model_title }}{% endblocktrans %}
+</a>
+<h3>{% blocktrans %}{{ model_title_plural }}{% endblocktrans %}</h3>
+<p>
+
+</p>
+
+<table class="table table-condensed itemtable" data-model="{{ model_name }}">
+    <tbody>
+        {% for item in objects %}
+            {% if forloop.counter0|divisibleby:10 %}
+                <tr>
+                    <td><a href="{{ back_url }}">&laquo; {{ back_title }}</a></td>
+                    <td></td>
+                </tr>
+            {% endif %}
+            <tr data-pk="{{ item.pk }}">
+                <td>{{ item.title }}</td>
+                <td><a href="{% url edit_url pk=item.pk %}">{% trans 'Edit' %}</a></td>
+            </tr>
+        {% endfor %}
+        <tr>
+            <td><a href="{{ back_url }}">&laquo; {{ back_title }}</a></td>
+            <td></td>
+        </tr>
+    </tbody>
+</table>
