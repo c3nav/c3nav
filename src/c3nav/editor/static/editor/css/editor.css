@@ -33,9 +33,12 @@ nav.navbar {
     height: 100%;
     overflow: auto;
     z-index:2;
-    background: #ffffff url('/static/img/loader.gif') no-repeat center;
+    background-color: #ffffff;
     transition: width 300ms;
     -webkit-transition: width 300ms;
+}
+#sidebar.loading {
+    background: #ffffff url('/static/img/loader.gif') no-repeat center;
 }
 body:not(.map-enabled) #sidebar {
     width:100%;
