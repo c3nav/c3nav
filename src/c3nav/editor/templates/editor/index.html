@@ -1,12 +1,10 @@
 {% load bootstrap3 %}
 {% load i18n %}
-{% include 'editor/fragment_sections.html' %}
 
-<a class="btn btn-default btn-sm pull-right" accesskey="n" href="{% url 'editor.sections' %}">{% trans 'Edit sections' %}</a>
-<h3>{{ section.title }}</h3>
+<h3>{% trans 'Sections' %}</h3>
 <div class="list-group">
     {% for s in sections %}
-        <a href="{% url 'editor.index' section=s.id %}" class="list-group-item">
+        <a href="{% url 'editor.section' section=s.id %}" class="list-group-item">
             {{ s.title }}
         </a>
     {% endfor %}

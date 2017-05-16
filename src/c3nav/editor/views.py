@@ -22,29 +22,20 @@ def sidebar_view(func):
 
 @sidebar_view
 def main_index(request, section=None):
-    if section is None:
-        first_section = Section.objects.first()
-        if first_section:
-            return render(request, 'editor/redirect.html', {
-                'target': reverse('editor.index', kwargs={'section': first_section.id})
-            })
-        else:
-            return render(request, 'editor/redirect.html', {
-                'target': reverse('editor.sections')
-            })
-    else:
-        section = get_object_or_404(Section, pk=section)
-
     return render(request, 'editor/index.html', {
         'sections': Section.objects.all(),
-        'section': section,
-        'section_url': 'editor.index',
     })
 
 
 @sidebar_view
-def sections_list(request):
-    return render(request, 'editor/sections.html', {})
+def section_detail(request, section):
+    section = get_object_or_404(Section, pk=section)
+
+    return render(request, 'editor/section.html', {
+        'sections': Section.objects.all(),
+        'section': section,
+        'section_url': 'editor.section',
+    })
 
 
 def list_mapitemtypes(request, section):
