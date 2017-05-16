@@ -2,13 +2,9 @@
 {% load i18n %}
 {% include 'editor/fragment_sections.html' %}
 
-<a class="btn btn-default btn-sm pull-right" accesskey="n" href="">{% trans 'Add section' %}</a>
-<h3>{% trans 'Sections' %}</h3>
-<div class="list-group">
-    {% for s in sections %}
-        <a href="{% url 'editor.index' section=s.id %}" class="list-group-item{% if s == section %} active{% endif %}">
-            {{ s.title }}
-        </a>
-    {% endfor %}
-</div>
+<a class="btn btn-default btn-sm pull-right" accesskey="n" href="{% url 'editor.section.edit' section=section.id %}">{% trans 'Edit Section' %}</a>
+<h3>{{ section.title }}</h3>
+<p>
+    <a href="{% url 'editor.index' %}">&laquo; {% trans 'Back to overview' %}</a>
+</p>
 
