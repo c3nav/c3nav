@@ -1,5 +1,4 @@
 import json
-import time
 from collections import OrderedDict
 
 from django.conf import settings
@@ -15,20 +14,9 @@ class MapitemFormMixin(ModelForm):
         super().__init__(*args, **kwargs)
         creating = not self.instance.pk
 
-        # disable name on non-direct editing
-        if not creating and not settings.DIRECT_EDITING:
-            self.fields['name'].disabled = True
-
-        if creating:
-            self.fields['name'].initial = hex(int(time.time()*1000000))[2:]
-
         if 'section' in self.fields:
             # hide section widget
             self.fields['section'].widget = HiddenInput()
-
-        if 'groups' in self.fields:
-            # set field_name
-            self.fields['groups'].to_field_name = 'name'
 
         if 'geometry' in self.fields:
             # hide geometry widget
@@ -65,18 +53,18 @@ class MapitemFormMixin(ModelForm):
         super().clean()
 
 
-def create_editor_form(mapitemtype):
+def create_editor_form(editor_model):
     possible_fields = ['section', 'space', 'name', 'public', 'altitude', 'geometry', 'width', 'groups', 'color',
                        'location_type', 'can_search', 'can_describe', 'routing_inclusion', 'compiled_room', 'bssids',
                        'category', 'level']
-    existing_fields = [field.name for field in mapitemtype._meta.get_fields() if field.name in possible_fields]
+    existing_fields = [field.name for field in editor_model._meta.get_fields() if field.name in possible_fields]
 
     class EditorForm(MapitemFormMixin, ModelForm):
         class Meta:
-            model = mapitemtype
+            model = editor_model
             fields = existing_fields
 
-    mapitemtype.EditorForm = EditorForm
+    editor_model.EditorForm = EditorForm
 
 
 def create_editor_forms():

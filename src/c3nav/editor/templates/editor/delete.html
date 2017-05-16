@@ -1,11 +1,11 @@
 {% load bootstrap3 %}
 
-<h3>Delete {{ mapitem_type.title }}</h3>
+<h3>Delete {{ model_title }}</h3>
 <form action="{{ path }}" method="post">
     {% csrf_token %}
-    <p>Please confirm deleting: {{ name }}</p>
+    <p>Please confirm deleting: {{ title }}</p>
     <input type="hidden" name="delete" value="1">
-    <input type="hidden" name="name" value="{{ name }}">
+    <input type="hidden" name="pk" value="{{ pk }}">
     {% buttons %}
     <button class="invisiblesubmit" type="submit"></button>
     <a class="btn btn-default" href="{% url 'editor.mapitems.level' mapitem_type=mapitem_type level='LEVEL' %}" data-insert-level>

@@ -2,8 +2,7 @@ from functools import wraps
 
 from django.conf import settings
 from django.core.exceptions import PermissionDenied
-from django.http.response import Http404
-from django.shortcuts import get_object_or_404, redirect, render
+from django.shortcuts import get_object_or_404, render
 from django.urls import reverse
 from django.views.decorators.cache import never_cache
 
@@ -21,142 +20,96 @@ def sidebar_view(func):
 
 
 @sidebar_view
-def main_index(request, section=None):
+def main_index(request):
     return render(request, 'editor/index.html', {
         'sections': Section.objects.all(),
     })
 
 
 @sidebar_view
-def section_detail(request, section):
-    section = get_object_or_404(Section, pk=section)
+def section_detail(request, pk):
+    pk = get_object_or_404(Section, pk=pk)
 
     return render(request, 'editor/section.html', {
         'sections': Section.objects.all(),
-        'section': section,
+        'section': pk,
         'section_url': 'editor.section',
     })
 
 
-def list_mapitemtypes(request, section):
-    section = get_object_or_404(Section, pk=section)
+@sidebar_view
+def edit(request, pk=None, model=None):
+    model = EDITOR_FORM_MODELS[model]
 
-    def get_item_count(mapitemtype):
-        if hasattr(mapitemtype, 'section'):
-            return filter_queryset_by_access(request, mapitemtype.objects.filter(section=section)).count()
-        return 0
-
-    return render(request, 'editor/mapitemtypes.html', {
-        'section': section,
-        'mapitemtypes': [
-            {
-                'name': name,
-                'title': mapitemtype._meta.verbose_name_plural,
-                'has_section': hasattr(mapitemtype, 'section'),
-                'count': get_item_count(mapitemtype),
-            } for name, mapitemtype in EDITOR_FORM_MODELS.items()
-        ],
-    })
-
-
-def list_mapitems(request, mapitem_type, section=None):
-    mapitemtype = EDITOR_FORM_MODELS.get(mapitem_type)
-    if mapitemtype is None:
-        raise Http404('Unknown mapitemtype.')
-
-    has_section = hasattr(mapitemtype, 'section')
-    if has_section and section is None:
-        raise Http404('Missing section.')
-    elif not has_section and section is not None:
-        return redirect('editor.mapitems', mapitem_type=mapitem_type)
-
-    queryset = mapitemtype.objects.all().order_by('name')
-
-    if section is not None:
-        section = get_object_or_404(Section, section)
-        if hasattr(mapitemtype, 'section'):
-            queryset = queryset.filter(section=section)
-
-    queryset = filter_queryset_by_access(request, queryset)
-
-    if issubclass(mapitemtype, AreaLocation):
-        queryset = sorted(queryset, key=AreaLocation.get_sort_key)
-
-    return render(request, 'editor/mapitems.html', {
-        'mapitem_type': mapitem_type,
-        'title': mapitemtype._meta.verbose_name_plural,
-        'has_section': section is not None,
-        'has_altitude': hasattr(mapitemtype, 'altitude'),
-        'section': section.id,
-        'items': queryset,
-    })
-
-
-def edit_mapitem(request, mapitem_type, name=None):
-    mapitemtype = EDITOR_FORM_MODELS.get(mapitem_type)
-    if mapitemtype is None:
-        raise Http404()
-
-    mapitem = None
-    if name is not None:
+    obj = None
+    if pk is not None:
         # Edit existing map item
-        mapitem = get_object_or_404(mapitemtype, name=name)
-        if not can_access(request, mapitem):
+        obj = get_object_or_404(model, pk=pk)
+        if False:  # todo can access
             raise PermissionDenied
 
-    new = mapitem is None
-    orig_name = mapitem.name if mapitem is not None else None
+    new = obj is None
+    # noinspection PyProtectedMember
+    ctx = {
+        'path': request.path,
+        'pk': pk,
+        'model_title': model._meta.verbose_name,
+        'model_name': model.__name__.lower(),
+        'new': new,
+        'title': obj.title if obj else None,
+    }
+
+    if isinstance(obj, Section):
+        ctx.update({
+            'section': obj,
+            'back_url': reverse('editor.index') if new else reverse('editor.section', kwargs={'pk': pk}),
+        })
+    elif hasattr(obj, 'section'):
+        ctx.update({
+            'section': obj.section,
+            'back_url': reverse('editor.space', kwargs={'pk': pk}),
+        })
+    elif hasattr(obj, 'space'):
+        ctx.update({
+            'section': obj.space.section,
+            'back_url': reverse('editor.space', kwargs={'pk': obj.space.pk}),
+        })
 
     if request.method == 'POST':
-        if mapitem is not None and request.POST.get('delete') == '1':
+        if obj is not None and request.POST.get('delete') == '1':
             # Delete this mapitem!
             if request.POST.get('delete_confirm') == '1':
                 if not settings.DIRECT_EDITING:
                     # todo: suggest changes
                     raise NotImplementedError
+                # obj.delete()
+                return render(request, 'editor/redirect.html', ctx)
+            return render(request, 'editor/delete.html', ctx)
 
-                mapitem.delete()
-                return render(request, 'editor/mapitem_success.html', {
-                    'mapitem_type': mapitem_type
-                })
-
-            return render(request, 'editor/mapitem_delete.html', {
-                'name': mapitem.name,
-                'mapitem_type': mapitem_type,
-                'path': request.path
-            })
-
-        form = mapitemtype.EditorForm(instance=mapitem, data=request.POST, request=request)
+        form = model.EditorForm(instance=obj, data=request.POST, request=request)
         if form.is_valid():
-            # Update/create mapitem
-            mapitem = form.save(commit=False)
+            # Update/create objects
+            obj = form.save(commit=False)
 
             if form.titles is not None:
-                mapitem.titles = {}
+                obj.titles = {}
                 for language, title in form.titles.items():
                     if title:
-                        mapitem.titles[language] = title
+                        obj.titles[language] = title
 
             if not settings.DIRECT_EDITING:
                 # todo: suggest changes
                 raise NotImplementedError
 
-            mapitem.save()
+            obj.save()
             form.save_m2m()
 
-            return render(request, 'editor/mapitem_success.html', {
-                'mapitem_type': mapitem_type
-            })
+            return render(request, 'editor/redirect.html', ctx)
     else:
-        form = mapitemtype.EditorForm(instance=mapitem, request=request)
+        form = model.EditorForm(instance=obj, request=request)
 
-    return render(request, 'editor/mapitem.html', {
+    ctx.update({
         'form': form,
-        'mapitem_type': mapitem_type,
-        'title': mapitemtype._meta.verbose_name,
-        'has_geometry': hasattr(mapitemtype, 'geometry'),
-        'name': orig_name,
-        'geomtype': getattr(mapitemtype, 'geomtype', None),
-        'path': request.path,
-        'new': new
     })
+
+    return render(request, 'editor/edit.html', ctx)
