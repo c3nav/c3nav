@@ -82,7 +82,9 @@ def edit(request, pk=None, model=None):
                 if not settings.DIRECT_EDITING:
                     # todo: suggest changes
                     raise NotImplementedError
-                # obj.delete()
+                obj.delete()
+                if model == Section:
+                    ctx.update({'target': reverse('editor.index')})
                 return render(request, 'editor/redirect.html', ctx)
             return render(request, 'editor/delete.html', ctx)
 

@@ -1,4 +1,5 @@
 {% load bootstrap3 %}
+{% include 'editor/fragment_sections.html' %}
 
 <h3>Delete {{ model_title }}</h3>
 <form action="{{ path }}" method="post">
@@ -8,7 +9,7 @@
     <input type="hidden" name="pk" value="{{ pk }}">
     {% buttons %}
     <button class="invisiblesubmit" type="submit"></button>
-    <a class="btn btn-default" href="{% url 'editor.mapitems.level' mapitem_type=mapitem_type level='LEVEL' %}" data-insert-level>
+    <a class="btn btn-default" href="{{ path }}" data-insert-level>
         Cancel
     </a>
     <button type="submit" name="delete_confirm" value="1" class="btn btn-danger pull-right" data-reload-geometries>
