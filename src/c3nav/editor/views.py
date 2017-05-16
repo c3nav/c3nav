@@ -58,7 +58,6 @@ def edit(request, pk=None, model=None):
         'path': request.path,
         'pk': pk,
         'model_title': model._meta.verbose_name,
-        'model_name': model.__name__.lower(),
         'new': new,
         'title': obj.title if obj else None,
     }
