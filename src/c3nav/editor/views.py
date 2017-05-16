@@ -2,7 +2,8 @@ from functools import wraps
 
 from django.conf import settings
 from django.core.exceptions import PermissionDenied
-from django.shortcuts import get_object_or_404, render
+from django.http import HttpResponseRedirect
+from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.views.decorators.cache import never_cache
 
@@ -15,6 +16,8 @@ def sidebar_view(func):
     def with_ajax_check(request, *args, **kwargs):
         response = func(request, *args, **kwargs)
         if request.is_ajax():
+            if isinstance(response, HttpResponseRedirect):
+                return render(request, 'editor/redirect.html', {'target': response['location']})
             return response
         return render(request, 'editor/map.html', {'content': response.content})
     return never_cache(with_ajax_check)
@@ -86,7 +89,7 @@ def edit(request, pk=None, model=None):
                 obj.delete()
                 if model == Section:
                     ctx.update({'target': reverse('editor.index')})
-                return render(request, 'editor/redirect.html', ctx)
+                return redirect(reverse('editor.index') if model == Section else ctx['back_url'])
             return render(request, 'editor/delete.html', ctx)
 
         form = model.EditorForm(instance=obj, data=request.POST, request=request)
@@ -107,7 +110,7 @@ def edit(request, pk=None, model=None):
             obj.save()
             form.save_m2m()
 
-            return render(request, 'editor/redirect.html', ctx)
+            return redirect(ctx['back_url'])
     else:
         form = model.EditorForm(instance=obj, request=request)
 
