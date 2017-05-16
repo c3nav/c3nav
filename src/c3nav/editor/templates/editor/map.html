@@ -12,7 +12,9 @@
 {% endblock %}
 {% block content %}
 <div id="map"></div>
-<div id="mapeditcontrols" class="loading">
-    <span data-level-switch="{% url 'editor.mapitemtypes' level='LEVEL' %}"></span>
+<div id="sidebar">
+    <div id="sidebarcontent" class="loading">
+        <span data-level-switch="{% url 'editor.mapitemtypes' level='LEVEL' %}"></span>
+    </div>
 </div>
 {% endblock %}

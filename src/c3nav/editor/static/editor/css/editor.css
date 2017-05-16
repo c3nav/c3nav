@@ -6,10 +6,11 @@ body {
 }
 #map {
     position:absolute;
-    top:54px;
+    top:0;
     bottom:0;
     left:0;
     right:350px;
+    z-index:1;
 }
 .leaflet-control-layers-overlays label {
     margin-bottom:0;
@@ -17,6 +18,20 @@ body {
 .leaflet-control-layers-overlays input[type="checkbox"] {
     margin: 2px 0 0;
     top:2px;
+}
+
+nav.navbar {
+    margin:0;
+}
+#main {
+    overflow:hidden;
+    position:absolute;
+    top:54px;
+    left:0;
+    width:100vw;
+    bottom:0;
+    padding:0;
+    margin:0;
 }
 
 form button.invisiblesubmit {
@@ -75,25 +90,30 @@ form button.invisiblesubmit {
 }
 
 
-#mapeditcontrols {
+#sidebar {
     position: absolute;
-    top: 54px;
-    bottom: 0;
-    width: 350px;
+    top:0;
     right: 0;
+    width: 350px;
+    height: 100%;
     overflow: auto;
-    padding:8px;
     background-color:#ffffff;
+    z-index:2;
 }
-#mapeditcontrols.loading {
+#sidebarcontent {
+    width:350px;
+    padding:10px 15px;
+    margin:auto;
+}
+#sidebarcontent.loading {
     background-image:url('/static/img/loader.gif');
     background-repeat:no-repeat;
     background-position:center;
 }
-#mapeditcontrols form.creation-lock .btn.btn-primary {
+#sidebar form.creation-lock .btn.btn-primary {
     display:none;
 }
-#mapeditcontrols h3 {
+#sidebar h3 {
     margin-top:5px;
 }
 a.list-group-item, a.list-group-item:hover {
@@ -141,19 +161,22 @@ legend {
 }
 
 @media (max-width: 767px) {
-    #mapeditcontrols {
+    #sidebar {
         transition: right 300ms;
         -webkit-transition: right 300ms;
         width:100vw;
     }
-    body:not(.controls) #mapeditcontrols {
+    #sidebarcontent {
+        width:100%;
+        max-width:500px;
+    }
+    body:not(.controls) #sidebar {
         pointer-events: none;
         right:-100vw;
     }
     #map {
-        transition: left 300ms, right ;
+        transition: left 300ms;
         -webkit-transition: left 300ms;
-        right: auto;
         width:100vw;
     }
     body.controls #map {
