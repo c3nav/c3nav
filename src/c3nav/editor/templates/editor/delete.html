@@ -1,19 +1,20 @@
 {% load bootstrap3 %}
+{% load i18n %}
 {% include 'editor/fragment_sections.html' %}
 
-<h3>Delete {{ model_title }}</h3>
+<h3>{% blocktrans %}Delete {{ model_title }}{% endblocktrans %}</h3>
 <form action="{{ path }}" method="post">
     {% csrf_token %}
-    <p>Please confirm deleting: {{ title }}</p>
+    <p>{% blocktrans %}Please confirm deleting: {{ model_title }}{% endblocktrans %}</p>
     <input type="hidden" name="delete" value="1">
     <input type="hidden" name="pk" value="{{ pk }}">
     {% buttons %}
     <button class="invisiblesubmit" type="submit"></button>
     <a class="btn btn-default" href="{{ path }}" data-insert-level>
-        Cancel
+        {% trans 'Cancel' %}
     </a>
     <button type="submit" name="delete_confirm" value="1" class="btn btn-danger pull-right" data-reload-geometries>
-        Delete
+        {% trans 'Delete' %}
     </button>
     {% endbuttons %}
 </form>
