@@ -8,7 +8,7 @@ from django.urls import reverse
 from django.utils.translation import ugettext_lazy as _
 from django.views.decorators.cache import never_cache
 
-from c3nav.mapdata.models import Section
+from c3nav.mapdata.models import LocationGroup, Section
 from c3nav.mapdata.models.base import EDITOR_FORM_MODELS
 
 
@@ -28,6 +28,10 @@ def sidebar_view(func):
 def main_index(request):
     return render(request, 'editor/index.html', {
         'sections': Section.objects.all(),
+        'child_models': [{
+            'title': LocationGroup._meta.verbose_name_plural,
+            'url': reverse('editor.locationgroups.list'),
+        }],
     })
 
 
