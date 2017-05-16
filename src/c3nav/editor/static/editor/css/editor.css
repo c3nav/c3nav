@@ -214,3 +214,7 @@ form button.invisiblesubmit {
 .leaflet-control-sections a.current {
     font-weight:bold;
 }
+.leaflet-control-sections .leaflet-disabled.current {
+    color:#000000;
+    background-color:#ffffff;
+}
