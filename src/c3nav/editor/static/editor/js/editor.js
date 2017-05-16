@@ -28,10 +28,10 @@ editor = {
         L.control.scale({imperial: false}).addTo(editor.map);
 
         $('#show_map').click(function() {
-            $('body').removeClass('controls');
+            $('body').addClass('show-map');
         });
         $('#show_details').click(function() {
-            $('body').addClass('controls');
+            $('body').removeClass('show-map');
         });
 
         editor._section_control = new SectionControl().addTo(editor.map);
@@ -90,15 +90,14 @@ editor = {
     _sidebar_unload: function() {
         // unload the sidebar. called on sidebar_get and form submit.
         editor._section_control.disable();
-        $('#sidebarcontent').html('').addClass('loading');
+        $('#sidebar').addClass('loading').find('.content').html();
         editor._unhighlight_geometry();
         editor._cancel_editing();
     },
     _sidebar_loaded: function(data) {
         // sidebar was loaded. load the content. check if there are any redirects. call _check_start_editing.
         var content = $(data);
-        var sidebarcontent = $('#sidebarcontent');
-        sidebarcontent.html(content).removeClass('loading');
+        $('#sidebar').removeClass('loading').find('.content').html(content);
 
         redirect = $('span[data-redirect]');
         if (redirect.length) {
@@ -107,6 +106,7 @@ editor = {
         }
 
         sections = $('[data-sections]');
+        $('body').toggleClass('map-enabled', sections.length);
         if (sections.length) {
             var sections = sections.find('a');
             editor._section_control.clearSections();
@@ -121,13 +121,14 @@ editor = {
             }
             editor._section_control.show()
         } else {
+            $('body'y).removeClass('.show-map');
             editor._section_control.hide();
         }
 
         editor._check_start_editing();
     },
     _sidebar_error: function(data) {
-        $('#sidebarcontent').html('<h3>Error '+data.status+'</h3>'+data.statusText).removeClass('loading');
+        $('#sidebar').removeClass('loading').find('.content').html('<h3>Error '+data.status+'</h3>'+data.statusText);
         editor._section_control.hide();
     },
     _sidebar_link_click: function(e) {
@@ -173,8 +174,8 @@ editor = {
         editor._highlight_layer = L.layerGroup().addTo(editor.map);
         editor._editing_layer = L.layerGroup().addTo(editor.map);
 
-        $('#sidebarcontent').on('mouseenter', '.itemtable tr[data-name]', editor._hover_mapitem_row)
-                             .on('mouseleave', '.itemtable tr[data-name]', editor._unhighlight_geometry);
+        $('#sidebar .content').on('mouseenter', '.itemtable tr[data-name]', editor._hover_mapitem_row)
+                              .on('mouseleave', '.itemtable tr[data-name]', editor._unhighlight_geometry);
 
         editor.map.on('editable:drawing:commit', editor._done_creating);
         editor.map.on('editable:editing', editor._update_editing);
@@ -318,7 +319,7 @@ editor = {
     // edit and create geometries
     _check_start_editing: function() {
         // called on sidebar load. start editing or creating depending on how the sidebar may require it
-        var sidebarcontent = $('#sidebarcontent');
+        var sidebarcontent = $('#sidebar .content');
 
         var id_name = $('#id_name');
         id_name.focus();
@@ -410,7 +411,7 @@ editor = {
             editor._editing.addTo(editor._editing_layer);
             editor._editing.on('click', editor._click_editing_layer);
             editor._update_editing();
-            $('#sidebarcontent').find('form.creation-lock').removeClass('creation-lock');
+            $('#sidebar .content').find('form.creation-lock').removeClass('creation-lock');
             $('#id_name').focus();
         }
     },
@@ -521,6 +522,6 @@ SectionControl = L.Control.extend({
 });
 
 
-if ($('#sidebarcontent').length) {
+if ($('#sidebar').length) {
     editor.init();
 }
