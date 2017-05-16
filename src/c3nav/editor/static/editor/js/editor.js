@@ -103,12 +103,9 @@ editor = {
     },
     _sidebar_loaded: function(data) {
         // sidebar was loaded. load the content. check if there are any redirects. call _check_start_editing.
-        var content;
+        var content = $('#sidebar').removeClass('loading').find('.content');;
         if (data !== undefined) {
-            content = $(data);
-            $('#sidebar').removeClass('loading').find('.content').html(content);
-        } else {
-            content = $('#sidebar').find('.content')
+            content.html($(data));
         }
 
         var redirect = content.find('span[data-redirect]');
