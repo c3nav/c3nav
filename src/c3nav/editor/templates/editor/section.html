@@ -2,7 +2,10 @@
 {% load i18n %}
 {% include 'editor/fragment_sections.html' %}
 
-<a class="btn btn-default btn-sm pull-right" accesskey="e" href="{% url 'editor.section.edit' pk=section.id %}">{% trans 'Edit Section' %}</a>
+<a class="btn btn-default btn-sm pull-right" accesskey="e" href="{% url 'editor.section.edit' pk=section.id %}">
+    {% trans 'Section' as model_title %}
+    {% blocktrans %}Edit {{ model_title }}{% endblocktrans %}
+</a>
 <h3>{{ section.title }}</h3>
 <p>
     <a href="{% url 'editor.index' %}">&laquo; {% trans 'back to overview' %}</a>
