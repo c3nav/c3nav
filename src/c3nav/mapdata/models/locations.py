@@ -164,7 +164,6 @@ class LocationGroup(Location, EditorFormMixin, models.Model):
         return self.title + ' ('+', '.join(str(s) for s in attributes)+')'
 
 
-
 class LocationRedirect(LocationSlug):
     target = models.ForeignKey(LocationSlug, verbose_name=_('target'), related_name='redirects')
 
