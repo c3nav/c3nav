@@ -68,7 +68,7 @@ editor = {
     },
     init_sidebar: function() {
         // init the sidebar. sed listeners for form submits and link clicks
-        $('#mapeditcontrols').on('click', 'a[href]', editor._sidebar_link_click)
+        $('#sidebarcontent').on('click', 'a[href]', editor._sidebar_link_click)
                              .on('click', 'button[type=submit]', editor._sidebar_submit_btn_click)
                              .on('submit', 'form', editor._sidebar_submit);
         var location_path = editor.get_location_path();
@@ -81,7 +81,7 @@ editor = {
     sidebar_get: function(location) {
         // load a new page into the sidebar using a GET request
         var location_path = editor.get_location_path();
-        if ($('#mapeditcontrols').html() !== '') {
+        if ($('#sidebarcontent').html() !== '') {
             history.pushState({}, '', location);
         }
         editor._sidebar_unload();
@@ -90,15 +90,15 @@ editor = {
     _sidebar_unload: function() {
         // unload the sidebar. called on sidebar_get and form submit.
         editor._section_control.disable();
-        $('#mapeditcontrols').html('').addClass('loading');
+        $('#sidebarcontent').html('').addClass('loading');
         editor._unhighlight_geometry();
         editor._cancel_editing();
     },
     _sidebar_loaded: function(data) {
         // sidebar was loaded. load the content. check if there are any redirects. call _check_start_editing.
         var content = $(data);
-        var mapeditcontrols = $('#mapeditcontrols');
-        mapeditcontrols.html(content).removeClass('loading');
+        var sidebarcontent = $('#sidebarcontent');
+        sidebarcontent.html(content).removeClass('loading');
 
         redirect = $('span[data-redirect]');
         if (redirect.length) {
@@ -127,7 +127,7 @@ editor = {
         editor._check_start_editing();
     },
     _sidebar_error: function(data) {
-        $('#mapeditcontrols').html('<h3>Error '+data.status+'</h3>'+data.statusText).removeClass('loading');
+        $('#sidebarcontent').html('<h3>Error '+data.status+'</h3>'+data.statusText).removeClass('loading');
         editor._section_control.hide();
     },
     _sidebar_link_click: function(e) {
@@ -173,7 +173,7 @@ editor = {
         editor._highlight_layer = L.layerGroup().addTo(editor.map);
         editor._editing_layer = L.layerGroup().addTo(editor.map);
 
-        $('#mapeditcontrols').on('mouseenter', '.itemtable tr[data-name]', editor._hover_mapitem_row)
+        $('#sidebarcontent').on('mouseenter', '.itemtable tr[data-name]', editor._hover_mapitem_row)
                              .on('mouseleave', '.itemtable tr[data-name]', editor._unhighlight_geometry);
 
         editor.map.on('editable:drawing:commit', editor._done_creating);
@@ -318,15 +318,15 @@ editor = {
     // edit and create geometries
     _check_start_editing: function() {
         // called on sidebar load. start editing or creating depending on how the sidebar may require it
-        var mapeditcontrols = $('#mapeditcontrols');
+        var sidebarcontent = $('#sidebarcontent');
 
         var id_name = $('#id_name');
         id_name.focus();
-        if (mapeditcontrols.find('[data-new]').length) {
+        if (sidebarcontent.find('[data-new]').length) {
             id_name.select();
         }
 
-        var geometry_field = mapeditcontrols.find('input[name=geometry]');
+        var geometry_field = sidebarcontent.find('input[name=geometry]');
         if (geometry_field.length) {
             var form = geometry_field.closest('form');
             var mapitem_type = form.attr('data-mapitem-type');
@@ -410,7 +410,7 @@ editor = {
             editor._editing.addTo(editor._editing_layer);
             editor._editing.on('click', editor._click_editing_layer);
             editor._update_editing();
-            $('#mapeditcontrols').find('form.creation-lock').removeClass('creation-lock');
+            $('#sidebarcontent').find('form.creation-lock').removeClass('creation-lock');
             $('#id_name').focus();
         }
     },
@@ -521,6 +521,6 @@ SectionControl = L.Control.extend({
 });
 
 
-if ($('#mapeditcontrols').length) {
+if ($('#sidebarcontent').length) {
     editor.init();
 }
