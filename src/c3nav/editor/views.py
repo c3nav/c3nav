@@ -59,7 +59,7 @@ def edit(request, pk=None, model=None):
         'title': obj.title if obj else None,
     }
 
-    if isinstance(obj, Section):
+    if model == Section:
         ctx.update({
             'section': obj,
             'back_url': reverse('editor.index') if new else reverse('editor.section', kwargs={'pk': pk}),

@@ -1,6 +1,7 @@
 {% load bootstrap3 %}
 {% load i18n %}
 
+<a class="btn btn-default btn-sm pull-right" accesskey="n" href="{% url 'editor.section.create' %}">{% trans 'New Section' %}</a>
 <h3>{% trans 'Sections' %}</h3>
 <div class="list-group">
     {% for s in sections %}
