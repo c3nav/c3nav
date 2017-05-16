@@ -175,7 +175,7 @@ form button.invisiblesubmit {
         padding-top: 15px;
         padding-bottom: 15px;
     }
-    #responsive_switch {
+    body.map-enabled #responsive_switch {
         display:block !important;
     }
 }
