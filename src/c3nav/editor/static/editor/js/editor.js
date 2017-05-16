@@ -156,7 +156,7 @@ editor = {
         }
         var action = $(this).attr('action');
         editor._sidebar_unload();
-        $.post(action, data, editor._sidebar_loaded);
+        $.post(action, data, editor._sidebar_loaded).fail(editor._sidebar_error);
     },
 
     // geometries
