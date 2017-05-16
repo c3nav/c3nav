@@ -24,6 +24,9 @@ class MapitemFormMixin(ModelForm):
             if not creating:
                 self.initial['geometry'] = json.dumps(mapping(self.instance.geometry), separators=(',', ':'))
 
+        if 'groups' in self.fields:
+            self.fields['groups'].label_from_instance = lambda obj: obj.title_for_forms
+
         # parse titles
         self.titles = None
         if hasattr(self.instance, 'titles'):
