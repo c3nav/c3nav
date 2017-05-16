@@ -15,7 +15,6 @@ def nicer_renderer(self, data, accepted_media_type=None, renderer_context=None):
     if isinstance(data, (list, tuple)):
         shorten_limit = 5 if any(('geometry' in item) for item in data[:50]) else 50
     shorten = isinstance(data, (list, tuple)) and len(data) > shorten_limit
-    orig_len = None
     if shorten:
         remaining_len = len(data)-shorten_limit
         data = data[:shorten_limit]
