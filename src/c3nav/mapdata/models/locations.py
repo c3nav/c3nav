@@ -146,6 +146,24 @@ class LocationGroup(Location, EditorFormMixin, models.Model):
         result['compiled_area'] = self.compiled_area
         return result
 
+    @property
+    def title_for_forms(self):
+        attributes = []
+        if self.can_search:
+            attributes.append(_('search'))
+        if self.can_describe:
+            attributes.append(_('describe'))
+        if self.color:
+            attributes.append(_('color'))
+        if not attributes:
+            attributes.append(_('internal'))
+        if self.compiled_room:
+            attributes.append(_('comp. room'))
+        if self.compiled_area:
+            attributes.append(_('comp. area'))
+        return self.title + ' ('+', '.join(str(s) for s in attributes)+')'
+
+
 
 class LocationRedirect(LocationSlug):
     target = models.ForeignKey(LocationSlug, verbose_name=_('target'), related_name='redirects')
