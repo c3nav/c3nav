@@ -12,14 +12,6 @@ body {
     right:350px;
     z-index:1;
 }
-.leaflet-control-layers-overlays label {
-    margin-bottom:0;
-}
-.leaflet-control-layers-overlays input[type="checkbox"] {
-    margin: 2px 0 0;
-    top:2px;
-}
-
 nav.navbar {
     margin:0;
 }
@@ -33,7 +25,6 @@ nav.navbar {
     padding:0;
     margin:0;
 }
-
 #sidebar {
     position: absolute;
     top:0;
@@ -54,6 +45,8 @@ body:not(.map-enabled) #sidebar {
     padding:10px 15px;
     margin:auto;
 }
+
+/* sidebar contents */
 #sidebar form.creation-lock .btn.btn-primary {
     display:none;
 }
@@ -76,7 +69,6 @@ a.list-group-item .badge {
 .cancel-btn {
     margin-right:8px;
 }
-
 #mapeditlist legend .btn {
     padding-left:6px;
     padding-right:6px;
@@ -93,6 +85,30 @@ legend {
     right: 8px;
     top: 8px;
 }
+[data-sections] {
+    display:none;
+}
+form button.invisiblesubmit {
+    overflow: visible;
+    height: 0;
+    width: 0;
+    margin: 0;
+    border: 0;
+    padding: 0;
+    display: block;
+}
+
+/* Styles inside leaflet */
+.leaflet-control-layers-overlays label {
+    margin-bottom:0;
+}
+.leaflet-control-layers-overlays input[type="checkbox"] {
+    margin: 2px 0 0;
+    top:2px;
+}
+.leaflet-container .leaflet-control-layers-expanded {
+    min-width:75px;
+}
 .leaflet-editable-drawing .leaflet-overlay-pane .leaflet-interactive {
     cursor:crosshair;
 }
@@ -100,10 +116,10 @@ legend {
     pointer-events:none;
 }
 
+/* responsiveness */
 #responsive_switch {
     display:none !important;
 }
-
 @media (max-width: 767px) {
     #sidebar {
         transition: right 300ms;
@@ -162,25 +178,7 @@ legend {
 }
 
 
-
-form button.invisiblesubmit {
-    overflow: visible;
-    height: 0;
-    width: 0;
-    margin: 0;
-    border: 0;
-    padding: 0;
-    display: block;
-}
-
-.leaflet-container .leaflet-control-layers-expanded {
-    min-width:75px;
-}
-.leaflet-levels {
-    font-size:14px;
-    line-height:18px;
-}
-
+/* leaftlet sections control */
 .leaflet-control-sections a, .leaflet-control-sections a:hover {
     width: auto;
     font-size: 14px;
@@ -212,8 +210,4 @@ form button.invisiblesubmit {
 }
 .leaflet-control-sections a.current {
     font-weight:bold;
-}
-
-[data-sections] {
-    display:none;
 }
