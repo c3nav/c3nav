@@ -44,7 +44,8 @@ body:not(.map-enabled) #sidebar {
     width:100%;
 }
 #sidebar .content {
-    width:350px;
+    width:100%;
+    max-width:350px;
     padding:10px 15px;
     margin:auto;
 }
@@ -130,7 +131,6 @@ form button.invisiblesubmit {
         width:100vw;
     }
     #sidebar .content {
-        width:100%;
         max-width:500px;
     }
     body.show-map #sidebar {

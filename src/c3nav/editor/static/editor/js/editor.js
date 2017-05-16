@@ -68,9 +68,9 @@ editor = {
     },
     init_sidebar: function() {
         // init the sidebar. sed listeners for form submits and link clicks
-        $('#sidebarcontent').on('click', 'a[href]', editor._sidebar_link_click)
-                             .on('click', 'button[type=submit]', editor._sidebar_submit_btn_click)
-                             .on('submit', 'form', editor._sidebar_submit);
+        $('#sidebar').find('.content').on('click', 'a[href]', editor._sidebar_link_click)
+                                      .on('click', 'button[type=submit]', editor._sidebar_submit_btn_click)
+                                      .on('submit', 'form', editor._sidebar_submit);
         var location_path = editor.get_location_path();
         editor.sidebar_get(location_path);
         history.replaceState({}, '', location_path);
@@ -80,7 +80,7 @@ editor = {
     },
     sidebar_get: function(location) {
         // load a new page into the sidebar using a GET request
-        if ($('#sidebarcontent').html() !== '') {
+        if ($('#sidebar').find('.content').html() !== '') {
             history.pushState({}, '', location);
         }
         editor._sidebar_unload();
