@@ -49,6 +49,15 @@ body:not(.map-enabled) #sidebar {
     padding:10px 15px;
     margin:auto;
 }
+#noscript {
+    font-weight:bold;
+    color:red;
+    padding-top:2px;
+    text-align:right;
+    font-size:14px;
+    line-height:15px;
+    height:50px;
+}
 
 /* sidebar contents */
 #sidebar form.creation-lock .btn.btn-primary {

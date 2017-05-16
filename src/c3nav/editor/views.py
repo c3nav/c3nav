@@ -13,9 +13,10 @@ from c3nav.mapdata.models.base import EDITOR_FORM_MODELS
 def sidebar_view(func):
     @wraps(func)
     def with_ajax_check(request, *args, **kwargs):
-        if not request.is_ajax():
-            return render(request, 'editor/map.html', {})
-        return func(request, *args, **kwargs)
+        response = func(request, *args, **kwargs)
+        if request.is_ajax():
+            return response
+        return render(request, 'editor/map.html', {'content': response.content})
     return never_cache(with_ajax_check)
 
 

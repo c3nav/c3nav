@@ -1,6 +1,11 @@
 {% extends 'editor/base.html' %}
 {% load static %}
+{% load i18n %}
+
 {% block addnav %}
+<noscript>
+    <div id="noscript">{% trans 'Editing geometries using the map requires JavaScript.' %}</div>
+</noscript>
 <div id="responsive_switch" class="navbar-collapse collapse">
     <ul class="nav navbar-nav navbar-right">
         <li>
@@ -12,7 +17,7 @@
 {% endblock %}
 {% block content %}
 <div id="map"></div>
-<div id="sidebar" class="loading">
-    <div class="content"></div>
+<div id="sidebar">
+    <div class="content">{{ content | safe }}</div>
 </div>
 {% endblock %}

@@ -72,7 +72,7 @@ editor = {
                                       .on('click', 'button[type=submit]', editor._sidebar_submit_btn_click)
                                       .on('submit', 'form', editor._sidebar_submit);
         var location_path = editor.get_location_path();
-        editor.sidebar_get(location_path);
+        editor._sidebar_loaded();
         history.replaceState({}, '', location_path);
         window.onpopstate = function() {
             editor.sidebar_get(editor.get_location_path());
@@ -95,16 +95,21 @@ editor = {
     },
     _sidebar_loaded: function(data) {
         // sidebar was loaded. load the content. check if there are any redirects. call _check_start_editing.
-        var content = $(data);
-        $('#sidebar').removeClass('loading').find('.content').html(content);
+        var content;
+        if (data !== undefined) {
+            content = $(data);
+            $('#sidebar').removeClass('loading').find('.content').html(content);
+        } else {
+            content = $('#sidebar').find('.content')
+        }
 
-        var redirect = $('span[data-redirect]');
+        var redirect = content.find('span[data-redirect]');
         if (redirect.length) {
             editor.sidebar_get(redirect.attr('data-redirect'));
             return;
         }
 
-        sections = $('[data-sections]');
+        sections = content.find('[data-sections]');
         if (sections.length) {
             $('body').addClass('map-enabled');
             var sections = sections.find('a');
