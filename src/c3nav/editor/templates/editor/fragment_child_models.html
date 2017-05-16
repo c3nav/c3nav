@@ -1,0 +1,8 @@
+<div class="list-group">
+    {% for model in child_models %}
+        <a href="{{ model.url }}" class="list-group-item">
+            {% if model.count %}<span class="badge">{{ model.count }}</span>{% endif %}
+            {{ model.title }}
+        </a>
+    {% endfor %}
+</div>
