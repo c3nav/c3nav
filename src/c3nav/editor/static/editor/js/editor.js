@@ -24,6 +24,7 @@ editor = {
         editor.map.on('click', function () {
             editor.map.doubleClickZoom.enable();
         });
+        window.onbeforeunload = editor._onbeforeunload;
 
         L.control.scale({imperial: false}).addTo(editor.map);
 
@@ -45,6 +46,11 @@ editor = {
         var bounds = [[0.0, 0.0], [240.0, 400.0]];
         editor.map.setMaxBounds(bounds);
         editor.map.fitBounds(bounds, {padding: [30, 50]});
+    },
+    _onbeforeunload: function(e) {
+        if ($('#sidebar').find('[data-onbeforeunload]').length) {
+            e.returnValue = true;
+        }
     },
 
     // sources
