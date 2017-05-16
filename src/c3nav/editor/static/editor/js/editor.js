@@ -27,10 +27,12 @@ editor = {
 
         L.control.scale({imperial: false}).addTo(editor.map);
 
-        $('#show_map').click(function() {
+        $('#show_map').click(function(e) {
+            e.preventDefault();
             $('body').addClass('show-map');
         });
-        $('#show_details').click(function() {
+        $('#show_details').click(function(e) {
+            e.preventDefault();
             $('body').removeClass('show-map');
         });
 
