@@ -16,7 +16,7 @@ def sidebar_view(func):
     @wraps(func)
     def with_ajax_check(request, *args, **kwargs):
         response = func(request, *args, **kwargs)
-        if request.is_ajax():
+        if request.is_ajax() or 'ajax' in request.GET:
             if isinstance(response, HttpResponseRedirect):
                 return render(request, 'editor/redirect.html', {'target': response['location']})
             return response
