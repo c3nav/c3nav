@@ -8,8 +8,9 @@ from django.urls import reverse
 from django.utils.translation import ugettext_lazy as _
 from django.views.decorators.cache import never_cache
 
-from c3nav.mapdata.models import Door, LocationGroup, Section, Space
+from c3nav.mapdata.models import Area, Door, LineObstacle, LocationGroup, Obstacle, Section, Space, Stair
 from c3nav.mapdata.models.base import EDITOR_FORM_MODELS
+from c3nav.mapdata.models.geometry.space import Point
 
 
 def sidebar_view(func):
@@ -65,7 +66,27 @@ def space_detail(request, section, pk):
         'section': space.section,
         'space': space,
 
-        'child_models': [],
+        'child_models': [{
+            'title': Area._meta.verbose_name_plural,
+            'url': reverse('editor.areas.list', kwargs={'space': pk}),
+            'count': space.areas.count(),
+        }, {
+            'title': Stair._meta.verbose_name_plural,
+            'url': reverse('editor.stairs.list', kwargs={'space': pk}),
+            'count': space.stairs.count(),
+        }, {
+            'title': Obstacle._meta.verbose_name_plural,
+            'url': reverse('editor.obstacles.list', kwargs={'space': pk}),
+            'count': space.obstacles.count(),
+        }, {
+            'title': LineObstacle._meta.verbose_name_plural,
+            'url': reverse('editor.lineobstacles.list', kwargs={'space': pk}),
+            'count': space.lineobstacles.count(),
+        }, {
+            'title': Point._meta.verbose_name_plural,
+            'url': reverse('editor.points.list', kwargs={'space': pk}),
+            'count': space.points.count(),
+        }],
     })
 
 
@@ -113,7 +134,7 @@ def edit(request, pk=None, model=None, section=None, space=None, explicit_edit=F
     elif hasattr(obj, 'space'):
         ctx.update({
             'section': obj.space.section,
-            'back_url': reverse('editor.spaces.detail', kwargs={'pk': obj.space.pk}),
+            'back_url': reverse('editor.spaces.detail', kwargs={'section': obj.space.section.pk, 'pk': obj.space.pk}),
         })
     else:
         kwargs = {}
@@ -199,10 +220,11 @@ def list_objects(request, model=None, section=None, space=None, explicit_edit=Fa
         })
     elif space is not None:
         reverse_kwargs['space'] = space
-        space = get_object_or_404(Section, pk=space)
+        space = get_object_or_404(Space, pk=space)
         queryset = queryset.filter(space=space)
         ctx.update({
-            'back_url': reverse('editor.spaces.detail', kwargs={'pk': space.pk}),
+            'section': space.section,
+            'back_url': reverse('editor.spaces.detail', kwargs={'section': space.section.pk, 'pk': space.pk}),
             'back_title': _('back to space'),
         })
     else:
