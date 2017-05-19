@@ -6,7 +6,25 @@
 <a class="btn btn-default btn-sm pull-right" accesskey="n" href="{{ create_url }}">
     {% blocktrans %}New {{ model_title }}{% endblocktrans %}
 </a>
-<h3>{% blocktrans %}{{ model_title_plural }}{% endblocktrans %}</h3>
+<h3>
+    {% blocktrans %}{{ model_title_plural }}{% endblocktrans %}
+    {% if section %}
+        {% with section.title as section_title %}
+            <small>{% blocktrans %}in section {{ section_title }}{% endblocktrans %}</small>
+        {% endwith %}
+    {% endif %}
+    {% if space %}
+        {% with space.title as space_title %}
+            <small>{% blocktrans %}in space {{ space_title }}{% endblocktrans %}</small>
+        {% endwith %}
+    {% endif %}
+</h3>
+
+{% if explicit_edit %}
+    {% trans 'Details' as edit_caption %}
+{% else %}
+    {% trans 'Edit' as edit_caption %}
+{% endif %}
 
 <table class="table table-condensed itemtable" data-model="{{ model_name }}">
     <tbody>
@@ -19,7 +37,7 @@
             {% endif %}
             <tr data-pk="{{ item.pk }}">
                 <td>{{ item.title }}</td>
-                <td><a href="{{ item.edit_url }}">{% trans 'Edit' %}</a></td>
+                <td><a href="{{ item.edit_url }}">{{ edit_caption }}</a></td>
             </tr>
         {% endfor %}
         <tr>
