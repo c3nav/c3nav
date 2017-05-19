@@ -37,23 +37,61 @@ def main_index(request):
 
 @sidebar_view
 def section_detail(request, pk):
-    pk = get_object_or_404(Section, pk=pk)
+    section = get_object_or_404(Section, pk=pk)
 
     return render(request, 'editor/section.html', {
         'sections': Section.objects.all(),
-        'section': pk,
+        'section': section,
         'section_url': 'editor.section',
+        'section_as_pk': True,
+
+        'child_models': [{
+            'title': Space._meta.verbose_name_plural,
+            'url': reverse('editor.spaces.list', kwargs={'section': pk}),
+            'count': section.spaces.count(),
+        }, {
+            'title': Door._meta.verbose_name_plural,
+            'url': reverse('editor.doors.list', kwargs={'section': pk}),
+            'count': section.doors.count(),
+        }],
     })
 
 
 @sidebar_view
-def edit(request, pk=None, model=None):
+def space_detail(request, section, pk):
+    section = get_object_or_404(Section, pk=pk)
+
+    return render(request, 'editor/section.html', {
+        'sections': Section.objects.all(),
+        'section': section,
+        'section_url': 'editor.section',
+        'section_as_pk': True,
+
+        'child_models': [{
+            'title': Space._meta.verbose_name_plural,
+            'url': reverse('editor.spaces.list', kwargs={'section': pk}),
+            'count': section.spaces.count(),
+        }, {
+            'title': Door._meta.verbose_name_plural,
+            'url': reverse('editor.doors.list', kwargs={'section': pk}),
+            'count': section.doors.count(),
+        }],
+    })
+
+
+@sidebar_view
+def edit(request, pk=None, model=None, section=None, space=None, explicit_edit=False):
     model = EDITOR_FORM_MODELS[model]
 
     obj = None
     if pk is not None:
         # Edit existing map item
-        obj = get_object_or_404(model, pk=pk)
+        kwargs = {'pk': pk}
+        if section is not None:
+            kwargs.update({'section__id': section})
+        elif space is not None:
+            kwargs.update({'space__id': space})
+        obj = get_object_or_404(model, **kwargs)
         if False:  # todo can access
             raise PermissionDenied
 
