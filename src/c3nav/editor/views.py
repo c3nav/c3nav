@@ -75,7 +75,7 @@ def edit(request, pk=None, model=None):
     elif hasattr(obj, 'section'):
         ctx.update({
             'section': obj.section,
-            'back_url': reverse('editor.space', kwargs={'pk': pk}),
+            'back_url': reverse('editor.section', kwargs={'pk': obj.section.pk}),
         })
     elif hasattr(obj, 'space'):
         ctx.update({
