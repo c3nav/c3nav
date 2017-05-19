@@ -137,25 +137,39 @@ def list_objects(request, model=None, section=None, space=None):
     if not request.resolver_match.url_name.endswith('.list'):
         raise ValueError('url_name does not end with .list')
 
+    reverse_kwargs = {}
+    if section is not None:
+        reverse_kwargs['section'] = section
+    if space is not None:
+        reverse_kwargs['space'] = space
+
     # noinspection PyProtectedMember
     ctx = {
-        'create_url': request.resolver_match.url_name[:-4]+'create',
-        'edit_url': request.resolver_match.url_name[:-4]+'edit',
+        'create_url': reverse(request.resolver_match.url_name[:-4]+'create', kwargs=reverse_kwargs),
         'path': request.path,
         'model_name': model.__name__.lower(),
         'model_title': model._meta.verbose_name,
         'model_title_plural': model._meta.verbose_name_plural,
-        'objects': model.objects.all().order_by('id'),
     }
 
+    queryset = model.objects.all().order_by('id')
+    for obj in queryset:
+        reverse_kwargs['pk'] = obj.pk
+        obj.edit_url = reverse(request.resolver_match.url_name[:-4]+'edit', kwargs=reverse_kwargs)
+    reverse_kwargs.pop('pk', None)
+
     if space is not None:
+        space = get_object_or_404(Section, pk=section)
+        queryset = queryset.filter(space=space)
         ctx.update({
-            'back_url': reverse('editor.space', kwargs={'pk': space}),
+            'back_url': reverse('editor.space', kwargs={'pk': space.pk}),
             'back_title': _('back to space'),
         })
     elif section is not None:
+        section = get_object_or_404(Section, pk=section)
+        queryset = queryset.filter(section=section)
         ctx.update({
-            'back_url': reverse('editor.space', kwargs={'pk': space}),
+            'back_url': reverse('editor.section', kwargs={'pk': section.pk}),
             'back_title': _('back to space'),
         })
     else:
@@ -163,5 +177,9 @@ def list_objects(request, model=None, section=None, space=None):
             'back_url': reverse('editor.index'),
             'back_title': _('back to overview'),
         })
+
+    ctx.update({
+        'objects': queryset,
+    })
 
     return render(request, 'editor/list.html', ctx)

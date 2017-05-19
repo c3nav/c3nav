@@ -3,7 +3,7 @@
 
 {% include 'editor/fragment_sections.html' %}
 
-<a class="btn btn-default btn-sm pull-right" accesskey="n" href="{% url create_url %}">
+<a class="btn btn-default btn-sm pull-right" accesskey="n" href="{{ create_url }}">
     {% blocktrans %}New {{ model_title }}{% endblocktrans %}
 </a>
 <h3>{% blocktrans %}{{ model_title_plural }}{% endblocktrans %}</h3>
@@ -19,7 +19,7 @@
             {% endif %}
             <tr data-pk="{{ item.pk }}">
                 <td>{{ item.title }}</td>
-                <td><a href="{% url edit_url pk=item.pk %}">{% trans 'Edit' %}</a></td>
+                <td><a href="{{ item.edit_url }}">{% trans 'Edit' %}</a></td>
             </tr>
         {% endfor %}
         <tr>
