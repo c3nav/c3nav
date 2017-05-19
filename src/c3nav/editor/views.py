@@ -42,7 +42,7 @@ def section_detail(request, pk):
     return render(request, 'editor/section.html', {
         'sections': Section.objects.all(),
         'section': section,
-        'section_url': 'editor.section',
+        'section_url': 'editor.sections.detail',
         'section_as_pk': True,
 
         'child_models': [{
@@ -59,23 +59,13 @@ def section_detail(request, pk):
 
 @sidebar_view
 def space_detail(request, section, pk):
-    section = get_object_or_404(Section, pk=pk)
+    space = get_object_or_404(Space, section__id=section, pk=pk)
 
-    return render(request, 'editor/section.html', {
-        'sections': Section.objects.all(),
-        'section': section,
-        'section_url': 'editor.section',
-        'section_as_pk': True,
+    return render(request, 'editor/space.html', {
+        'section': space.section,
+        'space': space,
 
-        'child_models': [{
-            'title': Space._meta.verbose_name_plural,
-            'url': reverse('editor.spaces.list', kwargs={'section': pk}),
-            'count': section.spaces.count(),
-        }, {
-            'title': Door._meta.verbose_name_plural,
-            'url': reverse('editor.doors.list', kwargs={'section': pk}),
-            'count': section.doors.count(),
-        }],
+        'child_models': [],
     })
 
 
@@ -110,21 +100,30 @@ def edit(request, pk=None, model=None, section=None, space=None, explicit_edit=F
             'section': obj,
             'back_url': reverse('editor.index') if new else reverse('editor.section', kwargs={'pk': pk}),
         })
+    elif model == Space and not new:
+        ctx.update({
+            'section': obj,
+            'back_url': reverse('editor.spaces.detail', kwargs={'section': obj.section.pk, 'pk': pk}),
+        })
     elif hasattr(obj, 'section'):
         ctx.update({
             'section': obj.section,
-            'back_url': reverse('editor.section', kwargs={'pk': obj.section.pk}),
+            'back_url': reverse('editor.sections.detail', kwargs={'pk': obj.section.pk}),
         })
     elif hasattr(obj, 'space'):
         ctx.update({
             'section': obj.space.section,
-            'back_url': reverse('editor.space', kwargs={'pk': obj.space.pk}),
+            'back_url': reverse('editor.spaces.detail', kwargs={'pk': obj.space.pk}),
         })
     else:
-        if not request.resolver_match.url_name.endswith('.edit'):
-            raise ValueError('url_name does not end with .edit')
+        kwargs = {}
+        if section is not None:
+            kwargs.update({'section': section})
+        elif space is not None:
+            kwargs.update({'space': space})
+
         ctx.update({
-            'back_url': reverse(request.resolver_match.url_name[:-4]+'list'),
+            'back_url': reverse('.'.join(request.resolver_match.url_name.split('.')[:-1]+['list']), kwargs=kwargs),
         })
 
     if request.method == 'POST':
@@ -181,6 +180,7 @@ def list_objects(request, model=None, section=None, space=None, explicit_edit=Fa
         'model_name': model.__name__.lower(),
         'model_title': model._meta.verbose_name,
         'model_title_plural': model._meta.verbose_name_plural,
+        'explicit_edit': explicit_edit,
     }
 
     queryset = model.objects.all().order_by('id')
@@ -191,7 +191,7 @@ def list_objects(request, model=None, section=None, space=None, explicit_edit=Fa
         section = get_object_or_404(Section, pk=section)
         queryset = queryset.filter(section=section)
         ctx.update({
-            'back_url': reverse('editor.section', kwargs={'pk': section.pk}),
+            'back_url': reverse('editor.sections.detail', kwargs={'pk': section.pk}),
             'back_title': _('back to section'),
             'sections': Section.objects.all(),
             'section': section,
@@ -202,7 +202,7 @@ def list_objects(request, model=None, section=None, space=None, explicit_edit=Fa
         space = get_object_or_404(Section, pk=space)
         queryset = queryset.filter(space=space)
         ctx.update({
-            'back_url': reverse('editor.space', kwargs={'pk': space.pk}),
+            'back_url': reverse('editor.spaces.detail', kwargs={'pk': space.pk}),
             'back_title': _('back to space'),
         })
     else:
@@ -211,7 +211,7 @@ def list_objects(request, model=None, section=None, space=None, explicit_edit=Fa
             'back_title': _('back to overview'),
         })
 
-    edit_url_name = request.resolver_match.url_name[:-5]+('' if explicit_edit else '.edit')
+    edit_url_name = request.resolver_match.url_name[:-4]+('detail' if explicit_edit else 'edit')
     for obj in queryset:
         reverse_kwargs['pk'] = obj.pk
         obj.edit_url = reverse(edit_url_name, kwargs=reverse_kwargs)
