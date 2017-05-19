@@ -2,7 +2,7 @@
     <ul data-sections>
         {% for s in sections %}
             <li>
-                <a href="{% url section_url pk=s.id %}"{% if section == s %} class="current"{% endif %}>{{ s.title }}</a>
+                <a href="{% if section_as_pk %}{% url section_url pk=s.id %}{% else %}{% url section_url section=s.id %}{% endif %}"{% if section == s %} class="current"{% endif %}>{{ s.title }}</a>
             </li>
         {% endfor %}
     </ul>

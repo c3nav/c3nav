@@ -8,7 +8,7 @@ from django.urls import reverse
 from django.utils.translation import ugettext_lazy as _
 from django.views.decorators.cache import never_cache
 
-from c3nav.mapdata.models import LocationGroup, Section
+from c3nav.mapdata.models import Door, LocationGroup, Section, Space
 from c3nav.mapdata.models.base import EDITOR_FORM_MODELS
 
 
@@ -170,20 +170,13 @@ def edit(request, pk=None, model=None, section=None, space=None, explicit_edit=F
 
 
 @sidebar_view
-def list_objects(request, model=None, section=None, space=None):
+def list_objects(request, model=None, section=None, space=None, explicit_edit=False):
     model = EDITOR_FORM_MODELS[model]
     if not request.resolver_match.url_name.endswith('.list'):
         raise ValueError('url_name does not end with .list')
 
-    reverse_kwargs = {}
-    if section is not None:
-        reverse_kwargs['section'] = section
-    if space is not None:
-        reverse_kwargs['space'] = space
-
     # noinspection PyProtectedMember
     ctx = {
-        'create_url': reverse(request.resolver_match.url_name[:-4]+'create', kwargs=reverse_kwargs),
         'path': request.path,
         'model_name': model.__name__.lower(),
         'model_title': model._meta.verbose_name,
@@ -191,23 +184,25 @@ def list_objects(request, model=None, section=None, space=None):
     }
 
     queryset = model.objects.all().order_by('id')
-    for obj in queryset:
-        reverse_kwargs['pk'] = obj.pk
-        obj.edit_url = reverse(request.resolver_match.url_name[:-4]+'edit', kwargs=reverse_kwargs)
-    reverse_kwargs.pop('pk', None)
+    reverse_kwargs = {}
 
-    if space is not None:
-        space = get_object_or_404(Section, pk=section)
-        queryset = queryset.filter(space=space)
-        ctx.update({
-            'back_url': reverse('editor.space', kwargs={'pk': space.pk}),
-            'back_title': _('back to space'),
-        })
-    elif section is not None:
+    if section is not None:
+        reverse_kwargs['section'] = section
         section = get_object_or_404(Section, pk=section)
         queryset = queryset.filter(section=section)
         ctx.update({
             'back_url': reverse('editor.section', kwargs={'pk': section.pk}),
+            'back_title': _('back to section'),
+            'sections': Section.objects.all(),
+            'section': section,
+            'section_url': request.resolver_match.url_name,
+        })
+    elif space is not None:
+        reverse_kwargs['space'] = space
+        space = get_object_or_404(Section, pk=space)
+        queryset = queryset.filter(space=space)
+        ctx.update({
+            'back_url': reverse('editor.space', kwargs={'pk': space.pk}),
             'back_title': _('back to space'),
         })
     else:
@@ -216,7 +211,14 @@ def list_objects(request, model=None, section=None, space=None):
             'back_title': _('back to overview'),
         })
 
+    edit_url_name = request.resolver_match.url_name[:-5]+('' if explicit_edit else '.edit')
+    for obj in queryset:
+        reverse_kwargs['pk'] = obj.pk
+        obj.edit_url = reverse(edit_url_name, kwargs=reverse_kwargs)
+    reverse_kwargs.pop('pk', None)
+
     ctx.update({
+        'create_url': reverse(request.resolver_match.url_name[:-4] + 'create', kwargs=reverse_kwargs),
         'objects': queryset,
     })
 
