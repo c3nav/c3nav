@@ -8,7 +8,7 @@
 </a>
 <h3>{{ space.title }}</h3>
 <p>
-    <a href="{% url 'editor.sections.detail' pk=space.section.pk %}">&laquo; {% trans 'back to section' %}</a>
+    <a href="{% url 'editor.spaces.list' section=space.section.pk %}">&laquo; {% trans 'back to overview' %}</a>
 </p>
 
 {% include 'editor/fragment_child_models.html' %}
