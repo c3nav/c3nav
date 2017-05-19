@@ -18,6 +18,10 @@ class MapitemFormMixin(ModelForm):
             # hide section widget
             self.fields['section'].widget = HiddenInput()
 
+        if 'space' in self.fields:
+            # hide space widget
+            self.fields['space'].widget = HiddenInput()
+
         if 'geometry' in self.fields:
             # hide geometry widget
             self.fields['geometry'].widget = HiddenInput()
@@ -57,9 +61,8 @@ class MapitemFormMixin(ModelForm):
 
 
 def create_editor_form(editor_model):
-    possible_fields = ['section', 'space', 'name', 'public', 'altitude', 'geometry', 'width', 'groups', 'color',
-                       'location_type', 'can_search', 'can_describe', 'routing_inclusion', 'compiled_room', 'bssids',
-                       'category', 'level']
+    possible_fields = ['section', 'space', 'name', 'altitude', 'can_search', 'can_describe', 'color', 'public',
+                       'groups', 'geometry', 'level', 'category', 'outside', 'stuffed', 'width']
     existing_fields = [field.name for field in editor_model._meta.get_fields() if field.name in possible_fields]
 
     class EditorForm(MapitemFormMixin, ModelForm):
