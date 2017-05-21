@@ -6,8 +6,8 @@ from shapely.ops import cascaded_union
 
 from c3nav.mapdata.models.base import EditorFormMixin
 from c3nav.mapdata.models.locations import SpecificLocation
-from c3nav.mapdata.render.svg import SVGImage
 from c3nav.mapdata.utils.misc import get_dimensions
+from c3nav.mapdata.utils.svg import SVGImage
 
 
 class Section(SpecificLocation, EditorFormMixin, models.Model):
