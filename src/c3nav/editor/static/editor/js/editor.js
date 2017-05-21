@@ -240,13 +240,12 @@ editor = {
     },
     _get_mapitem_type_style: function (mapitem_type) {
         // get styles for a specific mapitem
-        var result = {
+        return {
             stroke: false,
             fillColor: editor.geometrystyles[mapitem_type],
             fillOpacity: 1,
             smoothFactor: 0
         };
-        return result;
     },
     _register_geojson_feature: function (feature, layer) {
         // onEachFeature callback for GeoJSON loader – register all needed events
