@@ -63,7 +63,7 @@ class Section(SpecificLocation, EditorFormMixin, models.Model):
         ).intersection(space.geometry)
         svg.add_geometry(obstacle_geometries, fill_color='#999999')
 
-    def render_svg(self):
+    def render_svg(self, effects=True, draw_spaces=None):
         width, height = get_dimensions()
         svg = SVGImage(width=width, height=height, scale=settings.RENDER_SCALE)
 
@@ -120,8 +120,10 @@ class Section(SpecificLocation, EditorFormMixin, models.Model):
         wall_geometry = building_geometries.difference(space_geometries['']).difference(door_geometries)
 
         # draw wall shadow
-        wall_dilated_geometry = wall_geometry.buffer(0.7, join_style=JOIN_STYLE.mitre)
-        svg.add_geometry(wall_dilated_geometry, fill_color='#000000', opacity=0.1, filter='wallblur', clip_path=section_clip)
+        if effects:
+            wall_dilated_geometry = wall_geometry.buffer(0.7, join_style=JOIN_STYLE.mitre)
+            svg.add_geometry(wall_dilated_geometry, fill_color='#000000', opacity=0.1, filter='wallblur',
+                             clip_path=section_clip)
 
         for space in space_levels['']:
             self._render_space_inventory(svg, space)

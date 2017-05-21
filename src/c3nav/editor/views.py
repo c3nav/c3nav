@@ -57,6 +57,7 @@ def section_detail(request, pk):
 
         'child_models': [child_model(model_name, kwargs={'section': pk}, parent=section)
                          for model_name in ('Building', 'Space', 'Door', 'Hole')],
+        'geometry_url': '/api/editor/geometries/?section='+pk,
     })
 
 
@@ -70,6 +71,7 @@ def space_detail(request, section, pk):
 
         'child_models': [child_model(model_name, kwargs={'space': pk}, parent=space)
                          for model_name in ('Area', 'Stair', 'Obstacle', 'LineObstacle', 'Point')],
+        'geometry_url': '/api/editor/geometries/?space='+pk,
     })
 
 
@@ -103,21 +105,25 @@ def edit(request, pk=None, model=None, section=None, space=None, explicit_edit=F
         ctx.update({
             'section': obj,
             'back_url': reverse('editor.index') if new else reverse('editor.sections.detail', kwargs={'pk': pk}),
+            'geometry_url': '/api/editor/geometries/?section='+pk,
         })
     elif model == Space and not new:
         ctx.update({
             'section': obj,
             'back_url': reverse('editor.spaces.detail', kwargs={'section': obj.section.pk, 'pk': pk}),
+            'geometry_url': '/api/editor/geometries/?space='+pk,
         })
     elif hasattr(obj, 'section'):
         ctx.update({
             'section': obj.section,
             'back_url': reverse('editor.sections.detail', kwargs={'pk': obj.section.pk}),
+            'geometry_url': '/api/editor/geometries/?section='+pk,
         })
     elif hasattr(obj, 'space'):
         ctx.update({
             'section': obj.space.section,
             'back_url': reverse('editor.spaces.detail', kwargs={'section': obj.space.section.pk, 'pk': obj.space.pk}),
+            'geometry_url': '/api/editor/geometries/?space='+pk,
         })
     else:
         kwargs = {}
@@ -200,6 +206,7 @@ def list_objects(request, model=None, section=None, space=None, explicit_edit=Fa
             'sections': Section.objects.all(),
             'section': section,
             'section_url': request.resolver_match.url_name,
+            'geometry_url': '/api/editor/geometries/?section='+str(section.pk),
         })
     elif space is not None:
         reverse_kwargs['space'] = space
@@ -209,6 +216,7 @@ def list_objects(request, model=None, section=None, space=None, explicit_edit=Fa
             'section': space.section,
             'back_url': reverse('editor.spaces.detail', kwargs={'section': space.section.pk, 'pk': space.pk}),
             'back_title': _('back to space'),
+            'geometry_url': '/api/editor/geometries/?space='+str(space.pk),
         })
     else:
         ctx.update({

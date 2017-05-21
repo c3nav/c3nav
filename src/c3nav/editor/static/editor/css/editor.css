@@ -116,6 +116,9 @@ form button.invisiblesubmit {
 }
 
 /* Styles inside leaflet */
+.leaflet-container {
+    background:#000000;
+}
 .leaflet-control-layers-overlays label {
     margin-bottom:0;
 }
