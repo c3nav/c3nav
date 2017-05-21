@@ -40,7 +40,6 @@ editor = {
         editor._section_control = new SectionControl().addTo(editor.map);
 
         editor.init_geometries();
-        editor.init_sidebar();
         editor.get_sources();
 
         var bounds = [[0.0, 0.0], [240.0, 400.0]];
@@ -114,21 +113,27 @@ editor = {
             return;
         }
 
-        sections = content.find('[data-sections]');
-        if (sections.length) {
+        var geometry_url = content.find('[data-geometry-url]');
+        if (geometry_url.length) {
+            geometry_url = geometry_url.attr('data-geometry-url');
+            editor.load_geometries(geometry_url);
             $('body').addClass('map-enabled');
-            var sections = sections.find('a');
             editor._section_control.clearSections();
-            for(var i=0;i<sections.length;i++) {
-                var section = $(sections[i]);
-                editor._section_control.addSection(section.text(), section.attr('href'), section.is('.current'));
-            }
-            if (sections.length > 1) {
-                editor._section_control.enable();
+            var sections = content.find('[data-sections] a');
+            if (sections.length) {
+                for(var i=0;i<sections.length;i++) {
+                    var section = $(sections[i]);
+                    editor._section_control.addSection(section.text(), section.attr('href'), section.is('.current'));
+                }
+                if (sections.length > 1) {
+                    editor._section_control.enable();
+                } else {
+                    editor._section_control.disable();
+                }
+                editor._section_control.show()
             } else {
-                editor._section_control.disable();
+                editor._section_control.hide();
             }
-            editor._section_control.show()
         } else {
             $('body').removeClass('map-enabled').removeClass('show-map');
             editor._section_control.hide();
@@ -160,9 +165,6 @@ editor = {
             if ($(btn).is('[name]')) {
                 data += '&' + $('<input>').attr('name', $(btn).attr('name')).val($(btn).val()).serialize();
             }
-            if ($(btn).is('[data-reload-geometries]')) {
-                editor._get_geometries_next_time = true;
-            }
         }
         var action = $(this).attr('action');
         editor._sidebar_unload();
@@ -170,10 +172,10 @@ editor = {
     },
 
     // geometries
+    geometrystyles: {},
     _geometries_layer: null,
     _highlight_layer: null,
     _editing_layer: null,
-    _get_geometries_next_time: false,
     _geometries: {},
     _geometries_shadows: {},
     _creating: false,
@@ -195,15 +197,20 @@ editor = {
         editor.map.on('editable:vertex:ctrlclick editable:vertex:metakeyclick', function (e) {
             e.vertex.continue();
         });
+
+        $.getJSON('/api/editor/geometrystyles/', function(geometrystyles) {
+            editor.geometrystyles = geometrystyles;
+            editor.init_sidebar();
+        });
     },
-    get_geometries: function () {
-        // reload geometries of current level
+    load_geometries: function (geometry_url) {
+        // load geometries from url
         editor._geometries = {};
         editor._geometries_shadows = {};
         if (editor._geometries_layer !== null) {
             editor.map.removeLayer(editor._geometries_layer);
         }
-        $.getJSON('/api/geometries/?level='+String(editor._level), function(geometries) {
+        $.getJSON(geometry_url, function(geometries) {
             editor._geometries_layer = L.geoJSON(geometries, {
                 style: editor._get_geometry_style,
                 onEachFeature: editor._register_geojson_feature
@@ -212,21 +219,6 @@ editor = {
             editor._geometries_layer.addTo(editor.map);
             editor._loading_geometry = false;
         });
-    },
-    _geometry_colors: {
-        'building': '#333333',
-        'area': '#FFFFFF',
-        'lineobstacle': '#999999',
-        'obstacle': '#999999',
-        'door': '#66FF00',
-        'hole': '#66CC99',
-        'elevatorlevel': '#9EF8FB',
-        'levelconnector': '#FFFF00',
-        'shadow': '#000000',
-        'stair': '#FF0000',
-        'arealocation': '#0099FF',
-        'escalator': '#FF9900',
-        'stuffedarea': '#D9A3A3'
     },
     _line_draw_geometry_style: function(style) {
         style.stroke = true;
@@ -241,22 +233,19 @@ editor = {
         if (feature.geometry.type === 'LineString') {
             style = editor._line_draw_geometry_style(style);
         }
+        if (feature.properties.color !== undefined) {
+            style.fillColor = feature.properties.color;
+        }
         return style
     },
     _get_mapitem_type_style: function (mapitem_type) {
         // get styles for a specific mapitem
         var result = {
             stroke: false,
-            fillColor: editor._geometry_colors[mapitem_type],
-            fillOpacity: (mapitem_type === 'arealocation') ? 0.2 : 0.6,
+            fillColor: editor.geometrystyles[mapitem_type],
+            fillOpacity: 1,
             smoothFactor: 0
         };
-        if (mapitem_type === 'arealocation') {
-            result.fillOpacity = 0.02;
-            result.color = result.fillColor;
-            result.stroke = true;
-            result.weight = 1;
-        }
         return result;
     },
     _register_geojson_feature: function (feature, layer) {
@@ -376,9 +365,6 @@ editor = {
                 $('#id_level').val(editor._level);
                 $('#id_levels').find('option[value='+editor._level+']').prop('selected', true);
             }
-        } else if (editor._get_geometries_next_time) {
-            editor.get_geometries();
-            editor._get_geometries_next_time = false;
         }
     },
     _cancel_editing: function() {
@@ -387,7 +373,6 @@ editor = {
             editor._editing_layer.clearLayers();
             editor._editing.disableEdit();
             editor._editing = null;
-            editor._get_geometries_next_time = true;
         }
         if (editor._creating) {
             editor._creating = false;

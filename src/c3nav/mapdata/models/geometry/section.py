@@ -17,6 +17,10 @@ class SectionGeometryMixin(GeometryMixin):
     def get_geojson_properties(self) -> dict:
         result = super().get_geojson_properties()
         result['layer'] = getattr(self, 'level', 'base')
+        if hasattr(self, 'get_color'):
+            color = self.get_color()
+            if color:
+                result['color'] = color
         return result
 
     def _serialize(self, section=True, **kwargs):

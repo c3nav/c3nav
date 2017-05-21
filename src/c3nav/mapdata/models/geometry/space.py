@@ -24,6 +24,14 @@ class SpaceGeometryMixin(GeometryMixin):
             result['space'] = self.space.id
         return result
 
+    def get_geojson_properties(self) -> dict:
+        result = super().get_geojson_properties()
+        if hasattr(self, 'get_color'):
+            color = self.get_color()
+            if color:
+                result['color'] = color
+        return result
+
 
 class Area(SpecificLocation, SpaceGeometryMixin, models.Model):
     """
@@ -140,3 +148,13 @@ class Point(SpecificLocation, SpaceGeometryMixin, models.Model):
         verbose_name = _('Point')
         verbose_name_plural = _('Points')
         default_related_name = 'points'
+
+    @property
+    def buffered_geometry(self):
+        return self.geometry.buffer(0.5)
+
+    def to_geojson(self):
+        result = super().to_geojson()
+        result['original_geometry'] = result['geometry']
+        result['geometry'] = format_geojson(mapping(self.buffered_geometry))
+        return result

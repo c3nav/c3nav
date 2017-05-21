@@ -58,18 +58,6 @@ class SectionViewSet(MapdataViewSet):
         return self.list_types(SECTION_MODELS)
 
     @detail_route(methods=['get'])
-    def geometries(self, requests, pk=None):
-        section = self.get_object()
-        results = []
-        results.extend(section.buildings.all())
-        results.extend(section.holes.all())
-        for space in section.spaces.all():
-            results.append(space)
-        for door in section.doors.all():
-            results.append(door)
-        return Response([obj.to_geojson() for obj in results])
-
-    @detail_route(methods=['get'])
     def svg(self, requests, pk=None):
         section = self.get_object()
         response = HttpResponse(section.render_svg(), 'image/svg+xml')
@@ -88,18 +76,6 @@ class SpaceViewSet(MapdataViewSet):
     @list_route(methods=['get'])
     def geometrytypes(self, request):
         return self.list_types(SPACE_MODELS)
-
-    @detail_route(methods=['get'])
-    def geometries(self, requests, pk=None):
-        space = self.get_object()
-        results = chain(
-            space.stairs.all(),
-            space.areas.all(),
-            space.obstacles.all(),
-            space.lineobstacles.all(),
-            space.points.all(),
-        )
-        return Response([obj.to_geojson() for obj in results])
 
 
 class DoorViewSet(MapdataViewSet):
