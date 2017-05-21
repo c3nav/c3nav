@@ -26,8 +26,10 @@ urlpatterns = [
 ]
 urlpatterns.extend(add_editor_urls('sections', 'Section', with_list=False, explicit_edit=True))
 urlpatterns.extend(add_editor_urls('locationgroups', 'LocationGroup'))
+urlpatterns.extend(add_editor_urls('buildings', 'Building'))
 urlpatterns.extend(add_editor_urls('spaces', 'Space', 'sections', 'section', explicit_edit=True))
 urlpatterns.extend(add_editor_urls('doors', 'Door', 'sections', 'section'))
+urlpatterns.extend(add_editor_urls('holes', 'Hole'))
 urlpatterns.extend(add_editor_urls('areas', 'Area', 'spaces', 'space'))
 urlpatterns.extend(add_editor_urls('stairs', 'Stair', 'spaces', 'space'))
 urlpatterns.extend(add_editor_urls('obstacles', 'Obstacle', 'spaces', 'space'))
