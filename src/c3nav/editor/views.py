@@ -8,7 +8,8 @@ from django.urls import reverse
 from django.utils.translation import ugettext_lazy as _
 from django.views.decorators.cache import never_cache
 
-from c3nav.mapdata.models import Area, Door, LineObstacle, LocationGroup, Obstacle, Section, Space, Stair
+from c3nav.mapdata.models import (Area, Building, Door, Hole, LineObstacle, LocationGroup, Obstacle, Section, Space,
+                                  Stair)
 from c3nav.mapdata.models.base import EDITOR_FORM_MODELS
 from c3nav.mapdata.models.geometry.space import Point
 
@@ -47,6 +48,10 @@ def section_detail(request, pk):
         'section_as_pk': True,
 
         'child_models': [{
+            'title': Building._meta.verbose_name_plural,
+            'url': reverse('editor.buildings.list', kwargs={'section': pk}),
+            'count': section.buildings.count(),
+        }, {
             'title': Space._meta.verbose_name_plural,
             'url': reverse('editor.spaces.list', kwargs={'section': pk}),
             'count': section.spaces.count(),
@@ -54,6 +59,10 @@ def section_detail(request, pk):
             'title': Door._meta.verbose_name_plural,
             'url': reverse('editor.doors.list', kwargs={'section': pk}),
             'count': section.doors.count(),
+        }, {
+            'title': Hole._meta.verbose_name_plural,
+            'url': reverse('editor.holes.list', kwargs={'section': pk}),
+            'count': section.holes.count(),
         }],
     })
 
