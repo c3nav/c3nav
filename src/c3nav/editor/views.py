@@ -1,5 +1,6 @@
 from functools import wraps
 
+from django.apps import apps
 from django.conf import settings
 from django.core.exceptions import PermissionDenied
 from django.http import HttpResponseRedirect
@@ -8,10 +9,8 @@ from django.urls import reverse
 from django.utils.translation import ugettext_lazy as _
 from django.views.decorators.cache import never_cache
 
-from c3nav.mapdata.models import (Area, Building, Door, Hole, LineObstacle, LocationGroup, Obstacle, Section, Space,
-                                  Stair)
+from c3nav.mapdata.models import Section, Space
 from c3nav.mapdata.models.base import EDITOR_FORM_MODELS
-from c3nav.mapdata.models.geometry.space import Point
 
 
 def sidebar_view(func):
@@ -26,14 +25,23 @@ def sidebar_view(func):
     return never_cache(with_ajax_check)
 
 
+def child_model(model_name, kwargs=None, parent=None):
+    model = apps.get_model('mapdata', model_name)
+    related_name = model._meta.default_related_name
+    return {
+        'title': model._meta.verbose_name_plural,
+        'url': reverse('editor.'+related_name+'.list', kwargs=kwargs),
+        'count': None if parent is None else getattr(parent, related_name).count(),
+    }
+
+
 @sidebar_view
 def main_index(request):
     return render(request, 'editor/index.html', {
         'sections': Section.objects.all(),
-        'child_models': [{
-            'title': LocationGroup._meta.verbose_name_plural,
-            'url': reverse('editor.locationgroups.list'),
-        }],
+        'child_models': [
+            child_model('LocationGroup'),
+        ],
     })
 
 
@@ -47,23 +55,8 @@ def section_detail(request, pk):
         'section_url': 'editor.sections.detail',
         'section_as_pk': True,
 
-        'child_models': [{
-            'title': Building._meta.verbose_name_plural,
-            'url': reverse('editor.buildings.list', kwargs={'section': pk}),
-            'count': section.buildings.count(),
-        }, {
-            'title': Space._meta.verbose_name_plural,
-            'url': reverse('editor.spaces.list', kwargs={'section': pk}),
-            'count': section.spaces.count(),
-        }, {
-            'title': Door._meta.verbose_name_plural,
-            'url': reverse('editor.doors.list', kwargs={'section': pk}),
-            'count': section.doors.count(),
-        }, {
-            'title': Hole._meta.verbose_name_plural,
-            'url': reverse('editor.holes.list', kwargs={'section': pk}),
-            'count': section.holes.count(),
-        }],
+        'child_models': [child_model(model_name, kwargs={'section': pk}, parent=section)
+                         for model_name in ('Building', 'Space', 'Door', 'Hole')],
     })
 
 
@@ -75,27 +68,8 @@ def space_detail(request, section, pk):
         'section': space.section,
         'space': space,
 
-        'child_models': [{
-            'title': Area._meta.verbose_name_plural,
-            'url': reverse('editor.areas.list', kwargs={'space': pk}),
-            'count': space.areas.count(),
-        }, {
-            'title': Stair._meta.verbose_name_plural,
-            'url': reverse('editor.stairs.list', kwargs={'space': pk}),
-            'count': space.stairs.count(),
-        }, {
-            'title': Obstacle._meta.verbose_name_plural,
-            'url': reverse('editor.obstacles.list', kwargs={'space': pk}),
-            'count': space.obstacles.count(),
-        }, {
-            'title': LineObstacle._meta.verbose_name_plural,
-            'url': reverse('editor.lineobstacles.list', kwargs={'space': pk}),
-            'count': space.lineobstacles.count(),
-        }, {
-            'title': Point._meta.verbose_name_plural,
-            'url': reverse('editor.points.list', kwargs={'space': pk}),
-            'count': space.points.count(),
-        }],
+        'child_models': [child_model(model_name, kwargs={'space': pk}, parent=space)
+                         for model_name in ('Area', 'Stair', 'Obstacle', 'LineObstacle', 'Point')],
     })
 
 
