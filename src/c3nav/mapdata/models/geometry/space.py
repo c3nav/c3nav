@@ -125,9 +125,8 @@ class LineObstacle(SpaceGeometryMixin, models.Model):
 
     def to_geojson(self):
         result = super().to_geojson()
-        original_geometry = result['geometry']
+        result['original_geometry'] = result['geometry']
         result['geometry'] = format_geojson(mapping(self.buffered_geometry))
-        result['original_geometry'] = original_geometry
         return result
 
 
