@@ -102,7 +102,7 @@ def edit(request, pk=None, model=None, section=None, space=None, explicit_edit=F
     if model == Section:
         ctx.update({
             'section': obj,
-            'back_url': reverse('editor.index') if new else reverse('editor.section', kwargs={'pk': pk}),
+            'back_url': reverse('editor.index') if new else reverse('editor.sections.detail', kwargs={'pk': pk}),
         })
     elif model == Space and not new:
         ctx.update({
