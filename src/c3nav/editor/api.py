@@ -84,7 +84,7 @@ class EditorViewSet(ViewSet):
             'hole': 'rgba(255, 0, 0, 0.3)',
             'door': '#ffffff',
             'area': '#55aaff',
-            'step': '#ff0099',
+            'stair': '#990099',
             'obstacle': '#999999',
             'lineobstacle': '#999999',
             'point': '#4488cc',
