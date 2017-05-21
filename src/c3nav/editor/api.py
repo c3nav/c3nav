@@ -72,9 +72,12 @@ class EditorViewSet(ViewSet):
                 space.lineobstacles.all(),
                 space.points.all(),
             )
-            return Response([obj.to_geojson() for obj in results])
+            return Response(sum([self._get_geojsons(obj) for obj in results], ()))
         else:
             raise ValidationError('No section or space specified.')
+
+    def _get_geojsons(self, obj):
+        return ((obj.to_shadow_geojson(),) if hasattr(obj, 'to_shadow_geojson') else ()) + (obj.to_geojson(),)
 
     @list_route(methods=['get'])
     def geometrystyles(self, request, *args, **kwargs):
@@ -84,8 +87,9 @@ class EditorViewSet(ViewSet):
             'hole': 'rgba(255, 0, 0, 0.3)',
             'door': '#ffffff',
             'area': '#55aaff',
-            'stair': '#990099',
+            'stair': 'rgba(160, 0, 160, 0.5)',
             'obstacle': '#999999',
             'lineobstacle': '#999999',
             'point': '#4488cc',
+            'shadow': '#000000',
         })
