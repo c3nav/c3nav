@@ -58,21 +58,20 @@ class EditorViewSet(ViewSet):
             doors = [door for door in section.doors.all() if door.geometry.intersects(space.geometry)]
             doors_geom = cascaded_union([door.geometry for door in doors])
 
-            spaces = [space for space in section.spaces.all() if space.geometry.intersects(doors_geom)]
+            spaces = [s for s in section.spaces.filter(level='')
+                      if s.geometry.intersects(doors_geom) and s.pk != space.pk]
 
-            results = []
-            results.extend(section.buildings.all())
-            results.extend(doors)
-            results.extend(spaces)
-
-            results.extend(chain(
+            results = chain(
+                section.buildings.all(),
+                doors,
+                spaces,
+                [space],
                 space.areas.all(),
                 space.stairs.all(),
                 space.obstacles.all(),
                 space.lineobstacles.all(),
                 space.points.all(),
-            ))
-
+            )
             return Response([obj.to_geojson() for obj in results])
         else:
             raise ValidationError('No section or space specified.')
