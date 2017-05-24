@@ -19,8 +19,6 @@ def move_intermediate_areas(apps, schema_editor):
             for c in ('escalators', 'obstacles', 'lineobstacles', 'stairs', 'stuffedareas'):
                 areaitems.extend(getattr(area, c).all())
 
-            print(areaitems)
-
             area.pk = None
             area.name += '_'
             area.level = upper_level
