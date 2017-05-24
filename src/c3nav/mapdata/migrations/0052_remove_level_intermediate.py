@@ -7,7 +7,6 @@ from django.db import migrations
 
 def delete_intermediate_levels(apps, schema_editor):
     Level = apps.get_model('mapdata', 'Level')
-    print(Level.objects.filter(intermediate=True).count())
     Level.objects.filter(intermediate=True).delete()
 
 

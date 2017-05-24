@@ -40,7 +40,7 @@ def fix_space_foreign_keys(apps, schema_editor):
                     obj['geometry'] = shape(obj['geometry'])
                     orig_objects.append(obj)
         matches = {}
-        for obj in model.objects.all().order_by('id'):
+        for obj in model.objects.all().order_by('id' if hasattr(model, 'id') else 'locationslug_ptr_id'):
             for i, orig_obj in enumerate(orig_objects):
                 if obj.geometry.almost_equals(orig_obj['geometry']):
                     matches.setdefault(i, []).append(obj)
