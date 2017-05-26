@@ -117,13 +117,13 @@ def edit(request, pk=None, model=None, section=None, space=None, explicit_edit=F
         ctx.update({
             'section': obj.section,
             'back_url': reverse('editor.sections.detail', kwargs={'pk': obj.section.pk}),
-            'geometry_url': '/api/editor/geometries/?section='+pk,
+            'geometry_url': '/api/editor/geometries/?section='+str(obj.section.pk),
         })
     elif hasattr(obj, 'space'):
         ctx.update({
             'section': obj.space.section,
             'back_url': reverse('editor.spaces.detail', kwargs={'section': obj.space.section.pk, 'pk': obj.space.pk}),
-            'geometry_url': '/api/editor/geometries/?space='+pk,
+            'geometry_url': '/api/editor/geometries/?space='+str(obj.space.pk),
         })
     else:
         kwargs = {}
