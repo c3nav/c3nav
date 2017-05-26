@@ -14,6 +14,7 @@ editor = {
     init: function () {
         // Init Map
         editor.map = L.map('map', {
+            renderer: L.svg({ padding: 2 }),
             zoom: 2,
             maxZoom: 10,
             minZoom: 1,
@@ -189,7 +190,8 @@ editor = {
         editor._highlight_layer = L.layerGroup().addTo(editor.map);
 
         $('#sidebar').find('.content').on('mouseenter', '.itemtable tr[data-pk]', editor._hover_mapitem_row)
-                                      .on('mouseleave', '.itemtable tr[data-pk]', editor._unhover_mapitem_row);
+                                      .on('mouseleave', '.itemtable tr[data-pk]', editor._unhover_mapitem_row)
+                                      .on('click', '.itemtable tr[data-pk] td', editor._click_mapitem_row);
 
         editor.map.on('editable:drawing:commit', editor._done_creating);
         editor.map.on('editable:editing', editor._update_editing);
@@ -286,15 +288,25 @@ editor = {
         editor._highlight_geometry(parseInt($(this).attr('data-pk')));
     },
     _unhover_mapitem_row: function () {
-        // hover callback for a itemtable row
+        // unhover callback for a itemtable row
         editor._unhighlight_geometry(parseInt($(this).attr('data-pk')));
+    },
+    _click_mapitem_row: function () {
+        console.log('aaa');
+        var geometry = editor._highlight_geometries[parseInt($(this).parent().attr('data-pk'))];
+        if (geometry !== undefined) {
+            editor.map.flyToBounds(geometry.getBounds(), {
+                duration: 0.5,
+                padding: [20, 20]
+            });
+        }
     },
     _hover_geometry_layer: function (e) {
         // hover callback for a geometry layer
         editor._highlight_geometry(e.target.feature.properties.id);
     },
     _unhover_geometry_layer: function (e) {
-        // hover callback for a geometry layer
+        // unhover callback for a geometry layer
         editor._unhighlight_geometry(e.target.feature.properties.id);
     },
     _click_geometry_layer: function (e) {
