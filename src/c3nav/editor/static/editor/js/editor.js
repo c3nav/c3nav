@@ -213,6 +213,7 @@ editor = {
             editor.map.removeLayer(editor._geometries_layer);
         }
         editor.map.removeLayer(editor._highlight_layer);
+        editor._highlight_layer.clearLayers();
         $.getJSON(geometry_url, function(geometries) {
             editor._geometries_layer = L.geoJSON(geometries, {
                 style: editor._get_geometry_style,
