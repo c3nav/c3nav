@@ -296,6 +296,7 @@ editor = {
         var geometry = editor._highlight_geometries[parseInt($(this).parent().attr('data-pk'))];
         if (geometry !== undefined) {
             editor.map.flyToBounds(geometry.getBounds(), {
+                maxZoom: 4,
                 duration: 0.5,
                 padding: [20, 20]
             });
