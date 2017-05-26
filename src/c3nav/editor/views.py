@@ -2,7 +2,7 @@ from functools import wraps
 
 from django.apps import apps
 from django.conf import settings
-from django.core.exceptions import PermissionDenied
+from django.core.exceptions import FieldDoesNotExist, PermissionDenied
 from django.http import HttpResponseRedirect
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
@@ -41,6 +41,7 @@ def main_index(request):
         'sections': Section.objects.all(),
         'child_models': [
             child_model('LocationGroup'),
+            child_model('Source'),
         ],
     })
 

@@ -16,6 +16,10 @@ class Source(EditorFormMixin, BoundsMixin, models.Model):
         verbose_name_plural = _('Sources')
         default_related_name = 'sources'
 
+    @property
+    def title(self):
+        return self.name
+
     def _serialize(self, section=True, **kwargs):
         result = super()._serialize(**kwargs)
         result['name'] = self.name
