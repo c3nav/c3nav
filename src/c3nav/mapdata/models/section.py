@@ -73,7 +73,7 @@ class Section(SpecificLocation, EditorFormMixin, models.Model):
         space_levels = {
             'upper': [],
             'lower': [],
-            '': [],
+            'normal': [],
         }
         for space in spaces:
             space_levels[space.level].append(space)
@@ -83,7 +83,7 @@ class Section(SpecificLocation, EditorFormMixin, models.Model):
             for level, level_spaces in space_levels.items()}
 
         hole_geometries = cascaded_union(tuple(h.geometry for h in self.holes.all()))
-        hole_geometries = hole_geometries.intersection(space_geometries[''])
+        hole_geometries = hole_geometries.intersection(space_geometries['normal'])
 
         lower_spaces_by_color = {}
         for space in space_levels['lower']:
@@ -98,14 +98,14 @@ class Section(SpecificLocation, EditorFormMixin, models.Model):
 
         # draw space background
         door_geometries = cascaded_union(tuple(d.geometry for d in self.doors.all()))
-        section_geometry = cascaded_union((space_geometries[''], building_geometries, door_geometries))
+        section_geometry = cascaded_union((space_geometries['normal'], building_geometries, door_geometries))
         section_geometry = section_geometry.difference(hole_geometries)
         section_clip = svg.register_geometry(section_geometry, defid='section', as_clip_path=True)
         svg.add_geometry(fill_color='#d1d1d1', clip_path=section_clip)
 
         # color in spaces
         spaces_by_color = {}
-        for space in space_levels['']:
+        for space in space_levels['normal']:
             spaces_by_color.setdefault(space.get_color(), []).append(space)
         spaces_by_color.pop(None, None)
         spaces_by_color.pop('', None)
@@ -113,11 +113,11 @@ class Section(SpecificLocation, EditorFormMixin, models.Model):
             geometries = cascaded_union(tuple(space.geometry for space in color_spaces))
             svg.add_geometry(geometries, fill_color=color)
 
-        for space in space_levels['']:
+        for space in space_levels['normal']:
             self._render_space_ground(svg, space)
 
         # calculate walls
-        wall_geometry = building_geometries.difference(space_geometries['']).difference(door_geometries)
+        wall_geometry = building_geometries.difference(space_geometries['normal']).difference(door_geometries)
 
         # draw wall shadow
         if effects:
@@ -125,7 +125,7 @@ class Section(SpecificLocation, EditorFormMixin, models.Model):
             svg.add_geometry(wall_dilated_geometry, fill_color='#000000', opacity=0.1, filter='wallblur',
                              clip_path=section_clip)
 
-        for space in space_levels['']:
+        for space in space_levels['normal']:
             self._render_space_inventory(svg, space)
 
         # draw walls
@@ -133,7 +133,7 @@ class Section(SpecificLocation, EditorFormMixin, models.Model):
 
         # draw doors
         door_geometries = cascaded_union(tuple(d.geometry for d in self.doors.all()))
-        door_geometries = door_geometries.difference(space_geometries[''])
+        door_geometries = door_geometries.difference(space_geometries['normal'])
         svg.add_geometry(door_geometries, fill_color='#ffffff', stroke_color='#929292', stroke_width=0.07)
 
         # draw upper spaces
