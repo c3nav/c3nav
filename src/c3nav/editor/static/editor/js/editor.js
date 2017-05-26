@@ -292,7 +292,6 @@ editor = {
         editor._unhighlight_geometry(parseInt($(this).attr('data-pk')));
     },
     _click_mapitem_row: function () {
-        console.log('aaa');
         var geometry = editor._highlight_geometries[parseInt($(this).parent().attr('data-pk'))];
         if (geometry !== undefined) {
             editor.map.flyToBounds(geometry.getBounds(), {
