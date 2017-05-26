@@ -102,10 +102,16 @@ def edit(request, pk=None, model=None, section=None, space=None, explicit_edit=F
         'pk': pk,
         'model_name': model.__name__.lower(),
         'model_title': model._meta.verbose_name,
-        'geomtype': model._meta.get_field('geometry').geomtype,
         'new': new,
         'title': obj.title if obj else None,
     }
+
+    try:
+        ctx.update({
+            'geomtype': model._meta.get_field('geometry').geomtype,
+        })
+    except FieldDoesNotExist:
+        pass
 
     if model == Section:
         ctx.update({
