@@ -48,7 +48,7 @@ class EditorViewSet(ViewSet):
             for door in section.doors.all():
                 results.append(door)
 
-            add_spaces('')
+            add_spaces('normal')
             add_spaces('upper')
             return Response([obj.to_geojson() for obj in results])
         elif space is not None:

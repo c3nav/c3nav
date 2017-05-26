@@ -30,18 +30,6 @@ class SectionGeometryMixin(GeometryMixin):
         return result
 
 
-class LevelSectionGeometryMixin(SectionGeometryMixin):
-    LEVELS = (
-        ('', _('normal')),
-        ('upper', _('upper')),
-        ('lower', _('lower')),
-    )
-    level = models.CharField(verbose_name=_('level'), choices=LEVELS, default='', max_length=16)
-
-    class Meta:
-        abstract = True
-
-
 class Building(SectionGeometryMixin, models.Model):
     """
     The outline of a building on a specific level
@@ -54,18 +42,24 @@ class Building(SectionGeometryMixin, models.Model):
         default_related_name = 'buildings'
 
 
-class Space(SpecificLocation, LevelSectionGeometryMixin, models.Model):
+class Space(SpecificLocation, SectionGeometryMixin, models.Model):
     """
     An accessible space. Shouldn't overlap with spaces on same secion and level.
     """
+    LEVELS = (
+        ('normal', _('normal')),
+        ('upper', _('upper')),
+        ('lower', _('lower')),
+    )
     CATEGORIES = (
-        ('', _('normal')),
+        ('normal', _('normal')),
         ('stairs', _('stairs')),
         ('escalator', _('escalator')),
         ('elevator', _('elevator')),
     )
     geometry = GeometryField('polygon')
-    category = models.CharField(verbose_name=_('category'), choices=CATEGORIES, default='', max_length=16)
+    level = models.CharField(verbose_name=_('level'), choices=LEVELS, default='normal', max_length=16)
+    category = models.CharField(verbose_name=_('category'), choices=CATEGORIES, default='normal', max_length=16)
     outside = models.BooleanField(default=False, verbose_name=_('is outside of building'))
 
     class Meta:
@@ -92,7 +86,7 @@ class Space(SpecificLocation, LevelSectionGeometryMixin, models.Model):
         return color
 
 
-class Door(LevelSectionGeometryMixin, models.Model):
+class Door(SectionGeometryMixin, models.Model):
     """
     A connection between two spaces
     """
