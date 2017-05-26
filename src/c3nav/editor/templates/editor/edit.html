@@ -11,7 +11,7 @@
 {% else %}
     <h3>{% blocktrans %}Edit {{ model_title }}{% endblocktrans %}</h3>
 {% endif %}
-<form action="{{ path }}" method="post" data-onbeforeunload data-editing="{{ model_name }}-{{ pk }}">
+<form action="{{ path }}" method="post" data-onbeforeunload {% if new %}data-new="{{ model_name }}" data-geomtype="{{ geomtype }}"{% else %}data-editing="{{ model_name }}-{{ pk }}"{% endif %}>
     {% csrf_token %}
     {% bootstrap_form form %}
     {% buttons %}
