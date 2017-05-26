@@ -39,13 +39,14 @@ class MapitemFormMixin(ModelForm):
                 titles.update(self.instance.titles)
 
             language_titles = dict(settings.LANGUAGES)
-            for language in titles.keys():
+            for language in reversed(titles.keys()):
                 new_title = self.data.get('title_' + language)
                 if new_title is not None:
                     titles[language] = new_title
                 self.fields['title_' + language] = CharField(label=language_titles.get(language, language),
                                                              required=False,
                                                              initial=titles[language].strip(), max_length=50)
+                self.fields.move_to_end('title_' + language, last=False)
             self.titles = titles
 
     def clean(self):
@@ -61,9 +62,10 @@ class MapitemFormMixin(ModelForm):
 
 
 def create_editor_form(editor_model):
-    possible_fields = ['name', 'altitude', 'can_search', 'can_describe', 'color', 'public',
-                       'groups', 'geometry', 'level', 'category', 'outside', 'stuffed', 'width']
-    existing_fields = [field.name for field in editor_model._meta.get_fields() if field.name in possible_fields]
+    possible_fields = ['name', 'altitude', 'level', 'category', 'width', 'groups', 'color', 'public',
+                       'can_search', 'can_describe', 'outside', 'stuffed', 'geometry']
+    field_names = [field.name for field in editor_model._meta.get_fields()]
+    existing_fields = [name for name in possible_fields if name in field_names]
 
     class EditorForm(MapitemFormMixin, ModelForm):
         class Meta:
