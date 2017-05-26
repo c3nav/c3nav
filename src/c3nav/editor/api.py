@@ -29,10 +29,10 @@ class EditorViewSet(ViewSet):
             holes_geom = cascaded_union([hole.geometry for hole in holes])
             buildings = section.buildings.all()
             spaces = section.spaces.all()
-            spaces_geom = cascaded_union([space.geometry for space in spaces if space.level == ''])
+            spaces_geom = cascaded_union([space.geometry for space in spaces if space.level == 'normal'])
             holes_geom = holes_geom.intersection(spaces_geom)
             doors = section.doors.all()
-            for obj in chain(buildings, (s for s in spaces if s.level == '')):
+            for obj in chain(buildings, (s for s in spaces if s.level == 'normal')):
                 obj.geometry = obj.geometry.difference(holes_geom)
 
             results = []
@@ -58,7 +58,7 @@ class EditorViewSet(ViewSet):
             doors = [door for door in section.doors.all() if door.geometry.intersects(space.geometry)]
             doors_geom = cascaded_union([door.geometry for door in doors])
 
-            spaces = [s for s in section.spaces.filter(level='')
+            spaces = [s for s in section.spaces.filter(level='normal')
                       if s.geometry.intersects(doors_geom) and s.pk != space.pk]
 
             results = chain(
