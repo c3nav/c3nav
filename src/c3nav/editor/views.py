@@ -90,6 +90,10 @@ def edit(request, pk=None, model=None, section=None, space=None, explicit_edit=F
         obj = get_object_or_404(model, **kwargs)
         if False:  # todo can access
             raise PermissionDenied
+    elif section is not None:
+        section = get_object_or_404(Section, pk=section)
+    elif space is not None:
+        space = get_object_or_404(Space, pk=space)
 
     new = obj is None
     # noinspection PyProtectedMember
@@ -114,17 +118,21 @@ def edit(request, pk=None, model=None, section=None, space=None, explicit_edit=F
             'back_url': reverse('editor.spaces.detail', kwargs={'section': obj.section.pk, 'pk': pk}),
             'geometry_url': '/api/editor/geometries/?space='+pk,
         })
-    elif hasattr(obj, 'section'):
+    elif hasattr(model, 'section'):
+        if obj:
+            section = obj.section
         ctx.update({
-            'section': obj.section,
-            'back_url': reverse('editor.sections.detail', kwargs={'pk': obj.section.pk}),
-            'geometry_url': '/api/editor/geometries/?section='+str(obj.section.pk),
+            'section': section,
+            'back_url': reverse('editor.sections.detail', kwargs={'pk': section.pk}),
+            'geometry_url': '/api/editor/geometries/?section='+str(section.pk),
         })
-    elif hasattr(obj, 'space'):
+    elif hasattr(model, 'space'):
+        if obj:
+            space = obj.space
         ctx.update({
-            'section': obj.space.section,
-            'back_url': reverse('editor.spaces.detail', kwargs={'section': obj.space.section.pk, 'pk': obj.space.pk}),
-            'geometry_url': '/api/editor/geometries/?space='+str(obj.space.pk),
+            'section': space.section,
+            'back_url': reverse('editor.spaces.detail', kwargs={'section': obj.space.section.pk, 'pk': space.pk}),
+            'geometry_url': '/api/editor/geometries/?space='+str(space.pk),
         })
     else:
         kwargs = {}
