@@ -129,7 +129,7 @@ form button.invisiblesubmit {
 .leaflet-container .leaflet-control-layers-expanded {
     min-width:75px;
 }
-.leaflet-interactive {
+.leaflet-overlay-pane .leaflet-interactive {
     cursor:inherit;
 }
 .leaflet-editable-drawing .leaflet-overlay-pane .leaflet-interactive {

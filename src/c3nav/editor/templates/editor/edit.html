@@ -11,7 +11,7 @@
 {% else %}
     <h3>{% blocktrans %}Edit {{ model_title }}{% endblocktrans %}</h3>
 {% endif %}
-<form action="{{ path }}" method="post" data-onbeforeunload>
+<form action="{{ path }}" method="post" data-onbeforeunload data-editing="{{ model_name }}-{{ pk }}">
     {% csrf_token %}
     {% bootstrap_form form %}
     {% buttons %}

@@ -116,7 +116,12 @@ editor = {
         if (geometry_url.length) {
             geometry_url = geometry_url.attr('data-geometry-url');
             var highlight_type = content.find('[data-list]');
-            editor.load_geometries(geometry_url, (highlight_type.length ? highlight_type.attr('data-list') : null));
+            var editing_id = content.find('[data-editing]');
+            editor.load_geometries(
+                geometry_url,
+                (highlight_type.length ? highlight_type.attr('data-list') : null),
+                (editing_id.length ? editing_id.attr('data-editing') : null)
+            );
             $('body').addClass('map-enabled');
             editor._section_control.clearSections();
 
@@ -139,7 +144,6 @@ editor = {
             $('body').removeClass('map-enabled').removeClass('show-map');
             editor._section_control.hide();
         }
-
         editor._check_start_editing();
     },
     _sidebar_error: function(data) {
@@ -177,6 +181,7 @@ editor = {
     _geometries_layer: null,
     _highlight_layer: null,
     _highlight_type: null,
+    _editing_id: null,
     _editing_layer: null,
     _highlight_geometries: {},
     _creating: false,
@@ -184,7 +189,6 @@ editor = {
     init_geometries: function () {
         // init geometries and edit listeners
         editor._highlight_layer = L.layerGroup().addTo(editor.map);
-        editor._editing_layer = L.layerGroup().addTo(editor.map);
 
         $('#sidebar').find('.content').on('mouseenter', '.itemtable tr[data-pk]', editor._hover_mapitem_row)
                                       .on('mouseleave', '.itemtable tr[data-pk]', editor._unhover_mapitem_row);
@@ -204,10 +208,12 @@ editor = {
             editor.init_sidebar();
         });
     },
-    load_geometries: function (geometry_url, highlight_type) {
+    load_geometries: function (geometry_url, highlight_type, editing_id) {
         // load geometries from url
         editor._highlight_type = highlight_type;
         editor._highlight_geometries = {};
+        editor._editing_id = editing_id;
+        editor._editing_layer = null;
 
         if (editor._geometries_layer !== null) {
             editor.map.removeLayer(editor._geometries_layer);
@@ -222,6 +228,9 @@ editor = {
             editor._geometries_layer.addTo(editor.map);
             editor._highlight_layer.addTo(editor.map);
             editor._loading_geometry = false;
+            if (editor._editing_layer !== null) {
+                editor._editing_layer.enableEdit();
+            }
         });
     },
     _line_draw_geometry_style: function(style) {
@@ -268,7 +277,10 @@ editor = {
             highlight_layer.on('mouseover', editor._hover_geometry_layer)
                  .on('mouseout', editor._unhover_geometry_layer)
                  .on('click', editor._click_geometry_layer)
-                 .on('dblclick', editor._dblclick_geometry_layer)
+                 .on('dblclick', editor._dblclick_geometry_layer);
+        } else if (feature.properties.type+'-'+String(feature.properties.id) === editor._editing_id) {
+            editor._editing_layer = layer;
+            layer.on('click', editor._click_editing_layer);
         }
     },
 
@@ -335,6 +347,7 @@ editor = {
     // edit and create geometries
     _check_start_editing: function() {
         // called on sidebar load. start editing or creating depending on how the sidebar may require it
+
         var sidebarcontent = $('#sidebar').find('.content');
 
         var geometry_field = sidebarcontent.find('input[name=geometry]');
@@ -342,29 +355,7 @@ editor = {
             var form = geometry_field.closest('form');
             var mapitem_type = form.attr('data-mapitem-type');
             if (geometry_field.val() !== '') {
-                // edit existing geometry
-                if (form.is('[data-name]')) {
-                    var name = form.attr('data-name');
-                    var pk = mapitem_type+'-'+name;
-                    editor._geometries_layer.removeLayer(editor._geometries[pk]);
-                    var shadow = editor._geometries_shadows[pk];
-                    if (shadow) {
-                        editor._geometries_layer.removeLayer(shadow);
-                    }
-                }
 
-                editor._editing = L.geoJSON({
-                    type: 'Feature',
-                    geometry: JSON.parse(geometry_field.val()),
-                    properties: {
-                        type: mapitem_type
-                    }
-                }, {
-                    style: editor._get_geometry_style
-                }).getLayers()[0];
-                editor._editing.on('click', editor._click_editing_layer);
-                editor._editing.addTo(editor._editing_layer);
-                editor._editing.enableEdit();
             } else if (form.is('[data-geomtype]')) {
                 // create new geometry
                 form.addClass('creation-lock');
