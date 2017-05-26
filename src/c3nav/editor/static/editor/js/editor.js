@@ -309,24 +309,30 @@ editor = {
     },
     _highlight_geometry: function(id) {
         // highlight a geometries layer and itemtable row if they both exist
-        editor._highlight_geometries[id].setStyle({
-            color: '#FFFFDD',
-            weight: 3,
-            opacity: 1,
-            fillOpacity: 0,
-            className: 'c3nav-highlight'
-        });
-        $('#sidebar').find('[data-list] tr[data-pk='+String(id)+']').addClass('highlight');
+        var geometry = editor._highlight_geometries[id];
+        if (geometry !== undefined) {
+            geometry.setStyle({
+                color: '#FFFFDD',
+                weight: 3,
+                opacity: 1,
+                fillOpacity: 0,
+                className: 'c3nav-highlight'
+            });
+            $('#sidebar').find('[data-list] tr[data-pk='+String(id)+']').addClass('highlight');
+        }
     },
     _unhighlight_geometry: function(id) {
         // unhighlight whatever is highlighted currently
-        editor._highlight_geometries[id].setStyle({
-            weight: 3,
-            opacity: 0,
-            fillOpacity: 0,
-            className: 'c3nav-highlight'
-        });
-        $('#sidebar').find('[data-list] tr[data-pk='+String(id)+']').removeClass('highlight');
+        var geometry = editor._highlight_geometries[id];
+        if (geometry !== undefined) {
+            geometry.setStyle({
+                weight: 3,
+                opacity: 0,
+                fillOpacity: 0,
+                className: 'c3nav-highlight'
+            });
+            $('#sidebar').find('[data-list] tr[data-pk='+String(id)+']').removeClass('highlight');
+        }
     },
 
     // edit and create geometries
