@@ -185,7 +185,6 @@ editor = {
     _editing_layer: null,
     _highlight_geometries: {},
     _creating: false,
-    _editing: null,
     init_geometries: function () {
         // init geometries and edit listeners
         editor._highlight_layer = L.layerGroup().addTo(editor.map);
@@ -376,11 +375,6 @@ editor = {
     },
     _cancel_editing: function() {
         // called on sidebar unload. cancel all editing and creating.
-        if (editor._editing !== null) {
-            editor._editing_layer.clearLayers();
-            editor._editing.disableEdit();
-            editor._editing = null;
-        }
         if (editor._creating) {
             editor._creating = false;
             editor.map.editTools.stopDrawing();
@@ -404,9 +398,9 @@ editor = {
         // called when creating is completed (by clicking on the last point). fills in the form and switches to editing.
         if (editor._creating) {
             editor._creating = false;
-            editor._editing = e.layer;
-            editor._editing.addTo(editor._editing_layer);
-            editor._editing.on('click', editor._click_editing_layer);
+            editor._editing_layer = e.layer;
+            editor._editing_layer.addTo(editor._geometries_layer);
+            editor._editing_layer.on('click', editor._click_editing_layer);
             editor._update_editing();
             $('#sidebar').find('.content').find('form.creation-lock').removeClass('creation-lock');
             $('#id_name').focus();
@@ -414,8 +408,8 @@ editor = {
     },
     _update_editing: function () {
         // called if the temporary drawing layer changes. if we are in editing mode (not creating), update the form.
-        if (editor._editing !== null) {
-            $('#id_geometry').val(JSON.stringify(editor._editing.toGeoJSON().geometry));
+        if (editor._editing_layer !== null) {
+            $('#id_geometry').val(JSON.stringify(editor._editing_layer.toGeoJSON().geometry));
         }
     }
 };
