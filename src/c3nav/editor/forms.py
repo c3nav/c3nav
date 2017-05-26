@@ -61,7 +61,7 @@ class MapitemFormMixin(ModelForm):
 
 
 def create_editor_form(editor_model):
-    possible_fields = ['section', 'space', 'name', 'altitude', 'can_search', 'can_describe', 'color', 'public',
+    possible_fields = ['name', 'altitude', 'can_search', 'can_describe', 'color', 'public',
                        'groups', 'geometry', 'level', 'category', 'outside', 'stuffed', 'width']
     existing_fields = [field.name for field in editor_model._meta.get_fields() if field.name in possible_fields]
 

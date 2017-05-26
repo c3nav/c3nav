@@ -144,7 +144,6 @@ editor = {
             $('body').removeClass('map-enabled').removeClass('show-map');
             editor._section_control.hide();
         }
-        editor._check_start_editing();
     },
     _sidebar_error: function(data) {
         $('#sidebar').removeClass('loading').find('.content').html('<h3>Error '+data.status+'</h3>'+data.statusText);
@@ -227,9 +226,7 @@ editor = {
             editor._geometries_layer.addTo(editor.map);
             editor._highlight_layer.addTo(editor.map);
             editor._loading_geometry = false;
-            if (editor._editing_layer !== null) {
-                editor._editing_layer.enableEdit();
-            }
+            editor._check_start_editing();
         });
     },
     _line_draw_geometry_style: function(style) {
@@ -346,30 +343,37 @@ editor = {
     // edit and create geometries
     _check_start_editing: function() {
         // called on sidebar load. start editing or creating depending on how the sidebar may require it
-
         var sidebarcontent = $('#sidebar').find('.content');
-
         var geometry_field = sidebarcontent.find('input[name=geometry]');
         if (geometry_field.length) {
             var form = geometry_field.closest('form');
-            var mapitem_type = form.attr('data-mapitem-type');
-            if (geometry_field.val() !== '') {
-
-            } else if (form.is('[data-geomtype]')) {
+            var mapitem_type = form.attr('data-new');
+            if (editor._editing_layer !== null) {
+                editor._editing_layer.enableEdit();
+            } else if (form.is('[data-new]')) {
                 // create new geometry
-                form.addClass('creation-lock');
-                var geomtype = form.attr('data-geomtype');
-
                 var options = editor._get_mapitem_type_style(mapitem_type);
-                if (geomtype === 'polygon') {
-                    editor.map.editTools.startPolygon(null, options);
-                } else if (geomtype === 'polyline') {
-                    options = editor._line_draw_geometry_style(options);
-                    editor.map.editTools.startPolyline(null, options);
+                if (geometry_field.val() === '') {
+                    form.addClass('creation-lock');
+                    var geomtype = form.attr('data-geomtype');
+                    if (geomtype === 'polygon') {
+                        editor.map.editTools.startPolygon(null, options);
+                    } else if (geomtype === 'polyline') {
+                        options = editor._line_draw_geometry_style(options);
+                        editor.map.editTools.startPolyline(null, options);
+                    }
+                    editor._creating = true;
+                } else {
+                    editor._editing_layer = L.geoJSON({
+                        "type": "Feature",
+                        "geometry": JSON.parse(geometry_field.val())
+                    }, {
+                        style: function() {
+                            return options;
+                        }
+                    }).getLayers()[0].addTo(editor.map);
+                    editor._editing_layer.enableEdit();
                 }
-                editor._creating = true;
-                $('#id_level').val(editor._level);
-                $('#id_levels').find('option[value='+editor._level+']').prop('selected', true);
             }
         }
     },
@@ -378,6 +382,10 @@ editor = {
         if (editor._creating) {
             editor._creating = false;
             editor.map.editTools.stopDrawing();
+        }
+        if (editor._editing_layer !== null) {
+            editor._editing_layer.remove();
+            editor._editing_layer = null;
         }
     },
     _canceled_creating: function (e) {

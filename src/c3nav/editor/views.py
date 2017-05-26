@@ -102,6 +102,7 @@ def edit(request, pk=None, model=None, section=None, space=None, explicit_edit=F
         'pk': pk,
         'model_name': model.__name__.lower(),
         'model_title': model._meta.verbose_name,
+        'geomtype': model._meta.get_field('geometry').geomtype,
         'new': new,
         'title': obj.title if obj else None,
     }
@@ -117,6 +118,12 @@ def edit(request, pk=None, model=None, section=None, space=None, explicit_edit=F
             'section': obj.section,
             'back_url': reverse('editor.spaces.detail', kwargs={'section': obj.section.pk, 'pk': pk}),
             'geometry_url': '/api/editor/geometries/?space='+pk,
+        })
+    elif model == Space and new:
+        ctx.update({
+            'section': section,
+            'back_url': reverse('editor.spaces.list', kwargs={'section': section.pk}),
+            'geometry_url': '/api/editor/geometries/?section='+str(section.pk),
         })
     elif hasattr(model, 'section'):
         if obj:
@@ -154,8 +161,10 @@ def edit(request, pk=None, model=None, section=None, space=None, explicit_edit=F
                     raise NotImplementedError
                 obj.delete()
                 if model == Section:
-                    ctx.update({'target': reverse('editor.index')})
-                return redirect(reverse('editor.index') if model == Section else ctx['back_url'])
+                    return redirect(reverse('editor.index'))
+                elif model == Space:
+                    return redirect(reverse('editor.spaces.list', kwargs={'section': obj.section.pk}))
+                return redirect(ctx['back_url'])
             return render(request, 'editor/delete.html', ctx)
 
         form = model.EditorForm(instance=obj, data=request.POST, request=request)
@@ -172,6 +181,12 @@ def edit(request, pk=None, model=None, section=None, space=None, explicit_edit=F
             if not settings.DIRECT_EDITING:
                 # todo: suggest changes
                 raise NotImplementedError
+
+            if section is not None:
+                obj.section = section
+
+            if space is not None:
+                obj.space = space
 
             obj.save()
             form.save_m2m()
