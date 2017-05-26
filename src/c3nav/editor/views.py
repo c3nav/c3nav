@@ -110,7 +110,7 @@ def edit(request, pk=None, model=None, section=None, space=None, explicit_edit=F
         })
     elif model == Space and not new:
         ctx.update({
-            'section': obj,
+            'section': obj.section,
             'back_url': reverse('editor.spaces.detail', kwargs={'section': obj.section.pk, 'pk': pk}),
             'geometry_url': '/api/editor/geometries/?space='+pk,
         })
