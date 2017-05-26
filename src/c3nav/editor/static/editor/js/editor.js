@@ -97,7 +97,6 @@ editor = {
         // unload the sidebar. called on sidebar_get and form submit.
         editor._section_control.disable();
         $('#sidebar').addClass('loading').find('.content').html('');
-        editor._unhighlight_geometry();
         editor._cancel_editing();
     },
     _sidebar_loaded: function(data) {
