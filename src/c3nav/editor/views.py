@@ -96,6 +96,7 @@ def edit(request, pk=None, model=None, section=None, space=None, explicit_edit=F
     ctx = {
         'path': request.path,
         'pk': pk,
+        'model_name': model.__name__.lower(),
         'model_title': model._meta.verbose_name,
         'new': new,
         'title': obj.title if obj else None,
