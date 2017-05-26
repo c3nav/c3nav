@@ -4,8 +4,6 @@ from collections import OrderedDict
 import numpy as np
 from django.utils.translation import ugettext_lazy as _
 
-from c3nav.mapdata.utils.misc import get_dimensions
-
 
 class Route:
     def __init__(self, connections, distance=None):

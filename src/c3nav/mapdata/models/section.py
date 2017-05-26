@@ -6,7 +6,6 @@ from shapely.ops import cascaded_union
 
 from c3nav.mapdata.models.base import EditorFormMixin
 from c3nav.mapdata.models.locations import SpecificLocation
-from c3nav.mapdata.utils.misc import get_dimensions
 from c3nav.mapdata.utils.svg import SVGImage
 
 
@@ -64,8 +63,9 @@ class Section(SpecificLocation, EditorFormMixin, models.Model):
         svg.add_geometry(obstacle_geometries, fill_color='#999999')
 
     def render_svg(self, effects=True, draw_spaces=None):
-        width, height = get_dimensions()
-        svg = SVGImage(width=width, height=height, scale=settings.RENDER_SCALE)
+        from c3nav.mapdata.models import Source
+        bounds = Source.max_bounds()
+        svg = SVGImage(bounds=bounds, scale=settings.RENDER_SCALE)
 
         building_geometries = cascaded_union(tuple(b.geometry for b in self.buildings.all()))
 

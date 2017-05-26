@@ -2,13 +2,14 @@ import re
 import xml.etree.ElementTree as ET
 from itertools import chain
 
-from shapely.affinity import scale
+from shapely.affinity import scale, translate
 
 
 class SVGImage:
-    def __init__(self, width: int, height: int, scale: float=1):
-        self.width = width
-        self.height = height
+    def __init__(self, bounds, scale: float=1):
+        (self.bottom, self.left), (self.top, self.right) = bounds
+        self.width = self.right-self.left
+        self.height = self.top-self.bottom
         self.scale = scale
         self.g = ET.Element('g', {})
         self.defs = ET.Element('defs')
@@ -44,6 +45,7 @@ class SVGImage:
         return re.sub(r'([0-9]+)\.0', r'\1', re.sub(r'([0-9]+\.[0-9])[0-9]+', r'\1', data))
 
     def _create_geometry(self, geometry):
+        geometry = translate(geometry, xoff=0-self.left, yoff=0-self.bottom)
         geometry = scale(geometry, xfact=1, yfact=-1, origin=(self.width / 2, self.height / 2))
         geometry = scale(geometry, xfact=self.scale, yfact=self.scale, origin=(0, 0))
         element = ET.fromstring(self._trim_decimals(geometry.svg(0, '#FFFFFF')))
