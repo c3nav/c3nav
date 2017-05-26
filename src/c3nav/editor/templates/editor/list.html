@@ -26,7 +26,7 @@
     {% trans 'Edit' as edit_caption %}
 {% endif %}
 
-<table class="table table-condensed itemtable" data-model="{{ model_name }}">
+<table class="table table-condensed itemtable" data-list="{{ model_name }}">
     <tbody>
         {% for item in objects %}
             {% if forloop.counter0|divisibleby:10 %}

@@ -116,9 +116,11 @@ editor = {
         var geometry_url = content.find('[data-geometry-url]');
         if (geometry_url.length) {
             geometry_url = geometry_url.attr('data-geometry-url');
-            editor.load_geometries(geometry_url);
+            var highlight_type = content.find('[data-list]');
+            editor.load_geometries(geometry_url, (highlight_type.length ? highlight_type.attr('data-list') : null));
             $('body').addClass('map-enabled');
             editor._section_control.clearSections();
+
             var sections = content.find('[data-sections] a');
             if (sections.length) {
                 for(var i=0;i<sections.length;i++) {
@@ -175,9 +177,9 @@ editor = {
     geometrystyles: {},
     _geometries_layer: null,
     _highlight_layer: null,
+    _highlight_type: null,
     _editing_layer: null,
-    _geometries: {},
-    _geometries_shadows: {},
+    _highlight_geometries: {},
     _creating: false,
     _editing: null,
     init_geometries: function () {
@@ -185,8 +187,8 @@ editor = {
         editor._highlight_layer = L.layerGroup().addTo(editor.map);
         editor._editing_layer = L.layerGroup().addTo(editor.map);
 
-        $('#sidebar').find('.content').on('mouseenter', '.itemtable tr[data-name]', editor._hover_mapitem_row)
-                                      .on('mouseleave', '.itemtable tr[data-name]', editor._unhighlight_geometry);
+        $('#sidebar').find('.content').on('mouseenter', '.itemtable tr[data-pk]', editor._hover_mapitem_row)
+                                      .on('mouseleave', '.itemtable tr[data-pk]', editor._unhover_mapitem_row);
 
         editor.map.on('editable:drawing:commit', editor._done_creating);
         editor.map.on('editable:editing', editor._update_editing);
@@ -203,20 +205,22 @@ editor = {
             editor.init_sidebar();
         });
     },
-    load_geometries: function (geometry_url) {
+    load_geometries: function (geometry_url, highlight_type) {
         // load geometries from url
-        editor._geometries = {};
-        editor._geometries_shadows = {};
+        editor._highlight_type = highlight_type;
+        editor._highlight_geometries = {};
+
         if (editor._geometries_layer !== null) {
             editor.map.removeLayer(editor._geometries_layer);
         }
+        editor.map.removeLayer(editor._highlight_layer);
         $.getJSON(geometry_url, function(geometries) {
             editor._geometries_layer = L.geoJSON(geometries, {
                 style: editor._get_geometry_style,
                 onEachFeature: editor._register_geojson_feature
             });
-
             editor._geometries_layer.addTo(editor.map);
+            editor._highlight_layer.addTo(editor.map);
             editor._loading_geometry = false;
         });
     },
@@ -249,27 +253,42 @@ editor = {
     },
     _register_geojson_feature: function (feature, layer) {
         // onEachFeature callback for GeoJSON loader – register all needed events
-        if (feature.properties.type === 'shadow') {
-            /** @namespace feature.properties.original_name */
-            /** @namespace feature.properties.original_type */
-            editor._geometries_shadows[feature.properties.original_type+'-'+feature.properties.original_name] = layer;
-        } else {
-            editor._geometries[feature.properties.type+'-'+feature.properties.name] = layer;
+        if (feature.properties.type === editor._highlight_type) {
+            console.log('yes');
+            var layer = L.geoJSON(layer.feature, {
+                style: function() {
+                    return {
+                        weight: 3,
+                        opacity: 0,
+                        fillOpacity: 0,
+                        className: 'c3nav-highlight'
+                    };
+                }
+            }).getLayers()[0].addTo(editor._highlight_layer);
+            editor._highlight_geometries[feature.properties.id] = layer;
+            layer.on('mouseover', editor._hover_geometry_layer)
+                 .on('mouseout', editor._unhover_geometry_layer)
+                 .on('click', editor._click_geometry_layer)
+                 .on('dblclick', editor._dblclick_geometry_layer)
         }
-        layer.on('mouseover', editor._hover_geometry_layer)
-             .on('mouseout', editor._unhighlight_geometry)
-             .on('click', editor._click_geometry_layer)
-             .on('dblclick', editor._dblclick_geometry_layer)
     },
 
     // hover and highlight geometries
     _hover_mapitem_row: function () {
         // hover callback for a itemtable row
-        editor._highlight_geometry($(this).closest('.itemtable').attr('data-mapitem-type'), $(this).attr('data-name'));
+        editor._highlight_geometry(parseInt($(this).attr('data-pk')));
+    },
+    _unhover_mapitem_row: function () {
+        // hover callback for a itemtable row
+        editor._unhighlight_geometry(parseInt($(this).attr('data-pk')));
     },
     _hover_geometry_layer: function (e) {
         // hover callback for a geometry layer
-        editor._highlight_geometry(e.target.feature.properties.type, e.target.feature.properties.name);
+        editor._highlight_geometry(e.target.feature.properties.id);
+    },
+    _unhover_geometry_layer: function (e) {
+        // hover callback for a geometry layer
+        editor._unhighlight_geometry(e.target.feature.properties.id);
     },
     _click_geometry_layer: function (e) {
         // click callback for a geometry layer – scroll the corresponding itemtable row into view if it exists
@@ -288,31 +307,26 @@ editor = {
             editor.map.doubleClickZoom.disable();
         }
     },
-    _highlight_geometry: function(mapitem_type, name) {
+    _highlight_geometry: function(id) {
         // highlight a geometries layer and itemtable row if they both exist
-        var pk = mapitem_type+'-'+name;
-        editor._unhighlight_geometry();
-        var layer = editor._geometries[pk];
-        var row = $('.itemtable[data-mapitem-type='+mapitem_type+'] tr[data-name="'+name+'"]');
-        if (layer !== undefined && row.length) {
-            row.addClass('highlight');
-            L.geoJSON(layer.feature, {
-                style: function() {
-                    return {
-                        color: '#FFFFDD',
-                        weight: 3,
-                        opacity: 0.7,
-                        fillOpacity: 0,
-                        className: 'c3nav-highlight'
-                    };
-                }
-            }).addTo(editor._highlight_layer);
-        }
+        editor._highlight_geometries[id].setStyle({
+            color: '#FFFFDD',
+            weight: 3,
+            opacity: 1,
+            fillOpacity: 0,
+            className: 'c3nav-highlight'
+        });
+        $('#sidebar').find('[data-list] tr[data-pk='+String(id)+']').addClass('highlight');
     },
-    _unhighlight_geometry: function() {
+    _unhighlight_geometry: function(id) {
         // unhighlight whatever is highlighted currently
-        editor._highlight_layer.clearLayers();
-        $('.itemtable .highlight').removeClass('highlight');
+        editor._highlight_geometries[id].setStyle({
+            weight: 3,
+            opacity: 0,
+            fillOpacity: 0,
+            className: 'c3nav-highlight'
+        });
+        $('#sidebar').find('[data-list] tr[data-pk='+String(id)+']').removeClass('highlight');
     },
 
     // edit and create geometries
