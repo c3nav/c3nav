@@ -35,6 +35,7 @@ urlpatterns = [
 ]
 urlpatterns.extend(add_editor_urls('Section', with_list=False, explicit_edit=True))
 urlpatterns.extend(add_editor_urls('LocationGroup'))
+urlpatterns.extend(add_editor_urls('Source'))
 urlpatterns.extend(add_editor_urls('Building', 'Section'))
 urlpatterns.extend(add_editor_urls('Space', 'Section', explicit_edit=True))
 urlpatterns.extend(add_editor_urls('Door', 'Section'))
