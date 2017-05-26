@@ -254,7 +254,6 @@ editor = {
     _register_geojson_feature: function (feature, layer) {
         // onEachFeature callback for GeoJSON loader – register all needed events
         if (feature.properties.type === editor._highlight_type) {
-            console.log('yes');
             var layer = L.geoJSON(layer.feature, {
                 style: function() {
                     return {
