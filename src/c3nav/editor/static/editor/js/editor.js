@@ -254,7 +254,7 @@ editor = {
     _register_geojson_feature: function (feature, layer) {
         // onEachFeature callback for GeoJSON loader – register all needed events
         if (feature.properties.type === editor._highlight_type) {
-            var layer = L.geoJSON(layer.feature, {
+            highlight_layer = L.geoJSON(layer.feature, {
                 style: function() {
                     return {
                         weight: 3,
@@ -264,8 +264,8 @@ editor = {
                     };
                 }
             }).getLayers()[0].addTo(editor._highlight_layer);
-            editor._highlight_geometries[feature.properties.id] = layer;
-            layer.on('mouseover', editor._hover_geometry_layer)
+            editor._highlight_geometries[feature.properties.id] = highlight_layer;
+            highlight_layer.on('mouseover', editor._hover_geometry_layer)
                  .on('mouseout', editor._unhover_geometry_layer)
                  .on('click', editor._click_geometry_layer)
                  .on('dblclick', editor._dblclick_geometry_layer)
