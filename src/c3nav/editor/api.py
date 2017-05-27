@@ -27,19 +27,28 @@ class EditorViewSet(ViewSet):
             holes = section.holes.all()
             holes_geom = cascaded_union([hole.geometry for hole in holes])
             buildings = section.buildings.all()
-            spaces = section.spaces.all()
-            spaces_geom = cascaded_union([space.geometry for space in spaces if space.level == 'normal'])
+            buildings_geom = cascaded_union([building.geometry for building in buildings])
+            spaces = {space.id: space for space in section.spaces.all()}
+            for space in spaces.values():
+                if space.outside:
+                    space.geometry = space.geometry.difference(buildings_geom)
+                else:
+                    space.geometry = space.geometry.intersection(buildings_geom)
+
+            spaces_geom = cascaded_union([space.geometry for space in spaces.values() if space.level == 'normal'])
             holes_geom = holes_geom.intersection(spaces_geom)
             doors = section.doors.all()
-            for obj in chain(buildings, (s for s in spaces if s.level == 'normal')):
+            for obj in chain(buildings, (s for s in spaces.values() if s.level == 'normal')):
                 obj.geometry = obj.geometry.difference(holes_geom)
 
             results = []
 
             def add_spaces(level):
-                results.extend(space for space in spaces if space.level == level)
-                results.extend((area for area in Area.objects.filter(space__section=section, space__level=level)
-                                if area.get_color()))
+                results.extend(space for space in spaces.values() if space.level == level)
+                areas = [a for a in Area.objects.filter(space__section=section, space__level=level) if a.get_color()]
+                for area in areas:
+                    area.geometry = area.geometry.intersection(spaces[area.space_id].geometry)
+                results.extend((area for area in areas if not area.geometry.is_empty))
 
             add_spaces('lower')
 
