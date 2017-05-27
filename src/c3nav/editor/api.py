@@ -60,6 +60,8 @@ class EditorViewSet(ViewSet):
             spaces = [s for s in section.spaces.filter(level='normal')
                       if s.geometry.intersects(doors_geom) and s.pk != space.pk]
 
+            space.bounds = True
+
             results = chain(
                 section.buildings.all(),
                 doors,
