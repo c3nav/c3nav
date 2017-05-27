@@ -136,11 +136,12 @@ class LocationViewSet(RetrieveModelMixin, GenericViewSet):
         result = Location.get_by_slug(slug, self.get_queryset())
         if result is None:
             raise NotFound
+        result = result.get_child()
         if isinstance(result, LocationRedirect):
             if 'show_redirects' in request.GET:
                 return Response(result.serialize(include_type=True))
             return redirect('../'+result.target.slug)  # todo: why does redirect/reverse not work here?
-        return Response(result.get_child().serialize(include_type=True, detailed='detailed' in request.GET))
+        return Response(result.serialize(include_type=True, detailed='detailed' in request.GET))
 
     @list_route(methods=['get'])
     def types(self, request):
