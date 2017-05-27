@@ -138,6 +138,9 @@ form button.invisiblesubmit {
 #map .leaflet-overlay-pane .c3nav-highlight {
     cursor:pointer;
 }
+.leaflet-overlay-pane .leaflet-image-layer {
+    z-index:201;
+}
 
 /* responsiveness */
 #responsive_switch {
