@@ -6,7 +6,7 @@
     {% trans 'Space' as model_title %}
     {% blocktrans %}Edit {{ model_title }}{% endblocktrans %}
 </a>
-<h3>{{ space.title }}</h3>
+<h3 data-nozoom>{{ space.title }}</h3>
 <p>
     <a href="{% url 'editor.spaces.list' section=space.section.pk %}">&laquo; {% trans 'back to overview' %}</a>
 </p>
