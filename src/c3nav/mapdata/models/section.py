@@ -13,7 +13,6 @@ class Section(SpecificLocation, EditorFormMixin, models.Model):
     """
     A map section like a level
     """
-    name = models.SlugField(_('section name'), unique=True, max_length=50)
     altitude = models.DecimalField(_('section altitude'), null=False, unique=True, max_digits=6, decimal_places=2)
 
     class Meta:
@@ -33,7 +32,6 @@ class Section(SpecificLocation, EditorFormMixin, models.Model):
 
     def _serialize(self, section=True, **kwargs):
         result = super()._serialize(**kwargs)
-        result['name'] = self.name
         result['altitude'] = float(str(self.altitude))
         return result
 
