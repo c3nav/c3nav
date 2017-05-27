@@ -47,8 +47,7 @@ class Location(LocationSlug, EditorFormMixin, models.Model):
     titles = JSONField(default={})
     can_search = models.BooleanField(default=True, verbose_name=_('can be searched'))
     can_describe = models.BooleanField(default=True, verbose_name=_('can be used to describe a position'))
-    color = models.CharField(null=True, blank=True, max_length=16, verbose_name=_('background color'),
-                             help_text=_('if set, has to be a valid color for svg images'))
+    color = models.CharField(null=True, blank=True, max_length=16, verbose_name=_('background color'))
     public = models.BooleanField(verbose_name=_('public'), default=True)
 
     class Meta:
