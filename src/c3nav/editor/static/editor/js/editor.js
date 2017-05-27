@@ -236,6 +236,21 @@ editor = {
             if (editor._geometries_layer !== null) {
                 editor.map.removeLayer(editor._geometries_layer);
             }
+            var feature = null, remove_feature = null;
+            if (editor._editing_id !== null) {
+                for (var i=0;i<geometries.length;i++) {
+                    feature = geometries[i];
+                    if (feature.properties.original_type !== undefined && feature.properties.original_type+'-'+String(feature.properties.original_id) === editor._editing_id) {
+                        remove_feature = i;
+                    } else if (feature.original_geometry !== undefined && feature.properties.type+'-'+String(feature.properties.id) === editor._editing_id) {
+                        feature.geometry = feature.original_geometry;
+                        break;
+                    }
+                }
+            }
+            if (remove_feature !== null) {
+                geometries.splice(remove_feature, 1);
+            }
             editor._geometries_layer = L.geoJSON(geometries, {
                 style: editor._get_geometry_style,
                 onEachFeature: editor._register_geojson_feature
