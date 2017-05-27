@@ -259,7 +259,7 @@ editor = {
             editor._highlight_layer.addTo(editor.map);
             editor._loading_geometry = false;
             if (editor._bounds_layer === null) editor._bounds_layer = editor._geometries_layer;
-            editor.map.flyToBounds(editor._bounds_layer.getBounds(), {
+            editor.map.flyToBounds((editor._bounds_layer.getBounds !== undefined) ? editor._bounds_layer.getBounds() : [editor._bounds_layer.getLatLng(), editor._bounds_layer.getLatLng()], {
                 maxZoom: 4,
                 duration: 0.5,
                 padding: [20, 20]
