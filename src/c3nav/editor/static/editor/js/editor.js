@@ -57,14 +57,14 @@ editor = {
     sources: {},
     get_sources: function () {
         // load sources
-        editor._sources_control = L.control.layers().addTo(editor.map);
+        editor._sources_control = L.control.layers([], [], {autoZIndex: true}).addTo(editor.map);
 
         $.getJSON('/api/sources/', function (sources) {
             var source;
             for (var i = 0; i < sources.length; i++) {
                 source = sources[i];
-                editor.sources[source.name] = source;
-                source.layer = L.imageOverlay('/api/sources/' + source.name + '/image/', source.bounds);
+                editor.sources[source.id] = source;
+                source.layer = L.imageOverlay('/api/sources/'+source.id+'/image/', source.bounds, {opacity: 0.3});
                 editor._sources_control.addOverlay(source.layer, source.name);
             }
         });
