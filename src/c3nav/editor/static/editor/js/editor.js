@@ -158,10 +158,12 @@ editor = {
     _sidebar_link_click: function(e) {
         // listener for link-clicks in the sidebar.
         e.preventDefault();
+        if (editor._loading_geometry) return;
         editor.sidebar_get($(this).attr('href'));
     },
     _sidebar_submit_btn_click: function() {
         // listener for submit-button-clicks in the sidebar, so the submit event will know which button submitted.
+        if (editor._loading_geometry) return;
         $(this).closest('form').data('btn', $(this)).clearQueue().delay(300).queue(function() {
             $(this).data('btn', null);
         });
@@ -169,6 +171,7 @@ editor = {
     _sidebar_submit: function(e) {
         // listener for form submits in the sidebar.
         e.preventDefault();
+        if (editor._loading_geometry) return;
         var data = $(this).serialize();
         var btn = $(this).data('btn');
         if (btn !== undefined && btn !== null) {
@@ -183,6 +186,7 @@ editor = {
 
     // geometries
     geometrystyles: {},
+    _loading_geometry: false,
     _geometries_layer: null,
     _highlight_layer: null,
     _highlight_type: null,
@@ -216,18 +220,22 @@ editor = {
     },
     load_geometries: function (geometry_url, highlight_type, editing_id) {
         // load geometries from url
+        editor._loading_geometry = true;
         editor._highlight_type = highlight_type;
         editor._highlight_geometries = {};
         editor._editing_id = editing_id;
-        editor._editing_layer = null;
+        if (editor._editing_layer !== null) {
+            editor._editing_layer.remove();
+            editor._editing_layer = null;
+        }
         editor._bounds_layer = null;
 
-        if (editor._geometries_layer !== null) {
-            editor.map.removeLayer(editor._geometries_layer);
-        }
         editor.map.removeLayer(editor._highlight_layer);
         editor._highlight_layer.clearLayers();
         $.getJSON(geometry_url, function(geometries) {
+            if (editor._geometries_layer !== null) {
+                editor.map.removeLayer(editor._geometries_layer);
+            }
             editor._geometries_layer = L.geoJSON(geometries, {
                 style: editor._get_geometry_style,
                 onEachFeature: editor._register_geojson_feature
@@ -291,9 +299,9 @@ editor = {
                  .on('dblclick', editor._dblclick_geometry_layer);
         } else if (feature.properties.type+'-'+String(feature.properties.id) === editor._editing_id) {
             editor._editing_layer = layer;
+            editor._bounds_layer = layer;
             layer.on('click', editor._click_editing_layer);
-        }
-        if (feature.properties.bounds === true) {
+        } else if (feature.properties.bounds === true) {
             editor._bounds_layer = layer;
         }
     },
@@ -301,13 +309,16 @@ editor = {
     // hover and highlight geometries
     _hover_mapitem_row: function () {
         // hover callback for a itemtable row
+        if (editor._loading_geometry) return;
         editor._highlight_geometry(parseInt($(this).attr('data-pk')));
     },
     _unhover_mapitem_row: function () {
         // unhover callback for a itemtable row
+        if (editor._loading_geometry) return;
         editor._unhighlight_geometry(parseInt($(this).attr('data-pk')));
     },
     _click_mapitem_row: function () {
+        if (editor._loading_geometry) return;
         var geometry = editor._highlight_geometries[parseInt($(this).parent().attr('data-pk'))];
         if (geometry !== undefined) {
             editor.map.flyToBounds(geometry.getBounds(), {
@@ -319,14 +330,17 @@ editor = {
     },
     _hover_geometry_layer: function (e) {
         // hover callback for a geometry layer
+        if (editor._loading_geometry) return;
         editor._highlight_geometry(e.target.feature.properties.id);
     },
     _unhover_geometry_layer: function (e) {
         // unhover callback for a geometry layer
+        if (editor._loading_geometry) return;
         editor._unhighlight_geometry(e.target.feature.properties.id);
     },
     _click_geometry_layer: function (e) {
         // click callback for a geometry layer – scroll the corresponding itemtable row into view if it exists
+        if (editor._loading_geometry) return;
         var row = $('[data-list] tr[data-pk='+String(e.target.feature.properties.id)+']');
         if (row.length) {
             row[0].scrollIntoView();
@@ -334,6 +348,7 @@ editor = {
     },
     _dblclick_geometry_layer: function (e) {
         // dblclick callback for a geometry layer - edit this feature if the corresponding itemtable row exists
+        if (editor._loading_geometry) return;
         var row = $('[data-list] tr[data-pk='+String(e.target.feature.properties.id)+']');
         if (row.length) {
             row.find('td:last-child a').click();
@@ -412,7 +427,7 @@ editor = {
             editor.map.editTools.stopDrawing();
         }
         if (editor._editing_layer !== null) {
-            editor._editing_layer.remove();
+            editor._editing_layer.disableEdit();
             editor._editing_layer = null;
         }
     },
