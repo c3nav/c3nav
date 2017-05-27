@@ -123,6 +123,9 @@ editor = {
             geometry_url = geometry_url.attr('data-geometry-url');
             var highlight_type = content.find('[data-list]');
             var editing_id = content.find('[data-editing]');
+            if (editor._next_zoom === null) {
+                editor._next_zoom = !content.find('[data-nozoom]').length;
+            }
             editor.load_geometries(
                 geometry_url,
                 (highlight_type.length ? highlight_type.attr('data-list') : null),
@@ -195,6 +198,7 @@ editor = {
     _bounds_layer: null,
     _highlight_geometries: {},
     _creating: false,
+    _next_zoom: true,
     init_geometries: function () {
         // init geometries and edit listeners
         editor._highlight_layer = L.layerGroup().addTo(editor.map);
@@ -259,11 +263,15 @@ editor = {
             editor._highlight_layer.addTo(editor.map);
             editor._loading_geometry = false;
             if (editor._bounds_layer === null) editor._bounds_layer = editor._geometries_layer;
-            editor.map.flyToBounds((editor._bounds_layer.getBounds !== undefined) ? editor._bounds_layer.getBounds() : [editor._bounds_layer.getLatLng(), editor._bounds_layer.getLatLng()], {
-                maxZoom: 4,
-                duration: 0.5,
-                padding: [20, 20]
-            });
+            if (editor._next_zoom) {
+                editor.map.flyToBounds((editor._bounds_layer.getBounds !== undefined) ? editor._bounds_layer.getBounds() : [editor._bounds_layer.getLatLng(), editor._bounds_layer.getLatLng()], {
+                    maxZoom: 4,
+                    duration: 0.5,
+                    padding: [20, 20]
+                });
+            }
+            editor._next_zoom = null;
+
             editor._check_start_editing();
         });
     },
