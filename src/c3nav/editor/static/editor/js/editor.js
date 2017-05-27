@@ -188,6 +188,7 @@ editor = {
     _highlight_type: null,
     _editing_id: null,
     _editing_layer: null,
+    _bounds_layer: null,
     _highlight_geometries: {},
     _creating: false,
     init_geometries: function () {
@@ -196,7 +197,7 @@ editor = {
 
         $('#sidebar').find('.content').on('mouseenter', '.itemtable tr[data-pk]', editor._hover_mapitem_row)
                                       .on('mouseleave', '.itemtable tr[data-pk]', editor._unhover_mapitem_row)
-                                      .on('click', '.itemtable tr[data-pk] td', editor._click_mapitem_row);
+                                      .on('click', '.itemtable tr[data-pk] td:not(:last-child)', editor._click_mapitem_row);
 
         editor.map.on('editable:drawing:commit', editor._done_creating);
         editor.map.on('editable:editing', editor._update_editing);
@@ -219,6 +220,7 @@ editor = {
         editor._highlight_geometries = {};
         editor._editing_id = editing_id;
         editor._editing_layer = null;
+        editor._bounds_layer = null;
 
         if (editor._geometries_layer !== null) {
             editor.map.removeLayer(editor._geometries_layer);
@@ -233,6 +235,12 @@ editor = {
             editor._geometries_layer.addTo(editor.map);
             editor._highlight_layer.addTo(editor.map);
             editor._loading_geometry = false;
+            if (editor._bounds_layer === null) editor._bounds_layer = editor._geometries_layer;
+            editor.map.flyToBounds(editor._bounds_layer.getBounds(), {
+                maxZoom: 4,
+                duration: 0.5,
+                padding: [20, 20]
+            });
             editor._check_start_editing();
         });
     },
@@ -284,6 +292,9 @@ editor = {
         } else if (feature.properties.type+'-'+String(feature.properties.id) === editor._editing_id) {
             editor._editing_layer = layer;
             layer.on('click', editor._click_editing_layer);
+        }
+        if (feature.properties.bounds === true) {
+            editor._bounds_layer = layer;
         }
     },
 
