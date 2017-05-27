@@ -2,10 +2,12 @@ import json
 from collections import OrderedDict
 
 from django.conf import settings
-from django.forms import CharField, ModelForm, ValidationError
+from django.forms import CharField, ModelForm, Textarea, ValidationError
 from django.forms.widgets import HiddenInput
 from django.utils.translation import ugettext_lazy as _
 from shapely.geometry.geo import mapping
+
+from c3nav.mapdata.models.locations import LocationRedirect, LocationSlug
 
 
 class MapitemFormMixin(ModelForm):
@@ -49,6 +51,30 @@ class MapitemFormMixin(ModelForm):
                 self.fields.move_to_end('title_' + language, last=False)
             self.titles = titles
 
+        self.redirect_slugs = None
+        self.add_redirect_slugs = None
+        self.remove_redirect_slugs = None
+        if 'slug' in self.fields:
+            self.redirect_slugs = sorted(self.instance.redirects.values_list('slug', flat=True))
+            self.fields['redirect_slugs'] = CharField(label=_('Redirecting Slugs (comma seperated)'), required=False,
+                                                      initial=','.join(self.redirect_slugs))
+            self.fields.move_to_end('redirect_slugs', last=False)
+            self.fields.move_to_end('slug', last=False)
+
+    def clean_redirect_slugs(self):
+        old_redirect_slugs = set(self.redirect_slugs)
+        new_redirect_slugs = set(s for s in (s.strip() for s in self.cleaned_data['redirect_slugs'].split(',')) if s)
+
+        self.add_redirect_slugs = new_redirect_slugs - old_redirect_slugs
+        self.remove_redirect_slugs = old_redirect_slugs - new_redirect_slugs
+
+        for slug in self.add_redirect_slugs:
+            self.fields['slug'].run_validators(slug)
+            if LocationSlug.objects.filter(slug=slug).exists():
+                raise ValidationError(
+                    _('Can not add redirecting slug “%s”: it is already used elsewhere.') % slug
+                )
+
     def clean(self):
         if 'geometry' in self.fields:
             if not self.cleaned_data.get('geometry'):
@@ -58,11 +84,12 @@ class MapitemFormMixin(ModelForm):
             raise ValidationError(
                 _('You have to select a title in at least one language.')
             )
+
         super().clean()
 
 
 def create_editor_form(editor_model):
-    possible_fields = ['name', 'altitude', 'level', 'category', 'width', 'groups', 'color', 'public',
+    possible_fields = ['slug', 'name', 'altitude', 'level', 'category', 'width', 'groups', 'color', 'public',
                        'can_search', 'can_describe', 'outside', 'stuffed', 'geometry',
                        'left', 'top', 'right', 'bottom']
     field_names = [field.name for field in editor_model._meta.get_fields()]

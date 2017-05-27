@@ -18,7 +18,7 @@ class LocationSlug(SerializableMixin, models.Model):
         'LocationGroup': 'g'
     }
     LOCATION_TYPE_BY_CODE = {code: model_name for model_name, code in LOCATION_TYPE_CODES.items()}
-    slug = models.SlugField(_('name'), unique=True, null=True, max_length=50)
+    slug = models.SlugField(_('slug'), unique=True, null=True, max_length=50)
 
     def get_child(self):
         # todo: cache this
@@ -38,8 +38,8 @@ class LocationSlug(SerializableMixin, models.Model):
         return result
 
     class Meta:
-        verbose_name = _('Slug for Location')
-        verbose_name_plural = _('Slugs für Locations')
+        verbose_name = _('Location with Slug')
+        verbose_name_plural = _('Lucation with Slug')
         default_related_name = 'locationslugs'
 
 

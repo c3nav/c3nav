@@ -185,6 +185,14 @@ def edit(request, pk=None, model=None, section=None, space=None, explicit_edit=F
                     if title:
                         obj.titles[language] = title
 
+            if form.redirect_slugs is not None:
+                for slug in form.add_redirect_slugs:
+                    obj.redirects.create(slug=slug)
+
+                for slug in form.remove_redirect_slugs:
+                    obj.redirects.filter(slug=slug).delete()
+
+
             if not settings.DIRECT_EDITING:
                 # todo: suggest changes
                 raise NotImplementedError
