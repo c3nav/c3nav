@@ -38,6 +38,8 @@ class EditorViewSet(ViewSet):
             spaces_geom = cascaded_union([space.geometry for space in spaces.values() if space.level == 'normal'])
             holes_geom = holes_geom.intersection(spaces_geom)
             doors = section.doors.all()
+            for building in buildings:
+                building.original_geometry = building.geometry
             for obj in chain(buildings, (s for s in spaces.values() if s.level == 'normal')):
                 obj.geometry = obj.geometry.difference(holes_geom)
 

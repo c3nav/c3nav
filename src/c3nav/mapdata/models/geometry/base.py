@@ -27,11 +27,15 @@ class GeometryMixin(EditorFormMixin):
         return result
 
     def to_geojson(self) -> dict:
-        return OrderedDict((
+        result = OrderedDict((
             ('type', 'Feature'),
             ('properties', self.get_geojson_properties()),
             ('geometry', format_geojson(mapping(self.geometry), round=False)),
         ))
+        original_geometry = getattr(self, 'original_geometry', None)
+        if original_geometry:
+            result['original_geometry'] = format_geojson(mapping(original_geometry), round=False)
+        return result
 
     @classmethod
     def serialize_type(cls, geomtype=True, **kwargs):
