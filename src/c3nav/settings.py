@@ -142,6 +142,12 @@ INSTALLED_APPS = [
     'c3nav.site',
     'c3nav.editor',
 ]
+try:
+    import debug_toolbar
+except ImportError:
+    pass
+else:
+    INSTALLED_APPS.append('debug_toolbar')
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
@@ -154,6 +160,12 @@ MIDDLEWARE = [
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
+try:
+    import debug_toolbar
+except ImportError:
+    pass
+else:
+    MIDDLEWARE.append('debug_toolbar.middleware.DebugToolbarMiddleware')
 
 try:
     import htmlmin  # noqa

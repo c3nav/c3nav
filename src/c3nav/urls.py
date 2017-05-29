@@ -1,3 +1,4 @@
+from django.conf import settings
 from django.conf.urls import include, url
 from django.contrib import admin
 
@@ -12,3 +13,10 @@ urlpatterns = [
     url(r'^locales/', include('django.conf.urls.i18n')),
     url(r'^', include(c3nav.site.urls)),
 ]
+
+if settings.DEBUG:
+    try:
+        import debug_toolbar
+        urlpatterns.insert(0, url(r'^__debug__/', include(debug_toolbar.urls)))
+    except ImportError:
+        pass
