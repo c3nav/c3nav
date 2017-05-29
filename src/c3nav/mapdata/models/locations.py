@@ -112,13 +112,24 @@ class Location(LocationSlug, EditorFormMixin, models.Model):
             return self._meta.verbose_name + ' ' + self.slug
         return super().title
 
+    @staticmethod
+    def bla():
+        pass
+
     def get_color(self):
         if self.color:
             return self.color
-        color_group = self.groups.filter(color__isnull=False).order_by('compiled_area', 'compiled_room').first()
-        if color_group:
-            return color_group.color
-        return None
+        # dont filter in the query here so prefetch_related works
+        groups = [group for group in self.groups.all() if group.color is not None]
+        if not groups:
+            return None
+        for group in groups:
+            if group.compiled_area:
+                return group.color
+        for group in groups:
+            if group.compiled_room:
+                return group.color
+        return groups[0].color
 
 
 class SpecificLocation(Location, models.Model):

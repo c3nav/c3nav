@@ -28,7 +28,7 @@ class EditorViewSet(ViewSet):
             holes_geom = cascaded_union([hole.geometry for hole in holes])
             buildings = section.buildings.all()
             buildings_geom = cascaded_union([building.geometry for building in buildings])
-            spaces = {space.id: space for space in section.spaces.all()}
+            spaces = {space.id: space for space in section.spaces.all().prefetch_related('groups')}
             for space in spaces.values():
                 if space.outside:
                     space.geometry = space.geometry.difference(buildings_geom)
@@ -46,7 +46,8 @@ class EditorViewSet(ViewSet):
 
             def add_spaces(level):
                 results.extend(space for space in spaces.values() if space.level == level)
-                areas = [a for a in Area.objects.filter(space__section=section, space__level=level) if a.get_color()]
+                areas = Area.objects.filter(space__section=section, space__level=level).prefetch_related('groups')
+                areas = [area for area in areas if area.get_color()]
                 for area in areas:
                     area.geometry = area.geometry.intersection(spaces[area.space_id].geometry)
                 results.extend((area for area in areas if not area.geometry.is_empty))
@@ -61,13 +62,13 @@ class EditorViewSet(ViewSet):
             add_spaces('upper')
             return Response([obj.to_geojson() for obj in results])
         elif space is not None:
-            space = get_object_or_404(Space, pk=space)
+            space = get_object_or_404(Space.objects.select_related('section'), pk=space)
             section = space.section
 
             doors = [door for door in section.doors.all() if door.geometry.intersects(space.geometry)]
             doors_geom = cascaded_union([door.geometry for door in doors])
 
-            spaces = [s for s in section.spaces.filter(level='normal')
+            spaces = [s for s in section.spaces.filter(level='normal').prefetch_related('groups')
                       if s.geometry.intersects(doors_geom) and s.pk != space.pk]
 
             space.bounds = True
@@ -77,11 +78,11 @@ class EditorViewSet(ViewSet):
                 doors,
                 spaces,
                 [space],
-                space.areas.all(),
+                space.areas.all().prefetch_related('groups'),
                 space.stairs.all(),
                 space.obstacles.all(),
                 space.lineobstacles.all(),
-                space.points.all(),
+                space.points.all().prefetch_related('groups'),
             )
             return Response(sum([self._get_geojsons(obj) for obj in results], ()))
         else:
