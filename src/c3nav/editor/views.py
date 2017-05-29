@@ -192,7 +192,6 @@ def edit(request, pk=None, model=None, section=None, space=None, explicit_edit=F
                 for slug in form.remove_redirect_slugs:
                     obj.redirects.filter(slug=slug).delete()
 
-
             if not settings.DIRECT_EDITING:
                 # todo: suggest changes
                 raise NotImplementedError
