@@ -34,9 +34,15 @@ def json_encoder_reindent(method, data, *args, **kwargs):
 
 
 def format_geojson(data, round=True):
+    coordinates = data.get('coordinates', None)
+    if coordinates is not None:
+        return OrderedDict((
+            ('type', data['type']),
+            ('coordinates', round_coordinates(data['coordinates']) if round else data['coordinates']),
+        ))
     return OrderedDict((
         ('type', data['type']),
-        ('coordinates', round_coordinates(data['coordinates']) if round else data['coordinates']),
+        ('geometries', [format_geojson(geometry, round=round) for geometry in data['geometries']]),
     ))
 
 
