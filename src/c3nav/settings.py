@@ -156,7 +156,7 @@ MIDDLEWARE = [
 ]
 
 try:
-    import debug_toolbar
+    import debug_toolbar  # noqa
 except ImportError:
     pass
 else:
