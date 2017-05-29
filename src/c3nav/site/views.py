@@ -1,3 +1,4 @@
+# flake8: noqa
 from datetime import timedelta
 
 import qrcode

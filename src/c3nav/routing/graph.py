@@ -1,3 +1,4 @@
+# flake8: noqa
 import os
 import pickle
 from collections import OrderedDict, namedtuple
