@@ -2,12 +2,12 @@ import json
 from collections import OrderedDict
 
 from django.conf import settings
-from django.forms import CharField, ModelForm, Textarea, ValidationError
+from django.forms import CharField, ModelForm, ValidationError
 from django.forms.widgets import HiddenInput
 from django.utils.translation import ugettext_lazy as _
 from shapely.geometry.geo import mapping
 
-from c3nav.mapdata.models.locations import LocationRedirect, LocationSlug
+from c3nav.mapdata.models.locations import LocationSlug
 
 
 class MapitemFormMixin(ModelForm):
