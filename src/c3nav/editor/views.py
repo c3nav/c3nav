@@ -1,3 +1,4 @@
+from contextlib import suppress
 from functools import wraps
 
 from django.apps import apps
@@ -107,12 +108,10 @@ def edit(request, pk=None, model=None, section=None, space=None, explicit_edit=F
         'title': obj.title if obj else None,
     }
 
-    try:
+    with suppress(FieldDoesNotExist):
         ctx.update({
             'geomtype': model._meta.get_field('geometry').geomtype,
         })
-    except FieldDoesNotExist:
-        pass
 
     if model == Section:
         ctx.update({

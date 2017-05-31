@@ -3,6 +3,7 @@ import configparser
 import os
 import string
 import sys
+from contextlib import suppress
 
 from django.contrib.messages import constants as messages
 from django.utils.crypto import get_random_string
@@ -155,19 +156,13 @@ MIDDLEWARE = [
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
 
-try:
+with suppress(ImportError):
     import debug_toolbar  # noqa
-except ImportError:
-    pass
-else:
     INSTALLED_APPS.append('debug_toolbar')
     MIDDLEWARE.append('debug_toolbar.middleware.DebugToolbarMiddleware')
 
-try:
+with suppress(ImportError):
     import htmlmin  # noqa
-except ImportError:
-    pass
-else:
     MIDDLEWARE += [
         'htmlmin.middleware.HtmlMinifyMiddleware',
         'htmlmin.middleware.MarkRequestMiddleware',

@@ -25,13 +25,9 @@ class MapdataConfig(AppConfig):
         from c3nav.mapdata.models.geometry.base import GeometryMixin, GEOMETRY_MODELS
         for cls in self._get_submodels(GeometryMixin):
             GEOMETRY_MODELS[cls.__name__] = cls
-            geometry = None
             try:
-                geometry = cls._meta.get_field('geometry')
+                cls._meta.get_field('geometry')
             except FieldDoesNotExist:
-                pass
-
-            if geometry is None:
                 raise TypeError(_('Model %s has GeometryMixin as base class but has no geometry field.') % cls)
 
         from c3nav.mapdata.models.locations import Location, LOCATION_MODELS
