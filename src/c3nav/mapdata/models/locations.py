@@ -1,3 +1,5 @@
+from contextlib import suppress
+
 from django.apps import apps
 from django.db import models
 from django.utils.translation import ugettext_lazy as _
@@ -23,10 +25,8 @@ class LocationSlug(SerializableMixin, models.Model):
     def get_child(self):
         # todo: cache this
         for model in LOCATION_MODELS+[LocationRedirect]:
-            try:
+            with suppress(AttributeError):
                 return getattr(self, model._meta.default_related_name)
-            except AttributeError:
-                pass
         return None
 
     def get_slug(self):
