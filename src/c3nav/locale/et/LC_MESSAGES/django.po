@@ -7,11 +7,11 @@ msgid ""
 msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2016-12-28 09:33+0000\n"
-"PO-Revision-Date: 2016-12-28 10:37+0100\n"
+"POT-Creation-Date: 2016-12-28 18:00+0000\n"
+"PO-Revision-Date: 2016-12-28 18:00+0000\n"
 "Last-Translator: Benson Muite <benson_muite@emailplus.org>\n"
 "Language-Team: \n"
-"Language: de\n"
+"Language: et\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
@@ -20,198 +20,198 @@ msgstr ""
 
 #: c3nav/access/admin.py:17 c3nav/access/templates/access/user.html:38
 msgid "Permissions"
-msgstr "Zugänge"
+msgstr "Loba"
 
 #: c3nav/access/admin.py:19
 msgid "Important dates"
-msgstr "Wichtige Daten"
+msgstr "Tähtis kuupäev"
 
 #: c3nav/access/forms.py:31 c3nav/access/forms.py:52
 msgid "Full Permissions"
-msgstr "Voller Zugang"
+msgstr "Täie luba"
 
 #: c3nav/access/forms.py:44
 #, python-format
 msgid "%(grouptitle)s (%(count)s nonpublic locations)"
-msgstr "%(grouptitle)s (%(count)s nichtöffentliche Orte)"
+msgstr "%(grouptitle)s (%(count) isiklik asukoht)"
 
 #: c3nav/access/models.py:18 c3nav/access/models.py:36
 #: c3nav/access/models.py:60
 msgid "description"
-msgstr "Beschreibung"
+msgstr "kirjeldus"
 
 #: c3nav/access/models.py:19
 msgid "can award permissions"
-msgstr "kann Zugänge verteilen"
+msgstr "saama anna luba"
 
 #: c3nav/access/models.py:20
 msgid "has access from"
-msgstr "hat Zugang von"
+msgstr "oma juurdepääst"
 
 #: c3nav/access/models.py:21
 msgid "has access until"
-msgstr "hat Zugang bis"
+msgstr "oma juurdepääs kuni"
 
 #: c3nav/access/models.py:24 c3nav/access/models.py:25
 msgid "Access Operator"
-msgstr "Zugangsverwalter"
+msgstr "Juurdepääs tööstur"
 
 #: c3nav/access/models.py:32
 msgid "access name"
-msgstr "Zugangsname"
+msgstr "juurdepääs nimi"
 
 #: c3nav/access/models.py:33
 msgid "Usually an URL to a profile somewhere"
-msgstr "üblicherweise eine URL zu einem Profil irgendwo"
+msgstr "Iseloomulik URL kuni profiil kuskil"
 
 #: c3nav/access/models.py:35 c3nav/access/models.py:58
 msgid "creator"
-msgstr "Ersteller"
+msgstr "tekitamine"
 
 #: c3nav/access/models.py:37 c3nav/access/models.py:61
 #: c3nav/access/models.py:123
 msgid "creation date"
-msgstr "Erstellungsdatum"
+msgstr "loomine kuupäev"
 
 #: c3nav/access/models.py:40 c3nav/access/models.py:57
 msgid "Access User"
-msgstr "Zugangsnutzer"
+msgstr "Juurdepääs kasutaja"
 
 #: c3nav/access/models.py:41
 msgid "Access Users"
-msgstr "Zugangsnutzer"
+msgstr "Juurdepääs kasutaja"
 
 #: c3nav/access/models.py:59
 msgid "permissions"
-msgstr "Zugänge"
+msgstr "luba"
 
 #: c3nav/access/models.py:63
 msgid "is expired"
-msgstr "abgelaufen"
+msgstr "möödud"
 
 #: c3nav/access/models.py:64
 msgid "activated"
-msgstr "aktiviert"
+msgstr "aktiveeritud"
 
 #: c3nav/access/models.py:65
 msgid "activation secret"
-msgstr "Aktivierungstoken"
+msgstr "aktiveeritud saladus"
 
 #: c3nav/access/models.py:68 c3nav/access/models.py:116
 #: c3nav/access/models.py:121 c3nav/access/templates/access/prove.html:35
 msgid "Access Token"
-msgstr "Zugangstoken"
+msgstr "Juurdepääs žetoon"
 
 #: c3nav/access/models.py:69
 msgid "Access Tokens"
-msgstr "Zugangstoken"
+msgstr "Jurdepääs žetoonid"
 
 #: c3nav/access/models.py:122
 msgid "access secret"
-msgstr "Zugangsschlüssel"
+msgstr "Jurdepääs saladus"
 
 #: c3nav/access/models.py:127
 msgid "Access Token Instance"
-msgstr "Zugangstokeninstanz"
+msgstr "Jurdepääs žetoonid näide"
 
 #: c3nav/access/models.py:128
 msgid "Access Token Instances"
-msgstr "Zugangstokeninstanzen"
+msgstr "Jurdepääs žetoonid näided"
 
 #: c3nav/access/templates/access/activate.html:11
 msgid "Your access token was installed on your device!"
-msgstr "Der Zugangstoken wurde auf deinem Gerät aktiviert!"
+msgstr Sinu jurdepääs žetoonid sinu aparaatst!"
 
 #: c3nav/access/templates/access/fragment_token.html:9
 msgid "Link to this token / in this QR code"
-msgstr "Link zu diesem Token / in diesem QR Code"
+msgstr "Ühendama žetoonidis / QR koodis"
 
 #: c3nav/access/templates/access/fragment_token.html:11
 msgid "Activate token on this device"
-msgstr "Token auf diesem Gerät aktivieren!"
+msgstr "Aktiveerima žetoonid aparaatst!"
 
 #: c3nav/access/templates/access/fragment_token.html:14
 msgid ""
 "This link QR Code / Link only works once. If you want access on multiple "
 "devices, you need multiple tokens."
 msgstr ""
-"Dieser QR Code / link funktioniert nur einmal. Wenn du auf mehreren Geräten "
-"zugang willst, brauchst du mehrere Token."
+"QR koodis / ühendama töötab  üks eine. Sinu kasutaja mitmene aparaast, "
+"kasutaja mitmene žetoonid."
 
 #: c3nav/access/templates/access/loggedin_base.html:7
 msgid "Users"
-msgstr "Nutzer"
+msgstr "Kasutajad"
 
 #: c3nav/access/templates/access/loggedin_base.html:8
 msgid "Log out"
-msgstr "Abmelden"
+msgstr "Välja logima"
 
 #: c3nav/access/templates/access/login.html:12
 #: c3nav/access/templates/access/login.html:15
 msgid "Log in"
-msgstr "Anmelden"
+msgstr "Sisse logima"
 
 #: c3nav/access/templates/access/login.html:18
 msgid "This is the non-public backend for creation of access tokens."
 msgstr ""
-"Das hier ist das nichtöffentliche Backend zum Erstellen von Zugangstokens."
+"Isiklikk hooldus žetoonid loomine"
 
 #: c3nav/access/templates/access/login.html:21
 msgid "Prove that you should have access"
-msgstr "Beweise dass du Zugang haben solltest"
+msgstr "Tõestima sinu juurdepääs õigus"
 
 #: c3nav/access/templates/access/prove.html:12
 msgid "Prove access rights"
-msgstr "Zugangsrechte beweisen"
+msgstr "Tõestima juurdepääs õigus"
 
 #: c3nav/access/templates/access/prove.html:13
 msgid ""
 "Please enter a valid authentication code for the hosters of the following "
 "non-public map packages:"
 msgstr ""
-"Bitte gebe einen gültigen API Token für die Hoster der folgenden "
-"nichtöffentlichen Kartenpakete an:"
+"Palun saada ehtne kood jaoks hostia "
+"isikliik plaan pakendama"
 
 #: c3nav/access/templates/access/prove.html:16
 msgid "Thanks – you get full access to the map!"
-msgstr "Danke – du kriegst vollen Zugang zur Karte!"
+msgstr "Aitäh – sinu kõik plaan juurdepääs!"
 
 #: c3nav/access/templates/access/prove.html:17
 msgid "All previous tokens have been invalidated."
-msgstr "Alle bisherigen Token wurden deaktiviert."
+msgstr "Kõik žetoonid tühistatud."
 
 #: c3nav/access/templates/access/prove.html:26
 #: c3nav/access/templates/access/prove.html:28
 msgid "Sorry."
-msgstr "Entschuldigung."
+msgstr "Vabandust."
 
 #: c3nav/access/templates/access/prove.html:26
 msgid "One or more access tokens were not correct."
-msgstr "Ein oder mehrere Token waren ungültig."
+msgstr "Üks või rohkem žetoonid ebaõige."
 
 #: c3nav/access/templates/access/prove.html:28
 msgid "You already have a valid access token."
-msgstr "Du hast bereits einen gültigen Zugangstoken."
+msgstr "Sinu oma õige žetoonid."
 
 #: c3nav/access/templates/access/prove.html:40
 msgid "Invalidate previous token(s)."
-msgstr "Bisherige token invalidieren."
+msgstr "Annulleerima eelnev žetoonid"
 
 #: c3nav/access/templates/access/prove.html:44
 msgid "Submit"
-msgstr "Absenden"
+msgstr "Esitama"
 
 #: c3nav/access/templates/access/prove.html:48
 msgid "Sorry, this service is currently not available."
-msgstr "Entschuldigung, dieses Feature is aktuell nicht verfügbar."
+msgstr "Vabandust, teenindus praegu ei tõõta."
 
 #: c3nav/access/templates/access/user.html:16
 msgid "Add new access token"
-msgstr "Neuen "
+msgstr "Lisa uus žetoonid "
 
 #: c3nav/access/templates/access/user.html:22
 msgid "Add"
-msgstr "Hinzufügen"
+msgstr "Lisa"
 
 #: c3nav/access/templates/access/user.html:35
 #: c3nav/access/templates/access/users.html:11
@@ -221,366 +221,366 @@ msgstr "ID"
 #: c3nav/access/templates/access/user.html:36
 #: c3nav/access/templates/access/users.html:14
 msgid "Description"
-msgstr "Beschreibung"
+msgstr "Kirjeldus"
 
 #: c3nav/access/templates/access/user.html:37
 #: c3nav/access/templates/access/users.html:13
 msgid "Author"
-msgstr "Autor"
+msgstr "Kijanik"
 
 #: c3nav/access/templates/access/user.html:39
 #: c3nav/access/templates/access/users.html:16
 msgid "Creation Date"
-msgstr "Erstellungsdatum"
+msgstr "Loomine kuupäev"
 
 #: c3nav/access/templates/access/user.html:40
 msgid "Expiration"
-msgstr "Ablaufdatum"
+msgstr "Aegumine"
 
 #: c3nav/access/templates/access/user.html:41
 msgid "Action"
-msgstr "Aktion"
+msgstr "Tegevus"
 
 #: c3nav/access/templates/access/user.html:62
 msgid "expired"
-msgstr "abgelaufen"
+msgstr "Aegmined"
 
 #: c3nav/access/templates/access/user.html:66
 msgid "never"
-msgstr "nie"
+msgstr "Mitte kunagi"
 
 #: c3nav/access/templates/access/user.html:71
 msgid "Expire"
-msgstr "Invalidieren"
+msgstr "Maksvusetu"
 
 #: c3nav/access/templates/access/user.html:73
 msgid "Activate"
-msgstr "Aktivieren"
+msgstr "Aktiveerima"
 
 #: c3nav/access/templates/access/user_token.html:12
 msgid "back to user"
-msgstr "zurück zum Nutzer"
+msgstr "Tulu kasutaja"
 
 #: c3nav/access/templates/access/users.html:12 c3nav/mapdata/models/base.py:22
 msgid "Name"
-msgstr "Name"
+msgstr "Nimi"
 
 #: c3nav/access/templates/access/users.html:15
 msgid "Active Tokens"
-msgstr "Aktive Token"
+msgstr "Tegev žetoonid"
 
 #: c3nav/access/templates/access/users.html:17
 #: c3nav/access/templates/access/users.html:29
 msgid "Details"
-msgstr "Detail"
+msgstr "Toimkond"
 
 #: c3nav/access/templates/access/users.html:37
 #: c3nav/access/templates/access/users.html:39
 msgid "previous"
-msgstr "vorherige"
+msgstr "eelnev"
 
 #: c3nav/access/templates/access/users.html:43
 #, python-format
 msgid "Page %(number)s of %(total)s"
-msgstr "Seite %(number)s von %(total)s"
+msgstr "Lehekülg %(number)s / %(total)s"
 
 #: c3nav/access/templates/access/users.html:47
 #: c3nav/access/templates/access/users.html:49
 msgid "next"
-msgstr "nächste"
+msgstr "järgmine"
 
 #: c3nav/access/templates/access/users.html:57
 msgid "Add new access user"
-msgstr "Neuen Zugangsnutzer erstellen"
+msgstr "Lisa uus juurdepääs kasutaja"
 
 #: c3nav/access/templates/access/users.html:63
 msgid "Add new User"
-msgstr "Neuen Nutzer erstellen"
+msgstr "Lisa uus kasutaja"
 
 #: c3nav/editor/forms.py:94
 msgid "Please select at least two levels."
-msgstr "Bitte wähle mindestens zwei Etagen."
+msgstr "Palun valima kaks või rohkem võrdne."
 
 #: c3nav/editor/forms.py:104
 msgid "You have to select a title in at least one language."
-msgstr "Du musst einen Titel für mindestens eine Sprache wählen."
+msgstr "Palun valima pealkiri uks või rohkem keel."
 
 #: c3nav/editor/hosters/base.py:90
 msgid "Internal error."
-msgstr "Interner Fehler."
+msgstr "Sisemine eksitus."
 
 #: c3nav/mapdata/fields.py:15
 msgid "please enter a newline seperated lowercase list of BSSIDs"
-msgstr "bitte gib Zeile für Zeile klein geschriebene BSSIDs ein"
+msgstr "palun sisse uus rida väiketäht nimekiri BSSIDs"
 
 #: c3nav/mapdata/inclusion.py:29
 msgid "non-public areas"
-msgstr "nichtöffentliche Bereiche"
+msgstr "eraviisiline piirkond"
 
 #: c3nav/mapdata/inclusion.py:30
 msgid "public areas"
-msgstr "öffentliche Bereiche"
+msgstr "avalik piirkond
 
 #: c3nav/mapdata/models/base.py:23
 msgid "map package"
-msgstr "Kartenpaket"
+msgstr "plaan pakett"
 
 #: c3nav/mapdata/models/collections.py:11
 msgid "Elevator"
-msgstr "Aufzug"
+msgstr "Tõstuk"
 
 #: c3nav/mapdata/models/collections.py:12
 #: c3nav/site/templates/site/main.html:36
 msgid "Elevators"
-msgstr "Aufzüge"
+msgstr "Tõstukid"
 
 #: c3nav/mapdata/models/geometry.py:45 c3nav/mapdata/serializers/fields.py:14
 #: c3nav/mapdata/serializers/fields.py:26
 msgid "Invalid GeoJSON."
-msgstr "Invalides GeoJSON."
+msgstr "Vigane GeoJSON."
 
 #: c3nav/mapdata/models/geometry.py:79
 msgid "level"
-msgstr "Etage"
+msgstr "korrus"
 
 #: c3nav/mapdata/models/geometry.py:142
 msgid "Building"
-msgstr "Gebäude"
+msgstr "Ehitis"
 
 #: c3nav/mapdata/models/geometry.py:143
 msgid "Buildings"
-msgstr "Gebäude"
+msgstr "Ehitud"
 
 #: c3nav/mapdata/models/geometry.py:154 c3nav/mapdata/models/locations.py:173
 msgid "Room"
-msgstr "Raum"
+msgstr "Tuba"
 
 #: c3nav/mapdata/models/geometry.py:155
 msgid "Rooms"
-msgstr "Räume"
+msgstr "Tubad"
 
 #: c3nav/mapdata/models/geometry.py:166
 msgid "Outside Area"
-msgstr "Außenbereich"
+msgstr "Välja ala"
 
 #: c3nav/mapdata/models/geometry.py:167
 msgid "Outside Areas"
-msgstr "Außenbereiche"
+msgstr "Välja alad"
 
 #: c3nav/mapdata/models/geometry.py:178
 msgid "Stuffed Area"
-msgstr "Vollgestopfter Bereich"
+msgstr "Täis ala"
 
 #: c3nav/mapdata/models/geometry.py:179
 msgid "Stuffed Areas"
-msgstr "Vollgestopfte Bereiche"
+msgstr "Täis alad"
 
 #: c3nav/mapdata/models/geometry.py:188
 msgid "up"
-msgstr "hoch"
+msgstr "üleval"
 
 #: c3nav/mapdata/models/geometry.py:189
 msgid "down"
-msgstr "runter"
+msgstr "mööda"
 
 #: c3nav/mapdata/models/geometry.py:191
 msgid "direction"
-msgstr "Richtung"
+msgstr "sunnud"
 
 #: c3nav/mapdata/models/geometry.py:196
 msgid "Escalator"
-msgstr "Rolltreppe"
+msgstr "Eskalaator"
 
 #: c3nav/mapdata/models/geometry.py:197 c3nav/site/templates/site/main.html:32
 msgid "Escalators"
-msgstr "Rolltreppen"
+msgstr "Eskalaatorid"
 
 #: c3nav/mapdata/models/geometry.py:226
 msgid "Escalator Slope"
-msgstr "Rolltreppensteigung"
+msgstr "Eskalaatoor Kalle"
 
 #: c3nav/mapdata/models/geometry.py:227
 msgid "Escalator Slopes"
-msgstr "Rolltreppensteigungen"
+msgstr "Eskalaator Kalled"
 
 #: c3nav/mapdata/models/geometry.py:236
 msgid "Stair"
-msgstr "Stufe"
+msgstr "Trepp"
 
 #: c3nav/mapdata/models/geometry.py:237 c3nav/site/templates/site/main.html:28
 msgid "Stairs"
-msgstr "Stufen"
+msgstr "Treppid"
 
 #: c3nav/mapdata/models/geometry.py:246
 msgid "Oneway"
-msgstr "Einbahnweg"
+msgstr "Ühesuunaline"
 
 #: c3nav/mapdata/models/geometry.py:247
 msgid "Oneways"
-msgstr "Einbahnwege"
+msgstr "Ühesuunalined"
 
 #: c3nav/mapdata/models/geometry.py:256
 msgid "crop to other level"
-msgstr "Auf andere Etage zuschneiden"
+msgstr ""
 
 #: c3nav/mapdata/models/geometry.py:261
 msgid "Obstacle"
-msgstr "Hindernis"
+msgstr "Tõke"
 
 #: c3nav/mapdata/models/geometry.py:262
 msgid "Obstacles"
-msgstr "Hindernisse"
+msgstr "Tõked"
 
 #: c3nav/mapdata/models/geometry.py:291
 msgid "obstacle width"
-msgstr "Hindernisbreite"
+msgstr "tõke laius" 
 
 #: c3nav/mapdata/models/geometry.py:296
 msgid "Line Obstacle"
-msgstr "Linienhindernis"
+msgstr "Joon tõke"
 
 #: c3nav/mapdata/models/geometry.py:297
 msgid "Line Obstacles"
-msgstr "Linienhindernisse"
+msgstr "Joon tõked"
 
 #: c3nav/mapdata/models/geometry.py:334
 msgid "levels"
-msgstr "Etagen"
+msgstr "Kõrrid"
 
 #: c3nav/mapdata/models/geometry.py:337
 msgid "Level Connector"
-msgstr "Etagenverbinder"
+msgstr "Kõrrus ühendamine"
 
 #: c3nav/mapdata/models/geometry.py:338
 msgid "Level Connectors"
-msgstr "Etagenverbinder"
+msgstr "Kõrrus ühendamined
 
 #: c3nav/mapdata/models/geometry.py:375
 msgid "Door"
-msgstr "Tür"
+msgstr "Uks"
 
 #: c3nav/mapdata/models/geometry.py:376
 msgid "Doors"
-msgstr "Türen"
+msgstr "Uksid"
 
 #: c3nav/mapdata/models/geometry.py:387
 msgid "Hole"
-msgstr "Loch"
+msgstr "Auk"
 
 #: c3nav/mapdata/models/geometry.py:388
 msgid "Holes"
-msgstr "Löcher"
+msgstr "Aukid"
 
 #: c3nav/mapdata/models/geometry.py:397
 msgid "Button label"
-msgstr "Knopfbeschriftung"
+msgstr "Nööp märgis"
 
 #: c3nav/mapdata/models/geometry.py:398
 msgid "override level altitude"
-msgstr "Bodenhöhe der Etage überschreiben"
+msgstr "üles kaaluma kõrrus kõrgus"
 
 #: c3nav/mapdata/models/geometry.py:404
 msgid "Elevator Level"
-msgstr "Aufzugetage"
+msgstr "Tõstuk kõrrus"
 
 #: c3nav/mapdata/models/geometry.py:405
 msgid "Elevator Levels"
-msgstr "Aufzugetagen"
+msgstr "Tõstuk kõrrid"
 
 #: c3nav/mapdata/models/level.py:15
 msgid "level name"
-msgstr "Etagenname"
+msgstr "Kõrrid nimi"
 
 #: c3nav/mapdata/models/level.py:16
 msgid "Usually just an integer (e.g. -1, 0, 1, 2)"
-msgstr "Üblicherweise eine Zahl (z.b. -1, 0, 1, 2)"
+msgstr "Normaalne täis arve (näiteks -1, 0, 1, 2)"
 
 #: c3nav/mapdata/models/level.py:17
 msgid "level altitude"
-msgstr "Bodenhöhe"
+msgstr "Kõrrus kõrgus"
 
 #: c3nav/mapdata/models/level.py:18
 msgid "intermediate level"
-msgstr "Zwischenetage"
+msgstr "keskkõrrus"
 
 #: c3nav/mapdata/models/level.py:21 c3nav/mapdata/models/locations.py:171
 msgid "Level"
-msgstr "Etage"
+msgstr "Kõrrus"
 
 #: c3nav/mapdata/models/level.py:22
 msgid "Levels"
-msgstr "Etagen"
+msgstr "Kõrrid"
 
 #: c3nav/mapdata/models/locations.py:97 c3nav/mapdata/models/locations.py:189
 msgid "can be searched"
-msgstr "zur Suche zugelassen"
+msgstr "võimalik otsima"
 
 #: c3nav/mapdata/models/locations.py:98 c3nav/mapdata/models/locations.py:190
 msgid "can be used to describe a position"
-msgstr "can zum beschreiben einer Position genutzt werden"
+msgstr "võimalik andma asukoht"
 
 #: c3nav/mapdata/models/locations.py:99 c3nav/mapdata/models/locations.py:191
 msgid "background color"
-msgstr "Hintergrundfarbe"
+msgstr "taustvärv"
 
 #: c3nav/mapdata/models/locations.py:100 c3nav/mapdata/models/locations.py:192
 msgid "if set, has to be a valid color for svg images"
-msgstr "muss, falls gesetzt, eine gültige SVG Farbe sein"
+msgstr "kui võimaldamid, õigus SVG pildid värv"
 
 #: c3nav/mapdata/models/locations.py:101
 msgid "is a compiled room"
-msgstr "zusammengesetzter Raum"
+msgstr ""
 
 #: c3nav/mapdata/models/locations.py:104
 msgid "Location Group"
-msgstr "Ortgruppe"
+msgstr "Asukoht grupp"
 
 #: c3nav/mapdata/models/locations.py:105 c3nav/mapdata/models/locations.py:187
 msgid "Location Groups"
-msgstr "Ortgruppen"
+msgstr "Asukoht gruppid"
 
 #: c3nav/mapdata/models/locations.py:141
 #, python-format
 msgid "%d location"
 msgid_plural "%d locations"
-msgstr[0] "%d Ort"
-msgstr[1] "%d Orte"
+msgstr[0] "%d Asukoht"
+msgstr[1] "%d Asukohtid"
 
 #: c3nav/mapdata/models/locations.py:172
 msgid "General Area"
-msgstr "Allgemeiner Bereich"
+msgstr "Üldala"
 
 #: c3nav/mapdata/models/locations.py:174
 msgid "Room Segment"
-msgstr "Raumteil"
+msgstr "Tuba lõik"
 
 #: c3nav/mapdata/models/locations.py:175
 msgid "Point of Interest"
-msgstr "Ort von Interesse"
+msgstr "huvikõht"
 
 #: c3nav/mapdata/models/locations.py:179
 msgid "Default, include if map package is unlocked"
-msgstr "Standard: einbeziehen wenn das Kartenpaket zugänglich ist"
+msgstr ""
 
 #: c3nav/mapdata/models/locations.py:180
 msgid "Included, but allow excluding"
-msgstr "Einbeziehen, aber Vermeiden erlauben"
+msgstr ""
 
 #: c3nav/mapdata/models/locations.py:181
 msgid "Avoided, but allow including"
-msgstr "Vermeiden, aber Einbeziehen erlauben"
+msgstr ""
 
 #: c3nav/mapdata/models/locations.py:182
 msgid "Excluded, needs permission to include"
-msgstr "Vermeiden, Erlaubnis zum Einbeziehen notwendig"
+msgstr ""
 
 #: c3nav/mapdata/models/locations.py:185
 msgid "Location Type"
-msgstr "Orttyp"
+msgstr ""
 
 #: c3nav/mapdata/models/locations.py:194
 msgid "Routing Inclusion"
-msgstr "Routeneinbeziehung"
+msgstr ""
 
 #: c3nav/mapdata/models/locations.py:195
 msgid "BSSIDs"
@@ -588,158 +588,158 @@ msgstr "BSSIDs"
 
 #: c3nav/mapdata/models/locations.py:200
 msgid "Area Location"
-msgstr "Ortbereich"
+msgstr ""
 
 #: c3nav/mapdata/models/locations.py:201
 msgid "Area Locations"
-msgstr "Ortbereiche"
+msgstr ""
 
 #: c3nav/mapdata/models/locations.py:324
 msgid "Unreachable Coordinates"
-msgstr "Unerreichbare Koordinaten"
+msgstr ""
 
 #: c3nav/mapdata/models/locations.py:330
 msgid "Coordinates"
-msgstr "Koordinaten"
+msgstr ""
 
 #: c3nav/mapdata/models/locations.py:334
 #, python-format
 msgid "Coordinates in %(location)s"
-msgstr "Koordinaten innerhalb %(location)s"
+msgstr ""
 
 #: c3nav/mapdata/models/locations.py:336
 #, python-format
 msgid "Coordinates near %(location)s"
-msgstr "Koordinaten in der Nähe von %(location)s"
+msgstr "juba (location)s"
 
 #: c3nav/mapdata/models/package.py:14
 msgid "package identifier"
-msgstr "Paket ID"
+msgstr "Pakendid ID"
 
 #: c3nav/mapdata/models/package.py:15
 msgid "e.g. de.c3nav.33c3.base"
-msgstr "z.b. de.c3nav.33c3.base"
+msgstr "näiteks de.c3nav.33c3.base"
 
 #: c3nav/mapdata/models/package.py:17
 msgid "URL to the home git repository"
-msgstr "URL des originalen git repos"
+msgstr ""
 
 #: c3nav/mapdata/models/package.py:18
 msgid "current commit id"
-msgstr "aktuelle commit id"
+msgstr ""
 
 #: c3nav/mapdata/models/package.py:20 c3nav/mapdata/models/source.py:11
 msgid "bottom coordinate"
-msgstr "untere koordinate"
+msgstr ""
 
 #: c3nav/mapdata/models/package.py:21 c3nav/mapdata/models/source.py:12
 msgid "left coordinate"
-msgstr "linke koordinate"
+msgstr ""
 
 #: c3nav/mapdata/models/package.py:22 c3nav/mapdata/models/source.py:13
 msgid "top coordinate"
-msgstr "obere koordinate"
+msgstr ""
 
 #: c3nav/mapdata/models/package.py:23 c3nav/mapdata/models/source.py:14
 msgid "right coordinate"
-msgstr "rechte koordinate"
+msgstr ""
 
 #: c3nav/mapdata/models/package.py:25
 msgid "folder name"
-msgstr "Verzeichnisname"
+msgstr "Toimik nimi"
 
 #: c3nav/mapdata/models/package.py:28
 msgid "Map Package"
-msgstr "Kartenpaket"
+msgstr "Plaan pakend"
 
 #: c3nav/mapdata/models/package.py:29
 msgid "Map Packages"
-msgstr "Kartenpakete"
+msgstr "Plaan pakendid"
 
 #: c3nav/mapdata/models/source.py:17
 msgid "Source"
-msgstr "Vorlage"
+msgstr "Allikas"
 
 #: c3nav/mapdata/models/source.py:18
 msgid "Sources"
-msgstr "Vorlagen"
+msgstr "Allikasid"
 
 #: c3nav/routing/route.py:64 c3nav/routing/route.py:66
 msgid "Unknown Location"
-msgstr "Unbekannter Ort"
+msgstr ""
 
 #: c3nav/routing/route.py:111
 msgid "Go up the stairs."
-msgstr "Gehe die Treppe nach oben."
+msgstr ""
 
 #: c3nav/routing/route.py:112
 msgid "Go down the stairs."
-msgstr "Gehe die Treppe nach unten."
+msgstr ""
 
 #: c3nav/routing/route.py:113
 msgid "Take the escalator upwards."
-msgstr "Fahre die Rolltreppe hoch."
+msgstr ""
 
 #: c3nav/routing/route.py:114
 msgid "Take the escalator downwards."
-msgstr "Fahre die Rolltreppe runter."
+msgstr ""
 
 #: c3nav/routing/route.py:115
 msgid "Take the elevator upwards."
-msgstr "Fahre mit dem Aufzug nach oben."
+msgstr ""
 
 #: c3nav/routing/route.py:116
 msgid "Take the elevator downwards."
-msgstr "Fahr mit den Aufzug nach unten."
+msgstr ""
 
 #: c3nav/routing/route.py:142
 msgid "Go through the door on the left."
-msgstr "Gehe links durch die Tür."
+msgstr "Minema uks vasekule."
 
 #: c3nav/routing/route.py:143
 msgid "Go through the door on the right."
-msgstr "Gehe rechts durch die Tür."
+msgstr "Minema uks paremale."
 
 #: c3nav/routing/route.py:144
 msgid "Go through the door."
-msgstr "Gehe durch die Tür."
+msgstr "Minema uks"
 
 #: c3nav/routing/route.py:173
 #, python-format
 msgid "Turn light to the left and continue for %(d).1f meters."
-msgstr "Gehe schräg nach links %(d).1f m weiter."
+msgstr ""
 
 #: c3nav/routing/route.py:174
 #, python-format
 msgid "Turn light to the right and continue for %(d).1f meters."
-msgstr "Gehe schräg nach rechts %(d).1f m weiter."
+msgstr ""
 
 #: c3nav/routing/route.py:175
 #, python-format
 msgid "Turn left and continue for %(d).1f meters."
-msgstr "Gehe nach links %(d).1f m weiter."
+msgstr ""
 
 #: c3nav/routing/route.py:176
 #, python-format
 msgid "Turn right and continue for %(d).1f meters."
-msgstr "Gehe nach rechts %(d).1f m weiter."
+msgstr ""
 
 #: c3nav/routing/route.py:177
 #, python-format
 msgid "Continue for %(d).1f meters."
-msgstr "Gehe %(d).1f m weiter geradeaus."
+msgstr ""
 
 #: c3nav/settings.py:203
 msgid "English"
-msgstr "Englisch"
+msgstr "Inglise"
 
 #: c3nav/settings.py:204
 msgid "German"
-msgstr "Deutsch"
+msgstr "Saksa"
 
 #: c3nav/site/templates/site/footer.html:6
 msgid "Editor"
-msgstr "Editor"
+msgstr "Toimetaja"
 
 #: c3nav/site/templates/site/footer.html:7
 msgid "API"
@@ -747,7 +747,7 @@ msgstr "API"
 
 #: c3nav/site/templates/site/footer.html:23
 msgid "full access unlocked"
-msgstr "voller Zugang freigeschaltet"
+msgstr "kõik juurdepääse avatud"
 
 #: c3nav/site/templates/site/footer.html:25
 #, python-format
@@ -761,123 +761,123 @@ msgid_plural ""
 "            "
 msgstr[0] ""
 "\n"
-"            %(count)s Bereich freigeschaltet\n"
+"            \n"
 "            "
 msgstr[1] ""
 "\n"
-"            %(count)s Bereiche freigeschaltet\n"
+"            \n"
 "            "
 
 #: c3nav/site/templates/site/fragment_location.html:15
 msgid "swap"
-msgstr "vertauschen"
+msgstr "vahetama"
 
 #: c3nav/site/templates/site/fragment_location.html:24
 msgid "Search any Location…"
-msgstr "Tipp einen beliebigen Ort ein…"
+msgstr ""
 
 #: c3nav/site/templates/site/fragment_location.html:51
 msgid "Javascript is disabled. Please scroll in this direction ⇘"
-msgstr "Javascript ist deaktiviert. Bitte in diese Richtung scrollen ⇘"
+msgstr ""
 
 #: c3nav/site/templates/site/fragment_location.html:59
 #: c3nav/site/templates/site/main.html:105
 msgid "close"
-msgstr "schließen"
+msgstr "sulgema"
 
 #: c3nav/site/templates/site/fragment_location.html:61
 msgid "Click or tap the desired location on the map."
-msgstr "Klick oder berühre den gewünschte Ort auf der Karte"
+msgstr ""
 
 #: c3nav/site/templates/site/fragment_location.html:77
 msgid "Sorry, we could not detect your position."
-msgstr "Entschuldigung, wir konnten dich nicht finden."
+msgstr "Vabandust, asukoht ei avastama."
 
 #: c3nav/site/templates/site/fragment_location.html:78
 msgid "Wifi mapping may not yet be available in the entire building."
-msgstr "Ortung ist möglicherweise noch nicht im ganzen Gebäude verfügbar sein."
+msgstr ""
 
 #: c3nav/site/templates/site/fragment_location.html:86
 msgid "No location matched your search query."
-msgstr "Kein Ort passt zu deiner Suchanfrage."
+msgstr ""
 
 #: c3nav/site/templates/site/fragment_location.html:92
 msgid "Route to here"
-msgstr "Route hierhin"
+msgstr "Tee lõpp"
 
 #: c3nav/site/templates/site/fragment_location.html:95
 msgid "Route from here"
-msgstr "Route von hier aus"
+msgstr "Tee algus"
 
 #: c3nav/site/templates/site/fragment_location.html:101
 msgid "Search"
-msgstr "Suchen"
+msgstr "Otsima"
 
 #: c3nav/site/templates/site/fragment_route.html:5
 msgid "Your Route"
-msgstr "Deine Route"
+msgstr "Teie tee"
 
 #: c3nav/site/templates/site/fragment_route.html:8
 msgid "This Route contains way types you wanted to avoid."
-msgstr "Diese Route enthält Wegtypen die du vermeiden wolltest."
+msgstr ""
 
 #: c3nav/site/templates/site/fragment_select.html:4
 msgid "allow"
-msgstr "erlaubt"
+msgstr "lubama"
 
 #: c3nav/site/templates/site/fragment_select.html:5
 msgid "only upwards"
-msgstr "nur nach oben"
+msgstr "ainult ülespoole"
 
 #: c3nav/site/templates/site/fragment_select.html:6
 msgid "only downwards"
-msgstr "nur nach unten"
+msgstr "ainult allapoole"
 
 #: c3nav/site/templates/site/fragment_select.html:7
 msgid "avoid"
-msgstr "vermeiden"
+msgstr "hoiduma"
 
 #: c3nav/site/templates/site/main.html:13
 msgid "Location"
-msgstr "Ort"
+msgstr "Asukoht"
 
 #: c3nav/site/templates/site/main.html:17
 msgid "Origin"
-msgstr "Start"
+msgstr "Algus"
 
 #: c3nav/site/templates/site/main.html:21
 msgid "Destination"
-msgstr "Ziel"
+msgstr "otstarve"
 
 #: c3nav/site/templates/site/main.html:40
 msgid "Include / Avoid areas"
-msgstr "Bereiche einbeziehen / vermeiden"
+msgstr "Hõlmana / hoidma ala"
 
 #: c3nav/site/templates/site/main.html:44
 #, python-format
 msgid "Include %(includable)s"
-msgstr "%(includable)s einbeziehen"
+msgstr "Hõlmana %(includable)"
 
 #: c3nav/site/templates/site/main.html:49
 #, python-format
 msgid "Avoid %(excludable)s"
-msgstr "%(excludable)s vermeiden"
+msgstr "Hoidma %(excludable)"
 
 #: c3nav/site/templates/site/main.html:60
 msgid "Save Settings in cookie"
-msgstr "Einstellungen in Cookie speichern"
+msgstr ""
 
 #: c3nav/site/templates/site/main.html:64
 msgid "Edit Settings"
-msgstr "Einstellungen bearbeiten"
+msgstr ""
 
 #: c3nav/site/templates/site/main.html:70
 msgid "Get Route"
-msgstr "Route berechnen"
+msgstr "Sai tee"
 
 #: c3nav/site/templates/site/main.html:79
 msgid "Sorry, no Route could be found."
-msgstr "Entschuldigung, es konnte keine Route gefunden werden."
+msgstr "Vabandust, mitte tee asutama."
 
 #: c3nav/site/templates/site/main.html:81
 msgid ""
@@ -887,36 +887,36 @@ msgid ""
 "        "
 msgstr ""
 "\n"
-"            Dein Start oder dein Ziel sind nicht innerhalb eines "
-"zugänglichen Bereiches oder es gibt keine mögliche Route zwischen ihnen.\n"
+"             "
+"\n"
 "        "
 
 #: c3nav/site/templates/site/main.html:88
 msgid "Congratulations, you are already there!"
-msgstr "Herzlichen Glückwunsch, du bist bereits da!"
+msgstr "Õnnesoovid, teie juba sinna!"
 
 #: c3nav/site/templates/site/main.html:92
 msgid "One or both of your locations are not in the routing table yet."
 msgstr ""
-"Ein oder mehrere deiner Wegpunkte sind noch nicht in der Routingtabelle."
+""
 
 #: c3nav/site/templates/site/main.html:93
 msgid "Please try again in a few minutes."
-msgstr "Bitte versuch es in wenigen Minuten erneut."
+msgstr ""
 
 #: c3nav/site/templates/site/main.html:102
 msgid "share"
-msgstr "Teilen"
+msgstr "jagama"
 
 #: c3nav/site/templates/site/main.html:103
 msgid "shortcut"
-msgstr "Verknüpfung"
+msgstr "Otsetee"
 
 #~ msgid "Access Tokens Instance"
-#~ msgstr "Zugangtokeninstanzen"
+#~ msgstr ""
 
 #~ msgid "This Source belongs to a package you don't have access to."
-#~ msgstr "Diese Vorlage gehört zu einem Paket, auf das du kein Zugriff hast."
+#~ msgstr "."
 
 #~ msgid "You have reached your destination."
-#~ msgstr "Du hast dein Ziel erreich."
+#~ msgstr "Teie on sihtkoht."
