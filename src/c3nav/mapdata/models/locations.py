@@ -112,10 +112,6 @@ class Location(LocationSlug, EditorFormMixin, models.Model):
             return self._meta.verbose_name + ' ' + self.slug
         return super().title
 
-    @staticmethod
-    def bla():
-        pass
-
     def get_color(self):
         if self.color:
             return self.color
