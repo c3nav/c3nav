@@ -35,6 +35,9 @@ class Section(SpecificLocation, EditorFormMixin, models.Model):
         result['altitude'] = float(str(self.altitude))
         return result
 
+    def _get_space_hole_geometries(self, space):
+        space.hole_geometries = cascaded_union([hole.geometry for hole in self.holes.all()])
+
     def _render_space_ground(self, svg, space):
         areas_by_color = {}
         for area in space.areas.all():
@@ -75,13 +78,19 @@ class Section(SpecificLocation, EditorFormMixin, models.Model):
         }
         for space in spaces:
             space_levels[space.level].append(space)
-        space_geometries = {
-            level: cascaded_union(tuple((s.geometry.difference(building_geometries) if s.outside else s.geometry)
-                                        for s in level_spaces))
-            for level, level_spaces in space_levels.items()}
+        for space in space_levels['normal']:
+            if space.outside:
+                space.geometry = space.geometry.difference(building_geometries)
+            else:
+                space.geometry = space.geometry.intersection(building_geometries)
+        space_geometries = {level: cascaded_union(tuple(s.geometry for s in level_spaces))
+                            for level, level_spaces in space_levels.items()}
 
-        hole_geometries = cascaded_union(tuple(h.geometry for h in self.holes.all()))
-        hole_geometries = hole_geometries.intersection(space_geometries['normal'])
+        for space in spaces:
+            space_holes = cascaded_union(tuple(hole.geometry for hole in space.holes.all()))
+            space.hole_geometries = space_holes.intersection(space.geometry)
+
+        hole_geometries = cascaded_union(tuple(space.hole_geometries for space in space_levels['normal']))
 
         lower_spaces_by_color = {}
         for space in space_levels['lower']:
