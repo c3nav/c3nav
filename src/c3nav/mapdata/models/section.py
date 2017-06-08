@@ -35,9 +35,6 @@ class Section(SpecificLocation, EditorFormMixin, models.Model):
         result['altitude'] = float(str(self.altitude))
         return result
 
-    def _get_space_hole_geometries(self, space):
-        space.hole_geometries = cascaded_union([hole.geometry for hole in self.holes.all()])
-
     def _render_space_ground(self, svg, space):
         areas_by_color = {}
         for area in space.areas.all():
