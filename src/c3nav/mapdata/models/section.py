@@ -70,7 +70,8 @@ class Section(SpecificLocation, EditorFormMixin, models.Model):
 
         building_geometries = cascaded_union(tuple(b.geometry for b in self.buildings.all()))
 
-        spaces = self.spaces.all()
+        spaces = self.spaces.all().prefetch_related('groups', 'holes', 'areas', 'areas__groups',
+                                                    'stairs', 'obstacles', 'lineobstacles')
         space_levels = {
             'upper': [],
             'lower': [],
@@ -104,7 +105,8 @@ class Section(SpecificLocation, EditorFormMixin, models.Model):
             self._render_space_inventory(svg, space)
 
         # draw space background
-        door_geometries = cascaded_union(tuple(d.geometry for d in self.doors.all()))
+        doors = self.doors.all()
+        door_geometries = cascaded_union(tuple(d.geometry for d in doors))
         section_geometry = cascaded_union((space_geometries['normal'], building_geometries, door_geometries))
         section_geometry = section_geometry.difference(hole_geometries)
         section_clip = svg.register_geometry(section_geometry, defid='section', as_clip_path=True)
@@ -139,7 +141,7 @@ class Section(SpecificLocation, EditorFormMixin, models.Model):
         svg.add_geometry(wall_geometry, fill_color='#929292', stroke_color='#333333', stroke_width=0.07)
 
         # draw doors
-        door_geometries = cascaded_union(tuple(d.geometry for d in self.doors.all()))
+        door_geometries = cascaded_union(tuple(d.geometry for d in doors))
         door_geometries = door_geometries.difference(space_geometries['normal'])
         svg.add_geometry(door_geometries, fill_color='#ffffff', stroke_color='#929292', stroke_width=0.07)
 
