@@ -24,11 +24,11 @@ class EditorViewSet(ViewSet):
             if space is not None:
                 raise ValidationError('Only section or space can be specified.')
             section = get_object_or_404(Section, pk=section)
-            holes = section.holes.all()
-            holes_geom = cascaded_union([hole.geometry for hole in holes])
             buildings = section.buildings.all()
             buildings_geom = cascaded_union([building.geometry for building in buildings])
-            spaces = {space.id: space for space in section.spaces.all().prefetch_related('groups')}
+            spaces = {space.id: space for space in section.spaces.all().prefetch_related('groups', 'holes')}
+            holes = sum((list(space.holes.all()) for space in spaces.values()), [])
+            holes_geom = cascaded_union([hole.geometry for hole in holes])
             for space in spaces.values():
                 if space.outside:
                     space.geometry = space.geometry.difference(buildings_geom)
@@ -79,6 +79,7 @@ class EditorViewSet(ViewSet):
                 spaces,
                 [space],
                 space.areas.all().prefetch_related('groups'),
+                space.holes.all(),
                 space.stairs.all(),
                 space.obstacles.all(),
                 space.lineobstacles.all(),

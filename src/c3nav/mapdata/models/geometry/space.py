@@ -158,3 +158,15 @@ class Point(SpecificLocation, SpaceGeometryMixin, models.Model):
         result['original_geometry'] = result['geometry']
         result['geometry'] = format_geojson(mapping(self.buffered_geometry))
         return result
+
+
+class Hole(SpaceGeometryMixin, models.Model):
+    """
+    A hole in the ground of a space, e.g. for stairs.
+    """
+    geometry = GeometryField('polygon')
+
+    class Meta:
+        verbose_name = _('Hole')
+        verbose_name_plural = _('Holes')
+        default_related_name = 'holes'

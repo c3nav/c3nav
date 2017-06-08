@@ -58,7 +58,7 @@ def section_detail(request, pk):
         'section_as_pk': True,
 
         'child_models': [child_model(model_name, kwargs={'section': pk}, parent=section)
-                         for model_name in ('Building', 'Space', 'Door', 'Hole')],
+                         for model_name in ('Building', 'Space', 'Door')],
         'geometry_url': '/api/editor/geometries/?section='+pk,
     })
 
@@ -72,7 +72,7 @@ def space_detail(request, section, pk):
         'space': space,
 
         'child_models': [child_model(model_name, kwargs={'space': pk}, parent=space)
-                         for model_name in ('Area', 'Stair', 'Obstacle', 'LineObstacle', 'Point')],
+                         for model_name in ('Hole', 'Area', 'Stair', 'Obstacle', 'LineObstacle', 'Point')],
         'geometry_url': '/api/editor/geometries/?space='+pk,
     })
 

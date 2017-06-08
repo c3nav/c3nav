@@ -84,7 +84,7 @@ class DoorViewSet(MapdataViewSet):
 
 
 class HoleViewSet(MapdataViewSet):
-    """ Add ?geometry=1 to get geometries, add ?section=<id> to filter by section. """
+    """ Add ?geometry=1 to get geometries, add ?space=<id> to filter by space. """
     queryset = Hole.objects.all()
 
 

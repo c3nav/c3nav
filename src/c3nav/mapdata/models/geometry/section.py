@@ -96,15 +96,3 @@ class Door(SectionGeometryMixin, models.Model):
         verbose_name = _('Door')
         verbose_name_plural = _('Doors')
         default_related_name = 'doors'
-
-
-class Hole(SectionGeometryMixin, models.Model):
-    """
-    A hole in the ground of a section (all spaces with layer "normal" and buildings), e.g. for stairs.
-    """
-    geometry = GeometryField('polygon')
-
-    class Meta:
-        verbose_name = _('Hole')
-        verbose_name_plural = _('Holes')
-        default_related_name = 'holes'
