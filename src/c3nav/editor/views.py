@@ -80,6 +80,7 @@ def space_detail(request, section, pk):
 @sidebar_view
 def edit(request, pk=None, model=None, section=None, space=None, explicit_edit=False):
     model = EDITOR_FORM_MODELS[model]
+    related_name = model._meta.default_related_name
 
     obj = None
     if pk is not None:
@@ -139,7 +140,7 @@ def edit(request, pk=None, model=None, section=None, space=None, explicit_edit=F
             section = obj.section
         ctx.update({
             'section': section,
-            'back_url': reverse('editor.sections.detail', kwargs={'pk': section.pk}),
+            'back_url': reverse('editor.'+related_name+'.list', kwargs={'section': section.pk}),
             'geometry_url': '/api/editor/geometries/?section='+str(section.pk),
         })
     elif hasattr(model, 'space'):
@@ -147,7 +148,7 @@ def edit(request, pk=None, model=None, section=None, space=None, explicit_edit=F
             space = obj.space
         ctx.update({
             'section': space.section,
-            'back_url': reverse('editor.spaces.detail', kwargs={'section': obj.space.section.pk, 'pk': space.pk}),
+            'back_url': reverse('editor.'+related_name+'.list', kwargs={'space': space.pk}),
             'geometry_url': '/api/editor/geometries/?space='+str(space.pk),
         })
     else:
