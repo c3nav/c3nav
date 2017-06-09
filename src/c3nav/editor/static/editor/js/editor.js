@@ -293,6 +293,11 @@ editor = {
     _get_geometry_style: function (feature) {
         // style callback for GeoJSON loader
         var style = editor._get_mapitem_type_style(feature.properties.type);
+        if (feature.properties.layer === 'upper') {
+            style.stroke = true;
+            style.weight = 1;
+            style.color = '#ffffff';
+        }
         if (feature.geometry.type === 'LineString') {
             style = editor._line_draw_geometry_style(style);
         }
