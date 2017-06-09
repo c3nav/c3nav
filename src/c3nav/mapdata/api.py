@@ -13,7 +13,7 @@ from rest_framework.viewsets import GenericViewSet, ReadOnlyModelViewSet
 
 from c3nav.mapdata.models import Building, Door, Hole, LocationGroup, Source, Space
 from c3nav.mapdata.models.geometry.section import SECTION_MODELS
-from c3nav.mapdata.models.geometry.space import SPACE_MODELS, Area, LineObstacle, Obstacle, Point, Stair
+from c3nav.mapdata.models.geometry.space import SPACE_MODELS, Area, Column, LineObstacle, Obstacle, Point, Stair
 from c3nav.mapdata.models.locations import LOCATION_MODELS, Location, LocationRedirect, LocationSlug
 from c3nav.mapdata.models.section import Section
 
@@ -106,6 +106,11 @@ class ObstacleViewSet(MapdataViewSet):
 class LineObstacleViewSet(MapdataViewSet):
     """ Add ?geometry=1 to get geometries, add ?space=<id> to filter by space. """
     queryset = LineObstacle.objects.all()
+
+
+class ColumnViewSet(MapdataViewSet):
+    """ Add ?geometry=1 to get geometries, add ?space=<id> to filter by space. """
+    queryset = Column.objects.all()
 
 
 class PointViewSet(MapdataViewSet):

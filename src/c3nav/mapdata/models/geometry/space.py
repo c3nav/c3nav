@@ -33,6 +33,18 @@ class SpaceGeometryMixin(GeometryMixin):
         return result
 
 
+class Column(SpaceGeometryMixin, models.Model):
+    """
+    An column in a space, also used to be able to create rooms within rooms.
+    """
+    geometry = GeometryField('polygon')
+
+    class Meta:
+        verbose_name = _('Column')
+        verbose_name_plural = _('Columns')
+        default_related_name = 'columns'
+
+
 class Area(SpecificLocation, SpaceGeometryMixin, models.Model):
     """
     An area in a space.

@@ -26,17 +26,20 @@ class EditorViewSet(ViewSet):
             section = get_object_or_404(Section, pk=section)
             buildings = section.buildings.all()
             buildings_geom = cascaded_union([building.geometry for building in buildings])
-            spaces = {space.id: space for space in section.spaces.all().prefetch_related('groups', 'holes')}
-            holes = sum((list(space.holes.all()) for space in spaces.values()), [])
-            holes_geom = cascaded_union([hole.geometry for hole in holes])
+            spaces = {space.id: space for space in section.spaces.all().prefetch_related('groups', 'holes', 'columns')}
+            holes_geom = []
             for space in spaces.values():
                 if space.outside:
                     space.geometry = space.geometry.difference(buildings_geom)
                 else:
                     space.geometry = space.geometry.intersection(buildings_geom)
+                columns_geom = cascaded_union([column.geometry for column in space.columns.all()])
+                space.geometry = space.geometry.difference(columns_geom)
+                space_holes_geom = cascaded_union([hole.geometry for hole in space.holes.all()])
+                holes_geom.append(space_holes_geom.intersection(space.geometry))
+                space.geometry = space.geometry.difference(space_holes_geom)
+            holes_geom = cascaded_union(holes_geom)
 
-            spaces_geom = cascaded_union([space.geometry for space in spaces.values() if space.level == 'normal'])
-            holes_geom = holes_geom.intersection(spaces_geom)
             for building in buildings:
                 building.original_geometry = building.geometry
             for obj in chain(buildings, (s for s in spaces.values() if s.level == 'normal')):
@@ -76,14 +79,15 @@ class EditorViewSet(ViewSet):
             results = chain(
                 section.buildings.all(),
                 doors,
-                spaces,
                 [space],
                 space.areas.all().prefetch_related('groups'),
                 space.holes.all(),
                 space.stairs.all(),
                 space.obstacles.all(),
                 space.lineobstacles.all(),
+                space.columns.all(),
                 space.points.all().prefetch_related('groups'),
+                spaces,
             )
             return Response(sum([self._get_geojsons(obj) for obj in results], ()))
         else:
@@ -103,6 +107,7 @@ class EditorViewSet(ViewSet):
             'stair': 'rgba(160, 0, 160, 0.5)',
             'obstacle': '#999999',
             'lineobstacle': '#999999',
+            'column': '#888888',
             'point': '#4488cc',
             'shadow': '#000000',
         })

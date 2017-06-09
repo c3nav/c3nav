@@ -72,7 +72,7 @@ def space_detail(request, section, pk):
         'space': space,
 
         'child_models': [child_model(model_name, kwargs={'space': pk}, parent=space)
-                         for model_name in ('Hole', 'Area', 'Stair', 'Obstacle', 'LineObstacle', 'Point')],
+                         for model_name in ('Hole', 'Area', 'Stair', 'Obstacle', 'LineObstacle', 'Column', 'Point')],
         'geometry_url': '/api/editor/geometries/?space='+pk,
     })
 
