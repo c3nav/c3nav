@@ -69,15 +69,25 @@ class EditorViewSet(ViewSet):
             section = space.section
 
             doors = [door for door in section.doors.all() if door.geometry.intersects(space.geometry)]
-            doors_geom = cascaded_union([door.geometry for door in doors])
+            doors_space_geom = cascaded_union([door.geometry for door in doors]+[space.geometry])
 
-            spaces = [s for s in section.spaces.filter(level='normal').prefetch_related('groups')
-                      if s.geometry.intersects(doors_geom) and s.pk != space.pk]
+            other_spaces = [s for s in section.spaces.prefetch_related('groups')
+                            if s.geometry.intersects(doors_space_geom) and s.pk != space.pk]
 
             space.bounds = True
 
+            buildings = section.buildings.all()
+            buildings_geom = cascaded_union([building.geometry for building in buildings])
+            for other_space in other_spaces:
+                if other_space.outside:
+                    other_space.geometry = other_space.geometry.difference(buildings_geom)
+                    other_space.color = 'rgba(255, 255, 255, 0.7)'
+                else:
+                    other_space.geometry = other_space.geometry.intersection(buildings_geom)
+                    other_space.color = 'rgba(255, 255, 255, 0.3)'
+
             results = chain(
-                section.buildings.all(),
+                buildings,
                 doors,
                 [space],
                 space.areas.all().prefetch_related('groups'),
@@ -87,7 +97,7 @@ class EditorViewSet(ViewSet):
                 space.lineobstacles.all(),
                 space.columns.all(),
                 space.points.all().prefetch_related('groups'),
-                spaces,
+                other_spaces,
             )
             return Response(sum([self._get_geojsons(obj) for obj in results], ()))
         else:
