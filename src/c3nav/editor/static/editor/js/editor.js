@@ -213,6 +213,14 @@ editor = {
         editor.map.on('editable:vertex:click', function () {
             editor.map.doubleClickZoom.disable();
         });
+        editor.map.on('editable:vertex:drag', function (e) {
+            e.vertex.setLatLng([(Math.round(e.latlng.lat*100)/100).toFixed(2),
+                                (Math.round(e.latlng.lng*100)/100).toFixed(2)]);
+        });
+        editor.map.on('editable:drawing:click', function (e) {
+            e.latlng.lat = (Math.round(e.latlng.lat*100)/100).toFixed(2);
+            e.latlng.lng = (Math.round(e.latlng.lng*100)/100).toFixed(2);
+        });
         editor.map.on('editable:vertex:ctrlclick editable:vertex:metakeyclick', function (e) {
             e.vertex.continue();
         });
