@@ -32,6 +32,8 @@ urlpatterns = [
     url(r'^$', main_index, name='editor.index'),
     url(r'^sections/(?P<pk>[0-9]+)/$', section_detail, name='editor.sections.detail'),
     url(r'^sections/(?P<section>[0-9]+)/spaces/(?P<pk>[0-9]+)/$', space_detail, name='editor.spaces.detail'),
+    url(r'^sections/(?P<on_top_of>[0-9]+)/sections_on_top/create$', edit, name='editor.sections_on_top.create',
+        kwargs={'model': 'Section'}),
 ]
 urlpatterns.extend(add_editor_urls('Section', with_list=False, explicit_edit=True))
 urlpatterns.extend(add_editor_urls('LocationGroup'))

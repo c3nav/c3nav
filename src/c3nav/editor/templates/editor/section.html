@@ -25,7 +25,7 @@
 {% include 'editor/fragment_child_models.html' %}
 
 {% if section.on_top_of == None %}
-<a class="btn btn-default btn-sm pull-right" accesskey="n" href="{{ create_url }}">
+<a class="btn btn-default btn-sm pull-right" accesskey="n" href="{% url 'editor.sections_on_top.create' on_top_of=section.pk %}">
     {% blocktrans %}New {{ model_title }}{% endblocktrans %}
 </a>
 <h3>{% trans 'Sections on top' %}</h3>

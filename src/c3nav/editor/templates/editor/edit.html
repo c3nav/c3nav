@@ -6,11 +6,19 @@
 <a class="btn btn-sm {% if new %}btn-danger{% else %}btn-default{% endif %} pull-right" href="{{ back_url }}">
     {% trans 'Cancel' %}
 </a>
-{% if new %}
-    <h3>{% blocktrans %}New {{ model_title }}{% endblocktrans %}</h3>
-{% else %}
-    <h3>{% blocktrans %}Edit {{ model_title }}{% endblocktrans %}</h3>
-{% endif %}
+
+<h3>
+    {% if new %}
+        {% blocktrans %}New {{ model_title }}{% endblocktrans %}
+    {% else %}
+        {% blocktrans %}Edit {{ model_title }}{% endblocktrans %}
+    {% endif %}
+    {% if on_top_of %}
+        {% with on_top_of.title as on_top_of_section_title %}
+            <small>{% blocktrans %}on top of {{ on_top_of_section_title }}{% endblocktrans %}</small>
+        {% endwith %}
+    {% endif %}
+</h3>
 <form action="{{ path }}" method="post" data-onbeforeunload {% if new %}data-new="{{ model_name }}" data-geomtype="{{ geomtype }}"{% else %}data-editing="{{ model_name }}-{{ pk }}"{% endif %}>
     {% csrf_token %}
     {% bootstrap_form form %}

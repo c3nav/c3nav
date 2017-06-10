@@ -79,7 +79,7 @@ def space_detail(request, section, pk):
 
 
 @sidebar_view
-def edit(request, pk=None, model=None, section=None, space=None, explicit_edit=False):
+def edit(request, pk=None, model=None, section=None, space=None, on_top_of=None, explicit_edit=False):
     model = EDITOR_FORM_MODELS[model]
     related_name = model._meta.default_related_name
 
@@ -98,6 +98,8 @@ def edit(request, pk=None, model=None, section=None, space=None, explicit_edit=F
         section = get_object_or_404(Section, pk=section)
     elif space is not None:
         space = get_object_or_404(Space, pk=space)
+    elif on_top_of is not None:
+        on_top_of = get_object_or_404(Section.objects.filter(on_top_of__isnull=True), pk=on_top_of)
 
     new = obj is None
     # noinspection PyProtectedMember
@@ -123,6 +125,13 @@ def edit(request, pk=None, model=None, section=None, space=None, explicit_edit=F
         if not new:
             ctx.update({
                 'geometry_url': '/api/editor/geometries/?section='+str(obj.primary_section_pk),
+                'on_top_of': obj.on_top_of,
+            })
+        elif on_top_of:
+            ctx.update({
+                'geometry_url': '/api/editor/geometries/?section=' + str(on_top_of.pk),
+                'on_top_of': on_top_of,
+                'back_url': reverse('editor.sections.detail', kwargs={'pk': on_top_of.pk}),
             })
     elif model == Space and not new:
         ctx.update({
@@ -172,6 +181,8 @@ def edit(request, pk=None, model=None, section=None, space=None, explicit_edit=F
                     raise NotImplementedError
                 obj.delete()
                 if model == Section:
+                    if obj.on_top_of_id is not None:
+                        return redirect(reverse('editor.sections.detail', kwargs={'pk': obj.on_top_of_id}))
                     return redirect(reverse('editor.index'))
                 elif model == Space:
                     return redirect(reverse('editor.spaces.list', kwargs={'section': obj.section.pk}))
@@ -205,6 +216,9 @@ def edit(request, pk=None, model=None, section=None, space=None, explicit_edit=F
 
             if space is not None:
                 obj.space = space
+
+            if on_top_of is not None:
+                obj.on_top_of = on_top_of
 
             obj.save()
             form.save_m2m()
