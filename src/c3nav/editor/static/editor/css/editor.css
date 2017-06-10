@@ -64,7 +64,7 @@ body:not(.map-enabled) #sidebar {
     display:none;
 }
 #sidebar h3 {
-    margin-top:5px;
+    margin-top:3px;
 }
 a.list-group-item, a.list-group-item:hover {
     color:#158cba;

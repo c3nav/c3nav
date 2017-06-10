@@ -24,6 +24,8 @@
 
 {% include 'editor/fragment_child_models.html' %}
 
+<div class="clearfix"></div>
+
 {% if section.on_top_of == None %}
 <a class="btn btn-default btn-sm pull-right" accesskey="n" href="{% url 'editor.sections_on_top.create' on_top_of=section.pk %}">
     {% blocktrans %}New {{ model_title }}{% endblocktrans %}
