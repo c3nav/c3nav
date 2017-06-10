@@ -38,6 +38,17 @@ class MapdataViewSet(ReadOnlyModelViewSet):
             except Space.DoesNotExist:
                 raise NotFound(detail=_('space not found.'))
             qs = qs.filter(space=space)
+        if qs.model == Section and 'on_top_of' in request.GET:
+            if request.GET['on_top_of'] == 'null':
+                qs = qs.filter(on_top_of__isnull=False)
+            else:
+                if not request.GET['on_top_of'].isdigit():
+                    raise ValidationError(detail={'detail': _('%s is not null or an integer.') % 'on_top_of'})
+                try:
+                    section = Section.objects.get(pk=request.GET['on_top_of'])
+                except Section.DoesNotExist:
+                    raise NotFound(detail=_('section not found.'))
+                qs = qs.filter(on_top_of=section)
         return Response([obj.serialize(geometry=geometry) for obj in qs.order_by('id')])
 
     def retrieve(self, request, *args, **kwargs):
@@ -51,6 +62,7 @@ class MapdataViewSet(ReadOnlyModelViewSet):
 
 
 class SectionViewSet(MapdataViewSet):
+    """ Add ?on_top_of=null or ?on_top_of=<id> to filter by on_top_of. """
     queryset = Section.objects.all()
 
     @list_route(methods=['get'])

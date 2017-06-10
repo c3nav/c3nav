@@ -14,6 +14,8 @@ class Section(SpecificLocation, EditorFormMixin, models.Model):
     A map section like a level
     """
     altitude = models.DecimalField(_('section altitude'), null=False, unique=True, max_digits=6, decimal_places=2)
+    on_top_of = models.ForeignKey('mapdata.Section', null=True, on_delete=models.CASCADE,
+                                  related_name='sections_on_top', verbose_name=_('on top of'))
 
     class Meta:
         verbose_name = _('Section')
@@ -25,10 +27,14 @@ class Section(SpecificLocation, EditorFormMixin, models.Model):
         super().__init__(*args, **kwargs)
 
     def lower(self):
-        return Section.objects.filter(altitude__lt=self.altitude).order_by('altitude')
+        if self.on_top_of is not None:
+            raise TypeError
+        return Section.objects.filter(altitude__lt=self.altitude, on_top_of__isnull=True).order_by('-altitude')
 
     def higher(self):
-        return Section.objects.filter(altitude__gt=self.altitude).order_by('altitude')
+        if self.on_top_of is not None:
+            raise TypeError
+        return Section.objects.filter(altitude__gt=self.altitude, on_top_of__isnull=True).order_by('altitude')
 
     def _serialize(self, section=True, **kwargs):
         result = super()._serialize(**kwargs)

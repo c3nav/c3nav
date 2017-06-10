@@ -16,7 +16,6 @@ class SectionGeometryMixin(GeometryMixin):
 
     def get_geojson_properties(self) -> dict:
         result = super().get_geojson_properties()
-        result['layer'] = getattr(self, 'level', 'base')
         if hasattr(self, 'get_color'):
             color = self.get_color()
             if color:
@@ -44,13 +43,8 @@ class Building(SectionGeometryMixin, models.Model):
 
 class Space(SpecificLocation, SectionGeometryMixin, models.Model):
     """
-    An accessible space. Shouldn't overlap with spaces on same secion and level.
+    An accessible space. Shouldn't overlap with spaces on same section.
     """
-    LEVELS = (
-        ('normal', _('normal')),
-        ('upper', _('upper')),
-        ('lower', _('lower')),
-    )
     CATEGORIES = (
         ('normal', _('normal')),
         ('stairs', _('stairs')),
@@ -58,7 +52,6 @@ class Space(SpecificLocation, SectionGeometryMixin, models.Model):
         ('elevator', _('elevator')),
     )
     geometry = GeometryField('polygon')
-    level = models.CharField(verbose_name=_('level'), choices=LEVELS, default='normal', max_length=16)
     category = models.CharField(verbose_name=_('category'), choices=CATEGORIES, default='normal', max_length=16)
     outside = models.BooleanField(default=False, verbose_name=_('is outside of building'))
 
@@ -71,7 +64,6 @@ class Space(SpecificLocation, SectionGeometryMixin, models.Model):
         result = super()._serialize(**kwargs)
         if space:
             result['category'] = self.category
-            result['level'] = self.level
             result['public'] = self.public
         return result
 

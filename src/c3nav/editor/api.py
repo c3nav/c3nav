@@ -16,6 +16,41 @@ class EditorViewSet(ViewSet):
     /geometries/ returns a list of geojson features, you have to specify ?section=<id> or ?space=<id>
     /geometrystyles/ returns styling information for all geometry types
     """
+    def _get_section_geometries(self, section: Section):
+        buildings = section.buildings.all()
+        buildings_geom = cascaded_union([building.geometry for building in buildings])
+        spaces = {space.id: space for space in section.spaces.all()}
+        holes_geom = []
+        for space in spaces.values():
+            if space.outside:
+                space.geometry = space.geometry.difference(buildings_geom)
+            else:
+                space.geometry = space.geometry.intersection(buildings_geom)
+            columns_geom = cascaded_union([column.geometry for column in space.columns.all()])
+            space.geometry = space.geometry.difference(columns_geom)
+            space_holes_geom = cascaded_union([hole.geometry for hole in space.holes.all()])
+            holes_geom.append(space_holes_geom.intersection(space.geometry))
+            space.geometry = space.geometry.difference(space_holes_geom)
+        holes_geom = cascaded_union(holes_geom)
+
+        for building in buildings:
+            building.original_geometry = building.geometry
+        for obj in chain(buildings, spaces.values()):
+            obj.geometry = obj.geometry.difference(holes_geom)
+
+        results = []
+        results.extend(buildings)
+        for door in section.doors.all():
+            results.append(door)
+
+        results.extend(spaces.values())
+        areas = Area.objects.filter(space__in=spaces.values()).prefetch_related('groups')
+        areas = [area for area in areas if area.get_color()]
+        for area in areas:
+            area.geometry = area.geometry.intersection(spaces[area.space_id].geometry)
+        results.extend((area for area in areas if not area.geometry.is_empty))
+        return results
+
     @list_route(methods=['get'])
     def geometries(self, request, *args, **kwargs):
         section = request.GET.get('section')
@@ -24,45 +59,35 @@ class EditorViewSet(ViewSet):
             if space is not None:
                 raise ValidationError('Only section or space can be specified.')
             section = get_object_or_404(Section, pk=section)
-            buildings = section.buildings.all()
-            buildings_geom = cascaded_union([building.geometry for building in buildings])
-            spaces = {space.id: space for space in section.spaces.all().prefetch_related('groups', 'holes', 'columns')}
-            holes_geom = []
-            for space in spaces.values():
-                if space.outside:
-                    space.geometry = space.geometry.difference(buildings_geom)
-                else:
-                    space.geometry = space.geometry.intersection(buildings_geom)
-                columns_geom = cascaded_union([column.geometry for column in space.columns.all()])
-                space.geometry = space.geometry.difference(columns_geom)
-                space_holes_geom = cascaded_union([hole.geometry for hole in space.holes.all()])
-                holes_geom.append(space_holes_geom.intersection(space.geometry))
-                space.geometry = space.geometry.difference(space_holes_geom)
-            holes_geom = cascaded_union(holes_geom)
 
-            for building in buildings:
-                building.original_geometry = building.geometry
-            for obj in chain(buildings, (s for s in spaces.values() if s.level == 'normal')):
-                obj.geometry = obj.geometry.difference(holes_geom)
+            sections_under = ()
+            sections_on_top = ()
 
-            results = []
+            lower_section = section.lower().first()
+            primary_sections = (section, ) + ((lower_section, ) if lower_section else ())
+            secondary_sections = Section.objects.filter(on_top_of__in=primary_sections).values_list('pk', 'on_top_of')
+            if lower_section:
+                sections_under = tuple(pk for pk, on_top_of in secondary_sections if on_top_of == lower_section.pk)
 
-            def add_spaces(level):
-                results.extend(space for space in spaces.values() if space.level == level)
-                areas = Area.objects.filter(space__section=section, space__level=level).prefetch_related('groups')
-                areas = [area for area in areas if area.get_color()]
-                for area in areas:
-                    area.geometry = area.geometry.intersection(spaces[area.space_id].geometry)
-                results.extend((area for area in areas if not area.geometry.is_empty))
+            if True:
+                sections_on_top = tuple(pk for pk, on_top_of in secondary_sections if on_top_of == section.pk)
 
-            add_spaces('lower')
+            sections = chain([section.pk], sections_under, sections_on_top)
+            sections = Section.objects.filter(pk__in=sections).prefetch_related('buildings', 'spaces', 'doors',
+                                                                                'spaces__groups', 'spaces__holes',
+                                                                                'spaces__columns')
+            sections = {s.pk: s for s in sections}
 
-            results.extend(buildings)
-            for door in section.doors.all():
-                results.append(door)
+            section = sections[section.pk]
+            sections_under = [sections[pk] for pk in sections_under]
+            sections_on_top = [sections[pk] for pk in sections_on_top]
 
-            add_spaces('normal')
-            add_spaces('upper')
+            results = chain(
+                *(self._get_section_geometries(s) for s in sections_under),
+                self._get_section_geometries(section),
+                *(self._get_section_geometries(s) for s in sections_on_top)
+            )
+
             return Response([obj.to_geojson() for obj in results])
         elif space is not None:
             space = get_object_or_404(Space.objects.select_related('section'), pk=space)
