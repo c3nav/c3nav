@@ -36,7 +36,7 @@ class MapdataViewSet(ReadOnlyModelViewSet):
             try:
                 space = Space.objects.get(pk=request.GET['space'])
             except Space.DoesNotExist:
-                raise NotFound(detail=_('section not found.'))
+                raise NotFound(detail=_('space not found.'))
             qs = qs.filter(space=space)
         return Response([obj.serialize(geometry=geometry) for obj in qs.order_by('id')])
 
