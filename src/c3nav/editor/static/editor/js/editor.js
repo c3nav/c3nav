@@ -39,7 +39,10 @@ editor = {
         });
 
         editor._section_control = new SectionControl().addTo(editor.map);
-        editor._subsection_control = new SectionControl().addTo(editor.map);
+        editor._subsection_control = new SectionControl({addClasses: 'leaflet-control-subsections'}).addTo(editor.map);
+
+        editor._section_control_container = $(editor._section_control._container);
+        editor._subsection_control_container = $(editor._subsection_control._container);
 
         editor.init_geometries();
     },
@@ -155,6 +158,13 @@ editor = {
 
             editor._fill_section_control(editor._section_control, content.find('[data-sections] a'));
             editor._fill_section_control(editor._subsection_control, content.find('[data-subsections] a'));
+
+            var section_control_offset = $(editor._section_control_container).position();
+            var offset_parent = $(editor._section_control_container).offsetParent();
+            $(editor._subsection_control._container).css({
+                bottom: offset_parent.height()-section_control_offset.top-editor._section_control_container.height()-parseInt(editor._section_control_container.css('margin-bottom')),
+                right: offset_parent.width()-section_control_offset.left
+            });
         } else {
             $('body').removeClass('map-enabled').removeClass('show-map');
             editor._section_control.hide();
@@ -509,11 +519,12 @@ editor = {
 
 SectionControl = L.Control.extend({
     options: {
-		position: 'bottomright'
+		position: 'bottomright',
+        addClasses: ''
 	},
 
 	onAdd: function () {
-		this._container = L.DomUtil.create('div', 'leaflet-control-sections leaflet-bar');
+		this._container = L.DomUtil.create('div', 'leaflet-control-sections leaflet-bar '+this.options.addClasses);
 		this._sectionButtons = [];
 		this._disabled = true;
 		this._expanded = false;

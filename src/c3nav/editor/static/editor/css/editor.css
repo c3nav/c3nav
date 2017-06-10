@@ -207,10 +207,14 @@ form button.invisiblesubmit {
 .leaflet-control-sections {
     overflow:hidden;
 }
+.leaflet-control-subsections {
+    position:absolute;
+}
 .leaflet-control-sections a, .leaflet-control-sections a:hover {
     width: auto;
     font-size: 14px;
     padding: 0 7px;
+    white-space: nowrap;
 }
 .leaflet-touch .leaflet-control-sections a, .leaflet-touch .leaflet-control-sections a:hover {
     width: auto;
