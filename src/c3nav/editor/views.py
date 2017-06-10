@@ -39,7 +39,7 @@ def child_model(model_name, kwargs=None, parent=None):
 @sidebar_view
 def main_index(request):
     return render(request, 'editor/index.html', {
-        'sections': Section.objects.all(),
+        'sections': Section.objects.filter(on_top_of__isnull=True),
         'child_models': [
             child_model('LocationGroup'),
             child_model('Source'),
