@@ -318,6 +318,8 @@ editor = {
     _register_geojson_feature: function (feature, layer) {
         // onEachFeature callback for GeoJSON loader – register all needed events
         if (feature.properties.type === editor._highlight_type) {
+            var list_elem = $('#sidebar').find('[data-list] tr[data-pk='+String(feature.properties.id)+']');
+            if (list_elem.length == 0) return;
             highlight_layer = L.geoJSON(layer.feature, {
                 style: function() {
                     return {
@@ -328,6 +330,7 @@ editor = {
                     };
                 }
             }).getLayers()[0].addTo(editor._highlight_layer);
+            highlight_layer.list_elem = list_elem;
             editor._highlight_geometries[feature.properties.id] = highlight_layer;
             highlight_layer.on('mouseover', editor._hover_geometry_layer)
                  .on('mouseout', editor._unhover_geometry_layer)
@@ -377,19 +380,14 @@ editor = {
     _click_geometry_layer: function (e) {
         // click callback for a geometry layer – scroll the corresponding itemtable row into view if it exists
         if (editor._loading_geometry) return;
-        var row = $('[data-list] tr[data-pk='+String(e.target.feature.properties.id)+']');
-        if (row.length) {
-            row[0].scrollIntoView();
-        }
+        console.log(e.target);
+        e.target.list_elem[0].scrollIntoView();
     },
     _dblclick_geometry_layer: function (e) {
         // dblclick callback for a geometry layer - edit this feature if the corresponding itemtable row exists
         if (editor._loading_geometry) return;
-        var row = $('[data-list] tr[data-pk='+String(e.target.feature.properties.id)+']');
-        if (row.length) {
-            row.find('td:last-child a').click();
-            editor.map.doubleClickZoom.disable();
-        }
+        e.target.list_elem.find('td:last-child a').click();
+        editor.map.doubleClickZoom.disable();
     },
     _highlight_geometry: function(id) {
         // highlight a geometries layer and itemtable row if they both exist
@@ -402,7 +400,7 @@ editor = {
                 fillOpacity: 0,
                 className: 'c3nav-highlight'
             });
-            $('#sidebar').find('[data-list] tr[data-pk='+String(id)+']').addClass('highlight');
+            geometry.list_elem.addClass('highlight');
         }
     },
     _unhighlight_geometry: function(id) {
@@ -415,7 +413,7 @@ editor = {
                 fillOpacity: 0,
                 className: 'c3nav-highlight'
             });
-            $('#sidebar').find('[data-list] tr[data-pk='+String(id)+']').removeClass('highlight');
+            geometry.list_elem.removeClass('highlight');
         }
     },
 
