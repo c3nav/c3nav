@@ -39,6 +39,7 @@ editor = {
         });
 
         editor._section_control = new SectionControl().addTo(editor.map);
+        editor._subsection_control = new SectionControl().addTo(editor.map);
 
         editor.init_geometries();
     },
@@ -102,8 +103,25 @@ editor = {
     _sidebar_unload: function() {
         // unload the sidebar. called on sidebar_get and form submit.
         editor._section_control.disable();
+        editor._subsection_control.disable();
         $('#sidebar').addClass('loading').find('.content').html('');
         editor._cancel_editing();
+    },
+    _fill_section_control: function (section_control, sections) {
+        if (sections.length) {
+            for (var i = 0; i < sections.length; i++) {
+                var section = $(sections[i]);
+                section_control.addSection(section.text(), section.attr('href'), section.is('.current'));
+            }
+            if (sections.length > 1) {
+                section_control.enable();
+            } else {
+                section_control.disable();
+            }
+            section_control.show()
+        } else {
+            section_control.hide();
+        }
     },
     _sidebar_loaded: function(data) {
         // sidebar was loaded. load the content. check if there are any redirects. call _check_start_editing.
@@ -133,30 +151,20 @@ editor = {
             );
             $('body').addClass('map-enabled');
             editor._section_control.clearSections();
+            editor._subsection_control.clearSections();
 
-            var sections = content.find('[data-sections] a');
-            if (sections.length) {
-                for(var i=0;i<sections.length;i++) {
-                    var section = $(sections[i]);
-                    editor._section_control.addSection(section.text(), section.attr('href'), section.is('.current'));
-                }
-                if (sections.length > 1) {
-                    editor._section_control.enable();
-                } else {
-                    editor._section_control.disable();
-                }
-                editor._section_control.show()
-            } else {
-                editor._section_control.hide();
-            }
+            editor._fill_section_control(editor._section_control, content.find('[data-sections] a'));
+            editor._fill_section_control(editor._subsection_control, content.find('[data-subsections] a'));
         } else {
             $('body').removeClass('map-enabled').removeClass('show-map');
             editor._section_control.hide();
+            editor._subsection_control.hide();
         }
     },
     _sidebar_error: function(data) {
         $('#sidebar').removeClass('loading').find('.content').html('<h3>Error '+data.status+'</h3>'+data.statusText);
         editor._section_control.hide();
+        editor._subsection_control.hide();
     },
     _sidebar_link_click: function(e) {
         // listener for link-clicks in the sidebar.

@@ -102,7 +102,7 @@ legend {
     right: 8px;
     top: 8px;
 }
-[data-sections] {
+[data-sections], [data-subsections] {
     display:none;
 }
 form button.invisiblesubmit {
@@ -204,6 +204,9 @@ form button.invisiblesubmit {
 
 
 /* leaftlet sections control */
+.leaflet-control-sections {
+    overflow:hidden;
+}
 .leaflet-control-sections a, .leaflet-control-sections a:hover {
     width: auto;
     font-size: 14px;

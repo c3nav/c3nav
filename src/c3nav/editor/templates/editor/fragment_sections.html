@@ -2,13 +2,23 @@
     <ul data-sections>
         {% for s in sections %}
             <li>
-                <a href="{% if section_as_pk %}{% url section_url pk=s.id %}{% else %}{% url section_url section=s.id %}{% endif %}"{% if section == s %} class="current"{% endif %}>{{ s.title }}</a>
+                <a href="{% if section_as_pk %}{% url section_url pk=s.id %}{% else %}{% url section_url section=s.id %}{% endif %}"{% if section.primary_section == s %} class="current"{% endif %}>{{ s.title }}</a>
+            </li>
+        {% endfor %}
+    </ul>
+    <ul data-subsections>
+        {% for s in section.primary_section.subsections %}
+            <li>
+                <a href="{% if section_as_pk %}{% url section_url pk=s.id %}{% else %}{% url section_url section=s.id %}{% endif %}"{% if section == s %} class="current"{% endif %}>{{ s.subsection_title }}</a>
             </li>
         {% endfor %}
     </ul>
 {% elif section %}
     <ul data-sections>
-        <li><a href="" class="current">{{ section.title }}</a></li>
+        <li><a href="" class="current">{{ section.primary_section.title }}</a></li>
+    </ul>
+    <ul data-subsections>
+        <li><a href="" class="current">{{ section.subsection_title }}</a></li>
     </ul>
 {% endif %}
 {% if geometry_url %}

@@ -1,3 +1,5 @@
+from itertools import chain
+
 from django.conf import settings
 from django.db import models
 from django.utils.translation import ugettext_lazy as _
@@ -35,6 +37,20 @@ class Section(SpecificLocation, EditorFormMixin, models.Model):
         if self.on_top_of is not None:
             raise TypeError
         return Section.objects.filter(altitude__gt=self.altitude, on_top_of__isnull=True).order_by('altitude')
+
+    @property
+    def subsections(self):
+        if self.on_top_of is not None:
+            raise TypeError
+        return chain((self, ), self.sections_on_top.all())
+
+    @property
+    def subsection_title(self):
+        return '-' if self.on_top_of_id is None else self.title
+
+    @property
+    def primary_section(self):
+        return self if self.on_top_of_id is None else self.on_top_of
 
     @property
     def primary_section_pk(self):

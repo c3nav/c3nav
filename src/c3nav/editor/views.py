@@ -52,7 +52,7 @@ def section_detail(request, pk):
     section = get_object_or_404(Section.objects.select_related('on_top_of'), pk=pk)
 
     return render(request, 'editor/section.html', {
-        'sections': Section.objects.all(),
+        'sections': Section.objects.filter(on_top_of__isnull=True),
         'section': section,
         'section_url': 'editor.sections.detail',
         'section_as_pk': True,
@@ -245,7 +245,7 @@ def list_objects(request, model=None, section=None, space=None, explicit_edit=Fa
         ctx.update({
             'back_url': reverse('editor.sections.detail', kwargs={'pk': section.pk}),
             'back_title': _('back to section'),
-            'sections': Section.objects.all(),
+            'sections': Section.objects.filter(on_top_of__isnull=True),
             'section': section,
             'section_url': request.resolver_match.url_name,
             'geometry_url': '/api/editor/geometries/?section='+str(section.primary_section_pk),
