@@ -39,7 +39,7 @@ def child_model(model_name, kwargs=None, parent=None):
 @sidebar_view
 def main_index(request):
     return render(request, 'editor/index.html', {
-        'sections': Section.objects.filter(on_top_of__isnull=True),
+        'sections': Section.objects.all(),
         'child_models': [
             child_model('LocationGroup'),
             child_model('Source'),
@@ -49,17 +49,18 @@ def main_index(request):
 
 @sidebar_view
 def section_detail(request, pk):
-    section = get_object_or_404(Section, pk=pk)
+    section = get_object_or_404(Section.objects.select_related('on_top_of'), pk=pk)
 
     return render(request, 'editor/section.html', {
-        'sections': Section.objects.filter(on_top_of__isnull=True),
+        'sections': Section.objects.all(),
         'section': section,
         'section_url': 'editor.sections.detail',
         'section_as_pk': True,
 
         'child_models': [child_model(model_name, kwargs={'section': pk}, parent=section)
                          for model_name in ('Building', 'Space', 'Door')],
-        'geometry_url': '/api/editor/geometries/?section='+pk,
+        'sections_on_top': section.sections_on_top.all(),
+        'geometry_url': '/api/editor/geometries/?section='+str(section.primary_section_pk),
     })
 
 
@@ -121,7 +122,7 @@ def edit(request, pk=None, model=None, section=None, space=None, explicit_edit=F
         })
         if not new:
             ctx.update({
-                'geometry_url': '/api/editor/geometries/?section='+pk,
+                'geometry_url': '/api/editor/geometries/?section='+str(section.primary_section_pk),
             })
     elif model == Space and not new:
         ctx.update({
@@ -133,7 +134,7 @@ def edit(request, pk=None, model=None, section=None, space=None, explicit_edit=F
         ctx.update({
             'section': section,
             'back_url': reverse('editor.spaces.list', kwargs={'section': section.pk}),
-            'geometry_url': '/api/editor/geometries/?section='+str(section.pk),
+            'geometry_url': '/api/editor/geometries/?section='+str(section.primary_section_pk),
         })
     elif hasattr(model, 'section'):
         if obj:
@@ -141,7 +142,7 @@ def edit(request, pk=None, model=None, section=None, space=None, explicit_edit=F
         ctx.update({
             'section': section,
             'back_url': reverse('editor.'+related_name+'.list', kwargs={'section': section.pk}),
-            'geometry_url': '/api/editor/geometries/?section='+str(section.pk),
+            'geometry_url': '/api/editor/geometries/?section='+str(section.primary_section_pk),
         })
     elif hasattr(model, 'space'):
         if obj:
@@ -247,7 +248,7 @@ def list_objects(request, model=None, section=None, space=None, explicit_edit=Fa
             'sections': Section.objects.all(),
             'section': section,
             'section_url': request.resolver_match.url_name,
-            'geometry_url': '/api/editor/geometries/?section='+str(section.pk),
+            'geometry_url': '/api/editor/geometries/?section='+str(section.primary_section_pk),
         })
     elif space is not None:
         reverse_kwargs['space'] = space

@@ -36,6 +36,10 @@ class Section(SpecificLocation, EditorFormMixin, models.Model):
             raise TypeError
         return Section.objects.filter(altitude__gt=self.altitude, on_top_of__isnull=True).order_by('altitude')
 
+    @property
+    def primary_section_pk(self):
+        return self.pk if self.on_top_of_id is None else self.on_top_of_id
+
     def _serialize(self, section=True, **kwargs):
         result = super()._serialize(**kwargs)
         result['altitude'] = float(str(self.altitude))
