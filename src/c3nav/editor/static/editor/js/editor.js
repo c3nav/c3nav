@@ -380,7 +380,6 @@ editor = {
     _click_geometry_layer: function (e) {
         // click callback for a geometry layer – scroll the corresponding itemtable row into view if it exists
         if (editor._loading_geometry) return;
-        console.log(e.target);
         e.target.list_elem[0].scrollIntoView();
     },
     _dblclick_geometry_layer: function (e) {
