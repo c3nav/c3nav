@@ -15,5 +15,6 @@ before_script:
 script:
     - flake8 c3nav
     - isort -c -rc .
+    - python manage.py migrate
     - python manage.py collectstatic --noinput
     - python manage.py compress
