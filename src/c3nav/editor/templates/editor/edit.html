@@ -3,10 +3,6 @@
 
 {% include 'editor/fragment_sections.html' %}
 
-<a class="btn btn-sm {% if new %}btn-danger{% else %}btn-default{% endif %} pull-right" href="{{ back_url }}">
-    {% trans 'Cancel' %}
-</a>
-
 <h3>
     {% if new %}
         {% blocktrans %}New {{ model_title }}{% endblocktrans %}
