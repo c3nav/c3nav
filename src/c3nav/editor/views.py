@@ -188,6 +188,7 @@ def edit(request, pk=None, model=None, section=None, space=None, on_top_of=None,
                 elif model == Space:
                     return redirect(reverse('editor.spaces.list', kwargs={'section': obj.section.pk}))
                 return redirect(ctx['back_url'])
+            ctx['obj_title'] = obj.title
             return render(request, 'editor/delete.html', ctx)
 
         form = model.EditorForm(instance=obj, data=request.POST, request=request)
