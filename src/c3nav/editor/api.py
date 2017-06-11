@@ -44,6 +44,19 @@ class EditorViewSet(ViewSet):
         results.extend(spaces.values())
         return results
 
+    def _get_sections_pk(self, section):
+        sections_under = ()
+        sections_on_top = ()
+        lower_section = section.lower().first()
+        primary_sections = (section,) + ((lower_section,) if lower_section else ())
+        secondary_sections = Section.objects.filter(on_top_of__in=primary_sections).values_list('pk', 'on_top_of')
+        if lower_section:
+            sections_under = tuple(pk for pk, on_top_of in secondary_sections if on_top_of == lower_section.pk)
+        if True:
+            sections_on_top = tuple(pk for pk, on_top_of in secondary_sections if on_top_of == section.pk)
+        sections = chain([section.pk], sections_under, sections_on_top)
+        return sections, sections_on_top, sections_under
+
     @list_route(methods=['get'])
     def geometries(self, request, *args, **kwargs):
         section = request.GET.get('section')
@@ -53,19 +66,7 @@ class EditorViewSet(ViewSet):
                 raise ValidationError('Only section or space can be specified.')
             section = get_object_or_404(Section, pk=section)
 
-            sections_under = ()
-            sections_on_top = ()
-
-            lower_section = section.lower().first()
-            primary_sections = (section, ) + ((lower_section, ) if lower_section else ())
-            secondary_sections = Section.objects.filter(on_top_of__in=primary_sections).values_list('pk', 'on_top_of')
-            if lower_section:
-                sections_under = tuple(pk for pk, on_top_of in secondary_sections if on_top_of == lower_section.pk)
-
-            if True:
-                sections_on_top = tuple(pk for pk, on_top_of in secondary_sections if on_top_of == section.pk)
-
-            sections = chain([section.pk], sections_under, sections_on_top)
+            sections, sections_on_top, sections_under = self._get_sections_pk(section)
             sections = Section.objects.filter(pk__in=sections).prefetch_related('buildings', 'spaces', 'doors',
                                                                                 'spaces__groups', 'spaces__holes',
                                                                                 'spaces__columns')
@@ -89,7 +90,9 @@ class EditorViewSet(ViewSet):
             doors = [door for door in section.doors.all() if door.geometry.intersects(space.geometry)]
             doors_space_geom = cascaded_union([door.geometry for door in doors]+[space.geometry])
 
-            other_spaces = [s for s in section.spaces.prefetch_related('groups')
+            sections, sections_on_top, sections_under = self._get_sections_pk(section)
+            other_spaces = Space.objects.filter(section__pk__in=sections).prefetch_related('groups')
+            other_spaces = [s for s in other_spaces
                             if s.geometry.intersects(doors_space_geom) and s.pk != space.pk]
 
             space.bounds = True
@@ -99,9 +102,10 @@ class EditorViewSet(ViewSet):
             for other_space in other_spaces:
                 if other_space.outside:
                     other_space.geometry = other_space.geometry.difference(buildings_geom)
-                    other_space.color = 'rgba(255, 255, 255, 0.7)'
-                else:
-                    other_space.color = 'rgba(255, 255, 255, 0.3)'
+                other_space.opacity = 0.4
+                other_space.color = '#ffffff'
+            for building in buildings:
+                building.opacity = 0.5
 
             results = chain(
                 buildings,

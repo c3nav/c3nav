@@ -331,6 +331,9 @@ editor = {
         if (feature.properties.color !== undefined) {
             style.fillColor = feature.properties.color;
         }
+        if (feature.properties.opacity !== undefined) {
+            style.fillOpacity = feature.properties.opacity;
+        }
         return style
     },
     _get_mapitem_type_style: function (mapitem_type) {

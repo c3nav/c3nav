@@ -21,6 +21,8 @@ class SectionGeometryMixin(GeometryMixin):
             color = self.get_color()
             if color:
                 result['color'] = color
+        if hasattr(self, 'opacity'):
+            result['opacity'] = self.opacity
         return result
 
     def _serialize(self, section=True, **kwargs):
