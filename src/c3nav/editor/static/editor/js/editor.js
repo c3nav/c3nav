@@ -132,7 +132,7 @@ editor = {
     },
     _sidebar_loaded: function(data) {
         // sidebar was loaded. load the content. check if there are any redirects. call _check_start_editing.
-        var content = $('#sidebar').removeClass('loading').find('.content');;
+        var content = $('#sidebar').removeClass('loading').find('.content');
         if (data !== undefined) {
             content.html($(data));
         }
@@ -340,8 +340,8 @@ editor = {
         // onEachFeature callback for GeoJSON loader – register all needed events
         if (feature.properties.type === editor._highlight_type) {
             var list_elem = $('#sidebar').find('[data-list] tr[data-pk='+String(feature.properties.id)+']');
-            if (list_elem.length == 0) return;
-            highlight_layer = L.geoJSON(layer.feature, {
+            if (list_elem.length === 0) return;
+            var highlight_layer = L.geoJSON(layer.feature, {
                 style: function() {
                     return {
                         weight: 3,
