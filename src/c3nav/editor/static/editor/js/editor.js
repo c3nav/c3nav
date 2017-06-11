@@ -314,10 +314,16 @@ editor = {
     _get_geometry_style: function (feature) {
         // style callback for GeoJSON loader
         var style = editor._get_mapitem_type_style(feature.properties.type);
-        if (editor._subsection_control.section_ids.indexOf(feature.properties.section) >= 0 && editor._section_control.current_section_id !== feature.properties.section) {
-            style.stroke = true;
-            style.weight = 1;
-            style.color = '#ffffff';
+        if (editor._section_control.current_section_id === editor._subsection_control.current_section_id) {
+            if (editor._subsection_control.section_ids.indexOf(feature.properties.section) >= 0 && editor._section_control.current_section_id !== feature.properties.section) {
+                style.stroke = true;
+                style.weight = 1;
+                style.color = '#ffffff';
+            }
+        } else {
+            if (editor._subsection_control.current_section_id !== feature.properties.section) {
+                style.fillOpacity = 0.5;
+            }
         }
         if (feature.geometry.type === 'LineString') {
             style = editor._line_draw_geometry_style(style);
