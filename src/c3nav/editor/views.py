@@ -134,6 +134,7 @@ def edit(request, pk=None, model=None, section=None, space=None, on_top_of=None,
                 'back_url': reverse('editor.sections.detail', kwargs={'pk': on_top_of.pk}),
             })
     elif model == Space and not new:
+        section = obj.section
         ctx.update({
             'section': obj.section,
             'back_url': reverse('editor.spaces.detail', kwargs={'section': obj.section.pk, 'pk': pk}),
