@@ -16,6 +16,7 @@ class SectionGeometryMixin(GeometryMixin):
 
     def get_geojson_properties(self) -> dict:
         result = super().get_geojson_properties()
+        result['section'] = self.section_id
         if hasattr(self, 'get_color'):
             color = self.get_color()
             if color:

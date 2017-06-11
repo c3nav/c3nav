@@ -110,11 +110,14 @@ editor = {
         $('#sidebar').addClass('loading').find('.content').html('');
         editor._cancel_editing();
     },
-    _fill_section_control: function (section_control, sections) {
+    _fill_section_control: function (section_control, section_list) {
+        var sections = section_list.find('a');
         if (sections.length) {
+            var current;
             for (var i = 0; i < sections.length; i++) {
                 var section = $(sections[i]);
-                section_control.addSection(section.text(), section.attr('href'), section.is('.current'));
+                section_control.addSection(section.attr('data-id'), section.text(), section.attr('href'), section.is('.current'));
+
             }
             if (sections.length > 1) {
                 section_control.enable();
@@ -125,6 +128,7 @@ editor = {
         } else {
             section_control.hide();
         }
+        section_control.current_id = parseInt(section_list.attr('data-current-id'));
     },
     _sidebar_loaded: function(data) {
         // sidebar was loaded. load the content. check if there are any redirects. call _check_start_editing.
@@ -156,8 +160,8 @@ editor = {
             editor._section_control.clearSections();
             editor._subsection_control.clearSections();
 
-            editor._fill_section_control(editor._section_control, content.find('[data-sections] a'));
-            editor._fill_section_control(editor._subsection_control, content.find('[data-subsections] a'));
+            editor._fill_section_control(editor._section_control, content.find('[data-sections]'));
+            editor._fill_section_control(editor._subsection_control, content.find('[data-subsections]'));
 
             var section_control_offset = $(editor._section_control_container).position();
             var offset_parent = $(editor._section_control_container).offsetParent();
@@ -311,7 +315,7 @@ editor = {
     _get_geometry_style: function (feature) {
         // style callback for GeoJSON loader
         var style = editor._get_mapitem_type_style(feature.properties.type);
-        if (feature.properties.layer === 'upper') {
+        if (editor._subsection_control.section_ids.indexOf(feature.properties.section) >= 0 && editor._section_control.current_section_id !== feature.properties.section) {
             style.stroke = true;
             style.weight = 1;
             style.color = '#ffffff';
@@ -526,6 +530,9 @@ SectionControl = L.Control.extend({
 	onAdd: function () {
 		this._container = L.DomUtil.create('div', 'leaflet-control-sections leaflet-bar '+this.options.addClasses);
 		this._sectionButtons = [];
+		//noinspection JSUnusedGlobalSymbols
+        this.current_section_id = null;
+		this.section_ids = [];
 		this._disabled = true;
 		this._expanded = false;
 		this.hide();
@@ -546,7 +553,10 @@ SectionControl = L.Control.extend({
 		return this._container;
 	},
 
-	addSection: function (title, href, current) {
+	addSection: function (id, title, href, current) {
+        this.section_ids.push(parseInt(id));
+		if (current) this.current_section_id = parseInt(id);
+
 		var link = L.DomUtil.create('a', (current ? 'current' : ''), this._container);
 		link.innerHTML = title;
 		link.href = href;
@@ -560,6 +570,8 @@ SectionControl = L.Control.extend({
 	},
 
     clearSections: function() {
+        this.current_section_id = null;
+		this.section_ids = [];
         for (var i = 0; i < this._sectionButtons.length; i++) {
             L.DomUtil.remove(this._sectionButtons[i]);
         }
