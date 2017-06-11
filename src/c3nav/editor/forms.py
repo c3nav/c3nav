@@ -16,9 +16,9 @@ class MapitemFormMixin(ModelForm):
         super().__init__(*args, **kwargs)
         creating = not self.instance.pk
 
-        if 'section' in self.fields:
-            # hide section widget
-            self.fields['section'].widget = HiddenInput()
+        if 'level' in self.fields:
+            # hide level widget
+            self.fields['level'].widget = HiddenInput()
 
         if 'space' in self.fields:
             # hide space widget

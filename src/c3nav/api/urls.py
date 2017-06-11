@@ -8,12 +8,12 @@ from rest_framework.response import Response
 from rest_framework.routers import SimpleRouter
 
 from c3nav.editor.api import EditorViewSet
-from c3nav.mapdata.api import (AreaViewSet, BuildingViewSet, ColumnViewSet, DoorViewSet, HoleViewSet,
+from c3nav.mapdata.api import (AreaViewSet, BuildingViewSet, ColumnViewSet, DoorViewSet, HoleViewSet, LevelViewSet,
                                LineObstacleViewSet, LocationGroupViewSet, LocationViewSet, ObstacleViewSet,
-                               PointViewSet, SectionViewSet, SourceViewSet, SpaceViewSet, StairViewSet)
+                               PointViewSet, SourceViewSet, SpaceViewSet, StairViewSet)
 
 router = SimpleRouter()
-router.register(r'sections', SectionViewSet)
+router.register(r'levels', LevelViewSet)
 router.register(r'buildings', BuildingViewSet)
 router.register(r'spaces', SpaceViewSet)
 router.register(r'doors', DoorViewSet)

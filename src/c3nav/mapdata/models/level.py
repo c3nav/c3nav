@@ -11,18 +11,18 @@ from c3nav.mapdata.models.locations import SpecificLocation
 from c3nav.mapdata.utils.svg import SVGImage
 
 
-class Section(SpecificLocation, EditorFormMixin, models.Model):
+class Level(SpecificLocation, EditorFormMixin, models.Model):
     """
-    A map section like a level
+    A map level
     """
-    altitude = models.DecimalField(_('section altitude'), null=False, unique=True, max_digits=6, decimal_places=2)
-    on_top_of = models.ForeignKey('mapdata.Section', null=True, on_delete=models.CASCADE,
-                                  related_name='sections_on_top', verbose_name=_('on top of'))
+    altitude = models.DecimalField(_('level altitude'), null=False, unique=True, max_digits=6, decimal_places=2)
+    on_top_of = models.ForeignKey('mapdata.Level', null=True, on_delete=models.CASCADE,
+                                  related_name='levels_on_top', verbose_name=_('on top of'))
 
     class Meta:
-        verbose_name = _('Section')
-        verbose_name_plural = _('Sections')
-        default_related_name = 'sections'
+        verbose_name = _('Level')
+        verbose_name_plural = _('Levels')
+        default_related_name = 'levels'
         ordering = ['altitude']
 
     def __init__(self, *args, **kwargs):
@@ -31,32 +31,32 @@ class Section(SpecificLocation, EditorFormMixin, models.Model):
     def lower(self):
         if self.on_top_of is not None:
             raise TypeError
-        return Section.objects.filter(altitude__lt=self.altitude, on_top_of__isnull=True).order_by('-altitude')
+        return Level.objects.filter(altitude__lt=self.altitude, on_top_of__isnull=True).order_by('-altitude')
 
     def higher(self):
         if self.on_top_of is not None:
             raise TypeError
-        return Section.objects.filter(altitude__gt=self.altitude, on_top_of__isnull=True).order_by('altitude')
+        return Level.objects.filter(altitude__gt=self.altitude, on_top_of__isnull=True).order_by('altitude')
 
     @property
-    def subsections(self):
+    def sublevels(self):
         if self.on_top_of is not None:
             raise TypeError
-        return chain((self, ), self.sections_on_top.all())
+        return chain((self, ), self.levels_on_top.all())
 
     @property
-    def subsection_title(self):
+    def sublevel_title(self):
         return '-' if self.on_top_of_id is None else self.title
 
     @property
-    def primary_section(self):
+    def primary_level(self):
         return self if self.on_top_of_id is None else self.on_top_of
 
     @property
-    def primary_section_pk(self):
+    def primary_level_pk(self):
         return self.pk if self.on_top_of_id is None else self.on_top_of_id
 
-    def _serialize(self, section=True, **kwargs):
+    def _serialize(self, level=True, **kwargs):
         result = super()._serialize(**kwargs)
         result['altitude'] = float(str(self.altitude))
         return result
@@ -109,10 +109,10 @@ class Section(SpecificLocation, EditorFormMixin, models.Model):
         # draw space background
         doors = self.doors.all()
         door_geometries = cascaded_union(tuple(d.geometry for d in doors))
-        section_geometry = cascaded_union((space_geometries, building_geometries, door_geometries))
-        section_geometry = section_geometry.difference(hole_geometries)
-        section_clip = svg.register_geometry(section_geometry, defid='section', as_clip_path=True)
-        svg.add_geometry(fill_color='#d1d1d1', clip_path=section_clip)
+        level_geometry = cascaded_union((space_geometries, building_geometries, door_geometries))
+        level_geometry = level_geometry.difference(hole_geometries)
+        level_clip = svg.register_geometry(level_geometry, defid='level', as_clip_path=True)
+        svg.add_geometry(fill_color='#d1d1d1', clip_path=level_clip)
 
         # color in spaces
         spaces_by_color = {}
@@ -134,7 +134,7 @@ class Section(SpecificLocation, EditorFormMixin, models.Model):
         if effects:
             wall_dilated_geometry = wall_geometry.buffer(0.7, join_style=JOIN_STYLE.mitre)
             svg.add_geometry(wall_dilated_geometry, fill_color='#000000', opacity=0.1, filter='wallblur',
-                             clip_path=section_clip)
+                             clip_path=level_clip)
 
         for space in spaces:
             self._render_space_inventory(svg, space)

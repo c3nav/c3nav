@@ -57,7 +57,7 @@ class BoundsMixin(SerializableMixin, models.Model):
         return ((float(result['bottom__min']), float(result['left__min'])),
                 (float(result['top__max']), float(result['right__max'])))
 
-    def _serialize(self, section=True, **kwargs):
+    def _serialize(self, level=True, **kwargs):
         result = super()._serialize(**kwargs)
         result['bounds'] = self.bounds
         return result

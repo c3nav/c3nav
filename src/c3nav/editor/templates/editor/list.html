@@ -1,16 +1,16 @@
 {% load bootstrap3 %}
 {% load i18n %}
 
-{% include 'editor/fragment_sections.html' %}
+{% include 'editor/fragment_levels.html' %}
 
 <a class="btn btn-default btn-sm pull-right" accesskey="n" href="{{ create_url }}">
     {% blocktrans %}New {{ model_title }}{% endblocktrans %}
 </a>
 <h3>
     {% blocktrans %}{{ model_title_plural }}{% endblocktrans %}
-    {% if section %}
-        {% with section.title as section_title %}
-            <small>{% blocktrans %}in section {{ section_title }}{% endblocktrans %}</small>
+    {% if level %}
+        {% with level.title as level_title %}
+            <small>{% blocktrans %}on level {{ level_title }}{% endblocktrans %}</small>
         {% endwith %}
     {% endif %}
     {% if space %}

@@ -12,24 +12,24 @@ from rest_framework.response import Response
 from rest_framework.viewsets import GenericViewSet, ReadOnlyModelViewSet
 
 from c3nav.mapdata.models import Building, Door, Hole, LocationGroup, Source, Space
-from c3nav.mapdata.models.geometry.section import SECTION_MODELS
+from c3nav.mapdata.models.geometry.level import LEVEL_MODELS
 from c3nav.mapdata.models.geometry.space import SPACE_MODELS, Area, Column, LineObstacle, Obstacle, Point, Stair
+from c3nav.mapdata.models.level import Level
 from c3nav.mapdata.models.locations import LOCATION_MODELS, Location, LocationRedirect, LocationSlug
-from c3nav.mapdata.models.section import Section
 
 
 class MapdataViewSet(ReadOnlyModelViewSet):
     def list(self, request, *args, **kwargs):
         qs = self.get_queryset()
         geometry = ('geometry' in request.GET)
-        if qs.model in SECTION_MODELS and 'section' in request.GET:
-            if not request.GET['section'].isdigit():
-                raise ValidationError(detail={'detail': _('%s is not an integer.') % 'section'})
+        if qs.model in LEVEL_MODELS and 'level' in request.GET:
+            if not request.GET['level'].isdigit():
+                raise ValidationError(detail={'detail': _('%s is not an integer.') % 'level'})
             try:
-                section = Section.objects.get(pk=request.GET['section'])
-            except Section.DoesNotExist:
-                raise NotFound(detail=_('section not found.'))
-            qs = qs.filter(section=section)
+                level = Level.objects.get(pk=request.GET['level'])
+            except Level.DoesNotExist:
+                raise NotFound(detail=_('level not found.'))
+            qs = qs.filter(level=level)
         if qs.model in SPACE_MODELS and 'space' in request.GET:
             if not request.GET['space'].isdigit():
                 raise ValidationError(detail={'detail': _('%s is not an integer.') % 'space'})
@@ -38,17 +38,17 @@ class MapdataViewSet(ReadOnlyModelViewSet):
             except Space.DoesNotExist:
                 raise NotFound(detail=_('space not found.'))
             qs = qs.filter(space=space)
-        if qs.model == Section and 'on_top_of' in request.GET:
+        if qs.model == Level and 'on_top_of' in request.GET:
             if request.GET['on_top_of'] == 'null':
                 qs = qs.filter(on_top_of__isnull=False)
             else:
                 if not request.GET['on_top_of'].isdigit():
                     raise ValidationError(detail={'detail': _('%s is not null or an integer.') % 'on_top_of'})
                 try:
-                    section = Section.objects.get(pk=request.GET['on_top_of'])
-                except Section.DoesNotExist:
-                    raise NotFound(detail=_('section not found.'))
-                qs = qs.filter(on_top_of=section)
+                    level = Level.objects.get(pk=request.GET['on_top_of'])
+                except Level.DoesNotExist:
+                    raise NotFound(detail=_('level not found.'))
+                qs = qs.filter(on_top_of=level)
         return Response([obj.serialize(geometry=geometry) for obj in qs.order_by('id')])
 
     def retrieve(self, request, *args, **kwargs):
@@ -61,28 +61,28 @@ class MapdataViewSet(ReadOnlyModelViewSet):
         ])
 
 
-class SectionViewSet(MapdataViewSet):
+class LevelViewSet(MapdataViewSet):
     """ Add ?on_top_of=null or ?on_top_of=<id> to filter by on_top_of. """
-    queryset = Section.objects.all()
+    queryset = Level.objects.all()
 
     @list_route(methods=['get'])
     def geometrytypes(self, request):
-        return self.list_types(SECTION_MODELS)
+        return self.list_types(LEVEL_MODELS)
 
     @detail_route(methods=['get'])
     def svg(self, requests, pk=None):
-        section = self.get_object()
-        response = HttpResponse(section.render_svg(), 'image/svg+xml')
+        level = self.get_object()
+        response = HttpResponse(level.render_svg(), 'image/svg+xml')
         return response
 
 
 class BuildingViewSet(MapdataViewSet):
-    """ Add ?geometry=1 to get geometries, add ?section=<id> to filter by section. """
+    """ Add ?geometry=1 to get geometries, add ?level=<id> to filter by level. """
     queryset = Building.objects.all()
 
 
 class SpaceViewSet(MapdataViewSet):
-    """ Add ?geometry=1 to get geometries, add ?section=<id> to filter by section. """
+    """ Add ?geometry=1 to get geometries, add ?level=<id> to filter by level. """
     queryset = Space.objects.all()
 
     @list_route(methods=['get'])
@@ -91,7 +91,7 @@ class SpaceViewSet(MapdataViewSet):
 
 
 class DoorViewSet(MapdataViewSet):
-    """ Add ?geometry=1 to get geometries, add ?section=<id> to filter by section. """
+    """ Add ?geometry=1 to get geometries, add ?level=<id> to filter by level. """
     queryset = Door.objects.all()
 
 

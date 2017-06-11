@@ -1,15 +1,15 @@
 {% load bootstrap3 %}
 {% load i18n %}
 
-<a class="btn btn-default btn-sm pull-right" accesskey="n" href="{% url 'editor.sections.create' %}">
-    {% trans 'Section' as model_title %}
+<a class="btn btn-default btn-sm pull-right" accesskey="n" href="{% url 'editor.levels.create' %}">
+    {% trans 'Level' as model_title %}
     {% blocktrans %}New {{ model_title }}{% endblocktrans %}
 </a>
-<h3>{% trans 'Sections' %}</h3>
+<h3>{% trans 'Level' %}</h3>
 <div class="list-group">
-    {% for s in sections %}
-        <a href="{% url 'editor.sections.detail' pk=s.pk %}" class="list-group-item">
-            {{ s.title }}
+    {% for l in levels %}
+        <a href="{% url 'editor.levels.detail' pk=l.pk %}" class="list-group-item">
+            {{ l.title }}
         </a>
     {% endfor %}
 </div>

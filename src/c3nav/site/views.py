@@ -8,7 +8,7 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.utils import timezone
 
-from c3nav.mapdata.models.section import Section
+from c3nav.mapdata.models.level import Level
 
 ctype_mapping = {
     'yes': ('up', 'down'),
@@ -232,7 +232,7 @@ def main(request, location=None, origin=None, destination=None):
 
 
 def map_image(request, area, level):
-    level = get_object_or_404(Section, name=level, intermediate=False)
+    level = get_object_or_404(Level, name=level, intermediate=False)
     if area == ':base':
         img = get_render_path('png', level.name, 'full', True)
     elif area == ':full':

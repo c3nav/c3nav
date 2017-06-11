@@ -13,8 +13,8 @@ LOCATION_MODELS = []
 
 class LocationSlug(SerializableMixin, models.Model):
     LOCATION_TYPE_CODES = {
-        'Section': 'se',
-        'Space': 'sp',
+        'Level': 'l',
+        'Space': 's',
         'Area': 'a',
         'Point': 'p',
         'LocationGroup': 'g'

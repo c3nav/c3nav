@@ -7,19 +7,19 @@ from rest_framework.response import Response
 from rest_framework.viewsets import ViewSet
 from shapely.ops import cascaded_union
 
-from c3nav.mapdata.models import Section, Space
+from c3nav.mapdata.models import Level, Space
 
 
 class EditorViewSet(ViewSet):
     """
     Editor API
-    /geometries/ returns a list of geojson features, you have to specify ?section=<id> or ?space=<id>
+    /geometries/ returns a list of geojson features, you have to specify ?level=<id> or ?space=<id>
     /geometrystyles/ returns styling information for all geometry types
     """
-    def _get_section_geometries(self, section: Section):
-        buildings = section.buildings.all()
+    def _get_level_geometries(self, level: Level):
+        buildings = level.buildings.all()
         buildings_geom = cascaded_union([building.geometry for building in buildings])
-        spaces = {space.id: space for space in section.spaces.all()}
+        spaces = {space.id: space for space in level.spaces.all()}
         holes_geom = []
         for space in spaces.values():
             if space.outside:
@@ -38,66 +38,66 @@ class EditorViewSet(ViewSet):
 
         results = []
         results.extend(buildings)
-        for door in section.doors.all():
+        for door in level.doors.all():
             results.append(door)
 
         results.extend(spaces.values())
         return results
 
-    def _get_sections_pk(self, section):
-        sections_under = ()
-        sections_on_top = ()
-        lower_section = section.lower().first()
-        primary_sections = (section,) + ((lower_section,) if lower_section else ())
-        secondary_sections = Section.objects.filter(on_top_of__in=primary_sections).values_list('pk', 'on_top_of')
-        if lower_section:
-            sections_under = tuple(pk for pk, on_top_of in secondary_sections if on_top_of == lower_section.pk)
+    def _get_levels_pk(self, level):
+        levels_under = ()
+        levels_on_top = ()
+        lower_level = level.lower().first()
+        primary_levels = (level,) + ((lower_level,) if lower_level else ())
+        secondary_levels = Level.objects.filter(on_top_of__in=primary_levels).values_list('pk', 'on_top_of')
+        if lower_level:
+            levels_under = tuple(pk for pk, on_top_of in secondary_levels if on_top_of == lower_level.pk)
         if True:
-            sections_on_top = tuple(pk for pk, on_top_of in secondary_sections if on_top_of == section.pk)
-        sections = chain([section.pk], sections_under, sections_on_top)
-        return sections, sections_on_top, sections_under
+            levels_on_top = tuple(pk for pk, on_top_of in secondary_levels if on_top_of == level.pk)
+        levels = chain([level.pk], levels_under, levels_on_top)
+        return levels, levels_on_top, levels_under
 
     @list_route(methods=['get'])
     def geometries(self, request, *args, **kwargs):
-        section = request.GET.get('section')
+        level = request.GET.get('level')
         space = request.GET.get('space')
-        if section is not None:
+        if level is not None:
             if space is not None:
-                raise ValidationError('Only section or space can be specified.')
-            section = get_object_or_404(Section, pk=section)
+                raise ValidationError('Only level or space can be specified.')
+            level = get_object_or_404(Level, pk=level)
 
-            sections, sections_on_top, sections_under = self._get_sections_pk(section)
-            sections = Section.objects.filter(pk__in=sections).prefetch_related('buildings', 'spaces', 'doors',
-                                                                                'spaces__groups', 'spaces__holes',
-                                                                                'spaces__columns')
-            sections = {s.pk: s for s in sections}
+            levels, levels_on_top, levels_under = self._get_levels_pk(level)
+            levels = Level.objects.filter(pk__in=levels).prefetch_related('buildings', 'spaces', 'doors',
+                                                                          'spaces__groups', 'spaces__holes',
+                                                                          'spaces__columns')
+            levels = {s.pk: s for s in levels}
 
-            section = sections[section.pk]
-            sections_under = [sections[pk] for pk in sections_under]
-            sections_on_top = [sections[pk] for pk in sections_on_top]
+            level = levels[level.pk]
+            levels_under = [levels[pk] for pk in levels_under]
+            levels_on_top = [levels[pk] for pk in levels_on_top]
 
             results = chain(
-                *(self._get_section_geometries(s) for s in sections_under),
-                self._get_section_geometries(section),
-                *(self._get_section_geometries(s) for s in sections_on_top)
+                *(self._get_level_geometries(s) for s in levels_under),
+                self._get_level_geometries(level),
+                *(self._get_level_geometries(s) for s in levels_on_top)
             )
 
             return Response([obj.to_geojson() for obj in results])
         elif space is not None:
-            space = get_object_or_404(Space.objects.select_related('section', 'section__on_top_of'), pk=space)
-            section = space.section
+            space = get_object_or_404(Space.objects.select_related('level', 'level__on_top_of'), pk=space)
+            level = space.level
 
-            doors = [door for door in section.doors.all() if door.geometry.intersects(space.geometry)]
+            doors = [door for door in level.doors.all() if door.geometry.intersects(space.geometry)]
             doors_space_geom = cascaded_union([door.geometry for door in doors]+[space.geometry])
 
-            sections, sections_on_top, sections_under = self._get_sections_pk(section.primary_section)
-            other_spaces = Space.objects.filter(section__pk__in=sections).prefetch_related('groups')
+            levels, levels_on_top, levels_under = self._get_levels_pk(level.primary_level)
+            other_spaces = Space.objects.filter(level__pk__in=levels).prefetch_related('groups')
             other_spaces = [s for s in other_spaces
                             if s.geometry.intersects(doors_space_geom) and s.pk != space.pk]
 
             space.bounds = True
 
-            buildings = section.buildings.all()
+            buildings = level.buildings.all()
             buildings_geom = cascaded_union([building.geometry for building in buildings])
             for other_space in other_spaces:
                 if other_space.outside:
@@ -122,7 +122,7 @@ class EditorViewSet(ViewSet):
             )
             return Response(sum([self._get_geojsons(obj) for obj in results], ()))
         else:
-            raise ValidationError('No section or space specified.')
+            raise ValidationError('No level or space specified.')
 
     def _get_geojsons(self, obj):
         return ((obj.to_shadow_geojson(),) if hasattr(obj, 'to_shadow_geojson') else ()) + (obj.to_geojson(),)

@@ -1,7 +1,7 @@
 {% load bootstrap3 %}
 {% load i18n %}
 
-{% include 'editor/fragment_sections.html' %}
+{% include 'editor/fragment_levels.html' %}
 
 <h3>
     {% if new %}
@@ -10,8 +10,8 @@
         {% blocktrans %}Edit {{ model_title }}{% endblocktrans %}
     {% endif %}
     {% if on_top_of %}
-        {% with on_top_of.title as on_top_of_section_title %}
-            <small>{% blocktrans %}on top of {{ on_top_of_section_title }}{% endblocktrans %}</small>
+        {% with on_top_of.title as on_top_of_level_title %}
+            <small>{% blocktrans %}on top of {{ on_top_of_level_title }}{% endblocktrans %}</small>
         {% endwith %}
     {% endif %}
 </h3>

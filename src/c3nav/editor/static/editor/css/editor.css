@@ -110,7 +110,7 @@ legend {
     right: 8px;
     top: 8px;
 }
-[data-sections], [data-subsections] {
+[data-levels], [data-sublevels] {
     display:none;
 }
 form button.invisiblesubmit {
@@ -211,47 +211,47 @@ form button.invisiblesubmit {
 }
 
 
-/* leaftlet sections control */
-.leaflet-control-sections {
+/* leaftlet levels control */
+.leaflet-control-levels {
     overflow:hidden;
 }
-.leaflet-control-subsections {
+.leaflet-control-sublevels {
     position:absolute;
 }
-.leaflet-control-sections a, .leaflet-control-sections a:hover {
+.leaflet-control-levels a, .leaflet-control-levels a:hover {
     width: auto;
     font-size: 14px;
     padding: 0 7px;
     white-space: nowrap;
 }
-.leaflet-touch .leaflet-control-sections a, .leaflet-touch .leaflet-control-sections a:hover {
+.leaflet-touch .leaflet-control-levels a, .leaflet-touch .leaflet-control-levels a:hover {
     width: auto;
     height:36px;
     line-height:37px;
     font-size: 14px;
     padding: 0 12px;
 }
-.leaflet-control-sections a, .leaflet-control-sections a:hover {
+.leaflet-control-levels a, .leaflet-control-levels a:hover {
     opacity:0;
     margin-top:-26px;
 }
-.leaflet-touch .leaflet-control-sections a, .leaflet-touch .leaflet-control-sections a:hover {
+.leaflet-touch .leaflet-control-levels a, .leaflet-touch .leaflet-control-levels a:hover {
     margin-top:-36px;
 }
-.leaflet-control-sections a.current, .leaflet-control-sections-expanded a, .leaflet-control-sections-expanded a:hover,
-.leaflet-touch .leaflet-control-sections a.current, .leaflet-touch .leaflet-control-sections-expanded a,
-.leaflet-touch .leaflet-control-sections-expanded a:hover {
+.leaflet-control-levels a.current, .leaflet-control-levels-expanded a, .leaflet-control-levels-expanded a:hover,
+.leaflet-touch .leaflet-control-levels a.current, .leaflet-touch .leaflet-control-levels-expanded a,
+.leaflet-touch .leaflet-control-levels-expanded a:hover {
     opacity:1;
     margin-top:0;
 }
-.leaflet-control-sections:not(.leaflet-control-sections-expanded) a.current {
+.leaflet-control-levels:not(.leaflet-control-levels-expanded) a.current {
     border-radius:4px;
     border-width:0;
 }
-.leaflet-control-sections a.current {
+.leaflet-control-levels a.current {
     font-weight:bold;
 }
-.leaflet-control-sections .leaflet-disabled.current {
+.leaflet-control-levels .leaflet-disabled.current {
     color:#000000;
     background-color:#ffffff;
 }

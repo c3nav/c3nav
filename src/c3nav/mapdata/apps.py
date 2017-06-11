@@ -33,8 +33,8 @@ class MapdataConfig(AppConfig):
         from c3nav.mapdata.models.locations import Location, LOCATION_MODELS
         LOCATION_MODELS.extend(self._get_submodels(Location))
 
-        from c3nav.mapdata.models.geometry.section import SectionGeometryMixin, SECTION_MODELS
-        SECTION_MODELS.extend(self._get_submodels(SectionGeometryMixin))
+        from c3nav.mapdata.models.geometry.level import LevelGeometryMixin, LEVEL_MODELS
+        LEVEL_MODELS.extend(self._get_submodels(LevelGeometryMixin))
 
         from c3nav.mapdata.models.geometry.space import SpaceGeometryMixin, SPACE_MODELS
         SPACE_MODELS.extend(self._get_submodels(SpaceGeometryMixin))

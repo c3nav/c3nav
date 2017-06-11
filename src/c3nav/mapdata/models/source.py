@@ -20,7 +20,7 @@ class Source(EditorFormMixin, BoundsMixin, models.Model):
     def title(self):
         return self.name
 
-    def _serialize(self, section=True, **kwargs):
+    def _serialize(self, level=True, **kwargs):
         result = super()._serialize(**kwargs)
         result['name'] = self.name
         return result

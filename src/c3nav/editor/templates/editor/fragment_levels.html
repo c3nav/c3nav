@@ -1,0 +1,26 @@
+{% if levels %}
+    <ul data-levels>
+        {% for l in levels %}
+            <li>
+                <a data-id="{{ l.pk }}" href="{% if level_as_pk %}{% url level_url pk=l.id %}{% else %}{% url level_url level=l.id %}{% endif %}"{% if level.primary_level == l %} class="current"{% endif %}>{{ l.title }}</a>
+            </li>
+        {% endfor %}
+    </ul>
+    <ul data-sublevels>
+        {% for l in level.primary_level.sublevels %}
+            <li>
+                <a data-id="{{ l.pk }}" href="{% if level_as_pk %}{% url level_url pk=l.id %}{% else %}{% url level_url level=l.id %}{% endif %}"{% if level == l %} class="current"{% endif %}>{{ l.sublevel_title }}</a>
+            </li>
+        {% endfor %}
+    </ul>
+{% elif level %}
+    <ul data-levels>
+        <li><a data-id="{{ level.primary_level.pk }}" href="" class="current">{{ level.primary_level.title }}</a></li>
+    </ul>
+    <ul data-sublevels>
+        <li><a data-id="{{ level.pk }}" href="" class="current">{{ level.sublevel_title }}</a></li>
+    </ul>
+{% endif %}
+{% if geometry_url %}
+     <span data-geometry-url="{{ geometry_url }}"></span>
+{% endif %}

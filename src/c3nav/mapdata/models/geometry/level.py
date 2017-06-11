@@ -5,18 +5,18 @@ from c3nav.mapdata.fields import GeometryField
 from c3nav.mapdata.models.geometry.base import GeometryMixin
 from c3nav.mapdata.models.locations import SpecificLocation
 
-SECTION_MODELS = []
+LEVEL_MODELS = []
 
 
-class SectionGeometryMixin(GeometryMixin):
-    section = models.ForeignKey('mapdata.Section', on_delete=models.CASCADE, verbose_name=_('section'))
+class LevelGeometryMixin(GeometryMixin):
+    level = models.ForeignKey('mapdata.Level', on_delete=models.CASCADE, verbose_name=_('level'))
 
     class Meta:
         abstract = True
 
     def get_geojson_properties(self) -> dict:
         result = super().get_geojson_properties()
-        result['section'] = self.section_id
+        result['level'] = self.level_id
         if hasattr(self, 'get_color'):
             color = self.get_color()
             if color:
@@ -25,14 +25,14 @@ class SectionGeometryMixin(GeometryMixin):
             result['opacity'] = self.opacity
         return result
 
-    def _serialize(self, section=True, **kwargs):
+    def _serialize(self, level=True, **kwargs):
         result = super()._serialize(**kwargs)
-        if section:
-            result['section'] = self.section.id
+        if level:
+            result['level'] = self.level_id
         return result
 
 
-class Building(SectionGeometryMixin, models.Model):
+class Building(LevelGeometryMixin, models.Model):
     """
     The outline of a building on a specific level
     """
@@ -44,9 +44,9 @@ class Building(SectionGeometryMixin, models.Model):
         default_related_name = 'buildings'
 
 
-class Space(SpecificLocation, SectionGeometryMixin, models.Model):
+class Space(SpecificLocation, LevelGeometryMixin, models.Model):
     """
-    An accessible space. Shouldn't overlap with spaces on same section.
+    An accessible space. Shouldn't overlap with spaces on the same level.
     """
     CATEGORIES = (
         ('normal', _('normal')),
@@ -81,7 +81,7 @@ class Space(SpecificLocation, SectionGeometryMixin, models.Model):
         return color
 
 
-class Door(SectionGeometryMixin, models.Model):
+class Door(LevelGeometryMixin, models.Model):
     """
     A connection between two spaces
     """

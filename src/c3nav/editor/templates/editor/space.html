@@ -1,14 +1,14 @@
 {% load bootstrap3 %}
 {% load i18n %}
-{% include 'editor/fragment_sections.html' %}
+{% include 'editor/fragment_levels.html' %}
 
-<a class="btn btn-default btn-sm pull-right" accesskey="e" href="{% url 'editor.spaces.edit' section=space.section.pk pk=space.pk %}">
+<a class="btn btn-default btn-sm pull-right" accesskey="e" href="{% url 'editor.spaces.edit' level=space.level.pk pk=space.pk %}">
     {% trans 'Space' as model_title %}
     {% blocktrans %}Edit {{ model_title }}{% endblocktrans %}
 </a>
 <h3>{{ space.title }}</h3>
 <p>
-    <a href="{% url 'editor.spaces.list' section=space.section.pk %}">&laquo; {% trans 'back to overview' %}</a>
+    <a href="{% url 'editor.spaces.list' level=space.level.pk %}">&laquo; {% trans 'back to overview' %}</a>
 </p>
 
 {% include 'editor/fragment_child_models.html' %}

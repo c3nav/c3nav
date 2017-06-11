@@ -38,11 +38,11 @@ editor = {
             $('body').removeClass('show-map');
         });
 
-        editor._section_control = new SectionControl().addTo(editor.map);
-        editor._subsection_control = new SectionControl({addClasses: 'leaflet-control-subsections'}).addTo(editor.map);
+        editor._level_control = new LevelControl().addTo(editor.map);
+        editor._sublevel_control = new LevelControl({addClasses: 'leaflet-control-sublevels'}).addTo(editor.map);
 
-        editor._section_control_container = $(editor._section_control._container);
-        editor._subsection_control_container = $(editor._subsection_control._container);
+        editor._level_control_container = $(editor._level_control._container);
+        editor._sublevel_control_container = $(editor._sublevel_control._container);
 
         editor.init_geometries();
     },
@@ -105,30 +105,30 @@ editor = {
     },
     _sidebar_unload: function() {
         // unload the sidebar. called on sidebar_get and form submit.
-        editor._section_control.disable();
-        editor._subsection_control.disable();
+        editor._level_control.disable();
+        editor._sublevel_control.disable();
         $('#sidebar').addClass('loading').find('.content').html('');
         editor._cancel_editing();
     },
-    _fill_section_control: function (section_control, section_list) {
-        var sections = section_list.find('a');
-        if (sections.length) {
+    _fill_level_control: function (level_control, level_list) {
+        var levels = level_list.find('a');
+        if (levels.length) {
             var current;
-            for (var i = 0; i < sections.length; i++) {
-                var section = $(sections[i]);
-                section_control.addSection(section.attr('data-id'), section.text(), section.attr('href'), section.is('.current'));
+            for (var i = 0; i < levels.length; i++) {
+                var level = $(levels[i]);
+                level_control.addLevel(level.attr('data-id'), level.text(), level.attr('href'), level.is('.current'));
 
             }
-            if (sections.length > 1) {
-                section_control.enable();
+            if (levels.length > 1) {
+                level_control.enable();
             } else {
-                section_control.disable();
+                level_control.disable();
             }
-            section_control.show()
+            level_control.show()
         } else {
-            section_control.hide();
+            level_control.hide();
         }
-        section_control.current_id = parseInt(section_list.attr('data-current-id'));
+        level_control.current_id = parseInt(level_list.attr('data-current-id'));
     },
     _sidebar_loaded: function(data) {
         // sidebar was loaded. load the content. check if there are any redirects. call _check_start_editing.
@@ -157,28 +157,28 @@ editor = {
                 (editing_id.length ? editing_id.attr('data-editing') : null)
             );
             $('body').addClass('map-enabled');
-            editor._section_control.clearSections();
-            editor._subsection_control.clearSections();
+            editor._level_control.clearLevels();
+            editor._sublevel_control.clearLevels();
 
-            editor._fill_section_control(editor._section_control, content.find('[data-sections]'));
-            editor._fill_section_control(editor._subsection_control, content.find('[data-subsections]'));
+            editor._fill_level_control(editor._level_control, content.find('[data-levels]'));
+            editor._fill_level_control(editor._sublevel_control, content.find('[data-sublevels]'));
 
-            var section_control_offset = $(editor._section_control_container).position();
-            var offset_parent = $(editor._section_control_container).offsetParent();
-            $(editor._subsection_control._container).css({
-                bottom: offset_parent.height()-section_control_offset.top-editor._section_control_container.height()-parseInt(editor._section_control_container.css('margin-bottom')),
-                right: offset_parent.width()-section_control_offset.left
+            var level_control_offset = $(editor._level_control_container).position();
+            var offset_parent = $(editor._level_control_container).offsetParent();
+            $(editor._sublevel_control._container).css({
+                bottom: offset_parent.height()-level_control_offset.top-editor._level_control_container.height()-parseInt(editor._level_control_container.css('margin-bottom')),
+                right: offset_parent.width()-level_control_offset.left
             });
         } else {
             $('body').removeClass('map-enabled').removeClass('show-map');
-            editor._section_control.hide();
-            editor._subsection_control.hide();
+            editor._level_control.hide();
+            editor._sublevel_control.hide();
         }
     },
     _sidebar_error: function(data) {
         $('#sidebar').removeClass('loading').find('.content').html('<h3>Error '+data.status+'</h3>'+data.statusText);
-        editor._section_control.hide();
-        editor._subsection_control.hide();
+        editor._level_control.hide();
+        editor._sublevel_control.hide();
     },
     _sidebar_link_click: function(e) {
         // listener for link-clicks in the sidebar.
@@ -314,14 +314,14 @@ editor = {
     _get_geometry_style: function (feature) {
         // style callback for GeoJSON loader
         var style = editor._get_mapitem_type_style(feature.properties.type);
-        if (editor._section_control.current_section_id === editor._subsection_control.current_section_id) {
-            if (editor._subsection_control.section_ids.indexOf(feature.properties.section) >= 0 && editor._section_control.current_section_id !== feature.properties.section) {
+        if (editor._level_control.current_level_id === editor._sublevel_control.current_level_id) {
+            if (editor._sublevel_control.level_ids.indexOf(feature.properties.level) >= 0 && editor._level_control.current_level_id !== feature.properties.level) {
                 style.stroke = true;
                 style.weight = 1;
                 style.color = '#ffffff';
             }
         } else {
-            if (editor._subsection_control.current_section_id !== feature.properties.section) {
+            if (editor._sublevel_control.current_level_id !== feature.properties.level) {
                 style.fillOpacity = 0.5;
             }
         }
@@ -529,18 +529,18 @@ editor = {
 };
 
 
-SectionControl = L.Control.extend({
+LevelControl = L.Control.extend({
     options: {
 		position: 'bottomright',
         addClasses: ''
 	},
 
 	onAdd: function () {
-		this._container = L.DomUtil.create('div', 'leaflet-control-sections leaflet-bar '+this.options.addClasses);
-		this._sectionButtons = [];
+		this._container = L.DomUtil.create('div', 'leaflet-control-levels leaflet-bar '+this.options.addClasses);
+		this._levelButtons = [];
 		//noinspection JSUnusedGlobalSymbols
-        this.current_section_id = null;
-		this.section_ids = [];
+        this.current_level_id = null;
+		this.level_ids = [];
 		this._disabled = true;
 		this._expanded = false;
 		this.hide();
@@ -561,9 +561,9 @@ SectionControl = L.Control.extend({
 		return this._container;
 	},
 
-	addSection: function (id, title, href, current) {
-        this.section_ids.push(parseInt(id));
-		if (current) this.current_section_id = parseInt(id);
+	addLevel: function (id, title, href, current) {
+        this.level_ids.push(parseInt(id));
+		if (current) this.current_level_id = parseInt(id);
 
 		var link = L.DomUtil.create('a', (current ? 'current' : ''), this._container);
 		link.innerHTML = title;
@@ -571,32 +571,32 @@ SectionControl = L.Control.extend({
 
 		L.DomEvent
 		    .on(link, 'mousedown dblclick', L.DomEvent.stopPropagation)
-		    .on(link, 'click', this._sectionClick, this);
+		    .on(link, 'click', this._levelClick, this);
 
-        this._sectionButtons.push(link);
+        this._levelButtons.push(link);
 		return link;
 	},
 
-    clearSections: function() {
-        this.current_section_id = null;
-		this.section_ids = [];
-        for (var i = 0; i < this._sectionButtons.length; i++) {
-            L.DomUtil.remove(this._sectionButtons[i]);
+    clearLevels: function() {
+        this.current_level_id = null;
+		this.level_ids = [];
+        for (var i = 0; i < this._levelButtons.length; i++) {
+            L.DomUtil.remove(this._levelButtons[i]);
         }
-        this._sectionButtons = [];
+        this._levelButtons = [];
     },
 
     disable: function () {
-        for (var i = 0; i < this._sectionButtons.length; i++) {
-            L.DomUtil.addClass(this._sectionButtons[i], 'leaflet-disabled');
+        for (var i = 0; i < this._levelButtons.length; i++) {
+            L.DomUtil.addClass(this._levelButtons[i], 'leaflet-disabled');
         }
         this.collapse();
         this._disabled = true;
     },
 
     enable: function () {
-        for (var i = 0; i < this._sectionButtons.length; i++) {
-            L.DomUtil.removeClass(this._sectionButtons[i], 'leaflet-disabled');
+        for (var i = 0; i < this._levelButtons.length; i++) {
+            L.DomUtil.removeClass(this._levelButtons[i], 'leaflet-disabled');
         }
         this._disabled = false;
     },
@@ -609,7 +609,7 @@ SectionControl = L.Control.extend({
         this._container.style.display = '';
     },
 
-    _sectionClick: function (e) {
+    _levelClick: function (e) {
         e.preventDefault();
         e.stopPropagation();
         if (!this._expanded) {
@@ -625,13 +625,13 @@ SectionControl = L.Control.extend({
     expand: function () {
         if (this._disabled) return;
         this._expanded = true;
-		L.DomUtil.addClass(this._container, 'leaflet-control-sections-expanded');
+		L.DomUtil.addClass(this._container, 'leaflet-control-levels-expanded');
 		return this;
 	},
 
 	collapse: function () {
         this._expanded = false;
-		L.DomUtil.removeClass(this._container, 'leaflet-control-sections-expanded');
+		L.DomUtil.removeClass(this._container, 'leaflet-control-levels-expanded');
 		return this;
 	}
 });

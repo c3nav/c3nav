@@ -1,0 +1,42 @@
+{% load bootstrap3 %}
+{% load i18n %}
+{% include 'editor/fragment_levels.html' %}
+
+<a class="btn btn-default btn-sm pull-right" accesskey="e" href="{% url 'editor.levels.edit' pk=level.pk %}">
+    {% trans 'Level' as model_title %}
+    {% blocktrans %}Edit {{ model_title }}{% endblocktrans %}
+</a>
+<h3>
+<h3>
+    {{ level.title }}
+    {% if level.on_top_of != None %}
+        {% with level.on_top_of.title as on_top_of_level_title %}
+            <small>{% blocktrans %}on top of {{ on_top_of_level_title }}{% endblocktrans %}</small>
+        {% endwith %}
+    {% endif %}
+</h3>
+<p>
+    {% if level.on_top_of == None %}
+        <a href="{% url 'editor.index' %}">&laquo; {% trans 'back to overview' %}</a>
+    {% else %}
+        <a href="{% url 'editor.levels.detail' pk=level.on_top_of.pk %}">&laquo; {% trans 'back to parent level' %}</a>
+    {% endif %}
+</p>
+
+{% include 'editor/fragment_child_models.html' %}
+
+<div class="clearfix"></div>
+
+{% if level.on_top_of == None %}
+<a class="btn btn-default btn-sm pull-right" accesskey="n" href="{% url 'editor.levels_on_top.create' on_top_of=level.pk %}">
+    {% blocktrans %}New {{ model_title }}{% endblocktrans %}
+</a>
+<h3>{% trans 'Levels on top' %}</h3>
+<div class="list-group">
+{% for l in levels_on_top %}
+    <a href="{% url 'editor.levels.detail' pk=l.pk %}" class="list-group-item">
+        {{ l.title }}
+    </a>
+{% endfor %}
+</div>
+{% endif %}

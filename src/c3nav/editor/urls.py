@@ -1,7 +1,7 @@
 from django.apps import apps
 from django.conf.urls import url
 
-from c3nav.editor.views import edit, list_objects, main_index, section_detail, space_detail
+from c3nav.editor.views import edit, level_detail, list_objects, main_index, space_detail
 
 
 def add_editor_urls(model_name, parent_model_name=None, with_list=True, explicit_edit=False):
@@ -30,17 +30,17 @@ def add_editor_urls(model_name, parent_model_name=None, with_list=True, explicit
 
 urlpatterns = [
     url(r'^$', main_index, name='editor.index'),
-    url(r'^sections/(?P<pk>[0-9]+)/$', section_detail, name='editor.sections.detail'),
-    url(r'^sections/(?P<section>[0-9]+)/spaces/(?P<pk>[0-9]+)/$', space_detail, name='editor.spaces.detail'),
-    url(r'^sections/(?P<on_top_of>[0-9]+)/sections_on_top/create$', edit, name='editor.sections_on_top.create',
-        kwargs={'model': 'Section'}),
+    url(r'^levels/(?P<pk>[0-9]+)/$', level_detail, name='editor.levels.detail'),
+    url(r'^levels/(?P<level>[0-9]+)/spaces/(?P<pk>[0-9]+)/$', space_detail, name='editor.spaces.detail'),
+    url(r'^levels/(?P<on_top_of>[0-9]+)/levels_on_top/create$', edit, name='editor.levels_on_top.create',
+        kwargs={'model': 'Level'}),
 ]
-urlpatterns.extend(add_editor_urls('Section', with_list=False, explicit_edit=True))
+urlpatterns.extend(add_editor_urls('Level', with_list=False, explicit_edit=True))
 urlpatterns.extend(add_editor_urls('LocationGroup'))
 urlpatterns.extend(add_editor_urls('Source'))
-urlpatterns.extend(add_editor_urls('Building', 'Section'))
-urlpatterns.extend(add_editor_urls('Space', 'Section', explicit_edit=True))
-urlpatterns.extend(add_editor_urls('Door', 'Section'))
+urlpatterns.extend(add_editor_urls('Building', 'Level'))
+urlpatterns.extend(add_editor_urls('Space', 'Level', explicit_edit=True))
+urlpatterns.extend(add_editor_urls('Door', 'Level'))
 urlpatterns.extend(add_editor_urls('Hole', 'Space'))
 urlpatterns.extend(add_editor_urls('Area', 'Space'))
 urlpatterns.extend(add_editor_urls('Stair', 'Space'))
