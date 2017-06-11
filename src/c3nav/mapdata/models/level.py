@@ -29,12 +29,12 @@ class Level(SpecificLocation, EditorFormMixin, models.Model):
         super().__init__(*args, **kwargs)
 
     def lower(self):
-        if self.on_top_of is not None:
+        if self.on_top_of_id is not None:
             raise TypeError
         return Level.objects.filter(altitude__lt=self.altitude, on_top_of__isnull=True).order_by('-altitude')
 
     def higher(self):
-        if self.on_top_of is not None:
+        if self.on_top_of_id is not None:
             raise TypeError
         return Level.objects.filter(altitude__gt=self.altitude, on_top_of__isnull=True).order_by('altitude')
 

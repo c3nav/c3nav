@@ -49,7 +49,7 @@ def main_index(request):
 
 @sidebar_view
 def level_detail(request, pk):
-    level = get_object_or_404(Level.objects.select_related('on_top_of'), pk=pk)
+    level = get_object_or_404(Level.objects.select_related('on_top_of').prefetch_related('levels_on_top'), pk=pk)
 
     return render(request, 'editor/level.html', {
         'levels': Level.objects.filter(on_top_of__isnull=True),
@@ -66,7 +66,7 @@ def level_detail(request, pk):
 
 @sidebar_view
 def space_detail(request, level, pk):
-    space = get_object_or_404(Space, level__id=level, pk=pk)
+    space = get_object_or_404(Space.objects.select_related('level'), level__id=level, pk=pk)
 
     return render(request, 'editor/space.html', {
         'level': space.level,
@@ -87,11 +87,14 @@ def edit(request, pk=None, model=None, level=None, space=None, on_top_of=None, e
     if pk is not None:
         # Edit existing map item
         kwargs = {'pk': pk}
+        qs = model.objects.all()
         if level is not None:
             kwargs.update({'level__id': level})
+            qs = qs.select_related('level')
         elif space is not None:
             kwargs.update({'space__id': space})
-        obj = get_object_or_404(model, **kwargs)
+            qs = qs.select_related('space')
+        obj = get_object_or_404(qs, **kwargs)
         if False:  # todo can access
             raise PermissionDenied
     elif level is not None:
@@ -268,7 +271,7 @@ def list_objects(request, model=None, level=None, space=None, explicit_edit=Fals
         })
     elif space is not None:
         reverse_kwargs['space'] = space
-        space = get_object_or_404(Space, pk=space)
+        space = get_object_or_404(Space.objects.select_related('level'), pk=space)
         queryset = queryset.filter(space=space)
         ctx.update({
             'level': space.level,
