@@ -24,8 +24,6 @@ class EditorViewSet(ViewSet):
         for space in spaces.values():
             if space.outside:
                 space.geometry = space.geometry.difference(buildings_geom)
-            else:
-                space.geometry = space.geometry.intersection(buildings_geom)
             columns_geom = cascaded_union([column.geometry for column in space.columns.all()])
             space.geometry = space.geometry.difference(columns_geom)
             space_holes_geom = cascaded_union([hole.geometry for hole in space.holes.all()])
@@ -103,7 +101,6 @@ class EditorViewSet(ViewSet):
                     other_space.geometry = other_space.geometry.difference(buildings_geom)
                     other_space.color = 'rgba(255, 255, 255, 0.7)'
                 else:
-                    other_space.geometry = other_space.geometry.intersection(buildings_geom)
                     other_space.color = 'rgba(255, 255, 255, 0.3)'
 
             results = chain(

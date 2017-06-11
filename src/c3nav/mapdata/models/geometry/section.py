@@ -54,7 +54,7 @@ class Space(SpecificLocation, SectionGeometryMixin, models.Model):
     )
     geometry = GeometryField('polygon')
     category = models.CharField(verbose_name=_('category'), choices=CATEGORIES, default='normal', max_length=16)
-    outside = models.BooleanField(default=False, verbose_name=_('is outside of building'))
+    outside = models.BooleanField(default=False, verbose_name=_('only outside of building'))
 
     class Meta:
         verbose_name = _('Space')
