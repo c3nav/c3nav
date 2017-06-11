@@ -596,6 +596,7 @@ SectionControl = L.Control.extend({
             this.expand();
         } else if (!this._disabled) {
             $(e.target).addClass('current').siblings().removeClass('current');
+            editor._next_zoom = false;
             editor.sidebar_get(e.target.href);
             this.collapse();
         }
