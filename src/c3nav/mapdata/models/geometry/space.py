@@ -21,7 +21,7 @@ class SpaceGeometryMixin(GeometryMixin):
     def _serialize(self, space=True, **kwargs):
         result = super()._serialize(**kwargs)
         if space:
-            result['space'] = self.space.id
+            result['space'] = self.space_id
         return result
 
     def get_geojson_properties(self) -> dict:

@@ -1,7 +1,7 @@
 import mimetypes
 from itertools import chain
 
-from django.db.models import Q
+from django.db.models import Prefetch, Q
 from django.http import HttpResponse
 from django.shortcuts import redirect
 from django.utils.translation import ugettext_lazy as _
@@ -15,12 +15,18 @@ from c3nav.mapdata.models import Building, Door, Hole, LocationGroup, Source, Sp
 from c3nav.mapdata.models.geometry.level import LEVEL_MODELS
 from c3nav.mapdata.models.geometry.space import SPACE_MODELS, Area, Column, LineObstacle, Obstacle, Point, Stair
 from c3nav.mapdata.models.level import Level
-from c3nav.mapdata.models.locations import LOCATION_MODELS, Location, LocationRedirect, LocationSlug
+from c3nav.mapdata.models.locations import LOCATION_MODELS, Location, LocationRedirect, LocationSlug, SpecificLocation
+
+
+def optimize_query(qs):
+    if issubclass(qs.model, SpecificLocation):
+        qs = qs.prefetch_related(Prefetch('groups', queryset=LocationGroup.objects.only('id')))
+    return qs
 
 
 class MapdataViewSet(ReadOnlyModelViewSet):
     def list(self, request, *args, **kwargs):
-        qs = self.get_queryset()
+        qs = optimize_query(self.get_queryset())
         geometry = ('geometry' in request.GET)
         if qs.model in LEVEL_MODELS and 'level' in request.GET:
             if not request.GET['level'].isdigit():
@@ -145,7 +151,7 @@ class LocationViewSet(RetrieveModelMixin, GenericViewSet):
     lookup_field = 'slug'
 
     def list(self, request, *args, **kwargs):
-        queryset = sorted(chain(*(model.objects.filter(Q(can_search=True) | Q(can_describe=True))
+        queryset = sorted(chain(*(optimize_query(model.objects.filter(Q(can_search=True) | Q(can_describe=True)))
                                   for model in LOCATION_MODELS)), key=lambda obj: obj.id)
         return Response([obj.serialize(include_type=True, detailed='detailed' in request.GET) for obj in queryset])
 
@@ -171,7 +177,7 @@ class LocationViewSet(RetrieveModelMixin, GenericViewSet):
     @list_route(methods=['get'])
     def search(self, request):
         # todo: implement caching here
-        results = sorted(chain(*(model.objects.filter(can_search=True)
+        results = sorted(chain(*(optimize_query(model.objects.filter(can_search=True))
                                  for model in LOCATION_MODELS)), key=lambda obj: obj.id)
         search = request.GET.get('s')
         if not search:

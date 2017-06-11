@@ -136,7 +136,7 @@ class SpecificLocation(Location, models.Model):
 
     def _serialize(self, **kwargs):
         result = super()._serialize(**kwargs)
-        result['groups'] = list(self.groups.values_list('id', flat=True))
+        result['groups'] = list(g.pk for g in self.groups.all())
         return result
 
 
