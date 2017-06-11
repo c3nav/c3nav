@@ -7,7 +7,7 @@ from rest_framework.response import Response
 from rest_framework.viewsets import ViewSet
 from shapely.ops import cascaded_union
 
-from c3nav.mapdata.models import Area, Section, Space
+from c3nav.mapdata.models import Section, Space
 
 
 class EditorViewSet(ViewSet):
@@ -44,11 +44,6 @@ class EditorViewSet(ViewSet):
             results.append(door)
 
         results.extend(spaces.values())
-        areas = Area.objects.filter(space__in=spaces.values()).prefetch_related('groups')
-        areas = [area for area in areas if area.get_color()]
-        for area in areas:
-            area.geometry = area.geometry.intersection(spaces[area.space_id].geometry)
-        results.extend((area for area in areas if not area.geometry.is_empty))
         return results
 
     @list_route(methods=['get'])
