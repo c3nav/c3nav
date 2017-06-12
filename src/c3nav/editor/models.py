@@ -143,3 +143,8 @@ class Change(models.Model):
             for field_name in ('field_name', 'field_value'):
                 if getattr(self, field_name) is not None:
                     raise ValidationError('%s must not be set if action is create or delete.' % field_name)
+
+        def save(*args, **kwargs):
+            if self.pk is not None:
+                raise ValidationError('change objects can not be edited.')
+            super().save(*args, **kwargs)
