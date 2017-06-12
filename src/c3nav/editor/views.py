@@ -1,7 +1,6 @@
 from contextlib import suppress
 from functools import wraps
 
-from django.conf import settings
 from django.core.exceptions import FieldDoesNotExist, PermissionDenied
 from django.http import HttpResponseRedirect
 from django.shortcuts import get_object_or_404, redirect, render
@@ -188,9 +187,6 @@ def edit(request, pk=None, model=None, level=None, space=None, on_top_of=None, e
         if obj is not None and request.POST.get('delete') == '1':
             # Delete this mapitem!
             if request.POST.get('delete_confirm') == '1':
-                if not settings.DIRECT_EDITING:
-                    # todo: suggest changes
-                    raise NotImplementedError
                 obj.delete()
                 if model == Level:
                     if obj.on_top_of_id is not None:
@@ -219,10 +215,6 @@ def edit(request, pk=None, model=None, level=None, space=None, on_top_of=None, e
 
                 for slug in form.remove_redirect_slugs:
                     obj.redirects.filter(slug=slug).delete()
-
-            if not settings.DIRECT_EDITING:
-                # todo: suggest changes
-                raise NotImplementedError
 
             if level is not None:
                 obj.level = level

@@ -50,7 +50,6 @@ else:
 
 debug_fallback = "runserver" in sys.argv
 DEBUG = config.getboolean('django', 'debug', fallback=debug_fallback)
-DIRECT_EDITING = config.getboolean('c3nav', 'direct_editing', fallback=DEBUG)
 RENDER_SCALE = float(config.get('c3nav', 'render_scale', fallback=20.0))
 
 db_backend = config.get('database', 'backend', fallback='sqlite3')
