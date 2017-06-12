@@ -1,5 +1,3 @@
-from collections import Iterable
-
 from django.db import models
 from django.db.models import Manager
 
@@ -67,6 +65,8 @@ class ModelWrapper(BaseWrapper):
 
 
 class ModelInstanceWrapper(BaseWrapper):
+    _allowed_callables = ('full_clean', 'validate_unique')
+
     def __eq__(self, other):
         if type(other) == ModelWrapper:
             if type(self._obj) is not type(other._obj):  # noqa
@@ -98,6 +98,9 @@ class BaseQueryWrapper(BaseWrapper):
     def all(self):
         return self._wrap_queryset(self._obj.all())
 
+    def none(self):
+        return self._wrap_queryset(self._obj.none())
+
     def select_related(self, *args, **kwargs):
         return self._wrap_queryset(self._obj.select_related(*args, **kwargs))
 
@@ -113,8 +116,8 @@ class BaseQueryWrapper(BaseWrapper):
     def filter(self, *args, **kwargs):
         kwargs = {name: (value._obj if isinstance(value, ModelInstanceWrapper) else value)
                   for name, value in kwargs.items()}
-        kwargs = {name: ([(item._obj if isinstance(item, ModelInstanceWrapper) else item) for item in value]
-                         if isinstance(value, Iterable) else value)
+        kwargs = {name: (((item._obj if isinstance(item, ModelInstanceWrapper) else item) for item in value)
+                         if name.endswith('__in') else value)
                   for name, value in kwargs.items()}
         return self._wrap_queryset(self._obj.filter(*args, **kwargs))
 
