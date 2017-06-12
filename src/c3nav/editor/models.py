@@ -4,12 +4,13 @@ from django.apps import apps
 from django.conf import settings
 from django.core.exceptions import ObjectDoesNotExist, ValidationError
 from django.db import models
+from django.db.models import Q
 from django.utils.translation import ugettext_lazy as _
 
 
 class ChangeSet(models.Model):
-    author = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT, verbose_name=_('Author'))
     created = models.DateTimeField(auto_now_add=True, verbose_name=_('created'))
+    author = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, on_delete=models.PROTECT, verbose_name=_('Author'))
     proposed = models.DateTimeField(null=True, verbose_name=_('proposed'))
     applied = models.DateTimeField(null=True, verbose_name=_('applied'))
     applied_by = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, on_delete=models.PROTECT,
