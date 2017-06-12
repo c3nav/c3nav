@@ -7,7 +7,7 @@ from rest_framework.response import Response
 from rest_framework.viewsets import ViewSet
 from shapely.ops import cascaded_union
 
-from c3nav.mapdata.models import Level, Space
+from c3nav.editor.models import ChangeSet
 
 
 class EditorViewSet(ViewSet):
@@ -16,7 +16,7 @@ class EditorViewSet(ViewSet):
     /geometries/ returns a list of geojson features, you have to specify ?level=<id> or ?space=<id>
     /geometrystyles/ returns styling information for all geometry types
     """
-    def _get_level_geometries(self, level: Level):
+    def _get_level_geometries(self, level):
         buildings = level.buildings.all()
         buildings_geom = cascaded_union([building.geometry for building in buildings])
         spaces = {space.id: space for space in level.spaces.all()}
@@ -44,10 +44,11 @@ class EditorViewSet(ViewSet):
         results.extend(spaces.values())
         return results
 
-    def _get_levels_pk(self, level):
+    def _get_levels_pk(self, request, level):
+        Level = request.changeset.wrap('Level')
         levels_under = ()
         levels_on_top = ()
-        lower_level = level.lower().first()
+        lower_level = level.lower(Level).first()
         primary_levels = (level,) + ((lower_level,) if lower_level else ())
         secondary_levels = Level.objects.filter(on_top_of__in=primary_levels).values_list('pk', 'on_top_of')
         if lower_level:
@@ -59,6 +60,11 @@ class EditorViewSet(ViewSet):
 
     @list_route(methods=['get'])
     def geometries(self, request, *args, **kwargs):
+        request.changeset = ChangeSet.get_for_request(request)
+
+        Level = request.changeset.wrap('Level')
+        Space = request.changeset.wrap('Space')
+
         level = request.GET.get('level')
         space = request.GET.get('space')
         if level is not None:
@@ -66,7 +72,7 @@ class EditorViewSet(ViewSet):
                 raise ValidationError('Only level or space can be specified.')
             level = get_object_or_404(Level, pk=level)
 
-            levels, levels_on_top, levels_under = self._get_levels_pk(level)
+            levels, levels_on_top, levels_under = self._get_levels_pk(request, level)
             levels = Level.objects.filter(pk__in=levels).prefetch_related('buildings', 'spaces', 'doors',
                                                                           'spaces__groups', 'spaces__holes',
                                                                           'spaces__columns')
@@ -90,7 +96,7 @@ class EditorViewSet(ViewSet):
             doors = [door for door in level.doors.all() if door.geometry.intersects(space.geometry)]
             doors_space_geom = cascaded_union([door.geometry for door in doors]+[space.geometry])
 
-            levels, levels_on_top, levels_under = self._get_levels_pk(level.primary_level)
+            levels, levels_on_top, levels_under = self._get_levels_pk(request, level.primary_level)
             other_spaces = Space.objects.filter(level__pk__in=levels).prefetch_related('groups')
             other_spaces = [s for s in other_spaces
                             if s.geometry.intersects(doors_space_geom) and s.pk != space.pk]

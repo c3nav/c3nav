@@ -1,3 +1,4 @@
+from collections import Iterable
 from django.db import models
 from django.db.models import Manager
 
@@ -34,7 +35,8 @@ class BaseWrapper:
         elif isinstance(value, type) and issubclass(value, Exception):
             pass
         elif callable(value) and name not in self._allowed_callables:
-            raise TypeError('Can not call %s.%s wrapped!' % (self._obj, name))
+            if not isinstance(self, ModelInstanceWrapper) or hasattr(models.Model, name):
+                raise TypeError('Can not call %s.%s wrapped!' % (self._obj, name))
 
         # print(self._obj, name, type(value), value)
         return value
@@ -110,6 +112,9 @@ class BaseQueryWrapper(BaseWrapper):
     def filter(self, *args, **kwargs):
         kwargs = {name: (value._obj if isinstance(value, ModelInstanceWrapper) else value)
                   for name, value in kwargs.items()}
+        kwargs = {name: ([(item._obj if isinstance(item, ModelInstanceWrapper) else item) for item in value]
+                         if isinstance(value, Iterable) else value)
+                  for name, value in kwargs.items()}
         return self._wrap_queryset(self._obj.filter(*args, **kwargs))
 
     def count(self):
@@ -117,6 +122,12 @@ class BaseQueryWrapper(BaseWrapper):
 
     def values_list(self, *args, flat=False):
         return self._obj.values_list(*args, flat=flat)
+
+    def first(self):
+        first = self._obj.first()
+        if first is not None:
+            first = self._wrap_instance(first)
+        return first
 
     def __iter__(self):
         return iter([instance for instance in self._obj])
