@@ -151,3 +151,6 @@ class Change(models.Model):
             if self.changeset.proposed is not None or self.changeset.applied is not None:
                 raise TypeError('can not add change object to uneditable changeset.')
             super().save(*args, **kwargs)
+
+        def delete(self, *args, **kwargs):
+            raise TypeError('change objects can not be deleted directly.')
