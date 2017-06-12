@@ -147,7 +147,7 @@ class Change(models.Model):
         def save(self, *args, **kwargs):
             self.full_clean()
             if self.pk is not None:
-                raise ValidationError('change objects can not be edited.')
+                raise TypeError('change objects can not be edited.')
             if self.changeset.proposed is not None or self.changeset.applied is not None:
-                raise ValidationError('can not add change object to uneditable changeset.')
+                raise TypeError('can not add change object to uneditable changeset.')
             super().save(*args, **kwargs)
