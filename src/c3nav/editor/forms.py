@@ -31,7 +31,9 @@ class MapitemFormMixin(ModelForm):
                 self.initial['geometry'] = json.dumps(mapping(self.instance.geometry), separators=(',', ':'))
 
         if 'groups' in self.fields:
+            LocationGroup = self.request.changeset.wrap('LocationGroup')
             self.fields['groups'].label_from_instance = lambda obj: obj.title_for_forms
+            self.fields['groups'].queryset = LocationGroup.objects.all()
 
         # parse titles
         self.titles = None

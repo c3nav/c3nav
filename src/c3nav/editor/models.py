@@ -9,6 +9,8 @@ from django.utils.functional import cached_property
 from django.utils.translation import ugettext_lazy as _
 from django.utils.translation import ungettext_lazy
 
+from c3nav.editor.wrappers import ModelInstanceWrapper, ModelWrapper
+
 
 class ChangeSet(models.Model):
     created = models.DateTimeField(auto_now_add=True, verbose_name=_('created'))
@@ -22,6 +24,10 @@ class ChangeSet(models.Model):
         verbose_name = _('Change Set')
         verbose_name_plural = _('Change Sets')
         default_related_name = 'changesets'
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.default_author = None
 
     @classmethod
     def qs_base(cls):
@@ -39,6 +45,7 @@ class ChangeSet(models.Model):
 
             changeset = qs.filter(pk=changeset_pk).first()
             if changeset is not None:
+                changeset.default_author = request.user
                 if changeset.author_id is None and request.user.is_authenticated():
                     changeset.author = request.user
                     changeset.save()
@@ -50,12 +57,14 @@ class ChangeSet(models.Model):
             changeset = qs_base.filter(Q(author=request.user)).order_by('-created').first()
             if changeset is not None:
                 request.session['changeset_pk'] = changeset.pk
+                changeset.default_author = request.user
                 return changeset
 
             new_changeset.author = request.user
 
         new_changeset.save()
         request.session['changeset_pk'] = new_changeset.pk
+        new_changeset.default_author = request.user
         return new_changeset
 
     @cached_property
@@ -65,6 +74,44 @@ class ChangeSet(models.Model):
     @property
     def count_display(self):
         return ungettext_lazy('%(num)d Change', '%(num)d Changes', 'num') % {'num': self.undeleted_changes_count}
+
+    def wrap(self, obj, author=None):
+        if author is None:
+            author = self.default_author
+        if not author.is_authenticated():
+            author = None
+        if isinstance(obj, str):
+            return ModelWrapper(self, apps.get_model('mapdata', obj), author)
+        if issubclass(obj, models.Model):
+            return ModelWrapper(self, obj, author)
+        if isinstance(obj, models.Model):
+            return ModelInstanceWrapper(self, obj, author)
+        raise ValueError
+
+    def _new_change(self, author, **kwargs):
+        change = Change(changeset=self)
+        change.changeset_id = self.pk
+        if author is not None and author.is_authenticated():
+            change.author = author
+        for name, value in kwargs.items():
+            setattr(change, name, value)
+        print(repr(change))
+        return change
+
+    def add_create(self, author, model_class):
+        return self._new_change(author, action='create', model_class=model_class)
+
+    def add_update(self, author, obj, name, value):
+        return self._new_change(author, action='update', obj=obj, field_name=name, field_value=str(value))
+
+    def add_delete(self, author, obj):
+        return self._new_change(author, action='delete', obj=obj)
+
+    def update_object(self, author, obj, values):
+        if not values:
+            return
+        for name, value in values.items():
+            self.add_update(author, obj, name, value)
 
 
 class Change(models.Model):
@@ -136,12 +183,13 @@ class Change(models.Model):
     @obj.setter
     def obj(self, value: models.Model):
         if isinstance(value, Change):
-            if self.created_object.changeset_id != self.changeset_id:
+            if value.changeset_id != self.changeset_id:
                 raise ValueError('value is a Change instance but belongs to a different changeset.')
             if value.action != 'create':
                 raise ValueError('value is a Change instance but has action not set to create')
             self.model_class = value.model_class
             self.created_object = value
+            self.created_object_id = value.pk
             self.existing_object_pk = None
             return
 
@@ -183,13 +231,24 @@ class Change(models.Model):
                 if getattr(self, field_name) is not None:
                     raise ValidationError('%s must not be set if action is create or delete.' % field_name)
 
-        def save(self, *args, **kwargs):
-            self.full_clean()
-            if self.pk is not None:
-                raise TypeError('change objects can not be edited.')
-            if self.changeset.proposed is not None or self.changeset.applied is not None:
-                raise TypeError('can not add change object to uneditable changeset.')
-            super().save(*args, **kwargs)
+    def save(self, *args, **kwargs):
+        self.full_clean()
+        if self.pk is not None:
+            raise TypeError('change objects can not be edited.')
+        if self.changeset.proposed is not None or self.changeset.applied is not None:
+            raise TypeError('can not add change object to uneditable changeset.')
+        super().save(*args, **kwargs)
 
-        def delete(self, *args, **kwargs):
-            raise TypeError('change objects can not be deleted directly.')
+    def delete(self, *args, **kwargs):
+        raise TypeError('change objects can not be deleted directly.')
+
+    def __repr__(self):
+        result = '<Change on ChangeSet #'+str(self.changeset_id)+': '
+        if self.action == 'create':
+            result += 'Create object of type '+repr(self.model_class)
+        elif self.action == 'update':
+            result += 'Update object '+repr(self.obj)+': '+self.field_name+'='+self.field_value
+        elif self.action == 'delete':
+            result += 'Delete object '+repr(self.obj)
+        result += '>'
+        return result

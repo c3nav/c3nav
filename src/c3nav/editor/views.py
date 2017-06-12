@@ -1,7 +1,6 @@
 from contextlib import suppress
 from functools import wraps
 
-from django.apps import apps
 from django.conf import settings
 from django.core.exceptions import FieldDoesNotExist, PermissionDenied
 from django.http import HttpResponseRedirect
@@ -12,7 +11,6 @@ from django.utils.translation import ugettext_lazy as _
 from django.views.decorators.cache import never_cache
 
 from c3nav.editor.models import ChangeSet
-from c3nav.mapdata.models import Level, Space
 from c3nav.mapdata.models.base import EDITOR_FORM_MODELS
 
 
@@ -31,8 +29,7 @@ def sidebar_view(func):
     return never_cache(with_ajax_check)
 
 
-def child_model(model_name, kwargs=None, parent=None):
-    model = apps.get_model('mapdata', model_name)
+def child_model(model, kwargs=None, parent=None):
     related_name = model._meta.default_related_name
     return {
         'title': model._meta.verbose_name_plural,
@@ -43,17 +40,19 @@ def child_model(model_name, kwargs=None, parent=None):
 
 @sidebar_view
 def main_index(request):
+    Level = request.changeset.wrap('Level')
     return render(request, 'editor/index.html', {
         'levels': Level.objects.filter(on_top_of__isnull=True),
         'child_models': [
-            child_model('LocationGroup'),
-            child_model('Source'),
+            child_model(request.changeset.wrap('LocationGroup')),
+            child_model(request.changeset.wrap('Source')),
         ],
     })
 
 
 @sidebar_view
 def level_detail(request, pk):
+    Level = request.changeset.wrap('Level')
     level = get_object_or_404(Level.objects.select_related('on_top_of').prefetch_related('levels_on_top'), pk=pk)
 
     return render(request, 'editor/level.html', {
@@ -62,7 +61,7 @@ def level_detail(request, pk):
         'level_url': 'editor.levels.detail',
         'level_as_pk': True,
 
-        'child_models': [child_model(model_name, kwargs={'level': pk}, parent=level)
+        'child_models': [child_model(request.changeset.wrap(model_name), kwargs={'level': pk}, parent=level)
                          for model_name in ('Building', 'Space', 'Door')],
         'levels_on_top': level.levels_on_top.all(),
         'geometry_url': '/api/editor/geometries/?level='+str(level.primary_level_pk),
@@ -71,13 +70,14 @@ def level_detail(request, pk):
 
 @sidebar_view
 def space_detail(request, level, pk):
+    Space = request.changeset.wrap('Space')
     space = get_object_or_404(Space.objects.select_related('level'), level__id=level, pk=pk)
 
     return render(request, 'editor/space.html', {
         'level': space.level,
         'space': space,
 
-        'child_models': [child_model(model_name, kwargs={'space': pk}, parent=space)
+        'child_models': [child_model(request.changeset.wrap(model_name), kwargs={'space': pk}, parent=space)
                          for model_name in ('Hole', 'Area', 'Stair', 'Obstacle', 'LineObstacle', 'Column', 'Point')],
         'geometry_url': '/api/editor/geometries/?space='+pk,
     })
@@ -85,8 +85,11 @@ def space_detail(request, level, pk):
 
 @sidebar_view
 def edit(request, pk=None, model=None, level=None, space=None, on_top_of=None, explicit_edit=False):
-    model = EDITOR_FORM_MODELS[model]
+    model = request.changeset.wrap(EDITOR_FORM_MODELS[model])
     related_name = model._meta.default_related_name
+
+    Level = request.changeset.wrap('Level')
+    Space = request.changeset.wrap('Space')
 
     obj = None
     if pk is not None:
@@ -246,9 +249,13 @@ def edit(request, pk=None, model=None, level=None, space=None, on_top_of=None, e
 
 @sidebar_view
 def list_objects(request, model=None, level=None, space=None, explicit_edit=False):
-    model = EDITOR_FORM_MODELS[model]
     if not request.resolver_match.url_name.endswith('.list'):
         raise ValueError('url_name does not end with .list')
+
+    model = request.changeset.wrap(EDITOR_FORM_MODELS[model])
+
+    Level = request.changeset.wrap('Level')
+    Space = request.changeset.wrap('Space')
 
     # noinspection PyProtectedMember
     ctx = {
