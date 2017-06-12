@@ -115,7 +115,7 @@ class Change(models.Model):
         self.model_name = value.__name__
 
     @property
-    def object(self) -> models.Model:
+    def obj(self) -> models.Model:
         if self.existing_object_pk is not None:
             if self.created_object is not None:
                 raise TypeError('existing_object_pk and created_object can not both be set.')
@@ -133,8 +133,8 @@ class Change(models.Model):
             return self.created_object
         raise TypeError('existing_model_pk or created_object have to be set.')
 
-    @object.setter
-    def object(self, value: models.Model):
+    @obj.setter
+    def obj(self, value: models.Model):
         if isinstance(value, Change):
             if self.created_object.changeset_id != self.changeset_id:
                 raise ValueError('value is a Change instance but belongs to a different changeset.')
@@ -172,7 +172,7 @@ class Change(models.Model):
             raise ValidationError('model_name has to be set if action is not delchange.')
 
         try:
-            tmp = self.model_class if self.action == 'create' else self.object  # noqa
+            tmp = self.model_class if self.action == 'create' else self.obj  # noqa
         except TypeError as e:
             raise ValidationError(str(e))
         except ObjectDoesNotExist:
