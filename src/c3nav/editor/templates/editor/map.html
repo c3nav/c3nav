@@ -6,15 +6,15 @@
 <noscript>
     <div id="noscript">{% trans 'Editing geometries using the map requires JavaScript.' %}</div>
 </noscript>
-<div id="responsive_switch" class="navbar-collapse collapse">
-    <ul class="nav navbar-nav navbar-right">
-        <li>
-            <a href="#" id="show_map">&laquo; {% trans 'Show map' %}</a>
-            <a href="#" id="show_details">{% trans 'Show details' %} &raquo;</a>
-        </li>
-    </ul>
+{% endblock %}
+
+{% block subheader %}
+<div id="responsive_switch">
+    <a href="#" id="show_map">&laquo; {% trans 'Show map' %}</a>
+    <a href="#" id="show_details">{% trans 'Show details' %} &raquo;</a>
 </div>
 {% endblock %}
+
 {% block content %}
 <div id="map"></div>
 <div id="sidebar">

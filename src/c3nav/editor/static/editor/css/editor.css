@@ -152,7 +152,19 @@ form button.invisiblesubmit {
 
 /* responsiveness */
 #responsive_switch {
-    display:none !important;
+    display:none;
+    width:100vw;
+    position:absolute;
+    top:54px;
+    left:0;
+    right:0;
+    padding:4px;
+    background-color:#f8f8f8;
+    border-width:0 0 3px;
+    border-color:#e7e7e7;
+    border-style:solid;
+    height:34px;
+    text-align:center;
 }
 @media (max-width: 767px) {
     #sidebar {
@@ -206,7 +218,10 @@ form button.invisiblesubmit {
         padding-bottom: 15px;
     }
     body.map-enabled #responsive_switch {
-        display:block !important;
+        display:block;
+    }
+    body.map-enabled #main {
+        top:88px;
     }
 }
 
