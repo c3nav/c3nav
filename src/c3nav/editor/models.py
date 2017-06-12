@@ -77,7 +77,7 @@ class Change(models.Model):
         ('m2m_remove', _('add many to many relation')),
     )
     changeset = models.ForeignKey(ChangeSet, on_delete=models.CASCADE, verbose_name=_('Change Set'))
-    author = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT, verbose_name=_('Author'))
+    author = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, on_delete=models.PROTECT, verbose_name=_('Author'))
     created = models.DateTimeField(auto_now_add=True, verbose_name=_('created'))
     action = models.CharField(max_length=16, choices=ACTIONS, verbose_name=_('action'))
     deletes_change = models.OneToOneField('Change', null=True, on_delete=models.CASCADE, related_name='deleted_by',
@@ -172,18 +172,11 @@ class Change(models.Model):
             raise ValidationError('model_name has to be set if action is not delchange.')
 
         try:
-            object = self.object  # noqa
+            tmp = self.model_class if self.action == 'create' else self.object  # noqa
         except TypeError as e:
             raise ValidationError(str(e))
         except ObjectDoesNotExist:
-            raise ValidationError('model_name has to be set if action is not delchange.')
-
-        if self.existing_object_pk is None:
-            if self.created_object is None:
-                raise ValidationError('existing_model_pk or created_object have to be set if action is not delchange.')
-        else:
-            if self.created_object is not None:
-                raise ValidationError('existing_model_pk and created_object can not both be set.')
+            raise ValidationError('existing object does not exist.')
 
         if self.action in ('create', 'delete'):
             for field_name in ('field_name', 'field_value'):
