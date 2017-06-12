@@ -145,6 +145,7 @@ class Change(models.Model):
                     raise ValidationError('%s must not be set if action is create or delete.' % field_name)
 
         def save(*args, **kwargs):
+            self.full_clean()
             if self.pk is not None:
                 raise ValidationError('change objects can not be edited.')
             super().save(*args, **kwargs)
