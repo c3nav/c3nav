@@ -5,7 +5,9 @@ from django.conf import settings
 from django.core.exceptions import ObjectDoesNotExist, ValidationError
 from django.db import models
 from django.db.models import Q
+from django.utils.functional import cached_property
 from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import ungettext_lazy
 
 
 class ChangeSet(models.Model):
@@ -20,6 +22,49 @@ class ChangeSet(models.Model):
         verbose_name = _('Change Set')
         verbose_name_plural = _('Change Sets')
         default_related_name = 'changesets'
+
+    @classmethod
+    def qs_base(cls):
+        return cls.objects.prefetch_related('changes').select_related('author')
+
+    @classmethod
+    def get_for_request(cls, request):
+        qs_base = cls.qs_base().filter(applied__isnull=True)
+        changeset_pk = request.session.get('changeset_pk', None)
+        if changeset_pk is not None:
+            if request.user.is_authenticated():
+                qs = qs_base.filter(Q(author__isnull=True) | Q(author=request.user))
+            else:
+                qs = qs_base.filter(author__isnull=True)
+
+            changeset = qs.filter(pk=changeset_pk).first()
+            if changeset is not None:
+                if changeset.author_id is None and request.user.is_authenticated():
+                    changeset.author = request.user
+                    changeset.save()
+                return changeset
+
+        new_changeset = cls()
+
+        if request.user.is_authenticated():
+            changeset = qs_base.filter(Q(author=request.user)).order_by('-created').first()
+            if changeset is not None:
+                request.session['changeset_pk'] = changeset.pk
+                return changeset
+
+            new_changeset.author = request.user
+
+        new_changeset.save()
+        request.session['changeset_pk'] = new_changeset.pk
+        return new_changeset
+
+    @cached_property
+    def undeleted_changes_count(self):
+        return len([True for change in self.changes.all() if change.deletes_change_id is None])
+
+    @property
+    def count_display(self):
+        return ungettext_lazy('%(num)d Change', '%(num)d Changes', 'num') % {'num': self.undeleted_changes_count}
 
 
 class Change(models.Model):

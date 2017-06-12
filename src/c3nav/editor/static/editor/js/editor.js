@@ -143,6 +143,11 @@ editor = {
             return;
         }
 
+        var changeset = content.find('span[data-changeset]');
+        if (changeset.length) {
+            $('.changeset a').text(changeset.text());
+        }
+
         var geometry_url = content.find('[data-geometry-url]');
         if (geometry_url.length) {
             geometry_url = geometry_url.attr('data-geometry-url');

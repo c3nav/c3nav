@@ -6,6 +6,9 @@
 <noscript>
     <div id="noscript">{% trans 'Without Javascript' %}</div>
 </noscript>
+<ul class="nav navbar-nav navbar-right">
+    <li class="changeset"><a href="#">{{ request.changeset.count_display }}</a></li>
+</ul>
 {% endblock %}
 
 {% block subheader %}

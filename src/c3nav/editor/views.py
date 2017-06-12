@@ -7,9 +7,11 @@ from django.core.exceptions import FieldDoesNotExist, PermissionDenied
 from django.http import HttpResponseRedirect
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
+from django.utils.html import escape
 from django.utils.translation import ugettext_lazy as _
 from django.views.decorators.cache import never_cache
 
+from c3nav.editor.models import ChangeSet
 from c3nav.mapdata.models import Level, Space
 from c3nav.mapdata.models.base import EDITOR_FORM_MODELS
 
@@ -17,10 +19,13 @@ from c3nav.mapdata.models.base import EDITOR_FORM_MODELS
 def sidebar_view(func):
     @wraps(func)
     def with_ajax_check(request, *args, **kwargs):
+        request.changeset = ChangeSet.get_for_request(request)
+
         response = func(request, *args, **kwargs)
         if request.is_ajax() or 'ajax' in request.GET:
             if isinstance(response, HttpResponseRedirect):
                 return render(request, 'editor/redirect.html', {'target': response['location']})
+            response.write('<span data-changeset>%s</span>' % escape(request.changeset.count_display))
             return response
         return render(request, 'editor/map.html', {'content': response.content})
     return never_cache(with_ajax_check)

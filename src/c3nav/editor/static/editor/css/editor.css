@@ -68,6 +68,9 @@ body:not(.map-enabled) #sidebar {
     left:15px;
     top:23px;
 }
+nav.navbar .navbar-nav > li > a {
+    color:#666666;
+}
 
 /* sidebar contents */
 #sidebar form.creation-lock .btn.btn-primary {
@@ -112,7 +115,7 @@ legend {
     right: 8px;
     top: 8px;
 }
-[data-levels], [data-sublevels] {
+[data-levels], [data-sublevels], [data-changeset] {
     display:none;
 }
 form button.invisiblesubmit {
