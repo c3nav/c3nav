@@ -52,7 +52,7 @@ body:not(.map-enabled) #sidebar {
     padding:10px 15px 0;
     margin:auto;
 }
-#sidebar .content form:last-child .form-group:last-child:not(:first-child) {
+#sidebar .content form[data-editing] .form-group:last-child:not(:first-child) {
     margin-bottom:0;
     padding:0 0 15px;
     position:sticky;
