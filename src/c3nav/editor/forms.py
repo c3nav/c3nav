@@ -70,10 +70,11 @@ class MapitemFormMixin(ModelForm):
 
         for slug in self.add_redirect_slugs:
             self.fields['slug'].run_validators(slug)
-            if LocationSlug.objects.filter(slug=slug).exists():
-                raise ValidationError(
-                    _('Can not add redirecting slug “%s”: it is already used elsewhere.') % slug
-                )
+
+        for slug in LocationSlug.objects.filter(slug__in=self.add_redirect_slugs).values_list('slug', flat=True)[:1]:
+            raise ValidationError(
+                _('Can not add redirecting slug “%s”: it is already used elsewhere.') % slug
+            )
 
     def clean(self):
         if 'geometry' in self.fields:
