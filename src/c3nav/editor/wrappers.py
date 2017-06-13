@@ -110,6 +110,8 @@ class ModelInstanceWrapper(BaseWrapper):
         raise TypeError
 
     def save(self, author=None):
+        if author is None:
+            author = self._author
         if self.pk is None:
             self._changeset.add_create(self, author=author)
         for field, initial_value in self._initial_values.items():
@@ -132,6 +134,8 @@ class ModelInstanceWrapper(BaseWrapper):
             self._changeset.add_update(self, name=field.name, value=new_value, author=author)
 
     def delete(self, author=None):
+        if author is None:
+            author = self._author
         self._changeset.add_delete(self, author=author)
 
 
