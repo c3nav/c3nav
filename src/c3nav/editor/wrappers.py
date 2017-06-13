@@ -277,7 +277,7 @@ class BaseQueryWrapper(BaseWrapper):
         return self._wrap_queryset(self.get_queryset().using(alias))
 
     def __iter__(self):
-        return iter([self._wrap_instance(instance) for instance in self.get_queryset()])
+        return iter((self._wrap_instance(instance) for instance in self.get_queryset()))
 
     def iterator(self):
         return iter(self)
