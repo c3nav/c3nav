@@ -280,7 +280,7 @@ class BaseQueryWrapper(BaseWrapper):
         return iter((self._wrap_instance(instance) for instance in self.get_queryset()))
 
     def iterator(self):
-        return iter(self)
+        return iter((self._wrap_instance(instance) for instance in self.get_queryset().iterator()))
 
     def __len__(self):
         return len(self.get_queryset())
