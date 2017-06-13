@@ -31,19 +31,26 @@ class ChangeSet(models.Model):
         self.default_author = None
 
     @classmethod
-    def qs_base(cls):
-        return cls.objects.prefetch_related('changes').select_related('author')
+    def qs_base(cls, hide_applied=True):
+        qs = cls.objects.prefetch_related('changes').select_related('author')
+        if hide_applied:
+            qs = qs.filter(applied__isnull=True)
+        return qs
+
+    @classmethod
+    def qs_for_request(cls, request):
+        qs = cls.qs_base()
+        if request.user.is_authenticated():
+            qs = qs.filter(Q(author__isnull=True) | Q(author=request.user))
+        else:
+            qs = qs.filter(author__isnull=True)
+        return qs
 
     @classmethod
     def get_for_request(cls, request):
-        qs_base = cls.qs_base().filter(applied__isnull=True)
+        qs = cls.qs_for_request(request)
         changeset_pk = request.session.get('changeset_pk', None)
         if changeset_pk is not None:
-            if request.user.is_authenticated():
-                qs = qs_base.filter(Q(author__isnull=True) | Q(author=request.user))
-            else:
-                qs = qs_base.filter(author__isnull=True)
-
             changeset = qs.filter(pk=changeset_pk).first()
             if changeset is not None:
                 changeset.default_author = request.user
@@ -55,7 +62,7 @@ class ChangeSet(models.Model):
         new_changeset = cls()
 
         if request.user.is_authenticated():
-            changeset = qs_base.filter(Q(author=request.user)).order_by('-created').first()
+            changeset = qs.filter(Q(author=request.user)).order_by('-created').first()
             if changeset is not None:
                 request.session['changeset_pk'] = changeset.pk
                 changeset.default_author = request.user
