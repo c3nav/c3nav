@@ -282,10 +282,11 @@ class RelatedManagerWrapper(ManagerWrapper):
         return self._obj.field.related_query_name()
 
     def all(self):
-        result = self.instance._prefetched_objects_cache.get(self._get_cache_name(), None)
-        if result is not None:
-            return result
-        super().all()
+        try:
+            return self.instance._prefetched_objects_cache.get(self._get_cache_name(), None)
+        except(AttributeError, KeyError):
+            pass
+        return super().all()
 
 
 class ManyRelatedManagerWrapper(RelatedManagerWrapper):
