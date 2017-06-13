@@ -161,7 +161,7 @@ class Change(models.Model):
         self._set_object = None
 
     @property
-    def model_class(self) -> typing.Type[models.Model]:
+    def model_class(self) -> typing.Optional[typing.Type[models.Model]]:
         if self.model_name is None:
             return None
         return apps.get_model('mapdata', self.model_name)
@@ -199,7 +199,7 @@ class Change(models.Model):
         raise TypeError('existing_model_pk or created_object have to be set.')
 
     @obj.setter
-    def obj(self, value):
+    def obj(self, value: typing.Union[models.Model, ModelInstanceWrapper]):
         if not isinstance(value, ModelInstanceWrapper):
             value = self.changeset.wrap(value)
 
@@ -241,6 +241,7 @@ class Change(models.Model):
             raise ValidationError('model_name has to be set if action is not delchange.')
 
         try:
+            # noinspection PyUnusedLocal
             tmp = self.model_class if self.action == 'create' else self.obj  # noqa
         except TypeError as e:
             raise ValidationError(str(e))
