@@ -22,7 +22,8 @@ def sidebar_view(func):
         if request.is_ajax() or 'ajax' in request.GET:
             if isinstance(response, HttpResponseRedirect):
                 return render(request, 'editor/redirect.html', {'target': response['location']})
-            response.write('<span data-changeset>%s</span>' % escape(request.changeset.count_display))
+            response.write('<a data-changeset href="%s">%s</a>' % (request.changeset.get_absolute_url(),
+                                                                   escape(request.changeset.count_display)))
             return response
         return render(request, 'editor/map.html', {'content': response.content})
     return never_cache(with_ajax_check)
@@ -250,7 +251,6 @@ def list_objects(request, model=None, level=None, space=None, explicit_edit=Fals
     Level = request.changeset.wrap('Level')
     Space = request.changeset.wrap('Space')
 
-    # noinspection PyProtectedMember
     ctx = {
         'path': request.path,
         'model_name': model.__name__.lower(),
@@ -302,3 +302,27 @@ def list_objects(request, model=None, level=None, space=None, explicit_edit=Fals
     })
 
     return render(request, 'editor/list.html', ctx)
+
+
+@sidebar_view
+def changeset_detail(request, pk):
+    changeset = get_object_or_404(ChangeSet.qs_for_request(request), pk=pk)
+
+    ctx = {
+        'pk': pk,
+        'changeset': changeset,
+    }
+
+    if request.method == 'POST':
+        if request.POST.get('delete') == '1':
+            if request.POST.get('delete_confirm') == '1':
+                changeset.delete()
+                return redirect(reverse('editor.index'))
+
+            ctx.update({
+                'model_title': ChangeSet._meta.verbose_name,
+                'obj_title': changeset.title,
+            })
+            return render(request, 'editor/delete.html', ctx)
+
+    return render(request, 'editor/changeset.html', ctx)

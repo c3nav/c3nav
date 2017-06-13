@@ -143,9 +143,9 @@ editor = {
             return;
         }
 
-        var changeset = content.find('span[data-changeset]');
+        var changeset = content.find('a[data-changeset]');
         if (changeset.length) {
-            $('.changeset a').text(changeset.text());
+            $('.changeset a').text(changeset.text()).attr('href', changeset.attr('href'));
         }
 
         var geometry_url = content.find('[data-geometry-url]');

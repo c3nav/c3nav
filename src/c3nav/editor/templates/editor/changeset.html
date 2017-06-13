@@ -1,0 +1,21 @@
+{% load bootstrap3 %}
+{% load i18n %}
+
+{% include 'editor/fragment_levels.html' %}
+
+<h3>{{ changeset.title }}</h3>
+
+<form action="{{ path }}" method="post">
+    {% csrf_token %}
+    <button type="submit" class="btn btn-danger btn-sm" name="delete" value="1">{% trans 'Delete' %}</button>
+</form>
+
+<table class="table table-condensed">
+    <tbody>
+        {% for change in changeset.changes.all %}
+            <tr data-pk="{{ item.pk }}">
+                <td>{{ change|stringformat:'r' }}</td>
+            </tr>
+        {% endfor %}
+    </tbody>
+</table>

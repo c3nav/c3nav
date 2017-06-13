@@ -6,6 +6,7 @@ from django.conf import settings
 from django.core.exceptions import ObjectDoesNotExist, ValidationError
 from django.db import models
 from django.db.models import Q
+from django.urls import reverse
 from django.utils.functional import cached_property
 from django.utils.translation import ugettext_lazy as _
 from django.utils.translation import ungettext_lazy
@@ -75,9 +76,16 @@ class ChangeSet(models.Model):
         new_changeset.default_author = request.user
         return new_changeset
 
+    def get_absolute_url(self):
+        return reverse('editor.changesets.detail', kwargs={'pk': self.pk})
+
     @cached_property
     def undeleted_changes_count(self):
         return len([True for change in self.changes.all() if change.deletes_change_id is None])
+
+    @property
+    def title(self):
+        return _('Changeset #%d') % self.pk
 
     @property
     def count_display(self):
@@ -86,7 +94,7 @@ class ChangeSet(models.Model):
     def wrap(self, obj, author=None):
         if author is None:
             author = self.default_author
-        if not author.is_authenticated():
+        if author is not None and not author.is_authenticated():
             author = None
         if isinstance(obj, str):
             return ModelWrapper(self, apps.get_model('mapdata', obj), author)
@@ -155,6 +163,7 @@ class Change(models.Model):
         verbose_name = _('Change')
         verbose_name_plural = _('Changes')
         default_related_name = 'changes'
+        ordering = ['created', 'pk']
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -180,14 +189,14 @@ class Change(models.Model):
         self.model_name = value.__name__
 
     @property
-    def obj(self) -> models.Model:
+    def obj(self) -> ModelInstanceWrapper:
         if self._set_object is not None:
             return self._set_object
 
         if self.existing_object_pk is not None:
             if self.created_object is not None:
                 raise TypeError('existing_object_pk and created_object can not both be set.')
-            self._set_object = self.model_class.objects.get(pk=self.existing_object_pk)
+            self._set_object = self.changeset.wrap(self.model_class.objects.get(pk=self.existing_object_pk))
             # noinspection PyTypeChecker
             return self._set_object
         elif self.created_object is not None:

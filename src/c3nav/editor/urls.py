@@ -1,7 +1,7 @@
 from django.apps import apps
 from django.conf.urls import url
 
-from c3nav.editor.views import edit, level_detail, list_objects, main_index, space_detail
+from c3nav.editor.views import changeset_detail, edit, level_detail, list_objects, main_index, space_detail
 
 
 def add_editor_urls(model_name, parent_model_name=None, with_list=True, explicit_edit=False):
@@ -34,6 +34,7 @@ urlpatterns = [
     url(r'^levels/(?P<level>[0-9]+)/spaces/(?P<pk>[0-9]+)/$', space_detail, name='editor.spaces.detail'),
     url(r'^levels/(?P<on_top_of>[0-9]+)/levels_on_top/create$', edit, name='editor.levels_on_top.create',
         kwargs={'model': 'Level'}),
+    url(r'^changesets/(?P<pk>[0-9]+)/$', changeset_detail, name='editor.changesets.detail'),
 ]
 urlpatterns.extend(add_editor_urls('Level', with_list=False, explicit_edit=True))
 urlpatterns.extend(add_editor_urls('LocationGroup'))
