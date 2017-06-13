@@ -218,19 +218,22 @@ class BaseQueryWrapper(BaseWrapper):
             changes_qs = ChangesQuerySet(changeset, obj.model, author)
         self._changes_qs = changes_qs
 
+    def get_queryset(self):
+        return self._obj
+
     def _wrap_queryset(self, queryset, changes_qs=None):
         if changes_qs is None:
             changes_qs = self._changes_qs
         return QuerySetWrapper(self._changeset, queryset, self._author, changes_qs)
 
     def all(self):
-        return self._wrap_queryset(self._obj.all())
+        return self._wrap_queryset(self.get_queryset().all())
 
     def none(self):
-        return self._wrap_queryset(self._obj.none())
+        return self._wrap_queryset(self.get_queryset().none())
 
     def select_related(self, *args, **kwargs):
-        return self._wrap_queryset(self._obj.select_related(*args, **kwargs))
+        return self._wrap_queryset(self.get_queryset().select_related(*args, **kwargs))
 
     def prefetch_related(self, *lookups):
         new_lookups = deque()
@@ -242,13 +245,13 @@ class BaseQueryWrapper(BaseWrapper):
             for name in lookup.split('__'):
                 model = model._meta.get_field(name).related_model
             new_lookups.append(Prefetch(lookup, self._wrap_model(model).objects.all()._obj))
-        return self._wrap_queryset(self._obj.prefetch_related(*new_lookups))
+        return self._wrap_queryset(self.get_queryset().prefetch_related(*new_lookups))
 
     def get(self, **kwargs):
-        return self._wrap_instance(self._obj.get(**kwargs))
+        return self._wrap_instance(self.get_queryset().get(**kwargs))
 
     def order_by(self, *args):
-        return self._wrap_queryset(self._obj.order_by(*args))
+        return self._wrap_queryset(self.get_queryset().order_by(*args))
 
     def filter(self, *args, **kwargs):
         kwargs = {name: (value._obj if isinstance(value, ModelInstanceWrapper) else value)
@@ -256,35 +259,35 @@ class BaseQueryWrapper(BaseWrapper):
         kwargs = {name: (((item._obj if isinstance(item, ModelInstanceWrapper) else item) for item in value)
                          if name.endswith('__in') else value)
                   for name, value in kwargs.items()}
-        return self._wrap_queryset(self._obj.filter(*args, **kwargs))
+        return self._wrap_queryset(self.get_queryset().filter(*args, **kwargs))
 
     def count(self):
-        return self._obj.count()
+        return self.get_queryset().count()
 
     def values_list(self, *args, flat=False):
-        return self._obj.values_list(*args, flat=flat)
+        return self.get_queryset().values_list(*args, flat=flat)
 
     def first(self):
-        first = self._obj.first()
+        first = self.get_queryset().first()
         if first is not None:
             first = self._wrap_instance(first)
         return first
 
     def using(self, alias):
-        return self._wrap_queryset(self._obj.using(alias))
+        return self._wrap_queryset(self.get_queryset().using(alias))
 
     def __iter__(self):
-        return iter([self._wrap_instance(instance) for instance in self._obj])
+        return iter([self._wrap_instance(instance) for instance in self.get_queryset()])
 
     def iterator(self):
         return iter(self)
 
     def __len__(self):
-        return len(self._obj)
+        return len(self.get_queryset())
 
 
 class ManagerWrapper(BaseQueryWrapper):
-    def all(self):
+    def get_queryset(self):
         return self._wrap_queryset(self._obj.exclude(pk__in=self._changeset.deleted_existing.get(self._obj.model, ())))
 
 
