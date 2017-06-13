@@ -30,11 +30,12 @@ class ChangeSet(models.Model):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.default_author = None
-
-        self.parse_changes()
+        self.parsed = False
+        self.updated_values = {}
 
     def parse_changes(self):
-        self.updated_values = {}
+        if self.parsed:
+            return
         for change in self.changes.all():
             self._parse_change(change)
         print(self.updated_values)
@@ -106,6 +107,7 @@ class ChangeSet(models.Model):
         return ungettext_lazy('%(num)d Change', '%(num)d Changes', 'num') % {'num': self.undeleted_changes_count}
 
     def wrap(self, obj, author=None):
+        self.parse_changes()
         if author is None:
             author = self.default_author
         if author is not None and not author.is_authenticated():
@@ -119,6 +121,7 @@ class ChangeSet(models.Model):
         raise ValueError
 
     def _new_change(self, author, **kwargs):
+        self.parse_changes()
         change = Change(changeset=self)
         change.changeset_id = self.pk
         author = self.default_author if author is None else author
