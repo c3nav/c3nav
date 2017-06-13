@@ -41,6 +41,7 @@ class ChangeSet(models.Model):
             return
         for change in self.changes.all():
             self._parse_change(change)
+        self.parsed = True
 
     def _parse_change(self, change):
         if change.action == 'delchange':
@@ -66,9 +67,17 @@ class ChangeSet(models.Model):
                  change.field_name: value
             })
         elif change.action == 'm2m_add':
-            self.m2m_add_existing.setdefault(model, {}).setdefault(change.obj_pk, set()).add(value)
+            m2m_remove_existing = self.m2m_remove_existing.get(model, {}).get(change.obj_pk, ())
+            if value in m2m_remove_existing:
+                m2m_remove_existing.remove(value)
+            else:
+                self.m2m_add_existing.setdefault(model, {}).setdefault(change.obj_pk, set()).add(value)
         elif change.action == 'm2m_add':
-            self.m2m_remove_existing.setdefault(model, {}).setdefault(change.obj_pk, set()).add(value)
+            m2m_add_existing = self.m2m_add_existing.get(model, {}).get(change.obj_pk, ())
+            if value in m2m_add_existing:
+                m2m_add_existing.remove(value)
+            else:
+                self.m2m_remove_existing.setdefault(model, {}).setdefault(change.obj_pk, set()).add(value)
 
     @classmethod
     def qs_base(cls, hide_applied=True):
