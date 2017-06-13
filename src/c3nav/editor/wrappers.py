@@ -224,8 +224,8 @@ class ManyRelatedManagerWrapper(ManagerWrapper):
         old_ids = set(self.values_list('pk', flat=True))
         new_ids = set(obj.pk for obj in objs)
 
-        self.remove(*(old_ids - new_ids))
-        self.add(*(new_ids - old_ids))
+        self.remove(*(old_ids - new_ids), author=author)
+        self.add(*(new_ids - old_ids), author=author)
 
     def add(self, *objs, author=None):
         if author is None:
