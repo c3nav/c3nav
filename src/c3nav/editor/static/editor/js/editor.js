@@ -88,6 +88,7 @@ editor = {
         $('#sidebar').find('.content').on('click', 'a[href]', editor._sidebar_link_click)
                                       .on('click', 'button[type=submit]', editor._sidebar_submit_btn_click)
                                       .on('submit', 'form', editor._sidebar_submit);
+        $('.changeset a').click(editor._sidebar_link_click);
         var location_path = editor.get_location_path();
         editor._sidebar_loaded();
         history.replaceState({}, '', location_path);
