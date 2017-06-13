@@ -128,7 +128,7 @@ class ModelInstanceWrapper(BaseWrapper):
                         setattr(self._obj, class_value.cache_name, obj)
                         setattr(self._obj, field.attname, obj.pk)
                     else:
-                        delattr(self._obj, class_value.cache_name, obj)
+                        delattr(self._obj, class_value.cache_name)
                         setattr(self._obj, field.attname, value_pk)
                 self._initial_values[field] = getattr(self._obj, field.attname)
 
