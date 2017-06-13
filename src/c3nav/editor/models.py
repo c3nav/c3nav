@@ -31,8 +31,10 @@ class ChangeSet(models.Model):
         super().__init__(*args, **kwargs)
         self.default_author = None
         self.parsed = False
-        self.updated_values = {}
+        self.updated_existing = {}
         self.deleted_existing = {}
+        self.m2m_add_existing = {}
+        self.m2m_remove_existing = {}
 
     def parse_changes(self):
         if self.parsed:
@@ -41,13 +43,32 @@ class ChangeSet(models.Model):
             self._parse_change(change)
 
     def _parse_change(self, change):
-        if change.action == 'update':
-            self.updated_values.setdefault(change.model_class, {}).setdefault(change.obj_pk, {}).update({
-                 change.field_name: json.loads(change.field_value)
-            })
+        if change.action == 'delchange':
+            raise NotImplementedError
+
+        model = change.model_class
+        if change.action == 'create':
+            raise NotImplementedError
         elif change.action == 'delete':
             if change.existing_object_pk is not None:
-                self.deleted_existing.setdefault(change.model_class, set()).add(change.existing_object_pk)
+                self.deleted_existing.setdefault(model, set()).add(change.existing_object_pk)
+            else:
+                raise NotImplementedError
+            return
+
+        value = json.loads(change.field_value)
+        if change.existing_object_pk is None:
+            raise NotImplementedError
+
+        if change.action == 'update':
+            value = json.loads(change.field_value)
+            self.updated_existing.setdefault(model, {}).setdefault(change.obj_pk, {}).update({
+                 change.field_name: value
+            })
+        elif change.action == 'm2m_add':
+            self.m2m_add_existing.setdefault(model, {}).setdefault(change.obj_pk, set()).add(value)
+        elif change.action == 'm2m_add':
+            self.m2m_remove_existing.setdefault(model, {}).setdefault(change.obj_pk, set()).add(value)
 
     @classmethod
     def qs_base(cls, hide_applied=True):

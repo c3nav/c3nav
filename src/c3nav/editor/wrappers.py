@@ -101,7 +101,7 @@ class ModelInstanceWrapper(BaseWrapper):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        updates = self._changeset.updated_values.get(type(self._obj), {}).get(self._obj.pk, {})
+        updates = self._changeset.updated_existing.get(type(self._obj), {}).get(self._obj.pk, {})
         self._initial_values = {}
         for field in self._obj._meta.get_fields():
             if field.related_model is None:
