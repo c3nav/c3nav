@@ -70,14 +70,28 @@ class ModelInstanceWrapper(BaseWrapper):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        updates = self._changeset.updated_values.get(type(self._obj), {}).get(self._obj.pk, {})
         self._initial_values = {}
         for field in self._obj._meta.get_fields():
             if field.related_model is None:
                 if field.primary_key:
                     continue
-                self._initial_values[field] = getattr(self, field.name)
+
+                if field.name == 'titles':
+                    for name, value in updates.items():
+                        if not name.startswith('title_'):
+                            continue
+                        if not value:
+                            self._obj.titles.pop(name[6:], None)
+                        else:
+                            self._obj.titles[name[6:]] = value
+                elif field.name in updates:
+                    setattr(self._obj, field.name, updates[field.name])
+                self._initial_values[field] = getattr(self._obj, field.name)
             elif (field.many_to_one or field.one_to_one) and not field.primary_key:
-                self._initial_values[field] = getattr(self, field.name)
+                if field.name in updates:
+                    self._wrap_model(field.model).get(pk=updates[field.name])
+                self._initial_values[field] = getattr(self._obj, field.name)
 
     def __eq__(self, other):
         if type(other) == ModelWrapper:

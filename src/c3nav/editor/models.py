@@ -31,6 +31,20 @@ class ChangeSet(models.Model):
         super().__init__(*args, **kwargs)
         self.default_author = None
 
+        self.parse_changes()
+
+    def parse_changes(self):
+        self.updated_values = {}
+        for change in self.changes.all():
+            self._parse_change(change)
+        print(self.updated_values)
+
+    def _parse_change(self, change):
+        if change.action == 'update':
+            self.updated_values.setdefault(change.model_class, {}).setdefault(change.obj_pk, {}).update({
+                 change.field_name: json.loads(change.field_value)
+            })
+
     @classmethod
     def qs_base(cls, hide_applied=True):
         qs = cls.objects.prefetch_related('changes').select_related('author')
@@ -187,6 +201,16 @@ class Change(models.Model):
         if value._meta.app_label != 'mapdata':
             raise ValueError('value is not a mapdata model')
         self.model_name = value.__name__
+
+    @property
+    def obj_pk(self) -> typing.Union[int, str]:
+        if self._set_object is not None:
+            return self._set_object.pk
+        if self.existing_object_pk is not None:
+            return self.existing_object_pk
+        if self.created_object is not None:
+            return 'c'+str(self.created_object.changeset_id)
+        raise TypeError('existing_model_pk or created_object have to be set.')
 
     @property
     def obj(self) -> ModelInstanceWrapper:
