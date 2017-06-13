@@ -1,3 +1,4 @@
+import json
 import typing
 
 from django.apps import apps
@@ -82,7 +83,7 @@ class ChangeSet(models.Model):
             author = None
         if isinstance(obj, str):
             return ModelWrapper(self, apps.get_model('mapdata', obj), author)
-        if issubclass(obj, models.Model):
+        if isinstance(obj, type) and issubclass(obj, models.Model):
             return ModelWrapper(self, obj, author)
         if isinstance(obj, models.Model):
             return ModelInstanceWrapper(self, obj, author)
@@ -91,27 +92,25 @@ class ChangeSet(models.Model):
     def _new_change(self, author, **kwargs):
         change = Change(changeset=self)
         change.changeset_id = self.pk
+        author = self.default_author if author is None else author
         if author is not None and author.is_authenticated():
             change.author = author
         for name, value in kwargs.items():
             setattr(change, name, value)
-        print(repr(change))
+        change.save()
+        # print(repr(change))
         return change
 
-    def add_create(self, author, model_class):
-        return self._new_change(author, action='create', model_class=model_class)
+    def add_create(self, obj, author=None):
+        change = self._new_change(author=author, action='create', model_class=type(obj._obj))
+        obj.pk = 'c%d' % change.pk
 
-    def add_update(self, author, obj, name, value):
-        return self._new_change(author, action='update', obj=obj, field_name=name, field_value=str(value))
+    def add_update(self, obj, name, value, author):
+        return self._new_change(author=author, action='update', obj=obj,
+                                field_name=name, field_value=json.dumps(value, ensure_ascii=False))
 
     def add_delete(self, author, obj):
         return self._new_change(author, action='delete', obj=obj)
-
-    def update_object(self, author, obj, values):
-        if not values:
-            return
-        for name, value in values.items():
-            self.add_update(author, obj, name, value)
 
 
 class Change(models.Model):
@@ -148,11 +147,14 @@ class Change(models.Model):
     @property
     def model_class(self) -> typing.Type[models.Model]:
         if self.model_name is None:
-            raise TypeError('model_name is not set, can not get model')
+            return None
         return apps.get_model('mapdata', self.model_name)
 
     @model_class.setter
-    def model_class(self, value: typing.Type[models.Model]):
+    def model_class(self, value: typing.Optional[typing.Type[models.Model]]):
+        if value is None:
+            self.model_name = None
+            return
         if not issubclass(value, models.Model):
             raise ValueError('value is not a django model')
         if value._meta.abstract:
@@ -163,43 +165,43 @@ class Change(models.Model):
 
     @property
     def obj(self) -> models.Model:
+        if self._set_object is not None:
+            return self._set_object
+
         if self.existing_object_pk is not None:
             if self.created_object is not None:
                 raise TypeError('existing_object_pk and created_object can not both be set.')
-            if self._set_object is not None:
-                if isinstance(self._set_object, self.model_class) and self._set_object.pk != self.existing_object_pk:
-                    return self._set_object
-                self._set_object = None
             self._set_object = self.model_class.objects.get(pk=self.existing_object_pk)
+            # noinspection PyTypeChecker
             return self._set_object
         elif self.created_object is not None:
             if self.created_object.model_class != self.model_class:
                 raise TypeError('created_object model and change model do not match.')
             if self.created_object.changeset_id != self.changeset_id:
                 raise TypeError('created_object belongs to a different changeset.')
-            return self.created_object
+            raise NotImplementedError
         raise TypeError('existing_model_pk or created_object have to be set.')
 
     @obj.setter
     def obj(self, value: models.Model):
-        if isinstance(value, Change):
-            if value.changeset_id != self.changeset_id:
+        if isinstance(value, ModelInstanceWrapper) and isinstance(value.pk, str):
+            if value._changeset.id != self.changeset.pk:
                 raise ValueError('value is a Change instance but belongs to a different changeset.')
-            if value.action != 'create':
-                raise ValueError('value is a Change instance but has action not set to create')
-            self.model_class = value.model_class
-            self.created_object = value
-            self.created_object_id = value.pk
+            self.model_class = type(value._obj)
+            self.created_object = Change.objects.get(pk=value.pk[1:])
+            self.created_object_id = int(value.pk[1:])
             self.existing_object_pk = None
+            self._set_object = value
             return
 
         model_class_before = self.model_class
-        self.model_class = value.__class__
+        self.model_class = type(value._obj) if isinstance(value, ModelInstanceWrapper) else type(value)
         if value.pk is None:
             self.model_class = model_class_before
             raise ValueError('object is not saved yet and cannot be referenced')
         self.existing_object_pk = value.pk
         self.created_object = None
+        self._set_object = value
 
     def clean(self):
         if self.action == 'delchange':
@@ -232,7 +234,7 @@ class Change(models.Model):
                     raise ValidationError('%s must not be set if action is create or delete.' % field_name)
 
     def save(self, *args, **kwargs):
-        self.full_clean()
+        self.clean()
         if self.pk is not None:
             raise TypeError('change objects can not be edited.')
         if self.changeset.proposed is not None or self.changeset.applied is not None:
@@ -243,9 +245,9 @@ class Change(models.Model):
         raise TypeError('change objects can not be deleted directly.')
 
     def __repr__(self):
-        result = '<Change on ChangeSet #'+str(self.changeset_id)+': '
+        result = '<Change #%s on ChangeSet #%s: ' % (str(self.pk), str(self.changeset_id))
         if self.action == 'create':
-            result += 'Create object of type '+repr(self.model_class)
+            result += 'Create  '+repr(self.model_class.__name__)
         elif self.action == 'update':
             result += 'Update object '+repr(self.obj)+': '+self.field_name+'='+self.field_value
         elif self.action == 'delete':

@@ -1,9 +1,10 @@
 from django.db import models
 from django.db.models import Manager
+from django.db.models.fields.related_descriptors import ForwardManyToOneDescriptor
 
 
 class BaseWrapper:
-    _not_wrapped = ('_changeset', '_author', '_obj', '_changes_qs')
+    _not_wrapped = ('_changeset', '_author', '_obj', '_changes_qs', '_initial_values')
     _allowed_callables = ('', )
 
     def __init__(self, changeset, obj, author=None):
@@ -58,7 +59,7 @@ class ModelWrapper(BaseWrapper):
         return self._obj is other
 
     def __call__(self, **kwargs):
-        instance = self._wrap_instance(self._value())
+        instance = self._wrap_instance(self._obj())
         for name, value in kwargs.items():
             setattr(instance, name, value)
         return instance
@@ -67,6 +68,17 @@ class ModelWrapper(BaseWrapper):
 class ModelInstanceWrapper(BaseWrapper):
     _allowed_callables = ('full_clean', 'validate_unique')
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self._initial_values = {}
+        for field in self._obj._meta.get_fields():
+            if field.related_model is None:
+                if field.primary_key:
+                    continue
+                self._initial_values[field] = getattr(self, field.name)
+            elif (field.many_to_one or field.one_to_one) and not field.primary_key:
+                self._initial_values[field] = getattr(self, field.name).pk
+
     def __eq__(self, other):
         if type(other) == ModelWrapper:
             if type(self._obj) is not type(other._obj):  # noqa
@@ -74,6 +86,50 @@ class ModelInstanceWrapper(BaseWrapper):
         elif type(self._obj) is not type(other):
             return False
         return self.pk == other.pk
+
+    def __setattr__(self, name, value):
+        if name in self._not_wrapped:
+            return super().__setattr__(name, value)
+        class_value = getattr(type(self._obj), name, None)
+        if isinstance(class_value, ForwardManyToOneDescriptor) and value is not None:
+            if not isinstance(value, ModelInstanceWrapper):
+                raise ValueError('value has to be None or ModelInstanceWrapper')
+            setattr(self._obj, name, value._obj)
+            setattr(self._obj, class_value.cache_name, value)
+            return
+        super().__setattr__(name, value)
+
+    def __repr__(self):
+        cls_name = self._obj.__class__.__name__
+        if self.pk is None:
+            return '<%s (unsaved) with Changeset #%d>' % (cls_name, self._changeset.pk)
+        elif isinstance(self.pk, int):
+            return '<%s #%d (existing) with Changeset #%d>' % (cls_name, self.pk, self._changeset.pk)
+        elif isinstance(self.pk, str):
+            return '<%s #%s (created) from Changeset #%d>' % (cls_name, self.pk, self._changeset.pk)
+        raise TypeError
+
+    def save(self, author=None):
+        if self.pk is None:
+            self._changeset.add_create(self, author=author)
+        for field, initial_value in self._initial_values.items():
+            new_value = getattr(self._obj, field.name)
+            if field.related_model:
+                if new_value.pk != initial_value.pk:
+                    self._changeset.add_update(self, name=field.name, value=new_value.pk, author=author)
+                continue
+
+            if new_value == initial_value:
+                continue
+
+            if field.name == 'titles':
+                for lang in (set(initial_value.keys()) | set(new_value.keys())):
+                    new_title = new_value.get(lang, '')
+                    if new_title != initial_value.get(lang, ''):
+                        self._changeset.add_update(self, name='title_'+lang, value=new_title, author=author)
+                continue
+
+            self._changeset.add_update(self, name=field.name, value=new_value, author=author)
 
 
 class ChangesQuerySet():

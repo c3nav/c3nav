@@ -157,7 +157,7 @@ def edit(request, pk=None, model=None, level=None, space=None, on_top_of=None, e
             'geometry_url': '/api/editor/geometries/?level='+str(level.primary_level_pk),
         })
     elif hasattr(model, 'level'):
-        if obj:
+        if not new:
             level = obj.level
         ctx.update({
             'level': level,
@@ -165,7 +165,7 @@ def edit(request, pk=None, model=None, level=None, space=None, on_top_of=None, e
             'geometry_url': '/api/editor/geometries/?level='+str(level.primary_level_pk),
         })
     elif hasattr(model, 'space'):
-        if obj:
+        if not new:
             space = obj.space
         ctx.update({
             'level': space.level,
@@ -184,7 +184,7 @@ def edit(request, pk=None, model=None, level=None, space=None, on_top_of=None, e
         })
 
     if request.method == 'POST':
-        if obj is not None and request.POST.get('delete') == '1':
+        if not new and request.POST.get('delete') == '1':
             # Delete this mapitem!
             if request.POST.get('delete_confirm') == '1':
                 obj.delete()
@@ -198,7 +198,7 @@ def edit(request, pk=None, model=None, level=None, space=None, on_top_of=None, e
             ctx['obj_title'] = obj.title
             return render(request, 'editor/delete.html', ctx)
 
-        form = model.EditorForm(instance=obj, data=request.POST, request=request)
+        form = model.EditorForm(instance=model() if new else obj, data=request.POST, request=request)
         if form.is_valid():
             # Update/create objects
             obj = form.save(commit=False)
@@ -226,7 +226,8 @@ def edit(request, pk=None, model=None, level=None, space=None, on_top_of=None, e
                 obj.on_top_of = on_top_of
 
             obj.save()
-            form.save_m2m()
+            # form.save_m2m()
+            # request.changeset.changes.all().delete()
 
             return redirect(ctx['back_url'])
     else:
