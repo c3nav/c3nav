@@ -117,7 +117,7 @@ class ModelInstanceWrapper(BaseWrapper):
                 self._initial_values[field] = getattr(self._obj, field.name)
 
     def __eq__(self, other):
-        if type(other) == ModelWrapper:
+        if isinstance(other, BaseWrapper):
             if type(self._obj) is not type(other._obj):  # noqa
                 return False
         elif type(self._obj) is not type(other):
