@@ -1,7 +1,7 @@
 from collections import deque
 
 from django.db import models
-from django.db.models import Manager, Prefetch
+from django.db.models import Manager, Prefetch, Q
 from django.db.models.fields.related_descriptors import ForwardManyToOneDescriptor
 
 
@@ -339,6 +339,15 @@ class ManyRelatedManagerWrapper(RelatedManagerWrapper):
         for obj in objs:
             pk = (obj.pk if isinstance(obj, self._obj.model) else obj)
             self._changeset.add_m2m_remove(self._obj.instance, name=self._get_cache_name(), value=pk, author=author)
+
+    def all(self):
+        # todo: this filtering is temporary as long as querysets do not filter themselves according to changes
+        filter = Q(**self._obj.core_filters)
+        model = type(self._obj.instance)
+        instance_pk = self._obj.instance.pk
+        filter &= ~Q(pk__in=self._changeset.m2m_remove_existing.get(model, {}).get(instance_pk, ()))
+        filter |= Q(pk__in=self._changeset.m2m_add_existing.get(model, {}).get(instance_pk, ()))
+        return self.model.objects.filter(filter)
 
 
 class QuerySetWrapper(BaseQueryWrapper):

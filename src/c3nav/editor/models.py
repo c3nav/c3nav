@@ -72,7 +72,7 @@ class ChangeSet(models.Model):
                 m2m_remove_existing.remove(value)
             else:
                 self.m2m_add_existing.setdefault(model, {}).setdefault(change.obj_pk, set()).add(value)
-        elif change.action == 'm2m_add':
+        elif change.action == 'm2m_remove':
             m2m_add_existing = self.m2m_add_existing.get(model, {}).get(change.obj_pk, ())
             if value in m2m_add_existing:
                 m2m_add_existing.remove(value)
