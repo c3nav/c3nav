@@ -93,14 +93,12 @@ editor = {
         editor._sidebar_loaded();
         history.replaceState({}, '', location_path);
         window.onpopstate = function() {
-            editor.sidebar_get(editor.get_location_path());
+            editor.sidebar_get(editor.get_location_path(), true);
         };
     },
-    sidebar_get: function(location) {
+    sidebar_get: function(location, no_push) {
         // load a new page into the sidebar using a GET request
-        if ($('#sidebar').find('.content').html() !== '') {
-            history.pushState({}, '', location);
-        }
+        if (!no_push) history.pushState({}, '', location);
         editor._sidebar_unload();
         $.get(location, editor._sidebar_loaded).fail(editor._sidebar_error);
     },
