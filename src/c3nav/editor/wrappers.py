@@ -1,7 +1,5 @@
-from collections import deque
-
 from django.db import models
-from django.db.models import Manager, Prefetch
+from django.db.models import Manager
 from django.db.models.fields.related_descriptors import ForwardManyToOneDescriptor
 
 
@@ -15,12 +13,15 @@ class BaseWrapper:
         self._obj = obj
 
     def _wrap_model(self, model):
+        assert issubclass(model, models.Model)
         return ModelWrapper(self._changeset, model, self._author)
 
     def _wrap_instance(self, instance):
-        return ModelInstanceWrapper(self._changeset, instance, self._author)
+        assert isinstance(instance, models.Model)
+        return self._wrap_model(type(instance)).create_wrapped_model_class()(self._changeset, instance, self._author)
 
     def _wrap_manager(self, manager):
+        assert isinstance(manager, Manager)
         if hasattr(manager, 'through'):
             return ManyRelatedManagerWrapper(self._changeset, manager, self._author)
         return ManagerWrapper(self._changeset, manager, self._author)
@@ -53,18 +54,38 @@ class BaseWrapper:
 
 
 class ModelWrapper(BaseWrapper):
-    _allowed_callables = ('EditorForm', )
+    _allowed_callables = ('EditorForm',)
 
     def __eq__(self, other):
         if type(other) == ModelWrapper:
             return self._obj is other._obj
         return self._obj is other
 
+    def create_wrapped_model_class(self):
+        return self.create_metaclass()(self._obj.__name__ + 'InstanceWrapper', (ModelInstanceWrapper,), {})
+
     def __call__(self, **kwargs):
         instance = self._wrap_instance(self._obj())
         for name, value in kwargs.items():
             setattr(instance, name, value)
         return instance
+
+    def create_metaclass(self):
+        parent = self
+
+        class ModelInstanceWrapperMeta(type):
+            def __getattr__(self, name):
+                return getattr(parent, name)
+
+            def __setattr__(self, name, value):
+                setattr(parent, name, value)
+
+            def __delattr__(self, name):
+                delattr(parent, name)
+
+        ModelInstanceWrapperMeta.__name__ = self._obj.__name__+'InstanceWrapperMeta'
+
+        return ModelInstanceWrapperMeta
 
 
 class ModelInstanceWrapper(BaseWrapper):
@@ -108,6 +129,8 @@ class ModelInstanceWrapper(BaseWrapper):
             return super().__setattr__(name, value)
         class_value = getattr(type(self._obj), name, None)
         if isinstance(class_value, ForwardManyToOneDescriptor) and value is not None:
+            if isinstance(value, models.Model):
+                value = self._wrap_instance(value)
             if not isinstance(value, ModelInstanceWrapper):
                 raise ValueError('value has to be None or ModelInstanceWrapper')
             setattr(self._obj, name, value._obj)
@@ -188,16 +211,7 @@ class BaseQueryWrapper(BaseWrapper):
         return self._wrap_queryset(self._obj.select_related(*args, **kwargs))
 
     def prefetch_related(self, *lookups):
-        new_lookups = deque()
-        for lookup in lookups:
-            if not isinstance(lookup, str):
-                new_lookups.append(lookup)
-                continue
-            model = self._obj.model
-            for name in lookup.split('__'):
-                model = model._meta.get_field(name).related_model
-            new_lookups.append(Prefetch(lookup, self._wrap_model(model).objects.all()))
-        return self._wrap_queryset(self._obj.prefetch_related(*new_lookups))
+        return self._wrap_queryset(self._obj.prefetch_related(*lookups))
 
     def get(self, **kwargs):
         return self._wrap_instance(self._obj.get(**kwargs))
@@ -273,6 +287,10 @@ class ManyRelatedManagerWrapper(ManagerWrapper):
         for obj in objs:
             pk = (obj.pk if isinstance(obj, self._obj.model) else obj)
             self._changeset.add_m2m_remove(self._obj.instance, name=self.prefetch_cache_name, value=pk, author=author)
+
+    def get_prefetch_queryset(self, instances, queryset=None):
+        value = self._obj.get_prefetch_queryset(instances, queryset=queryset)
+        return value
 
 
 class QuerySetWrapper(BaseQueryWrapper):

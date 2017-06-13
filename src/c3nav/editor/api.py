@@ -76,6 +76,7 @@ class EditorViewSet(ViewSet):
             levels = Level.objects.filter(pk__in=levels).prefetch_related('buildings', 'spaces', 'doors',
                                                                           'spaces__groups', 'spaces__holes',
                                                                           'spaces__columns')
+
             levels = {s.pk: s for s in levels}
 
             level = levels[level.pk]

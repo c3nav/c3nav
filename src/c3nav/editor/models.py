@@ -120,7 +120,7 @@ class ChangeSet(models.Model):
         if isinstance(obj, type) and issubclass(obj, models.Model):
             return ModelWrapper(self, obj, author)
         if isinstance(obj, models.Model):
-            return ModelInstanceWrapper(self, obj, author)
+            return ModelWrapper(self, type(obj), author).create_wrapped_model_class()(self, obj, author)
         raise ValueError
 
     def _new_change(self, author, **kwargs):
