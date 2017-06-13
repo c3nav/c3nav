@@ -32,6 +32,7 @@ class ChangeSet(models.Model):
         self.default_author = None
         self.parsed = False
         self.updated_values = {}
+        self.deleted_existing = {}
 
     def parse_changes(self):
         if self.parsed:
@@ -44,6 +45,9 @@ class ChangeSet(models.Model):
             self.updated_values.setdefault(change.model_class, {}).setdefault(change.obj_pk, {}).update({
                  change.field_name: json.loads(change.field_value)
             })
+        elif change.action == 'delete':
+            if change.existing_object_pk is not None:
+                self.deleted_existing.setdefault(change.model_class, set()).add(change.existing_object_pk)
 
     @classmethod
     def qs_base(cls, hide_applied=True):

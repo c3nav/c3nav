@@ -223,7 +223,8 @@ class BaseQueryWrapper(BaseWrapper):
 
 
 class ManagerWrapper(BaseQueryWrapper):
-    pass
+    def all(self):
+        return self._wrap_queryset(self._obj.exclude(pk__in=self._changeset.deleted_existing.get(self._obj.model, ())))
 
 
 class ManyRelatedManagerWrapper(ManagerWrapper):
