@@ -38,7 +38,6 @@ class ChangeSet(models.Model):
             return
         for change in self.changes.all():
             self._parse_change(change)
-        print(self.updated_values)
 
     def _parse_change(self, change):
         if change.action == 'update':
