@@ -164,13 +164,20 @@ class ModelInstanceWrapper(BaseWrapper):
         if self.pk is None:
             self._changeset.add_create(self, author=author)
         for field, initial_value in self._initial_values.items():
-            new_value = getattr(self._obj, field.name)
-            if field.related_model:
-                new_value = None if new_value is None else new_value.pk
+            class_value = getattr(type(self._obj), field.name, None)
+            if isinstance(class_value, ForwardManyToOneDescriptor):
+                try:
+                    new_value = getattr(self._obj, class_value.cache_name)
+                except AttributeError:
+                    new_value = getattr(self._obj, field.attname)
+                else:
+                    new_value = None if new_value is None else new_value.pk
+
                 if new_value != initial_value:
                     self._changeset.add_update(self, name=field.name, value=new_value, author=author)
                 continue
 
+            new_value = getattr(self._obj, field.name)
             if new_value == initial_value:
                 continue
 
