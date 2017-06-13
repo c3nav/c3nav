@@ -98,16 +98,25 @@ class ChangeSet(models.Model):
         for name, value in kwargs.items():
             setattr(change, name, value)
         change.save()
-        print(repr(change))
+        # print(repr(change))
         return change
 
     def add_create(self, obj, author=None):
         change = self._new_change(author=author, action='create', model_class=type(obj._obj))
         obj.pk = 'c%d' % change.pk
 
-    def add_update(self, obj, name, value, author=None):
-        return self._new_change(author=author, action='update', obj=obj,
+    def _add_value(self, action, obj, name, value, author=None):
+        return self._new_change(author=author, action=action, obj=obj,
                                 field_name=name, field_value=json.dumps(value, ensure_ascii=False))
+
+    def add_update(self, obj, name, value, author=None):
+        return self._add_value('update', obj, name, value, author)
+
+    def add_m2m_add(self, obj, name, value, author=None):
+        return self._add_value('m2m_add', obj, name, value, author)
+
+    def add_m2m_remove(self, obj, name, value, author=None):
+        return self._add_value('m2m_remove', obj, name, value, author)
 
     def add_delete(self, obj, author=None):
         return self._new_change(author=author, action='delete', obj=obj)
@@ -183,8 +192,11 @@ class Change(models.Model):
         raise TypeError('existing_model_pk or created_object have to be set.')
 
     @obj.setter
-    def obj(self, value: models.Model):
-        if isinstance(value, ModelInstanceWrapper) and isinstance(value.pk, str):
+    def obj(self, value):
+        if not isinstance(value, ModelInstanceWrapper):
+            value = self.changeset.wrap(value)
+
+        if isinstance(value.pk, str):
             if value._changeset.id != self.changeset.pk:
                 raise ValueError('value is a Change instance but belongs to a different changeset.')
             self.model_class = type(value._obj)
@@ -252,5 +264,9 @@ class Change(models.Model):
             result += 'Update object '+repr(self.obj)+': '+self.field_name+'='+self.field_value
         elif self.action == 'delete':
             result += 'Delete object '+repr(self.obj)
+        elif self.action == 'm2m_add':
+            result += 'Update (m2m) object '+repr(self.obj)+': '+self.field_name+'.add('+self.field_value+')'
+        elif self.action == 'm2m_remove':
+            result += 'Update (m2m) object '+repr(self.obj)+': '+self.field_name+'.remove('+self.field_value+')'
         result += '>'
         return result

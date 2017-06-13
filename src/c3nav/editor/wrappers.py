@@ -19,6 +19,8 @@ class BaseWrapper:
         return ModelInstanceWrapper(self._changeset, instance, self._author)
 
     def _wrap_manager(self, manager):
+        if hasattr(manager, 'through'):
+            return ManyRelatedManagerWrapper(self._changeset, manager, self._author)
         return ManagerWrapper(self._changeset, manager, self._author)
 
     def _wrap_queryset(self, queryset):
@@ -37,8 +39,6 @@ class BaseWrapper:
         elif callable(value) and name not in self._allowed_callables:
             if not isinstance(self, ModelInstanceWrapper) or hasattr(models.Model, name):
                 raise TypeError('Can not call %s.%s wrapped!' % (self._obj, name))
-
-        # print(self._obj, name, type(value), value)
         return value
 
     def __setattr__(self, name, value):
@@ -210,6 +210,38 @@ class BaseQueryWrapper(BaseWrapper):
 
 class ManagerWrapper(BaseQueryWrapper):
     pass
+
+
+class ManyRelatedManagerWrapper(ManagerWrapper):
+    def _check_through(self):
+        if not self._obj.through._meta.auto_created:
+            raise AttributeError('Cannot do this an a ManyToManyField which specifies an intermediary model.')
+
+    def set(self, objs, author=None):
+        if author is None:
+            author = self._author
+
+        old_ids = set(self.values_list('pk', flat=True))
+        new_ids = set(obj.pk for obj in objs)
+
+        self.remove(*(old_ids - new_ids))
+        self.add(*(new_ids - old_ids))
+
+    def add(self, *objs, author=None):
+        if author is None:
+            author = self._author
+
+        for obj in objs:
+            pk = (obj.pk if isinstance(obj, self._obj.model) else obj)
+            self._changeset.add_m2m_add(self._obj.instance, name=self.prefetch_cache_name, value=pk, author=author)
+
+    def remove(self, *objs, author=None):
+        if author is None:
+            author = self._author
+
+        for obj in objs:
+            pk = (obj.pk if isinstance(obj, self._obj.model) else obj)
+            self._changeset.add_m2m_remove(self._obj.instance, name=self.prefetch_cache_name, value=pk, author=author)
 
 
 class QuerySetWrapper(BaseQueryWrapper):

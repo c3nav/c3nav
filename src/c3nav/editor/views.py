@@ -226,7 +226,7 @@ def edit(request, pk=None, model=None, level=None, space=None, on_top_of=None, e
                 obj.on_top_of = on_top_of
 
             obj.save()
-            # form.save_m2m()
+            form.save_m2m()
             # request.changeset.changes.all().delete()
 
             return redirect(ctx['back_url'])
