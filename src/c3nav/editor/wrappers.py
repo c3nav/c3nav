@@ -229,7 +229,7 @@ class BaseQueryWrapper(BaseWrapper):
         return self._wrap_queryset(self._obj.using(alias))
 
     def __iter__(self):
-        return iter([instance for instance in self._obj])
+        return iter([self._wrap_instance(instance) for instance in self._obj])
 
     def iterator(self):
         return iter(self)
