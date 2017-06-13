@@ -129,7 +129,7 @@ class ChangeSet(models.Model):
         for name, value in kwargs.items():
             setattr(change, name, value)
         change.save()
-        # print(repr(change))
+        self._parse_change(change)
         return change
 
     def add_create(self, obj, author=None):
