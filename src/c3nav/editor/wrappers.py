@@ -77,7 +77,7 @@ class ModelInstanceWrapper(BaseWrapper):
                     continue
                 self._initial_values[field] = getattr(self, field.name)
             elif (field.many_to_one or field.one_to_one) and not field.primary_key:
-                self._initial_values[field] = getattr(self, field.name).pk
+                self._initial_values[field] = getattr(self, field.name)
 
     def __eq__(self, other):
         if type(other) == ModelWrapper:
@@ -117,8 +117,10 @@ class ModelInstanceWrapper(BaseWrapper):
         for field, initial_value in self._initial_values.items():
             new_value = getattr(self._obj, field.name)
             if field.related_model:
-                if new_value.pk != initial_value.pk:
-                    self._changeset.add_update(self, name=field.name, value=new_value.pk, author=author)
+                new_pk = None if new_value is None else new_value.pk
+                initial_pk = None if initial_value is None else initial_value.pk
+                if new_pk != initial_pk:
+                    self._changeset.add_update(self, name=field.name, value=new_pk, author=author)
                 continue
 
             if new_value == initial_value:
