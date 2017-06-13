@@ -1,5 +1,7 @@
+from collections import deque
+
 from django.db import models
-from django.db.models import Manager
+from django.db.models import Manager, Prefetch
 from django.db.models.fields.related_descriptors import ForwardManyToOneDescriptor
 
 
@@ -17,6 +19,10 @@ class BaseWrapper:
         return ModelWrapper(self._changeset, model, self._author)
 
     def _wrap_instance(self, instance):
+        if isinstance(instance, ModelInstanceWrapper):
+            if self._author == instance._author and self._changeset == instance._changeset:
+                return instance
+            instance = instance._obj
         assert isinstance(instance, models.Model)
         return self._wrap_model(type(instance)).create_wrapped_model_class()(self._changeset, instance, self._author)
 
@@ -190,7 +196,7 @@ class ChangesQuerySet:
 
 
 class BaseQueryWrapper(BaseWrapper):
-    _allowed_callables = ('_add_hints', '_next_is_sticky')
+    _allowed_callables = ('_add_hints', '_next_is_sticky', 'get_prefetch_queryset')
 
     def __init__(self, changeset, obj, author=None, changes_qs=None):
         super().__init__(changeset, obj, author)
@@ -213,7 +219,16 @@ class BaseQueryWrapper(BaseWrapper):
         return self._wrap_queryset(self._obj.select_related(*args, **kwargs))
 
     def prefetch_related(self, *lookups):
-        return self._wrap_queryset(self._obj.prefetch_related(*lookups))
+        new_lookups = deque()
+        for lookup in lookups:
+            if not isinstance(lookup, str):
+                new_lookups.append(lookup)
+                continue
+            model = self._obj.model
+            for name in lookup.split('__'):
+                model = model._meta.get_field(name).related_model
+            new_lookups.append(Prefetch(lookup, self._wrap_model(model).objects.all()._obj))
+        return self._wrap_queryset(self._obj.prefetch_related(*new_lookups))
 
     def get(self, **kwargs):
         return self._wrap_instance(self._obj.get(**kwargs))
