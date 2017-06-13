@@ -105,12 +105,12 @@ class ChangeSet(models.Model):
         change = self._new_change(author=author, action='create', model_class=type(obj._obj))
         obj.pk = 'c%d' % change.pk
 
-    def add_update(self, obj, name, value, author):
+    def add_update(self, obj, name, value, author=None):
         return self._new_change(author=author, action='update', obj=obj,
                                 field_name=name, field_value=json.dumps(value, ensure_ascii=False))
 
-    def add_delete(self, author, obj):
-        return self._new_change(author, action='delete', obj=obj)
+    def add_delete(self, obj, author=None):
+        return self._new_change(author=author, action='delete', obj=obj)
 
 
 class Change(models.Model):

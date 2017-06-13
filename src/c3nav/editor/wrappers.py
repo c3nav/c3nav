@@ -131,6 +131,9 @@ class ModelInstanceWrapper(BaseWrapper):
 
             self._changeset.add_update(self, name=field.name, value=new_value, author=author)
 
+    def delete(self, author=None):
+        self._changeset.add_delete(self, author=author)
+
 
 class ChangesQuerySet():
     def __init__(self, changeset, model, author):
