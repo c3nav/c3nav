@@ -85,6 +85,10 @@ class ChangeSet(models.Model):
             else:
                 self.m2m_remove_existing.setdefault(model, {}).setdefault(change.obj_pk, set()).add(value)
 
+    def get_changed_values(self, model, name):
+        return tuple((pk, values[name])
+                     for pk, values in self.updated_existing.get(model, {}).items() if name in values)
+
     @classmethod
     def qs_base(cls, hide_applied=True):
         qs = cls.objects.prefetch_related('changes').select_related('author')

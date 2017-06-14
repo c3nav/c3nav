@@ -256,14 +256,54 @@ class BaseQueryWrapper(BaseWrapper):
     def order_by(self, *args):
         return self._wrap_queryset(self.get_queryset().order_by(*args))
 
-    def _filter_kwarg(self, name, value):
-        if name.endswith('__in'):
-            value = tuple((item._obj if isinstance(item, ModelInstanceWrapper) else item) for item in value)
+    def _filter_values(self, q, field_name, check):
+        other_values = self._changeset.get_changed_values(self._obj.model, field_name)
+        add_pks = []
+        remove_pks = []
+        for pk, new_value in other_values:
+            (add_pks if check(new_value) else remove_pks).append(pk)
+        return (q & ~Q(pk__in=remove_pks)) | Q(pk__in=add_pks)
 
-        if isinstance(value, ModelInstanceWrapper):
-            value = value._obj
+    def _filter_kwarg(self, filter_name, filter_value):
+        print(filter_name, '=', filter_value, sep='')
 
-        return Q(**{name: value})
+        segments = filter_name.split('__')
+        field_name = segments.pop(0)
+        try:
+            class_value = getattr(self._obj.model, field_name)
+        except AttributeError:
+            raise ValueError('%s has no attribute %s' % (self._obj.model, field_name))
+
+        q = Q(**{filter_name: filter_value})
+
+        if isinstance(class_value, ForwardManyToOneDescriptor):
+            if not segments:
+                raise NotImplementedError
+
+            filter_type = segments.pop(0)
+
+            if not segments and filter_type == 'in':
+                filter_name = field_name+'__pk__in'
+                filter_value = tuple(obj.pk for obj in filter_value)
+                filter_type = 'pk'
+                segments = ['in']
+                q = Q(**{filter_name: filter_value})
+
+            if filter_type == 'pk' and segments == ['in']:
+                return self._filter_values(q, field_name, lambda val: val in filter_value)
+
+            if segments:
+                raise NotImplementedError
+
+            if filter_type == 'isnull':
+                return self._filter_values(q, field_name, lambda val: (val is None) is filter_value)
+
+        raise NotImplementedError('cannot filter %s by %s (%s)' % (self._obj.model, filter_name, class_value))
+
+        if isinstance(filter_value, ModelInstanceWrapper):
+            filter_value = filter_value._obj
+
+        return Q(**{filter_name: filter_value})
 
     def _filter_q(self, q):
         result = Q(*((self._filter_q(c) if isinstance(c, Q) else self._filter_kwarg(*c)) for c in q.children))
