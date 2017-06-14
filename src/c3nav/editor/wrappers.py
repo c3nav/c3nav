@@ -315,7 +315,7 @@ class BaseQueryWrapper(BaseWrapper):
                 segments = ['in']
                 q = Q(**{filter_name: filter_value})
 
-            if filter_type == self._obj.model._meta.get_field(field_name).model._meta.pk.name:
+            if filter_type == class_value.field.model._meta.pk.name:
                 filter_type = 'pk'
 
             if filter_type == 'pk' and segments == ['in']:
