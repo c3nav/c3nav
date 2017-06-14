@@ -71,7 +71,7 @@ def level_detail(request, pk):
 @sidebar_view
 def space_detail(request, level, pk):
     Space = request.changeset.wrap('Space')
-    space = get_object_or_404(Space.objects.select_related('level'), level__id=level, pk=pk)
+    space = get_object_or_404(Space.objects.select_related('level'), level__pk=level, pk=pk)
 
     return render(request, 'editor/space.html', {
         'level': space.level,

@@ -330,6 +330,8 @@ class BaseQueryWrapper(BaseWrapper):
             if filter_type == 'isnull':
                 return self._filter_values(q, field_name, lambda val: (val is None) is filter_value)
 
+            raise NotImplementedError
+
         if isinstance(class_value, DeferredAttribute):
             if not segments:
                 raise NotImplementedError
