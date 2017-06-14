@@ -287,9 +287,15 @@ class BaseQueryWrapper(BaseWrapper):
 
         q = Q(**{filter_name: filter_value})
 
+        if field_name == 'pk':
+            return q
+
         if isinstance(class_value, ForwardManyToOneDescriptor):
             if not segments:
-                raise NotImplementedError
+                filter_name = field_name + '__pk'
+                filter_value = filter_value.pk
+                segments = ['pk']
+                q = Q(**{filter_name: filter_value})
 
             filter_type = segments.pop(0)
 
@@ -306,8 +312,23 @@ class BaseQueryWrapper(BaseWrapper):
             if segments:
                 raise NotImplementedError
 
+            if filter_type == 'pk':
+                return self._filter_values(q, field_name, lambda val: val == filter_value)
+
             if filter_type == 'isnull':
                 return self._filter_values(q, field_name, lambda val: (val is None) is filter_value)
+
+        if isinstance(class_value, DeferredAttribute):
+            if not segments:
+                raise NotImplementedError
+
+            filter_type = segments.pop(0)
+
+            if segments:
+                raise NotImplementedError
+
+            if filter_type == 'lt':
+                return self._filter_values(q, field_name, lambda val: val < filter_value)
 
         raise NotImplementedError('cannot filter %s by %s (%s)' % (self._obj.model, filter_name, class_value))
 
