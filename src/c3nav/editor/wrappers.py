@@ -4,7 +4,7 @@ from itertools import chain
 
 from django.db import models
 from django.db.models import Manager, Prefetch, Q
-from django.db.models.fields.related_descriptors import ForwardManyToOneDescriptor
+from django.db.models.fields.related_descriptors import ForwardManyToOneDescriptor, ManyToManyDescriptor
 from django.db.models.query_utils import DeferredAttribute
 
 
@@ -332,6 +332,32 @@ class BaseQueryWrapper(BaseWrapper):
 
             raise NotImplementedError
 
+        if isinstance(class_value, ManyToManyDescriptor):
+            print(class_value.__dict__)
+            if not segments:
+                filter_name = field_name + '__pk'
+                filter_value = filter_value.pk
+                segments = ['pk']
+                q = Q(**{filter_name: filter_value})
+
+            filter_type = segments.pop(0)
+
+            if filter_type == class_value.field.model._meta.pk.name:
+                filter_type = 'pk'
+
+            if segments:
+                raise NotImplementedError
+
+            if filter_type == 'pk':
+                if class_value.reverse:
+                    model = class_value.field.model
+                    return ((q & ~Q(pk__in=self._changeset.m2m_remove_existing.get(model, {}).get(filter_value, ()))) |
+                            Q(pk__in=self._changeset.m2m_add_existing.get(model, {}).get(filter_value, ())))
+
+                raise NotImplementedError
+
+            raise NotImplementedError
+
         if isinstance(class_value, DeferredAttribute):
             if not segments:
                 raise NotImplementedError
@@ -447,13 +473,7 @@ class ManyRelatedManagerWrapper(RelatedManagerWrapper):
             self._changeset.add_m2m_remove(self._obj.instance, name=self._get_cache_name(), value=pk, author=author)
 
     def all(self):
-        # todo: this filtering is temporary as long as querysets do not filter themselves according to changes
-        filter_ = Q(**self._obj.core_filters)
-        model = type(self._obj.instance)
-        instance_pk = self._obj.instance.pk
-        filter_ &= ~Q(pk__in=self._changeset.m2m_remove_existing.get(model, {}).get(instance_pk, ()))
-        filter_ |= Q(pk__in=self._changeset.m2m_add_existing.get(model, {}).get(instance_pk, ()))
-        return self.model.objects.filter(filter_)
+        return self.model.objects.filter(**self._obj.core_filters)
 
 
 class QuerySetWrapper(BaseQueryWrapper):
