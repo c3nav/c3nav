@@ -362,7 +362,7 @@ class RelatedManagerWrapper(ManagerWrapper):
 
     def all(self):
         try:
-            return self.instance._prefetched_objects_cache.get(self._get_cache_name(), None)
+            return self.instance._prefetched_objects_cache[self._get_cache_name()]
         except(AttributeError, KeyError):
             pass
         return super().all()
