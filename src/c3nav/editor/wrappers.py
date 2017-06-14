@@ -1,5 +1,6 @@
 import typing
 from collections import deque
+from itertools import chain
 
 from django.db import models
 from django.db.models import Manager, Prefetch, Q
@@ -270,11 +271,17 @@ class BaseQueryWrapper(BaseWrapper):
         result.negated = q.negated
         return result
 
+    def _filter(self, *args, **kwargs):
+        return chain(
+            tuple(self._filter_q(q) for q in args),
+            tuple(self._filter_kwarg(name, value) for name, value in kwargs.items())
+        )
+
     def filter(self, *args, **kwargs):
-        return self._wrap_queryset(self.get_queryset().filter(
-            *tuple(self._filter_q(q) for q in args),
-            *tuple(self._filter_kwarg(name, value) for name, value in kwargs.items()),
-        ))
+        return self._wrap_queryset(self.get_queryset().filter(*self._filter(*args, **kwargs)))
+
+    def exclude(self, *args, **kwargs):
+        return self._wrap_queryset(self.get_queryset().exclude(*self._filter(*args, **kwargs)))
 
     def count(self):
         return self.get_queryset().count()
