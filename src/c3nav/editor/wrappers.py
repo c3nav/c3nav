@@ -371,12 +371,15 @@ class RelatedManagerWrapper(ManagerWrapper):
     def _get_cache_name(self):
         return self._obj.field.related_query_name()
 
+    def get_queryset(self):
+        return self.model.objects.filter(**self._obj.core_filters)
+
     def all(self):
         try:
             return self.instance._prefetched_objects_cache[self._get_cache_name()]
         except(AttributeError, KeyError):
             pass
-        return super().all()
+        return self.get_queryset().all()
 
 
 class ManyRelatedManagerWrapper(RelatedManagerWrapper):
