@@ -228,7 +228,7 @@ class BaseQueryWrapper(BaseWrapper):
 
     def _wrap_instance(self, instance):
         if self._wrap_instances:
-            super()._wrap_instance(instance)
+            return super()._wrap_instance(instance)
         return instance
 
     def _wrap_queryset(self, queryset, changes_qs=None, wrap_instances=None):
@@ -256,8 +256,10 @@ class BaseQueryWrapper(BaseWrapper):
             model = self._obj.model
             for name in lookup.split('__'):
                 model = model._meta.get_field(name).related_model
-            new_lookups.append(Prefetch(lookup, self._wrap_model(model).objects.all()))
-        return self._wrap_queryset(self.get_queryset().prefetch_related(*new_lookups), wrap_instances=False)
+            qs = self._wrap_model(model).objects.all()
+            qs._wrap_instances = False
+            new_lookups.append(Prefetch(lookup, qs))
+        return self._wrap_queryset(self.get_queryset().prefetch_related(*new_lookups))
 
     def get(self, **kwargs):
         return self._wrap_instance(self.get_queryset().get(**kwargs))
