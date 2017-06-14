@@ -255,13 +255,26 @@ class BaseQueryWrapper(BaseWrapper):
     def order_by(self, *args):
         return self._wrap_queryset(self.get_queryset().order_by(*args))
 
+    def _filter_kwarg(self, name, value):
+        if name.endswith('__in'):
+            value = tuple((item._obj if isinstance(item, ModelInstanceWrapper) else item) for item in value)
+
+        if isinstance(value, ModelInstanceWrapper):
+            value = value._obj
+
+        return Q(**{name: value})
+
+    def _filter_q(self, q):
+        result = Q(*((self._filter_q(c) if isinstance(c, Q) else self._filter_kwarg(*c)) for c in q.children))
+        result.connector = q.connector
+        result.negated = q.negated
+        return result
+
     def filter(self, *args, **kwargs):
-        kwargs = {name: (value._obj if isinstance(value, ModelInstanceWrapper) else value)
-                  for name, value in kwargs.items()}
-        kwargs = {name: (((item._obj if isinstance(item, ModelInstanceWrapper) else item) for item in value)
-                         if name.endswith('__in') else value)
-                  for name, value in kwargs.items()}
-        return self._wrap_queryset(self.get_queryset().filter(*args, **kwargs))
+        return self._wrap_queryset(self.get_queryset().filter(
+            *tuple(self._filter_q(q) for q in args),
+            *tuple(self._filter_kwarg(name, value) for name, value in kwargs.items()),
+        ))
 
     def count(self):
         return self.get_queryset().count()
