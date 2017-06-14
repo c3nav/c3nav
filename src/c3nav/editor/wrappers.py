@@ -346,11 +346,6 @@ class BaseQueryWrapper(BaseWrapper):
 
         raise NotImplementedError('cannot filter %s by %s (%s)' % (self._obj.model, filter_name, class_value))
 
-        if isinstance(filter_value, ModelInstanceWrapper):
-            filter_value = filter_value._obj
-
-        return Q(**{filter_name: filter_value})
-
     def _filter_q(self, q):
         result = Q(*((self._filter_q(c) if isinstance(c, Q) else self._filter_kwarg(*c)) for c in q.children))
         result.connector = q.connector
