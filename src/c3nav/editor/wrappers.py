@@ -344,12 +344,12 @@ class ManyRelatedManagerWrapper(RelatedManagerWrapper):
 
     def all(self):
         # todo: this filtering is temporary as long as querysets do not filter themselves according to changes
-        filter = Q(**self._obj.core_filters)
+        filter_ = Q(**self._obj.core_filters)
         model = type(self._obj.instance)
         instance_pk = self._obj.instance.pk
-        filter &= ~Q(pk__in=self._changeset.m2m_remove_existing.get(model, {}).get(instance_pk, ()))
-        filter |= Q(pk__in=self._changeset.m2m_add_existing.get(model, {}).get(instance_pk, ()))
-        return self.model.objects.filter(filter)
+        filter_ &= ~Q(pk__in=self._changeset.m2m_remove_existing.get(model, {}).get(instance_pk, ()))
+        filter_ |= Q(pk__in=self._changeset.m2m_add_existing.get(model, {}).get(instance_pk, ()))
+        return self.model.objects.filter(filter_)
 
 
 class QuerySetWrapper(BaseQueryWrapper):
