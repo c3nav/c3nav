@@ -1,3 +1,4 @@
+import typing
 from collections import deque
 
 from django.db import models
@@ -69,7 +70,8 @@ class ModelWrapper(BaseWrapper):
             return self._obj is other._obj
         return self._obj is other
 
-    def create_wrapped_model_class(self):
+    def create_wrapped_model_class(self) -> typing.Type['ModelInstanceWrapper']:
+        # noinspection PyTypeChecker
         return self.create_metaclass()(self._obj.__name__ + 'InstanceWrapper', (ModelInstanceWrapper,), {})
 
     def __call__(self, **kwargs):
