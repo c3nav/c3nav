@@ -261,8 +261,14 @@ class BaseQueryWrapper(BaseWrapper):
             new_lookups.append(Prefetch(lookup, qs))
         return self._wrap_queryset(self.get_queryset().prefetch_related(*new_lookups))
 
-    def get(self, **kwargs):
-        return self._wrap_instance(self.get_queryset().get(**kwargs))
+    def get(self, *args, **kwargs):
+        print(args, kwargs)
+        results = tuple(self.filter(*args, **kwargs))
+        if len(results) == 1:
+            return self._wrap_instance(results[0])
+        if results:
+            raise self._obj.model.DoesNotExist
+        raise self._obj.model.MultipleObjectsReturned
 
     def order_by(self, *args):
         return self._wrap_queryset(self.get_queryset().order_by(*args))
@@ -287,8 +293,11 @@ class BaseQueryWrapper(BaseWrapper):
 
         q = Q(**{filter_name: filter_value})
 
-        if field_name == 'pk':
-            return q
+        if field_name == 'pk' or field_name == self._obj.model._meta.pk.name:
+            if not segments:
+                return q
+            else:
+                return q
 
         if isinstance(class_value, ForwardManyToOneDescriptor):
             if not segments:
@@ -305,6 +314,9 @@ class BaseQueryWrapper(BaseWrapper):
                 filter_type = 'pk'
                 segments = ['in']
                 q = Q(**{filter_name: filter_value})
+
+            if filter_type == self._obj.model._meta.get_field(field_name).model._meta.pk.name:
+                filter_type = 'pk'
 
             if filter_type == 'pk' and segments == ['in']:
                 return self._filter_values(q, field_name, lambda val: val in filter_value)
