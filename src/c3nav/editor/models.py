@@ -31,6 +31,7 @@ class ChangeSet(models.Model):
         super().__init__(*args, **kwargs)
         self.default_author = None
         self.parsed = False
+        self.created_objects = {}
         self.updated_existing = {}
         self.deleted_existing = {}
         self.m2m_add_existing = {}
@@ -49,23 +50,28 @@ class ChangeSet(models.Model):
 
         model = change.model_class
         if change.action == 'create':
-            raise NotImplementedError
+            self.created_objects.setdefault(model, {})[change.pk] = {}
         elif change.action == 'delete':
             if change.existing_object_pk is not None:
                 self.deleted_existing.setdefault(model, set()).add(change.existing_object_pk)
             else:
-                raise NotImplementedError
+                self.created_objects[model].pop(change.pk)
             return
 
+        name = change.field_name
         value = json.loads(change.field_value)
         if change.existing_object_pk is None:
-            raise NotImplementedError
+            if change.action == 'update':
+                self.created_objects[model][name] = value
+            elif change.action == 'm2m_add':
+                self.created_objects[model].setdefault(name, set()).add(value)
+            elif change.action == 'm2m_remove':
+                self.created_objects[model][name].remove(value)
+            return
 
         if change.action == 'update':
             value = json.loads(change.field_value)
-            self.updated_existing.setdefault(model, {}).setdefault(change.obj_pk, {}).update({
-                 change.field_name: value
-            })
+            self.updated_existing.setdefault(model, {}).setdefault(change.obj_pk, {})[name] = value
         elif change.action == 'm2m_add':
             m2m_remove_existing = self.m2m_remove_existing.get(model, {}).get(change.obj_pk, ())
             if value in m2m_remove_existing:
