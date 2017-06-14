@@ -5,10 +5,11 @@ from itertools import chain
 from django.db import models
 from django.db.models import Manager, Prefetch, Q
 from django.db.models.fields.related_descriptors import ForwardManyToOneDescriptor
+from django.db.models.query_utils import DeferredAttribute
 
 
 class BaseWrapper:
-    _not_wrapped = ('_changeset', '_author', '_obj', '_changes_qs', '_initial_values')
+    _not_wrapped = ('_changeset', '_author', '_obj', '_changes_qs', '_initial_values', '_wrap_instances')
     _allowed_callables = ('', )
 
     def __init__(self, changeset, obj, author=None):
@@ -215,19 +216,27 @@ class ChangesQuerySet:
 class BaseQueryWrapper(BaseWrapper):
     _allowed_callables = ('_add_hints', '_next_is_sticky', 'get_prefetch_queryset')
 
-    def __init__(self, changeset, obj, author=None, changes_qs=None):
+    def __init__(self, changeset, obj, author=None, changes_qs=None, wrap_instances=True):
         super().__init__(changeset, obj, author)
         if changes_qs is None:
             changes_qs = ChangesQuerySet(changeset, obj.model, author)
         self._changes_qs = changes_qs
+        self._wrap_instances = wrap_instances
 
     def get_queryset(self):
         return self._obj
 
-    def _wrap_queryset(self, queryset, changes_qs=None):
+    def _wrap_instance(self, instance):
+        if self._wrap_instances:
+            super()._wrap_instance(instance)
+        return instance
+
+    def _wrap_queryset(self, queryset, changes_qs=None, wrap_instances=None):
         if changes_qs is None:
             changes_qs = self._changes_qs
-        return QuerySetWrapper(self._changeset, queryset, self._author, changes_qs)
+        if wrap_instances is None:
+            wrap_instances = self._wrap_instances
+        return QuerySetWrapper(self._changeset, queryset, self._author, changes_qs, wrap_instances)
 
     def all(self):
         return self._wrap_queryset(self.get_queryset().all())
@@ -247,8 +256,8 @@ class BaseQueryWrapper(BaseWrapper):
             model = self._obj.model
             for name in lookup.split('__'):
                 model = model._meta.get_field(name).related_model
-            new_lookups.append(Prefetch(lookup, self._wrap_model(model).objects.all()._obj))
-        return self._wrap_queryset(self.get_queryset().prefetch_related(*new_lookups))
+            new_lookups.append(Prefetch(lookup, self._wrap_model(model).objects.all()))
+        return self._wrap_queryset(self.get_queryset().prefetch_related(*new_lookups), wrap_instances=False)
 
     def get(self, **kwargs):
         return self._wrap_instance(self.get_queryset().get(**kwargs))
