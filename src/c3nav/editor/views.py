@@ -97,10 +97,10 @@ def edit(request, pk=None, model=None, level=None, space=None, on_top_of=None, e
         kwargs = {'pk': pk}
         qs = model.objects.all()
         if level is not None:
-            kwargs.update({'level__id': level})
+            kwargs.update({'level__pk': level})
             qs = qs.select_related('level')
         elif space is not None:
-            kwargs.update({'space__id': space})
+            kwargs.update({'space__pk': space})
             qs = qs.select_related('space')
         obj = get_object_or_404(qs, **kwargs)
         if False:  # todo can access
