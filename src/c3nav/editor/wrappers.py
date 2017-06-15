@@ -262,7 +262,6 @@ class BaseQueryWrapper(BaseWrapper):
         return self._wrap_queryset(self.get_queryset().prefetch_related(*new_lookups))
 
     def get(self, *args, **kwargs):
-        print(args, kwargs)
         results = tuple(self.filter(*args, **kwargs))
         if len(results) == 1:
             return self._wrap_instance(results[0])
@@ -333,7 +332,6 @@ class BaseQueryWrapper(BaseWrapper):
             raise NotImplementedError
 
         if isinstance(class_value, ManyToManyDescriptor):
-            print(class_value.__dict__)
             if not segments:
                 filter_name = field_name + '__pk'
                 filter_value = filter_value.pk
