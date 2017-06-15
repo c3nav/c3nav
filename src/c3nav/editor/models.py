@@ -36,6 +36,7 @@ class ChangeSet(models.Model):
         self.deleted_existing = {}
         self.m2m_add_existing = {}
         self.m2m_remove_existing = {}
+        self._last_change_pk = 0
 
     def parse_changes(self):
         if self.parsed:
@@ -45,6 +46,8 @@ class ChangeSet(models.Model):
         self.parsed = True
 
     def _parse_change(self, change):
+        self._last_change_pk = change.pk
+
         if change.action == 'delchange':
             raise NotImplementedError
 
@@ -86,8 +89,12 @@ class ChangeSet(models.Model):
                 self.m2m_remove_existing.setdefault(model, {}).setdefault(change.obj_pk, set()).add(value)
 
     def get_changed_values(self, model, name):
-        return tuple((pk, values[name])
-                     for pk, values in self.updated_existing.get(model, {}).items() if name in values)
+        r = tuple((pk, values[name]) for pk, values in self.updated_existing.get(model, {}).items() if name in values)
+        return r
+
+    @property
+    def cache_key(self):
+        return str(self.pk)+'-'+str(self._last_change_pk)
 
     @classmethod
     def qs_base(cls, hide_applied=True):
