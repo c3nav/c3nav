@@ -370,6 +370,8 @@ class BaseQueryWrapper(BaseWrapper):
             if filter_type == 'lt':
                 return self._filter_values(q, field_name, lambda val: val < filter_value)
 
+            raise NotImplementedError
+
         raise NotImplementedError('cannot filter %s by %s (%s)' % (self._obj.model, filter_name, class_value))
 
     def _filter_q(self, q):
