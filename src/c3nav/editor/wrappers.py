@@ -7,6 +7,7 @@ from django.db import models
 from django.db.models import Manager, Prefetch, Q
 from django.db.models.fields.related_descriptors import ForwardManyToOneDescriptor, ManyToManyDescriptor
 from django.db.models.query_utils import DeferredAttribute
+from django.utils.functional import cached_property
 
 
 class BaseWrapper:
@@ -233,7 +234,7 @@ class ExecutesQueryDecorator:
     def __call__(self, f):
         @wraps(f)
         def wrapper(qs, *args, **kwargs):
-            qs = qs.execute_commands()
+            qs = qs.executed
             return f(qs, *args, **kwargs)
         return wrapper
 
@@ -252,7 +253,8 @@ class BaseQueryWrapper(BaseWrapper):
     def get_queryset(self):
         return self._obj
 
-    def execute_commands(self):
+    @cached_property
+    def executed(self):
         result = self
         for name, args, kwargs in self._commands:
             result = getattr(result, name)(*args, execute=True, **kwargs)
