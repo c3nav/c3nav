@@ -7,11 +7,11 @@ from django.db import models
 from django.db.models import Manager, Prefetch, Q
 from django.db.models.fields.related_descriptors import ForwardManyToOneDescriptor, ManyToManyDescriptor
 from django.db.models.query_utils import DeferredAttribute
-from django.utils.functional import cached_property
 
 
 class BaseWrapper:
-    _not_wrapped = ('_changeset', '_author', '_obj', '_commands', '_wrap_instances', '_initial_values')
+    _not_wrapped = ('_changeset', '_author', '_obj', '_commands', '_with_commands_executed', '_wrap_instances',
+                    '_initial_values')
     _allowed_callables = ('', )
 
     def __init__(self, changeset, obj, author=None):
@@ -208,38 +208,22 @@ class ModelInstanceWrapper(BaseWrapper):
         self._changeset.add_delete(self, author=author)
 
 
-class ModifiesQueryDecorator:
-    def __init__(self, test_call=False):
-        self.test_call = test_call
-
-    def __call__(self, f):
-        @wraps(f)
-        def wrapper(qs, *args, execute=False, **kwargs):
-            if execute:
-                return f(qs, *args, **kwargs)
-            if self.test_call:
-                f(qs, *args, test_call=True, **kwargs)
-            return qs._wrap_queryset(qs.get_queryset(), add_command=(f.__name__, args, kwargs))
-
-        return wrapper
+def modifies_query(f):
+    @wraps(f)
+    def wrapper(self, *args, execute=False, **kwargs):
+        if execute:
+            return f(self, *args, **kwargs)
+        qs = self._wrap_queryset(self.get_queryset(), add_command=(f.__name__, args, kwargs))
+        qs.execute_commands()
+        return qs
+    return wrapper
 
 
-modifies_query = ModifiesQueryDecorator
-
-
-class ExecutesQueryDecorator:
-    def __init__(self, test_call=False):
-        self.test_call = test_call
-
-    def __call__(self, f):
-        @wraps(f)
-        def wrapper(qs, *args, **kwargs):
-            qs = qs.executed
-            return f(qs, *args, **kwargs)
-        return wrapper
-
-
-executes_query = ExecutesQueryDecorator
+def executes_query(f):
+    @wraps(f)
+    def wrapper(self, *args, **kwargs):
+        return f(self._with_commands_executed, *args, **kwargs)
+    return wrapper
 
 
 class BaseQueryWrapper(BaseWrapper):
@@ -249,17 +233,17 @@ class BaseQueryWrapper(BaseWrapper):
         super().__init__(changeset, obj, author)
         self._wrap_instances = wrap_instances
         self._commands = commands
+        self._with_commands_executed = self
 
     def get_queryset(self):
         return self._obj
 
-    @cached_property
-    def executed(self):
+    def execute_commands(self):
         result = self
         for name, args, kwargs in self._commands:
             result = getattr(result, name)(*args, execute=True, **kwargs)
         result._commands = ()
-        return result
+        self._with_commands_executed = result
 
     def _wrap_instance(self, instance):
         if self._wrap_instances:
@@ -274,19 +258,19 @@ class BaseQueryWrapper(BaseWrapper):
             commands += (add_command, )
         return QuerySetWrapper(self._changeset, queryset, self._author, commands, wrap_instances)
 
-    @modifies_query()
+    @modifies_query
     def all(self):
         return self._wrap_queryset(self.get_queryset().all())
 
-    @modifies_query()
+    @modifies_query
     def none(self):
         return self._wrap_queryset(self.get_queryset().none())
 
-    @modifies_query()
+    @modifies_query
     def select_related(self, *args, **kwargs):
         return self._wrap_queryset(self.get_queryset().select_related(*args, **kwargs))
 
-    @modifies_query()
+    @modifies_query
     def prefetch_related(self, *lookups):
         new_lookups = deque()
         for lookup in lookups:
@@ -301,7 +285,7 @@ class BaseQueryWrapper(BaseWrapper):
             new_lookups.append(Prefetch(lookup, qs))
         return self._wrap_queryset(self.get_queryset().prefetch_related(*new_lookups))
 
-    @executes_query()
+    @executes_query
     def get(self, *args, **kwargs):
         results = tuple(self.filter(*args, **kwargs))
         if len(results) == 1:
@@ -310,7 +294,7 @@ class BaseQueryWrapper(BaseWrapper):
             raise self._obj.model.DoesNotExist
         raise self._obj.model.MultipleObjectsReturned
 
-    @modifies_query()
+    @modifies_query
     def order_by(self, *args):
         return self._wrap_queryset(self.get_queryset().order_by(*args))
 
@@ -426,42 +410,42 @@ class BaseQueryWrapper(BaseWrapper):
             tuple(self._filter_kwarg(name, value) for name, value in kwargs.items())
         )
 
-    @modifies_query()
+    @modifies_query
     def filter(self, *args, **kwargs):
         return self._wrap_queryset(self.get_queryset().filter(*self._filter(*args, **kwargs)))
 
-    @modifies_query()
+    @modifies_query
     def exclude(self, *args, **kwargs):
         return self._wrap_queryset(self.get_queryset().exclude(*self._filter(*args, **kwargs)))
 
-    @executes_query()
+    @executes_query
     def count(self):
         return self.get_queryset().count()
 
-    @executes_query()
+    @executes_query
     def values_list(self, *args, flat=False):
         return self.get_queryset().values_list(*args, flat=flat)
 
-    @executes_query()
+    @executes_query
     def first(self):
         first = self.get_queryset().first()
         if first is not None:
             first = self._wrap_instance(first)
         return first
 
-    @modifies_query()
+    @modifies_query
     def using(self, alias):
         return self._wrap_queryset(self.get_queryset().using(alias))
 
-    @executes_query()
+    @executes_query
     def __iter__(self):
         return iter((self._wrap_instance(instance) for instance in self.get_queryset()))
 
-    @executes_query()
+    @executes_query
     def iterator(self):
         return iter((self._wrap_instance(instance) for instance in self.get_queryset().iterator()))
 
-    @executes_query()
+    @executes_query
     def __len__(self):
         return len(self.get_queryset())
 
