@@ -102,7 +102,12 @@ class ChangeSet(models.Model):
         obj = model()
         obj.pk = 'c'+str(pk)
         for name, value in self.created_objects[model][pk].items():
+            if name.startswith('title_'):
+                obj.titles[name[6:]] = value
+                continue
+
             class_value = getattr(model, name)
+
             if isinstance(class_value, ManyToManyDescriptor):
                 continue
 
