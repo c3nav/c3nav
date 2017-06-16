@@ -11,7 +11,7 @@ from django.utils.functional import cached_property
 
 
 class BaseWrapper:
-    _not_wrapped = ('_changeset', '_author', '_obj', '_created_pks', '_result', '_initial_values', '_wrap_instances')
+    _not_wrapped = ('_changeset', '_author', '_obj', '_created_pks', '_result', '_initial_values')
     _allowed_callables = ('', )
 
     def __init__(self, changeset, obj, author=None):
@@ -212,30 +212,25 @@ class ModelInstanceWrapper(BaseWrapper):
 class BaseQueryWrapper(BaseWrapper):
     _allowed_callables = ('_add_hints', '_next_is_sticky', 'get_prefetch_queryset')
 
-    def __init__(self, changeset, obj, author=None, created_pks=None, wrap_instances=True):
+    def __init__(self, changeset, obj, author=None, created_pks=None):
         super().__init__(changeset, obj, author)
         if created_pks is None:
             created_pks = self._changeset.get_created_pks(self._obj.model)
         self._created_pks = created_pks
-        self._wrap_instances = wrap_instances
         self._result = None
 
     def get_queryset(self):
         return self._obj
 
     def _wrap_instance(self, instance):
-        if self._wrap_instances:
-            return super()._wrap_instance(instance)
-        return instance
+        return super()._wrap_instance(instance)
 
-    def _wrap_queryset(self, queryset, created_pks=None, wrap_instances=None):
+    def _wrap_queryset(self, queryset, created_pks=None):
         if created_pks is None:
             created_pks = self._created_pks
         if created_pks is False:
             created_pks = None
-        if wrap_instances is None:
-            wrap_instances = self._wrap_instances
-        return QuerySetWrapper(self._changeset, queryset, self._author, created_pks, wrap_instances)
+        return QuerySetWrapper(self._changeset, queryset, self._author, created_pks)
 
     def all(self):
         return self._wrap_queryset(self.get_queryset().all())
@@ -263,7 +258,7 @@ class BaseQueryWrapper(BaseWrapper):
 
         for depth_lookups in reversed(lookups_by_depth):
             for lookup in depth_lookups:
-                qs = self._wrap_queryset(lookup_querysets[lookup], wrap_instances=True, created_pks=False)
+                qs = self._wrap_queryset(lookup_querysets[lookup], created_pks=False)
                 prefetch = Prefetch(lookup[-1], qs)
                 lookup_querysets[lookup[:-1]] = lookup_querysets[lookup[:-1]].prefetch_related(prefetch)
 
