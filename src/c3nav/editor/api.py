@@ -89,9 +89,6 @@ class EditorViewSet(ViewSet):
                 self._get_level_geometries(level),
                 *(self._get_level_geometries(s) for s in levels_on_top)
             )
-            results = tuple(results)
-            for result in results:
-                print(type(result).__name__)
 
             return Response([obj.to_geojson(instance=obj) for obj in results])
         elif space is not None:
