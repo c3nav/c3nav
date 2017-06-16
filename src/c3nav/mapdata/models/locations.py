@@ -112,11 +112,13 @@ class Location(LocationSlug, EditorFormMixin, models.Model):
             return self._meta.verbose_name + ' ' + self.slug
         return super().title
 
-    def get_color(self):
+    def get_color(self, instance=None):
         if self.color:
             return self.color
         # dont filter in the query here so prefetch_related works
-        groups = [group for group in self.groups.all() if group.color is not None]
+        if instance is None:
+            instance = self
+        groups = [group for group in instance.groups.all() if group.color is not None]
         if not groups:
             return None
         for group in groups:

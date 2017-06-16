@@ -14,11 +14,11 @@ class LevelGeometryMixin(GeometryMixin):
     class Meta:
         abstract = True
 
-    def get_geojson_properties(self) -> dict:
-        result = super().get_geojson_properties()
+    def get_geojson_properties(self, *args, instance=None, **kwargs) -> dict:
+        result = super().get_geojson_properties(*args, **kwargs)
         result['level'] = self.level_id
         if hasattr(self, 'get_color'):
-            color = self.get_color()
+            color = self.get_color(instance=instance)
             if color:
                 result['color'] = color
         if hasattr(self, 'opacity'):
@@ -70,8 +70,8 @@ class Space(SpecificLocation, LevelGeometryMixin, models.Model):
             result['public'] = self.public
         return result
 
-    def get_color(self):
-        color = super().get_color()
+    def get_color(self, *args, **kwargs):
+        color = super().get_color(*args, **kwargs)
         if not color:
             color = {
                 'stairs': '#dddddd',

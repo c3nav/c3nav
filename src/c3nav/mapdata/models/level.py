@@ -31,16 +31,16 @@ class Level(SpecificLocation, EditorFormMixin, models.Model):
     def lower(self, level_model=None):
         if self.on_top_of_id is not None:
             raise TypeError
-        if level_model is not None:
-            Level = level_model
-        return Level.objects.filter(altitude__lt=self.altitude, on_top_of__isnull=True).order_by('-altitude')
+        if level_model is None:
+            level_model = Level
+        return level_model.objects.filter(altitude__lt=self.altitude, on_top_of__isnull=True).order_by('-altitude')
 
     def higher(self, level_model=None):
         if self.on_top_of_id is not None:
             raise TypeError
-        if level_model is not None:
-            Level = level_model
-        return Level.objects.filter(altitude__gt=self.altitude, on_top_of__isnull=True).order_by('altitude')
+        if level_model is None:
+            level_model = Level
+        return level_model.objects.filter(altitude__gt=self.altitude, on_top_of__isnull=True).order_by('altitude')
 
     @property
     def sublevels(self):

@@ -92,7 +92,7 @@ class EditorViewSet(ViewSet):
             for result in results:
                 print(type(result).__name__)
 
-            return Response([obj.to_geojson() for obj in results])
+            return Response([obj.to_geojson(instance=obj) for obj in results])
         elif space is not None:
             space = get_object_or_404(Space.objects.select_related('level', 'level__on_top_of'), pk=space)
             level = space.level

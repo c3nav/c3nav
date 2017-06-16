@@ -17,7 +17,7 @@ class GeometryMixin(EditorFormMixin):
     class Meta:
         abstract = True
 
-    def get_geojson_properties(self) -> dict:
+    def get_geojson_properties(self, *args, **kwargs) -> dict:
         result = OrderedDict((
             ('type', self.__class__.__name__.lower()),
             ('id', self.pk),
@@ -26,10 +26,10 @@ class GeometryMixin(EditorFormMixin):
             result['bounds'] = True
         return result
 
-    def to_geojson(self) -> dict:
+    def to_geojson(self, instance=None) -> dict:
         result = OrderedDict((
             ('type', 'Feature'),
-            ('properties', self.get_geojson_properties()),
+            ('properties', self.get_geojson_properties(instance=instance)),
             ('geometry', format_geojson(mapping(self.geometry), round=False)),
         ))
         original_geometry = getattr(self, 'original_geometry', None)

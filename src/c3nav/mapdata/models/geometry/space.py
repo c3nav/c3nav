@@ -24,8 +24,8 @@ class SpaceGeometryMixin(GeometryMixin):
             result['space'] = self.space_id
         return result
 
-    def get_geojson_properties(self) -> dict:
-        result = super().get_geojson_properties()
+    def get_geojson_properties(self, *args, **kwargs) -> dict:
+        result = super().get_geojson_properties(*args, **kwargs)
         if hasattr(self, 'get_color'):
             color = self.get_color()
             if color:
@@ -62,8 +62,8 @@ class Area(SpecificLocation, SpaceGeometryMixin, models.Model):
         result['stuffed'] = self.stuffed
         return result
 
-    def get_color(self):
-        color = super().get_color()
+    def get_color(self, *args, **kwargs):
+        color = super().get_color(*args, **kwargs)
         if not color and self.stuffed:
             color = 'rgba(0, 0, 0, 0.04)'
         return color
@@ -80,8 +80,8 @@ class Stair(SpaceGeometryMixin, models.Model):
         verbose_name_plural = _('Stairs')
         default_related_name = 'stairs'
 
-    def to_geojson(self):
-        result = super().to_geojson()
+    def to_geojson(self, *args, **kwargs):
+        result = super().to_geojson(*args, **kwargs)
         original_geometry = result['geometry']
         draw = self.geometry.buffer(0.05, join_style=JOIN_STYLE.mitre, cap_style=CAP_STYLE.flat)
         result['geometry'] = format_geojson(mapping(draw))
@@ -143,8 +143,8 @@ class LineObstacle(SpaceGeometryMixin, models.Model):
     def buffered_geometry(self):
         return self.geometry.buffer(self.width / 2, join_style=JOIN_STYLE.mitre, cap_style=CAP_STYLE.flat)
 
-    def to_geojson(self):
-        result = super().to_geojson()
+    def to_geojson(self, *args, **kwargs):
+        result = super().to_geojson(*args, **kwargs)
         result['original_geometry'] = result['geometry']
         result['geometry'] = format_geojson(mapping(self.buffered_geometry))
         return result
@@ -165,8 +165,8 @@ class Point(SpecificLocation, SpaceGeometryMixin, models.Model):
     def buffered_geometry(self):
         return self.geometry.buffer(0.5)
 
-    def to_geojson(self):
-        result = super().to_geojson()
+    def to_geojson(self, *args, **kwargs):
+        result = super().to_geojson(*args, **kwargs)
         result['original_geometry'] = result['geometry']
         result['geometry'] = format_geojson(mapping(self.buffered_geometry))
         return result

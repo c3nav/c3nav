@@ -53,8 +53,9 @@ class BaseWrapper:
         elif isinstance(value, type) and issubclass(value, Exception):
             pass
         elif callable(value) and name not in self._allowed_callables:
-            if not isinstance(self, ModelInstanceWrapper) or hasattr(models.Model, name):
-                raise TypeError('Can not call %s.%s wrapped!' % (type(self), name))
+            if isinstance(self, ModelInstanceWrapper) and not hasattr(models.Model, name):
+                return value
+            raise TypeError('Can not call %s.%s wrapped!' % (type(self), name))
         return value
 
     def __setattr__(self, name, value):
@@ -307,7 +308,7 @@ class BaseQueryWrapper(BaseWrapper):
         return isinstance(pk, str) and pk.startswith('c') and pk[1:].isnumeric()
 
     def _filter_kwarg(self, filter_name, filter_value):
-        print(filter_name, '=', filter_value, sep='')
+        # print(filter_name, '=', filter_value, sep='')
 
         segments = filter_name.split('__')
         field_name = segments.pop(0)
