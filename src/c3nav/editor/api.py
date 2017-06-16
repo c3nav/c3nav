@@ -74,8 +74,9 @@ class EditorViewSet(ViewSet):
             level = get_object_or_404(Level, pk=level)
 
             levels, levels_on_top, levels_under = self._get_levels_pk(request, level)
+            # don't prefetch groups for now as changesets do not yet work with m2m-prefetches
             levels = Level.objects.filter(pk__in=levels).prefetch_related('buildings', 'spaces', 'doors',
-                                                                          'spaces__groups', 'spaces__holes',
+                                                                          'spaces__holes',  # 'spaces__groups',
                                                                           'spaces__columns')
 
             levels = {s.pk: s for s in levels}
