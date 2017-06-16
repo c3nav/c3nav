@@ -526,6 +526,9 @@ class ManyRelatedManagerWrapper(RelatedManagerWrapper):
     def _get_cache_name(self):
         return self._obj.prefetch_cache_name
 
+    def get_queryset(self):
+        return self.model.objects.filter(**self._obj.core_filters)
+
     def set(self, objs, author=None):
         if author is None:
             author = self._author
@@ -553,7 +556,11 @@ class ManyRelatedManagerWrapper(RelatedManagerWrapper):
             self._changeset.add_m2m_remove(self._obj.instance, name=self._get_cache_name(), value=pk, author=author)
 
     def all(self):
-        return self.model.objects.filter(**self._obj.core_filters)
+        try:
+            return self.instance._prefetched_objects_cache[self._get_cache_name()]
+        except(AttributeError, KeyError):
+            pass
+        return self.get_queryset().all()
 
     def create(self, *args, **kwargs):
         raise NotImplementedError
