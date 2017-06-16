@@ -72,6 +72,10 @@ def level_detail(request, pk):
 def space_detail(request, level, pk):
     Space = request.changeset.wrap('Space')
     space = get_object_or_404(Space.objects.select_related('level'), level__pk=level, pk=pk)
+    print('also!')
+    print(Space.objects.select_related('level').get(level__pk=level, pk=pk))
+    print(space)
+    print('aha')
 
     return render(request, 'editor/space.html', {
         'level': space.level,
@@ -293,6 +297,8 @@ def list_objects(request, model=None, level=None, space=None, explicit_edit=Fals
     edit_url_name = request.resolver_match.url_name[:-4]+('detail' if explicit_edit else 'edit')
     for obj in queryset:
         reverse_kwargs['pk'] = obj.pk
+        print(reverse_kwargs)
+        print(reverse(edit_url_name, kwargs=reverse_kwargs))
         obj.edit_url = reverse(edit_url_name, kwargs=reverse_kwargs)
     reverse_kwargs.pop('pk', None)
 

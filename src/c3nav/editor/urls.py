@@ -10,7 +10,7 @@ def add_editor_urls(model_name, parent_model_name=None, with_list=True, explicit
     if parent_model_name:
         parent_model = apps.get_model('mapdata', parent_model_name)
         parent_model_name_plural = parent_model._meta.default_related_name
-        prefix = (parent_model_name_plural+r'/(?P<'+parent_model_name.lower()+'>[0-9]+)/')+model_name_plural
+        prefix = (parent_model_name_plural+r'/(?P<'+parent_model_name.lower()+'>c?[0-9]+)/')+model_name_plural
     else:
         prefix = model_name_plural
 
@@ -22,7 +22,7 @@ def add_editor_urls(model_name, parent_model_name=None, with_list=True, explicit
     if with_list:
         result.append(url(r'^'+prefix+r'/$', list_objects, name=name_prefix+'list', kwargs=kwargs))
     result.extend([
-        url(r'^'+prefix+r'/(?P<pk>\d+)/'+explicit_edit+'$', edit, name=name_prefix+'edit', kwargs=kwargs),
+        url(r'^'+prefix+r'/(?P<pk>c?\d+)/'+explicit_edit+'$', edit, name=name_prefix+'edit', kwargs=kwargs),
         url(r'^'+prefix+r'/create$', edit, name=name_prefix+'create', kwargs=kwargs),
     ])
     return result
@@ -30,9 +30,9 @@ def add_editor_urls(model_name, parent_model_name=None, with_list=True, explicit
 
 urlpatterns = [
     url(r'^$', main_index, name='editor.index'),
-    url(r'^levels/(?P<pk>[0-9]+)/$', level_detail, name='editor.levels.detail'),
-    url(r'^levels/(?P<level>[0-9]+)/spaces/(?P<pk>[0-9]+)/$', space_detail, name='editor.spaces.detail'),
-    url(r'^levels/(?P<on_top_of>[0-9]+)/levels_on_top/create$', edit, name='editor.levels_on_top.create',
+    url(r'^levels/(?P<pk>c?[0-9]+)/$', level_detail, name='editor.levels.detail'),
+    url(r'^levels/(?P<level>c?[0-9]+)/spaces/(?P<pk>c?[0-9]+)/$', space_detail, name='editor.spaces.detail'),
+    url(r'^levels/(?P<on_top_of>c?[0-9]+)/levels_on_top/create$', edit, name='editor.levels_on_top.create',
         kwargs={'model': 'Level'}),
     url(r'^changesets/(?P<pk>[0-9]+)/$', changeset_detail, name='editor.changesets.detail'),
 ]

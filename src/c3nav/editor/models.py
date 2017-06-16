@@ -74,26 +74,31 @@ class ChangeSet(models.Model):
                 self.created_objects[model][change.created_object_id][name].remove(value)
             return
 
+        pk = change.existing_object_pk
         if change.action == 'update':
-            self.updated_existing.setdefault(model, {}).setdefault(change.obj_pk, {})[name] = value
+            self.updated_existing.setdefault(model, {}).setdefault(pk, {})[name] = value
         elif change.action == 'm2m_add':
-            m2m_remove_existing = self.m2m_remove_existing.get(model, {}).get(change.obj_pk, ())
+            m2m_remove_existing = self.m2m_remove_existing.get(model, {}).get(pk, {}).get(name, ())
             if value in m2m_remove_existing:
                 m2m_remove_existing.remove(value)
             else:
-                self.m2m_add_existing.setdefault(model, {}).setdefault(change.obj_pk, set()).add(value)
+                self.m2m_add_existing.setdefault(model, {}).setdefault(pk, {}).setdefault(name, set()).add(value)
         elif change.action == 'm2m_remove':
-            m2m_add_existing = self.m2m_add_existing.get(model, {}).get(change.obj_pk, ())
+            m2m_add_existing = self.m2m_add_existing.get(model, {}).get(pk, {}).get(name, ())
             if value in m2m_add_existing:
                 m2m_add_existing.remove(value)
             else:
-                self.m2m_remove_existing.setdefault(model, {}).setdefault(change.obj_pk, set()).add(value)
+                self.m2m_remove_existing.setdefault(model, {}).setdefault(pk, {}).setdefault(name, set()).add(value)
 
     def get_changed_values(self, model, name):
         r = tuple((pk, values[name]) for pk, values in self.updated_existing.get(model, {}).items() if name in values)
         return r
 
-    def get_created_object(self, model, pk, author=None):
+    def get_created_values(self, model, name):
+        r = tuple((pk, values[name]) for pk, values in self.updated_existing.get(model, {}).items() if name in values)
+        return r
+
+    def get_created_object(self, model, pk, author=None, get_foreign_objects=False):
         if isinstance(pk, str):
             pk = int(pk[1:])
         self.parse_changes()
@@ -112,13 +117,21 @@ class ChangeSet(models.Model):
                 continue
 
             if isinstance(class_value, ForwardManyToOneDescriptor):
-                setattr(obj, class_value.field.attname, pk)
+                field = class_value.field
+                setattr(obj, field.attname, value)
                 if isinstance(pk, str):
-                    setattr(obj, class_value.cache_name, self.get_created_object(class_value.field.model, pk))
+                    setattr(obj, class_value.cache_name, self.get_created_object(field.model, value))
+                elif get_foreign_objects:
+                    setattr(obj, class_value.cache_name, self.wrap(field.related_model.objects.get(pk=value)))
                 continue
 
             setattr(obj, name, model._meta.get_field(name).to_python(value))
         return self.wrap(obj, author=author)
+
+    def get_created_pks(self, model):
+        if issubclass(model, ModelWrapper):
+            model = model._obj
+        return set(self.created_objects.get(model, {}).keys())
 
     @property
     def cache_key(self):
