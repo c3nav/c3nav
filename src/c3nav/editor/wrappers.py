@@ -392,7 +392,7 @@ class BaseQueryWrapper(BaseWrapper):
                                 set(int(pk[1:]) for pk in pks if self.is_created_pk(pk)))
 
                     return (((q & ~Q(pk__in=(pk for pk in remove_pks if not self.is_created_pk(pk)))) |
-                             Q(pk__in=(pk for pk in remove_pks if not self.is_created_pk(pk)))),
+                             Q(pk__in=(pk for pk in add_pks if not self.is_created_pk(pk)))),
                             set(int(pk[1:]) for pk in add_pks if self.is_created_pk(pk)))
 
                 raise NotImplementedError
