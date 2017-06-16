@@ -124,7 +124,7 @@ class ModelInstanceWrapper(BaseWrapper):
                         else:
                             self._obj.titles[name[6:]] = value
                 elif field.name in updates:
-                    setattr(self._obj, field.name, updates[field.name])
+                    setattr(self._obj, field.name, field.to_python(updates[field.name]))
                 self._initial_values[field] = getattr(self._obj, field.name)
             elif (field.many_to_one or field.one_to_one) and not field.primary_key:
                 if field.name in updates:
