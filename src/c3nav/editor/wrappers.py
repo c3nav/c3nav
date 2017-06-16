@@ -1,5 +1,5 @@
 import typing
-from collections import deque
+from collections import Iterable, deque
 from functools import wraps
 from itertools import chain
 
@@ -213,6 +213,9 @@ def modifies_query(f):
     def wrapper(self, *args, execute=False, **kwargs):
         if execute:
             return f(self, *args, **kwargs)
+        if f.__name__ in ('filter', 'exclude'):
+            kwargs = {name: (tuple(value) if name.endswith('__in') and isinstance(value, Iterable) else value)
+                      for name, value in kwargs.items()}
         qs = self._wrap_queryset(self.get_queryset(), add_command=(f.__name__, args, kwargs))
         qs.execute_commands()
         return qs
