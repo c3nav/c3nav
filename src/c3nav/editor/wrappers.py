@@ -52,7 +52,7 @@ class BaseWrapper:
             pass
         elif callable(value) and name not in self._allowed_callables:
             if not isinstance(self, ModelInstanceWrapper) or hasattr(models.Model, name):
-                raise TypeError('Can not call %s.%s wrapped!' % (self._obj, name))
+                raise TypeError('Can not call %s.%s wrapped!' % (type(self), name))
         return value
 
     def __setattr__(self, name, value):
