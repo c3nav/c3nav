@@ -54,6 +54,7 @@ class ChangeSet(models.Model):
         model = change.model_class
         if change.action == 'create':
             self.created_objects.setdefault(model, {})[change.pk] = {}
+            return
         elif change.action == 'delete':
             if change.existing_object_pk is not None:
                 self.deleted_existing.setdefault(model, set()).add(change.existing_object_pk)
