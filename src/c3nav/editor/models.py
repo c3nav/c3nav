@@ -117,7 +117,7 @@ class ChangeSet(models.Model):
                     setattr(obj, class_value.cache_name, self.get_created_object(class_value.field.model, pk))
                 continue
 
-            setattr(obj, name, value)
+            setattr(obj, name, model._meta.get_field(name).to_python(value))
         return self.wrap(obj, author=author)
 
     @property

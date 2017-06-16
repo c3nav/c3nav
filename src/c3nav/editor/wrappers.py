@@ -198,7 +198,7 @@ class ModelInstanceWrapper(BaseWrapper):
                         self._changeset.add_update(self, name='title_'+lang, value=new_title, author=author)
                 continue
 
-            self._changeset.add_update(self, name=field.name, value=new_value, author=author)
+            self._changeset.add_update(self, name=field.name, value=field.get_prep_value(new_value), author=author)
 
     def delete(self, author=None):
         if author is None:
