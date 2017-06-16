@@ -6,6 +6,7 @@ from django.conf import settings
 from django.core.exceptions import ObjectDoesNotExist, ValidationError
 from django.db import models
 from django.db.models import Q
+from django.db.models.fields.related_descriptors import ForwardManyToOneDescriptor, ManyToManyDescriptor
 from django.urls import reverse
 from django.utils.functional import cached_property
 from django.utils.translation import ugettext_lazy as _
@@ -59,18 +60,18 @@ class ChangeSet(models.Model):
             if change.existing_object_pk is not None:
                 self.deleted_existing.setdefault(model, set()).add(change.existing_object_pk)
             else:
-                self.created_objects[model].pop(change.pk)
+                self.created_objects[model].pop(change.created_object_id)
             return
 
         name = change.field_name
         value = json.loads(change.field_value)
         if change.existing_object_pk is None:
             if change.action == 'update':
-                self.created_objects[model][name] = value
+                self.created_objects[model][change.created_object_id][name] = value
             elif change.action == 'm2m_add':
-                self.created_objects[model].setdefault(name, set()).add(value)
+                self.created_objects[model][change.created_object_id].setdefault(name, set()).add(value)
             elif change.action == 'm2m_remove':
-                self.created_objects[model][name].remove(value)
+                self.created_objects[model][change.created_object_id][name].remove(value)
             return
 
         if change.action == 'update':
@@ -91,6 +92,28 @@ class ChangeSet(models.Model):
     def get_changed_values(self, model, name):
         r = tuple((pk, values[name]) for pk, values in self.updated_existing.get(model, {}).items() if name in values)
         return r
+
+    def get_created_object(self, model, pk, author=None):
+        if isinstance(pk, str):
+            pk = int(pk[1:])
+        self.parse_changes()
+        if issubclass(model, ModelWrapper):
+            model = model._obj
+        obj = model()
+        obj.pk = 'c'+str(pk)
+        for name, value in self.created_objects[model][pk].items():
+            class_value = getattr(model, name)
+            if isinstance(class_value, ManyToManyDescriptor):
+                continue
+
+            if isinstance(class_value, ForwardManyToOneDescriptor):
+                setattr(obj, class_value.field.attname, pk)
+                if isinstance(pk, str):
+                    setattr(obj, class_value.cache_name, self.get_created_object(class_value.field.model, pk))
+                continue
+
+            setattr(obj, name, value)
+        return self.wrap(obj, author=author)
 
     @property
     def cache_key(self):
@@ -281,7 +304,7 @@ class Change(models.Model):
                 raise TypeError('created_object model and change model do not match.')
             if self.created_object.changeset_id != self.changeset_id:
                 raise TypeError('created_object belongs to a different changeset.')
-            raise NotImplementedError
+            return self.changeset.get_created_object(self.model_class, self.created_object_id)
         raise TypeError('existing_model_pk or created_object have to be set.')
 
     @obj.setter
