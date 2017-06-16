@@ -414,6 +414,11 @@ class BaseQueryWrapper(BaseWrapper):
     def __len__(self):
         return len(self.get_queryset())
 
+    def create(self, *args, **kwargs):
+        obj = self.model(*args, **kwargs)
+        obj.save()
+        return obj
+
 
 class ManagerWrapper(BaseQueryWrapper):
     def get_queryset(self):
@@ -436,6 +441,10 @@ class RelatedManagerWrapper(ManagerWrapper):
         except(AttributeError, KeyError):
             pass
         return self.get_queryset().all()
+
+    def create(self, *args, **kwargs):
+        kwargs[self._obj.field.name] = self.instance
+        super().create(*args, **kwargs)
 
 
 class ManyRelatedManagerWrapper(RelatedManagerWrapper):
@@ -474,6 +483,9 @@ class ManyRelatedManagerWrapper(RelatedManagerWrapper):
 
     def all(self):
         return self.model.objects.filter(**self._obj.core_filters)
+
+    def create(self, *args, **kwargs):
+        raise NotImplementedError
 
 
 class QuerySetWrapper(BaseQueryWrapper):
