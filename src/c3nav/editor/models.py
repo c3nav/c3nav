@@ -1,5 +1,6 @@
 import json
 import typing
+from collections import OrderedDict
 
 from django.apps import apps
 from django.conf import settings
@@ -246,6 +247,17 @@ class ChangeSet(models.Model):
     def add_delete(self, obj, author=None):
         return self._new_change(author=author, action='delete', obj=obj)
 
+    def serialize(self):
+        return OrderedDict((
+            ('id', self.pk),
+            ('author', self.author_id),
+            ('created', None if self.created is None else self.created.isoformat()),
+            ('proposed', None if self.proposed is None else self.proposed.isoformat()),
+            ('applied', None if self.applied is None else self.applied.isoformat()),
+            ('applied_by', None if self.applied_by_id is None else self.applied_by_id),
+            ('changes', tuple(change.serialize() for change in self.changes.all())),
+        ))
+
 
 class Change(models.Model):
     ACTIONS = (
@@ -406,4 +418,20 @@ class Change(models.Model):
         elif self.action == 'm2m_remove':
             result += 'Update (m2m) object '+repr(self.obj)+': '+self.field_name+'.remove('+self.field_value+')'
         result += '>'
+        return result
+
+    def serialize(self):
+        result = OrderedDict((
+            ('id', self.pk),
+            ('author', self.author_id),
+            ('created', None if self.created is None else self.created.isoformat()),
+            ('action', self.action),
+            ('object_type', self.model_class.__name__.lower()),
+            ('object_id', ('c'+str(self.pk)) if self.action == 'create' else self.obj_pk),
+        ))
+        if self.action in ('update', 'm2m_add', 'm2m_remove'):
+            result.update(OrderedDict((
+                ('name', self.field_name),
+                ('value', json.loads(self.field_value)),
+            )))
         return result

@@ -15,6 +15,7 @@ class EditorViewSet(ViewSet):
     Editor API
     /geometries/ returns a list of geojson features, you have to specify ?level=<id> or ?space=<id>
     /geometrystyles/ returns styling information for all geometry types
+    /changeset/ returns the current changeset
     """
     def _get_level_geometries(self, level):
         buildings = level.buildings.all()
@@ -153,3 +154,9 @@ class EditorViewSet(ViewSet):
             'point': '#4488cc',
             'shadow': '#000000',
         })
+
+    @list_route(methods=['get'])
+    def changeset(self, request, *args, **kwargs):
+        request.changeset = ChangeSet.get_for_request(request)
+
+        return Response(request.changeset.serialize())
