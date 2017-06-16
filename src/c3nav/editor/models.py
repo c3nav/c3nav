@@ -35,8 +35,8 @@ class ChangeSet(models.Model):
         self.created_objects = {}
         self.updated_existing = {}
         self.deleted_existing = {}
-        self.m2m_add_existing = {}
-        self.m2m_remove_existing = {}
+        self.m2m_added = {}
+        self.m2m_removed = {}
         self._last_change_pk = 0
 
     def parse_changes(self):
@@ -63,8 +63,23 @@ class ChangeSet(models.Model):
                 self.created_objects[model].pop(change.created_object_id)
             return
 
+        pk = change.obj_pk
         name = change.field_name
         value = json.loads(change.field_value)
+
+        if change.action == 'm2m_add':
+            m2m_removed = self.m2m_removed.get(model, {}).get(pk, {}).get(name, ())
+            if value in m2m_removed:
+                m2m_removed.remove(value)
+            else:
+                self.m2m_added.setdefault(model, {}).setdefault(pk, {}).setdefault(name, set()).add(value)
+        elif change.action == 'm2m_remove':
+            m2m_added = self.m2m_added.get(model, {}).get(pk, {}).get(name, ())
+            if value in m2m_added:
+                m2m_added.remove(value)
+            else:
+                self.m2m_removed.setdefault(model, {}).setdefault(pk, {}).setdefault(name, set()).add(value)
+
         if change.existing_object_pk is None:
             if change.action == 'update':
                 self.created_objects[model][change.created_object_id][name] = value
@@ -74,21 +89,8 @@ class ChangeSet(models.Model):
                 self.created_objects[model][change.created_object_id][name].remove(value)
             return
 
-        pk = change.existing_object_pk
         if change.action == 'update':
             self.updated_existing.setdefault(model, {}).setdefault(pk, {})[name] = value
-        elif change.action == 'm2m_add':
-            m2m_remove_existing = self.m2m_remove_existing.get(model, {}).get(pk, {}).get(name, ())
-            if value in m2m_remove_existing:
-                m2m_remove_existing.remove(value)
-            else:
-                self.m2m_add_existing.setdefault(model, {}).setdefault(pk, {}).setdefault(name, set()).add(value)
-        elif change.action == 'm2m_remove':
-            m2m_add_existing = self.m2m_add_existing.get(model, {}).get(pk, {}).get(name, ())
-            if value in m2m_add_existing:
-                m2m_add_existing.remove(value)
-            else:
-                self.m2m_remove_existing.setdefault(model, {}).setdefault(pk, {}).setdefault(name, set()).add(value)
 
     def get_changed_values(self, model, name):
         r = tuple((pk, values[name]) for pk, values in self.updated_existing.get(model, {}).items() if name in values)
@@ -302,8 +304,8 @@ class Change(models.Model):
             return self._set_object.pk
         if self.existing_object_pk is not None:
             return self.existing_object_pk
-        if self.created_object is not None:
-            return 'c'+str(self.created_object.changeset_id)
+        if self.created_object_id is not None:
+            return 'c'+str(self.created_object_id)
         raise TypeError('existing_model_pk or created_object have to be set.')
 
     @property

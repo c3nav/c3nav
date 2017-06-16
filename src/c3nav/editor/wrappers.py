@@ -385,17 +385,17 @@ class BaseQueryWrapper(BaseWrapper):
                 if class_value.reverse:
                     model = class_value.field.model
 
+                    def get_changeset_m2m(items):
+                        return items.get(model, {}).get(filter_value, {}).get(class_value.field.name, ())
+
+                    remove_pks = get_changeset_m2m(self._changeset.m2m_removed)
+                    add_pks = get_changeset_m2m(self._changeset.m2m_added)
+
                     if self.is_created_pk(filter_value):
-                        filter_value = int(filter_value[1:])
-                        pks = tuple(self._changeset.created_objects[model][filter_value].get(field_name, ()))
+                        pks = add_pks
                         return (Q(pk__in=(pk for pk in pks if not self.is_created_pk(pk))),
                                 set(int(pk[1:]) for pk in pks if self.is_created_pk(pk)))
 
-                    def get_changeset_m2m(items):
-                        return items.get(model, {}).get(filter_value, {}).get(field_name, ())
-
-                    remove_pks = get_changeset_m2m(self._changeset.m2m_remove_existing)
-                    add_pks = get_changeset_m2m(self._changeset.m2m_add_existing)
                     return (((q & ~Q(pk__in=(pk for pk in remove_pks if not self.is_created_pk(pk)))) |
                              Q(pk__in=(pk for pk in remove_pks if not self.is_created_pk(pk)))),
                             set(int(pk[1:]) for pk in add_pks if self.is_created_pk(pk)))
