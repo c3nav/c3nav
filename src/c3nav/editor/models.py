@@ -121,7 +121,7 @@ class ChangeSet(models.Model):
                 setattr(obj, field.attname, value)
                 if isinstance(pk, str):
                     setattr(obj, class_value.cache_name, self.get_created_object(field.model, value))
-                elif get_foreign_objects:
+                elif get_foreign_objects or True:
                     setattr(obj, class_value.cache_name, self.wrap(field.related_model.objects.get(pk=value)))
                 continue
 

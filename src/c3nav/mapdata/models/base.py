@@ -26,7 +26,7 @@ class SerializableMixin(models.Model):
         result = OrderedDict()
         if include_type:
             result['type'] = self.__class__.__name__.lower()
-        result['id'] = self.id
+        result['id'] = self.pk
         return result
 
 

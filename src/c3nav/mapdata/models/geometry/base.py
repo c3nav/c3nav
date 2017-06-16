@@ -20,7 +20,7 @@ class GeometryMixin(EditorFormMixin):
     def get_geojson_properties(self) -> dict:
         result = OrderedDict((
             ('type', self.__class__.__name__.lower()),
-            ('id', self.id),
+            ('id', self.pk),
         ))
         if getattr(self, 'bounds', False):
             result['bounds'] = True
