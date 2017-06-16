@@ -74,7 +74,6 @@ class ChangeSet(models.Model):
             return
 
         if change.action == 'update':
-            value = json.loads(change.field_value)
             self.updated_existing.setdefault(model, {}).setdefault(change.obj_pk, {})[name] = value
         elif change.action == 'm2m_add':
             m2m_remove_existing = self.m2m_remove_existing.get(model, {}).get(change.obj_pk, ())
