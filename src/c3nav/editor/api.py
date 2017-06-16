@@ -135,7 +135,8 @@ class EditorViewSet(ViewSet):
             raise ValidationError('No level or space specified.')
 
     def _get_geojsons(self, obj):
-        return ((obj.to_shadow_geojson(),) if hasattr(obj, 'to_shadow_geojson') else ()) + (obj.to_geojson(),)
+        return (((obj.to_shadow_geojson(),) if hasattr(obj, 'to_shadow_geojson') else ()) +
+                (obj.to_geojson(instance=obj),))
 
     @list_route(methods=['get'])
     def geometrystyles(self, request, *args, **kwargs):
