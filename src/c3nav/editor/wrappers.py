@@ -211,7 +211,7 @@ class ModelInstanceWrapper(BaseWrapper):
 
 
 class BaseQueryWrapper(BaseWrapper):
-    _allowed_callables = ('_add_hints', )
+    _allowed_callables = ('_add_hints', 'get_prefetch_queryset', '_apply_rel_filters')
 
     def __init__(self, changeset, obj, author=None, created_pks=None, extra=()):
         super().__init__(changeset, obj, author)
