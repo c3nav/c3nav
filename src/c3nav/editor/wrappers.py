@@ -551,6 +551,8 @@ class BaseQueryWrapper(BaseWrapper):
 
                     result = list(chain(*(instances.values() for instances in objs_by_pk.values())))
                     break
+            else:
+                raise NotImplementedError('Cannot do extra() for '+extra)
 
         obj._result_cache = result
         obj._prefetch_done = False
