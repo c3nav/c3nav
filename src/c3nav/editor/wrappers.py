@@ -588,25 +588,27 @@ class BaseQueryWrapper(BaseWrapper):
 
 class ManagerWrapper(BaseQueryWrapper):
     def get_queryset(self):
-        return self._obj.exclude(pk__in=self._changeset.deleted_existing.get(self._obj.model, ()))
+        return super().get_queryset().exclude(pk__in=self._changeset.deleted_existing.get(self._obj.model, ()))
 
 
 class RelatedManagerWrapper(ManagerWrapper):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        new = self.filter(**self._obj.core_filters)
+        self._created_pks = new._created_pks
 
     def _get_cache_name(self):
         return self._obj.field.related_query_name()
 
     def get_queryset(self):
-        return self.model.objects.filter(**self._obj.core_filters)
+        return super().get_queryset().filter(**self._obj.core_filters)
 
     def all(self):
         try:
             return self.instance._prefetched_objects_cache[self._get_cache_name()]
         except(AttributeError, KeyError):
             pass
-        return self.get_queryset().all()
+        return super().all()
 
     def create(self, *args, **kwargs):
         kwargs[self._obj.field.name] = self.instance
@@ -620,9 +622,6 @@ class ManyRelatedManagerWrapper(RelatedManagerWrapper):
 
     def _get_cache_name(self):
         return self._obj.prefetch_cache_name
-
-    def get_queryset(self):
-        return self.model.objects.filter(**self._obj.core_filters)
 
     def set(self, objs, author=None):
         if author is None:
@@ -655,7 +654,7 @@ class ManyRelatedManagerWrapper(RelatedManagerWrapper):
             return self.instance._prefetched_objects_cache[self._get_cache_name()]
         except(AttributeError, KeyError):
             pass
-        return self.get_queryset().all()
+        return super().all()
 
     def create(self, *args, **kwargs):
         raise NotImplementedError
