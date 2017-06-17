@@ -408,15 +408,18 @@ class Change(models.Model):
     def __repr__(self):
         result = '<Change #%s on ChangeSet #%s: ' % (str(self.pk), str(self.changeset_id))
         if self.action == 'create':
-            result += 'Create  '+repr(self.model_class.__name__)
+            result += 'Create '+repr(self.model_name)
         elif self.action == 'update':
-            result += 'Update object '+repr(self.obj)+': '+self.field_name+'='+self.field_value
+            result += ('Update object '+repr(self.model_name)+' #'+str(self.obj_pk)+': ' +
+                       self.field_name+'='+self.field_value)
         elif self.action == 'delete':
-            result += 'Delete object '+repr(self.obj)
+            result += 'Delete object '+repr(self.model_name)+' #'+str(self.obj_pk)
         elif self.action == 'm2m_add':
-            result += 'Update (m2m) object '+repr(self.obj)+': '+self.field_name+'.add('+self.field_value+')'
+            result += ('Update (m2m) object '+repr(self.model_name)+' #'+str(self.obj_pk)+': ' +
+                       self.field_name+'.add('+self.field_value+')')
         elif self.action == 'm2m_remove':
-            result += 'Update (m2m) object '+repr(self.obj)+': '+self.field_name+'.remove('+self.field_value+')'
+            result += ('Update (m2m) object '+repr(self.model_name)+' #'+str(self.obj_pk)+': ' +
+                       self.field_name+'.remove('+self.field_value+')')
         result += '>'
         return result
 
