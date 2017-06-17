@@ -13,7 +13,7 @@ from django.utils.functional import cached_property
 from django.utils.translation import ugettext_lazy as _
 from django.utils.translation import ungettext_lazy
 
-from c3nav.editor.wrappers import ModelInstanceWrapper, ModelWrapper
+from c3nav.editor.wrappers import ModelInstanceWrapper, ModelWrapper, is_created_pk
 
 
 class ChangeSet(models.Model):
@@ -98,8 +98,9 @@ class ChangeSet(models.Model):
         return r
 
     def get_created_object(self, model, pk, author=None, get_foreign_objects=False):
-        if isinstance(pk, str):
-            pk = int(pk[1:])
+        if is_created_pk(pk):
+            pk = pk[1:]
+        pk = int(pk)
         self.parse_changes()
         if issubclass(model, ModelWrapper):
             model = model._obj
@@ -118,7 +119,7 @@ class ChangeSet(models.Model):
             if isinstance(class_value, ForwardManyToOneDescriptor):
                 field = class_value.field
                 setattr(obj, field.attname, value)
-                if isinstance(pk, str):
+                if is_created_pk(pk):
                     setattr(obj, class_value.cache_name, self.get_created_object(field.model, value))
                 elif get_foreign_objects or True:
                     setattr(obj, class_value.cache_name, self.wrap(field.related_model.objects.get(pk=value)))
@@ -340,7 +341,7 @@ class Change(models.Model):
         if not isinstance(value, ModelInstanceWrapper):
             value = self.changeset.wrap(value)
 
-        if isinstance(value.pk, str):
+        if is_created_pk(value.pk):
             if value._changeset.id != self.changeset.pk:
                 raise ValueError('value is a Change instance but belongs to a different changeset.')
             self.model_class = type(value._obj)
