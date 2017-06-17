@@ -535,7 +535,6 @@ class BaseQueryWrapper(BaseWrapper):
                     for related_pk, changes in m2m_added.items():
                         for pk in changes.get(f.field.name, ()):
                             if pk in objs_by_pk and related_pk not in objs_by_pk[pk]:
-                                print('added', pk, 'to', related_pk)
                                 new = self._wrap_instance(next(iter(objs_by_pk[pk].values()))._obj)
                                 new.__dict__[extra] = related_pk
                                 objs_by_pk[pk][related_pk] = new
@@ -543,7 +542,6 @@ class BaseQueryWrapper(BaseWrapper):
                     for related_pk, changes in m2m_removed.items():
                         for pk in changes.get(f.field.name, ()):
                             if pk in objs_by_pk and related_pk in objs_by_pk[pk]:
-                                print('removed', pk, 'from', related_pk)
                                 objs_by_pk[pk].pop(related_pk)
 
                     for pk, instances in objs_by_pk.items():
