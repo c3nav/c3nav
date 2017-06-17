@@ -389,19 +389,20 @@ class BaseQueryWrapper(BaseWrapper):
                 model = class_value.field.model  # space
                 filter_value = set(filter_value)  # space pks
                 filter_value_existing = set(pk for pk in filter_value if not self.is_created_pk(pk))
+                rel_name = class_value.field.name
 
                 # get spaces that we are interested about that had groups added or removed
-                m2m_added = {pk: val[field_name] for pk, val in self._changeset.m2m_added.get(model, {}).items()
-                             if pk in filter_value and field_name in val}
-                m2m_removed = {pk: val[field_name] for pk, val in self._changeset.m2m_removed.get(model, {}).items()
-                             if pk in filter_value and field_name in val}  # can only be existing spaces
+                m2m_added = {pk: val[rel_name] for pk, val in self._changeset.m2m_added.get(model, {}).items()
+                             if pk in filter_value and rel_name in val}
+                m2m_removed = {pk: val[rel_name] for pk, val in self._changeset.m2m_removed.get(model, {}).items()
+                             if pk in filter_value and rel_name in val}  # can only be existing spaces
 
                 # directly lookup groups for spaces that had no groups removed
                 q = Q(**{field_name+'__pk__in': filter_value_existing - set(m2m_removed.keys())})
 
                 # lookup groups for spaces that had groups removed
                 for pk, values in m2m_removed.items():
-                    q |= Q(Q(**{field_name + '__pk': pk}) & ~Q(pk__in=values))
+                    q |= Q(Q(**{field_name+'__pk': pk}) & ~Q(pk__in=values))
 
                 # get pk of groups that were added to any of the spaces
                 r_added_pks = reduce(operator.or_, m2m_added.values(), set())
