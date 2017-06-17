@@ -491,7 +491,13 @@ class BaseQueryWrapper(BaseWrapper):
         return self.get_queryset().count()+len(tuple(self._get_created_objects()))
 
     def values_list(self, *args, flat=False):
-        return self.get_queryset().values_list(*args, flat=flat)
+        own_values = (tuple(getattr(obj, arg) for arg in args) for obj in self._get_created_objects())
+        if flat:
+            own_values = (v[0] for v in own_values)
+        return chain(
+            self.get_queryset().values_list(*args, flat=flat),
+            own_values,
+        )
 
     def first(self):
         first = self.get_queryset().first()
