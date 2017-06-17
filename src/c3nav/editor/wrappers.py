@@ -518,10 +518,10 @@ class BaseQueryWrapper(BaseWrapper):
         own_values = (tuple(getattr(obj, arg) for arg in args) for obj in self._get_created_objects())
         if flat:
             own_values = (v[0] for v in own_values)
-        return chain(
+        return tuple(chain(
             self._obj.values_list(*args, flat=flat),
             own_values,
-        )
+        ))
 
     @get_queryset
     def first(self):
