@@ -520,7 +520,12 @@ class BaseQueryWrapper(BaseWrapper):
         obj._prefetch_done = True
         obj._fetch_all()
 
-        result = [self._wrap_instance(instance) for instance in obj._result_cache] + list(self._get_created_objects())
+        result = [self._wrap_instance(instance) for instance in obj._result_cache]
+        obj._result_cache = result
+        obj._prefetch_done = False
+        obj._fetch_all()
+
+        result += list(self._get_created_objects())
 
         for extra in self._extra:
             ex = extra[22:]
@@ -553,8 +558,6 @@ class BaseQueryWrapper(BaseWrapper):
                 raise NotImplementedError('Cannot do extra() for '+extra)
 
         obj._result_cache = result
-        obj._prefetch_done = False
-        obj._fetch_all()
         return result
 
     @cached_property
