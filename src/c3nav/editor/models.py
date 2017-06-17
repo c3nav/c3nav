@@ -62,6 +62,8 @@ class ChangeSet(models.Model):
                 self.deleted_existing.setdefault(model, set()).add(change.existing_object_pk)
             else:
                 self.created_objects[model].pop(change.created_object_id)
+                self.m2m_added.get(model, {}).pop('c'+str(change.created_object_id), None)
+                self.m2m_removed.get(model, {}).pop('c'+str(change.created_object_id), None)
             return
 
         pk = change.obj_pk
@@ -72,22 +74,16 @@ class ChangeSet(models.Model):
             m2m_removed = self.m2m_removed.get(model, {}).get(pk, {}).get(name, ())
             if value in m2m_removed:
                 m2m_removed.remove(value)
-            else:
-                self.m2m_added.setdefault(model, {}).setdefault(pk, {}).setdefault(name, set()).add(value)
+            self.m2m_added.setdefault(model, {}).setdefault(pk, {}).setdefault(name, set()).add(value)
         elif change.action == 'm2m_remove':
             m2m_added = self.m2m_added.get(model, {}).get(pk, {}).get(name, ())
             if value in m2m_added:
-                m2m_added.remove(value)
-            else:
-                self.m2m_removed.setdefault(model, {}).setdefault(pk, {}).setdefault(name, set()).add(value)
+                m2m_added.discard(value)
+            self.m2m_removed.setdefault(model, {}).setdefault(pk, {}).setdefault(name, set()).add(value)
 
         if change.existing_object_pk is None:
             if change.action == 'update':
                 self.created_objects[model][change.created_object_id][name] = value
-            elif change.action == 'm2m_add':
-                self.created_objects[model][change.created_object_id].setdefault(name, set()).add(value)
-            elif change.action == 'm2m_remove':
-                self.created_objects[model][change.created_object_id][name].remove(value)
             return
 
         if change.action == 'update':
