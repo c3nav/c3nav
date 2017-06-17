@@ -633,11 +633,6 @@ class ManagerWrapper(BaseQueryWrapper):
 
 
 class RelatedManagerWrapper(ManagerWrapper):
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        new = self.filter(**self._obj.core_filters)
-        self._created_pks = new._created_pks
-
     def _get_cache_name(self):
         return self._obj.field.related_query_name()
 
