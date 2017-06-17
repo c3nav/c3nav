@@ -298,7 +298,7 @@ editor = {
             if (editor._bounds_layer === null) editor._bounds_layer = editor._geometries_layer;
             if (editor._next_zoom) {
                 editor.map.flyToBounds((editor._bounds_layer.getBounds !== undefined) ? editor._bounds_layer.getBounds() : [editor._bounds_layer.getLatLng(), editor._bounds_layer.getLatLng()], {
-                    maxZoom: 4,
+                    maxZoom: Math.max(4, editor.map.getZoom()),
                     duration: 0.5,
                     padding: [20, 20]
                 });
