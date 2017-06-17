@@ -566,7 +566,6 @@ class BaseQueryWrapper(BaseWrapper):
         return self._cached_result
 
     def __iter__(self):
-        self._get_cached_result()
         return iter(self._cached_result)
 
     def iterator(self):
