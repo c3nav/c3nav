@@ -132,6 +132,7 @@ def edit(request, pk=None, model=None, level=None, space=None, on_top_of=None, e
         ctx.update({
             'level': obj,
             'back_url': reverse('editor.index') if new else reverse('editor.levels.detail', kwargs={'pk': pk}),
+            'nozoom': True,
         })
         if not new:
             ctx.update({
@@ -150,12 +151,14 @@ def edit(request, pk=None, model=None, level=None, space=None, on_top_of=None, e
             'level': obj.level,
             'back_url': reverse('editor.spaces.detail', kwargs={'level': obj.level.pk, 'pk': pk}),
             'geometry_url': '/api/editor/geometries/?space='+pk,
+            'nozoom': True,
         })
     elif model == Space and new:
         ctx.update({
             'level': level,
             'back_url': reverse('editor.spaces.list', kwargs={'level': level.pk}),
             'geometry_url': '/api/editor/geometries/?level='+str(level.primary_level_pk),
+            'nozoom': True,
         })
     elif hasattr(model, 'level'):
         if not new:
