@@ -237,7 +237,7 @@ class BaseQueryWrapper(BaseWrapper):
         return self._wrap_queryset(self.get_queryset().all())
 
     def none(self):
-        return self._wrap_queryset(self.get_queryset().none())
+        return self._wrap_queryset(self.get_queryset().none(), ())
 
     def select_related(self, *args, **kwargs):
         return self._wrap_queryset(self.get_queryset().select_related(*args, **kwargs))
