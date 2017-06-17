@@ -118,7 +118,7 @@ class Location(LocationSlug, EditorFormMixin, models.Model):
         # dont filter in the query here so prefetch_related works
         if instance is None:
             instance = self
-        groups = [group for group in instance.groups.all() if group.color is not None]
+        groups = [group for group in instance.groups.all() if group.color]
         if not groups:
             return None
         for group in groups:
