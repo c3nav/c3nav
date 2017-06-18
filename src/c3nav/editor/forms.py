@@ -7,8 +7,6 @@ from django.forms.widgets import HiddenInput
 from django.utils.translation import ugettext_lazy as _
 from shapely.geometry.geo import mapping
 
-from c3nav.mapdata.models.locations import LocationSlug
-
 
 class MapitemFormMixin(ModelForm):
     def __init__(self, *args, request=None, **kwargs):
@@ -73,6 +71,7 @@ class MapitemFormMixin(ModelForm):
         for slug in self.add_redirect_slugs:
             self.fields['slug'].run_validators(slug)
 
+        LocationSlug = self.request.changeset.wrap('LocationSlug')
         for slug in LocationSlug.objects.filter(slug__in=self.add_redirect_slugs).values_list('slug', flat=True)[:1]:
             raise ValidationError(
                 _('Can not add redirecting slug “%s”: it is already used elsewhere.') % slug

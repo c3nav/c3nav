@@ -98,7 +98,7 @@ class ModelWrapper(BaseWrapper):
     @classmethod
     def get_submodels(cls, model):
         try:
-            return cls._submodels_by_model[cls._obj]
+            return cls._submodels_by_model[model]
         except:
             pass
         all_models = model.__subclasses__()
@@ -529,6 +529,9 @@ class BaseQueryWrapper(BaseWrapper):
             if segments:
                 raise NotImplementedError
 
+            if filter_type == 'in':
+                return self._filter_values(q, field_name, lambda val: val in filter_value)
+
             if filter_type == 'lt':
                 return self._filter_values(q, field_name, lambda val: val < filter_value)
 
@@ -681,6 +684,11 @@ class BaseQueryWrapper(BaseWrapper):
         obj = self.model(*args, **kwargs)
         obj.save()
         return obj
+
+    @get_queryset
+    def delete(self):
+        for obj in self:
+            obj.delete()
 
 
 class ManagerWrapper(BaseQueryWrapper):
