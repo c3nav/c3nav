@@ -352,7 +352,7 @@ def changeset_detail(request, pk):
                 model_objects[obj.pk] = obj
         if created_pks:
             for pk in created_pks:
-                model_objects[pk] = request.changeset.get_created_object(model, pk, allow_deleted=True)._obj
+                model_objects[pk] = changeset.get_created_object(model, pk, allow_deleted=True)._obj
                 model_objects[pk].titles = {}
         objects[model] = model_objects
 
