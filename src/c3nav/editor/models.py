@@ -19,6 +19,7 @@ from c3nav.editor.wrappers import ModelInstanceWrapper, ModelWrapper, is_created
 class ChangeSet(models.Model):
     created = models.DateTimeField(auto_now_add=True, verbose_name=_('created'))
     author = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, on_delete=models.PROTECT, verbose_name=_('Author'))
+    session_id = models.CharField(unique=True, null=True, max_length=32)
     proposed = models.DateTimeField(null=True, verbose_name=_('proposed'))
     applied = models.DateTimeField(null=True, verbose_name=_('applied'))
     applied_by = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, on_delete=models.PROTECT,
@@ -42,7 +43,7 @@ class ChangeSet(models.Model):
         self._last_change_pk = 0
 
     def parse_changes(self):
-        if self.parsed:
+        if self.pk is None or self.parsed:
             return
         for change in self.changes.all():
             self._parse_change(change)
@@ -155,6 +156,8 @@ class ChangeSet(models.Model):
 
     @property
     def cache_key(self):
+        if self.pk is None:
+            return None
         return str(self.pk)+'-'+str(self._last_change_pk)
 
     @classmethod
@@ -168,7 +171,7 @@ class ChangeSet(models.Model):
     def qs_for_request(cls, request):
         qs = cls.qs_base()
         if request.user.is_authenticated:
-            qs = qs.filter(Q(author__isnull=False) | Q(author=request.user))
+            qs = qs.filter(author=request.user)
         else:
             qs = qs.filter(author__isnull=True)
         return qs
@@ -176,9 +179,9 @@ class ChangeSet(models.Model):
     @classmethod
     def get_for_request(cls, request):
         qs = cls.qs_for_request(request)
-        changeset_pk = request.session.get('changeset_pk', None)
-        if changeset_pk is not None:
-            changeset = qs.filter(pk=changeset_pk).first()
+
+        if request.session.session_key is not None:
+            changeset = qs.filter(session_id=request.session.session_key).first()
             if changeset is not None:
                 changeset.default_author = request.user
                 if changeset.author_id is None and request.user.is_authenticated:
@@ -187,37 +190,48 @@ class ChangeSet(models.Model):
                 return changeset
 
         new_changeset = cls()
+        new_changeset.request = request
 
         if request.user.is_authenticated:
             changeset = qs.filter(Q(author=request.user)).order_by('-created').first()
             if changeset is not None:
-                request.session['changeset_pk'] = changeset.pk
+                if request.session.session_key is None:
+                    request.session.save()
+                changeset.session_id = request.session.session_key
+                changeset.save()
                 changeset.default_author = request.user
                 return changeset
 
             new_changeset.author = request.user
 
-        new_changeset.save()
-        request.session['changeset_pk'] = new_changeset.pk
+        new_changeset.session_id = request.session.session_key
         new_changeset.default_author = request.user
         return new_changeset
 
     def get_absolute_url(self):
+        if self.pk is None:
+            return ''
         return reverse('editor.changesets.detail', kwargs={'pk': self.pk})
 
     @cached_property
     def undeleted_changes_count(self):
+        if self.pk is None:
+            return 0
         return len([True for change in self.changes.all() if ((change.model_name != 'LocationRedirect' or
                                                                change.action != 'update') and
                                                               change.deletes_change_id is None)])
 
     @property
     def title(self):
+        if self.pk is None:
+            return ''
         return _('Changeset #%d') % self.pk
 
     @property
     def count_display(self):
-        return ungettext_lazy('%(num)d Change', '%(num)d Changes', 'num') % {'num': self.undeleted_changes_count}
+        if self.pk is None:
+            return _('No changes')
+        return ungettext_lazy('%(num)d change', '%(num)d changes', 'num') % {'num': self.undeleted_changes_count}
 
     def wrap(self, obj, author=None):
         self.parse_changes()
@@ -234,6 +248,17 @@ class ChangeSet(models.Model):
         raise ValueError
 
     def _new_change(self, author, **kwargs):
+        if self.pk is None:
+            if self.session_id is None:
+                try:
+                    # noinspection PyUnresolvedReferences
+                    session = self.request.session
+                    if session.session_key is None:
+                        session.save()
+                    self.session_id = session.session_key
+                except AttributeError:
+                    pass  # ok, so lets keep it this way
+            self.save()
         self.parse_changes()
         change = Change(changeset=self)
         change.changeset_id = self.pk

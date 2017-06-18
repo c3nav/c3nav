@@ -98,6 +98,7 @@ editor = {
         };
     },
     sidebar_get: function(location, no_push) {
+        if (location === '') return;
         // load a new page into the sidebar using a GET request
         if (!no_push) history.pushState({}, '', location);
         editor._sidebar_unload();
