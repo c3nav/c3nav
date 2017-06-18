@@ -164,7 +164,7 @@ class ChangeSet(models.Model):
     @classmethod
     def qs_for_request(cls, request):
         qs = cls.qs_base()
-        if request.user.is_authenticated():
+        if request.user.is_authenticated:
             qs = qs.filter(Q(author__isnull=True) | Q(author=request.user))
         else:
             qs = qs.filter(author__isnull=True)
@@ -178,14 +178,14 @@ class ChangeSet(models.Model):
             changeset = qs.filter(pk=changeset_pk).first()
             if changeset is not None:
                 changeset.default_author = request.user
-                if changeset.author_id is None and request.user.is_authenticated():
+                if changeset.author_id is None and request.user.is_authenticated:
                     changeset.author = request.user
                     changeset.save()
                 return changeset
 
         new_changeset = cls()
 
-        if request.user.is_authenticated():
+        if request.user.is_authenticated:
             changeset = qs.filter(Q(author=request.user)).order_by('-created').first()
             if changeset is not None:
                 request.session['changeset_pk'] = changeset.pk
@@ -220,7 +220,7 @@ class ChangeSet(models.Model):
         self.parse_changes()
         if author is None:
             author = self.default_author
-        if author is not None and not author.is_authenticated():
+        if author is not None and not author.is_authenticated:
             author = None
         if isinstance(obj, str):
             return ModelWrapper(self, apps.get_model('mapdata', obj), author)
@@ -235,7 +235,7 @@ class ChangeSet(models.Model):
         change = Change(changeset=self)
         change.changeset_id = self.pk
         author = self.default_author if author is None else author
-        if author is not None and author.is_authenticated():
+        if author is not None and author.is_authenticated:
             change.author = author
         for name, value in kwargs.items():
             setattr(change, name, value)
