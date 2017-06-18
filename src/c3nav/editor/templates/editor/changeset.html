@@ -4,11 +4,12 @@
 {% include 'editor/fragment_levels.html' %}
 
 
-<form method="post">
+<form method="post" data-keep-geometry>
 {% csrf_token %}
 
 <h3>{{ changeset.title }}</h3>
 <p class="text-muted">{{ desc }}{% if changeset.author %} {{ changeset.author.username }}{% endif %}</p>
+<p><a data-back-to-map>« {% trans 'back to map' %}</a></p>
 
 {% for group in grouped_changes %}
     <table class="table table-condensed table-h-bordered change-group">

@@ -80,6 +80,7 @@ editor = {
     },
 
     // sidebar
+    _last_map_path: null,
     get_location_path: function () {
         return window.location.pathname + window.location.search;
     },
@@ -151,6 +152,7 @@ editor = {
 
         var geometry_url = content.find('[data-geometry-url]');
         if (geometry_url.length) {
+            editor._last_map_path = editor.get_location_path();
             geometry_url = geometry_url.attr('data-geometry-url');
             var highlight_type = content.find('[data-list]');
             var editing_id = content.find('[data-editing]');
@@ -175,6 +177,12 @@ editor = {
                 bottom: offset_parent.height()-level_control_offset.top-editor._level_control_container.height()-parseInt(editor._level_control_container.css('margin-bottom')),
                 right: offset_parent.width()-level_control_offset.left
             });
+        } else if (content.find('[data-keep-geometry]').length) {
+            if (editor._last_map_path === null) $('[data-back-to-map]').remove()
+            $('a[data-back-to-map]').attr('href', editor._last_map_path);
+            $('body').removeClass('show-map');
+            editor._level_control.hide();
+            editor._sublevel_control.hide();
         } else {
             $('body').removeClass('map-enabled').removeClass('show-map');
             editor._level_control.hide();
