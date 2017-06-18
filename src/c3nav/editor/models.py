@@ -121,6 +121,9 @@ class ChangeSet(models.Model):
 
         obj = model()
         obj.pk = 'c' + str(pk)
+        if hasattr(model._meta.pk, 'related_model'):
+            setattr(obj, model._meta.pk.related_model._meta.pk.attname, obj.pk)
+        obj._state.adding = False
 
         for name, value in data.items():
             if name.startswith('title_'):
