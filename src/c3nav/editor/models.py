@@ -331,6 +331,8 @@ class Change(models.Model):
             return self.existing_object_pk
         if self.created_object_id is not None:
             return 'c'+str(self.created_object_id)
+        if self.action == 'create':
+            return 'c' + str(self.pk)
         raise TypeError('existing_model_pk or created_object have to be set.')
 
     @property
