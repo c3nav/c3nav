@@ -128,9 +128,6 @@ class ChangeSet(models.Model):
                 continue
 
             setattr(obj, name, model._meta.get_field(name).to_python(value))
-            break
-        else:
-            raise model.DoesNotExist
         return self.wrap(obj, author=author)
 
     def get_created_pks(self, model):
