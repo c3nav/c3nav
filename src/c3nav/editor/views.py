@@ -316,7 +316,10 @@ def list_objects(request, model=None, level=None, space=None, explicit_edit=Fals
 
 @sidebar_view
 def changeset_detail(request, pk):
-    changeset = get_object_or_404(ChangeSet.qs_for_request(request), pk=pk)
+    if str(pk) != str(request.changeset.pk):
+        changeset = get_object_or_404(ChangeSet.qs_for_request(request), pk=pk)
+    else:
+        changeset = request.changeset
 
     # collect pks of relevant objects
     object_pks = {}
