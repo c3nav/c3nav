@@ -147,6 +147,8 @@ editor = {
             $('.changeset a').text(changeset.text()).attr('href', changeset.attr('href'));
         }
 
+        content.find('[data-toggle="tooltip"]').tooltip();
+
         var geometry_url = content.find('[data-geometry-url]');
         if (geometry_url.length) {
             geometry_url = geometry_url.attr('data-geometry-url');

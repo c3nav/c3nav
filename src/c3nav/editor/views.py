@@ -7,6 +7,7 @@ from django.core.exceptions import FieldDoesNotExist, PermissionDenied
 from django.http import HttpResponseRedirect
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
+from django.utils.formats import date_format
 from django.utils.html import escape
 from django.utils.translation import ugettext_lazy as _
 from django.views.decorators.cache import never_cache
@@ -378,7 +379,9 @@ def changeset_detail(request, pk):
             last_obj = obj
 
         change_data = {
-            'pk': change.pk
+            'pk': change.pk,
+            'author': change.author,
+            'created': _('created at %(datetime)s') % {'datetime': date_format(change.created, 'DATETIME_FORMAT')},
         }
         changes.append(change_data)
         if change.action == 'create':

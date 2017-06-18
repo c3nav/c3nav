@@ -137,8 +137,16 @@ form button.invisiblesubmit {
     width:23px;
     padding-right:0;
 }
+.change-group tr td:last-child {
+    white-space:nowrap;
+    text-align:right;
+}
 .change-group tr td .glyphicon {
     top:2px;
+}
+.change-group tr td .tooltip {
+    font-size:14px;
+    margin-top: -1px;
 }
 
 /* Styles inside leaflet */
