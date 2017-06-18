@@ -20,7 +20,7 @@ class EditorViewSet(ViewSet):
     def _get_level_geometries(self, level):
         buildings = level.buildings.all()
         buildings_geom = cascaded_union([building.geometry for building in buildings])
-        spaces = {space.id: space for space in level.spaces.all()}
+        spaces = {space.pk: space for space in level.spaces.all()}
         holes_geom = []
         for space in spaces.values():
             if space.outside:
