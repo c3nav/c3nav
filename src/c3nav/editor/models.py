@@ -1,7 +1,6 @@
 import json
 import typing
 from collections import OrderedDict
-from itertools import chain
 
 from django.apps import apps
 from django.conf import settings
@@ -34,6 +33,7 @@ class ChangeSet(models.Model):
         super().__init__(*args, **kwargs)
         self.default_author = None
         self.parsed = False
+        self.ever_created_objects = {}
         self.created_objects = {}
         self.updated_existing = {}
         self.deleted_existing = {}
@@ -56,7 +56,9 @@ class ChangeSet(models.Model):
 
         model = change.model_class
         if change.action == 'create':
-            self.created_objects.setdefault(model, {})[change.pk] = {}
+            new = {}
+            self.created_objects.setdefault(model, {})[change.pk] = new
+            self.ever_created_objects.setdefault(model, {})[change.pk] = new
             return
         elif change.action == 'delete':
             if change.existing_object_pk is not None:
@@ -98,17 +100,29 @@ class ChangeSet(models.Model):
         r = tuple((pk, values[name]) for pk, values in self.updated_existing.get(model, {}).items() if name in values)
         return r
 
-    def get_created_object(self, model, pk, author=None, get_foreign_objects=False):
+    def get_created_object(self, model, pk, author=None, get_foreign_objects=False, allow_deleted=False):
         if is_created_pk(pk):
             pk = pk[1:]
         pk = int(pk)
         self.parse_changes()
         if issubclass(model, ModelWrapper):
             model = model._obj
+
+        objects = self.ever_created_objects if allow_deleted else self.created_objects
+
+        objects = tuple(obj for obj in ((submodel, objects.get(submodel, {}).get(pk, None))
+                                        for submodel in ModelWrapper.get_submodels(model)) if obj[1] is not None)
+        if not objects:
+            raise model.DoesNotExist
+        if len(objects) > 1:
+            raise model.MultipleObjectsReturned
+
+        model, data = objects[0]
+
         obj = model()
-        obj.pk = 'c'+str(pk)
-        for name, value in chain(*(self.created_objects.get(submodel, {}).get(pk, {}).items()
-                                   for submodel in ModelWrapper.get_submodels(model))):
+        obj.pk = 'c' + str(pk)
+
+        for name, value in data.items():
             if name.startswith('title_'):
                 obj.titles[name[6:]] = value
                 continue
