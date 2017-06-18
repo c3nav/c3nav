@@ -16,7 +16,8 @@ def is_created_pk(pk):
 
 
 class BaseWrapper:
-    _not_wrapped = ('_changeset', '_author', '_obj', '_created_pks', '_result', '_extra', '_initial_values')
+    _not_wrapped = ('_changeset', '_author', '_obj', '_created_pks', '_result', '_extra', '_result_cache',
+                    '_initial_values')
     _allowed_callables = ()
     _wrapped_callables = ()
 
@@ -662,8 +663,12 @@ class BaseQueryWrapper(BaseWrapper):
         return self._get_cached_result()
 
     @property
-    def _results_cache(self):
+    def _result_cache(self):
         return self._cached_result
+
+    @_result_cache.setter
+    def _result_cache(self, value):
+        self.__dict__['_cached_result'] = value
 
     @queryset_only
     def __iter__(self):
