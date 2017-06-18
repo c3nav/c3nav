@@ -165,7 +165,7 @@ class ChangeSet(models.Model):
     def qs_for_request(cls, request):
         qs = cls.qs_base()
         if request.user.is_authenticated:
-            qs = qs.filter(Q(author__isnull=True) | Q(author=request.user))
+            qs = qs.filter(Q(author__isnull=False) | Q(author=request.user))
         else:
             qs = qs.filter(author__isnull=True)
         return qs
