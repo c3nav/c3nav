@@ -220,13 +220,6 @@ def edit(request, pk=None, model=None, level=None, space=None, on_top_of=None, e
                     if title:
                         obj.titles[language] = title
 
-            if form.redirect_slugs is not None:
-                for slug in form.add_redirect_slugs:
-                    obj.redirects.create(slug=slug)
-
-                for slug in form.remove_redirect_slugs:
-                    obj.redirects.filter(slug=slug).delete()
-
             if level is not None:
                 obj.level = level
 
@@ -237,6 +230,14 @@ def edit(request, pk=None, model=None, level=None, space=None, on_top_of=None, e
                 obj.on_top_of = on_top_of
 
             obj.save()
+
+            if form.redirect_slugs is not None:
+                for slug in form.add_redirect_slugs:
+                    obj.redirects.create(slug=slug)
+
+                for slug in form.remove_redirect_slugs:
+                    obj.redirects.filter(slug=slug).delete()
+
             form.save_m2m()
             # request.changeset.changes.all().delete()
 

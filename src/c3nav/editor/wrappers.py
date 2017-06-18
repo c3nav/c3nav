@@ -717,6 +717,8 @@ class RelatedManagerWrapper(ManagerWrapper):
         return super().all()
 
     def create(self, *args, **kwargs):
+        if self.instance.pk is None:
+            raise TypeError
         kwargs[self._obj.field.name] = self.instance
         super().create(*args, **kwargs)
 
