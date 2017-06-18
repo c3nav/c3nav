@@ -8,6 +8,7 @@
 {% csrf_token %}
 
 <h3>{{ changeset.title }}</h3>
+<p class="text-muted">{{ desc }}{% if changeset.author %} {{ changeset.author.username }}{% endif %}</p>
 
 {% for group in grouped_changes %}
     <table class="table table-condensed table-h-bordered change-group">

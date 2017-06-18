@@ -453,9 +453,15 @@ def changeset_detail(request, pk):
                 'title': '???',
             })
 
+    if changeset.author:
+        desc = _('created at %(datetime)s by') % {'datetime': date_format(change.created, 'DATETIME_FORMAT')}
+    else:
+        desc = _('created at %(datetime)s') % {'datetime': date_format(change.created, 'DATETIME_FORMAT')}
+
     ctx = {
         'pk': pk,
         'changeset': changeset,
+        'desc': desc,
         'grouped_changes': grouped_changes,
     }
 
