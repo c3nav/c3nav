@@ -124,7 +124,8 @@ class ChangeSet(models.Model):
 
         for name, value in data.items():
             if name.startswith('title_'):
-                obj.titles[name[6:]] = value
+                if value:
+                    obj.titles[name[6:]] = value
                 continue
 
             class_value = getattr(model, name)
