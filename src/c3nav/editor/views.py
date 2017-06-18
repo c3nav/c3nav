@@ -25,6 +25,8 @@ def sidebar_view(func):
             response.write('<a data-changeset href="%s">%s</a>' % (request.changeset.get_absolute_url(),
                                                                    escape(request.changeset.count_display)))
             return response
+        if isinstance(response, HttpResponseRedirect):
+            return response
         return render(request, 'editor/map.html', {'content': response.content})
     return never_cache(with_ajax_check)
 
