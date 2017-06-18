@@ -13,7 +13,15 @@
 {% for group in grouped_changes %}
     <table class="table table-condensed table-h-bordered change-group">
         <thead>
-            <tr><th colspan="2">{{ group.obj }}</th></tr>
+            <tr>
+                <th colspan="2">
+                    {% if group.obj_title %}
+                        {{ group.obj_title }} <small>({{ group.obj }})</small>
+                    {% else %}
+                        {{ group.obj }}
+                    {% endif %}
+                </th>
+            </tr>
         </thead>
         <tbody>
             {% for change in group.changes %}

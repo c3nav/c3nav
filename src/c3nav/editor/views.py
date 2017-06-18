@@ -321,8 +321,19 @@ def changeset_detail(request, pk):
     object_pks = {}
     for change in changeset.changes.all():
         object_pks.setdefault(change.model_class, set()).add(change.obj_pk)
-        if change.action == 'update' and change.model_class == LocationRedirect and change.field_name == 'target':
-            object_pks.setdefault(LocationSlug, set()).add(json.loads(change.field_value))
+        model = None
+        if change.action == 'update':
+            if change.model_class == LocationRedirect:
+                if change.field_name == 'target':
+                    object_pks.setdefault(LocationSlug, set()).add(json.loads(change.field_value))
+                    continue
+            elif not change.field_name.startswith('title_'):
+                field = change.model_class._meta.get_field(change.field_name)
+                model = getattr(field, 'related_model', None)
+        if change.action in ('m2m_add', 'm2m_remove'):
+            model = change.model_class._meta.get_field(change.field_name).related_model
+        if model is not None:
+            object_pks.setdefault(model, set()).add(json.loads(change.field_value))
 
     # retrieve relevant objects
     objects = {}
@@ -338,6 +349,7 @@ def changeset_detail(request, pk):
         if created_pks:
             for pk in created_pks:
                 model_objects[pk] = request.changeset.get_created_object(model, pk, allow_deleted=True)._obj
+                model_objects[pk].titles = {}
         objects[model] = model_objects
 
     grouped_changes = []
@@ -360,6 +372,7 @@ def changeset_detail(request, pk):
             grouped_changes.append({
                 'model': obj.__class__,
                 'obj': _('%(model)s #%(id)s') % {'model': obj.__class__._meta.verbose_name, 'id': pk},
+                'obj_title': obj.title if obj.titles else None,
                 'changes': changes,
             })
             last_obj = obj
@@ -396,10 +409,17 @@ def changeset_detail(request, pk):
                     lang = change.field_name[6:]
                     field_title = _('Title (%(lang)s)') % {'lang': dict(settings.LANGUAGES).get(lang, lang)}
                     field_value = str(json.loads(change.field_value))
+                    if field_value:
+                        obj.titles[lang] = field_value
+                    else:
+                        obj.titles.pop(lang, None)
                 else:
                     field = obj.__class__._meta.get_field(change.field_name)
                     field_title = field.verbose_name
                     field_value = field.to_python(json.loads(change.field_value))
+                    model = getattr(field, 'related_model', None)
+                    if model is not None:
+                        field_value = objects[model][field_value].title
                 if not field_value:
                     change_data.update({
                         'title': _('unset %(field_title)s') % {'field_title': field_title},
@@ -421,10 +441,9 @@ def changeset_detail(request, pk):
                 })
             else:
                 field = obj.__class__._meta.get_field(change.field_name)
-                field_title = field.verbose_name
                 change_data.update({
-                    'title': field_title,
-                    'value': change.field_value,
+                    'title': field.verbose_name,
+                    'value': objects[field.related_model][change.field_value].title,
                 })
         else:
             change_data.update({

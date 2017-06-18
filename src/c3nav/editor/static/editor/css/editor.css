@@ -130,6 +130,9 @@ form button.invisiblesubmit {
 #sidebar .content table.table.table-h-bordered td, #sidebar .content table.table.table-h-bordered th {
     border-color:#eeeeee;
 }
+.change-group tr th small {
+    font-weight:normal;
+}
 .change-group tr td:first-child {
     width:23px;
     padding-right:0;
