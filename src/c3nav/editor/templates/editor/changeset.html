@@ -10,12 +10,21 @@
     <button type="submit" class="btn btn-danger btn-sm" name="delete" value="1">{% trans 'Delete' %}</button>
 </form>
 
-<table class="table table-condensed">
-    <tbody>
-        {% for change in changeset.changes.all %}
-            <tr data-pk="{{ item.pk }}">
-                <td>{{ change|stringformat:'r' }}</td>
-            </tr>
-        {% endfor %}
-    </tbody>
-</table>
+{% for group in grouped_changes %}
+    <table class="table table-condensed table-h-bordered change-group">
+        <thead>
+            <tr><th colspan="2">{{ group.obj }}</th></tr>
+        </thead>
+        <tbody>
+            {% for change in group.changes %}
+                <tr>
+                    <td class="text-{{ change.class }}"><i class="glyphicon glyphicon-{{ change.icon }}"></i></td>
+                    <td>
+                        {% if change.value %}<u>{% else %}<em>{% endif %}{{ change.title }}{% if change.value %}</u>:{% else %}</em>{% endif %}
+                        {{ change.value }}
+                    </td>
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+{% endfor %}

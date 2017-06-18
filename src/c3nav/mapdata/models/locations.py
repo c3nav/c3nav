@@ -20,7 +20,11 @@ class LocationSlug(SerializableMixin, models.Model):
         'LocationGroup': 'g'
     }
     LOCATION_TYPE_BY_CODE = {code: model_name for model_name, code in LOCATION_TYPE_CODES.items()}
-    slug = models.SlugField(_('slug'), unique=True, null=True, max_length=50)
+    slug = models.SlugField(_('Slug'), unique=True, null=True, max_length=50)
+
+    @classmethod
+    def get_prefetch_names(cls):
+        return [model._meta.default_related_name for model in LOCATION_MODELS+[LocationRedirect]]
 
     def get_child(self):
         # todo: cache this

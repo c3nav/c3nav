@@ -127,6 +127,16 @@ form button.invisiblesubmit {
     padding: 0;
     display: block;
 }
+#sidebar .content table.table.table-h-bordered td, #sidebar .content table.table.table-h-bordered th {
+    border-color:#eeeeee;
+}
+.change-group tr td:first-child {
+    width:23px;
+    padding-right:0;
+}
+.change-group tr td .glyphicon {
+    top:2px;
+}
 
 /* Styles inside leaflet */
 .leaflet-container {

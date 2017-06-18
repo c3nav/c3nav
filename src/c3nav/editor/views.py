@@ -1,6 +1,8 @@
+import json
 from contextlib import suppress
 from functools import wraps
 
+from django.conf import settings
 from django.core.exceptions import FieldDoesNotExist, PermissionDenied
 from django.http import HttpResponseRedirect
 from django.shortcuts import get_object_or_404, redirect, render
@@ -10,7 +12,9 @@ from django.utils.translation import ugettext_lazy as _
 from django.views.decorators.cache import never_cache
 
 from c3nav.editor.models import ChangeSet
+from c3nav.editor.wrappers import is_created_pk
 from c3nav.mapdata.models.base import EDITOR_FORM_MODELS
+from c3nav.mapdata.models.locations import LocationRedirect, LocationSlug
 
 
 def sidebar_view(func):
@@ -313,9 +317,124 @@ def list_objects(request, model=None, level=None, space=None, explicit_edit=Fals
 def changeset_detail(request, pk):
     changeset = get_object_or_404(ChangeSet.qs_for_request(request), pk=pk)
 
+    # collect pks of relevant objects
+    object_pks = {}
+    for change in changeset.changes.all():
+        object_pks.setdefault(change.model_class, set()).add(change.obj_pk)
+        if change.action == 'update' and change.model_class == LocationRedirect and change.field_name == 'target':
+            object_pks.setdefault(LocationSlug, set()).add(json.loads(change.field_value))
+
+    # retrieve relevant objects
+    objects = {}
+    for model, pks in object_pks.items():
+        created_pks = set(pk for pk in pks if is_created_pk(pk))
+        existing_pks = pks-created_pks
+        model_objects = {}
+        if existing_pks:
+            for obj in model.objects.filter(pk__in=existing_pks):
+                if model == LocationSlug:
+                    obj = obj.get_child()
+                model_objects[obj.pk] = obj
+        if created_pks:
+            for pk in created_pks:
+                model_objects[pk] = request.changeset.get_created_object(model, pk, allow_deleted=True)._obj
+        objects[model] = model_objects
+
+    grouped_changes = []
+    changes = []
+    last_obj = None
+    for change in changeset.changes.all():
+        pk = change.obj_pk
+        obj = objects[change.model_class][pk]
+        if change.model_class == LocationRedirect:
+            if change.action not in ('create', 'delete'):
+                continue
+            change.action = 'm2m_add' if change.action == 'create' else 'm2m_remove'
+            change.field_name = 'redirects'
+            change.field_value = obj.slug
+            pk = obj.target_id
+            obj = objects[LocationSlug][pk]
+
+        if obj != last_obj:
+            changes = []
+            grouped_changes.append({
+                'model': obj.__class__,
+                'obj': _('%(model)s #%(id)s') % {'model': obj.__class__._meta.verbose_name, 'id': pk},
+                'changes': changes,
+            })
+            last_obj = obj
+
+        change_data = {
+            'pk': change.pk
+        }
+        changes.append(change_data)
+        if change.action == 'create':
+            change_data.update({
+                'icon': 'plus',
+                'class': 'success',
+                'title': _('created'),
+            })
+        elif change.action == 'delete':
+            change_data.update({
+                'icon': 'minus',
+                'class': 'danger',
+                'title': _('deleted')
+            })
+        elif change.action == 'update':
+            change_data.update({
+                'icon': 'option-vertical',
+                'class': 'muted',
+            })
+            if change.field_name == 'geometry':
+                change_data.update({
+                    'icon': 'map-marker',
+                    'class': 'info',
+                    'title': _('edited geometry'),
+                })
+            else:
+                if change.field_name.startswith('title_'):
+                    lang = change.field_name[6:]
+                    field_title = _('Title (%(lang)s)') % {'lang': dict(settings.LANGUAGES).get(lang, lang)}
+                    field_value = str(json.loads(change.field_value))
+                else:
+                    field = obj.__class__._meta.get_field(change.field_name)
+                    field_title = field.verbose_name
+                    field_value = field.to_python(json.loads(change.field_value))
+                if not field_value:
+                    change_data.update({
+                        'title': _('unset %(field_title)s') % {'field_title': field_title},
+                    })
+                else:
+                    change_data.update({
+                        'title': field_title,
+                        'value': field_value,
+                    })
+        elif change.action in ('m2m_add', 'm2m_remove'):
+            change_data.update({
+                'icon': 'chevron-right' if change.action == 'm2m_add' else 'chevron-left',
+                'class': 'info',
+            })
+            if change.field_name == 'redirects':
+                change_data.update({
+                    'title': _('Redirecting slugs'),
+                    'value': change.field_value,
+                })
+            else:
+                field = obj.__class__._meta.get_field(change.field_name)
+                field_title = field.verbose_name
+                change_data.update({
+                    'title': field_title,
+                    'value': change.field_value,
+                })
+        else:
+            change_data.update({
+                'title': '???',
+            })
+
     ctx = {
         'pk': pk,
         'changeset': changeset,
+        'grouped_changes': grouped_changes,
     }
 
     if request.method == 'POST':
