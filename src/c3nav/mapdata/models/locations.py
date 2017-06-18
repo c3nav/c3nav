@@ -11,6 +11,15 @@ from c3nav.mapdata.models.base import EditorFormMixin, SerializableMixin
 LOCATION_MODELS = []
 
 
+class LocationSlugManager(models.Manager):
+    def get_queryset(self):
+        result = super().get_queryset()
+        if self.model == LocationSlug:
+            result = result.select_related(*(model._meta.default_related_name
+                                             for model in LOCATION_MODELS+[LocationRedirect]))
+        return result
+
+
 class LocationSlug(SerializableMixin, models.Model):
     LOCATION_TYPE_CODES = {
         'Level': 'l',
@@ -22,9 +31,7 @@ class LocationSlug(SerializableMixin, models.Model):
     LOCATION_TYPE_BY_CODE = {code: model_name for model_name, code in LOCATION_TYPE_CODES.items()}
     slug = models.SlugField(_('Slug'), unique=True, null=True, max_length=50)
 
-    @classmethod
-    def get_prefetch_names(cls):
-        return [model._meta.default_related_name for model in LOCATION_MODELS+[LocationRedirect]]
+    objects = LocationSlugManager()
 
     def get_child(self):
         # todo: cache this
