@@ -374,9 +374,12 @@ def changeset_detail(request, pk):
 
         if obj != last_obj:
             changes = []
+            obj_desc = _('%(model)s #%(id)s') % {'model': obj.__class__._meta.verbose_name, 'id': pk}
+            if is_created_pk(pk):
+                obj_desc = _('%s (created)') % obj_desc
             grouped_changes.append({
                 'model': obj.__class__,
-                'obj': _('%(model)s #%(id)s') % {'model': obj.__class__._meta.verbose_name, 'id': pk},
+                'obj': obj_desc,
                 'obj_title': obj.title if obj.titles else None,
                 'changes': changes,
             })
