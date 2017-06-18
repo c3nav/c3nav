@@ -1,0 +1,14 @@
+{% load bootstrap3 %}
+{% load i18n %}
+
+<h3>{% trans 'Log in' %}</h3>
+
+<p><a data-back-to-map>« {% trans 'back to map' %}</a></p>
+
+<form method="post" action="{{ request.path_info }}?{{ request.GET.urlencode }}" data-keep-geometry>
+    {% csrf_token %}
+    {% bootstrap_form form %}
+    <div class="form-group">
+        <button type="submit" class="btn btn-primary btn-block">{% trans 'Log in' %}</button>
+    </div>
+</form>

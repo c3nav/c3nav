@@ -3,12 +3,13 @@ from contextlib import suppress
 from functools import wraps
 
 from django.conf import settings
+from django.contrib.auth import login, logout
+from django.contrib.auth.forms import AuthenticationForm
 from django.core.exceptions import FieldDoesNotExist, PermissionDenied
 from django.http import HttpResponseRedirect
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.utils.formats import date_format
-from django.utils.html import escape
 from django.utils.translation import ugettext_lazy as _
 from django.views.decorators.cache import never_cache
 
@@ -27,8 +28,7 @@ def sidebar_view(func):
         if request.is_ajax() or 'ajax' in request.GET:
             if isinstance(response, HttpResponseRedirect):
                 return render(request, 'editor/redirect.html', {'target': response['location']})
-            response.write('<a data-changeset href="%s">%s</a>' % (request.changeset.get_absolute_url(),
-                                                                   escape(request.changeset.count_display)))
+            response.write(render(request, 'editor/fragment_nav.html', {}).content)
             return response
         if isinstance(response, HttpResponseRedirect):
             return response
@@ -481,3 +481,27 @@ def changeset_detail(request, pk):
             return render(request, 'editor/delete.html', ctx)
 
     return render(request, 'editor/changeset.html', ctx)
+
+
+@sidebar_view
+def login_view(request):
+    if request.method == 'POST':
+        form = AuthenticationForm(request, data=request.POST)
+        if form.is_valid():
+            login(request, form.user_cache)
+            print(request.GET.get('redirect', ''))
+            if request.GET.get('redirect', '').startswith('/editor/'):
+                return redirect(request.GET.get('redirect', ''))
+            return redirect(reverse('editor.index'))
+    else:
+        form = AuthenticationForm(request)
+
+    return render(request, 'editor/login.html', {'form': form})
+
+
+@sidebar_view
+def logout_view(request):
+    logout(request)
+    if request.GET.get('redirect', '').startswith('/editor/'):
+        return redirect(request.GET.get('redirect', ''))
+    return redirect(reverse('editor.login'))

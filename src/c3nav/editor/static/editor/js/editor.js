@@ -89,7 +89,7 @@ editor = {
         $('#sidebar').find('.content').on('click', 'a[href]', editor._sidebar_link_click)
                                       .on('click', 'button[type=submit]', editor._sidebar_submit_btn_click)
                                       .on('submit', 'form', editor._sidebar_submit);
-        $('.changeset a').click(editor._sidebar_link_click);
+        $('nav.navbar').on('click', 'a[href]', editor._sidebar_link_click);
         var location_path = editor.get_location_path();
         editor._sidebar_loaded();
         history.replaceState({}, '', location_path);
@@ -143,9 +143,9 @@ editor = {
             return;
         }
 
-        var changeset = content.find('a[data-changeset]');
-        if (changeset.length) {
-            $('.changeset a').text(changeset.text()).attr('href', changeset.attr('href'));
+        var nav = content.find('.nav');
+        if (nav.length) {
+            $('#navbar-collapse').find('.nav').html(nav.html());
         }
 
         content.find('[data-toggle="tooltip"]').tooltip();
@@ -179,7 +179,7 @@ editor = {
             });
         } else if (content.find('[data-keep-geometry]').length) {
             if (editor._last_map_path === null) $('[data-back-to-map]').remove()
-            $('a[data-back-to-map]').attr('href', editor._last_map_path);
+            $('a[data-back-to-map]').attr('href', editor._last_map_path).show();
             $('body').removeClass('show-map');
             editor._level_control.hide();
             editor._sublevel_control.hide();

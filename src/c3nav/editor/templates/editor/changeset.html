@@ -4,7 +4,7 @@
 {% include 'editor/fragment_levels.html' %}
 
 
-<form method="post" data-keep-geometry>
+<form method="post" action="{{ request.path }}" data-keep-geometry>
 {% csrf_token %}
 
 <h3>{{ changeset.title }}</h3>
@@ -40,6 +40,10 @@
 {% endfor %}
 
 {% buttons %}
-    <button type="submit" class="btn btn-danger btn-sm" name="delete" value="1">{% trans 'Delete' %}</button>
+    <button type="submit" class="btn btn-danger" name="delete" value="1">{% trans 'Delete' %}</button>
+    <div class="pull-right">
+        <a type="submit" class="btn btn-default">{% trans 'Edit' %}</a>
+        <a type="submit" class="btn btn-primary">{% trans 'Login' %}</a>
+    </div>
 {% endbuttons %}
 </form>

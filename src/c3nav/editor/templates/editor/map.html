@@ -6,9 +6,7 @@
 <noscript>
     <div id="noscript">{% trans 'Without Javascript' %}</div>
 </noscript>
-<ul class="nav navbar-nav navbar-right">
-    <li class="changeset"><a href="{{ request.changeset.get_absolute_url }}">{{ request.changeset.count_display }}</a></li>
-</ul>
+{% include 'editor/fragment_nav.html' %}
 {% endblock %}
 
 {% block subheader %}

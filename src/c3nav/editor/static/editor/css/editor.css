@@ -115,7 +115,7 @@ legend {
     right: 8px;
     top: 8px;
 }
-[data-levels], [data-sublevels], [data-changeset] {
+[data-levels], [data-sublevels], #sidebar .nav, [data-back-to-map] {
     display:none;
 }
 form button.invisiblesubmit {
@@ -216,19 +216,6 @@ form button.invisiblesubmit {
     }
     body:not(.show-map) #map {
         left:-100vw;
-    }
-
-    .navbar-collapse.collapse {
-      display: block;
-    }
-    .navbar-nav>li, .navbar-header {
-      float: left;
-    }
-    .navbar-nav.navbar-right:last-child {
-      margin-right: -15px;
-    }
-    .navbar-right {
-      float: right;
     }
 
     #show_details {
