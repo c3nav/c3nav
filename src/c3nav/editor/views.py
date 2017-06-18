@@ -446,7 +446,7 @@ def changeset_detail(request, pk):
                 field = obj.__class__._meta.get_field(change.field_name)
                 change_data.update({
                     'title': field.verbose_name,
-                    'value': objects[field.related_model][change.field_value].title,
+                    'value': objects[field.related_model][json.loads(change.field_value)].title,
                 })
         else:
             change_data.update({
