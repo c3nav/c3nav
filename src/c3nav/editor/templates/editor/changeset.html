@@ -3,12 +3,11 @@
 
 {% include 'editor/fragment_levels.html' %}
 
-<h3>{{ changeset.title }}</h3>
 
-<form action="{{ path }}" method="post">
-    {% csrf_token %}
-    <button type="submit" class="btn btn-danger btn-sm" name="delete" value="1">{% trans 'Delete' %}</button>
-</form>
+<form method="post">
+{% csrf_token %}
+
+<h3>{{ changeset.title }}</h3>
 
 {% for group in grouped_changes %}
     <table class="table table-condensed table-h-bordered change-group">
@@ -37,3 +36,8 @@
         </tbody>
     </table>
 {% endfor %}
+
+{% buttons %}
+    <button type="submit" class="btn btn-danger btn-sm" name="delete" value="1">{% trans 'Delete' %}</button>
+{% endbuttons %}
+</form>
