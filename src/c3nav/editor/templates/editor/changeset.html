@@ -31,6 +31,7 @@
                         {% if change.value %}<u>{% else %}<em>{% endif %}{{ change.title }}{% if change.value %}</u>:{% else %}</em>{% endif %}
                         {{ change.value }}
                     </td>
+                    <td class="text-muted"><i class="glyphicon glyphicon-time" data-toggle="tooltip" data-placement="left" title="{{ change.created }}"></i></td>
                 </tr>
             {% endfor %}
         </tbody>
