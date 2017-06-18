@@ -377,11 +377,26 @@ def changeset_detail(request, pk):
             obj_desc = _('%(model)s #%(id)s') % {'model': obj.__class__._meta.verbose_name, 'id': pk}
             if is_created_pk(pk):
                 obj_desc = _('%s (created)') % obj_desc
+                obj_still_exists = int(pk[1:]) in changeset.created_objects[obj.__class__]
+            else:
+                obj_still_exists = pk not in changeset.deleted_existing[obj.__class__]
+
+            edit_url = None
+            if obj_still_exists and changeset == request.changeset:
+                reverse_kwargs = {'pk': obj.pk}
+                if hasattr(obj, 'level'):
+                    reverse_kwargs['level'] = obj.level_id
+                elif hasattr(obj, 'space'):
+                    reverse_kwargs['space'] = obj.space_id
+                edit_url = reverse('editor.'+obj.__class__._meta.default_related_name+'.edit', kwargs=reverse_kwargs)
+
             grouped_changes.append({
                 'model': obj.__class__,
+                'model_title': obj.__class__._meta.verbose_name,
                 'obj': obj_desc,
                 'obj_title': obj.title if obj.titles else None,
                 'changes': changes,
+                'edit_url': edit_url,
             })
             last_obj = obj
 

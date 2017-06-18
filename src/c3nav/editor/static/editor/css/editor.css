@@ -137,6 +137,11 @@ form button.invisiblesubmit {
 .change-group tr th small {
     font-weight:normal;
 }
+.change-group tr th .btn.pull-right {
+    margin-right: -5px;
+    margin-top: -2px;
+    margin-bottom: -3px;
+}
 .change-group tr td:first-child {
     width:23px;
     padding-right:0;
