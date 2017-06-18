@@ -140,8 +140,8 @@ class ChangeSet(models.Model):
             if isinstance(class_value, ForwardManyToOneDescriptor):
                 field = class_value.field
                 setattr(obj, field.attname, value)
-                if is_created_pk(pk):
-                    setattr(obj, class_value.cache_name, self.get_created_object(field.model, value))
+                if is_created_pk(value):
+                    setattr(obj, class_value.cache_name, self.get_created_object(field.related_model, value))
                 elif get_foreign_objects:
                     setattr(obj, class_value.cache_name, self.wrap(field.related_model.objects.get(pk=value)))
                 continue
