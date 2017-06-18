@@ -98,7 +98,6 @@ editor = {
         };
     },
     sidebar_get: function(location, no_push) {
-        if (location === '') return;
         // load a new page into the sidebar using a GET request
         if (!no_push) history.pushState({}, '', location);
         editor._sidebar_unload();
@@ -199,6 +198,8 @@ editor = {
         // listener for link-clicks in the sidebar.
         e.preventDefault();
         if (editor._loading_geometry) return;
+        if ($(this).attr('href') === '') return;
+        if ($(this).is('[data-force-next-zoom]')) editor._next_zoom = true;
         editor.sidebar_get($(this).attr('href'));
     },
     _sidebar_submit_btn_click: function() {
