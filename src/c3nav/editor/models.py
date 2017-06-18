@@ -204,7 +204,9 @@ class ChangeSet(models.Model):
 
     @cached_property
     def undeleted_changes_count(self):
-        return len([True for change in self.changes.all() if change.deletes_change_id is None])
+        return len([True for change in self.changes.all() if ((change.model_name != 'LocationRedirect' or
+                                                               change.action != 'update') and
+                                                              change.deletes_change_id is None)])
 
     @property
     def title(self):
