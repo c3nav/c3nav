@@ -485,14 +485,20 @@ def changeset_detail(request, pk):
 
 @sidebar_view
 def login_view(request):
+    redirect_path = request.GET['r'] if request.GET.get('r', '').startswith('/editor/') else reverse('editor.index')
+    if request.user.is_authenticated:
+        return redirect(redirect_path)
+
     if request.method == 'POST':
         form = AuthenticationForm(request, data=request.POST)
         if form.is_valid():
             login(request, form.user_cache)
-            print(request.GET.get('redirect', ''))
-            if request.GET.get('redirect', '').startswith('/editor/'):
-                return redirect(request.GET.get('redirect', ''))
-            return redirect(reverse('editor.index'))
+
+            request.changeset.author = form.user_cache
+            request.changeset.save()
+            request.session['changeset_pk'] = request.changeset.pk
+
+            return redirect(redirect_path)
     else:
         form = AuthenticationForm(request)
 
@@ -501,7 +507,6 @@ def login_view(request):
 
 @sidebar_view
 def logout_view(request):
+    redirect_path = request.GET['r'] if request.GET.get('r', '').startswith('/editor/') else reverse('editor.login')
     logout(request)
-    if request.GET.get('redirect', '').startswith('/editor/'):
-        return redirect(request.GET.get('redirect', ''))
-    return redirect(reverse('editor.login'))
+    return redirect(redirect_path)
