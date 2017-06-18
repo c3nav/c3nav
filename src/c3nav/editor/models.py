@@ -1,6 +1,7 @@
 import json
 import typing
 from collections import OrderedDict
+from itertools import chain
 
 from django.apps import apps
 from django.conf import settings
@@ -106,7 +107,8 @@ class ChangeSet(models.Model):
             model = model._obj
         obj = model()
         obj.pk = 'c'+str(pk)
-        for name, value in self.created_objects[model][pk].items():
+        for name, value in chain(*(self.created_objects.get(submodel, {}).get(pk, {}).items()
+                                   for submodel in ModelWrapper.get_submodels(model))):
             if name.startswith('title_'):
                 obj.titles[name[6:]] = value
                 continue
@@ -126,6 +128,9 @@ class ChangeSet(models.Model):
                 continue
 
             setattr(obj, name, model._meta.get_field(name).to_python(value))
+            break
+        else:
+            raise model.DoesNotExist
         return self.wrap(obj, author=author)
 
     def get_created_pks(self, model):
