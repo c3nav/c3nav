@@ -1,7 +1,7 @@
 {% load bootstrap3 %}
 {% load i18n %}
-{% include 'editor/fragment_levels.html' %}
 
+{% include 'editor/fragment_modal_close.html' %}
 <h3>{% blocktrans %}Delete {{ model_title }}{% endblocktrans %}</h3>
 <form action="{{ request.path }}" data-keep-geometry method="post">
     {% csrf_token %}
