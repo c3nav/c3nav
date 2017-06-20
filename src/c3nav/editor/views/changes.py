@@ -123,9 +123,9 @@ def group_changes(changeset, can_edit=False, show_history=False):
             edit_url = None
             if obj_still_exists and can_edit:
                 reverse_kwargs = {'pk': obj.pk}
-                if hasattr(obj, 'level'):
+                if hasattr(obj, 'level_id'):
                     reverse_kwargs['level'] = obj.level_id
-                elif hasattr(obj, 'space'):
+                elif hasattr(obj, 'space_id'):
                     reverse_kwargs['space'] = obj.space_id
                 edit_url = reverse('editor.' + obj.__class__._meta.default_related_name + '.edit',
                                    kwargs=reverse_kwargs)
