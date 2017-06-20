@@ -4,6 +4,7 @@ from collections import OrderedDict
 
 from django.apps import apps
 from django.conf import settings
+from django.core.serializers.json import DjangoJSONEncoder
 from django.db import models, transaction
 from django.db.models import Q
 from django.db.models.fields.related_descriptors import ForwardManyToOneDescriptor, ManyToManyDescriptor
@@ -42,7 +43,6 @@ class ChangeSet(models.Model):
         self.m2m_removed = {}
         self._last_change_pk = 0
 
-    @property
     def relevant_changes(self):
         return self.changes.filter(discarded_by__isnull=True).exclude(action='restore')
 
@@ -53,7 +53,7 @@ class ChangeSet(models.Model):
         if get_history:
             self.changes_qs = self.changes.all()
         else:
-            self.changes_qs = self.relevant_changes
+            self.changes_qs = self.relevant_changes()
 
         for change in self.changes_qs:
             self._parse_change(change)
@@ -300,8 +300,8 @@ class ChangeSet(models.Model):
         obj.pk = 'c%d' % change.pk
 
     def _add_value(self, action, obj, name, value, author=None):
-        return self._new_change(author=author, action=action, obj=obj,
-                                field_name=name, field_value=json.dumps(value, ensure_ascii=False))
+        return self._new_change(author=author, action=action, obj=obj, field_name=name,
+                                field_value=json.dumps(value, ensure_ascii=False, cls=DjangoJSONEncoder))
 
     def add_update(self, obj, name, value, author=None):
         with transaction.atomic():
@@ -408,7 +408,6 @@ class Change(models.Model):
             return 'c' + str(self.pk)
         raise TypeError('existing_model_pk or created_object have to be set.')
 
-    @property
     def other_changes(self):
         """
         get queryset of other active changes on the same object
