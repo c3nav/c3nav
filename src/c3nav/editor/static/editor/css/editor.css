@@ -49,12 +49,12 @@ body:not(.map-enabled) #sidebar {
 #sidebar .content {
     width:100%;
     max-width:350px;
-    padding:10px 15px 0;
+    padding:12px 12px 0;
     margin:auto;
 }
 #sidebar .content form .form-group:last-child {
     margin-bottom:0;
-    padding:0 0 15px;
+    padding:0 0 12px;
     position:sticky;
     bottom:0;
     background-color: #ffffff;
