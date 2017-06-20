@@ -182,10 +182,11 @@ editor = {
             editor._fill_level_control(editor._sublevel_control, content.find('[data-sublevels]'));
 
             var level_control_offset = $(editor._level_control_container).position();
+            var level_control_offset = $(editor._level_control_container).position();
             var offset_parent = $(editor._level_control_container).offsetParent();
             $(editor._sublevel_control._container).css({
-                bottom: offset_parent.height()-level_control_offset.top-editor._level_control_container.height()-parseInt(editor._level_control_container.css('margin-bottom')),
-                right: offset_parent.width()-level_control_offset.left
+                bottom: offset_parent.outerHeight()-level_control_offset.top-editor._level_control_container.outerHeight()-parseInt(editor._level_control_container.css('margin-bottom')),
+                right: offset_parent.outerWidth()-level_control_offset.left
             });
         } else {
             $body.removeClass('show-map');
