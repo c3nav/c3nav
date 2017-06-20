@@ -114,7 +114,8 @@ def group_changes(changeset, can_edit=False, show_history=False):
             changes = []
             obj_desc = _('%(model)s #%(id)s') % {'model': obj.__class__._meta.verbose_name, 'id': pk}
             if is_created_pk(pk):
-                obj_desc = _('%s (created)') % obj_desc
+                if show_history:
+                    obj_desc = _('%s (created)') % obj_desc
                 obj_still_exists = int(pk[1:]) in changeset.created_objects[obj.__class__]
             else:
                 obj_still_exists = pk not in changeset.deleted_existing[obj.__class__]
