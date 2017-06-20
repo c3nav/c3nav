@@ -33,7 +33,6 @@ class ChangeSet(models.Model):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.default_author = None
-        self.parsed = False
         self.changes_qs = None
         self.ever_created_objects = {}
         self.created_objects = {}
