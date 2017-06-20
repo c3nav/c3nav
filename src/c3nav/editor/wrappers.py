@@ -372,6 +372,7 @@ class BaseQueryWrapper(BaseWrapper):
             (add_pks if check(new_value) else remove_pks).append(pk)
         created_pks = set()
         for pk, values in chain(*(self._changeset.created_objects.get(model, {}).items() for model in submodels)):
+            field_name = getattr(model._meta.get_field(field_name), 'attname', field_name)
             if check(getattr(self._changeset.get_created_object(self._obj.model, pk), field_name)):
                 created_pks.add(pk)
 
