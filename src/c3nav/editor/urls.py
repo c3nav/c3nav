@@ -1,8 +1,9 @@
 from django.apps import apps
 from django.conf.urls import url
 
-from c3nav.editor.views import (changeset_detail, edit, level_detail, list_objects, login_view, logout_view, main_index,
-                                space_detail)
+from c3nav.editor.views.changes import changeset_detail
+from c3nav.editor.views.edit import edit, level_detail, list_objects, main_index, space_detail
+from c3nav.editor.views.login import login_view, logout_view
 
 
 def add_editor_urls(model_name, parent_model_name=None, with_list=True, explicit_edit=False):
