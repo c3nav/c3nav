@@ -26,6 +26,7 @@ class BaseWrapper:
         self._author = author
         self._obj = obj
 
+    # noinspection PyUnresolvedReferences
     def _wrap_model(self, model):
         if isinstance(model, type) and issubclass(model, ModelInstanceWrapper):
             model = model._parent
@@ -100,15 +101,15 @@ class ModelWrapper(BaseWrapper):
     def get_submodels(cls, model):
         try:
             return cls._submodels_by_model[model]
-        except:
+        except KeyError:
             pass
         all_models = model.__subclasses__()
-        models = []
+        result = []
         if not model._meta.abstract:
-            models.append(model)
-        models.extend(chain(*(cls.get_submodels(model) for model in all_models)))
-        cls._submodels_by_model[model] = models
-        return models
+            result.append(model)
+        result.extend(chain(*(cls.get_submodels(model) for model in all_models)))
+        cls._submodels_by_model[model] = result
+        return result
 
     @cached_property
     def _submodels(self):
@@ -362,15 +363,15 @@ class BaseQueryWrapper(BaseWrapper):
 
     def _filter_values(self, q, field_name, check):
         other_values = ()
-        models = [model for model in self.model._submodels]
-        for model in models:
+        submodels = [model for model in self.model._submodels]
+        for model in submodels:
             other_values += self._changeset.get_changed_values(model, field_name)
         add_pks = []
         remove_pks = []
         for pk, new_value in other_values:
             (add_pks if check(new_value) else remove_pks).append(pk)
         created_pks = set()
-        for pk, values in chain(*(self._changeset.created_objects.get(model, {}).items() for model in models)):
+        for pk, values in chain(*(self._changeset.created_objects.get(model, {}).items() for model in submodels)):
             if check(getattr(self._changeset.get_created_object(self._obj.model, pk), field_name)):
                 created_pks.add(pk)
 
