@@ -55,6 +55,7 @@ class ChangeSet(models.Model):
         else:
             self.changes_qs = self.relevant_changes()
 
+        # noinspection PyTypeChecker
         for change in self.changes_qs:
             self._parse_change(change)
 
