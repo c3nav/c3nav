@@ -51,9 +51,6 @@ class ChangeSet(models.Model):
     def _parse_change(self, change):
         self._last_change_pk = change.pk
 
-        if change.action == 'delchange':
-            raise NotImplementedError
-
         model = change.model_class
         if change.action == 'create':
             new = {}
@@ -71,7 +68,19 @@ class ChangeSet(models.Model):
 
         pk = change.obj_pk
         name = change.field_name
+
+        if change.action == 'restore':
+            if change.existing_object_pk is None:
+                self.created_objects[model][change.created_object_id].pop(name, None)
+            else:
+                self.updated_existing.setdefault(model, {}).setdefault(pk, {}).pop(name, None)
+
         value = json.loads(change.field_value)
+        if change.action == 'update':
+            if change.existing_object_pk is None:
+                self.created_objects[model][change.created_object_id][name] = value
+            else:
+                self.updated_existing.setdefault(model, {}).setdefault(pk, {})[name] = value
 
         if change.action == 'm2m_add':
             m2m_removed = self.m2m_removed.get(model, {}).get(pk, {}).get(name, ())
@@ -83,20 +92,6 @@ class ChangeSet(models.Model):
             if value in m2m_added:
                 m2m_added.discard(value)
             self.m2m_removed.setdefault(model, {}).setdefault(pk, {}).setdefault(name, set()).add(value)
-
-        if change.existing_object_pk is None:
-            if change.action == 'update':
-                if value is None:
-                    self.created_objects[model][change.created_object_id].pop(name)
-                else:
-                    self.created_objects[model][change.created_object_id][name] = value
-            return
-
-        if change.action == 'update':
-            if value is None:
-                self.updated_existing.setdefault(model, {}).setdefault(pk, {}).pop(name)
-            else:
-                self.updated_existing.setdefault(model, {}).setdefault(pk, {})[name] = value
 
     def get_changed_values(self, model, name):
         r = tuple((pk, values[name]) for pk, values in self.updated_existing.get(model, {}).items() if name in values)
@@ -287,6 +282,9 @@ class ChangeSet(models.Model):
     def add_update(self, obj, name, value, author=None):
         return self._add_value('update', obj, name, value, author)
 
+    def add_revoke(self, obj, name, author=None):
+        return self._new_change(author=author, action='revoke', obj=obj, field_name=name)
+
     def add_m2m_add(self, obj, name, value, author=None):
         return self._add_value('m2m_add', obj, name, value, author)
 
@@ -313,6 +311,7 @@ class Change(models.Model):
         ('create', _('create object')),
         ('delete', _('delete object')),
         ('update', _('update attribute')),
+        ('restore', _('restore attribute')),
         ('m2m_add', _('add many to many relation')),
         ('m2m_remove', _('add many to many relation')),
     )
@@ -428,8 +427,10 @@ class Change(models.Model):
         if self.action == 'create':
             result += 'Create '+repr(self.model_name)
         elif self.action == 'update':
-            result += ('Update object '+repr(self.model_name)+' #'+str(self.obj_pk)+': ' +
+            result += ('Update '+repr(self.model_name)+' #'+str(self.obj_pk)+': ' +
                        self.field_name+'='+self.field_value)
+        elif self.action == 'restore':
+            result += ('Restore '+repr(self.model_name)+' #'+str(self.obj_pk)+': '+self.field_name)
         elif self.action == 'delete':
             result += 'Delete object '+repr(self.model_name)+' #'+str(self.obj_pk)
         elif self.action == 'm2m_add':
