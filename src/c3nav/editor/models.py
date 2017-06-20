@@ -225,6 +225,9 @@ class ChangeSet(models.Model):
 
     @property
     def changes_count(self):
+        if self.changes_qs is None:
+            return self.relevant_changes().exclude(model_name='LocationRedirect', action='update').count()
+
         result = 0
 
         for model, objects in self.created_objects.items():
