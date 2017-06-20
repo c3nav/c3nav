@@ -33,6 +33,7 @@ class ChangeSet(models.Model):
         super().__init__(*args, **kwargs)
         self.default_author = None
         self.parsed = False
+        self.changes_qs = None
         self.ever_created_objects = {}
         self.created_objects = {}
         self.updated_existing = {}
@@ -41,12 +42,21 @@ class ChangeSet(models.Model):
         self.m2m_removed = {}
         self._last_change_pk = 0
 
-    def parse_changes(self):
-        if self.pk is None or self.parsed:
+    @property
+    def relevant_changes(self):
+        return self.changes.filter(discarded_by__isnull=True).exclude(action='restore')
+
+    def parse_changes(self, get_history=False):
+        if self.pk is None or self.changes_qs is not None:
             return
-        for change in self.changes.all():
+
+        if get_history:
+            self.changes_qs = self.changes.all()
+        else:
+            self.changes_qs = self.relevant_changes
+
+        for change in self.changes_qs:
             self._parse_change(change)
-        self.parsed = True
 
     def _parse_change(self, change):
         self._last_change_pk = change.pk
