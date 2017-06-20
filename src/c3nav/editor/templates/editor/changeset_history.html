@@ -1,7 +1,8 @@
 {% load bootstrap3 %}
 {% load i18n %}
 
-<h3 data-keep-geometry>{{ changeset.title }}</h3>
+{% include 'editor/fragment_modal_close.html' %}
+<h3>{{ changeset.title }}</h3>
 <h4>{% trans 'Changeset History' %}</h4>
 <p><a href="{% url 'editor.changesets.detail' pk=changeset.pk %}">« {% trans 'back to changeset' %}</a></p>
 

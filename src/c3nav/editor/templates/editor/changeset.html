@@ -1,10 +1,10 @@
 {% load bootstrap3 %}
 {% load i18n %}
 
-<form method="post" action="{{ request.path }}" data-keep-geometry>
-{% csrf_token %}
-<p><a data-back-to-map>« {% trans 'back to map' %}</a></p>
+{% include 'editor/fragment_modal_close.html' %}
 <h3>{{ changeset.title }}</h3>
+<form method="post" action="{{ request.path }}">
+{% csrf_token %}
 <p class="text-muted">{{ desc }}{% if changeset.author %} {{ changeset.author.username }}{% endif %}</p>
 <p><em>No description</em></p>
 

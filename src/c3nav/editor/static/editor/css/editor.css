@@ -118,8 +118,13 @@ legend {
     right: 8px;
     top: 8px;
 }
-[data-levels], [data-sublevels], #sidebar .nav, [data-back-to-map] {
+[data-levels], [data-sublevels], #sidebar .nav, [data-modal-close] {
     display:none;
+}
+[data-modal-close] {
+    font-size: 20px;
+    line-height: 18px;
+    padding: 5px 8px 4px;
 }
 form button.invisiblesubmit {
     overflow: visible;

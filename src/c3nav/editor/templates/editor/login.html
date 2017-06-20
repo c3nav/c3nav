@@ -1,11 +1,10 @@
 {% load bootstrap3 %}
 {% load i18n %}
 
+{% include 'editor/fragment_modal_close.html' %}
 <h3>{% trans 'Log in' %}</h3>
 
-<p><a data-back-to-map>« {% trans 'back to map' %}</a></p>
-
-<form method="post" action="{{ request.path_info }}?{{ request.GET.urlencode }}" data-keep-geometry>
+<form method="post" action="{{ request.path_info }}?{{ request.GET.urlencode }}">
     {% csrf_token %}
     {% bootstrap_form form %}
     <div class="form-group">

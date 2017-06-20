@@ -80,7 +80,7 @@ editor = {
     },
 
     // sidebar
-    _last_map_path: null,
+    _last_non_modal_path: null,
     get_location_path: function () {
         return window.location.pathname + window.location.search;
     },
@@ -150,9 +150,19 @@ editor = {
 
         content.find('[data-toggle="tooltip"]').tooltip();
 
+        var modal_close = content.find('[data-modal-close]');
+        var is_modal = (modal_close.length > 0);
+        if (!is_modal) {
+            editor._last_non_modal_path = editor.get_location_path();
+        } else if (editor._last_non_modal_path !== null) {
+            modal_close.attr('href', editor._last_non_modal_path).show();
+        } else {
+            modal_close.remove();
+        }
+
         var geometry_url = content.find('[data-geometry-url]');
+        var $body = $('body');
         if (geometry_url.length) {
-            editor._last_map_path = editor.get_location_path();
             geometry_url = geometry_url.attr('data-geometry-url');
             var highlight_type = content.find('[data-list]');
             var editing_id = content.find('[data-editing]');
@@ -164,7 +174,7 @@ editor = {
                 (highlight_type.length ? highlight_type.attr('data-list') : null),
                 (editing_id.length ? editing_id.attr('data-editing') : null)
             );
-            $('body').addClass('map-enabled');
+            $body.addClass('map-enabled');
             editor._level_control.clearLevels();
             editor._sublevel_control.clearLevels();
 
@@ -177,14 +187,9 @@ editor = {
                 bottom: offset_parent.height()-level_control_offset.top-editor._level_control_container.height()-parseInt(editor._level_control_container.css('margin-bottom')),
                 right: offset_parent.width()-level_control_offset.left
             });
-        } else if (content.find('[data-keep-geometry]').length) {
-            if (editor._last_map_path === null) $('[data-back-to-map]').remove()
-            $('a[data-back-to-map]').attr('href', editor._last_map_path).show();
-            $('body').removeClass('show-map');
-            editor._level_control.hide();
-            editor._sublevel_control.hide();
         } else {
-            $('body').removeClass('map-enabled').removeClass('show-map');
+            $body.removeClass('show-map');
+            if (!is_modal) $body.removeClass('map-enabled');
             editor._level_control.hide();
             editor._sublevel_control.hide();
         }
