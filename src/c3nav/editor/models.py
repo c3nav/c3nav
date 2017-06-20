@@ -218,8 +218,7 @@ class ChangeSet(models.Model):
         if self.pk is None:
             return 0
         return len([True for change in self.changes.all() if ((change.model_name != 'LocationRedirect' or
-                                                               change.action != 'update') and
-                                                              change.deletes_change_id is None)])
+                                                               change.action != 'update'))])
 
     @property
     def title(self):
