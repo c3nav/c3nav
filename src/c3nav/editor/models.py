@@ -8,11 +8,11 @@ from django.db import models, transaction
 from django.db.models import Q
 from django.db.models.fields.related_descriptors import ForwardManyToOneDescriptor, ManyToManyDescriptor
 from django.urls import reverse
-from django.utils.functional import cached_property
 from django.utils.translation import ugettext_lazy as _
 from django.utils.translation import ungettext_lazy
 
 from c3nav.editor.wrappers import ModelInstanceWrapper, ModelWrapper, is_created_pk
+from c3nav.mapdata.models.locations import LocationRedirect
 
 
 class ChangeSet(models.Model):
@@ -213,12 +213,27 @@ class ChangeSet(models.Model):
             return ''
         return reverse('editor.changesets.detail', kwargs={'pk': self.pk})
 
-    @cached_property
-    def undeleted_changes_count(self):
-        if self.pk is None:
-            return 0
-        return len([True for change in self.changes.all() if ((change.model_name != 'LocationRedirect' or
-                                                               change.action != 'update'))])
+    @property
+    def changes_count(self):
+        result = 0
+
+        for model, objects in self.created_objects.items():
+            result += len(objects)
+            if model == LocationRedirect:
+                continue
+            result += sum(len(values) for values in objects.values())
+
+        for objects in self.updated_existing.values():
+            result += sum(len(values) for values in objects.values())
+
+        result += sum(len(objs) for objs in self.deleted_existing.values())
+
+        for m2m in self.m2m_added, self.m2m_removed:
+            for objects in m2m.values():
+                for obj in objects.values():
+                    result += sum(len(values) for values in obj.values())
+
+        return result
 
     @property
     def title(self):
@@ -230,7 +245,7 @@ class ChangeSet(models.Model):
     def count_display(self):
         if self.pk is None:
             return _('No changes')
-        return ungettext_lazy('%(num)d change', '%(num)d changes', 'num') % {'num': self.undeleted_changes_count}
+        return ungettext_lazy('%(num)d change', '%(num)d changes', 'num') % {'num': self.changes_count}
 
     def wrap(self, obj, author=None):
         self.parse_changes()
