@@ -4,7 +4,7 @@ from collections import OrderedDict
 
 from django.apps import apps
 from django.conf import settings
-from django.db import models
+from django.db import models, transaction
 from django.db.models import Q
 from django.db.models.fields.related_descriptors import ForwardManyToOneDescriptor, ManyToManyDescriptor
 from django.urls import reverse
@@ -279,19 +279,34 @@ class ChangeSet(models.Model):
                                 field_name=name, field_value=json.dumps(value, ensure_ascii=False))
 
     def add_update(self, obj, name, value, author=None):
-        return self._add_value('update', obj, name, value, author)
+        with transaction.atomic():
+            change = self._add_value('update', obj, name, value, author)
+            change.other_changes().filter(field_name=name).update(revoked_by=change)
+        return change
 
-    def add_revoke(self, obj, name, author=None):
-        return self._new_change(author=author, action='revoke', obj=obj, field_name=name)
+    def add_restore(self, obj, name, author=None):
+        with transaction.atomic():
+            change = self._new_change(author=author, action='restore', obj=obj, field_name=name)
+            change.other_changes().filter(field_name=name).update(revoked_by=change)
+        return change
 
     def add_m2m_add(self, obj, name, value, author=None):
-        return self._add_value('m2m_add', obj, name, value, author)
+        with transaction.atomic():
+            change = self._add_value('m2m_add', obj, name, value, author)
+            change.other_changes().filter(field_name=name, field_value=change.field_value).update(revoked_by=change)
+        return change
 
     def add_m2m_remove(self, obj, name, value, author=None):
-        return self._add_value('m2m_remove', obj, name, value, author)
+        with transaction.atomic():
+            change = self._add_value('m2m_remove', obj, name, value, author)
+            change.other_changes().filter(field_name=name, field_value=change.field_value).update(revoked_by=change)
+        return change
 
     def add_delete(self, obj, author=None):
-        return self._new_change(author=author, action='delete', obj=obj)
+        with transaction.atomic():
+            change = self._new_change(author=author, action='delete', obj=obj)
+            change.other_changes().update(revoked_by=change)
+        return change
 
     def serialize(self):
         return OrderedDict((
@@ -367,6 +382,18 @@ class Change(models.Model):
         if self.action == 'create':
             return 'c' + str(self.pk)
         raise TypeError('existing_model_pk or created_object have to be set.')
+
+    @property
+    def other_changes(self):
+        """
+        get queryset of other active changes on the same object
+        """
+        qs = self.changeset.changes.filter(~Q(pk=self.pk), model_name=self.model_name, revoked_by__isnull=True)
+        if self.existing_object_pk is not None:
+            return qs.filter(existing_object_pk=self.existing_object_pk)
+        if self.action == 'create':
+            return qs.filter(created_object_id=self.pk)
+        return qs.filter(Q(pk=self.created_object_id) | Q(created_object_id=self.created_object_id))
 
     @property
     def obj(self) -> ModelInstanceWrapper:
