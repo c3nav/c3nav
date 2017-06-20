@@ -43,7 +43,9 @@ class ChangeSet(models.Model):
         self._last_change_pk = 0
 
     def relevant_changes(self):
-        return self.changes.filter(discarded_by__isnull=True).exclude(action='restore')
+        qs = self.changes.filter(discarded_by__isnull=True).exclude(action='restore')
+        qs = qs.exclude(action='delete', created_object_id__isnull=False)
+        return qs
 
     def parse_changes(self, get_history=False):
         if self.pk is None or self.changes_qs is not None:
