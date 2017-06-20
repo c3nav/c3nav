@@ -296,31 +296,31 @@ class ChangeSet(models.Model):
     def add_update(self, obj, name, value, author=None):
         with transaction.atomic():
             change = self._add_value('update', obj, name, value, author)
-            change.other_changes().filter(field_name=name).update(revoked_by=change)
+            change.other_changes().filter(field_name=name).update(discarded_by=change)
         return change
 
     def add_restore(self, obj, name, author=None):
         with transaction.atomic():
             change = self._new_change(author=author, action='restore', obj=obj, field_name=name)
-            change.other_changes().filter(field_name=name).update(revoked_by=change)
+            change.other_changes().filter(field_name=name).update(discarded_by=change)
         return change
 
     def add_m2m_add(self, obj, name, value, author=None):
         with transaction.atomic():
             change = self._add_value('m2m_add', obj, name, value, author)
-            change.other_changes().filter(field_name=name, field_value=change.field_value).update(revoked_by=change)
+            change.other_changes().filter(field_name=name, field_value=change.field_value).update(discarded_by=change)
         return change
 
     def add_m2m_remove(self, obj, name, value, author=None):
         with transaction.atomic():
             change = self._add_value('m2m_remove', obj, name, value, author)
-            change.other_changes().filter(field_name=name, field_value=change.field_value).update(revoked_by=change)
+            change.other_changes().filter(field_name=name, field_value=change.field_value).update(discarded_by=change)
         return change
 
     def add_delete(self, obj, author=None):
         with transaction.atomic():
             change = self._new_change(author=author, action='delete', obj=obj)
-            change.other_changes().update(revoked_by=change)
+            change.other_changes().update(discarded_by=change)
         return change
 
     def serialize(self):
@@ -403,7 +403,7 @@ class Change(models.Model):
         """
         get queryset of other active changes on the same object
         """
-        qs = self.changeset.changes.filter(~Q(pk=self.pk), model_name=self.model_name, revoked_by__isnull=True)
+        qs = self.changeset.changes.filter(~Q(pk=self.pk), model_name=self.model_name, discarded_by__isnull=True)
         if self.existing_object_pk is not None:
             return qs.filter(existing_object_pk=self.existing_object_pk)
         if self.action == 'create':
