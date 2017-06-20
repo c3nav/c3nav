@@ -172,7 +172,7 @@ class ChangeSet(models.Model):
 
     @classmethod
     def qs_base(cls, hide_applied=True):
-        qs = cls.objects.prefetch_related('changes').select_related('author')
+        qs = cls.objects.select_related('author')
         if hide_applied:
             qs = qs.filter(applied__isnull=True)
         return qs
