@@ -384,7 +384,7 @@ class Change(models.Model):
 
     @property
     def model_class(self) -> typing.Optional[typing.Type[models.Model]]:
-        if self.model_name is None:
+        if not self.model_name:
             return None
         return apps.get_model('mapdata', self.model_name)
 
