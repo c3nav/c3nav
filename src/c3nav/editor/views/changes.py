@@ -48,7 +48,7 @@ def changeset_history(request, pk):
 
     ctx = group_changes(changeset, can_edit=can_edit, show_history=True)
 
-    return render(request, 'editor/changeset.html', ctx)
+    return render(request, 'editor/changeset_history.html', ctx)
 
 
 def group_changes(changeset, can_edit=False, show_history=False):

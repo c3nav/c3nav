@@ -1,0 +1,39 @@
+{% load i18n %}
+
+{% for group in grouped_changes %}
+    <table class="table table-condensed table-h-bordered change-group">
+        <thead>
+            <tr>
+                <th colspan="3">
+                    {% if group.edit_url %}
+                        <a class="btn btn-default btn-xs pull-right" data-force-next-zoom href="{{ group.edit_url }}">
+                            {% trans 'Edit' %}
+                        </a>
+                    {% endif %}
+                    {% if group.obj_title %}
+                        {{ group.obj_title }} <small>({{ group.obj }})</small>
+                    {% else %}
+                        {{ group.obj }}
+                    {% endif %}
+                </th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for change in group.changes %}
+                <tr>
+                    <td class="text-{{ change.class }}"><i class="glyphicon glyphicon-{{ change.icon }}"></i></td>
+                    <td>
+                        {% if change.value %}<u>{% else %}<em>{% endif %}{{ change.title }}{% if change.value %}</u>:{% else %}</em>{% endif %}
+                        {{ change.value }}
+                    </td>
+                    <td class="text-muted">
+                        {% if change.author and change.author != changeset.author %}
+                            <i class="glyphicon glyphicon-user" data-toggle="tooltip" data-placement="left" title="{{ change.author.username }}"></i>
+                        {% endif %}
+                        <i class="glyphicon glyphicon-time" data-toggle="tooltip" data-placement="left" title="{{ change.created }}"></i>
+                    </td>
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+{% endfor %}

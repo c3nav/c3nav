@@ -1,59 +1,28 @@
 {% load bootstrap3 %}
 {% load i18n %}
 
-{% include 'editor/fragment_levels.html' %}
-
-
 <form method="post" action="{{ request.path }}" data-keep-geometry>
 {% csrf_token %}
-
+<p><a data-back-to-map>« {% trans 'back to map' %}</a></p>
 <h3>{{ changeset.title }}</h3>
 <p class="text-muted">{{ desc }}{% if changeset.author %} {{ changeset.author.username }}{% endif %}</p>
-<p><a data-back-to-map>« {% trans 'back to map' %}</a></p>
+<p><em>No description</em></p>
 
-{% for group in grouped_changes %}
-    <table class="table table-condensed table-h-bordered change-group">
-        <thead>
-            <tr>
-                <th colspan="3">
-                    {% if group.edit_url %}
-                        <a class="btn btn-default btn-xs pull-right" data-force-next-zoom href="{{ group.edit_url }}">
-                            {% trans 'Edit' %}
-                        </a>
-                    {% endif %}
-                    {% if group.obj_title %}
-                        {{ group.obj_title }} <small>({{ group.obj }})</small>
-                    {% else %}
-                        {{ group.obj }}
-                    {% endif %}
-                </th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for change in group.changes %}
-                <tr>
-                    <td class="text-{{ change.class }}"><i class="glyphicon glyphicon-{{ change.icon }}"></i></td>
-                    <td>
-                        {% if change.value %}<u>{% else %}<em>{% endif %}{{ change.title }}{% if change.value %}</u>:{% else %}</em>{% endif %}
-                        {{ change.value }}
-                    </td>
-                    <td class="text-muted">
-                        {% if change.author and change.author != changeset.author %}
-                            <i class="glyphicon glyphicon-user" data-toggle="tooltip" data-placement="left" title="{{ change.author.username }}"></i>
-                        {% endif %}
-                        <i class="glyphicon glyphicon-time" data-toggle="tooltip" data-placement="left" title="{{ change.created }}"></i>
-                    </td>
-                </tr>
-            {% endfor %}
-        </tbody>
-    </table>
-{% endfor %}
+<p>
+    <a class="btn btn-default btn-xs" href="">
+        {% trans 'Edit' %}
+    </a>
+    <a class="btn btn-default btn-xs" href="{% url 'editor.changesets.history' pk=changeset.pk %}">
+        {% trans 'View History' %}
+    </a>
+</p>
+
+{% include 'editor/fragment_change_groups.html' %}
 
 {% buttons %}
     <button type="submit" class="btn btn-danger" name="delete" value="1">{% trans 'Delete' %}</button>
     <div class="pull-right">
-        <a type="submit" class="btn btn-default">{% trans 'Edit' %}</a>
-        <a type="submit" class="btn btn-primary">{% trans 'Login' %}</a>
+        <button type="submit" class="btn btn-primary" name="propose" value="1">{% trans 'Propose' %}</button>
     </div>
 {% endbuttons %}
 </form>
