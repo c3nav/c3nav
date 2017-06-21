@@ -42,6 +42,77 @@ class ChangeSet(models.Model):
         self.m2m_removed = {}
         self._last_change_pk = 0
 
+    """
+    Get Changesets for Request/Session/User
+    """
+    @classmethod
+    def qs_base(cls, hide_applied=True):
+        qs = cls.objects.select_related('author')
+        if hide_applied:
+            qs = qs.filter(applied__isnull=True)
+        return qs
+
+    @classmethod
+    def qs_for_request(cls, request):
+        qs = cls.qs_base()
+        if request.user.is_authenticated:
+            qs = qs.filter(author=request.user)
+        else:
+            qs = qs.filter(author__isnull=True)
+        return qs
+
+    @classmethod
+    def get_for_request(cls, request):
+        qs = cls.qs_for_request(request)
+
+        if request.session.session_key is not None:
+            changeset = qs.filter(session_id=request.session.session_key).first()
+            if changeset is not None:
+                changeset.default_author = request.user
+                if changeset.author_id is None and request.user.is_authenticated:
+                    changeset.author = request.user
+                    changeset.save()
+                return changeset
+
+        new_changeset = cls()
+        new_changeset.request = request
+
+        if request.user.is_authenticated:
+            changeset = qs.filter(Q(author=request.user)).order_by('-created').first()
+            if changeset is not None:
+                if request.session.session_key is None:
+                    request.session.save()
+                changeset.session_id = request.session.session_key
+                changeset.save()
+                changeset.default_author = request.user
+                return changeset
+
+            new_changeset.author = request.user
+
+        new_changeset.session_id = request.session.session_key
+        new_changeset.default_author = request.user
+        return new_changeset
+
+    """
+    Wrap Objects
+    """
+    def wrap(self, obj, author=None):
+        self.parse_changes()
+        if author is None:
+            author = self.default_author
+        if author is not None and not author.is_authenticated:
+            author = None
+        if isinstance(obj, str):
+            return ModelWrapper(self, apps.get_model('mapdata', obj), author)
+        if isinstance(obj, type) and issubclass(obj, models.Model):
+            return ModelWrapper(self, obj, author)
+        if isinstance(obj, models.Model):
+            return ModelWrapper(self, type(obj), author).create_wrapped_model_class()(self, obj, author)
+        raise ValueError
+
+    """
+    Parse Changes
+    """
     def relevant_changes(self):
         qs = self.changes.filter(discarded_by__isnull=True).exclude(action='restore')
         qs = qs.exclude(action='delete', created_object_id__isnull=False)
@@ -105,11 +176,10 @@ class ChangeSet(models.Model):
                 m2m_added.discard(value)
             self.m2m_removed.setdefault(model, {}).setdefault(pk, {}).setdefault(name, set()).add(value)
 
+    """
+    Lookup changes and created objects
+    """
     def get_changed_values(self, model, name):
-        r = tuple((pk, values[name]) for pk, values in self.updated_existing.get(model, {}).items() if name in values)
-        return r
-
-    def get_created_values(self, model, name):
         r = tuple((pk, values[name]) for pk, values in self.updated_existing.get(model, {}).items() if name in values)
         return r
 
@@ -166,116 +236,9 @@ class ChangeSet(models.Model):
             model = model._obj
         return set(self.created_objects.get(model, {}).keys())
 
-    @property
-    def cache_key(self):
-        if self.pk is None:
-            return None
-        return str(self.pk)+'-'+str(self._last_change_pk)
-
-    @classmethod
-    def qs_base(cls, hide_applied=True):
-        qs = cls.objects.select_related('author')
-        if hide_applied:
-            qs = qs.filter(applied__isnull=True)
-        return qs
-
-    @classmethod
-    def qs_for_request(cls, request):
-        qs = cls.qs_base()
-        if request.user.is_authenticated:
-            qs = qs.filter(author=request.user)
-        else:
-            qs = qs.filter(author__isnull=True)
-        return qs
-
-    @classmethod
-    def get_for_request(cls, request):
-        qs = cls.qs_for_request(request)
-
-        if request.session.session_key is not None:
-            changeset = qs.filter(session_id=request.session.session_key).first()
-            if changeset is not None:
-                changeset.default_author = request.user
-                if changeset.author_id is None and request.user.is_authenticated:
-                    changeset.author = request.user
-                    changeset.save()
-                return changeset
-
-        new_changeset = cls()
-        new_changeset.request = request
-
-        if request.user.is_authenticated:
-            changeset = qs.filter(Q(author=request.user)).order_by('-created').first()
-            if changeset is not None:
-                if request.session.session_key is None:
-                    request.session.save()
-                changeset.session_id = request.session.session_key
-                changeset.save()
-                changeset.default_author = request.user
-                return changeset
-
-            new_changeset.author = request.user
-
-        new_changeset.session_id = request.session.session_key
-        new_changeset.default_author = request.user
-        return new_changeset
-
-    def get_absolute_url(self):
-        if self.pk is None:
-            return ''
-        return reverse('editor.changesets.detail', kwargs={'pk': self.pk})
-
-    @property
-    def changes_count(self):
-        if self.changes_qs is None:
-            return self.relevant_changes().exclude(model_name='LocationRedirect', action='update').count()
-
-        result = 0
-
-        for model, objects in self.created_objects.items():
-            result += len(objects)
-            if model == LocationRedirect:
-                continue
-            result += sum(len(values) for values in objects.values())
-
-        for objects in self.updated_existing.values():
-            result += sum(len(values) for values in objects.values())
-
-        result += sum(len(objs) for objs in self.deleted_existing.values())
-
-        for m2m in self.m2m_added, self.m2m_removed:
-            for objects in m2m.values():
-                for obj in objects.values():
-                    result += sum(len(values) for values in obj.values())
-
-        return result
-
-    @property
-    def title(self):
-        if self.pk is None:
-            return ''
-        return _('Changeset #%d') % self.pk
-
-    @property
-    def count_display(self):
-        if self.pk is None:
-            return _('No changes')
-        return ungettext_lazy('%(num)d change', '%(num)d changes', 'num') % {'num': self.changes_count}
-
-    def wrap(self, obj, author=None):
-        self.parse_changes()
-        if author is None:
-            author = self.default_author
-        if author is not None and not author.is_authenticated:
-            author = None
-        if isinstance(obj, str):
-            return ModelWrapper(self, apps.get_model('mapdata', obj), author)
-        if isinstance(obj, type) and issubclass(obj, models.Model):
-            return ModelWrapper(self, obj, author)
-        if isinstance(obj, models.Model):
-            return ModelWrapper(self, type(obj), author).create_wrapped_model_class()(self, obj, author)
-        raise ValueError
-
+    """
+    add changes
+    """
     def _new_change(self, author, **kwargs):
         if self.pk is None:
             if self.session_id is None:
@@ -337,6 +300,57 @@ class ChangeSet(models.Model):
             change = self._new_change(author=author, action='delete', obj=obj)
             change.other_changes().update(discarded_by=change)
         return change
+
+    """
+    Methods for display
+    """
+    @property
+    def changes_count(self):
+        if self.changes_qs is None:
+            return self.relevant_changes().exclude(model_name='LocationRedirect', action='update').count()
+
+        result = 0
+
+        for model, objects in self.created_objects.items():
+            result += len(objects)
+            if model == LocationRedirect:
+                continue
+            result += sum(len(values) for values in objects.values())
+
+        for objects in self.updated_existing.values():
+            result += sum(len(values) for values in objects.values())
+
+        result += sum(len(objs) for objs in self.deleted_existing.values())
+
+        for m2m in self.m2m_added, self.m2m_removed:
+            for objects in m2m.values():
+                for obj in objects.values():
+                    result += sum(len(values) for values in obj.values())
+
+        return result
+
+    @property
+    def count_display(self):
+        if self.pk is None:
+            return _('No changes')
+        return ungettext_lazy('%(num)d change', '%(num)d changes', 'num') % {'num': self.changes_count}
+
+    @property
+    def title(self):
+        if self.pk is None:
+            return ''
+        return _('Changeset #%d') % self.pk
+
+    @property
+    def cache_key(self):
+        if self.pk is None:
+            return None
+        return str(self.pk)+'-'+str(self._last_change_pk)
+
+    def get_absolute_url(self):
+        if self.pk is None:
+            return ''
+        return reverse('editor.changesets.detail', kwargs={'pk': self.pk})
 
     def serialize(self):
         return OrderedDict((
