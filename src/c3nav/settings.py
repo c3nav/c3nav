@@ -14,7 +14,7 @@ config.read(['/etc/c3nav/c3nav.cfg', os.path.expanduser('~/.c3nav.cfg'), os.envi
             encoding='utf-8')
 
 # Build paths inside the project like this: os.path.join(BASE_DIR, ...)
-BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+BASE_DIR = os.path.dirname(os.path.dirname(__file__))
 DATA_DIR = config.get('c3nav', 'datadir', fallback=os.environ.get('DATA_DIR', 'data'))
 LOG_DIR = os.path.join(DATA_DIR, 'logs')
 MEDIA_ROOT = os.path.join(DATA_DIR, 'media')
@@ -101,9 +101,8 @@ if HAS_MEMCACHED:
     }
     SESSION_ENGINE = "django.contrib.sessions.backends.cached_db"
 
-HAS_CELERY_BROKER = config.has_option('celery', 'broker')
-CELERY_ALWAYS_EAGER = False
-if HAS_CELERY_BROKER:
+HAS_CELERY = config.has_option('celery', 'broker')
+if HAS_CELERY:
     BROKER_URL = config.get('celery', 'broker')
     CELERY_RESULT_BACKEND = config.get('celery', 'backend')
     CELERY_SEND_TASK_ERROR_EMAILS = bool(ADMINS)
