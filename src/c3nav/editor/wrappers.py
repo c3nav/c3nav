@@ -131,7 +131,7 @@ class ModelWrapper(BaseWrapper):
         return create_editor_form(self._obj)
 
     @classmethod
-    def get_submodels(cls, model: models.Model):
+    def get_submodels(cls, model: models.Model) -> typing.List[typing.Type[models.Model]]:
         """
         Get non-abstract submodels for a model including the model itself.
         Result is cached.
