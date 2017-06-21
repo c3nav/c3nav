@@ -3,8 +3,6 @@ from collections import OrderedDict
 from django.db import models
 from django.utils.translation import ugettext_lazy as _
 
-EDITOR_FORM_MODELS = OrderedDict()
-
 
 class SerializableMixin(models.Model):
     class Meta:
@@ -29,16 +27,9 @@ class SerializableMixin(models.Model):
         result['id'] = self.pk
         return result
 
-
-class EditorFormMixin(SerializableMixin, models.Model):
-    EditorForm = None
-
-    class Meta:
-        abstract = True
-
     @property
     def title(self):
-        return self._meta.verbose_name+' '+str(self.id)
+        return self._meta.verbose_name + ' ' + str(self.id)
 
 
 class BoundsMixin(SerializableMixin, models.Model):

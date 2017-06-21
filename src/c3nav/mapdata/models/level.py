@@ -6,12 +6,11 @@ from django.utils.translation import ugettext_lazy as _
 from shapely.geometry import JOIN_STYLE
 from shapely.ops import cascaded_union
 
-from c3nav.mapdata.models.base import EditorFormMixin
 from c3nav.mapdata.models.locations import SpecificLocation
 from c3nav.mapdata.utils.svg import SVGImage
 
 
-class Level(SpecificLocation, EditorFormMixin, models.Model):
+class Level(SpecificLocation, models.Model):
     """
     A map level
     """

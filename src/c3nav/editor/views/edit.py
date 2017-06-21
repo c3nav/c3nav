@@ -6,7 +6,6 @@ from django.urls import reverse
 from django.utils.translation import ugettext_lazy as _
 
 from c3nav.editor.views.base import sidebar_view
-from c3nav.mapdata.models.base import EDITOR_FORM_MODELS
 
 
 def child_model(model, kwargs=None, parent=None):
@@ -65,7 +64,7 @@ def space_detail(request, level, pk):
 
 @sidebar_view
 def edit(request, pk=None, model=None, level=None, space=None, on_top_of=None, explicit_edit=False):
-    model = request.changeset.wrap(EDITOR_FORM_MODELS[model])
+    model = request.changeset.wrap(model)
     related_name = model._meta.default_related_name
 
     Level = request.changeset.wrap('Level')
@@ -230,7 +229,7 @@ def list_objects(request, model=None, level=None, space=None, explicit_edit=Fals
     if not request.resolver_match.url_name.endswith('.list'):
         raise ValueError('url_name does not end with .list')
 
-    model = request.changeset.wrap(EDITOR_FORM_MODELS[model])
+    model = request.changeset.wrap(model)
 
     Level = request.changeset.wrap('Level')
     Space = request.changeset.wrap('Space')

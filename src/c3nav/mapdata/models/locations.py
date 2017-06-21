@@ -6,7 +6,7 @@ from django.utils.translation import ugettext_lazy as _
 from django.utils.translation import get_language
 
 from c3nav.mapdata.fields import JSONField
-from c3nav.mapdata.models.base import EditorFormMixin, SerializableMixin
+from c3nav.mapdata.models.base import SerializableMixin
 
 LOCATION_MODELS = []
 
@@ -54,7 +54,7 @@ class LocationSlug(SerializableMixin, models.Model):
         default_related_name = 'locationslugs'
 
 
-class Location(LocationSlug, EditorFormMixin, models.Model):
+class Location(LocationSlug, SerializableMixin, models.Model):
     titles = JSONField(default={})
     can_search = models.BooleanField(default=True, verbose_name=_('can be searched'))
     can_describe = models.BooleanField(default=True, verbose_name=_('can be used to describe a position'))
@@ -157,7 +157,7 @@ class SpecificLocation(Location, models.Model):
         return result
 
 
-class LocationGroup(Location, EditorFormMixin, models.Model):
+class LocationGroup(Location, models.Model):
     compiled_room = models.BooleanField(default=False, verbose_name=_('is a compiled room'))
     compiled_area = models.BooleanField(default=False, verbose_name=_('is a compiled area'))
 

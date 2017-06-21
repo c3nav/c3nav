@@ -102,10 +102,5 @@ def create_editor_form(editor_model):
             model = editor_model
             fields = existing_fields
 
-    editor_model.EditorForm = EditorForm
-
-
-def create_editor_forms():
-    from c3nav.mapdata.models.base import EDITOR_FORM_MODELS
-    for mapitemtype in EDITOR_FORM_MODELS.values():
-        create_editor_form(mapitemtype)
+    EditorForm.__name__ = editor_model.__name__+'EditorForm'
+    return EditorForm

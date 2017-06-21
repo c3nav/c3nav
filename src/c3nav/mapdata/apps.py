@@ -18,10 +18,6 @@ class MapdataConfig(AppConfig):
         return submodels
 
     def ready(self):
-        from c3nav.mapdata.models.base import EditorFormMixin, EDITOR_FORM_MODELS
-        for cls in self._get_submodels(EditorFormMixin):
-            EDITOR_FORM_MODELS[cls.__name__] = cls
-
         from c3nav.mapdata.models.geometry.base import GeometryMixin, GEOMETRY_MODELS
         for cls in self._get_submodels(GeometryMixin):
             GEOMETRY_MODELS[cls.__name__] = cls

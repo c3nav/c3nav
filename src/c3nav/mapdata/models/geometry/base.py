@@ -2,13 +2,13 @@ from collections import OrderedDict
 
 from shapely.geometry import Point, mapping
 
-from c3nav.mapdata.models.base import EditorFormMixin
+from c3nav.mapdata.models.base import SerializableMixin
 from c3nav.mapdata.utils.json import format_geojson
 
 GEOMETRY_MODELS = OrderedDict()
 
 
-class GeometryMixin(EditorFormMixin):
+class GeometryMixin(SerializableMixin):
     """
     A map feature with a geometry
     """

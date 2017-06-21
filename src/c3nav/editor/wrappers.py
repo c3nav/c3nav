@@ -10,6 +10,8 @@ from django.db.models.fields.related_descriptors import ForwardManyToOneDescript
 from django.db.models.query_utils import DeferredAttribute
 from django.utils.functional import cached_property
 
+from c3nav.editor.forms import create_editor_form
+
 
 def is_created_pk(pk):
     return isinstance(pk, str) and pk.startswith('c') and pk[1:].isnumeric()
@@ -96,6 +98,10 @@ class ModelWrapper(BaseWrapper):
         if type(other) == ModelWrapper:
             return self._obj is other._obj
         return self._obj is other
+
+    @cached_property
+    def EditorForm(self):
+        return create_editor_form(self._obj)
 
     @classmethod
     def get_submodels(cls, model):
