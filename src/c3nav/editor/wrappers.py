@@ -11,10 +11,7 @@ from django.db.models.query_utils import DeferredAttribute
 from django.utils.functional import cached_property
 
 from c3nav.editor.forms import create_editor_form
-
-
-def is_created_pk(pk):
-    return isinstance(pk, str) and pk.startswith('c') and pk[1:].isnumeric()
+from c3nav.editor.utils import is_created_pk
 
 
 class BaseWrapper:
