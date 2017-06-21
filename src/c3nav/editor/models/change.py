@@ -9,8 +9,7 @@ from django.db.models import Q
 from django.utils.translation import ugettext_lazy as _
 
 from c3nav.editor.models import ChangeSet
-from c3nav.editor.utils import is_created_pk
-from c3nav.editor.wrappers import ModelInstanceWrapper
+from c3nav.editor.wrappers import ModelInstanceWrapper, is_created_pk
 
 
 class Change(models.Model):
