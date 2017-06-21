@@ -94,12 +94,26 @@ SESSION_ENGINE = "django.contrib.sessions.backends.db"
 
 HAS_MEMCACHED = config.has_option('memcached', 'location')
 if HAS_MEMCACHED:
-    REAL_CACHE_USED = True
     CACHES['default'] = {
         'BACKEND': 'django.core.cache.backends.memcached.PyLibMCCache',
         'LOCATION': config.get('memcached', 'location'),
     }
     SESSION_ENGINE = "django.contrib.sessions.backends.cached_db"
+
+HAS_REDIS = config.has_option('redis', 'location')
+if HAS_REDIS:
+    CACHES['redis'] = {
+        "BACKEND": "django_redis.cache.RedisCache",
+        "LOCATION": config.get('redis', 'location'),
+        "OPTIONS": {
+            "CLIENT_CLASS": "django_redis.client.DefaultClient",
+        }
+    }
+    if not HAS_MEMCACHED:
+        CACHES['default'] = CACHES['redis']
+        SESSION_ENGINE = "django.contrib.sessions.backends.cached_db"
+    else:
+        SESSION_CACHE_ALIAS = "redis"
 
 HAS_CELERY = config.has_option('celery', 'broker')
 if HAS_CELERY:
