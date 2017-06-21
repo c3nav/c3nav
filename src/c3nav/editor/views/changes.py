@@ -152,6 +152,7 @@ def group_changes(changeset, can_edit=False, show_history=False):
             'pk': change.pk,
             'author': change.author,
             'created': _('created at %(datetime)s') % {'datetime': date_format(change.created, 'DATETIME_FORMAT')},
+            'discarded': change.discarded_by_id is not None,
         }
         changes.append(change_data)
         if change.action == 'create':

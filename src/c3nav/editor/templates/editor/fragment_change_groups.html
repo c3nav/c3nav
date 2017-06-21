@@ -22,7 +22,7 @@
             {% for change in group.changes %}
                 <tr>
                     <td class="text-{{ change.class }}"><i class="glyphicon glyphicon-{{ change.icon }}"></i></td>
-                    <td>
+                    <td{% if change.discarded %} class="text-muted"{% endif %}>
                         {% if change.value %}<u>{% else %}<em>{% endif %}{{ change.title }}{% if change.value %}</u>:{% else %}</em>{% endif %}
                         {{ change.value }}
                     </td>
