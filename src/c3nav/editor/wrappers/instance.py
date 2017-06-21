@@ -3,7 +3,7 @@ from django.db.models import Field
 from django.db.models.fields.related_descriptors import ForwardManyToOneDescriptor
 
 from c3nav.editor.utils import is_created_pk
-from c3nav.editor.wrappers.base import BaseWrapper
+from c3nav.editor.wrappers import BaseWrapper
 
 
 class ModelInstanceWrapper(BaseWrapper):

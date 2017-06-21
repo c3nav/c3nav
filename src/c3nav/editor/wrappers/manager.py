@@ -1,4 +1,4 @@
-from c3nav.editor.wrappers.query import BaseQueryWrapper
+from c3nav.editor.wrappers import BaseQueryWrapper
 
 
 class ManagerWrapper(BaseQueryWrapper):
