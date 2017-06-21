@@ -4,7 +4,8 @@ from itertools import chain
 from django.utils.functional import cached_property
 
 from c3nav.editor.forms import create_editor_form
-from c3nav.editor.wrappers import BaseWrapper, ModelInstanceWrapper
+from c3nav.editor.wrappers.base import BaseWrapper
+from c3nav.editor.wrappers.instance import ModelInstanceWrapper
 
 
 class ModelWrapper(BaseWrapper):

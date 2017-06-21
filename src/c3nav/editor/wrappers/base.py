@@ -3,10 +3,6 @@ from functools import wraps
 from django.db import models
 from django.db.models import Manager
 
-from c3nav.editor.wrappers import ModelInstanceWrapper, ModelWrapper
-from c3nav.editor.wrappers.manager import ManagerWrapper, ManyRelatedManagerWrapper, RelatedManagerWrapper
-from c3nav.editor.wrappers.query import QuerySetWrapper
-
 
 class BaseWrapper:
     _not_wrapped = ('_changeset', '_author', '_obj', '_created_pks', '_result', '_extra', '_result_cache',
@@ -21,6 +17,8 @@ class BaseWrapper:
 
     # noinspection PyUnresolvedReferences
     def _wrap_model(self, model):
+        from c3nav.editor.wrappers.instance import ModelInstanceWrapper
+        from c3nav.editor.wrappers.model import ModelWrapper
         if isinstance(model, type) and issubclass(model, ModelInstanceWrapper):
             model = model._parent
         if isinstance(model, ModelWrapper):
@@ -31,6 +29,7 @@ class BaseWrapper:
         return ModelWrapper(self._changeset, model, self._author)
 
     def _wrap_instance(self, instance):
+        from c3nav.editor.wrappers.instance import ModelInstanceWrapper
         if isinstance(instance, ModelInstanceWrapper):
             if self._author == instance._author and self._changeset == instance._changeset:
                 return instance
@@ -39,6 +38,7 @@ class BaseWrapper:
         return self._wrap_model(type(instance)).create_wrapped_model_class()(self._changeset, instance, self._author)
 
     def _wrap_manager(self, manager):
+        from c3nav.editor.wrappers.manager import ManagerWrapper, ManyRelatedManagerWrapper, RelatedManagerWrapper
         assert isinstance(manager, Manager)
         if hasattr(manager, 'through'):
             return ManyRelatedManagerWrapper(self._changeset, manager, self._author)
@@ -47,9 +47,11 @@ class BaseWrapper:
         return ManagerWrapper(self._changeset, manager, self._author)
 
     def _wrap_queryset(self, queryset):
+        from c3nav.editor.wrappers.query import QuerySetWrapper
         return QuerySetWrapper(self._changeset, queryset, self._author)
 
     def __getattr__(self, name):
+        from c3nav.editor.wrappers.instance import ModelInstanceWrapper
         value = getattr(self._obj, name)
         if isinstance(value, Manager):
             value = self._wrap_manager(value)

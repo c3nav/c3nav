@@ -8,7 +8,7 @@ from django.db.models.fields.related_descriptors import ForwardManyToOneDescript
 from django.utils.functional import cached_property
 
 from c3nav.editor.utils import is_created_pk
-from c3nav.editor.wrappers import BaseWrapper
+from c3nav.editor.wrappers.base import BaseWrapper
 
 
 def get_queryset(func):
