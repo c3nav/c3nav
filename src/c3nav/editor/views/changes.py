@@ -146,6 +146,8 @@ def group_changes(changeset, can_edit=False, show_history=False):
 
             last_obj = obj
 
+        form = changeset.wrap(type(obj)).EditorForm
+
         change_data = {
             'pk': change.pk,
             'author': change.author,
@@ -200,11 +202,10 @@ def group_changes(changeset, can_edit=False, show_history=False):
                     order = 5
                     if change.field_name == 'slug':
                         order = 1
-                    if change.field_name not in obj.__class__.EditorForm._meta.fields:
+                    if change.field_name not in form._meta.fields:
                         order = 0
                     change_data.update({
-                        'order': (order,
-                                  obj.__class__.EditorForm._meta.fields.index(change.field_name) if order else 1),
+                        'order': (order, form._meta.fields.index(change.field_name) if order else 1),
                     })
                 if not field_value:
                     change_data.update({
@@ -247,7 +248,7 @@ def group_changes(changeset, can_edit=False, show_history=False):
                 change_data.update({
                     'title': field.verbose_name,
                     'value': objects[field.related_model][json.loads(change.field_value)].title,
-                    'order': (6, obj.__class__.EditorForm._meta.fields.index(change.field_name),
+                    'order': (6, form._meta.fields.index(change.field_name),
                               (change.action == 'm2m_remove')),
                 })
         else:
