@@ -13,7 +13,7 @@ from django.utils.translation import ugettext_lazy as _
 from django.utils.translation import ungettext_lazy
 
 from c3nav.editor.wrappers import ModelInstanceWrapper, ModelWrapper, is_created_pk
-from c3nav.mapdata.models.locations import LocationRedirect
+from c3nav.mapdata.models.locations import LocationRedirect, LocationSlug
 
 
 class ChangeSet(models.Model):
@@ -175,6 +175,49 @@ class ChangeSet(models.Model):
             if value in m2m_added:
                 m2m_added.discard(value)
             self.m2m_removed.setdefault(model, {}).setdefault(pk, {}).setdefault(name, set()).add(value)
+
+    """
+    Analyse Changes
+    """
+    def get_objects(self):
+        if self.changes_qs is None:
+            raise TypeError
+
+        # collect pks of relevant objects
+        object_pks = {}
+        for change in self.changes_qs:
+            object_pks.setdefault(change.model_class, set()).add(change.obj_pk)
+            model = None
+            if change.action == 'update':
+                if change.model_class == LocationRedirect:
+                    if change.field_name == 'target':
+                        object_pks.setdefault(LocationSlug, set()).add(json.loads(change.field_value))
+                        continue
+                elif not change.field_name.startswith('title_'):
+                    field = change.model_class._meta.get_field(change.field_name)
+                    model = getattr(field, 'related_model', None)
+            if change.action in ('m2m_add', 'm2m_remove'):
+                model = change.model_class._meta.get_field(change.field_name).related_model
+            if model is not None:
+                object_pks.setdefault(model, set()).add(json.loads(change.field_value))
+
+        # retrieve relevant objects
+        objects = {}
+        for model, pks in object_pks.items():
+            created_pks = set(pk for pk in pks if is_created_pk(pk))
+            existing_pks = pks - created_pks
+            model_objects = {}
+            if existing_pks:
+                for obj in model.objects.filter(pk__in=existing_pks):
+                    if model == LocationSlug:
+                        obj = obj.get_child()
+                    model_objects[obj.pk] = obj
+            if created_pks:
+                for pk in created_pks:
+                    model_objects[pk] = self.get_created_object(model, pk, allow_deleted=True)._obj
+            objects[model] = model_objects
+
+        return objects
 
     """
     Lookup changes and created objects

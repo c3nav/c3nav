@@ -54,48 +54,17 @@ def changeset_history(request, pk):
 def group_changes(changeset, can_edit=False, show_history=False):
     changeset.parse_changes(get_history=show_history)
 
-    changes_list = changeset.changes_qs
-
-    # collect pks of relevant objects
-    object_pks = {}
-    for change in changes_list:
-        object_pks.setdefault(change.model_class, set()).add(change.obj_pk)
-        model = None
-        if change.action == 'update':
-            if change.model_class == LocationRedirect:
-                if change.field_name == 'target':
-                    object_pks.setdefault(LocationSlug, set()).add(json.loads(change.field_value))
-                    continue
-            elif not change.field_name.startswith('title_'):
-                field = change.model_class._meta.get_field(change.field_name)
-                model = getattr(field, 'related_model', None)
-        if change.action in ('m2m_add', 'm2m_remove'):
-            model = change.model_class._meta.get_field(change.field_name).related_model
-        if model is not None:
-            object_pks.setdefault(model, set()).add(json.loads(change.field_value))
-
-    # retrieve relevant objects
-    objects = {}
-    for model, pks in object_pks.items():
-        created_pks = set(pk for pk in pks if is_created_pk(pk))
-        existing_pks = pks - created_pks
-        model_objects = {}
-        if existing_pks:
-            for obj in model.objects.filter(pk__in=existing_pks):
-                if model == LocationSlug:
-                    obj = obj.get_child()
-                model_objects[obj.pk] = obj
-        if created_pks:
-            for pk in created_pks:
-                model_objects[pk] = changeset.get_created_object(model, pk, allow_deleted=True)._obj
-                if show_history:
-                    model_objects[pk].titles = {}
-        objects[model] = model_objects
+    objects = changeset.get_objects()
+    if show_history:
+        grouped_changes = []
+        for obj in objects:
+            if is_created_pk(obj.pk):
+                obj.titles = {}
 
     grouped_changes = [] if show_history else {}
     changes = []
     last_obj = None
-    for change in changes_list:
+    for change in changeset.changes_qs:
         pk = change.obj_pk
         obj = objects[change.model_class][pk]
         if change.model_class == LocationRedirect:
