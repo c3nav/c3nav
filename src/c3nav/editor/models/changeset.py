@@ -12,7 +12,8 @@ from django.utils.translation import ugettext_lazy as _
 from django.utils.translation import ungettext_lazy
 
 from c3nav.editor.models.change import Change
-from c3nav.editor.wrappers import ModelWrapper, is_created_pk
+from c3nav.editor.utils import is_created_pk
+from c3nav.editor.wrappers import ModelWrapper
 from c3nav.mapdata.models import LocationSlug
 from c3nav.mapdata.models.locations import LocationRedirect
 
