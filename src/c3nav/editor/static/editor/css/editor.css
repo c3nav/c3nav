@@ -9,7 +9,7 @@ body {
     top:0;
     bottom:0;
     left:0;
-    right:350px;
+    right:370px;
     z-index:1;
 }
 nav.navbar {
@@ -32,7 +32,7 @@ nav.navbar .container {
     position: absolute;
     top:0;
     right: 0;
-    width: 350px;
+    width: 370px;
     height: 100%;
     overflow: auto;
     z-index:2;
@@ -48,7 +48,7 @@ body:not(.map-enabled) #sidebar {
 }
 #sidebar .content {
     width:100%;
-    max-width:350px;
+    max-width:370px;
     padding:12px 12px 0;
     margin:auto;
 }
