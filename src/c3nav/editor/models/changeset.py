@@ -56,6 +56,9 @@ class ChangeSet(models.Model):
 
     @classmethod
     def qs_for_request(cls, request):
+        """
+        Returns a base QuerySet to get only changesets the current user is allowed to see
+        """
         qs = cls.qs_base()
         if request.user.is_authenticated:
             qs = qs.filter(author=request.user)
@@ -65,6 +68,16 @@ class ChangeSet(models.Model):
 
     @classmethod
     def get_for_request(cls, request):
+        """
+        Get the changeset for the current request.
+        If a changeset is associated with the session id, it will be returned.
+        Otherwise, if the user is authenticated, the last created queryset
+        for this user will be returned and the session id will be added to it.
+        If both fails, an empty unsaved changeset will be returned which will
+        be automatically saved when a change is added to it.
+        In any case, the default autor for changes added to the queryset during
+        this request will be set to the current user.
+        """
         qs = cls.qs_for_request(request)
 
         if request.session.session_key is not None:
@@ -99,6 +112,11 @@ class ChangeSet(models.Model):
     Wrap Objects
     """
     def wrap(self, obj, author=None):
+        """
+        Wrap the given object in a changeset wrapper.
+        :param obj: A model, a model instance or the name of a model as a string.
+        :param author: Author to which ne changes will be assigned. This changesets default author (if set) if None.
+        """
         self.parse_changes()
         if author is None:
             author = self.default_author
@@ -116,11 +134,22 @@ class ChangeSet(models.Model):
     Parse Changes
     """
     def relevant_changes(self):
+        """
+        Get all changes of this queryset that have not been discarded and do not restore original data.
+        You should not call this, but instead call parse_changes(), it will store the result in self.changes_qs.
+        """
         qs = self.changes.filter(discarded_by__isnull=True).exclude(action='restore')
         qs = qs.exclude(action='delete', created_object_id__isnull=False)
         return qs
 
     def parse_changes(self, get_history=False):
+        """
+        Parse changes of this changeset so they can be reflected when querying data.
+        Only executable once, if changes are added later they are automatically parsed.
+        This method gets automatically called when parsed changes are needed or when adding a new change.
+        The queryset used/created by this method can be found in changes_qs afterwards.
+        :param get_history: Whether to get all changes (True) or only relevant ones (False)
+        """
         if self.pk is None or self.changes_qs is not None:
             return
 
@@ -224,11 +253,26 @@ class ChangeSet(models.Model):
     """
     Lookup changes and created objects
     """
-    def get_changed_values(self, model, name):
+    def get_changed_values(self, model: models.Model, name: str) -> dict:
+        """
+        Get all changes values for a specific field on existing models
+        :param model: model class
+        :param name: field name
+        :return: returns a dictionary with primary keys as keys and new values as values
+        """
         r = tuple((pk, values[name]) for pk, values in self.updated_existing.get(model, {}).items() if name in values)
         return r
 
     def get_created_object(self, model, pk, author=None, get_foreign_objects=False, allow_deleted=False):
+        """
+        Gets a created model instance.
+        :param model: model class
+        :param pk: primary key
+        :param author: overwrite default author for changes made to that model
+        :param get_foreign_objects: whether to fetch foreign objects and not just set their id to field.attname
+        :param allow_deleted: return created objects that have already been deleted (needs get_history=True)
+        :return: a wrapped model instance
+        """
         if is_created_pk(pk):
             pk = pk[1:]
         pk = int(pk)
@@ -276,7 +320,10 @@ class ChangeSet(models.Model):
             setattr(obj, name, model._meta.get_field(name).to_python(value))
         return self.wrap(obj, author=author)
 
-    def get_created_pks(self, model):
+    def get_created_pks(self, model) -> set:
+        """
+        Returns a set with the primary keys of created objects from this model
+        """
         if issubclass(model, ModelWrapper):
             model = model._obj
         return set(self.created_objects.get(model, {}).keys())
@@ -309,6 +356,9 @@ class ChangeSet(models.Model):
         return change
 
     def add_create(self, obj, author=None):
+        """
+        Creates a new object in this changeset. Called when a new ModelInstanceWrapper is saved.
+        """
         change = self._new_change(author=author, action='create', model_class=type(obj._obj))
         obj.pk = 'c%d' % change.pk
 
@@ -317,30 +367,45 @@ class ChangeSet(models.Model):
                                 field_value=json.dumps(value, ensure_ascii=False, cls=DjangoJSONEncoder))
 
     def add_update(self, obj, name, value, author=None):
+        """
+        Update a models field value. Called when a ModelInstanceWrapper is saved.
+        """
         with transaction.atomic():
             change = self._add_value('update', obj, name, value, author)
             change.other_changes().filter(field_name=name).update(discarded_by=change)
         return change
 
     def add_restore(self, obj, name, author=None):
+        """
+        Restore a models field value (= remove it from the changeset).
+        """
         with transaction.atomic():
             change = self._new_change(author=author, action='restore', obj=obj, field_name=name)
             change.other_changes().filter(field_name=name).update(discarded_by=change)
         return change
 
     def add_m2m_add(self, obj, name, value, author=None):
+        """
+        Add an object to a m2m relation. Called by ManyRelatedManagerWrapper.
+        """
         with transaction.atomic():
             change = self._add_value('m2m_add', obj, name, value, author)
             change.other_changes().filter(field_name=name, field_value=change.field_value).update(discarded_by=change)
         return change
 
     def add_m2m_remove(self, obj, name, value, author=None):
+        """
+        Remove an object from a m2m reltation. Called by ManyRelatedManagerWrapper.
+        """
         with transaction.atomic():
             change = self._add_value('m2m_remove', obj, name, value, author)
             change.other_changes().filter(field_name=name, field_value=change.field_value).update(discarded_by=change)
         return change
 
     def add_delete(self, obj, author=None):
+        """
+        Delete an object. Called by ModelInstanceWrapper.delete().
+        """
         with transaction.atomic():
             change = self._new_change(author=author, action='delete', obj=obj)
             change.other_changes().update(discarded_by=change)
@@ -351,6 +416,9 @@ class ChangeSet(models.Model):
     """
     @property
     def changes_count(self):
+        """
+        Get the number of relevant changes. Does not need a query if changes are already parsed.
+        """
         if self.changes_qs is None:
             return self.relevant_changes().exclude(model_name='LocationRedirect', action='update').count()
 
@@ -376,6 +444,9 @@ class ChangeSet(models.Model):
 
     @property
     def count_display(self):
+        """
+        Get “%d changes” display text.
+        """
         if self.pk is None:
             return _('No changes')
         return ungettext_lazy('%(num)d change', '%(num)d changes', 'num') % {'num': self.changes_count}
