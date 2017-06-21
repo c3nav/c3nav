@@ -253,7 +253,7 @@ class ChangeSet(models.Model):
     """
     Lookup changes and created objects
     """
-    def get_changed_values(self, model: models.Model, name: str) -> dict:
+    def get_changed_values(self, model: models.Model, name: str) -> tuple:
         """
         Get all changes values for a specific field on existing models
         :param model: model class
