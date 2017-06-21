@@ -89,7 +89,7 @@ CACHES = {
         'LOCATION': 'unique-snowflake',
     }
 }
-REAL_CACHE_USED = False
+
 SESSION_ENGINE = "django.contrib.sessions.backends.db"
 
 HAS_MEMCACHED = config.has_option('memcached', 'location')
