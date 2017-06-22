@@ -154,17 +154,19 @@ class LocationViewSet(RetrieveModelMixin, GenericViewSet):
     lookup_field = 'slug'
 
     def list(self, request, *args, **kwargs):
-        queryset = self.get_queryset()
+        detailed = 'detailed' in request.GET
+
+        queryset = self.get_queryset().order_by('id')
         queryset = queryset.filter(reduce(operator.or_, (Q(**{model._meta.default_related_name+'__isnull': False})
                                                          for model in get_submodels(Location))))
-        for model in get_submodels(Location):
-            if model == LocationGroup:
-                continue
-            queryset = queryset.prefetch_related(Prefetch(model._meta.default_related_name+'__groups',
-                                                          queryset=LocationGroup.objects.only('id', 'titles')))
+        if detailed:
+            for model in get_submodels(Location):
+                if model == LocationGroup:
+                    continue
+                queryset = queryset.prefetch_related(Prefetch(model._meta.default_related_name+'__groups',
+                                                              queryset=LocationGroup.objects.only('id', 'titles')))
 
-        return Response([obj.get_child().serialize(include_type=True, detailed='detailed' in request.GET)
-                         for obj in queryset])
+        return Response([obj.get_child().serialize(include_type=True, detailed=detailed) for obj in queryset])
 
     def retrieve(self, request, slug=None, *args, **kwargs):
         result = Location.get_by_slug(slug, self.get_queryset())

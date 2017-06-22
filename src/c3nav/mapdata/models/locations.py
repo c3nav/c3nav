@@ -68,7 +68,7 @@ class Location(LocationSlug, SerializableMixin, models.Model):
         self.titles = self.titles.copy()
 
     def serialize(self, detailed=True, **kwargs):
-        result = super().serialize(**kwargs)
+        result = super().serialize(detailed=detailed, **kwargs)
         if not detailed:
             for key in set(result.keys()) - {'type', 'id', 'slug', 'title', 'target'}:
                 result.pop(key)
@@ -150,9 +150,10 @@ class SpecificLocation(Location, models.Model):
     class Meta:
         abstract = True
 
-    def _serialize(self, **kwargs):
-        result = super()._serialize(**kwargs)
-        result['groups'] = list(g.pk for g in self.groups.all())
+    def _serialize(self, detailed=True, **kwargs):
+        result = super()._serialize(detailed=detailed, **kwargs)
+        if detailed:
+            result['groups'] = list(g.pk for g in self.groups.all())
         return result
 
 
