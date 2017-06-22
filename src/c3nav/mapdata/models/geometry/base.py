@@ -5,8 +5,6 @@ from shapely.geometry import Point, mapping
 from c3nav.mapdata.models.base import SerializableMixin
 from c3nav.mapdata.utils.json import format_geojson
 
-GEOMETRY_MODELS = OrderedDict()
-
 
 class GeometryMixin(SerializableMixin):
     """

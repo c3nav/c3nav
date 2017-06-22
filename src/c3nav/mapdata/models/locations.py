@@ -7,8 +7,7 @@ from django.utils.translation import get_language
 
 from c3nav.mapdata.fields import JSONField
 from c3nav.mapdata.models.base import SerializableMixin
-
-LOCATION_MODELS = []
+from c3nav.mapdata.utils.models import get_submodels
 
 
 class LocationSlugManager(models.Manager):
@@ -16,7 +15,7 @@ class LocationSlugManager(models.Manager):
         result = super().get_queryset()
         if self.model == LocationSlug:
             result = result.select_related(*(model._meta.default_related_name
-                                             for model in LOCATION_MODELS+[LocationRedirect]))
+                                             for model in get_submodels(Location)+[LocationRedirect]))
         return result
 
 
@@ -35,7 +34,7 @@ class LocationSlug(SerializableMixin, models.Model):
 
     def get_child(self):
         # todo: cache this
-        for model in LOCATION_MODELS+[LocationRedirect]:
+        for model in get_submodels(Location)+[LocationRedirect]:
             with suppress(AttributeError):
                 return getattr(self, model._meta.default_related_name)
         return None

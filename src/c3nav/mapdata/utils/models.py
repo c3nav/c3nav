@@ -3,7 +3,6 @@ import typing
 from celery import chain
 from django.db import models
 
-
 _submodels_by_model = {}
 
 
