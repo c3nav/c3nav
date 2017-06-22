@@ -340,7 +340,6 @@ class BaseQueryWrapper(BaseWrapper):
         """
         Get all created pks for this query's model an submodels.
         """
-        self.model.get_submodels(self.model._obj)
         return reduce(operator.or_, (self._changeset.get_created_pks(model) for model in self.model._submodels))
 
     def _wrap_queryset(self, queryset, created_pks=None, add_extra=()):

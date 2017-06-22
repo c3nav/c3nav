@@ -16,6 +16,7 @@ from c3nav.editor.utils import is_created_pk
 from c3nav.editor.wrappers import ModelWrapper
 from c3nav.mapdata.models import LocationSlug
 from c3nav.mapdata.models.locations import LocationRedirect
+from c3nav.mapdata.utils.models import get_submodels
 
 
 class ChangeSet(models.Model):
@@ -283,7 +284,7 @@ class ChangeSet(models.Model):
         objects = self.ever_created_objects if allow_deleted else self.created_objects
 
         objects = tuple(obj for obj in ((submodel, objects.get(submodel, {}).get(pk, None))
-                                        for submodel in ModelWrapper.get_submodels(model)) if obj[1] is not None)
+                                        for submodel in get_submodels(model)) if obj[1] is not None)
         if not objects:
             raise model.DoesNotExist
         if len(objects) > 1:
