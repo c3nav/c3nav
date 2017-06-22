@@ -1,7 +1,6 @@
 import mimetypes
 import operator
 from functools import reduce
-from itertools import chain
 
 from django.db.models import Prefetch, Q
 from django.http import HttpResponse
@@ -192,14 +191,26 @@ class LocationViewSet(RetrieveModelMixin, GenericViewSet):
 
     @list_route(methods=['get'])
     def search(self, request):
-        # todo: implement caching here
-        results = sorted(chain(*(optimize_query(model.objects.filter(can_search=True))
-                                 for model in get_submodels(Location))), key=lambda obj: obj.id)
+        detailed = 'detailed' in request.GET
         search = request.GET.get('s')
+
+        queryset = self.get_queryset().order_by('id')
+        conditions = []
+        for model in get_submodels(Location):
+            conditions.append(Q(**{model._meta.default_related_name + '__isnull': False}) &
+                              Q(**{model._meta.default_related_name + '__can_search': True}))
+        queryset = queryset.filter(reduce(operator.or_, conditions))
+
+        if detailed:
+            for model in get_submodels(SpecificLocation):
+                queryset = queryset.prefetch_related(Prefetch(model._meta.default_related_name+'__groups',
+                                                              queryset=LocationGroup.objects.only('id', 'titles')))
+
         if not search:
-            return Response([obj.serialize(include_type=True, detailed='detailed' in request.GET) for obj in results])
+            return Response([obj.serialize(include_type=True, detailed=detailed) for obj in queryset])
 
         words = search.lower().split(' ')[:10]
+        results = queryset
         for word in words:
             results = [r for r in results if (word in r.title.lower() or (r.slug and word in r.slug.lower()))]
         # todo: rank results
