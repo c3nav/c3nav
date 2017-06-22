@@ -85,7 +85,7 @@ def group_changes(changeset, can_edit=False, show_history=False):
             if is_created_pk(pk):
                 if show_history:
                     obj_desc = _('%s (created)') % obj_desc
-                obj_still_exists = int(pk[1:]) in changeset.created_objects[obj.__class__]
+                obj_still_exists = pk in changeset.created_objects[obj.__class__]
             else:
                 obj_still_exists = pk not in changeset.deleted_existing.get(obj.__class__, ())
 

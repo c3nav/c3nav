@@ -167,33 +167,33 @@ class ChangeSet(models.Model):
         self._last_change_pk = change.pk
 
         model = change.model_class
+        pk = change.obj_pk
         if change.action == 'create':
             new = {}
-            self.created_objects.setdefault(model, {})[change.pk] = new
-            self.ever_created_objects.setdefault(model, {})[change.pk] = new
+            self.created_objects.setdefault(model, {})[pk] = new
+            self.ever_created_objects.setdefault(model, {})[pk] = new
             return
         elif change.action == 'delete':
-            if change.existing_object_pk is not None:
-                self.deleted_existing.setdefault(model, set()).add(change.existing_object_pk)
+            if not is_created_pk(pk):
+                self.deleted_existing.setdefault(model, set()).add(pk)
             else:
-                self.created_objects[model].pop(change.created_object_id)
-                self.m2m_added.get(model, {}).pop('c'+str(change.created_object_id), None)
-                self.m2m_removed.get(model, {}).pop('c'+str(change.created_object_id), None)
+                self.created_objects[model].pop(pk)
+                self.m2m_added.get(model, {}).pop(pk, None)
+                self.m2m_removed.get(model, {}).pop(pk, None)
             return
 
-        pk = change.obj_pk
         name = change.field_name
 
         if change.action == 'restore':
-            if change.existing_object_pk is None:
-                self.created_objects[model][change.created_object_id].pop(name, None)
+            if is_created_pk(pk):
+                self.created_objects[model][pk].pop(name, None)
             else:
                 self.updated_existing.setdefault(model, {}).setdefault(pk, {}).pop(name, None)
 
         value = json.loads(change.field_value)
         if change.action == 'update':
-            if change.existing_object_pk is None:
-                self.created_objects[model][change.created_object_id][name] = value
+            if is_created_pk(pk):
+                self.created_objects[model][pk][name] = value
             else:
                 self.updated_existing.setdefault(model, {}).setdefault(pk, {})[name] = value
 
@@ -274,9 +274,6 @@ class ChangeSet(models.Model):
         :param allow_deleted: return created objects that have already been deleted (needs get_history=True)
         :return: a wrapped model instance
         """
-        if is_created_pk(pk):
-            pk = pk[1:]
-        pk = int(pk)
         self.parse_changes()
         if issubclass(model, ModelWrapper):
             model = model._obj
@@ -293,9 +290,9 @@ class ChangeSet(models.Model):
         model, data = objects[0]
 
         obj = model()
-        obj.pk = 'c' + str(pk)
+        obj.pk = pk
         if hasattr(model._meta.pk, 'related_model'):
-            setattr(obj, model._meta.pk.related_model._meta.pk.attname, obj.pk)
+            setattr(obj, model._meta.pk.related_model._meta.pk.attname, pk)
         obj._state.adding = False
 
         for name, value in data.items():

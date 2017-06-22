@@ -470,12 +470,12 @@ class BaseQueryWrapper(BaseWrapper):
             if not segments:
                 # if the check is just 'pk' or the name or the name of the primary key, return the mathing object
                 if is_created_pk(filter_value):
-                    return Q(pk__in=()), set([int(filter_value[1:])])
+                    return Q(pk__in=()), set([filter_value])
                 return q, set()
             elif segments == ['in']:
                 # if the check is 'pk__in' it's nearly as easy
                 return (Q(pk__in=tuple(pk for pk in filter_value if not is_created_pk(pk))),
-                        set(int(pk[1:]) for pk in filter_value if is_created_pk(pk)))
+                        set(pk for pk in filter_value if is_created_pk(pk)))
 
         # check if we are filtering by a foreign key field
         if isinstance(class_value, ForwardManyToOneDescriptor):
@@ -579,7 +579,7 @@ class BaseQueryWrapper(BaseWrapper):
                 q |= Q(pk__in=tuple(pk for pk in r_added_pks if not is_created_pk(pk)))
 
                 # get created groups that were added to any of the spaces
-                created_pks = set(int(pk[1:]) for pk in r_added_pks if is_created_pk(pk))
+                created_pks = set(pk for pk in r_added_pks if is_created_pk(pk))
 
                 return q, created_pks
 
@@ -601,11 +601,11 @@ class BaseQueryWrapper(BaseWrapper):
                     if is_created_pk(filter_value):
                         pks = add_pks
                         return (Q(pk__in=(pk for pk in pks if not is_created_pk(pk))),
-                                set(int(pk[1:]) for pk in pks if is_created_pk(pk)))
+                                set(pk for pk in pks if is_created_pk(pk)))
 
                     return (((q & ~Q(pk__in=(pk for pk in remove_pks if not is_created_pk(pk)))) |
                              Q(pk__in=(pk for pk in add_pks if not is_created_pk(pk)))),
-                            set(int(pk[1:]) for pk in add_pks if is_created_pk(pk)))
+                            set(pk for pk in add_pks if is_created_pk(pk)))
 
                 # sorry, no reverse lookup
                 raise NotImplementedError
