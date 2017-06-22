@@ -248,7 +248,7 @@ def list_objects(request, model=None, level=None, space=None, explicit_edit=Fals
     if level is not None:
         reverse_kwargs['level'] = level
         level = get_object_or_404(Level, pk=level)
-        queryset = queryset.filter(level=level)
+        queryset = queryset.filter(level=level).defer('geometry')
         ctx.update({
             'back_url': reverse('editor.levels.detail', kwargs={'pk': level.pk}),
             'back_title': _('back to level'),
@@ -260,7 +260,7 @@ def list_objects(request, model=None, level=None, space=None, explicit_edit=Fals
     elif space is not None:
         reverse_kwargs['space'] = space
         space = get_object_or_404(Space.objects.select_related('level'), pk=space)
-        queryset = queryset.filter(space=space)
+        queryset = queryset.filter(space=space).defer('geometry')
         ctx.update({
             'level': space.level,
             'back_url': reverse('editor.spaces.detail', kwargs={'level': space.level.pk, 'pk': space.pk}),

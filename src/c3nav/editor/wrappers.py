@@ -199,6 +199,8 @@ class ModelInstanceWrapper(BaseWrapper):
         for field in self._obj._meta.get_fields():
             if not isinstance(field, Field):
                 continue
+            if field.name in self._obj.get_deferred_fields():
+                continue
             if field.related_model is None:
                 if field.primary_key:
                     continue
@@ -414,6 +416,12 @@ class BaseQueryWrapper(BaseWrapper):
         if self._created_pks:
             return True
         return self._obj.exists()
+
+    def only(self, *fields):
+        return self._wrap_queryset(self._obj.only(*fields))
+
+    def defer(self, *fields):
+        return self._wrap_queryset(self._obj.defer(*fields))
 
     @get_queryset
     def order_by(self, *args):
