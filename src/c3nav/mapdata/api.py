@@ -205,14 +205,14 @@ class LocationViewSet(RetrieveModelMixin, GenericViewSet):
         queryset = self.get_queryset(detailed=detailed, subconditions={'can_search': True})
 
         if not search:
-            return Response([obj.serialize(include_type=True, detailed=detailed) for obj in queryset])
+            return Response([obj.get_child().serialize(include_type=True, detailed=detailed) for obj in queryset])
 
         words = search.lower().split(' ')[:10]
         results = queryset
         for word in words:
             results = [r for r in results if (word in r.title.lower() or (r.slug and word in r.slug.lower()))]
         # todo: rank results
-        return Response([obj.serialize(include_type=True, detailed='detailed' in request.GET) for obj in results])
+        return Response([obj.get_child().serialize(include_type=True, detailed=detailed) for obj in results])
 
 
 class SourceViewSet(MapdataViewSet):
