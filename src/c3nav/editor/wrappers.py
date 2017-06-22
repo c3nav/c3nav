@@ -12,6 +12,7 @@ from django.utils.functional import cached_property
 
 from c3nav.editor.forms import create_editor_form
 from c3nav.editor.utils import is_created_pk
+from c3nav.mapdata.utils.models import get_submodels
 
 
 class BaseWrapper:
@@ -130,30 +131,12 @@ class ModelWrapper(BaseWrapper):
         """
         return create_editor_form(self._obj)
 
-    @classmethod
-    def get_submodels(cls, model: models.Model) -> typing.List[typing.Type[models.Model]]:
-        """
-        Get non-abstract submodels for a model including the model itself.
-        Result is cached.
-        """
-        try:
-            return cls._submodels_by_model[model]
-        except KeyError:
-            pass
-        all_models = model.__subclasses__()
-        result = []
-        if not model._meta.abstract:
-            result.append(model)
-        result.extend(chain(*(cls.get_submodels(model) for model in all_models)))
-        cls._submodels_by_model[model] = result
-        return result
-
     @cached_property
     def _submodels(self):
         """
         Get non-abstract submodels for this model including the model itself.
         """
-        return self.get_submodels(self._obj)
+        return get_submodels(self._obj)
 
     def create_wrapped_model_class(self) -> typing.Type['ModelInstanceWrapper']:
         """
