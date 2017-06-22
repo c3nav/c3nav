@@ -116,8 +116,6 @@ class ModelWrapper(BaseWrapper):
     Can be called (like a class) to get a wrapped model instance
     that has the according ModelWrapper as its type / metaclass.
     """
-    _submodels_by_model = {}
-
     def __eq__(self, other):
         if type(other) == ModelWrapper:
             return self._obj is other._obj
