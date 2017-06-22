@@ -186,7 +186,7 @@ def group_changes(changeset, can_edit=False, show_history=False):
                         'title': field_title,
                         'value': field_value,
                     })
-        elif change.action == 'revert':
+        elif change.action == 'restore':
             change_data.update({
                 'icon': 'share-alt',
                 'class': 'muted',
@@ -197,11 +197,21 @@ def group_changes(changeset, can_edit=False, show_history=False):
                     'title': _('reverted geometry'),
                 })
             else:
-                field = obj.__class__._meta.get_field(change.field_name)
-                field_title = field.verbose_name
+                if change.field_name.startswith('title_'):
+                    lang = change.field_name[6:]
+                    field_title = _('Title (%(lang)s)') % {'lang': dict(settings.LANGUAGES).get(lang, lang)}
+                else:
+                    field = obj.__class__._meta.get_field(change.field_name)
+                    field_title = field.verbose_name
+                    model = getattr(field, 'related_model', None)
+                    if model is not None:
+                        change_data.update({
+                            'value': objects[model][json.loads(change.field_value)].title
+                        })
                 change_data.update({
                     'title': _('reverted %(field_title)s') % {'field_title': field_title},
                 })
+
         elif change.action in ('m2m_add', 'm2m_remove'):
             change_data.update({
                 'icon': 'chevron-right' if change.action == 'm2m_add' else 'chevron-left',

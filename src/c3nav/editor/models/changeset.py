@@ -13,7 +13,7 @@ from django.utils.translation import ungettext_lazy
 
 from c3nav.editor.models.change import Change
 from c3nav.editor.utils import is_created_pk
-from c3nav.editor.wrappers import ModelWrapper
+from c3nav.editor.wrappers import ModelInstanceWrapper, ModelWrapper
 from c3nav.mapdata.models import LocationSlug
 from c3nav.mapdata.models.locations import LocationRedirect
 from c3nav.mapdata.utils.models import get_submodels
@@ -184,11 +184,12 @@ class ChangeSet(models.Model):
 
         name = change.field_name
 
-        if change.action == 'restore':
+        if change.action == 'restore' and change.field_value is None:
             if is_created_pk(pk):
                 self.created_objects[model][pk].pop(name, None)
             else:
                 self.updated_existing.setdefault(model, {}).setdefault(pk, {}).pop(name, None)
+            return
 
         value = json.loads(change.field_value)
         if change.action == 'update':
@@ -197,7 +198,10 @@ class ChangeSet(models.Model):
             else:
                 self.updated_existing.setdefault(model, {}).setdefault(pk, {})[name] = value
 
-        if change.action == 'm2m_add':
+        if change.action == 'restore':
+            self.m2m_removed.get(model, {}).get(pk, {}).get(name, set()).discard(value)
+            self.m2m_added.get(model, {}).get(pk, {}).get(name, set()).discard(value)
+        elif change.action == 'm2m_add':
             m2m_removed = self.m2m_removed.get(model, {}).get(pk, {}).get(name, ())
             if value in m2m_removed:
                 m2m_removed.remove(value)
@@ -364,21 +368,33 @@ class ChangeSet(models.Model):
         return self._new_change(author=author, action=action, obj=obj, field_name=name,
                                 field_value=json.dumps(value, ensure_ascii=False, cls=DjangoJSONEncoder))
 
+    def add_restore(self, obj, name, value=None, author=None):
+        """
+        Restore a models field value (= remove it from the changeset).
+        """
+        return self._new_change(author=author, action='restore', obj=obj, field_name=name, field_value=value)
+
     def add_update(self, obj, name, value, author=None):
         """
         Update a models field value. Called when a ModelInstanceWrapper is saved.
         """
+        if isinstance(obj, ModelInstanceWrapper):
+            obj = obj._obj
+        model = type(obj)
+        field = model._meta.get_field('titles' if name.startswith('title_') else name)
         with transaction.atomic():
-            change = self._add_value('update', obj, name, value, author)
-            change.other_changes().filter(field_name=name).update(discarded_by=change)
-        return change
+            current_obj = model.objects.only(field.name).get(pk=obj.pk)
+            try:
+                current_value = getattr(current_obj, field.attname)
+            except AttributeError:
+                current_value = field.to_prep_value(getattr(current_obj, field.name))
+            if name.startswith('title_'):
+                current_value = current_value.get(name[6:], '')
 
-    def add_restore(self, obj, name, author=None):
-        """
-        Restore a models field value (= remove it from the changeset).
-        """
-        with transaction.atomic():
-            change = self._new_change(author=author, action='restore', obj=obj, field_name=name)
+            if current_value != value:
+                change = self._add_value('update', obj, name, value, author)
+            else:
+                change = self.add_restore(obj, name, author)
             change.other_changes().filter(field_name=name).update(discarded_by=change)
         return change
 
@@ -386,8 +402,13 @@ class ChangeSet(models.Model):
         """
         Add an object to a m2m relation. Called by ManyRelatedManagerWrapper.
         """
+        if isinstance(obj, ModelInstanceWrapper):
+            obj = obj._obj
         with transaction.atomic():
-            change = self._add_value('m2m_add', obj, name, value, author)
+            if is_created_pk(obj.pk) or is_created_pk(value) or not getattr(obj, name).filter(pk=value).exists():
+                change = self._add_value('m2m_add', obj, name, value, author)
+            else:
+                change = self.add_restore(obj, name, value, author)
             change.other_changes().filter(field_name=name, field_value=change.field_value).update(discarded_by=change)
         return change
 
@@ -395,8 +416,13 @@ class ChangeSet(models.Model):
         """
         Remove an object from a m2m reltation. Called by ManyRelatedManagerWrapper.
         """
+        if isinstance(obj, ModelInstanceWrapper):
+            obj = obj._obj
         with transaction.atomic():
-            change = self._add_value('m2m_remove', obj, name, value, author)
+            if is_created_pk(obj.pk) or is_created_pk(value) or not getattr(obj, name).filter(pk=value).exists():
+                change = self.add_restore(obj, name, value, author)
+            else:
+                change = self._add_value('m2m_remove', obj, name, value, author)
             change.other_changes().filter(field_name=name, field_value=change.field_value).update(discarded_by=change)
         return change
 
