@@ -165,9 +165,7 @@ class LocationViewSet(RetrieveModelMixin, GenericViewSet):
         queryset = queryset.filter(reduce(operator.or_, conditions))
 
         if detailed:
-            for model in get_submodels(Location):
-                if model == LocationGroup:
-                    continue
+            for model in get_submodels(SpecificLocation):
                 queryset = queryset.prefetch_related(Prefetch(model._meta.default_related_name+'__groups',
                                                               queryset=LocationGroup.objects.only('id', 'titles')))
 
