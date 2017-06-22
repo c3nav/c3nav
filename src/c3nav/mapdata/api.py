@@ -152,21 +152,29 @@ class LocationViewSet(RetrieveModelMixin, GenericViewSet):
     queryset = LocationSlug.objects.all()
     lookup_field = 'slug'
 
-    def list(self, request, *args, **kwargs):
-        detailed = 'detailed' in request.GET
+    def get_queryset(self, detailed=False, subconditions=None):
+        queryset = super().get_queryset().order_by('id')
 
-        queryset = self.get_queryset().order_by('id')
         conditions = []
         for model in get_submodels(Location):
-            conditions.append(Q(**{model._meta.default_related_name+'__isnull': False}) &
-                              (Q(**{model._meta.default_related_name + '__can_search': True}) |
-                               Q(**{model._meta.default_related_name + '__can_describe': True})))
+            condition = Q(**{model._meta.default_related_name + '__isnull': False})
+            if subconditions:
+                condition &= reduce(operator.or_, (Q(**{model._meta.default_related_name+'__'+name: value})
+                                                   for name, value in subconditions.items()))
+            conditions.append(condition)
         queryset = queryset.filter(reduce(operator.or_, conditions))
 
         if detailed:
             for model in get_submodels(SpecificLocation):
-                queryset = queryset.prefetch_related(Prefetch(model._meta.default_related_name+'__groups',
+                queryset = queryset.prefetch_related(Prefetch(model._meta.default_related_name + '__groups',
                                                               queryset=LocationGroup.objects.only('id', 'titles')))
+
+        return queryset
+
+    def list(self, request, *args, **kwargs):
+        detailed = 'detailed' in request.GET
+
+        queryset = self.get_queryset(detailed=detailed, subconditions={'can_search': True, 'can_describe': True})
 
         return Response([obj.get_child().serialize(include_type=True, detailed=detailed) for obj in queryset])
 
@@ -194,17 +202,7 @@ class LocationViewSet(RetrieveModelMixin, GenericViewSet):
         detailed = 'detailed' in request.GET
         search = request.GET.get('s')
 
-        queryset = self.get_queryset().order_by('id')
-        conditions = []
-        for model in get_submodels(Location):
-            conditions.append(Q(**{model._meta.default_related_name + '__isnull': False}) &
-                              Q(**{model._meta.default_related_name + '__can_search': True}))
-        queryset = queryset.filter(reduce(operator.or_, conditions))
-
-        if detailed:
-            for model in get_submodels(SpecificLocation):
-                queryset = queryset.prefetch_related(Prefetch(model._meta.default_related_name+'__groups',
-                                                              queryset=LocationGroup.objects.only('id', 'titles')))
+        queryset = self.get_queryset(detailed=detailed, subconditions={'can_search': True})
 
         if not search:
             return Response([obj.serialize(include_type=True, detailed=detailed) for obj in queryset])
