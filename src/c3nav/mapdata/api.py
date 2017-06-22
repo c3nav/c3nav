@@ -157,8 +157,13 @@ class LocationViewSet(RetrieveModelMixin, GenericViewSet):
         detailed = 'detailed' in request.GET
 
         queryset = self.get_queryset().order_by('id')
-        queryset = queryset.filter(reduce(operator.or_, (Q(**{model._meta.default_related_name+'__isnull': False})
-                                                         for model in get_submodels(Location))))
+        conditions = []
+        for model in get_submodels(Location):
+            conditions.append(Q(**{model._meta.default_related_name+'__isnull': False}) &
+                              (Q(**{model._meta.default_related_name + '__can_search': True}) |
+                               Q(**{model._meta.default_related_name + '__can_describe': True})))
+        queryset = queryset.filter(reduce(operator.or_, conditions))
+
         if detailed:
             for model in get_submodels(Location):
                 if model == LocationGroup:
