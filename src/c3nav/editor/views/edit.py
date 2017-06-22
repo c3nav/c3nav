@@ -259,7 +259,7 @@ def list_objects(request, model=None, level=None, space=None, explicit_edit=Fals
         })
     elif space is not None:
         reverse_kwargs['space'] = space
-        space = get_object_or_404(Space.objects.select_related('level'), pk=space)
+        space = get_object_or_404(Space.objects.select_related('level').defer('geometry'), pk=space)
         queryset = queryset.filter(space=space).defer('geometry')
         ctx.update({
             'level': space.level,
