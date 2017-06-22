@@ -1,6 +1,6 @@
 import typing
+from itertools import chain
 
-from celery import chain
 from django.db import models
 
 _submodels_by_model = {}
