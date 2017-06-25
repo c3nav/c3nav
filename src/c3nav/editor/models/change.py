@@ -4,11 +4,12 @@ from collections import OrderedDict
 
 from django.apps import apps
 from django.conf import settings
+from django.core.exceptions import ObjectDoesNotExist, ValidationError
 from django.db import models
-from django.db.models import Q
+from django.db.models import Q, FieldDoesNotExist
 from django.utils.translation import ugettext_lazy as _
 
-from c3nav.editor.utils import is_created_pk
+from c3nav.editor.utils import is_created_pk, get_current_obj
 from c3nav.editor.wrappers import ModelInstanceWrapper
 
 
@@ -130,6 +131,91 @@ class Change(models.Model):
     @property
     def field(self):
         return self.model_class._meta.get_field(self.field_name)
+
+    def check_apply_problem(self):
+        if self.discarded_by_id is not None or self.action in ('create', 'restore'):
+            return None
+
+        try:
+            model = self.model_class
+        except LookupError:
+            return _('Type %(model_name)s does not exist any more.' % {'model_name': self.model_name})
+
+        try:
+            obj = get_current_obj(model, self.obj_pk)
+        except model.DoesNotExist:
+            return _('This %(model_title)s does not exist any more.' % {'model_title': model._meta.verbose_name})
+
+        if self.action == 'delete':
+            return None
+
+        if self.action == 'update' and self.field_name.startswith('title_'):
+            return None
+
+        try:
+            field = self.field
+        except FieldDoesNotExist:
+            return _('This field does not exist any more.')
+        value = json.loads(self.field_value)
+
+        if self.action == 'update':
+            if field.many_to_many:
+                return _('This is a m2m field, so it can\'t be updated.')
+            if field.many_to_one:
+                if value is None and not field.null:
+                    return _('This field has to be set.')
+                try:
+                    self.changeset.wrap(field.related_model).objects.get(pk=value)
+                except ObjectDoesNotExist:
+                    return (_('Referenced %(model_title)s does not exist any more.') %
+                            {'model_title': field.related_model._meta.verbose_name})
+                return None
+            if field.is_relation:
+                raise NotImplementedError
+            try:
+                field.clean(value, obj)
+            except ValidationError as e:
+                return str(e)
+            return None
+
+        if self.action in ('m2m_add', 'm2m_remove'):
+            if not field.many_to_many:
+                return _('This is not a m2m field, so it can\'t be trated as such.')
+            try:
+                self.changeset.wrap(field.related_model).objects.get(pk=value)
+            except ObjectDoesNotExist:
+                return _('Referenced object does not exist any more.')
+            return None
+
+    @property
+    def can_restore(self):
+        if self.discarded_by_id is not None:
+            return False
+
+        if is_created_pk(self.obj_pk):
+            return False
+
+        if self.action == 'delete':
+            return not is_created_pk(self.obj_pk)
+
+        try:
+            obj = get_current_obj(self.model_class, self.obj_pk)
+            field = self.field
+        except (LookupError, ObjectDoesNotExist, FieldDoesNotExist):
+            return True
+
+        if field.many_to_one:
+            return field.null
+
+        if field.name == 'geometry':
+            return False
+
+        try:
+            field.clean(field.get_prep_value(getattr(obj, field.name)), obj)
+        except ValidationError:
+            return False
+
+        return True
 
     def save(self, *args, **kwargs):
         if self.pk is not None:

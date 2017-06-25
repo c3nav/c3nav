@@ -168,6 +168,14 @@ form button.invisiblesubmit {
     font-size:14px;
     margin-top: -1px;
 }
+.change-group tr td:last-child .btn {
+    margin-top: -6px;
+    margin-bottom: -2px;
+    margin-right: -5px;
+}
+.change-group tr td:last-child>i {
+    margin-right: -2px;
+}
 
 /* Styles inside leaflet */
 .leaflet-container {
