@@ -4,6 +4,10 @@
 {% include 'editor/fragment_modal_close.html' %}
 <h3>{{ changeset.title }}</h3>
 <h4>{% trans 'Changeset History' %}</h4>
+<form method="post" action="{{ request.path }}">
+{% csrf_token %}
 <p><a href="{% url 'editor.changesets.detail' pk=changeset.pk %}">« {% trans 'back to changeset' %}</a></p>
+{% bootstrap_messages %}
 
 {% include 'editor/fragment_change_groups.html' %}
+</form>

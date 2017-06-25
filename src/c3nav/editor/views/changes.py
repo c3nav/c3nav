@@ -2,6 +2,7 @@ import json
 from operator import itemgetter
 
 from django.conf import settings
+from django.contrib import messages
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.utils.formats import date_format
@@ -22,6 +23,15 @@ def changeset_detail(request, pk, show_history=False):
         changeset = get_object_or_404(ChangeSet.qs_for_request(request), pk=pk)
 
     ctx = group_changes(changeset, can_edit=can_edit, show_history=show_history)
+
+    if request.method == 'POST':
+        restore = request.POST.get('restore')
+        if restore.isdigit():
+            change = changeset.changes.filter(pk=restore).first()
+            if change is not None and change.can_restore:
+                change.restore(request.user if request.user.is_authenticated else None)
+                messages.success(request, _('Original state has been restored!'))
+        return redirect(request.path)
 
     if show_history:
         return render(request, 'editor/changeset_history.html', ctx)

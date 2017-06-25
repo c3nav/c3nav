@@ -258,6 +258,10 @@ class Change(models.Model):
                 return True
             return not getattr(current_obj, field.name).filter(pk=self.field_value).exists()
 
+    def restore(self, author):
+        if not self.can_restore:
+            return
+
     def save(self, *args, **kwargs):
         if self.pk is not None:
             raise TypeError('change objects can not be edited (use update to set discarded_by)')

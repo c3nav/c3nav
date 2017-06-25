@@ -36,9 +36,9 @@
                             <i class="glyphicon glyphicon-user text-muted" data-toggle="tooltip" data-placement="left" title="{{ change.author.username }}"></i>
                         {% endif %}
                         {% if change.can_restore %}
-                            <a class="btn btn-xs btn-default" data-toggle="tooltip" data-placement="left" title="{% trans 'Restore original state' %}">
+                            <button type="submit" name="restore" value="{{ change.pk }}" class="btn btn-xs btn-default" data-toggle="tooltip" data-placement="left" title="{% trans 'Restore original state' %}">
                                 <i class="glyphicon glyphicon-share-alt"></i>
-                            </a>
+                            </button>
                         {% endif %}
                         {% if change.created %}
                             <i class="glyphicon glyphicon-time text-muted" data-toggle="tooltip" data-placement="left" title="{{ change.created }}"></i>
