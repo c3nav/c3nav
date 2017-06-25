@@ -22,8 +22,6 @@ def changeset_detail(request, pk, show_history=False):
         can_edit = False
         changeset = get_object_or_404(ChangeSet.qs_for_request(request), pk=pk)
 
-    ctx = group_changes(changeset, can_edit=can_edit, show_history=show_history)
-
     if request.method == 'POST':
         restore = request.POST.get('restore')
         if restore.isdigit():
@@ -34,6 +32,8 @@ def changeset_detail(request, pk, show_history=False):
                 change.restore(request.user if request.user.is_authenticated else None)
                 messages.success(request, _('Original state has been restored!'))
         return redirect(request.path)
+
+    ctx = group_changes(changeset, can_edit=can_edit, show_history=show_history)
 
     if show_history:
         return render(request, 'editor/changeset_history.html', ctx)
