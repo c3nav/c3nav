@@ -163,7 +163,7 @@ def group_changes(changeset, can_edit=False, show_history=False):
                         'order': (4, tuple(code for code, title in settings.LANGUAGES).index(lang)),
                     })
                 else:
-                    field = obj.__class__._meta.get_field(change.field_name)
+                    field = change.field
                     field_title = field.verbose_name
                     field_value = field.to_python(json.loads(change.field_value))
                     if field.related_model is not None:
@@ -200,7 +200,7 @@ def group_changes(changeset, can_edit=False, show_history=False):
                     lang = change.field_name[6:]
                     field_title = _('Title (%(lang)s)') % {'lang': dict(settings.LANGUAGES).get(lang, lang)}
                 else:
-                    field = obj.__class__._meta.get_field(change.field_name)
+                    field = change.field
                     field_title = field.verbose_name
                     model = getattr(field, 'related_model', None)
                     if model is not None:

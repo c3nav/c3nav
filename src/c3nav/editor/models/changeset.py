@@ -229,10 +229,9 @@ class ChangeSet(models.Model):
                         object_pks.setdefault(LocationSlug, set()).add(json.loads(change.field_value))
                         continue
                 elif not change.field_name.startswith('title_'):
-                    field = change.model_class._meta.get_field(change.field_name)
-                    model = getattr(field, 'related_model', None)
+                    model = getattr(change.field, 'related_model', None)
             if change.action in ('m2m_add', 'm2m_remove'):
-                model = change.model_class._meta.get_field(change.field_name).related_model
+                model = change.field.related_model
             if model is not None:
                 object_pks.setdefault(model, set()).add(json.loads(change.field_value))
 

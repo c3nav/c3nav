@@ -127,6 +127,10 @@ class Change(models.Model):
         self.created_object = None
         self._set_object = value
 
+    @property
+    def field(self):
+        return self.model_class._meta.get_field(self.field_name)
+
     def save(self, *args, **kwargs):
         if self.pk is not None:
             raise TypeError('change objects can not be edited (use update to set discarded_by)')
