@@ -166,9 +166,8 @@ def group_changes(changeset, can_edit=False, show_history=False):
                     field = obj.__class__._meta.get_field(change.field_name)
                     field_title = field.verbose_name
                     field_value = field.to_python(json.loads(change.field_value))
-                    model = getattr(field, 'related_model', None)
-                    if model is not None:
-                        field_value = objects[model][field_value].title
+                    if field.related_model is not None:
+                        field_value = objects[field.related_model][field_value].title
                     order = 5
                     if change.field_name == 'slug':
                         order = 1

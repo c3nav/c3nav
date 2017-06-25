@@ -6,7 +6,6 @@ from django.conf import settings
 from django.core.serializers.json import DjangoJSONEncoder
 from django.db import models, transaction
 from django.db.models import Q
-from django.db.models.fields.related_descriptors import ForwardManyToOneDescriptor, ManyToManyDescriptor
 from django.urls import reverse
 from django.utils.translation import ugettext_lazy as _
 from django.utils.translation import ungettext_lazy
@@ -305,21 +304,20 @@ class ChangeSet(models.Model):
                     obj.titles[name[6:]] = value
                 continue
 
-            class_value = getattr(model, name)
+            field = model._meta.get_field(name)
 
-            if isinstance(class_value, ManyToManyDescriptor):
+            if field.many_to_many:
                 continue
 
-            if isinstance(class_value, ForwardManyToOneDescriptor):
-                field = class_value.field
+            if field.many_to_one:
                 setattr(obj, field.attname, value)
                 if is_created_pk(value):
-                    setattr(obj, class_value.cache_name, self.get_created_object(field.related_model, value))
+                    setattr(obj, field.get_cache_name(), self.get_created_object(field.related_model, value))
                 elif get_foreign_objects:
-                    setattr(obj, class_value.cache_name, self.wrap(field.related_model.objects.get(pk=value)))
+                    setattr(obj, field.get_cache_name(), self.wrap(field.related_model.objects.get(pk=value)))
                 continue
 
-            setattr(obj, name, model._meta.get_field(name).to_python(value))
+            setattr(obj, name, field.to_python(value))
         return self.wrap(obj, author=author)
 
     def get_created_pks(self, model) -> set:
