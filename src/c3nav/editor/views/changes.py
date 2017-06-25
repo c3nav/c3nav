@@ -29,6 +29,8 @@ def changeset_detail(request, pk, show_history=False):
         if restore.isdigit():
             change = changeset.changes.filter(pk=restore).first()
             if change is not None and change.can_restore:
+                if request.POST.get('restore_confirm') != '1':
+                    return render(request, 'editor/changeset_restore_confirm.html', {'pk': change.pk})
                 change.restore(request.user if request.user.is_authenticated else None)
                 messages.success(request, _('Original state has been restored!'))
         return redirect(request.path)

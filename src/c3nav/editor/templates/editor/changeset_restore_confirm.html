@@ -1,0 +1,19 @@
+{% load bootstrap3 %}
+{% load i18n %}
+
+{% include 'editor/fragment_modal_close.html' %}
+<h3>{% trans 'Restore original state' %}</h3>
+<form action="{{ request.path }}" method="post">
+    {% csrf_token %}
+    <p>{% trans 'Do you really want to restore the original state before this change?' %}</p>
+    <input type="hidden" name="restore" value="{{ pk }}">
+    {% buttons %}
+    <button class="invisiblesubmit" type="submit"></button>
+    <a class="btn btn-default" href="{{ request.path }}">
+        {% trans 'Cancel' %}
+    </a>
+    <button type="submit" name="restore_confirm" value="1" class="btn btn-primary pull-right">
+        {% trans 'Restore' %}
+    </button>
+    {% endbuttons %}
+</form>
