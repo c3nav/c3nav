@@ -11,7 +11,7 @@ from django.utils.translation import ugettext_lazy as _
 from django.utils.translation import ungettext_lazy
 
 from c3nav.editor.models.change import Change
-from c3nav.editor.utils import is_created_pk
+from c3nav.editor.utils import get_current_obj, get_field_value, is_created_pk
 from c3nav.editor.wrappers import ModelInstanceWrapper, ModelWrapper
 from c3nav.mapdata.models import LocationSlug
 from c3nav.mapdata.models.locations import LocationRedirect
@@ -381,10 +381,8 @@ class ChangeSet(models.Model):
         model = type(obj)
         field = model._meta.get_field('titles' if name.startswith('title_') else name)
         with transaction.atomic():
-            if is_created_pk(obj.pk):
-                current_obj = model()
-            else:
-                current_obj = model.objects.only(field.name).get(pk=obj.pk)
+            current_obj = get_current_obj(model, obj.pk)
+            current_value = get_field_value(current_obj, field)
             try:
                 current_value = getattr(current_obj, field.attname)
             except AttributeError:
