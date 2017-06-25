@@ -31,24 +31,21 @@ def changeset_detail(request, pk, show_history=False):
                     return render(request, 'editor/changeset_restore_confirm.html', {'pk': change.pk})
                 change.restore(request.user if request.user.is_authenticated else None)
                 messages.success(request, _('Original state has been restored!'))
-        return redirect(request.path)
+
+        if not show_history and request.POST.get('delete') == '1':
+            if request.POST.get('delete_confirm') == '1':
+                changeset.delete()
+                return redirect(reverse('editor.index'))
+
+            return render(request, 'editor/delete.html', {
+                'model_title': ChangeSet._meta.verbose_name,
+                'obj_title': changeset.title,
+            })
 
     ctx = group_changes(changeset, can_edit=can_edit, show_history=show_history)
 
     if show_history:
         return render(request, 'editor/changeset_history.html', ctx)
-
-    if request.method == 'POST':
-        if request.POST.get('delete') == '1':
-            if request.POST.get('delete_confirm') == '1':
-                changeset.delete()
-                return redirect(reverse('editor.index'))
-
-            ctx.update({
-                'model_title': ChangeSet._meta.verbose_name,
-                'obj_title': changeset.title,
-            })
-            return render(request, 'editor/delete.html', ctx)
 
     return render(request, 'editor/changeset.html', ctx)
 
