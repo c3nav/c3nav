@@ -195,6 +195,9 @@ class Change(models.Model):
         if self.action == 'delete':
             return not is_created_pk(self.obj_pk)
 
+        if self.action == 'create':
+            return False
+
         try:
             obj = get_current_obj(self.model_class, self.obj_pk)
             field = self.field
