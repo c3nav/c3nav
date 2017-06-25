@@ -128,7 +128,7 @@ def group_changes(changeset, can_edit=False, show_history=False):
             change_data.update({
                 'created': _('created at %(datetime)s') % {'datetime': date_format(change.created, 'DATETIME_FORMAT')},
             })
-        if not show_history or change.action == 'delete':
+        if not show_history or change.action == 'delete' and can_edit:
             change_data.update({
                 'can_restore': change.can_restore,
             })
