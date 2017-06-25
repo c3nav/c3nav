@@ -379,16 +379,9 @@ class ChangeSet(models.Model):
         if isinstance(obj, ModelInstanceWrapper):
             obj = obj._obj
         model = type(obj)
-        field = model._meta.get_field('titles' if name.startswith('title_') else name)
         with transaction.atomic():
             current_obj = get_current_obj(model, obj.pk)
-            current_value = get_field_value(current_obj, field)
-            try:
-                current_value = getattr(current_obj, field.attname)
-            except AttributeError:
-                current_value = field.to_prep_value(getattr(current_obj, field.name))
-            if name.startswith('title_'):
-                current_value = current_value.get(name[6:], '')
+            current_value = get_field_value(current_obj, name)
 
             if current_value != value:
                 change = self._add_value('update', obj, name, value, author)
