@@ -172,6 +172,11 @@ form button.invisiblesubmit {
     margin-top: -6px;
     margin-bottom: -2px;
     margin-right: -5px;
+    margin-left: 5px;
+}
+.change-group .glyphicon-share-alt {
+    transform: scale(-1, 1);
+    -webkit-transform: scale(-1, 1);
 }
 .change-group tr td:last-child>i {
     margin-right: -2px;

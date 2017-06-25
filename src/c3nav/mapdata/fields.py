@@ -49,7 +49,9 @@ class GeometryField(models.TextField):
         return clean_geometry(shape(json.loads(value)))
 
     def get_prep_value(self, value):
-        if self.geomtype == 'polygon' and not isinstance(value, Polygon):
+        if value == '':
+            return None
+        elif self.geomtype == 'polygon' and not isinstance(value, Polygon):
             raise TypeError(_('Expected Polygon instance, got %s instead.') % repr(value))
         elif self.geomtype == 'linestring' and not isinstance(value, LineString):
             raise TypeError(_('Expected LineString instance, got %s instead.') % repr(value))

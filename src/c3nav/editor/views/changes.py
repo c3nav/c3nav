@@ -129,6 +129,7 @@ def group_changes(changeset, can_edit=False, show_history=False):
         else:
             change_data.update({
                 'apply_problem': change.check_apply_problem(),
+                'has_no_effect': change.check_has_no_effect(),
                 'can_restore': change.can_restore,
             })
         changes.append(change_data)
