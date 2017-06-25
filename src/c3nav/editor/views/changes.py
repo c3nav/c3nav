@@ -24,7 +24,7 @@ def changeset_detail(request, pk, show_history=False):
 
     if request.method == 'POST':
         restore = request.POST.get('restore')
-        if restore.isdigit():
+        if restore and restore.isdigit():
             change = changeset.changes.filter(pk=restore).first()
             if change is not None and change.can_restore:
                 if request.POST.get('restore_confirm') != '1':
