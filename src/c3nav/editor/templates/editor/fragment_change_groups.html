@@ -30,13 +30,13 @@
                         {% if change.apply_problem %}
                             <i class="glyphicon glyphicon-alert text-danger" data-toggle="tooltip" data-placement="left" title="{{ change.apply_problem }}"></i>
                         {% elif change.has_no_effect %}
-                            <i class="glyphicon glyphicon-ok text-success" data-toggle="tooltip" data-placement="left" title="{% trans 'This change has no effect. You can delete it.' %}"></i>
+                            <i class="glyphicon glyphicon-ok text-success" data-toggle="tooltip" data-placement="left" title="{% trans 'This change has no effect. You can restore it.' %}"></i>
                         {% endif %}
                         {% if change.author and change.author != changeset.author %}
                             <i class="glyphicon glyphicon-user text-muted" data-toggle="tooltip" data-placement="left" title="{{ change.author.username }}"></i>
                         {% endif %}
                         {% if change.can_restore %}
-                            <a class="btn btn-xs btn-default" data-toggle="tooltip" data-placement="left" title="{% trans 'Undo this change' %}">
+                            <a class="btn btn-xs btn-default" data-toggle="tooltip" data-placement="left" title="{% trans 'Restore original state' %}">
                                 <i class="glyphicon glyphicon-share-alt"></i>
                             </a>
                         {% endif %}
