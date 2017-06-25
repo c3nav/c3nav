@@ -4,7 +4,7 @@ from collections import OrderedDict
 from functools import reduce, wraps
 from itertools import chain
 
-from django.db import models
+from django.db import models, transaction
 from django.db.models import Field, FieldDoesNotExist, Manager, ManyToManyRel, Prefetch, Q
 from django.utils.functional import cached_property
 
@@ -276,31 +276,32 @@ class ModelInstanceWrapper(BaseWrapper):
             author = self._author
         if self.pk is None:
             self._changeset.add_create(self, author=author)
-        for field, initial_value in self._initial_values.items():
-            if field.many_to_one:
-                try:
-                    new_value = getattr(self._obj, field.get_cache_name())
-                except AttributeError:
-                    new_value = getattr(self._obj, field.attname)
-                else:
-                    new_value = None if new_value is None else new_value.pk
+        with transaction.atomic():
+            for field, initial_value in self._initial_values.items():
+                if field.many_to_one:
+                    try:
+                        new_value = getattr(self._obj, field.get_cache_name())
+                    except AttributeError:
+                        new_value = getattr(self._obj, field.attname)
+                    else:
+                        new_value = None if new_value is None else new_value.pk
 
-                if new_value != initial_value:
-                    self._changeset.add_update(self, name=field.name, value=new_value, author=author)
-                continue
+                    if new_value != initial_value:
+                        self._changeset.add_update(self, name=field.name, value=new_value, author=author)
+                    continue
 
-            new_value = getattr(self._obj, field.name)
-            if new_value == initial_value:
-                continue
+                new_value = getattr(self._obj, field.name)
+                if new_value == initial_value:
+                    continue
 
-            if field.name == 'titles':
-                for lang in (set(initial_value.keys()) | set(new_value.keys())):
-                    new_title = new_value.get(lang, '')
-                    if new_title != initial_value.get(lang, ''):
-                        self._changeset.add_update(self, name='title_'+lang, value=new_title, author=author)
-                continue
+                if field.name == 'titles':
+                    for lang in (set(initial_value.keys()) | set(new_value.keys())):
+                        new_title = new_value.get(lang, '')
+                        if new_title != initial_value.get(lang, ''):
+                            self._changeset.add_update(self, name='title_'+lang, value=new_title, author=author)
+                    continue
 
-            self._changeset.add_update(self, name=field.name, value=field.get_prep_value(new_value), author=author)
+                self._changeset.add_update(self, name=field.name, value=field.get_prep_value(new_value), author=author)
 
     def delete(self, author=None):
         if author is None:
