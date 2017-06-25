@@ -381,7 +381,10 @@ class ChangeSet(models.Model):
         model = type(obj)
         field = model._meta.get_field('titles' if name.startswith('title_') else name)
         with transaction.atomic():
-            current_obj = model.objects.only(field.name).get(pk=obj.pk)
+            if is_created_pk(obj.pk):
+                current_obj = model()
+            else:
+                current_obj = model.objects.only(field.name).get(pk=obj.pk)
             try:
                 current_value = getattr(current_obj, field.attname)
             except AttributeError:
