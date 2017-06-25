@@ -172,9 +172,6 @@ form button.invisiblesubmit {
     margin-top: -6px;
     margin-bottom: -2px;
     margin-left: 5px;
-    margin-right: -3px;
-}
-.change-group tr td:last-child .btn:last-child {
     margin-right: -5px;
 }
 .change-group .glyphicon-share-alt {
@@ -185,7 +182,8 @@ form button.invisiblesubmit {
     margin-right: -2px;
 }
 .change-group tr td:last-child>i {
-    margin-left: 5px;
+    margin-left: 7px;
+    margin-right: -2px;
 }
 
 /* Styles inside leaflet */
