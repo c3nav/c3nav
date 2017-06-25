@@ -5,8 +5,7 @@ from functools import reduce, wraps
 from itertools import chain
 
 from django.db import models
-from django.db.models import Field, Manager, ManyToManyRel, Prefetch, Q
-from django.db.models.fields.related_descriptors import ForwardManyToOneDescriptor
+from django.db.models import Field, FieldDoesNotExist, Manager, ManyToManyRel, Prefetch, Q
 from django.utils.functional import cached_property
 
 from c3nav.editor.forms import create_editor_form
@@ -218,13 +217,12 @@ class ModelInstanceWrapper(BaseWrapper):
             elif (field.many_to_one or field.one_to_one) and not field.primary_key:
                 if field.name in updates:
                     value_pk = updates[field.name]
-                    class_value = getattr(type(self._obj), field.name, None)
                     if is_created_pk(value_pk):
                         obj = self._wrap_model(field.model).get(pk=value_pk)
-                        setattr(self._obj, class_value.cache_name, obj)
+                        setattr(self._obj, field.get_cache_name(), obj)
                         setattr(self._obj, field.attname, obj.pk)
                     else:
-                        delattr(self._obj, class_value.cache_name)
+                        delattr(self._obj, field.get_cache_name())
                         setattr(self._obj, field.attname, value_pk)
                 self._initial_values[field] = getattr(self._obj, field.attname)
 
@@ -243,15 +241,19 @@ class ModelInstanceWrapper(BaseWrapper):
         """
         if name in self._not_wrapped:
             return super().__setattr__(name, value)
-        class_value = getattr(type(self._obj), name, None)
-        if isinstance(class_value, ForwardManyToOneDescriptor) and value is not None:
-            if isinstance(value, models.Model):
-                value = self._wrap_instance(value)
-            if not isinstance(value, ModelInstanceWrapper):
-                raise ValueError('value has to be None or ModelInstanceWrapper')
-            setattr(self._obj, name, value._obj)
-            setattr(self._obj, class_value.cache_name, value)
-            return
+        try:
+            field = self._obj._meta.get_field(name)
+        except FieldDoesNotExist:
+            pass
+        else:
+            if field.many_to_one and value is not None:
+                if isinstance(value, models.Model):
+                    value = self._wrap_instance(value)
+                if not isinstance(value, ModelInstanceWrapper):
+                    raise ValueError('value has to be None or ModelInstanceWrapper')
+                setattr(self._obj, name, value._obj)
+                setattr(self._obj, field.get_cache_name(), value)
+                return
         super().__setattr__(name, value)
 
     def __repr__(self):
@@ -275,10 +277,9 @@ class ModelInstanceWrapper(BaseWrapper):
         if self.pk is None:
             self._changeset.add_create(self, author=author)
         for field, initial_value in self._initial_values.items():
-            class_value = getattr(type(self._obj), field.name, None)
-            if isinstance(class_value, ForwardManyToOneDescriptor):
+            if field.many_to_one:
                 try:
-                    new_value = getattr(self._obj, class_value.cache_name)
+                    new_value = getattr(self._obj, field.get_cache_name())
                 except AttributeError:
                     new_value = getattr(self._obj, field.attname)
                 else:
