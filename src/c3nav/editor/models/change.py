@@ -192,9 +192,6 @@ class Change(models.Model):
         if self.discarded_by_id is not None:
             return False
 
-        if is_created_pk(self.obj_pk):
-            return False
-
         if self.action == 'delete':
             return not is_created_pk(self.obj_pk)
 
