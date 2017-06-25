@@ -6,8 +6,7 @@ from itertools import chain
 
 from django.db import models
 from django.db.models import Field, Manager, ManyToManyRel, Prefetch, Q
-from django.db.models.fields.related_descriptors import ForwardManyToOneDescriptor, ManyToManyDescriptor
-from django.db.models.query_utils import DeferredAttribute
+from django.db.models.fields.related_descriptors import ForwardManyToOneDescriptor
 from django.utils.functional import cached_property
 
 from c3nav.editor.forms import create_editor_form
@@ -465,16 +464,17 @@ class BaseQueryWrapper(BaseWrapper):
 
         segments = filter_name.split('__')
         field_name = segments.pop(0)
-        try:
-            class_value = getattr(self._obj.model, field_name)
-        except AttributeError:
-            raise ValueError('%s has no attribute %s' % (self._obj.model, field_name))
+        model = self._obj.model
+        if field_name == 'pk':
+            field = model._meta.pk
+        else:
+            field = model._meta.get_field(field_name)
 
         # create a base q that we'll modify later
         q = Q(**{filter_name: filter_value})
 
         # check if the filter begins with pk or the name of the primary key
-        if field_name == 'pk' or field_name == self._obj.model._meta.pk.name:
+        if field_name == 'pk' or field_name == model._meta.pk.name:
             if not segments:
                 # if the check is just 'pk' or the name or the name of the primary key, return the mathing object
                 if is_created_pk(filter_value):
@@ -486,7 +486,7 @@ class BaseQueryWrapper(BaseWrapper):
                         set(pk for pk in filter_value if is_created_pk(pk)))
 
         # check if we are filtering by a foreign key field
-        if isinstance(class_value, ForwardManyToOneDescriptor):
+        if field.many_to_one:
             if not segments:
                 # turn 'foreign_obj' into 'foreign_obj__pk' for later
                 filter_name = field_name + '__pk'
@@ -504,7 +504,7 @@ class BaseQueryWrapper(BaseWrapper):
                 segments = ['in']
                 q = Q(**{filter_name: filter_value})
 
-            if filter_type == class_value.field.model._meta.pk.name:
+            if filter_type == field.related_model._meta.pk.name:
                 # turn <name of the primary key field> into pk for later
                 filter_type = 'pk'
 
@@ -532,7 +532,7 @@ class BaseQueryWrapper(BaseWrapper):
             raise NotImplementedError
 
         # check if we are filtering by a many to many field
-        if isinstance(class_value, ManyToManyDescriptor):
+        if field.many_to_many:
             if not segments:
                 # turn 'm2m' into 'm2m__pk' for later
                 filter_name = field_name + '__pk'
@@ -550,27 +550,27 @@ class BaseQueryWrapper(BaseWrapper):
                 segments = ['in']
                 q = Q(**{filter_name: filter_value})
 
-            if filter_type == class_value.field.model._meta.pk.name:
+            if filter_type == field.related_model._meta.pk.name:
                 # turn <name of the primary key field> into pk for later
                 filter_type = 'pk'
 
             if filter_type == 'pk' and segments == ['in']:
                 # m2m__pk__in
-                if not class_value.reverse:
+                if field.concrete:
                     # we don't do this in reverse
                     raise NotImplementedError
 
                 # so... e.g. we want to get all groups that belong to one of the given spaces.
                 # field_name would be "spaces"
-                model = class_value.field.model  # space
+                rel_model = field.related_model  # space
+                rel_name = field.field.name  # groups
                 filter_value = set(filter_value)  # space pks
                 filter_value_existing = set(pk for pk in filter_value if not is_created_pk(pk))
-                rel_name = class_value.field.name
 
                 # get spaces that we are interested about that had groups added or removed
-                m2m_added = {pk: val[rel_name] for pk, val in self._changeset.m2m_added.get(model, {}).items()
+                m2m_added = {pk: val[rel_name] for pk, val in self._changeset.m2m_added.get(rel_model, {}).items()
                              if pk in filter_value and rel_name in val}
-                m2m_removed = {pk: val[rel_name] for pk, val in self._changeset.m2m_removed.get(model, {}).items()
+                m2m_removed = {pk: val[rel_name] for pk, val in self._changeset.m2m_removed.get(rel_model, {}).items()
                                if pk in filter_value and rel_name in val}  # can only be existing spaces
 
                 # directly lookup groups for spaces that had no groups removed
@@ -597,11 +597,11 @@ class BaseQueryWrapper(BaseWrapper):
 
             if filter_type == 'pk':
                 # m2m__pk
-                if class_value.reverse:
-                    model = class_value.field.model
+                if not field.concrete:
+                    rel_model = field.related_model
 
                     def get_changeset_m2m(items):
-                        return items.get(model, {}).get(filter_value, {}).get(class_value.field.name, ())
+                        return items.get(rel_model, {}).get(filter_value, {}).get(field.field.name, ())
 
                     remove_pks = get_changeset_m2m(self._changeset.m2m_removed)
                     add_pks = get_changeset_m2m(self._changeset.m2m_added)
@@ -621,7 +621,7 @@ class BaseQueryWrapper(BaseWrapper):
             raise NotImplementedError
 
         # check if field is a deffered attribute, e.g. a CharField
-        if isinstance(class_value, DeferredAttribute):
+        if not field.is_relation:
             if not segments:
                 # field=
                 return self._filter_values(q, field_name, lambda val: val == filter_value)
@@ -642,7 +642,7 @@ class BaseQueryWrapper(BaseWrapper):
 
             raise NotImplementedError
 
-        raise NotImplementedError('cannot filter %s by %s (%s)' % (self._obj.model, filter_name, class_value))
+        raise NotImplementedError('cannot filter %s by %s (%s)' % (model, filter_name, field))
 
     def _filter_q(self, q):
         """
