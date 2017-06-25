@@ -6,10 +6,10 @@ from django.apps import apps
 from django.conf import settings
 from django.core.exceptions import ObjectDoesNotExist, ValidationError
 from django.db import models
-from django.db.models import Q, FieldDoesNotExist
+from django.db.models import FieldDoesNotExist, Q
 from django.utils.translation import ugettext_lazy as _
 
-from c3nav.editor.utils import is_created_pk, get_current_obj
+from c3nav.editor.utils import get_current_obj, is_created_pk
 from c3nav.editor.wrappers import ModelInstanceWrapper
 
 
@@ -213,6 +213,47 @@ class Change(models.Model):
             return False
 
         return True
+
+    def check_has_no_effect(self):
+        if self.discarded_by_id is not None or self.action in ('create', 'restore'):
+            return False
+
+        if self.action == 'delete':
+            if is_created_pk(self.obj_pk):
+                return False
+
+        try:
+            current_obj = get_current_obj(self.model_class, self.obj_pk)
+        except (LookupError, ObjectDoesNotExist):
+            return not is_created_pk(self.obj_pk)
+
+        if self.action == 'delete':
+            return False
+
+        if self.field_name.startswith('title_'):
+            return self.field_value == current_obj.titles.get(self.field_name[6:], '')
+
+        try:
+            field = self.field
+        except FieldDoesNotExist:
+            return True
+
+        if self.action == 'update':
+            if field.many_to_one:
+                return self.field_value == getattr(current_obj, field.attname)
+            if field.is_relation:
+                raise NotImplementedError
+            return self.field_value == field.get_prep_value(getattr(current_obj, field.name))
+
+        if self.action == 'm2m_add':
+            if is_created_pk(self.field_value):
+                return False
+            return getattr(current_obj, field.name).filter(pk=self.field_value).exists()
+
+        if self.action == 'm2m_remove':
+            if is_created_pk(self.field_value):
+                return True
+            return not getattr(current_obj, field.name).filter(pk=self.field_value).exists()
 
     def save(self, *args, **kwargs):
         if self.pk is not None:
