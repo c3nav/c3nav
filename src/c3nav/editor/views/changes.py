@@ -14,14 +14,17 @@ from c3nav.mapdata.models.locations import LocationRedirect, LocationSlug
 
 
 @sidebar_view
-def changeset_detail(request, pk):
+def changeset_detail(request, pk, show_history=False):
     can_edit = True
     changeset = request.changeset
     if str(pk) != str(request.changeset.pk):
         can_edit = False
         changeset = get_object_or_404(ChangeSet.qs_for_request(request), pk=pk)
 
-    ctx = group_changes(changeset, can_edit=can_edit, show_history=False)
+    ctx = group_changes(changeset, can_edit=can_edit, show_history=show_history)
+
+    if show_history:
+        return render(request, 'editor/changeset_history.html', ctx)
 
     if request.method == 'POST':
         if request.POST.get('delete') == '1':
@@ -36,19 +39,6 @@ def changeset_detail(request, pk):
             return render(request, 'editor/delete.html', ctx)
 
     return render(request, 'editor/changeset.html', ctx)
-
-
-@sidebar_view
-def changeset_history(request, pk):
-    can_edit = True
-    changeset = request.changeset
-    if str(pk) != str(request.changeset.pk):
-        can_edit = False
-        changeset = get_object_or_404(ChangeSet.qs_for_request(request), pk=pk)
-
-    ctx = group_changes(changeset, can_edit=can_edit, show_history=True)
-
-    return render(request, 'editor/changeset_history.html', ctx)
 
 
 def group_changes(changeset, can_edit=False, show_history=False):
