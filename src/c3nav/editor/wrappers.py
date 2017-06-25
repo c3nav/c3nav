@@ -481,6 +481,8 @@ class BaseQueryWrapper(BaseWrapper):
                 # if the check is just 'pk' or the name or the name of the primary key, return the mathing object
                 if is_created_pk(filter_value):
                     return Q(pk__in=()), set([filter_value])
+                if int(filter_value) in self._changeset.deleted_existing[model]:
+                    return Q(pk__in=()), set()
                 return q, set()
             elif segments == ['in']:
                 # if the check is 'pk__in' it's nearly as easy
@@ -512,7 +514,11 @@ class BaseQueryWrapper(BaseWrapper):
 
             if filter_type == 'pk' and segments == ['in']:
                 # foreign_obj__pk__in
-                q = Q(**{field_name+'__pk__in': tuple(pk for pk in filter_value if not is_created_pk(pk))})
+                filter_value = tuple(pk for pk in filter_value
+                                     if is_created_pk(pk) or
+                                     int(pk) not in self._changeset.deleted_existing.get(field.related_model, ()))
+                existing_pks = tuple(pk for pk in filter_value if not is_created_pk(pk))
+                q = Q(**{field_name+'__pk__in': existing_pks})
                 filter_value = tuple(str(pk) for pk in filter_value)
                 return self._filter_values(q, field_name, lambda val: str(val) in filter_value)
 
@@ -524,6 +530,8 @@ class BaseQueryWrapper(BaseWrapper):
                 # foreign_obj__pk
                 if is_created_pk(filter_value):
                     q = Q(pk__in=())
+                elif int(filter_value) in self._changeset.deleted_existing.get(field.related_model, ()):
+                    return Q(pk__in=()), set()
                 filter_value = str(filter_value)
                 return self._filter_values(q, field_name, lambda val: str(val) == filter_value)
 
@@ -569,6 +577,11 @@ class BaseQueryWrapper(BaseWrapper):
                 filter_value = set(filter_value)  # space pks
                 filter_value_existing = set(pk for pk in filter_value if not is_created_pk(pk))
 
+                # lets removeall spaces that have been deleted
+                filter_value = tuple(pk for pk in filter_value
+                                     if is_created_pk(pk) or
+                                     int(pk) not in self._changeset.deleted_existing.get(rel_model, ()))
+
                 # get spaces that we are interested about that had groups added or removed
                 m2m_added = {pk: val[rel_name] for pk, val in self._changeset.m2m_added.get(rel_model, {}).items()
                              if pk in filter_value and rel_name in val}
@@ -612,6 +625,9 @@ class BaseQueryWrapper(BaseWrapper):
                         pks = add_pks
                         return (Q(pk__in=(pk for pk in pks if not is_created_pk(pk))),
                                 set(pk for pk in pks if is_created_pk(pk)))
+
+                    if int(filter_value) not in self._changeset.deleted_existing.get(rel_model, ()):
+                        return (Q(pk__in=()), set())
 
                     return (((q & ~Q(pk__in=(pk for pk in remove_pks if not is_created_pk(pk)))) |
                              Q(pk__in=(pk for pk in add_pks if not is_created_pk(pk)))),
