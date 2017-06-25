@@ -34,7 +34,7 @@ class EditorViewSet(ViewSet):
 
         for building in buildings:
             building.original_geometry = building.geometry
-        for obj in chain(buildings, spaces.values()):
+        for obj in buildings:
             obj.geometry = obj.geometry.difference(holes_geom)
 
         results = []
