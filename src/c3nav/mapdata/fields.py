@@ -26,13 +26,13 @@ def validate_geometry(geometry: BaseGeometry):
 class GeometryField(models.TextField):
     default_validators = [validate_geometry]
 
-    def __init__(self, geomtype=None, *args, **kwargs):
+    def __init__(self, geomtype=None, default=None):
         if geomtype == 'polyline':
             geomtype = 'linestring'
         if geomtype not in (None, 'polygon', 'linestring', 'point'):
             raise ValueError(_('GeometryField.geomtype has to be None, "polygon", "linestring", "point"'))
         self.geomtype = geomtype
-        super().__init__(*args, **kwargs)
+        super().__init__(default=default)
 
     def deconstruct(self):
         name, path, args, kwargs = super().deconstruct()
@@ -46,10 +46,12 @@ class GeometryField(models.TextField):
         return shape(json.loads(value))
 
     def to_python(self, value):
+        if value is None:
+            return None
         return clean_geometry(shape(json.loads(value)))
 
     def get_prep_value(self, value):
-        if value == '':
+        if value is None:
             return None
         elif self.geomtype == 'polygon' and not isinstance(value, Polygon):
             raise TypeError(_('Expected Polygon instance, got %s instead.') % repr(value))
