@@ -3,6 +3,7 @@ from itertools import chain
 
 from django.contrib.contenttypes.models import ContentType
 from django.db import models
+from django.db.models import Field
 from django.utils.translation import ugettext_lazy as _
 
 from c3nav.editor.utils import is_created_pk
@@ -76,28 +77,6 @@ class ChangedObject(models.Model):
         if hasattr(model._meta.pk, 'related_model'):
             setattr(obj, model._meta.pk.related_model._meta.pk.attname, pk)
         obj._state.adding = False
-
-        for name, value in self.updated_fields.items():
-            if name.startswith('title_'):
-                if value:
-                    obj.titles[name[6:]] = value
-                continue
-
-            field = model._meta.get_field(name)
-
-            if field.many_to_many:
-                continue
-
-            if field.many_to_one:
-                setattr(obj, field.attname, value)
-                if is_created_pk(value):
-                    setattr(obj, field.get_cache_name(), self.changeset.get_created_object(field.related_model, value))
-                elif get_foreign_objects:
-                    related_obj = self.changeset.wrap_model(field.related_model).objects.get(pk=value)
-                    setattr(obj, field.get_cache_name(), related_obj)
-                continue
-
-            setattr(obj, name, field.to_python(value))
         return self.changeset.wrap_instance(obj)
 
     def add_relevant_object_pks(self, object_pks):
@@ -141,17 +120,105 @@ class ChangedObject(models.Model):
             self.changeset.m2m_added.get(model, {}).pop(pk, None)
             self.changeset.m2m_removed.get(model, {}).pop(pk, None)
 
+    def apply_to_instance(self, instance: ModelInstanceWrapper):
+        for name, value in self.updated_fields.items():
+            if name.startswith('title_'):
+                if not value:
+                    instance.titles.pop(name[6:], None)
+                else:
+                    instance.titles[name[6:]] = value
+                continue
+
+            field = instance._meta.get_field(name)
+            if not field.is_relation:
+                setattr(instance, field.name, field.to_python(value))
+            elif field.many_to_one or field.one_to_one:
+                if is_created_pk(value):
+                    obj = self.changeset.get_created_object(field.related_model, value)
+                    setattr(instance, field.get_cache_name(), obj)
+                else:
+                    delattr(instance, field.get_cache_name())
+                setattr(instance, field.attname, value)
+            else:
+                raise NotImplementedError
+
+    def clean_updated_fields(self):
+        if self.is_created:
+            current_obj = self.model_class()
+        else:
+            current_obj = self.model_class.objects.get(pk=self.existing_object_pk)
+
+        delete_fields = set()
+        for name, new_value in self.updated_fields.items():
+            if name.startswith('title_'):
+                current_value = current_obj.titles.get(name[6:], '')
+            else:
+                field = self.model_class._meta.get_field(name)
+
+                if not field.is_relation:
+                    current_value = field.get_prep_value(getattr(current_obj, field.name))
+                elif field.many_to_one or field.one_to_one:
+                    current_value = getattr(current_obj, field.attname)
+                else:
+                    raise NotImplementedError
+
+            if current_value == new_value:
+                delete_fields.add(name)
+
+        self.updated_fields = {name: value for name, value in self.updated_fields.items() if name not in delete_fields}
+        return delete_fields
+
+    def save_instance(self, instance):
+        self.updated_fields = {}
+        for field in self.model_class._meta.get_fields():
+            if not isinstance(field, Field) or field.primary_key:
+                continue
+
+            if not field.is_relation:
+                value = getattr(instance, field.name)
+                if field.name == 'titles':
+                    for lang, title in value.items():
+                        self.updated_fields['title_'+lang] = title
+                else:
+                    self.updated_fields[field.name] = field.get_prep_value(value)
+            elif field.many_to_one or field.one_to_one:
+                try:
+                    value = getattr(instance, field.get_cache_name())
+                except AttributeError:
+                    value = getattr(instance, field.attname)
+                else:
+                    value = None if value is None else value.pk
+                self.updated_fields[field.name] = value
+            else:
+                raise NotImplementedError
+
+        self.clean_updated_fields()
+        self.save()
+        if instance.pk is None and self.pk is not None:
+            instance.pk = self.obj_pk
+
+    def mark_deleted(self):
+        self.deleted = True
+        self.save()
+
+    @property
+    def does_something(self):
+        return (self.updated_fields or self._m2m_added_cache or self._m2m_removed_cache or self.is_created or
+                (not self.is_created and self.deleted))
+
     def save(self, *args, **kwargs):
-        self.m2m_added = {name: tuple(values) for name, values in self._m2m_added_cache}
-        self.m2m_removed = {name: tuple(values) for name, values in self._m2m_added_cache}
         if self.changeset.proposed is not None or self.changeset.applied is not None:
             raise TypeError('can not add change object to uneditable changeset.')
+        if not self.does_something:
+            if self.pk is not None:
+                self.delete()
+            return False
+        self.m2m_added = {name: tuple(values) for name, values in self._m2m_added_cache}
+        self.m2m_removed = {name: tuple(values) for name, values in self._m2m_removed_cache}
         super().save(*args, **kwargs)
         if not self.changeset.fill_changes_cache():
             self.update_changeset_cache()
-
-    def delete(self, *args, **kwargs):
-        raise TypeError('change objects can not be deleted directly.')
+        return True
 
     def __repr__(self):
         return '<ChangedObject #%s on ChangeSet #%s>' % (str(self.pk), str(self.changeset_id))

@@ -4,8 +4,8 @@ from collections import OrderedDict
 from functools import reduce, wraps
 from itertools import chain
 
-from django.db import models, transaction
-from django.db.models import Field, FieldDoesNotExist, Manager, ManyToManyRel, Prefetch, Q
+from django.db import models
+from django.db.models import FieldDoesNotExist, Manager, ManyToManyRel, Prefetch, Q
 from django.utils.functional import cached_property
 
 from c3nav.editor.forms import create_editor_form
@@ -21,7 +21,7 @@ class BaseWrapper:
     Callables will only be returned be getattr when they are inside _allowed_callables.
     Callables in _wrapped_callables will be returned wrapped, so that their self if the wrapping instance.
     """
-    _not_wrapped = ('_changeset', '_obj', '_created_pks', '_result', '_extra', '_result_cache', '_initial_values')
+    _not_wrapped = ('_changeset', '_obj', '_created_pks', '_result', '_extra', '_result_cache')
     _allowed_callables = ()
     _wrapped_callables = ()
 
@@ -184,44 +184,9 @@ class ModelInstanceWrapper(BaseWrapper):
     _wrapped_callables = ('validate_unique', '_get_pk_val')
 
     def __init__(self, *args, **kwargs):
-        """
-        Get initial values of this instance, so we know what changed on save.
-        Updates values according to cangeset if this is an existing object.
-        """
         super().__init__(*args, **kwargs)
-        updates = self._changeset.updated_existing.get(type(self._obj), {}).get(self._obj.pk, {})
-        self._initial_values = {}
-        for field in self._obj._meta.get_fields():
-            if not isinstance(field, Field):
-                continue
-            if field.name in self._obj.get_deferred_fields():
-                continue
-            if field.related_model is None:
-                if field.primary_key:
-                    continue
-
-                if field.name == 'titles':
-                    for name, value in updates.items():
-                        if not name.startswith('title_'):
-                            continue
-                        if not value:
-                            self._obj.titles.pop(name[6:], None)
-                        else:
-                            self._obj.titles[name[6:]] = value
-                elif field.name in updates:
-                    setattr(self._obj, field.name, field.to_python(updates[field.name]))
-                self._initial_values[field] = getattr(self._obj, field.name)
-            elif (field.many_to_one or field.one_to_one) and not field.primary_key:
-                if field.name in updates:
-                    value_pk = updates[field.name]
-                    if is_created_pk(value_pk):
-                        obj = self._wrap_model(field.model).get(pk=value_pk)
-                        setattr(self._obj, field.get_cache_name(), obj)
-                        setattr(self._obj, field.attname, obj.pk)
-                    else:
-                        delattr(self._obj, field.get_cache_name())
-                        setattr(self._obj, field.attname, value_pk)
-                self._initial_values[field] = getattr(self._obj, field.attname)
+        if self._obj.pk is not None:
+            self._changeset.get_changed_object(self._obj.__class__, self._obj.pk).apply_to_instance(self)
 
     def __eq__(self, other):
         if isinstance(other, BaseWrapper):
@@ -234,7 +199,7 @@ class ModelInstanceWrapper(BaseWrapper):
     def __setattr__(self, name, value):
         """
         We have to intercept here because RelatedFields won't accept
-        Wrapped model instances values, so we have to trick them.
+        wrapped model instances values, so we have to trick them.
         """
         if name in self._not_wrapped:
             return super().__setattr__(name, value)
@@ -269,37 +234,10 @@ class ModelInstanceWrapper(BaseWrapper):
         """
         Create changes in changeset instead of saving.
         """
-        if self.pk is None:
-            self._changeset.add_create(self)
-        with transaction.atomic():
-            for field, initial_value in self._initial_values.items():
-                if field.many_to_one:
-                    try:
-                        new_value = getattr(self._obj, field.get_cache_name())
-                    except AttributeError:
-                        new_value = getattr(self._obj, field.attname)
-                    else:
-                        new_value = None if new_value is None else new_value.pk
-
-                    if new_value != initial_value:
-                        self._changeset.add_update(self, name=field.name, value=new_value)
-                    continue
-
-                new_value = getattr(self._obj, field.name)
-                if new_value == initial_value:
-                    continue
-
-                if field.name == 'titles':
-                    for lang in (set(initial_value.keys()) | set(new_value.keys())):
-                        new_title = new_value.get(lang, '')
-                        if new_title != initial_value.get(lang, ''):
-                            self._changeset.add_update(self, name='title_'+lang, value=new_title)
-                    continue
-
-                self._changeset.add_update(self, name=field.name, value=field.get_prep_value(new_value))
+        self._changeset.get_changed_object(self._obj.__class__, self.pk).save_instance(self)
 
     def delete(self):
-        self._changeset.add_delete(self)
+        self._changeset.get_changed_object(self._obj.__class__, self.pk).mark_deleted()
 
 
 def get_queryset(func):

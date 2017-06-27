@@ -47,8 +47,7 @@ def changeset_detail(request, pk):
     changed_objects_data = []
 
     for model, changed_objects in changeset.changed_objects.items():
-        for changed_object in changed_objects:
-            pk = changed_object.obj_pk
+        for pk, changed_object in changed_objects.items():
             obj = objects[model][pk]
 
             obj_desc = _('%(model)s #%(id)s') % {'model': obj.__class__._meta.verbose_name, 'id': pk}
@@ -79,7 +78,7 @@ def changeset_detail(request, pk):
             }
             changed_objects_data.append(changed_object_data)
 
-            form_fields = changeset.wrap(type(obj)).EditorForm._meta.fields
+            form_fields = changeset.wrap_model(type(obj)).EditorForm._meta.fields
 
             if changed_object.is_created:
                 changes.append({
@@ -90,7 +89,7 @@ def changeset_detail(request, pk):
 
             update_changes = []
 
-            for name, value in changed_object.updated_fields:
+            for name, value in changed_object.updated_fields.items():
                 change_data = {
                     'icon': 'option-vertical',
                     'class': 'muted',

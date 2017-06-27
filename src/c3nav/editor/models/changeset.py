@@ -154,7 +154,7 @@ class ChangeSet(models.Model):
 
         # collect pks of relevant objects
         object_pks = {}
-        for change in chain(self.changed_objects.values()):
+        for change in chain(*(objects.values() for objects in self.changed_objects.values())):
             change.add_relevant_object_pks(object_pks)
 
         # retrieve relevant objects
@@ -188,7 +188,10 @@ class ChangeSet(models.Model):
         r = tuple((pk, values[name]) for pk, values in self.updated_existing.get(model, {}).items() if name in values)
         return r
 
-    def get_changed_object(self, model, pk=None):
+    def get_changed_object(self, model, pk=None) -> ChangedObject:
+        if pk is None:
+            return ChangedObject(changeset=self, model_class=model)
+
         self.fill_changes_cache()
 
         objects = tuple(obj for obj in ((submodel, self.changed_objects.get(submodel, {}).get(pk, None))
@@ -196,12 +199,12 @@ class ChangeSet(models.Model):
         if len(objects) > 1:
             raise model.MultipleObjectsReturned
         if objects:
-            return objects[0]
+            return objects[0][1]
 
         if is_created_pk(pk):
             raise model.DoesNotExist
 
-        return ChangedObject(changeset=self, model_class=model, existing_obj_pk=pk)
+        return ChangedObject(changeset=self, model_class=model, existing_object_pk=pk)
 
     def get_created_object(self, model, pk, get_foreign_objects=False, allow_deleted=False):
         """
