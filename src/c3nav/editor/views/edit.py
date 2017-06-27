@@ -19,19 +19,19 @@ def child_model(model, kwargs=None, parent=None):
 
 @sidebar_view
 def main_index(request):
-    Level = request.changeset.wrap('Level')
+    Level = request.changeset.wrap_model('Level')
     return render(request, 'editor/index.html', {
         'levels': Level.objects.filter(on_top_of__isnull=True),
         'child_models': [
-            child_model(request.changeset.wrap('LocationGroup')),
-            child_model(request.changeset.wrap('Source')),
+            child_model(request.changeset.wrap_model('LocationGroup')),
+            child_model(request.changeset.wrap_model('Source')),
         ],
     })
 
 
 @sidebar_view
 def level_detail(request, pk):
-    Level = request.changeset.wrap('Level')
+    Level = request.changeset.wrap_model('Level')
     level = get_object_or_404(Level.objects.select_related('on_top_of').prefetch_related('levels_on_top'), pk=pk)
 
     return render(request, 'editor/level.html', {
@@ -40,7 +40,7 @@ def level_detail(request, pk):
         'level_url': 'editor.levels.detail',
         'level_as_pk': True,
 
-        'child_models': [child_model(request.changeset.wrap(model_name), kwargs={'level': pk}, parent=level)
+        'child_models': [child_model(request.changeset.wrap_model(model_name), kwargs={'level': pk}, parent=level)
                          for model_name in ('Building', 'Space', 'Door')],
         'levels_on_top': level.levels_on_top.all(),
         'geometry_url': '/api/editor/geometries/?level='+str(level.primary_level_pk),
@@ -49,14 +49,14 @@ def level_detail(request, pk):
 
 @sidebar_view
 def space_detail(request, level, pk):
-    Space = request.changeset.wrap('Space')
+    Space = request.changeset.wrap_model('Space')
     space = get_object_or_404(Space.objects.select_related('level'), level__pk=level, pk=pk)
 
     return render(request, 'editor/space.html', {
         'level': space.level,
         'space': space,
 
-        'child_models': [child_model(request.changeset.wrap(model_name), kwargs={'space': pk}, parent=space)
+        'child_models': [child_model(request.changeset.wrap_model(model_name), kwargs={'space': pk}, parent=space)
                          for model_name in ('Hole', 'Area', 'Stair', 'Obstacle', 'LineObstacle', 'Column', 'Point')],
         'geometry_url': '/api/editor/geometries/?space='+pk,
     })
@@ -64,11 +64,11 @@ def space_detail(request, level, pk):
 
 @sidebar_view
 def edit(request, pk=None, model=None, level=None, space=None, on_top_of=None, explicit_edit=False):
-    model = request.changeset.wrap(model)
+    model = request.changeset.wrap_model(model)
     related_name = model._meta.default_related_name
 
-    Level = request.changeset.wrap('Level')
-    Space = request.changeset.wrap('Space')
+    Level = request.changeset.wrap_model('Level')
+    Space = request.changeset.wrap_model('Space')
 
     obj = None
     if pk is not None:
@@ -229,10 +229,10 @@ def list_objects(request, model=None, level=None, space=None, explicit_edit=Fals
     if not request.resolver_match.url_name.endswith('.list'):
         raise ValueError('url_name does not end with .list')
 
-    model = request.changeset.wrap(model)
+    model = request.changeset.wrap_model(model)
 
-    Level = request.changeset.wrap('Level')
-    Space = request.changeset.wrap('Space')
+    Level = request.changeset.wrap_model('Level')
+    Space = request.changeset.wrap_model('Space')
 
     ctx = {
         'path': request.path,

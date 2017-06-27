@@ -1,18 +1,19 @@
-import json
 from collections import OrderedDict
+from itertools import chain
+from operator import attrgetter
 
 from django.apps import apps
 from django.conf import settings
-from django.core.serializers.json import DjangoJSONEncoder
-from django.db import models, transaction
-from django.db.models import Q
+from django.contrib.contenttypes.models import ContentType
+from django.db import models
+from django.db.models import Max, Q
 from django.urls import reverse
 from django.utils.translation import ugettext_lazy as _
 from django.utils.translation import ungettext_lazy
 
-from c3nav.editor.models.change import Change
-from c3nav.editor.utils import get_current_obj, get_field_value, is_created_pk
-from c3nav.editor.wrappers import ModelInstanceWrapper, ModelWrapper
+from c3nav.editor.models.changedobject import ChangedObject
+from c3nav.editor.utils import is_created_pk
+from c3nav.editor.wrappers import ModelWrapper
 from c3nav.mapdata.models import LocationSlug
 from c3nav.mapdata.models.locations import LocationRedirect
 from c3nav.mapdata.utils.models import get_submodels
@@ -35,7 +36,8 @@ class ChangeSet(models.Model):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.default_author = None
-        self.changes_qs = None
+        self.changed_objects = None
+
         self.ever_created_objects = {}
         self.created_objects = {}
         self.updated_existing = {}
@@ -111,129 +113,53 @@ class ChangeSet(models.Model):
     """
     Wrap Objects
     """
-    def wrap(self, obj, author=None):
-        """
-        Wrap the given object in a changeset wrapper.
-        :param obj: A model, a model instance or the name of a model as a string.
-        :param author: Author to which ne changes will be assigned. This changesets default author (if set) if None.
-        """
-        self.parse_changes()
-        if author is None:
-            author = self.default_author
-        if author is not None and not author.is_authenticated:
-            author = None
-        if isinstance(obj, str):
-            return ModelWrapper(self, apps.get_model('mapdata', obj), author)
-        if isinstance(obj, type) and issubclass(obj, models.Model):
-            return ModelWrapper(self, obj, author)
-        if isinstance(obj, models.Model):
-            return ModelWrapper(self, type(obj), author).create_wrapped_model_class()(self, obj, author)
-        raise ValueError
+    def wrap_model(self, model):
+        if isinstance(model, str):
+            model = apps.get_model('mapdata', model)
+        assert isinstance(model, type) and issubclass(model, models.Model)
+        return ModelWrapper(self, model)
 
-    """
-    Parse Changes
-    """
-    def relevant_changes(self):
-        """
-        Get all changes of this queryset that have not been discarded and do not restore original data.
-        You should not call this, but instead call parse_changes(), it will store the result in self.changes_qs.
-        """
-        qs = self.changes.filter(discarded_by__isnull=True).exclude(action='restore')
-        qs = qs.exclude(action='delete', created_object_id__isnull=False)
-        return qs
+    def wrap_instance(self, instance):
+        assert isinstance(instance, models.Model)
+        return self.wrap_model(instance.__class__).create_wrapped_model_class()(self, instance)
 
-    def parse_changes(self, get_history=False):
-        """
-        Parse changes of this changeset so they can be reflected when querying data.
-        Only executable once, if changes are added later they are automatically parsed.
-        This method gets automatically called when parsed changes are needed or when adding a new change.
-        The queryset used/created by this method can be found in changes_qs afterwards.
-        :param get_history: Whether to get all changes (True) or only relevant ones (False)
-        """
-        if self.pk is None or self.changes_qs is not None:
-            return
+    def relevant_changed_objects(self):
+        return self.changed_objects_set.exclude(existing_object_pk__isnull=True, deleted=True)
 
-        if get_history:
-            self.changes_qs = self.changes.all()
+    def fill_changes_cache(self, include_deleted_created=False):
+        """
+        Get all changed objects and fill this ChangeSet's changes cache.
+        Only executable once, if something is changed later the cache will be automatically updated.
+        This method gets called automatically when the cache is needed.
+        Only call it if you need to set include_deleted_created to True.
+        :param include_deleted_created: Fetch created objects that were deleted.
+        :rtype: True if the method was executed, else False
+        """
+        if self.pk is None or self.changed_objects is not None:
+            return False
+
+        if include_deleted_created:
+            qs = self.changed_objects_set.all()
         else:
-            self.changes_qs = self.relevant_changes()
+            qs = self.relevant_changed_objects()
 
-        # noinspection PyTypeChecker
-        for change in self.changes_qs:
-            self._parse_change(change)
+        self.changed_objects = {}
+        for change in qs:
+            change.update_changeset_cache()
 
-    def _parse_change(self, change):
-        self._last_change_pk = change.pk
-
-        model = change.model_class
-        pk = change.obj_pk
-        if change.action == 'create':
-            new = {}
-            self.created_objects.setdefault(model, {})[pk] = new
-            self.ever_created_objects.setdefault(model, {})[pk] = new
-            return
-        elif change.action == 'delete':
-            if not is_created_pk(pk):
-                self.deleted_existing.setdefault(model, set()).add(pk)
-            else:
-                self.created_objects[model].pop(pk)
-                self.m2m_added.get(model, {}).pop(pk, None)
-                self.m2m_removed.get(model, {}).pop(pk, None)
-            return
-
-        name = change.field_name
-
-        if change.action == 'restore' and change.field_value is None:
-            if is_created_pk(pk):
-                self.created_objects[model][pk].pop(name, None)
-            else:
-                self.updated_existing.setdefault(model, {}).setdefault(pk, {}).pop(name, None)
-            return
-
-        value = json.loads(change.field_value)
-        if change.action == 'update':
-            if is_created_pk(pk):
-                self.created_objects[model][pk][name] = value
-            else:
-                self.updated_existing.setdefault(model, {}).setdefault(pk, {})[name] = value
-
-        if change.action == 'restore':
-            self.m2m_removed.get(model, {}).get(pk, {}).get(name, set()).discard(value)
-            self.m2m_added.get(model, {}).get(pk, {}).get(name, set()).discard(value)
-        elif change.action == 'm2m_add':
-            m2m_removed = self.m2m_removed.get(model, {}).get(pk, {}).get(name, ())
-            if value in m2m_removed:
-                m2m_removed.remove(value)
-            self.m2m_added.setdefault(model, {}).setdefault(pk, {}).setdefault(name, set()).add(value)
-        elif change.action == 'm2m_remove':
-            m2m_added = self.m2m_added.get(model, {}).get(pk, {}).get(name, ())
-            if value in m2m_added:
-                m2m_added.discard(value)
-            self.m2m_removed.setdefault(model, {}).setdefault(pk, {}).setdefault(name, set()).add(value)
+        return True
 
     """
     Analyse Changes
     """
     def get_objects(self):
-        if self.changes_qs is None:
+        if self.changed_objects is None:
             raise TypeError
 
         # collect pks of relevant objects
         object_pks = {}
-        for change in self.changes_qs:
-            object_pks.setdefault(change.model_class, set()).add(change.obj_pk)
-            model = None
-            if change.action == 'update':
-                if change.model_class == LocationRedirect:
-                    if change.field_name == 'target':
-                        object_pks.setdefault(LocationSlug, set()).add(json.loads(change.field_value))
-                        continue
-                elif not change.field_name.startswith('title_'):
-                    model = getattr(change.field, 'related_model', None)
-            if change.action in ('m2m_add', 'm2m_remove'):
-                model = change.field.related_model
-            if model is not None:
-                object_pks.setdefault(model, set()).add(json.loads(change.field_value))
+        for change in chain(self.changed_objects.values()):
+            change.add_relevant_object_pks(object_pks)
 
         # retrieve relevant objects
         objects = {}
@@ -266,58 +192,38 @@ class ChangeSet(models.Model):
         r = tuple((pk, values[name]) for pk, values in self.updated_existing.get(model, {}).items() if name in values)
         return r
 
-    def get_created_object(self, model, pk, author=None, get_foreign_objects=False, allow_deleted=False):
+    def get_changed_object(self, model, pk=None):
+        self.fill_changes_cache()
+
+        objects = tuple(obj for obj in ((submodel, self.changed_objects.get(submodel, {}).get(pk, None))
+                                        for submodel in get_submodels(model)) if obj[1] is not None)
+        if len(objects) > 1:
+            raise model.MultipleObjectsReturned
+        if objects:
+            return objects[0]
+
+        if is_created_pk(pk):
+            raise model.DoesNotExist
+
+        return ChangedObject(changeset=self, model_class=model, existing_obj_pk=pk)
+
+    def get_created_object(self, model, pk, get_foreign_objects=False, allow_deleted=False):
         """
         Gets a created model instance.
         :param model: model class
         :param pk: primary key
-        :param author: overwrite default author for changes made to that model
         :param get_foreign_objects: whether to fetch foreign objects and not just set their id to field.attname
         :param allow_deleted: return created objects that have already been deleted (needs get_history=True)
         :return: a wrapped model instance
         """
-        self.parse_changes()
+        self.fill_changes_cache()
         if issubclass(model, ModelWrapper):
             model = model._obj
 
-        objects = self.ever_created_objects if allow_deleted else self.created_objects
-
-        objects = tuple(obj for obj in ((submodel, objects.get(submodel, {}).get(pk, None))
-                                        for submodel in get_submodels(model)) if obj[1] is not None)
-        if not objects:
+        object = self.get_changed_object(model, pk)
+        if object.deleted and not allow_deleted:
             raise model.DoesNotExist
-        if len(objects) > 1:
-            raise model.MultipleObjectsReturned
-
-        model, data = objects[0]
-
-        obj = model()
-        obj.pk = pk
-        if hasattr(model._meta.pk, 'related_model'):
-            setattr(obj, model._meta.pk.related_model._meta.pk.attname, pk)
-        obj._state.adding = False
-
-        for name, value in data.items():
-            if name.startswith('title_'):
-                if value:
-                    obj.titles[name[6:]] = value
-                continue
-
-            field = model._meta.get_field(name)
-
-            if field.many_to_many:
-                continue
-
-            if field.many_to_one:
-                setattr(obj, field.attname, value)
-                if is_created_pk(value):
-                    setattr(obj, field.get_cache_name(), self.get_created_object(field.related_model, value))
-                elif get_foreign_objects:
-                    setattr(obj, field.get_cache_name(), self.wrap(field.related_model.objects.get(pk=value)))
-                continue
-
-            setattr(obj, name, field.to_python(value))
-        return self.wrap(obj, author=author)
+        return object.get_obj(get_foreign_objects=get_foreign_objects)
 
     def get_created_pks(self, model) -> set:
         """
@@ -328,143 +234,28 @@ class ChangeSet(models.Model):
         return set(self.created_objects.get(model, {}).keys())
 
     """
-    add changes
-    """
-    def _new_change(self, author, **kwargs):
-        if self.pk is None:
-            if self.session_id is None:
-                try:
-                    # noinspection PyUnresolvedReferences
-                    session = self.request.session
-                    if session.session_key is None:
-                        session.save()
-                    self.session_id = session.session_key
-                except AttributeError:
-                    pass  # ok, so lets keep it this way
-            self.save()
-        self.parse_changes()
-        change = Change(changeset=self)
-        change.changeset_id = self.pk
-        author = self.default_author if author is None else author
-        if author is not None and author.is_authenticated:
-            change.author = author
-        for name, value in kwargs.items():
-            setattr(change, name, value)
-        change.save()
-        self._parse_change(change)
-        return change
-
-    def add_create(self, obj, author=None):
-        """
-        Creates a new object in this changeset. Called when a new ModelInstanceWrapper is saved.
-        """
-        change = self._new_change(author=author, action='create', model_class=type(obj._obj))
-        obj.pk = 'c%d' % change.pk
-
-    def _add_value(self, action, obj, name, value, author=None):
-        return self._new_change(author=author, action=action, obj=obj, field_name=name,
-                                field_value=json.dumps(value, ensure_ascii=False, cls=DjangoJSONEncoder))
-
-    def add_restore(self, obj, name, value=None, author=None):
-        """
-        Restore a models field value (= remove it from the changeset).
-        """
-        return self._new_change(author=author, action='restore', obj=obj, field_name=name, field_value=value)
-
-    def add_update(self, obj, name, value, author=None):
-        """
-        Update a models field value. Called when a ModelInstanceWrapper is saved.
-        """
-        if isinstance(obj, ModelInstanceWrapper):
-            obj = obj._obj
-        model = type(obj)
-        with transaction.atomic():
-            current_obj = get_current_obj(model, obj.pk)
-            current_value = get_field_value(current_obj, name)
-
-            if current_value != value:
-                change = self._add_value('update', obj, name, value, author)
-            else:
-                change = self.add_restore(obj, name, author)
-            change.other_changes().filter(field_name=name).update(discarded_by=change)
-        return change
-
-    def add_m2m_add(self, obj, name, value, author=None):
-        """
-        Add an object to a m2m relation. Called by ManyRelatedManagerWrapper.
-        """
-        if isinstance(obj, ModelInstanceWrapper):
-            obj = obj._obj
-        with transaction.atomic():
-            if is_created_pk(obj.pk) or is_created_pk(value) or not getattr(obj, name).filter(pk=value).exists():
-                change = self._add_value('m2m_add', obj, name, value, author)
-            else:
-                change = self.add_restore(obj, name, value, author)
-            change.other_changes().filter(field_name=name, field_value=change.field_value).update(discarded_by=change)
-        return change
-
-    def add_m2m_remove(self, obj, name, value, author=None):
-        """
-        Remove an object from a m2m reltation. Called by ManyRelatedManagerWrapper.
-        """
-        if isinstance(obj, ModelInstanceWrapper):
-            obj = obj._obj
-        with transaction.atomic():
-            if is_created_pk(obj.pk) or is_created_pk(value) or not getattr(obj, name).filter(pk=value).exists():
-                change = self.add_restore(obj, name, value, author)
-            else:
-                change = self._add_value('m2m_remove', obj, name, value, author)
-            change.other_changes().filter(field_name=name, field_value=change.field_value).update(discarded_by=change)
-        return change
-
-    def add_delete(self, obj, author=None):
-        """
-        Delete an object. Called by ModelInstanceWrapper.delete().
-        """
-        with transaction.atomic():
-            change = self._new_change(author=author, action='delete', obj=obj)
-            change.other_changes().update(discarded_by=change)
-        return change
-
-    """
     Methods for display
     """
     @property
-    def changes_count(self):
+    def changed_objects_count(self):
         """
-        Get the number of relevant changes. Does not need a query if changes are already parsed.
+        Get the number of changed objects. Does not need a query if cache is already filled.
         """
-        if self.changes_qs is None:
-            return self.relevant_changes().exclude(model_name='LocationRedirect', action='update').count()
+        if self.changed_objects is None:
+            location_redirect_type = ContentType.objects.get_for_model(LocationRedirect)
+            return self.relevant_changed_objects().exclude(content_type=location_redirect_type).count()
 
-        result = 0
-
-        for model, objects in self.created_objects.items():
-            result += len(objects)
-            if model == LocationRedirect:
-                continue
-            result += sum(len(values) for values in objects.values())
-
-        for objects in self.updated_existing.values():
-            result += sum(len(values) for values in objects.values())
-
-        result += sum(len(objs) for objs in self.deleted_existing.values())
-
-        for m2m in self.m2m_added, self.m2m_removed:
-            for objects in m2m.values():
-                for obj in objects.values():
-                    result += sum(len(values) for values in obj.values())
-
-        return result
+        return sum((len(objects) for model, objects in self.changed_objects.items() if model != LocationRedirect))
 
     @property
     def count_display(self):
         """
-        Get “%d changes” display text.
+        Get “%d changed objects” display text.
         """
         if self.pk is None:
-            return _('No changes')
-        return ungettext_lazy('%(num)d change', '%(num)d changes', 'num') % {'num': self.changes_count}
+            return _('No changed objects')
+        return (ungettext_lazy('%(num)d changed object', '%(num)d changed objects', 'num') %
+                {'num': self.changed_objects_count})
 
     @property
     def title(self):
@@ -473,10 +264,17 @@ class ChangeSet(models.Model):
         return _('Changeset #%d') % self.pk
 
     @property
+    def last_update(self):
+        if self.changed_objects is None:
+            return self.relevant_changed_objects().aggregate(Max('last_update'))['last_update__max']
+
+        return max(chain(*self.changed_objects.values()), key=attrgetter('last_update'))
+
+    @property
     def cache_key(self):
         if self.pk is None:
             return None
-        return str(self.pk)+'-'+str(self._last_change_pk)
+        return str(self.pk)+'-'+str(self.last_update)
 
     def get_absolute_url(self):
         if self.pk is None:

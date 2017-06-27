@@ -46,7 +46,7 @@ class EditorViewSet(ViewSet):
         return results
 
     def _get_levels_pk(self, request, level):
-        Level = request.changeset.wrap('Level')
+        Level = request.changeset.wrap_model('Level')
         levels_under = ()
         levels_on_top = ()
         lower_level = level.lower(Level).first()
@@ -63,8 +63,8 @@ class EditorViewSet(ViewSet):
     def geometries(self, request, *args, **kwargs):
         request.changeset = ChangeSet.get_for_request(request)
 
-        Level = request.changeset.wrap('Level')
-        Space = request.changeset.wrap('Space')
+        Level = request.changeset.wrap_model('Level')
+        Space = request.changeset.wrap_model('Space')
 
         level = request.GET.get('level')
         space = request.GET.get('space')

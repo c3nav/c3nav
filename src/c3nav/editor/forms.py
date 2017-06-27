@@ -29,7 +29,7 @@ class MapitemFormMixin(ModelForm):
                 self.initial['geometry'] = json.dumps(mapping(self.instance.geometry), separators=(',', ':'))
 
         if 'groups' in self.fields:
-            LocationGroup = self.request.changeset.wrap('LocationGroup')
+            LocationGroup = self.request.changeset.wrap_model('LocationGroup')
             self.fields['groups'].label_from_instance = lambda obj: obj.title_for_forms
             self.fields['groups'].queryset = LocationGroup.objects.all()
 
@@ -71,7 +71,7 @@ class MapitemFormMixin(ModelForm):
         for slug in self.add_redirect_slugs:
             self.fields['slug'].run_validators(slug)
 
-        LocationSlug = self.request.changeset.wrap('LocationSlug')
+        LocationSlug = self.request.changeset.wrap_model('LocationSlug')
         for slug in LocationSlug.objects.filter(slug__in=self.add_redirect_slugs).values_list('slug', flat=True)[:1]:
             raise ValidationError(
                 _('Can not add redirecting slug “%s”: it is already used elsewhere.') % slug

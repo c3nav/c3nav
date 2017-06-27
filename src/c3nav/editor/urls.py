@@ -37,8 +37,6 @@ urlpatterns = [
     url(r'^levels/(?P<on_top_of>c?[0-9]+)/levels_on_top/create$', edit, name='editor.levels_on_top.create',
         kwargs={'model': 'Level'}),
     url(r'^changesets/(?P<pk>[0-9]+)/$', changeset_detail, name='editor.changesets.detail'),
-    url(r'^changesets/(?P<pk>[0-9]+)/history$', changeset_detail, name='editor.changesets.history',
-        kwargs={'show_history': True}),
     url(r'^login$', login_view, name='editor.login'),
     url(r'^logout$', logout_view, name='editor.logout'),
 ]
