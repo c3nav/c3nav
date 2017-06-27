@@ -235,6 +235,7 @@ class ChangeSet(models.Model):
         """
         Returns a set with the primary keys of created objects from this model
         """
+        self.fill_changes_cache()
         if issubclass(model, ModelWrapper):
             model = model._obj
         return set(self.created_objects.get(model, {}).keys())
