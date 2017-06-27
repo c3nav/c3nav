@@ -17,7 +17,8 @@ class EditorViewSet(ViewSet):
     /geometrystyles/ returns styling information for all geometry types
     /changeset/ returns the current changeset
     """
-    def _get_level_geometries(self, level):
+    @staticmethod
+    def _get_level_geometries(level):
         buildings = level.buildings.all()
         buildings_geom = cascaded_union([building.geometry for building in buildings])
         spaces = {space.pk: space for space in level.spaces.all()}
@@ -45,7 +46,9 @@ class EditorViewSet(ViewSet):
         results.extend(spaces.values())
         return results
 
-    def _get_levels_pk(self, request, level):
+    @staticmethod
+    def _get_levels_pk(request, level):
+        # noinspection PyPep8Naming
         Level = request.changeset.wrap_model('Level')
         levels_under = ()
         levels_on_top = ()
@@ -59,6 +62,7 @@ class EditorViewSet(ViewSet):
         levels = chain([level.pk], levels_under, levels_on_top)
         return levels, levels_on_top, levels_under
 
+    # noinspection PyPep8Naming
     @list_route(methods=['get'])
     def geometries(self, request, *args, **kwargs):
         request.changeset = ChangeSet.get_for_request(request)
@@ -133,7 +137,8 @@ class EditorViewSet(ViewSet):
         else:
             raise ValidationError('No level or space specified.')
 
-    def _get_geojsons(self, obj):
+    @staticmethod
+    def _get_geojsons(obj):
         return (((obj.to_shadow_geojson(),) if hasattr(obj, 'to_shadow_geojson') else ()) +
                 (obj.to_geojson(instance=obj),))
 
