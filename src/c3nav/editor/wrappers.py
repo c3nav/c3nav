@@ -462,7 +462,7 @@ class BaseQueryWrapper(BaseWrapper):
 
             if filter_type == 'pk':
                 # foreign_obj__pk
-                if filter_value is None or int(filter_value) in self._changeset.deleted_existing.get(rel_model, ()):
+                if filter_value is not None or int(filter_value) in self._changeset.deleted_existing.get(rel_model, ()):
                     return Q(pk__in=()), set()
                 elif is_created_pk(filter_value):
                     q = Q(pk__in=())
