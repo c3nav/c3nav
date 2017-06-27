@@ -15,65 +15,62 @@ from c3nav.mapdata.utils.models import get_submodels
 
 class BaseWrapper:
     """
-    Base Class for all wrappers.
-    Saves wrapped object along with the changeset and the author for new changes.
+    Base Class for all wrappers. Saves wrapped objects along with the changeset.
     getattr, setattr and delattr will be forwarded to the object, exceptions are specified in _not_wrapped.
     If the value of an attribute is a model, model instance, manager or queryset, it will be wrapped, to.
     Callables will only be returned be getattr when they are inside _allowed_callables.
     Callables in _wrapped_callables will be returned wrapped, so that their self if the wrapping instance.
     """
-    _not_wrapped = ('_changeset', '_author', '_obj', '_created_pks', '_result', '_extra', '_result_cache',
-                    '_initial_values')
+    _not_wrapped = ('_changeset', '_obj', '_created_pks', '_result', '_extra', '_result_cache', '_initial_values')
     _allowed_callables = ()
     _wrapped_callables = ()
 
-    def __init__(self, changeset, obj, author=None):
+    def __init__(self, changeset, obj):
         self._changeset = changeset
-        self._author = author
         self._obj = obj
 
     # noinspection PyUnresolvedReferences
     def _wrap_model(self, model):
         """
-        Wrap a model, with same changeset and author as this wrapper.
+        Wrap a model with same changeset as this wrapper.
         """
         if isinstance(model, type) and issubclass(model, ModelInstanceWrapper):
             model = model._parent
         if isinstance(model, ModelWrapper):
-            if self._author == model._author and self._changeset == model._changeset:
+            if self._changeset == model._changeset:
                 return model
             model = model._obj
         assert issubclass(model, models.Model)
-        return ModelWrapper(self._changeset, model, self._author)
+        return ModelWrapper(self._changeset, model)
 
     def _wrap_instance(self, instance):
         """
-        Wrap a model instance, with same changeset and author as this wrapper.
+        Wrap a model instance with same changeset as this wrapper.
         """
         if isinstance(instance, ModelInstanceWrapper):
-            if self._author == instance._author and self._changeset == instance._changeset:
+            if self._changeset == instance._changeset:
                 return instance
             instance = instance._obj
         assert isinstance(instance, models.Model)
-        return self._wrap_model(type(instance)).create_wrapped_model_class()(self._changeset, instance, self._author)
+        return self._wrap_model(type(instance)).create_wrapped_model_class()(self._changeset, instance)
 
     def _wrap_manager(self, manager):
         """
-        Wrap a manager, with same changeset and author as this wrapper.
+        Wrap a manager with same changeset as this wrapper.
         Detects RelatedManager or ManyRelatedmanager instances and chooses the Wrapper accordingly.
         """
         assert isinstance(manager, Manager)
         if hasattr(manager, 'through'):
-            return ManyRelatedManagerWrapper(self._changeset, manager, self._author)
+            return ManyRelatedManagerWrapper(self._changeset, manager)
         if hasattr(manager, 'instance'):
-            return RelatedManagerWrapper(self._changeset, manager, self._author)
-        return ManagerWrapper(self._changeset, manager, self._author)
+            return RelatedManagerWrapper(self._changeset, manager)
+        return ManagerWrapper(self._changeset, manager)
 
     def _wrap_queryset(self, queryset):
         """
-        Wrap a queryset, with same changeset and author as this wrapper.
+        Wrap a queryset with same changeset as this wrapper.
         """
-        return QuerySetWrapper(self._changeset, queryset, self._author)
+        return QuerySetWrapper(self._changeset, queryset)
 
     def __getattr__(self, name):
         value = getattr(self._obj, name)
@@ -268,14 +265,12 @@ class ModelInstanceWrapper(BaseWrapper):
         unique_checks, date_checks = self._obj.__class__._get_unique_checks(self, exclude=exclude)
         return [(self._wrap_model(model), unique) for model, unique in unique_checks], date_checks
 
-    def save(self, author=None):
+    def save(self):
         """
         Create changes in changeset instead of saving.
         """
-        if author is None:
-            author = self._author
         if self.pk is None:
-            self._changeset.add_create(self, author=author)
+            self._changeset.add_create(self)
         with transaction.atomic():
             for field, initial_value in self._initial_values.items():
                 if field.many_to_one:
@@ -287,7 +282,7 @@ class ModelInstanceWrapper(BaseWrapper):
                         new_value = None if new_value is None else new_value.pk
 
                     if new_value != initial_value:
-                        self._changeset.add_update(self, name=field.name, value=new_value, author=author)
+                        self._changeset.add_update(self, name=field.name, value=new_value)
                     continue
 
                 new_value = getattr(self._obj, field.name)
@@ -298,15 +293,13 @@ class ModelInstanceWrapper(BaseWrapper):
                     for lang in (set(initial_value.keys()) | set(new_value.keys())):
                         new_title = new_value.get(lang, '')
                         if new_title != initial_value.get(lang, ''):
-                            self._changeset.add_update(self, name='title_'+lang, value=new_title, author=author)
+                            self._changeset.add_update(self, name='title_'+lang, value=new_title)
                     continue
 
-                self._changeset.add_update(self, name=field.name, value=field.get_prep_value(new_value), author=author)
+                self._changeset.add_update(self, name=field.name, value=field.get_prep_value(new_value))
 
-    def delete(self, author=None):
-        if author is None:
-            author = self._author
-        self._changeset.add_delete(self, author=author)
+    def delete(self):
+        self._changeset.add_delete(self)
 
 
 def get_queryset(func):
@@ -332,8 +325,8 @@ class BaseQueryWrapper(BaseWrapper):
     """
     _allowed_callables = ('_add_hints', 'get_prefetch_queryset', '_apply_rel_filters')
 
-    def __init__(self, changeset, obj, author=None, created_pks=None, extra=()):
-        super().__init__(changeset, obj, author)
+    def __init__(self, changeset, obj, created_pks=None, extra=()):
+        super().__init__(changeset, obj)
         if created_pks is None:
             created_pks = self._get_initial_created_pks()
         self._created_pks = created_pks
@@ -355,7 +348,7 @@ class BaseQueryWrapper(BaseWrapper):
             created_pks = self._created_pks
         if created_pks is False:
             created_pks = None
-        return QuerySetWrapper(self._changeset, queryset, self._author, created_pks, self._extra+add_extra)
+        return QuerySetWrapper(self._changeset, queryset, created_pks, self._extra+add_extra)
 
     @get_queryset
     def all(self):
@@ -627,7 +620,7 @@ class BaseQueryWrapper(BaseWrapper):
                                 set(pk for pk in pks if is_created_pk(pk)))
 
                     if int(filter_value) not in self._changeset.deleted_existing.get(rel_model, ()):
-                        return (Q(pk__in=()), set())
+                        return Q(pk__in=()), set()
 
                     return (((q & ~Q(pk__in=(pk for pk in remove_pks if not is_created_pk(pk)))) |
                              Q(pk__in=(pk for pk in add_pks if not is_created_pk(pk)))),
@@ -807,31 +800,22 @@ class ManyRelatedManagerWrapper(RelatedManagerWrapper):
     def _get_cache_name(self):
         return self._obj.prefetch_cache_name
 
-    def set(self, objs, author=None):
-        if author is None:
-            author = self._author
-
+    def set(self, objs):
         old_ids = set(self.values_list('pk', flat=True))
         new_ids = set(obj.pk for obj in objs)
 
-        self.remove(*(old_ids - new_ids), author=author)
-        self.add(*(new_ids - old_ids), author=author)
+        self.remove(*(old_ids - new_ids))
+        self.add(*(new_ids - old_ids))
 
-    def add(self, *objs, author=None):
-        if author is None:
-            author = self._author
-
+    def add(self, *objs):
         for obj in objs:
             pk = (obj.pk if isinstance(obj, self._obj.model) else obj)
-            self._changeset.add_m2m_add(self._obj.instance, name=self._get_cache_name(), value=pk, author=author)
+            self._changeset.add_m2m_add(self._obj.instance, name=self._get_cache_name(), value=pk)
 
-    def remove(self, *objs, author=None):
-        if author is None:
-            author = self._author
-
+    def remove(self, *objs):
         for obj in objs:
             pk = (obj.pk if isinstance(obj, self._obj.model) else obj)
-            self._changeset.add_m2m_remove(self._obj.instance, name=self._get_cache_name(), value=pk, author=author)
+            self._changeset.add_m2m_remove(self._obj.instance, name=self._get_cache_name(), value=pk)
 
     def all(self):
         try:

@@ -35,7 +35,6 @@ class ChangeSet(models.Model):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.default_author = None
         self.changed_objects = None
 
         self.ever_created_objects = {}
@@ -85,7 +84,6 @@ class ChangeSet(models.Model):
         if request.session.session_key is not None:
             changeset = qs.filter(session_id=request.session.session_key).first()
             if changeset is not None:
-                changeset.default_author = request.user
                 if changeset.author_id is None and request.user.is_authenticated:
                     changeset.author = request.user
                     changeset.save()
@@ -101,13 +99,11 @@ class ChangeSet(models.Model):
                     request.session.save()
                 changeset.session_id = request.session.session_key
                 changeset.save()
-                changeset.default_author = request.user
                 return changeset
 
             new_changeset.author = request.user
 
         new_changeset.session_id = request.session.session_key
-        new_changeset.default_author = request.user
         return new_changeset
 
     """
