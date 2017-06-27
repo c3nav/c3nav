@@ -211,13 +211,12 @@ class ChangedObject(models.Model):
         self.save()
 
     def m2m_set(self, name, set_pks=None):
-        if self.is_created:
-            self._m2m_removed_cache.get(name, None)
-            return
-
-        field = self.model_class._meta.get_field(name)
-        rel_name = field.rel.related_name
-        pks = set(field.related_model.objects.filter(**{rel_name+'__pk': self.obj_pk}).values_list('pk', flat=True))
+        if not self.is_created:
+            field = self.model_class._meta.get_field(name)
+            rel_name = field.rel.related_name
+            pks = set(field.related_model.objects.filter(**{rel_name+'__pk': self.obj_pk}).values_list('pk', flat=True))
+        else:
+            pks = set()
 
         m2m_added_before = self._m2m_added_cache.get(name, set())
         m2m_removed_before = self._m2m_removed_cache.get(name, set())
