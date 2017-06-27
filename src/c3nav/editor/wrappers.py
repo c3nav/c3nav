@@ -481,7 +481,7 @@ class BaseQueryWrapper(BaseWrapper):
                 # if the check is just 'pk' or the name or the name of the primary key, return the mathing object
                 if is_created_pk(filter_value):
                     return Q(pk__in=()), set([filter_value])
-                if int(filter_value) in self._changeset.deleted_existing[model]:
+                if int(filter_value) in self._changeset.deleted_existing.get(model, ()):
                     return Q(pk__in=()), set()
                 return q, set()
             elif segments == ['in']:
