@@ -186,7 +186,7 @@ class ModelInstanceWrapper(BaseWrapper):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         if self._obj.pk is not None:
-            self._changeset.get_changed_object(self._obj.__class__, self._obj.pk).apply_to_instance(self)
+            self._changeset.get_changed_object(self._obj).apply_to_instance(self)
 
     def __eq__(self, other):
         if isinstance(other, BaseWrapper):
@@ -234,10 +234,10 @@ class ModelInstanceWrapper(BaseWrapper):
         """
         Create changes in changeset instead of saving.
         """
-        self._changeset.get_changed_object(self._obj.__class__, self.pk).save_instance(self)
+        self._changeset.get_changed_object(self._obj).save_instance(self)
 
     def delete(self):
-        self._changeset.get_changed_object(self._obj.__class__, self.pk).mark_deleted()
+        self._changeset.get_changed_object(self._obj).mark_deleted()
 
 
 def get_queryset(func):

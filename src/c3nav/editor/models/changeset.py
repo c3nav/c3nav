@@ -188,7 +188,9 @@ class ChangeSet(models.Model):
         r = tuple((pk, values[name]) for pk, values in self.updated_existing.get(model, {}).items() if name in values)
         return r
 
-    def get_changed_object(self, model, pk=None) -> ChangedObject:
+    def get_changed_object(self, obj) -> ChangedObject:
+        model = obj.__class__
+        pk = obj.pk
         if pk is None:
             return ChangedObject(changeset=self, model_class=model)
 
