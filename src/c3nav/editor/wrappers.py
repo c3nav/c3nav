@@ -557,7 +557,7 @@ class BaseQueryWrapper(BaseWrapper):
                         return (Q(pk__in=(pk for pk in pks if not is_created_pk(pk))),
                                 set(pk for pk in pks if is_created_pk(pk)))
 
-                    if int(filter_value) not in self._changeset.deleted_existing.get(rel_model, ()):
+                    if int(filter_value) in self._changeset.deleted_existing.get(rel_model, ()):
                         return Q(pk__in=()), set()
 
                     return (((q & ~Q(pk__in=(pk for pk in remove_pks if not is_created_pk(pk)))) |
