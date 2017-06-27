@@ -92,11 +92,12 @@ class ChangeSet(models.Model):
         new_changeset = cls()
         new_changeset.request = request
 
+        if request.session.session_key is None:
+            request.session.save()
+
         if request.user.is_authenticated:
             changeset = qs.filter(Q(author=request.user)).order_by('-created').first()
             if changeset is not None:
-                if request.session.session_key is None:
-                    request.session.save()
                 changeset.session_id = request.session.session_key
                 changeset.save()
                 return changeset

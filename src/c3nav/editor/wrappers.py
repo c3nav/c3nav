@@ -208,7 +208,7 @@ class ModelInstanceWrapper(BaseWrapper):
         except FieldDoesNotExist:
             pass
         else:
-            if field.many_to_one and value is not None:
+            if field.many_to_one and name != field.attname and value is not None:
                 if isinstance(value, models.Model):
                     value = self._wrap_instance(value)
                 if not isinstance(value, ModelInstanceWrapper):
@@ -221,10 +221,10 @@ class ModelInstanceWrapper(BaseWrapper):
     def __repr__(self):
         cls_name = self._obj.__class__.__name__
         if self.pk is None:
-            return '<%s (unsaved) with Changeset #%d>' % (cls_name, self._changeset.pk)
+            return '<%s (unsaved) with Changeset #%s>' % (cls_name, self._changeset.pk)
         elif is_created_pk(self.pk):
-            return '<%s #%s (created) from Changeset #%d>' % (cls_name, self.pk, self._changeset.pk)
-        return '<%s #%d (existing) with Changeset #%d>' % (cls_name, self.pk, self._changeset.pk)
+            return '<%s #%s (created) from Changeset #%s>' % (cls_name, self.pk, self._changeset.pk)
+        return '<%s #%d (existing) with Changeset #%s>' % (cls_name, self.pk, self._changeset.pk)
 
     def _get_unique_checks(self, exclude=None):
         unique_checks, date_checks = self._obj.__class__._get_unique_checks(self, exclude=exclude)
@@ -422,6 +422,8 @@ class BaseQueryWrapper(BaseWrapper):
 
         # check if we are filtering by a foreign key field
         if field.many_to_one:
+            rel_model = field.related_model
+
             if not segments:
                 # turn 'foreign_obj' into 'foreign_obj__pk' for later
                 filter_name = field_name + '__pk'
@@ -445,9 +447,10 @@ class BaseQueryWrapper(BaseWrapper):
 
             if filter_type == 'pk' and segments == ['in']:
                 # foreign_obj__pk__in
+                filter_value = (pk for pk in filter_value if pk is not None)
                 filter_value = tuple(pk for pk in filter_value
                                      if is_created_pk(pk) or
-                                     int(pk) not in self._changeset.deleted_existing.get(field.related_model, ()))
+                                     int(pk) not in self._changeset.deleted_existing.get(rel_model, ()))
                 existing_pks = tuple(pk for pk in filter_value if not is_created_pk(pk))
                 q = Q(**{field_name+'__pk__in': existing_pks})
                 filter_value = tuple(str(pk) for pk in filter_value)
@@ -459,10 +462,10 @@ class BaseQueryWrapper(BaseWrapper):
 
             if filter_type == 'pk':
                 # foreign_obj__pk
-                if is_created_pk(filter_value):
-                    q = Q(pk__in=())
-                elif int(filter_value) in self._changeset.deleted_existing.get(field.related_model, ()):
+                if filter_value is None or int(filter_value) in self._changeset.deleted_existing.get(rel_model, ()):
                     return Q(pk__in=()), set()
+                elif is_created_pk(filter_value):
+                    q = Q(pk__in=())
                 filter_value = str(filter_value)
                 return self._filter_values(q, field_name, lambda val: str(val) == filter_value)
 
@@ -509,6 +512,7 @@ class BaseQueryWrapper(BaseWrapper):
                 filter_value_existing = set(pk for pk in filter_value if not is_created_pk(pk))
 
                 # lets removeall spaces that have been deleted
+                filter_value = (pk for pk in filter_value if pk is not None)
                 filter_value = tuple(pk for pk in filter_value
                                      if is_created_pk(pk) or
                                      int(pk) not in self._changeset.deleted_existing.get(rel_model, ()))
@@ -557,7 +561,7 @@ class BaseQueryWrapper(BaseWrapper):
                         return (Q(pk__in=(pk for pk in pks if not is_created_pk(pk))),
                                 set(pk for pk in pks if is_created_pk(pk)))
 
-                    if int(filter_value) in self._changeset.deleted_existing.get(rel_model, ()):
+                    if filter_value is None or int(filter_value) in self._changeset.deleted_existing.get(rel_model, ()):
                         return Q(pk__in=()), set()
 
                     return (((q & ~Q(pk__in=(pk for pk in remove_pks if not is_created_pk(pk)))) |

@@ -145,7 +145,10 @@ class ChangedObject(models.Model):
                     obj = self.changeset.get_created_object(field.related_model, value)
                     setattr(instance, field.get_cache_name(), obj)
                 else:
-                    delattr(instance, field.get_cache_name())
+                    try:
+                        delattr(instance, field.get_cache_name())
+                    except AttributeError:
+                        pass
                 setattr(instance, field.attname, value)
             else:
                 raise NotImplementedError
