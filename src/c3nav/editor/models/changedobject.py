@@ -33,8 +33,8 @@ class ChangedObject(models.Model):
         model_class = kwargs.pop('model_class', None)
         super().__init__(*args, **kwargs)
         self._set_object = None
-        self._m2m_added_cache = {name: set(values) for name, values in self.m2m_added}
-        self._m2m_removed_cache = {name: set(values) for name, values in self.m2m_added}
+        self._m2m_added_cache = {name: set(values) for name, values in self.m2m_added.items()}
+        self._m2m_removed_cache = {name: set(values) for name, values in self.m2m_removed.items()}
         if model_class is not None:
             self.model_class = model_class
 
@@ -114,8 +114,8 @@ class ChangedObject(models.Model):
                 self.changeset.deleted_existing.setdefault(model, set()).add(pk)
 
         if not self.deleted:
-            self.changeset.m2m_added.get(model, {})[pk] = self._m2m_added_cache
-            self.changeset.m2m_removed.get(model, {})[pk] = self._m2m_removed_cache
+            self.changeset.m2m_added.setdefault(model, {})[pk] = self._m2m_added_cache
+            self.changeset.m2m_removed.setdefault(model, {})[pk] = self._m2m_removed_cache
         else:
             self.changeset.m2m_added.get(model, {}).pop(pk, None)
             self.changeset.m2m_removed.get(model, {}).pop(pk, None)
@@ -189,8 +189,6 @@ class ChangedObject(models.Model):
                 else:
                     value = None if value is None else value.pk
                 self.updated_fields[field.name] = value
-            else:
-                raise NotImplementedError
 
         self.clean_updated_fields()
         self.save()
@@ -200,6 +198,46 @@ class ChangedObject(models.Model):
     def mark_deleted(self):
         self.deleted = True
         self.save()
+
+    def m2m_set(self, name, set_pks=None):
+        if self.is_created:
+            self._m2m_removed_cache.get(name, None)
+            return
+
+        field = self.model_class._meta.get_field(name)
+        rel_name = field.rel.related_name
+        pks = set(field.related_model.objects.filter(**{rel_name+'__pk': self.obj_pk}).values_list('pk', flat=True))
+
+        m2m_added_before = self._m2m_added_cache.get(name, set())
+        m2m_removed_before = self._m2m_removed_cache.get(name, set())
+
+        if set_pks is None:
+            self._m2m_added_cache.get(name, set()).difference_update(pks)
+            self._m2m_removed_cache.get(name, set()).intersection_update(pks)
+        else:
+            self._m2m_added_cache[name] = set_pks - pks
+            self._m2m_removed_cache[name] = pks - set_pks
+
+        if not self._m2m_added_cache.get(name, set()):
+            self._m2m_added_cache.pop(name, None)
+        if not self._m2m_removed_cache.get(name, set()):
+            self._m2m_removed_cache.pop(name, None)
+
+        if (m2m_added_before != self._m2m_added_cache.get(name, set()) or
+                m2m_removed_before != self._m2m_removed_cache.get(name, set())):
+            self.save()
+            return True
+        return False
+
+    def m2m_add(self, name, pks: set):
+        self._m2m_added_cache.setdefault(name, set()).update(pks)
+        self._m2m_removed_cache.setdefault(name, set()).difference_update(pks)
+        self.m2m_set(name)
+
+    def m2m_remove(self, name, pks: set):
+        self._m2m_removed_cache.setdefault(name, set()).update(pks)
+        self._m2m_added_cache.setdefault(name, set()).difference_update(pks)
+        self.m2m_set(name)
 
     @property
     def does_something(self):
@@ -213,8 +251,11 @@ class ChangedObject(models.Model):
             if self.pk is not None:
                 self.delete()
             return False
-        self.m2m_added = {name: tuple(values) for name, values in self._m2m_added_cache}
-        self.m2m_removed = {name: tuple(values) for name, values in self._m2m_removed_cache}
+        if self.changeset.pk is None:
+            self.changeset.save()
+            self.changeset = self.changeset
+        self.m2m_added = {name: tuple(values) for name, values in self._m2m_added_cache.items()}
+        self.m2m_removed = {name: tuple(values) for name, values in self._m2m_removed_cache.items()}
         super().save(*args, **kwargs)
         if not self.changeset.fill_changes_cache():
             self.update_changeset_cache()

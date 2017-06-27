@@ -739,21 +739,22 @@ class ManyRelatedManagerWrapper(RelatedManagerWrapper):
         return self._obj.prefetch_cache_name
 
     def set(self, objs):
-        old_ids = set(self.values_list('pk', flat=True))
-        new_ids = set(obj.pk for obj in objs)
-
-        self.remove(*(old_ids - new_ids))
-        self.add(*(new_ids - old_ids))
+        if self._obj.reverse:
+            raise NotImplementedError
+        pks = set(obj.pk for obj in objs)
+        self._changeset.get_changed_object(self._obj.instance).m2m_set(self._get_cache_name(), pks)
 
     def add(self, *objs):
-        for obj in objs:
-            pk = (obj.pk if isinstance(obj, self._obj.model) else obj)
-            self._changeset.add_m2m_add(self._obj.instance, name=self._get_cache_name(), value=pk)
+        if self._obj.reverse:
+            raise NotImplementedError
+        pks = set((obj.pk if isinstance(obj, self._obj.model) else obj) for obj in objs)
+        self._changeset.get_changed_object(self._obj.instance).m2m_add(self._get_cache_name(), pks)
 
     def remove(self, *objs):
-        for obj in objs:
-            pk = (obj.pk if isinstance(obj, self._obj.model) else obj)
-            self._changeset.add_m2m_remove(self._obj.instance, name=self._get_cache_name(), value=pk)
+        if self._obj.reverse:
+            raise NotImplementedError
+        pks = set((obj.pk if isinstance(obj, self._obj.model) else obj) for obj in objs)
+        self._changeset.get_changed_object(self._obj.instance).m2m_remove(self._get_cache_name(), pks)
 
     def all(self):
         try:

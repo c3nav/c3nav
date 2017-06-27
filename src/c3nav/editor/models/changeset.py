@@ -131,7 +131,11 @@ class ChangeSet(models.Model):
         :param include_deleted_created: Fetch created objects that were deleted.
         :rtype: True if the method was executed, else False
         """
-        if self.pk is None or self.changed_objects is not None:
+        if self.changed_objects is not None:
+            return False
+
+        if self.pk is None:
+            self.changed_objects = {}
             return False
 
         if include_deleted_created:

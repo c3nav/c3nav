@@ -142,10 +142,10 @@ def changeset_detail(request, pk):
 
             for m2m_mode in ('m2m_added', 'm2m_removed'):
                 m2m_list = getattr(changed_object, m2m_mode).items()
-                for name, values in sorted(m2m_list, key=lambda name, value: form_fields.index(name)):
+                for name, values in sorted(m2m_list, key=lambda nv: form_fields.index(nv[0])):
                     field = model._meta.get_field(name)
                     for value in values:
-                        change_data.update({
+                        changes.append({
                             'icon': 'chevron-right' if m2m_mode == 'm2m_added' else 'chevron-left',
                             'class': 'info',
                             'title': field.verbose_name,
