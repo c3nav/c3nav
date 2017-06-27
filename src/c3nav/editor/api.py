@@ -93,16 +93,16 @@ class EditorViewSet(ViewSet):
 
             return Response([obj.to_geojson(instance=obj) for obj in results])
         elif space is not None:
-            qs = Space.objects.select_related('level', 'level__on_top_of').prefetch_related('groups')
-            space = get_object_or_404(qs, pk=space)
+            space = get_object_or_404(Space.objects.select_related('level', 'level__on_top_of'), pk=space)
             level = space.level
 
             doors = [door for door in level.doors.all() if door.geometry.intersects(space.geometry)]
             doors_space_geom = cascaded_union([door.geometry for door in doors]+[space.geometry])
 
             levels, levels_on_top, levels_under = self._get_levels_pk(request, level.primary_level)
-            other_spaces = Space.objects.filter(level__pk__in=levels)
-            other_spaces = [s for s in other_spaces if s.geometry.intersects(doors_space_geom) and s.pk != space.pk]
+            other_spaces = Space.objects.filter(level__pk__in=levels).prefetch_related('groups')
+            other_spaces = [s for s in other_spaces
+                            if s.geometry.intersects(doors_space_geom) and s.pk != space.pk]
 
             space.bounds = True
 
