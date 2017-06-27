@@ -10,6 +10,7 @@ from django.utils.translation import ugettext_lazy as _
 from c3nav.editor.models import ChangeSet
 from c3nav.editor.utils import is_created_pk
 from c3nav.editor.views.base import sidebar_view
+from c3nav.mapdata.models.locations import LocationRedirect
 
 
 @sidebar_view
@@ -57,7 +58,7 @@ def changeset_detail(request, pk):
                 obj_still_exists = pk not in changeset.deleted_existing.get(obj.__class__, ())
 
             edit_url = None
-            if obj_still_exists and can_edit:
+            if obj_still_exists and can_edit and not isinstance(obj, LocationRedirect):
                 reverse_kwargs = {'pk': obj.pk}
                 if hasattr(obj, 'level_id'):
                     reverse_kwargs['level'] = obj.level_id
@@ -71,7 +72,7 @@ def changeset_detail(request, pk):
                 'model': obj.__class__,
                 'model_title': obj.__class__._meta.verbose_name,
                 'desc': obj_desc,
-                'title': obj.title if obj.titles else None,
+                'title': obj.title if getattr(obj, 'titles', None) else None,
                 'changes': changes,
                 'edit_url': edit_url,
                 'order': changed_object.created,
