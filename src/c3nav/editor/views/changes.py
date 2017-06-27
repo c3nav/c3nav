@@ -10,7 +10,7 @@ from django.utils.translation import ugettext_lazy as _
 from c3nav.editor.models import ChangeSet
 from c3nav.editor.utils import is_created_pk
 from c3nav.editor.views.base import sidebar_view
-from c3nav.mapdata.models.locations import LocationRedirect, LocationSlug
+from c3nav.mapdata.models.locations import LocationRedirect
 
 
 @sidebar_view
@@ -47,19 +47,7 @@ def changeset_detail(request, pk):
 
     changed_objects_data = []
 
-    added_redirects = {}
-    removed_redirects = {}
-    for changed_object in changeset.changed_objects.get(LocationRedirect, {}).values():
-        if changed_object.is_created == changed_object.deleted:
-            continue
-        values = changed_object.updated_fields
-        redirect_list = (removed_redirects if changed_object.deleted else added_redirects)
-        redirect_list.setdefault(values['target'], []).append(values['slug'])
-
     for model, changed_objects in changeset.changed_objects.items():
-        if model == LocationRedirect:
-            continue
-
         for pk, changed_object in changed_objects.items():
             obj = objects[model][pk]
 
@@ -164,22 +152,6 @@ def changeset_detail(request, pk):
                             'title': field.verbose_name,
                             'value': objects[field.related_model][value].title,
                         })
-
-            if isinstance(obj, LocationSlug):
-                for slug in added_redirects.get(obj.pk, ()):
-                    changes.append({
-                        'icon': 'chevron-right',
-                        'class': 'info',
-                        'title': _('Redirect slugs'),
-                        'value': slug,
-                    })
-                for slug in removed_redirects.get(obj.pk, ()):
-                    changes.append({
-                        'icon': 'chevron-left',
-                        'class': 'info',
-                        'title': _('Redirect slugs'),
-                        'value': slug,
-                    })
 
             if changed_object.deleted:
                 changes.append({
