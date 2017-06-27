@@ -11,6 +11,11 @@ from c3nav.editor.wrappers import ModelInstanceWrapper
 from c3nav.mapdata.fields import JSONField
 
 
+class ChangedObjectManager(models.Manager):
+    def get_queryset(self):
+        return super().get_queryset().select_related('content_type')
+
+
 class ChangedObject(models.Model):
     changeset = models.ForeignKey('editor.ChangeSet', on_delete=models.CASCADE, verbose_name=_('Change Set'))
     created = models.DateTimeField(auto_now_add=True, verbose_name=_('created'))
@@ -22,10 +27,13 @@ class ChangedObject(models.Model):
     m2m_removed = JSONField(default={}, verbose_name=_('removed m2m values'))
     deleted = models.BooleanField(default=False, verbose_name=_('new field value'))
 
+    objects = ChangedObjectManager()
+
     class Meta:
         verbose_name = _('Changed object')
         verbose_name_plural = _('Changed objects')
         default_related_name = 'changed_objects_set'
+        base_manager_name = 'objects'
         unique_together = ('changeset', 'content_type', 'existing_object_pk')
         ordering = ['created', 'pk']
 
