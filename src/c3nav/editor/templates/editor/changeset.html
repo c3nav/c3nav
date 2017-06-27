@@ -15,26 +15,26 @@
 </p>
 {% bootstrap_messages %}
 
-{% for group in grouped_changes %}
+{% for obj in changed_objects %}
     <table class="table table-condensed table-h-bordered change-group">
         <thead>
             <tr>
                 <th colspan="3">
-                    {% if group.edit_url %}
-                        <a class="btn btn-default btn-xs pull-right" data-force-next-zoom href="{{ group.edit_url }}">
+                    {% if obj.edit_url %}
+                        <a class="btn btn-default btn-xs pull-right" data-force-next-zoom href="{{ obj.edit_url }}">
                             {% trans 'Edit' %}
                         </a>
                     {% endif %}
-                    {% if group.obj_title %}
-                        {{ group.obj_title }} <small>({{ group.obj }})</small>
+                    {% if obj.title %}
+                        {{ obj.title }} <small>({{ obj.desc }})</small>
                     {% else %}
-                        {{ group.obj }}
+                        {{ obj.desc }}
                     {% endif %}
                 </th>
             </tr>
         </thead>
         <tbody>
-            {% for change in group.changes %}
+            {% for change in obj.changes %}
                 <tr>
                     <td class="text-{{ change.class }}"><i class="glyphicon glyphicon-{{ change.icon }}"></i></td>
                     <td{% if change.discarded %} class="text-muted"{% endif %}>

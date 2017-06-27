@@ -71,8 +71,8 @@ def changeset_detail(request, pk):
             changed_object_data = {
                 'model': obj.__class__,
                 'model_title': obj.__class__._meta.verbose_name,
-                'obj': obj_desc,
-                'obj_title': obj.title if obj.titles else None,
+                'desc': obj_desc,
+                'title': obj.title if obj.titles else None,
                 'changes': changes,
                 'edit_url': edit_url,
                 'order': changed_object.created,
