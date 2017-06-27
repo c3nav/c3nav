@@ -271,7 +271,7 @@ class ChangeSet(models.Model):
     @property
     def last_update(self):
         if self.changed_objects is None:
-            return self.relevant_changed_objects().aggregate(Max('last_update'))['last_update__max']
+            return self.changed_objects_set.aggregate(Max('last_update'))['last_update__max']
 
         return max(chain(*self.changed_objects.values()), key=attrgetter('last_update'))
 
