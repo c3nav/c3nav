@@ -225,7 +225,7 @@ class ChangeSet(models.Model):
         if issubclass(model, ModelWrapper):
             model = model._obj
 
-        object = self.get_changed_object(model, pk)
+        object = self.get_changed_object(model(pk=pk))
         if object.deleted and not allow_deleted:
             raise model.DoesNotExist
         return object.get_obj(get_foreign_objects=get_foreign_objects)
