@@ -30,9 +30,12 @@ def changeset_detail(request, pk):
     can_edit = changeset.can_edit(request)
     can_delete = changeset.can_delete(request)
 
-    if request.method == 'POST' and can_edit:
+    if request.method == 'POST':
         restore = request.POST.get('restore')
         if restore and restore.isdigit():
+            if not can_edit:
+                raise PermissionDenied
+
             try:
                 changed_object = changeset.changed_objects_set.get(pk=restore)
             except:
