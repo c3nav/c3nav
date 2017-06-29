@@ -4,7 +4,6 @@ from operator import attrgetter
 
 from django.apps import apps
 from django.conf import settings
-from django.contrib.contenttypes.models import ContentType
 from django.db import models
 from django.db.models import Max, Q
 from django.urls import reverse
@@ -178,6 +177,10 @@ class ChangeSet(models.Model):
                     model_objects[pk] = self.get_created_object(model, pk, allow_deleted=True)._obj
             objects[model] = model_objects
 
+        # add LocationSlug objects as their correct model
+        for pk, obj in objects.get(LocationSlug, {}).items():
+            objects.setdefault(obj.__class__, {})[pk] = obj
+
         return objects
 
     """
@@ -246,13 +249,22 @@ class ChangeSet(models.Model):
     @property
     def changed_objects_count(self):
         """
-        Get the number of changed objects. Does not need a query if cache is already filled.
+        Get the number of changed objects.
         """
-        if self.changed_objects is None:
-            location_redirect_type = ContentType.objects.get_for_model(LocationRedirect)
-            return self.relevant_changed_objects().exclude(content_type=location_redirect_type).count()
+        self.fill_changes_cache()
+        count = 0
+        changed_locationslug_pks = set()
+        for model, objects in self.changed_objects.items():
+            if issubclass(model, LocationSlug):
+                if model == LocationRedirect:
+                    continue
+                changed_locationslug_pks.update(objects.keys())
+            count += len(objects)
 
-        return sum((len(objects) for model, objects in self.changed_objects.items() if model != LocationRedirect))
+        changed_locationslug_pks ^= set(obj.updated_fields['target']
+                                        for obj in self.changed_objects.get(LocationRedirect, {}).values())
+        count += len(changed_locationslug_pks)
+        return count
 
     @property
     def count_display(self):

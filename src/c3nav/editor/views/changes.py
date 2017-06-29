@@ -1,3 +1,4 @@
+from itertools import chain
 from operator import itemgetter
 
 from django.conf import settings
@@ -56,7 +57,17 @@ def changeset_detail(request, pk):
         redirect_list = (removed_redirects if changed_object.deleted else added_redirects)
         redirect_list.setdefault(values['target'], []).append(values['slug'])
 
-    for model, changed_objects in changeset.changed_objects.items():
+    redirect_changed_objects = []
+
+    for pk in set(added_redirects.keys()) | set(removed_redirects.keys()):
+        obj = objects[LocationSlug][pk]
+        model = obj.__class__
+        try:
+            changeset.changed_objects[model][pk]
+        except KeyError:
+            redirect_changed_objects.append((model, {pk: changeset.get_changed_object(obj)}))
+
+    for model, changed_objects in chain(changeset.changed_objects.items(), redirect_changed_objects):
         if model == LocationRedirect:
             continue
 
@@ -87,7 +98,7 @@ def changeset_detail(request, pk):
                 'title': obj.title if getattr(obj, 'titles', None) else None,
                 'changes': changes,
                 'edit_url': edit_url,
-                'order': changed_object.created,
+                'order': (changed_object.deleted and changed_object.is_created, not changed_object.is_created),
             }
             changed_objects_data.append(changed_object_data)
 
