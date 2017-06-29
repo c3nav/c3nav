@@ -21,6 +21,10 @@ def changeset_detail(request, pk):
     changeset = request.changeset
     if str(pk) != str(request.changeset.pk):
         changeset = get_object_or_404(ChangeSet.qs_for_request(request), pk=pk)
+
+    if not changeset.can_see(request):
+        raise Http404
+
     can_edit = changeset.can_edit(request)
 
     if request.method == 'POST' and can_edit:

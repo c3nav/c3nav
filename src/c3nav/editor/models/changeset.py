@@ -65,7 +65,19 @@ class ChangeSet(models.Model):
         if request.user.is_authenticated:
             qs = qs.filter(author=request.user)
         else:
-            qs = qs.filter(author__isnull=True)
+            qs = qs.filter(author__isnull=True, session_id=request.session.session_key)
+        return qs
+
+    @classmethod
+    def qs_for_request_editable(cls, request):
+        """
+        Returns a base QuerySet to get only changesets the current user is allowed to edit
+        """
+        qs = cls.qs_for_request(request).filter(applied__isnull=True)
+        if request.user.is_authenticated:
+            qs = qs.filter(Q(proposed__isnull=True) | Q(assigned_to=request.user))
+        else:
+            qs = qs.filter(proposed__isnull=True)
         return qs
 
     @classmethod
@@ -80,14 +92,11 @@ class ChangeSet(models.Model):
         In any case, the default autor for changes added to the queryset during
         this request will be set to the current user.
         """
-        qs = cls.qs_for_request(request)
+        qs = cls.qs_for_request_editable(request)
 
         if request.session.session_key is not None:
             changeset = qs.filter(session_id=request.session.session_key).first()
             if changeset is not None:
-                if changeset.author_id is None and request.user.is_authenticated:
-                    changeset.author = request.user
-                    changeset.save()
                 return changeset
 
         new_changeset = cls()
@@ -251,9 +260,18 @@ class ChangeSet(models.Model):
     def editable(self):
         return self.applied is None
 
+    def can_see(self, request):
+        return self.session_id == request.session.session_key or self.author_id is request.user.pk
+
     def can_edit(self, request):
         return (self.editable and self.session_id == request.session.session_key and
                 (self.proposed is None or self.assigned_to_id is request.user.pk))
+
+    def can_propose(self, request):
+        return self.author_id == request.user.pk and self.proposed is None
+
+    def can_unpropose(self, request):
+        return self.proposed is not None and self.assigned_to_id is None and self.author_id == request.user.pk
 
     """
     Methods for display
