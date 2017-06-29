@@ -267,6 +267,9 @@ class ChangeSet(models.Model):
         return (self.editable and self.session_id == request.session.session_key and
                 (self.proposed is None or self.assigned_to_id is request.user.pk))
 
+    def can_delete(self, request):
+        return self.can_edit(request) and self.proposed is None
+
     def can_propose(self, request):
         return self.author_id == request.user.pk and self.proposed is None
 

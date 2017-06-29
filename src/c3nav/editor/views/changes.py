@@ -26,6 +26,7 @@ def changeset_detail(request, pk):
         raise Http404
 
     can_edit = changeset.can_edit(request)
+    can_delete = changeset.can_delete(request)
 
     if request.method == 'POST' and can_edit:
         restore = request.POST.get('restore')
@@ -43,6 +44,9 @@ def changeset_detail(request, pk):
             return redirect(reverse('editor.changesets.detail', kwargs={'pk': changeset.pk}))
 
         elif request.POST.get('delete') == '1':
+            if not changeset.can_delete(request):
+                raise PermissionDenied
+
             if request.POST.get('delete_confirm') == '1':
                 changeset.delete()
                 return redirect(reverse('editor.index'))
@@ -223,6 +227,7 @@ def changeset_detail(request, pk):
         'changeset': changeset,
         'created': created,
         'can_edit': can_edit,
+        'can_delete': can_delete,
         'changed_objects': changed_objects_data,
     }
 

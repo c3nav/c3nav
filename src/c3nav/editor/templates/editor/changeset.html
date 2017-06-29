@@ -57,7 +57,9 @@
 {% endfor %}
 
 {% buttons %}
-    <button type="submit" class="btn btn-danger" name="delete" value="1">{% trans 'Delete' %}</button>
+    {% if can_delete %}
+        <button type="submit" class="btn btn-danger" name="delete" value="1">{% trans 'Delete' %}</button>
+    {% endif %}
     <div class="pull-right">
         {% if can_edit %}
             <a href="{% url 'editor.changesets.edit' pk=changeset.pk %}" class="btn btn-default">{% trans 'Edit' %}</a>
