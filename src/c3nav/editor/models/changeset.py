@@ -3,6 +3,7 @@ from itertools import chain
 
 from django.apps import apps
 from django.conf import settings
+from django.core.cache import cache
 from django.db import models
 from django.db.models import Max, Q
 from django.urls import reverse
@@ -41,7 +42,8 @@ class ChangeSet(models.Model):
         self.deleted_existing = {}
         self.m2m_added = {}
         self.m2m_removed = {}
-        self._last_change_pk = 0
+
+        self.last_change_cache = None
 
     """
     Get Changesets for Request/Session/User
@@ -145,6 +147,8 @@ class ChangeSet(models.Model):
         self.changed_objects = {}
         for change in qs:
             change.update_changeset_cache()
+
+        self._last_change_cache = max(change.last_update for change in qs)
 
         return True
 
@@ -281,17 +285,30 @@ class ChangeSet(models.Model):
         return _('Changeset #%d') % self.pk
 
     @property
-    def last_update(self):
-        if self.changed_objects is None:
-            return self.changed_objects_set.aggregate(Max('last_update'))['last_update__max']
+    def last_change(self):
+        last_change = cache.get('changeset:%s:last_change' % self.pk)
+        if last_change is None:
+            # was not in cache, calculate it
+            try:
+                last_change = self.changed_objects_set.aggregate(Max('last_update'))['last_update__max']
+            except ChangedObject.DoesNotExist:
+                last_change = self.created
+        elif self.last_change_cache is None or self.last_change_cache <= last_change:
+            # was in cache and our local value (if we had one) is not newer
+            return last_change
+        else:
+            # our local value is newer
+            last_change = self.last_change_cache
 
-        return max(chain(*self.changed_objects.values()), key=attrgetter('last_update'))
+        # update cache
+        cache.set('changeset:%s:last_change' % self.pk, last_change, 900)
+        return last_change
 
     @property
     def cache_key(self):
         if self.pk is None:
             return None
-        return str(self.pk)+'-'+str(self.last_update)
+        return str(self.pk)+'-'+str(self.last_change)
 
     def get_absolute_url(self):
         if self.pk is None:

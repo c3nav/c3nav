@@ -2,6 +2,7 @@ import typing
 from itertools import chain
 
 from django.contrib.contenttypes.models import ContentType
+from django.core.cache import cache
 from django.db import models
 from django.db.models import Field
 from django.utils.translation import ugettext_lazy as _
@@ -275,6 +276,7 @@ class ChangedObject(models.Model):
             self.update_changeset_cache()
         if not self.stale or self.pk is not None:
             super().save(*args, **kwargs)
+            cache.set('changeset:%s:last_change' % self.changeset_id, self.last_update, 900)
 
     def delete(self, **kwargs):
         raise TypeError('changed objects can not be deleted directly.')
