@@ -8,7 +8,6 @@ from django.db import models
 from django.db.models import FieldDoesNotExist, Manager, ManyToManyRel, Prefetch, Q
 from django.utils.functional import cached_property
 
-from c3nav.editor.forms import create_editor_form
 from c3nav.editor.utils import is_created_pk
 from c3nav.mapdata.utils.models import get_submodels
 
@@ -122,6 +121,7 @@ class ModelWrapper(BaseWrapper):
         """
         Returns an editor form for this model.
         """
+        from c3nav.editor.forms import create_editor_form
         return create_editor_form(self._obj)
 
     @cached_property

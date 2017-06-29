@@ -1,0 +1,27 @@
+{% load bootstrap3 %}
+{% load i18n %}
+
+{% include 'editor/fragment_modal_close.html' %}
+<h3>
+    {% if changeset.title %}
+        {{ changeset.title }}
+    {% else %}
+        {% with id=changeset.pk %}
+            {% blocktrans %}Changeset #{{ id }}{% endblocktrans %}
+        {% endwith %}
+    {% endif %}
+</h3>
+<form method="post" action="{{ request.path }}">
+{% csrf_token %}
+
+<form action="{{ path }}" method="post">
+    {% csrf_token %}
+    {% bootstrap_form form %}
+
+    {% buttons %}
+        <a href="{% url 'editor.changesets.detail' pk=changeset.pk %}" class="btn btn-default">{% trans 'Back' %}</a>
+        <div class="pull-right">
+            <button type="submit" class="btn btn-primary">{% trans 'Save' %}</button>
+        </div>
+    {% endbuttons %}
+</form>

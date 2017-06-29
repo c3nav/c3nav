@@ -7,6 +7,8 @@ from django.forms.widgets import HiddenInput
 from django.utils.translation import ugettext_lazy as _
 from shapely.geometry.geo import mapping
 
+from c3nav.editor.models import ChangeSet
+
 
 class MapitemFormMixin(ModelForm):
     def __init__(self, *args, request=None, **kwargs):
@@ -104,3 +106,9 @@ def create_editor_form(editor_model):
 
     EditorForm.__name__ = editor_model.__name__+'EditorForm'
     return EditorForm
+
+
+class ChangeSetForm(ModelForm):
+    class Meta:
+        model = ChangeSet
+        fields = ('title', 'description')

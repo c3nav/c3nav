@@ -3,11 +3,13 @@ from operator import itemgetter
 
 from django.conf import settings
 from django.contrib import messages
+from django.core.exceptions import PermissionDenied
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.utils.formats import date_format
 from django.utils.translation import ugettext_lazy as _
 
+from c3nav.editor.forms import ChangeSetForm
 from c3nav.editor.models import ChangeSet
 from c3nav.editor.utils import is_created_pk
 from c3nav.editor.views.base import sidebar_view
@@ -203,15 +205,42 @@ def changeset_detail(request, pk):
     changed_objects_data = sorted(changed_objects_data, key=itemgetter('order'))
 
     if changeset.author:
-        desc = _('created at %(datetime)s by') % {'datetime': date_format(changeset.created, 'DATETIME_FORMAT')}
+        created = _('created at %(datetime)s by') % {'datetime': date_format(changeset.created, 'DATETIME_FORMAT')}
     else:
-        desc = _('created at %(datetime)s') % {'datetime': date_format(changeset.created, 'DATETIME_FORMAT')}
+        created = _('created at %(datetime)s') % {'datetime': date_format(changeset.created, 'DATETIME_FORMAT')}
 
     ctx = {
         'pk': changeset.pk,
         'changeset': changeset,
-        'desc': desc,
+        'created': created,
+        'can_edit': can_edit,
         'changed_objects': changed_objects_data,
     }
 
     return render(request, 'editor/changeset.html', ctx)
+
+
+@sidebar_view
+def changeset_edit(request, pk):
+    can_edit = True
+    changeset = request.changeset
+
+    if str(pk) != str(request.changeset.pk):
+        can_edit = False
+        changeset = get_object_or_404(ChangeSet.qs_for_request(request), pk=pk)
+
+    if not can_edit:
+        raise PermissionDenied
+
+    if request.method == 'POST':
+        form = ChangeSetForm(instance=changeset, data=request.POST)
+        if form.is_valid():
+            form.save()
+            return redirect(reverse('editor.changesets.detail', kwargs={'pk': changeset.pk}))
+    else:
+        form = ChangeSetForm(instance=changeset)
+
+    return render(request, 'editor/changeset_edit.html', {
+        'changeset': changeset,
+        'form': form,
+    })

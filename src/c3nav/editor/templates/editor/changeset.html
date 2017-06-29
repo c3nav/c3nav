@@ -2,17 +2,22 @@
 {% load i18n %}
 
 {% include 'editor/fragment_modal_close.html' %}
-<h3>{{ changeset.title }}</h3>
+<h3>
+    {% if changeset.title %}
+        {{ changeset.title }}
+    {% else %}
+        {% with id=changeset.pk %}
+            {% blocktrans %}Changeset #{{ id }}{% endblocktrans %}
+        {% endwith %}
+    {% endif %}
+</h3>
 <form method="post" action="{{ request.path }}">
 {% csrf_token %}
-<p class="text-muted">{{ desc }}{% if changeset.author %} {{ changeset.author.username }}{% endif %}</p>
-<p><em>No description</em></p>
+<p class="text-muted">{{ created }}{% if changeset.author %} {{ changeset.author.username }}{% endif %}</p>
+{% if changeset.description %}
+    <p>{{ changeset.description }}</p>
+{% endif %}
 
-<p>
-    <a class="btn btn-default btn-xs" href="">
-        {% trans 'Edit' %}
-    </a>
-</p>
 {% bootstrap_messages %}
 
 {% for obj in changed_objects %}
@@ -62,6 +67,9 @@
 {% buttons %}
     <button type="submit" class="btn btn-danger" name="delete" value="1">{% trans 'Delete' %}</button>
     <div class="pull-right">
+        {% if can_edit %}
+            <a href="{% url 'editor.changesets.edit' pk=pk %}" class="btn btn-default">{% trans 'Edit' %}</a>
+        {% endif %}
         <button type="submit" class="btn btn-primary" name="propose" value="1">{% trans 'Propose' %}</button>
     </div>
 {% endbuttons %}

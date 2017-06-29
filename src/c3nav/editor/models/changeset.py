@@ -21,6 +21,8 @@ from c3nav.mapdata.utils.models import get_submodels
 class ChangeSet(models.Model):
     created = models.DateTimeField(auto_now_add=True, verbose_name=_('created'))
     author = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, on_delete=models.PROTECT, verbose_name=_('Author'))
+    title = models.CharField(max_length=100, default='',  verbose_name=_('Title'))
+    description = models.TextField(max_length=1000, default='', verbose_name=_('Description'))
     session_id = models.CharField(unique=True, null=True, max_length=32)
     proposed = models.DateTimeField(null=True, verbose_name=_('proposed'))
     applied = models.DateTimeField(null=True, verbose_name=_('applied'))
@@ -276,12 +278,6 @@ class ChangeSet(models.Model):
             return _('No changed objects')
         return (ungettext_lazy('%(num)d changed object', '%(num)d changed objects', 'num') %
                 {'num': self.changed_objects_count})
-
-    @property
-    def title(self):
-        if self.pk is None:
-            return ''
-        return _('Changeset #%d') % self.pk
 
     @property
     def last_change(self):
