@@ -19,6 +19,7 @@
         <br>{% with date=changeset.proposed|date:"DATETIME_FORMAT" %}{% blocktrans %}proposed at {{ date }}{% endblocktrans %}{% endwith %}
     {% endif %}
 </p>
+{% bootstrap_messages %}
 {% if changeset.description %}
     <p>{{ changeset.description }}</p>
 {% endif %}
@@ -35,8 +36,6 @@
         {% endif %}
     {% endif %}
 {% endif %}
-
-{% bootstrap_messages %}
 
 {% for obj in changed_objects %}
     <table class="table table-condensed table-h-bordered change-group">
