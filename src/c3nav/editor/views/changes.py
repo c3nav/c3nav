@@ -18,11 +18,10 @@ from c3nav.mapdata.models.locations import LocationRedirect, LocationSlug
 
 @sidebar_view
 def changeset_detail(request, pk):
-    can_edit = True
     changeset = request.changeset
     if str(pk) != str(request.changeset.pk):
-        can_edit = False
         changeset = get_object_or_404(ChangeSet.qs_for_request(request), pk=pk)
+    can_edit = changeset.can_edit(request)
 
     if request.method == 'POST' and can_edit:
         restore = request.POST.get('restore')
@@ -228,14 +227,11 @@ def changeset_detail(request, pk):
 
 @sidebar_view
 def changeset_edit(request, pk):
-    can_edit = True
     changeset = request.changeset
-
     if str(pk) != str(request.changeset.pk):
-        can_edit = False
         changeset = get_object_or_404(ChangeSet.qs_for_request(request), pk=pk)
 
-    if not can_edit:
+    if not changeset.can_edit(request):
         raise PermissionDenied
 
     if request.method == 'POST':

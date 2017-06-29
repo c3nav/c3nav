@@ -187,9 +187,6 @@ class ChangeSet(models.Model):
 
         return objects
 
-    """
-    Lookup changes and created objects
-    """
     def get_changed_values(self, model: models.Model, name: str) -> tuple:
         """
         Get all changes values for a specific field on existing models
@@ -246,6 +243,17 @@ class ChangeSet(models.Model):
         if issubclass(model, ModelWrapper):
             model = model._obj
         return set(self.created_objects.get(model, {}).keys())
+
+    """
+    Permissions
+    """
+    @property
+    def editable(self):
+        return self.applied is None
+
+    def can_edit(self, request):
+        return (self.editable and self.session_id == request.session.session_key and
+                (self.proposed is None or self.assigned_to_id is request.user.pk))
 
     """
     Methods for display
