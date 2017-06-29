@@ -263,7 +263,7 @@ class ChangeSet(models.Model):
                 if model == LocationRedirect:
                     continue
                 changed_locationslug_pks.update(objects.keys())
-            count += len(objects)
+            count += sum(1 for obj in objects.values() if not obj.is_created or not obj.deleted)
 
         count += len(set(obj.updated_fields['target']
                          for obj in self.changed_objects.get(LocationRedirect, {}).values()) - changed_locationslug_pks)
