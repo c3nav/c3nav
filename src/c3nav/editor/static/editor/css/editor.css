@@ -93,6 +93,10 @@ a.list-group-item .badge {
 .itemtable td:first-child {
     padding-left:0;
 }
+.itemtable td:last-child {
+    text-align:right;
+    padding-right:0;
+}
 .itemtable tr.highlight td {
     background-color:#FFFFDD;
 }
