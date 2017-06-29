@@ -63,6 +63,7 @@ def changeset_detail(request, pk):
         elif request.POST.get('unpropose') == '1':
             if changeset.can_unpropose(request):
                 changeset.proposed = None
+                changeset.assigned_to = None
                 changeset.session_id = None
                 changeset.save()
                 messages.success(request, _('You unproposed your changes.'))
