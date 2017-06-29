@@ -1,6 +1,5 @@
 from collections import OrderedDict
 from itertools import chain
-from operator import attrgetter
 
 from django.apps import apps
 from django.conf import settings
@@ -120,7 +119,7 @@ class ChangeSet(models.Model):
         return self.wrap_model(instance.__class__).create_wrapped_model_class()(self, instance)
 
     def relevant_changed_objects(self):
-        return self.changed_objects_set.exclude(existing_object_pk__isnull=True, deleted=True)
+        return self.changed_objects_set.exclude(stale=True).exclude(existing_object_pk__isnull=True, deleted=True)
 
     def fill_changes_cache(self, include_deleted_created=False):
         """
@@ -139,7 +138,7 @@ class ChangeSet(models.Model):
             return False
 
         if include_deleted_created:
-            qs = self.changed_objects_set.all()
+            qs = self.changed_objects_set.exclude(stale=True)
         else:
             qs = self.relevant_changed_objects()
 

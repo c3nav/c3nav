@@ -25,7 +25,8 @@ class ChangedObject(models.Model):
     updated_fields = JSONField(default={}, verbose_name=_('updated fields'))
     m2m_added = JSONField(default={}, verbose_name=_('added m2m values'))
     m2m_removed = JSONField(default={}, verbose_name=_('removed m2m values'))
-    deleted = models.BooleanField(default=False, verbose_name=_('new field value'))
+    deleted = models.BooleanField(default=False, verbose_name=_('object was deleted'))
+    stale = models.BooleanField(default=False, verbose_name=_('stale'))
 
     objects = ChangedObjectManager()
 
@@ -107,7 +108,10 @@ class ChangedObject(models.Model):
         model = self.model_class
         pk = self.obj_pk
 
-        self.changeset.changed_objects.setdefault(model, {})[pk] = self
+        if not self.stale:
+            self.changeset.changed_objects.setdefault(model, {})[pk] = self
+        else:
+            self.changeset.changed_objects.get(model, {}).pop(pk, None)
 
         if self.is_created:
             if not self.deleted:
@@ -257,19 +261,23 @@ class ChangedObject(models.Model):
     def save(self, *args, **kwargs):
         if self.changeset.proposed is not None or self.changeset.applied is not None:
             raise TypeError('can not add change object to uneditable changeset.')
-        if not self.does_something:
-            if self.pk is not None:
-                self.delete()
-            return False
-        if self.changeset.pk is None:
-            self.changeset.save()
-            self.changeset = self.changeset
         self.m2m_added = {name: tuple(values) for name, values in self._m2m_added_cache.items()}
         self.m2m_removed = {name: tuple(values) for name, values in self._m2m_removed_cache.items()}
-        super().save(*args, **kwargs)
+        if not self.does_something:
+            self.stale = True
+        if not self.stale:
+            if self.changeset.pk is None:
+                self.changeset.save()
+                self.changeset = self.changeset
+        else:
+            self.existing_object_pk = None
         if not self.changeset.fill_changes_cache():
             self.update_changeset_cache()
-        return True
+        if not self.stale or self.pk is not None:
+            super().save(*args, **kwargs)
+
+    def delete(self, **kwargs):
+        raise TypeError('changed objects can not be deleted directly.')
 
     def __repr__(self):
         return '<ChangedObject #%s on ChangeSet #%s>' % (str(self.pk), str(self.changeset_id))
