@@ -8,7 +8,6 @@ from django.http import Http404
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.utils import timezone
-from django.utils.formats import date_format
 from django.utils.translation import ugettext_lazy as _
 
 from c3nav.editor.forms import ChangeSetForm
@@ -250,14 +249,8 @@ def changeset_detail(request, pk):
 
     changed_objects_data = sorted(changed_objects_data, key=itemgetter('order'))
 
-    if changeset.author:
-        created = _('created at %(datetime)s by') % {'datetime': date_format(changeset.created, 'DATETIME_FORMAT')}
-    else:
-        created = _('created at %(datetime)s') % {'datetime': date_format(changeset.created, 'DATETIME_FORMAT')}
-
     ctx = {
         'changeset': changeset,
-        'created': created,
         'can_edit': can_edit,
         'can_delete': can_delete,
         'can_unpropose': changeset.can_unpropose(request),

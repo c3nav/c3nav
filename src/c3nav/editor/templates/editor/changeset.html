@@ -14,9 +14,15 @@
 <form method="post" action="{{ request.path }}">
 {% csrf_token %}
 <p class="text-muted">
-    {{ created }}{% if changeset.author %} {{ changeset.author.username }}{% endif %}
+    {% with datetime=changeset.created|date:"DATETIME_FORMAT" author=changeset.author %}
+        {% if author %}
+            {% blocktrans %}created at {{ datetime }} by {{ author }}{% endblocktrans %}
+        {% else %}
+            {% blocktrans %}created at {{ datetime }}{% endblocktrans %}
+        {% endif %}
+    {% endwith %}
     {% if changeset.proposed %}
-        <br>{% with date=changeset.proposed|date:"DATETIME_FORMAT" %}{% blocktrans %}proposed at {{ date }}{% endblocktrans %}{% endwith %}
+        <br>{% with datetime=changeset.proposed|date:"DATETIME_FORMAT" %}{% blocktrans %}proposed at {{ datetime }}{% endblocktrans %}{% endwith %}
     {% endif %}
 </p>
 {% bootstrap_messages %}
