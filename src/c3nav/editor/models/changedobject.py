@@ -117,7 +117,6 @@ class ChangedObject(models.Model):
         if self.is_created:
             if not self.deleted:
                 self.changeset.created_objects.setdefault(model, {})[pk] = self.updated_fields
-            self.changeset.ever_created_objects.setdefault(model, {})[pk] = self.updated_fields
         else:
             if not self.deleted:
                 self.changeset.updated_existing.setdefault(model, {})[pk] = self.updated_fields

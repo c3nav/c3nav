@@ -36,7 +36,6 @@ class ChangeSet(models.Model):
         super().__init__(*args, **kwargs)
         self.changed_objects = None
 
-        self.ever_created_objects = {}
         self.created_objects = {}
         self.updated_existing = {}
         self.deleted_existing = {}
