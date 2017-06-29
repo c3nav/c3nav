@@ -146,8 +146,12 @@ class ChangedObject(models.Model):
                 setattr(instance, field.name, field.to_python(value))
             elif field.many_to_one or field.one_to_one:
                 if is_created_pk(value):
-                    obj = self.changeset.get_created_object(field.related_model, value, allow_deleted=True)
-                    setattr(instance, field.get_cache_name(), obj)
+                    try:
+                        obj = self.changeset.get_created_object(field.related_model, value, allow_deleted=True)
+                    except field.related_model.DoesNotExist:
+                        pass
+                    else:
+                        setattr(instance, field.get_cache_name(), obj)
                 else:
                     try:
                         delattr(instance, field.get_cache_name())
