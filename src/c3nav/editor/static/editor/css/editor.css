@@ -92,10 +92,6 @@ a.list-group-item .badge {
 .itemtable td:first-child {
     padding-left:0;
 }
-.itemtable td:last-child {
-    padding-right:0;
-    text-align:right;
-}
 .itemtable tr.highlight td {
     background-color:#FFFFDD;
 }
@@ -156,34 +152,6 @@ form button.invisiblesubmit {
 .change-group tr td:first-child {
     width:23px;
     padding-right:0;
-}
-.change-group tr td:last-child {
-    white-space:nowrap;
-    text-align:right;
-}
-.change-group tr td .glyphicon {
-    top:2px;
-}
-.change-group tr td .tooltip {
-    font-size:14px;
-    margin-top: -1px;
-}
-.change-group tr td:last-child .btn {
-    margin-top: -6px;
-    margin-bottom: -2px;
-    margin-left: 5px;
-    margin-right: -5px;
-}
-.change-group .glyphicon-share-alt {
-    transform: scale(-1, 1);
-    -webkit-transform: scale(-1, 1);
-}
-.change-group tr td:last-child>i:last-child {
-    margin-right: -2px;
-}
-.change-group tr td:last-child>i {
-    margin-left: 7px;
-    margin-right: -2px;
 }
 
 /* Styles inside leaflet */

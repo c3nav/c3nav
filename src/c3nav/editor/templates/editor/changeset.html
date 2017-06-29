@@ -24,11 +24,15 @@
     <table class="table table-condensed table-h-bordered change-group">
         <thead>
             <tr>
-                <th colspan="3">
+                <th colspan="2">
                     {% if obj.edit_url %}
                         <a class="btn btn-default btn-xs pull-right" data-force-next-zoom href="{{ obj.edit_url }}">
                             {% trans 'Edit' %}
                         </a>
+                    {% elif obj.deleted and can_edit %}
+                        <button type="submit" name="restore" value="{{ obj.pk }}" class="btn btn-warning btn-xs pull-right">
+                            {% trans 'Restore' %}
+                        </button>
                     {% endif %}
                     {% if obj.title %}
                         {{ obj.title }} <small>({{ obj.desc }})</small>
@@ -42,21 +46,9 @@
             {% for change in obj.changes %}
                 <tr>
                     <td class="text-{{ change.class }}"><i class="glyphicon glyphicon-{{ change.icon }}"></i></td>
-                    <td{% if change.discarded %} class="text-muted"{% endif %}>
+                    <td{% if obj.deleted and change.icon != 'minus' %} class="text-muted"{% endif %}>
                         {% if change.value %}<u>{% else %}<em>{% endif %}{{ change.title }}{% if change.value %}</u>:{% else %}</em>{% endif %}
                         {{ change.value }}
-                    </td>
-                    <td class="text-muted">
-                        {% if change.apply_problem %}
-                            <i class="glyphicon glyphicon-alert text-danger" data-toggle="tooltip" data-placement="left" title="{{ change.apply_problem }}"></i>
-                        {% elif change.has_no_effect %}
-                            <i class="glyphicon glyphicon-ok text-success" data-toggle="tooltip" data-placement="left" title="{% trans 'This change has no effect. You can restore it.' %}"></i>
-                        {% endif %}
-                        {% if change.can_restore %}
-                            <button type="submit" name="restore" value="{{ change.pk }}" class="btn btn-xs btn-default" data-toggle="tooltip" data-placement="left" title="{% trans 'Restore original state' %}">
-                                <i class="glyphicon glyphicon-share-alt"></i>
-                            </button>
-                        {% endif %}
                     </td>
                 </tr>
             {% endfor %}
@@ -68,7 +60,7 @@
     <button type="submit" class="btn btn-danger" name="delete" value="1">{% trans 'Delete' %}</button>
     <div class="pull-right">
         {% if can_edit %}
-            <a href="{% url 'editor.changesets.edit' pk=pk %}" class="btn btn-default">{% trans 'Edit' %}</a>
+            <a href="{% url 'editor.changesets.edit' pk=changeset.pk %}" class="btn btn-default">{% trans 'Edit' %}</a>
         {% endif %}
         <button type="submit" class="btn btn-primary" name="propose" value="1">{% trans 'Propose' %}</button>
     </div>

@@ -24,15 +24,20 @@ def changeset_detail(request, pk):
         can_edit = False
         changeset = get_object_or_404(ChangeSet.qs_for_request(request), pk=pk)
 
-    if request.method == 'POST':
+    if request.method == 'POST' and can_edit:
         restore = request.POST.get('restore')
         if restore and restore.isdigit():
-            change = changeset.changes.filter(pk=restore).first()
-            if change is not None and change.can_restore:
-                if request.POST.get('restore_confirm') != '1':
-                    return render(request, 'editor/changeset_restore_confirm.html', {'pk': change.pk})
-                change.restore(request.user if request.user.is_authenticated else None)
-                messages.success(request, _('Original state has been restored!'))
+            try:
+                changed_object = changeset.changed_objects_set.get(pk=restore)
+            except:
+                pass
+            else:
+                if changed_object.deleted:
+                    changed_object.deleted = False
+                    changed_object.save(standalone=True)
+                messages.success(request, _('Object has been successfully restored!'))
+
+            return redirect(reverse('editor.changesets.detail', kwargs={'pk': changeset.pk}))
 
         elif request.POST.get('delete') == '1':
             if request.POST.get('delete_confirm') == '1':
@@ -78,7 +83,7 @@ def changeset_detail(request, pk):
 
             obj_desc = _('%(model)s #%(id)s') % {'model': obj.__class__._meta.verbose_name, 'id': pk}
             if is_created_pk(pk):
-                obj_still_exists = pk in changeset.created_objects[obj.__class__]
+                obj_still_exists = pk in changeset.created_objects.get(obj.__class__, ())
             else:
                 obj_still_exists = pk not in changeset.deleted_existing.get(obj.__class__, ())
 
@@ -96,10 +101,12 @@ def changeset_detail(request, pk):
             changed_object_data = {
                 'model': obj.__class__,
                 'model_title': obj.__class__._meta.verbose_name,
+                'pk': changed_object.pk,
                 'desc': obj_desc,
                 'title': obj.title if getattr(obj, 'titles', None) else None,
                 'changes': changes,
                 'edit_url': edit_url,
+                'deleted': changed_object.deleted,
                 'order': (changed_object.deleted and changed_object.is_created, not changed_object.is_created),
             }
             changed_objects_data.append(changed_object_data)
@@ -210,7 +217,6 @@ def changeset_detail(request, pk):
         created = _('created at %(datetime)s') % {'datetime': date_format(changeset.created, 'DATETIME_FORMAT')}
 
     ctx = {
-        'pk': changeset.pk,
         'changeset': changeset,
         'created': created,
         'can_edit': can_edit,

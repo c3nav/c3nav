@@ -146,7 +146,7 @@ class ChangedObject(models.Model):
                 setattr(instance, field.name, field.to_python(value))
             elif field.many_to_one or field.one_to_one:
                 if is_created_pk(value):
-                    obj = self.changeset.get_created_object(field.related_model, value)
+                    obj = self.changeset.get_created_object(field.related_model, value, allow_deleted=True)
                     setattr(instance, field.get_cache_name(), obj)
                 else:
                     try:
@@ -258,7 +258,7 @@ class ChangedObject(models.Model):
         return (self.updated_fields or self._m2m_added_cache or self._m2m_removed_cache or self.is_created or
                 (not self.is_created and self.deleted))
 
-    def save(self, *args, **kwargs):
+    def save(self, *args, standalone=False, **kwargs):
         if self.changeset.proposed is not None or self.changeset.applied is not None:
             raise TypeError('can not add change object to uneditable changeset.')
         self.m2m_added = {name: tuple(values) for name, values in self._m2m_added_cache.items()}
@@ -266,12 +266,12 @@ class ChangedObject(models.Model):
         if not self.does_something:
             self.stale = True
         if not self.stale:
-            if self.changeset.pk is None:
+            if not standalone and self.changeset.pk is None:
                 self.changeset.save()
                 self.changeset = self.changeset
         else:
             self.existing_object_pk = None
-        if not self.changeset.fill_changes_cache():
+        if not standalone and not self.changeset.fill_changes_cache():
             self.update_changeset_cache()
         if not self.stale or self.pk is not None:
             super().save(*args, **kwargs)
