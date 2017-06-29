@@ -25,9 +25,9 @@ class ChangeSet(models.Model):
     description = models.TextField(max_length=1000, default='', verbose_name=_('Description'))
     session_id = models.CharField(unique=True, null=True, max_length=32)
     proposed = models.DateTimeField(null=True, verbose_name=_('proposed'))
+    assigned_to = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, on_delete=models.PROTECT,
+                                    related_name='assigned_changesets', verbose_name=_('assigned to'))
     applied = models.DateTimeField(null=True, verbose_name=_('applied'))
-    applied_by = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, on_delete=models.PROTECT,
-                                   related_name='applied_changesets', verbose_name=_('applied by'))
 
     class Meta:
         verbose_name = _('Change Set')
