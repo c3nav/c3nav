@@ -261,9 +261,8 @@ class ChangeSet(models.Model):
                 changed_locationslug_pks.update(objects.keys())
             count += len(objects)
 
-        changed_locationslug_pks ^= set(obj.updated_fields['target']
-                                        for obj in self.changed_objects.get(LocationRedirect, {}).values())
-        count += len(changed_locationslug_pks)
+        count += len(set(obj.updated_fields['target']
+                         for obj in self.changed_objects.get(LocationRedirect, {}).values()) - changed_locationslug_pks)
         return count
 
     @property
