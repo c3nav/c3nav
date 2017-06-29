@@ -4,8 +4,10 @@ from operator import itemgetter
 from django.conf import settings
 from django.contrib import messages
 from django.core.exceptions import PermissionDenied
+from django.http import Http404
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
+from django.utils import timezone
 from django.utils.formats import date_format
 from django.utils.translation import ugettext_lazy as _
 
@@ -39,7 +41,33 @@ def changeset_detail(request, pk):
                 if changed_object.deleted:
                     changed_object.deleted = False
                     changed_object.save(standalone=True)
-                messages.success(request, _('Object has been successfully restored!'))
+                messages.success(request, _('Object has been successfully restored.'))
+
+            return redirect(reverse('editor.changesets.detail', kwargs={'pk': changeset.pk}))
+
+        elif request.POST.get('propose') == '1':
+            if not request.user.is_authenticated:
+                messages.info(request, _('You need to log in to propose changes.'))
+                return redirect(reverse('editor.login')+'?redirect='+request.path)
+
+            if changeset.can_propose(request):
+                changeset.proposed = timezone.now()
+                changeset.session_id = None
+                changeset.save()
+                messages.success(request, _('You proposed your changes.'))
+            else:
+                messages.error(request, _('You cannot propose this changeset.'))
+
+            return redirect(reverse('editor.changesets.detail', kwargs={'pk': changeset.pk}))
+
+        elif request.POST.get('unpropose') == '1':
+            if changeset.can_unpropose(request):
+                changeset.proposed = None
+                changeset.session_id = None
+                changeset.save()
+                messages.success(request, _('You unproposed your changes.'))
+            else:
+                messages.error(request, _('You cannot unpropose this changeset.'))
 
             return redirect(reverse('editor.changesets.detail', kwargs={'pk': changeset.pk}))
 
@@ -228,6 +256,7 @@ def changeset_detail(request, pk):
         'created': created,
         'can_edit': can_edit,
         'can_delete': can_delete,
+        'can_unpropose': changeset.can_unpropose(request),
         'changed_objects': changed_objects_data,
     }
 

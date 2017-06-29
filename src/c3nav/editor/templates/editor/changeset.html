@@ -13,9 +13,27 @@
 </h3>
 <form method="post" action="{{ request.path }}">
 {% csrf_token %}
-<p class="text-muted">{{ created }}{% if changeset.author %} {{ changeset.author.username }}{% endif %}</p>
+<p class="text-muted">
+    {{ created }}{% if changeset.author %} {{ changeset.author.username }}{% endif %}
+    {% if changeset.proposed %}
+        <br>{% with date=changeset.proposed|date:"DATETIME_FORMAT" %}{% blocktrans %}proposed at {{ date }}{% endblocktrans %}{% endwith %}
+    {% endif %}
+</p>
 {% if changeset.description %}
     <p>{{ changeset.description }}</p>
+{% endif %}
+{% if changeset.author == request.user %}
+    {% if changeset.proposed and not changeset.applied %}
+        {% if not changeset.assigned_to %}
+            <p class="text-success">
+                {% blocktrans %}Your changes are currently waiting for review. As long as no reviewer has been assigned to your changes, you can still unpropose and edit them.{% endblocktrans %}
+            </p>
+        {% else %}
+            <p class="text-success">
+                {% blocktrans %}Your changes are currently being reviewed.{% endblocktrans %}
+            </p>
+        {% endif %}
+    {% endif %}
 {% endif %}
 
 {% bootstrap_messages %}
@@ -64,7 +82,12 @@
         {% if can_edit %}
             <a href="{% url 'editor.changesets.edit' pk=changeset.pk %}" class="btn btn-default">{% trans 'Edit' %}</a>
         {% endif %}
-        <button type="submit" class="btn btn-primary" name="propose" value="1">{% trans 'Propose' %}</button>
+        {% if can_edit and not changeset.proposed %}
+            <button type="submit" class="btn btn-primary" name="propose" value="1">{% trans 'Propose' %}</button>
+        {% endif %}
+        {% if can_unpropose %}
+            <button type="submit" class="btn btn-default" name="unpropose" value="1">{% trans 'Unpropose' %}</button>
+        {% endif %}
     </div>
 {% endbuttons %}
 </form>

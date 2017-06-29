@@ -4,6 +4,8 @@
 {% include 'editor/fragment_modal_close.html' %}
 <h3>{% trans 'Log in' %}</h3>
 
+{% bootstrap_messages %}
+
 <form method="post" action="{{ request.path_info }}?{{ request.GET.urlencode }}">
     {% csrf_token %}
     {% bootstrap_form form %}
