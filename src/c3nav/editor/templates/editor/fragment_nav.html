@@ -4,7 +4,7 @@
     <li><a href="{{ request.changeset.get_absolute_url }}">{{ request.changeset.count_display }}</a></li>
     {% if request.user.is_authenticated %}
         <li class="logged_in_user">
-            <a>{{ request.user.username }}</a>
+            <a href="{% url 'editor.users.detail' pk=request.user.pk %}">{{ request.user.username }}</a>
         </li>
     {% endif %}
     <li class="login_logout">
