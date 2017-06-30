@@ -16,7 +16,8 @@
 <p class="text-muted">
     {% with datetime=changeset.created|date:"DATETIME_FORMAT" author=changeset.author %}
         {% if author %}
-            {% blocktrans %}created at {{ datetime }} by {{ author }}{% endblocktrans %}
+            {% url 'editor.users.detail' pk=changeset.author.pk as author_url %}
+            {% blocktrans %}created at {{ datetime }} by <a href="{{ author_url }}">{{ author }}</a>{% endblocktrans %}
         {% else %}
             {% blocktrans %}created at {{ datetime }}{% endblocktrans %}
         {% endif %}
