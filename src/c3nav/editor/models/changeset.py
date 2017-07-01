@@ -19,15 +19,22 @@ from c3nav.mapdata.utils.models import get_submodels
 
 
 class ChangeSet(models.Model):
+    STATES = (
+        ('unproposed', _('unproposed')),
+        ('proposed', _('proposed')),
+        ('review', _('in review')),
+        ('rejected', _('rejected')),
+        ('finallyrejected', _('finally rejected')),
+        ('applied', _('accepted')),
+    )
     created = models.DateTimeField(auto_now_add=True, verbose_name=_('created'))
+    state = models.CharField(max_length=20, choices=STATES, default='unproposed')
     author = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, on_delete=models.PROTECT, verbose_name=_('Author'))
-    title = models.CharField(max_length=100, default='',  verbose_name=_('Title'))
+    title = models.CharField(max_length=100, default='', verbose_name=_('Title'))
     description = models.TextField(max_length=1000, default='', verbose_name=_('Description'))
     session_id = models.CharField(unique=True, null=True, max_length=32)
-    proposed = models.DateTimeField(null=True, verbose_name=_('proposed'))
     assigned_to = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, on_delete=models.PROTECT,
                                     related_name='assigned_changesets', verbose_name=_('assigned to'))
-    applied = models.DateTimeField(null=True, verbose_name=_('applied'))
 
     class Meta:
         verbose_name = _('Change Set')
@@ -53,7 +60,7 @@ class ChangeSet(models.Model):
     def qs_base(cls, hide_applied=True):
         qs = cls.objects.select_related('author')
         if hide_applied:
-            qs = qs.filter(applied__isnull=True)
+            qs = qs.exclude(state='applied')
         return qs
 
     @classmethod
@@ -73,9 +80,10 @@ class ChangeSet(models.Model):
         """
         Returns a base QuerySet to get only changesets the current user is allowed to edit
         """
-        qs = cls.qs_for_request(request).filter(applied__isnull=True)
+        qs = cls.qs_for_request(request)
         if request.user.is_authenticated:
-            qs = qs.filter(Q(proposed__isnull=True) | Q(assigned_to=request.user))
+            qs = qs.filter(Q(state='review', assigned_to=request.user) |
+                           Q(state='unproposed', author=request.user))
         else:
             qs = qs.filter(proposed__isnull=True)
         return qs
@@ -258,23 +266,22 @@ class ChangeSet(models.Model):
     """
     @property
     def editable(self):
-        return self.applied is None
+        return self.state in ('unproposed', 'review')
 
     def can_see(self, request):
         return self.session_id == request.session.session_key or self.author_id is request.user.pk
 
     def can_edit(self, request):
-        return (self.editable and self.session_id == request.session.session_key and
-                (self.proposed is None or self.assigned_to_id is request.user.pk))
+        return (self.session_id == request.session.session_key and self.state in ('unproposed', 'review'))
 
     def can_delete(self, request):
-        return self.can_edit(request) and self.proposed is None
+        return self.can_edit(request) and self.state == 'unproposed'
 
     def can_propose(self, request):
-        return self.author_id == request.user.pk and self.proposed is None
+        return self.author_id == request.user.pk and self.state == 'unproposed'
 
     def can_unpropose(self, request):
-        return self.proposed is not None and self.assigned_to_id is None and self.author_id == request.user.pk
+        return self.author_id == request.user.pk and self.state in ('proposed', 'rejected')
 
     """
     Methods for display
@@ -344,8 +351,4 @@ class ChangeSet(models.Model):
             ('id', self.pk),
             ('author', self.author_id),
             ('created', None if self.created is None else self.created.isoformat()),
-            ('proposed', None if self.proposed is None else self.proposed.isoformat()),
-            ('applied', None if self.applied is None else self.applied.isoformat()),
-            ('applied_by', None if self.applied_by_id is None else self.applied_by_id),
-            ('changes', tuple(change.serialize() for change in self.changes.all())),
         ))
