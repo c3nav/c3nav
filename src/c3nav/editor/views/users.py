@@ -11,7 +11,7 @@ def user_detail(request, pk):
     if str(pk) != str(user.pk):
         user = get_object_or_404(User, pk=pk)
 
-    qs = ChangeSet.objects.filter(author=user)
+    qs = ChangeSet.objects.filter(author=user).order_by('-last_update')[:10]
 
     ctx = {
         'user': user,

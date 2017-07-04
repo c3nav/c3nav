@@ -157,6 +157,14 @@ form button.invisiblesubmit {
     width:23px;
     padding-right:0;
 }
+.changesettable td:first-child {
+    padding-left:0;
+    width:21px;
+}
+.changesettable td:last-child {
+    text-align:right;
+    padding-right:0;
+}
 
 /* Styles inside leaflet */
 .leaflet-container {
@@ -183,6 +191,9 @@ form button.invisiblesubmit {
 }
 .leaflet-overlay-pane .leaflet-image-layer {
     z-index:201;
+}
+.tooltip {
+    font-size:16px;
 }
 
 /* responsiveness */

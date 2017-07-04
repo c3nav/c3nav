@@ -8,15 +8,7 @@
     {% endif %}
 </h3>
 
-<h4>{% trans 'Change sets' %}</h4>
-<table class="table table-condensed itemtable">
-    {% for changeset in changesets %}
-        <tr>
-            <td>#{{ changeset.pk }}: {% if changeset.title %}{{ changeset.title }}{% else %}<em>{% trans '(no title)' %}</em>{% endif %}</td>
-            <td><a href="{% url 'editor.changesets.detail' pk=changeset.pk %}">{% trans 'Details' %}</a></td>
-        </tr>
-    {% endfor %}
-</table>
-
+<h4>{% trans 'Recent change sets' %}</h4>
+{% include 'editor/fragment_changesets.html' %}
 
 
