@@ -85,7 +85,7 @@ class ChangeSet(models.Model):
             qs = qs.filter(Q(state='review', assigned_to=request.user) |
                            Q(state='unproposed', author=request.user))
         else:
-            qs = qs.filter(proposed__isnull=True)
+            qs = qs.filter(state='unproposed')
         return qs
 
     @classmethod
