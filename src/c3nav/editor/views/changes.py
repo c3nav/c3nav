@@ -7,7 +7,6 @@ from django.core.exceptions import PermissionDenied
 from django.http import Http404
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
-from django.utils import timezone
 from django.utils.translation import ugettext_lazy as _
 
 from c3nav.editor.forms import ChangeSetForm
@@ -26,17 +25,14 @@ def changeset_detail(request, pk):
     if not changeset.can_see(request):
         raise Http404
 
-    can_edit = changeset.can_edit_changes(request)
+    can_edit = changeset.can_edit(request)
     can_delete = changeset.can_delete(request)
 
     if request.method == 'POST':
         restore = request.POST.get('restore')
         if restore and restore.isdigit():
-            if not can_edit:
-                raise PermissionDenied
-
             try:
-                with changeset.lock_to_edit_changes(request):
+                with changeset.lock_to_edit(request):
                     try:
                         changed_object = changeset.changed_objects_set.get(pk=restore)
                     except:
@@ -56,25 +52,22 @@ def changeset_detail(request, pk):
                 messages.info(request, _('You need to log in to propose changes.'))
                 return redirect(reverse('editor.login')+'?redirect='+request.path)
 
-            if changeset.can_propose(request):
-                changeset.proposed = timezone.now()
-                changeset.session_id = None
-                changeset.save()
-                messages.success(request, _('You proposed your changes.'))
-            else:
-                messages.error(request, _('You cannot propose this changeset.'))
+            with changeset.lock_to_edit() as changeset:
+                if changeset.can_propose(request):
+                    changeset.propose(request.user)
+                    messages.success(request, _('You proposed your changes.'))
+                else:
+                    messages.error(request, _('You cannot propose this changeset.'))
 
             return redirect(reverse('editor.changesets.detail', kwargs={'pk': changeset.pk}))
 
         elif request.POST.get('unpropose') == '1':
-            if changeset.can_unpropose(request):
-                changeset.proposed = None
-                changeset.assigned_to = None
-                changeset.session_id = None
-                changeset.save()
-                messages.success(request, _('You unproposed your changes.'))
-            else:
-                messages.error(request, _('You cannot unpropose this changeset.'))
+            with changeset.lock_to_edit() as changeset:
+                if changeset.can_unpropose(request):
+                    changeset.unpropose(request.user)
+                    messages.success(request, _('You unproposed your changes.'))
+                else:
+                    messages.error(request, _('You cannot unpropose this changeset.'))
 
             return redirect(reverse('editor.changesets.detail', kwargs={'pk': changeset.pk}))
 

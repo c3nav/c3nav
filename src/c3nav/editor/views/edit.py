@@ -71,7 +71,7 @@ def edit(request, pk=None, model=None, level=None, space=None, on_top_of=None, e
     Level = request.changeset.wrap_model('Level')
     Space = request.changeset.wrap_model('Space')
 
-    can_edit = request.changeset.can_edit_changes(request)
+    can_edit = request.changeset.can_edit(request)
 
     obj = None
     if pk is not None:
@@ -175,7 +175,7 @@ def edit(request, pk=None, model=None, level=None, space=None, on_top_of=None, e
             # Delete this mapitem!
             if request.POST.get('delete_confirm') == '1':
                 try:
-                    with request.changeset.lock_to_edit_changes(request):
+                    with request.changeset.lock_to_edit(request):
                         obj.delete()
                 except PermissionDenied:
                     messages.error(request, _('You can not edit changes on this changeset.'))
@@ -212,7 +212,7 @@ def edit(request, pk=None, model=None, level=None, space=None, on_top_of=None, e
                 obj.on_top_of = on_top_of
 
             try:
-                with request.changeset.lock_to_edit_changes(request):
+                with request.changeset.lock_to_edit(request):
                     obj.save()
 
                     if form.redirect_slugs is not None:

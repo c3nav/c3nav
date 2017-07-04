@@ -79,19 +79,6 @@ class ChangeSet(models.Model):
         return qs
 
     @classmethod
-    def qs_for_request_editable(cls, request):
-        """
-        Returns a base QuerySet to get only changesets the current user is allowed to edit
-        """
-        qs = cls.qs_for_request(request)
-        if request.user.is_authenticated:
-            qs = qs.filter(Q(state='review', assigned_to=request.user) |
-                           Q(state='unproposed', author=request.user))
-        else:
-            qs = qs.filter(state='unproposed')
-        return qs
-
-    @classmethod
     def get_for_request(cls, request):
         """
         Get the changeset for the current request.
@@ -103,7 +90,7 @@ class ChangeSet(models.Model):
         In any case, the default autor for changes added to the queryset during
         this request will be set to the current user.
         """
-        qs = cls.qs_for_request_editable(request)
+        qs = cls.qs_for_request(request)
 
         if request.session.session_key is not None:
             changeset = qs.filter(session_id=request.session.session_key).first()
@@ -266,22 +253,27 @@ class ChangeSet(models.Model):
     Permissions
     """
     @property
-    def editable(self):
-        return self.state in ('unproposed', 'review')
+    def changes_editable(self):
+        return self.state in ('unproposed', 'rejected', 'review')
+
+    @property
+    def proposed(self):
+        return self.state not in ('unproposed', 'rejected')
 
     def can_see(self, request):
         return self.author == request.user or (not request.user.is_authenticated and self.author is None)
 
     @contextmanager
-    def lock_to_edit_changes(self, request):
+    def lock_to_edit(self, request=None):
         with transaction.atomic():
             if self.pk is not None:
                 changeset = ChangeSet.objects.select_for_update().get(pk=self.pk)
-                if not changeset.can_edit_changes(request):
+                if request is not None and not changeset.can_edit(request):
                     raise PermissionError
+
                 self._object_changed = False
-                yield
-                if self._object_changed:
+                yield changeset
+                if self._object_changed and request is not None:
                     update = changeset.updates.create(user=request.user if request.user.is_authenticated else None,
                                                       objects_changed=True)
                     changeset.last_update = update.datetime
@@ -290,24 +282,41 @@ class ChangeSet(models.Model):
             else:
                 yield
 
-    def could_edit_changes(self, request):
+    def could_edit(self, request):
         if self.state == 'unproposed':
             return self.author == request.user or (self.author is None and not request.user.is_authenticated)
         elif self.state == 'review':
             return self.assigned_to == request.user
         return False
 
-    def can_edit_changes(self, request):
-        return self.session_id == request.session.session_key and self.could_edit_changes(request)
+    def can_edit(self, request):
+        return self.session_id == request.session.session_key and self.could_edit(request)
 
     def can_delete(self, request):
-        return self.can_edit_changes(request) and self.state == 'unproposed'
+        return self.can_edit(request) and self.state == 'unproposed'
 
     def can_propose(self, request):
-        return self.author_id == request.user.pk and self.state == 'unproposed'
+        return self.can_edit(request) and not self.proposed
 
     def can_unpropose(self, request):
-        return self.author_id == request.user.pk and self.state in ('proposed', 'rejected')
+        return self.author_id == request.user.pk and self.state in ('proposed', 'reproposed')
+
+    """
+    Update methods
+    """
+    def propose(self, user):
+        new_state = {'unproposed': 'proposed', 'rejected': 'reproposed'}[self.state]
+        update = self.updates.create(user=user, state=new_state)
+        self.state = new_state
+        self.last_update = update.datetime
+        self.save()
+
+    def unpropose(self, user):
+        new_state = {'proposed': 'unproposed', 'reproposed': 'rejected'}[self.state]
+        update = self.updates.create(user=user, state=new_state)
+        self.state = new_state
+        self.last_update = update.datetime
+        self.save()
 
     """
     Methods for display
