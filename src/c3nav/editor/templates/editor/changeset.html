@@ -82,7 +82,7 @@
 {% endfor %}
 
 {% buttons %}
-    {% if editing %}
+    {% if active %}
         {% if can_delete %}
             <button type="submit" class="btn btn-danger" name="delete" value="1">{% trans 'Delete' %}</button>
         {% endif %}
@@ -97,7 +97,7 @@
                 <button type="submit" class="btn btn-default" name="unpropose" value="1">{% trans 'Unpropose' %}</button>
             {% endif %}
         </div>
-    {% elif can_edit %}
+    {% elif not changeset.closed %}
         <button type="submit" class="btn btn-primary pull-right" name="activate" value="1">{% trans 'Activate' %}</button>
     {% endif %}
 {% endbuttons %}

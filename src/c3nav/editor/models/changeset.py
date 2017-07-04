@@ -8,6 +8,7 @@ from django.db import models, transaction
 from django.urls import reverse
 from django.utils.translation import ugettext_lazy as _
 from django.utils.translation import ungettext_lazy
+from rest_framework.exceptions import PermissionDenied
 
 from c3nav.editor.models.changedobject import ChangedObject
 from c3nav.editor.utils import is_created_pk
@@ -244,6 +245,10 @@ class ChangeSet(models.Model):
     def proposed(self):
         return self.state not in ('unproposed', 'rejected')
 
+    @property
+    def closed(self):
+        return self.state in ('finallyrejected', 'applied')
+
     def is_author(self, request):
         return (self.author == request.user or (self.author is None and not request.user.is_authenticated and
                                                 request.session.get('changeset', None) == self.pk))
@@ -257,7 +262,7 @@ class ChangeSet(models.Model):
             if self.pk is not None:
                 changeset = ChangeSet.objects.select_for_update().get(pk=self.pk)
                 if request is not None and not changeset.can_edit(request):
-                    raise PermissionError
+                    raise PermissionDenied
 
                 self._object_changed = False
                 yield changeset

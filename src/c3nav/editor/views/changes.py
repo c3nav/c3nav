@@ -19,9 +19,9 @@ from c3nav.mapdata.models.locations import LocationRedirect, LocationSlug
 @sidebar_view
 def changeset_detail(request, pk):
     changeset = request.changeset
-    editing = True
+    active = True
     if str(pk) != str(request.changeset.pk):
-        editing = False
+        active = False
         changeset = get_object_or_404(ChangeSet.qs_for_request(request), pk=pk)
 
     if not changeset.can_see(request):
@@ -29,7 +29,6 @@ def changeset_detail(request, pk):
 
     can_edit = changeset.can_edit(request)
     can_delete = changeset.can_delete(request)
-    editing = editing and can_edit
 
     if request.method == 'POST':
         restore = request.POST.get('restore')
@@ -51,8 +50,8 @@ def changeset_detail(request, pk):
             return redirect(reverse('editor.changesets.detail', kwargs={'pk': changeset.pk}))
 
         elif request.POST.get('activate') == '1':
-            with changeset.lock_to_edit(request) as changeset:
-                if changeset.can_edit(request):
+            with changeset.lock_to_edit() as changeset:
+                if not changeset.closed:
                     changeset.activate(request)
                     messages.success(request, _('You activated this change set.'))
                 else:
@@ -136,7 +135,7 @@ def changeset_detail(request, pk):
                 obj_still_exists = pk not in changeset.deleted_existing.get(obj.__class__, ())
 
             edit_url = None
-            if obj_still_exists and editing and not isinstance(obj, LocationRedirect):
+            if obj_still_exists and active and can_edit and not isinstance(obj, LocationRedirect):
                 reverse_kwargs = {'pk': obj.pk}
                 if hasattr(obj, 'level_id'):
                     reverse_kwargs['level'] = obj.level_id
@@ -264,7 +263,7 @@ def changeset_detail(request, pk):
         'can_edit': can_edit,
         'can_delete': can_delete,
         'can_unpropose': changeset.can_unpropose(request),
-        'editing': editing,
+        'active': active,
         'changed_objects': changed_objects_data,
     }
 
