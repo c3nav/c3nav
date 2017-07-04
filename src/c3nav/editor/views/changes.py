@@ -63,7 +63,7 @@ def changeset_detail(request, pk):
         elif request.POST.get('propose') == '1':
             if not request.user.is_authenticated:
                 messages.info(request, _('You need to log in to propose changes.'))
-                return redirect(reverse('editor.login')+'?redirect='+request.path)
+                return redirect(reverse('editor.login')+'?r='+request.path)
 
             with changeset.lock_to_edit() as changeset:
                 if changeset.can_propose(request):

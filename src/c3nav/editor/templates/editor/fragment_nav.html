@@ -9,9 +9,9 @@
     {% endif %}
     <li class="login_logout">
         {% if request.user.is_authenticated %}
-            <a href="{% url 'editor.logout' %}?redirect={{ request.path }}">{% trans 'Log out' %}</a>
+            <a href="{% url 'editor.logout' %}?r={{ request.path }}">{% trans 'Log out' %}</a>
         {% else %}
-            <a href="{% url 'editor.login' %}?redirect={{ request.path }}">{% trans 'Log in' %}</a>
+            <a href="{% url 'editor.login' %}?r={{ request.path }}">{% trans 'Log in' %}</a>
         {% endif %}
     </li>
 </ul>
