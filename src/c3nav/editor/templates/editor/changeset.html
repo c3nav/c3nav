@@ -22,9 +22,10 @@
             {% blocktrans %}created at {{ datetime }}{% endblocktrans %}
         {% endif %}
     {% endwith %}
-    {% if changeset.proposed %}
-        <br>{% with datetime=changeset.proposed|date:"DATETIME_FORMAT" %}{% blocktrans %}proposed at {{ datetime }}{% endblocktrans %}{% endwith %}
-    {% endif %}
+    <br>
+    {% with datetime=changeset.last_change|date:"DATETIME_FORMAT" %}
+        {% blocktrans %}last change at {{ datetime }}{% endblocktrans %}
+    {% endwith %}
 </p>
 {% bootstrap_messages %}
 {% if changeset.description %}

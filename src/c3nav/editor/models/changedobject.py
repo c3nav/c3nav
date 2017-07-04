@@ -2,7 +2,6 @@ import typing
 from itertools import chain
 
 from django.contrib.contenttypes.models import ContentType
-from django.core.cache import cache
 from django.db import models
 from django.db.models import Field
 from django.utils.translation import ugettext_lazy as _
@@ -20,14 +19,12 @@ class ChangedObjectManager(models.Manager):
 class ChangedObject(models.Model):
     changeset = models.ForeignKey('editor.ChangeSet', on_delete=models.CASCADE, verbose_name=_('Change Set'))
     created = models.DateTimeField(auto_now_add=True, verbose_name=_('created'))
-    last_update = models.DateTimeField(auto_now=True, verbose_name=_('last update'))
     content_type = models.ForeignKey(ContentType, on_delete=models.CASCADE)
     existing_object_pk = models.PositiveIntegerField(null=True, verbose_name=_('id of existing object'))
     updated_fields = JSONField(default={}, verbose_name=_('updated fields'))
     m2m_added = JSONField(default={}, verbose_name=_('added m2m values'))
     m2m_removed = JSONField(default={}, verbose_name=_('removed m2m values'))
     deleted = models.BooleanField(default=False, verbose_name=_('object was deleted'))
-    stale = models.BooleanField(default=False, verbose_name=_('stale'))
 
     objects = ChangedObjectManager()
 
@@ -109,10 +106,7 @@ class ChangedObject(models.Model):
         model = self.model_class
         pk = self.obj_pk
 
-        if not self.stale:
-            self.changeset.changed_objects.setdefault(model, {})[pk] = self
-        else:
-            self.changeset.changed_objects.get(model, {}).pop(pk, None)
+        self.changeset.changed_objects.setdefault(model, {})[pk] = self
 
         if self.is_created:
             if not self.deleted:
@@ -268,18 +262,16 @@ class ChangedObject(models.Model):
         self.m2m_added = {name: tuple(values) for name, values in self._m2m_added_cache.items()}
         self.m2m_removed = {name: tuple(values) for name, values in self._m2m_removed_cache.items()}
         if not self.does_something:
-            self.stale = True
-        if not self.stale:
+            if self.pk:
+                self.delete()
+        else:
             if not standalone and self.changeset.pk is None:
                 self.changeset.save()
                 self.changeset = self.changeset
-        else:
-            self.existing_object_pk = None
         if not standalone and not self.changeset.fill_changes_cache():
             self.update_changeset_cache()
-        if not self.stale or self.pk is not None:
+        if self.does_something:
             super().save(*args, **kwargs)
-            cache.set('changeset:%s:last_change' % self.changeset_id, self.last_update, 900)
 
     def delete(self, **kwargs):
         raise TypeError('changed objects can not be deleted directly.')

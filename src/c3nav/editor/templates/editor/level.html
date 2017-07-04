@@ -21,21 +21,24 @@
         <a href="{% url 'editor.levels.detail' pk=level.on_top_of.pk %}">&laquo; {% trans 'back to parent level' %}</a>
     {% endif %}
 </p>
+{% bootstrap_messages %}
 
 {% include 'editor/fragment_child_models.html' %}
 
 <div class="clearfix"></div>
 
-{% if level.on_top_of == None %}
-<a class="btn btn-default btn-sm pull-right" accesskey="n" href="{% url 'editor.levels_on_top.create' on_top_of=level.pk %}">
-    {% blocktrans %}New {{ model_title }}{% endblocktrans %}
-</a>
-<h3>{% trans 'Levels on top' %}</h3>
-<div class="list-group">
-{% for l in levels_on_top %}
-    <a href="{% url 'editor.levels.detail' pk=l.pk %}" class="list-group-item">
-        {{ l.title }}
-    </a>
-{% endfor %}
-</div>
+{% if level.on_top_of is None %}
+    {% if can_edit %}
+        <a class="btn btn-default btn-sm pull-right" accesskey="n" href="{% url 'editor.levels_on_top.create' on_top_of=level.pk %}">
+            {% blocktrans %}New {{ model_title }}{% endblocktrans %}
+        </a>
+    {% endif %}
+    <h3>{% trans 'Levels on top' %}</h3>
+    <div class="list-group">
+    {% for l in levels_on_top %}
+        <a href="{% url 'editor.levels.detail' pk=l.pk %}" class="list-group-item">
+            {{ l.title }}
+        </a>
+    {% endfor %}
+    </div>
 {% endif %}

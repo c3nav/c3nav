@@ -10,5 +10,6 @@
 <p>
     <a href="{% url 'editor.spaces.list' level=space.level.pk %}">&laquo; {% trans 'back to overview' %}</a>
 </p>
+{% bootstrap_messages %}
 
 {% include 'editor/fragment_child_models.html' %}

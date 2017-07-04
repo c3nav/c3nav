@@ -1,12 +1,13 @@
 from collections import OrderedDict
+from contextlib import contextmanager
 from itertools import chain
 
 from django.apps import apps
 from django.conf import settings
-from django.core.cache import cache
-from django.db import models
-from django.db.models import Max, Q
+from django.db import models, transaction
+from django.db.models import Q
 from django.urls import reverse
+from django.utils import timezone
 from django.utils.translation import ugettext_lazy as _
 from django.utils.translation import ungettext_lazy
 
@@ -28,6 +29,7 @@ class ChangeSet(models.Model):
         ('applied', _('accepted')),
     )
     created = models.DateTimeField(auto_now_add=True, verbose_name=_('created'))
+    last_change = models.DateTimeField(auto_now_add=True, verbose_name=_('last change'))
     state = models.CharField(max_length=20, choices=STATES, default='unproposed')
     author = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, on_delete=models.PROTECT, verbose_name=_('Author'))
     title = models.CharField(max_length=100, default='', verbose_name=_('Title'))
@@ -139,7 +141,7 @@ class ChangeSet(models.Model):
         return self.wrap_model(instance.__class__).create_wrapped_model_class()(self, instance)
 
     def relevant_changed_objects(self):
-        return self.changed_objects_set.exclude(stale=True).exclude(existing_object_pk__isnull=True, deleted=True)
+        return self.changed_objects_set.exclude(existing_object_pk__isnull=True, deleted=True)
 
     def fill_changes_cache(self, include_deleted_created=False):
         """
@@ -158,15 +160,13 @@ class ChangeSet(models.Model):
             return False
 
         if include_deleted_created:
-            qs = self.changed_objects_set.exclude(stale=True)
+            qs = self.changed_objects_set.all()
         else:
             qs = self.relevant_changed_objects()
 
         self.changed_objects = {}
         for change in qs:
             change.update_changeset_cache()
-
-        self._last_change_cache = max(change.last_update for change in qs)
 
         return True
 
@@ -269,13 +269,33 @@ class ChangeSet(models.Model):
         return self.state in ('unproposed', 'review')
 
     def can_see(self, request):
-        return self.session_id == request.session.session_key or self.author_id is request.user.pk
+        return self.author == request.user or (not request.user.is_authenticated and self.author is None)
 
-    def can_edit(self, request):
-        return (self.session_id == request.session.session_key and self.state in ('unproposed', 'review'))
+    @contextmanager
+    def lock_to_edit_changes(self, request):
+        with transaction.atomic():
+            if self.pk is not None:
+                changeset = ChangeSet.objects.select_for_update().get(pk=self.pk)
+                if not changeset.can_edit_changes(request):
+                    raise PermissionError
+                yield
+                changeset.last_change = timezone.now()
+                changeset.save()
+            else:
+                yield
+
+    def could_edit_changes(self, request):
+        if self.state == 'unproposed':
+            return self.author == request.user or (self.author is None and not request.user.is_authenticated)
+        elif self.state == 'review':
+            return self.assigned_to == request.user
+        return False
+
+    def can_edit_changes(self, request):
+        return self.session_id == request.session.session_key and self.could_edit_changes(request)
 
     def can_delete(self, request):
-        return self.can_edit(request) and self.state == 'unproposed'
+        return self.can_edit_changes(request) and self.state == 'unproposed'
 
     def can_propose(self, request):
         return self.author_id == request.user.pk and self.state == 'unproposed'
@@ -314,26 +334,6 @@ class ChangeSet(models.Model):
             return _('No changed objects')
         return (ungettext_lazy('%(num)d changed object', '%(num)d changed objects', 'num') %
                 {'num': self.changed_objects_count})
-
-    @property
-    def last_change(self):
-        last_change = cache.get('changeset:%s:last_change' % self.pk)
-        if last_change is None:
-            # was not in cache, calculate it
-            try:
-                last_change = self.changed_objects_set.aggregate(Max('last_update'))['last_update__max']
-            except ChangedObject.DoesNotExist:
-                last_change = self.created
-        elif self.last_change_cache is None or self.last_change_cache <= last_change:
-            # was in cache and our local value (if we had one) is not newer
-            return last_change
-        else:
-            # our local value is newer
-            last_change = self.last_change_cache
-
-        # update cache
-        cache.set('changeset:%s:last_change' % self.pk, last_change, 900)
-        return last_change
 
     @property
     def cache_key(self):

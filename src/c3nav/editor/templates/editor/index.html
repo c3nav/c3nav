@@ -1,11 +1,14 @@
 {% load bootstrap3 %}
 {% load i18n %}
 
-<a class="btn btn-default btn-sm pull-right" accesskey="n" href="{% url 'editor.levels.create' %}">
-    {% trans 'Level' as model_title %}
-    {% blocktrans %}New {{ model_title }}{% endblocktrans %}
-</a>
+{% if can_edit %}
+    <a class="btn btn-default btn-sm pull-right" accesskey="n" href="{% url 'editor.levels.create' %}">
+        {% trans 'Level' as model_title %}
+        {% blocktrans %}New {{ model_title }}{% endblocktrans %}
+    </a>
+{% endif %}
 <h3>{% trans 'Level' %}</h3>
+{% bootstrap_messages %}
 <div class="list-group">
     {% for l in levels %}
         <a href="{% url 'editor.levels.detail' pk=l.pk %}" class="list-group-item">

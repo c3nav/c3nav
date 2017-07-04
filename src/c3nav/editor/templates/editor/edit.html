@@ -15,21 +15,28 @@
         {% endwith %}
     {% endif %}
 </h3>
+{% bootstrap_messages %}
 <form action="{{ path }}" method="post" {% if nozoom %}data-nozoom {% endif %}data-onbeforeunload {% if new %}data-new="{{ model_name }}" data-geomtype="{{ geomtype }}"{% else %}data-editing="{{ model_name }}-{{ pk }}"{% endif %}>
     {% csrf_token %}
     {% bootstrap_form form %}
     {% buttons %}
     <button class="invisiblesubmit" type="submit"></button>
-    {% if not new %}
-        <button type="submit" name="delete" value="1" class="btn btn-danger">
-            {% trans 'Delete' %}
+    {% if can_edit %}
+        {% if not new %}
+            <button type="submit" name="delete" value="1" class="btn btn-danger">
+                {% trans 'Delete' %}
+            </button>
+        {% endif %}
+        <button type="submit" accesskey="s" class="btn btn-primary pull-right">
+            {% trans 'Save' %}
         </button>
     {% endif %}
-    <button type="submit" accesskey="s" class="btn btn-primary pull-right">
-        {% trans 'Save' %}
-    </button>
-    <a class="btn {% if new %}btn-danger{% else %}btn-default pull-right{% endif %} cancel-btn" href="{{ back_url }}">
-        {% trans 'Cancel' %}
+    <a class="btn {% if new %}btn-danger{% else %}btn-default {% if can_edit %}pull-right{% endif %}{% endif %} cancel-btn" href="{{ back_url }}">
+        {% if can_edit %}
+            {% trans 'Cancel' %}
+        {% else %}
+            {% trans 'Back' %}
+        {% endif %}
     </a>
     {% endbuttons %}
 </form>

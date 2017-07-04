@@ -1,5 +1,6 @@
 from contextlib import suppress
 
+from django.contrib import messages
 from django.core.exceptions import FieldDoesNotExist, PermissionDenied
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
@@ -70,6 +71,8 @@ def edit(request, pk=None, model=None, level=None, space=None, on_top_of=None, e
     Level = request.changeset.wrap_model('Level')
     Space = request.changeset.wrap_model('Space')
 
+    can_edit = request.changeset.can_edit_changes(request)
+
     obj = None
     if pk is not None:
         # Edit existing map item
@@ -98,6 +101,7 @@ def edit(request, pk=None, model=None, level=None, space=None, on_top_of=None, e
         'pk': pk,
         'model_name': model.__name__.lower(),
         'model_title': model._meta.verbose_name,
+        'can_edit': can_edit,
         'new': new,
         'title': obj.title if obj else None,
     }
@@ -170,7 +174,13 @@ def edit(request, pk=None, model=None, level=None, space=None, on_top_of=None, e
         if not new and request.POST.get('delete') == '1':
             # Delete this mapitem!
             if request.POST.get('delete_confirm') == '1':
-                obj.delete()
+                try:
+                    with request.changeset.lock_to_edit_changes(request):
+                        obj.delete()
+                except PermissionDenied:
+                    messages.error(request, _('You can not edit changes on this changeset.'))
+                    return redirect(request.path)
+                messages.success(request, _('Object was successfully deleted.'))
                 if model == Level:
                     if obj.on_top_of_id is not None:
                         return redirect(reverse('editor.levels.detail', kwargs={'pk': obj.on_top_of_id}))
@@ -201,19 +211,23 @@ def edit(request, pk=None, model=None, level=None, space=None, on_top_of=None, e
             if on_top_of is not None:
                 obj.on_top_of = on_top_of
 
-            obj.save()
+            try:
+                with request.changeset.lock_to_edit_changes(request):
+                    obj.save()
 
-            if form.redirect_slugs is not None:
-                for slug in form.add_redirect_slugs:
-                    obj.redirects.create(slug=slug)
+                    if form.redirect_slugs is not None:
+                        for slug in form.add_redirect_slugs:
+                            obj.redirects.create(slug=slug)
 
-                for slug in form.remove_redirect_slugs:
-                    obj.redirects.filter(slug=slug).delete()
+                        for slug in form.remove_redirect_slugs:
+                            obj.redirects.filter(slug=slug).delete()
 
-            form.save_m2m()
-            # request.changeset.changes.all().delete()
-
-            return redirect(ctx['back_url'])
+                    form.save_m2m()
+            except PermissionDenied:
+                messages.error(request, _('You can not edit changes on this changeset.'))
+            else:
+                messages.success(request, _('Object was successfully saved.'))
+                return redirect(ctx['back_url'])
     else:
         form = model.EditorForm(instance=obj, request=request)
 

@@ -26,7 +26,7 @@ def changeset_detail(request, pk):
     if not changeset.can_see(request):
         raise Http404
 
-    can_edit = changeset.can_edit(request)
+    can_edit = changeset.can_edit_changes(request)
     can_delete = changeset.can_delete(request)
 
     if request.method == 'POST':
@@ -36,14 +36,18 @@ def changeset_detail(request, pk):
                 raise PermissionDenied
 
             try:
-                changed_object = changeset.changed_objects_set.get(pk=restore)
-            except:
-                pass
-            else:
-                if changed_object.deleted:
-                    changed_object.deleted = False
-                    changed_object.save(standalone=True)
-                messages.success(request, _('Object has been successfully restored.'))
+                with changeset.lock_to_edit_changes(request):
+                    try:
+                        changed_object = changeset.changed_objects_set.get(pk=restore)
+                    except:
+                        pass
+                    else:
+                        if changed_object.deleted:
+                            changed_object.deleted = False
+                            changed_object.save(standalone=True)
+                        messages.success(request, _('Object has been successfully restored.'))
+            except PermissionDenied:
+                messages.error(request, _('You can not edit changes on this changeset.'))
 
             return redirect(reverse('editor.changesets.detail', kwargs={'pk': changeset.pk}))
 
