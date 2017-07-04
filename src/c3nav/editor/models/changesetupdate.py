@@ -15,7 +15,6 @@ class ChangeSetUpdate(models.Model):
     author = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, on_delete=models.PROTECT, related_name='+')
     title = models.CharField(max_length=100, null=True)
     description = models.TextField(max_length=1000, null=True)
-    session_user = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, on_delete=models.PROTECT, related_name='+')
     assigned_to = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, on_delete=models.PROTECT, related_name='+')
     objects_changed = models.BooleanField(default=False)
 

@@ -244,8 +244,12 @@ class ChangeSet(models.Model):
     def proposed(self):
         return self.state not in ('unproposed', 'rejected')
 
+    def is_author(self, request):
+        return (self.author == request.user or (self.author is None and not request.user.is_authenticated and
+                                                request.session.get('changeset', None) == self.pk))
+
     def can_see(self, request):
-        return self.author == request.user or (not request.user.is_authenticated and self.author is None)
+        return self.is_author(request)
 
     @contextmanager
     def lock_to_edit(self, request=None):
@@ -268,7 +272,7 @@ class ChangeSet(models.Model):
 
     def can_edit(self, request):
         if not self.proposed:
-            return self.author == request.user or (self.author is None and not request.user.is_authenticated)
+            return self.is_author(request)
         elif self.state == 'review':
             return self.assigned_to == request.user
         return False
@@ -298,6 +302,9 @@ class ChangeSet(models.Model):
         self.state = new_state
         self.last_update = update.datetime
         self.save()
+
+    def activate(self, request):
+        request.session['changeset'] = self.pk
 
     """
     Methods for display
@@ -352,4 +359,4 @@ class ChangeSet(models.Model):
     def save(self, *args, **kwargs):
         super().save(*args, **kwargs)
         if self._request is not None:
-            self._request.session['changeset'] = self.pk
+            self.activate(self._request)

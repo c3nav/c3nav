@@ -82,19 +82,23 @@
 {% endfor %}
 
 {% buttons %}
-    {% if can_delete %}
-        <button type="submit" class="btn btn-danger" name="delete" value="1">{% trans 'Delete' %}</button>
+    {% if editing %}
+        {% if can_delete %}
+            <button type="submit" class="btn btn-danger" name="delete" value="1">{% trans 'Delete' %}</button>
+        {% endif %}
+        <div class="pull-right">
+            {% if can_edit %}
+                <a href="{% url 'editor.changesets.edit' pk=changeset.pk %}" class="btn btn-default">{% trans 'Edit' %}</a>
+            {% endif %}
+            {% if can_edit and not changeset.proposed %}
+                <button type="submit" class="btn btn-primary" name="propose" value="1">{% trans 'Propose' %}</button>
+            {% endif %}
+            {% if can_unpropose %}
+                <button type="submit" class="btn btn-default" name="unpropose" value="1">{% trans 'Unpropose' %}</button>
+            {% endif %}
+        </div>
+    {% elif can_edit %}
+        <button type="submit" class="btn btn-primary pull-right" name="activate" value="1">{% trans 'Activate' %}</button>
     {% endif %}
-    <div class="pull-right">
-        {% if can_edit %}
-            <a href="{% url 'editor.changesets.edit' pk=changeset.pk %}" class="btn btn-default">{% trans 'Edit' %}</a>
-        {% endif %}
-        {% if can_edit and not changeset.proposed %}
-            <button type="submit" class="btn btn-primary" name="propose" value="1">{% trans 'Propose' %}</button>
-        {% endif %}
-        {% if can_unpropose %}
-            <button type="submit" class="btn btn-default" name="unpropose" value="1">{% trans 'Unpropose' %}</button>
-        {% endif %}
-    </div>
 {% endbuttons %}
 </form>

@@ -46,7 +46,17 @@ def changeset_detail(request, pk):
                             changed_object.save(standalone=True)
                         messages.success(request, _('Object has been successfully restored.'))
             except PermissionDenied:
-                messages.error(request, _('You can not edit changes on this changeset.'))
+                messages.error(request, _('You can not edit changes on this change set.'))
+
+            return redirect(reverse('editor.changesets.detail', kwargs={'pk': changeset.pk}))
+
+        elif request.POST.get('activate') == '1':
+            with changeset.lock_to_edit(request) as changeset:
+                if changeset.can_edit(request):
+                    changeset.activate(request)
+                    messages.success(request, _('You activated this change set.'))
+                else:
+                    messages.error(request, _('You can not activate this change set.'))
 
             return redirect(reverse('editor.changesets.detail', kwargs={'pk': changeset.pk}))
 
@@ -60,7 +70,7 @@ def changeset_detail(request, pk):
                     changeset.propose(request.user)
                     messages.success(request, _('You proposed your changes.'))
                 else:
-                    messages.error(request, _('You cannot propose this changeset.'))
+                    messages.error(request, _('You cannot propose this change set.'))
 
             return redirect(reverse('editor.changesets.detail', kwargs={'pk': changeset.pk}))
 
@@ -70,7 +80,7 @@ def changeset_detail(request, pk):
                     changeset.unpropose(request.user)
                     messages.success(request, _('You unproposed your changes.'))
                 else:
-                    messages.error(request, _('You cannot unpropose this changeset.'))
+                    messages.error(request, _('You cannot unpropose this change set.'))
 
             return redirect(reverse('editor.changesets.detail', kwargs={'pk': changeset.pk}))
 
@@ -254,6 +264,7 @@ def changeset_detail(request, pk):
         'can_edit': can_edit,
         'can_delete': can_delete,
         'can_unpropose': changeset.can_unpropose(request),
+        'editing': editing,
         'changed_objects': changed_objects_data,
     }
 
