@@ -331,8 +331,8 @@ class ChangeSet(models.Model):
         Get “%d changed objects” display text.
         """
         if self.pk is None:
-            return _('No changed objects')
-        return (ungettext_lazy('%(num)d changed object', '%(num)d changed objects', 'num') %
+            return _('No objects changed')
+        return (ungettext_lazy('%(num)d object changed', '%(num)d objects changed', 'num') %
                 {'num': self.changed_objects_count})
 
     @property
