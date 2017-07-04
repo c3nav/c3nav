@@ -19,7 +19,9 @@ from c3nav.mapdata.models.locations import LocationRedirect, LocationSlug
 @sidebar_view
 def changeset_detail(request, pk):
     changeset = request.changeset
+    editing = True
     if str(pk) != str(request.changeset.pk):
+        editing = False
         changeset = get_object_or_404(ChangeSet.qs_for_request(request), pk=pk)
 
     if not changeset.can_see(request):
@@ -27,6 +29,7 @@ def changeset_detail(request, pk):
 
     can_edit = changeset.can_edit(request)
     can_delete = changeset.can_delete(request)
+    editing = editing and can_edit
 
     if request.method == 'POST':
         restore = request.POST.get('restore')
@@ -123,7 +126,7 @@ def changeset_detail(request, pk):
                 obj_still_exists = pk not in changeset.deleted_existing.get(obj.__class__, ())
 
             edit_url = None
-            if obj_still_exists and can_edit and not isinstance(obj, LocationRedirect):
+            if obj_still_exists and editing and not isinstance(obj, LocationRedirect):
                 reverse_kwargs = {'pk': obj.pk}
                 if hasattr(obj, 'level_id'):
                     reverse_kwargs['level'] = obj.level_id

@@ -5,7 +5,6 @@ from itertools import chain
 from django.apps import apps
 from django.conf import settings
 from django.db import models, transaction
-from django.db.models import Q
 from django.urls import reverse
 from django.utils.translation import ugettext_lazy as _
 from django.utils.translation import ungettext_lazy
@@ -35,7 +34,6 @@ class ChangeSet(models.Model):
     author = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, on_delete=models.PROTECT, verbose_name=_('Author'))
     title = models.CharField(max_length=100, default='', verbose_name=_('Title'))
     description = models.TextField(max_length=1000, default='', verbose_name=_('Description'))
-    session_id = models.CharField(unique=True, db_index=True, null=True, max_length=32)
     assigned_to = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, on_delete=models.PROTECT,
                                     related_name='assigned_changesets', verbose_name=_('assigned to'))
 
@@ -55,28 +53,19 @@ class ChangeSet(models.Model):
         self.m2m_removed = {}
 
         self._object_changed = False
+        self._request = None
 
     """
     Get Changesets for Request/Session/User
     """
     @classmethod
-    def qs_base(cls, hide_applied=True):
-        qs = cls.objects.select_related('author')
-        if hide_applied:
-            qs = qs.exclude(state='applied')
-        return qs
-
-    @classmethod
     def qs_for_request(cls, request):
         """
         Returns a base QuerySet to get only changesets the current user is allowed to see
         """
-        qs = cls.qs_base()
         if request.user.is_authenticated:
-            qs = qs.filter(author=request.user)
-        else:
-            qs = qs.filter(author__isnull=True, session_id=request.session.session_key)
-        return qs
+            return ChangeSet.objects.filter(author=request.user)
+        return ChangeSet.objects.none()
 
     @classmethod
     def get_for_request(cls, request):
@@ -90,30 +79,25 @@ class ChangeSet(models.Model):
         In any case, the default autor for changes added to the queryset during
         this request will be set to the current user.
         """
-        qs = cls.qs_for_request(request)
+        changeset_pk = request.session.get('changeset')
+        if changeset_pk is not None:
+            qs = ChangeSet.objects.exclude(state='applied')
+            if request.user.is_authenticated:
+                qs = qs.filter(author=request.user)
+            else:
+                qs = qs.filter(author__isnull=True)
+            try:
+                return qs.get(pk=changeset_pk)
+            except ChangeSet.DoesNotExist:
+                pass
 
-        if request.session.session_key is not None:
-            changeset = qs.filter(session_id=request.session.session_key).first()
-            if changeset is not None:
-                return changeset
-
-        new_changeset = cls()
-        new_changeset.request = request
-
-        if request.session.session_key is None:
-            request.session.save()
+        changeset = ChangeSet()
+        changeset._request = request
 
         if request.user.is_authenticated:
-            changeset = qs.filter(Q(author=request.user)).order_by('-created').first()
-            if changeset is not None:
-                changeset.session_id = request.session.session_key
-                changeset.save()
-                return changeset
+            changeset.author = request.user
 
-            new_changeset.author = request.user
-
-        new_changeset.session_id = request.session.session_key
-        return new_changeset
+        return changeset
 
     """
     Wrap Objects
@@ -282,15 +266,12 @@ class ChangeSet(models.Model):
             else:
                 yield
 
-    def could_edit(self, request):
-        if self.state == 'unproposed':
+    def can_edit(self, request):
+        if not self.proposed:
             return self.author == request.user or (self.author is None and not request.user.is_authenticated)
         elif self.state == 'review':
             return self.assigned_to == request.user
         return False
-
-    def can_edit(self, request):
-        return self.session_id == request.session.session_key and self.could_edit(request)
 
     def can_delete(self, request):
         return self.can_edit(request) and self.state == 'unproposed'
@@ -367,3 +348,8 @@ class ChangeSet(models.Model):
             ('author', self.author_id),
             ('created', None if self.created is None else self.created.isoformat()),
         ))
+
+    def save(self, *args, **kwargs):
+        super().save(*args, **kwargs)
+        if self._request is not None:
+            self._request.session['changeset'] = self.pk

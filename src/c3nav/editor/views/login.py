@@ -18,10 +18,7 @@ def login_view(request):
             login(request, form.user_cache)
 
             if request.changeset.pk is not None:
-                if request.session.session_key is None:
-                    request.session.save()
                 request.changeset.author = form.user_cache
-                request.changeset.session_key = request.session.session_key
                 request.changeset.save()
             return redirect(redirect_path)
     else:
