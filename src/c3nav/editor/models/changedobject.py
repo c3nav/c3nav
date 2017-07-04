@@ -182,6 +182,7 @@ class ChangedObject(models.Model):
         return delete_fields
 
     def save_instance(self, instance):
+        old_updated_fields = self.updated_fields
         self.updated_fields = {}
         for field in self.model_class._meta.get_fields():
             if not isinstance(field, Field) or field.primary_key:
@@ -204,11 +205,16 @@ class ChangedObject(models.Model):
                 self.updated_fields[field.name] = value
 
         self.clean_updated_fields()
+        for name, value in self.updated_fields.items():
+            if old_updated_fields.get(name, None) != value:
+                self.changeset._object_changed = True
+                break
         self.save()
         if instance.pk is None and self.pk is not None:
             instance.pk = self.obj_pk
 
     def mark_deleted(self):
+        self.changeset._object_changed = True
         self.deleted = True
         self.save()
 
@@ -237,6 +243,7 @@ class ChangedObject(models.Model):
 
         if (m2m_added_before != self._m2m_added_cache.get(name, set()) or
                 m2m_removed_before != self._m2m_removed_cache.get(name, set())):
+            self.changeset._object_changed = True
             self.save()
             return True
         return False

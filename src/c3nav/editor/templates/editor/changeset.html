@@ -23,8 +23,8 @@
         {% endif %}
     {% endwith %}
     <br>
-    {% with datetime=changeset.last_change|date:"DATETIME_FORMAT" %}
-        {% blocktrans %}last change at {{ datetime }}{% endblocktrans %}
+    {% with datetime=changeset.last_update|date:"DATETIME_FORMAT" %}
+        {% blocktrans %}last update at {{ datetime }}{% endblocktrans %}
     {% endwith %}
 </p>
 {% bootstrap_messages %}

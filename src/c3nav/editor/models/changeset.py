@@ -7,7 +7,6 @@ from django.conf import settings
 from django.db import models, transaction
 from django.db.models import Q
 from django.urls import reverse
-from django.utils import timezone
 from django.utils.translation import ugettext_lazy as _
 from django.utils.translation import ungettext_lazy
 
@@ -25,16 +24,18 @@ class ChangeSet(models.Model):
         ('proposed', _('proposed')),
         ('review', _('in review')),
         ('rejected', _('rejected')),
+        ('reproposed', _('reproposed')),
         ('finallyrejected', _('finally rejected')),
         ('applied', _('accepted')),
     )
     created = models.DateTimeField(auto_now_add=True, verbose_name=_('created'))
     last_change = models.DateTimeField(auto_now_add=True, verbose_name=_('last change'))
-    state = models.CharField(max_length=20, choices=STATES, default='unproposed')
+    last_update = models.DateTimeField(auto_now_add=True, verbose_name=_('last update'))
+    state = models.CharField(max_length=20, db_index=True, choices=STATES, default='unproposed')
     author = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, on_delete=models.PROTECT, verbose_name=_('Author'))
     title = models.CharField(max_length=100, default='', verbose_name=_('Title'))
     description = models.TextField(max_length=1000, default='', verbose_name=_('Description'))
-    session_id = models.CharField(unique=True, null=True, max_length=32)
+    session_id = models.CharField(unique=True, db_index=True, null=True, max_length=32)
     assigned_to = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, on_delete=models.PROTECT,
                                     related_name='assigned_changesets', verbose_name=_('assigned to'))
 
@@ -53,7 +54,7 @@ class ChangeSet(models.Model):
         self.m2m_added = {}
         self.m2m_removed = {}
 
-        self.last_change_cache = None
+        self._object_changed = False
 
     """
     Get Changesets for Request/Session/User
@@ -278,9 +279,14 @@ class ChangeSet(models.Model):
                 changeset = ChangeSet.objects.select_for_update().get(pk=self.pk)
                 if not changeset.can_edit_changes(request):
                     raise PermissionError
+                self._object_changed = False
                 yield
-                changeset.last_change = timezone.now()
-                changeset.save()
+                if self._object_changed:
+                    update = changeset.updates.create(user=request.user if request.user.is_authenticated else None,
+                                                      objects_changed=True)
+                    changeset.last_update = update.datetime
+                    changeset.last_change = update.datetime
+                    changeset.save()
             else:
                 yield
 
