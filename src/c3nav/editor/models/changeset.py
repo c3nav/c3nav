@@ -271,8 +271,8 @@ class ChangeSet(models.Model):
                 if self._object_changed and request is not None:
                     update = changeset.updates.create(user=request.user if request.user.is_authenticated else None,
                                                       objects_changed=True)
-                    changeset.last_update = update.datetime
-                    changeset.last_change = update.datetime
+                    changeset.last_update = update
+                    changeset.last_change = update
                     changeset.save()
             else:
                 yield
@@ -300,14 +300,14 @@ class ChangeSet(models.Model):
         new_state = {'unproposed': 'proposed', 'rejected': 'reproposed'}[self.state]
         update = self.updates.create(user=user, state=new_state)
         self.state = new_state
-        self.last_update = update.datetime
+        self.last_update = update
         self.save()
 
     def unpropose(self, user):
         new_state = {'proposed': 'unproposed', 'reproposed': 'rejected'}[self.state]
         update = self.updates.create(user=user, state=new_state)
         self.state = new_state
-        self.last_update = update.datetime
+        self.last_update = update
         self.save()
 
     def activate(self, request):
