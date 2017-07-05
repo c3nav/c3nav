@@ -138,17 +138,19 @@ def changeset_detail(request, pk):
                 return render(request, 'editor/changeset_apply.html', {})
 
         elif request.POST.get('delete') == '1':
-            if not changeset.can_delete(request):
-                raise PermissionDenied
+            with changeset.lock_to_edit() as changeset:
+                if not changeset.can_delete(request):
+                    messages.error(request, _('You cannot delete this change set.'))
 
-            if request.POST.get('delete_confirm') == '1':
-                changeset.delete()
-                return redirect(reverse('editor.index'))
+                if request.POST.get('delete_confirm') == '1':
+                    changeset.delete()
+                    messages.error(request, _('You deleted this change set.'))
+                    return redirect(reverse('editor.users.detail', kwargs={'pk': request.user.pk}))
 
-            return render(request, 'editor/delete.html', {
-                'model_title': ChangeSet._meta.verbose_name,
-                'obj_title': changeset.title,
-            })
+                return render(request, 'editor/delete.html', {
+                    'model_title': ChangeSet._meta.verbose_name,
+                    'obj_title': changeset.title,
+                })
 
     changeset.fill_changes_cache(include_deleted_created=True)
 
