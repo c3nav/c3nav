@@ -365,7 +365,11 @@ class ChangeSet(models.Model):
         self.save()
 
     def apply(self, user):
-        pass
+        update = self.updates.create(user=user, state='applied')
+        self.state = 'applied'
+        self.last_state_update = update
+        self.last_update = update
+        self.save()
 
     def activate(self, request):
         request.session['changeset'] = self.pk
