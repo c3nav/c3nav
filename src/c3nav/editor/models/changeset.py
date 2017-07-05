@@ -6,6 +6,8 @@ from django.apps import apps
 from django.conf import settings
 from django.db import models, transaction
 from django.urls import reverse
+from django.utils.http import int_to_base36
+from django.utils.timezone import make_naive
 from django.utils.translation import ugettext_lazy as _
 from django.utils.translation import ungettext_lazy
 from rest_framework.exceptions import PermissionDenied
@@ -410,10 +412,18 @@ class ChangeSet(models.Model):
                 {'num': self.changed_objects_count})
 
     @property
-    def cache_key(self):
-        if self.pk is None:
-            return None
-        return str(self.pk)+'-'+str(self.last_change)
+    def updates_cache_key(self):
+        pk, mapupdate = MapUpdate.last_update()
+        last_update = self.created if self.last_update_id is None else self.last_update.datetime
+        return (MapUpdate.cache_key() + '_' + int_to_base36(self.last_update_id or 0) + '_' +
+                int_to_base36(int(make_naive(last_update).timestamp())))
+
+    @property
+    def changes_cache_key(self):
+        pk, mapupdate = MapUpdate.last_update()
+        last_change = self.created if self.last_change_id is None else self.last_change.datetime
+        return (MapUpdate.cache_key() + '_' + int_to_base36(self.last_change_id or 0) + '_' +
+                int_to_base36(int(make_naive(last_change).timestamp())))
 
     def get_absolute_url(self):
         if self.pk is None:

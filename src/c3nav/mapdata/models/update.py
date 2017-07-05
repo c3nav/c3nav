@@ -3,6 +3,8 @@ from contextlib import contextmanager
 from django.conf import settings
 from django.core.cache import cache
 from django.db import models, transaction
+from django.utils.http import int_to_base36
+from django.utils.timezone import make_naive
 from django.utils.translation import ugettext_lazy as _
 
 
@@ -26,9 +28,14 @@ class MapUpdate(models.Model):
         if last_update is not None:
             return last_update
         with cls.lock():
-            last_update = cls.objects.latest().datetime
-            cache.set('mapdata:last_update', last_update, 900)
-        return last_update
+            last_update = cls.objects.latest()
+            cache.set('mapdata:last_update', (last_update.pk, last_update.datetime), 900)
+        return last_update.pk, last_update.datetime
+
+    @classmethod
+    def cache_key(cls):
+        pk, dt = cls.last_update()
+        return int_to_base36(pk)+'_'+int_to_base36(int(make_naive(dt).timestamp()))
 
     @classmethod
     @contextmanager
@@ -40,4 +47,4 @@ class MapUpdate(models.Model):
         if self.pk is not None:
             raise TypeError
         super().save(**kwargs)
-        cache.set('mapdata:last_update', self.datetime, 900)
+        cache.set('mapdata:last_update', (self.pk, self.datetime), 900)
