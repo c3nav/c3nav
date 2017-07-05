@@ -33,6 +33,8 @@ class ChangeSet(models.Model):
                                     verbose_name=_('last object change'))
     last_update = models.ForeignKey('editor.ChangeSetUpdate', null=True, related_name='+',
                                     verbose_name=_('last update'))
+    last_state_update = models.ForeignKey('editor.ChangeSetUpdate', null=True, related_name='+',
+                                          verbose_name=_('last state update'))
     state = models.CharField(max_length=20, db_index=True, choices=STATES, default='unproposed')
     author = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, on_delete=models.PROTECT, verbose_name=_('Author'))
     title = models.CharField(max_length=100, default='', verbose_name=_('Title'))
@@ -301,6 +303,7 @@ class ChangeSet(models.Model):
         update = self.updates.create(user=user, state=new_state)
         self.state = new_state
         self.last_update = update
+        self.last_state_update = update
         self.save()
 
     def unpropose(self, user):
@@ -308,6 +311,7 @@ class ChangeSet(models.Model):
         update = self.updates.create(user=user, state=new_state)
         self.state = new_state
         self.last_update = update
+        self.last_state_update = update
         self.save()
 
     def activate(self, request):
