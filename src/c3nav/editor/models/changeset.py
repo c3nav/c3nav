@@ -4,6 +4,7 @@ from itertools import chain
 
 from django.apps import apps
 from django.conf import settings
+from django.core.cache import cache
 from django.db import models, transaction
 from django.urls import reverse
 from django.utils.http import int_to_base36
@@ -141,14 +142,26 @@ class ChangeSet(models.Model):
             self.changed_objects = {}
             return False
 
+        cache_key = self.cache_key_by_changes + ':cache'
+
         if include_deleted_created:
+            cache_key += '_with_deleted'
             qs = self.changed_objects_set.all()
         else:
             qs = self.relevant_changed_objects()
 
+        cached_cache = cache.get(cache_key)
+        if cached_cache is not None:
+            (self.changed_objects, self.created_objects, self.updated_existing,
+             self.deleted_existing, self.m2m_added, self.m2m_removed) = cached_cache
+            return True
+
         self.changed_objects = {}
         for change in qs:
             change.update_changeset_cache()
+
+        cache.set(cache_key, (self.changed_objects, self.created_objects, self.updated_existing,
+                              self.deleted_existing, self.m2m_added, self.m2m_removed), 300)
 
         return True
 
