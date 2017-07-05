@@ -23,7 +23,7 @@
         {% endif %}
     {% endwith %}
     <br>
-    {% with datetime=changeset.last_update|date:"DATETIME_FORMAT" %}
+    {% with datetime=changeset.last_update.datetime|date:"DATETIME_FORMAT" %}
         {% blocktrans %}last update at {{ datetime }}{% endblocktrans %}
     {% endwith %}
 </p>

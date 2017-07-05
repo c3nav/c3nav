@@ -29,8 +29,10 @@ class ChangeSet(models.Model):
         ('applied', _('accepted')),
     )
     created = models.DateTimeField(auto_now_add=True, verbose_name=_('created'))
-    last_change = models.DateTimeField(auto_now_add=True, verbose_name=_('last change'))
-    last_update = models.DateTimeField(auto_now_add=True, verbose_name=_('last update'))
+    last_change = models.ForeignKey('editor.ChangeSetUpdate', null=True, related_name='+',
+                                    verbose_name=_('last object change'))
+    last_update = models.ForeignKey('editor.ChangeSetUpdate', null=True, related_name='+',
+                                    verbose_name=_('last update'))
     state = models.CharField(max_length=20, db_index=True, choices=STATES, default='unproposed')
     author = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, on_delete=models.PROTECT, verbose_name=_('Author'))
     title = models.CharField(max_length=100, default='', verbose_name=_('Title'))
@@ -65,7 +67,7 @@ class ChangeSet(models.Model):
         Returns a base QuerySet to get only changesets the current user is allowed to see
         """
         if request.user.is_authenticated:
-            return ChangeSet.objects.filter(author=request.user)
+            return ChangeSet.objects.select_related('last_update', 'last_change').filter(author=request.user)
         return ChangeSet.objects.none()
 
     @classmethod
@@ -82,7 +84,7 @@ class ChangeSet(models.Model):
         """
         changeset_pk = request.session.get('changeset')
         if changeset_pk is not None:
-            qs = ChangeSet.objects.exclude(state='applied')
+            qs = ChangeSet.objects.select_related('last_update', 'last_change').exclude(state='applied')
             if request.user.is_authenticated:
                 qs = qs.filter(author=request.user)
             else:

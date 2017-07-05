@@ -22,6 +22,7 @@ class ChangeSetUpdate(models.Model):
         verbose_name = _('Change set update')
         verbose_name_plural = _('Change set updates')
         ordering = ['datetime', 'pk']
+        get_latest_by = 'datetime'
 
     def __repr__(self):
         return '<Update #%s on ChangeSet #%s>' % (str(self.pk), str(self.changeset_id))
