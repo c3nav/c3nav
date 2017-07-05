@@ -270,6 +270,7 @@ class ChangedObject(models.Model):
             if self.pk:
                 self.delete()
         else:
+            self.changeset._object_changed = True
             if not standalone and self.changeset.pk is None:
                 self.changeset.save()
                 self.changeset = self.changeset
