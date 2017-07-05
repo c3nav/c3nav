@@ -4,17 +4,7 @@
     {% for changeset in changesets %}
         <tr>
             <td>
-                {% if changeset.state == 'unproposed' %}
-                    <i class="glyphicon glyphicon-pencil text-muted" title="{{ changeset.get_state_display }}" data-toggle="tooltip" data-placement="right"></i>
-                {% elif changeset.state == 'proposed' or changeset.state == 'reproposed' %}
-                    <i class="glyphicon glyphicon-send text-info" title="{{ changeset.get_state_display }}" data-toggle="tooltip" data-placement="right"></i>
-                {% elif changeset.state == 'review' or changeset.state == 'rereview' %}
-                    <i class="glyphicon glyphicon-hourglass text-info" title="{{ changeset.get_state_display }}" data-toggle="tooltip" data-placement="right"></i>
-                {% elif changeset.state == 'rejected' or changeset.state == 'finallyrejected' %}
-                    <i class="glyphicon glyphicon-remove text-danger" title="{{ changeset.get_state_display }}" data-toggle="tooltip" data-placement="right"></i>
-                {% elif changeset.state == 'applied' %}
-                    <i class="glyphicon glyphicon-ok text-success" title="{{ changeset.get_state_display }}" data-toggle="tooltip" data-placement="right"></i>
-                {% endif %}
+                <i class="glyphicon glyphicon-{{ changeset.icon }} text-{{ changeset.style }}" title="{{ changeset.get_state_display }}" data-toggle="tooltip" data-placement="right"></i>
             </td>
             <td>{% if changeset.title %}{{ changeset.title }}{% else %}<em>#{{ changeset.id }} {% trans '(no title)' %}</em>{% endif %}</td>
             <td><a href="{% url 'editor.changesets.detail' pk=changeset.pk %}">{% trans 'Details' %}</a></td>

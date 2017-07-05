@@ -373,3 +373,31 @@ class ChangeSet(models.Model):
         super().save(*args, **kwargs)
         if self._request is not None:
             self.activate(self._request)
+
+    STATE_ICONS = {
+        'unproposed': 'pencil',
+        'proposed': 'send',
+        'reproposed': 'send',
+        'review': 'hourglass',
+        'rejected': 'remove',
+        'finallyrejected': 'remove',
+        'applied': 'ok',
+    }
+
+    @property
+    def icon(self):
+        return self.STATE_ICONS[self.state]
+
+    STATE_STYLES = {
+        'unproposed': 'mute',
+        'proposed': 'info',
+        'reproposed': 'info',
+        'review': 'info',
+        'rejected': 'danger',
+        'finallyrejected': 'danger',
+        'applied': 'success',
+    }
+
+    @property
+    def style(self):
+        return self.STATE_STYLES[self.state]
