@@ -158,6 +158,8 @@ def changeset_detail(request, pk):
                     'obj_title': changeset.title,
                 })
 
+    changeset.fill_changes_cache(include_deleted_created=True)
+
     ctx = {
         'changeset': changeset,
         'can_edit': can_edit,
@@ -175,8 +177,6 @@ def changeset_detail(request, pk):
     if changed_objects_data:
         ctx['changed_objects'] = changed_objects_data
         return render(request, 'editor/changeset.html', ctx)
-
-    changeset.fill_changes_cache(include_deleted_created=True)
 
     objects = changeset.get_objects()
 
