@@ -2,12 +2,12 @@ import json
 from collections import OrderedDict
 
 from django.conf import settings
-from django.forms import CharField, ModelForm, ValidationError
+from django.forms import BooleanField, CharField, ModelForm, ValidationError
 from django.forms.widgets import HiddenInput
 from django.utils.translation import ugettext_lazy as _
 from shapely.geometry.geo import mapping
 
-from c3nav.editor.models import ChangeSet
+from c3nav.editor.models import ChangeSet, ChangeSetUpdate
 
 
 class MapitemFormMixin(ModelForm):
@@ -112,3 +112,11 @@ class ChangeSetForm(ModelForm):
     class Meta:
         model = ChangeSet
         fields = ('title', 'description')
+
+
+class RejectForm(ModelForm):
+    final = BooleanField(label=_('Final rejection'), required=False)
+
+    class Meta:
+        model = ChangeSetUpdate
+        fields = ('comment', )

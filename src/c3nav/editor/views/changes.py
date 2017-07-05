@@ -9,7 +9,7 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.utils.translation import ugettext_lazy as _
 
-from c3nav.editor.forms import ChangeSetForm
+from c3nav.editor.forms import ChangeSetForm, RejectForm
 from c3nav.editor.models import ChangeSet
 from c3nav.editor.utils import is_created_pk
 from c3nav.editor.views.base import sidebar_view
@@ -80,6 +80,38 @@ def changeset_detail(request, pk):
                     messages.success(request, _('You unproposed your changes.'))
                 else:
                     messages.error(request, _('You cannot unpropose this change set.'))
+
+            return redirect(reverse('editor.changesets.detail', kwargs={'pk': changeset.pk}))
+
+        elif request.POST.get('review') == '1':
+            with changeset.lock_to_edit() as changeset:
+                if changeset.can_start_review(request):
+                    changeset.start_review(request.user)
+                    messages.success(request, _('You are not reviewing these changes.'))
+                else:
+                    messages.error(request, _('You cannot review these changes.'))
+
+            return redirect(reverse('editor.changesets.detail', kwargs={'pk': changeset.pk}))
+
+        elif request.POST.get('reject') == '1':
+            with changeset.lock_to_edit() as changeset:
+                if not changeset.can_end_review(request):
+                    messages.error(request, _('You cannot reject these changes.'))
+                    return redirect(reverse('editor.changesets.detail', kwargs={'pk': changeset.pk}))
+
+                if request.POST.get('reject_confirm') == '1':
+                    form = RejectForm(data=request.POST)
+                    if form.is_valid():
+                        changeset.reject(request.user, form.cleaned_data['comment'], form.cleaned_data['final'])
+                        messages.success(request, _('You rejected these changes.'))
+                        return redirect(reverse('editor.changesets.detail', kwargs={'pk': changeset.pk}))
+                else:
+                    form = RejectForm()
+
+                return render(request, 'editor/changeset_reject.html', {
+                    'changeset': changeset,
+                    'form': form,
+                })
 
             return redirect(reverse('editor.changesets.detail', kwargs={'pk': changeset.pk}))
 
@@ -263,6 +295,9 @@ def changeset_detail(request, pk):
         'can_edit': can_edit,
         'can_delete': can_delete,
         'can_unpropose': changeset.can_unpropose(request),
+        'can_start_review': changeset.can_start_review(request),
+        'can_end_review': changeset.can_end_review(request),
+        'can_unreject': changeset.can_unreject(request),
         'active': active,
         'changed_objects': changed_objects_data,
     }

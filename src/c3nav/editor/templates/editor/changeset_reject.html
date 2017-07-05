@@ -1,0 +1,20 @@
+{% load bootstrap3 %}
+{% load i18n %}
+
+{% include 'editor/fragment_modal_close.html' %}
+<h3>{% trans 'Reject changes' %}</h3>
+<form action="{{ request.path }}" method="post">
+    {% csrf_token %}
+    <p>{% trans 'Please explain why you reject these changes.' %}</p>
+    {% bootstrap_form form %}
+    <input type="hidden" name="reject" value="1">
+    {% buttons %}
+    <button class="invisiblesubmit" type="submit"></button>
+    <a class="btn btn-default" href="{{ request.path }}">
+        {% trans 'Cancel' %}
+    </a>
+    <button type="submit" name="reject_confirm" value="1" class="btn btn-danger pull-right">
+        {% trans 'Reject' %}
+    </button>
+    {% endbuttons %}
+</form>

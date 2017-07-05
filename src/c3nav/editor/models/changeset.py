@@ -297,6 +297,20 @@ class ChangeSet(models.Model):
     def can_unpropose(self, request):
         return self.author_id == request.user.pk and self.state in ('proposed', 'reproposed')
 
+    def can_review(self, request):
+        # todo implement permissions
+        return self.is_author(request)
+
+    def can_start_review(self, request):
+        return self.can_review(request) and self.state in ('proposed', 'reproposed')
+
+    def can_end_review(self, request):
+        return self.can_review(request) and self.state == 'review' and self.assigned_to == request.user
+
+    def can_unreject(self, request):
+        return (self.can_review(request) and self.state in ('rejected', 'finallyrejected') and
+                self.assigned_to == request.user)
+
     """
     Update methods
     """
@@ -315,6 +329,43 @@ class ChangeSet(models.Model):
         self.last_update = update
         self.last_state_update = update
         self.save()
+
+    def start_review(self, user):
+        assign_to = user
+        if self.assigned_to == user:
+            assign_to = None
+        else:
+            self.assigned_to = user
+
+        if self.state != 'review':
+            update = self.updates.create(user=user, state='review', assigned_to=assign_to)
+            self.state = 'review'
+            self.last_state_update = update
+        elif assign_to is None:
+            return
+        else:
+            update = self.updates.create(user=user, assigned_to=assign_to)
+
+        self.last_update = update
+        self.save()
+
+    def reject(self, user, comment: str, final: bool):
+        state = 'finallyrejected' if final else 'rejected'
+        update = self.updates.create(user=user, state=state, comment=comment)
+        self.state = state
+        self.last_state_change = update
+        self.last_update = update
+        self.save()
+
+    def unreject(self, user):
+        update = self.updates.create(user=user, state='review')
+        self.state = 'review'
+        self.last_state_change = update
+        self.last_update = update
+        self.save()
+
+    def apply(self, user):
+        pass
 
     def activate(self, request):
         request.session['changeset'] = self.pk

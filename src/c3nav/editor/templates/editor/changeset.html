@@ -127,8 +127,18 @@
             {% if can_edit %}
                 <a href="{% url 'editor.changesets.edit' pk=changeset.pk %}" class="btn btn-default">{% trans 'Edit' %}</a>
             {% endif %}
-            {% if can_edit and not changeset.proposed and active %}
+            {% if can_edit and not changeset.proposed %}
                 <button type="submit" class="btn btn-primary" name="propose" value="1">{% trans 'Propose' %}</button>
+            {% endif %}
+            {% if can_start_review %}
+                <button type="submit" class="btn btn-primary" name="review" value="1">{% trans 'Review' %}</button>
+            {% endif %}
+            {% if can_end_review %}
+                <button type="submit" class="btn btn-danger" name="reject" value="1">{% trans 'Reject' %}</button>
+                <button type="submit" class="btn btn-success" name="apply" value="1">{% trans 'Apply' %}</button>
+            {% endif %}
+            {% if can_unreject %}
+                <button type="submit" class="btn btn-default" name="reject" value="1">{% trans 'Unreject' %}</button>
             {% endif %}
         {% endif %}
         {% if not active and not changeset.closed %}
