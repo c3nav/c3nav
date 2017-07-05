@@ -63,7 +63,11 @@
                     <p>{% blocktrans %}Your changes were applied by <a href="{{ user_url }}">{{ user }}</a>.{% endblocktrans %}</p>
                 {% endwith %}
             {% endif %}
-            <em class="text-muted">{{ changeset.last_state_update.datetime|date:"DATETIME_FORMAT" }}</em>
+            {% if changeset.author == request.user and active %}
+                {% url 'editor.users.detail' pk=request.user.pk as user_url %}
+                <p>{% blocktrans %}In the meantime, if you want to create a new change set, you can do so <a href="{{ user_url }}">in your profile</a>.{% endblocktrans %}</p>
+            {% endif %}
+            <span class="text-muted">{{ changeset.last_state_update.datetime|date:"DATETIME_FORMAT" }}</span>
         </div>
     </div>
 {% endif %}
