@@ -31,7 +31,10 @@
 {% if changeset.last_state_update and changeset.state != 'unproposed' %}
     <div class="panel panel-{{ changeset.style }}">
         <div class="panel-heading">
-            <h3 class="panel-title">{{ changeset.get_state_display }}</h3>
+            <h3 class="panel-title">
+                <i class="glyphicon glyphicon-{{ changeset.icon }} pull-right"></i>
+                {{ changeset.get_state_display }}
+            </h3>
         </div>
         <div class="panel-body">
             {% if changeset.state == 'proposed' or changeset.state == 'reproposed' %}
