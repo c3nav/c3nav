@@ -13,7 +13,7 @@ from rest_framework.exceptions import PermissionDenied
 from c3nav.editor.models.changedobject import ChangedObject
 from c3nav.editor.utils import is_created_pk
 from c3nav.editor.wrappers import ModelWrapper
-from c3nav.mapdata.models import LocationSlug
+from c3nav.mapdata.models import LocationSlug, MapUpdate
 from c3nav.mapdata.models.locations import LocationRedirect
 from c3nav.mapdata.utils.models import get_submodels
 
@@ -41,6 +41,7 @@ class ChangeSet(models.Model):
     description = models.TextField(max_length=1000, default='', verbose_name=_('Description'))
     assigned_to = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, on_delete=models.PROTECT,
                                     related_name='assigned_changesets', verbose_name=_('assigned to'))
+    map_update = models.OneToOneField(MapUpdate, null=True, related_name='changeset', verbose_name=_('map update'))
 
     class Meta:
         verbose_name = _('Change Set')
@@ -366,9 +367,11 @@ class ChangeSet(models.Model):
 
     def apply(self, user):
         update = self.updates.create(user=user, state='applied')
+        map_update = MapUpdate.objects.create(user=user, type='changeset')
         self.state = 'applied'
         self.last_state_update = update
         self.last_update = update
+        self.map_update = map_update
         self.save()
 
     def activate(self, request):
@@ -425,6 +428,8 @@ class ChangeSet(models.Model):
         ))
 
     def save(self, *args, **kwargs):
+        if self.state == 'applied':
+            raise TypeError('Applied change sets can not be edited.')
         super().save(*args, **kwargs)
         if self._request is not None:
             self.activate(self._request)
