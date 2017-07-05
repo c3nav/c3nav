@@ -336,16 +336,22 @@ def changeset_edit(request, pk):
     if str(pk) != str(request.changeset.pk):
         changeset = get_object_or_404(ChangeSet.qs_for_request(request), pk=pk)
 
-    if not changeset.can_edit(request):
-        raise PermissionDenied
-
-    if request.method == 'POST':
-        form = ChangeSetForm(instance=changeset, data=request.POST)
-        if form.is_valid():
-            form.save()
+    with changeset.lock_to_edit() as changeset:
+        if not changeset.can_edit(request):
+            messages.error(request, _('You cannot edit this change set.'))
             return redirect(reverse('editor.changesets.detail', kwargs={'pk': changeset.pk}))
-    else:
-        form = ChangeSetForm(instance=changeset)
+
+        if request.method == 'POST':
+            form = ChangeSetForm(instance=changeset, data=request.POST)
+            if form.is_valid():
+                changeset = form.instance
+                update = changeset.updates.create(user=request.user,
+                                                  title=changeset.title, description=changeset.description)
+                changeset.last_update = update
+                changeset.save()
+                return redirect(reverse('editor.changesets.detail', kwargs={'pk': changeset.pk}))
+        else:
+            form = ChangeSetForm(instance=changeset)
 
     return render(request, 'editor/changeset_edit.html', {
         'changeset': changeset,
