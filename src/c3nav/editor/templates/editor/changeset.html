@@ -50,25 +50,29 @@
             {% elif changeset.state == 'rejected' or changeset.state == 'finallyrejected' %}
                 {% with user=changeset.last_state_update.user comment=changeset.last_state_update.comment %}
                     {% url 'editor.users.detail' pk=changeset.last_state_update.user.pk as user_url %}
-                    <p>{% blocktrans %}Your changes were rejected by <a href="{{ user_url }}">{{ user }}</a>:{% endblocktrans %}</p>
+                    {% if changeset.state == 'rejected' %}
+                        <p>{% blocktrans %}These changes were rejected by <a href="{{ user_url }}">{{ user }}</a> with the followed comment:{% endblocktrans %}</p>
+                    {% else %}
+                        <p>{% blocktrans %}These changes were <strong>finally</strong> rejected by <a href="{{ user_url }}">{{ user }}</a> with the followed comment:{% endblocktrans %}</p>
+                    {% endif %}
                     <p>{% blocktrans %}“{{ comment }}”{% endblocktrans %}</p>
-                    {% if changeset.author == request.user %}
-                        {% if changeset.state == 'rejected' %}
-                            <p>{% blocktrans %}You can now edit your changes and propose them again.{% endblocktrans %}</p>
-                        {% else %}
-                            <p>{% blocktrans %}This rejection is final.{% endblocktrans %}</p>
-                        {% endif %}
+                    {% if changeset.author == request.user and changeset.state == 'rejected' %}
+                        <p>{% blocktrans %}You can now edit your changes and propose them again.{% endblocktrans %}</p>
                     {% endif %}
                 {% endwith %}
             {% elif changeset.state == 'applied' %}
                 {% with user=changeset.last_state_update.user %}
                     {% url 'editor.users.detail' pk=changeset.last_state_update.user.pk as user_url %}
-                    <p>{% blocktrans %}Your changes were applied by <a href="{{ user_url }}">{{ user }}</a>.{% endblocktrans %}</p>
+                    <p>{% blocktrans %}These changes were applied by <a href="{{ user_url }}">{{ user }}</a>.{% endblocktrans %}</p>
                 {% endwith %}
             {% endif %}
             {% if changeset.author == request.user and active %}
                 {% url 'editor.users.detail' pk=request.user.pk as user_url %}
-                <p>{% blocktrans %}In the meantime, if you want to create a new change set, you can do so <a href="{{ user_url }}">in your profile</a>.{% endblocktrans %}</p>
+                {% if not changeset.closed %}
+                    <p>{% blocktrans %}In the meantime, if you want to create a new change set, you can do so <a href="{{ user_url }}">in your profile</a>.{% endblocktrans %}</p>
+                {% else %}
+                    <p>{% blocktrans %}If you want to create a new change set, you can do so <a href="{{ user_url }}">in your profile</a>.{% endblocktrans %}</p>
+                {% endif %}
             {% endif %}
             <span class="text-muted">{{ changeset.last_state_update.datetime|date:"DATETIME_FORMAT" }}</span>
         </div>
