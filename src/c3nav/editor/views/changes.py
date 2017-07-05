@@ -131,12 +131,12 @@ def changeset_detail(request, pk):
         elif request.POST.get('apply') == '1':
             with changeset.lock_to_edit() as changeset:
                 if not changeset.can_end_review(request):
-                    messages.error(request, _('You cannot apply these changes.'))
+                    messages.error(request, _('You cannot accept and apply these changes.'))
                     return redirect(reverse('editor.changesets.detail', kwargs={'pk': changeset.pk}))
 
                 if request.POST.get('apply_confirm') == '1':
                     changeset.apply(request.user)
-                    messages.success(request, _('You applied these changes.'))
+                    messages.success(request, _('You accepted and applied these changes.'))
                     return redirect(reverse('editor.changesets.detail', kwargs={'pk': changeset.pk}))
 
                 return render(request, 'editor/changeset_apply.html', {})

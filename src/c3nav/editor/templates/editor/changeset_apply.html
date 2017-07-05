@@ -2,10 +2,10 @@
 {% load i18n %}
 
 {% include 'editor/fragment_modal_close.html' %}
-<h3>{% trans 'Apply these changes' %}</h3>
+<h3>{% trans 'Accept and apply changes' %}</h3>
 <form action="{{ request.path }}" method="post">
     {% csrf_token %}
-    <p>{% trans 'Do you really want to apply these changes?' %}</p>
+    <p>{% trans 'Do you really want to accept and apply these changes?' %}</p>
     <input type="hidden" name="apply" value="1">
     {% buttons %}
     <button class="invisiblesubmit" type="submit"></button>
@@ -13,7 +13,7 @@
         {% trans 'Cancel' %}
     </a>
     <button type="submit" name="apply_confirm" value="1" class="btn btn-success pull-right">
-        {% trans 'Apply' %}
+        {% trans 'Accept and apply' %}
     </button>
     {% endbuttons %}
 </form>

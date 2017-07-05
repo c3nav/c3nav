@@ -12,7 +12,6 @@ class ChangeSetUpdate(models.Model):
     user = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, on_delete=models.PROTECT, related_name='+')
 
     state = models.CharField(null=None, db_index=True, choices=ChangeSet.STATES, max_length=20)
-    author = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, on_delete=models.PROTECT, related_name='+')
     title = models.CharField(max_length=100, null=True)
     description = models.TextField(max_length=1000, null=True)
     assigned_to = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, on_delete=models.PROTECT, related_name='+')

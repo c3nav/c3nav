@@ -24,9 +24,9 @@ class ChangeSet(models.Model):
         ('proposed', _('proposed')),
         ('review', _('in review')),
         ('rejected', _('rejected')),
-        ('reproposed', _('reproposed')),
+        ('reproposed', _('proposed again')),
         ('finallyrejected', _('finally rejected')),
-        ('applied', _('accepted')),
+        ('applied', _('accepted and applied')),
     )
     created = models.DateTimeField(auto_now_add=True, verbose_name=_('created'))
     last_change = models.ForeignKey('editor.ChangeSetUpdate', null=True, related_name='+',
