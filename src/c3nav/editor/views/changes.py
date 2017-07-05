@@ -65,6 +65,10 @@ def changeset_detail(request, pk):
                 return redirect(reverse('editor.login')+'?r='+request.path)
 
             with changeset.lock_to_edit() as changeset:
+                if not changeset.title or not changeset.description:
+                    messages.warning(request, _('You need to add a title an a description to propose this change set.'))
+                    return redirect(reverse('editor.changesets.edit', kwargs={'pk': changeset.pk}))
+
                 if changeset.can_propose(request):
                     changeset.propose(request.user)
                     messages.success(request, _('You proposed your changes.'))

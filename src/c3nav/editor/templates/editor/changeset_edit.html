@@ -16,6 +16,7 @@
 
 <form action="{{ path }}" method="post">
     {% csrf_token %}
+    {% bootstrap_messages %}
     {% bootstrap_form form %}
 
     {% buttons %}
