@@ -7,7 +7,7 @@
                 <i class="glyphicon glyphicon-{{ changeset.icon }} text-{{ changeset.style }}" title="{{ changeset.get_state_display }}" data-toggle="tooltip" data-placement="right"></i>
             </td>
             <td>{% if changeset.title %}{{ changeset.title }}{% else %}<em>#{{ changeset.id }} {% trans '(no title)' %}</em>{% endif %}</td>
-            <td><a href="{% url 'editor.changesets.detail' pk=changeset.pk %}">{% trans 'Details' %}</a></td>
+            <td><a href="{{ changeset.get_absolute_url }}">{% trans 'Details' %}</a></td>
         </tr>
     {% endfor %}
 </table>
