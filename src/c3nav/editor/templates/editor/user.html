@@ -9,8 +9,7 @@
 {% if request.user == user %}
     <h4 class="text-success">{% trans "That\'s you!" %}</h4>
     {% if request.changeset.pk %}
-        {% with changeset_title=changeset.title changeset_id=request.changeset.pk %}
-            {% url 'editor.changeset.detail' pk=request.changeset.pk as changeset_url %}
+        {% with changeset_title=changeset.title changeset_id=request.changeset.pk changeset_url=request.changeset.get_absolute_url %}
             <p>
                 {% if changeset_title %}
                     {% blocktrans %}Your active change set is <a href="{{ changeset_url }}">{{ changeset_title }}</a>.{% endblocktrans %}
