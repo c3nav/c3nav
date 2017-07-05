@@ -115,6 +115,17 @@ def changeset_detail(request, pk):
 
             return redirect(reverse('editor.changesets.detail', kwargs={'pk': changeset.pk}))
 
+        elif request.POST.get('unreject') == '1':
+            with changeset.lock_to_edit() as changeset:
+                if not changeset.can_unreject(request):
+                    messages.error(request, _('You cannot unreject these changes.'))
+                    return redirect(reverse('editor.changesets.detail', kwargs={'pk': changeset.pk}))
+
+                changeset.unreject(request.user)
+                messages.success(request, _('You unrejected these changes.'))
+
+            return redirect(reverse('editor.changesets.detail', kwargs={'pk': changeset.pk}))
+
         elif request.POST.get('delete') == '1':
             if not changeset.can_delete(request):
                 raise PermissionDenied
