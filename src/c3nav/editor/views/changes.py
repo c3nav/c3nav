@@ -16,7 +16,7 @@ from c3nav.editor.views.base import sidebar_view
 from c3nav.mapdata.models.locations import LocationRedirect, LocationSlug
 
 
-@sidebar_view
+@sidebar_view(select_related=('last_update', 'last_state_update', 'author'))
 def changeset_detail(request, pk):
     changeset = request.changeset
     active = True

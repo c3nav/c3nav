@@ -69,11 +69,11 @@ class ChangeSet(models.Model):
         Returns a base QuerySet to get only changesets the current user is allowed to see
         """
         if request.user.is_authenticated:
-            return ChangeSet.objects.select_related('last_update', 'last_change').filter(author=request.user)
+            return ChangeSet.objects.filter(author=request.user)
         return ChangeSet.objects.none()
 
     @classmethod
-    def get_for_request(cls, request):
+    def get_for_request(cls, request, select_related=None):
         """
         Get the changeset for the current request.
         If a changeset is associated with the session id, it will be returned.
@@ -84,9 +84,11 @@ class ChangeSet(models.Model):
         In any case, the default autor for changes added to the queryset during
         this request will be set to the current user.
         """
+        if select_related is None:
+            select_related = ('last_change', )
         changeset_pk = request.session.get('changeset')
         if changeset_pk is not None:
-            qs = ChangeSet.objects.select_related('last_update', 'last_change').exclude(state='applied')
+            qs = ChangeSet.objects.select_related(*select_related).exclude(state='applied')
             if request.user.is_authenticated:
                 qs = qs.filter(author=request.user)
             else:
