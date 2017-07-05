@@ -170,7 +170,7 @@ def changeset_detail(request, pk):
         'active': active,
     }
 
-    cache_key = changeset.cache_key_by_changes
+    cache_key = 'editor:changeset_view_data:'+changeset.cache_key_by_changes
     changed_objects_data = cache.get(cache_key)
     if changed_objects_data:
         ctx['changed_objects'] = changed_objects_data
