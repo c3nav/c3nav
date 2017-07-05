@@ -353,14 +353,14 @@ class ChangeSet(models.Model):
         state = 'finallyrejected' if final else 'rejected'
         update = self.updates.create(user=user, state=state, comment=comment)
         self.state = state
-        self.last_state_change = update
+        self.last_state_update = update
         self.last_update = update
         self.save()
 
     def unreject(self, user):
         update = self.updates.create(user=user, state='review')
         self.state = 'review'
-        self.last_state_change = update
+        self.last_state_update = update
         self.last_update = update
         self.save()
 
