@@ -264,8 +264,6 @@ class ChangedObject(models.Model):
                 (not self.is_created and self.deleted))
 
     def save(self, *args, standalone=False, **kwargs):
-        if not self.changeset.editable:
-            raise TypeError('can not add change object to uneditable changeset.')
         self.m2m_added = {name: tuple(values) for name, values in self._m2m_added_cache.items()}
         self.m2m_removed = {name: tuple(values) for name, values in self._m2m_removed_cache.items()}
         if not self.does_something:
