@@ -3,10 +3,12 @@ from operator import itemgetter
 
 from django.conf import settings
 from django.contrib import messages
+from django.core.cache import cache
 from django.core.exceptions import PermissionDenied
 from django.http import Http404
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
+from django.utils.text import format_lazy
 from django.utils.translation import ugettext_lazy as _
 
 from c3nav.editor.forms import ChangeSetForm, RejectForm
@@ -16,7 +18,7 @@ from c3nav.editor.views.base import sidebar_view
 from c3nav.mapdata.models.locations import LocationRedirect, LocationSlug
 
 
-@sidebar_view(select_related=('last_update', 'last_state_update', 'author'))
+@sidebar_view(select_related=('last_update', 'last_state_update', 'last_change', 'author'))
 def changeset_detail(request, pk):
     changeset = request.changeset
     active = True
@@ -156,6 +158,24 @@ def changeset_detail(request, pk):
                     'obj_title': changeset.title,
                 })
 
+    ctx = {
+        'changeset': changeset,
+        'can_edit': can_edit,
+        'can_delete': can_delete,
+        'can_propose': changeset.can_propose(request),
+        'can_unpropose': changeset.can_unpropose(request),
+        'can_start_review': changeset.can_start_review(request),
+        'can_end_review': changeset.can_end_review(request),
+        'can_unreject': changeset.can_unreject(request),
+        'active': active,
+    }
+
+    cache_key = changeset.cache_key_by_changes
+    changed_objects_data = cache.get(cache_key)
+    if changed_objects_data:
+        ctx['changed_objects'] = changed_objects_data
+        return render(request, 'editor/changeset.html', ctx)
+
     changeset.fill_changes_cache(include_deleted_created=True)
 
     objects = changeset.get_objects()
@@ -188,7 +208,7 @@ def changeset_detail(request, pk):
         for pk, changed_object in changed_objects.items():
             obj = objects[model][pk]
 
-            obj_desc = _('%(model)s #%(id)s') % {'model': obj.__class__._meta.verbose_name, 'id': pk}
+            obj_desc = format_lazy(_('{model} #{id}'), model=obj.__class__._meta.verbose_name, id=pk)
             if is_created_pk(pk):
                 obj_still_exists = pk in changeset.created_objects.get(obj.__class__, ())
             else:
@@ -244,7 +264,7 @@ def changeset_detail(request, pk):
                 else:
                     if name.startswith('title_'):
                         lang = name[6:]
-                        field_title = _('Title (%(lang)s)') % {'lang': dict(settings.LANGUAGES).get(lang, lang)}
+                        field_title = format_lazy(_('Title ({lang})'), lang=dict(settings.LANGUAGES).get(lang, lang))
                         field_value = str(value)
                         if field_value:
                             obj.titles[lang] = field_value
@@ -269,7 +289,7 @@ def changeset_detail(request, pk):
                         })
                     if not field_value:
                         change_data.update({
-                            'title': _('remove %(field_title)s') % {'field_title': field_title},
+                            'title': format_lazy(_('remove {field_title}'), field_title=field_title),
                         })
                     else:
                         change_data.update({
@@ -318,18 +338,8 @@ def changeset_detail(request, pk):
 
     changed_objects_data = sorted(changed_objects_data, key=itemgetter('order'))
 
-    ctx = {
-        'changeset': changeset,
-        'can_edit': can_edit,
-        'can_delete': can_delete,
-        'can_propose': changeset.can_propose(request),
-        'can_unpropose': changeset.can_unpropose(request),
-        'can_start_review': changeset.can_start_review(request),
-        'can_end_review': changeset.can_end_review(request),
-        'can_unreject': changeset.can_unreject(request),
-        'active': active,
-        'changed_objects': changed_objects_data,
-    }
+    cache.set(cache_key, changed_objects_data, 300)
+    ctx['changed_objects'] = changed_objects_data
 
     return render(request, 'editor/changeset.html', ctx)
 
