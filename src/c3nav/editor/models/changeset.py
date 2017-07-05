@@ -444,7 +444,7 @@ class ChangeSet(models.Model):
         return self.STATE_ICONS[self.state]
 
     STATE_STYLES = {
-        'unproposed': 'mute',
+        'unproposed': 'muted',
         'proposed': 'info',
         'reproposed': 'info',
         'review': 'info',
