@@ -113,8 +113,6 @@ def changeset_detail(request, pk):
                     'form': form,
                 })
 
-            return redirect(reverse('editor.changesets.detail', kwargs={'pk': changeset.pk}))
-
         elif request.POST.get('unreject') == '1':
             with changeset.lock_to_edit() as changeset:
                 if not changeset.can_unreject(request):
