@@ -292,7 +292,7 @@ class ChangeSet(models.Model):
         return self.can_edit(request) and self.state == 'unproposed'
 
     def can_propose(self, request):
-        return self.can_edit(request) and not self.proposed
+        return self.can_edit(request) and not self.proposed and self.changed_objects_count
 
     def can_unpropose(self, request):
         return self.author_id == request.user.pk and self.state in ('proposed', 'reproposed')

@@ -134,7 +134,7 @@
             {% if can_edit %}
                 <a href="{% url 'editor.changesets.edit' pk=changeset.pk %}" class="btn btn-default">{% trans 'Edit' %}</a>
             {% endif %}
-            {% if can_edit and not changeset.proposed %}
+            {% if can_propose %}
                 <button type="submit" class="btn btn-primary" name="propose" value="1">{% trans 'Propose' %}</button>
             {% endif %}
             {% if can_start_review %}

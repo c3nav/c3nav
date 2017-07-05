@@ -318,6 +318,7 @@ def changeset_detail(request, pk):
         'changeset': changeset,
         'can_edit': can_edit,
         'can_delete': can_delete,
+        'can_propose': changeset.can_propose(request),
         'can_unpropose': changeset.can_unpropose(request),
         'can_start_review': changeset.can_start_review(request),
         'can_end_review': changeset.can_end_review(request),
