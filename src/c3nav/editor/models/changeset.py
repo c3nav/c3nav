@@ -88,7 +88,7 @@ class ChangeSet(models.Model):
             select_related = ('last_change', )
         changeset_pk = request.session.get('changeset')
         if changeset_pk is not None:
-            qs = ChangeSet.objects.select_related(*select_related).exclude(state='applied')
+            qs = ChangeSet.objects.select_related(*select_related).exclude(state__in=('applied', 'finallyrejected'))
             if request.user.is_authenticated:
                 qs = qs.filter(author=request.user)
             else:
