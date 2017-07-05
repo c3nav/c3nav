@@ -1,14 +1,36 @@
 {% load i18n %}
+{% load bootstrap3 %}
 
 {% include 'editor/fragment_modal_close.html' %}
 <h3>
     <i class="glyphicon glyphicon-user"></i> {{ user.username }}
-    {% if request.user == user %}
-        <small class="text-success">{% trans "That\'s you!" %}</small>
-    {% endif %}
 </h3>
+{% bootstrap_messages %}
+{% if request.user == user %}
+    <h4 class="text-success">{% trans "That\'s you!" %}</h4>
+    {% if request.changeset.pk %}
+        {% with changeset_title=changeset.title changeset_id=request.changeset.pk %}
+            {% url 'editor.changeset.detail' pk=request.changeset.pk as changeset_url %}
+            <p>
+                {% if changeset_title %}
+                    {% blocktrans %}Your active change set is <a href="{{ changeset_url }}">{{ changeset_title }}</a>.{% endblocktrans %}
+                {% else %}
+                    {% blocktrans %}Your active change set is <a href="{{ changeset_url }}">#{{ changeset_id }} (untitled)</a>.{% endblocktrans %}
+                {% endif %}
+                <br>{% blocktrans %}Deactivate it if you want to create a new one.{% endblocktrans %}
+            </p>
+            <form method="post" action="{{ request.path }}">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-xs btn-default" name="deactivate_changeset" value="1">{% trans 'Deactivate change set' %}</button>
+            </form>
+        {% endwith %}
+    {% else %}
+        {% trans 'You have currently no active change set.' %}<br>
+        {% trans 'Just edit something to create one.' %}
+    {% endif %}
+{% endif %}
 
 <h4>{% trans 'Recent change sets' %}</h4>
-{% include 'editor/fragment_changesets.html' %}
+{% include 'editor/fragment_changesets.html' with changesets=recent_changesets %}
 
 

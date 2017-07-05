@@ -195,6 +195,9 @@ form button.invisiblesubmit {
 .tooltip {
     font-size:16px;
 }
+h4 {
+    margin-top:20px;
+}
 
 /* responsiveness */
 #responsive_switch {
