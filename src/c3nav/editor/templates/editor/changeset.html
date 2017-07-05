@@ -86,7 +86,7 @@
         <thead>
             <tr>
                 <th colspan="2">
-                    {% if obj.edit_url %}
+                    {% if obj.edit_url and active %}
                         <a class="btn btn-default btn-xs pull-right" data-force-next-zoom href="{{ obj.edit_url }}">
                             {% trans 'Edit' %}
                         </a>

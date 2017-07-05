@@ -215,7 +215,7 @@ def changeset_detail(request, pk):
                 obj_still_exists = pk not in changeset.deleted_existing.get(obj.__class__, ())
 
             edit_url = None
-            if obj_still_exists and active and can_edit and not isinstance(obj, LocationRedirect):
+            if obj_still_exists and can_edit and not isinstance(obj, LocationRedirect):
                 reverse_kwargs = {'pk': obj.pk}
                 if hasattr(obj, 'level_id'):
                     reverse_kwargs['level'] = obj.level_id
