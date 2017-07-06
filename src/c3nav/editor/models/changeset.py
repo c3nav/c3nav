@@ -1,6 +1,8 @@
+import operator
 import typing
 from collections import OrderedDict
 from contextlib import contextmanager
+from functools import reduce
 from itertools import chain
 
 from django.apps import apps
@@ -176,7 +178,6 @@ class ChangeSet(models.Model):
         return chain(*(changed_objects.values() for changed_objects in self.changed_objects.values()))
 
     def _clean_changes(self):
-        print('clean_changes')
         changed_objects = self.changed_objects_set.all()
         with self.lock_to_edit():
             # delete changed objects that refer in some way to deleted objects and clean up m2m changes
@@ -250,9 +251,16 @@ class ChangeSet(models.Model):
         for change in changed_objects:
             change.add_relevant_object_pks(object_pks, many=many)
 
+        slug_submodels = tuple(model for model in object_pks.keys() if issubclass(model, LocationSlug))
+        object_pks[LocationSlug] = reduce(operator.or_, (object_pks[model] for model in slug_submodels))
+        for model in slug_submodels:
+            object_pks.pop(model)
+
         # retrieve relevant objects
         objects = {}
         for model, pks in object_pks.items():
+            if not pks:
+                continue
             created_pks = set(pk for pk in pks if is_created_pk(pk))
             existing_pks = pks - created_pks
             model_objects = {}
