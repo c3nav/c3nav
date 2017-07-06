@@ -87,7 +87,7 @@ class ChangedObject(models.Model):
         obj._state.adding = False
         return self.changeset.wrap_instance(obj)
 
-    def add_relevant_object_pks(self, object_pks):
+    def add_relevant_object_pks(self, object_pks, many=True):
         object_pks.setdefault(self.model_class, set()).add(self.obj_pk)
         for name, value in self.updated_fields.items():
             if name.startswith('title_'):
@@ -96,9 +96,10 @@ class ChangedObject(models.Model):
             if field.is_relation:
                 object_pks.setdefault(field.related_model, set()).add(value)
 
-        for name, value in chain(self._m2m_added_cache.items(), self._m2m_removed_cache.items()):
-            field = self.model_class._meta.get_field(name)
-            object_pks.setdefault(field.related_model, set()).update(value)
+        if many:
+            for name, value in chain(self._m2m_added_cache.items(), self._m2m_removed_cache.items()):
+                field = self.model_class._meta.get_field(name)
+                object_pks.setdefault(field.related_model, set()).update(value)
 
     def update_changeset_cache(self):
         if self.pk is None:
@@ -156,9 +157,11 @@ class ChangedObject(models.Model):
             else:
                 raise NotImplementedError
 
-    def clean_updated_fields(self):
+    def clean_updated_fields(self, objects=None):
         if self.is_created:
             current_obj = self.model_class()
+        elif objects is not None:
+            current_obj = objects[self.model_class][self.existing_object_pk]
         else:
             current_obj = self.model_class.objects.get(pk=self.existing_object_pk)
 
@@ -181,6 +184,29 @@ class ChangedObject(models.Model):
 
         self.updated_fields = {name: value for name, value in self.updated_fields.items() if name not in delete_fields}
         return delete_fields
+
+    def handle_deleted_object_pks(self, deleted_object_pks):
+        if self.obj_pk in deleted_object_pks[self.model_class]:
+            self.delete()
+            return False
+
+        for name, value in self.updated_fields.items():
+            if name.startswith('title_'):
+                continue
+            field = self.model_class._meta.get_field(name)
+            if field.is_relation:
+                if value in deleted_object_pks[field.related_model]:
+                    self.delete()
+                    return False
+
+        changed = False
+        for name, value in chain(self._m2m_added_cache.items(), self._m2m_removed_cache.items()):
+            field = self.model_class._meta.get_field(name)
+            if deleted_object_pks[field.related_model] & value:
+                value.difference_update(deleted_object_pks[field.related_model])
+                changed = True
+
+        return changed
 
     def save_instance(self, instance):
         old_updated_fields = self.updated_fields
@@ -219,8 +245,17 @@ class ChangedObject(models.Model):
         self.deleted = True
         self.save()
 
-    def m2m_set(self, name, set_pks=None):
-        if not self.is_created:
+    def clean_m2m(self, objects):
+        current_obj = objects[self.model_class][self.existing_object_pk]
+        changed = False
+        for name in set(self._m2m_added_cache.keys()) | set(self._m2m_removed_cache.keys()):
+            changed = changed or self.m2m_set(name, obj=current_obj)
+        return changed
+
+    def m2m_set(self, name, set_pks=None, obj=None):
+        if obj is not None:
+            pks = set(related_obj.pk for related_obj in getattr(obj, name).all())
+        elif not self.is_created:
             field = self.model_class._meta.get_field(name)
             rel_name = field.rel.related_name
             pks = set(field.related_model.objects.filter(**{rel_name+'__pk': self.obj_pk}).values_list('pk', flat=True))

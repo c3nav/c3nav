@@ -1,3 +1,4 @@
+import typing
 from collections import OrderedDict
 from contextlib import contextmanager
 from itertools import chain
@@ -5,6 +6,7 @@ from itertools import chain
 from django.apps import apps
 from django.conf import settings
 from django.core.cache import cache
+from django.core.exceptions import FieldDoesNotExist
 from django.db import models, transaction
 from django.urls import reverse
 from django.utils.http import int_to_base36
@@ -158,6 +160,9 @@ class ChangeSet(models.Model):
              self.deleted_existing, self.m2m_added, self.m2m_removed) = cached_cache
             return True
 
+        if self.state != 'applied':
+            self._clean_changes()
+
         self.changed_objects = {}
         for change in qs:
             change.update_changeset_cache()
@@ -167,17 +172,83 @@ class ChangeSet(models.Model):
 
         return True
 
+    def iter_changed_objects(self) -> typing.Iterable[ChangedObject]:
+        return chain(*(changed_objects.values() for changed_objects in self.changed_objects.values()))
+
+    def _clean_changes(self):
+        print('clean_changes')
+        changed_objects = self.changed_objects_set.all()
+        with self.lock_to_edit():
+            # delete changed objects that refer in some way to deleted objects and clean up m2m changes
+            object_pks = {}
+            for changed_object in changed_objects:
+                changed_object.add_relevant_object_pks(object_pks)
+
+            to_save = set()
+
+            deleted_object_pks = {}
+            for model, pks in object_pks.items():
+                pks = set(pk for pk in pks if not is_created_pk(pk))
+                deleted_object_pks[model] = pks - set(model.objects.filter(pk__in=pks).values_list('pk', flat=True))
+
+            for changed_object in changed_objects:
+                if changed_object.handle_deleted_object_pks(deleted_object_pks):
+                    to_save.add(changed_object)
+
+            # remove deleted objects
+            changed_objects = [obj for obj in changed_objects if obj.pk is not None]
+
+            # clean updated fields
+            objects = self.get_objects(many=False, changed_objects=changed_objects, prefetch_related=('groups', ))
+            for changed_object in changed_objects:
+                if changed_object.clean_updated_fields(objects):
+                    to_save.add(changed_object)
+
+            # clean m2m
+            for changed_object in changed_objects:
+                if changed_object.clean_m2m(objects):
+                    to_save.add(changed_object)
+
+            # remove duplicate slugs
+            slugs = set()
+            for changed_object in changed_objects:
+                if issubclass(changed_object.model_class, LocationSlug):
+                    slug = changed_object.updated_fields.get('slug', None)
+                    if slug is not None:
+                        if slug in slugs:
+                            changed_object.updated_fields.pop('slug', None)
+                            to_save.add(changed_object)
+                        else:
+                            slugs.add(slug)
+
+            existing_slugs = set(LocationSlug.objects.filter(slug__in=slugs).values_list('slug', flat=True))
+
+            for changed_object in changed_objects:
+                if issubclass(changed_object.model_class, LocationSlug):
+                    if changed_object.updated_fields.get('slug', None) in existing_slugs:
+                        if issubclass(changed_object.model_class, LocationRedirect):
+                            to_save.discard(changed_object)
+                            changed_object.delete()
+                        else:
+                            changed_object.updated_fields.pop('slug', None)
+                            to_save.add(changed_object)
+
+            for changed_object in to_save:
+                changed_object.save(standalone=True)
+
     """
     Analyse Changes
     """
-    def get_objects(self):
-        if self.changed_objects is None:
-            raise TypeError
+    def get_objects(self, many=True, changed_objects=None, prefetch_related=()):
+        if changed_objects is None:
+            if self.changed_objects is None:
+                raise TypeError
+            changed_objects = self.iter_changed_objects()
 
         # collect pks of relevant objects
         object_pks = {}
-        for change in chain(*(objects.values() for objects in self.changed_objects.values())):
-            change.add_relevant_object_pks(object_pks)
+        for change in changed_objects:
+            change.add_relevant_object_pks(object_pks, many=many)
 
         # retrieve relevant objects
         objects = {}
@@ -186,6 +257,14 @@ class ChangeSet(models.Model):
             existing_pks = pks - created_pks
             model_objects = {}
             if existing_pks:
+                qs = model.objects.filter(pk__in=existing_pks)
+                for prefetch in prefetch_related:
+                    try:
+                        model._meta.get_field(prefetch)
+                    except FieldDoesNotExist:
+                        pass
+                    else:
+                        qs = qs.prefetch_related(prefetch)
                 for obj in model.objects.filter(pk__in=existing_pks):
                     if model == LocationSlug:
                         obj = obj.get_child()
