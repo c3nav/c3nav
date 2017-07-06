@@ -281,7 +281,8 @@ class ChangedObject(models.Model):
             super().save(*args, **kwargs)
 
     def delete(self, **kwargs):
-        raise TypeError('changed objects can not be deleted directly.')
+        self.changeset._object_changed = True
+        super().delete(**kwargs)
 
     def __repr__(self):
         return '<ChangedObject #%s on ChangeSet #%s>' % (str(self.pk), str(self.changeset_id))
