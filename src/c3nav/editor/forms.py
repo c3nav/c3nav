@@ -74,7 +74,16 @@ class MapitemFormMixin(ModelForm):
             self.fields['slug'].run_validators(slug)
 
         LocationSlug = self.request.changeset.wrap_model('LocationSlug')
-        for slug in LocationSlug.objects.filter(slug__in=self.add_redirect_slugs).values_list('slug', flat=True)[:1]:
+        qs = LocationSlug.objects.filter(slug__in=self.add_redirect_slugs)
+
+        if self.cleaned_data['slug'] in self.add_redirect_slugs:
+            raise ValidationError(
+                _('Can not add redirecting slug “%s”: it\'s the slug of this object.') % self.cleaned_data['slug']
+            )
+        else:
+            qs = qs.exclude(pk=self.instance.pk)
+
+        for slug in qs.values_list('slug', flat=True)[:1]:
             raise ValidationError(
                 _('Can not add redirecting slug “%s”: it is already used elsewhere.') % slug
             )
