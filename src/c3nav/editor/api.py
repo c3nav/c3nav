@@ -1,10 +1,10 @@
 from itertools import chain
 
-from rest_framework.decorators import list_route
+from rest_framework.decorators import detail_route, list_route
 from rest_framework.exceptions import ValidationError
 from rest_framework.generics import get_object_or_404
 from rest_framework.response import Response
-from rest_framework.viewsets import ViewSet
+from rest_framework.viewsets import ReadOnlyModelViewSet, ViewSet
 from shapely.ops import cascaded_union
 
 from c3nav.editor.models import ChangeSet
@@ -158,8 +158,33 @@ class EditorViewSet(ViewSet):
             'shadow': '#000000',
         })
 
-    @list_route(methods=['get'])
-    def changeset(self, request, *args, **kwargs):
-        request.changeset = ChangeSet.get_for_request(request)
 
-        return Response(request.changeset.serialize())
+class ChangeSetViewSet(ReadOnlyModelViewSet):
+    """
+    List change sets
+    /current/ returns the current changeset.
+    """
+    queryset = ChangeSet.objects.all()
+
+    def get_queryset(self):
+        return ChangeSet.qs_for_request(self.request)
+
+    def list(self, request, *args, **kwargs):
+        return Response([obj.serialize() for obj in self.get_queryset().order_by('id')])
+
+    def retrieve(self, request, *args, **kwargs):
+        return Response(self.get_object().serialize())
+
+    @list_route(methods=['get'])
+    def current(self, request, *args, **kwargs):
+        changeset = ChangeSet.get_for_request(request)
+        return Response(changeset.serialize())
+
+    @detail_route(methods=['get'])
+    def changes(self, request, *args, **kwargs):
+        changeset = self.get_object()
+        changeset.fill_changes_cache(include_deleted_created=True)
+        return Response([
+            obj.serialize()
+            for obj in chain(*(changed_objects.values() for changed_objects in changeset.changed_objects.values()))
+        ])

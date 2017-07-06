@@ -7,7 +7,7 @@ from rest_framework.generics import GenericAPIView
 from rest_framework.response import Response
 from rest_framework.routers import SimpleRouter
 
-from c3nav.editor.api import EditorViewSet
+from c3nav.editor.api import ChangeSetViewSet, EditorViewSet
 from c3nav.mapdata.api import (AreaViewSet, BuildingViewSet, ColumnViewSet, DoorViewSet, HoleViewSet, LevelViewSet,
                                LineObstacleViewSet, LocationGroupViewSet, LocationViewSet, ObstacleViewSet,
                                PointViewSet, SourceViewSet, SpaceViewSet, StairViewSet)
@@ -30,6 +30,7 @@ router.register(r'locations', LocationViewSet)
 router.register(r'locationgroups', LocationGroupViewSet)
 
 router.register(r'editor', EditorViewSet, base_name='editor')
+router.register(r'changesets', ChangeSetViewSet)
 
 
 class APIRoot(GenericAPIView):

@@ -1,3 +1,5 @@
+from collections import OrderedDict
+
 from django.conf import settings
 from django.db import models
 from django.utils.translation import ugettext_lazy as _
@@ -25,3 +27,10 @@ class ChangeSetUpdate(models.Model):
 
     def __repr__(self):
         return '<Update #%s on ChangeSet #%s>' % (str(self.pk), str(self.changeset_id))
+
+    def serialize_tiny(self):
+        return OrderedDict((
+            ('datetime', self.datetime.isoformat()),
+            ('comment', self.comment),
+            ('user', self.user_id),
+        ))

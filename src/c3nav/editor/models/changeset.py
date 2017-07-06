@@ -74,6 +74,8 @@ class ChangeSet(models.Model):
         """
         if request.user.is_authenticated:
             return ChangeSet.objects.filter(author=request.user)
+        elif 'changeset' in request.session:
+            return ChangeSet.objects.filter(pk=request.session['changeset'])
         return ChangeSet.objects.none()
 
     @classmethod
@@ -447,7 +449,18 @@ class ChangeSet(models.Model):
         return OrderedDict((
             ('id', self.pk),
             ('author', self.author_id),
+            ('state', self.state),
+            ('assigned_to', self.assigned_to_id),
+            ('changed_objects_count', self.changed_objects_count),
             ('created', None if self.created is None else self.created.isoformat()),
+            ('last_change', None if self.last_change is None else self.last_change.datetime.isoformat()),
+            ('last_update', None if self.last_update is None else self.last_update.datetime.isoformat()),
+            ('last_state_update', (None if self.last_state_update is None else
+                                   self.last_state_update.datetime.isoformat())),
+            ('last_state_update_user', (None if self.last_state_update is None else
+                                        self.last_state_update.user_id)),
+            ('last_state_update_comment', (None if self.last_state_update is None else
+                                           self.last_state_update.comment)),
         ))
 
     def save(self, *args, **kwargs):
