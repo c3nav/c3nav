@@ -24,7 +24,9 @@ def changeset_detail(request, pk):
     active = True
     if str(pk) != str(request.changeset.pk):
         active = False
-        changeset = get_object_or_404(ChangeSet.qs_for_request(request), pk=pk)
+        qs = ChangeSet.qs_for_request(request).select_related('last_update', 'last_state_update',
+                                                              'last_change', 'author')
+        changeset = get_object_or_404(qs, pk=pk)
 
     if not changeset.can_see(request):
         raise Http404
