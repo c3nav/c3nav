@@ -167,7 +167,7 @@ class ChangeSetViewSet(ReadOnlyModelViewSet):
     queryset = ChangeSet.objects.all()
 
     def get_queryset(self):
-        return ChangeSet.qs_for_request(self.request)
+        return ChangeSet.qs_for_request(self.request).select_related('last_update', 'last_state_update', 'last_change')
 
     def list(self, request, *args, **kwargs):
         return Response([obj.serialize() for obj in self.get_queryset().order_by('id')])
