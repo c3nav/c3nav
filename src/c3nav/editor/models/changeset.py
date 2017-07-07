@@ -20,7 +20,7 @@ from rest_framework.exceptions import PermissionDenied
 
 from c3nav.editor.models.changedobject import ChangedObject
 from c3nav.editor.utils import is_created_pk
-from c3nav.editor.wrappers import ModelWrapper
+from c3nav.editor.wrappers import ModelInstanceWrapper, ModelWrapper
 from c3nav.mapdata.models import LocationSlug, MapUpdate
 from c3nav.mapdata.models.locations import LocationRedirect
 from c3nav.mapdata.utils.models import get_submodels
@@ -317,6 +317,8 @@ class ChangeSet(models.Model):
         return r
 
     def get_changed_object(self, obj) -> ChangedObject:
+        if isinstance(obj, ModelInstanceWrapper):
+            obj = obj._obj
         model = obj.__class__
         pk = obj.pk
         if pk is None:
