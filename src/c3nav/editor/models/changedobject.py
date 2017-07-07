@@ -253,6 +253,40 @@ class ChangedObject(models.Model):
                 return False
         return True
 
+    def can_restore(self, force_query=False):
+        if not self.deleted:
+            return False
+        for field in self.model_class._meta.get_fields():
+            if not field.many_to_one:
+                continue
+            if field.name not in self.updated_fields:
+                continue
+            related_model = field.related_model
+            if related_model._meta.app_label != 'mapdata':
+                continue
+
+            pk = self.updated_fields[field.name]
+
+            if force_query:
+                # query here to avoid a race condition
+                related_content_type = ContentType.objects.get_for_model(related_model)
+                qs = self.changeset.changed_objects_set.filter(content_type=related_content_type)
+                if is_created_pk(pk):
+                    if not qs.filter(pk=int(pk[2:]), deleted=False).exists():
+                        return False
+                else:
+                    if qs.filter(existing_object_pk=pk, deleted=True).exists():
+                        return False
+            else:
+                if is_created_pk(pk):
+                    if pk not in self.changeset.created_objects.get(related_model, ()):
+                        return False
+                else:
+                    if pk in self.changeset.deleted_existing.get(related_model, ()):
+                        return False
+
+        return True
+
     def mark_deleted(self):
         if not self.can_delete():
             return False
@@ -309,6 +343,10 @@ class ChangedObject(models.Model):
         self._m2m_removed_cache.setdefault(name, set()).update(pks)
         self._m2m_added_cache.setdefault(name, set()).difference_update(pks)
         self.m2m_set(name)
+
+    def restore(self):
+        self.deleted = False
+        self.save(standalone=True)
 
     @property
     def does_something(self):

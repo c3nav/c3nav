@@ -43,10 +43,12 @@ def changeset_detail(request, pk):
                     except:
                         pass
                     else:
-                        if changed_object.deleted:
-                            changed_object.deleted = False
-                            changed_object.save(standalone=True)
-                        messages.success(request, _('Object has been successfully restored.'))
+                        if changed_object.can_restore(force_query=True):
+                            changed_object.restore()
+                            messages.success(request, _('Object has been successfully restored.'))
+                        else:
+                            messages.error(request, _('You cannot restore this object, because '
+                                                      'it depends on a deleted object.'))
                 else:
                     messages.error(request, _('You can not edit changes on this change set.'))
 
@@ -235,6 +237,7 @@ def changeset_detail(request, pk):
                 'changes': changes,
                 'edit_url': edit_url,
                 'deleted': changed_object.deleted,
+                'can_restore': changed_object.can_restore(),
                 'order': (changed_object.deleted and changed_object.is_created, not changed_object.is_created),
             }
             changed_objects_data.append(changed_object_data)

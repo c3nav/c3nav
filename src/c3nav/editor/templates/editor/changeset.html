@@ -90,7 +90,7 @@
                         <a class="btn btn-default btn-xs pull-right" data-force-next-zoom href="{{ obj.edit_url }}">
                             {% trans 'Edit' %}
                         </a>
-                    {% elif obj.deleted and can_edit %}
+                    {% elif obj.deleted and can_edit and obj.can_restore %}
                         <button type="submit" name="restore" value="{{ obj.pk }}" class="btn btn-warning btn-xs pull-right">
                             {% trans 'Restore' %}
                         </button>
