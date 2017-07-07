@@ -10,6 +10,7 @@ from django.conf import settings
 from django.core.cache import cache
 from django.core.exceptions import FieldDoesNotExist
 from django.db import models, transaction
+from django.db.models import Q
 from django.urls import reverse
 from django.utils.http import int_to_base36
 from django.utils.timezone import make_naive
@@ -216,23 +217,35 @@ class ChangeSet(models.Model):
                 if issubclass(changed_object.model_class, LocationSlug):
                     slug = changed_object.updated_fields.get('slug', None)
                     if slug is not None:
-                        if slug in slugs:
-                            changed_object.updated_fields.pop('slug', None)
-                            to_save.add(changed_object)
-                        else:
-                            slugs.add(slug)
+                        slugs.add(slug)
 
-            existing_slugs = set(LocationSlug.objects.filter(slug__in=slugs).values_list('slug', flat=True))
+            qs = LocationSlug.objects.filter(slug__in=slugs)
+            qs = qs.filter(reduce(operator.or_, (Q(slug__startswith=slug+'__') for slug in slugs)))
+            existing_slugs = dict(qs.values_list('slug', 'redirect__target_id'))
 
+            slug_length = LocationSlug._meta.get_field('slug').max_length
             for changed_object in changed_objects:
                 if issubclass(changed_object.model_class, LocationSlug):
-                    if changed_object.updated_fields.get('slug', None) in existing_slugs:
-                        if issubclass(changed_object.model_class, LocationRedirect):
+                    slug = changed_object.updated_fields.get('slug', None)
+                    if slug is None:
+                        continue
+                    if slug in existing_slugs:
+                        redirect_to = existing_slugs[slug]
+                        if issubclass(changed_object.model_class, LocationRedirect) and redirect_to is not None:
                             to_save.discard(changed_object)
                             changed_object.delete()
-                        else:
-                            changed_object.updated_fields.pop('slug', None)
-                            to_save.add(changed_object)
+                            continue
+                        new_slug = slug
+                        i = 0
+                        while new_slug in existing_slugs:
+                            suffix = '__'+str(i)
+                            new_slug = slug[:slug_length-len(suffix)]+suffix
+                            i += 1
+                        slug = new_slug
+                        changed_object.updated_fields['slug'] = new_slug
+                        to_save.add(changed_object)
+                    existing_slugs[slug] = (None if not issubclass(changed_object.model_class, LocationRedirect)
+                                            else changed_object.updated_fields['target'])
 
             for changed_object in to_save:
                 changed_object.save(standalone=True)
