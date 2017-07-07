@@ -240,10 +240,25 @@ class ChangedObject(models.Model):
         if instance.pk is None and self.pk is not None:
             instance.pk = self.obj_pk
 
+    def can_delete(self):
+        for field in self.model_class._meta.get_fields():
+            if not field.one_to_many:
+                continue
+            related_model = field.related_model
+            if related_model._meta.app_label != 'mapdata':
+                continue
+            kwargs = {field.field.name+'__pk': self.obj_pk}
+            if self.changeset.wrap_model(related_model).objects.filter(**kwargs).exists():
+                return False
+        return True
+
     def mark_deleted(self):
+        if not self.can_delete():
+            return False
         self.changeset._object_changed = True
         self.deleted = True
         self.save()
+        return True
 
     def clean_m2m(self, objects):
         current_obj = objects[self.model_class][self.existing_object_pk]

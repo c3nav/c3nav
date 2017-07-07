@@ -1,7 +1,7 @@
 from contextlib import suppress
 
 from django.contrib import messages
-from django.core.exceptions import FieldDoesNotExist, PermissionDenied
+from django.core.exceptions import FieldDoesNotExist, ObjectDoesNotExist, PermissionDenied
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.utils.translation import ugettext_lazy as _
@@ -173,6 +173,13 @@ def edit(request, pk=None, model=None, level=None, space=None, on_top_of=None, e
     if request.method == 'POST':
         if not new and request.POST.get('delete') == '1':
             # Delete this mapitem!
+            try:
+                if not request.changeset.get_changed_object(obj).can_delete():
+                    raise PermissionError
+            except (ObjectDoesNotExist, PermissionError):
+                messages.error(request, _('You can not delete this object because other objects still depend on it.'))
+                return redirect(request.path)
+
             if request.POST.get('delete_confirm') == '1':
                 try:
                     with request.changeset.lock_to_edit(request):
