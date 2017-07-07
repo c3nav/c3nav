@@ -82,7 +82,7 @@ class ChangedObject(models.Model):
 
         obj = model()
         obj.pk = pk
-        if hasattr(model._meta.pk, 'related_model'):
+        if model._meta.pk.is_relation:
             setattr(obj, model._meta.pk.related_model._meta.pk.attname, pk)
         obj._state.adding = False
         return self.changeset.wrap_instance(obj)
