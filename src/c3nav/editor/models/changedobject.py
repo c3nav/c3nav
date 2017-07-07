@@ -261,7 +261,7 @@ class ChangedObject(models.Model):
         return True
 
     def clean_m2m(self, objects):
-        current_obj = objects[self.model_class][self.existing_object_pk]
+        current_obj = objects[self.model_class][self.obj_pk]
         changed = False
         for name in set(self._m2m_added_cache.keys()) | set(self._m2m_removed_cache.keys()):
             changed = changed or self.m2m_set(name, obj=current_obj)
