@@ -16,7 +16,6 @@ from django.utils.http import int_to_base36
 from django.utils.timezone import make_naive
 from django.utils.translation import ugettext_lazy as _
 from django.utils.translation import ungettext_lazy
-from rest_framework.exceptions import PermissionDenied
 
 from c3nav.editor.models.changedobject import ChangedObject
 from c3nav.editor.utils import is_created_pk
@@ -381,19 +380,27 @@ class ChangeSet(models.Model):
     def can_see(self, request):
         return self.is_author(request)
 
+    object_changed_cache = {}
+
+    @property
+    def _object_changed(self):
+        return self.object_changed_cache.get(self.pk, None)
+
+    @_object_changed.setter
+    def _object_changed(self, value):
+        self.object_changed_cache[self.pk] = value
+
     @contextmanager
     def lock_to_edit(self, request=None):
         with transaction.atomic():
             if self.pk is not None:
                 changeset = ChangeSet.objects.select_for_update().get(pk=self.pk)
-                if request is not None and not changeset.can_edit(request):
-                    raise PermissionDenied
 
                 self._object_changed = False
                 yield changeset
-                if self._object_changed and request is not None:
-                    update = changeset.updates.create(user=request.user if request.user.is_authenticated else None,
-                                                      objects_changed=True)
+                user = request.user if request is not None and request.user.is_authenticated else None
+                if self._object_changed:
+                    update = changeset.updates.create(user=user, objects_changed=True)
                     changeset.last_update = update
                     changeset.last_change = update
                     changeset.save()

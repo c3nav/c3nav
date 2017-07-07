@@ -181,12 +181,12 @@ def edit(request, pk=None, model=None, level=None, space=None, on_top_of=None, e
                 return redirect(request.path)
 
             if request.POST.get('delete_confirm') == '1':
-                try:
-                    with request.changeset.lock_to_edit(request):
+                with request.changeset.lock_to_edit(request) as changeset:
+                    if changeset.can_edit(request):
                         obj.delete()
-                except PermissionDenied:
-                    messages.error(request, _('You can not edit changes on this changeset.'))
-                    return redirect(request.path)
+                    else:
+                        messages.error(request, _('You can not edit changes on this changeset.'))
+                        return redirect(request.path)
                 messages.success(request, _('Object was successfully deleted.'))
                 if model == Level:
                     if obj.on_top_of_id is not None:
@@ -218,8 +218,8 @@ def edit(request, pk=None, model=None, level=None, space=None, on_top_of=None, e
             if on_top_of is not None:
                 obj.on_top_of = on_top_of
 
-            try:
-                with request.changeset.lock_to_edit(request):
+            with request.changeset.lock_to_edit(request) as changeset:
+                if changeset.can_edit(request):
                     obj.save()
 
                     if form.redirect_slugs is not None:
@@ -230,11 +230,11 @@ def edit(request, pk=None, model=None, level=None, space=None, on_top_of=None, e
                             obj.redirects.filter(slug=slug).delete()
 
                     form.save_m2m()
-            except PermissionDenied:
-                messages.error(request, _('You can not edit changes on this changeset.'))
-            else:
-                messages.success(request, _('Object was successfully saved.'))
-                return redirect(ctx['back_url'])
+                    messages.success(request, _('Object was successfully saved.'))
+                    return redirect(ctx['back_url'])
+                else:
+                    messages.error(request, _('You can not edit changes on this changeset.'))
+
     else:
         form = model.EditorForm(instance=obj, request=request)
 
