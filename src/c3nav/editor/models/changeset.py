@@ -163,12 +163,12 @@ class ChangeSet(models.Model):
              self.deleted_existing, self.m2m_added, self.m2m_removed) = cached_cache
             return True
 
-        if self.state != 'applied':
-            self._clean_changes()
-
         self.changed_objects = {}
         for change in qs:
             change.update_changeset_cache()
+
+        if self.state != 'applied':
+            self._clean_changes()
 
         cache.set(cache_key, (self.changed_objects, self.created_objects, self.updated_existing,
                               self.deleted_existing, self.m2m_added, self.m2m_removed), 300)
