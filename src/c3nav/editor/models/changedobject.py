@@ -325,10 +325,10 @@ class ChangedObject(models.Model):
             if not standalone and self.changeset.pk is None:
                 self.changeset.save()
                 self.changeset = self.changeset
-        if not standalone and not self.changeset.fill_changes_cache():
-            self.update_changeset_cache()
         if self.does_something:
             super().save(*args, **kwargs)
+        if not standalone and not self.changeset.fill_changes_cache():
+            self.update_changeset_cache()
 
     def delete(self, **kwargs):
         self.changeset._object_changed = True
