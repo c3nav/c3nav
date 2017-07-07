@@ -160,7 +160,7 @@ def changeset_detail(request, pk):
                     'obj_title': changeset.title,
                 })
 
-    changeset.fill_changes_cache(include_deleted_created=True)
+    changeset.fill_changes_cache()
 
     ctx = {
         'changeset': changeset,

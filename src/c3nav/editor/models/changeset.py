@@ -133,7 +133,7 @@ class ChangeSet(models.Model):
     def relevant_changed_objects(self):
         return self.changed_objects_set.exclude(existing_object_pk__isnull=True, deleted=True)
 
-    def fill_changes_cache(self, include_deleted_created=False):
+    def fill_changes_cache(self):
         """
         Get all changed objects and fill this ChangeSet's changes cache.
         Only executable once, if something is changed later the cache will be automatically updated.
@@ -151,12 +151,6 @@ class ChangeSet(models.Model):
 
         cache_key = self.cache_key_by_changes + ':cache'
 
-        if include_deleted_created:
-            cache_key += '_with_deleted'
-            qs = self.changed_objects_set.all()
-        else:
-            qs = self.relevant_changed_objects()
-
         cached_cache = cache.get(cache_key)
         if cached_cache is not None:
             (self.changed_objects, self.created_objects, self.updated_existing,
@@ -164,7 +158,7 @@ class ChangeSet(models.Model):
             return True
 
         self.changed_objects = {}
-        for change in qs:
+        for change in self.changed_objects_set.all():
             change.update_changeset_cache()
 
         if self.state != 'applied':

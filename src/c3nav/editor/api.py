@@ -183,5 +183,5 @@ class ChangeSetViewSet(ReadOnlyModelViewSet):
     @detail_route(methods=['get'])
     def changes(self, request, *args, **kwargs):
         changeset = self.get_object()
-        changeset.fill_changes_cache(include_deleted_created=True)
+        changeset.fill_changes_cache()
         return Response([obj.serialize() for obj in changeset.iter_changed_objects()])
