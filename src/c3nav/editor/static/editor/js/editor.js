@@ -190,6 +190,7 @@ editor = {
         } else {
             $body.removeClass('show-map');
             if (!is_modal) $body.removeClass('map-enabled');
+            editor.reload_geometries();
             editor._level_control.hide();
             editor._sublevel_control.hide();
         }
@@ -272,8 +273,10 @@ editor = {
             editor.get_sources(true);
         });
     },
+    _last_geometry_url: null,
     load_geometries: function (geometry_url, highlight_type, editing_id) {
         // load geometries from url
+        editor._last_geometry_url = geometry_url;
         editor._loading_geometry = true;
         editor._highlight_type = highlight_type;
         editor._highlight_geometries = {};
@@ -324,6 +327,11 @@ editor = {
 
             editor._check_start_editing();
         });
+    },
+    reload_geometries: function () {
+        if ($('body').is('.map-enabled') && editor._last_geometry_url !== null) {
+            editor.load_geometries(editor._last_geometry_url);
+        }
     },
     _line_draw_geometry_style: function(style) {
         style.stroke = true;
