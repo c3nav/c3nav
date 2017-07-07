@@ -196,6 +196,7 @@ class ChangedObject(models.Model):
             field = self.model_class._meta.get_field(name)
             if field.is_relation:
                 if value in deleted_object_pks[field.related_model]:
+                    deleted_object_pks[self.model_class].add(self.obj_pk)
                     self.delete()
                     return False
 

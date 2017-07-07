@@ -193,12 +193,17 @@ class ChangeSet(models.Model):
                 pks = set(pk for pk in pks if not is_created_pk(pk))
                 deleted_object_pks[model] = pks - set(model.objects.filter(pk__in=pks).values_list('pk', flat=True))
 
-            for changed_object in changed_objects:
-                if changed_object.handle_deleted_object_pks(deleted_object_pks):
-                    to_save.add(changed_object)
+            repeat = True
+            while repeat:
+                repeat = False
+                for changed_object in changed_objects:
+                    if changed_object.handle_deleted_object_pks(deleted_object_pks):
+                        to_save.add(changed_object)
+                    if changed_object.pk is None:
+                        repeat = True
 
-            # remove deleted objects
-            changed_objects = [obj for obj in changed_objects if obj.pk is not None]
+                # remove deleted objects
+                changed_objects = [obj for obj in changed_objects if obj.pk is not None]
 
             # clean updated fields
             objects = self.get_objects(many=False, changed_objects=changed_objects, prefetch_related=('groups', ))
