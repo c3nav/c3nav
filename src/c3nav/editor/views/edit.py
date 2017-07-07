@@ -255,12 +255,15 @@ def list_objects(request, model=None, level=None, space=None, explicit_edit=Fals
     Level = request.changeset.wrap_model('Level')
     Space = request.changeset.wrap_model('Space')
 
+    can_edit = request.changeset.can_edit(request)
+
     ctx = {
         'path': request.path,
         'model_name': model.__name__.lower(),
         'model_title': model._meta.verbose_name,
         'model_title_plural': model._meta.verbose_name_plural,
         'explicit_edit': explicit_edit,
+        'can_edit': can_edit,
     }
 
     queryset = model.objects.all().order_by('id')
