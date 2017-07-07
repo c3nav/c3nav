@@ -253,9 +253,10 @@ class ChangedObject(models.Model):
                 return False
         return True
 
-    def can_restore(self, force_query=False):
+    def get_missing_dependencies(self, force_query=False, max_one=False):
+        result = set()
         if not self.deleted:
-            return False
+            return result
         for field in self.model_class._meta.get_fields():
             if not field.many_to_one:
                 continue
@@ -273,19 +274,22 @@ class ChangedObject(models.Model):
                 qs = self.changeset.changed_objects_set.filter(content_type=related_content_type)
                 if is_created_pk(pk):
                     if not qs.filter(pk=int(pk[2:]), deleted=False).exists():
-                        return False
+                        result.add(field.name)
                 else:
                     if qs.filter(existing_object_pk=pk, deleted=True).exists():
-                        return False
+                        result.add(field.name)
             else:
                 if is_created_pk(pk):
                     if pk not in self.changeset.created_objects.get(related_model, ()):
-                        return False
+                        result.add(field.name)
                 else:
                     if pk in self.changeset.deleted_existing.get(related_model, ()):
-                        return False
+                        result.add(field.name)
 
-        return True
+            if result and max_one:
+                return result
+
+        return result
 
     def mark_deleted(self):
         if not self.can_delete():
@@ -345,6 +349,10 @@ class ChangedObject(models.Model):
         self.m2m_set(name)
 
     def restore(self):
+        if self.deleted is False:
+            return
+        if self.get_missing_dependencies(force_query=True, max_one=True):
+            raise PermissionError
         self.deleted = False
         self.save(standalone=True)
 

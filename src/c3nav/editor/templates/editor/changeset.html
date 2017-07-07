@@ -90,7 +90,7 @@
                         <a class="btn btn-default btn-xs pull-right" data-force-next-zoom href="{{ obj.edit_url }}">
                             {% trans 'Edit' %}
                         </a>
-                    {% elif obj.deleted and can_edit and obj.can_restore %}
+                    {% elif obj.deleted and can_edit and not obj.missing_dependencies %}
                         <button type="submit" name="restore" value="{{ obj.pk }}" class="btn btn-warning btn-xs pull-right">
                             {% trans 'Restore' %}
                         </button>
@@ -108,6 +108,7 @@
                 <tr>
                     <td class="text-{{ change.class }}"><i class="glyphicon glyphicon-{{ change.icon }}"></i></td>
                     <td{% if obj.deleted and change.icon != 'minus' %} class="text-muted"{% endif %}>
+                        {% if change.missing_dependency %}<i class="glyphicon glyphicon-alert pull-right text-warning"></i>{% endif %}
                         {% if change.value %}<u>{% else %}<em>{% endif %}{{ change.title }}{% if change.value %}</u>:{% else %}</em>{% endif %}
                         {{ change.value }}
                     </td>

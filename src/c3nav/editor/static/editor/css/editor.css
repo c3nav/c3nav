@@ -143,6 +143,9 @@ form button.invisiblesubmit {
     border-bottom:1px;
     border-bottom-style:solid;
 }
+.change-group .glyphicon.pull-right {
+    margin-top: 3px;
+}
 .change-group tr th small {
     font-weight:normal;
 }

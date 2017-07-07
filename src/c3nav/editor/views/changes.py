@@ -9,6 +9,7 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.utils.text import format_lazy
 from django.utils.translation import ugettext_lazy as _
+from rest_framework.exceptions import PermissionDenied
 
 from c3nav.editor.forms import ChangeSetForm, RejectForm
 from c3nav.editor.models import ChangeSet
@@ -43,12 +44,13 @@ def changeset_detail(request, pk):
                     except:
                         pass
                     else:
-                        if changed_object.can_restore(force_query=True):
+                        try:
                             changed_object.restore()
                             messages.success(request, _('Object has been successfully restored.'))
-                        else:
+                        except PermissionDenied:
                             messages.error(request, _('You cannot restore this object, because '
                                                       'it depends on a deleted object.'))
+
                 else:
                     messages.error(request, _('You can not edit changes on this change set.'))
 
@@ -228,6 +230,7 @@ def changeset_detail(request, pk):
                                    kwargs=reverse_kwargs)
 
             changes = []
+            missing_dependencies = changed_object.get_missing_dependencies()
             changed_object_data = {
                 'model': obj.__class__,
                 'model_title': obj.__class__._meta.verbose_name,
@@ -237,7 +240,7 @@ def changeset_detail(request, pk):
                 'changes': changes,
                 'edit_url': edit_url,
                 'deleted': changed_object.deleted,
-                'can_restore': changed_object.can_restore(),
+                'missing_dependencies': missing_dependencies,
                 'order': (changed_object.deleted and changed_object.is_created, not changed_object.is_created),
             }
             changed_objects_data.append(changed_object_data)
@@ -283,6 +286,9 @@ def changeset_detail(request, pk):
                         field_value = field.to_python(value)
                         if field.related_model is not None:
                             field_value = objects[field.related_model][field_value].title
+                            change_data.update({
+                                'missing_dependency': field.name in missing_dependencies,
+                            })
                         order = 5
                         if name == 'slug':
                             order = 1
