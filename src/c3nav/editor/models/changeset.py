@@ -652,6 +652,8 @@ class ChangeSet(models.Model):
 
     def get_absolute_url(self):
         if self.pk is None:
+            if self.author:
+                return reverse('editor.users.detail', kwargs={'pk': self.author_id})
             return ''
         return reverse('editor.changesets.detail', kwargs={'pk': self.pk})
 
