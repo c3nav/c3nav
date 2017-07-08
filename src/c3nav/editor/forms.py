@@ -93,11 +93,6 @@ class MapitemFormMixin(ModelForm):
             if not self.cleaned_data.get('geometry'):
                 raise ValidationError('Missing geometry.')
 
-        if hasattr(self.instance, 'titles') and not any(self.titles.values()):
-            raise ValidationError(
-                _('You have to select a title in at least one language.')
-            )
-
         super().clean()
 
 

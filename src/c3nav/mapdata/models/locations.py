@@ -28,7 +28,7 @@ class LocationSlug(SerializableMixin, models.Model):
         'LocationGroup': 'g'
     }
     LOCATION_TYPE_BY_CODE = {code: model_name for model_name, code in LOCATION_TYPE_CODES.items()}
-    slug = models.SlugField(_('Slug'), unique=True, null=True, max_length=50)
+    slug = models.SlugField(_('Slug'), unique=True, null=True, blank=True, max_length=50)
 
     objects = LocationSlugManager()
 

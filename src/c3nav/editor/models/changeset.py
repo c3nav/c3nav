@@ -279,7 +279,8 @@ class ChangeSet(models.Model):
             objects[model] = {pk: model(pk=pk) for pk in pks}
 
         slug_submodels = tuple(model for model in object_pks.keys() if issubclass(model, LocationSlug))
-        object_pks[LocationSlug] = reduce(operator.or_, (object_pks[model] for model in slug_submodels))
+        if slug_submodels:
+            object_pks[LocationSlug] = reduce(operator.or_, (object_pks[model] for model in slug_submodels))
         for model in slug_submodels:
             object_pks.pop(model)
 
