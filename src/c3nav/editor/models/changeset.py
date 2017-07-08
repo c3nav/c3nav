@@ -528,8 +528,8 @@ class ChangeSet(models.Model):
         self.save()
 
     def apply(self, user):
-        update = self.updates.create(user=user, state='applied')
         with MapUpdate.lock():
+            self._clean_changes()
             changed_objects = self.relevant_changed_objects()
             created_objects = []
             existing_objects = []
@@ -602,6 +602,7 @@ class ChangeSet(models.Model):
                         pks = tuple(objects[field.related_model][pk].pk for pk in pks)
                         getattr(getattr(obj, name), mode)(*pks)
 
+            update = self.updates.create(user=user, state='applied')
             map_update = MapUpdate.objects.create(user=user, type='changeset')
             self.state = 'applied'
             self.last_state_update = update
