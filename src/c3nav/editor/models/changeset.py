@@ -49,6 +49,7 @@ class ChangeSet(models.Model):
     assigned_to = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, on_delete=models.PROTECT,
                                     related_name='assigned_changesets', verbose_name=_('assigned to'))
     map_update = models.OneToOneField(MapUpdate, null=True, related_name='changeset', verbose_name=_('map update'))
+    last_cleaned_with = models.ForeignKey(MapUpdate, null=True, related_name='checked_changesets')
 
     class Meta:
         verbose_name = _('Change Set')
@@ -182,8 +183,13 @@ class ChangeSet(models.Model):
         return chain(*(changed_objects.values() for changed_objects in self.changed_objects.values()))
 
     def _clean_changes(self):
-        changed_objects = self.changed_objects_set.all()
-        with self.lock_to_edit():
+        with self.lock_to_edit() as changeset:
+            last_map_update_pk = MapUpdate.last_update()[0]
+            if changeset.last_cleaned_with_id == last_map_update_pk:
+                return
+
+            changed_objects = changeset.changed_objects_set.all()
+
             # delete changed objects that refer in some way to deleted objects and clean up m2m changes
             object_pks = {}
             for changed_object in changed_objects:
@@ -209,7 +215,7 @@ class ChangeSet(models.Model):
                 changed_objects = [obj for obj in changed_objects if obj.pk is not None]
 
             # clean updated fields
-            objects = self.get_objects(many=False, changed_objects=changed_objects, prefetch_related=('groups', ))
+            objects = changeset.get_objects(many=False, changed_objects=changed_objects, prefetch_related=('groups', ))
             for changed_object in changed_objects:
                 if changed_object.clean_updated_fields(objects):
                     to_save.add(changed_object)
@@ -258,6 +264,9 @@ class ChangeSet(models.Model):
 
             for changed_object in to_save:
                 changed_object.save(standalone=True)
+
+            changeset.last_cleaned_with_id = last_map_update_pk
+            changeset.save()
 
     """
     Analyse Changes
