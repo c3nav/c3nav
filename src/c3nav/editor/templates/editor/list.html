@@ -9,7 +9,7 @@
     </a>
 {% endif %}
 <h3>
-    {% blocktrans %}{{ model_title_plural }}{% endblocktrans %}
+    {{ model_title_plural }}
     {% if level %}
         {% with level.title as level_title %}
             <small>{% blocktrans %}on level {{ level_title }}{% endblocktrans %}</small>

@@ -45,7 +45,7 @@
             {% elif changeset.state == 'review' %}
                 {% with user=changeset.assigned_to %}
                     {% url 'editor.users.detail' pk=changeset.assigned_to.pk as user_url %}
-                    <p>{% blocktrans %}These changes are currently being reviewed by <a href="{{ user_url }}">{{ user }}</a>{% endblocktrans %}</p>
+                    <p>{% blocktrans %}These changes are currently being reviewed by <a href="{{ user_url }}">{{ user }}</a>.{% endblocktrans %}</p>
                 {% endwith %}
             {% elif changeset.state == 'rejected' or changeset.state == 'finallyrejected' %}
                 {% with user=changeset.last_state_update.user comment=changeset.last_state_update.comment %}

@@ -30,7 +30,7 @@ class GeometryField(models.TextField):
         if geomtype == 'polyline':
             geomtype = 'linestring'
         if geomtype not in (None, 'polygon', 'linestring', 'point'):
-            raise ValueError(_('GeometryField.geomtype has to be None, "polygon", "linestring", "point"'))
+            raise ValueError('GeometryField.geomtype has to be None, "polygon", "linestring", "point"')
         self.geomtype = geomtype
         super().__init__(default=default)
 
@@ -54,11 +54,11 @@ class GeometryField(models.TextField):
         if value is None:
             return None
         elif self.geomtype == 'polygon' and not isinstance(value, Polygon):
-            raise TypeError(_('Expected Polygon instance, got %s instead.') % repr(value))
+            raise TypeError('Expected Polygon instance, got %s instead.' % repr(value))
         elif self.geomtype == 'linestring' and not isinstance(value, LineString):
-            raise TypeError(_('Expected LineString instance, got %s instead.') % repr(value))
+            raise TypeError('Expected LineString instance, got %s instead.' % repr(value))
         elif self.geomtype == 'point' and not isinstance(value, Point):
-            raise TypeError(_('Expected Point instance, got %s instead.') % repr(value))
+            raise TypeError('Expected Point instance, got %s instead.' % repr(value))
         return json.dumps(format_geojson(mapping(value)))
 
 
