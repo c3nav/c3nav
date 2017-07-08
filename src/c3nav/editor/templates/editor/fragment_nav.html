@@ -1,7 +1,13 @@
 {% load i18n %}
 
 <ul class="nav navbar-nav navbar-right">
-    <li><a href="{{ request.changeset.get_absolute_url }}">{{ request.changeset.count_display }}</a></li>
+    <li><a href="{{ request.changeset.get_absolute_url }}">
+        {% if request.changeset.direct_editing %}
+            <span class="text-warning">{{ request.changeset.count_display }}</span>
+        {% else %}
+            {{ request.changeset.count_display }}
+        {% endif %}
+    </a></li>
     {% if request.user.is_authenticated %}
         <li class="logged_in_user">
             <a href="{% url 'editor.users.detail' pk=request.user.pk %}">{{ request.user.username }}</a>

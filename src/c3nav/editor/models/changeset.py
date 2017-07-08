@@ -9,7 +9,7 @@ from django.apps import apps
 from django.conf import settings
 from django.core.cache import cache
 from django.core.exceptions import FieldDoesNotExist
-from django.db import models, transaction
+from django.db import connection, models, transaction
 from django.db.models import Q
 from django.urls import reverse
 from django.utils.http import int_to_base36
@@ -69,6 +69,8 @@ class ChangeSet(models.Model):
         self._request = None
         self._original_state = self.state
 
+        self.direct_editing = False
+
     """
     Get Changesets for Request/Session/User
     """
@@ -111,6 +113,8 @@ class ChangeSet(models.Model):
 
         changeset = ChangeSet()
         changeset._request = request
+        if request.session.get('direct_editing', False) and ChangeSet.can_direct_edit(request):
+            changeset.direct_editing = True
 
         if request.user.is_authenticated:
             changeset.author = request.user
@@ -124,10 +128,15 @@ class ChangeSet(models.Model):
         if isinstance(model, str):
             model = apps.get_model('mapdata', model)
         assert isinstance(model, type) and issubclass(model, models.Model)
+        if self.direct_editing:
+            model.EditorForm = ModelWrapper(self, model).EditorForm
+            return model
         return ModelWrapper(self, model)
 
     def wrap_instance(self, instance):
         assert isinstance(instance, models.Model)
+        if self.direct_editing:
+            return instance
         return self.wrap_model(instance.__class__).create_wrapped_model_class()(self, instance)
 
     def relevant_changed_objects(self) -> typing.Iterable[ChangedObject]:
@@ -399,17 +408,24 @@ class ChangeSet(models.Model):
     @contextmanager
     def lock_to_edit(self, request=None):
         with transaction.atomic():
+            user = request.user if request is not None and request.user.is_authenticated else None
             if self.pk is not None:
                 changeset = ChangeSet.objects.select_for_update().get(pk=self.pk)
 
                 self._object_changed = False
                 yield changeset
-                user = request.user if request is not None and request.user.is_authenticated else None
                 if self._object_changed:
                     update = changeset.updates.create(user=user, objects_changed=True)
                     changeset.last_update = update
                     changeset.last_change = update
                     changeset.save()
+            elif self.direct_editing:
+                with MapUpdate.lock():
+                    queries_before = len(connection.queries)
+                    yield self
+                    if any((q['sql'].startswith('UPDATE') or q['sql'].startswith('INSERT') or
+                            q['sql'].startswith('DELETE')) for q in connection.queries[queries_before:]):
+                        MapUpdate.objects.create(user=user, type='direct_edit')
             else:
                 yield self
 
@@ -432,6 +448,11 @@ class ChangeSet(models.Model):
     def can_review(self, request):
         # todo implement permissions
         return self.is_author(request)
+
+    @classmethod
+    def can_direct_edit(self, request):
+        # todo implement permissions
+        return request.user.is_authenticated
 
     def can_start_review(self, request):
         return self.can_review(request) and self.state in ('proposed', 'reproposed')
@@ -609,6 +630,8 @@ class ChangeSet(models.Model):
         Get “%d changed objects” display text.
         """
         if self.pk is None:
+            if self.direct_editing:
+                return _('Direct editing active')
             return _('No objects changed')
         return (ungettext_lazy('%(num)d object changed', '%(num)d objects changed', 'num') %
                 {'num': self.changed_objects_count})

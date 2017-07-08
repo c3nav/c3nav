@@ -14,13 +14,25 @@ def user_detail(request, pk):
         user = get_object_or_404(User, pk=pk)
 
     if request.method == 'POST':
-        if request.POST.get('deactivate_changeset') == '1' and request.user == user and 'changeset' in request.session:
-            request.session.pop('changeset', None)
-            messages.success(request, _('You deactivated your current changeset.'))
-            return redirect(request.path)
+        if request.user == user and 'changeset' in request.session:
+            if request.POST.get('deactivate_changeset') == '1':
+                request.session.pop('changeset', None)
+                messages.success(request, _('You deactivated your current changeset.'))
+                return redirect(request.path)
+
+            if request.changeset.pk is None and ChangeSet.can_direct_edit(request):
+                if request.POST.get('direct_editing') == '1':
+                    request.session['direct_editing'] = True
+                    messages.success(request, _('You activated direct editing.'))
+                    return redirect(request.path)
+                elif request.POST.get('direct_editing') == '0':
+                    request.session.pop('direct_editing', None)
+                    messages.success(request, _('You deactivated direct editing.'))
+                    return redirect(request.path)
 
     ctx = {
         'user': user,
+        'can_direct_edit': ChangeSet.can_direct_edit(request),
         'recent_changesets': ChangeSet.objects.filter(author=user).order_by('-last_update')[:10],
     }
 

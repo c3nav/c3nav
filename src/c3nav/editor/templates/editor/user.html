@@ -23,9 +23,26 @@
                 <button type="submit" class="btn btn-xs btn-default" name="deactivate_changeset" value="1">{% trans 'Deactivate change set' %}</button>
             </form>
         {% endwith %}
+    {% elif request.changeset.direct_editing %}
+        <p>
+            {% trans 'Direct editing is activated.' %}<br>
+            {% trans 'Everything you do will be applied immediately.' %}
+        </p>
+        <form method="post" action="{{ request.path }}">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-xs btn-warning" name="direct_editing" value="0">{% trans 'Deactivate direct editing' %}</button>
+        </form>
     {% else %}
-        {% trans 'You have currently no active change set.' %}<br>
-        {% trans 'Just edit something to create one.' %}
+        <p>
+            {% trans 'You have currently no active change set.' %}<br>
+            {% trans 'Just edit something to create one.' %}
+        </p>
+        {% if can_direct_edit %}
+            <form method="post" action="{{ request.path }}">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-xs btn-warning" name="direct_editing" value="1">{% trans 'Activate direct editing' %}</button>
+            </form>
+        {% endif %}
     {% endif %}
 {% endif %}
 
