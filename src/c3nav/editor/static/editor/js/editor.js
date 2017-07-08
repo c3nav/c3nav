@@ -496,6 +496,8 @@ editor = {
                     } else if (geomtype === 'polyline') {
                         options = editor._line_draw_geometry_style(options);
                         editor.map.editTools.startPolyline(null, options);
+                    } else if (geomtype === 'point') {
+                        editor.map.editTools.startMarker(null, options);
                     }
                     editor._creating = true;
                 } else {
