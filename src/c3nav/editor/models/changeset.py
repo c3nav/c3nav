@@ -264,13 +264,17 @@ class ChangeSet(models.Model):
         for change in changed_objects:
             change.add_relevant_object_pks(object_pks, many=many)
 
+        # create dummy objects for deleted ones
+        objects = {}
+        for model, pks in object_pks.items():
+            objects[model] = {pk: model(pk=pk) for pk in pks}
+
         slug_submodels = tuple(model for model in object_pks.keys() if issubclass(model, LocationSlug))
         object_pks[LocationSlug] = reduce(operator.or_, (object_pks[model] for model in slug_submodels))
         for model in slug_submodels:
             object_pks.pop(model)
 
         # retrieve relevant objects
-        objects = {}
         for model, pks in object_pks.items():
             if not pks:
                 continue
@@ -552,8 +556,8 @@ class ChangeSet(models.Model):
             for existing_object in existing_objects:
                 if not existing_object.deleted and not issubclass(existing_object.model_class, LocationRedirect):
                     continue
-                model = created_object.model_class
-                pk = created_object.obj_pk
+                model = existing_object.model_class
+                pk = existing_object.obj_pk
 
                 obj = objects[model][pk]
                 obj.delete()
