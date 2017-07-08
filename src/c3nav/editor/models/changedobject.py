@@ -17,6 +17,10 @@ class ChangedObjectManager(models.Manager):
         return super().get_queryset().select_related('content_type')
 
 
+class ApplyToInstanceError(Exception):
+    pass
+
+
 class ChangedObject(models.Model):
     changeset = models.ForeignKey('editor.ChangeSet', on_delete=models.CASCADE, verbose_name=_('Change Set'))
     created = models.DateTimeField(auto_now_add=True, verbose_name=_('created'))
@@ -128,7 +132,7 @@ class ChangedObject(models.Model):
             self.changeset.m2m_added.get(model, {}).pop(pk, None)
             self.changeset.m2m_removed.get(model, {}).pop(pk, None)
 
-    def apply_to_instance(self, instance: ModelInstanceWrapper):
+    def apply_to_instance(self, instance: ModelInstanceWrapper, created_pks=None):
         for name, value in self.updated_fields.items():
             if name.startswith('title_'):
                 if not value:
@@ -142,12 +146,19 @@ class ChangedObject(models.Model):
                 setattr(instance, field.name, field.to_python(value))
             elif field.many_to_one or field.one_to_one:
                 if is_created_pk(value):
-                    try:
-                        obj = self.changeset.get_created_object(field.related_model, value, allow_deleted=True)
-                    except field.related_model.DoesNotExist:
-                        pass
+                    if created_pks is None:
+                        try:
+                            obj = self.changeset.get_created_object(field.related_model, value, allow_deleted=True)
+                        except field.related_model.DoesNotExist:
+                            pass
+                        else:
+                            setattr(instance, field.get_cache_name(), obj)
                     else:
-                        setattr(instance, field.get_cache_name(), obj)
+                        delattr(instance, field.get_cache_name())
+                        try:
+                            value = created_pks[field.related_model][value]
+                        except KeyError:
+                            raise ApplyToInstanceError
                 else:
                     try:
                         delattr(instance, field.get_cache_name())

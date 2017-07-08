@@ -17,7 +17,7 @@ from django.utils.timezone import make_naive
 from django.utils.translation import ugettext_lazy as _
 from django.utils.translation import ungettext_lazy
 
-from c3nav.editor.models.changedobject import ChangedObject
+from c3nav.editor.models.changedobject import ApplyToInstanceError, ChangedObject
 from c3nav.editor.utils import is_created_pk
 from c3nav.editor.wrappers import ModelInstanceWrapper, ModelWrapper
 from c3nav.mapdata.models import LocationSlug, MapUpdate
@@ -67,6 +67,7 @@ class ChangeSet(models.Model):
 
         self._object_changed = False
         self._request = None
+        self._original_state = self.state
 
     """
     Get Changesets for Request/Session/User
@@ -129,7 +130,7 @@ class ChangeSet(models.Model):
         assert isinstance(instance, models.Model)
         return self.wrap_model(instance.__class__).create_wrapped_model_class()(self, instance)
 
-    def relevant_changed_objects(self):
+    def relevant_changed_objects(self) -> typing.Iterable[ChangedObject]:
         return self.changed_objects_set.exclude(existing_object_pk__isnull=True, deleted=True)
 
     def fill_changes_cache(self):
@@ -492,12 +493,85 @@ class ChangeSet(models.Model):
 
     def apply(self, user):
         update = self.updates.create(user=user, state='applied')
-        map_update = MapUpdate.objects.create(user=user, type='changeset')
-        self.state = 'applied'
-        self.last_state_update = update
-        self.last_update = update
-        self.map_update = map_update
-        self.save()
+        with MapUpdate.lock():
+            changed_objects = self.relevant_changed_objects()
+            created_objects = []
+            existing_objects = []
+            for changed_object in changed_objects:
+                (created_objects if changed_object.is_created else existing_objects).append(changed_object)
+
+            objects = self.get_objects(changed_objects=changed_objects)
+
+            # remove slugs on all changed existing objects
+            slugs_updated = set(changed_object.obj_pk for changed_object in existing_objects
+                                if (issubclass(changed_object.model_class, LocationSlug) and
+                                    'slug' in changed_object.updated_fields))
+            LocationSlug.objects.filter(pk__in=slugs_updated).update(slug=None)
+
+            redirects_deleted = set(changed_object.obj_pk for changed_object in existing_objects
+                                    if (issubclass(changed_object.model_class, LocationRedirect) and
+                                        changed_object.deleted))
+            LocationRedirect.objects.filter(pk__in=redirects_deleted).delete()
+
+            # create created objects
+            created_pks = {}
+            objects_to_create = set(created_objects)
+            while objects_to_create:
+                created_in_last_run = set()
+                for created_object in objects_to_create:
+                    model = created_object.model_class
+                    pk = created_object.obj_pk
+
+                    # lets try to create this object
+                    obj = model()
+                    try:
+                        created_object.apply_to_instance(obj, created_pks=created_pks)
+                    except ApplyToInstanceError:
+                        continue
+
+                    obj.save()
+                    created_in_last_run.add(created_object)
+                    created_pks.setdefault(model, {})[pk] = obj.pk
+                    objects.setdefault(model, {})[pk] = obj
+
+                objects_to_create -= created_in_last_run
+
+            # update existing objects
+            for existing_object in existing_objects:
+                if existing_object.deleted:
+                    continue
+                model = existing_object.model_class
+                pk = existing_object.obj_pk
+
+                obj = objects[model][pk]
+                existing_object.apply_to_instance(obj, created_pks=created_pks)
+                obj.save()
+
+            # delete existing objects
+            for existing_object in existing_objects:
+                if not existing_object.deleted and not issubclass(existing_object.model_class, LocationRedirect):
+                    continue
+                model = created_object.model_class
+                pk = created_object.obj_pk
+
+                obj = objects[model][pk]
+                obj.delete()
+
+            # update m2m
+            for changed_object in changed_objects:
+                obj = objects[changed_object.model_class][changed_object.obj_pk]
+                for mode, updates in (('remove', changed_object.m2m_removed), ('add', changed_object.m2m_added)):
+                    for name, pks in updates.items():
+                        field = changed_object.model_class._meta.get_field(name)
+                        pks = tuple(objects[field.related_model][pk].pk for pk in pks)
+                        getattr(getattr(obj, name), mode)(*pks)
+
+            map_update = MapUpdate.objects.create(user=user, type='changeset')
+            self.state = 'applied'
+            self.last_state_update = update
+            self.last_update = update
+            self.map_update = map_update
+            self.save()
 
     def activate(self, request):
         request.session['changeset'] = self.pk
@@ -572,7 +646,7 @@ class ChangeSet(models.Model):
         ))
 
     def save(self, *args, **kwargs):
-        if self.state == 'applied':
+        if self._original_state == 'applied':
             raise TypeError('Applied change sets can not be edited.')
         super().save(*args, **kwargs)
         if self._request is not None:
