@@ -224,6 +224,4 @@ class SourceViewSet(MapdataViewSet):
 
     def _image(self, request, pk=None):
         source = self.get_object()
-        response = HttpResponse(content_type=mimetypes.guess_type(source.name)[0])
-        response.write(source.image)
-        return response
+        return HttpResponse(open(source.filepath, 'rb'), content_type=mimetypes.guess_type(source.name)[0])

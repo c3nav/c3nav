@@ -1,3 +1,6 @@
+import os
+
+from django.conf import settings
 from django.db import models
 from django.utils.translation import ugettext_lazy as _
 
@@ -14,6 +17,10 @@ class Source(BoundsMixin, models.Model):
         verbose_name = _('Source')
         verbose_name_plural = _('Sources')
         default_related_name = 'sources'
+
+    @property
+    def filepath(self):
+        return os.path.join(settings.SOURCES_ROOT, self.name)
 
     @property
     def title(self):
