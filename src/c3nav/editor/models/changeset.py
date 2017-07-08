@@ -406,7 +406,7 @@ class ChangeSet(models.Model):
                     changeset.last_change = update
                     changeset.save()
             else:
-                yield
+                yield self
 
     def can_edit(self, request):
         if not self.proposed:
