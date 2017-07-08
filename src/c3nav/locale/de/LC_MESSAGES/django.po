@@ -8,7 +8,7 @@ msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2017-07-08 19:29+0200\n"
-"PO-Revision-Date: 2017-07-08 19:30+0200\n"
+"PO-Revision-Date: 2017-07-08 19:33+0200\n"
 "Last-Translator: Laura Klünder <laura@codingcatgirl.de>\n"
 "Language-Team: \n"
 "Language: de\n"
@@ -180,7 +180,7 @@ msgstr "Navigation ein-/ausblenden"
 #: c3nav/editor/templates/editor/changeset.html:10
 #, python-format
 msgid "Change set #%(id)s"
-msgstr "Änderungsset #%(id)s"
+msgstr "Änderungsset Nr. %(id)s"
 
 #: c3nav/editor/templates/editor/changeset.html:20
 #, python-format
@@ -335,7 +335,7 @@ msgstr "Akzeptieren und Anwenden"
 #: c3nav/editor/templates/editor/changeset_edit.html:10
 #, python-format
 msgid "Changeset #%(id)s"
-msgstr "Änderungsset #%(id)s"
+msgstr "Änderungsset Nr. %(id)s"
 
 #: c3nav/editor/templates/editor/changeset_edit.html:23
 #: c3nav/editor/templates/editor/edit.html:38
