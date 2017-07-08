@@ -107,6 +107,13 @@ class EditorViewSet(ViewSet):
             other_spaces = Space.objects.filter(level__pk__in=levels).prefetch_related('groups')
             other_spaces = [s for s in other_spaces
                             if s.geometry.intersects(doors_space_geom) and s.pk != space.pk]
+            if level.on_top_of_id is None:
+                other_spaces_lower = [s for s in other_spaces if s.level_id in levels_under]
+                other_spaces_upper = [s for s in other_spaces if s.level_id in levels_on_top]
+            else:
+                other_spaces_lower = [s for s in other_spaces if s.level_id == level.on_top_of_id]
+                other_spaces_upper = []
+            other_spaces = [s for s in other_spaces if s.level_id == level.pk]
 
             space.bounds = True
 
@@ -122,7 +129,9 @@ class EditorViewSet(ViewSet):
 
             results = chain(
                 buildings,
+                other_spaces_lower,
                 doors,
+                other_spaces,
                 [space],
                 space.areas.all().prefetch_related('groups'),
                 space.holes.all(),
@@ -131,7 +140,7 @@ class EditorViewSet(ViewSet):
                 space.lineobstacles.all(),
                 space.columns.all(),
                 space.pois.all().prefetch_related('groups'),
-                other_spaces,
+                other_spaces_upper,
             )
             return Response(sum([self._get_geojsons(obj) for obj in results], ()))
         else:
