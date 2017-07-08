@@ -24,7 +24,7 @@ class LocationSlug(SerializableMixin, models.Model):
         'Level': 'l',
         'Space': 's',
         'Area': 'a',
-        'Point': 'p',
+        'POI': 'p',
         'LocationGroup': 'g'
     }
     LOCATION_TYPE_BY_CODE = {code: model_name for model_name, code in LOCATION_TYPE_CODES.items()}

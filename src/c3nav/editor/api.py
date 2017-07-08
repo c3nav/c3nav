@@ -130,7 +130,7 @@ class EditorViewSet(ViewSet):
                 space.obstacles.all(),
                 space.lineobstacles.all(),
                 space.columns.all(),
-                space.points.all().prefetch_related('groups'),
+                space.pois.all().prefetch_related('groups'),
                 other_spaces,
             )
             return Response(sum([self._get_geojsons(obj) for obj in results], ()))
@@ -154,7 +154,7 @@ class EditorViewSet(ViewSet):
             'obstacle': '#999999',
             'lineobstacle': '#999999',
             'column': '#888888',
-            'point': '#4488cc',
+            'poi': '#4488cc',
             'shadow': '#000000',
         })
 

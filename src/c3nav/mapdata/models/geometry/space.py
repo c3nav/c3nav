@@ -150,16 +150,16 @@ class LineObstacle(SpaceGeometryMixin, models.Model):
         return result
 
 
-class Point(SpecificLocation, SpaceGeometryMixin, models.Model):
+class POI(SpecificLocation, SpaceGeometryMixin, models.Model):
     """
-    An point in a space.
+    An point of interest
     """
     geometry = GeometryField('point')
 
     class Meta:
-        verbose_name = _('Point')
-        verbose_name_plural = _('Points')
-        default_related_name = 'points'
+        verbose_name = _('Point of Interest')
+        verbose_name_plural = _('Points of Interest')
+        default_related_name = 'pois'
 
     @property
     def buffered_geometry(self):

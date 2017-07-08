@@ -14,7 +14,7 @@ from rest_framework.viewsets import GenericViewSet, ReadOnlyModelViewSet
 
 from c3nav.mapdata.models import Building, Door, Hole, LocationGroup, Source, Space
 from c3nav.mapdata.models.geometry.level import LevelGeometryMixin
-from c3nav.mapdata.models.geometry.space import Area, Column, LineObstacle, Obstacle, Point, SpaceGeometryMixin, Stair
+from c3nav.mapdata.models.geometry.space import POI, Area, Column, LineObstacle, Obstacle, SpaceGeometryMixin, Stair
 from c3nav.mapdata.models.level import Level
 from c3nav.mapdata.models.locations import Location, LocationRedirect, LocationSlug, SpecificLocation
 from c3nav.mapdata.utils.models import get_submodels
@@ -133,9 +133,9 @@ class ColumnViewSet(MapdataViewSet):
     queryset = Column.objects.all()
 
 
-class PointViewSet(MapdataViewSet):
+class POIViewSet(MapdataViewSet):
     """ Add ?geometry=1 to get geometries, add ?space=<id> to filter by space. """
-    queryset = Point.objects.all()
+    queryset = POI.objects.all()
 
 
 class LocationGroupViewSet(MapdataViewSet):

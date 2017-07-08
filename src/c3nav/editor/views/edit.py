@@ -61,7 +61,7 @@ def space_detail(request, level, pk):
         'can_edit': request.changeset.can_edit(request),
 
         'child_models': [child_model(request.changeset.wrap_model(model_name), kwargs={'space': pk}, parent=space)
-                         for model_name in ('Hole', 'Area', 'Stair', 'Obstacle', 'LineObstacle', 'Column', 'Point')],
+                         for model_name in ('Hole', 'Area', 'Stair', 'Obstacle', 'LineObstacle', 'Column', 'POI')],
         'geometry_url': '/api/editor/geometries/?space='+pk,
     })
 
