@@ -41,6 +41,7 @@ def level_detail(request, pk):
         'level': level,
         'level_url': 'editor.levels.detail',
         'level_as_pk': True,
+        'can_edit': request.changeset.can_edit(request),
 
         'child_models': [child_model(request.changeset.wrap_model(model_name), kwargs={'level': pk}, parent=level)
                          for model_name in ('Building', 'Space', 'Door')],
@@ -57,6 +58,7 @@ def space_detail(request, level, pk):
     return render(request, 'editor/space.html', {
         'level': space.level,
         'space': space,
+        'can_edit': request.changeset.can_edit(request),
 
         'child_models': [child_model(request.changeset.wrap_model(model_name), kwargs={'space': pk}, parent=space)
                          for model_name in ('Hole', 'Area', 'Stair', 'Obstacle', 'LineObstacle', 'Column', 'Point')],
