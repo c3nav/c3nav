@@ -219,7 +219,8 @@ class ChangeSet(models.Model):
                         slugs.add(slug)
 
             qs = LocationSlug.objects.filter(slug__in=slugs)
-            qs = qs.filter(reduce(operator.or_, (Q(slug__startswith=slug+'__') for slug in slugs)))
+            if slugs:
+                qs = qs.filter(reduce(operator.or_, (Q(slug__startswith=slug+'__') for slug in slugs)))
             existing_slugs = dict(qs.values_list('slug', 'redirect__target_id'))
 
             slug_length = LocationSlug._meta.get_field('slug').max_length
