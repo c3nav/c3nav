@@ -303,7 +303,7 @@ class ChangedObject(models.Model):
         current_obj = objects[self.model_class][self.obj_pk]
         changed = False
         for name in set(self._m2m_added_cache.keys()) | set(self._m2m_removed_cache.keys()):
-            changed = changed or self.m2m_set(name, obj=current_obj)
+            changed = changed or self.m2m_set(name, obj=self.changeset.wrap_instance(current_obj))
         return changed
 
     def m2m_set(self, name, set_pks=None, obj=None):
