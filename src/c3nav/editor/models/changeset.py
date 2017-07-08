@@ -448,12 +448,12 @@ class ChangeSet(models.Model):
 
     def can_review(self, request):
         # todo implement permissions
-        return self.is_author(request)
+        return request.user.is_superuser
 
     @classmethod
     def can_direct_edit(self, request):
         # todo implement permissions
-        return request.user.is_authenticated
+        return request.user.is_superuser
 
     def can_start_review(self, request):
         return self.can_review(request) and self.state in ('proposed', 'reproposed')
