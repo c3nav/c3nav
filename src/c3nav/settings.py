@@ -18,6 +18,7 @@ BASE_DIR = os.path.dirname(os.path.dirname(__file__))
 DATA_DIR = config.get('c3nav', 'datadir', fallback=os.environ.get('DATA_DIR', 'data'))
 LOG_DIR = os.path.join(DATA_DIR, 'logs')
 MEDIA_ROOT = os.path.join(DATA_DIR, 'media')
+SOURCES_ROOT = os.path.join(DATA_DIR, 'sources')
 MAP_ROOT = os.path.join(DATA_DIR, 'map')
 RENDER_ROOT = os.path.join(DATA_DIR, 'render')
 
@@ -27,6 +28,8 @@ if not os.path.exists(LOG_DIR):
     os.mkdir(LOG_DIR)
 if not os.path.exists(MEDIA_ROOT):
     os.mkdir(MEDIA_ROOT)
+if not os.path.exists(SOURCES_ROOT):
+    os.mkdir(SOURCES_ROOT)
 if not os.path.exists(MAP_ROOT):
     os.mkdir(MAP_ROOT)
 if not os.path.exists(RENDER_ROOT):

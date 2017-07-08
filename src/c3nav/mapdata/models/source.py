@@ -9,7 +9,6 @@ class Source(BoundsMixin, models.Model):
     A map source, images of levels that can be useful as backgrounds for the map editor
     """
     name = models.SlugField(_('Name'), unique=True, max_length=50)
-    image = models.BinaryField(_('image data'))  # todo migrate to better storage
 
     class Meta:
         verbose_name = _('Source')
