@@ -13,7 +13,7 @@ from shapely.geometry.geo import mapping
 from c3nav.editor.models import ChangeSet, ChangeSetUpdate
 
 
-class MapitemFormMixin(ModelForm):
+class EditorFormBase(ModelForm):
     def __init__(self, *args, request=None, **kwargs):
         self.request = request
         super().__init__(*args, **kwargs)
@@ -137,7 +137,7 @@ def create_editor_form(editor_model):
     field_names = [field.name for field in editor_model._meta.get_fields() if not field.one_to_many]
     existing_fields = [name for name in possible_fields if name in field_names]
 
-    class EditorForm(MapitemFormMixin, ModelForm):
+    class EditorForm(EditorFormBase, ModelForm):
         class Meta:
             model = editor_model
             fields = existing_fields
