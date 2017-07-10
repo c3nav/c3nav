@@ -48,6 +48,13 @@ class MapdataViewSet(ReadOnlyModelViewSet):
             except Space.DoesNotExist:
                 raise NotFound(detail=_('space not found.'))
             qs = qs.filter(space=space)
+        if issubclass(qs.model, LocationGroup) and 'category' in request.GET:
+            kwargs = {('pk' if request.GET['category'].isdigit() else 'name'): request.GET['category']}
+            try:
+                category = LocationGroupCategory.objects.get(**kwargs)
+            except LocationGroupCategory.DoesNotExist:
+                raise NotFound(detail=_('category not found.'))
+            qs = qs.filter(category=category)
         if qs.model == Level and 'on_top_of' in request.GET:
             if request.GET['on_top_of'] == 'null':
                 qs = qs.filter(on_top_of__isnull=False)
@@ -145,6 +152,7 @@ class LocationGroupCategoryViewSet(MapdataViewSet):
 
 
 class LocationGroupViewSet(MapdataViewSet):
+    """ Add ?category=<id or name> to filter by category. """
     queryset = LocationGroup.objects.all()
 
 
