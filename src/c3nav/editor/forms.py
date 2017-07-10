@@ -36,7 +36,8 @@ class EditorFormBase(ModelForm):
         if 'groups' in self.fields:
             LocationGroupCategory = self.request.changeset.wrap_model('LocationGroupCategory')
 
-            categories = LocationGroupCategory.objects.all().prefetch_related('groups')
+            kwargs = {'allow_'+self._meta.model._meta.default_related_name: True}
+            categories = LocationGroupCategory.objects.filter(**kwargs).prefetch_related('groups')
             instance_groups = set(self.instance.groups.values_list('pk', flat=True)) if self.instance.pk else set()
 
             self.fields.pop('groups')
