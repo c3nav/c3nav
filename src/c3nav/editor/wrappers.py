@@ -745,7 +745,7 @@ class ManyRelatedManagerWrapper(RelatedManagerWrapper):
     def set(self, objs):
         if self._obj.reverse:
             raise NotImplementedError
-        pks = set(obj.pk for obj in objs)
+        pks = set((obj.pk if isinstance(obj, models.Model) else obj) for obj in objs)
         self._changeset.get_changed_object(self._obj.instance).m2m_set(self._get_cache_name(), pks)
 
     def add(self, *objs):

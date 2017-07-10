@@ -1,8 +1,10 @@
 import json
+import operator
 from collections import OrderedDict
+from functools import reduce
 
 from django.conf import settings
-from django.forms import BooleanField, CharField, ModelForm, ValidationError
+from django.forms import BooleanField, CharField, ModelForm, MultipleChoiceField, ValidationError
 from django.forms.widgets import HiddenInput
 from django.utils.translation import ugettext_lazy as _
 from shapely.geometry.geo import mapping
@@ -31,9 +33,20 @@ class MapitemFormMixin(ModelForm):
                 self.initial['geometry'] = json.dumps(mapping(self.instance.geometry), separators=(',', ':'))
 
         if 'groups' in self.fields:
-            LocationGroup = self.request.changeset.wrap_model('LocationGroup')
-            self.fields['groups'].label_from_instance = lambda obj: obj.title_for_forms
-            self.fields['groups'].queryset = LocationGroup.objects.all()
+            LocationGroupCategory = self.request.changeset.wrap_model('LocationGroupCategory')
+
+            categories = LocationGroupCategory.objects.all().prefetch_related('groups')
+            instance_groups = set(self.instance.groups.values_list('pk', flat=True))
+
+            self.fields.pop('groups')
+
+            for category in categories:
+                choices = tuple((str(group.pk), group.title) for group in category.groups.all())
+                initial = instance_groups & set(group.pk for group in category.groups.all())
+                initial = tuple(str(s) for s in initial)
+                field = MultipleChoiceField(label=category.title, required=False, initial=initial, choices=choices)
+                self.fields['groups_'+category.name] = field
+                self.fields.move_to_end('groups_'+category.name, last=False)
 
         if 'category' in self.fields:
             self.fields['category'].label_from_instance = lambda obj: obj.title
@@ -100,6 +113,13 @@ class MapitemFormMixin(ModelForm):
                 raise ValidationError('Missing geometry.')
 
         super().clean()
+
+    def _save_m2m(self):
+        super()._save_m2m()
+        groups = reduce(operator.or_, (set(value) for name, value in self.cleaned_data.items()
+                                       if name.startswith('groups_')), set())
+        groups = tuple((int(val) if val.isdigit() else val) for val in groups)
+        self.instance.groups.set(groups)
 
 
 def create_editor_form(editor_model):
