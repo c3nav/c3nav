@@ -5,7 +5,7 @@ from functools import reduce
 
 from django.conf import settings
 from django.core.exceptions import FieldDoesNotExist
-from django.forms import BooleanField, CharField, ModelForm, MultipleChoiceField, ValidationError
+from django.forms import BooleanField, CharField, ChoiceField, ModelForm, MultipleChoiceField, ValidationError
 from django.forms.widgets import HiddenInput
 from django.utils.translation import ugettext_lazy as _
 from shapely.geometry.geo import mapping
@@ -38,17 +38,26 @@ class EditorFormBase(ModelForm):
 
             kwargs = {'allow_'+self._meta.model._meta.default_related_name: True}
             categories = LocationGroupCategory.objects.filter(**kwargs).prefetch_related('groups')
-            instance_groups = set(self.instance.groups.values_list('pk', flat=True)) if self.instance.pk else set()
+            if self.instance.pk:
+                instance_groups = tuple(self.instance.groups.values_list('pk', flat=True))
+            else:
+                instance_groups = ()
 
             self.fields.pop('groups')
 
             for category in categories:
                 choices = tuple((str(group.pk), group.title) for group in category.groups.all())
-                initial = instance_groups & set(group.pk for group in category.groups.all())
-                initial = tuple(str(s) for s in initial)
-                field = MultipleChoiceField(label=category.title, required=False, initial=initial, choices=choices)
-                self.fields['groups_'+category.name] = field
-                self.fields.move_to_end('groups_'+category.name, last=False)
+                category_groups = set(group.pk for group in category.groups.all())
+                initial = tuple(str(pk) for pk in instance_groups if pk in category_groups)
+                if category.single:
+                    name = 'group_'+category.name
+                    initial = initial[0] if initial else ''
+                    field = ChoiceField(label=category.title, required=False, initial=initial, choices=choices)
+                else:
+                    name = 'groups_'+category.name
+                    field = MultipleChoiceField(label=category.title, required=False, initial=initial, choices=choices)
+                self.fields[name] = field
+                self.fields.move_to_end(name, last=False)
 
         if 'category' in self.fields:
             self.fields['category'].label_from_instance = lambda obj: obj.title
