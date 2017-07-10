@@ -297,8 +297,9 @@ def changeset_detail(request, pk):
                         change_data.update({
                             'order': (order, form_fields.index(name) if order else 1),
                         })
-                    if not field_value:
+                    if field_value == '' or field_value is None:
                         change_data.update({
+                            'empty': True,
                             'title': format_lazy(_('remove {field_title}'), field_title=field_title),
                         })
                     else:
