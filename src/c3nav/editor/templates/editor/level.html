@@ -2,10 +2,6 @@
 {% load i18n %}
 {% include 'editor/fragment_levels.html' %}
 
-<a class="btn btn-default btn-sm pull-right" accesskey="e" href="{% url 'editor.levels.edit' pk=level.pk %}">
-    {% trans 'Level' as model_title %}
-    {% blocktrans %}Edit {{ model_title }}{% endblocktrans %}
-</a>
 <h3>
     {{ level.title }}
     {% if level.on_top_of != None %}
@@ -14,6 +10,12 @@
         {% endwith %}
     {% endif %}
 </h3>
+<p>
+    <a class="btn btn-default btn-xs" accesskey="e" href="{% url 'editor.levels.edit' pk=level.pk %}">
+        {% trans 'Level' as model_title %}
+        <i class="glyphicon glyphicon-pencil"></i> {% blocktrans %}Edit {{ model_title }}{% endblocktrans %}
+    </a>
+</p>
 <p>
     {% if level.on_top_of == None %}
         <a href="{% url 'editor.index' %}">&laquo; {% trans 'back to overview' %}</a>
@@ -28,12 +30,14 @@
 <div class="clearfix"></div>
 
 {% if level.on_top_of is None %}
-    {% if can_edit %}
-        <a class="btn btn-default btn-sm pull-right" accesskey="n" href="{% url 'editor.levels_on_top.create' on_top_of=level.pk %}">
-            {% blocktrans %}New {{ model_title }}{% endblocktrans %}
-        </a>
-    {% endif %}
     <h3>{% trans 'Levels on top' %}</h3>
+    {% if can_edit %}
+        <p>
+            <a class="btn btn-default btn-xs" accesskey="n" href="{% url 'editor.levels_on_top.create' on_top_of=level.pk %}">
+                <i class="glyphicon glyphicon-plus"></i> {% blocktrans %}New {{ model_title }}{% endblocktrans %}
+            </a>
+        </p>
+    {% endif %}
     <div class="list-group">
     {% for l in levels_on_top %}
         <a href="{% url 'editor.levels.detail' pk=l.pk %}" class="list-group-item">

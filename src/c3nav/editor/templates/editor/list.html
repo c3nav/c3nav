@@ -3,11 +3,6 @@
 
 {% include 'editor/fragment_levels.html' %}
 
-{% if can_edit %}
-    <a class="btn btn-default btn-sm pull-right" accesskey="n" href="{{ create_url }}">
-        {% blocktrans %}New {{ model_title }}{% endblocktrans %}
-    </a>
-{% endif %}
 <h3>
     {{ model_title_plural }}
     {% if level %}
@@ -22,6 +17,11 @@
     {% endif %}
 </h3>
 {% bootstrap_messages %}
+{% if can_edit %}
+    <a class="btn btn-default btn-xs" accesskey="n" href="{{ create_url }}">
+        <i class="glyphicon glyphicon-plus"></i> {% blocktrans %}New {{ model_title }}{% endblocktrans %}
+    </a>
+{% endif %}
 
 {% if explicit_edit %}
     {% trans 'Details' as edit_caption %}
