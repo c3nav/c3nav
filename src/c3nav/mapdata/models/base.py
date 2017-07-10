@@ -64,7 +64,6 @@ class TitledMixin(SerializableMixin, models.Model):
             if lang in self.titles:
                 return self.titles[lang]
             return next(iter(self.titles.values()))
-        return self._meta.verbose_name + ' ' + str(self.pk)
         return super().title
 
 
