@@ -164,6 +164,7 @@ class LocationGroupCategory(TitledMixin, models.Model):
         verbose_name = _('Location Group Category')
         verbose_name_plural = _('Location Group Categories')
         default_related_name = 'locationgroupcategories'
+        ordering = ('-priority', )
 
     def _serialize(self, **kwargs):
         result = super()._serialize(**kwargs)
@@ -178,11 +179,13 @@ class LocationGroup(Location, models.Model):
                                  verbose_name=_('Category'))
     compiled_room = models.BooleanField(default=False, verbose_name=_('is a compiled room'))
     compiled_area = models.BooleanField(default=False, verbose_name=_('is a compiled area'))
+    priority = models.IntegerField(default=0, db_index=True)
 
     class Meta:
         verbose_name = _('Location Group')
         verbose_name_plural = _('Location Groups')
         default_related_name = 'locationgroups'
+        ordering = ('-priority',)
 
     def _serialize(self, **kwargs):
         result = super()._serialize(**kwargs)
