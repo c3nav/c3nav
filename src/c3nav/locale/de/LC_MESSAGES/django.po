@@ -7,8 +7,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2017-07-08 19:29+0200\n"
-"PO-Revision-Date: 2017-07-08 19:39+0200\n"
+"POT-Creation-Date: 2017-07-10 13:03+0200\n"
+"PO-Revision-Date: 2017-07-10 13:03+0200\n"
 "Last-Translator: Laura Klünder <laura@codingcatgirl.de>\n"
 "Language-Team: \n"
 "Language: de\n"
@@ -178,6 +178,7 @@ msgid "Toggle navigation"
 msgstr "Navigation ein-/ausblenden"
 
 #: c3nav/editor/templates/editor/changeset.html:10
+#: c3nav/editor/templates/editor/changeset_edit.html:10
 #, python-format
 msgid "Change set #%(id)s"
 msgstr "Änderungsset Nr. %(id)s"
@@ -331,11 +332,6 @@ msgstr "Abbrechen"
 #: c3nav/editor/templates/editor/changeset_apply.html:16
 msgid "Accept and apply"
 msgstr "Akzeptieren und Anwenden"
-
-#: c3nav/editor/templates/editor/changeset_edit.html:10
-#, python-format
-msgid "Changeset #%(id)s"
-msgstr "Änderungsset Nr. %(id)s"
 
 #: c3nav/editor/templates/editor/changeset_edit.html:23
 #: c3nav/editor/templates/editor/edit.html:38
@@ -693,19 +689,19 @@ msgstr "%s ist weder null noch eine ganze Zahl."
 msgid "please enter a newline seperated lowercase list of BSSIDs"
 msgstr "bitte gib Zeile für Zeile klein geschriebene BSSIDs ein"
 
-#: c3nav/mapdata/models/base.py:36
+#: c3nav/mapdata/models/base.py:72
 msgid "bottom coordinate"
 msgstr "untere koordinate"
 
-#: c3nav/mapdata/models/base.py:37
+#: c3nav/mapdata/models/base.py:73
 msgid "left coordinate"
 msgstr "linke koordinate"
 
-#: c3nav/mapdata/models/base.py:38
+#: c3nav/mapdata/models/base.py:74
 msgid "top coordinate"
 msgstr "obere koordinate"
 
-#: c3nav/mapdata/models/base.py:39
+#: c3nav/mapdata/models/base.py:75
 msgid "right coordinate"
 msgstr "rechte koordinate"
 
@@ -838,75 +834,71 @@ msgstr "Halbetage über"
 msgid "Levels"
 msgstr "Etagen"
 
-#: c3nav/mapdata/models/locations.py:31
+#: c3nav/mapdata/models/locations.py:29
 msgid "Slug"
 msgstr "Slug"
 
-#: c3nav/mapdata/models/locations.py:50
+#: c3nav/mapdata/models/locations.py:48 c3nav/mapdata/models/locations.py:49
 msgid "Location with Slug"
 msgstr "Ort mit Slug"
 
-#: c3nav/mapdata/models/locations.py:51
-msgid "Lucation with Slug"
-msgstr "Ort mit Slug"
-
-#: c3nav/mapdata/models/locations.py:57
+#: c3nav/mapdata/models/locations.py:54
 msgid "can be searched"
 msgstr "zur Suche zugelassen"
 
-#: c3nav/mapdata/models/locations.py:58
+#: c3nav/mapdata/models/locations.py:55
 msgid "can be used to describe a position"
 msgstr "can zum beschreiben einer Position genutzt werden"
 
-#: c3nav/mapdata/models/locations.py:59
+#: c3nav/mapdata/models/locations.py:56
 msgid "background color"
 msgstr "Hintergrundfarbe"
 
-#: c3nav/mapdata/models/locations.py:60
+#: c3nav/mapdata/models/locations.py:57
 msgid "public"
 msgstr "öffentlich"
 
-#: c3nav/mapdata/models/locations.py:147 c3nav/mapdata/models/locations.py:165
+#: c3nav/mapdata/models/locations.py:139 c3nav/mapdata/models/locations.py:157
 msgid "Location Groups"
 msgstr "Ortgruppen"
 
-#: c3nav/mapdata/models/locations.py:160
+#: c3nav/mapdata/models/locations.py:152
 msgid "is a compiled room"
 msgstr "zusammengesetzter Raum"
 
-#: c3nav/mapdata/models/locations.py:161
+#: c3nav/mapdata/models/locations.py:153
 msgid "is a compiled area"
 msgstr "zusammengesetzter Raum"
 
-#: c3nav/mapdata/models/locations.py:164
+#: c3nav/mapdata/models/locations.py:156
 msgid "Location Group"
 msgstr "Ortgruppe"
 
-#: c3nav/mapdata/models/locations.py:178
+#: c3nav/mapdata/models/locations.py:170
 msgid "search"
 msgstr "suchen"
 
-#: c3nav/mapdata/models/locations.py:180
+#: c3nav/mapdata/models/locations.py:172
 msgid "describe"
 msgstr "beschreiben"
 
-#: c3nav/mapdata/models/locations.py:182
+#: c3nav/mapdata/models/locations.py:174
 msgid "color"
 msgstr "Farbe"
 
-#: c3nav/mapdata/models/locations.py:184
+#: c3nav/mapdata/models/locations.py:176
 msgid "internal"
 msgstr "intern"
 
-#: c3nav/mapdata/models/locations.py:186
+#: c3nav/mapdata/models/locations.py:178
 msgid "comp. room"
 msgstr "zusammengesetzter Raum"
 
-#: c3nav/mapdata/models/locations.py:188
+#: c3nav/mapdata/models/locations.py:180
 msgid "comp. area"
 msgstr "zusammengesetzter Bereich"
 
-#: c3nav/mapdata/models/locations.py:193
+#: c3nav/mapdata/models/locations.py:185
 msgid "target"
 msgstr "Ziel"
 
@@ -1185,6 +1177,12 @@ msgstr "Teilen"
 #: c3nav/site/templates/site/main.html:103
 msgid "shortcut"
 msgstr "Verknüpfung"
+
+#~ msgid "Changeset #%(id)s"
+#~ msgstr "Änderungsset Nr. %(id)s"
+
+#~ msgid "Lucation with Slug"
+#~ msgstr "Ort mit Slug"
 
 #~ msgid "%(model_title_plural)s"
 #~ msgstr "%(model_title_plural)s"

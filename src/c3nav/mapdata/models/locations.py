@@ -46,7 +46,7 @@ class LocationSlug(SerializableMixin, models.Model):
 
     class Meta:
         verbose_name = _('Location with Slug')
-        verbose_name_plural = _('Lucation with Slug')
+        verbose_name_plural = _('Location with Slug')
         default_related_name = 'locationslugs'
 
 
