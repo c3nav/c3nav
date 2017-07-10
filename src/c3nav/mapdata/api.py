@@ -55,6 +55,14 @@ class MapdataViewSet(ReadOnlyModelViewSet):
             except LocationGroupCategory.DoesNotExist:
                 raise NotFound(detail=_('category not found.'))
             qs = qs.filter(category=category)
+        if issubclass(qs.model, SpecificLocation) and 'group' in request.GET:
+            if not request.GET['group'].isdigit():
+                raise ValidationError(detail={'detail': _('%s is not an integer.') % 'group'})
+            try:
+                group = LocationGroup.objects.get(pk=request.GET['group'])
+            except LocationGroupCategory.DoesNotExist:
+                raise NotFound(detail=_('group not found.'))
+            qs = qs.filter(groups=group)
         if qs.model == Level and 'on_top_of' in request.GET:
             if request.GET['on_top_of'] == 'null':
                 qs = qs.filter(on_top_of__isnull=False)
@@ -79,7 +87,7 @@ class MapdataViewSet(ReadOnlyModelViewSet):
 
 
 class LevelViewSet(MapdataViewSet):
-    """ Add ?on_top_of=null or ?on_top_of=<id> to filter by on_top_of. """
+    """ Add ?on_top_of=<null or id> to filter by on_top_of, add ?group=<id> to filter by group. """
     queryset = Level.objects.all()
 
     @list_route(methods=['get'])
@@ -99,7 +107,7 @@ class BuildingViewSet(MapdataViewSet):
 
 
 class SpaceViewSet(MapdataViewSet):
-    """ Add ?geometry=1 to get geometries, add ?level=<id> to filter by level. """
+    """ Add ?geometry=1 to get geometries, add ?level=<id> to filter by level, add ?group=<id> to filter by group. """
     queryset = Space.objects.all()
 
     @list_route(methods=['get'])
@@ -118,7 +126,7 @@ class HoleViewSet(MapdataViewSet):
 
 
 class AreaViewSet(MapdataViewSet):
-    """ Add ?geometry=1 to get geometries, add ?space=<id> to filter by space. """
+    """ Add ?geometry=1 to get geometries, add ?space=<id> to filter by space, add ?group=<id> to filter by group. """
     queryset = Area.objects.all()
 
 
@@ -143,7 +151,7 @@ class ColumnViewSet(MapdataViewSet):
 
 
 class POIViewSet(MapdataViewSet):
-    """ Add ?geometry=1 to get geometries, add ?space=<id> to filter by space. """
+    """ Add ?geometry=1 to get geometries, add ?space=<id> to filter by space, add ?group=<id> to filter by group. """
     queryset = POI.objects.all()
 
 
