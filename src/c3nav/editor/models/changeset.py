@@ -171,8 +171,12 @@ class ChangeSet(models.Model):
         for change in self.changed_objects_set.all():
             change.update_changeset_cache()
 
-        if self.state != 'applied':
-            self._clean_changes()
+        if self.state != 'applied' and not self._cleaning_changes:
+            self._cleaning_changes = True
+            try:
+                self._clean_changes()
+            finally:
+                self._cleaning_changes = False
 
         cache.set(cache_key, (self.changed_objects, self.created_objects, self.updated_existing,
                               self.deleted_existing, self.m2m_added, self.m2m_removed), 300)
@@ -414,6 +418,16 @@ class ChangeSet(models.Model):
     @_object_changed.setter
     def _object_changed(self, value):
         self.object_changed_cache[self.pk] = value
+
+    cleaning_changes_cache = {}
+
+    @property
+    def _cleaning_changes(self):
+        return self.cleaning_changes_cache.get(self.pk, None)
+
+    @_cleaning_changes.setter
+    def _cleaning_changes(self, value):
+        self.cleaning_changes_cache[self.pk] = value
 
     @contextmanager
     def lock_to_edit(self, request=None):
