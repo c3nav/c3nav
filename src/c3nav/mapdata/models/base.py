@@ -2,6 +2,9 @@ from collections import OrderedDict
 
 from django.db import models
 from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import get_language
+
+from c3nav.mapdata.fields import JSONField
 
 
 class SerializableMixin(models.Model):
@@ -30,6 +33,39 @@ class SerializableMixin(models.Model):
     @property
     def title(self):
         return self._meta.verbose_name + ' ' + str(self.id)
+
+
+class TitledMixin(SerializableMixin, models.Model):
+    titles = JSONField(default={})
+
+    class Meta:
+        abstract = True
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.titles = self.titles.copy()
+
+    def serialize(self, detailed=True, **kwargs):
+        result = super().serialize(detailed=detailed, **kwargs)
+        if not detailed:
+            result.pop('title', None)
+        return result
+
+    def _serialize(self, **kwargs):
+        result = super()._serialize(**kwargs)
+        result['titles'] = self.titles
+        result['title'] = self.title
+        return result
+
+    @property
+    def title(self):
+        lang = get_language()
+        if self.titles:
+            if lang in self.titles:
+                return self.titles[lang]
+            return next(iter(self.titles.values()))
+        return self._meta.verbose_name + ' ' + str(self.pk)
+        return super().title
 
 
 class BoundsMixin(SerializableMixin, models.Model):

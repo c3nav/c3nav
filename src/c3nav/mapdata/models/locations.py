@@ -3,10 +3,8 @@ from contextlib import suppress
 from django.apps import apps
 from django.db import models
 from django.utils.translation import ugettext_lazy as _
-from django.utils.translation import get_language
 
-from c3nav.mapdata.fields import JSONField
-from c3nav.mapdata.models.base import SerializableMixin
+from c3nav.mapdata.models.base import SerializableMixin, TitledMixin
 from c3nav.mapdata.utils.models import get_submodels
 
 
@@ -52,8 +50,7 @@ class LocationSlug(SerializableMixin, models.Model):
         default_related_name = 'locationslugs'
 
 
-class Location(LocationSlug, SerializableMixin, models.Model):
-    titles = JSONField(default={})
+class Location(LocationSlug, TitledMixin, models.Model):
     can_search = models.BooleanField(default=True, verbose_name=_('can be searched'))
     can_describe = models.BooleanField(default=True, verbose_name=_('can be used to describe a position'))
     color = models.CharField(null=True, blank=True, max_length=16, verbose_name=_('background color'))
@@ -69,14 +66,14 @@ class Location(LocationSlug, SerializableMixin, models.Model):
     def serialize(self, detailed=True, **kwargs):
         result = super().serialize(detailed=detailed, **kwargs)
         if not detailed:
-            for key in set(result.keys()) - {'type', 'id', 'slug', 'title', 'target'}:
-                result.pop(key)
+            result.pop('type', None)
+            result.pop('id', None)
+            result.pop('slug', None)
+            result.pop('target', None)
         return result
 
     def _serialize(self, **kwargs):
         result = super()._serialize(**kwargs)
-        result['titles'] = self.titles
-        result['title'] = self.title
         result['can_search'] = self.can_search
         result['can_describe'] = self.can_search
         result['color'] = self.color
@@ -116,12 +113,7 @@ class Location(LocationSlug, SerializableMixin, models.Model):
 
     @property
     def title(self):
-        lang = get_language()
-        if self.titles:
-            if lang in self.titles:
-                return self.titles[lang]
-            return next(iter(self.titles.values()))
-        if self.slug:
+        if not self.titles and self.slug:
             return self._meta.verbose_name + ' ' + self.slug
         return super().title
 
