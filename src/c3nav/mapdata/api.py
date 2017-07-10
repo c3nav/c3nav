@@ -167,22 +167,26 @@ class LocationGroupViewSet(MapdataViewSet):
 class LocationViewSet(RetrieveModelMixin, GenericViewSet):
     """
     only accesses locations that have can_search or can_describe set to true.
-    add ?detailed=1 to show all attributes.
+    add ?detailed=1 to show all attributes, add ?group=<id> to filter by group.
     /{id}/ add ?show_redirect=1 to suppress redirects and show them as JSON.
     /search/ only accesses locations that have can_search set to true. Add GET Parameter “s” to search.
     """
     queryset = LocationSlug.objects.all()
     lookup_field = 'slug'
 
-    def get_queryset(self, detailed=False, subconditions=None):
+    def get_queryset(self, detailed=False, subconditions=None, group=None):
         queryset = super().get_queryset().order_by('id')
 
         conditions = []
         for model in get_submodels(Location):
+            if group is not None and not hasattr(model, 'groups'):
+                continue
             condition = Q(**{model._meta.default_related_name + '__isnull': False})
             if subconditions:
                 condition &= reduce(operator.or_, (Q(**{model._meta.default_related_name+'__'+name: value})
                                                    for name, value in subconditions.items()))
+            if group is not None:
+                condition &= Q(**{model._meta.default_related_name+'__groups': group})
             conditions.append(condition)
         queryset = queryset.filter(reduce(operator.or_, conditions))
 
@@ -197,7 +201,18 @@ class LocationViewSet(RetrieveModelMixin, GenericViewSet):
     def list(self, request, *args, **kwargs):
         detailed = 'detailed' in request.GET
 
-        queryset = self.get_queryset(detailed=detailed, subconditions={'can_search': True, 'can_describe': True})
+        subconditions = {'can_search': True, 'can_describe': True}
+
+        group = None
+        if 'group' in request.GET:
+            if not request.GET['group'].isdigit():
+                raise ValidationError(detail={'detail': _('%s is not an integer.') % 'group'})
+            try:
+                group = LocationGroup.objects.get(pk=request.GET['group'])
+            except LocationGroupCategory.DoesNotExist:
+                raise NotFound(detail=_('group not found.'))
+
+        queryset = self.get_queryset(detailed=detailed, subconditions=subconditions, group=group)
 
         return Response([obj.get_child().serialize(include_type=True, detailed=detailed) for obj in queryset])
 
