@@ -4,6 +4,7 @@ from collections import OrderedDict
 from functools import reduce
 
 from django.conf import settings
+from django.core.exceptions import FieldDoesNotExist
 from django.forms import BooleanField, CharField, ModelForm, MultipleChoiceField, ValidationError
 from django.forms.widgets import HiddenInput
 from django.utils.translation import ugettext_lazy as _
@@ -116,10 +117,16 @@ class MapitemFormMixin(ModelForm):
 
     def _save_m2m(self):
         super()._save_m2m()
-        groups = reduce(operator.or_, (set(value) for name, value in self.cleaned_data.items()
-                                       if name.startswith('groups_')), set())
-        groups = tuple((int(val) if val.isdigit() else val) for val in groups)
-        self.instance.groups.set(groups)
+        try:
+            field = self._meta.model._meta.get_field('groups')
+        except FieldDoesNotExist:
+            pass
+        else:
+            if field.many_to_many:
+                groups = reduce(operator.or_, (set(value) for name, value in self.cleaned_data.items()
+                                               if name.startswith('groups_')), set())
+                groups = tuple((int(val) if val.isdigit() else val) for val in groups)
+                self.instance.groups.set(groups)
 
 
 def create_editor_form(editor_model):
