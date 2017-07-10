@@ -148,7 +148,25 @@ class SpecificLocation(Location, models.Model):
         return result
 
 
+class LocationGroupCategory(TitledMixin, models.Model):
+    name = models.SlugField(_('Name'), unique=True, max_length=50)
+
+    class Meta:
+        verbose_name = _('Location Group Category')
+        verbose_name_plural = _('Location Group Categories')
+        default_related_name = 'locationgroupcategories'
+
+    def _serialize(self, **kwargs):
+        result = super()._serialize(**kwargs)
+        result['name'] = self.name
+        result.move_to_end('name', last=False)
+        result.move_to_end('id', last=False)
+        return result
+
+
 class LocationGroup(Location, models.Model):
+    category = models.ForeignKey(LocationGroupCategory, related_name='groups', on_delete=models.PROTECT,
+                                 verbose_name=_('Location Group Category'))
     compiled_room = models.BooleanField(default=False, verbose_name=_('is a compiled room'))
     compiled_area = models.BooleanField(default=False, verbose_name=_('is a compiled area'))
 
@@ -159,6 +177,7 @@ class LocationGroup(Location, models.Model):
 
     def _serialize(self, **kwargs):
         result = super()._serialize(**kwargs)
+        result['category'] = self.category_id
         result['compiled_room'] = self.compiled_room
         result['compiled_area'] = self.compiled_area
         return result
@@ -182,7 +201,8 @@ class LocationGroup(Location, models.Model):
 
 
 class LocationRedirect(LocationSlug):
-    target = models.ForeignKey(LocationSlug, verbose_name=_('target'), related_name='redirects')
+    target = models.ForeignKey(LocationSlug, related_name='redirects', on_delete=models.CASCADE,
+                               verbose_name=_('target'))
 
     def _serialize(self, with_type=True, **kwargs):
         result = super()._serialize(with_type=with_type, **kwargs)

@@ -9,8 +9,8 @@ from rest_framework.routers import SimpleRouter
 
 from c3nav.editor.api import ChangeSetViewSet, EditorViewSet
 from c3nav.mapdata.api import (AreaViewSet, BuildingViewSet, ColumnViewSet, DoorViewSet, HoleViewSet, LevelViewSet,
-                               LineObstacleViewSet, LocationGroupViewSet, LocationViewSet, ObstacleViewSet, POIViewSet,
-                               SourceViewSet, SpaceViewSet, StairViewSet)
+                               LineObstacleViewSet, LocationGroupCategoryViewSet, LocationGroupViewSet, LocationViewSet,
+                               ObstacleViewSet, POIViewSet, SourceViewSet, SpaceViewSet, StairViewSet)
 
 router = SimpleRouter()
 router.register(r'levels', LevelViewSet)
@@ -27,6 +27,7 @@ router.register(r'pois', POIViewSet)
 router.register(r'sources', SourceViewSet)
 
 router.register(r'locations', LocationViewSet)
+router.register(r'locationgroupcategories', LocationGroupCategoryViewSet)
 router.register(r'locationgroups', LocationGroupViewSet)
 
 router.register(r'editor', EditorViewSet, base_name='editor')
