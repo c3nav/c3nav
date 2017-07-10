@@ -36,7 +36,7 @@ class MapitemFormMixin(ModelForm):
             LocationGroupCategory = self.request.changeset.wrap_model('LocationGroupCategory')
 
             categories = LocationGroupCategory.objects.all().prefetch_related('groups')
-            instance_groups = set(self.instance.groups.values_list('pk', flat=True))
+            instance_groups = set(self.instance.groups.values_list('pk', flat=True)) if self.instance.pk else set()
 
             self.fields.pop('groups')
 
