@@ -144,7 +144,10 @@ class SpecificLocation(Location, models.Model):
     def _serialize(self, detailed=True, **kwargs):
         result = super()._serialize(detailed=detailed, **kwargs)
         if detailed:
-            result['groups'] = list(g.pk for g in self.groups.all())
+            groups = {}
+            for group in self.groups.all():
+                groups.setdefault(group.category.name, []).append(group.pk)
+            result['groups'] = groups
         return result
 
 

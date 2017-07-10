@@ -23,7 +23,8 @@ from c3nav.mapdata.utils.models import get_submodels
 
 def optimize_query(qs):
     if issubclass(qs.model, SpecificLocation):
-        qs = qs.prefetch_related(Prefetch('groups', queryset=LocationGroup.objects.only('id')))
+        base_qs = LocationGroup.objects.select_related('category').only('id', 'titles', 'category')
+        qs = qs.prefetch_related(Prefetch('groups', queryset=base_qs))
     return qs
 
 
@@ -170,9 +171,10 @@ class LocationViewSet(RetrieveModelMixin, GenericViewSet):
         queryset = queryset.filter(reduce(operator.or_, conditions))
 
         if detailed:
+            base_qs = LocationGroup.objects.all().select_related('category')
             for model in get_submodels(SpecificLocation):
                 queryset = queryset.prefetch_related(Prefetch(model._meta.default_related_name + '__groups',
-                                                              queryset=LocationGroup.objects.only('id', 'titles')))
+                                                              queryset=base_qs))
 
         return queryset
 
