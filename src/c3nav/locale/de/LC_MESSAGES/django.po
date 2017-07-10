@@ -7,8 +7,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2017-07-10 13:03+0200\n"
-"PO-Revision-Date: 2017-07-10 13:03+0200\n"
+"POT-Creation-Date: 2017-07-10 17:22+0200\n"
+"PO-Revision-Date: 2017-07-10 17:24+0200\n"
 "Last-Translator: Laura Klünder <laura@codingcatgirl.de>\n"
 "Language-Team: \n"
 "Language: de\n"
@@ -18,25 +18,25 @@ msgstr ""
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
 "X-Generator: Poedit 2.0.2\n"
 
-#: c3nav/editor/forms.py:61
+#: c3nav/editor/forms.py:80
 msgid "Redirecting Slugs (comma seperated)"
 msgstr "Umleitungs-Slugs (mit Komma getrennt)"
 
-#: c3nav/editor/forms.py:81
+#: c3nav/editor/forms.py:100
 #, python-format
 msgid "Can not add redirecting slug “%s”: it's the slug of this object."
 msgstr ""
 "Umleitungs-Slug „%s“ kann nicht hinzugefügt werden: Es ist der Slug dieses "
 "Objects."
 
-#: c3nav/editor/forms.py:88
+#: c3nav/editor/forms.py:107
 #, python-format
 msgid "Can not add redirecting slug “%s”: it is already used elsewhere."
 msgstr ""
 "Umleitungs-Slug „%s“ kann nicht hinzugefügt werden: Er wird bereits an "
 "anderer Stelle verwendet."
 
-#: c3nav/editor/forms.py:122
+#: c3nav/editor/forms.py:148
 msgid "Final rejection"
 msgstr "Endgültige Ablehnung"
 
@@ -141,15 +141,15 @@ msgstr "Kartenupdate"
 msgid "Change Sets"
 msgstr "Änderungssets"
 
-#: c3nav/editor/models/changeset.py:645
+#: c3nav/editor/models/changeset.py:659
 msgid "Direct editing active"
 msgstr "Direktes Bearbeiten aktiv"
 
-#: c3nav/editor/models/changeset.py:646
+#: c3nav/editor/models/changeset.py:660
 msgid "No objects changed"
 msgstr "Keine Objekte geändert"
 
-#: c3nav/editor/models/changeset.py:647
+#: c3nav/editor/models/changeset.py:661
 #, python-format
 msgid "%(num)d object changed"
 msgid_plural "%(num)d objects changed"
@@ -412,7 +412,7 @@ msgid "Level"
 msgstr "Etage"
 
 #: c3nav/editor/templates/editor/level.html:19
-#: c3nav/editor/templates/editor/space.html:11 c3nav/editor/views/edit.py:300
+#: c3nav/editor/templates/editor/space.html:11 c3nav/editor/views/edit.py:301
 msgid "back to overview"
 msgstr "zurück zur Übersicht"
 
@@ -628,30 +628,30 @@ msgstr "gelöscht"
 msgid "You cannot edit this change set."
 msgstr "Du kannst dieses Änderungsset nicht bearbeiten."
 
-#: c3nav/editor/views/edit.py:183
+#: c3nav/editor/views/edit.py:184
 msgid ""
 "You can not delete this object because other objects still depend on it."
 msgstr ""
 "Du kannst dieses Objekt nicht löschen weil andere Objekte sich darauf "
 "beziehen."
 
-#: c3nav/editor/views/edit.py:191 c3nav/editor/views/edit.py:239
+#: c3nav/editor/views/edit.py:192 c3nav/editor/views/edit.py:240
 msgid "You can not edit changes on this changeset."
 msgstr "Du kannst keine Änderungen dieses Änderungssets bearbeiten."
 
-#: c3nav/editor/views/edit.py:193
+#: c3nav/editor/views/edit.py:194
 msgid "Object was successfully deleted."
 msgstr "Objekt wurde erfolgreich gelöscht."
 
-#: c3nav/editor/views/edit.py:236
+#: c3nav/editor/views/edit.py:237
 msgid "Object was successfully saved."
 msgstr "Objekt wurde erfolgreich gespeichert."
 
-#: c3nav/editor/views/edit.py:281
+#: c3nav/editor/views/edit.py:282
 msgid "back to level"
 msgstr "zurück zur Etage"
 
-#: c3nav/editor/views/edit.py:294
+#: c3nav/editor/views/edit.py:295
 msgid "back to space"
 msgstr "zurück zum Raum"
 
@@ -667,20 +667,29 @@ msgstr "Du hast direktes Bearbeiten aktiviert."
 msgid "You deactivated direct editing."
 msgstr "Du hast direktes Bearbeiten deaktiviert."
 
-#: c3nav/mapdata/api.py:35 c3nav/mapdata/api.py:43
+#: c3nav/mapdata/api.py:37 c3nav/mapdata/api.py:45 c3nav/mapdata/api.py:60
+#: c3nav/mapdata/api.py:209
 #, python-format
 msgid "%s is not an integer."
 msgstr "%s ist keine ganze Zahl."
 
-#: c3nav/mapdata/api.py:39 c3nav/mapdata/api.py:58
+#: c3nav/mapdata/api.py:41 c3nav/mapdata/api.py:75
 msgid "level not found."
 msgstr "Etage nicht gefunden."
 
-#: c3nav/mapdata/api.py:47
+#: c3nav/mapdata/api.py:49
 msgid "space not found."
 msgstr "Raum nicht gefunden."
 
-#: c3nav/mapdata/api.py:54
+#: c3nav/mapdata/api.py:56
+msgid "category not found."
+msgstr "Kategorie nicht gefunden."
+
+#: c3nav/mapdata/api.py:64 c3nav/mapdata/api.py:213
+msgid "group not found."
+msgstr "Gruppe nicht gefunden."
+
+#: c3nav/mapdata/api.py:71
 #, python-format
 msgid "%s is not null or an integer."
 msgstr "%s ist weder null noch eine ganze Zahl."
@@ -858,53 +867,65 @@ msgstr "Hintergrundfarbe"
 msgid "public"
 msgstr "öffentlich"
 
-#: c3nav/mapdata/models/locations.py:139 c3nav/mapdata/models/locations.py:157
+#: c3nav/mapdata/models/locations.py:139 c3nav/mapdata/models/locations.py:178
 msgid "Location Groups"
 msgstr "Ortgruppen"
 
-#: c3nav/mapdata/models/locations.py:152
+#: c3nav/mapdata/models/locations.py:155 c3nav/mapdata/models/source.py:14
+msgid "Name"
+msgstr "Name"
+
+#: c3nav/mapdata/models/locations.py:158
+msgid "Location Group Category"
+msgstr "Ortgruppenkategorie"
+
+#: c3nav/mapdata/models/locations.py:159
+msgid "Location Group Categories"
+msgstr "Ortgruppenkategorien"
+
+#: c3nav/mapdata/models/locations.py:172
+msgid "Category"
+msgstr "Kategorie"
+
+#: c3nav/mapdata/models/locations.py:173
 msgid "is a compiled room"
 msgstr "zusammengesetzter Raum"
 
-#: c3nav/mapdata/models/locations.py:153
+#: c3nav/mapdata/models/locations.py:174
 msgid "is a compiled area"
 msgstr "zusammengesetzter Raum"
 
-#: c3nav/mapdata/models/locations.py:156
+#: c3nav/mapdata/models/locations.py:177
 msgid "Location Group"
 msgstr "Ortgruppe"
 
-#: c3nav/mapdata/models/locations.py:170
+#: c3nav/mapdata/models/locations.py:192
 msgid "search"
 msgstr "suchen"
 
-#: c3nav/mapdata/models/locations.py:172
+#: c3nav/mapdata/models/locations.py:194
 msgid "describe"
 msgstr "beschreiben"
 
-#: c3nav/mapdata/models/locations.py:174
+#: c3nav/mapdata/models/locations.py:196
 msgid "color"
 msgstr "Farbe"
 
-#: c3nav/mapdata/models/locations.py:176
+#: c3nav/mapdata/models/locations.py:198
 msgid "internal"
 msgstr "intern"
 
-#: c3nav/mapdata/models/locations.py:178
+#: c3nav/mapdata/models/locations.py:200
 msgid "comp. room"
 msgstr "zusammengesetzter Raum"
 
-#: c3nav/mapdata/models/locations.py:180
+#: c3nav/mapdata/models/locations.py:202
 msgid "comp. area"
 msgstr "zusammengesetzter Bereich"
 
-#: c3nav/mapdata/models/locations.py:185
+#: c3nav/mapdata/models/locations.py:208
 msgid "target"
 msgstr "Ziel"
-
-#: c3nav/mapdata/models/source.py:14
-msgid "Name"
-msgstr "Name"
 
 #: c3nav/mapdata/models/source.py:17
 msgid "Source"
