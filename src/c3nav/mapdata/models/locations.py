@@ -153,6 +153,12 @@ class SpecificLocation(Location, models.Model):
 
 class LocationGroupCategory(TitledMixin, models.Model):
     name = models.SlugField(_('Name'), unique=True, max_length=50)
+    single = models.BooleanField(_('single selection'), default=False)
+    allow_levels = models.BooleanField(_('allow levels'), db_index=True, default=True)
+    allow_spaces = models.BooleanField(_('allow spaces'), db_index=True, default=True)
+    allow_areas = models.BooleanField(_('allow areas'), db_index=True, default=True)
+    allow_pois = models.BooleanField(_('allow pois'), db_index=True, default=True)
+    priority = models.IntegerField(default=0, db_index=True)
 
     class Meta:
         verbose_name = _('Location Group Category')
