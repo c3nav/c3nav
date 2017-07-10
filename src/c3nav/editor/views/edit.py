@@ -25,6 +25,7 @@ def main_index(request):
         'levels': Level.objects.filter(on_top_of__isnull=True),
         'can_edit': request.changeset.can_edit(request),
         'child_models': [
+            child_model(request.changeset.wrap_model('LocationGroupCategory')),
             child_model(request.changeset.wrap_model('LocationGroup')),
             child_model(request.changeset.wrap_model('Source')),
         ],

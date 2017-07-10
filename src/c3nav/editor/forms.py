@@ -35,6 +35,9 @@ class MapitemFormMixin(ModelForm):
             self.fields['groups'].label_from_instance = lambda obj: obj.title_for_forms
             self.fields['groups'].queryset = LocationGroup.objects.all()
 
+        if 'category' in self.fields:
+            self.fields['category'].label_from_instance = lambda obj: obj.title
+
         # parse titles
         self.titles = None
         if hasattr(self.instance, 'titles'):
@@ -52,6 +55,9 @@ class MapitemFormMixin(ModelForm):
                                                              initial=titles[language].strip(), max_length=50)
                 self.fields.move_to_end('title_' + language, last=False)
             self.titles = titles
+
+        if 'name' in self.fields:
+            self.fields.move_to_end('name', last=False)
 
         self.redirect_slugs = None
         self.add_redirect_slugs = None
@@ -100,7 +106,7 @@ def create_editor_form(editor_model):
     possible_fields = ['slug', 'name', 'altitude', 'category', 'width', 'groups', 'color', 'public',
                        'can_search', 'can_describe', 'outside', 'stuffed', 'geometry',
                        'left', 'top', 'right', 'bottom']
-    field_names = [field.name for field in editor_model._meta.get_fields()]
+    field_names = [field.name for field in editor_model._meta.get_fields() if not field.one_to_many]
     existing_fields = [name for name in possible_fields if name in field_names]
 
     class EditorForm(MapitemFormMixin, ModelForm):

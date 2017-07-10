@@ -166,7 +166,7 @@ class LocationGroupCategory(TitledMixin, models.Model):
 
 class LocationGroup(Location, models.Model):
     category = models.ForeignKey(LocationGroupCategory, related_name='groups', on_delete=models.PROTECT,
-                                 verbose_name=_('Location Group Category'))
+                                 verbose_name=_('Category'))
     compiled_room = models.BooleanField(default=False, verbose_name=_('is a compiled room'))
     compiled_area = models.BooleanField(default=False, verbose_name=_('is a compiled area'))
 
