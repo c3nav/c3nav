@@ -123,16 +123,10 @@ class Location(LocationSlug, TitledMixin, models.Model):
         # dont filter in the query here so prefetch_related works
         if instance is None:
             instance = self
-        groups = [group for group in instance.groups.all() if group.color]
-        if not groups:
-            return None
-        for group in groups:
-            if group.compiled_area:
+        for group in instance.groups.all():
+            if group.color:
                 return group.color
-        for group in groups:
-            if group.compiled_room:
-                return group.color
-        return groups[0].color
+        return None
 
 
 class SpecificLocation(Location, models.Model):
@@ -177,8 +171,6 @@ class LocationGroupCategory(TitledMixin, models.Model):
 class LocationGroup(Location, models.Model):
     category = models.ForeignKey(LocationGroupCategory, related_name='groups', on_delete=models.PROTECT,
                                  verbose_name=_('Category'))
-    compiled_room = models.BooleanField(default=False, verbose_name=_('is a compiled room'))
-    compiled_area = models.BooleanField(default=False, verbose_name=_('is a compiled area'))
     priority = models.IntegerField(default=0, db_index=True)
 
     class Meta:
