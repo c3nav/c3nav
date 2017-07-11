@@ -192,8 +192,6 @@ class LocationGroup(Location, models.Model):
     def _serialize(self, **kwargs):
         result = super()._serialize(**kwargs)
         result['category'] = self.category_id
-        result['compiled_room'] = self.compiled_room
-        result['compiled_area'] = self.compiled_area
         return result
 
     @property
@@ -207,10 +205,6 @@ class LocationGroup(Location, models.Model):
             attributes.append(_('color'))
         if not attributes:
             attributes.append(_('internal'))
-        if self.compiled_room:
-            attributes.append(_('comp. room'))
-        if self.compiled_area:
-            attributes.append(_('comp. area'))
         return self.title + ' ('+', '.join(str(s) for s in attributes)+')'
 
 
