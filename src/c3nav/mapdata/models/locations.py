@@ -171,10 +171,17 @@ class LocationGroupCategory(TitledMixin, models.Model):
         return result
 
 
+class LocationGroupManager(models.Manager):
+    def get_queryset(self):
+        return super().get_queryset().select_related('category')
+
+
 class LocationGroup(Location, models.Model):
     category = models.ForeignKey(LocationGroupCategory, related_name='groups', on_delete=models.PROTECT,
                                  verbose_name=_('Category'))
     priority = models.IntegerField(default=0, db_index=True)
+
+    objects = LocationGroupManager()
 
     class Meta:
         verbose_name = _('Location Group')
