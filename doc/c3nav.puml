@@ -1,5 +1,5 @@
 @startuml
-class Section {
+class Level {
     name: str
     altitude: Decimal
 }
@@ -10,69 +10,52 @@ class Source {
     left: Decimal
     top: Decimal
     right: Decimal
-    image: file
 }
 
 abstract class GeometryMixin {
     geometry:
 }
 
-abstract class SectionGeometryMixin {
+abstract class LevelGeometryMixin {
 }
-GeometryMixin <|-- SectionGeometryMixin
-Section "1" *-- "*" SectionGeometryMixin: section
+GeometryMixin <|-- LevelGeometryMixin
+Level "1" *-- "*" LevelGeometryMixin: section
 
 class Building {
     geometry: polygon
 }
-SectionGeometryMixin <|-- Building
-
-class Category << (E,#FF7700) >> {
-    <i>empty string</i>
-    stairs
-    escalator
-    elevator
-}
-
-class Level << (E,#FF7700) >> {
-    <i>empty string</i>
-    upper
-    lower
-}
+LevelGeometryMixin <|-- Building
 
 class Space {
     geometry: polygon
     public: bool
 }
-SectionGeometryMixin <|-- Space
-Category "1" <-- Space: category
-Level "1" <-- Space: level
+LevelGeometryMixin <|-- Space
 
 class Door {
     geometry: polygon
 }
-SectionGeometryMixin <|-- Door
-Level "1" <-- Door: level
-
-class Hole {
-    geometry: polygon
-}
-SectionGeometryMixin <|-- Hole
+LevelGeometryMixin <|-- Door
 
 abstract class SpaceGeometryMixin {
 }
 GeometryMixin <|-- SpaceGeometryMixin
 Space "1" *-- "*" SpaceGeometryMixin: space
 
+class Hole {
+    geometry: polygon
+}
+SpaceGeometryMixin <|-- Hole
+
 class Area {
     geometry: polygon
 }
 SpaceGeometryMixin <|-- Area
 
-class Point {
+class POI {
     geometry: point
 }
-SpaceGeometryMixin <|-- Point
+SpaceGeometryMixin <|-- POI
 
 class Stair {
     geometry: linestring
@@ -101,37 +84,28 @@ abstract class SpecificLocation {
 
 }
 SpecificLocation --|> Location
-Section --|> SpecificLocation
+Level --|> SpecificLocation
 Space --|> SpecificLocation
 Area --|> SpecificLocation
-Point --|> SpecificLocation
+POI --|> SpecificLocation
+
+class LocationGroupCategory {
+    name: str
+    titles: dict
+}
 
 class LocationGroup {
-    compiled_room: bool
-    compiled_area: bool
+
 }
 LocationGroup --|> Location
 SpecificLocation "*" --o "*" LocationGroup: groups
+LocationGroup "*" --o "1" LocationGroupCategory: category
 
 class LocationSlug {
     slug: str
 }
 
 Location "1" -- "1" LocationSlug
-
-class GraphNode {
-    x: int
-    y: int
-    transfer: bool
-    desc: json
-}
-Space "1" *-- "*" GraphNode: space
-
-class GraphLine {
-    category: str
-}
-GraphNode "1" *-- "*" GraphLine: start
-GraphNode "1" *-- "*" GraphLine: end
 
 hide methods
 
