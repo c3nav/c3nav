@@ -149,7 +149,6 @@ class ChangeSet(models.Model):
         Only executable once, if something is changed later the cache will be automatically updated.
         This method gets called automatically when the cache is needed.
         Only call it if you need to set include_deleted_created to True.
-        :param include_deleted_created: Fetch created objects that were deleted.
         :rtype: True if the method was executed, else False
         """
         if self.changed_objects is not None:
