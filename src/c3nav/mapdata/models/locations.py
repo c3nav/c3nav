@@ -140,7 +140,10 @@ class SpecificLocation(Location, models.Model):
         if detailed:
             groups = {}
             for group in self.groups.all():
-                groups.setdefault(group.category.name, []).append(group.pk)
+                groups.setdefault(group.category, []).append(group.pk)
+            groups = {category.name: (items[0] if items else None) if category.single else items
+                      for category, items in groups.items()
+                      if getattr(category, 'allow_'+self.__class__._meta.default_related_name)}
             result['groups'] = groups
         return result
 
