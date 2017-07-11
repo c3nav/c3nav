@@ -124,7 +124,7 @@ class Location(LocationSlug, TitledMixin, models.Model):
         if instance is None:
             instance = self
         for group in instance.groups.all():
-            if group.color:
+            if group.color and getattr(group.category, 'allow_'+self.__class__._meta.default_related_name):
                 return group.color
         return None
 
