@@ -473,7 +473,7 @@ class ChangeSet(models.Model):
         return request.user.is_superuser
 
     @classmethod
-    def can_direct_edit(self, request):
+    def can_direct_edit(cls, request):
         # todo implement permissions
         return request.user.is_superuser
 
