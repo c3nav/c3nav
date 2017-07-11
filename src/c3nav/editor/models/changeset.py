@@ -663,12 +663,12 @@ class ChangeSet(models.Model):
     @property
     def last_update_cache_key(self):
         last_update = self.created if self.last_update_id is None else self.last_update.datetime
-        return (int_to_base36(self.last_update_id or 0)+'_'+int_to_base36(int(make_naive(last_update).timestamp())))
+        return int_to_base36(self.last_update_id or 0)+'_'+int_to_base36(int(make_naive(last_update).timestamp()))
 
     @property
     def last_change_cache_key(self):
         last_change = self.created if self.last_change_id is None else self.last_change.datetime
-        return (int_to_base36(self.last_change_id or 0)+'_'+int_to_base36(int(make_naive(last_change).timestamp())))
+        return int_to_base36(self.last_change_id or 0)+'_'+int_to_base36(int(make_naive(last_change).timestamp()))
 
     @property
     def cache_key_by_changes(self):
