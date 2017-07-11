@@ -52,6 +52,7 @@ class EditorFormBase(ModelForm):
                 if category.single:
                     name = 'group_'+category.name
                     initial = initial[0] if initial else ''
+                    choices = (('', '---'), )+choices
                     field = ChoiceField(label=category.title, required=False, initial=initial, choices=choices)
                 else:
                     name = 'groups_'+category.name
