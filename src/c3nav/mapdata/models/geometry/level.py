@@ -55,7 +55,6 @@ class Space(SpecificLocation, LevelGeometryMixin, models.Model):
         ('elevator', _('elevator')),
     )
     geometry = GeometryField('polygon')
-    category = models.CharField(verbose_name=_('category'), choices=CATEGORIES, default='normal', max_length=16)
     outside = models.BooleanField(default=False, verbose_name=_('only outside of building'))
 
     class Meta:
@@ -69,16 +68,6 @@ class Space(SpecificLocation, LevelGeometryMixin, models.Model):
             result['category'] = self.category
             result['public'] = self.public
         return result
-
-    def get_color(self, *args, **kwargs):
-        color = super().get_color(*args, **kwargs)
-        if not color:
-            color = {
-                'stairs': '#dddddd',
-                'escalator': '#bbbbbb',
-                'elevator': '#00ffff',
-            }.get(self.category)
-        return color
 
 
 class Door(LevelGeometryMixin, models.Model):
