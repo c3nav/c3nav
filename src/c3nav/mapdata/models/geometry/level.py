@@ -65,7 +65,6 @@ class Space(SpecificLocation, LevelGeometryMixin, models.Model):
     def _serialize(self, space=True, **kwargs):
         result = super()._serialize(**kwargs)
         if space:
-            result['category'] = self.category
             result['public'] = self.public
         return result
 
