@@ -185,7 +185,7 @@ class LocationGroup(Location, models.Model):
         verbose_name = _('Location Group')
         verbose_name_plural = _('Location Groups')
         default_related_name = 'locationgroups'
-        ordering = ('-priority',)
+        ordering = ('-category__priority', '-priority')
 
     def _serialize(self, **kwargs):
         result = super()._serialize(**kwargs)
