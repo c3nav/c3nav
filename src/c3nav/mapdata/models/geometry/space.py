@@ -9,8 +9,6 @@ from c3nav.mapdata.models.geometry.base import GeometryMixin
 from c3nav.mapdata.models.locations import SpecificLocation
 from c3nav.mapdata.utils.json import format_geojson
 
-SPACE_MODELS = []
-
 
 class SpaceGeometryMixin(GeometryMixin):
     space = models.ForeignKey('mapdata.Space', on_delete=models.CASCADE, verbose_name=_('space'))

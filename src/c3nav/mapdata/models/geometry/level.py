@@ -5,8 +5,6 @@ from c3nav.mapdata.fields import GeometryField
 from c3nav.mapdata.models.geometry.base import GeometryMixin
 from c3nav.mapdata.models.locations import SpecificLocation
 
-LEVEL_MODELS = []
-
 
 class LevelGeometryMixin(GeometryMixin):
     level = models.ForeignKey('mapdata.Level', on_delete=models.CASCADE, verbose_name=_('level'))
