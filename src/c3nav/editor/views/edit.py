@@ -12,13 +12,17 @@ from c3nav.editor.views.base import sidebar_view
 def child_model(request, model, kwargs=None, parent=None):
     model = request.changeset.wrap_model(model)
     related_name = model._meta.default_related_name
-    qs = getattr(parent, related_name)
-    if hasattr(model, 'q_for_request'):
-        qs = qs.filter(model.q_for_request(request))
+    if parent is not None:
+        qs = getattr(parent, related_name)
+        if hasattr(model, 'q_for_request'):
+            qs = qs.filter(model.q_for_request(request))
+        count = qs.count()
+    else:
+        count = None
     return {
         'title': model._meta.verbose_name_plural,
         'url': reverse('editor.'+related_name+'.list', kwargs=kwargs),
-        'count': None if parent is None else qs.count(),
+        'count': count,
     }
 
 
