@@ -48,12 +48,6 @@ class Space(SpecificLocation, LevelGeometryMixin, models.Model):
     """
     An accessible space. Shouldn't overlap with spaces on the same level.
     """
-    CATEGORIES = (
-        ('normal', _('normal')),
-        ('stairs', _('stairs')),
-        ('escalator', _('escalator')),
-        ('elevator', _('elevator')),
-    )
     geometry = GeometryField('polygon')
     outside = models.BooleanField(default=False, verbose_name=_('only outside of building'))
 
