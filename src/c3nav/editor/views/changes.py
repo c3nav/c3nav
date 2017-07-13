@@ -9,6 +9,7 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.utils.text import format_lazy
 from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import get_language_info
 from rest_framework.exceptions import PermissionDenied
 
 from c3nav.editor.forms import ChangeSetForm, RejectForm
@@ -271,7 +272,8 @@ def changeset_detail(request, pk):
                 else:
                     if name.startswith('title_'):
                         lang = name[6:]
-                        field_title = format_lazy(_('Title ({lang})'), lang=dict(settings.LANGUAGES).get(lang, lang))
+                        lang_info = get_language_info(lang)
+                        field_title = format_lazy(_('Title ({lang})'), lang=lang_info['name_translated'])
                         field_value = str(value)
                         if field_value:
                             obj.titles[lang] = field_value
