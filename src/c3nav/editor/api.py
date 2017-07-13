@@ -9,7 +9,7 @@ from rest_framework.viewsets import ReadOnlyModelViewSet, ViewSet
 from shapely.ops import cascaded_union
 
 from c3nav.editor.models import ChangeSet
-from c3nav.mapdata.models import Area
+from c3nav.mapdata.models import Area, Source
 from c3nav.mapdata.models.geometry.space import POI
 
 
@@ -171,6 +171,12 @@ class EditorViewSet(ViewSet):
             'column': '#888888',
             'poi': '#4488cc',
             'shadow': '#000000',
+        })
+
+    @list_route(methods=['get'])
+    def bounds(self, request, *args, **kwargs):
+        return Response({
+            'bounds': Source.max_bounds(),
         })
 
 

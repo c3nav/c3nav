@@ -54,28 +54,19 @@ editor = {
 
     // sources
     sources: {},
-    get_sources: function (init_sidebar) {
+    get_sources: function () {
         // load sources
-        editor._sources_control = L.control.layers([], [], {autoZIndex: true}).addTo(editor.map);
+        editor._sources_control = L.control.layers([], [], {autoZIndex: true});
 
         $.getJSON('/api/sources/', function (sources) {
-            var bounds = [[0, 0], [0, 0]];
             var source;
             for (var i = 0; i < sources.length; i++) {
                 source = sources[i];
                 editor.sources[source.id] = source;
                 source.layer = L.imageOverlay('/api/sources/'+source.id+'/image/', source.bounds, {opacity: 0.3});
                 editor._sources_control.addOverlay(source.layer, source.name);
-                bounds[0][0] = Math.min(source.bounds[0][0], bounds[0][0]);
-                bounds[0][1] = Math.min(source.bounds[0][1], bounds[0][1]);
-                bounds[1][0] = Math.max(source.bounds[1][0], bounds[1][0]);
-                bounds[1][1] = Math.max(source.bounds[1][1], bounds[1][1]);
             }
-            editor.map.setMaxBounds(bounds);
-            if (init_sidebar) {
-                editor.map.fitBounds(bounds, {padding: [30, 50]});
-                editor.init_sidebar();
-            }
+            if (sources.length) editor._sources_control.addTo(editor.map);
         });
     },
 
@@ -270,8 +261,13 @@ editor = {
 
         $.getJSON('/api/editor/geometrystyles/', function(geometrystyles) {
             editor.geometrystyles = geometrystyles;
-            editor.get_sources(true);
+            $.getJSON('/api/editor/bounds/', function(bounds) {
+                editor.map.setMaxBounds(bounds.bounds);
+                editor.map.fitBounds(bounds.bounds, {padding: [30, 50]});
+                editor.init_sidebar();
+            });
         });
+        editor.get_sources();
     },
     _last_geometry_url: null,
     load_geometries: function (geometry_url, highlight_type, editing_id) {
