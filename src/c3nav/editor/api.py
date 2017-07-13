@@ -9,7 +9,7 @@ from rest_framework.viewsets import ReadOnlyModelViewSet, ViewSet
 from shapely.ops import cascaded_union
 
 from c3nav.editor.models import ChangeSet
-from c3nav.mapdata.models import Area, Source
+from c3nav.mapdata.models import Area, Door, Source
 from c3nav.mapdata.models.geometry.space import POI
 
 
@@ -84,7 +84,8 @@ class EditorViewSet(ViewSet):
             levels = Level.objects.filter(pk__in=levels).filter(Level.q_for_request(request))
             levels = levels.prefetch_related(
                 Prefetch('spaces', request.changeset.wrap_model('Space').objects.filter(Space.q_for_request(request))),
-                'buildings', 'doors', 'spaces__holes', 'spaces__groups', 'spaces__columns'
+                Prefetch('doors', request.changeset.wrap_model('Door').objects.filter(Door.q_for_request(request))),
+                'buildings', 'spaces__holes', 'spaces__groups', 'spaces__columns'
             )
 
             levels = {s.pk: s for s in levels}
@@ -106,7 +107,8 @@ class EditorViewSet(ViewSet):
             space = get_object_or_404(qs.select_related('level', 'level__on_top_of'), pk=space)
             level = space.level
 
-            doors = [door for door in level.doors.all() if door.geometry.intersects(space.geometry)]
+            doors = [door for door in level.doors.filter(Door.q_for_request(request)).all()
+                     if door.geometry.intersects(space.geometry)]
             doors_space_geom = cascaded_union([door.geometry for door in doors]+[space.geometry])
 
             levels, levels_on_top, levels_under = self._get_levels_pk(request, level.primary_level)

@@ -2,6 +2,7 @@ from django.db import models
 from django.utils.translation import ugettext_lazy as _
 
 from c3nav.mapdata.fields import GeometryField
+from c3nav.mapdata.models.access import AccessRestrictionMixin
 from c3nav.mapdata.models.geometry.base import GeometryMixin
 from c3nav.mapdata.models.locations import SpecificLocation
 
@@ -55,7 +56,7 @@ class Space(SpecificLocation, LevelGeometryMixin, models.Model):
         default_related_name = 'spaces'
 
 
-class Door(LevelGeometryMixin, models.Model):
+class Door(AccessRestrictionMixin, LevelGeometryMixin, models.Model):
     """
     A connection between two spaces
     """
