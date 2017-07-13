@@ -54,12 +54,6 @@ class Space(SpecificLocation, LevelGeometryMixin, models.Model):
         verbose_name_plural = _('Spaces')
         default_related_name = 'spaces'
 
-    def _serialize(self, space=True, **kwargs):
-        result = super()._serialize(**kwargs)
-        if space:
-            result['public'] = self.public
-        return result
-
 
 class Door(LevelGeometryMixin, models.Model):
     """

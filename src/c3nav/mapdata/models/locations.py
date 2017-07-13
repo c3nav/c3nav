@@ -4,6 +4,7 @@ from django.apps import apps
 from django.db import models
 from django.utils.translation import ugettext_lazy as _
 
+from c3nav.mapdata.models.access import AccessRestrictionMixin
 from c3nav.mapdata.models.base import SerializableMixin, TitledMixin
 from c3nav.mapdata.utils.models import get_submodels
 
@@ -50,10 +51,9 @@ class LocationSlug(SerializableMixin, models.Model):
         default_related_name = 'locationslugs'
 
 
-class Location(LocationSlug, TitledMixin, models.Model):
+class Location(LocationSlug, AccessRestrictionMixin, TitledMixin, models.Model):
     can_search = models.BooleanField(default=True, verbose_name=_('can be searched'))
     can_describe = models.BooleanField(default=True, verbose_name=_('can be used to describe a position'))
-    public = models.BooleanField(verbose_name=_('public'), default=True)
 
     class Meta:
         abstract = True
@@ -75,7 +75,6 @@ class Location(LocationSlug, TitledMixin, models.Model):
         result = super()._serialize(**kwargs)
         result['can_search'] = self.can_search
         result['can_describe'] = self.can_search
-        result['public'] = self.public
         return result
 
     def get_slug(self):

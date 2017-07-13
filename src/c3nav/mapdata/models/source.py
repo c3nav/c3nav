@@ -4,10 +4,11 @@ from django.conf import settings
 from django.db import models
 from django.utils.translation import ugettext_lazy as _
 
+from c3nav.mapdata.models.access import AccessRestrictionMixin
 from c3nav.mapdata.models.base import BoundsMixin
 
 
-class Source(BoundsMixin, models.Model):
+class Source(BoundsMixin, AccessRestrictionMixin, models.Model):
     """
     A map source, images of levels that can be useful as backgrounds for the map editor
     """
