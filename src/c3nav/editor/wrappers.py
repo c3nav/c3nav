@@ -89,7 +89,7 @@ class BaseWrapper:
                 def wrapper(*args, **kwargs):
                     return func(self, *args, **kwargs)
                 return wrapper
-            if isinstance(self, ModelInstanceWrapper) and not hasattr(models.Model, name):
+            if isinstance(self, (ModelInstanceWrapper, ModelWrapper)) and not hasattr(models.Model, name):
                 return value
             raise TypeError('Can not call %s.%s wrapped!' % (type(self), name))
         return value
