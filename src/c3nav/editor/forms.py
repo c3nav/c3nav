@@ -7,7 +7,9 @@ from django.conf import settings
 from django.core.exceptions import FieldDoesNotExist
 from django.forms import BooleanField, CharField, ChoiceField, ModelForm, MultipleChoiceField, ValidationError
 from django.forms.widgets import HiddenInput
+from django.utils.text import format_lazy
 from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import get_language_info
 from shapely.geometry.geo import mapping
 
 from c3nav.editor.models import ChangeSet, ChangeSetUpdate
@@ -70,12 +72,13 @@ class EditorFormBase(ModelForm):
             if self.instance is not None and self.instance.pk:
                 titles.update(self.instance.titles)
 
-            language_titles = dict(settings.LANGUAGES)
             for language in reversed(titles.keys()):
                 new_title = self.data.get('title_' + language)
                 if new_title is not None:
                     titles[language] = new_title
-                self.fields['title_' + language] = CharField(label=language_titles.get(language, language),
+                language_info = get_language_info(language)
+                field_title = format_lazy(_('Title ({lang})'), lang=language_info['name_translated'])
+                self.fields['title_' + language] = CharField(label=field_title,
                                                              required=False,
                                                              initial=titles[language].strip(), max_length=50)
                 self.fields.move_to_end('title_' + language, last=False)
