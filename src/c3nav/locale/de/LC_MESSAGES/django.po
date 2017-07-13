@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2017-07-10 17:22+0200\n"
+"POT-Creation-Date: 2017-07-13 13:04+0200\n"
 "PO-Revision-Date: 2017-07-10 17:24+0200\n"
 "Last-Translator: Laura Klünder <laura@codingcatgirl.de>\n"
 "Language-Team: \n"
@@ -18,25 +18,25 @@ msgstr ""
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
 "X-Generator: Poedit 2.0.2\n"
 
-#: c3nav/editor/forms.py:80
+#: c3nav/editor/forms.py:92
 msgid "Redirecting Slugs (comma seperated)"
 msgstr "Umleitungs-Slugs (mit Komma getrennt)"
 
-#: c3nav/editor/forms.py:100
+#: c3nav/editor/forms.py:112
 #, python-format
 msgid "Can not add redirecting slug “%s”: it's the slug of this object."
 msgstr ""
 "Umleitungs-Slug „%s“ kann nicht hinzugefügt werden: Es ist der Slug dieses "
 "Objects."
 
-#: c3nav/editor/forms.py:107
+#: c3nav/editor/forms.py:119
 #, python-format
 msgid "Can not add redirecting slug “%s”: it is already used elsewhere."
 msgstr ""
 "Umleitungs-Slug „%s“ kann nicht hinzugefügt werden: Er wird bereits an "
 "anderer Stelle verwendet."
 
-#: c3nav/editor/forms.py:148
+#: c3nav/editor/forms.py:167
 msgid "Final rejection"
 msgstr "Endgültige Ablehnung"
 
@@ -141,15 +141,15 @@ msgstr "Kartenupdate"
 msgid "Change Sets"
 msgstr "Änderungssets"
 
-#: c3nav/editor/models/changeset.py:659
+#: c3nav/editor/models/changeset.py:658
 msgid "Direct editing active"
 msgstr "Direktes Bearbeiten aktiv"
 
-#: c3nav/editor/models/changeset.py:660
+#: c3nav/editor/models/changeset.py:659
 msgid "No objects changed"
 msgstr "Keine Objekte geändert"
 
-#: c3nav/editor/models/changeset.py:661
+#: c3nav/editor/models/changeset.py:660
 #, python-format
 msgid "%(num)d object changed"
 msgid_plural "%(num)d objects changed"
@@ -170,6 +170,7 @@ msgstr "Änderungssetänderungen"
 
 #: c3nav/editor/templates/editor/base.html:10
 #: c3nav/editor/templates/editor/base.html:28
+#: c3nav/editor/templates/editor/index.html:4
 msgid "c3nav map editor"
 msgstr "c3nav Karteneditor"
 
@@ -362,22 +363,22 @@ msgid "Please confirm deleting: %(obj_title)s"
 msgstr "Bitte bestätige, dass du dieses Objekt löschen möchtest: %(obj_title)s"
 
 #: c3nav/editor/templates/editor/edit.html:8
-#: c3nav/editor/templates/editor/index.html:7
-#: c3nav/editor/templates/editor/level.html:33
-#: c3nav/editor/templates/editor/list.html:8
+#: c3nav/editor/templates/editor/index.html:11
+#: c3nav/editor/templates/editor/level.html:37
+#: c3nav/editor/templates/editor/list.html:22
 #, python-format
 msgid "New %(model_title)s"
 msgstr "%(model_title)s erstellen"
 
 #: c3nav/editor/templates/editor/edit.html:10
-#: c3nav/editor/templates/editor/level.html:7
-#: c3nav/editor/templates/editor/space.html:7
+#: c3nav/editor/templates/editor/level.html:16
+#: c3nav/editor/templates/editor/space.html:9
 #, python-format
 msgid "Edit %(model_title)s"
 msgstr "%(model_title)s bearbeiten"
 
 #: c3nav/editor/templates/editor/edit.html:14
-#: c3nav/editor/templates/editor/level.html:13
+#: c3nav/editor/templates/editor/level.html:9
 #, python-format
 msgid "on top of %(on_top_of_level_title)s"
 msgstr "über %(on_top_of_level_title)s"
@@ -405,31 +406,30 @@ msgstr "Abmelden"
 msgid "Log in"
 msgstr "Anmelden"
 
-#: c3nav/editor/templates/editor/index.html:6
 #: c3nav/editor/templates/editor/index.html:10
-#: c3nav/editor/templates/editor/level.html:6 c3nav/mapdata/models/level.py:22
+#: c3nav/editor/templates/editor/level.html:15 c3nav/mapdata/models/level.py:22
 msgid "Level"
 msgstr "Etage"
 
-#: c3nav/editor/templates/editor/level.html:19
-#: c3nav/editor/templates/editor/space.html:11 c3nav/editor/views/edit.py:301
+#: c3nav/editor/templates/editor/level.html:21
+#: c3nav/editor/templates/editor/space.html:13 c3nav/editor/views/edit.py:301
 msgid "back to overview"
 msgstr "zurück zur Übersicht"
 
-#: c3nav/editor/templates/editor/level.html:21
+#: c3nav/editor/templates/editor/level.html:23
 msgid "back to parent level"
 msgstr "zurück zur übergeordneten Etage"
 
-#: c3nav/editor/templates/editor/level.html:36
+#: c3nav/editor/templates/editor/level.html:33
 msgid "Levels on top"
 msgstr "Etagen über dieser"
 
-#: c3nav/editor/templates/editor/list.html:15
+#: c3nav/editor/templates/editor/list.html:10
 #, python-format
 msgid "on level %(level_title)s"
 msgstr "in der Etage %(level_title)s"
 
-#: c3nav/editor/templates/editor/list.html:20
+#: c3nav/editor/templates/editor/list.html:15
 #, python-format
 msgid "in space %(space_title)s"
 msgstr "im Raum %(space_title)s"
@@ -446,8 +446,8 @@ msgstr "Karte zeigen"
 msgid "Show details"
 msgstr "Details anzeigen"
 
-#: c3nav/editor/templates/editor/space.html:6
-#: c3nav/mapdata/models/geometry/level.py:62
+#: c3nav/editor/templates/editor/space.html:8
+#: c3nav/mapdata/models/geometry/level.py:61
 msgid "Space"
 msgstr "Raum"
 
@@ -611,20 +611,20 @@ msgstr "Geometrie bearbeitet"
 msgid "Title ({lang})"
 msgstr "Titel ({lang})"
 
-#: c3nav/editor/views/changes.py:302
+#: c3nav/editor/views/changes.py:303
 #, python-brace-format
 msgid "remove {field_title}"
 msgstr "{field_title} entfernt"
 
-#: c3nav/editor/views/changes.py:330 c3nav/editor/views/changes.py:337
+#: c3nav/editor/views/changes.py:331 c3nav/editor/views/changes.py:338
 msgid "Redirect slugs"
 msgstr "Umleitungs-Slugs"
 
-#: c3nav/editor/views/changes.py:345
+#: c3nav/editor/views/changes.py:346
 msgid "deleted"
 msgstr "gelöscht"
 
-#: c3nav/editor/views/changes.py:365
+#: c3nav/editor/views/changes.py:366
 msgid "You cannot edit this change set."
 msgstr "Du kannst dieses Änderungsset nicht bearbeiten."
 
@@ -698,19 +698,19 @@ msgstr "%s ist weder null noch eine ganze Zahl."
 msgid "please enter a newline seperated lowercase list of BSSIDs"
 msgstr "bitte gib Zeile für Zeile klein geschriebene BSSIDs ein"
 
-#: c3nav/mapdata/models/base.py:72
+#: c3nav/mapdata/models/base.py:71
 msgid "bottom coordinate"
 msgstr "untere koordinate"
 
-#: c3nav/mapdata/models/base.py:73
+#: c3nav/mapdata/models/base.py:72
 msgid "left coordinate"
 msgstr "linke koordinate"
 
-#: c3nav/mapdata/models/base.py:74
+#: c3nav/mapdata/models/base.py:73
 msgid "top coordinate"
 msgstr "obere koordinate"
 
-#: c3nav/mapdata/models/base.py:75
+#: c3nav/mapdata/models/base.py:74
 msgid "right coordinate"
 msgstr "rechte koordinate"
 
@@ -743,22 +743,18 @@ msgid "elevator"
 msgstr "Aufzug"
 
 #: c3nav/mapdata/models/geometry/level.py:58
-msgid "category"
-msgstr "Kategorie"
-
-#: c3nav/mapdata/models/geometry/level.py:59
 msgid "only outside of building"
 msgstr "nur außerhalb von Gebäuden"
 
-#: c3nav/mapdata/models/geometry/level.py:63
+#: c3nav/mapdata/models/geometry/level.py:62
 msgid "Spaces"
 msgstr "Räume"
 
-#: c3nav/mapdata/models/geometry/level.py:91
+#: c3nav/mapdata/models/geometry/level.py:79
 msgid "Door"
 msgstr "Tür"
 
-#: c3nav/mapdata/models/geometry/level.py:92
+#: c3nav/mapdata/models/geometry/level.py:80
 msgid "Doors"
 msgstr "Türen"
 
@@ -774,60 +770,56 @@ msgstr "Säule"
 msgid "Columns"
 msgstr "Säulen"
 
-#: c3nav/mapdata/models/geometry/space.py:53
-msgid "stuffed area"
-msgstr "Vollgestopfter Bereich"
-
-#: c3nav/mapdata/models/geometry/space.py:56
+#: c3nav/mapdata/models/geometry/space.py:55
 msgid "Area"
 msgstr "Bereich"
 
-#: c3nav/mapdata/models/geometry/space.py:57
+#: c3nav/mapdata/models/geometry/space.py:56
 msgid "Areas"
 msgstr "Bereiche"
 
-#: c3nav/mapdata/models/geometry/space.py:79
+#: c3nav/mapdata/models/geometry/space.py:71
 msgid "Stair"
 msgstr "Stufe"
 
-#: c3nav/mapdata/models/geometry/space.py:80
+#: c3nav/mapdata/models/geometry/space.py:72
 #: c3nav/site/templates/site/main.html:28
 msgid "Stairs"
 msgstr "Stufen"
 
-#: c3nav/mapdata/models/geometry/space.py:112
+#: c3nav/mapdata/models/geometry/space.py:104
 msgid "Obstacle"
 msgstr "Hindernis"
 
-#: c3nav/mapdata/models/geometry/space.py:113
+#: c3nav/mapdata/models/geometry/space.py:105
 msgid "Obstacles"
 msgstr "Hindernisse"
 
-#: c3nav/mapdata/models/geometry/space.py:122
+#: c3nav/mapdata/models/geometry/space.py:114
 msgid "obstacle width"
 msgstr "Hindernisbreite"
 
-#: c3nav/mapdata/models/geometry/space.py:125
+#: c3nav/mapdata/models/geometry/space.py:117
 msgid "Line Obstacle"
 msgstr "Linienhindernis"
 
-#: c3nav/mapdata/models/geometry/space.py:126
+#: c3nav/mapdata/models/geometry/space.py:118
 msgid "Line Obstacles"
 msgstr "Linienhindernisse"
 
-#: c3nav/mapdata/models/geometry/space.py:160
+#: c3nav/mapdata/models/geometry/space.py:152
 msgid "Point of Interest"
 msgstr "Ort von Interesse"
 
-#: c3nav/mapdata/models/geometry/space.py:161
+#: c3nav/mapdata/models/geometry/space.py:153
 msgid "Points of Interest"
 msgstr "Orte von Interesse"
 
-#: c3nav/mapdata/models/geometry/space.py:182
+#: c3nav/mapdata/models/geometry/space.py:174
 msgid "Hole"
 msgstr "Loch"
 
-#: c3nav/mapdata/models/geometry/space.py:183
+#: c3nav/mapdata/models/geometry/space.py:175
 msgid "Holes"
 msgstr "Löcher"
 
@@ -867,63 +859,77 @@ msgstr "Hintergrundfarbe"
 msgid "public"
 msgstr "öffentlich"
 
-#: c3nav/mapdata/models/locations.py:139 c3nav/mapdata/models/locations.py:178
+#: c3nav/mapdata/models/locations.py:133 c3nav/mapdata/models/locations.py:188
 msgid "Location Groups"
 msgstr "Ortgruppen"
 
-#: c3nav/mapdata/models/locations.py:155 c3nav/mapdata/models/source.py:14
+#: c3nav/mapdata/models/locations.py:152 c3nav/mapdata/models/source.py:14
 msgid "Name"
 msgstr "Name"
 
-#: c3nav/mapdata/models/locations.py:158
+#: c3nav/mapdata/models/locations.py:153
+#, fuzzy
+#| msgid "Final rejection"
+msgid "single selection"
+msgstr "Endgültige Ablehnung"
+
+#: c3nav/mapdata/models/locations.py:154
+#, fuzzy
+#| msgid "levels"
+msgid "allow levels"
+msgstr "Etagen"
+
+#: c3nav/mapdata/models/locations.py:155
+#, fuzzy
+#| msgid "back to space"
+msgid "allow spaces"
+msgstr "zurück zum Raum"
+
+#: c3nav/mapdata/models/locations.py:156
+#, fuzzy
+#| msgid "allow"
+msgid "allow areas"
+msgstr "erlaubt"
+
+#: c3nav/mapdata/models/locations.py:157
+#, fuzzy
+#| msgid "allow"
+msgid "allow pois"
+msgstr "erlaubt"
+
+#: c3nav/mapdata/models/locations.py:161
 msgid "Location Group Category"
 msgstr "Ortgruppenkategorie"
 
-#: c3nav/mapdata/models/locations.py:159
+#: c3nav/mapdata/models/locations.py:162
 msgid "Location Group Categories"
 msgstr "Ortgruppenkategorien"
 
-#: c3nav/mapdata/models/locations.py:172
+#: c3nav/mapdata/models/locations.py:181
 msgid "Category"
 msgstr "Kategorie"
 
-#: c3nav/mapdata/models/locations.py:173
-msgid "is a compiled room"
-msgstr "zusammengesetzter Raum"
-
-#: c3nav/mapdata/models/locations.py:174
-msgid "is a compiled area"
-msgstr "zusammengesetzter Raum"
-
-#: c3nav/mapdata/models/locations.py:177
+#: c3nav/mapdata/models/locations.py:187
 msgid "Location Group"
 msgstr "Ortgruppe"
 
-#: c3nav/mapdata/models/locations.py:192
+#: c3nav/mapdata/models/locations.py:201
 msgid "search"
 msgstr "suchen"
 
-#: c3nav/mapdata/models/locations.py:194
+#: c3nav/mapdata/models/locations.py:203
 msgid "describe"
 msgstr "beschreiben"
 
-#: c3nav/mapdata/models/locations.py:196
+#: c3nav/mapdata/models/locations.py:205
 msgid "color"
 msgstr "Farbe"
 
-#: c3nav/mapdata/models/locations.py:198
+#: c3nav/mapdata/models/locations.py:207
 msgid "internal"
 msgstr "intern"
 
-#: c3nav/mapdata/models/locations.py:200
-msgid "comp. room"
-msgstr "zusammengesetzter Raum"
-
-#: c3nav/mapdata/models/locations.py:202
-msgid "comp. area"
-msgstr "zusammengesetzter Bereich"
-
-#: c3nav/mapdata/models/locations.py:208
+#: c3nav/mapdata/models/locations.py:213
 msgid "target"
 msgstr "Ziel"
 
@@ -1199,6 +1205,24 @@ msgstr "Teilen"
 msgid "shortcut"
 msgstr "Verknüpfung"
 
+#~ msgid "category"
+#~ msgstr "Kategorie"
+
+#~ msgid "stuffed area"
+#~ msgstr "Vollgestopfter Bereich"
+
+#~ msgid "is a compiled room"
+#~ msgstr "zusammengesetzter Raum"
+
+#~ msgid "is a compiled area"
+#~ msgstr "zusammengesetzter Raum"
+
+#~ msgid "comp. room"
+#~ msgstr "zusammengesetzter Raum"
+
+#~ msgid "comp. area"
+#~ msgstr "zusammengesetzter Bereich"
+
 #~ msgid "Changeset #%(id)s"
 #~ msgstr "Änderungsset Nr. %(id)s"
 
@@ -1420,9 +1444,6 @@ msgstr "Verknüpfung"
 
 #~ msgid "Oneways"
 #~ msgstr "Einbahnwege"
-
-#~ msgid "levels"
-#~ msgstr "Etagen"
 
 #~ msgid "Level Connectors"
 #~ msgstr "Etagenverbinder"
