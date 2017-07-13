@@ -50,7 +50,6 @@ class Area(SpecificLocation, SpaceGeometryMixin, models.Model):
     An area in a space.
     """
     geometry = GeometryField('polygon')
-    stuffed = models.BooleanField(verbose_name=_('stuffed area'), default=False)
 
     class Meta:
         verbose_name = _('Area')
@@ -59,14 +58,7 @@ class Area(SpecificLocation, SpaceGeometryMixin, models.Model):
 
     def _serialize(self, **kwargs):
         result = super()._serialize(**kwargs)
-        result['stuffed'] = self.stuffed
         return result
-
-    def get_color(self, *args, **kwargs):
-        color = super().get_color(*args, **kwargs)
-        if not color and self.stuffed:
-            color = 'rgba(0, 0, 0, 0.04)'
-        return color
 
 
 class Stair(SpaceGeometryMixin, models.Model):
