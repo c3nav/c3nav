@@ -101,9 +101,9 @@ class LevelViewSet(MapdataViewSet):
         return self.list_types(get_submodels(LevelGeometryMixin))
 
     @detail_route(methods=['get'])
-    def svg(self, requests, pk=None):
+    def svg(self, request, pk=None):
         level = self.get_object()
-        response = HttpResponse(level.render_svg(), 'image/svg+xml')
+        response = HttpResponse(level.render_svg(request), 'image/svg+xml')
         return response
 
 

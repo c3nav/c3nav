@@ -2,10 +2,12 @@ from itertools import chain
 
 from django.conf import settings
 from django.db import models
+from django.db.models import Prefetch
 from django.utils.translation import ugettext_lazy as _
 from shapely.geometry import JOIN_STYLE
 from shapely.ops import cascaded_union
 
+from c3nav.mapdata.models import Area, Door, Space
 from c3nav.mapdata.models.locations import SpecificLocation
 from c3nav.mapdata.utils.svg import SVGImage
 
@@ -89,15 +91,18 @@ class Level(SpecificLocation, models.Model):
         ).intersection(space.geometry)
         svg.add_geometry(obstacle_geometries, fill_color='#999999')
 
-    def render_svg(self, effects=True, draw_spaces=None):
+    def render_svg(self, request, effects=True, draw_spaces=None):
         from c3nav.mapdata.models import Source
         bounds = Source.max_bounds()
         svg = SVGImage(bounds=bounds, scale=settings.RENDER_SCALE)
 
         building_geometries = cascaded_union(tuple(b.geometry for b in self.buildings.all()))
 
-        spaces = self.spaces.all().prefetch_related('groups', 'columns', 'holes', 'areas', 'areas__groups',
-                                                    'stairs', 'obstacles', 'lineobstacles')
+        spaces = self.spaces.filter(Space.q_for_request(request)).prefetch_related(
+            Prefetch('areas', Area.qs_for_request(request)),
+            'groups', 'columns', 'holes', 'areas__groups',
+            'stairs', 'obstacles', 'lineobstacles'
+        )
         for space in spaces:
             if space.outside:
                 space.geometry = space.geometry.difference(building_geometries)
@@ -110,7 +115,7 @@ class Level(SpecificLocation, models.Model):
         hole_geometries = cascaded_union(tuple(space.hole_geometries for space in spaces))
 
         # draw space background
-        doors = self.doors.all()
+        doors = self.doors.filter(Door.q_for_request(request))
         door_geometries = cascaded_union(tuple(d.geometry for d in doors))
         level_geometry = cascaded_union((space_geometries, building_geometries, door_geometries))
         level_geometry = level_geometry.difference(hole_geometries)
