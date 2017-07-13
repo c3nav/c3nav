@@ -21,6 +21,12 @@ class AccessRestriction(TitledMixin, models.Model):
             return cls.objects.all()
         return cls.objects.none()
 
+    @classmethod
+    def q_for_request(cls, request, prefix=''):
+        if request.user.is_authenticated and request.user.is_superuser:
+            return Q()
+        return Q(**{prefix + 'access_restriction__isnull': True})
+
 
 class AccessRestrictionMixin(SerializableMixin, models.Model):
     access_restriction = models.ForeignKey(AccessRestriction, null=True, blank=True,
@@ -36,10 +42,4 @@ class AccessRestrictionMixin(SerializableMixin, models.Model):
 
     @classmethod
     def qs_for_request(cls, request):
-        return cls.objects.filter(cls.q_for_request(request))
-
-    @classmethod
-    def q_for_request(cls, request, prefix=''):
-        if request.user.is_authenticated and request.user.is_superuser:
-            return Q()
-        return Q(**{prefix+'access_restriction__isnull': True})
+        return cls.objects.filter(AccessRestriction.q_for_request(request))
