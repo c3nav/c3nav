@@ -139,7 +139,7 @@ class EditorFormBase(ModelForm):
             if field.many_to_many:
                 groups = reduce(operator.or_, (set(value) for name, value in self.cleaned_data.items()
                                                if name.startswith('groups_')), set())
-                groups |= set(value for name, value in self.cleaned_data.items() if name.startswith('group_'))
+                groups |= set(value for name, value in self.cleaned_data.items() if name.startswith('group_') and value)
                 groups = tuple((int(val) if val.isdigit() else val) for val in groups)
                 self.instance.groups.set(groups)
 
