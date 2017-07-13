@@ -603,6 +603,8 @@ class BaseQueryWrapper(BaseWrapper):
         Split it up into recursive _filter_q and _filter_kwarg calls and combine them again.
         :return: new Q object and set of matched existing pks
         """
+        if not q.children:
+            return q, self._get_initial_created_pks()
         filters, created_pks = zip(*((self._filter_q(c) if isinstance(c, Q) else self._filter_kwarg(*c))
                                      for c in q.children))
         result = Q(*filters)
