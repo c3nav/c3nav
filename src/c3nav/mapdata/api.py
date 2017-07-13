@@ -12,7 +12,7 @@ from rest_framework.mixins import RetrieveModelMixin
 from rest_framework.response import Response
 from rest_framework.viewsets import GenericViewSet, ReadOnlyModelViewSet
 
-from c3nav.mapdata.models import Building, Door, Hole, LocationGroup, Source, Space
+from c3nav.mapdata.models import AccessRestriction, Building, Door, Hole, LocationGroup, Source, Space
 from c3nav.mapdata.models.geometry.level import LevelGeometryMixin
 from c3nav.mapdata.models.geometry.space import POI, Area, Column, LineObstacle, Obstacle, SpaceGeometryMixin, Stair
 from c3nav.mapdata.models.level import Level
@@ -263,3 +263,7 @@ class SourceViewSet(MapdataViewSet):
     def _image(self, request, pk=None):
         source = self.get_object()
         return HttpResponse(open(source.filepath, 'rb'), content_type=mimetypes.guess_type(source.name)[0])
+
+
+class AccessRestrictionViewSet(MapdataViewSet):
+    queryset = AccessRestriction.objects.all()
