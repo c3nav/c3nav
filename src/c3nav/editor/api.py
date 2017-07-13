@@ -18,6 +18,7 @@ class EditorViewSet(ViewSet):
     Editor API
     /geometries/ returns a list of geojson features, you have to specify ?level=<id> or ?space=<id>
     /geometrystyles/ returns styling information for all geometry types
+    /bounds/ returns the maximum bounds of the map
     """
     @staticmethod
     def _get_level_geometries(level):
