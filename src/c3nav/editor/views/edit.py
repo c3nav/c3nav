@@ -27,6 +27,7 @@ def main_index(request):
         'child_models': [
             child_model(request.changeset.wrap_model('LocationGroupCategory')),
             child_model(request.changeset.wrap_model('LocationGroup')),
+            child_model(request.changeset.wrap_model('AccessRestriction')),
             child_model(request.changeset.wrap_model('Source')),
         ],
     })
