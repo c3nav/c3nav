@@ -77,7 +77,6 @@ abstract class Location {
     public: bool
     can_search: bool
     can_describe: bool
-    color: str
 }
 
 abstract class SpecificLocation {
@@ -95,7 +94,7 @@ class LocationGroupCategory {
 }
 
 class LocationGroup {
-
+    color: str
 }
 LocationGroup --|> Location
 SpecificLocation "*" --o "*" LocationGroup: groups

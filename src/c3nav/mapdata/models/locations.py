@@ -53,7 +53,6 @@ class LocationSlug(SerializableMixin, models.Model):
 class Location(LocationSlug, TitledMixin, models.Model):
     can_search = models.BooleanField(default=True, verbose_name=_('can be searched'))
     can_describe = models.BooleanField(default=True, verbose_name=_('can be used to describe a position'))
-    color = models.CharField(null=True, blank=True, max_length=16, verbose_name=_('background color'))
     public = models.BooleanField(verbose_name=_('public'), default=True)
 
     class Meta:
@@ -76,7 +75,6 @@ class Location(LocationSlug, TitledMixin, models.Model):
         result = super()._serialize(**kwargs)
         result['can_search'] = self.can_search
         result['can_describe'] = self.can_search
-        result['color'] = self.color
         result['public'] = self.public
         return result
 
@@ -118,8 +116,6 @@ class Location(LocationSlug, TitledMixin, models.Model):
         return super().title
 
     def get_color(self, instance=None):
-        if self.color:
-            return self.color
         # dont filter in the query here so prefetch_related works
         if instance is None:
             instance = self
@@ -180,6 +176,7 @@ class LocationGroup(Location, models.Model):
     category = models.ForeignKey(LocationGroupCategory, related_name='groups', on_delete=models.PROTECT,
                                  verbose_name=_('Category'))
     priority = models.IntegerField(default=0, db_index=True)
+    color = models.CharField(null=True, blank=True, max_length=16, verbose_name=_('background color'))
 
     objects = LocationGroupManager()
 
@@ -192,6 +189,7 @@ class LocationGroup(Location, models.Model):
     def _serialize(self, **kwargs):
         result = super()._serialize(**kwargs)
         result['category'] = self.category_id
+        result['color'] = self.color
         return result
 
     @property
