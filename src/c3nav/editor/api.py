@@ -1,5 +1,6 @@
 from itertools import chain
 
+from django.db.models import Prefetch
 from rest_framework.decorators import detail_route, list_route
 from rest_framework.exceptions import ValidationError
 from rest_framework.generics import get_object_or_404
@@ -8,6 +9,8 @@ from rest_framework.viewsets import ReadOnlyModelViewSet, ViewSet
 from shapely.ops import cascaded_union
 
 from c3nav.editor.models import ChangeSet
+from c3nav.mapdata.models import Area
+from c3nav.mapdata.models.geometry.space import POI
 
 
 class EditorViewSet(ViewSet):
@@ -74,13 +77,15 @@ class EditorViewSet(ViewSet):
         if level is not None:
             if space is not None:
                 raise ValidationError('Only level or space can be specified.')
-            level = get_object_or_404(Level, pk=level)
+            level = get_object_or_404(Level.objects.filter(Level.q_for_request(request)), pk=level)
 
             levels, levels_on_top, levels_under = self._get_levels_pk(request, level)
             # don't prefetch groups for now as changesets do not yet work with m2m-prefetches
-            levels = Level.objects.filter(pk__in=levels).prefetch_related('buildings', 'spaces', 'doors',
-                                                                          'spaces__holes', 'spaces__groups',
-                                                                          'spaces__columns')
+            levels = Level.objects.filter(pk__in=levels).filter(Level.q_for_request(request))
+            levels = levels.prefetch_related(
+                Prefetch('spaces', request.changeset.wrap_model('Space').objects.filter(Space.q_for_request(request))),
+                'buildings', 'doors', 'spaces__holes', 'spaces__groups', 'spaces__columns'
+            )
 
             levels = {s.pk: s for s in levels}
 
@@ -96,14 +101,16 @@ class EditorViewSet(ViewSet):
 
             return Response([obj.to_geojson(instance=obj) for obj in results])
         elif space is not None:
-            space = get_object_or_404(Space.objects.select_related('level', 'level__on_top_of'), pk=space)
+            space_q_for_request = Space.q_for_request(request)
+            qs = Space.objects.filter(space_q_for_request)
+            space = get_object_or_404(qs.select_related('level', 'level__on_top_of'), pk=space)
             level = space.level
 
             doors = [door for door in level.doors.all() if door.geometry.intersects(space.geometry)]
             doors_space_geom = cascaded_union([door.geometry for door in doors]+[space.geometry])
 
             levels, levels_on_top, levels_under = self._get_levels_pk(request, level.primary_level)
-            other_spaces = Space.objects.filter(level__pk__in=levels).prefetch_related('groups')
+            other_spaces = Space.objects.filter(space_q_for_request, level__pk__in=levels).prefetch_related('groups')
             other_spaces = [s for s in other_spaces
                             if s.geometry.intersects(doors_space_geom) and s.pk != space.pk]
             if level.on_top_of_id is None:
@@ -132,13 +139,13 @@ class EditorViewSet(ViewSet):
                 doors,
                 other_spaces,
                 [space],
-                space.areas.all().prefetch_related('groups'),
+                space.areas.filter(Area.q_for_request(request)).prefetch_related('groups'),
                 space.holes.all(),
                 space.stairs.all(),
                 space.obstacles.all(),
                 space.lineobstacles.all(),
                 space.columns.all(),
-                space.pois.all().prefetch_related('groups'),
+                space.pois.filter(POI.q_for_request(request)).prefetch_related('groups'),
                 other_spaces_upper,
             )
             return Response(sum([self._get_geojsons(obj) for obj in results], ()))
