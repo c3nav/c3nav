@@ -1,4 +1,5 @@
 from django.db import models
+from django.db.models import Q
 from django.utils.translation import ugettext_lazy as _
 
 from c3nav.mapdata.models.base import SerializableMixin, TitledMixin
@@ -35,6 +36,10 @@ class AccessRestrictionMixin(SerializableMixin, models.Model):
 
     @classmethod
     def qs_for_request(cls, request):
+        return cls.objects.filter(cls.q_for_request(request))
+
+    @classmethod
+    def q_for_request(cls, request, prefix=''):
         if request.user.is_authenticated and request.user.is_superuser:
-            return cls.objects.all()
-        return cls.objects.filter(access_restriction__isnull=True)
+            return Q()
+        return Q(**{prefix+'access_restriction__isnull': True})
