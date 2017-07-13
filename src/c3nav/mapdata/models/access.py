@@ -14,6 +14,12 @@ class AccessRestriction(TitledMixin, models.Model):
         verbose_name_plural = _('Access Restrictions')
         default_related_name = 'accessrestrictions'
 
+    @classmethod
+    def qs_for_request(cls, request):
+        if request.user.is_authenticated and request.user.is_superuser:
+            return cls.objects.all()
+        return cls.objects.none()
+
 
 class AccessRestrictionMixin(SerializableMixin, models.Model):
     access_restriction = models.ForeignKey(AccessRestriction, null=True, blank=True,
@@ -26,3 +32,9 @@ class AccessRestrictionMixin(SerializableMixin, models.Model):
         result = super()._serialize(**kwargs)
         result['access_restriction'] = self.access_restriction_id
         return result
+
+    @classmethod
+    def qs_for_request(cls, request):
+        if request.user.is_authenticated and request.user.is_superuser:
+            return cls.objects.all()
+        return cls.objects.filter(access_restriction__isnull=True)

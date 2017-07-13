@@ -65,6 +65,12 @@ class EditorFormBase(ModelForm):
         if 'category' in self.fields:
             self.fields['category'].label_from_instance = lambda obj: obj.title
 
+        if 'access_restriction' in self.fields:
+            AccessRestriction = self.request.changeset.wrap_model('AccessRestriction')
+
+            self.fields['access_restriction'].label_from_instance = lambda obj: obj.title
+            self.fields['access_restriction'].queryset = AccessRestriction.qs_for_request(self.request)
+
         # parse titles
         self.titles = None
         if hasattr(self.instance, 'titles'):
@@ -146,7 +152,7 @@ class EditorFormBase(ModelForm):
 
 def create_editor_form(editor_model):
     possible_fields = ['slug', 'name', 'altitude', 'category', 'width', 'groups', 'color', 'priority',
-                       'public', 'can_search', 'can_describe', 'outside', 'geometry',
+                       'access_restriction', 'can_search', 'can_describe', 'outside', 'geometry',
                        'single', 'allow_levels', 'allow_spaces', 'allow_areas', 'allow_pois',
                        'left', 'top', 'right', 'bottom']
     field_names = [field.name for field in editor_model._meta.get_fields() if not field.one_to_many]
