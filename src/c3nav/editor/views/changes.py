@@ -156,7 +156,7 @@ def changeset_detail(request, pk):
 
                 if request.POST.get('delete_confirm') == '1':
                     changeset.delete()
-                    messages.error(request, _('You deleted this change set.'))
+                    messages.success(request, _('You deleted this change set.'))
                     return redirect(reverse('editor.users.detail', kwargs={'pk': request.user.pk}))
 
                 return render(request, 'editor/delete.html', {
