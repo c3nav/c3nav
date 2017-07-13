@@ -9,12 +9,16 @@ from django.utils.translation import ugettext_lazy as _
 from c3nav.editor.views.base import sidebar_view
 
 
-def child_model(model, kwargs=None, parent=None):
+def child_model(request, model, kwargs=None, parent=None):
+    model = request.changeset.wrap_model(model)
     related_name = model._meta.default_related_name
+    qs = getattr(parent, related_name)
+    if hasattr(model, 'q_for_request'):
+        qs = qs.filter(model.q_for_request(request))
     return {
         'title': model._meta.verbose_name_plural,
         'url': reverse('editor.'+related_name+'.list', kwargs=kwargs),
-        'count': None if parent is None else getattr(parent, related_name).count(),
+        'count': None if parent is None else qs.count(),
     }
 
 
@@ -25,10 +29,10 @@ def main_index(request):
         'levels': Level.objects.filter(Level.q_for_request(request), on_top_of__isnull=True),
         'can_edit': request.changeset.can_edit(request),
         'child_models': [
-            child_model(request.changeset.wrap_model('LocationGroupCategory')),
-            child_model(request.changeset.wrap_model('LocationGroup')),
-            child_model(request.changeset.wrap_model('AccessRestriction')),
-            child_model(request.changeset.wrap_model('Source')),
+            child_model(request, 'LocationGroupCategory'),
+            child_model(request, 'LocationGroup'),
+            child_model(request, 'AccessRestriction'),
+            child_model(request, 'Source'),
         ],
     })
 
@@ -46,7 +50,7 @@ def level_detail(request, pk):
         'level_as_pk': True,
         'can_edit': request.changeset.can_edit(request),
 
-        'child_models': [child_model(request.changeset.wrap_model(model_name), kwargs={'level': pk}, parent=level)
+        'child_models': [child_model(request, model_name, kwargs={'level': pk}, parent=level)
                          for model_name in ('Building', 'Space', 'Door')],
         'levels_on_top': level.levels_on_top.filter(Level.q_for_request(request)).all(),
         'geometry_url': '/api/editor/geometries/?level='+str(level.primary_level_pk),
@@ -64,7 +68,7 @@ def space_detail(request, level, pk):
         'space': space,
         'can_edit': request.changeset.can_edit(request),
 
-        'child_models': [child_model(request.changeset.wrap_model(model_name), kwargs={'space': pk}, parent=space)
+        'child_models': [child_model(request, model_name, kwargs={'space': pk}, parent=space)
                          for model_name in ('Hole', 'Area', 'Stair', 'Obstacle', 'LineObstacle', 'Column', 'POI')],
         'geometry_url': '/api/editor/geometries/?space='+pk,
     })
