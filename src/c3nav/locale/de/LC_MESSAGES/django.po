@@ -7,8 +7,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2017-07-13 13:04+0200\n"
-"PO-Revision-Date: 2017-07-10 17:24+0200\n"
+"POT-Creation-Date: 2017-07-13 13:36+0200\n"
+"PO-Revision-Date: 2017-07-13 13:38+0200\n"
 "Last-Translator: Laura Klünder <laura@codingcatgirl.de>\n"
 "Language-Team: \n"
 "Language: de\n"
@@ -849,87 +849,77 @@ msgstr "zur Suche zugelassen"
 
 #: c3nav/mapdata/models/locations.py:55
 msgid "can be used to describe a position"
-msgstr "can zum beschreiben einer Position genutzt werden"
+msgstr "kann einen Ort beschreiben"
 
 #: c3nav/mapdata/models/locations.py:56
-msgid "background color"
-msgstr "Hintergrundfarbe"
-
-#: c3nav/mapdata/models/locations.py:57
 msgid "public"
 msgstr "öffentlich"
 
-#: c3nav/mapdata/models/locations.py:133 c3nav/mapdata/models/locations.py:188
+#: c3nav/mapdata/models/locations.py:129 c3nav/mapdata/models/locations.py:185
 msgid "Location Groups"
 msgstr "Ortgruppen"
 
-#: c3nav/mapdata/models/locations.py:152 c3nav/mapdata/models/source.py:14
+#: c3nav/mapdata/models/locations.py:148 c3nav/mapdata/models/source.py:14
 msgid "Name"
 msgstr "Name"
 
-#: c3nav/mapdata/models/locations.py:153
-#, fuzzy
-#| msgid "Final rejection"
+#: c3nav/mapdata/models/locations.py:149
 msgid "single selection"
-msgstr "Endgültige Ablehnung"
+msgstr "nur eine Auswahl möglich"
 
-#: c3nav/mapdata/models/locations.py:154
-#, fuzzy
-#| msgid "levels"
+#: c3nav/mapdata/models/locations.py:150
 msgid "allow levels"
-msgstr "Etagen"
+msgstr "bei Etagen erlauben"
 
-#: c3nav/mapdata/models/locations.py:155
-#, fuzzy
-#| msgid "back to space"
+#: c3nav/mapdata/models/locations.py:151
 msgid "allow spaces"
-msgstr "zurück zum Raum"
+msgstr "bei Räumen erlauben"
 
-#: c3nav/mapdata/models/locations.py:156
-#, fuzzy
-#| msgid "allow"
+#: c3nav/mapdata/models/locations.py:152
 msgid "allow areas"
-msgstr "erlaubt"
+msgstr "bei Bereichen erlauben"
+
+#: c3nav/mapdata/models/locations.py:153
+msgid "allow pois"
+msgstr "bei POI erlauben"
 
 #: c3nav/mapdata/models/locations.py:157
-#, fuzzy
-#| msgid "allow"
-msgid "allow pois"
-msgstr "erlaubt"
-
-#: c3nav/mapdata/models/locations.py:161
 msgid "Location Group Category"
 msgstr "Ortgruppenkategorie"
 
-#: c3nav/mapdata/models/locations.py:162
+#: c3nav/mapdata/models/locations.py:158
 msgid "Location Group Categories"
 msgstr "Ortgruppenkategorien"
 
-#: c3nav/mapdata/models/locations.py:181
+#: c3nav/mapdata/models/locations.py:177
 msgid "Category"
 msgstr "Kategorie"
 
-#: c3nav/mapdata/models/locations.py:187
+#: c3nav/mapdata/models/locations.py:179
+msgid "background color"
+msgstr "Hintergrundfarbe"
+
+#: c3nav/mapdata/models/locations.py:184
 msgid "Location Group"
 msgstr "Ortgruppe"
 
-#: c3nav/mapdata/models/locations.py:201
+#: c3nav/mapdata/models/locations.py:199
 msgid "search"
 msgstr "suchen"
 
-#: c3nav/mapdata/models/locations.py:203
+#: c3nav/mapdata/models/locations.py:201
 msgid "describe"
 msgstr "beschreiben"
 
-#: c3nav/mapdata/models/locations.py:205
+#: c3nav/mapdata/models/locations.py:203
 msgid "color"
 msgstr "Farbe"
 
-#: c3nav/mapdata/models/locations.py:207
+#: c3nav/mapdata/models/locations.py:205
 msgid "internal"
 msgstr "intern"
 
-#: c3nav/mapdata/models/locations.py:213
+#: c3nav/mapdata/models/locations.py:211
 msgid "target"
 msgstr "Ziel"
 
@@ -1204,6 +1194,11 @@ msgstr "Teilen"
 #: c3nav/site/templates/site/main.html:103
 msgid "shortcut"
 msgstr "Verknüpfung"
+
+#, fuzzy
+#~| msgid "describe"
+#~ msgid "can describe"
+#~ msgstr "beschreiben"
 
 #~ msgid "category"
 #~ msgstr "Kategorie"
