@@ -1,12 +1,10 @@
 from django.db import models
 from django.utils.translation import ugettext_lazy as _
-from shapely.geometry import mapping
 
 from c3nav.mapdata.fields import GeometryField
 from c3nav.mapdata.models.access import AccessRestrictionMixin
 from c3nav.mapdata.models.base import TitledMixin
 from c3nav.mapdata.models.geometry.space import SpaceGeometryMixin
-from c3nav.mapdata.utils.json import format_geojson
 
 
 class GraphNode(SpaceGeometryMixin, models.Model):
@@ -20,16 +18,6 @@ class GraphNode(SpaceGeometryMixin, models.Model):
         verbose_name = _('Graph Node')
         verbose_name_plural = _('Graph Nodes')
         default_related_name = 'graphnodes'
-
-    @property
-    def buffered_geometry(self):
-        return self.geometry.buffer(0.3)
-
-    def to_geojson(self, *args, **kwargs):
-        result = super().to_geojson(*args, **kwargs)
-        result['original_geometry'] = result['geometry']
-        result['geometry'] = format_geojson(mapping(self.buffered_geometry))
-        return result
 
 
 class WayType(TitledMixin, models.Model):
