@@ -306,6 +306,7 @@ editor = {
             }
             editor._geometries_layer = L.geoJSON(geometries, {
                 style: editor._get_geometry_style,
+                pointToLayer: editor._point_to_layer,
                 onEachFeature: editor._register_geojson_feature
             });
             editor._geometries_layer.addTo(editor.map);
@@ -335,6 +336,9 @@ editor = {
         style.color = style.fillColor;
         style.weight = 5;
         return style;
+    },
+    _point_to_layer: function (feature, latlng) {
+        return L.circle(latlng, {radius: 0.5});
     },
     _get_geometry_style: function (feature) {
         // style callback for GeoJSON loader
@@ -383,7 +387,8 @@ editor = {
                         fillOpacity: 0,
                         className: 'c3nav-highlight'
                     };
-                }
+                },
+                pointToLayer: editor._point_to_layer,
             }).getLayers()[0].addTo(editor._highlight_layer);
             highlight_layer.list_elem = list_elem;
             editor._highlight_geometries[feature.properties.id] = highlight_layer;
@@ -481,6 +486,9 @@ editor = {
             var mapitem_type = form.attr('data-new');
             if (editor._editing_layer !== null) {
                 editor._editing_layer.enableEdit();
+                if (editor._editing_layer.editor._resizeLatLng !== undefined) {
+                    editor._editing_layer.editor._resizeLatLng.__vertex._icon.style.display = 'none';
+                }
             } else if (form.is('[data-new]')) {
                 // create new geometry
                 var options = editor._get_mapitem_type_style(mapitem_type);
@@ -506,6 +514,9 @@ editor = {
                         }
                     }).getLayers()[0].addTo(editor.map);
                     editor._editing_layer.enableEdit();
+                    if (editor._editing_layer.editor._resizeLatLng !== undefined) {
+                        editor._editing_layer.editor._resizeLatLng.__vertex._icon.style.display = 'none';
+                    }
                 }
             }
         }
@@ -539,8 +550,19 @@ editor = {
         // called when creating is completed (by clicking on the last point). fills in the form and switches to editing.
         if (editor._creating) {
             editor._creating = false;
-            editor._editing_layer = e.layer;
+            // return L.circle(latlng, {radius: 0.5});
+            var layer = e.layer;
+            if (e.layer._latlng !== undefined) {
+                layer = L.circle(e.layer._latlng, e.layer.options);
+                layer.setRadius(0.5);
+                e.layer.remove();
+            }
+            editor._editing_layer = layer;
             editor._editing_layer.addTo(editor._geometries_layer);
+            if (e.layer._latlng !== undefined) {
+                layer.enableEdit();
+                layer.editor._resizeLatLng.__vertex._icon.style.display = 'none';
+            }
             editor._editing_layer.on('click', editor._click_editing_layer);
             editor._update_editing();
             $('#sidebar').find('.content').find('form.creation-lock').removeClass('creation-lock');

@@ -151,16 +151,6 @@ class POI(SpecificLocation, SpaceGeometryMixin, models.Model):
         verbose_name_plural = _('Points of Interest')
         default_related_name = 'pois'
 
-    @property
-    def buffered_geometry(self):
-        return self.geometry.buffer(0.5)
-
-    def to_geojson(self, *args, **kwargs):
-        result = super().to_geojson(*args, **kwargs)
-        result['original_geometry'] = result['geometry']
-        result['geometry'] = format_geojson(mapping(self.buffered_geometry))
-        return result
-
 
 class Hole(SpaceGeometryMixin, models.Model):
     """
