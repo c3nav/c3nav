@@ -1,7 +1,9 @@
+import typing
 from contextlib import suppress
 
 from django.contrib import messages
 from django.core.exceptions import FieldDoesNotExist, ObjectDoesNotExist
+from django.db import models
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.utils.translation import ugettext_lazy as _
@@ -9,7 +11,7 @@ from django.utils.translation import ugettext_lazy as _
 from c3nav.editor.views.base import sidebar_view
 
 
-def child_model(request, model, kwargs=None, parent=None):
+def child_model(request, model: typing.Union[str, models.Model], kwargs=None, parent=None):
     model = request.changeset.wrap_model(model)
     related_name = model._meta.default_related_name
     if parent is not None:
