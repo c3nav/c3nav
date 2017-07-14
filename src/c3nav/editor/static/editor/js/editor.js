@@ -492,32 +492,17 @@ editor = {
             } else if (form.is('[data-new]')) {
                 // create new geometry
                 var options = editor._get_mapitem_type_style(mapitem_type);
-                if (geometry_field.val() === '') {
-                    form.addClass('creation-lock');
-                    var geomtype = form.attr('data-geomtype');
-                    if (geomtype === 'polygon') {
-                        editor.map.editTools.startPolygon(null, options);
-                    } else if (geomtype === 'polyline') {
-                        options = editor._line_draw_geometry_style(options);
-                        editor.map.editTools.startPolyline(null, options);
-                    } else if (geomtype === 'point') {
-                        editor.map.editTools.startMarker(null, options);
-                    }
-                    editor._creating = true;
-                } else {
-                    editor._editing_layer = L.geoJSON({
-                        "type": "Feature",
-                        "geometry": JSON.parse(geometry_field.val())
-                    }, {
-                        style: function() {
-                            return options;
-                        }
-                    }).getLayers()[0].addTo(editor.map);
-                    editor._editing_layer.enableEdit();
-                    if (editor._editing_layer.editor._resizeLatLng !== undefined) {
-                        editor._editing_layer.editor._resizeLatLng.__vertex._icon.style.display = 'none';
-                    }
+                form.addClass('creation-lock');
+                var geomtype = form.attr('data-geomtype');
+                if (geomtype === 'polygon') {
+                    editor.map.editTools.startPolygon(null, options);
+                } else if (geomtype === 'polyline') {
+                    options = editor._line_draw_geometry_style(options);
+                    editor.map.editTools.startPolyline(null, options);
+                } else if (geomtype === 'point') {
+                    editor.map.editTools.startMarker(null, options);
                 }
+                editor._creating = true;
             }
         }
     },
