@@ -5,3 +5,4 @@ from c3nav.mapdata.models.level import Level  # noqa
 from c3nav.mapdata.models.locations import Location, LocationSlug, LocationGroup, LocationGroupCategory  # noqa
 from c3nav.mapdata.models.source import Source  # noqa
 from c3nav.mapdata.models.update import MapUpdate  # noqa
+from c3nav.mapdata.models.graph import GraphNode, WayType, GraphEdge  # noqa
