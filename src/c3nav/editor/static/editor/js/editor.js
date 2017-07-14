@@ -399,7 +399,6 @@ editor = {
         } else if (feature.properties.type+'-'+String(feature.properties.id) === editor._editing_id) {
             editor._editing_layer = layer;
             editor._bounds_layer = layer;
-            layer.on('click', editor._click_editing_layer);
         } else if (feature.properties.bounds === true) {
             editor._bounds_layer = layer;
         }
@@ -523,14 +522,6 @@ editor = {
             e.layer.remove();
         }
     },
-    _click_editing_layer: function(e) {
-        // click callback for a currently edited layer. create a hole on ctrl+click.
-        if ((e.originalEvent.ctrlKey || e.originalEvent.metaKey)) {
-            if (e.target instanceof L.Polygon) {
-                this.editor.newHole(e.latlng);
-            }
-        }
-    },
     _done_creating: function(e) {
         // called when creating is completed (by clicking on the last point). fills in the form and switches to editing.
         if (editor._creating) {
@@ -548,7 +539,6 @@ editor = {
                 layer.enableEdit();
                 layer.editor._resizeLatLng.__vertex._icon.style.display = 'none';
             }
-            editor._editing_layer.on('click', editor._click_editing_layer);
             editor._update_editing();
             $('#sidebar').find('.content').find('form.creation-lock').removeClass('creation-lock');
             $('#id_name').focus();
