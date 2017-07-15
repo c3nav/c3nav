@@ -291,8 +291,8 @@ def list_objects(request, model=None, level=None, space=None, explicit_edit=Fals
 
     if level is not None:
         reverse_kwargs['level'] = level
-        level = get_object_or_404(Level, pk=level)
-        queryset = queryset.filter(Level.q_for_request(request), level=level).defer('geometry')
+        level = get_object_or_404(Level.objects.filter(Level.q_for_request(request)), pk=level)
+        queryset = queryset.filter(level=level).defer('geometry')
         ctx.update({
             'back_url': reverse('editor.levels.detail', kwargs={'pk': level.pk}),
             'back_title': _('back to level'),
@@ -330,3 +330,39 @@ def list_objects(request, model=None, level=None, space=None, explicit_edit=Fals
     })
 
     return render(request, 'editor/list.html', ctx)
+
+
+@sidebar_view
+def graph_edit(request, level=None, space=None):
+    Level = request.changeset.wrap_model('Level')
+    Space = request.changeset.wrap_model('Space')
+
+    can_edit = request.changeset.can_edit(request)
+
+    ctx = {
+        'path': request.path,
+        'can_edit': can_edit,
+    }
+
+    if level is not None:
+        level = get_object_or_404(Level.objects.filter(Level.q_for_request(request)), pk=level)
+        ctx.update({
+            'back_url': reverse('editor.levels.detail', kwargs={'pk': level.pk}),
+            'back_title': _('back to level'),
+            'levels': Level.objects.filter(Level.q_for_request(request), on_top_of__isnull=True),
+            'level': level,
+            'level_url': request.resolver_match.url_name,
+            'geometry_url': '/api/editor/geometries/?level='+str(level.primary_level_pk),
+        })
+    elif space is not None:
+        queryset = Space.objects.filter(Space.q_for_request(request)).select_related('level').defer('geometry')
+        space = get_object_or_404(queryset, pk=space)
+        ctx.update({
+            'space': space,
+            'level': space.level,
+            'back_url': reverse('editor.spaces.detail', kwargs={'level': space.level.pk, 'pk': space.pk}),
+            'back_title': _('back to space'),
+            'geometry_url': '/api/editor/geometries/?space='+str(space.pk),
+        })
+
+    return render(request, 'editor/graph.html', ctx)

@@ -2,16 +2,21 @@
 {% load i18n %}
 {% include 'editor/fragment_levels.html' %}
 
-<h3>{{ space.title }}</h3>
+<h3>
+    {% trans 'Graph' %}
+    <small>
+        {% if space %}
+            {% with space.title as space_title %}
+                {% blocktrans %}in space {{ space_title }}{% endblocktrans %}
+            {% endwith %}
+        {% else %}
+            {% with level.title as level_title %}
+                {% blocktrans %}on level {{ level_title }}{% endblocktrans %}
+            {% endwith %}
+        {% endif %}
+    </small>
+</h3>
 <p>
-    <a class="btn btn-default btn-xs" accesskey="e" href="{% url 'editor.spaces.edit' level=space.level.pk pk=space.pk %}">
-        {% trans 'Space' as model_title %}
-        <i class="glyphicon glyphicon-pencil"></i> {% blocktrans %}Edit {{ model_title }}{% endblocktrans %}
-    </a>
-</p>
-<p>
-    <a href="{% url 'editor.spaces.list' level=space.level.pk %}">&laquo; {% trans 'back to overview' %}</a>
+    <a href="{{ back_url }}">&laquo; {{ back_title }}</a>
 </p>
 {% bootstrap_messages %}
-
-{% include 'editor/fragment_child_models.html' %}
