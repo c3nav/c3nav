@@ -25,7 +25,8 @@
 </p>
 {% bootstrap_messages %}
 
-{% include 'editor/fragment_child_models.html' %}
+{% url 'editor.levels.graph' level=level.pk as graph_url %}
+{% include 'editor/fragment_child_models.html' with graph_url=graph_url %}
 
 <div class="clearfix"></div>
 
