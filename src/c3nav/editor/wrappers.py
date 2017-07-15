@@ -464,24 +464,34 @@ class BaseQueryWrapper(BaseWrapper):
                 filter_value = tuple(str(pk) for pk in filter_value)
                 return self._filter_values(q, field_name, lambda val: str(val) in filter_value)
 
-            if segments:
-                # wo don't do multi-level lookups
-                raise NotImplementedError
+            if not segments:
+                if filter_type == 'pk':
+                    # foreign_obj__pk
+                    if is_created_pk(filter_value):
+                        q = Q(pk__in=())
+                    else:
+                        deleted_existing = self._changeset.deleted_existing.get(rel_model, ())
+                        if filter_value is None or int(filter_value) in deleted_existing:
+                            return Q(pk__in=()), set()
+                    filter_value = str(filter_value)
+                    return self._filter_values(q, field_name, lambda val: str(val) == filter_value)
 
-            if filter_type == 'pk':
-                # foreign_obj__pk
-                if is_created_pk(filter_value):
-                    q = Q(pk__in=())
-                elif filter_value is None or int(filter_value) in self._changeset.deleted_existing.get(rel_model, ()):
-                    return Q(pk__in=()), set()
-                filter_value = str(filter_value)
-                return self._filter_values(q, field_name, lambda val: str(val) == filter_value)
+                if filter_type == 'isnull':
+                    # foreign_obj__isnull
+                    return self._filter_values(q, field_name, lambda val: (val is None) is filter_value)
 
-            if filter_type == 'isnull':
-                # foreign_obj__isnull
-                return self._filter_values(q, field_name, lambda val: (val is None) is filter_value)
+            # so… is this a multi-level-lookup?
+            try:
+                rel_model._meta.get_field(filter_type)
+            except:
+                raise NotImplementedError('Unsupported lookup or %s has no field "%s".' % (rel_model, filter_type))
 
-            raise NotImplementedError
+            # multi-level-lookup
+            # todo: cache here or avoid too much subqueries
+            subkwargs = {'__'.join([filter_type] + segments): filter_value}
+            pk_values = self._changeset.wrap_model(rel_model).objects.filter(**subkwargs).values_list('pk', flat=True)
+            q = Q(**{field_name+'__pk__in': pk_values})
+            return self._filter_values(q, field_name, lambda val: str(val) in filter_value)
 
         # check if we are filtering by a many to many field
         if field.many_to_many:
@@ -588,6 +598,9 @@ class BaseQueryWrapper(BaseWrapper):
                 return self._filter_values(q, field_name, lambda val: val == filter_value)
 
             filter_type = segments.pop(0)
+
+            if not filter_type:
+                raise ValueError('Invalid filter: '+filter_name)
 
             if segments:
                 # we don't to field__whatever__whatever
