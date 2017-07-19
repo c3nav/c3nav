@@ -17,6 +17,14 @@ class LocationSlugManager(models.Manager):
                                              for model in get_submodels(Location)+[LocationRedirect]))
         return result
 
+    def select_related_target(self):
+        if self.model != LocationSlug:
+            raise TypeError
+        qs = self.get_queryset()
+        qs = qs.select_related('redirect__target', *('redirect__target__'+model._meta.default_related_name
+                                                     for model in get_submodels(Location) + [LocationRedirect]))
+        return qs
+
 
 class LocationSlug(SerializableMixin, models.Model):
     LOCATION_TYPE_CODES = {

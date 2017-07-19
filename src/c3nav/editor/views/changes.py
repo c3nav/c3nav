@@ -193,9 +193,9 @@ def changeset_detail(request, pk):
     for changed_object in changeset.changed_objects.get(LocationRedirect, {}).values():
         if changed_object.is_created == changed_object.deleted:
             continue
-        values = changed_object.updated_fields
+        obj = objects[LocationRedirect][changed_object.obj_pk]
         redirect_list = (removed_redirects if changed_object.deleted else added_redirects)
-        redirect_list.setdefault(values['target'], []).append(values['slug'])
+        redirect_list.setdefault(obj.target_id, []).append(obj.slug)
 
     redirect_changed_objects = []
 

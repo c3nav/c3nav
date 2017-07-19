@@ -305,7 +305,10 @@ class ChangeSet(models.Model):
             existing_pks = pks - created_pks
             model_objects = {}
             if existing_pks:
-                qs = model.objects.filter(pk__in=existing_pks)
+                qs = model.objects
+                if model is LocationSlug:
+                    qs = qs.select_related_target()
+                qs = qs.filter(pk__in=existing_pks)
                 for prefetch in prefetch_related:
                     try:
                         model._meta.get_field(prefetch)
@@ -313,7 +316,7 @@ class ChangeSet(models.Model):
                         pass
                     else:
                         qs = qs.prefetch_related(prefetch)
-                for obj in model.objects.filter(pk__in=existing_pks):
+                for obj in qs:
                     if model == LocationSlug:
                         obj = obj.get_child()
                     model_objects[obj.pk] = obj
@@ -325,6 +328,11 @@ class ChangeSet(models.Model):
         # add LocationSlug objects as their correct model
         for pk, obj in objects.get(LocationSlug, {}).items():
             objects.setdefault(obj.__class__, {})[pk] = obj
+
+        for pk, obj in objects.get(LocationRedirect, {}).items():
+            target = obj.target.get_child()
+            objects.setdefault(LocationSlug, {})[target.pk] = target
+            objects.setdefault(target.__class__, {})[target.pk] = target
 
         return objects
 
@@ -645,7 +653,7 @@ class ChangeSet(models.Model):
                 changed_locationslug_pks.update(objects.keys())
             count += sum(1 for obj in objects.values() if not obj.is_created or not obj.deleted)
 
-        count += len(set(obj.updated_fields['target']
+        count += len(set(obj.obj.target_id
                          for obj in self.changed_objects.get(LocationRedirect, {}).values()) - changed_locationslug_pks)
         return count
 
