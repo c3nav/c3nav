@@ -715,7 +715,8 @@ class ManagerWrapper(BaseQueryWrapper):
         make sure that the database does not return objects that have been deleted in this changeset
         """
         qs = self._wrap_queryset(self._obj.model.objects.all())
-        return qs.exclude(pk__in=self._changeset.deleted_existing.get(self._obj.model, ()))
+        return qs.exclude(pk__in=tuple(chain(*(self._changeset.deleted_existing.get(submodel, ())
+                                               for submodel in get_submodels(self._obj.model)))))
 
     def delete(self):
         self.get_queryset().delete()
