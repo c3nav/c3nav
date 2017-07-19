@@ -10,6 +10,7 @@ from django.utils.translation import ugettext_lazy as _
 from c3nav.editor.utils import is_created_pk
 from c3nav.editor.wrappers import ModelInstanceWrapper
 from c3nav.mapdata.fields import JSONField
+from c3nav.mapdata.models.locations import LocationRedirect
 
 
 class ChangedObjectManager(models.Manager):
@@ -223,6 +224,14 @@ class ChangedObject(models.Model):
     def save_instance(self, instance):
         old_updated_fields = self.updated_fields
         self.updated_fields = {}
+
+        if instance.pk is None and self.model_class == LocationRedirect:
+            obj = LocationRedirect.objects.filter(pk__in=self.changeset.deleted_existing.get(LocationRedirect, ()),
+                                                  slug=instance.slug, target_id=instance.target_id).first()
+            if obj is not None:
+                self.changeset.get_changed_object(obj).restore()
+                return
+
         for field in self.model_class._meta.get_fields():
             if not isinstance(field, Field) or field.primary_key:
                 continue
