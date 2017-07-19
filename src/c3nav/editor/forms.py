@@ -5,7 +5,7 @@ from functools import reduce
 
 from django.conf import settings
 from django.core.exceptions import FieldDoesNotExist
-from django.forms import BooleanField, CharField, ChoiceField, ModelForm, MultipleChoiceField, ValidationError
+from django.forms import BooleanField, CharField, ChoiceField, Form, ModelForm, MultipleChoiceField, ValidationError
 from django.forms.widgets import HiddenInput
 from django.utils.text import format_lazy
 from django.utils.translation import ugettext_lazy as _
@@ -103,6 +103,12 @@ class EditorFormBase(ModelForm):
             self.fields.move_to_end('redirect_slugs', last=False)
             self.fields.move_to_end('slug', last=False)
 
+        if 'from_node' in self.fields:
+            self.fields['from_node'].widget = HiddenInput()
+
+        if 'to_node' in self.fields:
+            self.fields['to_node'].widget = HiddenInput()
+
     def clean_redirect_slugs(self):
         old_redirect_slugs = set(self.redirect_slugs)
         new_redirect_slugs = set(s for s in (s.strip() for s in self.cleaned_data['redirect_slugs'].split(',')) if s)
@@ -151,10 +157,10 @@ class EditorFormBase(ModelForm):
 
 
 def create_editor_form(editor_model):
-    possible_fields = ['slug', 'name', 'altitude', 'category', 'width', 'groups', 'color', 'priority',
-                       'access_restriction', 'can_search', 'can_describe', 'outside', 'geometry',
+    possible_fields = ['slug', 'name', 'altitude', 'category', 'width', 'groups', 'color', 'priority', 'waytype',
+                       'access_restriction', 'space_transfer', 'can_search', 'can_describe', 'outside', 'geometry',
                        'single', 'allow_levels', 'allow_spaces', 'allow_areas', 'allow_pois',
-                       'left', 'top', 'right', 'bottom']
+                       'left', 'top', 'right', 'bottom', 'from_node', 'to_node']
     field_names = [field.name for field in editor_model._meta.get_fields() if not field.one_to_many]
     existing_fields = [name for name in possible_fields if name in field_names]
 
@@ -179,3 +185,44 @@ class RejectForm(ModelForm):
     class Meta:
         model = ChangeSetUpdate
         fields = ('comment', )
+
+
+class GraphEditorSettingsForm(Form):
+    node_click = ChoiceField(label=_('when clicking on an existing node…'), choices=(
+        ('connect_or_toggle', _('connect if possible, otherwise toggle')),
+        ('connect', _('connect if possible')),
+        ('activate', _('activate')),
+        ('deactivate', _('deactivate')),
+        ('toggle', _('toggle')),
+        ('set_space_transfer', _('set space transfer')),
+        ('noop', _('do nothing')),
+    ), initial='connect_or_toggle')
+
+    click_anywhere = ChoiceField(label=_('when clicking anywhere…'), choices=(
+        ('create_connect_node', _('create node and connect if possible')),
+        ('create_node_if_none_active', _('create node if no node is active')),
+        ('create_node', _('create node')),
+        ('noop', _('do nothing')),
+    ), initial='create_connect_node')
+
+    create_edge = ChoiceField(label=_('when connecting two nodes…'), choices=(
+        ('bidirectional', _('create edge in both directions')),
+        ('unidirectional', _('create edge in one direction')),
+        ('unidirectional_force', _('create edge, delete other direction')),
+        ('delete_bidirectional', _('delete edges in both directions')),
+        ('delete_unidirectional', _('delete edge in one direction')),
+    ), initial='bidirectional')
+
+    create_existing_edge = ChoiceField(label=_('when creating an already existing edge…'), choices=(
+        ('overwrite_toggle', _('overwrite if not identical, otherwise delete')),
+        ('overwrite_always', _('overwrite')),
+        ('overwrite_waytype', _('overwrite waytype')),
+        ('overwrite_access', _('overwrite access restriction')),
+        ('delete', _('delete')),
+    ), initial='overwrite_toggle')
+
+    after_create_edge = ChoiceField(label=_('after creating a new edge…'), choices=(
+        ('reset', _('deactivate active node')),
+        ('keep_first_active', _('keep first node active')),
+        ('set_second_active', _('set second node as active')),
+    ), initial='reset')

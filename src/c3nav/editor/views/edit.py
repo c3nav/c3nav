@@ -8,6 +8,7 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.utils.translation import ugettext_lazy as _
 
+from c3nav.editor.forms import GraphEditorSettingsForm
 from c3nav.editor.views.base import sidebar_view
 
 
@@ -336,6 +337,8 @@ def list_objects(request, model=None, level=None, space=None, explicit_edit=Fals
 def graph_edit(request, level=None, space=None):
     Level = request.changeset.wrap_model('Level')
     Space = request.changeset.wrap_model('Space')
+    GraphNode = request.changeset.wrap_model('GraphNode')
+    GraphEdge = request.changeset.wrap_model('GraphEdge')
 
     can_edit = request.changeset.can_edit(request)
 
@@ -364,5 +367,11 @@ def graph_edit(request, level=None, space=None):
             'back_title': _('back to space'),
             'geometry_url': '/api/editor/geometries/?space='+str(space.pk),
         })
+
+    ctx.update({
+        'node_form': GraphNode.EditorForm(request=request),
+        'edge_form': GraphEdge.EditorForm(request=request),
+        'settings_form': GraphEditorSettingsForm(),
+    })
 
     return render(request, 'editor/graph.html', ctx)
