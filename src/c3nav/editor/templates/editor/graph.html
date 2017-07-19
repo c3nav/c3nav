@@ -17,14 +17,14 @@
     </small>
 </h3>
 
+<a href="{% url 'editor.graph.settings' %}" class="btn btn-default btn-xs pull-right">{% trans 'Settings' %}</a>
 <p>
     <a href="{{ back_url }}">&laquo; {{ back_title }}</a>
 </p>
 {% bootstrap_messages %}
 
-<h4>{% trans 'Default properties:' %}</h4>
+<h4>{% trans 'Default node properties' %}</h4>
 {% bootstrap_form node_form %}
-{% bootstrap_form edge_form %}
 
-<h4>{% trans 'UI settings:' %}</h4>
-{% bootstrap_form settings_form %}
+<h4>{% trans 'Default edge properties' %}</h4>
+{% bootstrap_form edge_form %}

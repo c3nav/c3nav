@@ -375,3 +375,11 @@ def graph_edit(request, level=None, space=None):
     })
 
     return render(request, 'editor/graph.html', ctx)
+
+
+@sidebar_view
+def graph_editing_settings(request):
+    ctx = {
+        'form': GraphEditorSettingsForm(),
+    }
+    return render(request, 'editor/graph_editing_settings.html', ctx)

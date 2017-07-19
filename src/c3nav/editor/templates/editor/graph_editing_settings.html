@@ -1,0 +1,15 @@
+{% load bootstrap3 %}
+{% load i18n %}
+
+{% include 'editor/fragment_modal_close.html' %}
+<h3>{% trans 'Graph Editing Settings' %}</h3>
+
+<form action="{{ request.path }}" method="post">
+    {% csrf_token %}
+    {% bootstrap_form form %}
+    {% buttons %}
+        <button type="submit" accesskey="s" class="btn btn-primary pull-right">
+            {% trans 'Save' %}
+        </button>
+    {% endbuttons %}
+</form>
