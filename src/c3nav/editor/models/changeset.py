@@ -290,7 +290,8 @@ class ChangeSet(models.Model):
         for model, pks in object_pks.items():
             objects[model] = {pk: model(pk=pk) for pk in pks}
 
-        slug_submodels = tuple(model for model in object_pks.keys() if issubclass(model, LocationSlug))
+        slug_submodels = tuple(model for model in object_pks.keys()
+                               if model is not LocationSlug and issubclass(model, LocationSlug))
         if slug_submodels:
             object_pks[LocationSlug] = reduce(operator.or_, (object_pks[model] for model in slug_submodels))
         for model in slug_submodels:
