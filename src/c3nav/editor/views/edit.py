@@ -1,3 +1,4 @@
+import json
 import typing
 from contextlib import suppress
 
@@ -368,10 +369,14 @@ def graph_edit(request, level=None, space=None):
             'geometry_url': '/api/editor/geometries/?space='+str(space.pk),
         })
 
+    graph_editing_settings = {field.name: field.initial for field in GraphEditorSettingsForm()}
+    graph_editing_settings.update(request.session.get('graph_editing_settings', {}))
+
     ctx.update({
         'node_form': GraphNode.EditorForm(request=request),
         'edge_form': GraphEdge.EditorForm(request=request),
         'settings_form': GraphEditorSettingsForm(),
+        'graph_editing_settings': json.dumps(graph_editing_settings, separators=(',', ':'))
     })
 
     return render(request, 'editor/graph.html', ctx)
@@ -386,10 +391,11 @@ def graph_editing_settings(request):
         form = GraphEditorSettingsForm(data=request.POST)
         if form.is_valid():
             messages.success(request, _('Graph Editing Settings were successfully saved.'))
-        if request.POST.get('can_close_modal') == '1':
-            ctx['closemodal'] = True
+            request.session['graph_editing_settings'] = form.cleaned_data
+            if request.POST.get('can_close_modal') == '1':
+                ctx['closemodal'] = True
     else:
-        form = GraphEditorSettingsForm()
+        form = GraphEditorSettingsForm(data=request.session.get('graph_editing_settings', {}))
 
     ctx.update({
         'form': form,
