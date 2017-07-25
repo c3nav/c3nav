@@ -139,6 +139,11 @@ editor = {
             $('#navbar-collapse').find('.nav').html(nav.html());
         }
 
+        var graph_editing = content.find('[data-graph-editing]');
+        if (graph_editing.length) {
+            editor._graph_editing = graph_editing.attr('data-graph-editing');
+        }
+
         content.find('[data-toggle="tooltip"]').tooltip();
 
         var modal_close = content.find('[data-modal-close]');
@@ -486,12 +491,6 @@ editor = {
     _check_start_editing: function() {
         // called on sidebar load. start editing or creating depending on how the sidebar may require it
         var sidebarcontent = $('#sidebar').find('.content');
-
-        var graph_editing = sidebarcontent.find('[data-graph-editing]');
-        if (graph_editing.length) {
-            editor._graph_editing = graph_editing.attr('data-graph-editing');
-            return;
-        }
 
         var geometry_field = sidebarcontent.find('input[name=geometry]');
         if (geometry_field.length) {
