@@ -380,6 +380,17 @@ def graph_edit(request, level=None, space=None):
 @sidebar_view
 def graph_editing_settings(request):
     ctx = {
-        'form': GraphEditorSettingsForm(),
+        'closemodal': False,
     }
+    if request.method == 'POST':
+        form = GraphEditorSettingsForm(data=request.POST)
+        if form.is_valid():
+            messages.success(request, _('Graph Editing Settings were successfully saved.'))
+        ctx['closemodal'] = True
+    else:
+        form = GraphEditorSettingsForm()
+
+    ctx.update({
+        'form': form,
+    })
     return render(request, 'editor/graph_editing_settings.html', ctx)

@@ -146,6 +146,10 @@ editor = {
         if (!is_modal) {
             editor._last_non_modal_path = editor.get_location_path();
         } else if (editor._last_non_modal_path !== null) {
+            if (content.find('[data-close-modal-now]').length) {
+                editor.sidebar_get(editor._last_non_modal_path);
+                return;
+            }
             modal_close.attr('href', editor._last_non_modal_path).show();
         } else {
             modal_close.remove();
