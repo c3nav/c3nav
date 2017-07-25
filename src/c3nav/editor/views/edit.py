@@ -1,4 +1,3 @@
-import json
 import typing
 from contextlib import suppress
 
@@ -372,11 +371,13 @@ def graph_edit(request, level=None, space=None):
     graph_editing_settings = {field.name: field.initial for field in GraphEditorSettingsForm()}
     graph_editing_settings.update(request.session.get('graph_editing_settings', {}))
 
+    graph_editing = 'edit-nodes' if graph_editing_settings.get('click_anywhere') == 'noop' else 'edit-create-nodes'
+
     ctx.update({
         'node_form': GraphNode.EditorForm(request=request),
         'edge_form': GraphEdge.EditorForm(request=request),
         'settings_form': GraphEditorSettingsForm(),
-        'graph_editing_settings': json.dumps(graph_editing_settings, separators=(',', ':'))
+        'graph_editing': graph_editing,
     })
 
     return render(request, 'editor/graph.html', ctx)

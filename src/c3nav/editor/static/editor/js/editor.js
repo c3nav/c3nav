@@ -489,7 +489,7 @@ editor = {
 
         var graph_editing = sidebarcontent.find('[data-graph-editing]');
         if (graph_editing.length) {
-            editor._graph_editing = JSON.parse(graph_editing.attr('data-graph-editing'));
+            editor._graph_editing = graph_editing.attr('data-graph-editing');
             return;
         }
 
