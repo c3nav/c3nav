@@ -496,7 +496,6 @@ editor = {
         var geometry_field = sidebarcontent.find('input[name=geometry]');
         if (geometry_field.length) {
             var form = geometry_field.closest('form');
-            var mapitem_type = form.attr('data-new');
             if (editor._editing_layer !== null) {
                 editor._editing_layer.enableEdit();
                 if (editor._editing_layer.editor._resizeLatLng !== undefined) {
@@ -504,6 +503,7 @@ editor = {
                 }
             } else if (form.is('[data-new]')) {
                 // create new geometry
+                var mapitem_type = form.attr('data-new');
                 var options = editor._get_mapitem_type_style(mapitem_type);
                 form.addClass('creation-lock');
                 var geomtype = form.attr('data-geomtype');
