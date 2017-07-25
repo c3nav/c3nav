@@ -347,6 +347,11 @@ def graph_edit(request, level=None, space=None):
         'can_edit': can_edit,
     }
 
+    graph_editing_settings = {field.name: field.initial for field in GraphEditorSettingsForm()}
+    graph_editing_settings.update(request.session.get('graph_editing_settings', {}))
+
+    graph_editing = 'edit-nodes'
+
     if level is not None:
         level = get_object_or_404(Level.objects.filter(Level.q_for_request(request)), pk=level)
         ctx.update({
@@ -367,11 +372,6 @@ def graph_edit(request, level=None, space=None):
             'back_title': _('back to space'),
             'geometry_url': '/api/editor/geometries/?space='+str(space.pk),
         })
-
-    graph_editing_settings = {field.name: field.initial for field in GraphEditorSettingsForm()}
-    graph_editing_settings.update(request.session.get('graph_editing_settings', {}))
-
-    graph_editing = 'edit-nodes' if graph_editing_settings.get('click_anywhere') == 'noop' else 'edit-create-nodes'
 
     ctx.update({
         'node_form': GraphNode.EditorForm(request=request),
