@@ -394,7 +394,7 @@ editor = {
                         className: 'c3nav-highlight'
                     };
                 },
-                pointToLayer: editor._point_to_layer,
+                pointToLayer: editor._point_to_layer
             }).getLayers()[0].addTo(editor._highlight_layer);
             highlight_layer.list_elem = list_elem;
             editor._highlight_geometries[feature.properties.id] = highlight_layer;
