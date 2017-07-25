@@ -239,6 +239,7 @@ editor = {
     _highlight_geometries: {},
     _creating: false,
     _next_zoom: true,
+    _graph_editing: null,
     init_geometries: function () {
         // init geometries and edit listeners
         editor._highlight_layer = L.layerGroup().addTo(editor.map);
@@ -450,6 +451,7 @@ editor = {
         // dblclick callback for a geometry layer - edit this feature if the corresponding itemtable row exists
         if (editor._loading_geometry) return;
         e.target.list_elem.find('td:last-child a').click();
+        e.target.list_elem.find('td:last-child a').click();
         editor.map.doubleClickZoom.disable();
     },
     _highlight_geometry: function(id) {
@@ -484,6 +486,13 @@ editor = {
     _check_start_editing: function() {
         // called on sidebar load. start editing or creating depending on how the sidebar may require it
         var sidebarcontent = $('#sidebar').find('.content');
+
+        var graph_editing = sidebarcontent.find('[data-graph-editing]');
+        if (graph_editing.length) {
+            editor._graph_editing = JSON.parse(graph_editing.attr('data-graph-editing'));
+            return;
+        }
+
         var geometry_field = sidebarcontent.find('input[name=geometry]');
         if (geometry_field.length) {
             var form = geometry_field.closest('form');
@@ -516,6 +525,7 @@ editor = {
             editor._creating = false;
             editor.map.editTools.stopDrawing();
         }
+        editor._graph_editing = null;
         if (editor._editing_layer !== null) {
             editor._editing_layer.disableEdit();
             editor._editing_layer = null;
