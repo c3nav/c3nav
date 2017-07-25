@@ -386,7 +386,8 @@ def graph_editing_settings(request):
         form = GraphEditorSettingsForm(data=request.POST)
         if form.is_valid():
             messages.success(request, _('Graph Editing Settings were successfully saved.'))
-        ctx['closemodal'] = True
+        if request.POST.get('can_close_modal') == '1':
+            ctx['closemodal'] = True
     else:
         form = GraphEditorSettingsForm()
 

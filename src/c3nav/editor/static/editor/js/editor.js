@@ -223,6 +223,7 @@ editor = {
         }
         var action = $(this).attr('action');
         editor._sidebar_unload();
+        data += '&can_close_modal=' + ((editor._last_non_modal_path === null) ? '0' : '1');
         $.post(action, data, editor._sidebar_loaded).fail(editor._sidebar_error);
     },
 
