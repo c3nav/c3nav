@@ -1,4 +1,5 @@
 import json
+import typing
 
 from django.core.exceptions import ValidationError
 from django.core.validators import RegexValidator
@@ -48,17 +49,30 @@ class GeometryField(models.TextField):
     def to_python(self, value):
         if value is None:
             return None
-        return clean_geometry(shape(json.loads(value)))
+        try:
+            geometry = shape(json.loads(value))
+        except:
+            raise ValidationError(_('Invalid GeoJSON.'))
+        self._validate_geomtype(geometry)
+        try:
+            geometry = clean_geometry(geometry)
+        except:
+            raise ValidationError(_('Could not clean geometry.'))
+        self._validate_geomtype(geometry)
+        return geometry
+
+    def _validate_geomtype(self, value, exception: typing.Type[Exception]=ValidationError):
+        if self.geomtype == 'polygon' and not isinstance(value, Polygon):
+            raise exception('Expected Polygon instance, got %s instead.' % repr(value))
+        elif self.geomtype == 'linestring' and not isinstance(value, LineString):
+            raise exception('Expected LineString instance, got %s instead.' % repr(value))
+        elif self.geomtype == 'point' and not isinstance(value, Point):
+            raise exception('Expected Point instance, got %s instead.' % repr(value))
 
     def get_prep_value(self, value):
         if value is None:
             return None
-        elif self.geomtype == 'polygon' and not isinstance(value, Polygon):
-            raise TypeError('Expected Polygon instance, got %s instead.' % repr(value))
-        elif self.geomtype == 'linestring' and not isinstance(value, LineString):
-            raise TypeError('Expected LineString instance, got %s instead.' % repr(value))
-        elif self.geomtype == 'point' and not isinstance(value, Point):
-            raise TypeError('Expected Point instance, got %s instead.' % repr(value))
+        self._validate_geomtype(value, exception=TypeError)
         return json.dumps(format_geojson(mapping(value)))
 
 
