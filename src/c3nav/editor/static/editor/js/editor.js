@@ -349,6 +349,9 @@ editor = {
             if (remove_feature !== null) {
                 geometries.splice(remove_feature, 1);
             }
+            if (editor._graph_editing === null) {
+                geometries = geometries.filter(function(val) { return val.properties.type !== 'graphnode' })
+            }
             editor._geometries_layer = L.geoJSON(geometries, {
                 style: editor._get_geometry_style,
                 pointToLayer: editor._point_to_layer,
