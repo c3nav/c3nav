@@ -402,7 +402,7 @@ editor = {
                 style.color = '#ffffff';
             }
         } else {
-            if (editor._sublevel_control.current_level_id !== feature.properties.level) {
+            if (feature.properties.level !== undefined && editor._sublevel_control.current_level_id !== feature.properties.level) {
                 style.fillOpacity = 0.5;
             }
         }
