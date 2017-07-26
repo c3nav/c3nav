@@ -149,6 +149,7 @@ class EditorViewSet(ViewSet):
                 space.lineobstacles.all(),
                 space.columns.all(),
                 space.pois.filter(POI.q_for_request(request)).prefetch_related('groups'),
+                space.graphnodes.all(),
                 other_spaces_upper,
             )
             return Response(sum([self._get_geojsons(obj) for obj in results], ()))
@@ -174,6 +175,7 @@ class EditorViewSet(ViewSet):
             'column': '#888888',
             'poi': '#4488cc',
             'shadow': '#000000',
+            'graphnode': '#00bb00',
         })
 
     @list_route(methods=['get'])
