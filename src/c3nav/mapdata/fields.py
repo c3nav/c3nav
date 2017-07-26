@@ -47,7 +47,7 @@ class GeometryField(models.TextField):
         return shape(json.loads(value))
 
     def to_python(self, value):
-        if value is None:
+        if value is None or value == '':
             return None
         try:
             geometry = shape(json.loads(value))
