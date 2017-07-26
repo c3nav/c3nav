@@ -162,6 +162,33 @@ editor = {
             modal_close.remove();
         }
 
+        var active_graph_node = content.find('[data-active-node]');
+        if (active_graph_node.length) {
+            var active_graph_node_id = active_graph_node.attr('data-active-node');
+            if (active_graph_node_id !== '') {
+                if (active_graph_node_id === 'null') {
+                    editor._active_graph_node = null;
+                    editor._active_graph_node_space_transfer = null;
+                    editor._active_graph_node_html = null;
+                } else {
+                    editor._active_graph_node = active_graph_node_id;
+                    editor._active_graph_node_space_transfer = active_graph_node.is('data-space-transfer');
+                    editor._active_graph_node_html = active_graph_node.html();
+                }
+            } else if (editor._active_graph_node_html !== null) {
+                active_graph_node.html(editor._active_graph_node_html);
+            } else {
+                active_graph_node.remove();
+            }
+        } else if (!editor._active_graph_node_space_transfer && !editor._in_modal) {
+            editor._active_graph_node = null;
+            editor._active_graph_node_space_transfer = null;
+            editor._active_graph_node_html = null;
+        }
+        if (editor._active_graph_node !== null) {
+            content.find('#id_active_node').val(editor._active_graph_node);
+        }
+
         var geometry_url = content.find('[data-geometry-url]');
         var $body = $('body');
         if (geometry_url.length) {
@@ -249,6 +276,9 @@ editor = {
     _creating: false,
     _next_zoom: true,
     _graph_editing: null,
+    _active_graph_node: null,
+    _active_graph_node_space_transfer: null,
+    _active_graph_node_html: null,
     init_geometries: function () {
         // init geometries and edit listeners
         editor._highlight_layer = L.layerGroup().addTo(editor.map);
@@ -368,6 +398,11 @@ editor = {
             if (editor._sublevel_control.current_level_id !== feature.properties.level) {
                 style.fillOpacity = 0.5;
             }
+        }
+        if (feature.properties.type === 'graphnode' && feature.properties.id === editor._active_graph_node) {
+            style.stroke = true;
+            style.weight = 3;
+            style.color = '#ffff00';
         }
         if (feature.geometry.type === 'LineString') {
             style = editor._line_draw_geometry_style(style);

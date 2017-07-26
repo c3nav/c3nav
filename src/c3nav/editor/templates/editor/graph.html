@@ -23,6 +23,18 @@
 </p>
 {% bootstrap_messages %}
 
+{% if set_active_node %}
+    <div data-active-node="{% if active_node %}{{ active_node.pk }}{% else %}null{% endif %}"{% if active_node.space_transfer %} data-space-transfer{% endif %} class="well well-sm">
+        <strong>{% trans 'Active node:' %} {{ active_node.pk }}</strong>{% if active_node.space_transfer %} <em>({% trans 'space transfer node' %})</em>{% endif %}<br>
+        {% with space_title=active_node.space.title level_title=active_node.space.level.title %}
+            {% blocktrans %}in space {{ space_title }}{% endblocktrans %}<br>
+            {% blocktrans %}on level {{ level_title }}{% endblocktrans %}
+        {% endwith %}
+    </div>
+{% else %}
+    <div data-active-node class="well well-sm"></div>
+{% endif %}
+
 <form action="{{ request.path }}" method="post" data-graph-editing="{{ graph_editing }}" {% if nozoom %}data-nozoom {% endif %}>
     {% csrf_token %}
 

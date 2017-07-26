@@ -384,11 +384,17 @@ def graph_edit(request, level=None, space=None):
         graph_action_form = GraphEditorActionForm(request=request, allow_clicked_position=allow_clicked_position,
                                                   data=request.POST)
         if node_settings_form.is_valid() and edge_settings_form.is_valid() and graph_action_form.is_valid():
+            set_active_node = False
             active_node = graph_action_form.cleaned_data['active_node']
             clicked_node = graph_action_form.cleaned_data['clicked_node']
             clicked_position = graph_action_form.cleaned_data.get('clicked_position')
             if clicked_node is not None and clicked_position is None:
-                raise NotImplementedError
+                node_click_setting = graph_editing_settings['node_click']
+                if node_click_setting == 'connect_or_toggle':
+                    set_active_node = True
+                    active_node = clicked_node
+                else:
+                    raise NotImplementedError
             elif clicked_node is None and clicked_position is not None:
                 click_anywhere_setting = graph_editing_settings['click_anywhere']
                 if click_anywhere_setting != 'create_node_if_none_active' or active_node is None:
@@ -402,6 +408,12 @@ def graph_edit(request, level=None, space=None):
                             else:
                                 messages.error(request, _('You can not edit changes on this changeset.'))
                         messages.success(request, _('New graph node created!'))
+
+            if set_active_node:
+                ctx.update({
+                    'set_active_node': set_active_node,
+                    'active_node': active_node,
+                })
 
         ctx.update({
             'nozoom': True,
