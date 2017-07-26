@@ -217,7 +217,7 @@ class GraphEditorActionForm(Form):
 
         GraphNode = self.request.changeset.wrap_model('GraphNode')
         graph_node_qs = GraphNode.objects.all()
-        self.fields['active_node'] = ModelChoiceField(graph_node_qs, widget=HiddenInput(), required=True)
+        self.fields['active_node'] = ModelChoiceField(graph_node_qs, widget=HiddenInput(), required=False)
         self.fields['clicked_node'] = ModelChoiceField(graph_node_qs, widget=HiddenInput(), required=False)
 
         if allow_clicked_position:
