@@ -19,6 +19,12 @@ class GraphNode(SpaceGeometryMixin, models.Model):
         verbose_name_plural = _('Graph Nodes')
         default_related_name = 'graphnodes'
 
+    def get_geojson_properties(self, *args, **kwargs) -> dict:
+        result = super().get_geojson_properties(*args, **kwargs)
+        if self.space_transfer:
+            result['space_transfer'] = True
+        return result
+
 
 class WayType(TitledMixin, models.Model):
     """

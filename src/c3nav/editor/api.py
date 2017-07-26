@@ -175,7 +175,8 @@ class EditorViewSet(ViewSet):
             'column': '#888888',
             'poi': '#4488cc',
             'shadow': '#000000',
-            'graphnode': '#00bb00',
+            'graphnode': '#00BB00',
+            'graphnode__space_transfer': '#008800',
         })
 
     @list_route(methods=['get'])

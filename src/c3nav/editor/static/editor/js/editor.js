@@ -389,6 +389,9 @@ editor = {
     _get_geometry_style: function (feature) {
         // style callback for GeoJSON loader
         var style = editor._get_mapitem_type_style(feature.properties.type);
+        if (feature.properties.space_transfer) {
+            style = editor._get_mapitem_type_style('graphnode__space_transfer');
+        }
         if (editor._level_control.current_level_id === editor._sublevel_control.current_level_id) {
             if (editor._sublevel_control.level_ids.indexOf(feature.properties.level) >= 0 && editor._level_control.current_level_id !== feature.properties.level) {
                 style.stroke = true;
