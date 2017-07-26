@@ -21,6 +21,11 @@
 <p>
     <a href="{{ back_url }}">&laquo; {{ back_title }}</a>
 </p>
+{% if parent_url %}
+    <p>
+        <a href="{{ parent_url }}">&laquo; {{ parent_title }}</a>
+    </p>
+{% endif %}
 {% bootstrap_messages %}
 
 {% if set_active_node %}
@@ -35,7 +40,7 @@
     <div data-active-node class="well well-sm"></div>
 {% endif %}
 
-<form action="{{ request.path }}" method="post" data-graph-editing="{{ graph_editing }}" {% if nozoom %}data-nozoom {% endif %}>
+<form action="{{ request.path }}" method="post" data-graph-editing="{{ graph_editing }}" data-nozoom>
     {% csrf_token %}
 
     <h4>{% trans 'Default node properties' %}</h4>

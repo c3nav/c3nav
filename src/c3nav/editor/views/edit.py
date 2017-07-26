@@ -372,6 +372,8 @@ def graph_edit(request, level=None, space=None):
             'level': space.level,
             'back_url': reverse('editor.spaces.detail', kwargs={'level': space.level.pk, 'pk': space.pk}),
             'back_title': _('back to space'),
+            'parent_url': reverse('editor.levels.graph', kwargs={'level': space.level.pk}),
+            'parent_title': _('to level graph'),
             'geometry_url': '/api/editor/geometries/?space='+str(space.pk),
         })
         if graph_editing_settings['click_anywhere'] != 'noop':
@@ -418,10 +420,6 @@ def graph_edit(request, level=None, space=None):
                     'set_active_node': set_active_node,
                     'active_node': active_node,
                 })
-
-        ctx.update({
-            'nozoom': True,
-        })
     else:
         node_settings_form = GraphNodeSettingsForm()
         edge_settings_form = GraphEdgeSettingsForm(request=request)

@@ -610,6 +610,7 @@ editor = {
     _dblclick_graph_other_space: function(e) {
         // click callback for an other graph space
         if (editor._loading_geometry) return;
+        editor._next_zoom = true;
         $('#id_goto_space').val(e.target.feature.properties.id).closest('form').submit();
         editor.map.doubleClickZoom.disable();
     },
