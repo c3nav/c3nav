@@ -47,6 +47,8 @@ class EditorViewSet(ViewSet):
             results.append(door)
 
         results.extend(spaces.values())
+        for space in spaces.values():
+            results.extend(space.graphnodes.all())
         return results
 
     @staticmethod
@@ -83,10 +85,12 @@ class EditorViewSet(ViewSet):
             levels, levels_on_top, levels_under = self._get_levels_pk(request, level)
             # don't prefetch groups for now as changesets do not yet work with m2m-prefetches
             levels = Level.objects.filter(pk__in=levels).filter(Level.q_for_request(request))
+            graphnodes = request.changeset.wrap_model('GraphNode').objects.filter(space_transfer=True)
             levels = levels.prefetch_related(
                 Prefetch('spaces', request.changeset.wrap_model('Space').objects.filter(Space.q_for_request(request))),
                 Prefetch('doors', request.changeset.wrap_model('Door').objects.filter(Door.q_for_request(request))),
-                'buildings', 'spaces__holes', 'spaces__groups', 'spaces__columns'
+                'buildings', 'spaces__holes', 'spaces__groups', 'spaces__columns',
+                Prefetch('spaces__graphnodes', graphnodes)
             )
 
             levels = {s.pk: s for s in levels}
