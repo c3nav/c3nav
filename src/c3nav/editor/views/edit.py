@@ -372,6 +372,8 @@ def graph_edit(request, level=None, space=None):
             'back_title': _('back to space'),
             'geometry_url': '/api/editor/geometries/?space='+str(space.pk),
         })
+        if graph_editing_settings['click_anywhere'] != 'noop':
+            graph_editing = 'edit-create-nodes'
 
     ctx.update({
         'node_form': GraphNode.EditorForm(request=request),
