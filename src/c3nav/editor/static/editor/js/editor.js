@@ -521,7 +521,6 @@ editor = {
 
     // graph events
     _hover_graph_node: function(e) {
-        console.log(e.target);
         // hover callback for a graph node
         if (editor._loading_geometry) return;
         e.target.setStyle({
