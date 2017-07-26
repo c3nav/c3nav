@@ -366,6 +366,7 @@ editor = {
                 });
             }
             editor._next_zoom = null;
+            editor.map.doubleClickZoom.enable();
 
             editor._check_start_editing();
         });
@@ -462,8 +463,7 @@ editor = {
                         };
                     }
                 }).getLayers()[0].addTo(editor._highlight_layer);
-                space_layer.on('click', editor._click_graph_space)
-                    .on('dblclick', editor._dblclick_graph_item);
+                space_layer.on('click', editor._click_graph_space);
             }
         } else if (feature.properties.type === 'graphnode' && editor._graph_editing !== null) {
             var node_layer = L.geoJSON(layer.feature, {
@@ -479,8 +479,7 @@ editor = {
             }).getLayers()[0].addTo(editor._highlight_layer);
             node_layer.on('mouseover', editor._hover_graph_node)
                 .on('mouseout', editor._unhover_graph_node)
-                .on('click', editor._click_graph_node)
-                .on('dblclick', editor._dblclick_graph_item);
+                .on('click', editor._click_graph_node);
         }
     },
 
@@ -578,15 +577,12 @@ editor = {
         // click callback for a graph space
         if (editor._loading_geometry) return;
         $('#id_clicked_position').val(JSON.stringify(L.marker(e.latlng).toGeoJSON().geometry)).closest('form').submit();
+        editor.map.doubleClickZoom.disable();
     },
     _click_graph_node: function(e) {
         // click callback for a graph node
         if (editor._loading_geometry) return;
         $('#id_clicked_node').val(e.target.feature.properties.id).closest('form').submit();
-    },
-    _dblclick_graph_item: function() {
-        // dblclick callback for a graph items… disable doubleclick zoom
-        if (editor._loading_geometry) return;
         editor.map.doubleClickZoom.disable();
     },
 
