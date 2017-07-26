@@ -189,7 +189,8 @@ form button.invisiblesubmit {
 .leaflet-editable-drawing .leaflet-overlay-pane .leaflet-interactive, #map .leaflet-overlay-pane .c3nav-graph-space {
     cursor:crosshair;
 }
-#map .leaflet-overlay-pane .c3nav-highlight, #map .leaflet-overlay-pane .c3nav-graph-node {
+#map .leaflet-overlay-pane .c3nav-highlight, #map .leaflet-overlay-pane .c3nav-graph-node,
+#map .leaflet-overlay-pane .c3nav-graph-other-space {
     cursor:pointer;
 }
 .leaflet-overlay-pane .leaflet-image-layer {

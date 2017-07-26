@@ -494,7 +494,7 @@ editor = {
                         weight: 3,
                         opacity: 0,
                         fillOpacity: 0,
-                        className: 'c3nav-graph-goto-space'
+                        className: 'c3nav-graph-other-space'
                     };
                 },
                 pointToLayer: editor._point_to_layer
