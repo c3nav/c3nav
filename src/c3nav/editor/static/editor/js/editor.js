@@ -72,6 +72,7 @@ editor = {
 
     // sidebar
     _last_non_modal_path: null,
+    _last_graph_path: null,
     get_location_path: function () {
         return window.location.pathname + window.location.search;
     },
@@ -140,11 +141,6 @@ editor = {
             $('#navbar-collapse').find('.nav').html(nav.html());
         }
 
-        var graph_editing = content.find('[data-graph-editing]');
-        if (graph_editing.length) {
-            editor._graph_editing = graph_editing.attr('data-graph-editing');
-        }
-
         content.find('[data-toggle="tooltip"]').tooltip();
 
         var modal_close = content.find('[data-modal-close]');
@@ -163,7 +159,7 @@ editor = {
         }
 
         var active_graph_node = content.find('[data-active-node]');
-        if (!editor._active_graph_node_space_transfer) {
+        if (!editor._active_graph_node_space_transfer && !editor._in_modal && editor._last_graph_path !== editor.get_location_path()) {
             editor._active_graph_node = null;
             editor._active_graph_node_space_transfer = null;
             editor._active_graph_node_html = null;
@@ -188,6 +184,14 @@ editor = {
         }
         if (editor._active_graph_node !== null) {
             content.find('#id_active_node').val(editor._active_graph_node);
+        }
+
+        var graph_editing = content.find('[data-graph-editing]');
+        if (graph_editing.length) {
+            editor._graph_editing = graph_editing.attr('data-graph-editing');
+            editor._last_graph_path = editor.get_location_path();
+        } else if (!editor._in_modal) {
+            editor._last_graph_path = null;
         }
 
         var geometry_url = content.find('[data-geometry-url]');
@@ -350,7 +354,7 @@ editor = {
             if (remove_feature !== null) {
                 geometries.splice(remove_feature, 1);
             }
-            if (editor._graph_editing === null) {
+            if (editor._last_graph_path === null) {
                 geometries = geometries.filter(function(val) { return val.properties.type !== 'graphnode' })
             }
             editor._geometries_layer = L.geoJSON(geometries, {
