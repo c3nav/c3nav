@@ -378,6 +378,8 @@ def graph_edit(request, level=None, space=None):
         })
         if graph_editing_settings['click_anywhere'] != 'noop':
             graph_editing = 'edit-create-nodes'
+            if graph_editing_settings['click_anywhere'] == 'create_node_if_none_active':
+                graph_editing = 'edit-create-if-none-active-nodes'
             allow_clicked_position = True
 
     if request.method == 'POST':

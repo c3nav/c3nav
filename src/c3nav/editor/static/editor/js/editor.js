@@ -188,7 +188,11 @@ editor = {
 
         var graph_editing = content.find('[data-graph-editing]');
         if (graph_editing.length) {
-            editor._graph_editing = graph_editing.attr('data-graph-editing');
+            graph_editing = graph_editing.attr('data-graph-editing');
+            editor._graph_editing = true;
+            editor._graph_creating = (graph_editing === 'edit-create-nodes' ||
+                                      (graph_editing === 'edit-create-if-none-active-nodes' &&
+                                       editor._active_graph_node === null));
             editor._last_graph_path = editor.get_location_path();
         } else if (!editor._in_modal) {
             editor._last_graph_path = null;
@@ -280,7 +284,8 @@ editor = {
     _highlight_geometries: {},
     _creating: false,
     _next_zoom: true,
-    _graph_editing: null,
+    _graph_editing: false,
+    _graph_creating: false,
     _active_graph_node: null,
     _active_graph_node_space_transfer: null,
     _active_graph_node_html: null,
@@ -463,7 +468,7 @@ editor = {
             editor._bounds_layer = layer;
         } else if (feature.properties.bounds === true) {
             editor._bounds_layer = layer;
-            if (editor._graph_editing === 'edit-create-nodes') {
+            if (editor._graph_creating) {
                 var space_layer = L.geoJSON(layer.feature, {
                     style: function() {
                         return {
@@ -476,7 +481,7 @@ editor = {
                 }).getLayers()[0].addTo(editor._highlight_layer);
                 space_layer.on('click', editor._click_graph_current_space);
             }
-        } else if (feature.properties.type === 'graphnode' && editor._graph_editing !== null) {
+        } else if (feature.properties.type === 'graphnode' && editor._graph_editing) {
             var node_layer = L.geoJSON(layer.feature, {
                 style: function() {
                     return {
@@ -491,8 +496,7 @@ editor = {
             node_layer.on('mouseover', editor._hover_graph_item)
                 .on('mouseout', editor._unhover_graph_item)
                 .on('click', editor._click_graph_node);
-        } else if (feature.properties.type === 'space' && editor._graph_editing !== null &&
-                   (editor._sublevel_control.current_level_id === feature.properties.level || editor._graph_editing === 'edit-nodes')) {
+        } else if (feature.properties.type === 'space' && !editor._graph_creating) {
             var other_space_layer = L.geoJSON(layer.feature, {
                 style: function() {
                     return {
@@ -657,7 +661,8 @@ editor = {
             editor._creating = false;
             editor.map.editTools.stopDrawing();
         }
-        editor._graph_editing = null;
+        editor._graph_editing = false;
+        editor._graph_creating = false;
         if (editor._editing_layer !== null) {
             editor._editing_layer.disableEdit();
             editor._editing_layer = null;
