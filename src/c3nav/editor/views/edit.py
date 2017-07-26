@@ -384,6 +384,10 @@ def graph_edit(request, level=None, space=None):
         graph_action_form = GraphEditorActionForm(request=request, allow_clicked_position=allow_clicked_position,
                                                   data=request.POST)
         if node_settings_form.is_valid() and edge_settings_form.is_valid() and graph_action_form.is_valid():
+            goto_space = graph_action_form.cleaned_data['goto_space']
+            if goto_space is not None:
+                return redirect(reverse('editor.spaces.graph', kwargs={'space': goto_space.pk}))
+
             set_active_node = False
             active_node = graph_action_form.cleaned_data['active_node']
             clicked_node = graph_action_form.cleaned_data['clicked_node']

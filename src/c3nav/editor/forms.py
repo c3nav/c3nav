@@ -223,6 +223,10 @@ class GraphEditorActionForm(Form):
         if allow_clicked_position:
             self.fields['clicked_position'] = CharField(widget=HiddenInput(), required=False)
 
+        Space = self.request.changeset.wrap_model('Space')
+        space_qs = Space.objects.all()
+        self.fields['goto_space'] = ModelChoiceField(space_qs, widget=HiddenInput(), required=False)
+
     def clean_clicked_position(self):
         return GeometryField(geomtype='point').to_python(self.cleaned_data['clicked_position'])
 

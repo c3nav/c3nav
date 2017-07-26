@@ -469,7 +469,7 @@ editor = {
                         };
                     }
                 }).getLayers()[0].addTo(editor._highlight_layer);
-                space_layer.on('click', editor._click_graph_space);
+                space_layer.on('click', editor._click_graph_current_space);
             }
         } else if (feature.properties.type === 'graphnode' && editor._graph_editing !== null) {
             var node_layer = L.geoJSON(layer.feature, {
@@ -483,9 +483,24 @@ editor = {
                 },
                 pointToLayer: editor._point_to_layer
             }).getLayers()[0].addTo(editor._highlight_layer);
-            node_layer.on('mouseover', editor._hover_graph_node)
-                .on('mouseout', editor._unhover_graph_node)
+            node_layer.on('mouseover', editor._hover_graph_item)
+                .on('mouseout', editor._unhover_graph_item)
                 .on('click', editor._click_graph_node);
+        } else if (feature.properties.type === 'space' && editor._graph_editing !== null) {
+            var other_space_layer = L.geoJSON(layer.feature, {
+                style: function() {
+                    return {
+                        weight: 3,
+                        opacity: 0,
+                        fillOpacity: 0,
+                        className: 'c3nav-graph-goto-space'
+                    };
+                },
+                pointToLayer: editor._point_to_layer
+            }).getLayers()[0].addTo(editor._highlight_layer);
+            other_space_layer.on('mouseover', editor._hover_graph_item)
+                .on('mouseout', editor._unhover_graph_item)
+                .on('dblclick', editor._dblclick_graph_other_space);
         }
     },
 
@@ -560,7 +575,7 @@ editor = {
     },
 
     // graph events
-    _hover_graph_node: function(e) {
+    _hover_graph_item: function(e) {
         // hover callback for a graph node
         if (editor._loading_geometry) return;
         e.target.setStyle({
@@ -570,7 +585,7 @@ editor = {
             fillOpacity: 0
         });
     },
-    _unhover_graph_node: function(e) {
+    _unhover_graph_item: function(e) {
         // unhover callback for a graph node
         if (editor._loading_geometry) return;
         e.target.setStyle({
@@ -579,8 +594,8 @@ editor = {
             fillOpacity: 0
         });
     },
-    _click_graph_space: function(e) {
-        // click callback for a graph space
+    _click_graph_current_space: function(e) {
+        // click callback for a current graph space
         if (editor._loading_geometry) return;
         $('#id_clicked_position').val(JSON.stringify(L.marker(e.latlng).toGeoJSON().geometry)).closest('form').submit();
         editor.map.doubleClickZoom.disable();
@@ -589,6 +604,12 @@ editor = {
         // click callback for a graph node
         if (editor._loading_geometry) return;
         $('#id_clicked_node').val(e.target.feature.properties.id).closest('form').submit();
+        editor.map.doubleClickZoom.disable();
+    },
+    _dblclick_graph_other_space: function(e) {
+        // click callback for an other graph space
+        if (editor._loading_geometry) return;
+        $('#id_goto_space').val(e.target.feature.properties.id).closest('form').submit();
         editor.map.doubleClickZoom.disable();
     },
 
