@@ -163,6 +163,11 @@ editor = {
         }
 
         var active_graph_node = content.find('[data-active-node]');
+        if (!editor._active_graph_node_space_transfer) {
+            editor._active_graph_node = null;
+            editor._active_graph_node_space_transfer = null;
+            editor._active_graph_node_html = null;
+        }
         if (active_graph_node.length) {
             var active_graph_node_id = active_graph_node.attr('data-active-node');
             if (active_graph_node_id !== '') {
@@ -172,7 +177,7 @@ editor = {
                     editor._active_graph_node_html = null;
                 } else {
                     editor._active_graph_node = active_graph_node_id;
-                    editor._active_graph_node_space_transfer = active_graph_node.is('data-space-transfer');
+                    editor._active_graph_node_space_transfer = active_graph_node.is('[data-space-transfer]');
                     editor._active_graph_node_html = active_graph_node.html();
                 }
             } else if (editor._active_graph_node_html !== null) {
@@ -180,10 +185,6 @@ editor = {
             } else {
                 active_graph_node.remove();
             }
-        } else if (!editor._active_graph_node_space_transfer && !editor._in_modal) {
-            editor._active_graph_node = null;
-            editor._active_graph_node_space_transfer = null;
-            editor._active_graph_node_html = null;
         }
         if (editor._active_graph_node !== null) {
             content.find('#id_active_node').val(editor._active_graph_node);
