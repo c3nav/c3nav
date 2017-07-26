@@ -135,6 +135,7 @@ class EditorViewSet(ViewSet):
             for other_space in other_spaces:
                 if other_space.outside:
                     other_space.geometry = other_space.geometry.difference(buildings_geom)
+            for other_space in chain(other_spaces, other_spaces_lower, other_spaces_upper):
                 other_space.opacity = 0.4
                 other_space.color = '#ffffff'
             for building in buildings:
