@@ -117,7 +117,10 @@ class EditorViewSet(ViewSet):
             doors_space_geom = cascaded_union([door.geometry for door in doors]+[space.geometry])
 
             levels, levels_on_top, levels_under = self._get_levels_pk(request, level.primary_level)
-            other_spaces = Space.objects.filter(space_q_for_request, level__pk__in=levels).prefetch_related('groups')
+            graphnodes = request.changeset.wrap_model('GraphNode').objects.filter(space_transfer=True)
+            other_spaces = Space.objects.filter(space_q_for_request, level__pk__in=levels).prefetch_related(
+                'groups', Prefetch('graphnodes', graphnodes)
+            )
             other_spaces = [s for s in other_spaces
                             if s.geometry.intersects(doors_space_geom) and s.pk != space.pk]
             if level.on_top_of_id is None:
@@ -144,8 +147,10 @@ class EditorViewSet(ViewSet):
             results = chain(
                 buildings,
                 other_spaces_lower,
+                chain(*(space.graphnodes.all() for space in other_spaces_lower)),
                 doors,
                 other_spaces,
+                chain(*(space.graphnodes.all() for space in other_spaces)),
                 [space],
                 space.areas.filter(Area.q_for_request(request)).prefetch_related('groups'),
                 space.holes.all(),
@@ -156,6 +161,7 @@ class EditorViewSet(ViewSet):
                 space.pois.filter(POI.q_for_request(request)).prefetch_related('groups'),
                 space.graphnodes.all(),
                 other_spaces_upper,
+                chain(*(space.graphnodes.all() for space in other_spaces_upper)),
             )
             return Response(sum([self._get_geojsons(obj) for obj in results], ()))
         else:
