@@ -121,6 +121,7 @@ editor = {
         }
         level_control.current_id = parseInt(level_list.attr('data-current-id'));
     },
+    _in_modal: false,
     _sidebar_loaded: function(data) {
         // sidebar was loaded. load the content. check if there are any redirects. call _check_start_editing.
         var content = $('#sidebar').removeClass('loading').find('.content');
@@ -148,6 +149,7 @@ editor = {
 
         var modal_close = content.find('[data-modal-close]');
         var is_modal = (modal_close.length > 0);
+        editor._in_modal = is_modal;
         if (!is_modal) {
             editor._last_non_modal_path = editor.get_location_path();
         } else if (editor._last_non_modal_path !== null) {
@@ -228,7 +230,9 @@ editor = {
         }
         var action = $(this).attr('action');
         editor._sidebar_unload();
-        data += '&can_close_modal=' + ((editor._last_non_modal_path === null) ? '0' : '1');
+        if (editor._in_modal) {
+            data += '&can_close_modal=' + ((editor._last_non_modal_path === null) ? '0' : '1');
+        }
         $.post(action, data, editor._sidebar_loaded).fail(editor._sidebar_error);
     },
 
