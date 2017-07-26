@@ -5,7 +5,8 @@ from functools import reduce
 
 from django.conf import settings
 from django.core.exceptions import FieldDoesNotExist
-from django.forms import BooleanField, CharField, ChoiceField, Form, ModelForm, MultipleChoiceField, ValidationError
+from django.forms import BooleanField, CharField, ChoiceField, Form, ModelForm, MultipleChoiceField, ValidationError, \
+    ModelChoiceField
 from django.forms.widgets import HiddenInput
 from django.utils.text import format_lazy
 from django.utils.translation import ugettext_lazy as _
@@ -13,6 +14,8 @@ from django.utils.translation import get_language_info
 from shapely.geometry.geo import mapping
 
 from c3nav.editor.models import ChangeSet, ChangeSetUpdate
+from c3nav.mapdata.fields import GeometryField
+from c3nav.mapdata.models import GraphNode, GraphEdge
 
 
 class EditorFormBase(ModelForm):
@@ -160,7 +163,7 @@ def create_editor_form(editor_model):
     possible_fields = ['slug', 'name', 'altitude', 'category', 'width', 'groups', 'color', 'priority', 'waytype',
                        'access_restriction', 'space_transfer', 'can_search', 'can_describe', 'outside', 'geometry',
                        'single', 'allow_levels', 'allow_spaces', 'allow_areas', 'allow_pois',
-                       'left', 'top', 'right', 'bottom', 'from_node', 'to_node']
+                       'left', 'top', 'right', 'bottom']
     field_names = [field.name for field in editor_model._meta.get_fields() if not field.one_to_many]
     existing_fields = [name for name in possible_fields if name in field_names]
 
@@ -185,6 +188,43 @@ class RejectForm(ModelForm):
     class Meta:
         model = ChangeSetUpdate
         fields = ('comment', )
+
+
+class GraphNodeSettingsForm(ModelForm):
+    class Meta:
+        model = GraphNode
+        fields = ('space_transfer', )
+
+
+class GraphEdgeSettingsForm(ModelForm):
+    class Meta:
+        model = GraphEdge
+        fields = ('waytype', 'access_restriction', )
+
+    def __init__(self, *args, request=None, **kwargs):
+        self.request = request
+        super().__init__(*args, **kwargs)
+
+        AccessRestriction = self.request.changeset.wrap_model('AccessRestriction')
+        self.fields['access_restriction'].label_from_instance = lambda obj: obj.title
+        self.fields['access_restriction'].queryset = AccessRestriction.qs_for_request(self.request)
+
+
+class GraphEditorActionForm(Form):
+    def __init__(self, *args, request=None, allow_clicked_position=False, **kwargs):
+        self.request = request
+        super().__init__(*args, **kwargs)
+
+        GraphNode = self.request.changeset.wrap_model('GraphNode')
+        graph_node_qs = GraphNode.objects.all()
+        self.fields['active_node'] = ModelChoiceField(graph_node_qs, widget=HiddenInput(), required=True)
+        self.fields['clicked_node'] = ModelChoiceField(graph_node_qs, widget=HiddenInput(), required=False)
+
+        if allow_clicked_position:
+            self.fields['clicked_position'] = CharField(widget=HiddenInput(), required=False)
+
+    def clean_clicked_position(self):
+        return GeometryField(geomtype='point').to_python(self.cleaned_data['clicked_position'])
 
 
 class GraphEditorSettingsForm(Form):

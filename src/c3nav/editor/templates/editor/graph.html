@@ -23,8 +23,12 @@
 </p>
 {% bootstrap_messages %}
 
-<h4>{% trans 'Default node properties' %}</h4>
-{% bootstrap_form node_form %}
+<form action="{{ request.path }}" method="post">
+    <h4>{% trans 'Default node properties' %}</h4>
+    {% bootstrap_form node_settings_form %}
 
-<h4>{% trans 'Default edge properties' %}</h4>
-{% bootstrap_form edge_form %}
+    <h4>{% trans 'Default edge properties' %}</h4>
+    {% bootstrap_form edge_settings_form %}
+
+    {% bootstrap_form graph_action_form %}
+</form>

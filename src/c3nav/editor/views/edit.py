@@ -8,7 +8,8 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.utils.translation import ugettext_lazy as _
 
-from c3nav.editor.forms import GraphEditorSettingsForm
+from c3nav.editor.forms import GraphEditorSettingsForm, GraphEdgeSettingsForm, GraphNodeSettingsForm, \
+    GraphEditorActionForm
 from c3nav.editor.views.base import sidebar_view
 
 
@@ -351,6 +352,7 @@ def graph_edit(request, level=None, space=None):
     graph_editing_settings.update(request.session.get('graph_editing_settings', {}))
 
     graph_editing = 'edit-nodes'
+    allow_clicked_position = False
 
     if level is not None:
         level = get_object_or_404(Level.objects.filter(Level.q_for_request(request)), pk=level)
@@ -374,11 +376,24 @@ def graph_edit(request, level=None, space=None):
         })
         if graph_editing_settings['click_anywhere'] != 'noop':
             graph_editing = 'edit-create-nodes'
+            allow_clicked_position = True
+
+    if request.method == 'POST':
+        node_settings_form = GraphNodeSettingsForm(data=request.POST)
+        edge_settings_form = GraphEdgeSettingsForm(request=request, data=request.POST)
+        graph_action_form = GraphEditorActionForm(request=request, allow_clicked_position=allow_clicked_position,
+                                                  data=request.POST)
+        if node_settings_form.is_valid() and edge_settings_form.is_valid() and graph_action_form.is_valid():
+            messages.success(request, _('Forms valid!'))
+    else:
+        node_settings_form = GraphNodeSettingsForm()
+        edge_settings_form = GraphEdgeSettingsForm(request=request)
+        graph_action_form = GraphEditorActionForm(request=request, allow_clicked_position=allow_clicked_position)
 
     ctx.update({
-        'node_form': GraphNode.EditorForm(request=request),
-        'edge_form': GraphEdge.EditorForm(request=request),
-        'settings_form': GraphEditorSettingsForm(),
+        'node_settings_form': node_settings_form,
+        'edge_settings_form': edge_settings_form,
+        'graph_action_form': graph_action_form,
         'graph_editing': graph_editing,
     })
 
