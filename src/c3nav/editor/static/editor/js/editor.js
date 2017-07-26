@@ -412,6 +412,36 @@ editor = {
             editor._bounds_layer = layer;
         } else if (feature.properties.bounds === true) {
             editor._bounds_layer = layer;
+            if (editor._graph_editing === 'edit-create-nodes') {
+                var space_layer = L.geoJSON(layer.feature, {
+                    style: function() {
+                        return {
+                            weight: 0,
+                            opacity: 0,
+                            fillOpacity: 0,
+                            className: 'c3nav-graph-space'
+                        };
+                    }
+                }).getLayers()[0].addTo(editor._highlight_layer);
+                space_layer.on('click', editor._click_graph_space)
+                    .on('dblclick', editor._dblclick_graph_item);
+            }
+        } else if (feature.properties.type === 'graphnode' && editor._graph_editing !== null) {
+            var node_layer = L.geoJSON(layer.feature, {
+                style: function() {
+                    return {
+                        weight: 3,
+                        opacity: 0,
+                        fillOpacity: 0,
+                        className: 'c3nav-graph-node'
+                    };
+                },
+                pointToLayer: editor._point_to_layer
+            }).getLayers()[0].addTo(editor._highlight_layer);
+            node_layer.on('mouseover', editor._hover_graph_node)
+                .on('mouseout', editor._unhover_graph_node)
+                .on('click', editor._click_graph_node)
+                .on('dblclick', editor._dblclick_graph_item);
         }
     },
 
@@ -467,8 +497,7 @@ editor = {
                 color: '#FFFFDD',
                 weight: 3,
                 opacity: 1,
-                fillOpacity: 0,
-                className: 'c3nav-highlight'
+                fillOpacity: 0
             });
             geometry.list_elem.addClass('highlight');
         }
@@ -480,11 +509,47 @@ editor = {
             geometry.setStyle({
                 weight: 3,
                 opacity: 0,
-                fillOpacity: 0,
-                className: 'c3nav-highlight'
+                fillOpacity: 0
             });
             geometry.list_elem.removeClass('highlight');
         }
+    },
+
+    // graph events
+    _hover_graph_node: function(e) {
+        console.log(e.target);
+        // hover callback for a graph node
+        if (editor._loading_geometry) return;
+        e.target.setStyle({
+            color: '#FFFFDD',
+            weight: 3,
+            opacity: 1,
+            fillOpacity: 0
+        });
+    },
+    _unhover_graph_node: function(e) {
+        // unhover callback for a graph node
+        if (editor._loading_geometry) return;
+        e.target.setStyle({
+            weight: 3,
+            opacity: 0,
+            fillOpacity: 0
+        });
+    },
+    _click_graph_space: function(e) {
+        // click callback for a graph space
+        if (editor._loading_geometry) return;
+        console.log('graph space clicked!');
+    },
+    _click_graph_node: function(e) {
+        // click callback for a graph node
+        if (editor._loading_geometry) return;
+        console.log('graph node clicked!');
+    },
+    _dblclick_graph_item: function() {
+        // dblclick callback for a graph items… disable doubleclick zoom
+        if (editor._loading_geometry) return;
+        editor.map.doubleClickZoom.disable();
     },
 
     // edit and create geometries
