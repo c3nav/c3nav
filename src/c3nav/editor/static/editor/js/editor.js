@@ -547,7 +547,7 @@ editor = {
     _click_graph_node: function(e) {
         // click callback for a graph node
         if (editor._loading_geometry) return;
-        $('#id_licked_node').val(e.target.feature.properties.id).closest('form').submit();
+        $('#id_clicked_node').val(e.target.feature.properties.id).closest('form').submit();
     },
     _dblclick_graph_item: function() {
         // dblclick callback for a graph items… disable doubleclick zoom
