@@ -24,6 +24,8 @@
 {% bootstrap_messages %}
 
 <form action="{{ request.path }}" method="post">
+    {% csrf_token %}
+
     <h4>{% trans 'Default node properties' %}</h4>
     {% bootstrap_form node_settings_form %}
 
