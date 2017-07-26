@@ -487,7 +487,7 @@ editor = {
                 .on('mouseout', editor._unhover_graph_item)
                 .on('click', editor._click_graph_node);
         } else if (feature.properties.type === 'space' && editor._graph_editing !== null &&
-                   editor._sublevel_control.level_ids.indexOf(feature.properties.level) >= 0) {
+                   (editor._sublevel_control.current_level_id === feature.properties.level || editor._graph_editing === 'edit-nodes')) {
             var other_space_layer = L.geoJSON(layer.feature, {
                 style: function() {
                     return {
