@@ -5,8 +5,8 @@ from functools import reduce
 
 from django.conf import settings
 from django.core.exceptions import FieldDoesNotExist
-from django.forms import BooleanField, CharField, ChoiceField, Form, ModelForm, MultipleChoiceField, ValidationError, \
-    ModelChoiceField
+from django.forms import (BooleanField, CharField, ChoiceField, Form, ModelChoiceField, ModelForm, MultipleChoiceField,
+                          ValidationError)
 from django.forms.widgets import HiddenInput
 from django.utils.text import format_lazy
 from django.utils.translation import ugettext_lazy as _
@@ -15,7 +15,7 @@ from shapely.geometry.geo import mapping
 
 from c3nav.editor.models import ChangeSet, ChangeSetUpdate
 from c3nav.mapdata.fields import GeometryField
-from c3nav.mapdata.models import GraphNode, GraphEdge
+from c3nav.mapdata.models import GraphEdge, GraphNode
 
 
 class EditorFormBase(ModelForm):

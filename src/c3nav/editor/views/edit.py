@@ -8,8 +8,8 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.utils.translation import ugettext_lazy as _
 
-from c3nav.editor.forms import GraphEditorSettingsForm, GraphEdgeSettingsForm, GraphNodeSettingsForm, \
-    GraphEditorActionForm
+from c3nav.editor.forms import (GraphEdgeSettingsForm, GraphEditorActionForm, GraphEditorSettingsForm,
+                                GraphNodeSettingsForm)
 from c3nav.editor.views.base import sidebar_view
 
 
@@ -379,16 +379,37 @@ def graph_edit(request, level=None, space=None):
             allow_clicked_position = True
 
     if request.method == 'POST':
-        node_settings_form = GraphNodeSettingsForm(data=request.POST)
-        edge_settings_form = GraphEdgeSettingsForm(request=request, data=request.POST)
+        node_settings_form = GraphNodeSettingsForm(instance=GraphNode(), data=request.POST)
+        edge_settings_form = GraphEdgeSettingsForm(instance=GraphEdge(), request=request, data=request.POST)
         graph_action_form = GraphEditorActionForm(request=request, allow_clicked_position=allow_clicked_position,
                                                   data=request.POST)
         if node_settings_form.is_valid() and edge_settings_form.is_valid() and graph_action_form.is_valid():
-            messages.success(request, _('Forms valid!'))
+            active_node = graph_action_form.cleaned_data['active_node']
+            clicked_node = graph_action_form.cleaned_data['clicked_node']
+            clicked_position = graph_action_form.cleaned_data.get('clicked_position')
+            if clicked_node is not None and clicked_position is None:
+                raise NotImplementedError
+            elif clicked_node is None and clicked_position is not None:
+                click_anywhere_setting = graph_editing_settings['click_anywhere']
+                if click_anywhere_setting != 'create_node_if_none_active' or active_node is None:
+                    node = node_settings_form.instance
+                    node.space = space
+                    node.geometry = clicked_position
+                    if space.geometry.contains(clicked_position):
+                        with request.changeset.lock_to_edit(request) as changeset:
+                            if changeset.can_edit(request):
+                                node.save()
+                            else:
+                                messages.error(request, _('You can not edit changes on this changeset.'))
+                        messages.success(request, _('New graph node created!'))
+
+        ctx.update({
+            'nozoom': True,
+        })
     else:
         node_settings_form = GraphNodeSettingsForm()
         edge_settings_form = GraphEdgeSettingsForm(request=request)
-        graph_action_form = GraphEditorActionForm(request=request, allow_clicked_position=allow_clicked_position)
+    graph_action_form = GraphEditorActionForm(request=request, allow_clicked_position=allow_clicked_position)
 
     ctx.update({
         'node_settings_form': node_settings_form,
