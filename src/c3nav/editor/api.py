@@ -1,6 +1,6 @@
 from itertools import chain
 
-from django.db.models import Prefetch
+from django.db.models import Prefetch, Q
 from rest_framework.decorators import detail_route, list_route
 from rest_framework.exceptions import ValidationError
 from rest_framework.generics import get_object_or_404
@@ -47,8 +47,6 @@ class EditorViewSet(ViewSet):
             results.append(door)
 
         results.extend(spaces.values())
-        for space in spaces.values():
-            results.extend(space.graphnodes.all())
         return results
 
     @staticmethod
@@ -99,10 +97,19 @@ class EditorViewSet(ViewSet):
             levels_under = [levels[pk] for pk in levels_under]
             levels_on_top = [levels[pk] for pk in levels_on_top]
 
+            graphnodes = tuple(chain(*(space.graphnodes.all()
+                                       for space in chain(*(level.spaces.all() for level in levels.values())))))
+
+            graphedges = request.changeset.wrap_model('GraphEdge').objects.all()
+            graphedges = graphedges.filter(Q(from_node__in=graphnodes) | Q(to_node__in=graphnodes))
+            graphedges = graphedges.select_related('from_node', 'to_node', 'waytype')
+
             results = chain(
                 *(self._get_level_geometries(l) for l in levels_under),
                 self._get_level_geometries(level),
-                *(self._get_level_geometries(l) for l in levels_on_top)
+                *(self._get_level_geometries(l) for l in levels_on_top),
+                graphedges,
+                graphnodes,
             )
 
             return Response([obj.to_geojson(instance=obj) for obj in results])
@@ -117,12 +124,12 @@ class EditorViewSet(ViewSet):
             doors_space_geom = cascaded_union([door.geometry for door in doors]+[space.geometry])
 
             levels, levels_on_top, levels_under = self._get_levels_pk(request, level.primary_level)
-            graphnodes = request.changeset.wrap_model('GraphNode').objects.filter(space_transfer=True)
-            other_spaces = Space.objects.filter(space_q_for_request, level__pk__in=levels).prefetch_related(
-                'groups', Prefetch('graphnodes', graphnodes)
-            )
+            other_spaces = Space.objects.filter(space_q_for_request, level__pk__in=levels).prefetch_related('groups')
+
+            space = next(s for s in other_spaces if s.pk == space.pk)
             other_spaces = [s for s in other_spaces
                             if s.geometry.intersects(doors_space_geom) and s.pk != space.pk]
+
             if level.on_top_of_id is None:
                 other_spaces_lower = [s for s in other_spaces if s.level_id in levels_under]
                 other_spaces_upper = [s for s in other_spaces if s.level_id in levels_on_top]
@@ -144,13 +151,19 @@ class EditorViewSet(ViewSet):
             for building in buildings:
                 building.opacity = 0.5
 
+            graphnodes = request.changeset.wrap_model('GraphNode').objects.all()
+            graphnodes = graphnodes.filter((Q(space__in=other_spaces) & Q(space_transfer=True)) |
+                                           Q(space__pk=space.pk))
+
+            graphedges = request.changeset.wrap_model('GraphEdge').objects.all()
+            graphedges = graphedges.filter(Q(from_node__in=graphnodes) | Q(to_node__in=graphnodes))
+            graphedges = graphedges.select_related('from_node', 'to_node', 'waytype')
+
             results = chain(
                 buildings,
                 other_spaces_lower,
-                chain(*(space.graphnodes.all() for space in other_spaces_lower)),
                 doors,
                 other_spaces,
-                chain(*(space.graphnodes.all() for space in other_spaces)),
                 [space],
                 space.areas.filter(Area.q_for_request(request)).prefetch_related('groups'),
                 space.holes.all(),
@@ -159,9 +172,9 @@ class EditorViewSet(ViewSet):
                 space.lineobstacles.all(),
                 space.columns.all(),
                 space.pois.filter(POI.q_for_request(request)).prefetch_related('groups'),
-                space.graphnodes.all(),
                 other_spaces_upper,
-                chain(*(space.graphnodes.all() for space in other_spaces_upper)),
+                graphedges,
+                graphnodes
             )
             return Response(sum([self._get_geojsons(obj) for obj in results], ()))
         else:
@@ -188,6 +201,7 @@ class EditorViewSet(ViewSet):
             'shadow': '#000000',
             'graphnode': '#00BB00',
             'graphnode__space_transfer': '#008800',
+            'graphedge': '#00CC00',
         })
 
     @list_route(methods=['get'])
