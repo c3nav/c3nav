@@ -366,7 +366,7 @@ editor = {
                 geometries.splice(remove_feature, 1);
             }
             if (editor._last_graph_path === null) {
-                geometries = geometries.filter(function(val) { return val.properties.type !== 'graphnode' })
+                geometries = geometries.filter(function(val) { return val.properties.type !== 'graphnode' && val.properties.type !== 'graphedge' })
             }
             editor._geometries_layer = L.geoJSON(geometries, {
                 style: editor._get_geometry_style,
