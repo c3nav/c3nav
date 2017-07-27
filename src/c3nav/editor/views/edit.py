@@ -334,16 +334,16 @@ def list_objects(request, model=None, level=None, space=None, explicit_edit=Fals
     return render(request, 'editor/list.html', ctx)
 
 
-def connect_nodes(request, active_node, to_node, edge_settings_form, graph_editing_settings):
+def connect_nodes(request, active_node, clicked_node, edge_settings_form, graph_editing_settings):
     connect_nodes_setting = graph_editing_settings['connect_nodes']
     create_existing_edge_setting = graph_editing_settings['create_existing_edge']
     after_connect_nodes_setting = graph_editing_settings['after_connect_nodes']
 
     new_connections = []
     if connect_nodes_setting in ('bidirectional', 'unidirectional', 'unidirectional_force'):
-        new_connections.append((active_node, to_node, False))
+        new_connections.append((active_node, clicked_node, False))
         if connect_nodes_setting == 'bidirectional':
-            new_connections.append((to_node, active_node, True))
+            new_connections.append((clicked_node, active_node, True))
 
     if new_connections:
         instance = edge_settings_form.instance
@@ -376,13 +376,13 @@ def connect_nodes(request, active_node, to_node, edge_settings_form, graph_editi
                 messages.success(request, _('Reverse edge overwritten.') if is_reverse else _('Edge overwritten.'))
 
     if connect_nodes_setting in ('delete_unidirectional', 'delete_bidirectional'):
-        existing = active_node.edges_from_here.filter(to_node=to_node).first()
+        existing = active_node.edges_from_here.filter(to_node=clicked_node).first()
         if existing is not None:
             existing.delete()
             messages.success(request, _('Edge deleted.'))
 
     if connect_nodes_setting in ('unidirectional_force', 'delete_bidirectional'):
-        existing = to_node.edges_from_here.filter(to_node=active_node).first()
+        existing = clicked_node.edges_from_here.filter(to_node=active_node).first()
         if existing is not None:
             existing.delete()
             messages.success(request, _('Reverse edge deleted.'))
@@ -390,7 +390,7 @@ def connect_nodes(request, active_node, to_node, edge_settings_form, graph_editi
     if after_connect_nodes_setting == 'reset':
         return None, True
     elif after_connect_nodes_setting == 'set_second_active':
-        return to_node, True
+        return clicked_node, True
     return active_node, False
 
 
