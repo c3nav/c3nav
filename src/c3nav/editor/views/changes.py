@@ -6,7 +6,7 @@ from django.contrib import messages
 from django.core.cache import cache
 from django.http import Http404
 from django.shortcuts import get_object_or_404, redirect, render
-from django.urls import reverse
+from django.urls import NoReverseMatch, reverse
 from django.utils.text import format_lazy
 from django.utils.translation import ugettext_lazy as _
 from django.utils.translation import get_language_info
@@ -226,8 +226,11 @@ def changeset_detail(request, pk):
                     reverse_kwargs['level'] = obj.level_id
                 elif hasattr(obj, 'space_id'):
                     reverse_kwargs['space'] = obj.space_id
-                edit_url = reverse('editor.' + obj.__class__._meta.default_related_name + '.edit',
-                                   kwargs=reverse_kwargs)
+                try:
+                    edit_url = reverse('editor.' + obj.__class__._meta.default_related_name + '.edit',
+                                       kwargs=reverse_kwargs)
+                except NoReverseMatch:
+                    pass
 
             changes = []
             missing_dependencies = changed_object.get_missing_dependencies()
