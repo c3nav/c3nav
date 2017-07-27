@@ -257,7 +257,7 @@ class GraphEditorSettingsForm(Form):
         ('noop', _('do nothing')),
     ), initial='connect')
 
-    create_edge = ChoiceField(label=_('when connecting two nodes…'), choices=(
+    connect_nodes = ChoiceField(label=_('when connecting two nodes…'), choices=(
         ('bidirectional', _('create edge in both directions')),
         ('unidirectional', _('create edge in one direction')),
         ('unidirectional_force', _('create edge, delete other direction')),
@@ -273,7 +273,7 @@ class GraphEditorSettingsForm(Form):
         ('delete', _('delete')),
     ), initial='overwrite_toggle')
 
-    after_create_edge = ChoiceField(label=_('after creating a new edge…'), choices=(
+    after_connect_nodes = ChoiceField(label=_('after connecting two nodes…'), choices=(
         ('reset', _('deactivate active node')),
         ('keep_first_active', _('keep first node active')),
         ('set_second_active', _('set second node as active')),

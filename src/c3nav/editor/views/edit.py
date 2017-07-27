@@ -335,7 +335,62 @@ def list_objects(request, model=None, level=None, space=None, explicit_edit=Fals
 
 
 def connect_nodes(request, active_node, to_node, edge_settings_form, graph_editing_settings):
-    messages.info(request, _('Nodes connected.'))
+    connect_nodes_setting = graph_editing_settings['connect_nodes']
+    create_existing_edge_setting = graph_editing_settings['create_existing_edge']
+    after_connect_nodes_setting = graph_editing_settings['after_connect_nodes']
+
+    new_connections = []
+    if connect_nodes_setting in ('bidirectional', 'unidirectional', 'unidirectional_force'):
+        new_connections.append((active_node, to_node, False))
+        if connect_nodes_setting == 'bidirectional':
+            new_connections.append((to_node, active_node, True))
+
+    if new_connections:
+        instance = edge_settings_form.instance
+        for from_node, to_node, is_reverse in new_connections:
+            existing = from_node.edges_from_here.filter(to_node=to_node).first()
+            if existing is None:
+                instance.pk = None
+                instance.from_node = from_node
+                instance.to_node = to_node
+                instance.save()
+                messages.success(request, _('Reverse edge created.') if is_reverse else _('Edge created.'))
+            elif create_existing_edge_setting == 'delete':
+                existing.delete()
+                messages.success(request, _('Reverse edge deleted.') if is_reverse else _('Edge deleted.'))
+            elif create_existing_edge_setting == 'overwrite_toggle':
+                if existing.waytype == instance.waytype and existing.access_restriction == instance.access_restriction:
+                    existing.delete()
+                    messages.success(request, _('Reverse edge deleted.') if is_reverse else _('Edge deleted.'))
+                else:
+                    existing.waytype = instance.waytype
+                    existing.access_restriction = instance.access_restriction
+                    existing.save()
+                    messages.success(request, _('Reverse edge overwritten.') if is_reverse else _('Edge overwritten.'))
+            elif create_existing_edge_setting in ('overwrite_always', 'overwrite_waytype', 'overwrite_access'):
+                if create_existing_edge_setting in ('overwrite_always', 'overwrite_waytype'):
+                    existing.waytype = instance.waytype
+                if create_existing_edge_setting in ('overwrite_always', 'overwrite_access'):
+                    existing.access_restriction = instance.access_restriction
+                existing.save()
+                messages.success(request, _('Reverse edge overwritten.') if is_reverse else _('Edge overwritten.'))
+
+    if connect_nodes_setting in ('delete_unidirectional', 'delete_bidirectional'):
+        existing = active_node.edges_from_here.filter(to_node=to_node).first()
+        if existing is not None:
+            existing.delete()
+            messages.success(request, _('Edge deleted.'))
+
+    if connect_nodes_setting in ('unidirectional_force', 'delete_bidirectional'):
+        existing = to_node.edges_from_here.filter(to_node=active_node).first()
+        if existing is not None:
+            existing.delete()
+            messages.success(request, _('Reverse edge deleted.'))
+
+    if after_connect_nodes_setting == 'reset':
+        return None, True
+    elif after_connect_nodes_setting == 'set_second_active':
+        return to_node, True
     return active_node, False
 
 
