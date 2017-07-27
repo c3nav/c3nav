@@ -334,7 +334,8 @@ def list_objects(request, model=None, level=None, space=None, explicit_edit=Fals
     return render(request, 'editor/list.html', ctx)
 
 
-def connect_nodes(active_node, to_node, edge_settings_form, graph_editing_settings):
+def connect_nodes(request, active_node, to_node, edge_settings_form, graph_editing_settings):
+    messages.info(request, _('Nodes connected.'))
     return active_node, False
 
 
@@ -404,11 +405,44 @@ def graph_edit(request, level=None, space=None):
             clicked_position = graph_action_form.cleaned_data.get('clicked_position')
             if clicked_node is not None and clicked_position is None:
                 node_click_setting = graph_editing_settings['node_click']
-                if node_click_setting == 'connect_or_toggle':
-                    set_active_node = True
+                if node_click_setting in ('connect', 'connect_or_toggle'):
+                    connect = False
+                    if node_click_setting == 'connect':
+                        connect = True
+                    elif active_node is None:
+                        active_node = clicked_node
+                        set_active_node = True
+                    elif active_node == clicked_node:
+                        active_node = None
+                        set_active_node = True
+                    else:
+                        connect = True
+
+                    if connect:
+                        with request.changeset.lock_to_edit(request) as changeset:
+                            if changeset.can_edit(request):
+                                active_node, set_active_node = connect_nodes(request, active_node, clicked_node,
+                                                                             edge_settings_form, graph_editing_settings)
+                            else:
+                                messages.error(request, _('You can not edit changes on this changeset.'))
+                elif node_click_setting == 'activate':
                     active_node = clicked_node
-                else:
-                    raise NotImplementedError
+                    set_active_node = True
+                elif node_click_setting == 'deactivate':
+                    active_node = None
+                    set_active_node = True
+                elif node_click_setting == 'toggle':
+                    active_node = None if active_node == clicked_node else clicked_node
+                    set_active_node = True
+                elif node_click_setting == 'set_space_transfer':
+                    with request.changeset.lock_to_edit(request) as changeset:
+                        if changeset.can_edit(request):
+                            clicked_node.space_transfer = node_settings_form.instance.space_transfer
+                            clicked_node.save()
+                            messages.success(request, _('Space transfer set.'))
+                        else:
+                            messages.error(request, _('You can not edit changes on this changeset.'))
+
             elif clicked_node is None and clicked_position is not None:
                 click_anywhere_setting = graph_editing_settings['click_anywhere']
                 if (click_anywhere_setting == 'create_node' or
@@ -421,10 +455,10 @@ def graph_edit(request, level=None, space=None):
                                 node.space = space
                                 node.geometry = clicked_position
                                 node.save()
-                                messages.success(request, _('New graph node created!'))
+                                messages.success(request, _('New graph node created.'))
                                 after_create_node_setting = graph_editing_settings['after_create_node']
                                 if after_create_node_setting == 'connect':
-                                    active_node, set_active_node = connect_nodes(active_node, node,
+                                    active_node, set_active_node = connect_nodes(request, active_node, node,
                                                                                  edge_settings_form,
                                                                                  graph_editing_settings)
                                 elif after_create_node_setting == 'activate':
