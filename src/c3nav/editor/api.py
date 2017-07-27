@@ -100,9 +100,9 @@ class EditorViewSet(ViewSet):
             levels_on_top = [levels[pk] for pk in levels_on_top]
 
             results = chain(
-                *(self._get_level_geometries(s) for s in levels_under),
+                *(self._get_level_geometries(l) for l in levels_under),
                 self._get_level_geometries(level),
-                *(self._get_level_geometries(s) for s in levels_on_top)
+                *(self._get_level_geometries(l) for l in levels_on_top)
             )
 
             return Response([obj.to_geojson(instance=obj) for obj in results])
