@@ -344,9 +344,9 @@ editor = {
         }
         editor._bounds_layer = null;
 
-        editor.map.removeLayer(editor._highlight_layer);
-        editor._highlight_layer.clearLayers();
         $.getJSON(geometry_url, function(geometries) {
+            editor.map.removeLayer(editor._highlight_layer);
+            editor._highlight_layer.clearLayers();
             if (editor._geometries_layer !== null) {
                 editor.map.removeLayer(editor._geometries_layer);
             }
