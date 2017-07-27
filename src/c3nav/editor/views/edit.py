@@ -457,8 +457,8 @@ def graph_edit(request, level=None, space=None):
 
 
 @sidebar_view
-def graph_editing_settings(request):
-    ctx = {
+def graph_editing_settings_view(request):
+    ctx: dict = {
         'closemodal': False,
     }
     if request.method == 'POST':
