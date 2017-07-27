@@ -10,7 +10,6 @@ from django.urls import reverse
 from django.utils.text import format_lazy
 from django.utils.translation import ugettext_lazy as _
 from django.utils.translation import get_language_info
-from rest_framework.exceptions import PermissionDenied
 
 from c3nav.editor.forms import ChangeSetForm, RejectForm
 from c3nav.editor.models import ChangeSet
@@ -48,7 +47,7 @@ def changeset_detail(request, pk):
                         try:
                             changed_object.restore()
                             messages.success(request, _('Object has been successfully restored.'))
-                        except PermissionDenied:
+                        except PermissionError:
                             messages.error(request, _('You cannot restore this object, because '
                                                       'it depends on a deleted object.'))
 
