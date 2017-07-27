@@ -48,8 +48,8 @@ def changeset_detail(request, pk):
                             changed_object.restore()
                             messages.success(request, _('Object has been successfully restored.'))
                         except PermissionError:
-                            messages.error(request, _('You cannot restore this object, because '
-                                                      'it depends on a deleted object.'))
+                            messages.error(request, _('You cannot restore this object, because it depends on '
+                                                      'a deleted object or it would violate a unique contraint.'))
 
                 else:
                     messages.error(request, _('You can not edit changes on this change set.'))
@@ -234,6 +234,7 @@ def changeset_detail(request, pk):
 
             changes = []
             missing_dependencies = changed_object.get_missing_dependencies()
+            unique_collisions = changed_object.get_unique_collisions()
             changed_object_data = {
                 'model': obj.__class__,
                 'model_title': obj.__class__._meta.verbose_name,
@@ -244,6 +245,7 @@ def changeset_detail(request, pk):
                 'edit_url': edit_url,
                 'deleted': changed_object.deleted,
                 'missing_dependencies': missing_dependencies,
+                'unique_collisions': unique_collisions,
                 'order': (changed_object.deleted and changed_object.is_created, not changed_object.is_created),
             }
             changed_objects_data.append(changed_object_data)
@@ -292,6 +294,10 @@ def changeset_detail(request, pk):
                             field_value = objects[field.related_model][field_value].title
                             change_data.update({
                                 'missing_dependency': field.name in missing_dependencies,
+                            })
+                        if name in unique_collisions:
+                            change_data.update({
+                                'unique_collision': field.name in unique_collisions,
                             })
                         order = 5
                         if name == 'slug':

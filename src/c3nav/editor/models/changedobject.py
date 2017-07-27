@@ -273,6 +273,25 @@ class ChangedObject(models.Model):
                 return False
         return True
 
+    def get_unique_collisions(self, max_one=False):
+        result = set()
+        if not self.deleted:
+            return result
+        uniques = tuple(self.model_class._meta.unique_together)
+        uniques += tuple((field.name, )
+                         for field in self.model_class._meta.get_fields() if field.unique and not field.primary_key)
+        for unique in uniques:
+            names = tuple((name if self.model_class._meta.get_field(name).related_model is None else name+'__pk')
+                          for name in unique)
+            values = tuple(getattr(self.obj, self.model_class._meta.get_field(name).attname) for name in unique)
+            if None in values:
+                continue
+            if self.changeset.wrap_model(self.model_class).objects.filter(**dict(zip(names, values))).exists():
+                result |= set(unique)
+                if result and max_one:
+                    return result
+        return result
+
     def get_missing_dependencies(self, force_query=False, max_one=False):
         result = set()
         if not self.deleted:
@@ -371,7 +390,7 @@ class ChangedObject(models.Model):
     def restore(self):
         if self.deleted is False:
             return
-        if self.get_missing_dependencies(force_query=True, max_one=True):
+        if self.get_missing_dependencies(force_query=True, max_one=True) or self.get_unique_collisions(max_one=True):
             raise PermissionError
         self.deleted = False
         self.save(standalone=True)
