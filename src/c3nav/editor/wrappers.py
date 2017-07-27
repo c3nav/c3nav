@@ -673,6 +673,8 @@ class BaseQueryWrapper(BaseWrapper):
 
     @get_queryset
     def first(self):
+        if self._created_pks:
+            return next(self._get_created_objects())
         first = self._obj.first()
         if first is not None:
             first = self._wrap_instance(first)
