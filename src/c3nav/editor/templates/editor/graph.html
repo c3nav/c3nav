@@ -40,7 +40,7 @@
     <div data-active-node class="well well-sm"></div>
 {% endif %}
 
-<form action="{{ request.path }}" method="post" data-graph-editing="{{ graph_editing }}" data-nozoom>
+<form action="{{ request.path }}" method="post" data-graph-editing="{{ graph_editing }}"{% if deactivate_node_on_click %} data-deactivate-node-on-click{% endif %} data-nozoom>
     {% csrf_token %}
 
     <h4>{% trans 'Default node properties' %}</h4>

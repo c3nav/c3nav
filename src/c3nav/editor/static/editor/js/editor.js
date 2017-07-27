@@ -201,6 +201,8 @@ editor = {
             editor._last_graph_path = null;
         }
 
+        editor._deactivate_graph_node_on_click = (content.find('[data-deactivate-node-on-click]').length > 0);
+
         var geometry_url = content.find('[data-geometry-url]');
         var $body = $('body');
         if (geometry_url.length) {
@@ -292,6 +294,7 @@ editor = {
     _active_graph_node: null,
     _active_graph_node_space_transfer: null,
     _active_graph_node_html: null,
+    _deactivate_graph_node_on_click: false,
     init_geometries: function () {
         // init geometries and edit listeners
         editor._highlight_layer = L.layerGroup().addTo(editor.map);
@@ -496,6 +499,7 @@ editor = {
                 },
                 pointToLayer: editor._point_to_layer
             }).getLayers()[0].addTo(editor._highlight_layer);
+            node_layer.node_layer = layer;
             node_layer.on('mouseover', editor._hover_graph_item)
                 .on('mouseout', editor._unhover_graph_item)
                 .on('click', editor._click_graph_node);
@@ -616,6 +620,21 @@ editor = {
     _click_graph_node: function(e) {
         // click callback for a graph node
         if (editor._loading_geometry) return;
+        if (editor._deactivate_graph_node_on_click && editor._active_graph_node === e.target.feature.properties.id) {
+            e.target.node_layer.setStyle({
+                stroke: false
+            });
+            e.target.setStyle({
+                opacity: 0,
+            });
+            var sidebar = $('#sidebar');
+            sidebar.find('[data-active-node]').remove();
+            sidebar.find('#id_active_node').val('');
+            editor._active_graph_node = null;
+            editor._active_graph_node_space_transfer = null;
+            editor._active_graph_node_html = null;
+            return;
+        }
         $('#id_clicked_node').val(e.target.feature.properties.id).closest('form').submit();
         editor.map.doubleClickZoom.disable();
     },

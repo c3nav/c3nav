@@ -501,6 +501,8 @@ def graph_edit(request, level=None, space=None):
         'edge_settings_form': edge_settings_form,
         'graph_action_form': graph_action_form,
         'graph_editing': graph_editing,
+        'deactivate_node_on_click': graph_editing_settings['node_click'] in ('deactivate', 'toggle',
+                                                                             'connect_or_toggle'),
     })
 
     return render(request, 'editor/graph.html', ctx)
