@@ -239,6 +239,7 @@ class GraphEditorSettingsForm(Form):
         ('deactivate', _('deactivate')),
         ('toggle', _('toggle')),
         ('set_space_transfer', _('set space transfer')),
+        ('delete', _('delete node')),
         ('noop', _('do nothing')),
     ), initial='connect_or_toggle')
 

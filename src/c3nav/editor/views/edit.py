@@ -442,6 +442,22 @@ def graph_edit(request, level=None, space=None):
                             messages.success(request, _('Space transfer set.'))
                         else:
                             messages.error(request, _('You can not edit changes on this changeset.'))
+                elif node_click_setting == 'delete':
+                    with request.changeset.lock_to_edit(request) as changeset:
+                        if changeset.can_edit(request):
+                            try:
+                                if not request.changeset.get_changed_object(clicked_node).can_delete():
+                                    raise PermissionError
+                            except (ObjectDoesNotExist, PermissionError):
+                                messages.error(request, _('This node is connected to other nodes.'))
+                            else:
+                                clicked_node.delete()
+                                if clicked_node == active_node:
+                                    active_node = None
+                                    set_active_node = True
+                                messages.success(request, _('Node deleted.'))
+                        else:
+                            messages.error(request, _('You can not edit changes on this changeset.'))
 
             elif clicked_node is None and clicked_position is not None:
                 click_anywhere_setting = graph_editing_settings['click_anywhere']
