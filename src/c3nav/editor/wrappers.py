@@ -308,7 +308,7 @@ class BaseQueryWrapper(BaseWrapper):
         This makes sure that the prefetch also happens on the virtually modified database.
         """
         lookups_qs = {tuple(lookup.prefetch_through.split('__')): lookup.queryset for lookup in lookups
-                      if isinstance(lookup, Prefetch) and lookup.queryset}
+                      if isinstance(lookup, Prefetch) and lookup.queryset is not None}
         for qs in lookups_qs.values():
             if not isinstance(qs, QuerySetWrapper):
                 raise TypeError('Prefetch object queryset needs to be wrapped!')
