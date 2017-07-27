@@ -243,11 +243,18 @@ class GraphEditorSettingsForm(Form):
     ), initial='connect_or_toggle')
 
     click_anywhere = ChoiceField(label=_('when clicking anywhere…'), choices=(
-        ('create_connect_node', _('create node and connect if possible')),
-        ('create_node_if_none_active', _('create node if no node is active')),
         ('create_node', _('create node')),
+        ('create_node_if_none_active', _('create node if no node is active')),
+        ('create_node_if_other_active', _('create node if another node is active')),
         ('noop', _('do nothing')),
-    ), initial='create_connect_node')
+    ), initial='create_node')
+
+    after_create_node = ChoiceField(label=_('after creating a new node…'), choices=(
+        ('connect', _('connect to active node if possible')),
+        ('activate', _('activate node')),
+        ('deactivate', _('deactivate active node')),
+        ('noop', _('do nothing')),
+    ), initial='connect')
 
     create_edge = ChoiceField(label=_('when connecting two nodes…'), choices=(
         ('bidirectional', _('create edge in both directions')),

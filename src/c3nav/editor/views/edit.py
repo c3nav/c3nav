@@ -334,6 +334,10 @@ def list_objects(request, model=None, level=None, space=None, explicit_edit=Fals
     return render(request, 'editor/list.html', ctx)
 
 
+def connect_nodes(active_node, to_node, edge_settings_form, graph_editing_settings):
+    return active_node, False
+
+
 @sidebar_view
 def graph_edit(request, level=None, space=None):
     Level = request.changeset.wrap_model('Level')
@@ -379,7 +383,9 @@ def graph_edit(request, level=None, space=None):
         if graph_editing_settings['click_anywhere'] != 'noop':
             graph_editing = 'edit-create-nodes'
             if graph_editing_settings['click_anywhere'] == 'create_node_if_none_active':
-                graph_editing = 'edit-create-if-none-active-nodes'
+                graph_editing = 'edit-create-if-no-active-node'
+            elif graph_editing_settings['click_anywhere'] == 'create_node_if_other_active':
+                graph_editing = 'edit-create-if-active-node'
             allow_clicked_position = True
 
     if request.method == 'POST':
@@ -405,17 +411,30 @@ def graph_edit(request, level=None, space=None):
                     raise NotImplementedError
             elif clicked_node is None and clicked_position is not None:
                 click_anywhere_setting = graph_editing_settings['click_anywhere']
-                if click_anywhere_setting != 'create_node_if_none_active' or active_node is None:
-                    node = node_settings_form.instance
-                    node.space = space
-                    node.geometry = clicked_position
+                if (click_anywhere_setting == 'create_node' or
+                        (click_anywhere_setting != 'create_node_if_none_active' or active_node is None) or
+                        (click_anywhere_setting != 'create_node_if_other_active' or active_node is not None)):
                     if space.geometry.contains(clicked_position):
                         with request.changeset.lock_to_edit(request) as changeset:
                             if changeset.can_edit(request):
+                                node = node_settings_form.instance
+                                node.space = space
+                                node.geometry = clicked_position
                                 node.save()
+                                messages.success(request, _('New graph node created!'))
+                                after_create_node_setting = graph_editing_settings['after_create_node']
+                                if after_create_node_setting == 'connect':
+                                    active_node, set_active_node = connect_nodes(active_node, node,
+                                                                                 edge_settings_form,
+                                                                                 graph_editing_settings)
+                                elif after_create_node_setting == 'activate':
+                                    active_node = node
+                                    set_active_node = True
+                                elif after_create_node_setting == 'deactivate':
+                                    active_node = None
+                                    set_active_node = True
                             else:
                                 messages.error(request, _('You can not edit changes on this changeset.'))
-                        messages.success(request, _('New graph node created!'))
 
             if set_active_node:
                 ctx.update({
@@ -450,7 +469,9 @@ def graph_editing_settings(request):
             if request.POST.get('can_close_modal') == '1':
                 ctx['closemodal'] = True
     else:
-        form = GraphEditorSettingsForm(data=request.session.get('graph_editing_settings', {}))
+        graph_editing_settings = {field.name: field.initial for field in GraphEditorSettingsForm()}
+        graph_editing_settings.update(request.session.get('graph_editing_settings', {}))
+        form = GraphEditorSettingsForm(data=graph_editing_settings)
 
     ctx.update({
         'form': form,

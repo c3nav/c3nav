@@ -171,6 +171,7 @@ editor = {
                     editor._active_graph_node = null;
                     editor._active_graph_node_space_transfer = null;
                     editor._active_graph_node_html = null;
+                    active_graph_node.remove();
                 } else {
                     editor._active_graph_node = active_graph_node_id;
                     editor._active_graph_node_space_transfer = active_graph_node.is('[data-space-transfer]');
@@ -191,8 +192,10 @@ editor = {
             graph_editing = graph_editing.attr('data-graph-editing');
             editor._graph_editing = true;
             editor._graph_creating = (graph_editing === 'edit-create-nodes' ||
-                                      (graph_editing === 'edit-create-if-none-active-nodes' &&
-                                       editor._active_graph_node === null));
+                                      (graph_editing === 'edit-create-if-no-active-node' &&
+                                       editor._active_graph_node === null) ||
+                                      (graph_editing === 'edit-create-if-active-node' &&
+                                       editor._active_graph_node !== null));
             editor._last_graph_path = editor.get_location_path();
         } else if (!editor._in_modal) {
             editor._last_graph_path = null;
