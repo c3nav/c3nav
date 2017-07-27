@@ -4,6 +4,7 @@ from collections import OrderedDict
 from functools import reduce, wraps
 from itertools import chain
 
+from django.core.exceptions import ObjectDoesNotExist
 from django.db import models
 from django.db.models import FieldDoesNotExist, Manager, ManyToManyRel, Prefetch, Q
 from django.utils.functional import cached_property
@@ -390,8 +391,11 @@ class BaseQueryWrapper(BaseWrapper):
         for model in submodels:
             for pk, values in self._changeset.created_objects.get(model, {}).items():
                 field_name = getattr(model._meta.get_field(field_name), 'attname', field_name)
-                if check(getattr(self._changeset.get_created_object(self._obj.model, pk), field_name)):
-                    created_pks.add(pk)
+                try:
+                    if check(getattr(self._changeset.get_created_object(self._obj.model, pk), field_name)):
+                        created_pks.add(pk)
+                except ObjectDoesNotExist:
+                    pass
 
         return (q & ~Q(pk__in=remove_pks)) | Q(pk__in=add_pks), created_pks
 
