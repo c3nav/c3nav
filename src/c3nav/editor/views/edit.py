@@ -39,6 +39,7 @@ def main_index(request):
         'child_models': [
             child_model(request, 'LocationGroupCategory'),
             child_model(request, 'LocationGroup'),
+            child_model(request, 'WayType'),
             child_model(request, 'AccessRestriction'),
             child_model(request, 'Source'),
         ],

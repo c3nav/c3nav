@@ -50,6 +50,7 @@ urlpatterns = [
 urlpatterns.extend(add_editor_urls('Level', with_list=False, explicit_edit=True))
 urlpatterns.extend(add_editor_urls('LocationGroupCategory'))
 urlpatterns.extend(add_editor_urls('LocationGroup'))
+urlpatterns.extend(add_editor_urls('WayType'))
 urlpatterns.extend(add_editor_urls('AccessRestriction'))
 urlpatterns.extend(add_editor_urls('Source'))
 urlpatterns.extend(add_editor_urls('Building', 'Level'))
