@@ -97,6 +97,7 @@ class EditorViewSet(ViewSet):
             levels_under = [levels[pk] for pk in levels_under]
             levels_on_top = [levels[pk] for pk in levels_on_top]
 
+            # todo: permissions
             graphnodes = tuple(chain(*(space.graphnodes.all()
                                        for space in chain(*(level.spaces.all() for level in levels.values())))))
 
@@ -151,6 +152,7 @@ class EditorViewSet(ViewSet):
             for building in buildings:
                 building.opacity = 0.5
 
+            # todo: permissions
             graphnodes = request.changeset.wrap_model('GraphNode').objects.all()
             graphnodes = graphnodes.filter((Q(space__in=other_spaces) & Q(space_transfer=True)) |
                                            Q(space__pk=space.pk))
