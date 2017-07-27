@@ -293,7 +293,7 @@ class ChangedObject(models.Model):
                 related_content_type = ContentType.objects.get_for_model(related_model)
                 qs = self.changeset.changed_objects_set.filter(content_type=related_content_type)
                 if is_created_pk(pk):
-                    if not qs.filter(pk=int(pk[2:]), deleted=False).exists():
+                    if not qs.filter(pk=int(pk[1:]), deleted=False).exists():
                         result.add(field.name)
                 else:
                     if qs.filter(existing_object_pk=pk, deleted=True).exists():
