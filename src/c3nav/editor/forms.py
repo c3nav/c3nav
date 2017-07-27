@@ -205,6 +205,11 @@ class GraphEdgeSettingsForm(ModelForm):
         self.request = request
         super().__init__(*args, **kwargs)
 
+        WayType = self.request.changeset.wrap_model('WayType')
+        self.fields['waytype'].label_from_instance = lambda obj: obj.title
+        self.fields['waytype'].queryset = WayType.objects.all()
+        self.fields['waytype'].to_field_name = None
+
         AccessRestriction = self.request.changeset.wrap_model('AccessRestriction')
         self.fields['access_restriction'].label_from_instance = lambda obj: obj.title
         self.fields['access_restriction'].queryset = AccessRestriction.qs_for_request(self.request)
