@@ -281,6 +281,7 @@ editor = {
     geometrystyles: {},
     _loading_geometry: false,
     _geometries_layer: null,
+    _line_geometries: [],
     _highlight_layer: null,
     _highlight_type: null,
     _editing_id: null,
@@ -320,6 +321,13 @@ editor = {
             e.vertex.continue();
         });
 
+        editor.map.on('zoomend', function(e) {
+            var weight = editor._weight_for_zoom();
+            for(var i=0;i<editor._line_geometries.length;i++) {
+                editor._line_geometries[i].setStyle({weight: weight});
+            }
+        });
+
         $.getJSON('/api/editor/geometrystyles/', function(geometrystyles) {
             editor.geometrystyles = geometrystyles;
             $.getJSON('/api/editor/bounds/', function(bounds) {
@@ -343,6 +351,7 @@ editor = {
             editor._editing_layer = null;
         }
         editor._bounds_layer = null;
+        editor._line_geometries = [];
 
         $.getJSON(geometry_url, function(geometries) {
             editor.map.removeLayer(editor._highlight_layer);
@@ -395,11 +404,14 @@ editor = {
             editor.load_geometries(editor._last_geometry_url);
         }
     },
+    _weight_for_zoom: function() {
+        return Math.pow(2, editor.map.getZoom())*0.3;
+    },
     _line_draw_geometry_style: function(style) {
         style.stroke = true;
         style.opacity = 0.6;
         style.color = style.fillColor;
-        style.weight = 5;
+        style.weight = editor._weight_for_zoom();
         return style;
     },
     _point_to_layer: function (feature, latlng) {
@@ -449,6 +461,9 @@ editor = {
     },
     _register_geojson_feature: function (feature, layer) {
         // onEachFeature callback for GeoJSON loader – register all needed events
+        if (feature.geometry.type === 'LineString') {
+            editor._line_geometries.push(layer);
+        }
         if (feature.properties.type === editor._highlight_type) {
             var list_elem = $('#sidebar').find('[data-list] tr[data-pk='+String(feature.properties.id)+']');
             if (list_elem.length === 0) return;
