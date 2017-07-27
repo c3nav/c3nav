@@ -279,7 +279,8 @@ class ChangedObject(models.Model):
             return result
         uniques = tuple(self.model_class._meta.unique_together)
         uniques += tuple((field.name, )
-                         for field in self.model_class._meta.get_fields() if field.unique and not field.primary_key)
+                         for field in self.model_class._meta.get_fields()
+                         if field.related_model is None and field.unique and not field.primary_key)
         for unique in uniques:
             names = tuple((name if self.model_class._meta.get_field(name).related_model is None else name+'__pk')
                           for name in unique)
