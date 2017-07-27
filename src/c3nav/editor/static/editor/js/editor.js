@@ -296,6 +296,9 @@ editor = {
     _active_graph_node_space_transfer: null,
     _active_graph_node_html: null,
     _deactivate_graph_node_on_click: false,
+    _graph_edges_from: {},
+    _graph_edges_to: {},
+    _arrow_colors: [],
     init_geometries: function () {
         // init geometries and edit listeners
         editor._highlight_layer = L.layerGroup().addTo(editor.map);
@@ -321,12 +324,7 @@ editor = {
             e.vertex.continue();
         });
 
-        editor.map.on('zoomend', function(e) {
-            var weight = editor._weight_for_zoom();
-            for(var i=0;i<editor._line_geometries.length;i++) {
-                editor._line_geometries[i].setStyle({weight: weight});
-            }
-        });
+        editor.map.on('zoomend', editor._adjust_line_zoom);
 
         $.getJSON('/api/editor/geometrystyles/', function(geometrystyles) {
             editor.geometrystyles = geometrystyles;
@@ -352,6 +350,8 @@ editor = {
         }
         editor._bounds_layer = null;
         editor._line_geometries = [];
+        editor._graph_edges_from = {};
+        editor._graph_edges_to = {};
 
         $.getJSON(geometry_url, function(geometries) {
             editor.map.removeLayer(editor._highlight_layer);
@@ -396,6 +396,21 @@ editor = {
             editor._next_zoom = null;
             editor.map.doubleClickZoom.enable();
 
+            editor._adjust_line_zoom();
+
+            var defs = editor.map.options.renderer._container.querySelector('defs');
+            if (defs === null) {
+                editor.map.options.renderer._container.insertAdjacentHTML('afterbegin', '<defs></defs>');
+                defs = editor.map.options.renderer._container.querySelector('defs');
+            } else {
+                defs.innerHTML = '';
+            }
+            for(var i=0;i<editor._arrow_colors.length;i++) {
+                var color = editor._arrow_colors[i];
+                defs = editor.map.options.renderer._container.querySelector('defs');
+                defs.insertAdjacentHTML('beforeend', '<marker id="graph-edge-arrow-'+String(i)+'" markerWidth="4" markerHeight="4" refX="4.7" refY="2" orient="auto"><path d="M0,0 L3,2 L0,4 L0,0" fill="'+color+'"></path></marker>');
+            }
+
             editor._check_start_editing();
         });
     },
@@ -407,11 +422,40 @@ editor = {
     _weight_for_zoom: function() {
         return Math.pow(2, editor.map.getZoom())*0.3;
     },
+    _adjust_line_zoom: function() {
+        var weight = Math.pow(2, editor.map.getZoom())*0.3,
+            factor = Math.pow(2, editor.map.getZoom());
+        editor._arrow_colors = [];
+        for(var i=0;i<editor._line_geometries.length;i++) {
+            var layer = editor._line_geometries[i];
+            layer.setStyle({weight: weight});
+            if (layer.feature.properties.type === 'graphedge') {
+                var start_pos = 0.4,
+                    end_pos = layer.length-0.4,
+                    color_index = editor._arrow_colors.indexOf(layer._path.getAttribute('stroke'));
+                    other = (editor._graph_edges_to[layer.feature.properties.from_node] !== undefined) ? editor._graph_edges_to[layer.feature.properties.from_node][layer.feature.properties.to_node] : undefined;
+                if (color_index === -1) {
+                    color_index = editor._arrow_colors.length;
+                    editor._arrow_colors.push(layer._path.getAttribute('stroke'));
+                }
+                if (other !== undefined) {
+                    start_pos = layer.length/2-0.01;
+                }
+                if (other === undefined || layer._path.getAttribute('stroke') !== other._path.getAttribute('stroke')) {
+                    end_pos = layer.length-1;
+                    layer._path.setAttribute('marker-end', 'url(#graph-edge-arrow-'+String(color_index)+')');
+                }
+                layer.setStyle({
+                    dashArray: '0 '+String(start_pos*factor)+' '+String((end_pos-start_pos)*factor)+' '+String(layer.length*factor)
+                });
+            }
+        }
+    },
     _line_draw_geometry_style: function(style) {
         style.stroke = true;
-        style.opacity = 0.6;
         style.color = style.fillColor;
         style.weight = editor._weight_for_zoom();
+        style.lineCap = 'butt';
         return style;
     },
     _point_to_layer: function (feature, latlng) {
@@ -463,6 +507,7 @@ editor = {
         // onEachFeature callback for GeoJSON loader – register all needed events
         if (feature.geometry.type === 'LineString') {
             editor._line_geometries.push(layer);
+            layer.length = Math.pow(Math.pow(layer._latlngs[0].lat-layer._latlngs[1].lat, 2)+Math.pow(layer._latlngs[0].lng-layer._latlngs[1].lng, 2), 0.5);
         }
         if (feature.properties.type === editor._highlight_type) {
             var list_elem = $('#sidebar').find('[data-list] tr[data-pk='+String(feature.properties.id)+']');
@@ -533,6 +578,15 @@ editor = {
             other_space_layer.on('mouseover', editor._hover_graph_item)
                 .on('mouseout', editor._unhover_graph_item)
                 .on('dblclick', editor._dblclick_graph_other_space);
+        } else if (feature.properties.type === 'graphedge') {
+            if (editor._graph_edges_from[feature.properties.from_node] === undefined) {
+                editor._graph_edges_from[feature.properties.from_node] = {}
+            }
+            editor._graph_edges_from[feature.properties.from_node][feature.properties.to_node] = layer;
+            if (editor._graph_edges_to[feature.properties.to_node] === undefined) {
+                editor._graph_edges_to[feature.properties.to_node] = {}
+            }
+            editor._graph_edges_to[feature.properties.to_node][feature.properties.from_node] = layer;
         }
     },
 
