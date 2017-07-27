@@ -483,11 +483,11 @@ editor = {
             style.weight = 3;
             style.color = '#ffff00';
         }
-        if (feature.geometry.type === 'LineString') {
-            style = editor._line_draw_geometry_style(style);
-        }
         if (feature.properties.color !== undefined) {
             style.fillColor = feature.properties.color;
+        }
+        if (feature.geometry.type === 'LineString') {
+            style = editor._line_draw_geometry_style(style);
         }
         if (feature.properties.opacity !== undefined) {
             style.fillOpacity = feature.properties.opacity;
