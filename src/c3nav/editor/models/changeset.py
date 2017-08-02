@@ -714,6 +714,7 @@ class ChangeSet(models.Model):
         super().save(*args, **kwargs)
         if self._request is not None:
             self.activate(self._request)
+            self._request = None
 
     STATE_ICONS = {
         'unproposed': 'pencil',
