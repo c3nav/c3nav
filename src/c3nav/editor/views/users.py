@@ -14,8 +14,8 @@ def user_detail(request, pk):
         user = get_object_or_404(User, pk=pk)
 
     if request.method == 'POST':
-        if request.user == user and 'changeset' in request.session:
-            if request.POST.get('deactivate_changeset') == '1':
+        if request.user == user:
+            if 'changeset' in request.session and request.POST.get('deactivate_changeset') == '1':
                 request.session.pop('changeset', None)
                 messages.success(request, _('You deactivated your current changeset.'))
                 return redirect(request.path)
