@@ -34,7 +34,7 @@
         {% for item in objects %}
             {% if forloop.counter0|divisibleby:10 %}
                 <tr>
-                    <td><a href="{{ back_url }}">&laquo; {{ back_title }}</a></td>
+                    <td><a href="{{ back_url }}" data-no-next-zoom>&laquo; {{ back_title }}</a></td>
                     <td></td>
                 </tr>
             {% endif %}
@@ -44,7 +44,7 @@
             </tr>
         {% endfor %}
         <tr>
-            <td><a href="{{ back_url }}">&laquo; {{ back_title }}</a></td>
+            <td><a href="{{ back_url }}" data-no-next-zoom>&laquo; {{ back_title }}</a></td>
             <td></td>
         </tr>
     </tbody>

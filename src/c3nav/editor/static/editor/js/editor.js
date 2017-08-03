@@ -249,6 +249,7 @@ editor = {
         if (editor._loading_geometry) return;
         if ($(this).attr('href') === '') return;
         if ($(this).is('[data-force-next-zoom]')) editor._next_zoom = true;
+        if ($(this).is('[data-no-next-zoom]')) editor._next_zoom = false;
         editor.sidebar_get($(this).attr('href'));
     },
     _sidebar_submit_btn_click: function() {
