@@ -191,6 +191,11 @@ def edit(request, pk=None, model=None, level=None, space=None, on_top_of=None, e
             'back_url': reverse('.'.join(request.resolver_match.url_name.split('.')[:-1]+['list']), kwargs=kwargs),
         })
 
+    if new:
+        ctx.update({
+            'nozoom': True
+        })
+
     if request.method == 'POST':
         if not new and request.POST.get('delete') == '1':
             # Delete this mapitem!
