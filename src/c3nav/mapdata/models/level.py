@@ -140,7 +140,7 @@ class Level(SpecificLocation, models.Model):
 
         # draw wall shadow
         if effects:
-            wall_dilated_geometry = wall_geometry.buffer(0.7, join_style=JOIN_STYLE.mitre)
+            wall_dilated_geometry = wall_geometry.buffer(0.5, join_style=JOIN_STYLE.mitre)
             svg.add_geometry(wall_dilated_geometry, fill_color='#000000', opacity=0.1, filter='wallblur',
                              clip_path=level_clip)
 
@@ -148,11 +148,11 @@ class Level(SpecificLocation, models.Model):
             self._render_space_inventory(svg, space)
 
         # draw walls
-        svg.add_geometry(wall_geometry, fill_color='#929292', stroke_color='#333333', stroke_width=0.07)
+        svg.add_geometry(wall_geometry, fill_color='#929292', stroke_color='#333333', stroke_width=0.05)
 
         # draw doors
         door_geometries = cascaded_union(tuple(d.geometry for d in doors))
         door_geometries = door_geometries.difference(space_geometries)
-        svg.add_geometry(door_geometries, fill_color='#ffffff', stroke_color='#929292', stroke_width=0.07)
+        svg.add_geometry(door_geometries, fill_color='#ffffff', stroke_color='#929292', stroke_width=0.05)
 
         return svg.get_xml()
