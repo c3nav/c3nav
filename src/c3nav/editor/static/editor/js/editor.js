@@ -385,8 +385,8 @@ editor = {
             editor._geometries_layer.addTo(editor.map);
             editor._highlight_layer.addTo(editor.map);
             editor._loading_geometry = false;
-            if (editor._bounds_layer === null) editor._bounds_layer = editor._geometries_layer;
-            if (editor._next_zoom) {
+            if (editor._bounds_layer === null && editor._geometries_layer.getLayers().length) editor._bounds_layer = editor._geometries_layer;
+            if (editor._next_zoom && editor._bounds_layer !== null) {
                 editor.map.flyToBounds((editor._bounds_layer.getBounds !== undefined) ? editor._bounds_layer.getBounds() : [editor._bounds_layer.getLatLng(), editor._bounds_layer.getLatLng()], {
                     maxZoom: Math.max(4, editor.map.getZoom()),
                     duration: 0.5,
@@ -398,17 +398,19 @@ editor = {
 
             editor._adjust_line_zoom();
 
-            var defs = editor.map.options.renderer._container.querySelector('defs');
-            if (defs === null) {
-                editor.map.options.renderer._container.insertAdjacentHTML('afterbegin', '<defs></defs>');
-                defs = editor.map.options.renderer._container.querySelector('defs');
-            } else {
-                defs.innerHTML = '';
-            }
-            for(var i=0;i<editor._arrow_colors.length;i++) {
-                var color = editor._arrow_colors[i];
-                defs = editor.map.options.renderer._container.querySelector('defs');
-                defs.insertAdjacentHTML('beforeend', '<marker id="graph-edge-arrow-'+String(i)+'" markerWidth="4" markerHeight="4" refX="4.7" refY="2" orient="auto"><path d="M0,0 L3,2 L0,4 L0,0" fill="'+color+'"></path></marker>');
+            if (editor.map.options.renderer._container !== undefined) {
+                var defs = editor.map.options.renderer._container.querySelector('defs');
+                if (defs === null) {
+                    editor.map.options.renderer._container.insertAdjacentHTML('afterbegin', '<defs></defs>');
+                    defs = editor.map.options.renderer._container.querySelector('defs');
+                } else {
+                    defs.innerHTML = '';
+                }
+                for(var i=0;i<editor._arrow_colors.length;i++) {
+                    var color = editor._arrow_colors[i];
+                    defs = editor.map.options.renderer._container.querySelector('defs');
+                    defs.insertAdjacentHTML('beforeend', '<marker id="graph-edge-arrow-'+String(i)+'" markerWidth="4" markerHeight="4" refX="4.7" refY="2" orient="auto"><path d="M0,0 L3,2 L0,4 L0,0" fill="'+color+'"></path></marker>');
+                }
             }
 
             editor._check_start_editing();
