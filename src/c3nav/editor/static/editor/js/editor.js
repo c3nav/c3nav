@@ -738,7 +738,7 @@ editor = {
                 var geomtype = form.attr('data-geomtype');
                 if (geomtype === 'polygon') {
                     editor.map.editTools.startPolygon(null, options);
-                } else if (geomtype === 'polyline') {
+                } else if (geomtype === 'linestring') {
                     options = editor._line_draw_geometry_style(options);
                     editor.map.editTools.startPolyline(null, options);
                 } else if (geomtype === 'point') {
