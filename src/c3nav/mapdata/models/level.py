@@ -130,7 +130,7 @@ class Level(SpecificLocation, models.Model):
         spaces_by_color.pop('', None)
         for i, (color, color_spaces) in enumerate(spaces_by_color.items()):
             geometries = cascaded_union(tuple(space.geometry for space in color_spaces))
-            svg.add_geometry(geometries, fill_color=color)
+            svg.add_geometry(geometries.intersection(level_geometry), fill_color=color)
 
         for space in spaces:
             self._render_space_ground(svg, space)
