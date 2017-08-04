@@ -125,7 +125,7 @@ class EditorFormBase(ModelForm):
         LocationSlug = self.request.changeset.wrap_model('LocationSlug')
         qs = LocationSlug.objects.filter(slug__in=self.add_redirect_slugs)
 
-        if self.cleaned_data['slug'] in self.add_redirect_slugs:
+        if 'slug' in self.cleaned_data and self.cleaned_data['slug'] in self.add_redirect_slugs:
             raise ValidationError(
                 _('Can not add redirecting slug “%s”: it\'s the slug of this object.') % self.cleaned_data['slug']
             )
