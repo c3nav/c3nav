@@ -88,6 +88,7 @@ class AltitudeArea(LevelGeometryMixin, models.Model):
     def recalculate(cls):
         # collect location areas
         all_areas = []
+        space_areas = {}
         for level in Level.objects.prefetch_related('buildings', 'doors', 'spaces', 'spaces__columns',
                                                     'spaces__obstacles', 'spaces__lineobstacles', 'spaces__holes',
                                                     'spaces__stairs', 'spaces__altitudemarkers'):
@@ -117,7 +118,7 @@ class AltitudeArea(LevelGeometryMixin, models.Model):
             areas = assert_multipolygon(cascaded_union(areas+list(door.geometry for door in level.doors.all())))
             areas = [AltitudeArea(geometry=area, level=level) for area in areas]
 
-            space_areas = {space.pk: [] for space in level.spaces.all()}
+            space_areas.update({space.pk: [] for space in level.spaces.all()})
 
             # assign spaces to areas
             for area in areas:
@@ -197,6 +198,7 @@ class AltitudeArea(LevelGeometryMixin, models.Model):
             area.tmpid = i
         for area in areas:
             area.connected_to = set(area.tmpid for area in area.connected_to)
+        print(space_areas.keys())
         for space in space_areas.keys():
             space_areas[space] = set(area.tmpid for area in space_areas[space])
 
@@ -242,5 +244,22 @@ class AltitudeArea(LevelGeometryMixin, models.Model):
                 # continue chain
                 current = areas[next(iter(connected))]
                 chain.append(current.tmpid)
+
+        # remaining areas which belong to a room that has an altitude somewhere
+        for contained_areas in space_areas.values():
+            contained_areas_with_altitudes = contained_areas - areas_without_altitude
+            contained_areas_without_altitudes = contained_areas - contained_areas_with_altitudes
+            if contained_areas_with_altitudes and contained_areas_without_altitudes:
+                altitude_areas = {}
+                for tmpid in contained_areas_with_altitudes:
+                    area = areas[tmpid]
+                    altitude_areas.setdefault(area.altitude, []).append(area.geometry)
+
+                for altitude in altitude_areas.keys():
+                    altitude_areas[altitude] = cascaded_union(altitude_areas[altitude])
+                for tmpid in contained_areas_without_altitudes:
+                    area = areas[tmpid]
+                    area.altitude = min(altitude_areas.items(), key=lambda aa: aa[1].distance(area.geometry))[0]
+                areas_without_altitude.difference_update(contained_areas_without_altitudes)
 
         print(len(areas_without_altitude))
