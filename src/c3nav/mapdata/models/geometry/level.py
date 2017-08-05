@@ -116,6 +116,8 @@ class AltitudeArea(LevelGeometryMixin, models.Model):
             areas = assert_multipolygon(cascaded_union(areas+list(door.geometry for door in level.doors.all())))
             areas = [AltitudeArea(geometry=area, level=level) for area in areas]
 
+            space_areas = {space.pk: [] for space in level.spaces.all()}
+
             # assign spaces to areas
             for area in areas:
                 area.spaces = set()
@@ -123,10 +125,11 @@ class AltitudeArea(LevelGeometryMixin, models.Model):
                 for space in level.spaces.all():
                     if area.geometry.intersects(space.geometry):
                         area.spaces.add(space.pk)
+                        space_areas[space.pk].append(area)
 
             # divide areas using stairs
             for stair in stairs:
-                for i, area in enumerate(tuple(areas)):
+                for area in space_areas[stair.space]:
                     if stair.space not in area.spaces or not stair.intersects(area.geometry):
                         continue
 
@@ -136,14 +139,19 @@ class AltitudeArea(LevelGeometryMixin, models.Model):
                     area.geometry = divided[0]
                     if len(divided) == 2:
                         new_area = AltitudeArea(geometry=divided[1], level=level)
-                        new_area.spaces = area.spaces
+                        new_area.spaces = []
                         new_area.connected_to = [area]
                         area.connected_to.append(new_area)
                         areas.append(new_area)
                         for subarea in (area, new_area):
                             if len(subarea.spaces) > 1:
-                                subarea.spaces = set(space for space in subarea.spaces
+                                spaces_before = subarea.spaces
+                                subarea.spaces = set(space for space in area.spaces
                                                      if spaces[space].geometry.intersects(subarea.geometry))
+                                for space in spaces_before-subarea.spaces:
+                                    space_areas[space].remove(subarea)
+                                for space in subarea.spaces-spaces_before:
+                                    space_areas[space].append(subarea)
 
                     break
 
