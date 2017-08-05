@@ -195,8 +195,10 @@ class AltitudeArea(LevelGeometryMixin, models.Model):
         areas = all_areas
         for i, area in enumerate(areas):
             area.tmpid = i
-        for i, area in enumerate(areas):
+        for area in areas:
             area.connected_to = set(area.tmpid for area in area.connected_to)
+        for space in space_areas.keys():
+            space_areas[space] = set(area.tmpid for area in space_areas[space])
 
         # interpolate altitudes
         areas_without_altitude = set(area.tmpid for area in areas if area.altitude is None)
