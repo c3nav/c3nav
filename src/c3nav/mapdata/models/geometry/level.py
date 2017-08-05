@@ -1,5 +1,6 @@
 from django.db import models
 from django.utils.translation import ugettext_lazy as _
+from shapely.geometry import JOIN_STYLE
 from shapely.ops import cascaded_union
 
 from c3nav.mapdata.fields import GeometryField
@@ -148,6 +149,7 @@ class AltitudeArea(LevelGeometryMixin, models.Model):
                             new_area.spaces = area.spaces
                             space_areas[next(iter(area.spaces))].append(new_area)
                         else:
+                            # update area spaces
                             for subarea in (area, new_area):
                                 spaces_before = subarea.spaces
                                 subarea.spaces = set(space for space in original_spaces
@@ -156,6 +158,18 @@ class AltitudeArea(LevelGeometryMixin, models.Model):
                                     space_areas[space].remove(subarea)
                                 for space in subarea.spaces-spaces_before:
                                     space_areas[space].append(subarea)
+
+                        # update area connections
+                        buffer_area = area.geometry.buffer(0.0005, join_style=JOIN_STYLE.mitre)
+                        new_area_connected_to = []
+                        for other_area in area.connected_to:
+                            if not buffer_area.intersects(other_area.geometry):
+                                new_area_connected_to.append(other_area)
+                                other_area.connected_to.remove(area)
+                                other_area.connected_to.append(new_area)
+                        for other_area in new_area_connected_to:
+                            area.connected_to.remove(other_area)
+                        new_area.connected_to.extend(new_area_connected_to)
                     break
                 else:
                     raise ValueError
