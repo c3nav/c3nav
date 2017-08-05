@@ -66,3 +66,16 @@ class Door(AccessRestrictionMixin, LevelGeometryMixin, models.Model):
         verbose_name = _('Door')
         verbose_name_plural = _('Doors')
         default_related_name = 'doors'
+
+
+class AltitudeArea(LevelGeometryMixin, models.Model):
+    """
+    An altitude area
+    """
+    geometry = GeometryField('polygon')
+    altitude = models.DecimalField(_('altitude'), null=False, max_digits=6, decimal_places=2)
+
+    class Meta:
+        verbose_name = _('Altitude Area')
+        verbose_name_plural = _('Altitude Areas')
+        default_related_name = 'altitudeareas'

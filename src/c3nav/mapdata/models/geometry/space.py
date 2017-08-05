@@ -162,3 +162,16 @@ class Hole(SpaceGeometryMixin, models.Model):
         verbose_name = _('Hole')
         verbose_name_plural = _('Holes')
         default_related_name = 'holes'
+
+
+class AltitudeMarker(SpaceGeometryMixin, models.Model):
+    """
+    An altitude marker
+    """
+    geometry = GeometryField('point')
+    altitude = models.DecimalField(_('altitude'), null=False, max_digits=6, decimal_places=2)
+
+    class Meta:
+        verbose_name = _('Altitude Marker')
+        verbose_name_plural = _('Altitude Markers')
+        default_related_name = 'altitudemarkers'

@@ -173,6 +173,7 @@ class EditorViewSet(ViewSet):
                 space.obstacles.all(),
                 space.lineobstacles.all(),
                 space.columns.all(),
+                space.altitudemarkers.all(),
                 space.pois.filter(POI.q_for_request(request)).prefetch_related('groups'),
                 other_spaces_upper,
                 graphedges,
@@ -204,6 +205,7 @@ class EditorViewSet(ViewSet):
             'graphnode': '#00BB00',
             'graphnode__space_transfer': '#008800',
             'graphedge': '#00CC00',
+            'altitudemarker': '#ffff00',
         })
 
     @list_route(methods=['get'])
