@@ -1,11 +1,13 @@
 from django.db import models
 from django.utils.translation import ugettext_lazy as _
+from shapely.ops import cascaded_union
 
 from c3nav.mapdata.fields import GeometryField
 from c3nav.mapdata.models import Level
 from c3nav.mapdata.models.access import AccessRestrictionMixin
 from c3nav.mapdata.models.geometry.base import GeometryMixin
 from c3nav.mapdata.models.locations import SpecificLocation
+from c3nav.mapdata.utils.geometry import assert_multilinestring, assert_multipolygon
 
 
 class LevelGeometryMixin(GeometryMixin):
@@ -80,3 +82,60 @@ class AltitudeArea(LevelGeometryMixin, models.Model):
         verbose_name = _('Altitude Area')
         verbose_name_plural = _('Altitude Areas')
         default_related_name = 'altitudeareas'
+
+    @classmethod
+    def recalculate(cls):
+        levels = Level.objects.prefetch_related('buildings', 'doors', 'spaces', 'spaces__columns',
+                                                'spaces__obstacles', 'spaces__lineobstacles', 'spaces__holes',
+                                                'spaces__stairs', 'spaces__altitudemarkers')
+
+        for level in levels:
+            areas = []
+            stairs = []
+            spaces = {}
+
+            buildings_geom = cascaded_union(tuple(building.geometry for building in level.buildings.all()))
+            for space in level.spaces.all():
+                if space.outside:
+                    space.geometry = space.geometry.difference(buildings_geom)
+                spaces[space.pk] = space
+                area = space.geometry
+                buffered = space.geometry.buffer(0.0001)
+                remove = cascaded_union(tuple(c.geometry for c in space.columns.all()) +
+                                        tuple(o.geometry for o in space.obstacles.all()) +
+                                        tuple(o.buffered_geometry for o in space.lineobstacles.all()) +
+                                        tuple(h.geometry for h in space.holes.all()))
+                areas.extend(assert_multipolygon(space.geometry.difference(remove)))
+                for stair in space.stairs.all():
+                    stairs.extend(assert_multilinestring(stair.geometry.intersection(buffered).difference(remove)))
+
+            areas = assert_multipolygon(cascaded_union(areas+list(door.geometry for door in level.doors.all())))
+            areas = [AltitudeArea(geometry=area, level=level) for area in areas]
+
+            for area in areas:
+                area.spaces = set()
+                area.connected_to = []
+                for space in level.spaces.all():
+                    if area.geometry.intersects(space.geometry):
+                        area.spaces.add(space.pk)
+
+            for stair in stairs:
+                for i, area in enumerate(tuple(areas)):
+                    if not stair.intersects(area.geometry):
+                        continue
+
+                    divided = assert_multipolygon(area.geometry.difference(stair.buffer(0.0001)))
+                    if len(divided) > 2:
+                        raise ValueError
+                    area.geometry = divided[0]
+                    if len(divided) == 2:
+                        new_area = AltitudeArea(geometry=divided[1], level=level)
+                        new_area.spaces = area.spaces
+                        new_area.connected_to = [area]
+                        area.connected_to.append(new_area)
+                        areas.append(new_area)
+                        for subarea in (area, new_area):
+                            subarea.spaces = set(space for space in subarea.spaces
+                                                 if spaces[space].geometry.intersects(subarea.geometry))
+
+                    break
