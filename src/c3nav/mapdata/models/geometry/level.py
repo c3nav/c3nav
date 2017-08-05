@@ -161,15 +161,20 @@ class AltitudeArea(LevelGeometryMixin, models.Model):
 
                         # update area connections
                         buffer_area = area.geometry.buffer(0.0005, join_style=JOIN_STYLE.mitre)
-                        new_area_connected_to = []
+                        buffer_new_area = new_area.geometry.buffer(0.0005, join_style=JOIN_STYLE.mitre)
+                        remove_area_connected_to = []
                         for other_area in area.connected_to:
                             if not buffer_area.intersects(other_area.geometry):
-                                new_area_connected_to.append(other_area)
+                                new_area.connected_to.append(other_area)
+                                remove_area_connected_to.append(other_area)
                                 other_area.connected_to.remove(area)
                                 other_area.connected_to.append(new_area)
-                        for other_area in new_area_connected_to:
+                            elif other_area != new_area and buffer_new_area.intersects(other_area.geometry):
+                                new_area.connected_to.append(other_area)
+                                other_area.connected_to.append(new_area)
+
+                        for other_area in remove_area_connected_to:
                             area.connected_to.remove(other_area)
-                        new_area.connected_to.extend(new_area_connected_to)
                     break
                 else:
                     raise ValueError
