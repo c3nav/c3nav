@@ -15,7 +15,7 @@ class Level(SpecificLocation, models.Model):
     """
     A map level
     """
-    ordering = models.DecimalField(_('ordering'), null=False, unique=True, max_digits=6, decimal_places=2)
+    base_altitude = models.DecimalField(_('base altitude'), null=False, unique=True, max_digits=6, decimal_places=2)
     on_top_of = models.ForeignKey('mapdata.Level', null=True, on_delete=models.CASCADE,
                                   related_name='levels_on_top', verbose_name=_('on top of'))
 
@@ -23,7 +23,7 @@ class Level(SpecificLocation, models.Model):
         verbose_name = _('Level')
         verbose_name_plural = _('Levels')
         default_related_name = 'levels'
-        ordering = ['ordering']
+        ordering = ['base_altitude']
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -33,14 +33,16 @@ class Level(SpecificLocation, models.Model):
             raise TypeError
         if level_model is None:
             level_model = Level
-        return level_model.objects.filter(ordering__lt=self.ordering, on_top_of__isnull=True).order_by('-ordering')
+        return level_model.objects.filter(base_altitude__lt=self.base_altitude,
+                                          on_top_of__isnull=True).order_by('-base_altitude')
 
     def higher(self, level_model=None):
         if self.on_top_of_id is not None:
             raise TypeError
         if level_model is None:
             level_model = Level
-        return level_model.objects.filter(ordering__gt=self.ordering, on_top_of__isnull=True).order_by('ordering')
+        return level_model.objects.filter(base_altitude__gt=self.base_altitude,
+                                          on_top_of__isnull=True).order_by('base_altitude')
 
     @property
     def sublevels(self):
@@ -62,7 +64,7 @@ class Level(SpecificLocation, models.Model):
 
     def _serialize(self, level=True, **kwargs):
         result = super()._serialize(**kwargs)
-        result['ordering'] = float(str(self.ordering))
+        result['base_altitude'] = float(str(self.base_altitude))
         return result
 
     def _render_space_ground(self, svg, space):
