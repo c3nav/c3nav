@@ -157,5 +157,17 @@ class AltitudeArea(LevelGeometryMixin, models.Model):
                                 for space in subarea.spaces-spaces_before:
                                     space_areas[space].append(subarea)
                     break
+                else:
+                    raise ValueError
+
+            # give altitudes to areas
+            for space in level.spaces.all():
+                for altitudemarker in space.altitudemarkers.all():
+                    for area in space_areas[space.pk]:
+                        if area.geometry.contains(altitudemarker.geometry):
+                            area.altitude = altitudemarker.altitude
+                            break
+                    else:
+                        raise ValueError(space.title)
 
             all_areas.extend(areas)
