@@ -85,15 +85,16 @@ class AltitudeArea(LevelGeometryMixin, models.Model):
 
     @classmethod
     def recalculate(cls):
-        levels = Level.objects.prefetch_related('buildings', 'doors', 'spaces', 'spaces__columns',
-                                                'spaces__obstacles', 'spaces__lineobstacles', 'spaces__holes',
-                                                'spaces__stairs', 'spaces__altitudemarkers')
-
-        for level in levels:
+        # collect location areas
+        all_areas = []
+        for level in Level.objects.prefetch_related('buildings', 'doors', 'spaces', 'spaces__columns',
+                                                    'spaces__obstacles', 'spaces__lineobstacles', 'spaces__holes',
+                                                    'spaces__stairs', 'spaces__altitudemarkers'):
             areas = []
             stairs = []
             spaces = {}
 
+            # collect all accessible areas on this level
             buildings_geom = cascaded_union(tuple(building.geometry for building in level.buildings.all()))
             for space in level.spaces.all():
                 if space.outside:
@@ -107,11 +108,15 @@ class AltitudeArea(LevelGeometryMixin, models.Model):
                                         tuple(h.geometry for h in space.holes.all()))
                 areas.extend(assert_multipolygon(space.geometry.difference(remove)))
                 for stair in space.stairs.all():
-                    stairs.extend(assert_multilinestring(stair.geometry.intersection(buffered).difference(remove)))
+                    substairs = tuple(assert_multilinestring(stair.geometry.intersection(buffered).difference(remove)))
+                    for substair in substairs:
+                        substair.space = space.pk
+                    stairs.extend(substairs)
 
             areas = assert_multipolygon(cascaded_union(areas+list(door.geometry for door in level.doors.all())))
             areas = [AltitudeArea(geometry=area, level=level) for area in areas]
 
+            # assign spaces to areas
             for area in areas:
                 area.spaces = set()
                 area.connected_to = []
@@ -119,9 +124,10 @@ class AltitudeArea(LevelGeometryMixin, models.Model):
                     if area.geometry.intersects(space.geometry):
                         area.spaces.add(space.pk)
 
+            # divide areas using stairs
             for stair in stairs:
                 for i, area in enumerate(tuple(areas)):
-                    if not stair.intersects(area.geometry):
+                    if stair.space not in area.spaces or not stair.intersects(area.geometry):
                         continue
 
                     divided = assert_multipolygon(area.geometry.difference(stair.buffer(0.0001)))
@@ -135,7 +141,10 @@ class AltitudeArea(LevelGeometryMixin, models.Model):
                         area.connected_to.append(new_area)
                         areas.append(new_area)
                         for subarea in (area, new_area):
-                            subarea.spaces = set(space for space in subarea.spaces
-                                                 if spaces[space].geometry.intersects(subarea.geometry))
+                            if len(subarea.spaces) > 1:
+                                subarea.spaces = set(space for space in subarea.spaces
+                                                     if spaces[space].geometry.intersects(subarea.geometry))
 
                     break
+
+            all_areas.extend(areas)
