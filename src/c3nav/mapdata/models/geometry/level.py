@@ -190,3 +190,53 @@ class AltitudeArea(LevelGeometryMixin, models.Model):
                         raise ValueError(space.title)
 
             all_areas.extend(areas)
+
+        # give temporary ids to all areas
+        areas = all_areas
+        for i, area in enumerate(areas):
+            area.tmpid = i
+        for i, area in enumerate(areas):
+            area.connected_to = set(area.tmpid for area in area.connected_to)
+
+        # interpolate altitudes
+        areas_without_altitude = set(area.tmpid for area in areas if area.altitude is None)
+        print(areas_without_altitude)
+        while areas_without_altitude:
+            # find a area without an altitude that is connected
+            # to one with an altitude to start the chain
+            chain = []
+            for tmpid in areas_without_altitude:
+                area = areas[tmpid]
+                connected_with_altitude = area.connected_to-areas_without_altitude
+                if connected_with_altitude:
+                    chain = [next(iter(connected_with_altitude)), tmpid]
+                    current = area
+                    break
+            else:
+                # there are no more chains possible
+                break
+
+            # continue chain as long as possible
+            while True:
+                connected_with_altitude = (current.connected_to-areas_without_altitude).difference(chain)
+                if connected_with_altitude:
+                    area = areas[next(iter(connected_with_altitude))]
+                    from_altitude = areas[chain[0]].altitude
+                    delta_altitude = area.altitude-from_altitude
+                    for i, tmpid in enumerate(chain[1:], 1):
+                        areas[tmpid].altitude = from_altitude+delta_altitude*i/len(chain)
+                    areas_without_altitude.difference_update(chain)
+                    break
+
+                connected = current.connected_to.difference(chain)
+                if not connected:
+                    altitude = areas[chain[0]].altitude
+                    for i, tmpid in enumerate(chain[1:], 1):
+                        areas[tmpid].altitude = altitude
+                    areas_without_altitude.difference_update(chain)
+                    break
+
+                current = areas[next(iter(connected))]
+                chain.append(current.tmpid)
+
+        print(len(areas_without_altitude))
