@@ -198,7 +198,6 @@ class AltitudeArea(LevelGeometryMixin, models.Model):
             area.tmpid = i
         for area in areas:
             area.connected_to = set(area.tmpid for area in area.connected_to)
-        print(space_areas.keys())
         for space in space_areas.keys():
             space_areas[space] = set(area.tmpid for area in space_areas[space])
 
@@ -247,19 +246,22 @@ class AltitudeArea(LevelGeometryMixin, models.Model):
 
         # remaining areas which belong to a room that has an altitude somewhere
         for contained_areas in space_areas.values():
-            contained_areas_with_altitudes = contained_areas - areas_without_altitude
-            contained_areas_without_altitudes = contained_areas - contained_areas_with_altitudes
-            if contained_areas_with_altitudes and contained_areas_without_altitudes:
+            contained_areas_with_altitude = contained_areas - areas_without_altitude
+            contained_areas_without_altitude = contained_areas - contained_areas_with_altitude
+            if contained_areas_with_altitude and contained_areas_without_altitude:
                 altitude_areas = {}
-                for tmpid in contained_areas_with_altitudes:
+                for tmpid in contained_areas_with_altitude:
                     area = areas[tmpid]
                     altitude_areas.setdefault(area.altitude, []).append(area.geometry)
 
                 for altitude in altitude_areas.keys():
                     altitude_areas[altitude] = cascaded_union(altitude_areas[altitude])
-                for tmpid in contained_areas_without_altitudes:
+                for tmpid in contained_areas_without_altitude:
                     area = areas[tmpid]
                     area.altitude = min(altitude_areas.items(), key=lambda aa: aa[1].distance(area.geometry))[0]
-                areas_without_altitude.difference_update(contained_areas_without_altitudes)
+                areas_without_altitude.difference_update(contained_areas_without_altitude)
 
-        print(len(areas_without_altitude))
+        # last fallback: level base_altitude
+        for tmpid in areas_without_altitude:
+            area = areas[tmpid]
+            area.altitude = area.level.base_altitude
