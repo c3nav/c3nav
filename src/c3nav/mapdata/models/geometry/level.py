@@ -202,7 +202,6 @@ class AltitudeArea(LevelGeometryMixin, models.Model):
 
         # interpolate altitudes
         areas_without_altitude = set(area.tmpid for area in areas if area.altitude is None)
-        print(areas_without_altitude)
         while areas_without_altitude:
             # find a area without an altitude that is connected
             # to one with an altitude to start the chain
