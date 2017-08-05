@@ -2,6 +2,7 @@ from django.db import models
 from django.utils.translation import ugettext_lazy as _
 
 from c3nav.mapdata.fields import GeometryField
+from c3nav.mapdata.models import Level
 from c3nav.mapdata.models.access import AccessRestrictionMixin
 from c3nav.mapdata.models.geometry.base import GeometryMixin
 from c3nav.mapdata.models.locations import SpecificLocation

@@ -7,7 +7,6 @@ from django.utils.translation import ugettext_lazy as _
 from shapely.geometry import JOIN_STYLE
 from shapely.ops import cascaded_union
 
-from c3nav.mapdata.models import Area, Door, Space
 from c3nav.mapdata.models.locations import SpecificLocation
 from c3nav.mapdata.utils.svg import SVGImage
 
@@ -92,7 +91,8 @@ class Level(SpecificLocation, models.Model):
         svg.add_geometry(obstacle_geometries, fill_color='#999999')
 
     def render_svg(self, request, effects=True, draw_spaces=None):
-        from c3nav.mapdata.models import Source
+        from c3nav.mapdata.models import Source, Area, Door, Space
+
         bounds = Source.max_bounds()
         svg = SVGImage(bounds=bounds, scale=settings.RENDER_SCALE)
 
