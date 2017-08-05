@@ -130,7 +130,7 @@ class AltitudeArea(LevelGeometryMixin, models.Model):
             # divide areas using stairs
             for stair in stairs:
                 for area in space_areas[stair.space]:
-                    if stair.space not in area.spaces or not stair.intersects(area.geometry):
+                    if not stair.intersects(area.geometry):
                         continue
 
                     divided = assert_multipolygon(area.geometry.difference(stair.buffer(0.0001)))
@@ -139,20 +139,23 @@ class AltitudeArea(LevelGeometryMixin, models.Model):
                     area.geometry = divided[0]
                     if len(divided) == 2:
                         new_area = AltitudeArea(geometry=divided[1], level=level)
-                        new_area.spaces = []
+                        new_area.spaces = set()
                         new_area.connected_to = [area]
                         area.connected_to.append(new_area)
                         areas.append(new_area)
-                        for subarea in (area, new_area):
-                            if len(subarea.spaces) > 1:
+                        original_spaces = area.spaces
+                        if len(area.spaces) == 1:
+                            new_area.spaces = area.spaces
+                            space_areas[next(iter(area.spaces))].append(new_area)
+                        else:
+                            for subarea in (area, new_area):
                                 spaces_before = subarea.spaces
-                                subarea.spaces = set(space for space in area.spaces
+                                subarea.spaces = set(space for space in original_spaces
                                                      if spaces[space].geometry.intersects(subarea.geometry))
                                 for space in spaces_before-subarea.spaces:
                                     space_areas[space].remove(subarea)
                                 for space in subarea.spaces-spaces_before:
                                     space_areas[space].append(subarea)
-
                     break
 
             all_areas.extend(areas)
