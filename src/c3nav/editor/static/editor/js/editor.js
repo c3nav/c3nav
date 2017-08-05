@@ -462,7 +462,7 @@ editor = {
         return style;
     },
     _point_to_layer: function (feature, latlng) {
-        return L.circle(latlng, {radius: 0.5});
+        return L.circle(latlng, {radius: 0.3});
     },
     _get_geometry_style: function (feature) {
         // style callback for GeoJSON loader
@@ -776,7 +776,7 @@ editor = {
             var layer = e.layer;
             if (e.layer._latlng !== undefined) {
                 layer = L.circle(e.layer._latlng, e.layer.options);
-                layer.setRadius(0.5);
+                layer.setRadius(0.3);
                 e.layer.remove();
             }
             editor._editing_layer = layer;
