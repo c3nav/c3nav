@@ -220,6 +220,7 @@ class AltitudeArea(LevelGeometryMixin, models.Model):
             while True:
                 connected_with_altitude = (current.connected_to-areas_without_altitude).difference(chain)
                 if connected_with_altitude:
+                    # interpolate
                     area = areas[next(iter(connected_with_altitude))]
                     from_altitude = areas[chain[0]].altitude
                     delta_altitude = area.altitude-from_altitude
@@ -230,12 +231,14 @@ class AltitudeArea(LevelGeometryMixin, models.Model):
 
                 connected = current.connected_to.difference(chain)
                 if not connected:
+                    # end of chain
                     altitude = areas[chain[0]].altitude
                     for i, tmpid in enumerate(chain[1:], 1):
                         areas[tmpid].altitude = altitude
                     areas_without_altitude.difference_update(chain)
                     break
 
+                # continue chain
                 current = areas[next(iter(connected))]
                 chain.append(current.tmpid)
 
