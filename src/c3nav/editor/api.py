@@ -83,7 +83,7 @@ class EditorViewSet(ViewSet):
             levels, levels_on_top, levels_under = self._get_levels_pk(request, level)
             # don't prefetch groups for now as changesets do not yet work with m2m-prefetches
             levels = Level.objects.filter(pk__in=levels).filter(Level.q_for_request(request))
-            graphnodes = request.changeset.wrap_model('GraphNode').objects.filter(space_transfer=True)
+            graphnodes = request.changeset.wrap_model('GraphNode').objects.all()
             levels = levels.prefetch_related(
                 Prefetch('spaces', request.changeset.wrap_model('Space').objects.filter(Space.q_for_request(request))),
                 Prefetch('doors', request.changeset.wrap_model('Door').objects.filter(Door.q_for_request(request))),
@@ -130,6 +130,7 @@ class EditorViewSet(ViewSet):
             space = next(s for s in other_spaces if s.pk == space.pk)
             other_spaces = [s for s in other_spaces
                             if s.geometry.intersects(doors_space_geom) and s.pk != space.pk]
+            all_other_spaces = other_spaces
 
             if level.on_top_of_id is None:
                 other_spaces_lower = [s for s in other_spaces if s.level_id in levels_under]
@@ -154,11 +155,12 @@ class EditorViewSet(ViewSet):
 
             # todo: permissions
             graphnodes = request.changeset.wrap_model('GraphNode').objects.all()
-            graphnodes = graphnodes.filter((Q(space__in=other_spaces) & Q(space_transfer=True)) |
-                                           Q(space__pk=space.pk))
+            graphnodes = graphnodes.filter((Q(space__in=all_other_spaces)) | Q(space__pk=space.pk))
+
+            space_graphnodes = tuple(node for node in graphnodes if node.space == space)
 
             graphedges = request.changeset.wrap_model('GraphEdge').objects.all()
-            graphedges = graphedges.filter(Q(from_node__in=graphnodes) | Q(to_node__in=graphnodes))
+            graphedges = graphedges.filter(Q(from_node__in=space_graphnodes) | Q(to_node__in=space_graphnodes))
             graphedges = graphedges.select_related('from_node', 'to_node', 'waytype')
 
             results = chain(
@@ -203,7 +205,6 @@ class EditorViewSet(ViewSet):
             'poi': '#4488cc',
             'shadow': '#000000',
             'graphnode': '#00BB00',
-            'graphnode__space_transfer': '#008800',
             'graphedge': '#00CC00',
             'altitudemarker': '#ffff00',
         })

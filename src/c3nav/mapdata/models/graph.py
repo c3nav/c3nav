@@ -16,7 +16,6 @@ class GraphNode(SpaceGeometryMixin, models.Model):
     A graph node
     """
     geometry = GeometryField('point')
-    space_transfer = models.BooleanField(_('space transfer node'), default=False, db_index=True)
 
     class Meta:
         verbose_name = _('Graph Node')
@@ -25,8 +24,6 @@ class GraphNode(SpaceGeometryMixin, models.Model):
 
     def get_geojson_properties(self, *args, **kwargs) -> dict:
         result = super().get_geojson_properties(*args, **kwargs)
-        if self.space_transfer:
-            result['space_transfer'] = True
         return result
 
 

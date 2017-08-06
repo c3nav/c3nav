@@ -159,22 +159,15 @@ editor = {
         }
 
         var active_graph_node = content.find('[data-active-node]');
-        if (!editor._active_graph_node_space_transfer && !editor._in_modal && editor._last_graph_path !== editor.get_location_path()) {
-            editor._active_graph_node = null;
-            editor._active_graph_node_space_transfer = null;
-            editor._active_graph_node_html = null;
-        }
         if (active_graph_node.length) {
             var active_graph_node_id = active_graph_node.attr('data-active-node');
             if (active_graph_node_id !== '') {
                 if (active_graph_node_id === 'null') {
                     editor._active_graph_node = null;
-                    editor._active_graph_node_space_transfer = null;
                     editor._active_graph_node_html = null;
                     active_graph_node.remove();
                 } else {
                     editor._active_graph_node = active_graph_node_id;
-                    editor._active_graph_node_space_transfer = active_graph_node.is('[data-space-transfer]');
                     editor._active_graph_node_html = active_graph_node.html();
                 }
             } else if (editor._active_graph_node_html !== null) {
@@ -294,7 +287,6 @@ editor = {
     _graph_editing: false,
     _graph_creating: false,
     _active_graph_node: null,
-    _active_graph_node_space_transfer: null,
     _active_graph_node_html: null,
     _deactivate_graph_node_on_click: false,
     _graph_edges_from: {},
@@ -467,9 +459,6 @@ editor = {
     _get_geometry_style: function (feature) {
         // style callback for GeoJSON loader
         var style = editor._get_mapitem_type_style(feature.properties.type);
-        if (feature.properties.space_transfer) {
-            style = editor._get_mapitem_type_style('graphnode__space_transfer');
-        }
         if (editor._level_control.current_level_id === editor._sublevel_control.current_level_id) {
             if (editor._sublevel_control.level_ids.indexOf(feature.properties.level) >= 0 && editor._level_control.current_level_id !== feature.properties.level) {
                 style.stroke = true;
@@ -703,7 +692,6 @@ editor = {
             sidebar.find('[data-active-node]').remove();
             sidebar.find('#id_active_node').val('');
             editor._active_graph_node = null;
-            editor._active_graph_node_space_transfer = null;
             editor._active_graph_node_html = null;
             return;
         }

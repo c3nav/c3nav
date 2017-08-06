@@ -8,8 +8,7 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.utils.translation import ugettext_lazy as _
 
-from c3nav.editor.forms import (GraphEdgeSettingsForm, GraphEditorActionForm, GraphEditorSettingsForm,
-                                GraphNodeSettingsForm)
+from c3nav.editor.forms import GraphEdgeSettingsForm, GraphEditorActionForm, GraphEditorSettingsForm
 from c3nav.editor.views.base import sidebar_view
 
 
@@ -452,11 +451,10 @@ def graph_edit(request, level=None, space=None):
             allow_clicked_position = True
 
     if request.method == 'POST':
-        node_settings_form = GraphNodeSettingsForm(instance=GraphNode(), data=request.POST)
         edge_settings_form = GraphEdgeSettingsForm(instance=GraphEdge(), request=request, data=request.POST)
         graph_action_form = GraphEditorActionForm(request=request, allow_clicked_position=allow_clicked_position,
                                                   data=request.POST)
-        if node_settings_form.is_valid() and edge_settings_form.is_valid() and graph_action_form.is_valid():
+        if edge_settings_form.is_valid() and graph_action_form.is_valid():
             goto_space = graph_action_form.cleaned_data['goto_space']
             if goto_space is not None:
                 return redirect(reverse('editor.spaces.graph', kwargs={'space': goto_space.pk}))
@@ -496,14 +494,6 @@ def graph_edit(request, level=None, space=None):
                 elif node_click_setting == 'toggle':
                     active_node = None if active_node == clicked_node else clicked_node
                     set_active_node = True
-                elif node_click_setting == 'set_space_transfer':
-                    with request.changeset.lock_to_edit(request) as changeset:
-                        if changeset.can_edit(request):
-                            clicked_node.space_transfer = node_settings_form.instance.space_transfer
-                            clicked_node.save()
-                            messages.success(request, _('Space transfer set.'))
-                        else:
-                            messages.error(request, _('You can not edit changes on this changeset.'))
                 elif node_click_setting == 'delete':
                     with request.changeset.lock_to_edit(request) as changeset:
                         if changeset.can_edit(request):
@@ -530,12 +520,7 @@ def graph_edit(request, level=None, space=None):
                         with request.changeset.lock_to_edit(request) as changeset:
                             if changeset.can_edit(request):
                                 after_create_node_setting = graph_editing_settings['after_create_node']
-                                node = node_settings_form.instance
-                                node.space = space
-                                node.geometry = clicked_position
-                                if (active_node is not None and after_create_node_setting == 'connect' and
-                                        active_node.space != space):
-                                    node.space_transfer = True
+                                node = GraphNode(space=space, geometry=clicked_position)
                                 node.save()
                                 messages.success(request, _('New graph node created.'))
                                 if after_create_node_setting == 'connect':
@@ -557,12 +542,10 @@ def graph_edit(request, level=None, space=None):
                     'active_node': active_node,
                 })
     else:
-        node_settings_form = GraphNodeSettingsForm()
         edge_settings_form = GraphEdgeSettingsForm(request=request)
     graph_action_form = GraphEditorActionForm(request=request, allow_clicked_position=allow_clicked_position)
 
     ctx.update({
-        'node_settings_form': node_settings_form,
         'edge_settings_form': edge_settings_form,
         'graph_action_form': graph_action_form,
         'graph_editing': graph_editing,

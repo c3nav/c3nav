@@ -15,7 +15,7 @@ from shapely.geometry.geo import mapping
 
 from c3nav.editor.models import ChangeSet, ChangeSetUpdate
 from c3nav.mapdata.fields import GeometryField
-from c3nav.mapdata.models import GraphEdge, GraphNode
+from c3nav.mapdata.models import GraphEdge
 
 
 class EditorFormBase(ModelForm):
@@ -161,7 +161,7 @@ class EditorFormBase(ModelForm):
 
 def create_editor_form(editor_model):
     possible_fields = ['slug', 'name', 'ordering', 'category', 'width', 'groups', 'color', 'priority', 'altitude',
-                       'waytype', 'access_restriction', 'space_transfer', 'can_search', 'can_describe', 'outside',
+                       'waytype', 'access_restriction', 'can_search', 'can_describe', 'outside',
                        'geometry', 'single', 'allow_levels', 'allow_spaces', 'allow_areas', 'allow_pois',
                        'left', 'top', 'right', 'bottom']
     field_names = [field.name for field in editor_model._meta.get_fields() if not field.one_to_many]
@@ -188,12 +188,6 @@ class RejectForm(ModelForm):
     class Meta:
         model = ChangeSetUpdate
         fields = ('comment', )
-
-
-class GraphNodeSettingsForm(ModelForm):
-    class Meta:
-        model = GraphNode
-        fields = ('space_transfer', )
 
 
 class GraphEdgeSettingsForm(ModelForm):
@@ -243,7 +237,6 @@ class GraphEditorSettingsForm(Form):
         ('activate', _('activate')),
         ('deactivate', _('deactivate')),
         ('toggle', _('toggle')),
-        ('set_space_transfer', _('set space transfer')),
         ('delete', _('delete node')),
         ('noop', _('do nothing')),
     ), initial='connect_or_toggle')
