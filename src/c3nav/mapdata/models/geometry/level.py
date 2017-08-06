@@ -196,7 +196,7 @@ class AltitudeArea(LevelGeometryMixin, models.Model):
             all_areas.extend(areas)
 
         # give temporary ids to all areas
-        for area in areas:
+        for area in all_areas:
             area.geometry = clean_geometry(area.geometry)
         areas = [area for area in all_areas if not area.geometry.is_empty]
         for i, area in enumerate(areas):
