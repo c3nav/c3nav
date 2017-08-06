@@ -481,7 +481,7 @@ editor = {
                 style.fillOpacity = 0.5;
             }
         }
-        if (feature.properties.type === 'graphnode' && feature.properties.id === editor._active_graph_node) {
+        if (feature.properties.type === 'graphnode' && String(feature.properties.id) === editor._active_graph_node) {
             style.stroke = true;
             style.weight = 3;
             style.color = '#ffff00';
