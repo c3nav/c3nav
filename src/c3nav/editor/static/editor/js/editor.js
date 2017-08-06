@@ -415,15 +415,19 @@ editor = {
         }
     },
     _weight_for_zoom: function() {
-        return Math.pow(2, editor.map.getZoom())*0.3;
+        return Math.pow(2, editor.map.getZoom())*0.1;
     },
     _adjust_line_zoom: function() {
-        var weight = Math.pow(2, editor.map.getZoom())*0.3,
+        var weight = Math.pow(2, editor.map.getZoom())*0.1,
             factor = Math.pow(2, editor.map.getZoom());
         editor._arrow_colors = [];
         for(var i=0;i<editor._line_geometries.length;i++) {
             var layer = editor._line_geometries[i];
-            layer.setStyle({weight: weight});
+            if (layer.feature.properties.type === 'stair') {
+                layer.setStyle({weight: weight/2});
+            } else {
+                layer.setStyle({weight: weight});
+            }
             if (layer.feature.properties.type === 'graphedge') {
                 var start_pos = 0.4,
                     end_pos = layer.length-0.4,

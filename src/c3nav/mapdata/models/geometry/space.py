@@ -1,5 +1,3 @@
-from collections import OrderedDict
-
 from django.db import models
 from django.utils.translation import ugettext_lazy as _
 from shapely.geometry import CAP_STYLE, JOIN_STYLE, mapping
@@ -69,27 +67,6 @@ class Stair(SpaceGeometryMixin, models.Model):
         verbose_name = _('Stair')
         verbose_name_plural = _('Stairs')
         default_related_name = 'stairs'
-
-    def to_geojson(self, *args, **kwargs):
-        result = super().to_geojson(*args, **kwargs)
-        original_geometry = result['geometry']
-        draw = self.geometry.buffer(0.05, join_style=JOIN_STYLE.mitre, cap_style=CAP_STYLE.flat)
-        result['geometry'] = format_geojson(mapping(draw))
-        result['original_geometry'] = original_geometry
-        return result
-
-    def to_shadow_geojson(self):
-        shadow = self.geometry.parallel_offset(0.03, 'right', join_style=JOIN_STYLE.mitre)
-        shadow = shadow.buffer(0.019, join_style=JOIN_STYLE.mitre, cap_style=CAP_STYLE.flat)
-        return OrderedDict((
-            ('type', 'Feature'),
-            ('properties', OrderedDict((
-                ('type', 'shadow'),
-                ('original_type', self.__class__.__name__.lower()),
-                ('original_id', self.id),
-            ))),
-            ('geometry', format_geojson(mapping(shadow), round=False)),
-        ))
 
 
 class Obstacle(SpaceGeometryMixin, models.Model):

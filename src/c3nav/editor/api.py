@@ -181,14 +181,9 @@ class EditorViewSet(ViewSet):
                 graphedges,
                 graphnodes
             )
-            return Response(sum([self._get_geojsons(obj) for obj in results], ()))
+            return Response([obj.to_geojson(instance=obj) for obj in results])
         else:
             raise ValidationError('No level or space specified.')
-
-    @staticmethod
-    def _get_geojsons(obj):
-        return (((obj.to_shadow_geojson(),) if hasattr(obj, 'to_shadow_geojson') else ()) +
-                (obj.to_geojson(instance=obj),))
 
     @list_route(methods=['get'])
     def geometrystyles(self, request, *args, **kwargs):
@@ -198,7 +193,7 @@ class EditorViewSet(ViewSet):
             'hole': 'rgba(255, 0, 0, 0.3)',
             'door': '#ffffff',
             'area': 'rgba(85, 170, 255, 0.2)',
-            'stair': 'rgba(160, 0, 160, 0.5)',
+            'stair': '#a000a0',
             'obstacle': '#999999',
             'lineobstacle': '#999999',
             'column': '#888888',
