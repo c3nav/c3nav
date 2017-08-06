@@ -529,12 +529,15 @@ def graph_edit(request, level=None, space=None):
                     if space.geometry.contains(clicked_position):
                         with request.changeset.lock_to_edit(request) as changeset:
                             if changeset.can_edit(request):
+                                after_create_node_setting = graph_editing_settings['after_create_node']
                                 node = node_settings_form.instance
                                 node.space = space
                                 node.geometry = clicked_position
+                                if (active_node is not None and after_create_node_setting == 'connect' and
+                                        active_node.space != space):
+                                    node.space_transfer = True
                                 node.save()
                                 messages.success(request, _('New graph node created.'))
-                                after_create_node_setting = graph_editing_settings['after_create_node']
                                 if after_create_node_setting == 'connect':
                                     active_node, set_active_node = connect_nodes(request, active_node, node,
                                                                                  edge_settings_form,
