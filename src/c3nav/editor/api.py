@@ -104,6 +104,7 @@ class EditorViewSet(ViewSet):
             graphedges = request.changeset.wrap_model('GraphEdge').objects.all()
             graphedges = graphedges.filter(Q(from_node__in=graphnodes) | Q(to_node__in=graphnodes))
             graphedges = graphedges.select_related('from_node', 'to_node', 'waytype')
+            graphedges = [edge for edge in graphedges if edge.from_node.space_id != edge.to_node.space_id]
 
             results = chain(
                 *(self._get_level_geometries(l) for l in levels_under),
