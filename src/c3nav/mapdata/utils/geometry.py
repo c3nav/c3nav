@@ -9,12 +9,7 @@ def clean_geometry(geometry):
         return geometry
 
     if isinstance(geometry, Polygon):
-        p = Polygon(list(geometry.exterior.coords))
-        for interior in geometry.interiors:
-            p = p.difference(Polygon(list(interior.coords)))
-
-        if isinstance(p, Polygon) and p.is_valid:
-            return p
+        return geometry.buffer(0)
 
     return geometry
 
