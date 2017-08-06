@@ -204,7 +204,7 @@ class EditorViewSet(ViewSet):
             'column': '#888888',
             'poi': '#4488cc',
             'shadow': '#000000',
-            'graphnode': '#00BB00',
+            'graphnode': '#009900',
             'graphedge': '#00CC00',
             'altitudemarker': '#ffff00',
         })
