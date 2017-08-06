@@ -402,7 +402,7 @@ editor = {
                 for(var i=0;i<editor._arrow_colors.length;i++) {
                     var color = editor._arrow_colors[i];
                     defs = editor.map.options.renderer._container.querySelector('defs');
-                    defs.insertAdjacentHTML('beforeend', '<marker id="graph-edge-arrow-'+String(i)+'" markerWidth="4" markerHeight="4" refX="4.7" refY="2" orient="auto"><path d="M0,0 L3,2 L0,4 L0,0" fill="'+color+'"></path></marker>');
+                    defs.insertAdjacentHTML('beforeend', '<marker id="graph-edge-arrow-'+String(i)+'" markerWidth="2" markerHeight="3" refX="3.5" refY="1.5" orient="auto"><path d="M0,0 L2,1.5 L0,3 L0,0" fill="'+color+'"></path></marker>');
                 }
             }
 
@@ -429,8 +429,8 @@ editor = {
                 layer.setStyle({weight: weight});
             }
             if (layer.feature.properties.type === 'graphedge') {
-                var start_pos = 0.4,
-                    end_pos = layer.length-0.4,
+                var start_pos = 0.1,
+                    end_pos = layer.length-0.1,
                     color_index = editor._arrow_colors.indexOf(layer._path.getAttribute('stroke'));
                     other = (editor._graph_edges_to[layer.feature.properties.from_node] !== undefined) ? editor._graph_edges_to[layer.feature.properties.from_node][layer.feature.properties.to_node] : undefined;
                 if (color_index === -1) {
@@ -441,7 +441,7 @@ editor = {
                     start_pos = layer.length/2-0.01;
                 }
                 if (other === undefined || layer._path.getAttribute('stroke') !== other._path.getAttribute('stroke')) {
-                    end_pos = layer.length-1;
+                    end_pos = layer.length-0.3;
                     layer._path.setAttribute('marker-end', 'url(#graph-edge-arrow-'+String(color_index)+')');
                 }
                 layer.setStyle({
