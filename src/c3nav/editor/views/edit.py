@@ -347,7 +347,7 @@ def connect_nodes(request, active_node, clicked_node, edge_settings_form, graph_
     after_connect_nodes_setting = graph_editing_settings['after_connect_nodes']
 
     new_connections = []
-    if connect_nodes_setting in ('bidirectional', 'unidirectional', 'unidirectional_force'):
+    if connect_nodes_setting in ('bidirectional', 'unidirectional', 'unidirectional_force') and active_node is not None:
         new_connections.append((active_node, clicked_node, False))
         if connect_nodes_setting == 'bidirectional':
             new_connections.append((clicked_node, active_node, True))
