@@ -1,4 +1,5 @@
 from django.db import models
+from django.db.models import F
 from django.utils.translation import ugettext_lazy as _
 from shapely.geometry import JOIN_STYLE
 from shapely.ops import cascaded_union
@@ -89,12 +90,12 @@ class AltitudeArea(LevelGeometryMixin, models.Model):
         # collect location areas
         all_areas = []
         space_areas = {}
+        spaces = {}
         for level in Level.objects.prefetch_related('buildings', 'doors', 'spaces', 'spaces__columns',
                                                     'spaces__obstacles', 'spaces__lineobstacles', 'spaces__holes',
                                                     'spaces__stairs', 'spaces__altitudemarkers'):
             areas = []
             stairs = []
-            spaces = {}
 
             # collect all accessible areas on this level
             buildings_geom = cascaded_union(tuple(building.geometry for building in level.buildings.all()))
@@ -200,9 +201,46 @@ class AltitudeArea(LevelGeometryMixin, models.Model):
             area.connected_to = set(area.tmpid for area in area.connected_to)
         for space in space_areas.keys():
             space_areas[space] = set(area.tmpid for area in space_areas[space])
+        areas_without_altitude = set(area.tmpid for area in areas if area.altitude is None)
+
+        # connect levels
+        from c3nav.mapdata.models import GraphEdge
+        edges = GraphEdge.objects.exclude(from_node__space__level=F('to_node__space__level'))
+        edges = edges.select_related('from_node', 'to_node')
+        node_areas = {}
+        area_connections = {}
+        for edge in edges:
+            for node in (edge.from_node, edge.to_node):
+                if node.pk not in node_areas:
+                    tmpid = next(tmpid for tmpid in space_areas[node.space_id]
+                                 if areas[tmpid].geometry.contains(node.geometry))
+                    node_areas[node.pk] = tmpid
+            area_connections.setdefault(node_areas[edge.from_node.pk], set()).add(node_areas[edge.to_node.pk])
+            area_connections.setdefault(node_areas[edge.to_node.pk], set()).add(node_areas[edge.from_node.pk])
+
+        del_keys = tuple(tmpid for tmpid in area_connections.keys() if tmpid not in areas_without_altitude)
+        for tmpid in del_keys:
+            del area_connections[tmpid]
+
+        do_continue = True
+        while do_continue:
+            do_continue = False
+            del_keys = []
+            for tmpid in area_connections.keys():
+                connections = area_connections[tmpid] - areas_without_altitude
+                if connections:
+                    area = areas[tmpid]
+                    other_area = areas[next(iter(connections))]
+                    area.altitude = other_area.altitude
+                    areas_without_altitude.remove(tmpid)
+                    del_keys.append(tmpid)
+
+            if del_keys:
+                do_continue = True
+                for tmpid in del_keys:
+                    del area_connections[tmpid]
 
         # interpolate altitudes
-        areas_without_altitude = set(area.tmpid for area in areas if area.altitude is None)
         while areas_without_altitude:
             # find a area without an altitude that is connected
             # to one with an altitude to start the chain
