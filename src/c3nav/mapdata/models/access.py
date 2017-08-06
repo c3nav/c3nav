@@ -35,11 +35,11 @@ class AccessRestrictionMixin(SerializableMixin, models.Model):
         return result
 
     @classmethod
-    def qs_for_request(cls, request):
-        return cls.objects.filter(cls.q_for_request(request))
+    def qs_for_request(cls, request, allow_none=False):
+        return cls.objects.filter(cls.q_for_request(request, allow_none=allow_none))
 
     @classmethod
-    def q_for_request(cls, request, prefix=''):
-        if request.user.is_authenticated and request.user.is_superuser:
+    def q_for_request(cls, request, prefix='', allow_none=False):
+        if (request is None and allow_none) or (request.user.is_authenticated and request.user.is_superuser):
             return Q()
         return Q(**{prefix + 'access_restriction__isnull': True})

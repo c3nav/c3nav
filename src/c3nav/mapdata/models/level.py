@@ -1,3 +1,4 @@
+import os
 from itertools import chain
 
 from django.conf import settings
@@ -8,6 +9,7 @@ from shapely.geometry import JOIN_STYLE
 from shapely.ops import cascaded_union
 
 from c3nav.mapdata.models.locations import SpecificLocation
+from c3nav.mapdata.utils.scad import polygon_scad
 from c3nav.mapdata.utils.svg import SVGImage
 
 
@@ -158,3 +160,31 @@ class Level(SpecificLocation, models.Model):
         svg.add_geometry(door_geometries, fill_color='#ffffff', stroke_color='#929292', stroke_width=0.05)
 
         return svg.get_xml()
+
+    def render_scad(self, f, spaces=None, request=None):
+        if spaces is None:
+            from c3nav.mapdata.models import Area, Space
+            spaces = self.spaces.filter(Space.q_for_request(request, allow_none=True)).prefetch_related(
+                Prefetch('areas', Area.qs_for_request(request, allow_none=True)),
+                'groups', 'columns', 'holes', 'areas__groups',
+                'stairs', 'obstacles', 'lineobstacles'
+            )
+        for area in self.altitudeareas.all():
+            f.write('translate([0, 0, %.2f]) ' % area.altitude)
+            f.write(polygon_scad(area.geometry) + ';\n')
+
+    @classmethod
+    def render_scad_all(cls, request=None):
+        from c3nav.mapdata.models import Level, Area, Space
+        spaces = Space.objects.filter(Space.q_for_request(request, allow_none=True)).prefetch_related(
+            Prefetch('areas', Area.qs_for_request(request, allow_none=True)),
+            'groups', 'columns', 'holes', 'areas__groups',
+            'stairs', 'obstacles', 'lineobstacles'
+        )
+        level_spaces = {}
+        for space in spaces:
+            level_spaces.setdefault(space.level_id, []).append(space)
+        filename = os.path.join(settings.RENDER_ROOT, 'all.scad')
+        with open(filename, 'w') as f:
+            for level in Level.objects.prefetch_related('altitudeareas'):
+                level.render_scad(f, spaces=level_spaces.get(level.pk, []))
