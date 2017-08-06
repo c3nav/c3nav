@@ -1,3 +1,5 @@
+from operator import attrgetter, itemgetter
+
 from django.db import models
 from django.db.models import F
 from django.utils.translation import ugettext_lazy as _
@@ -9,7 +11,7 @@ from c3nav.mapdata.models import Level
 from c3nav.mapdata.models.access import AccessRestrictionMixin
 from c3nav.mapdata.models.geometry.base import GeometryMixin
 from c3nav.mapdata.models.locations import SpecificLocation
-from c3nav.mapdata.utils.geometry import assert_multilinestring, assert_multipolygon
+from c3nav.mapdata.utils.geometry import assert_multilinestring, assert_multipolygon, clean_geometry
 
 
 class LevelGeometryMixin(GeometryMixin):
@@ -194,7 +196,9 @@ class AltitudeArea(LevelGeometryMixin, models.Model):
             all_areas.extend(areas)
 
         # give temporary ids to all areas
-        areas = all_areas
+        for area in areas:
+            area.geometry = clean_geometry(area.geometry)
+        areas = [area for area in all_areas if not area.geometry.is_empty]
         for i, area in enumerate(areas):
             area.tmpid = i
         for area in areas:
@@ -303,3 +307,56 @@ class AltitudeArea(LevelGeometryMixin, models.Model):
         for tmpid in areas_without_altitude:
             area = areas[tmpid]
             area.altitude = area.level.base_altitude
+
+        # save to database
+        from c3nav.mapdata.models import MapUpdate
+        with MapUpdate.lock():
+            areas_to_save = set(range(len(areas)))
+
+            level_areas = {}
+            for area in areas:
+                level_areas.setdefault(area.level, set()).add(area.tmpid)
+
+            all_candidates = AltitudeArea.objects.select_related('level')
+            for candidate in all_candidates:
+                candidate.area = candidate.geometry.area
+            all_candidates = sorted(all_candidates, key=attrgetter('area'), reverse=True)
+
+            num_modified = 0
+            num_deleted = 0
+            num_created = 0
+
+            for candidate in all_candidates:
+                new_area = None
+                for tmpid in level_areas.get(candidate.level, set()):
+                    area = areas[tmpid]
+                    if area.geometry.almost_equals(candidate.geometry, 1):
+                        new_area = area
+                        break
+
+                if new_area is None:
+                    potential_areas = [(tmpid, areas[tmpid].geometry.intersection(candidate.geometry).area)
+                                       for tmpid in level_areas.get(candidate.level, set())]
+                    potential_areas = [(tmpid, size) for tmpid, size in potential_areas
+                                       if candidate.area and size/candidate.area > 0.9]
+                    if potential_areas:
+                        num_modified += 1
+                        new_area = areas[max(potential_areas, key=itemgetter(1))[0]]
+
+                if new_area is None:
+                    candidate.delete()
+                    num_deleted += 1
+                    continue
+
+                candidate.geometry = new_area.geometry
+                candidate.altitude = new_area.altitude
+                candidate.save()
+                areas_to_save.discard(new_area.tmpid)
+                level_areas[new_area.level].discard(new_area.tmpid)
+
+            for tmpid in areas_to_save:
+                num_created += 1
+                areas[tmpid].save()
+
+            print(_('%d altitude areas built.') % len(areas))
+            print(_('%d modified, %d deleted, %d created.') % (num_modified, num_deleted, num_created))
