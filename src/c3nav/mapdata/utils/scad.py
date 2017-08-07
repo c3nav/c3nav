@@ -18,14 +18,14 @@ def polygon_scad(polygon, height):
 def _polygon_scad(polygon, height):
     coords = mapping(polygon.simplify(0.001))['coordinates']
 
-    interior = coords[0]
-    exteriors = coords[1:]
+    exterior = coords[0]
+    interiors = coords[1:]
     result = 'linear_extrude(height=%.2f, center=false, convexity=20) ' % height
-    result += _ring_scad(interior)
-    if exteriors:
+    result += _ring_scad(exterior)
+    if interiors:
         result = 'difference() {\n'+add_indent(result)
         result += '    translate([0, 0, -0.01]) {\n'
-        for ring in exteriors:
+        for ring in interiors:
             result += '        linear_extrude(height=%.2f, center=false, convexity=20) ' % (height+Decimal('0.02'))
             result += _ring_scad(ring)
         result += '    }\n'
