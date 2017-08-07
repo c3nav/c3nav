@@ -13,7 +13,7 @@ from shapely.ops import cascaded_union
 
 from c3nav.mapdata.models.locations import SpecificLocation
 from c3nav.mapdata.utils.geometry import assert_multipolygon
-from c3nav.mapdata.utils.scad import polygon_scad
+from c3nav.mapdata.utils.scad import add_indent, polygon_scad
 from c3nav.mapdata.utils.svg import SVGImage
 
 
@@ -203,19 +203,19 @@ class Level(SpecificLocation, models.Model):
                 geometry = geometry.difference(intersection)
 
                 low_height = max(altitude - low_altitude, 0)
-                total_heght = low_height+height
-                if total_heght:
+                total_height = low_height+height
+                if total_height:
                     f.write('    ')
                     f.write('translate([0, 0, %.2f]) ' % (altitude - low_height))
-                    f.write('linear_extrude(height=%.2f, center=false, convexity=20) ' % total_heght)
-                    f.write(polygon_scad(intersection) + ';\n')
+                    f.write(add_indent(polygon_scad(intersection, total_height))[4:])
         if not geometry.is_empty:
             f.write('    ')
             f.write('translate([0, 0, %.2f]) ' % (altitude - Decimal('0.5')))
-            f.write('linear_extrude(height=%.2f, center=false, convexity=20) ' % (height+Decimal('0.5')))
-            f.write(polygon_scad(geometry) + ';\n')
+            f.write(add_indent(polygon_scad(geometry, height+Decimal('0.5')))[4:])
 
     def _render_scad(self, f, low_clip=(), spaces=None, request=None):
+        f.write('    // '+self.title+'\n')
+
         if spaces is None:
             from c3nav.mapdata.models import Area, Space
             spaces = self.spaces.filter(Space.q_for_request(request, allow_none=True)).prefetch_related(
@@ -223,6 +223,8 @@ class Level(SpecificLocation, models.Model):
                 'groups', 'columns', 'holes', 'areas__groups',
                 'stairs', 'obstacles', 'lineobstacles'
             )
+
+        f.write('')
 
         for area in self.altitudeareas.all():
             area.geometry = area.geometry.buffer(0)
