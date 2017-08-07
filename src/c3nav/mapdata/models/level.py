@@ -193,7 +193,7 @@ class Level(SpecificLocation, models.Model):
         return cascaded_union(tuple(item.geometry.buffer(0)
                                     for item in chain(self.altitudeareas.all(), self.buildings.all()))).bounds
 
-    def _render_scad(self, f, low_clip=[], spaces=None, request=None):
+    def _render_scad(self, f, low_clip=(), spaces=None, request=None):
         if spaces is None:
             from c3nav.mapdata.models import Area, Space
             spaces = self.spaces.filter(Space.q_for_request(request, allow_none=True)).prefetch_related(
@@ -203,10 +203,22 @@ class Level(SpecificLocation, models.Model):
             )
 
         for area in self.altitudeareas.all():
-            f.write('    ')
-            f.write('translate([0, 0, %.2f]) ' % (area.altitude-Decimal('0.5')))
-            f.write('linear_extrude(height=0.5, center=false, convexity=20) ')
-            f.write(polygon_scad(area.geometry) + ';\n')
+            geometry = area.geometry
+            for low_altitude, low_area in low_clip:
+                intersection = geometry.intersection(low_area)
+                if not intersection.is_empty:
+                    geometry = geometry.difference(intersection)
+                    width = max(area.altitude - low_altitude, 0)
+                    if width:
+                        f.write('    ')
+                        f.write('translate([0, 0, %.2f]) ' % (area.altitude - width))
+                        f.write('linear_extrude(height=%.2f, center=false, convexity=20) ' % width)
+                        f.write(polygon_scad(area.geometry) + ';\n')
+            if not geometry.is_empty:
+                f.write('    ')
+                f.write('translate([0, 0, %.2f]) ' % (area.altitude - Decimal('0.5')))
+                f.write('linear_extrude(height=0.5, center=false, convexity=20) ')
+                f.write(polygon_scad(area.geometry) + ';\n')
 
     @classmethod
     def render_scad_all(cls, levels=None, request=None):
@@ -223,14 +235,19 @@ class Level(SpecificLocation, models.Model):
 
         if levels is None:
             levels = Level.objects
-        levels = levels.prefetch_related('buildings', 'doors', 'altitudeareas')
+        levels = levels.prefetch_related('buildings', 'doors', 'altitudeareas').order_by('base_altitude')
 
         bounds = cascaded_union(tuple(box(*level.bounds) for level in levels)).bounds
         center = tuple(box(*bounds).centroid.coords[0])
         min_altitude = min((level.min_altitude for level in levels), default=0)
 
         with open(filename, 'w') as f:
-            f.write('translate([%.2f, %.2f, %.2f]) {\n' % (0-center[0], 0-center[1], 0-min_altitude))
+            f.write('translate([%.2f, %.2f, %.2f]) {\n' % (0-center[0], 0-center[1], 0-min_altitude+Decimal('0.5')))
+            first = True
             for level in levels:
-                level._render_scad(f, spaces=level_spaces.get(level.pk, []))
+                low_clip = []
+                if first:
+                    low_clip = [(level.min_altitude-Decimal('0.5'), box(*bounds))]
+                    first = False
+                level._render_scad(f, spaces=level_spaces.get(level.pk, []), low_clip=low_clip)
             f.write('}\n')
