@@ -312,8 +312,6 @@ class AltitudeArea(LevelGeometryMixin, models.Model):
             area = areas[tmpid]
             area.altitude = area.level.base_altitude
 
-        print(areas)
-
         level_areas = {}
         for area in areas:
             level_areas.setdefault(area.level, set()).add(area.tmpid)
@@ -385,7 +383,6 @@ class AltitudeArea(LevelGeometryMixin, models.Model):
 
             areas_by_altitude = {altitude: cascaded_union(alt_areas)
                                  for altitude, alt_areas in areas_by_altitude.items()}
-            print(areas_by_altitude)
 
             level_areas[level] = [AltitudeArea(level=level, geometry=geometry, altitude=altitude)
                                   for altitude, geometry in areas_by_altitude.items()]
