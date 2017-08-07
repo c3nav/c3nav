@@ -196,6 +196,25 @@ class Level(SpecificLocation, models.Model):
         return cascaded_union(tuple(item.geometry.buffer(0)
                                     for item in chain(self.altitudeareas.all(), self.buildings.all()))).bounds
 
+    def _render_scad_polygon(self, f, geometry, altitude, height=Decimal('0.0'), low_clip=()):
+        for low_altitude, low_area in low_clip:
+            intersection = geometry.intersection(low_area)
+            if not intersection.is_empty:
+                geometry = geometry.difference(intersection)
+
+                low_height = max(altitude - low_altitude, 0)
+                total_heght = low_height+height
+                if total_heght:
+                    f.write('    ')
+                    f.write('translate([0, 0, %.2f]) ' % (altitude - low_height))
+                    f.write('linear_extrude(height=%.2f, center=false, convexity=20) ' % total_heght)
+                    f.write(polygon_scad(intersection) + ';\n')
+        if not geometry.is_empty:
+            f.write('    ')
+            f.write('translate([0, 0, %.2f]) ' % (altitude - Decimal('0.5')))
+            f.write('linear_extrude(height=%.2f, center=false, convexity=20) ' % (height+Decimal('0.5')))
+            f.write(polygon_scad(geometry) + ';\n')
+
     def _render_scad(self, f, low_clip=(), spaces=None, request=None):
         if spaces is None:
             from c3nav.mapdata.models import Area, Space
@@ -206,22 +225,28 @@ class Level(SpecificLocation, models.Model):
             )
 
         for area in self.altitudeareas.all():
-            geometry = area.geometry
-            for low_altitude, low_area in low_clip:
-                intersection = geometry.intersection(low_area)
-                if not intersection.is_empty:
-                    geometry = geometry.difference(intersection)
-                    width = max(area.altitude - low_altitude, 0)
-                    if width:
-                        f.write('    ')
-                        f.write('translate([0, 0, %.2f]) ' % (area.altitude - width))
-                        f.write('linear_extrude(height=%.2f, center=false, convexity=20) ' % width)
-                        f.write(polygon_scad(area.geometry) + ';\n')
-            if not geometry.is_empty:
-                f.write('    ')
-                f.write('translate([0, 0, %.2f]) ' % (area.altitude - Decimal('0.5')))
-                f.write('linear_extrude(height=0.5, center=false, convexity=20) ')
-                f.write(polygon_scad(area.geometry) + ';\n')
+            area.geometry = area.geometry.buffer(0)
+            self._render_scad_polygon(f, area.geometry, area.altitude, low_clip=low_clip)
+
+        draw_obstacles = {}
+        for space in spaces:
+            for lineobstacle in space.lineobstacles.all():
+                lineobstacle.geometry = lineobstacle.buffered_geometry
+            for obstacle in chain(space.obstacles.all(), space.lineobstacles.all()):
+                geometry = obstacle.geometry.intersection(space.geometry)
+                for altitudearea in self.altitudeareas.all():
+                    intersection = geometry.intersection(altitudearea.geometry)
+                    if not intersection.is_empty:
+                        geometry = geometry.difference(intersection.buffer(0.001, join_style=JOIN_STYLE.mitre))
+                        draw_obstacles.setdefault((altitudearea.altitude, obstacle.height), []).append(intersection)
+                if not geometry.is_empty:
+                    for polygon in assert_multipolygon(geometry):
+                        center = polygon.centroid
+                        altitude = min(self.altitudeareas.all(), key=lambda a: a.geometry.distance(center)).altitude
+                        draw_obstacles.setdefault((altitude, obstacle.height), []).append(polygon)
+
+        for (altitude, height), polygons in draw_obstacles.items():
+            self._render_scad_polygon(f, cascaded_union(polygons), altitude, height, low_clip=low_clip)
 
     @classmethod
     def render_scad_all(cls, levels=None, request=None):
