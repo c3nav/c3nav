@@ -1,9 +1,11 @@
+import itertools
 from operator import attrgetter, itemgetter
 
 from django.db import models
 from django.db.models import F
 from django.utils.translation import ugettext_lazy as _
-from shapely.geometry import JOIN_STYLE
+from shapely.affinity import scale
+from shapely.geometry import JOIN_STYLE, LineString
 from shapely.ops import cascaded_union
 
 from c3nav.mapdata.fields import GeometryField
@@ -79,7 +81,7 @@ class AltitudeArea(LevelGeometryMixin, models.Model):
     """
     An altitude area
     """
-    geometry = GeometryField('polygon')
+    geometry = GeometryField('multipolygon')
     altitude = models.DecimalField(_('altitude'), null=False, max_digits=6, decimal_places=2)
 
     class Meta:
@@ -93,15 +95,17 @@ class AltitudeArea(LevelGeometryMixin, models.Model):
         all_areas = []
         space_areas = {}
         spaces = {}
-        for level in Level.objects.prefetch_related('buildings', 'doors', 'spaces', 'spaces__columns',
-                                                    'spaces__obstacles', 'spaces__lineobstacles', 'spaces__holes',
-                                                    'spaces__stairs', 'spaces__altitudemarkers'):
+        levels = Level.objects.prefetch_related('buildings', 'doors', 'spaces', 'spaces__columns',
+                                                'spaces__obstacles', 'spaces__lineobstacles', 'spaces__holes',
+                                                'spaces__stairs', 'spaces__altitudemarkers')
+        for level in levels:
             areas = []
             stairs = []
 
             # collect all accessible areas on this level
             buildings_geom = cascaded_union(tuple(building.geometry for building in level.buildings.all()))
             for space in level.spaces.all():
+                space.orig_geometry = space.geometry
                 if space.outside:
                     space.geometry = space.geometry.difference(buildings_geom)
                 spaces[space.pk] = space
@@ -308,14 +312,94 @@ class AltitudeArea(LevelGeometryMixin, models.Model):
             area = areas[tmpid]
             area.altitude = area.level.base_altitude
 
+        print(areas)
+
+        level_areas = {}
+        for area in areas:
+            level_areas.setdefault(area.level, set()).add(area.tmpid)
+
+        #
+        # now fill in the obstacles and so on
+        #
+        for level in levels:
+            for space in level.spaces.all():
+                space.geometry = space.orig_geometry
+
+            buildings_geom = cascaded_union(tuple(b.geometry for b in level.buildings.all()))
+            doors_geom = cascaded_union(tuple(d.geometry for d in level.doors.all()))
+            space_geom = cascaded_union(tuple((s.geometry if not s.outside else s.geometry.difference(buildings_geom))
+                                              for s in level.spaces.all()))
+            accessible_area = cascaded_union((doors_geom, space_geom))
+            for space in level.spaces.all():
+                accessible_area = accessible_area.difference(space.geometry.intersection(
+                    cascaded_union(tuple(h.geometry for h in space.holes.all()))
+                ))
+
+            areas_by_altitude = {}
+            for tmpid in level_areas.get(level, []):
+                area = areas[tmpid]
+                areas_by_altitude.setdefault(area.altitude, []).append(area.geometry.buffer(0.01))
+            areas_by_altitude = {altitude: [cascaded_union(alt_areas)]
+                                 for altitude, alt_areas in areas_by_altitude.items()}
+
+            accessible_area = accessible_area.difference(
+                cascaded_union(tuple(itertools.chain(*areas_by_altitude.values())))
+            )
+
+            stairs = []
+            for space in level.spaces.all():
+                geom = space.geometry
+                if space.outside:
+                    geom = space_geom.difference(buildings_geom)
+                remaining_space = geom.intersection(accessible_area)
+                if remaining_space.is_empty:
+                    continue
+
+                max_len = ((geom.bounds[0] - geom.bounds[2]) ** 2 + (geom.bounds[1] - geom.bounds[3]) ** 2) ** 0.5
+                stairs = []
+                for stair in space.stairs.all():
+                    for substair in assert_multilinestring(stair.geometry):
+                        for coord1, coord2 in zip(tuple(substair.coords)[:-1], tuple(substair.coords)[1:]):
+                            line = LineString([coord1, coord2])
+                            fact = (max_len * 3) / line.length
+                            scaled = scale(line, xfact=fact, yfact=fact)
+                            stairs.append(scaled.buffer(0.0001, JOIN_STYLE.mitre).intersection(geom.buffer(0.0001)))
+                if stairs:
+                    stairs = cascaded_union(stairs)
+                    remaining_space = remaining_space.difference(stairs)
+
+                for polygon in assert_multipolygon(remaining_space.buffer(0)):
+                    center = polygon.centroid
+                    buffered = polygon.buffer(0.001, JOIN_STYLE.mitre)
+                    touches = tuple((altitude, buffered.intersection(alt_areas[0]).area)
+                                    for altitude, alt_areas in areas_by_altitude.items()
+                                    if buffered.intersects(alt_areas[0]))
+                    if touches:
+                        max_intersection = max(touches, key=itemgetter(1))[1]
+                        altitude = max(altitude for altitude, area in touches if area > max_intersection / 2)
+                    else:
+                        altitude = min(areas_by_altitude.items(), key=lambda a: a[1][0].distance(center))[0]
+                    areas_by_altitude[altitude].append(polygon.buffer(0.001, JOIN_STYLE.mitre))
+
+                    # plot_geometry(remaining_space, title=space.title)
+
+            areas_by_altitude = {altitude: cascaded_union(alt_areas)
+                                 for altitude, alt_areas in areas_by_altitude.items()}
+            print(areas_by_altitude)
+
+            level_areas[level] = [AltitudeArea(level=level, geometry=geometry, altitude=altitude)
+                                  for altitude, geometry in areas_by_altitude.items()]
+
+        areas = tuple(itertools.chain(*(a for a in level_areas.values())))
+        for i, area in enumerate(areas):
+            area.tmpid = i
+        for level in levels:
+            level_areas[level] = set(area.tmpid for area in level_areas.get(level, []))
+
         # save to database
         from c3nav.mapdata.models import MapUpdate
         with MapUpdate.lock():
             areas_to_save = set(range(len(areas)))
-
-            level_areas = {}
-            for area in areas:
-                level_areas.setdefault(area.level, set()).add(area.tmpid)
 
             all_candidates = AltitudeArea.objects.select_related('level')
             for candidate in all_candidates:
@@ -335,7 +419,7 @@ class AltitudeArea(LevelGeometryMixin, models.Model):
                         break
 
                 if new_area is None:
-                    potential_areas = [(tmpid, areas[tmpid].geometry.intersection(candidate.geometry).area)
+                    potential_areas = [(tmpid, areas[tmpid].geometry.intersection(candidate.geometry.buffer(0)).area)
                                        for tmpid in level_areas.get(candidate.level, set())]
                     potential_areas = [(tmpid, size) for tmpid, size in potential_areas
                                        if candidate.area and size/candidate.area > 0.9]

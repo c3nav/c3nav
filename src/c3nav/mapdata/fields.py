@@ -6,7 +6,7 @@ from django.core.validators import RegexValidator
 from django.db import models
 from django.utils.translation import ugettext_lazy as _
 from shapely import validation
-from shapely.geometry import LineString, Point, Polygon, mapping, shape
+from shapely.geometry import LineString, MultiPolygon, Point, Polygon, mapping, shape
 from shapely.geometry.base import BaseGeometry
 
 from c3nav.mapdata.utils.geometry import clean_geometry
@@ -30,8 +30,9 @@ class GeometryField(models.TextField):
     def __init__(self, geomtype=None, default=None):
         if geomtype == 'polyline':
             geomtype = 'linestring'
-        if geomtype not in (None, 'polygon', 'linestring', 'point'):
-            raise ValueError('GeometryField.geomtype has to be None, "polygon", "linestring", "point"')
+        if geomtype not in (None, 'polygon', 'multipolygon', 'linestring', 'point'):
+            raise ValueError('GeometryField.geomtype has to be '
+                             'None, "polygon", "multipolygon", "linestring" or "point"')
         self.geomtype = geomtype
         super().__init__(default=default)
 
@@ -64,6 +65,8 @@ class GeometryField(models.TextField):
     def _validate_geomtype(self, value, exception: typing.Type[Exception]=ValidationError):
         if self.geomtype == 'polygon' and not isinstance(value, Polygon):
             raise exception('Expected Polygon instance, got %s instead.' % repr(value))
+        if self.geomtype == 'multipolygon' and not isinstance(value, (Polygon, MultiPolygon)):
+            raise exception('Expected Polygon or MultiPolygon instance, got %s instead.' % repr(value))
         elif self.geomtype == 'linestring' and not isinstance(value, LineString):
             raise exception('Expected LineString instance, got %s instead.' % repr(value))
         elif self.geomtype == 'point' and not isinstance(value, Point):
