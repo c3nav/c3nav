@@ -1,9 +1,11 @@
 import itertools
 from operator import attrgetter, itemgetter
 
+import numpy as np
 from django.db import models
 from django.db.models import F
 from django.utils.translation import ugettext_lazy as _
+from scipy.sparse.csgraph._shortest_path import dijkstra
 from shapely.affinity import scale
 from shapely.geometry import JOIN_STYLE, LineString
 from shapely.ops import cascaded_union
@@ -256,46 +258,61 @@ class AltitudeArea(LevelGeometryMixin, models.Model):
                     del area_connections[tmpid]
 
         # interpolate altitudes
-        while areas_without_altitude:
-            # find a area without an altitude that is connected
-            # to one with an altitude to start the chain
-            chain = []
-            for tmpid in areas_without_altitude:
+        areas_with_altitude = [i for i in range(len(areas)) if i not in areas_without_altitude]
+        for i, tmpid in enumerate(areas_with_altitude):
+            areas[tmpid].i = i
+
+        csgraph = np.zeros((len(areas), len(areas)), dtype=bool)
+        for area in areas:
+            for connected_tmpid in area.connected_to:
+                csgraph[area.tmpid, connected_tmpid] = True
+
+        repeat = True
+        while repeat:
+            repeat = False
+            distances, predecessors = dijkstra(csgraph, directed=False, return_predecessors=True, unweighted=True)
+            relevant_distances = distances[np.array(areas_with_altitude)[:, None], np.array(areas_with_altitude)]
+            # noinspection PyTypeChecker
+            for from_i, to_i in np.argwhere(np.logical_and(relevant_distances < np.inf, relevant_distances > 1)):
+                from_area = areas[areas_with_altitude[from_i]]
+                to_area = areas[areas_with_altitude[to_i]]
+                if from_area.altitude == to_area.altitude:
+                    continue
+
+                path = [to_area.tmpid]
+                while path[-1] != from_area.tmpid:
+                    path.append(predecessors[from_area.tmpid, path[-1]])
+
+                from_altitude = from_area.altitude
+                delta_altitude = (to_area.altitude-from_altitude)/(len(path)-1)
+
+                if set(path[1:-1]).difference(areas_without_altitude):
+                    continue
+
+                for i, tmpid in enumerate(reversed(path[1:-1]), start=1):
+                    area = areas[tmpid]
+                    area.altitude = from_altitude+delta_altitude*i
+                    areas_without_altitude.discard(tmpid)
+                    area.i = len(areas_with_altitude)
+                    areas_with_altitude.append(tmpid)
+
+                for from_tmpid, to_tmpid in zip(path[:-1], path[1:]):
+                    csgraph[from_tmpid, to_tmpid] = False
+                    csgraph[to_tmpid, from_tmpid] = False
+
+                repeat = True
+
+        # remaining areas: copy altitude from connected areas if any
+        repeat = True
+        while repeat:
+            repeat = False
+            for tmpid in tuple(areas_without_altitude):
                 area = areas[tmpid]
                 connected_with_altitude = area.connected_to-areas_without_altitude
                 if connected_with_altitude:
-                    chain = [next(iter(connected_with_altitude)), tmpid]
-                    current = area
-                    break
-            else:
-                # there are no more chains possible
-                break
-
-            # continue chain as long as possible
-            while True:
-                connected_with_altitude = (current.connected_to-areas_without_altitude).difference(chain)
-                if connected_with_altitude:
-                    # interpolate
-                    area = areas[next(iter(connected_with_altitude))]
-                    from_altitude = areas[chain[0]].altitude
-                    delta_altitude = area.altitude-from_altitude
-                    for i, tmpid in enumerate(chain[1:], 1):
-                        areas[tmpid].altitude = from_altitude+delta_altitude*i/len(chain)
-                    areas_without_altitude.difference_update(chain)
-                    break
-
-                connected = current.connected_to.difference(chain)
-                if not connected:
-                    # end of chain
-                    altitude = areas[chain[0]].altitude
-                    for i, tmpid in enumerate(chain[1:], 1):
-                        areas[tmpid].altitude = altitude
-                    areas_without_altitude.difference_update(chain)
-                    break
-
-                # continue chain
-                current = areas[next(iter(connected))]
-                chain.append(current.tmpid)
+                    area.altitude = areas[next(iter(connected_with_altitude))].altitude
+                    areas_without_altitude.discard(tmpid)
+                    repeat = True
 
         # remaining areas which belong to a room that has an altitude somewhere
         for contained_areas in space_areas.values():
