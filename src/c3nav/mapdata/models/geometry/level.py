@@ -67,6 +67,7 @@ class Space(SpecificLocation, LevelGeometryMixin, models.Model):
 
     def _serialize(self, geometry=True, **kwargs):
         result = super()._serialize(geometry=geometry, **kwargs)
+        result['outside'] = self.outside
         result['height'] = None if self.height is None else float(str(self.height))
         return result
 

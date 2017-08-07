@@ -71,6 +71,7 @@ class Level(SpecificLocation, models.Model):
 
     def _serialize(self, level=True, **kwargs):
         result = super()._serialize(**kwargs)
+        result['on_top_of'] = self.on_top_of_id
         result['base_altitude'] = float(str(self.base_altitude))
         result['default_height'] = float(str(self.default_heights))
         return result
