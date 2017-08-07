@@ -1,14 +1,18 @@
 import os
+from decimal import Decimal
 from itertools import chain
+from operator import itemgetter
 
 from django.conf import settings
 from django.db import models
 from django.db.models import Prefetch
 from django.utils.translation import ugettext_lazy as _
-from shapely.geometry import JOIN_STYLE
+from shapely.affinity import scale
+from shapely.geometry import JOIN_STYLE, LineString
 from shapely.ops import cascaded_union
 
 from c3nav.mapdata.models.locations import SpecificLocation
+from c3nav.mapdata.utils.geometry import assert_multilinestring, assert_multipolygon
 from c3nav.mapdata.utils.scad import polygon_scad
 from c3nav.mapdata.utils.svg import SVGImage
 
@@ -161,7 +165,26 @@ class Level(SpecificLocation, models.Model):
 
         return svg.get_xml()
 
-    def render_scad(self, f, spaces=None, request=None):
+    @staticmethod
+    def _give_height_to_areas_with_one_neighbor(accessible_area, areas_by_altitude):
+        # give height to all obstacles that touch only one altitude
+        remaining_polygons = []
+        for polygon in assert_multipolygon(accessible_area):
+            buffered = polygon.buffer(0.001)
+            found_altitude = None
+            for altitude, area in areas_by_altitude.items():
+                if buffered.intersects(area[0]):
+                    if found_altitude is not None:
+                        found_altitude = None
+                        break
+                    found_altitude = altitude
+            if found_altitude is None:
+                remaining_polygons.append(polygon)
+            else:
+                areas_by_altitude[found_altitude].append(polygon)
+        return cascaded_union(remaining_polygons)
+
+    def render_scad(self, f, low_clip=[], spaces=None, request=None):
         if spaces is None:
             from c3nav.mapdata.models import Area, Space
             spaces = self.spaces.filter(Space.q_for_request(request, allow_none=True)).prefetch_related(
@@ -169,9 +192,68 @@ class Level(SpecificLocation, models.Model):
                 'groups', 'columns', 'holes', 'areas__groups',
                 'stairs', 'obstacles', 'lineobstacles'
             )
+
+        buildings_geom = cascaded_union(tuple(b.geometry for b in self.buildings.all()))
+        doors_geom = cascaded_union(tuple(d.geometry for d in self.doors.all()))
+        space_geom = cascaded_union(tuple((s.geometry if not s.outside else s.geometry.difference(buildings_geom))
+                                          for s in self.spaces.all()))
+        accessible_area = cascaded_union((doors_geom, space_geom))
+        for space in spaces:
+            accessible_area = accessible_area.difference(space.geometry.intersection(
+                cascaded_union(tuple(h.geometry for h in space.holes.all()))
+            ))
+
+        areas_by_altitude = {}
         for area in self.altitudeareas.all():
-            f.write('translate([0, 0, %.2f]) ' % area.altitude)
-            f.write(polygon_scad(area.geometry) + ';\n')
+            areas_by_altitude.setdefault(area.altitude, []).append(area.geometry.buffer(0.01))
+        areas_by_altitude = {altitude: [cascaded_union(areas)] for altitude, areas in areas_by_altitude.items()}
+
+        accessible_area = accessible_area.difference(cascaded_union(tuple(chain(*areas_by_altitude.values()))))
+
+        stairs = []
+        for space in spaces:
+            geom = space.geometry
+            if space.outside:
+                geom = space_geom.difference(buildings_geom)
+            remaining_space = geom.intersection(accessible_area)
+            if remaining_space.is_empty:
+                continue
+
+            max_len = ((geom.bounds[0]-geom.bounds[2])**2 + (geom.bounds[1]-geom.bounds[3])**2)**0.5
+            stairs = []
+            for stair in space.stairs.all():
+                for substair in assert_multilinestring(stair.geometry):
+                    for coord1, coord2 in zip(tuple(substair.coords)[:-1], tuple(substair.coords)[1:]):
+                        line = LineString([coord1, coord2])
+                        fact = (max_len*3) / line.length
+                        scaled = scale(line, xfact=fact, yfact=fact)
+                        stairs.append(scaled.buffer(0.0001, JOIN_STYLE.mitre).intersection(geom.buffer(0.0001)))
+            if stairs:
+                stairs = cascaded_union(stairs)
+                remaining_space = remaining_space.difference(stairs)
+
+            for polygon in assert_multipolygon(remaining_space.buffer(0)):
+                center = polygon.centroid
+                buffered = polygon.buffer(0.001, JOIN_STYLE.mitre)
+                touches = tuple((altitude, buffered.intersection(areas[0]).area)
+                                for altitude, areas in areas_by_altitude.items()
+                                if buffered.intersects(areas[0]))
+                if touches:
+                    max_intersection = max(touches, key=itemgetter(1))[1]
+                    altitude = max(altitude for altitude, area in touches if area > max_intersection/2)
+                else:
+                    altitude = min(areas_by_altitude.items(), key=lambda a: a[1][0].distance(center))[0]
+                areas_by_altitude[altitude].append(polygon.buffer(0.001, JOIN_STYLE.mitre))
+
+            # plot_geometry(remaining_space, title=space.title)
+
+        areas_by_altitude = {altitude: [cascaded_union(areas)] for altitude, areas in areas_by_altitude.items()}
+
+        for altitude, areas in areas_by_altitude.items():
+            for area in areas:
+                f.write('translate([0, 0, %.2f]) ' % (altitude-Decimal('0.3')))
+                f.write('linear_extrude(height=0.3, center=false, convexity=20) ')
+                f.write(polygon_scad(area) + ';\n')
 
     @classmethod
     def render_scad_all(cls, request=None):
@@ -186,5 +268,5 @@ class Level(SpecificLocation, models.Model):
             level_spaces.setdefault(space.level_id, []).append(space)
         filename = os.path.join(settings.RENDER_ROOT, 'all.scad')
         with open(filename, 'w') as f:
-            for level in Level.objects.prefetch_related('altitudeareas'):
+            for level in Level.objects.prefetch_related('buildings', 'doors', 'altitudeareas'):
                 level.render_scad(f, spaces=level_spaces.get(level.pk, []))

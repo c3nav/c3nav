@@ -1,3 +1,8 @@
+from itertools import chain
+
+import matplotlib.pyplot as plt
+from matplotlib.patches import PathPatch
+from matplotlib.path import Path
 from shapely.geometry import LineString, Polygon
 
 
@@ -38,3 +43,32 @@ def assert_multilinestring(geometry):
     if isinstance(geometry, LineString):
         return [geometry]
     return geometry.geoms
+
+
+def plot_geometry(geom, title=None, bounds=None):
+    fig = plt.figure()
+    axes = fig.add_subplot(111)
+    if bounds is None:
+        bounds = geom.bounds
+    axes.set_xlim(bounds[0], bounds[2])
+    axes.set_ylim(bounds[1], bounds[3])
+    verts = []
+    codes = []
+    if not isinstance(geom, (tuple, list)):
+        geom = assert_multipolygon(geom)
+    else:
+        geom = tuple(chain(*(assert_multipolygon(g) for g in geom)))
+    for polygon in geom:
+        for ring in chain([polygon.exterior], polygon.interiors):
+            verts.extend(ring.coords)
+            codes.append(Path.MOVETO)
+            codes.extend((Path.LINETO,) * len(ring.coords))
+            verts.append(verts[-1])
+
+    if title is not None:
+        plt.title(title)
+
+    path = Path(verts, codes)
+    patch = PathPatch(path)
+    axes.add_patch(patch)
+    plt.show()
