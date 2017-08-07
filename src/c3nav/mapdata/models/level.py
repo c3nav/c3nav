@@ -1,12 +1,14 @@
 import os
 from decimal import Decimal
 from itertools import chain
+from operator import attrgetter
 
 from django.conf import settings
 from django.db import models
 from django.db.models import Prefetch
+from django.utils.functional import cached_property
 from django.utils.translation import ugettext_lazy as _
-from shapely.geometry import JOIN_STYLE
+from shapely.geometry import JOIN_STYLE, box
 from shapely.ops import cascaded_union
 
 from c3nav.mapdata.models.locations import SpecificLocation
@@ -182,7 +184,16 @@ class Level(SpecificLocation, models.Model):
                 areas_by_altitude[found_altitude].append(polygon)
         return cascaded_union(remaining_polygons)
 
-    def render_scad(self, f, low_clip=[], spaces=None, request=None):
+    @cached_property
+    def min_altitude(self):
+        return min(self.altitudeareas.all(), key=attrgetter('altitude'), default=self.base_altitude).altitude
+
+    @cached_property
+    def bounds(self):
+        return cascaded_union(tuple(item.geometry.buffer(0)
+                                    for item in chain(self.altitudeareas.all(), self.buildings.all()))).bounds
+
+    def _render_scad(self, f, low_clip=[], spaces=None, request=None):
         if spaces is None:
             from c3nav.mapdata.models import Area, Space
             spaces = self.spaces.filter(Space.q_for_request(request, allow_none=True)).prefetch_related(
@@ -192,12 +203,13 @@ class Level(SpecificLocation, models.Model):
             )
 
         for area in self.altitudeareas.all():
+            f.write('    ')
             f.write('translate([0, 0, %.2f]) ' % (area.altitude-Decimal('0.5')))
             f.write('linear_extrude(height=0.5, center=false, convexity=20) ')
             f.write(polygon_scad(area.geometry) + ';\n')
 
     @classmethod
-    def render_scad_all(cls, request=None):
+    def render_scad_all(cls, levels=None, request=None):
         from c3nav.mapdata.models import Level, Area, Space
         spaces = Space.objects.filter(Space.q_for_request(request, allow_none=True)).prefetch_related(
             Prefetch('areas', Area.qs_for_request(request, allow_none=True)),
@@ -208,6 +220,17 @@ class Level(SpecificLocation, models.Model):
         for space in spaces:
             level_spaces.setdefault(space.level_id, []).append(space)
         filename = os.path.join(settings.RENDER_ROOT, 'all.scad')
+
+        if levels is None:
+            levels = Level.objects
+        levels = levels.prefetch_related('buildings', 'doors', 'altitudeareas')
+
+        bounds = cascaded_union(tuple(box(*level.bounds) for level in levels)).bounds
+        center = tuple(box(*bounds).centroid.coords[0])
+        min_altitude = min((level.min_altitude for level in levels), default=0)
+
         with open(filename, 'w') as f:
-            for level in Level.objects.prefetch_related('buildings', 'doors', 'altitudeareas'):
-                level.render_scad(f, spaces=level_spaces.get(level.pk, []))
+            f.write('translate([%.2f, %.2f, %.2f]) {\n' % (0-center[0], 0-center[1], 0-min_altitude))
+            for level in levels:
+                level._render_scad(f, spaces=level_spaces.get(level.pk, []))
+            f.write('}\n')
