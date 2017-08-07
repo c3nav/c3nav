@@ -57,12 +57,18 @@ class Space(SpecificLocation, LevelGeometryMixin, models.Model):
     An accessible space. Shouldn't overlap with spaces on the same level.
     """
     geometry = GeometryField('polygon')
+    height = models.DecimalField(_('height'), max_digits=6, decimal_places=2, null=True, blank=True)
     outside = models.BooleanField(default=False, verbose_name=_('only outside of building'))
 
     class Meta:
         verbose_name = _('Space')
         verbose_name_plural = _('Spaces')
         default_related_name = 'spaces'
+
+    def _serialize(self, geometry=True, **kwargs):
+        result = super()._serialize(geometry=geometry, **kwargs)
+        result['height'] = None if self.height is None else float(str(self.height))
+        return result
 
 
 class Door(AccessRestrictionMixin, LevelGeometryMixin, models.Model):

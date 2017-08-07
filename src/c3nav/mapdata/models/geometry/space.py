@@ -74,11 +74,17 @@ class Obstacle(SpaceGeometryMixin, models.Model):
     An obstacle
     """
     geometry = GeometryField('polygon')
+    height = models.DecimalField(_('height'), max_digits=6, decimal_places=2, default=0.8)
 
     class Meta:
         verbose_name = _('Obstacle')
         verbose_name_plural = _('Obstacles')
         default_related_name = 'obstacles'
+
+    def _serialize(self, geometry=True, **kwargs):
+        result = super()._serialize(geometry=geometry, **kwargs)
+        result['height'] = float(str(self.height))
+        return result
 
 
 class LineObstacle(SpaceGeometryMixin, models.Model):
@@ -86,7 +92,8 @@ class LineObstacle(SpaceGeometryMixin, models.Model):
     An obstacle that is a line with a specific width
     """
     geometry = GeometryField('linestring')
-    width = models.DecimalField(_('obstacle width'), max_digits=4, decimal_places=2, default=0.15)
+    width = models.DecimalField(_('width'), max_digits=4, decimal_places=2, default=0.15)
+    height = models.DecimalField(_('height'), max_digits=6, decimal_places=2, default=0.8)
 
     class Meta:
         verbose_name = _('Line Obstacle')
@@ -102,6 +109,7 @@ class LineObstacle(SpaceGeometryMixin, models.Model):
     def _serialize(self, geometry=True, **kwargs):
         result = super()._serialize(geometry=geometry, **kwargs)
         result['width'] = float(str(self.width))
+        result['height'] = float(str(self.height))
         if geometry:
             result['buffered_geometry'] = format_geojson(mapping(self.buffered_geometry))
         return result

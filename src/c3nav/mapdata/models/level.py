@@ -22,6 +22,7 @@ class Level(SpecificLocation, models.Model):
     A map level
     """
     base_altitude = models.DecimalField(_('base altitude'), null=False, unique=True, max_digits=6, decimal_places=2)
+    default_height = models.DecimalField(_('default space height'), max_digits=6, decimal_places=2, default=3.0)
     on_top_of = models.ForeignKey('mapdata.Level', null=True, on_delete=models.CASCADE,
                                   related_name='levels_on_top', verbose_name=_('on top of'))
 
@@ -71,6 +72,7 @@ class Level(SpecificLocation, models.Model):
     def _serialize(self, level=True, **kwargs):
         result = super()._serialize(**kwargs)
         result['base_altitude'] = float(str(self.base_altitude))
+        result['default_height'] = float(str(self.default_heights))
         return result
 
     def _render_space_ground(self, svg, space):
