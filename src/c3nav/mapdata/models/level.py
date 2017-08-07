@@ -251,8 +251,8 @@ class Level(SpecificLocation, models.Model):
 
         for altitude, areas in areas_by_altitude.items():
             for area in areas:
-                f.write('translate([0, 0, %.2f]) ' % (altitude-Decimal('0.3')))
-                f.write('linear_extrude(height=0.3, center=false, convexity=20) ')
+                f.write('translate([0, 0, %.2f]) ' % (altitude-Decimal('0.5')))
+                f.write('linear_extrude(height=0.5, center=false, convexity=20) ')
                 f.write(polygon_scad(area) + ';\n')
 
     @classmethod
