@@ -1,7 +1,7 @@
 import os
 from decimal import Decimal
 from itertools import chain
-from operator import attrgetter
+from operator import attrgetter, itemgetter
 
 from django.conf import settings
 from django.db import models
@@ -231,11 +231,18 @@ class Level(SpecificLocation, models.Model):
             self._render_scad_polygon(f, area.geometry, area.altitude, low_clip=low_clip)
 
         draw_obstacles = {}
+        height_spaces = {}
         for space in spaces:
+            columns = cascaded_union(tuple(columns.geometry for columns in space.columns.all()))
+            space.geometry = space.geometry.difference(columns)
+            if self.on_top_of_id is None and not space.outside:
+                height = space.height or self.default_height
+                height_spaces.setdefault(height, []).append(space.geometry)
+            holes = cascaded_union(tuple(hole.geometry for hole in space.holes.all()))
             for lineobstacle in space.lineobstacles.all():
                 lineobstacle.geometry = lineobstacle.buffered_geometry
             for obstacle in chain(space.obstacles.all(), space.lineobstacles.all()):
-                geometry = obstacle.geometry.intersection(space.geometry)
+                geometry = obstacle.geometry.intersection(space.geometry).difference(holes)
                 for altitudearea in self.altitudeareas.all():
                     intersection = geometry.intersection(altitudearea.geometry)
                     if not intersection.is_empty:
@@ -249,6 +256,34 @@ class Level(SpecificLocation, models.Model):
 
         for (altitude, height), polygons in draw_obstacles.items():
             self._render_scad_polygon(f, cascaded_union(polygons), altitude, height, low_clip=low_clip)
+
+        spaces_geom = cascaded_union(tuple(space.geometry for space in self.spaces.all() if not space.outside))
+        buildings_geom = cascaded_union(tuple(building.geometry for building in self.buildings.all()))
+        doors_geom = cascaded_union(tuple(door.geometry for door in self.doors.all()))
+        walls_geom = buildings_geom.difference(doors_geom).difference(spaces_geom)
+
+        drawn_walls = {}
+        for height, polygons in sorted(height_spaces.items(), key=itemgetter(0)):
+            polygons = cascaded_union(polygons)
+            for area in self.altitudeareas.all():
+                intersection = area.geometry.intersection(polygons)
+                if not intersection.is_empty:
+                    walls = intersection.buffer(0.5, join_style=JOIN_STYLE.mitre).intersection(walls_geom)
+                    walls = walls.buffer(0.001, join_style=JOIN_STYLE.mitre)
+                    self._render_scad_polygon(f, walls, area.altitude+height, low_clip=low_clip)
+                    drawn_walls.setdefault(area.altitude+height, []).append(walls)
+
+        remaining_walls_geom = walls_geom.difference(cascaded_union(tuple(chain(*drawn_walls.values()))))
+
+        drawn_walls = {altitude: cascaded_union(walls) for altitude, walls in drawn_walls.items()}
+        drawn_walls_sorted = sorted(drawn_walls.items(), key=itemgetter(0))
+        for wall in assert_multipolygon(remaining_walls_geom):
+            buffered = wall.buffer(0.001, join_style=JOIN_STYLE.mitre)
+            try:
+                altitude = next(iter(altitude for altitude, geom in drawn_walls_sorted if geom.intersects(buffered)))
+            except StopIteration:
+                altitude = min(drawn_walls_sorted, key=lambda a: buffered.distance(a[1]))[0]
+            self._render_scad_polygon(f, buffered, altitude, low_clip=low_clip)
 
     @classmethod
     def _render_scad_levels(cls, levels, filename, level_spaces):
