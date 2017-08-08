@@ -251,26 +251,12 @@ class Level(SpecificLocation, models.Model):
             self._render_scad_polygon(f, cascaded_union(polygons), altitude, height, low_clip=low_clip)
 
     @classmethod
-    def render_scad_all(cls, levels=None, request=None):
-        from c3nav.mapdata.models import Level, Area, Space
-        spaces = Space.objects.filter(Space.q_for_request(request, allow_none=True)).prefetch_related(
-            Prefetch('areas', Area.qs_for_request(request, allow_none=True)),
-            'groups', 'columns', 'holes', 'areas__groups',
-            'stairs', 'obstacles', 'lineobstacles'
-        )
-        level_spaces = {}
-        for space in spaces:
-            level_spaces.setdefault(space.level_id, []).append(space)
-        filename = os.path.join(settings.RENDER_ROOT, 'all.scad')
-
-        if levels is None:
-            levels = Level.objects
-        levels = levels.prefetch_related('buildings', 'doors', 'altitudeareas').order_by('base_altitude')
-
+    def _render_scad_levels(cls, levels, filename, level_spaces):
         bounds = cascaded_union(tuple(box(*level.bounds) for level in levels)).bounds
         center = tuple(box(*bounds).centroid.coords[0])
         min_altitude = min((level.min_altitude for level in levels), default=0)
 
+        filename = os.path.join(settings.RENDER_ROOT, filename)
         with open(filename, 'w') as f:
             f.write('translate([%.2f, %.2f, %.2f]) {\n' % (0-center[0], 0-center[1], 0-min_altitude+Decimal('0.5')))
             first = True
@@ -281,3 +267,27 @@ class Level(SpecificLocation, models.Model):
                     first = False
                 level._render_scad(f, spaces=level_spaces.get(level.pk, []), low_clip=low_clip)
             f.write('}\n')
+
+    @classmethod
+    def render_scad_all(cls, levels=None, request=None):
+        from c3nav.mapdata.models import Level, Area, Space
+        spaces = Space.objects.filter(Space.q_for_request(request, allow_none=True)).prefetch_related(
+            Prefetch('areas', Area.qs_for_request(request, allow_none=True)),
+            'groups', 'columns', 'holes', 'areas__groups',
+            'stairs', 'obstacles', 'lineobstacles'
+        )
+        level_spaces = {}
+        for space in spaces:
+            level_spaces.setdefault(space.level_id, []).append(space)
+
+        if levels is None:
+            levels = Level.objects
+        levels = levels.prefetch_related('buildings', 'doors', 'altitudeareas').order_by('base_altitude')
+
+        cls._render_scad_levels(levels, 'all.levels.scad', level_spaces)
+
+        for level in levels:
+            if level.on_top_of_id is not None:
+                continue
+            sublevels = tuple(sublevel for sublevel in levels if sublevel.on_top_of_id == level.pk)
+            cls._render_scad_levels((level, )+sublevels, level.get_slug()+'.scad', level_spaces)
