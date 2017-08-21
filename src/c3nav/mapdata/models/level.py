@@ -73,7 +73,7 @@ class Level(SpecificLocation, models.Model):
         result = super()._serialize(**kwargs)
         result['on_top_of'] = self.on_top_of_id
         result['base_altitude'] = float(str(self.base_altitude))
-        result['default_height'] = float(str(self.default_heights))
+        result['default_height'] = float(str(self.default_height))
         return result
 
     def _render_space_ground(self, svg, space):
