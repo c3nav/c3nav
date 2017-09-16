@@ -20,19 +20,6 @@ def forwards_func(apps, schema_editor):
             pass
         changeset.save()
 
-def reverse_func(apps, schema_editor):
-    ChangeSet = apps.get_model('editor', 'ChangeSet')
-    for changeset in ChangeSet.objects.all():
-        try:
-            changeset.last_update = changeset.last_update_obj.datetime
-        except ObjectDoesNotExist:
-            changeset.last_update = changeset.created
-        try:
-            changeset.last_change = changeset.last_change_obj.datetime
-        except ObjectDoesNotExist:
-            changeset.last_change = changeset.created
-        changeset.save()
-
 
 class Migration(migrations.Migration):
 
@@ -46,17 +33,6 @@ class Migration(migrations.Migration):
             options={'get_latest_by': 'datetime', 'ordering': ['datetime', 'pk'], 'verbose_name': 'Change set update',
                      'verbose_name_plural': 'Change set updates'},
         ),
-        migrations.AddField(
-            model_name='changeset',
-            name='last_change_obj',
-            field=models.ForeignKey(null=True, on_delete=django.db.models.deletion.CASCADE, related_name='+', to='editor.ChangeSetUpdate', verbose_name='last object change'),
-        ),
-        migrations.AddField(
-            model_name='changeset',
-            name='last_update_obj',
-            field=models.ForeignKey(null=True, on_delete=django.db.models.deletion.CASCADE, related_name='+', to='editor.ChangeSetUpdate', verbose_name='last update'),
-        ),
-        migrations.RunPython(forwards_func, reverse_func),
         migrations.RemoveField(
             model_name='changeset',
             name='last_change',
@@ -65,14 +41,15 @@ class Migration(migrations.Migration):
             model_name='changeset',
             name='last_update',
         ),
-        migrations.RenameField(
+        migrations.AddField(
             model_name='changeset',
-            old_name='last_change_obj',
-            new_name='last_change',
+            name='last_change',
+            field=models.ForeignKey(null=True, on_delete=django.db.models.deletion.CASCADE, related_name='+', to='editor.ChangeSetUpdate', verbose_name='last object change'),
         ),
-        migrations.RenameField(
+        migrations.AddField(
             model_name='changeset',
-            old_name='last_update_obj',
-            new_name='last_update',
+            name='last_update',
+            field=models.ForeignKey(null=True, on_delete=django.db.models.deletion.CASCADE, related_name='+', to='editor.ChangeSetUpdate', verbose_name='last update'),
         ),
+        migrations.RunPython(forwards_func),
     ]
