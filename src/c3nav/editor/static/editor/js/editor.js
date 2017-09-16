@@ -17,7 +17,7 @@ editor = {
             renderer: L.svg({ padding: 2 }),
             zoom: 2,
             maxZoom: 10,
-            minZoom: 1,
+            minZoom: 0,
             crs: L.CRS.Simple,
             editable: true,
             closePopupOnClick: false
