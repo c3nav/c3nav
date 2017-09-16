@@ -183,7 +183,7 @@ class LocationGroup(Location, models.Model):
     category = models.ForeignKey(LocationGroupCategory, related_name='groups', on_delete=models.PROTECT,
                                  verbose_name=_('Category'))
     priority = models.IntegerField(default=0, db_index=True)
-    color = models.CharField(null=True, blank=True, max_length=16, verbose_name=_('background color'))
+    color = models.CharField(null=True, blank=True, max_length=32, verbose_name=_('background color'))
 
     objects = LocationGroupManager()
 
