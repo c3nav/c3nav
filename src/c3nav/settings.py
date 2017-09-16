@@ -183,6 +183,10 @@ with suppress(ImportError):
         'htmlmin.middleware.MarkRequestMiddleware',
     ]
 
+with suppress(ImportError):
+    import django_extensions  # noqa
+    INSTALLED_APPS.append('django_extensions')
+
 # Security settings
 X_FRAME_OPTIONS = 'DENY'
 
