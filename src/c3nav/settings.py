@@ -252,7 +252,7 @@ BOOTSTRAP3 = {
 }
 
 STATICFILES_DIRS = (
-    os.path.join(BASE_DIR, 'static'),
+    os.path.join(BASE_DIR, 'c3nav/static'),
 )
 
 COMPRESS_ENABLED = COMPRESS_OFFLINE = not debug_fallback
