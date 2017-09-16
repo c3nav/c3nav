@@ -160,7 +160,7 @@ class EditorFormBase(ModelForm):
 
 
 def create_editor_form(editor_model):
-    possible_fields = ['slug', 'name', 'ordering', 'category', 'width', 'groups', 'color', 'priority', 'altitude',
+    possible_fields = ['slug', 'name', 'ordering', 'category', 'width', 'groups', 'color', 'priority', 'base_altitude',
                        'waytype', 'access_restriction', 'height', 'default_height', 'can_search', 'can_describe',
                        'outside', 'geometry', 'single', 'allow_levels', 'allow_spaces', 'allow_areas', 'allow_pois',
                        'left', 'top', 'right', 'bottom']
