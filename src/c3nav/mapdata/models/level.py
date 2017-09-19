@@ -161,12 +161,12 @@ class Level(SpecificLocation, models.Model):
             self._render_space_inventory(svg, space)
 
         # draw walls
-        svg.add_geometry(wall_geometry, fill_color='#929292', stroke_color='#333333', stroke_width=0.05)
+        svg.add_geometry(wall_geometry, fill_color='#929292')
 
         # draw doors
         door_geometries = cascaded_union(tuple(d.geometry for d in doors))
         door_geometries = door_geometries.difference(space_geometries)
-        svg.add_geometry(door_geometries, fill_color='#ffffff', stroke_color='#929292', stroke_width=0.05)
+        svg.add_geometry(door_geometries, fill_color='#ffffff')
 
         return svg.get_xml()
 
