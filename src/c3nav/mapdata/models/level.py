@@ -119,11 +119,11 @@ class Level(SpecificLocation, models.Model):
                 space.geometry = space.geometry.difference(building_geometries)
             columns_geom = cascaded_union(tuple(column.geometry for column in space.columns.all()))
             holes_geom = cascaded_union(tuple(hole.geometry for hole in space.holes.all()))
-            space.geometry = space.geometry.difference(columns_geom)
+            space.geometry = space.geometry.difference(columns_geom).difference(holes_geom)
             space.hole_geometries = holes_geom.intersection(space.geometry)
 
         space_geometries = cascaded_union(tuple(space.geometry for space in spaces))
-        hole_geometries = cascaded_union(tuple(space.hole_geometries for space in spaces))
+        hole_geometries = cascaded_union(tuple(space.hole_geometries for space in spaces)).difference(space_geometries)
 
         # draw space background
         doors = self.doors.filter(Door.q_for_request(request))
