@@ -148,6 +148,7 @@ class Level(SpecificLocation, models.Model):
 
         # calculate walls
         wall_geometry = building_geometries.difference(space_geometries).difference(door_geometries)
+        wall_geometry = wall_geometry.difference(hole_geometries)
 
         # draw wall shadow
         if effects:
