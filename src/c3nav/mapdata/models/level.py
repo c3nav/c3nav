@@ -161,7 +161,7 @@ class Level(SpecificLocation, models.Model):
             self._render_space_inventory(svg, space)
 
         # draw walls
-        svg.add_geometry(wall_geometry, fill_color='#929292')
+        svg.add_geometry(wall_geometry, fill_color='#aaaaaa')
 
         # draw doors
         door_geometries = cascaded_union(tuple(d.geometry for d in doors))

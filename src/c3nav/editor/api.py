@@ -191,7 +191,7 @@ class EditorViewSet(ViewSet):
     @list_route(methods=['get'])
     def geometrystyles(self, request, *args, **kwargs):
         return Response({
-            'building': '#929292',
+            'building': '#aaaaaa',
             'space': '#eeeeee',
             'hole': 'rgba(255, 0, 0, 0.3)',
             'door': '#ffffff',
