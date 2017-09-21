@@ -76,7 +76,11 @@ class GeometryField(models.TextField):
         if value is None:
             return None
         self._validate_geomtype(value, exception=TypeError)
-        return json.dumps(format_geojson(mapping(value)))
+        json_value = format_geojson(mapping(value))
+        rounded_value = shape(json_value)
+        if not rounded_value.is_valid:
+            json_value = format_geojson(mapping(rounded_value.buffer(0)))
+        return json.dumps(json_value)
 
 
 class JSONField(models.TextField):
