@@ -132,7 +132,7 @@ class Level(SpecificLocation, models.Model):
         level_geometry = cascaded_union((space_geometries, building_geometries, door_geometries))
         level_geometry = level_geometry.difference(hole_geometries)
         level_clip = svg.register_geometry(level_geometry, defid='level', as_clip_path=True)
-        svg.add_geometry(fill_color='#d1d1d1', clip_path=level_clip)
+        svg.add_geometry(fill_color='#ececec', clip_path=level_clip)
 
         # color in spaces
         spaces_by_color = {}

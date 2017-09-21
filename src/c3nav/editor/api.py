@@ -192,7 +192,7 @@ class EditorViewSet(ViewSet):
     def geometrystyles(self, request, *args, **kwargs):
         return Response({
             'building': '#929292',
-            'space': '#d1d1d1',
+            'space': '#eeeeee',
             'hole': 'rgba(255, 0, 0, 0.3)',
             'door': '#ffffff',
             'area': 'rgba(85, 170, 255, 0.2)',
