@@ -4,7 +4,7 @@ from itertools import chain
 
 from django.contrib.contenttypes.models import ContentType
 from django.db import models
-from django.db.models import Field
+from django.db.models import DecimalField, Field
 from django.utils.translation import ugettext_lazy as _
 
 from c3nav.editor.utils import is_created_pk
@@ -241,6 +241,8 @@ class ChangedObject(models.Model):
                 if field.name == 'titles':
                     for lang, title in value.items():
                         self.updated_fields['title_'+lang] = title
+                elif isinstance(field, DecimalField):
+                    self.updated_fields[field.name] = str(value)
                 else:
                     self.updated_fields[field.name] = field.get_prep_value(value)
             elif field.many_to_one or field.one_to_one:
