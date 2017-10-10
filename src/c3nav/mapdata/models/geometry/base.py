@@ -8,6 +8,11 @@ from c3nav.mapdata.models.base import SerializableMixin
 from c3nav.mapdata.utils.json import format_geojson
 
 
+class GeometryManager(models.Manager):
+    def within(self, minx, miny, maxx, maxy):
+        return self.get_queryset().filter(minx__lte=maxx, maxx__gte=minx, miny__lte=maxy, maxy__gte=miny)
+
+
 class GeometryMixin(SerializableMixin):
     """
     A map feature with a geometry
@@ -17,9 +22,11 @@ class GeometryMixin(SerializableMixin):
     miny = models.DecimalField(_('min y coordinate'), max_digits=6, decimal_places=2, db_index=True)
     maxx = models.DecimalField(_('max x coordinate'), max_digits=6, decimal_places=2, db_index=True)
     maxy = models.DecimalField(_('max y coordinate'), max_digits=6, decimal_places=2, db_index=True)
+    objects = GeometryManager()
 
     class Meta:
         abstract = True
+        base_manager_name = 'objects'
 
     def get_geojson_properties(self, *args, **kwargs) -> dict:
         result = OrderedDict((
