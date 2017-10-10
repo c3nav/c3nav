@@ -18,7 +18,7 @@ def tile(request, level, zoom, x, y, format):
     x, y = int(x), int(y)
     size = 256/2**zoom
     minx = size * x
-    miny = size * y
+    miny = size * (-y-1)
     maxx = minx + size
     maxy = miny + size
 

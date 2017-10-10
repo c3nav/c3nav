@@ -1,0 +1,34 @@
+{% load static %}
+{% load compress %}
+{% load i18n %}
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>c3nav</title>
+    {% compress css %}
+        <link href="{% static 'milligram/milligram.css' %}" rel="stylesheet">
+        <link href="{% static 'leaflet/leaflet.css' %}" rel="stylesheet">
+        <link href="{% static 'site/css/c3nav.css' %}" rel="stylesheet">
+    {% endcompress %}
+  </head>
+
+  <body>
+    <header>
+        c3nav
+    </header>
+    <main class="map">
+        <section id="map" data-bounds="{{ bounds }}">
+
+        </section>
+    </main>
+    {% compress js %}
+        <script type="text/javascript" src="{% static 'jquery/jquery.js' %}"></script>
+        <script type="text/javascript" src="{% static 'leaflet/leaflet.js' %}"></script>
+        <script type="text/javascript" src="{% static 'site/js/typeahead.js' %}"></script>
+        <script type="text/javascript" src="{% static 'site/js/c3nav.js' %}"></script>
+    {% endcompress %}
+  </body>
+</html>

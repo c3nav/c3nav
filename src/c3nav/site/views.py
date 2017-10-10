@@ -1,4 +1,5 @@
 # flake8: noqa
+import json
 from datetime import timedelta
 
 import qrcode
@@ -8,6 +9,7 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.utils import timezone
 
+from c3nav.mapdata.models import Source
 from c3nav.mapdata.models.level import Level
 
 ctype_mapping = {
@@ -56,6 +58,13 @@ def qr_code(request, location):
     response = HttpResponse(content_type='image/png')
     qr.make_image().save(response, 'PNG')
     return response
+
+
+def map_index(request):
+    ctx = {
+        'bounds': json.dumps(Source.max_bounds())
+    }
+    return render(request, 'site/map.html', ctx)
 
 
 def main(request, location=None, origin=None, destination=None):
