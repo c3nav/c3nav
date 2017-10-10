@@ -3,6 +3,7 @@ db.sqlite3
 static.dist
 c3nav.cfg
 /src/data
+loadproduction.sh
 
 .idea
 
