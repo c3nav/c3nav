@@ -10,7 +10,7 @@ from rest_framework.decorators import detail_route, list_route
 from rest_framework.exceptions import NotFound, ValidationError
 from rest_framework.mixins import RetrieveModelMixin
 from rest_framework.response import Response
-from rest_framework.viewsets import GenericViewSet, ReadOnlyModelViewSet
+from rest_framework.viewsets import GenericViewSet, ReadOnlyModelViewSet, ViewSet
 
 from c3nav.mapdata.models import AccessRestriction, Building, Door, Hole, LocationGroup, Source, Space
 from c3nav.mapdata.models.geometry.level import LevelGeometryMixin
@@ -26,6 +26,19 @@ def optimize_query(qs):
         base_qs = LocationGroup.objects.select_related('category').only('id', 'titles', 'category')
         qs = qs.prefetch_related(Prefetch('groups', queryset=base_qs))
     return qs
+
+
+class MapViewSet(ViewSet):
+    """
+    Map API
+    /bounds/ returns the maximum bounds of the map
+    """
+
+    @list_route(methods=['get'])
+    def bounds(self, request, *args, **kwargs):
+        return Response({
+            'bounds': Source.max_bounds(),
+        })
 
 
 class MapdataViewSet(ReadOnlyModelViewSet):
