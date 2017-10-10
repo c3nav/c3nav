@@ -54,7 +54,7 @@ class Building(LevelGeometryMixin, models.Model):
         default_related_name = 'buildings'
 
 
-class Space(SpecificLocation, LevelGeometryMixin, models.Model):
+class Space(LevelGeometryMixin, SpecificLocation, models.Model):
     """
     An accessible space. Shouldn't overlap with spaces on the same level.
     """
@@ -74,7 +74,7 @@ class Space(SpecificLocation, LevelGeometryMixin, models.Model):
         return result
 
 
-class Door(AccessRestrictionMixin, LevelGeometryMixin, models.Model):
+class Door(LevelGeometryMixin, AccessRestrictionMixin, models.Model):
     """
     A connection between two spaces
     """
@@ -97,6 +97,7 @@ class AltitudeArea(LevelGeometryMixin, models.Model):
         verbose_name = _('Altitude Area')
         verbose_name_plural = _('Altitude Areas')
         default_related_name = 'altitudeareas'
+        ordering = ('altitude', )
 
     @classmethod
     def recalculate(cls):

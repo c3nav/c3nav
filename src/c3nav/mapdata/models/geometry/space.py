@@ -41,7 +41,7 @@ class Column(SpaceGeometryMixin, models.Model):
         default_related_name = 'columns'
 
 
-class Area(SpecificLocation, SpaceGeometryMixin, models.Model):
+class Area(SpaceGeometryMixin, SpecificLocation, models.Model):
     """
     An area in a space.
     """
@@ -125,7 +125,7 @@ class LineObstacle(SpaceGeometryMixin, models.Model):
         return result
 
 
-class POI(SpecificLocation, SpaceGeometryMixin, models.Model):
+class POI(SpaceGeometryMixin, SpecificLocation, models.Model):
     """
     An point of interest
     """
