@@ -1,5 +1,7 @@
 from collections import OrderedDict
 
+from django.db import models
+from django.utils.translation import ugettext_lazy as _
 from shapely.geometry import Point, mapping
 
 from c3nav.mapdata.models.base import SerializableMixin
@@ -11,6 +13,10 @@ class GeometryMixin(SerializableMixin):
     A map feature with a geometry
     """
     geometry = None
+    minx = models.DecimalField(_('min x coordinate'), max_digits=6, decimal_places=2, db_index=True)
+    miny = models.DecimalField(_('min y coordinate'), max_digits=6, decimal_places=2, db_index=True)
+    maxx = models.DecimalField(_('max x coordinate'), max_digits=6, decimal_places=2, db_index=True)
+    maxy = models.DecimalField(_('max y coordinate'), max_digits=6, decimal_places=2, db_index=True)
 
     class Meta:
         abstract = True
@@ -59,3 +65,10 @@ class GeometryMixin(SerializableMixin):
 
     def contains(self, x, y) -> bool:
         return self.geometry.contains(Point(x, y))
+
+    def recalculate_bounds(self):
+        self.minx, self.miny, self.maxx, self.maxy = self.geometry.bounds
+
+    def save(self, *args, **kwargs):
+        self.recalculate_bounds()
+        super().save(*args, **kwargs)
