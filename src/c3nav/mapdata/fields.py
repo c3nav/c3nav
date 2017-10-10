@@ -82,6 +82,10 @@ class GeometryField(models.TextField):
             json_value = format_geojson(mapping(rounded_value.buffer(0)))
         return json.dumps(json_value)
 
+    def value_to_string(self, obj):
+        value = self.value_from_object(obj)
+        return self.get_prep_value(value)
+
 
 class JSONField(models.TextField):
     def from_db_value(self, value, expression, connection, context):
@@ -94,3 +98,7 @@ class JSONField(models.TextField):
 
     def get_prep_value(self, value):
         return json.dumps(value)
+
+    def value_to_string(self, obj):
+        value = self.value_from_object(obj)
+        return self.get_prep_value(value)
