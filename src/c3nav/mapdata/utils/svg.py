@@ -3,6 +3,7 @@ import xml.etree.ElementTree as ET
 from itertools import chain
 
 from shapely.affinity import scale, translate
+from shapely.ops import unary_union
 
 
 class SVGImage:
@@ -14,6 +15,8 @@ class SVGImage:
         self.g = ET.Element('g', {})
         self.defs = ET.Element('defs')
         self.def_i = 0
+        self.altitudes = {}
+        self.last_altitude = None
 
         blur_filter = ET.Element('filter', {'id': 'wallblur'})
         blur_filter.append(ET.Element('feGaussianBlur',
@@ -83,9 +86,22 @@ class SVGImage:
         self.defs.append(clippath)
         return defid
 
+    def clip_altitudes(self, new_geometry, new_altitude=None):
+        for altitude, geometry in self.altitudes.items():
+            if altitude != new_altitude:
+                self.altitudes[altitude] = geometry.difference(new_geometry)
+        if new_altitude is not None:
+            if self.last_altitude is not None and self.last_altitude > new_altitude:
+                raise ValueError('Altitudes have to be ascending.')
+            self.last_altitude = new_altitude
+            if new_altitude in self.altitudes:
+                self.altitudes[new_altitude] = unary_union([self.altitudes[new_altitude], new_geometry])
+            else:
+                self.altitudes[new_altitude] = new_geometry
+
     def add_geometry(self, geometry=None, fill_color=None, fill_opacity=None, opacity=None, filter=None,
                      stroke_px=0.0, stroke_width=0.0, stroke_color=None, stroke_opacity=None, stroke_linejoin=None,
-                     clip_path=None):
+                     clip_path=None, altitude=None, elevation=None):
         if geometry is not None:
             if not geometry:
                 return
@@ -93,6 +109,10 @@ class SVGImage:
                 element = ET.Element('use', {'xlink:href': '#'+geometry})
             else:
                 element = self._create_geometry(geometry)
+
+            if altitude is not None or elevation is not None:
+                self.clip_altitudes(geometry, altitude)
+
         else:
             element = ET.Element('rect', {'width': '100%', 'height': '100%'})
         element.set('fill', fill_color or 'none')
