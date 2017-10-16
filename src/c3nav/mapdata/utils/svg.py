@@ -84,7 +84,8 @@ class SVGImage:
         return defid
 
     def add_geometry(self, geometry=None, fill_color=None, fill_opacity=None, opacity=None, filter=None,
-                     stroke_width=0.0, stroke_color=None, stroke_opacity=None, stroke_linejoin=None, clip_path=None):
+                     stroke_px=0.0, stroke_width=0.0, stroke_color=None, stroke_opacity=None, stroke_linejoin=None,
+                     clip_path=None):
         if geometry is not None:
             if not geometry:
                 return
@@ -97,7 +98,9 @@ class SVGImage:
         element.set('fill', fill_color or 'none')
         if fill_opacity:
             element.set('fill-opacity', str(fill_opacity)[:4])
-        if stroke_width:
+        if stroke_px:
+            element.set('stroke-width', self._trim_decimals(str(stroke_px)))
+        elif stroke_width:
             element.set('stroke-width', self._trim_decimals(str(stroke_width * self.scale)))
         if stroke_color:
             element.set('stroke', stroke_color)

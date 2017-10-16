@@ -31,8 +31,11 @@ def render_svg(level, miny, minx, maxy, maxx, scale=1):
 
         spaces_geom = bbox.intersection(unary_union([s.geometry for s in level.spaces.all()]))
         doors_geom = bbox.intersection(unary_union([d.geometry for d in level.doors.all()]))
-        doors_geom = doors_geom.difference(spaces_geom)
 
         svg.add_geometry(spaces_geom, fill_color='#ffffff')
+
+        walls_geom = buildings_geom.difference(spaces_geom).difference(doors_geom)
+
+        svg.add_geometry(walls_geom, fill_color='#aaaaaa', stroke_px=0.5, stroke_color='#aaaaaa')
 
     return svg.get_xml()
