@@ -1,33 +1,34 @@
+import io
+import math
 import re
+import subprocess
 import xml.etree.ElementTree as ET
 from itertools import chain
 
+from PIL import Image
 from shapely.affinity import scale, translate
 from shapely.ops import unary_union
 
 
 class SVGImage:
-    def __init__(self, bounds, scale: float=1):
+    def __init__(self, bounds, scale: float=1, buffer=0):
         (self.bottom, self.left), (self.top, self.right) = bounds
         self.width = self.right-self.left
         self.height = self.top-self.bottom
         self.scale = scale
+        self.buffer_px = int(math.ceil(buffer*self.scale))
+        self.buffer = self.buffer_px/self.scale
         self.g = ET.Element('g', {})
         self.defs = ET.Element('defs')
         self.def_i = 0
         self.altitudes = {}
         self.last_altitude = None
-
-        blur_filter = ET.Element('filter', {'id': 'wallblur'})
-        blur_filter.append(ET.Element('feGaussianBlur',
-                                      {'in': 'SourceGraphic',
-                                       'stdDeviation': str(int(0.7 * self.scale))}))
-        self.defs.append(blur_filter)
+        self.blurs = set()
 
     def get_element(self):
         root = ET.Element('svg', {
-            'width': str(self.width*self.scale),
-            'height': str(self.height*self.scale),
+            'width': str(self.width*self.scale+self.buffer_px*2),
+            'height': str(self.height*self.scale+self.buffer_px*2),
             'xmlns:svg': 'http://www.w3.org/2000/svg',
             'xmlns': 'http://www.w3.org/2000/svg',
             'xmlns:xlink': 'http://www.w3.org/1999/xlink',
@@ -39,6 +40,19 @@ class SVGImage:
     def get_xml(self):
         return ET.tostring(self.get_element()).decode()
 
+    def get_png(self):
+        p = subprocess.run(('rsvg-convert', '--format', 'png'),
+                           input=self.get_xml().encode(), stdout=subprocess.PIPE, check=True)
+        f = io.BytesIO(p.stdout)
+        img = Image.open(f)
+        img = img.crop((self.buffer_px, self.buffer_px,
+                        self.buffer_px+int(self.width*self.scale),
+                        self.buffer_px+int(self.height*self.scale)))
+        f = io.BytesIO()
+        img.save(f, 'PNG')
+        f.seek(0)
+        return f.read()
+
     def new_defid(self):
         defid = 's'+str(self.def_i)
         self.def_i += 1
@@ -48,7 +62,7 @@ class SVGImage:
         return re.sub(r'([0-9]+)\.0', r'\1', re.sub(r'([0-9]+\.[0-9])[0-9]+', r'\1', data))
 
     def _create_geometry(self, geometry):
-        geometry = translate(geometry, xoff=0-self.left, yoff=0-self.bottom)
+        geometry = translate(geometry, xoff=0-self.left+self.buffer, yoff=0-self.bottom-self.buffer)
         geometry = scale(geometry, xfact=1, yfact=-1, origin=(self.width / 2, self.height / 2))
         geometry = scale(geometry, xfact=self.scale, yfact=self.scale, origin=(0, 0))
         element = ET.fromstring(self._trim_decimals(geometry.svg(0, '#FFFFFF')))
@@ -77,6 +91,21 @@ class SVGImage:
         self.defs.append(element)
         return defid
 
+    def get_blur(self, elevation):
+        blur_id = 'blur'+str(elevation*100)
+        if elevation not in self.blurs:
+            blur_filter = ET.Element('filter', {'id': blur_id,
+                                                'width': '200%',
+                                                'height': '200%',
+                                                'x': '-50%',
+                                                'y': '-50%'})
+            blur_filter.append(ET.Element('feGaussianBlur',
+                                          {'in': 'SourceGraphic',
+                                           'stdDeviation': str(elevation*self.scale)}))
+            self.defs.append(blur_filter)
+            self.blurs.add(elevation)
+        return blur_id
+
     def add_clip_path(self, *geometries, inverted=False, subtract=False, defid=None):
         if defid is None:
             defid = self.new_defid()
@@ -87,9 +116,11 @@ class SVGImage:
         return defid
 
     def clip_altitudes(self, new_geometry, new_altitude=None):
-        for altitude, geometry in self.altitudes.items():
+        for altitude, geometry in tuple(self.altitudes.items()):
             if altitude != new_altitude:
                 self.altitudes[altitude] = geometry.difference(new_geometry)
+                if self.altitudes[altitude].is_empty:
+                    self.altitudes.pop(altitude)
         if new_altitude is not None:
             if self.last_altitude is not None and self.last_altitude > new_altitude:
                 raise ValueError('Altitudes have to be ascending.')
@@ -111,6 +142,16 @@ class SVGImage:
                 element = self._create_geometry(geometry)
 
             if altitude is not None or elevation is not None:
+                blur_radius = float(1 if elevation is None else elevation)
+
+                buffered_geometry = translate(geometry.buffer(blur_radius/20),
+                                              xoff=blur_radius/40, yoff=-blur_radius/40)
+                shadow_element = self._create_geometry(buffered_geometry)
+                shadow_element.set('fill', '#000000')
+                shadow_element.set('fill-opacity', '0.14')
+                shadow_element.set('filter', 'url(#'+self.get_blur(blur_radius/15)+')')
+                self.g.append(shadow_element)
+
                 self.clip_altitudes(geometry, altitude)
 
         else:

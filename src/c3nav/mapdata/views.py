@@ -1,5 +1,3 @@
-import subprocess
-
 from django.http import Http404, HttpResponse
 from django.shortcuts import get_object_or_404
 from shapely.geometry import box
@@ -30,10 +28,9 @@ def tile(request, level, zoom, x, y, format):
     svg = render_svg(level, miny, minx, maxy, maxx, scale=2**zoom)
 
     if format == 'svg':
-        response = HttpResponse(svg, 'image/svg+xml')
+        response = HttpResponse(svg.get_xml(), 'image/svg+xml')
     elif format == 'png':
-        p = subprocess.run(('rsvg-convert', '--format', 'png'), input=svg.encode(), stdout=subprocess.PIPE, check=True)
-        response = HttpResponse(p.stdout, content_type="image/png")
+        response = HttpResponse(svg.get_png(), 'image/png')
     else:
         raise ValueError
 

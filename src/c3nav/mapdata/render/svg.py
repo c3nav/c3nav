@@ -7,9 +7,9 @@ from c3nav.mapdata.utils.svg import SVGImage
 
 
 def render_svg(level, miny, minx, maxy, maxx, scale=1):
-    svg = SVGImage(bounds=((miny, minx), (maxy, maxx)), scale=scale)
+    svg = SVGImage(bounds=((miny, minx), (maxy, maxx)), scale=scale, buffer=2)
 
-    within_coords = (minx-1, miny-1, maxx+1, maxy+1)
+    within_coords = (minx-2, miny-2, maxx+2, maxy+2)
     bbox = box(*within_coords)
 
     levels = Level.objects.filter(Q(on_top_of=level.pk) | Q(base_altitude__lte=level.base_altitude))
@@ -41,4 +41,4 @@ def render_svg(level, miny, minx, maxy, maxx, scale=1):
         svg.add_geometry(walls_geom, fill_color='#aaaaaa', stroke_px=0.5, stroke_color='#aaaaaa',
                          elevation=level.default_height)
 
-    return svg.get_xml()
+    return svg
