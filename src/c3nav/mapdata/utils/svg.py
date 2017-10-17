@@ -5,9 +5,9 @@ import subprocess
 import xml.etree.ElementTree as ET
 from itertools import chain
 
-from PIL import Image
 from django.conf import settings
 from django.core.checks import Error, register
+from PIL import Image
 from shapely.affinity import scale, translate
 from shapely.ops import unary_union
 
@@ -109,8 +109,7 @@ class SVGImage:
         elif settings.SVG_RENDERER == 'inkscape':
             p = subprocess.run(('inkscape', '-z', '-e', '/dev/stderr', '/dev/stdin'), input=self.get_xml().encode(),
                                stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True)
-            png = p.stderr
-            png = png[png.index(b'\x89PNG'):]
+            png = p.stderr[p.stderr.index(b'\x89PNG'):]
             if f is None:
                 return png
             f.write(png)
