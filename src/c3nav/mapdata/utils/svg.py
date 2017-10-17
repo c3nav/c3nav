@@ -5,9 +5,25 @@ import subprocess
 import xml.etree.ElementTree as ET
 from itertools import chain
 
+from django.conf import settings
+from django.core.checks import Error, register
 from PIL import Image
 from shapely.affinity import scale, translate
 from shapely.ops import unary_union
+
+
+@register()
+def check_svg_renderer(app_configs, **kwargs):
+    errors = []
+    if settings.SVG_RENDERER not in ('rsvg', 'inkscape'):
+        errors.append(
+            Error(
+                'Invalid SVG renderer: '+settings.SVG_RENDERER,
+                obj='settings.SVG_RENDERER',
+                id='c3nav.mapdata.E001',
+            )
+        )
+    return errors
 
 
 class SVGImage:
@@ -45,17 +61,33 @@ class SVGImage:
         return ET.tostring(self.get_element(buffer=buffer)).decode()
 
     def get_png(self):
-        p = subprocess.run(('rsvg-convert', '--format', 'png'),
-                           input=self.get_xml(buffer=True).encode(), stdout=subprocess.PIPE, check=True)
-        f = io.BytesIO(p.stdout)
-        img = Image.open(f)
-        img = img.crop((self.buffer_px, self.buffer_px,
-                        self.buffer_px+int(self.width*self.scale),
-                        self.buffer_px+int(self.height*self.scale)))
-        f = io.BytesIO()
-        img.save(f, 'PNG')
-        f.seek(0)
-        return f.read()
+        crop = False
+        if settings.SVG_RENDERER == 'rsvg':
+            crop = True
+            p = subprocess.run(('rsvg-convert', '--format', 'png'),
+                               input=self.get_xml(buffer=True).encode(), stdout=subprocess.PIPE, check=True)
+            png = p.stdout
+        elif settings.SVG_RENDERER == 'inkscape':
+            p = subprocess.run(('inkscape', '-z', '-e', '/dev/stderr', '/dev/stdin'), input=self.get_xml().encode(),
+                               stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True)
+            png = p.stderr
+            png = png[png.index(b'\x89PNG'):]
+            print(png)
+        else:
+            raise ValueError
+
+        if crop:
+            f = io.BytesIO(png)
+            img = Image.open(f)
+            img = img.crop((self.buffer_px, self.buffer_px,
+                            self.buffer_px+int(self.width*self.scale),
+                            self.buffer_px+int(self.height*self.scale)))
+            f = io.BytesIO()
+            img.save(f, 'PNG')
+            f.seek(0)
+            png = f.read()
+
+        return png
 
     def new_defid(self):
         defid = 's'+str(self.def_i)
