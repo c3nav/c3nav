@@ -30,7 +30,8 @@ def tile(request, level, zoom, x, y, format):
     if format == 'svg':
         response = HttpResponse(svg.get_xml(), 'image/svg+xml')
     elif format == 'png':
-        response = HttpResponse(svg.get_png(), 'image/png')
+        response = HttpResponse(content_type='image/png')
+        svg.get_png(f=response)
     else:
         raise ValueError
 

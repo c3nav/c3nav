@@ -5,9 +5,9 @@ import subprocess
 import xml.etree.ElementTree as ET
 from itertools import chain
 
+from PIL import Image
 from django.conf import settings
 from django.core.checks import Error, register
-from PIL import Image
 from shapely.affinity import scale, translate
 from shapely.ops import unary_union
 
@@ -70,42 +70,50 @@ class SVGImage:
     def get_xml(self, buffer=False):
         return ET.tostring(self.get_element(buffer=buffer)).decode()
 
-    def get_png(self):
-        crop = False
+    def get_png(self, f=None):
         if settings.SVG_RENDERER == 'rsvg':
-            crop = True
-            surface = cairocffi.SVGSurface(None, *self.get_dimensions_px(buffer=True))
-            context = cairocffi.Context(surface)
+            # create buffered surfaces
+            buffered_surface = cairocffi.SVGSurface(None, *(int(i) for i in self.get_dimensions_px(buffer=True)))
+            buffered_context = cairocffi.Context(buffered_surface)
 
+            # draw svg with rsvg
             handle = Rsvg.Handle()
             svg = handle.new_from_data(self.get_xml(buffer=True).encode())
-            svg.render_cairo(context)
-            png = surface.write_to_png()
+            svg.render_cairo(buffered_context)
+
+            # crop resulting immage
+            surface = buffered_surface.create_similar(buffered_surface.get_content(),
+                                                      *(int(i) for i in self.get_dimensions_px(buffer=False)))
+            context = cairocffi.Context(surface)
+            context.set_source_surface(buffered_surface, -self.buffer_px, -self.buffer_px)
+            context.paint()
+            if f is None:
+                return surface.write_to_png()
+            surface.write_to_png(f)
+
         elif settings.SVG_RENDERER == 'rsvg-convert':
-            crop = True
             p = subprocess.run(('rsvg-convert', '--format', 'png'),
                                input=self.get_xml(buffer=True).encode(), stdout=subprocess.PIPE, check=True)
-            png = p.stdout
+            png = io.BytesIO(p.stdout)
+            img = Image.open(png)
+            img = img.crop((self.buffer_px, self.buffer_px,
+                            self.buffer_px + int(self.width * self.scale),
+                            self.buffer_px + int(self.height * self.scale)))
+            if f is None:
+                f = io.BytesIO()
+                img.save(f, 'PNG')
+                f.seek(0)
+                return f.read()
+            img.save(f, 'PNG')
+
         elif settings.SVG_RENDERER == 'inkscape':
             p = subprocess.run(('inkscape', '-z', '-e', '/dev/stderr', '/dev/stdin'), input=self.get_xml().encode(),
                                stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True)
             png = p.stderr
             png = png[png.index(b'\x89PNG'):]
-        else:
-            raise ValueError
-
-        if crop:
-            f = io.BytesIO(png)
-            img = Image.open(f)
-            img = img.crop((self.buffer_px, self.buffer_px,
-                            self.buffer_px+int(self.width*self.scale),
-                            self.buffer_px+int(self.height*self.scale)))
-            f = io.BytesIO()
-            img.save(f, 'PNG')
-            f.seek(0)
-            png = f.read()
-
-        return png
+            if f is None:
+                return png
+            f.write(png)
 
     def new_defid(self):
         defid = 's'+str(self.def_i)
