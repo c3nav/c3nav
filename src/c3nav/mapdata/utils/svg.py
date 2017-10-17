@@ -11,11 +11,17 @@ from PIL import Image
 from shapely.affinity import scale, translate
 from shapely.ops import unary_union
 
+if settings.SVG_RENDERER == 'rsvg':
+    import pgi
+    import cairocffi
+    pgi.require_version('Rsvg', '2.0')
+    from pgi.repository import Rsvg
+
 
 @register()
 def check_svg_renderer(app_configs, **kwargs):
     errors = []
-    if settings.SVG_RENDERER not in ('rsvg', 'inkscape'):
+    if settings.SVG_RENDERER not in ('rsvg', 'rsvg-convert', 'inkscape'):
         errors.append(
             Error(
                 'Invalid SVG renderer: '+settings.SVG_RENDERER,
@@ -40,9 +46,13 @@ class SVGImage:
         self.last_altitude = None
         self.blurs = set()
 
+    def get_dimensions_px(self, buffer):
+        width_px = self.width * self.scale + (self.buffer_px * 2 if buffer else 0)
+        height_px = self.height * self.scale + (self.buffer_px * 2 if buffer else 0)
+        return height_px, width_px
+
     def get_element(self, buffer=False):
-        width_px = self._trim_decimals(str(self.width*self.scale + (self.buffer_px*2 if buffer else 0)))
-        height_px = self._trim_decimals(str(self.height*self.scale + (self.buffer_px*2 if buffer else 0)))
+        height_px, width_px = (self._trim_decimals(str(i)) for i in self.get_dimensions_px(buffer))
         offset_px = self._trim_decimals(str(-self.buffer_px)) if buffer else '0'
         root = ET.Element('svg', {
             'width': width_px,
@@ -63,6 +73,15 @@ class SVGImage:
     def get_png(self):
         crop = False
         if settings.SVG_RENDERER == 'rsvg':
+            crop = True
+            surface = cairocffi.SVGSurface(None, *self.get_dimensions_px(buffer=True))
+            context = cairocffi.Context(surface)
+
+            handle = Rsvg.Handle()
+            svg = handle.new_from_data(self.get_xml(buffer=True).encode())
+            svg.render_cairo(context)
+            png = surface.write_to_png()
+        elif settings.SVG_RENDERER == 'rsvg-convert':
             crop = True
             p = subprocess.run(('rsvg-convert', '--format', 'png'),
                                input=self.get_xml(buffer=True).encode(), stdout=subprocess.PIPE, check=True)
