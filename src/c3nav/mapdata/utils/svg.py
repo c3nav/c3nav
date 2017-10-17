@@ -89,7 +89,7 @@ class SVGImage:
             context.paint()
             if f is None:
                 return surface.write_to_png()
-            surface.write_to_png(f)
+            f.write(surface.write_to_png())
 
         elif settings.SVG_RENDERER == 'rsvg-convert':
             p = subprocess.run(('rsvg-convert', '--format', 'png'),
