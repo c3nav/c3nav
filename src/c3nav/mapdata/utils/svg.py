@@ -204,14 +204,14 @@ class SVGImage:
 
             if altitude is not None or elevation is not None:
                 blur_radius = float(1 if elevation is None else elevation)
-
-                buffered_geometry = translate(geometry.buffer(blur_radius/20),
-                                              xoff=blur_radius/40, yoff=-blur_radius/40)
-                shadow_element = self._create_geometry(buffered_geometry)
-                shadow_element.set('fill', '#000000')
-                shadow_element.set('fill-opacity', '0.14')
-                shadow_element.set('filter', 'url(#'+self.get_blur(blur_radius/15)+')')
-                self.g.append(shadow_element)
+                if blur_radius:
+                    buffered_geometry = translate(geometry.buffer(blur_radius/20),
+                                                  xoff=blur_radius/40, yoff=-blur_radius/40)
+                    shadow_element = self._create_geometry(buffered_geometry)
+                    shadow_element.set('fill', '#000000')
+                    shadow_element.set('fill-opacity', '0.14')
+                    shadow_element.set('filter', 'url(#'+self.get_blur(blur_radius/15)+')')
+                    self.g.append(shadow_element)
 
                 self.clip_altitudes(geometry, altitude)
 
