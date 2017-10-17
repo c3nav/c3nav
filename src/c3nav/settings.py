@@ -54,7 +54,7 @@ else:
 debug_fallback = "runserver" in sys.argv
 DEBUG = config.getboolean('django', 'debug', fallback=debug_fallback)
 RENDER_SCALE = float(config.get('c3nav', 'render_scale', fallback=20.0))
-SVG_RENDERER = config.get('c3nav', 'svg_renderer', fallback='rsvg')
+SVG_RENDERER = config.get('c3nav', 'svg_renderer', fallback='rsvg-convert')
 
 db_backend = config.get('database', 'backend', fallback='sqlite3')
 DATABASES = {
