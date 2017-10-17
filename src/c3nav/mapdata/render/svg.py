@@ -41,4 +41,6 @@ def render_svg(level, miny, minx, maxy, maxx, scale=1):
         svg.add_geometry(walls_geom, fill_color='#aaaaaa', stroke_px=0.5, stroke_color='#aaaaaa',
                          elevation=level.default_height)
 
+        svg.add_geometry(doors_geom, fill_color='#ffffff', elevation=0)
+
     return svg
