@@ -17,7 +17,6 @@ class SVGImage:
         self.height = self.top-self.bottom
         self.scale = scale
         self.buffer_px = int(math.ceil(buffer*self.scale))
-        self.buffer = self.buffer_px/self.scale
         self.g = ET.Element('g', {})
         self.defs = ET.Element('defs')
         self.def_i = 0
@@ -25,24 +24,29 @@ class SVGImage:
         self.last_altitude = None
         self.blurs = set()
 
-    def get_element(self):
+    def get_element(self, buffer=False):
+        width_px = self._trim_decimals(str(self.width*self.scale + (self.buffer_px*2 if buffer else 0)))
+        height_px = self._trim_decimals(str(self.height*self.scale + (self.buffer_px*2 if buffer else 0)))
+        offset_px = self._trim_decimals(str(-self.buffer_px)) if buffer else '0'
         root = ET.Element('svg', {
-            'width': self._trim_decimals(str(self.width*self.scale+self.buffer_px*2)),
-            'height': self._trim_decimals(str(self.height*self.scale+self.buffer_px*2)),
+            'width': width_px,
+            'height': height_px,
             'xmlns:svg': 'http://www.w3.org/2000/svg',
             'xmlns': 'http://www.w3.org/2000/svg',
             'xmlns:xlink': 'http://www.w3.org/1999/xlink',
         })
+        if buffer:
+            root.attrib['viewBox'] = ' '.join((offset_px, offset_px, width_px, height_px))
         root.append(self.defs)
         root.append(self.g)
         return root
 
-    def get_xml(self):
-        return ET.tostring(self.get_element()).decode()
+    def get_xml(self, buffer=False):
+        return ET.tostring(self.get_element(buffer=buffer)).decode()
 
     def get_png(self):
         p = subprocess.run(('rsvg-convert', '--format', 'png'),
-                           input=self.get_xml().encode(), stdout=subprocess.PIPE, check=True)
+                           input=self.get_xml(buffer=True).encode(), stdout=subprocess.PIPE, check=True)
         f = io.BytesIO(p.stdout)
         img = Image.open(f)
         img = img.crop((self.buffer_px, self.buffer_px,
@@ -62,7 +66,7 @@ class SVGImage:
         return re.sub(r'([0-9]+)\.0', r'\1', re.sub(r'([0-9]+\.[0-9])[0-9]+', r'\1', data))
 
     def _create_geometry(self, geometry):
-        geometry = translate(geometry, xoff=0-self.left+self.buffer, yoff=0-self.bottom-self.buffer)
+        geometry = translate(geometry, xoff=0-self.left, yoff=0-self.bottom)
         geometry = scale(geometry, xfact=1, yfact=-1, origin=(self.width / 2, self.height / 2))
         geometry = scale(geometry, xfact=self.scale, yfact=self.scale, origin=(0, 0))
         element = ET.fromstring(self._trim_decimals(geometry.svg(0, '#FFFFFF')))
