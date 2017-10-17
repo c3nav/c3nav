@@ -72,7 +72,6 @@ class SVGImage:
                                stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True)
             png = p.stderr
             png = png[png.index(b'\x89PNG'):]
-            print(png)
         else:
             raise ValueError
 
