@@ -27,8 +27,8 @@ class SVGImage:
 
     def get_element(self):
         root = ET.Element('svg', {
-            'width': str(self.width*self.scale+self.buffer_px*2),
-            'height': str(self.height*self.scale+self.buffer_px*2),
+            'width': self._trim_decimals(str(self.width*self.scale+self.buffer_px*2)),
+            'height': self._trim_decimals(str(self.height*self.scale+self.buffer_px*2)),
             'xmlns:svg': 'http://www.w3.org/2000/svg',
             'xmlns': 'http://www.w3.org/2000/svg',
             'xmlns:xlink': 'http://www.w3.org/1999/xlink',
