@@ -152,8 +152,9 @@ class SVGImage:
         self.defs.append(element)
         return defid
 
-    def get_blur(self, elevation):
-        blur_id = 'blur'+str(elevation*100)
+    def get_shadow(self, geometry, elevation):
+        elevation = min(elevation, 2)
+        blur_id = 'blur'+str(int(elevation*100))
         if elevation not in self.blurs:
             blur_filter = ET.Element('filter', {'id': blur_id,
                                                 'width': '200%',
@@ -161,11 +162,17 @@ class SVGImage:
                                                 'x': '-50%',
                                                 'y': '-50%'})
             blur_filter.append(ET.Element('feGaussianBlur',
-                                          {'in': 'SourceGraphic',
-                                           'stdDeviation': str(elevation*self.scale)}))
+                                          {'stdDeviation': str(elevation / 3 * 0.25 * self.scale)}))
+
             self.defs.append(blur_filter)
             self.blurs.add(elevation)
-        return blur_id
+
+        shadow = self._create_geometry(translate(geometry.buffer(elevation / 3 * 0.25),
+                                                 xoff=(elevation / 3 * 0.12), yoff=-(elevation / 3 * 0.12)))
+        shadow.set('filter', 'url(#'+blur_id+')')
+        shadow.set('fill', 'black')
+        shadow.set('fill-opacity', '0.20')
+        return shadow
 
     def add_clip_path(self, *geometries, inverted=False, subtract=False, defid=None):
         if defid is None:
@@ -197,23 +204,16 @@ class SVGImage:
         if geometry is not None:
             if not geometry:
                 return
-            if isinstance(geometry, str):
-                element = ET.Element('use', {'xlink:href': '#'+geometry})
-            else:
-                element = self._create_geometry(geometry)
 
             if altitude is not None or elevation is not None:
-                blur_radius = float(1 if elevation is None else elevation)
-                if blur_radius:
-                    buffered_geometry = translate(geometry.buffer(blur_radius/20),
-                                                  xoff=blur_radius/40, yoff=-blur_radius/40)
-                    shadow_element = self._create_geometry(buffered_geometry)
-                    shadow_element.set('fill', '#000000')
-                    shadow_element.set('fill-opacity', '0.14')
-                    shadow_element.set('filter', 'url(#'+self.get_blur(blur_radius/15)+')')
-                    self.g.append(shadow_element)
+                elevation = float(1 if elevation is None else elevation)
+                if elevation:
+                    shadow = self.get_shadow(geometry, elevation)
+                    self.g.append(shadow)
 
                 self.clip_altitudes(geometry, altitude)
+
+            element = self._create_geometry(geometry)
 
         else:
             element = ET.Element('rect', {'width': '100%', 'height': '100%'})
