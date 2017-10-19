@@ -3,7 +3,6 @@ import math
 import re
 import subprocess
 import xml.etree.ElementTree as ET
-from itertools import chain
 
 from django.conf import settings
 from django.core.checks import Error, register
@@ -151,18 +150,11 @@ class SVGImage:
         geometry = affine_transform(geometry, (self.scale, 0.0,
                                                0.0, -self.scale,
                                                -(self.left)*self.scale, (self.top)*self.scale))
-        element = ET.fromstring(self._trim_decimals(geometry.svg(0, '#FFFFFF')))
-        if element.tag != 'g':
-            new_element = ET.Element('g')
-            new_element.append(element)
-            element = new_element
-
-        for elem in chain(element.findall('polyline'), element.findall('path')):
-            elem.attrib.pop('opacity', None)
-            elem.attrib.pop('fill', None)
-            elem.attrib.pop('fill-rule', None)
-            elem.attrib.pop('stroke', None)
-            elem.attrib.pop('stroke-width', None)
+        element = self._trim_decimals(re.sub(r' (opacity|fill|fill-rule|stroke|stroke-width)="[^"]*"', '',
+                                             geometry.svg(0, '#FFFFFF')))
+        if not element.startswith('<g '):
+            element = '<g>'+element+'</g>'
+        element = ET.fromstring(element)
         return element
 
     def register_geometry(self, geometry, defid=None, as_clip_path=False, comment=None):

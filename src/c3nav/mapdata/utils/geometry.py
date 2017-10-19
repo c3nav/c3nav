@@ -6,7 +6,6 @@ from matplotlib.path import Path
 from shapely import speedups
 from shapely.geometry import LineString, Polygon
 
-
 if speedups.available:
     speedups.enable()
 
