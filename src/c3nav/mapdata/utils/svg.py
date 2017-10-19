@@ -206,10 +206,17 @@ class SVGImage:
                 return
 
             if altitude is not None or elevation is not None:
-                elevation = float(1 if elevation is None else elevation)
-                if elevation:
-                    shadow = self.get_shadow(geometry, elevation)
-                    self.g.append(shadow)
+                if elevation is not None:
+                    elevation = float(1 if elevation is None else elevation)
+                    if elevation:
+                        shadow = self.get_shadow(geometry, elevation)
+                        self.g.append(shadow)
+                else:
+                    for other_altitude, other_geom in self.altitudes.items():
+                        shadow_clip = self.register_geometry(other_geom, as_clip_path=True)
+                        shadow = self.get_shadow(geometry, altitude-other_altitude)
+                        shadow.set('clip-path', 'url(#'+shadow_clip+')')
+                        self.g.append(shadow)
 
                 self.clip_altitudes(geometry, altitude)
 
