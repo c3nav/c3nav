@@ -1,10 +1,12 @@
 from collections import OrderedDict
 
+from django.core.cache import cache
 from django.db import models
 from django.utils.translation import ugettext_lazy as _
 from django.utils.translation import get_language
 
 from c3nav.mapdata.fields import JSONField
+from c3nav.mapdata.models import MapUpdate
 
 
 class SerializableMixin(models.Model):
@@ -78,10 +80,16 @@ class BoundsMixin(SerializableMixin, models.Model):
 
     @classmethod
     def max_bounds(cls):
+        cache_key = 'mapdata:max_bounds:%s:%s' % (cls.__name__, MapUpdate.cache_key())
+        result = cache.get(cache_key, None)
+        if result is not None:
+            return result
         result = cls.objects.all().aggregate(models.Min('bottom'), models.Min('left'),
                                              models.Max('top'), models.Max('right'))
-        return ((float(result['bottom__min']), float(result['left__min'])),
-                (float(result['top__max']), float(result['right__max'])))
+        result = ((float(result['bottom__min']), float(result['left__min'])),
+                  (float(result['top__max']), float(result['right__max'])))
+        cache.set(cache_key, result, 900)
+        return result
 
     def _serialize(self, level=True, **kwargs):
         result = super()._serialize(**kwargs)
