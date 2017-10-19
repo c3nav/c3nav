@@ -5,9 +5,9 @@ from c3nav.mapdata.utils.svg import SVGImage
 
 
 def render_svg(level, miny, minx, maxy, maxx, scale=1):
-    svg = SVGImage(bounds=((miny, minx), (maxy, maxx)), scale=scale, buffer=2)
+    svg = SVGImage(bounds=((miny, minx), (maxy, maxx)), scale=scale, buffer=1)
 
-    within_coords = (minx-2, miny-2, maxx+2, maxy+2)
+    within_coords = (minx-1, miny-1, maxx+1, maxy+1)
     bbox = box(*within_coords)
 
     render_level_data = get_render_level_data(level)
