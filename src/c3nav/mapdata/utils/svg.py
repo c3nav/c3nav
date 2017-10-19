@@ -178,8 +178,8 @@ class SVGImage:
 
         shadow = self._create_geometry(shadow_geom)
         shadow.set('filter', 'url(#'+blur_id+')')
-        shadow.set('fill', 'black')
-        shadow.set('fill-opacity', '0.20')
+        shadow.set('fill', '#000')
+        shadow.set('fill-opacity', '0.2')
         if clip_path:
             shadow_clip = self.register_geometry(clip_path, as_clip_path=True)
             shadow.set('clip-path', 'url(#'+shadow_clip+')')
