@@ -1,1 +1,1 @@
-from c3nav.mapdata.render.svg import render_svg  # noqa
+from c3nav.mapdata.render.svg import SVGRenderer  # noqa

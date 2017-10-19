@@ -1,50 +1,88 @@
+from django.utils.functional import cached_property
 from shapely.geometry import box
 from shapely.ops import unary_union
 
-from c3nav.mapdata.render.base import get_render_level_data
+from c3nav.mapdata.render.base import get_level_render_data
 from c3nav.mapdata.utils.svg import SVGImage
 
 
-def render_svg(level, miny, minx, maxy, maxx, scale=1):
-    svg = SVGImage(bounds=((miny, minx), (maxy, maxx)), scale=scale, buffer=1)
+class SVGRenderer:
+    def __init__(self, level, miny, minx, maxy, maxx, scale=1, user=None):
+        self.level = level
+        self.miny = miny
+        self.minx = minx
+        self.maxy = maxy
+        self.maxx = maxx
+        self.scale = scale
+        self.user = user
 
-    within_coords = (minx-1, miny-1, maxx+1, maxy+1)
-    bbox = box(*within_coords)
+    @cached_property
+    def bbox(self):
+        return box(self.minx-1, self.miny-1, self.maxx+1, self.maxy+1)
 
-    render_level_data = get_render_level_data(level)
+    @cached_property
+    def level_render_data(self):
+        return get_level_render_data(self.level)
 
-    crop_to = None
-    primary_level_count = 0
-    for geoms, default_height in reversed(render_level_data):
-        if geoms.holes is not None:
-            primary_level_count += 1
+    def check_level(self):
+        return self.level_render_data
 
-        geoms.crop_to = crop_to if primary_level_count > 1 else None
+    @cached_property
+    def affected_access_restrictions(self):
+        access_restrictions = set()
+        for geoms, default_height in self.level_render_data:
+            for access_restriction, area in geoms.access_restriction_affected.items():
+                if access_restriction not in access_restrictions and area.intersects(self.bbox):
+                    access_restrictions.add(access_restriction)
+        return access_restrictions
 
-        if geoms.holes is not None:
-            if crop_to is None:
-                crop_to = geoms.holes
-            else:
-                crop_to = crop_to.intersection(geoms.holes)
+    @cached_property
+    def unlocked_access_restrictions(self):
+        # todo access_restriction
+        return set(access_restriction for access_restriction in self.affected_access_restrictions
+                   if self.user is not None and self.user.is_superuser)
 
-    for geoms, default_height in render_level_data:
-        crop_to = bbox
-        if geoms.crop_to is not None:
-            crop_to = crop_to.intersection(geoms.crop_to)
+    @cached_property
+    def access_cache_key(self):
+        return '_'.join(str(i) for i in sorted(self.unlocked_access_restrictions)) or '0'
 
-        for altitudearea in geoms.altitudeareas:
-            svg.add_geometry(crop_to.intersection(altitudearea.geometry),
-                             fill_color='#eeeeee', altitude=altitudearea.altitude)
+    def render(self):
+        svg = SVGImage(bounds=((self.miny, self.minx), (self.maxy, self.maxx)), scale=self.scale, buffer=1)
 
-            for color, areas in altitudearea.colors.items():
-                # todo access_restriction
-                areas = [area for area in areas.values()]
-                if areas:
-                    svg.add_geometry(crop_to.intersection(unary_union(areas)), fill_color=color, elevation=0)
+        unlocked_access_restrictions = self.unlocked_access_restrictions | set([None])
 
-        svg.add_geometry(crop_to.intersection(geoms.walls),
-                         fill_color='#aaaaaa', stroke_px=0.5, stroke_color='#aaaaaa', elevation=default_height)
+        crop_to = None
+        primary_level_count = 0
+        for geoms, default_height in reversed(self.level_render_data):
+            if geoms.holes is not None:
+                primary_level_count += 1
 
-        svg.add_geometry(crop_to.intersection(geoms.doors), fill_color='#ffffff', elevation=0)
+            geoms.crop_to = crop_to if primary_level_count > 1 else None
 
-    return svg
+            if geoms.holes is not None:
+                if crop_to is None:
+                    crop_to = geoms.holes
+                else:
+                    crop_to = crop_to.intersection(geoms.holes)
+
+        for geoms, default_height in self.level_render_data:
+            crop_to = self.bbox
+            if geoms.crop_to is not None:
+                crop_to = crop_to.intersection(geoms.crop_to)
+
+            for altitudearea in geoms.altitudeareas:
+                svg.add_geometry(crop_to.intersection(altitudearea.geometry),
+                                 fill_color='#eeeeee', altitude=altitudearea.altitude)
+
+                for color, areas in altitudearea.colors.items():
+                    areas = tuple(area for access_restriction, area in areas.items()
+                                  if access_restriction in unlocked_access_restrictions)
+                    if areas:
+                        svg.add_geometry(crop_to.intersection(unary_union(areas)), fill_color=color, elevation=0)
+
+            svg.add_geometry(crop_to.intersection(geoms.walls),
+                             fill_color='#aaaaaa', stroke_px=0.5, stroke_color='#aaaaaa', elevation=default_height)
+
+            svg.add_geometry(crop_to.intersection(geoms.doors), fill_color='#ffffff', elevation=0)
+
+        return svg

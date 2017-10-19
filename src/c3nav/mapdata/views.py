@@ -2,7 +2,7 @@ from django.http import Http404, HttpResponse
 from shapely.geometry import box
 
 from c3nav.mapdata.models import Level, Source
-from c3nav.mapdata.render import render_svg
+from c3nav.mapdata.render.svg import SVGRenderer
 
 
 def tile(request, level, zoom, x, y, format):
@@ -22,10 +22,16 @@ def tile(request, level, zoom, x, y, format):
     if not box(bounds[0][1], bounds[0][0], bounds[1][1], bounds[1][0]).intersects(box(minx, miny, maxx, maxy)):
         raise Http404
 
+    renderer = SVGRenderer(level, miny, minx, maxy, maxx, scale=2**zoom, user=request.user)
+
     try:
-        svg = render_svg(level, miny, minx, maxy, maxx, scale=2**zoom)
+        renderer.check_level()
     except Level.DoesNotExist:
         raise Http404
+
+    print(renderer.access_cache_key)
+
+    svg = renderer.render()
 
     if format == 'svg':
         response = HttpResponse(svg.get_xml(), 'image/svg+xml')

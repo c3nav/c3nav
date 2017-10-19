@@ -21,6 +21,7 @@ class LevelGeometries:
         self.walls = None
         self.doors = None
         self.holes = None
+        self.access_restriction_affected = None
 
     @staticmethod
     def crop(self, geometry, crop_to):
@@ -51,12 +52,18 @@ class LevelGeometries:
             if level.on_top_of_id is None:
                 geoms.holes = spaces_geom.difference(walkable_geom)
 
+            access_restriction_affected = {}
+
             colors = {}
             for space in level.spaces.all():
                 access_restriction = space.access_restriction_id
+                if access_restriction is not None:
+                    access_restriction_affected.setdefault(access_restriction, []).append(space.geometry)
                 colors.setdefault(space.get_color(), {}).setdefault(access_restriction, []).append(space.geometry)
                 for area in space.areas.all():
                     access_restriction = area.access_restriction_id or space.access_restriction_id
+                    if access_restriction is not None:
+                        access_restriction_affected.setdefault(access_restriction, []).append(area.geometry)
                     colors.setdefault(area.get_color(), {}).setdefault(access_restriction, []).append(area.geometry)
             colors.pop(None, None)
 
@@ -72,6 +79,9 @@ class LevelGeometries:
                 altitudearea_colors = {color: areas for color, areas in altitudearea_colors.items() if areas}
                 geoms.altitudeareas.append(AltitudeAreaGeometries(altitudearea, altitudearea_colors))
 
+            geoms.access_restriction_affected = {access_restriction: unary_union(areas)
+                                                 for access_restriction, areas in access_restriction_affected.items()}
+
             geoms.walls = buildings_geom.difference(spaces_geom).difference(doors_geom)
             level.geoms_cache = pickle.dumps(geoms)
             level.save()
@@ -81,8 +91,8 @@ class LevelGeometries:
                 level.save()
 
 
-def get_render_level_data(level):
-    cache_key = 'mapdata:render_level_data:%s:%s' % (str(level.pk if isinstance(level, Level) else level),
+def get_level_render_data(level):
+    cache_key = 'mapdata:level_render_data:%s:%s' % (str(level.pk if isinstance(level, Level) else level),
                                                      MapUpdate.cache_key())
     result = cache.get(cache_key, None)
     if result is not None:
