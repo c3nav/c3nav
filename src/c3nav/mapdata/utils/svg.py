@@ -166,10 +166,10 @@ class SVGImage:
         blur_id = 'blur'+str(int(elevation*100))
         if elevation not in self.blurs:
             blur_filter = ET.Element('filter', {'id': blur_id,
-                                                'width': '100%',
-                                                'height': '100%',
-                                                'x': '0%',
-                                                'y': '0%'})
+                                                'width': '200%',
+                                                'height': '200%',
+                                                'x': '-50%',
+                                                'y': '-50%'})
             blur_filter.append(ET.Element('feGaussianBlur',
                                           {'stdDeviation': str(blur_radius * self.scale)}))
 
