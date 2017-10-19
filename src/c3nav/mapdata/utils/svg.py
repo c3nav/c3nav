@@ -2,7 +2,6 @@ import io
 import math
 import re
 import subprocess
-import xml.etree.ElementTree as ET
 
 from django.conf import settings
 from django.core.checks import Error, register
@@ -45,10 +44,10 @@ class SVGImage:
         # how many pixels around the image should be added and later cropped (otherwise rsvg does not blur correctly)
         self.buffer_px = int(math.ceil(buffer*self.scale))
 
-        # create base elements and counter for dynamic definition ids
-        self.g = ET.Element('g', {})
-        self.defs = ET.Element('defs')
-        self.def_i = 0
+        # create base elements and counter for clip path ids
+        self.g = ''
+        self.defs = ''
+        self.clip_path_i = 0
 
         # keep track which area of the image has which altitude currently
         self.altitudes = {}
@@ -63,28 +62,22 @@ class SVGImage:
         height_px = self.height * self.scale + (self.buffer_px * 2 if buffer else 0)
         return height_px, width_px
 
-    def get_element(self, buffer=False):
+    def get_xml(self, buffer=False):
         # get the root <svg> element as an ElementTree element, with or without buffer
         height_px, width_px = (self._trim_decimals(str(i)) for i in self.get_dimensions_px(buffer))
         offset_px = self._trim_decimals(str(-self.buffer_px)) if buffer else '0'
-        root = ET.Element('svg', {
-            'width': width_px,
-            'height': height_px,
-            'xmlns:svg': 'http://www.w3.org/2000/svg',
-            'xmlns': 'http://www.w3.org/2000/svg',
-            'xmlns:xlink': 'http://www.w3.org/1999/xlink',
-        })
-        if buffer:
-            root.attrib['viewBox'] = ' '.join((offset_px, offset_px, width_px, height_px))
-        if len(self.defs):
-            root.append(self.defs)
-        if len(self.g):
-            root.append(self.g)
-        return root
 
-    def get_xml(self, buffer=False):
-        # get xml of the svg as a string
-        return ET.tostring(self.get_element(buffer=buffer)).decode()
+        attribs = ' viewBox="'+' '.join((offset_px, offset_px, width_px, height_px))+'"' if buffer else ''
+
+        result = ('<svg xmlns:svg="http://www.w3.org/2000/svg" xmlns="http://www.w3.org/2000/svg"'
+                  '     xmlns:xlink="http://www.w3.org/1999/xlink" width="'+width_px+'" height="'+height_px+'"' +
+                  attribs+'>')
+        if self.defs:
+            result += '<defs>'+self.defs+'</defs>'
+        if self.g:
+            result += '<g>'+self.g+'</g>'
+        result += '</svg>'
+        return result
 
     def get_png(self, f=None):
         # render the image to png. returns bytes if f is None, otherwise it calls f.write()
@@ -131,16 +124,11 @@ class SVGImage:
                 return png
             f.write(png)
 
-    def new_defid(self):
-        defid = 's'+str(self.def_i)
-        self.def_i += 1
-        return defid
-
     def _trim_decimals(self, data):
         # remove trailing zeros from a decimal
         return re.sub(r'([0-9]+)((\.[1-9])[0-9]+|\.[0-9]+)?', r'\1\3', data)
 
-    def _create_geometry(self, geometry):
+    def _create_geometry(self, geometry, attribs=''):
         # convert a shapely geometry into an svg xml element
 
         # scale and move the object into position, this is equivalent to:
@@ -152,21 +140,16 @@ class SVGImage:
                                                -(self.left)*self.scale, (self.top)*self.scale))
         element = self._trim_decimals(re.sub(r' (opacity|fill|fill-rule|stroke|stroke-width)="[^"]*"', '',
                                              geometry.svg(0, '#FFFFFF')))
-        if not element.startswith('<g '):
-            element = '<g>'+element+'</g>'
-        element = ET.fromstring(element)
+        if not element.startswith('<g'):
+            element = '<g'+attribs+'>'+element+'</g>'
+        elif attribs:
+            element = element[:2]+attribs+element[2:]
         return element
 
-    def register_geometry(self, geometry, defid=None, as_clip_path=False, comment=None):
-        if defid is None:
-            defid = self.new_defid()
-
-        element = self._create_geometry(geometry)
-
-        if as_clip_path:
-            element.tag = 'clipPath'
-        element.set('id', defid)
-        self.defs.append(element)
+    def register_clip_path(self, geometry):
+        defid = str(self.clip_path_i)
+        self.defs += '<clipPath'+self._create_geometry(geometry, ' id="clip'+defid+'"')[2:-2]+'clipPath>'
+        self.clip_path_i += 1
         return defid
 
     def add_shadow(self, geometry, elevation, clip_path=None):
@@ -183,25 +166,16 @@ class SVGImage:
 
         blur_id = 'blur'+str(int(elevation*100))
         if elevation not in self.blurs:
-            blur_filter = ET.Element('filter', {'id': blur_id,
-                                                'width': '200%',
-                                                'height': '200%',
-                                                'x': '-50%',
-                                                'y': '-50%'})
-            blur_filter.append(ET.Element('feGaussianBlur',
-                                          {'stdDeviation': str(blur_radius * self.scale)}))
-
-            self.defs.append(blur_filter)
+            self.defs += ('<filter id="'+blur_id+'" width="200%" height="200%" x="-50%" y="-50%">'
+                          '<feGaussianBlur stdDeviation="'+str(blur_radius * self.scale)+'"/>'
+                          '</filter>')
             self.blurs.add(elevation)
 
-        shadow = self._create_geometry(shadow_geom)
-        shadow.set('filter', 'url(#'+blur_id+')')
-        shadow.set('fill', '#000')
-        shadow.set('fill-opacity', '0.2')
+        attribs = ' filter="url(#'+blur_id+')" fill="#000" fill-opacity="0.2"'
         if clip_path:
-            shadow_clip = self.register_geometry(clip_path, as_clip_path=True)
-            shadow.set('clip-path', 'url(#'+shadow_clip+')')
-        self.g.append(shadow)
+            attribs += ' clip-path="url(#'+self.register_clip_path(clip_path)+'"'
+        shadow = self._create_geometry(shadow_geom, attribs)
+        self.g += shadow
 
     def clip_altitudes(self, new_geometry, new_altitude=None):
         # registrer new geometry with specific (or no) altitude
@@ -226,6 +200,27 @@ class SVGImage:
         # draw a shapely geometry with a given style
         # if altitude is set, the geometry will get a calculated shadow relative to the other geometries
         # if elevation is set, the geometry will get a shadow with exactly this elevation
+
+        attribs = ' fill="'+(fill_color or 'none')+'"'
+        if fill_opacity:
+            attribs += ' fill-opacity="'+str(fill_opacity)[:4]+'"'
+        if stroke_px:
+            attribs += ' stroke-width="'+self._trim_decimals(str(stroke_px))+'"'
+        elif stroke_width:
+            attribs += ' stroke-width="'+self._trim_decimals(str(stroke_width * self.scale))+'"'
+        if stroke_color:
+            attribs += ' stroke="'+stroke_color+'"'
+        if stroke_opacity:
+            attribs += ' stroke-opacity="'+str(stroke_opacity)[:4]+'"'
+        if stroke_linejoin:
+            attribs += ' stroke-linejoin="'+stroke_linejoin+'"'
+        if opacity:
+            attribs += ' opacity="'+str(opacity)[:4]+'"'
+        if filter:
+            attribs += ' filter="url(#'+filter+')"'
+        if clip_path:
+            attribs += ' clip-path="url(#'+clip_path+')"'
+
         if geometry is not None:
             if not geometry:
                 return
@@ -241,29 +236,10 @@ class SVGImage:
 
                 self.clip_altitudes(geometry, altitude)
 
-            element = self._create_geometry(geometry)
+            element = self._create_geometry(geometry, attribs)
 
         else:
-            element = ET.Element('rect', {'width': '100%', 'height': '100%'})
-        element.set('fill', fill_color or 'none')
-        if fill_opacity:
-            element.set('fill-opacity', str(fill_opacity)[:4])
-        if stroke_px:
-            element.set('stroke-width', self._trim_decimals(str(stroke_px)))
-        elif stroke_width:
-            element.set('stroke-width', self._trim_decimals(str(stroke_width * self.scale)))
-        if stroke_color:
-            element.set('stroke', stroke_color)
-        if stroke_opacity:
-            element.set('stroke-opacity', str(stroke_opacity)[:4])
-        if stroke_linejoin:
-            element.set('stroke-linejoin', stroke_linejoin)
-        if opacity:
-            element.set('opacity', str(opacity)[:4])
-        if filter:
-            element.set('filter', 'url(#'+filter+')')
-        if clip_path:
-            element.set('clip-path', 'url(#'+clip_path+')')
+            element = '<rect width="100%" height="100%"'+attribs+'>'
 
-        self.g.append(element)
+        self.g += element
         return element
