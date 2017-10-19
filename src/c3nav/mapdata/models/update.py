@@ -46,5 +46,11 @@ class MapUpdate(models.Model):
     def save(self, **kwargs):
         if self.pk is not None:
             raise TypeError
+
+        from c3nav.mapdata.models import AltitudeArea
+        from c3nav.mapdata.render.base import LevelGeometries
+        AltitudeArea.recalculate()
+        LevelGeometries.rebuild()
+
         super().save(**kwargs)
         cache.set('mapdata:last_update', (self.pk, self.datetime), 900)
