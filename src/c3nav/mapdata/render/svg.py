@@ -100,6 +100,6 @@ class SVGRenderer:
             svg.add_geometry(crop_to.intersection(geoms.walls.union(add_walls)),
                              fill_color='#aaaaaa', stroke_px=0.5, stroke_color='#aaaaaa', elevation=default_height)
 
-            svg.add_geometry(crop_to.intersection(geoms.doors), fill_color='#ffffff', elevation=0)
+            svg.add_geometry(crop_to.intersection(geoms.doors.difference(add_walls)), fill_color='#ffffff', elevation=0)
 
         return svg

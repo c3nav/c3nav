@@ -49,9 +49,9 @@ class LevelGeometries:
 
             spaces_geom = unary_union([s.geometry for s in level.spaces.all()])
             doors_geom = unary_union([d.geometry for d in level.doors.all()])
-            walkable_geom = unary_union([s.walkable_geom for s in level.spaces.all()])
-            geoms.doors = doors_geom.difference(walkable_geom)
-            walkable_geom = walkable_geom.union(geoms.doors)
+            walkable_spaces_geom = unary_union([s.walkable_geom for s in level.spaces.all()])
+            geoms.doors = doors_geom.difference(walkable_spaces_geom)
+            walkable_geom = walkable_spaces_geom.union(geoms.doors)
             if level.on_top_of_id is None:
                 geoms.holes = spaces_geom.difference(walkable_geom)
 
@@ -70,7 +70,9 @@ class LevelGeometries:
                 access_restriction = space.access_restriction_id
                 if access_restriction is not None:
                     access_restriction_affected.setdefault(access_restriction, []).append(space.geometry)
-                    buffered = space.geometry.buffer(0.01)
+                    buffered = space.geometry.buffer(0.01).union(unary_union(
+                        tuple(door.geometry for door in level.doors.all() if door.geometry.intersects(space.geometry))
+                    ).difference(walkable_spaces_geom))
                     if buffered.intersects(buildings_geom):
                         restricted_spaces_indoors.setdefault(access_restriction, []).append(
                             buffered.intersection(buildings_geom)
