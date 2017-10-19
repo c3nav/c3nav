@@ -41,7 +41,6 @@ class LevelGeometries:
             walkable_geom = unary_union([s.walkable_geom for s in level.spaces.all()]).union(geoms.doors)
             if level.on_top_of_id is None:
                 geoms.holes = spaces_geom.difference(walkable_geom)
-                print(level.pk, geoms.holes.area)
 
             for altitudearea in level.altitudeareas.all():
                 geoms.altitudeareas.append((altitudearea.geometry.intersection(walkable_geom), altitudearea.altitude))
