@@ -17,6 +17,11 @@ from c3nav.mapdata.utils.scad import add_indent, polygon_scad
 from c3nav.mapdata.utils.svg import SVGImage
 
 
+class LevelManager(models.Manager):
+    def get_queryset(self, *args, **kwargs):
+        return super().get_queryset(*args, **kwargs).defer('geoms_cache')
+
+
 class Level(SpecificLocation, models.Model):
     """
     A map level
@@ -28,11 +33,14 @@ class Level(SpecificLocation, models.Model):
 
     geoms_cache = models.BinaryField()
 
+    objects = LevelManager()
+
     class Meta:
         verbose_name = _('Level')
         verbose_name_plural = _('Levels')
         default_related_name = 'levels'
         ordering = ['base_altitude']
+        base_manager_name = 'objects'
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
