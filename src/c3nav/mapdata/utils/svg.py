@@ -2,11 +2,13 @@ import io
 import math
 import re
 import subprocess
+from itertools import chain
 
 from django.conf import settings
 from django.core.checks import Error, register
 from PIL import Image
 from shapely.affinity import affine_transform, translate
+from shapely.geometry import LineString, Polygon
 from shapely.ops import unary_union
 
 # import gobject-inspect, cairo and rsvg if the native rsvg SVG_RENDERER should be used
@@ -127,27 +129,42 @@ class SVGImage:
         # remove trailing zeros from a decimal – yes this is slow, but it greatly speeds up cairo rendering
         return re.sub(r'([0-9]+)((\.[1-9])[0-9]+|\.[0-9]+)?', r'\1\3', data)
 
-    def _create_geometry(self, geometry, attribs=''):
-        # convert a shapely geometry into an svg xml element
+    def _trim_lineto(self, data):
+        return re.sub(r'L (-?([0-9]+)(.[0-9]+)?,(-?[0-9]+)(.[0-9]+)?) L', r'L \1 ', data)
 
-        # scale and move the object into position, this is equivalent to:
-        # geometry = translate(geometry, xoff=0-self.left, yoff=0-self.bottom)
-        # geometry = scale(geometry, xfact=1, yfact=-1, origin=(self.width / 2, self.height / 2))
-        # geometry = scale(geometry, xfact=self.scale, yfact=self.scale, origin=(0, 0))
-        geometry = affine_transform(geometry, (self.scale, 0.0,
-                                               0.0, -self.scale,
-                                               -(self.left)*self.scale, (self.top)*self.scale))
-        element = self._trim_decimals(re.sub(r' (opacity|fill|fill-rule|stroke|stroke-width)="[^"]*"', '',
-                                             geometry.svg(0, '#FFFFFF')))
-        if not element.startswith('<g'):
-            element = '<g'+attribs+'>'+element+'</g>'
-        elif attribs:
-            element = element[:2]+attribs+element[2:]
-        return element
+    def _geometry_to_svg(self, geom):
+        if isinstance(geom, Polygon):
+            return ('<path d="' +
+                    ' '.join(('M %.1f %.1f L %s z' % (coords[0][0], coords[0][1],
+                                                      ' '.join(('%.1f %.1f' % (c[0], c[1])) for c in coords[1:])))
+                             for coords in chain((geom.exterior.coords,), (ring.coords for ring in geom.interiors)))
+                    + '"/>')
+        if isinstance(geom, LineString):
+            return ('<path d="' +
+                    ' '.join('M %.1f %.1f L %s z' % (geom.coords[0][0], geom.coords[0][1],
+                                                     ' '.join(('%.1f %.1f' % (c[0], c[1])) for c in geom.coords[1:])))
+                    + '"/>')
+        try:
+            geoms = geom.geoms
+        except AttributeError:
+            return ''
+        return ''.join(self._geometry_to_svg(g) for g in geoms)
+
+    def _create_geometry(self, geometry, attribs='', tag='g'):
+        # convert a shapely geometry into an svg xml element
+        return '<'+tag+attribs+'>'+self._geometry_to_svg(
+            # scale and move the object into position, this is equivalent to:
+            # geometry = translate(geometry, xoff=0-self.left, yoff=0-self.bottom)
+            # geometry = scale(geometry, xfact=1, yfact=-1, origin=(self.width / 2, self.height / 2))
+            # geometry = scale(geometry, xfact=self.scale, yfact=self.scale, origin=(0, 0))
+            affine_transform(geometry, (self.scale, 0.0,
+                                        0.0, -self.scale,
+                                        -(self.left) * self.scale, (self.top) * self.scale))
+        )+'</'+tag+'>'
 
     def register_clip_path(self, geometry):
         defid = 'clip'+str(self.clip_path_i)
-        self.defs += '<clipPath'+self._create_geometry(geometry, ' id="'+defid+'"')[2:-2]+'clipPath>'
+        self.defs += self._create_geometry(geometry, ' id="'+defid+'"', tag='clipPath')
         self.clip_path_i += 1
         return defid
 
