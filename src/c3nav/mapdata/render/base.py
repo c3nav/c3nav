@@ -8,6 +8,13 @@ from shapely.ops import unary_union
 from c3nav.mapdata.models import Level, MapUpdate
 
 
+class AltitudeAreaGeometries:
+    def __init__(self, altitudearea, colors):
+        self.geometry = altitudearea.geometry
+        self.altitude = altitudearea.altitude
+        self.colors = colors
+
+
 class LevelGeometries:
     def __init__(self):
         self.altitudeareas = []
@@ -24,7 +31,7 @@ class LevelGeometries:
     @staticmethod
     def rebuild():
         levels = Level.objects.prefetch_related('altitudeareas', 'buildings', 'doors', 'spaces',
-                                                'spaces__holes', 'spaces__columns')
+                                                'spaces__holes', 'spaces__columns', 'spaces__locationgroups')
         for level in levels:
             geoms = LevelGeometries()
             buildings_geom = unary_union([b.geometry for b in level.buildings.all()])
@@ -44,8 +51,26 @@ class LevelGeometries:
             if level.on_top_of_id is None:
                 geoms.holes = spaces_geom.difference(walkable_geom)
 
+            colors = {}
+            for space in level.spaces.all():
+                access_restriction = space.access_restriction_id
+                colors.setdefault(space.get_color(), {}).setdefault(access_restriction, []).append(space.geometry)
+                for area in space.areas.all():
+                    access_restriction = area.access_restriction_id or space.access_restriction_id
+                    colors.setdefault(area.get_color(), {}).setdefault(access_restriction, []).append(area.geometry)
+            colors.pop(None, None)
+
+            for color, color_group in colors.items():
+                for access_restriction, areas in tuple(color_group.items()):
+                    color_group[access_restriction] = unary_union(areas)
+
             for altitudearea in level.altitudeareas.all():
-                geoms.altitudeareas.append((altitudearea.geometry.intersection(walkable_geom), altitudearea.altitude))
+                altitudearea_colors = {color: {access_restriction: area.intersection(altitudearea.geometry)
+                                               for access_restriction, area in areas.items()
+                                               if area.intersects(altitudearea.geometry)}
+                                       for color, areas in colors.items()}
+                altitudearea_colors = {color: areas for color, areas in altitudearea_colors.items() if areas}
+                geoms.altitudeareas.append(AltitudeAreaGeometries(altitudearea, altitudearea_colors))
 
             geoms.walls = buildings_geom.difference(spaces_geom).difference(doors_geom)
             level.geoms_cache = pickle.dumps(geoms)

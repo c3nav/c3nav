@@ -1,4 +1,5 @@
 from shapely.geometry import box
+from shapely.ops import unary_union
 
 from c3nav.mapdata.render.base import get_render_level_data
 from c3nav.mapdata.utils.svg import SVGImage
@@ -31,8 +32,15 @@ def render_svg(level, miny, minx, maxy, maxx, scale=1):
         if geoms.crop_to is not None:
             crop_to = crop_to.intersection(geoms.crop_to)
 
-        for altitudearea_geom, altitude in geoms.altitudeareas:
-            svg.add_geometry(crop_to.intersection(altitudearea_geom), fill_color='#eeeeee', altitude=altitude)
+        for altitudearea in geoms.altitudeareas:
+            svg.add_geometry(crop_to.intersection(altitudearea.geometry),
+                             fill_color='#eeeeee', altitude=altitudearea.altitude)
+
+            for color, areas in altitudearea.colors.items():
+                # todo access_restriction
+                areas = [area for area in areas.values()]
+                if areas:
+                    svg.add_geometry(crop_to.intersection(unary_union(areas)), fill_color=color, elevation=0)
 
         svg.add_geometry(crop_to.intersection(geoms.walls),
                          fill_color='#aaaaaa', stroke_px=0.5, stroke_color='#aaaaaa', elevation=default_height)
