@@ -172,7 +172,7 @@ class SVGImage:
 
         attribs = ' filter="url(#'+blur_id+')" fill="#000" fill-opacity="0.2"'
         if clip_path:
-            attribs += ' clip-path="url(#'+self.register_clip_path(clip_path)+'"'
+            attribs += ' clip-path="url(#'+self.register_clip_path(clip_path)+')"'
         shadow = self._create_geometry(shadow_geom, attribs)
         self.g += shadow
 
