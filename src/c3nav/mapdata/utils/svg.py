@@ -11,6 +11,7 @@ from PIL import Image
 from shapely.affinity import scale, translate
 from shapely.ops import unary_union
 
+# import gobject-inspect, cairo and rsvg if the native rsvg SVG_RENDERER should be used
 if settings.SVG_RENDERER == 'rsvg':
     import pgi
     import cairocffi
@@ -33,25 +34,38 @@ def check_svg_renderer(app_configs, **kwargs):
 
 
 class SVGImage:
+    # draw an svg image. supports pseudo-3D shadow-rendering
     def __init__(self, bounds, scale: float=1, buffer=0):
+        # get image dimensions.
+        # note that these values describe the „viewport“ of the image, not its dimensions in pixels.
         (self.bottom, self.left), (self.top, self.right) = bounds
         self.width = self.right-self.left
         self.height = self.top-self.bottom
         self.scale = scale
+
+        # how many pixels around the image should be added and later cropped (otherwise rsvg does not blur correctly)
         self.buffer_px = int(math.ceil(buffer*self.scale))
+
+        # create base elements and counter for dynamic definition ids
         self.g = ET.Element('g', {})
         self.defs = ET.Element('defs')
         self.def_i = 0
+
+        # keep track which area of the image has which altitude currently
         self.altitudes = {}
         self.last_altitude = None
+
+        # keep track of created blur filters to avoid duplicates
         self.blurs = set()
 
     def get_dimensions_px(self, buffer):
+        # get dimensions of the image in pixels, with or without buffer
         width_px = self.width * self.scale + (self.buffer_px * 2 if buffer else 0)
         height_px = self.height * self.scale + (self.buffer_px * 2 if buffer else 0)
         return height_px, width_px
 
     def get_element(self, buffer=False):
+        # get the root <svg> element as an ElementTree element, with or without buffer
         height_px, width_px = (self._trim_decimals(str(i)) for i in self.get_dimensions_px(buffer))
         offset_px = self._trim_decimals(str(-self.buffer_px)) if buffer else '0'
         root = ET.Element('svg', {
@@ -70,9 +84,11 @@ class SVGImage:
         return root
 
     def get_xml(self, buffer=False):
+        # get xml of the svg as a string
         return ET.tostring(self.get_element(buffer=buffer)).decode()
 
     def get_png(self, f=None):
+        # render the image to png. returns bytes if f is None, otherwise it calls f.write()
         if settings.SVG_RENDERER == 'rsvg':
             # create buffered surfaces
             buffered_surface = cairocffi.SVGSurface(None, *(int(i) for i in self.get_dimensions_px(buffer=True)))
@@ -122,9 +138,11 @@ class SVGImage:
         return defid
 
     def _trim_decimals(self, data):
+        # remove trailing zeros from a decimal
         return re.sub(r'([0-9]+)\.0', r'\1', re.sub(r'([0-9]+\.[0-9])[0-9]+', r'\1', data))
 
     def _create_geometry(self, geometry):
+        # convert a shapely geometry into an svg xml element
         geometry = translate(geometry, xoff=0-self.left, yoff=0-self.bottom)
         geometry = scale(geometry, xfact=1, yfact=-1, origin=(self.width / 2, self.height / 2))
         geometry = scale(geometry, xfact=self.scale, yfact=self.scale, origin=(0, 0))
@@ -155,6 +173,7 @@ class SVGImage:
         return defid
 
     def add_shadow(self, geometry, elevation, clip_path=None):
+        # add a shadow for the given geometry with the given elevation and, optionally, a clip path
         elevation = min(elevation, 2)
         blur_radius = elevation / 3 * 0.25
 
@@ -187,16 +206,9 @@ class SVGImage:
             shadow.set('clip-path', 'url(#'+shadow_clip+')')
         self.g.append(shadow)
 
-    def add_clip_path(self, *geometries, inverted=False, subtract=False, defid=None):
-        if defid is None:
-            defid = self.new_defid()
-
-        clippath = ET.Element('clipPath', {'id': defid})
-        clippath.append(ET.Element('use', {'xlink:href': '#' + geometries[0]}))
-        self.defs.append(clippath)
-        return defid
-
     def clip_altitudes(self, new_geometry, new_altitude=None):
+        # registrer new geometry with specific (or no) altitude
+        # a geometry with no altitude will reset the altitude information of its area as if nothing was ever there
         for altitude, geometry in tuple(self.altitudes.items()):
             if altitude != new_altitude:
                 self.altitudes[altitude] = geometry.difference(new_geometry)
@@ -214,6 +226,9 @@ class SVGImage:
     def add_geometry(self, geometry=None, fill_color=None, fill_opacity=None, opacity=None, filter=None,
                      stroke_px=0.0, stroke_width=0.0, stroke_color=None, stroke_opacity=None, stroke_linejoin=None,
                      clip_path=None, altitude=None, elevation=None):
+        # draw a shapely geometry with a given style
+        # if altitude is set, the geometry will get a calculated shadow relative to the other geometries
+        # if elevation is set, the geometry will get a shadow with exactly this elevation
         if geometry is not None:
             if not geometry:
                 return
