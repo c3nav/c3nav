@@ -146,8 +146,8 @@ class SVGImage:
         return element
 
     def register_clip_path(self, geometry):
-        defid = str(self.clip_path_i)
-        self.defs += '<clipPath'+self._create_geometry(geometry, ' id="clip'+defid+'"')[2:-2]+'clipPath>'
+        defid = 'clip'+str(self.clip_path_i)
+        self.defs += '<clipPath'+self._create_geometry(geometry, ' id="'+defid+'"')[2:-2]+'clipPath>'
         self.clip_path_i += 1
         return defid
 
