@@ -8,7 +8,7 @@ from itertools import chain
 from django.conf import settings
 from django.core.checks import Error, register
 from PIL import Image
-from shapely.affinity import scale, translate
+from shapely.affinity import affine_transform, translate
 from shapely.ops import unary_union
 
 # import gobject-inspect, cairo and rsvg if the native rsvg SVG_RENDERER should be used
@@ -143,9 +143,14 @@ class SVGImage:
 
     def _create_geometry(self, geometry):
         # convert a shapely geometry into an svg xml element
-        geometry = translate(geometry, xoff=0-self.left, yoff=0-self.bottom)
-        geometry = scale(geometry, xfact=1, yfact=-1, origin=(self.width / 2, self.height / 2))
-        geometry = scale(geometry, xfact=self.scale, yfact=self.scale, origin=(0, 0))
+
+        # scale and move the object into position, this is equivalent to:
+        # geometry = translate(geometry, xoff=0-self.left, yoff=0-self.bottom)
+        # geometry = scale(geometry, xfact=1, yfact=-1, origin=(self.width / 2, self.height / 2))
+        # geometry = scale(geometry, xfact=self.scale, yfact=self.scale, origin=(0, 0))
+        geometry = affine_transform(geometry, (self.scale, 0.0,
+                                               0.0, -self.scale,
+                                               -(self.left)*self.scale, (self.top)*self.scale))
         element = ET.fromstring(self._trim_decimals(geometry.svg(0, '#FFFFFF')))
         if element.tag != 'g':
             new_element = ET.Element('g')
