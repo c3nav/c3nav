@@ -69,9 +69,8 @@ class SVGImage:
 
         attribs = ' viewBox="'+' '.join((offset_px, offset_px, width_px, height_px))+'"' if buffer else ''
 
-        result = ('<svg xmlns:svg="http://www.w3.org/2000/svg" xmlns="http://www.w3.org/2000/svg"'
-                  ' xmlns:xlink="http://www.w3.org/1999/xlink" width="'+width_px+'" height="'+height_px+'"' +
-                  attribs+'>')
+        result = ('<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" '
+                  'width="'+width_px+'" height="'+height_px+'"'+attribs+'>')
         if self.defs:
             result += '<defs>'+self.defs+'</defs>'
         if self.g:
