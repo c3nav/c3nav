@@ -1,10 +1,11 @@
 import pickle
 
+from django.core.cache import cache
 from django.db import transaction
 from django.db.models import Q
 from shapely.ops import unary_union
 
-from c3nav.mapdata.models import Level
+from c3nav.mapdata.models import Level, MapUpdate
 
 
 class LevelGeometries:
@@ -45,11 +46,19 @@ class LevelGeometries:
 
 
 def get_render_level_data(level):
+    cache_key = 'mapdata:render_level_data:%s:%s' % (str(level.pk if isinstance(level, Level) else level),
+                                                     MapUpdate.cache_key())
+    result = cache.get(cache_key, None)
+    if result is not None:
+        return result
+
     if isinstance(level, Level):
         level_pk, level_base_altitude = level.pk, level.base_altitude
     else:
         level_pk, level_base_altitude = Level.objects.filter(pk=level).values_list('pk', 'base_altitude')[0]
 
     levels = Level.objects.filter(Q(on_top_of=level_pk) | Q(base_altitude__lte=level_base_altitude))
-    levels = levels.values_list('geoms_cache', 'default_height')
+    result = levels.values_list('geoms_cache', 'default_height')
+    cache.set(cache_key, result, 900)
+
     return levels
