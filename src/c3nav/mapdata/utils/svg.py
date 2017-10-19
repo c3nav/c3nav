@@ -125,10 +125,8 @@ class SVGImage:
             f.write(png)
 
     def _trim_decimals(self, data):
-        # remove trailing zeros from a decimal
-        # deactivated for now, because it costs too much time
-        return data
-        # return re.sub(r'([0-9]+)((\.[1-9])[0-9]+|\.[0-9]+)?', r'\1\3', data)
+        # remove trailing zeros from a decimal – yes this is slow, but it greatly speeds up cairo rendering
+        return re.sub(r'([0-9]+)((\.[1-9])[0-9]+|\.[0-9]+)?', r'\1\3', data)
 
     def _create_geometry(self, geometry, attribs=''):
         # convert a shapely geometry into an svg xml element
