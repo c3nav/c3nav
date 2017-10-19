@@ -141,7 +141,7 @@ class SVGImage:
                     + '"/>')
         if isinstance(geom, LineString):
             return ('<path d="' +
-                    ' '.join('M %.1f %.1f L %s z' % (geom.coords[0][0], geom.coords[0][1],
+                    ' '.join('M %.1f %.1f L %s' % (geom.coords[0][0], geom.coords[0][1],
                                                      ' '.join(('%.1f %.1f' % (c[0], c[1])) for c in geom.coords[1:])))
                     + '"/>')
         try:
