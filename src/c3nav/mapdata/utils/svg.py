@@ -63,8 +63,10 @@ class SVGImage:
         })
         if buffer:
             root.attrib['viewBox'] = ' '.join((offset_px, offset_px, width_px, height_px))
-        root.append(self.defs)
-        root.append(self.g)
+        if len(self.defs):
+            root.append(self.defs)
+        if len(self.g):
+            root.append(self.g)
         return root
 
     def get_xml(self, buffer=False):
