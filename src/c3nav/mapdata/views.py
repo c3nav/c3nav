@@ -29,8 +29,6 @@ def tile(request, level, zoom, x, y, format):
     except Level.DoesNotExist:
         raise Http404
 
-    print(renderer.access_cache_key)
-
     svg = renderer.render()
 
     if format == 'svg':
