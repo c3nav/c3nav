@@ -58,8 +58,8 @@ def get_render_level_data(level):
         level_pk, level_base_altitude = Level.objects.filter(pk=level).values_list('pk', 'base_altitude')[0]
 
     levels = Level.objects.filter(Q(on_top_of=level_pk) | Q(base_altitude__lte=level_base_altitude))
-    result = ((pickle.loads(geoms_cache), default_height)
-              for geoms_cache, default_height in levels.values_list('geoms_cache', 'default_height'))
+    result = tuple((pickle.loads(geoms_cache), default_height)
+                   for geoms_cache, default_height in levels.values_list('geoms_cache', 'default_height'))
     cache.set(cache_key, result, 900)
 
     return levels
