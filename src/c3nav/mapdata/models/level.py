@@ -26,6 +26,8 @@ class Level(SpecificLocation, models.Model):
     on_top_of = models.ForeignKey('mapdata.Level', null=True, on_delete=models.CASCADE,
                                   related_name='levels_on_top', verbose_name=_('on top of'))
 
+    geoms_cache = models.BinaryField()
+
     class Meta:
         verbose_name = _('Level')
         verbose_name_plural = _('Levels')
