@@ -37,15 +37,17 @@ class LevelGeometries:
                 space.walkable_geom = space.geometry.difference(space.holes_geom)
 
             spaces_geom = unary_union([s.geometry for s in level.spaces.all()])
-            geoms.doors = unary_union([d.geometry for d in level.doors.all()])
-            walkable_geom = unary_union([s.walkable_geom for s in level.spaces.all()]).union(geoms.doors)
+            doors_geom = unary_union([d.geometry for d in level.doors.all()])
+            walkable_geom = unary_union([s.walkable_geom for s in level.spaces.all()])
+            geoms.doors = doors_geom.difference(walkable_geom)
+            walkable_geom = walkable_geom.union(geoms.doors)
             if level.on_top_of_id is None:
                 geoms.holes = spaces_geom.difference(walkable_geom)
 
             for altitudearea in level.altitudeareas.all():
                 geoms.altitudeareas.append((altitudearea.geometry.intersection(walkable_geom), altitudearea.altitude))
 
-            geoms.walls = buildings_geom.difference(spaces_geom).difference(geoms.doors)
+            geoms.walls = buildings_geom.difference(spaces_geom).difference(doors_geom)
             level.geoms_cache = pickle.dumps(geoms)
             level.save()
 
