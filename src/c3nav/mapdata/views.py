@@ -1,5 +1,4 @@
 from django.http import Http404, HttpResponse
-from django.shortcuts import get_object_or_404
 from shapely.geometry import box
 
 from c3nav.mapdata.models import Level, Source
@@ -23,9 +22,10 @@ def tile(request, level, zoom, x, y, format):
     if not box(bounds[0][1], bounds[0][0], bounds[1][1], bounds[1][0]).intersects(box(minx, miny, maxx, maxy)):
         raise Http404
 
-    level = get_object_or_404(Level, pk=level)
-
-    svg = render_svg(level, miny, minx, maxy, maxx, scale=2**zoom)
+    try:
+        svg = render_svg(level, miny, minx, maxy, maxx, scale=2**zoom)
+    except Level.DoesNotExist:
+        raise Http404
 
     if format == 'svg':
         response = HttpResponse(svg.get_xml(), 'image/svg+xml')

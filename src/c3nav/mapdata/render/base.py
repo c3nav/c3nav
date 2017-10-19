@@ -45,6 +45,11 @@ class LevelGeometries:
 
 
 def get_render_level_data(level):
-    levels = Level.objects.filter(Q(on_top_of=level.pk) | Q(base_altitude__lte=level.base_altitude))
+    if isinstance(level, Level):
+        level_pk, level_base_altitude = level.pk, level.base_altitude
+    else:
+        level_pk, level_base_altitude = Level.objects.filter(pk=level).values_list('pk', 'base_altitude')[0]
+
+    levels = Level.objects.filter(Q(on_top_of=level_pk) | Q(base_altitude__lte=level_base_altitude))
     levels = levels.values_list('geoms_cache', 'default_height')
     return levels
