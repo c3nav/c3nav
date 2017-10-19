@@ -16,7 +16,6 @@ def render_svg(level, miny, minx, maxy, maxx, scale=1):
     primary_level_count = 0
     for geoms, default_height in reversed(render_level_data):
         if geoms.holes is not None:
-            print(geoms.holes.area)
             primary_level_count += 1
 
         geoms.crop_to = crop_to if primary_level_count > 1 else None
