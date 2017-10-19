@@ -70,8 +70,15 @@ class SVGRenderer:
             if geoms.crop_to is not None:
                 crop_to = crop_to.intersection(geoms.crop_to)
 
+            add_walls = unary_union(tuple(area for access_restriction, area in geoms.restricted_spaces_indoors.items()
+                                          if access_restriction not in unlocked_access_restrictions))
+            crop_areas = unary_union(
+                tuple(area for access_restriction, area in geoms.restricted_spaces_outdoors.items()
+                      if access_restriction not in unlocked_access_restrictions)
+            ).union(add_walls)
+
             for altitudearea in geoms.altitudeareas:
-                svg.add_geometry(crop_to.intersection(altitudearea.geometry),
+                svg.add_geometry(crop_to.intersection(altitudearea.geometry.difference(crop_areas)),
                                  fill_color='#eeeeee', altitude=altitudearea.altitude)
 
                 for color, areas in altitudearea.colors.items():
@@ -80,7 +87,7 @@ class SVGRenderer:
                     if areas:
                         svg.add_geometry(crop_to.intersection(unary_union(areas)), fill_color=color, elevation=0)
 
-            svg.add_geometry(crop_to.intersection(geoms.walls),
+            svg.add_geometry(crop_to.intersection(geoms.walls.union(add_walls)),
                              fill_color='#aaaaaa', stroke_px=0.5, stroke_color='#aaaaaa', elevation=default_height)
 
             svg.add_geometry(crop_to.intersection(geoms.doors), fill_color='#ffffff', elevation=0)
