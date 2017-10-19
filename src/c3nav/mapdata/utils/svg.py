@@ -139,7 +139,7 @@ class SVGImage:
 
     def _trim_decimals(self, data):
         # remove trailing zeros from a decimal
-        return re.sub(r'([0-9]+)\.0', r'\1', re.sub(r'([0-9]+\.[0-9])[0-9]+', r'\1', data))
+        return re.sub(r'([0-9]+)((\.[1-9])[0-9]+|\.[0-9]+)?', r'\1\3', data)
 
     def _create_geometry(self, geometry):
         # convert a shapely geometry into an svg xml element
