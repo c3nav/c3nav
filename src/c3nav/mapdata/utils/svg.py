@@ -201,6 +201,17 @@ class SVGImage:
         # if altitude is set, the geometry will get a calculated shadow relative to the other geometries
         # if elevation is set, the geometry will get a shadow with exactly this elevation
 
+        # if fill_color is set, filter out geometries that cannot be filled
+        if fill_color is not None:
+            try:
+                geometry.geoms
+            except AttributeError:
+                pass
+            else:
+                geometry = type(geometry)(tuple(geom for geom in geometry.geoms if hasattr(geom, 'exterior')))
+        if geometry.is_empty:
+            pass
+
         attribs = ' fill="'+(fill_color or 'none')+'"'
         if fill_opacity:
             attribs += ' fill-opacity="'+str(fill_opacity)[:4]+'"'
