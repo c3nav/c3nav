@@ -3,7 +3,12 @@ from itertools import chain
 import matplotlib.pyplot as plt
 from matplotlib.patches import PathPatch
 from matplotlib.path import Path
+from shapely import speedups
 from shapely.geometry import LineString, Polygon
+
+
+if speedups.available:
+    speedups.enable()
 
 
 def clean_geometry(geometry):
