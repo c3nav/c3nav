@@ -152,27 +152,38 @@ class SVGImage:
         self.defs.append(element)
         return defid
 
-    def get_shadow(self, geometry, elevation):
+    def add_shadow(self, geometry, elevation, clip_path=None):
         elevation = min(elevation, 2)
+        blur_radius = elevation / 3 * 0.25
+
+        shadow_geom = translate(geometry.buffer(blur_radius),
+                                xoff=(elevation / 3 * 0.12), yoff=-(elevation / 3 * 0.12))
+
+        if clip_path is not None:
+            if shadow_geom.distance(clip_path) >= blur_radius:
+                return
+
         blur_id = 'blur'+str(int(elevation*100))
         if elevation not in self.blurs:
             blur_filter = ET.Element('filter', {'id': blur_id,
-                                                'width': '200%',
-                                                'height': '200%',
-                                                'x': '-50%',
-                                                'y': '-50%'})
+                                                'width': '100%',
+                                                'height': '100%',
+                                                'x': '0%',
+                                                'y': '0%'})
             blur_filter.append(ET.Element('feGaussianBlur',
-                                          {'stdDeviation': str(elevation / 3 * 0.25 * self.scale)}))
+                                          {'stdDeviation': str(blur_radius * self.scale)}))
 
             self.defs.append(blur_filter)
             self.blurs.add(elevation)
 
-        shadow = self._create_geometry(translate(geometry.buffer(elevation / 3 * 0.25),
-                                                 xoff=(elevation / 3 * 0.12), yoff=-(elevation / 3 * 0.12)))
+        shadow = self._create_geometry(shadow_geom)
         shadow.set('filter', 'url(#'+blur_id+')')
         shadow.set('fill', 'black')
         shadow.set('fill-opacity', '0.20')
-        return shadow
+        if clip_path:
+            shadow_clip = self.register_geometry(clip_path, as_clip_path=True)
+            shadow.set('clip-path', 'url(#'+shadow_clip+')')
+        self.g.append(shadow)
 
     def add_clip_path(self, *geometries, inverted=False, subtract=False, defid=None):
         if defid is None:
@@ -209,14 +220,10 @@ class SVGImage:
                 if elevation is not None:
                     elevation = float(1 if elevation is None else elevation)
                     if elevation:
-                        shadow = self.get_shadow(geometry, elevation)
-                        self.g.append(shadow)
+                        self.add_shadow(geometry, elevation)
                 else:
                     for other_altitude, other_geom in self.altitudes.items():
-                        shadow_clip = self.register_geometry(other_geom, as_clip_path=True)
-                        shadow = self.get_shadow(geometry, altitude-other_altitude)
-                        shadow.set('clip-path', 'url(#'+shadow_clip+')')
-                        self.g.append(shadow)
+                        self.add_shadow(geometry, altitude-other_altitude, clip_path=other_geom)
 
                 self.clip_altitudes(geometry, altitude)
 
