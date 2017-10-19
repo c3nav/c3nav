@@ -62,4 +62,4 @@ def get_render_level_data(level):
                    for geoms_cache, default_height in levels.values_list('geoms_cache', 'default_height'))
     cache.set(cache_key, result, 900)
 
-    return levels
+    return result
