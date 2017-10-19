@@ -1,5 +1,3 @@
-import pickle
-
 from shapely.geometry import box
 
 from c3nav.mapdata.render.base import get_render_level_data
@@ -12,8 +10,7 @@ def render_svg(level, miny, minx, maxy, maxx, scale=1):
     within_coords = (minx-2, miny-2, maxx+2, maxy+2)
     bbox = box(*within_coords)
 
-    for geoms_cache, default_height in get_render_level_data(level):
-        geoms = pickle.loads(geoms_cache)
+    for geoms, default_height in get_render_level_data(level):
         for altitudearea_geom, altitude in geoms.altitudeareas:
             svg.add_geometry(bbox.intersection(altitudearea_geom), fill_color='#eeeeee', altitude=altitude)
 
