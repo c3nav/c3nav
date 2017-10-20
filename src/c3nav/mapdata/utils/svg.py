@@ -143,7 +143,7 @@ class SVGImage:
                              for ring in chain((geom.exterior,), geom.interiors))
                     + '"/>').replace('.0 ', ' ')
         if isinstance(geom, LineString):
-            return (('<path d="M %.1f %.1f L'+(' %.1f %.1f'*(geom.coords-1))+'"/>') %
+            return (('<path d="M %.1f %.1f L'+(' %.1f %.1f'*(len(geom.coords)-1))+'"/>') %
                     tuple((np.array(geom)*self.np_scale+self.np_offset).flatten())).replace('.0 ', ' ')
         try:
             geoms = geom.geoms
