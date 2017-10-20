@@ -4,10 +4,11 @@ import re
 import subprocess
 from itertools import chain
 
+import numpy as np
 from django.conf import settings
 from django.core.checks import Error, register
 from PIL import Image
-from shapely.affinity import affine_transform, translate
+from shapely.affinity import translate
 from shapely.geometry import LineString, Polygon
 from shapely.ops import unary_union
 
@@ -135,12 +136,17 @@ class SVGImage:
     def _geometry_to_svg(self, geom):
         if isinstance(geom, Polygon):
             return ('<path d="' +
-                    ' '.join((('M %.1f %.1f L'+(' %.1f %.1f'*(len(ring.coords)-1))) % tuple(ring.ctypes))
+                    ' '.join((('M %.1f %.1f L'+(' %.1f %.1f'*(len(ring.coords)-1))) %
+                              tuple((np.array(ring)
+                                     * np.array((self.scale, -self.scale))
+                                     + np.array((-self.left*self.scale, self.top*self.scale))).flatten()))
                              for ring in chain((geom.exterior,), geom.interiors))
                     + '"/>').replace('.0 ', ' ')
         if isinstance(geom, LineString):
             return (('<path d="M %.1f %.1f L'+(' %.1f %.1f'*(geom.coords-1))+'"/>') %
-                    tuple(geom.ctypes)).replace('.0 ', ' ')
+                    tuple((np.array(geom)
+                           * np.array((self.scale, -self.scale))
+                           + np.array((-self.left*self.scale, self.top*self.scale))).flatten())).replace('.0 ', ' ')
         try:
             geoms = geom.geoms
         except AttributeError:
@@ -149,15 +155,7 @@ class SVGImage:
 
     def _create_geometry(self, geometry, attribs='', tag='g'):
         # convert a shapely geometry into an svg xml element
-        return '<'+tag+attribs+'>'+self._geometry_to_svg(
-            # scale and move the object into position, this is equivalent to:
-            # geometry = translate(geometry, xoff=0-self.left, yoff=0-self.bottom)
-            # geometry = scale(geometry, xfact=1, yfact=-1, origin=(self.width / 2, self.height / 2))
-            # geometry = scale(geometry, xfact=self.scale, yfact=self.scale, origin=(0, 0))
-            affine_transform(geometry, (self.scale, 0.0,
-                                        0.0, -self.scale,
-                                        -(self.left) * self.scale, (self.top) * self.scale))
-        )+'</'+tag+'>'
+        return '<'+tag+attribs+'>'+self._geometry_to_svg(geometry)+'</'+tag+'>'
 
     def register_clip_path(self, geometry):
         defid = 'clip'+str(self.clip_path_i)
