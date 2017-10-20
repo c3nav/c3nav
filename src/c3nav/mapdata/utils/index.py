@@ -62,9 +62,9 @@ def check_svg_renderer(app_configs, **kwargs):
     if not rtree_index:
         errors.append(
             checks.Warning(
-                'The libspatialindex_c library is missing. This will drastically slow down c3nav rendering.',
+                'The libspatialindex_c library is missing. This will slow down c3nav in future versions.',
                 obj='rtree.index.Index',
-                id='c3nav.mapdata.W001',
+                id='c3nav.mapdata.W002',
             )
         )
     return errors

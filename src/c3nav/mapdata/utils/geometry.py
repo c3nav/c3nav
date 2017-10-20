@@ -1,6 +1,7 @@
 from itertools import chain
 
 import matplotlib.pyplot as plt
+from django.core import checks
 from matplotlib.patches import PathPatch
 from matplotlib.path import Path
 from shapely import speedups
@@ -8,6 +9,20 @@ from shapely.geometry import LineString, Polygon
 
 if speedups.available:
     speedups.enable()
+
+
+@checks.register()
+def check_svg_renderer(app_configs, **kwargs):
+    errors = []
+    if not speedups.available:
+        errors.append(
+            checks.Warning(
+                'Your shapely version does not have speedups enabled. This will significantly slow down c3nav!',
+                obj='rtree.index.Index',
+                id='c3nav.mapdata.W001',
+            )
+        )
+    return errors
 
 
 def clean_geometry(geometry):
