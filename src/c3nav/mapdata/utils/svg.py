@@ -56,6 +56,10 @@ class SVGImage:
         self.altitudes = {}
         self.last_altitude = None
 
+        # for fast numpy operations
+        self.np_scale = np.array((self.scale, -self.scale))
+        self.np_offset = np.array((-self.left*self.scale, self.top*self.scale))
+
         # keep track of created blur filters to avoid duplicates
         self.blurs = set()
 
@@ -134,19 +138,16 @@ class SVGImage:
         return re.sub(r'L (-?([0-9]+)(.[0-9]+)?,(-?[0-9]+)(.[0-9]+)?) L', r'L \1 ', data)
 
     def _geometry_to_svg(self, geom):
+        # scale and move geometry geometry and create svg code for it
         if isinstance(geom, Polygon):
             return ('<path d="' +
                     ' '.join((('M %.1f %.1f L'+(' %.1f %.1f'*(len(ring.coords)-1))) %
-                              tuple((np.array(ring)
-                                     * np.array((self.scale, -self.scale))
-                                     + np.array((-self.left*self.scale, self.top*self.scale))).flatten()))
+                              tuple((np.array(ring)*self.np_scale+self.np_offset).flatten()))
                              for ring in chain((geom.exterior,), geom.interiors))
                     + '"/>').replace('.0 ', ' ')
         if isinstance(geom, LineString):
             return (('<path d="M %.1f %.1f L'+(' %.1f %.1f'*(geom.coords-1))+'"/>') %
-                    tuple((np.array(geom)
-                           * np.array((self.scale, -self.scale))
-                           + np.array((-self.left*self.scale, self.top*self.scale))).flatten())).replace('.0 ', ' ')
+                    tuple((np.array(geom)*self.np_scale+self.np_offset).flatten())).replace('.0 ', ' ')
         try:
             geoms = geom.geoms
         except AttributeError:
