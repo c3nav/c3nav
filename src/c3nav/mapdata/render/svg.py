@@ -1,4 +1,5 @@
 from django.utils.functional import cached_property
+from shapely import prepared
 from shapely.geometry import box
 from shapely.ops import unary_union
 
@@ -48,8 +49,12 @@ class SVGRenderer:
         # add no access restriction to “unlocked“ access restrictions so lookup gets easier
         unlocked_access_restrictions = self.unlocked_access_restrictions | set([None])
 
+        bbox = self.bbox
+        bbox_prep = prepared.prep(bbox)
+
         for geoms, default_height in self.level_render_data.levels:
-            crop_to = self.bbox
+            if not bbox_prep.intersects(geoms.affected_area):
+                continue
 
             # hide indoor and outdoor rooms if their access restriction was not unlocked
             add_walls = unary_union(tuple(area for access_restriction, area in geoms.restricted_spaces_indoors.items()
@@ -62,7 +67,7 @@ class SVGRenderer:
             # render altitude areas in default ground color and add ground colors to each one afterwards
             # shadows are directly calculated and added by the SVGImage class
             for altitudearea in geoms.altitudeareas:
-                svg.add_geometry(crop_to.intersection(altitudearea.geometry.difference(crop_areas)),
+                svg.add_geometry(bbox.intersection(altitudearea.geometry.difference(crop_areas)),
                                  fill_color='#eeeeee', altitude=altitudearea.altitude)
 
                 for color, areas in altitudearea.colors.items():
@@ -70,15 +75,15 @@ class SVGRenderer:
                     areas = tuple(area for access_restriction, area in areas.items()
                                   if access_restriction in unlocked_access_restrictions)
                     if areas:
-                        svg.add_geometry(crop_to.intersection(unary_union(areas)), fill_color=color)
+                        svg.add_geometry(bbox.intersection(unary_union(areas)), fill_color=color)
 
             # add walls, stroke_px makes sure that all walls are at least 1px thick on all zoom levels,
             if not add_walls.is_empty or not geoms.walls.is_empty:
-                svg.add_geometry(crop_to.intersection(geoms.walls.union(add_walls)),
+                svg.add_geometry(bbox.intersection(geoms.walls.union(add_walls)),
                                  fill_color='#aaaaaa', stroke_px=0.5, stroke_color='#aaaaaa', elevation=default_height)
 
             if not geoms.doors.is_empty:
-                svg.add_geometry(crop_to.intersection(geoms.doors.difference(add_walls)),
+                svg.add_geometry(bbox.intersection(geoms.doors.difference(add_walls)),
                                  fill_color='#ffffff', stroke_px=0.5, stroke_color='#ffffff')
 
         return svg

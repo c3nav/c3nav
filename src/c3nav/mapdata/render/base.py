@@ -95,6 +95,14 @@ class LevelRenderData:
                     new_altitudearea.colors = new_colors
                     new_geoms.altitudeareas.append(new_altitudearea)
 
+                if new_geoms.walls.is_empty and not new_geoms.altitudeareas:
+                    continue
+
+                new_geoms.affected_area = unary_union((
+                    *(altitudearea.geometry for altitudearea in new_geoms.altitudeareas),
+                    crop_to.intersection(new_geoms.walls.buffer(1))
+                ))
+
                 for access_restriction, area in old_geoms.restricted_spaces_indoors.items():
                     new_area = crop_to.intersection(area)
                     if not new_area.is_empty:
@@ -135,6 +143,7 @@ class LevelGeometries:
         self.access_restriction_affected = None
         self.restricted_spaces_indoors = None
         self.restricted_spaces_outdoors = None
+        self.affected_area = None
 
     @staticmethod
     def build_for_level(level):
