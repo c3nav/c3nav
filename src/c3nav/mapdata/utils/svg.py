@@ -134,9 +134,6 @@ class SVGImage:
         # remove trailing zeros from a decimal – yes this is slow, but it greatly speeds up cairo rendering
         return re.sub(r'([0-9]+)((\.[1-9])[0-9]+|\.[0-9]+)?', r'\1\3', data)
 
-    def _trim_lineto(self, data):
-        return re.sub(r'L (-?([0-9]+)(.[0-9]+)?,(-?[0-9]+)(.[0-9]+)?) L', r'L \1 ', data)
-
     def _geometry_to_svg(self, geom):
         # scale and move geometry and create svg code for it
         if isinstance(geom, Polygon):
