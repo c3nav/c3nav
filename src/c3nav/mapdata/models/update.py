@@ -7,6 +7,8 @@ from django.utils.http import int_to_base36
 from django.utils.timezone import make_naive
 from django.utils.translation import ugettext_lazy as _
 
+from c3nav.mapdata.tasks import delete_old_cached_tiles
+
 
 class MapUpdate(models.Model):
     """
@@ -51,6 +53,6 @@ class MapUpdate(models.Model):
         from c3nav.mapdata.render.base import LevelGeometries
         AltitudeArea.recalculate()
         LevelGeometries.rebuild()
-
         super().save(**kwargs)
         cache.set('mapdata:last_update', (self.pk, self.datetime), 900)
+        delete_old_cached_tiles.apply_async(countdown=5)
