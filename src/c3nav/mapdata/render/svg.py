@@ -94,13 +94,13 @@ class SVGRenderer:
                     areas = tuple(area for access_restriction, area in areas.items()
                                   if access_restriction in unlocked_access_restrictions)
                     if areas:
-                        svg.add_geometry(crop_to.intersection(unary_union(areas)), fill_color=color, elevation=0)
+                        svg.add_geometry(crop_to.intersection(unary_union(areas)), fill_color=color)
 
             # add walls, stroke_px makes sure that all walls are at least 1px thick on all zoom levels,
             svg.add_geometry(crop_to.intersection(geoms.walls.union(add_walls)),
                              fill_color='#aaaaaa', stroke_px=0.5, stroke_color='#aaaaaa', elevation=default_height)
 
             svg.add_geometry(crop_to.intersection(geoms.doors.difference(add_walls)),
-                             fill_color='#ffffff', stroke_px=0.5, stroke_color='#ffffff', elevation=0)
+                             fill_color='#ffffff', stroke_px=0.5, stroke_color='#ffffff')
 
         return svg
