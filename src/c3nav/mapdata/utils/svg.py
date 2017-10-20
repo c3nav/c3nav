@@ -135,15 +135,12 @@ class SVGImage:
     def _geometry_to_svg(self, geom):
         if isinstance(geom, Polygon):
             return ('<path d="' +
-                    ' '.join(('M %.1f %.1f L %s z' % (coords[0][0], coords[0][1],
-                                                      ' '.join(('%.1f %.1f' % (c[0], c[1])) for c in coords[1:])))
-                             for coords in chain((geom.exterior.coords,), (ring.coords for ring in geom.interiors)))
+                    ' '.join((('M %.1f %.1f L'+(' %.1f %.1f'*(len(ring.coords)-1))) % tuple(ring.ctypes))
+                             for ring in chain((geom.exterior,), geom.interiors))
                     + '"/>').replace('.0 ', ' ')
         if isinstance(geom, LineString):
-            return ('<path d="' +
-                    ' '.join('M %.1f %.1f L %s' % (geom.coords[0][0], geom.coords[0][1],
-                                                   ' '.join(('%.1f %.1f' % (c[0], c[1])) for c in geom.coords[1:])))
-                    + '"/>').replace('.0 ', ' ')
+            return (('<path d="M %.1f %.1f L'+(' %.1f %.1f'*(geom.coords-1))+'"/>') %
+                    tuple(geom.ctypes)).replace('.0 ', ' ')
         try:
             geoms = geom.geoms
         except AttributeError:
