@@ -1,7 +1,7 @@
-from django.http import Http404, HttpResponse
+from django.http import Http404, HttpResponse, HttpResponseNotModified
 from shapely.geometry import box
 
-from c3nav.mapdata.models import Level, Source
+from c3nav.mapdata.models import Level, MapUpdate, Source
 from c3nav.mapdata.render.svg import SVGRenderer
 
 
@@ -24,6 +24,14 @@ def tile(request, level, zoom, x, y, format):
 
     renderer = SVGRenderer(level, miny, minx, maxy, maxx, scale=2**zoom, user=request.user)
 
+    update_cache_key = MapUpdate.cache_key()
+    access_cache_key = renderer.access_cache_key
+    etag = update_cache_key+'_'+access_cache_key
+
+    if_none_match = request.META.get('HTTP_IF_NONE_MATCH')
+    if if_none_match == etag:
+        return HttpResponseNotModified()
+
     try:
         renderer.check_level()
     except Level.DoesNotExist:
@@ -38,5 +46,8 @@ def tile(request, level, zoom, x, y, format):
         svg.get_png(f=response)
     else:
         raise ValueError
+
+    response['ETag'] = etag
+    response['Cache-Control'] = 'no-cache'
 
     return response
