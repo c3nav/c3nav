@@ -183,7 +183,7 @@ class SVGImage:
         blur_id = 'blur'+str(int(elevation*100))
         if elevation not in self.blurs:
             self.defs += ('<filter id="'+blur_id+'" width="200%" height="200%" x="-50%" y="-50%">'
-                          '<feGaussianBlur stdDeviation="'+str(blur_radius * self.scale)+'"/>'
+                          '<feGaussianBlur stdDeviation="'+('%.1f' % (blur_radius * self.scale)).replace('.0', '')+'"/>'
                           '</filter>')
             self.blurs.add(elevation)
 
