@@ -141,7 +141,7 @@ class SVGImage:
         # scale and move geometry geometry and create svg code for it
         if isinstance(geom, Polygon):
             return ('<path d="' +
-                    ' '.join((('M %.1f %.1f L'+(' %.1f %.1f'*(len(ring.coords)-1))) %
+                    ' '.join((('M %.1f %.1f L'+(' %.1f %.1f'*(len(ring.coords)-1))+' z') %
                               tuple((np.array(ring)*self.np_scale+self.np_offset).flatten()))
                              for ring in chain((geom.exterior,), geom.interiors))
                     + '"/>').replace('.0 ', ' ')
