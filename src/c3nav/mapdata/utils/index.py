@@ -23,7 +23,7 @@ except OSError:
         def delete(self, value):
             self.objects.pop(value)
 
-        def intersections(self, geometry):
+        def intersection(self, geometry):
             return self.objects.values()
 else:
     rtree_index = True
@@ -47,13 +47,13 @@ else:
             for bounds in self._bounds.pop(value):
                 self._index.delete(value, bounds)
 
-        def intersections(self, geometry):
+        def intersection(self, geometry):
             try:
                 geoms = geometry.geoms
             except AttributeError:
                 return set(self._index.intersection(geometry.bounds))
             else:
-                return reduce(operator.__or__, (self.intersections(geom) for geom in geoms), set())
+                return reduce(operator.__or__, (self.intersection(geom) for geom in geoms), set())
 
 
 @checks.register()
