@@ -85,8 +85,17 @@ class SVGImage:
         result += '</svg>'
         return result
 
+    empty_tile = (b'\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR\x00\x00\x01\x00\x00\x00\x01\x00\x01\x03\x00\x00\x00f\xbc:%\x00'
+                  b'\x00\x00\x03PLTE\x00\x00\x00\xa7z=\xda\x00\x00\x00\x01tRNS\x00@\xe6\xd8f\x00\x00\x00\x1fIDATh\xde'
+                  b'\xed\xc1\x01\r\x00\x00\x00\xc2\xa0\xf7Om\x0e7\xa0\x00\x00\x00\x00\x00\x00\x00\x00\xbe\r!\x00\x00'
+                  b'\x01\x7f\x19\x9c\xa7\x00\x00\x00\x00IEND\xaeB`\x82')
+
     def get_png(self, f=None):
         # render the image to png. returns bytes if f is None, otherwise it calls f.write()
+
+        if self.get_dimensions_px(buffer=False) == (256, 256) and not self.g:
+            return self.empty_tile
+
         if settings.SVG_RENDERER == 'rsvg':
             # create buffered surfaces
             buffered_surface = cairocffi.SVGSurface(None, *(int(i) for i in self.get_dimensions_px(buffer=True)))

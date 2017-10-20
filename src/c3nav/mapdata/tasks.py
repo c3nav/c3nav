@@ -1,4 +1,5 @@
 import os
+
 from django.conf import settings
 
 from c3nav.celery import app
