@@ -115,7 +115,6 @@ class LevelGeometries:
 
             geoms.walls = buildings_geom.difference(spaces_geom).difference(doors_geom)
             level.geoms_cache = pickle.dumps(geoms)
-            level.save()
 
         with transaction.atomic():
             for level in levels:
