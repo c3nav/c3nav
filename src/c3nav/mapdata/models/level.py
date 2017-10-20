@@ -19,7 +19,7 @@ from c3nav.mapdata.utils.svg import SVGImage
 
 class LevelManager(models.Manager):
     def get_queryset(self, *args, **kwargs):
-        return super().get_queryset(*args, **kwargs).defer('geoms_cache')
+        return super().get_queryset(*args, **kwargs).defer('render_data')
 
 
 class Level(SpecificLocation, models.Model):
@@ -31,7 +31,7 @@ class Level(SpecificLocation, models.Model):
     on_top_of = models.ForeignKey('mapdata.Level', null=True, on_delete=models.CASCADE,
                                   related_name='levels_on_top', verbose_name=_('on top of'))
 
-    geoms_cache = models.BinaryField()
+    render_data = models.BinaryField(null=True)
 
     objects = LevelManager()
 

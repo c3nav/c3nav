@@ -50,9 +50,9 @@ class MapUpdate(models.Model):
             raise TypeError
 
         from c3nav.mapdata.models import AltitudeArea
-        from c3nav.mapdata.render.base import LevelGeometries
+        from c3nav.mapdata.render.base import LevelRenderData
         AltitudeArea.recalculate()
-        LevelGeometries.rebuild()
+        LevelRenderData.rebuild()
         super().save(**kwargs)
         cache.set('mapdata:last_update', (self.pk, self.datetime), 900)
         delete_old_cached_tiles.apply_async(countdown=5)
