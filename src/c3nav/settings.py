@@ -21,6 +21,7 @@ MEDIA_ROOT = os.path.join(DATA_DIR, 'media')
 SOURCES_ROOT = os.path.join(DATA_DIR, 'sources')
 MAP_ROOT = os.path.join(DATA_DIR, 'map')
 RENDER_ROOT = os.path.join(DATA_DIR, 'render')
+TILES_ROOT = os.path.join(DATA_DIR, 'tiles')
 
 if not os.path.exists(DATA_DIR):
     os.mkdir(DATA_DIR)
@@ -34,6 +35,8 @@ if not os.path.exists(MAP_ROOT):
     os.mkdir(MAP_ROOT)
 if not os.path.exists(RENDER_ROOT):
     os.mkdir(RENDER_ROOT)
+if not os.path.exists(TILES_ROOT):
+    os.mkdir(TILES_ROOT)
 
 if config.has_option('django', 'secret'):
     SECRET_KEY = config.get('django', 'secret')
@@ -55,6 +58,7 @@ debug_fallback = "runserver" in sys.argv
 DEBUG = config.getboolean('django', 'debug', fallback=debug_fallback)
 RENDER_SCALE = float(config.get('c3nav', 'render_scale', fallback=20.0))
 SVG_RENDERER = config.get('c3nav', 'svg_renderer', fallback='rsvg-convert')
+CACHE_TILES = config.get('c3nav', 'cache_tiles', fallback=not DEBUG)
 
 db_backend = config.get('database', 'backend', fallback='sqlite3')
 DATABASES = {

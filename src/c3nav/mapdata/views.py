@@ -1,3 +1,6 @@
+import os
+
+from django.conf import settings
 from django.http import Http404, HttpResponse, HttpResponseNotModified
 from shapely.geometry import box
 
@@ -32,21 +35,44 @@ def tile(request, level, zoom, x, y, format):
     if if_none_match == etag:
         return HttpResponseNotModified()
 
-    try:
-        renderer.check_level()
-    except Level.DoesNotExist:
-        raise Http404
+    f = None
+    if settings.CACHE_TILES:
+        dirname = os.path.sep.join((settings.TILES_ROOT, update_cache_key, level, str(zoom), str(x), str(y)))
+        filename = os.path.sep.join((dirname, access_cache_key+'.'+format))
 
-    svg = renderer.render()
+        try:
+            f = open(filename, 'rb')
+        except FileNotFoundError:
+            pass
 
-    if format == 'svg':
-        response = HttpResponse(svg.get_xml(), 'image/svg+xml')
-    elif format == 'png':
-        response = HttpResponse(content_type='image/png')
-        svg.get_png(f=response)
+    content_type = 'image/svg+xml' if format == 'svg' else 'image/png'
+
+    if not settings.CACHE_TILES or f is None:
+        try:
+            renderer.check_level()
+        except Level.DoesNotExist:
+            raise Http404
+
+        svg = renderer.render()
+        if format == 'svg':
+            data = svg.get_xml()
+            filemode = 'w'
+        elif format == 'png':
+            data = svg.get_png()
+            filemode = 'wb'
+        else:
+            raise ValueError
+
+        if settings.CACHE_TILES:
+            # noinspection PyUnboundLocalVariable
+            os.makedirs(dirname, exist_ok=True)
+            # noinspection PyUnboundLocalVariable
+            with open(filename, filemode) as f:
+                f.write(data)
     else:
-        raise ValueError
+        data = f.read()
 
+    response = HttpResponse(data, content_type)
     response['ETag'] = etag
     response['Cache-Control'] = 'no-cache'
 
