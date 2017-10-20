@@ -138,7 +138,7 @@ class SVGImage:
         return re.sub(r'L (-?([0-9]+)(.[0-9]+)?,(-?[0-9]+)(.[0-9]+)?) L', r'L \1 ', data)
 
     def _geometry_to_svg(self, geom):
-        # scale and move geometry geometry and create svg code for it
+        # scale and move geometry and create svg code for it
         if isinstance(geom, Polygon):
             return ('<path d="' +
                     ' '.join((('M %.1f %.1f L'+(' %.1f %.1f'*(len(ring.coords)-1))+' z') %
