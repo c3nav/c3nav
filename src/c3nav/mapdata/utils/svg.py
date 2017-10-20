@@ -247,7 +247,6 @@ class SVGImage:
 
             if altitude is not None or elevation is not None:
                 if elevation is not None:
-                    elevation = float(1 if elevation is None else elevation)
                     if elevation:
                         self.add_shadow(geometry, elevation)
                 else:
