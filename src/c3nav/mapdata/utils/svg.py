@@ -6,7 +6,7 @@ from itertools import chain
 
 import numpy as np
 from django.conf import settings
-from django.core.checks import Error, register
+from django.core import checks
 from PIL import Image
 from shapely.affinity import translate
 from shapely.geometry import LineString, Polygon
@@ -20,12 +20,12 @@ if settings.SVG_RENDERER == 'rsvg':
     from pgi.repository import Rsvg
 
 
-@register()
+@checks.register()
 def check_svg_renderer(app_configs, **kwargs):
     errors = []
     if settings.SVG_RENDERER not in ('rsvg', 'rsvg-convert', 'inkscape'):
         errors.append(
-            Error(
+            checks.Error(
                 'Invalid SVG renderer: '+settings.SVG_RENDERER,
                 obj='settings.SVG_RENDERER',
                 id='c3nav.mapdata.E001',

@@ -5,6 +5,7 @@ csscompressor
 djangorestframework>=3.6,<3.7
 django-filter>=1.0,<1.1
 shapely>=1.5,<1.6
+rtree>=0.8,<0.9
 celery>=4.0,<4.1
 requests>=2.17,<2.18
 Pillow>=4.1,<4.2
