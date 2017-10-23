@@ -32,7 +32,7 @@ def tile(request, level, zoom, x, y, format):
 
     renderer = SVGRenderer(level, miny, minx, maxy, maxx, scale=2**zoom, user=request.user)
 
-    update_cache_key = MapUpdate.cache_key()
+    update_cache_key = MapUpdate.current_cache_key()
     access_cache_key = renderer.access_cache_key
     etag = update_cache_key+'_'+access_cache_key
 

@@ -230,7 +230,7 @@ class LevelGeometries:
 
 def get_level_render_data(level):
     cache_key = 'mapdata:level_render_data:%s:%s' % (str(level.pk if isinstance(level, Level) else level),
-                                                     MapUpdate.cache_key())
+                                                     MapUpdate.current_cache_key())
     result = cache.get(cache_key, None)
     if result is not None:
         return result

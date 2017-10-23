@@ -34,8 +34,12 @@ class MapUpdate(models.Model):
             cache.set('mapdata:last_update', (last_update.pk, last_update.datetime), 900)
         return last_update.pk, last_update.datetime
 
+    @property
+    def cache_key(self):
+        return int_to_base36(self.pk)+'_'+int_to_base36(int(make_naive(self.datetime).timestamp()))
+
     @classmethod
-    def cache_key(cls):
+    def current_cache_key(cls):
         pk, dt = cls.last_update()
         return int_to_base36(pk)+'_'+int_to_base36(int(make_naive(dt).timestamp()))
 
