@@ -31,8 +31,13 @@ class MapUpdate(models.Model):
             return last_update
         with cls.lock():
             last_update = cls.objects.latest()
-            cache.set('mapdata:last_update', (last_update.pk, last_update.datetime), 900)
-        return last_update.pk, last_update.datetime
+            result = last_update.pk, int(make_naive(last_update.datetime).timestamp())
+            cache.set('mapdata:last_update', result, 900)
+        return result
+
+    @property
+    def to_tuple(self):
+        return self.pk, int(make_naive(self.datetime).timestamp())
 
     @property
     def cache_key(self):
@@ -40,8 +45,8 @@ class MapUpdate(models.Model):
 
     @classmethod
     def current_cache_key(cls):
-        pk, dt = cls.last_update()
-        return int_to_base36(pk)+'_'+int_to_base36(int(make_naive(dt).timestamp()))
+        pk, timestamp = cls.last_update()
+        return int_to_base36(pk)+'_'+int_to_base36(timestamp)
 
     @classmethod
     @contextmanager
@@ -53,7 +58,7 @@ class MapUpdate(models.Model):
         if self.pk is not None:
             raise TypeError
 
-        old_cache_key = MapUpdate.current_cache_key()
+        last_map_update = MapUpdate.last_update()
 
         from c3nav.mapdata.models import AltitudeArea
         AltitudeArea.recalculate()
@@ -61,10 +66,10 @@ class MapUpdate(models.Model):
         super().save(**kwargs)
 
         from c3nav.mapdata.cache import changed_geometries
-        changed_geometries.save(old_cache_key, self.cache_key)
+        changed_geometries.save(last_map_update, self.to_tuple)
 
         from c3nav.mapdata.render.base import LevelRenderData
         LevelRenderData.rebuild()
 
-        cache.set('mapdata:last_update', (self.pk, self.datetime), 900)
+        cache.set('mapdata:last_update', self.to_tuple, 900)
         delete_old_cached_tiles.apply_async(countdown=5)

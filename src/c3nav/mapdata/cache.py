@@ -1,6 +1,7 @@
 import math
 import os
 import struct
+from itertools import chain
 
 import numpy as np
 from django.conf import settings
@@ -20,8 +21,11 @@ class MapHistory:
     # 2 bytes (uint16): origin width
     # 2 bytes (uint16): origin height
     # 2 bytes (uint16): number of updates
-    # n*16 bytes: update keys as null-terminated strings
-    # width*height*2 bytes: data (line after line) with uint16 data
+    # n uptates times:
+    #     4 bytes (uint32): update id
+    #     4 bytes (uint32): timestamp
+    # width*height*2 bytes:
+    #     data array (line after line) with uint16 cells
 
     def __init__(self, resolution=settings.CACHE_RESOLUTION, x=0, y=0, updates=None, data=np.empty((0, 0))):
         self.resolution = resolution
@@ -36,7 +40,8 @@ class MapHistory:
         try:
             with open(filename, 'rb') as f:
                 resolution, x, y, width, height, num_updates = struct.unpack('<BHHHHH', f.read(11))
-                updates = [s.decode().rstrip('\x00') for s in struct.unpack('16s'*num_updates, f.read(num_updates*16))]
+                updates = struct.unpack('II'*num_updates, f.read(num_updates*8))
+                updates = list(zip(updates[0::2], updates[1::2]))
                 # noinspection PyTypeChecker
                 data = np.fromstring(f.read(width*height*2), np.uint16).reshape((height, width))
                 return cls(resolution, x, y, list(updates), data)
@@ -51,7 +56,7 @@ class MapHistory:
         with open(filename, 'wb') as f:
             f.write(struct.pack('<BHHHHH', self.resolution, self.x, self.y, *reversed(self.data.shape),
                                 len(self.updates)))
-            f.write(struct.pack('16s'*len(self.updates), *(s.encode() for s in self.updates)))
+            f.write(struct.pack('II'*len(self.updates), *chain(*self.updates)))
             f.write(self.data.tobytes('C'))
 
     def add_new(self, geometry):
@@ -87,15 +92,14 @@ class MapHistory:
         for iy, y in enumerate(range(miny*res, maxy*res, res), start=miny-self.y):
             for ix, x in enumerate(range(minx*res, maxx*res, res), start=minx-self.x):
                 if prep.intersects(box(x, y, x+res, y+res)):
-                    # print(iy, ix)
                     data[iy, ix] = new_val
 
         self.data = data
         self.unfinished = True
 
-    def finish(self, cache_key):
+    def finish(self, update):
         self.unfinished = False
-        self.updates.append(cache_key)
+        self.updates.append(update)
 
 
 class GeometryChangeTracker:
