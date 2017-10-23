@@ -50,8 +50,10 @@ class MapUpdate(models.Model):
             raise TypeError
 
         from c3nav.mapdata.models import AltitudeArea
+        from c3nav.mapdata.render.cache import GeometryChangeTracker
         from c3nav.mapdata.render.base import LevelRenderData
         AltitudeArea.recalculate()
+        GeometryChangeTracker()
         LevelRenderData.rebuild()
         super().save(**kwargs)
         cache.set('mapdata:last_update', (self.pk, self.datetime), 900)

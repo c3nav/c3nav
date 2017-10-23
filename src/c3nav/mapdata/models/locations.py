@@ -160,6 +160,10 @@ class LocationGroupCategory(TitledMixin, models.Model):
     allow_pois = models.BooleanField(_('allow pois'), db_index=True, default=True)
     priority = models.IntegerField(default=0, db_index=True)
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.orig_priority = self.priority
+
     class Meta:
         verbose_name = _('Location Group Category')
         verbose_name_plural = _('Location Group Categories')
@@ -172,6 +176,23 @@ class LocationGroupCategory(TitledMixin, models.Model):
         result.move_to_end('name', last=False)
         result.move_to_end('id', last=False)
         return result
+
+    def register_changed_geometries(self):
+        from c3nav.mapdata.models.geometry.space import SpaceGeometryMixin
+        query = self.locationgroups.all()
+        for model in get_submodels(SpecificLocation):
+            related_name = SpecificLocation._meta.default_related_name
+            query.prefetch_related('locationgroup__'+related_name)
+            if issubclass(model, SpaceGeometryMixin):
+                query = query.select_related('locationgorups__'+related_name+'__space')
+
+        for group in query:
+            group.register_changed_geometries(do_query=False)
+
+    def save(self, *args, **kwargs):
+        if self.priority != self.orig_priority:
+            self.register_changed_geometries()
+        super().save(*args, **kwargs)
 
 
 class LocationGroupManager(models.Manager):
@@ -193,6 +214,12 @@ class LocationGroup(Location, models.Model):
         default_related_name = 'locationgroups'
         ordering = ('-category__priority', '-priority')
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.orig_priority = self.priority
+        self.orig_category = self.category
+        self.orig_color = self.color
+
     def _serialize(self, **kwargs):
         result = super()._serialize(**kwargs)
         result['category'] = self.category_id
@@ -211,6 +238,21 @@ class LocationGroup(Location, models.Model):
         if not attributes:
             attributes.append(_('internal'))
         return self.title + ' ('+', '.join(str(s) for s in attributes)+')'
+
+    def register_changed_geometries(self, do_query=True):
+        from c3nav.mapdata.models.geometry.space import SpaceGeometryMixin
+        for model in get_submodels(SpecificLocation):
+            query = getattr(self, SpecificLocation._meta.default_related_name).objects.all()
+            if do_query:
+                if issubclass(model, SpaceGeometryMixin):
+                    query = query.select_related('space')
+            for obj in query:
+                obj.register_change(force=True)
+
+    def save(self, *args, **kwargs):
+        if self.orig_color != self.color or self.priority != self.orig_priority or self.category != self.orig_category:
+            self.register_changed_geometries()
+        super().save(*args, **kwargs)
 
 
 class LocationRedirect(LocationSlug):

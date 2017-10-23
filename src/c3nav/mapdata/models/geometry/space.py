@@ -5,6 +5,7 @@ from shapely.geometry import CAP_STYLE, JOIN_STYLE, mapping
 from c3nav.mapdata.fields import GeometryField
 from c3nav.mapdata.models.geometry.base import GeometryMixin
 from c3nav.mapdata.models.locations import SpecificLocation
+from c3nav.mapdata.render.cache import changed_geometries
 from c3nav.mapdata.utils.json import format_geojson
 
 
@@ -27,6 +28,21 @@ class SpaceGeometryMixin(GeometryMixin):
             if color:
                 result['color'] = color
         return result
+
+    def register_change(self, force=True):
+        space = self.space
+        if force or self.geometry_changed:
+            changed_geometries.register(space.level_id, space.geometry.intersection(
+                self.geometry if force else self.get_changed_geometry()
+            ))
+
+    def register_delete(self):
+        space = self.space
+        changed_geometries.register(space.level_id, space.geometry.intersection(self.geometry))
+
+    def save(self, *args, **kwargs):
+        self.register_change()
+        super().save(*args, **kwargs)
 
 
 class Column(SpaceGeometryMixin, models.Model):

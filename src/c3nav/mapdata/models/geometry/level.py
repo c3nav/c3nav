@@ -15,6 +15,7 @@ from c3nav.mapdata.models import Level
 from c3nav.mapdata.models.access import AccessRestrictionMixin
 from c3nav.mapdata.models.geometry.base import GeometryMixin
 from c3nav.mapdata.models.locations import SpecificLocation
+from c3nav.mapdata.render.cache import changed_geometries
 from c3nav.mapdata.utils.geometry import assert_multilinestring, assert_multipolygon, clean_geometry
 
 
@@ -40,6 +41,17 @@ class LevelGeometryMixin(GeometryMixin):
         if level:
             result['level'] = self.level_id
         return result
+
+    def register_change(self, force=False):
+        if force or self.geometry_changed:
+            changed_geometries.register(self.level_id, self.geometry if force else self.get_changed_geometry())
+
+    def register_delete(self):
+        changed_geometries.register(self.level_id, self.geometry)
+
+    def save(self, *args, **kwargs):
+        self.register_change()
+        super().save(*args, **kwargs)
 
 
 class Building(LevelGeometryMixin, models.Model):
