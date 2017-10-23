@@ -23,7 +23,7 @@ class MapHistory:
     # n*16 bytes: update keys as null-terminated strings
     # width*height*2 bytes: data (line after line) with uint16 data
 
-    def __init__(self, resolution=settings.CACHE_RESOLUTION, x=None, y=None, updates=None, data=None):
+    def __init__(self, resolution=settings.CACHE_RESOLUTION, x=0, y=0, updates=None, data=np.empty((0, 0))):
         self.resolution = resolution
         self.x = x
         self.y = y
@@ -43,7 +43,9 @@ class MapHistory:
         except (FileNotFoundError, struct.error):
             if default_update is None:
                 raise
-            return cls(updates=[default_update])
+            new_empty = cls(updates=[default_update])
+            new_empty.save(filename)
+            return new_empty
 
     def save(self, filename):
         with open(filename, 'wb') as f:
@@ -66,7 +68,7 @@ class MapHistory:
             data = None
             self.updates = self.updates[-1:]
 
-        if data is None:
+        if not data.size:
             data = np.zeros(((maxy-miny), (maxx-minx)), dtype=np.uint16)
             self.x, self.y = minx, miny
         else:
