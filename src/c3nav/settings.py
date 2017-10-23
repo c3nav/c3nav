@@ -59,6 +59,7 @@ DEBUG = config.getboolean('django', 'debug', fallback=debug_fallback)
 RENDER_SCALE = float(config.get('c3nav', 'render_scale', fallback=20.0))
 SVG_RENDERER = config.get('c3nav', 'svg_renderer', fallback='rsvg-convert')
 CACHE_TILES = config.get('c3nav', 'cache_tiles', fallback=not DEBUG)
+CACHE_RESOLUTION = config.get('c3nav', 'cache_resolution', fallback=4)
 
 db_backend = config.get('database', 'backend', fallback='sqlite3')
 DATABASES = {
