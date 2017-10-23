@@ -2,10 +2,10 @@ from django.db import models
 from django.utils.translation import ugettext_lazy as _
 from shapely.geometry import CAP_STYLE, JOIN_STYLE, mapping
 
+from c3nav.mapdata.cache import changed_geometries
 from c3nav.mapdata.fields import GeometryField
 from c3nav.mapdata.models.geometry.base import GeometryMixin
 from c3nav.mapdata.models.locations import SpecificLocation
-from c3nav.mapdata.render.cache import changed_geometries
 from c3nav.mapdata.utils.json import format_geojson
 
 
