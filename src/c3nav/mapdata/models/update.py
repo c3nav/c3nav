@@ -53,12 +53,18 @@ class MapUpdate(models.Model):
         if self.pk is not None:
             raise TypeError
 
+        old_cache_key = MapUpdate.current_cache_key()
+
         from c3nav.mapdata.models import AltitudeArea
-        from c3nav.mapdata.render.cache import GeometryChangeTracker
-        from c3nav.mapdata.render.base import LevelRenderData
         AltitudeArea.recalculate()
-        GeometryChangeTracker()
+
+        from c3nav.mapdata.render.base import LevelRenderData
         LevelRenderData.rebuild()
+
         super().save(**kwargs)
+
+        from c3nav.mapdata.cache import changed_geometries
+        changed_geometries.save(old_cache_key, self.cache_key)
+
         cache.set('mapdata:last_update', (self.pk, self.datetime), 900)
         delete_old_cached_tiles.apply_async(countdown=5)

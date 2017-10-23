@@ -82,8 +82,17 @@ class GeometryMixin(SerializableMixin):
 
     @property
     def geometry_changed(self):
-        return self.orig_geometry is None or (self.geometry is not self.orig_geometry and
-                                              not self.geometry.almost_equals(self.orig_geometry, 2))
+        if self.orig_geometry is None:
+            return True
+        if self.geometry is self.orig_geometry:
+            return False
+        if not self.geometry.almost_equals(self.orig_geometry, 1):
+            return True
+        field = self._meta.get_field('geometry')
+        rounded = field.to_python(field.get_prep_value(self.geometry))
+        if not rounded.almost_equals(self.orig_geometry, 2):
+            return True
+        return False
 
     def get_changed_geometry(self):
         return self.geometry if self.orig_geometry is None else self.geometry.symmetric_difference(self.orig_geometry)

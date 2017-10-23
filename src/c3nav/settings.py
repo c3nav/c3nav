@@ -22,6 +22,7 @@ SOURCES_ROOT = os.path.join(DATA_DIR, 'sources')
 MAP_ROOT = os.path.join(DATA_DIR, 'map')
 RENDER_ROOT = os.path.join(DATA_DIR, 'render')
 TILES_ROOT = os.path.join(DATA_DIR, 'tiles')
+CACHE_ROOT = os.path.join(DATA_DIR, 'cache')
 
 if not os.path.exists(DATA_DIR):
     os.mkdir(DATA_DIR)
@@ -37,6 +38,8 @@ if not os.path.exists(RENDER_ROOT):
     os.mkdir(RENDER_ROOT)
 if not os.path.exists(TILES_ROOT):
     os.mkdir(TILES_ROOT)
+if not os.path.exists(CACHE_ROOT):
+    os.mkdir(CACHE_ROOT)
 
 if config.has_option('django', 'secret'):
     SECRET_KEY = config.get('django', 'secret')

@@ -1,4 +1,5 @@
 import math
+import os
 import struct
 
 import numpy as np
@@ -6,6 +7,7 @@ from django.conf import settings
 from django.db.models.signals import m2m_changed, post_delete
 from shapely import prepared
 from shapely.geometry import box
+from shapely.ops import unary_union
 
 from c3nav.mapdata.utils.models import get_submodels
 
@@ -23,8 +25,8 @@ class MapHistory:
 
     def __init__(self, resolution=settings.CACHE_RESOLUTION, x=None, y=None, updates=None, data=None):
         self.resolution = resolution
-        self.x = None
-        self.y = None
+        self.x = x
+        self.y = y
         self.updates = updates
         self.data = data
         self.unfinished = False
@@ -34,10 +36,11 @@ class MapHistory:
         try:
             with open(filename, 'rb') as f:
                 resolution, x, y, width, height, num_updates = struct.unpack('<BHHHHH', f.read(11))
-                updates = list(struct.unpack('16s'*num_updates, f.read(num_updates*16)))
-                data = np.frombuffer(f.read(width*height*2), np.uint16).reshape((height, width))
+                updates = [s.decode().rstrip('\x00') for s in struct.unpack('16s'*num_updates, f.read(num_updates*16))]
+                # noinspection PyTypeChecker
+                data = np.fromstring(f.read(width*height*2), np.uint16).reshape((height, width))
                 return cls(resolution, x, y, list(updates), data)
-        except FileNotFoundError:
+        except (FileNotFoundError, struct.error):
             if default_update is None:
                 raise
             return cls(updates=[default_update])
@@ -46,7 +49,7 @@ class MapHistory:
         with open(filename, 'wb') as f:
             f.write(struct.pack('<BHHHHH', self.resolution, self.x, self.y, *reversed(self.data.shape),
                                 len(self.updates)))
-            f.write(struct.pack('16s'*len(self.updates), *self.updates))
+            f.write(struct.pack('16s'*len(self.updates), *(s.encode() for s in self.updates)))
             f.write(self.data.tobytes('C'))
 
     def add_new(self, geometry):
@@ -70,20 +73,22 @@ class MapHistory:
             orig_height, orig_width = data.shape
             if minx < self.x or miny < self.y or maxx > self.x+orig_width or maxy > self.y+orig_height:
                 new_x, new_y = min(minx, self.x), min(miny, self.y)
-                new_width = min(maxx, self.x+orig_width)-new_x
-                new_height = min(maxy, self.y+orig_height)-new_y
+                new_width = max(maxx, self.x+orig_width)-new_x
+                new_height = max(maxy, self.y+orig_height)-new_y
                 new_data = np.zeros((new_height, new_width), dtype=np.uint16)
-                dx, dy = new_x-self.x, new_y-self.y
-                new_data[dy:dx, (dy+orig_height):(dx+orig_width)] = data
+                dx, dy = self.x-new_x, self.y-new_y
+                new_data[dy:(dy+orig_height), dx:(dx+orig_width)] = data
                 data = new_data
                 self.x, self.y = new_x, new_y
 
         new_val = len(self.updates)
         for iy, y in enumerate(range(miny*res, maxy*res, res), start=miny-self.y):
-            for ix, x in enumerate(range(miny*res, maxy*res, res), start=minx-self.x):
+            for ix, x in enumerate(range(minx*res, maxx*res, res), start=minx-self.x):
                 if prep.intersects(box(x, y, x+res, y+res)):
+                    # print(iy, ix)
                     data[iy, ix] = new_val
 
+        self.data = data
         self.unfinished = True
 
     def finish(self, cache_key):
@@ -105,6 +110,28 @@ class GeometryChangeTracker:
     def reset(self):
         self._geometries_by_level = {}
         self._deleted_levels = set()
+
+    @staticmethod
+    def _level_filename(level_id):
+        return os.path.join(settings.CACHE_ROOT, 'level_base_%s' % level_id)
+
+    def save(self, last_update, new_update):
+        for level_id in self._deleted_levels:
+            try:
+                os.remove(self._level_filename(level_id))
+            except FileNotFoundError:
+                pass
+            self._geometries_by_level.pop(level_id, None)
+
+        for level_id, geometries in self._geometries_by_level.items():
+            geometries = unary_union(geometries)
+            if geometries.is_empty:
+                continue
+            history = MapHistory.open(self._level_filename(level_id), last_update)
+            history.add_new(geometries.buffer(1))
+            history.finish(new_update)
+            history.save(self._level_filename(level_id))
+        self.reset()
 
 
 changed_geometries = GeometryChangeTracker()
