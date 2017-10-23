@@ -459,7 +459,7 @@ class ChangeSet(models.Model):
                     yield self
                     if any((q['sql'].startswith('UPDATE') or q['sql'].startswith('INSERT') or
                             q['sql'].startswith('DELETE')) for q in connection.queries[queries_before:]):
-                        update = MapUpdate.objects.create(user=user, type='direct_edit')
+                        MapUpdate.objects.create(user=user, type='direct_edit')
             else:
                 yield self
 
