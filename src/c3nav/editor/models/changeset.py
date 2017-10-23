@@ -553,6 +553,8 @@ class ChangeSet(models.Model):
 
     def apply(self, user):
         with MapUpdate.lock():
+            changed_geometries.reset()
+
             self._clean_changes()
             changed_objects = self.relevant_changed_objects()
             created_objects = []
