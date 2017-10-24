@@ -1,8 +1,10 @@
+import hashlib
 import os
 
 from django.conf import settings
 from django.core.cache import cache
 from django.core.exceptions import PermissionDenied
+from django.core.signing import b64_encode
 from django.http import Http404, HttpResponse, HttpResponseNotModified
 from django.shortcuts import get_object_or_404
 from shapely.geometry import box
@@ -43,7 +45,9 @@ def tile(request, level, zoom, x, y, format):
     update_cache_key = renderer.update_cache_key
 
     # check browser cache
-    etag = tile_cache_key
+    etag = b64_encode(hashlib.sha256(
+        ('%d-%d-%d-%d:%s:%s' % (level, zoom, x, y, tile_cache_key, settings.SECRET_TILE_KEY)).encode()
+    ).digest())
     if_none_match = request.META.get('HTTP_IF_NONE_MATCH')
     if if_none_match == etag:
         return HttpResponseNotModified()

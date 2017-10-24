@@ -55,6 +55,20 @@ else:
             os.chown(SECRET_FILE, os.getuid(), os.getgid())
             f.write(SECRET_KEY)
 
+if config.has_option('c3nav', 'tile_secret'):
+    SECRET_TILE_KEY = config.get('c3nav', 'tile_secret')
+else:
+    SECRET_TILE_FILE = os.path.join(DATA_DIR, '.tile_secret')
+    if os.path.exists(SECRET_TILE_FILE):
+        with open(SECRET_TILE_FILE, 'r') as f:
+            SECRET_TILE_KEY = f.read().strip()
+    else:
+        SECRET_TILE_KEY = get_random_string(50, string.printable)
+        with open(SECRET_TILE_FILE, 'w') as f:
+            os.chmod(SECRET_TILE_FILE, 0o600)
+            os.chown(SECRET_TILE_FILE, os.getuid(), os.getgid())
+            f.write(SECRET_TILE_KEY)
+
 # Adjustable settings
 
 debug_fallback = "runserver" in sys.argv
