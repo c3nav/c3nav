@@ -1,9 +1,12 @@
 import os
 
 from django.conf import settings
+from django.core.exceptions import PermissionDenied
 from django.http import Http404, HttpResponse, HttpResponseNotModified
+from django.shortcuts import get_object_or_404
 from shapely.geometry import box
 
+from c3nav.mapdata.cache import MapHistory
 from c3nav.mapdata.models import Level, MapUpdate, Source
 from c3nav.mapdata.render.svg import SVGRenderer
 
@@ -87,4 +90,24 @@ def tile(request, level, zoom, x, y, format):
     response['ETag'] = etag
     response['Cache-Control'] = 'no-cache'
 
+    return response
+
+
+def history(request, level, mode, format):
+    if not request.user.is_superuser:
+        raise PermissionDenied
+    level = get_object_or_404(Level, pk=level)
+
+    if mode == 'render' and level.on_top_of_id is None:
+        raise Http404
+
+    history = MapHistory.open(os.path.join(settings.CACHE_ROOT, 'level_%s_%d' % (mode, level.pk)))
+    if format == 'png':
+        response = HttpResponse(content_type='image/png')
+        history.to_image().save(response, format='PNG')
+    elif format == 'data':
+        response = HttpResponse(content_type='application/octet-stream')
+        history.write(response)
+    else:
+        raise ValueError
     return response

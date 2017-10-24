@@ -6,6 +6,7 @@ from itertools import chain
 import numpy as np
 from django.conf import settings
 from django.db.models.signals import m2m_changed, post_delete
+from PIL import Image
 from shapely import prepared
 from shapely.geometry import box
 from shapely.ops import unary_union
@@ -56,10 +57,13 @@ class MapHistory:
 
     def save(self, filename):
         with open(filename, 'wb') as f:
-            f.write(struct.pack('<BHHHHH', self.resolution, self.x, self.y, *reversed(self.data.shape),
-                                len(self.updates)))
-            f.write(struct.pack('<'+'II'*len(self.updates), *chain(*self.updates)))
-            f.write(self.data.tobytes('C'))
+            self.write(f)
+
+    def write(self, f):
+        f.write(struct.pack('<BHHHHH', self.resolution, self.x, self.y, *reversed(self.data.shape),
+                            len(self.updates)))
+        f.write(struct.pack('<'+'II'*len(self.updates), *chain(*self.updates)))
+        f.write(self.data.tobytes('C'))
 
     def add_new(self, geometry):
         prep = prepared.prep(geometry)
@@ -124,6 +128,18 @@ class MapHistory:
         self.x += minx
         self.y += miny
         self.data = self.data[miny:maxy+1, minx:maxx+1]
+
+    def to_image(self):
+        from c3nav.mapdata.models import Source
+        (miny, minx), (maxy, maxx) = Source.max_bounds()
+
+        height, width = self.data.shape
+        image_data = np.zeros((int(math.ceil((maxy-miny)/self.resolution)),
+                               int(math.ceil((maxx-minx)/self.resolution))), dtype=np.uint8)
+        visible_data = (self.data.astype(float)*255/(len(self.updates)-1)).clip(0, 255).astype(np.uint8)
+        image_data[self.y:self.y+height, self.x:self.x+width] = visible_data
+
+        return Image.fromarray(np.flip(image_data, axis=0), 'L')
 
 
 class GeometryChangeTracker:
