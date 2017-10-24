@@ -4,6 +4,7 @@ from django.core.cache import cache
 from django.db import transaction
 from shapely.ops import unary_union
 
+from c3nav.mapdata.cache import MapHistory
 from c3nav.mapdata.models import Level, MapUpdate
 
 
@@ -40,6 +41,8 @@ class LevelRenderData:
             if level.on_top_of_id is not None:
                 continue
 
+            map_history = MapHistory.open_level(level.pk, 'base')
+
             level_crop_to = {}
 
             # choose a crop area for each level. non-intermediate levels (not on_top_of) below the one that we are
@@ -68,6 +71,9 @@ class LevelRenderData:
             for sublevel in levels[:i + 1]:
                 old_geoms = single_level_geoms[sublevel.pk]
                 crop_to = level_crop_to[sublevel.pk]
+
+                if crop_to is not FakeCropper:
+                    map_history.composite(MapHistory.open_level(sublevel.pk, 'base'), crop_to)
 
                 new_geoms = LevelGeometries()
                 new_geoms.doors = crop_to.intersection(old_geoms.doors)
@@ -128,6 +134,8 @@ class LevelRenderData:
             }
 
             level.render_data = pickle.dumps(render_data)
+
+            map_history.save(MapHistory.level_filename(level.pk, 'render'))
 
         with transaction.atomic():
             for level in levels:

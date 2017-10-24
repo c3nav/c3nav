@@ -76,7 +76,7 @@ class MapHistory:
         f.write(struct.pack('<'+'II'*len(self.updates), *chain(*self.updates)))
         f.write(self.data.tobytes('C'))
 
-    def add_new(self, geometry):
+    def add_new(self, geometry, data=None):
         prep = prepared.prep(geometry)
         minx, miny, maxx, maxy = geometry.bounds
         res = self.resolution
@@ -85,34 +85,44 @@ class MapHistory:
         maxx = int(math.ceil(maxx/res))
         maxy = int(math.ceil(maxy/res))
 
-        data = self.data
-        if self.resolution != settings.CACHE_RESOLUTION:
-            data = None
-            self.updates = self.updates[-1:]
+        direct = data is None
 
-        if not data.size:
-            data = np.zeros(((maxy-miny), (maxx-minx)), dtype=np.uint16)
-            self.x, self.y = minx, miny
+        if direct:
+            data = self.data
+            if self.resolution != settings.CACHE_RESOLUTION:
+                data = None
+                self.updates = self.updates[-1:]
+
+            if not data.size:
+                data = np.zeros(((maxy-miny), (maxx-minx)), dtype=np.uint16)
+                self.x, self.y = minx, miny
+            else:
+                orig_height, orig_width = data.shape
+                if minx < self.x or miny < self.y or maxx > self.x+orig_width or maxy > self.y+orig_height:
+                    new_x, new_y = min(minx, self.x), min(miny, self.y)
+                    new_width = max(maxx, self.x+orig_width)-new_x
+                    new_height = max(maxy, self.y+orig_height)-new_y
+                    new_data = np.zeros((new_height, new_width), dtype=np.uint16)
+                    dx, dy = self.x-new_x, self.y-new_y
+                    new_data[dy:(dy+orig_height), dx:(dx+orig_width)] = data
+                    data = new_data
+                    self.x, self.y = new_x, new_y
         else:
-            orig_height, orig_width = data.shape
-            if minx < self.x or miny < self.y or maxx > self.x+orig_width or maxy > self.y+orig_height:
-                new_x, new_y = min(minx, self.x), min(miny, self.y)
-                new_width = max(maxx, self.x+orig_width)-new_x
-                new_height = max(maxy, self.y+orig_height)-new_y
-                new_data = np.zeros((new_height, new_width), dtype=np.uint16)
-                dx, dy = self.x-new_x, self.y-new_y
-                new_data[dy:(dy+orig_height), dx:(dx+orig_width)] = data
-                data = new_data
-                self.x, self.y = new_x, new_y
+            height, width = data.shape
+            minx, miny = max(minx, self.x), max(miny, self.y)
+            maxx, maxy = min(maxx, self.x+width), max(maxy, self.y+height)
 
-        new_val = len(self.updates)
+        new_val = len(self.updates) if direct else 1
         for iy, y in enumerate(range(miny*res, maxy*res, res), start=miny-self.y):
             for ix, x in enumerate(range(minx*res, maxx*res, res), start=minx-self.x):
                 if prep.intersects(box(x, y, x+res, y+res)):
                     data[iy, ix] = new_val
 
-        self.data = data
-        self.unfinished = True
+        if direct:
+            self.data = data
+            self.unfinished = True
+        else:
+            return data
 
     def finish(self, update):
         self.unfinished = False
@@ -139,6 +149,49 @@ class MapHistory:
         self.x += minx
         self.y += miny
         self.data = self.data[miny:maxy+1, minx:maxx+1]
+
+    def composite(self, other, mask_geometry):
+        if other.resolution != other.resolution:
+            return
+
+        # check overlapping area
+        self_height, self_width = self.data.shape
+        other_height, other_width = other.data.shape
+        minx, miny = max(self.x, other.x), max(self.y, other.y)
+        maxx = min(self.x+self_width-1, other.x+other_width-1)
+        maxy = min(self.y+self_height-1, other.y+other_height-1)
+        if maxx < minx or maxy < miny:
+            return
+
+        # merge update lists
+        self_update_i = {update: i for i, update in enumerate(self.updates)}
+        other_update_i = {update: i for i, update in enumerate(other.updates)}
+        new_updates = sorted(set(self_update_i.keys()) | set(other_update_i.keys()))
+
+        # create slices
+        self_slice = slice(miny-self.y, maxy-self.y+1), slice(minx-self.x, maxx-self.x+1)
+        other_slice = slice(miny-other.y, maxy-other.y+1), slice(minx-other.x, maxx-other.x+1)
+
+        # reindex according to new update list
+        other_data = np.zeros_like(self.data)
+        other_data[self_slice] = other.data[other_slice]
+        for i, update in enumerate(new_updates):
+            if update in self_update_i:
+                self.data[self.data == self_update_i[update]] = i
+            if update in other_update_i:
+                other_data[other_data == other_update_i[update]] = i
+
+        # calculate maximum
+        maximum = np.maximum(self.data, other_data)
+
+        # add with mask
+        mask = self.add_new(mask_geometry.buffer(1), data=np.zeros_like(self.data, dtype=np.bool))
+        self.data[mask] = maximum[mask]
+
+        # write new updates
+        self.updates = new_updates
+
+        self.simplify()
 
     def to_image(self):
         from c3nav.mapdata.models import Source
