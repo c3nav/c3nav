@@ -487,7 +487,7 @@ class BaseQueryWrapper(BaseWrapper):
             # so… is this a multi-level-lookup?
             try:
                 rel_model._meta.get_field(filter_type)
-            except:
+            except Exception:
                 raise NotImplementedError('Unsupported lookup or %s has no field "%s".' % (rel_model, filter_type))
 
             # multi-level-lookup

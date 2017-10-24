@@ -41,7 +41,7 @@ def changeset_detail(request, pk):
                 if changeset.can_edit(request):
                     try:
                         changed_object = changeset.changed_objects_set.get(pk=restore)
-                    except:
+                    except Exception:
                         pass
                     else:
                         try:

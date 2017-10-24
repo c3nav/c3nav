@@ -52,12 +52,12 @@ class GeometryField(models.TextField):
             return None
         try:
             geometry = shape(json.loads(value))
-        except:
+        except Exception:
             raise ValidationError(_('Invalid GeoJSON.'))
         self._validate_geomtype(geometry)
         try:
             geometry = clean_geometry(geometry)
-        except:
+        except Exception:
             raise ValidationError(_('Could not clean geometry.'))
         self._validate_geomtype(geometry)
         return geometry
