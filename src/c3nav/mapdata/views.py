@@ -13,7 +13,7 @@ from shapely.geometry import box
 from c3nav.mapdata.cache import MapHistory
 from c3nav.mapdata.middleware import no_language
 from c3nav.mapdata.models import Level, MapUpdate, Source
-from c3nav.mapdata.render.base import get_render_level_ids, get_tile_access_cookie
+from c3nav.mapdata.render.base import get_render_level_ids, get_tile_access_cookie, set_tile_access_cookie
 from c3nav.mapdata.render.svg import SVGRenderer
 
 
@@ -113,6 +113,14 @@ def tile(request, level, zoom, x, y, format):
     response['Vary'] = 'Cookie'
     response['X-Access-Restrictions'] = ', '.join(str(s) for s in renderer.unlocked_access_restrictions) or '0'
 
+    return response
+
+
+@no_language()
+def tile_access(request):
+    response = HttpResponse(content_type='text/plain')
+    set_tile_access_cookie(request, response)
+    response['Cache-Control'] = 'no-cache'
     return response
 
 
