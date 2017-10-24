@@ -7,6 +7,7 @@ from django.core.exceptions import PermissionDenied
 from django.core.signing import b64_encode
 from django.http import Http404, HttpResponse, HttpResponseNotModified
 from django.shortcuts import get_object_or_404
+from django.views.decorators.http import etag
 from shapely.geometry import box
 
 from c3nav.mapdata.cache import MapHistory
@@ -111,6 +112,7 @@ def tile(request, level, zoom, x, y, format):
     return response
 
 
+@etag(lambda *args, **kwargs: 'abc')
 @no_language()
 def history(request, level, mode, format):
     if not request.user.is_superuser:
@@ -129,4 +131,5 @@ def history(request, level, mode, format):
         history.write(response)
     else:
         raise ValueError
+    response['Cache-Control'] = 'no-cache'
     return response
