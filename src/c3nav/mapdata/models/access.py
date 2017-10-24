@@ -1,3 +1,5 @@
+from datetime import timedelta
+
 from django.conf import settings
 from django.core.cache import cache
 from django.db import models
@@ -50,10 +52,16 @@ class AccessPermission(models.Model):
         cache_key = cls.user_access_permission_key(request.user)
         access_restriction_ids = cache.get(cache_key, None)
         if access_restriction_ids is None:
-            access_restriction_ids = set(request.user.accesspermissions.filter(
+            result = tuple(request.user.accesspermissions.filter(
                 Q(expire_date__isnull=True) | Q(expire_date__lt=timezone.now())
-            ).values_list('access_restriction_id', flat=True))
-            cache.set(cache_key, access_restriction_ids, 120)
+            ).values_list('access_restriction_id', 'expire_date'))
+            if result:
+                access_restriction_ids, expire_dates = zip(*result)
+            else:
+                access_restriction_ids, expire_dates = (), ()
+
+            expire_date = min((e for e in expire_dates if e), default=timezone.now()+timedelta(seconds=120))
+            cache.set(cache_key, access_restriction_ids, max(0, (expire_date-timezone.now()).total_seconds()))
         return access_restriction_ids
 
 
