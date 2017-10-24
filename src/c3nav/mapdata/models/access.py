@@ -62,7 +62,7 @@ class AccessPermission(models.Model):
 
             expire_date = min((e for e in expire_dates if e), default=timezone.now()+timedelta(seconds=120))
             cache.set(cache_key, access_restriction_ids, max(0, (expire_date-timezone.now()).total_seconds()))
-        return access_restriction_ids
+        return set(access_restriction_ids)
 
 
 class AccessRestrictionMixin(SerializableMixin, models.Model):
