@@ -11,14 +11,14 @@ from c3nav.mapdata.utils.svg import SVGImage
 
 
 class SVGRenderer:
-    def __init__(self, level, miny, minx, maxy, maxx, scale=1, user=None):
+    def __init__(self, level, miny, minx, maxy, maxx, scale=1, access_permissions=None):
         self.level = level
         self.miny = miny
         self.minx = minx
         self.maxy = maxy
         self.maxx = maxx
         self.scale = scale
-        self.user = user
+        self.access_permissions = access_permissions
 
     @cached_property
     def bbox(self):
@@ -50,9 +50,7 @@ class SVGRenderer:
 
     @cached_property
     def unlocked_access_restrictions(self):
-        # todo access_restriction
-        return set(access_restriction for access_restriction in self.affected_access_restrictions
-                   if self.user is not None and self.user.is_superuser)
+        return self.affected_access_restrictions & self.access_permissions
 
     @cached_property
     def access_cache_key(self):

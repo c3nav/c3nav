@@ -1,6 +1,8 @@
 from django.conf import settings
+from django.core.cache import cache
 from django.db import models
 from django.db.models import Q
+from django.utils import timezone
 from django.utils.translation import ugettext_lazy as _
 
 from c3nav.mapdata.models.base import SerializableMixin, TitledMixin
@@ -36,6 +38,24 @@ class AccessPermission(models.Model):
         default_related_name = 'accesspermissions'
         unique_together = (('user', 'access_restriction'), )
 
+    @staticmethod
+    def user_access_permission_key(user):
+        return 'mapdata:user_access_permission:%d' % user.pk
+
+    @classmethod
+    def get_for_request(cls, request):
+        if not request.user.is_authenticated:
+            return set()
+
+        cache_key = cls.user_access_permission_key(request.user)
+        access_restriction_ids = cache.get(cache_key, None)
+        if access_restriction_ids is None:
+            access_restriction_ids = set(request.user.accesspermissions.filter(
+                Q(expire_date__isnull=True) | Q(expire_date__lt=timezone.now())
+            ).values_list('access_restriction_id', flat=True))
+            cache.set(cache_key, access_restriction_ids, 120)
+        return access_restriction_ids
+
 
 class AccessRestrictionMixin(SerializableMixin, models.Model):
     access_restriction = models.ForeignKey(AccessRestriction, null=True, blank=True,
@@ -55,6 +75,7 @@ class AccessRestrictionMixin(SerializableMixin, models.Model):
 
     @classmethod
     def q_for_request(cls, request, prefix='', allow_none=False):
-        if (request is None and allow_none) or (request.user.is_authenticated and request.user.is_superuser):
+        if request is None and allow_none:
             return Q()
-        return Q(**{prefix + 'access_restriction__isnull': True})
+        return (Q(**{prefix+'access_restriction__isnull': True}) |
+                Q(**{prefix+'access_restriction__in': AccessPermission.get_for_request(request)}))
