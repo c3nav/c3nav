@@ -101,7 +101,7 @@ def history(request, level, mode, format):
     if mode == 'render' and level.on_top_of_id is None:
         raise Http404
 
-    history = MapHistory.open(os.path.join(settings.CACHE_ROOT, 'level_%s_%d' % (mode, level.pk)))
+    history = MapHistory.open_level(level.pk, mode)
     if format == 'png':
         response = HttpResponse(content_type='image/png')
         history.to_image().save(response, format='PNG')

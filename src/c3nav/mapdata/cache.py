@@ -30,12 +30,13 @@ class MapHistory:
     #     data array (line after line) with uint16 cells
     empty_array = np.empty((0, 0), dtype=np.uint16)
 
-    def __init__(self, resolution=settings.CACHE_RESOLUTION, x=0, y=0, updates=None, data=empty_array):
+    def __init__(self, resolution=settings.CACHE_RESOLUTION, x=0, y=0, updates=None, data=empty_array, filename=None):
         self.resolution = resolution
         self.x = x
         self.y = y
         self.updates = updates
         self.data = data
+        self.filename = filename
         self.unfinished = False
 
     @classmethod
@@ -47,7 +48,7 @@ class MapHistory:
                 updates = list(zip(updates[0::2], updates[1::2]))
                 # noinspection PyTypeChecker
                 data = np.fromstring(f.read(width*height*2), np.uint16).reshape((height, width))
-                return cls(resolution, x, y, list(updates), data)
+                return cls(resolution, x, y, list(updates), data, filename)
         except (FileNotFoundError, struct.error):
             if default_update is None:
                 default_update = MapUpdate.last_update()
@@ -55,7 +56,17 @@ class MapHistory:
             new_empty.save(filename)
             return new_empty
 
-    def save(self, filename):
+    @staticmethod
+    def level_filename(level_id, mode):
+        return os.path.join(settings.CACHE_ROOT, 'level_%s_%d' % (mode, level_id))
+
+    @classmethod
+    def open_level(cls, level_id, mode, default_update=None):
+        return cls.open(cls.level_filename(level_id, mode), default_update)
+
+    def save(self, filename=None):
+        if filename is None:
+            filename = self.filename
         with open(filename, 'wb') as f:
             self.write(f)
 
@@ -157,14 +168,10 @@ class GeometryChangeTracker:
         self._geometries_by_level = {}
         self._deleted_levels = set()
 
-    @staticmethod
-    def _level_filename(level_id):
-        return os.path.join(settings.CACHE_ROOT, 'level_base_%s' % level_id)
-
     def save(self, last_update, new_update):
         for level_id in self._deleted_levels:
             try:
-                os.remove(self._level_filename(level_id))
+                os.remove(MapHistory.level_filename(level_id, mode='base'))
             except FileNotFoundError:
                 pass
             self._geometries_by_level.pop(level_id, None)
@@ -173,10 +180,10 @@ class GeometryChangeTracker:
             geometries = unary_union(geometries)
             if geometries.is_empty:
                 continue
-            history = MapHistory.open(self._level_filename(level_id), last_update)
+            history = MapHistory.open_level(level_id, mode='base', default_update=last_update)
             history.add_new(geometries.buffer(1))
             history.finish(new_update)
-            history.save(self._level_filename(level_id))
+            history.save()
         self.reset()
 
 
