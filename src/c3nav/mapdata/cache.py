@@ -10,6 +10,7 @@ from shapely import prepared
 from shapely.geometry import box
 from shapely.ops import unary_union
 
+from c3nav.mapdata.models import MapUpdate
 from c3nav.mapdata.utils.models import get_submodels
 
 
@@ -48,7 +49,7 @@ class MapHistory:
                 return cls(resolution, x, y, list(updates), data)
         except (FileNotFoundError, struct.error):
             if default_update is None:
-                raise
+                default_update = MapUpdate.last_update()
             new_empty = cls(updates=[default_update])
             new_empty.save(filename)
             return new_empty
