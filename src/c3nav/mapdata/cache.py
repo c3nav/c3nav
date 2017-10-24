@@ -26,8 +26,9 @@ class MapHistory:
     #     4 bytes (uint32): timestamp
     # width*height*2 bytes:
     #     data array (line after line) with uint16 cells
+    empty_array = np.empty((0, 0), dtype=np.uint16)
 
-    def __init__(self, resolution=settings.CACHE_RESOLUTION, x=0, y=0, updates=None, data=np.empty((0, 0))):
+    def __init__(self, resolution=settings.CACHE_RESOLUTION, x=0, y=0, updates=None, data=empty_array):
         self.resolution = resolution
         self.x = x
         self.y = y
@@ -112,7 +113,7 @@ class MapHistory:
         # remove borders
         rows = self.data.any(axis=1).nonzero()[0]
         if not rows.size:
-            self.data = np.empty((0, 0))
+            self.data = self.empty_array
             self.x = 0
             self.y = 0
             return
