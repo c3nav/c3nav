@@ -10,11 +10,13 @@ from django.shortcuts import get_object_or_404
 from shapely.geometry import box
 
 from c3nav.mapdata.cache import MapHistory
+from c3nav.mapdata.middleware import no_language
 from c3nav.mapdata.models import Level, MapUpdate, Source
 from c3nav.mapdata.render.base import get_render_level_ids
 from c3nav.mapdata.render.svg import SVGRenderer
 
 
+@no_language()
 def tile(request, level, zoom, x, y, format):
     zoom = int(zoom)
     if not (0 <= zoom <= 10):
