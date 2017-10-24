@@ -100,6 +100,28 @@ class MapHistory:
     def finish(self, update):
         self.unfinished = False
         self.updates.append(update)
+        self.simplify()
+
+    def simplify(self):
+        # remove updates that have no longer any array cells
+        new_updates = ((update, (self.data == i)) for i, update in enumerate(self.updates))
+        self.updates, new_affected = zip(*((update, affected) for update, affected in new_updates if affected.any()))
+        for i, affected in enumerate(new_affected):
+            self.data[affected] = i
+
+        # remove borders
+        rows = self.data.any(axis=1).nonzero()[0]
+        if not rows.size:
+            self.data = np.empty((0, 0))
+            self.x = 0
+            self.y = 0
+            return
+        cols = self.data.any(axis=0).nonzero()[0]
+        miny, maxy = rows.min(), rows.max()
+        minx, maxx = cols.min(), cols.max()
+        self.x += minx
+        self.y += miny
+        self.data = self.data[miny:maxy+1, minx:maxx+1]
 
 
 class GeometryChangeTracker:
