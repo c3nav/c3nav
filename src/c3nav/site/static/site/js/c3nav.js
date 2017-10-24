@@ -16,6 +16,11 @@ c3nav = {
         L.tileLayer('/map/7/{z}/{x}/{y}.png', {
             bounds: c3nav.bounds
         }).addTo(c3nav.map);
+        window.setTimeout(c3nav.refresh_tile_access, 16000);
+    },
+    refresh_tile_access: function() {
+        $.ajax('/map/tile_access');
+        window.setTimeout(c3nav.refresh_tile_access, 16000);
     }
 };
 
