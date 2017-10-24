@@ -52,7 +52,7 @@ def tile(request, level, zoom, x, y, format):
     # check browser cache
     etag = '"'+b64_encode(hashlib.sha256(
         ('%d-%d-%d-%d:%s:%s' % (level, zoom, x, y, tile_cache_key, settings.SECRET_TILE_KEY)).encode()
-    ).digest())+'"'
+    ).digest()).decode()+'"'
     if_none_match = request.META.get('HTTP_IF_NONE_MATCH')
     if if_none_match == etag:
         return HttpResponseNotModified()
