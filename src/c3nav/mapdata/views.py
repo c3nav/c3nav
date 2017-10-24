@@ -116,7 +116,7 @@ def tile(request, level, zoom, x, y, format):
     return response
 
 
-@etag(lambda *args, **kwargs: 'abc')
+@etag(lambda *args, **kwargs: MapUpdate.current_cache_key())
 @no_language()
 def history(request, level, mode, format):
     if not request.user.is_superuser:
