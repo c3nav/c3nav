@@ -42,7 +42,7 @@ class MapHistory:
         try:
             with open(filename, 'rb') as f:
                 resolution, x, y, width, height, num_updates = struct.unpack('<BHHHHH', f.read(11))
-                updates = struct.unpack('<II'*num_updates, f.read(num_updates*8))
+                updates = struct.unpack('<'+'II'*num_updates, f.read(num_updates*8))
                 updates = list(zip(updates[0::2], updates[1::2]))
                 # noinspection PyTypeChecker
                 data = np.fromstring(f.read(width*height*2), np.uint16).reshape((height, width))
@@ -58,7 +58,7 @@ class MapHistory:
         with open(filename, 'wb') as f:
             f.write(struct.pack('<BHHHHH', self.resolution, self.x, self.y, *reversed(self.data.shape),
                                 len(self.updates)))
-            f.write(struct.pack('<II'*len(self.updates), *chain(*self.updates)))
+            f.write(struct.pack('<'+'II'*len(self.updates), *chain(*self.updates)))
             f.write(self.data.tobytes('C'))
 
     def add_new(self, geometry):
