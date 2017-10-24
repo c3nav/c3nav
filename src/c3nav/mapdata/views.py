@@ -1,6 +1,7 @@
 import os
 
 from django.conf import settings
+from django.core.cache import cache
 from django.core.exceptions import PermissionDenied
 from django.http import Http404, HttpResponse, HttpResponseNotModified
 from django.shortcuts import get_object_or_404
@@ -8,6 +9,7 @@ from shapely.geometry import box
 
 from c3nav.mapdata.cache import MapHistory
 from c3nav.mapdata.models import Level, MapUpdate, Source
+from c3nav.mapdata.render.base import get_render_level_ids
 from c3nav.mapdata.render.svg import SVGRenderer
 
 
@@ -21,8 +23,7 @@ def tile(request, level, zoom, x, y, format):
     if not (0 <= zoom <= 10):
         raise Http404
 
-    bounds = Source.max_bounds()
-
+    # calculate bounds
     x, y = int(x), int(y)
     size = 256/2**zoom
     minx = size * x
@@ -30,37 +31,59 @@ def tile(request, level, zoom, x, y, format):
     maxx = minx + size
     maxy = miny + size
 
+    # error 404 if tiles is out of bounds
+    bounds = Source.max_bounds()
     if not box(bounds[0][1], bounds[0][0], bounds[1][1], bounds[1][0]).intersects(box(minx, miny, maxx, maxy)):
         raise Http404
 
-    renderer = SVGRenderer(level, miny, minx, maxy, maxx, scale=2**zoom, user=request.user)
+    # is this a valid level?
+    cache_key = MapUpdate.current_cache_key()
+    level = int(level)
+    if level not in get_render_level_ids(cache_key):
+        raise Http404
 
-    update_cache_key = MapUpdate.current_cache_key()
-    access_cache_key = renderer.access_cache_key
-    etag = update_cache_key+'_'+access_cache_key
+    # init renderer
+    renderer = SVGRenderer(level, miny, minx, maxy, maxx, scale=2 ** zoom, user=request.user)
+    tile_cache_key = renderer.cache_key
+    update_cache_key = renderer.update_cache_key
 
+    # check browser cache
+    etag = tile_cache_key
     if_none_match = request.META.get('HTTP_IF_NONE_MATCH')
     if if_none_match == etag:
         return HttpResponseNotModified()
 
-    f = None
-    if settings.CACHE_TILES:
-        dirname = os.path.sep.join((settings.TILES_ROOT, update_cache_key, level, str(zoom), str(x), str(y)))
-        filename = os.path.sep.join((dirname, access_cache_key+'.'+format))
+    data = None
+    tile_dirname, last_update_filename, tile_filename, tile_cache_update_cache_key = '', '', '', ''
 
-        try:
-            f = open(filename, 'rb')
-        except FileNotFoundError:
-            pass
+    # get tile cache last update
+    if settings.CACHE_TILES:
+        tile_dirname = os.path.sep.join((settings.TILES_ROOT, str(level), str(zoom), str(x), str(y)))
+        last_update_filename = os.path.join(tile_dirname, 'last_update')
+        tile_filename = os.path.join(tile_dirname, renderer.access_cache_key+'.'+format)
+
+        # get tile cache last update
+        tile_cache_update_cache_key = 'mapdata:tile-cache-update:%d-%d-%d-%d' % (level, zoom, x, y)
+        tile_cache_update = cache.get(tile_cache_update_cache_key, None)
+        if tile_cache_update is None:
+            try:
+                with open(last_update_filename) as f:
+                    tile_cache_update = f.read()
+            except FileNotFoundError:
+                pass
+
+        if tile_cache_update != update_cache_key:
+            os.system('rm -rf '+os.path.join(tile_dirname, '*'))
+        else:
+            try:
+                with open(tile_filename, 'rb') as f:
+                    data = f.read()
+            except FileNotFoundError:
+                pass
 
     content_type = 'image/svg+xml' if format == 'svg' else 'image/png'
 
-    if not settings.CACHE_TILES or f is None:
-        try:
-            renderer.check_level()
-        except Level.DoesNotExist:
-            raise Http404
-
+    if data is None:
         svg = renderer.render()
         if format == 'svg':
             data = svg.get_xml()
@@ -72,13 +95,12 @@ def tile(request, level, zoom, x, y, format):
             raise ValueError
 
         if settings.CACHE_TILES:
-            # noinspection PyUnboundLocalVariable
-            os.makedirs(dirname, exist_ok=True)
-            # noinspection PyUnboundLocalVariable
-            with open(filename, filemode) as f:
+            os.makedirs(tile_dirname, exist_ok=True)
+            with open(tile_filename, filemode) as f:
                 f.write(data)
-    else:
-        data = f.read()
+            with open(last_update_filename, 'w') as f:
+                f.write(update_cache_key)
+            cache.get(tile_cache_update_cache_key, update_cache_key, 60)
 
     pr.disable()
     s = open('/tmp/profiled', 'w')

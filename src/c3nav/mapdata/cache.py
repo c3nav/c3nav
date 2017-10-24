@@ -5,6 +5,7 @@ from itertools import chain
 
 import numpy as np
 from django.conf import settings
+from django.core.cache import cache
 from django.db.models.signals import m2m_changed, post_delete
 from PIL import Image
 from shapely import prepared
@@ -63,6 +64,17 @@ class MapHistory:
     @classmethod
     def open_level(cls, level_id, mode, default_update=None):
         return cls.open(cls.level_filename(level_id, mode), default_update)
+
+    @classmethod
+    def open_level_cached(cls, level_id, mode, cache_key=None):
+        if cache_key is None:
+            cache_key = MapUpdate.current_cache_key()
+        cache_key = 'mapdata:map-history-%d-%s:%s' % (level_id, mode, cache_key)
+        result = cache.get(cache_key, None)
+        if result is None:
+            result = cls.open_level(level_id, mode)
+            cache.set(cache_key, result, 120)
+        return result
 
     def save(self, filename=None):
         if filename is None:
@@ -204,6 +216,17 @@ class MapHistory:
         image_data[self.y:self.y+height, self.x:self.x+width] = visible_data
 
         return Image.fromarray(np.flip(image_data, axis=0), 'L')
+
+    def last_update(self, minx, miny, maxx, maxy):
+        res = self.resolution
+        height, width = self.data.shape
+        minx = max(int(math.floor(minx/res)), self.x)-self.x
+        miny = max(int(math.floor(miny/res)), self.y)-self.y
+        maxx = min(int(math.ceil(maxx/res)), self.x+width)-self.x
+        maxy = min(int(math.ceil(maxy/res)), self.y+height)-self.y
+        if minx >= maxx or miny >= maxy:
+            return self.updates[0]
+        return self.updates[self.data[miny:maxy, minx:maxx].max()]
 
 
 class GeometryChangeTracker:

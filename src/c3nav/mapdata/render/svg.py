@@ -1,8 +1,11 @@
+from django.core.cache import cache
 from django.utils.functional import cached_property
 from shapely import prepared
 from shapely.geometry import box
 from shapely.ops import unary_union
 
+from c3nav.mapdata.cache import MapHistory
+from c3nav.mapdata.models import MapUpdate
 from c3nav.mapdata.render.base import get_level_render_data
 from c3nav.mapdata.utils.svg import SVGImage
 
@@ -25,13 +28,25 @@ class SVGRenderer:
     def level_render_data(self):
         return get_level_render_data(self.level)
 
-    def check_level(self):
-        return self.level_render_data
+    @cached_property
+    def last_update(self):
+        return MapHistory.open_level_cached(self.level, 'render').last_update(self.minx, self.miny,
+                                                                              self.maxx, self.maxy)
+
+    @cached_property
+    def update_cache_key(self):
+        return MapUpdate.build_cache_key(*self.last_update)
 
     @cached_property
     def affected_access_restrictions(self):
-        return set(ar for ar, area in self.level_render_data.access_restriction_affected.items()
-                   if area.intersects(self.bbox))
+        cache_key = 'mapdata:affected-ars-%.2f-%.2f-%.2f-%.2f:%s' % (self.minx, self.miny, self.maxx, self.maxy,
+                                                                     self.update_cache_key)
+        result = cache.get(cache_key, None)
+        if result is None:
+            result = set(ar for ar, area in self.level_render_data.access_restriction_affected.items()
+                         if area.intersects(self.bbox))
+            cache.set(cache_key, result, 120)
+        return result
 
     @cached_property
     def unlocked_access_restrictions(self):
@@ -42,6 +57,10 @@ class SVGRenderer:
     @cached_property
     def access_cache_key(self):
         return '_'.join(str(i) for i in sorted(self.unlocked_access_restrictions)) or '0'
+
+    @cached_property
+    def cache_key(self):
+        return self.update_cache_key + ':' + self.access_cache_key
 
     def render(self):
         svg = SVGImage(bounds=((self.miny, self.minx), (self.maxy, self.maxx)), scale=self.scale, buffer=1)

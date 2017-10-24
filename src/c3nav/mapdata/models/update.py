@@ -41,11 +41,14 @@ class MapUpdate(models.Model):
 
     @property
     def cache_key(self):
-        return int_to_base36(self.pk)+'_'+int_to_base36(int(make_naive(self.datetime).timestamp()))
+        return self.build_cache_key(self.pk, int(make_naive(self.datetime).timestamp()))
 
     @classmethod
     def current_cache_key(cls):
-        pk, timestamp = cls.last_update()
+        return cls.build_cache_key(*cls.last_update())
+
+    @staticmethod
+    def build_cache_key(pk, timestamp):
         return int_to_base36(pk)+'_'+int_to_base36(timestamp)
 
     @classmethod

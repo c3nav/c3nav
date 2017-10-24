@@ -8,6 +8,17 @@ from c3nav.mapdata.cache import MapHistory
 from c3nav.mapdata.models import Level, MapUpdate
 
 
+def get_render_level_ids(cache_key=None):
+    if cache_key is None:
+        cache_key = MapUpdate.current_cache_key()
+    cache_key = 'mapdata:render-level-ids:'+cache_key
+    levels = cache.get(cache_key, None)
+    if levels is None:
+        levels = set(Level.objects.values_list('pk', flat=True))
+        cache.set(cache_key, levels, 300)
+    return levels
+
+
 class AltitudeAreaGeometries:
     def __init__(self, altitudearea=None, colors=None):
         if altitudearea is not None:
