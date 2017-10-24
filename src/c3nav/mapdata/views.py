@@ -14,11 +14,6 @@ from c3nav.mapdata.render.svg import SVGRenderer
 
 
 def tile(request, level, zoom, x, y, format):
-    import cProfile
-    import pstats
-    pr = cProfile.Profile()
-    pr.enable()
-
     zoom = int(zoom)
     if not (0 <= zoom <= 10):
         raise Http404
@@ -101,12 +96,6 @@ def tile(request, level, zoom, x, y, format):
             with open(last_update_filename, 'w') as f:
                 f.write(update_cache_key)
             cache.get(tile_cache_update_cache_key, update_cache_key, 60)
-
-    pr.disable()
-    s = open('/tmp/profiled', 'w')
-    sortby = 'cumulative'
-    ps = pstats.Stats(pr, stream=s).sort_stats(sortby)
-    ps.print_stats()
 
     response = HttpResponse(data, content_type)
     response['ETag'] = etag
