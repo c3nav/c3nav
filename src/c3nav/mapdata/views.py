@@ -106,6 +106,7 @@ def tile(request, level, zoom, x, y, format):
     response = HttpResponse(data, content_type)
     response['ETag'] = etag
     response['Cache-Control'] = 'no-cache'
+    response['X-Access-Restrictions'] = ', '.join(str(s) for s in renderer.unlocked_access_restrictions) or '0'
 
     return response
 
