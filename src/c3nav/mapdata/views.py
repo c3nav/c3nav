@@ -13,8 +13,7 @@ from shapely.geometry import box
 from c3nav.mapdata.cache import MapHistory
 from c3nav.mapdata.middleware import no_language
 from c3nav.mapdata.models import Level, MapUpdate, Source
-from c3nav.mapdata.models.access import AccessPermission
-from c3nav.mapdata.render.base import get_render_level_ids
+from c3nav.mapdata.render.base import get_render_level_ids, get_tile_access_cookie
 from c3nav.mapdata.render.svg import SVGRenderer
 
 
@@ -43,9 +42,11 @@ def tile(request, level, zoom, x, y, format):
     if level not in get_render_level_ids(cache_key):
         raise Http404
 
+    # decode access permissions
+    access_permissions = get_tile_access_cookie(request)
+
     # init renderer
-    renderer = SVGRenderer(level, miny, minx, maxy, maxx, scale=2**zoom,
-                           access_permissions=AccessPermission.get_for_request(request))
+    renderer = SVGRenderer(level, miny, minx, maxy, maxx, scale=2**zoom, access_permissions=access_permissions)
     tile_cache_key = renderer.cache_key
     update_cache_key = renderer.update_cache_key
 
@@ -109,6 +110,7 @@ def tile(request, level, zoom, x, y, format):
     response = HttpResponse(data, content_type)
     response['ETag'] = etag
     response['Cache-Control'] = 'no-cache'
+    response['Vary'] = 'Cookie'
     response['X-Access-Restrictions'] = ', '.join(str(s) for s in renderer.unlocked_access_restrictions) or '0'
 
     return response
