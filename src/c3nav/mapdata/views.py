@@ -47,9 +47,9 @@ def tile(request, level, zoom, x, y, format):
     update_cache_key = renderer.update_cache_key
 
     # check browser cache
-    etag = b64_encode(hashlib.sha256(
+    etag = '"'+b64_encode(hashlib.sha256(
         ('%d-%d-%d-%d:%s:%s' % (level, zoom, x, y, tile_cache_key, settings.SECRET_TILE_KEY)).encode()
-    ).digest())
+    ).digest())+'"'
     if_none_match = request.META.get('HTTP_IF_NONE_MATCH')
     if if_none_match == etag:
         return HttpResponseNotModified()
