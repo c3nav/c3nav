@@ -28,11 +28,13 @@ def get_render_level_ids(cache_key=None):
 def set_tile_access_cookie(request, response):
     access_permissions = AccessPermission.get_for_request(request)
 
-    if access_permissions or True:
+    if access_permissions:
         value = ','.join(str(i) for i in access_permissions)+':'+str(int(time.time())+60)
         key = hashlib.sha1(settings.SECRET_TILE_KEY.encode()).digest()
         signed = base64.b64encode(hmac.new(key, msg=value.encode(), digestmod=hashlib.sha256).digest()).decode()
         response.set_cookie(settings.TILE_ACCESS_COOKIE_NAME, value+':'+signed, max_age=60)
+    else:
+        response.delete_cookie(settings.TILE_ACCESS_COOKIE_NAME)
 
 
 class AltitudeAreaGeometries:
