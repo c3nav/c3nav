@@ -11,6 +11,7 @@ from django.utils import timezone
 
 from c3nav.mapdata.models import Source
 from c3nav.mapdata.models.level import Level
+from c3nav.mapdata.render.base import set_tile_access_cookie
 
 ctype_mapping = {
     'yes': ('up', 'down'),
@@ -64,7 +65,9 @@ def map_index(request):
     ctx = {
         'bounds': json.dumps(Source.max_bounds())
     }
-    return render(request, 'site/map.html', ctx)
+    response = render(request, 'site/map.html', ctx)
+    set_tile_access_cookie(request, response)
+    return response
 
 
 def main(request, location=None, origin=None, destination=None):

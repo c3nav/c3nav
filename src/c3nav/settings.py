@@ -161,6 +161,7 @@ STATIC_ROOT = os.path.join(os.path.dirname(__file__), 'static.dist')
 SESSION_COOKIE_NAME = 'c3nav_session'
 LANGUAGE_COOKIE_NAME = 'c3nav_language'
 CSRF_COOKIE_NAME = 'c3nav_csrftoken'
+TILE_ACCESS_COOKIE_NAME = 'c3nav_tile_access'
 SESSION_COOKIE_HTTPONLY = True
 
 # Application definition

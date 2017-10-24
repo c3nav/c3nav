@@ -1,11 +1,17 @@
+import base64
+import hashlib
+import hmac
 import pickle
+import time
 
+from django.conf import settings
 from django.core.cache import cache
 from django.db import transaction
 from shapely.ops import unary_union
 
 from c3nav.mapdata.cache import MapHistory
 from c3nav.mapdata.models import Level, MapUpdate
+from c3nav.mapdata.models.access import AccessPermission
 
 
 def get_render_level_ids(cache_key=None):
@@ -17,6 +23,16 @@ def get_render_level_ids(cache_key=None):
         levels = set(Level.objects.values_list('pk', flat=True))
         cache.set(cache_key, levels, 300)
     return levels
+
+
+def set_tile_access_cookie(request, response):
+    access_permissions = AccessPermission.get_for_request(request)
+
+    if access_permissions or True:
+        value = ','.join(str(i) for i in access_permissions)+':'+str(int(time.time())+60)
+        key = hashlib.sha1(settings.SECRET_TILE_KEY.encode()).digest()
+        signed = base64.b64encode(hmac.new(key, msg=value.encode(), digestmod=hashlib.sha256).digest()).decode()
+        response.set_cookie(settings.TILE_ACCESS_COOKIE_NAME, value+':'+signed, max_age=60)
 
 
 class AltitudeAreaGeometries:
