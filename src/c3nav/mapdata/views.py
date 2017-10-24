@@ -38,7 +38,7 @@ def tile(request, level, zoom, x, y, format):
         raise Http404
 
     # init renderer
-    renderer = SVGRenderer(level, miny, minx, maxy, maxx, scale=2 ** zoom, user=request.user)
+    renderer = SVGRenderer(level, miny, minx, maxy, maxx, scale=2**zoom, user=request.user)
     tile_cache_key = renderer.cache_key
     update_cache_key = renderer.update_cache_key
 
