@@ -110,6 +110,7 @@ def tile(request, level, zoom, x, y, format):
     return response
 
 
+@no_language()
 def history(request, level, mode, format):
     if not request.user.is_superuser:
         raise PermissionDenied
