@@ -30,6 +30,7 @@ class Level(SpecificLocation, models.Model):
     default_height = models.DecimalField(_('default space height'), max_digits=6, decimal_places=2, default=3.0)
     on_top_of = models.ForeignKey('mapdata.Level', null=True, on_delete=models.CASCADE,
                                   related_name='levels_on_top', verbose_name=_('on top of'))
+    short_label = models.CharField(max_length=20, verbose_name=_('short label'), unique=True)
 
     render_data = models.BinaryField(null=True)
 
@@ -81,6 +82,7 @@ class Level(SpecificLocation, models.Model):
 
     def _serialize(self, level=True, **kwargs):
         result = super()._serialize(**kwargs)
+        result['short_label'] = self.short_label
         result['on_top_of'] = self.on_top_of_id
         result['base_altitude'] = float(str(self.base_altitude))
         result['default_height'] = float(str(self.default_height))

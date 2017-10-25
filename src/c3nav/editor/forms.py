@@ -93,6 +93,9 @@ class EditorFormBase(ModelForm):
                 self.fields.move_to_end('title_' + language, last=False)
             self.titles = titles
 
+        if 'short_label' in self.fields:
+            self.fields.move_to_end('short_label', last=False)
+
         if 'name' in self.fields:
             self.fields.move_to_end('name', last=False)
 
@@ -163,7 +166,7 @@ def create_editor_form(editor_model):
     possible_fields = ['slug', 'name', 'ordering', 'category', 'width', 'groups', 'color', 'priority', 'base_altitude',
                        'waytype', 'access_restriction', 'height', 'default_height', 'can_search', 'can_describe',
                        'outside', 'geometry', 'single', 'allow_levels', 'allow_spaces', 'allow_areas', 'allow_pois',
-                       'altitude', 'left', 'top', 'right', 'bottom']
+                       'altitude', 'short_label', 'left', 'top', 'right', 'bottom']
     field_names = [field.name for field in editor_model._meta.get_fields() if not field.one_to_many]
     existing_fields = [name for name in possible_fields if name in field_names]
 

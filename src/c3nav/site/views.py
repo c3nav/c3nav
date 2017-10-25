@@ -66,7 +66,7 @@ def map_index(request):
 
     ctx = {
         'bounds': json.dumps(Source.max_bounds(), separators=(',', ':')),
-        'levels': json.dumps(tuple((level.pk, level.title) for level in levels), separators=(',', ':')),
+        'levels': json.dumps(tuple((level.pk, level.short_label) for level in levels), separators=(',', ':')),
     }
     response = render(request, 'site/map.html', ctx)
     set_tile_access_cookie(request, response)
