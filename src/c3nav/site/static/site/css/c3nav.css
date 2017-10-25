@@ -29,18 +29,35 @@ main.map {
 
 section#map {
     position:absolute;
+    z-index: 1;
     left:0;
     top:0;
     right:0;
     bottom:0;
 }
 
+section#search {
+    position:absolute;
+    z-index: 2;
+    top:0;
+    padding:10px;
+    width: 100%;
+    max-width:420px;
+}
+
+section#search input {
+    background-color:#ffffff;
+    box-shadow: 1px 1px 3px rgba(0, 0, 0, 0.2);
+}
+
+
+
 /* leaftlet levels control */
 .leaflet-control-levels a, .leaflet-control-levels a:hover {
     width: auto;
     min-width: 26px;
     font-size: 14px;
-    padding: 0 7px;
+    padding: 0 3px;
     white-space: nowrap;
 }
 .leaflet-touch .leaflet-control-levels a, .leaflet-touch .leaflet-control-levels a:hover {
@@ -48,7 +65,7 @@ section#map {
     min-width: 30px;
     line-height: 30px;
     font-size: 15px;
-    padding: 0 10px;
+    padding: 0 3px;
 }
 .leaflet-control-levels a.current {
     font-weight:bold;

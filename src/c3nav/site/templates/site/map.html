@@ -25,6 +25,9 @@
         <section id="map" data-bounds="{{ bounds }}" data-levels="{{ levels }}">
 
         </section>
+        <section id="search">
+            <input type="text" placeholder="{% trans 'Search any location…' %}" id="searchnameField">
+        </section>
     </main>
     {% compress js %}
         <script type="text/javascript" src="{% static 'jquery/jquery.js' %}"></script>
