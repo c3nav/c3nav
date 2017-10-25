@@ -62,8 +62,11 @@ def qr_code(request, location):
 
 
 def map_index(request):
+    levels = Level.qs_for_request(request).filter(on_top_of_id__isnull=True)
+
     ctx = {
-        'bounds': json.dumps(Source.max_bounds())
+        'bounds': json.dumps(Source.max_bounds(), separators=(',', ':')),
+        'levels': json.dumps(tuple((level.pk, level.title) for level in levels), separators=(',', ':')),
     }
     response = render(request, 'site/map.html', ctx)
     set_tile_access_cookie(request, response)

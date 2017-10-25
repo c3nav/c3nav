@@ -34,3 +34,22 @@ section#map {
     right:0;
     bottom:0;
 }
+
+/* leaftlet levels control */
+.leaflet-control-levels a, .leaflet-control-levels a:hover {
+    width: auto;
+    min-width: 26px;
+    font-size: 14px;
+    padding: 0 7px;
+    white-space: nowrap;
+}
+.leaflet-touch .leaflet-control-levels a, .leaflet-touch .leaflet-control-levels a:hover {
+    width: auto;
+    min-width: 30px;
+    line-height: 30px;
+    font-size: 15px;
+    padding: 0 10px;
+}
+.leaflet-control-levels a.current {
+    font-weight:bold;
+}
