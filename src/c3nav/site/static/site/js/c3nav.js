@@ -20,6 +20,7 @@ c3nav = {
             crs: L.CRS.Simple,
             maxBounds: c3nav.bounds,
             closePopupOnClick: false,
+            zoomControl: false
         });
         c3nav.map.fitBounds(c3nav.bounds, {padding: [30, 50]});
 
