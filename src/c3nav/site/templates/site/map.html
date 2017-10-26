@@ -22,28 +22,31 @@
         <h1>c3nav</h1>
     </header>
     <main class="map">
-        <section id="map" data-bounds="{{ bounds }}" data-levels="{{ levels }}">
-
-        </section>
+        <section id="map" data-bounds="{{ bounds }}" data-levels="{{ levels }}"></section>
         <section id="sidebar">
             <section id="search">
                 <div class="location locationinput" id="origin-input">
                     <input type="text" placeholder="{% trans 'Search any location…' %}">
                     <small>Lecture Hall</small>
+                    <button class="button-clear locate"></button>
+                    <button class="button-clear reset"></button>
                 </div>
                 <div class="location locationinput" id="destination-input">
                     <input type="text" placeholder="{% trans 'Search any location…' %}">
                     <small>Lecture Hall</small>
+                    <button class="button-clear locate"></button>
+                    <button class="button-clear reset"></button>
                 </div>
-                <div class="buttons" id="search-buttons">
+                <!--<div class="buttons" id="search-buttons">
                     <button class="button-clear">Scan QR Code</button>
                     <button class="button-clear">Locate</button>
-                </div>
-                <div class="buttons hidden" id="location-buttons">
-                    <button class="button-clear">Share</button>
+                </div>-->
+                <div class="buttons" id="location-buttons">
                     <button class="button-clear">Details</button>
+                    <button class="button-clear">Share</button>
+                    <button class="button-clear">Route</button>
                 </div>
-                <div class="buttons hidden" id="route-buttons">
+                <div class="buttons" id="route-buttons">
                     <button class="button-clear">swap</button>
                     <button class="button-clear">Options</button>
                 </div>

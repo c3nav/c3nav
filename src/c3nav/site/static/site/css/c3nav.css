@@ -65,22 +65,26 @@ main.map {
 #sidebar section > * {
     border: 0 #dddddd solid;
     border-top-width: 1px;
-    transition: height 200ms;
+    transition: height 300ms;
     overflow: hidden;
 }
 #sidebar section > :first-child {
     margin-top: -1px;
 }
-#sidebar section > *.hidden {
+#search:not(.location-view) #location-buttons,
+#search:not(.route-view) #origin-input,
+#search:not(.route-view) #route-buttons {
     margin-top: 0;
     height: 0;
     margin-bottom: -1px;
+    pointer-events: none;
 }
+#sidebar section > #route-buttons {
+    border-color: transparent !important;
+}
+
 #search {
     margin-bottom: 10px;
-}
-#search input {
-    margin: 0;
 }
 
 .location {
@@ -123,6 +127,32 @@ main.map {
 }
 .locationinput.selected input {
     padding-bottom: 24px;
+}
+.locationinput button {
+    position: absolute;
+    top: 6px;
+    right: 6px;
+    padding: 0;
+    opacity: 0.3;
+    width: 42px;
+    height: 42px;
+    background-size: 42px 42px;
+    background-repeat: no-repeat;
+    background-position: center;
+    border-width: 0;
+    transition: transform 150ms, opacity 150ms;
+}
+.locationinput button.locate {
+    background-image: url('../img/icons/locate.svg');
+    background-size: 36px 36px;
+}
+.locationinput button.reset {
+    background-image: url('../img/icons/cross.svg');
+}
+.locationinput.selected button.locate, .locationinput:not(.selected) button.reset {
+    transform: scale(0.7);
+    opacity: 0;
+    pointer-events:none;
 }
 
 .buttons {
