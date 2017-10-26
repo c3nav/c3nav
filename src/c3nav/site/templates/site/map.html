@@ -25,8 +25,32 @@
         <section id="map" data-bounds="{{ bounds }}" data-levels="{{ levels }}">
 
         </section>
-        <section id="search">
-            <input type="text" placeholder="{% trans 'Search any location…' %}" id="searchnameField">
+        <section id="sidebar">
+            <section id="search">
+                <div class="location locationinput">
+                    <input type="text" placeholder="{% trans 'Search any location…' %}" id="searchnameField">
+                    <small>Lecture Hall</small>
+                </div>
+                <div class="location locationinput">
+                    <input type="text" placeholder="{% trans 'Search any location…' %}" id="searchnameField">
+                    <small>Lecture Hall</small>
+                </div>
+                <div class="buttons">
+
+                </div>
+            </section>
+            <div id="resultswrapper">
+                <section id="results">
+                    <div class="location">
+                        <span>Hall 1</span>
+                        <small>Lecture Hall</small>
+                    </div>
+                    <div class="location">
+                        <span>Hall 1</span>
+                        <small>Lecture Hall</small>
+                    </div>
+                </section>
+            </div>
         </section>
     </main>
     {% compress js %}

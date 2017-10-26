@@ -1,5 +1,6 @@
 body {
     margin-top: 58px;
+    font-weight: normal;
 }
 
 header {
@@ -12,10 +13,20 @@ header {
     display: flex;
     align-items: center;
 }
-
 header h1 {
     font-size: 3rem;
     margin:0;
+}
+
+input {
+    font-family: inherit;
+    color: inherit;
+}
+::-webkit-input-placeholder {
+    color: #9DA2A6;
+}
+::-moz-placeholder {
+    color: #9DA2A6;
 }
 
 main.map {
@@ -26,8 +37,7 @@ main.map {
     bottom:0;
     background: url('../../img/loader.gif') no-repeat center;
 }
-
-section#map {
+#map {
     position:absolute;
     z-index: 1;
     left:0;
@@ -35,21 +45,79 @@ section#map {
     right:0;
     bottom:0;
 }
-
-section#search {
-    position:absolute;
+#sidebar {
+    position: absolute;
     z-index: 2;
-    top:0;
-    padding:10px;
+    top: 0;
+    padding: 10px;
     width: 100%;
-    max-width:420px;
+    bottom: 0;
+    max-width: 420px;
+    pointer-events: none;
 }
-
-section#search input {
-    background-color:#ffffff;
+#sidebar section {
+    pointer-events: auto;
+    background-color: #ffffff;
     box-shadow: 1px 1px 3px rgba(0, 0, 0, 0.2);
+    border-radius: 2px;
+    overflow:hidden;
+}
+#sidebar section > :first-child {
+    margin-top: -1px;
+}
+#sidebar > section:last-child {
+    margin-bottom: 0;
+}
+#search {
+    margin-bottom: 10px;
+}
+#search input {
+    margin: 0;
 }
 
+.location {
+    padding: 6px 10px;
+    height: 54px;
+    border: 0 #dddddd solid;
+    border-top-width: 1px;
+}
+.location > * {
+    display: block;
+    white-space: nowrap;
+}
+.location small {
+    line-height: 1.1;
+}
+
+.locationinput {
+    position: relative;
+    padding: 0;
+}
+.locationinput input {
+    box-sizing: border-box;
+    border-width:0;
+    height: 100%;
+    transition: padding-bottom 100ms;
+}
+.locationinput small {
+    position: absolute;
+    left: 10px;
+    top: 31px;
+    line-height: 1.1;
+    opacity: 1;
+    transition: opacity 100ms;
+}
+.locationinput:not(.selected) small {
+    opacity: 0;
+    -webkit-user-select: none;  /* Chrome all / Safari all */
+    -moz-user-select: none;     /* Firefox all */
+    -ms-user-select: none;      /* IE 10+ */
+    user-select: none;          /* Likely future */
+    pointer-events: none;
+}
+.locationinput.selected input {
+    padding-bottom: 24px;
+}
 
 
 /* leaftlet levels control */
