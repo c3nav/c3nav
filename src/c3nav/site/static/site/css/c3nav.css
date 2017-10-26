@@ -60,13 +60,21 @@ main.map {
     background-color: #ffffff;
     box-shadow: 1px 1px 3px rgba(0, 0, 0, 0.2);
     border-radius: 2px;
-    overflow:hidden;
+    overflow: hidden;
+}
+#sidebar section > * {
+    border: 0 #dddddd solid;
+    border-top-width: 1px;
+    transition: height 200ms;
+    overflow: hidden;
 }
 #sidebar section > :first-child {
     margin-top: -1px;
 }
-#sidebar > section:last-child {
-    margin-bottom: 0;
+#sidebar section > *.hidden {
+    margin-top: 0;
+    height: 0;
+    margin-bottom: -1px;
 }
 #search {
     margin-bottom: 10px;
@@ -77,9 +85,7 @@ main.map {
 
 .location {
     padding: 6px 10px;
-    height: 54px;
-    border: 0 #dddddd solid;
-    border-top-width: 1px;
+    height: 55px;
 }
 .location > * {
     display: block;
@@ -96,8 +102,8 @@ main.map {
 .locationinput input {
     box-sizing: border-box;
     border-width:0;
-    height: 100%;
-    transition: padding-bottom 100ms;
+    height: 54px;
+    transition: padding-bottom 150ms;
 }
 .locationinput small {
     position: absolute;
@@ -105,7 +111,7 @@ main.map {
     top: 31px;
     line-height: 1.1;
     opacity: 1;
-    transition: opacity 100ms;
+    transition: opacity 150ms;
 }
 .locationinput:not(.selected) small {
     opacity: 0;
@@ -119,6 +125,27 @@ main.map {
     padding-bottom: 24px;
 }
 
+.buttons {
+    display: flex;
+    flex-direction: row;
+    margin-left: -1px;
+    height: 3.3rem;
+}
+.buttons > button.button-clear {
+    width: 1px;
+    flex-grow: 1;
+    margin: 0;
+    border: 0 #dddddd solid;
+    border-left-width: 1px;
+    border-radius: 0;
+    padding: 0;
+    font-size: 1.3rem;
+    line-height: 1.3;
+    height: 3.3rem;
+}
+.buttons > *:hover, .buttons > *:active {
+    background-color: #eeeeee;
+}
 
 /* leaftlet levels control */
 .leaflet-control-levels a, .leaflet-control-levels a:hover {
