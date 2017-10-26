@@ -149,7 +149,7 @@ main.map {
 .locationinput button.reset {
     background-image: url('../img/icons/cross.svg');
 }
-.locationinput.selected button.locate, .locationinput:not(.selected) button.reset {
+.locationinput:not(.empty) button.locate, .locationinput.empty button.reset {
     transform: scale(0.7);
     opacity: 0;
     pointer-events:none;
