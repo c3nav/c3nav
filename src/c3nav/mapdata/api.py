@@ -189,8 +189,8 @@ class LocationViewSet(RetrieveModelMixin, GenericViewSet):
     """
     only accesses locations that have can_search or can_describe set to true.
     add ?search to onle show locations with can_search set to true
-    add ?detailed=1 to show all attributes
-    add ?geometry=1 to show geometries
+    add ?detailed to show all attributes
+    add ?geometry to show geometries
     /{id}/ add ?show_redirect=1 to suppress redirects and show them as JSON.
     """
     queryset = LocationSlug.objects.all()
