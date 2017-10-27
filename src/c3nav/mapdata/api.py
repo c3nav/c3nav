@@ -2,6 +2,7 @@ import mimetypes
 import operator
 from functools import reduce
 
+from django.core.cache import cache
 from django.db.models import Prefetch, Q
 from django.http import HttpResponse
 from django.shortcuts import redirect
@@ -12,7 +13,8 @@ from rest_framework.mixins import RetrieveModelMixin
 from rest_framework.response import Response
 from rest_framework.viewsets import GenericViewSet, ReadOnlyModelViewSet, ViewSet
 
-from c3nav.mapdata.models import AccessRestriction, Building, Door, Hole, LocationGroup, Source, Space
+from c3nav.mapdata.models import AccessRestriction, Building, Door, Hole, LocationGroup, MapUpdate, Source, Space
+from c3nav.mapdata.models.access import AccessPermission
 from c3nav.mapdata.models.geometry.level import LevelGeometryMixin
 from c3nav.mapdata.models.geometry.space import POI, Area, Column, LineObstacle, Obstacle, SpaceGeometryMixin, Stair
 from c3nav.mapdata.models.level import Level
@@ -186,28 +188,34 @@ class LocationGroupViewSet(MapdataViewSet):
 class LocationViewSet(RetrieveModelMixin, GenericViewSet):
     """
     only accesses locations that have can_search or can_describe set to true.
-    add ?detailed=1 to show all attributes, add ?geometry=1 to show geometries, add ?group=<id> to filter by group
+    add ?search to onle show locations with can_search set to true
+    add ?detailed=1 to show all attributes
+    add ?geometry=1 to show geometries
     /{id}/ add ?show_redirect=1 to suppress redirects and show them as JSON.
-    /search/ only accesses locations that have can_search set to true. Add GET Parameter “s” to search.
     """
     queryset = LocationSlug.objects.all()
     lookup_field = 'slug'
 
-    def get_queryset(self, search=False, group=None):
+    def get_queryset(self, search=False):
         queryset = super().get_queryset().order_by('id')
+
+        cache_key = 'mapdata:api:location:queryset:%d:%s:%s' % (
+            search,
+            ','.join((str(i) for i in sorted(AccessPermission.get_for_request(self.request)))),
+            MapUpdate.current_cache_key()
+        )
+        result = cache.get(cache_key, None)
+        if result is not None:
+            return result
 
         conditions = []
         for model in get_submodels(Location):
-            if group is not None and not hasattr(model, 'groups'):
-                continue
             related_name = model._meta.default_related_name
             condition = Q(**{related_name+'__isnull': False})
             if search:
                 condition &= Q(**{related_name+'__can_search': True})
             else:
                 condition &= Q(**{related_name+'__can_search': True, related_name+'__can_describe': True})
-            if group is not None:
-                condition &= Q(**{related_name+'__groups': group})
             # noinspection PyUnresolvedReferences
             condition &= model.q_for_request(self.request, prefix=related_name+'__')
             conditions.append(condition)
@@ -219,25 +227,19 @@ class LocationViewSet(RetrieveModelMixin, GenericViewSet):
             queryset = queryset.prefetch_related(Prefetch(model._meta.default_related_name + '__groups',
                                                           queryset=base_qs))
 
+        cache.set(cache_key, queryset, 300)
+
         return queryset
 
     def list(self, request, *args, **kwargs):
+        search = 'search' in request.GET
         detailed = 'detailed' in request.GET
         geometry = 'geometry' in request.GET
 
-        group = None
-        if 'group' in request.GET:
-            if not request.GET['group'].isdigit():
-                raise ValidationError(detail={'detail': _('%s is not an integer.') % 'group'})
-            try:
-                group = LocationGroup.objects.get(pk=request.GET['group'])
-            except LocationGroupCategory.DoesNotExist:
-                raise NotFound(detail=_('group not found.'))
+        queryset = self.get_queryset(search=search)
 
-        queryset = self.get_queryset(group=group)
-
-        return Response([obj.get_child().serialize(include_type=True, detailed=detailed, geometry=geometry)
-                         for obj in queryset])
+        return Response(tuple(obj.get_child().serialize(include_type=True, detailed=detailed, geometry=geometry)
+                              for obj in queryset))
 
     def retrieve(self, request, slug=None, *args, **kwargs):
         result = Location.get_by_slug(slug, self.get_queryset())
@@ -253,30 +255,6 @@ class LocationViewSet(RetrieveModelMixin, GenericViewSet):
     @list_route(methods=['get'])
     def types(self, request):
         return MapdataViewSet.list_types(get_submodels(Location), geomtype=False)
-
-    @list_route(methods=['get'])
-    def redirects(self, request):
-        return Response([obj.serialize(include_type=False) for obj in LocationRedirect.objects.all().order_by('id')])
-
-    @list_route(methods=['get'])
-    def search(self, request):
-        detailed = 'detailed' in request.GET
-        geometry = 'geometry' in request.GET
-        search = request.GET.get('s')
-
-        queryset = self.get_queryset(search=True)
-
-        if not search:
-            return Response([obj.get_child().serialize(include_type=True, detailed=detailed, geometry=geometry)
-                             for obj in queryset])
-
-        words = search.lower().split(' ')[:10]
-        results = queryset
-        for word in words:
-            results = [r for r in results if (word in r.title.lower() or (r.slug and word in r.slug.lower()))]
-        # todo: rank results
-        return Response([obj.get_child().serialize(include_type=True, detailed=detailed, geometry=geometry)
-                         for obj in results])
 
 
 class SourceViewSet(MapdataViewSet):
