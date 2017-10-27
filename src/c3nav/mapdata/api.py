@@ -1,11 +1,13 @@
 import mimetypes
 import operator
-from functools import reduce
+from functools import reduce, wraps
 
 from django.core.cache import cache
 from django.db.models import Prefetch, Q
 from django.http import HttpResponse
 from django.shortcuts import redirect
+from django.utils.cache import get_conditional_response
+from django.utils.http import quote_etag
 from django.utils.translation import ugettext_lazy as _
 from rest_framework.decorators import detail_route, list_route
 from rest_framework.exceptions import NotFound, ValidationError
@@ -30,6 +32,23 @@ def optimize_query(qs):
     return qs
 
 
+def simple_api_cache(permissions=True):
+    def wrapper(func):
+        @wraps(func)
+        def wrapped_func(self, request, *args, **kwargs):
+            etag = quote_etag(AccessPermission.etag_func(request) if permissions else MapUpdate.current_cache_key())
+
+            response = get_conditional_response(request, etag=etag)
+            if response is None:
+                response = func(self, request, *args, **kwargs)
+
+            response['ETag'] = etag
+            response['Cache-Control'] = 'no-cache'
+            return response
+        return wrapped_func
+    return wrapper
+
+
 class MapViewSet(ViewSet):
     """
     Map API
@@ -37,6 +56,7 @@ class MapViewSet(ViewSet):
     """
 
     @list_route(methods=['get'])
+    @simple_api_cache(permissions=False)
     def bounds(self, request, *args, **kwargs):
         return Response({
             'bounds': Source.max_bounds(),
@@ -50,6 +70,7 @@ class MapdataViewSet(ReadOnlyModelViewSet):
             return qs.model.qs_for_request(self.request)
         return qs
 
+    @simple_api_cache()
     def list(self, request, *args, **kwargs):
         qs = optimize_query(self.get_queryset())
         geometry = ('geometry' in request.GET)
@@ -97,6 +118,7 @@ class MapdataViewSet(ReadOnlyModelViewSet):
                 qs = qs.filter(on_top_of=level)
         return Response([obj.serialize(geometry=geometry) for obj in qs.order_by('id')])
 
+    @simple_api_cache()
     def retrieve(self, request, *args, **kwargs):
         return Response(self.get_object().serialize())
 
@@ -112,10 +134,12 @@ class LevelViewSet(MapdataViewSet):
     queryset = Level.objects.all()
 
     @list_route(methods=['get'])
+    @simple_api_cache(permissions=False)
     def geometrytypes(self, request):
         return self.list_types(get_submodels(LevelGeometryMixin))
 
     @detail_route(methods=['get'])
+    @simple_api_cache()
     def svg(self, request, pk=None):
         level = self.get_object()
         response = HttpResponse(level.render_svg(request), 'image/svg+xml')
@@ -132,6 +156,7 @@ class SpaceViewSet(MapdataViewSet):
     queryset = Space.objects.all()
 
     @list_route(methods=['get'])
+    @simple_api_cache(permissions=False)
     def geometrytypes(self, request):
         return self.list_types(get_submodels(SpaceGeometryMixin))
 
@@ -220,22 +245,21 @@ class LocationViewSet(RetrieveModelMixin, GenericViewSet):
 
         return queryset
 
+    @simple_api_cache()
     def list(self, request, *args, **kwargs):
         search = 'search' in request.GET
         detailed = 'detailed' in request.GET
         geometry = 'geometry' in request.GET
 
-        cache_key = 'mapdata:api:location:list:%d:%s:%s' % (
+        cache_key = 'mapdata:api:location:list:%d:%s' % (
             search + detailed*2 + geometry*4,
-            ','.join((str(i) for i in sorted(AccessPermission.get_for_request(self.request)))),
-            MapUpdate.current_cache_key()
+            AccessPermission.cache_key_for_request(self.request)
         )
         result = cache.get(cache_key, None)
         if result is None:
-            queryset_cache_key = 'mapdata:api:location:queryset:%d:%s:%s' % (
+            queryset_cache_key = 'mapdata:api:location:queryset:%d:%s' % (
                 search,
-                ','.join((str(i) for i in sorted(AccessPermission.get_for_request(self.request)))),
-                MapUpdate.current_cache_key()
+                AccessPermission.cache_key_for_request(self.request)
             )
             queryset = cache.get(queryset_cache_key, None)
             if queryset is None:
@@ -248,6 +272,7 @@ class LocationViewSet(RetrieveModelMixin, GenericViewSet):
 
         return Response(result)
 
+    @simple_api_cache()
     def retrieve(self, request, slug=None, *args, **kwargs):
         result = Location.get_by_slug(slug, self.get_queryset())
         if result is None:
@@ -260,6 +285,7 @@ class LocationViewSet(RetrieveModelMixin, GenericViewSet):
         return Response(result.serialize(include_type=True, detailed='detailed' in request.GET))
 
     @list_route(methods=['get'])
+    @simple_api_cache(permissions=False)
     def types(self, request):
         return MapdataViewSet.list_types(get_submodels(Location), geomtype=False)
 
@@ -268,6 +294,7 @@ class SourceViewSet(MapdataViewSet):
     queryset = Source.objects.all()
 
     @detail_route(methods=['get'])
+    @simple_api_cache()
     def image(self, request, pk=None):
         return self._image(request, pk=pk)
 

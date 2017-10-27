@@ -7,6 +7,7 @@ from django.db.models import Q
 from django.utils import timezone
 from django.utils.translation import ugettext_lazy as _
 
+from c3nav.mapdata.models import MapUpdate
 from c3nav.mapdata.models.base import SerializableMixin, TitledMixin
 
 
@@ -63,6 +64,17 @@ class AccessPermission(models.Model):
             expire_date = min((e for e in expire_dates if e), default=timezone.now()+timedelta(seconds=120))
             cache.set(cache_key, access_restriction_ids, max(0, (expire_date-timezone.now()).total_seconds()))
         return set(access_restriction_ids)
+
+    @classmethod
+    def cache_key_for_request(cls, request):
+        return '%s:%s' % (
+            MapUpdate.current_cache_key(),
+            ','.join(str(i) for i in sorted(AccessPermission.get_for_request(request)) or '0')
+        )
+
+    @classmethod
+    def etag_func(cls, request, *args, **kwargs):
+        return cls.cache_key_for_request(request)
 
 
 class AccessRestrictionMixin(SerializableMixin, models.Model):
