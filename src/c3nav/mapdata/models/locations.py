@@ -81,6 +81,7 @@ class Location(LocationSlug, AccessRestrictionMixin, TitledMixin, models.Model):
 
     def _serialize(self, **kwargs):
         result = super()._serialize(**kwargs)
+        result['subtitle'] = self.subtitle
         result['can_search'] = self.can_search
         result['can_describe'] = self.can_search
         return result
@@ -122,6 +123,10 @@ class Location(LocationSlug, AccessRestrictionMixin, TitledMixin, models.Model):
             return self._meta.verbose_name + ' ' + self.slug
         return super().title
 
+    @property
+    def subtitle(self):
+        return ''
+
     def get_color(self, instance=None):
         # dont filter in the query here so prefetch_related works
         if instance is None:
@@ -149,6 +154,17 @@ class SpecificLocation(Location, models.Model):
                       if getattr(category, 'allow_'+self.__class__._meta.default_related_name)}
             result['groups'] = groups
         return result
+
+    @property
+    def subtitle(self):
+        related_name = self.__class__._meta.default_related_name
+        groups = tuple(self.groups.all())
+        if groups:
+            group = max((group for group in groups if getattr(group.category, 'allow_'+related_name)),
+                        key=lambda group: (group.category.priority, group.priority), default=None)
+            return group.title
+        else:
+            return str(self.__class__._meta.verbose_name)
 
 
 class LocationGroupCategory(TitledMixin, models.Model):

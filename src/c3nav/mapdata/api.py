@@ -186,43 +186,44 @@ class LocationGroupViewSet(MapdataViewSet):
 class LocationViewSet(RetrieveModelMixin, GenericViewSet):
     """
     only accesses locations that have can_search or can_describe set to true.
-    add ?detailed=1 to show all attributes, add ?group=<id> to filter by group.
+    add ?detailed=1 to show all attributes, add ?geometry=1 to show geometries, add ?group=<id> to filter by group
     /{id}/ add ?show_redirect=1 to suppress redirects and show them as JSON.
     /search/ only accesses locations that have can_search set to true. Add GET Parameter “s” to search.
     """
     queryset = LocationSlug.objects.all()
     lookup_field = 'slug'
 
-    def get_queryset(self, detailed=False, subconditions=None, group=None):
+    def get_queryset(self, search=False, group=None):
         queryset = super().get_queryset().order_by('id')
 
         conditions = []
         for model in get_submodels(Location):
             if group is not None and not hasattr(model, 'groups'):
                 continue
-            condition = Q(**{model._meta.default_related_name + '__isnull': False})
-            if subconditions:
-                condition &= reduce(operator.or_, (Q(**{model._meta.default_related_name+'__'+name: value})
-                                                   for name, value in subconditions.items()))
+            related_name = model._meta.default_related_name
+            condition = Q(**{related_name+'__isnull': False})
+            if search:
+                condition &= Q(**{related_name+'__can_search': True})
+            else:
+                condition &= Q(**{related_name+'__can_search': True, related_name+'__can_describe': True})
             if group is not None:
-                condition &= Q(**{model._meta.default_related_name+'__groups': group})
+                condition &= Q(**{related_name+'__groups': group})
             # noinspection PyUnresolvedReferences
-            condition &= model.q_for_request(self.request, prefix=model._meta.default_related_name+'__')
+            condition &= model.q_for_request(self.request, prefix=related_name+'__')
             conditions.append(condition)
         queryset = queryset.filter(reduce(operator.or_, conditions))
 
-        if detailed:
-            base_qs = LocationGroup.objects.all().select_related('category')
-            for model in get_submodels(SpecificLocation):
-                queryset = queryset.prefetch_related(Prefetch(model._meta.default_related_name + '__groups',
-                                                              queryset=base_qs))
+        # prefetch locationgroups
+        base_qs = LocationGroup.objects.all().select_related('category')
+        for model in get_submodels(SpecificLocation):
+            queryset = queryset.prefetch_related(Prefetch(model._meta.default_related_name + '__groups',
+                                                          queryset=base_qs))
 
         return queryset
 
     def list(self, request, *args, **kwargs):
         detailed = 'detailed' in request.GET
-
-        subconditions = {'can_search': True, 'can_describe': True}
+        geometry = 'geometry' in request.GET
 
         group = None
         if 'group' in request.GET:
@@ -233,9 +234,10 @@ class LocationViewSet(RetrieveModelMixin, GenericViewSet):
             except LocationGroupCategory.DoesNotExist:
                 raise NotFound(detail=_('group not found.'))
 
-        queryset = self.get_queryset(detailed=detailed, subconditions=subconditions, group=group)
+        queryset = self.get_queryset(group=group)
 
-        return Response([obj.get_child().serialize(include_type=True, detailed=detailed) for obj in queryset])
+        return Response([obj.get_child().serialize(include_type=True, detailed=detailed, geometry=geometry)
+                         for obj in queryset])
 
     def retrieve(self, request, slug=None, *args, **kwargs):
         result = Location.get_by_slug(slug, self.get_queryset())
@@ -259,19 +261,22 @@ class LocationViewSet(RetrieveModelMixin, GenericViewSet):
     @list_route(methods=['get'])
     def search(self, request):
         detailed = 'detailed' in request.GET
+        geometry = 'geometry' in request.GET
         search = request.GET.get('s')
 
-        queryset = self.get_queryset(detailed=detailed, subconditions={'can_search': True})
+        queryset = self.get_queryset(search=True)
 
         if not search:
-            return Response([obj.get_child().serialize(include_type=True, detailed=detailed) for obj in queryset])
+            return Response([obj.get_child().serialize(include_type=True, detailed=detailed, geometry=geometry)
+                             for obj in queryset])
 
         words = search.lower().split(' ')[:10]
         results = queryset
         for word in words:
             results = [r for r in results if (word in r.title.lower() or (r.slug and word in r.slug.lower()))]
         # todo: rank results
-        return Response([obj.get_child().serialize(include_type=True, detailed=detailed) for obj in results])
+        return Response([obj.get_child().serialize(include_type=True, detailed=detailed, geometry=geometry)
+                         for obj in results])
 
 
 class SourceViewSet(MapdataViewSet):
