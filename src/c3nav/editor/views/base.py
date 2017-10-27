@@ -17,11 +17,13 @@ def sidebar_view(func=None, select_related=None):
     def with_ajax_check(request, *args, **kwargs):
         request.changeset = ChangeSet.get_for_request(request, select_related)
 
-        if request.is_ajax() or 'ajax' in request.GET:
+        ajax = request.is_ajax() or 'ajax' in request.GET
+
+        if not ajax:
             request.META.pop('HTTP_IF_NONE_MATCH', None)
 
         response = func(request, *args, **kwargs)
-        if request.is_ajax() or 'ajax' in request.GET:
+        if ajax:
             if isinstance(response, HttpResponseRedirect):
                 return render(request, 'editor/redirect.html', {'target': response['location']})
             if not isinstance(response, HttpResponseNotModified):
