@@ -12,6 +12,7 @@ c3nav = {
         c3nav.bounds = JSON.parse($map.attr('data-bounds'));
         c3nav.levels = JSON.parse($map.attr('data-levels'));
 
+        // create leaflet map
         c3nav.map = L.map('map', {
             renderer: L.svg({padding: 2}),
             zoom: 2,
@@ -24,8 +25,10 @@ c3nav = {
         });
         c3nav.map.fitBounds(c3nav.bounds, {padding: [30, 50]});
 
+        // setup scale control
         L.control.scale({imperial: false}).addTo(c3nav.map);
 
+        // setup level control
         c3nav._levelControl = new LevelControl().addTo(c3nav.map);
         for (var i = c3nav.levels.length - 1; i >= 0; i--) {
             var level = c3nav.levels[i];
