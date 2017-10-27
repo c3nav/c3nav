@@ -196,25 +196,16 @@ class LocationViewSet(RetrieveModelMixin, GenericViewSet):
     queryset = LocationSlug.objects.all()
     lookup_field = 'slug'
 
-    def get_queryset(self, search=False):
+    def get_queryset(self, mode=None):
         queryset = super().get_queryset().order_by('id')
-
-        cache_key = 'mapdata:api:location:queryset:%d:%s:%s' % (
-            search,
-            ','.join((str(i) for i in sorted(AccessPermission.get_for_request(self.request)))),
-            MapUpdate.current_cache_key()
-        )
-        result = cache.get(cache_key, None)
-        if result is not None:
-            return result
 
         conditions = []
         for model in get_submodels(Location):
             related_name = model._meta.default_related_name
             condition = Q(**{related_name+'__isnull': False})
-            if search:
+            if mode == 1:
                 condition &= Q(**{related_name+'__can_search': True})
-            else:
+            elif mode == 2:
                 condition &= Q(**{related_name+'__can_search': True, related_name+'__can_describe': True})
             # noinspection PyUnresolvedReferences
             condition &= model.q_for_request(self.request, prefix=related_name+'__')
@@ -227,8 +218,6 @@ class LocationViewSet(RetrieveModelMixin, GenericViewSet):
             queryset = queryset.prefetch_related(Prefetch(model._meta.default_related_name + '__groups',
                                                           queryset=base_qs))
 
-        cache.set(cache_key, queryset, 300)
-
         return queryset
 
     def list(self, request, *args, **kwargs):
@@ -236,10 +225,28 @@ class LocationViewSet(RetrieveModelMixin, GenericViewSet):
         detailed = 'detailed' in request.GET
         geometry = 'geometry' in request.GET
 
-        queryset = self.get_queryset(search=search)
+        cache_key = 'mapdata:api:location:list:%d:%s:%s' % (
+            search + detailed*2 + geometry*4,
+            ','.join((str(i) for i in sorted(AccessPermission.get_for_request(self.request)))),
+            MapUpdate.current_cache_key()
+        )
+        result = cache.get(cache_key, None)
+        if result is None:
+            queryset_cache_key = 'mapdata:api:location:queryset:%d:%s:%s' % (
+                search,
+                ','.join((str(i) for i in sorted(AccessPermission.get_for_request(self.request)))),
+                MapUpdate.current_cache_key()
+            )
+            queryset = cache.get(queryset_cache_key, None)
+            if queryset is None:
+                queryset = self.get_queryset(mode=(1 if search else 2))
+                cache.set(queryset_cache_key, queryset, 300)
 
-        return Response(tuple(obj.get_child().serialize(include_type=True, detailed=detailed, geometry=geometry)
-                              for obj in queryset))
+            result = tuple(obj.get_child().serialize(include_type=True, detailed=detailed, geometry=geometry)
+                           for obj in queryset)
+            cache.set(cache_key, result, 300)
+
+        return Response(result)
 
     def retrieve(self, request, slug=None, *args, **kwargs):
         result = Location.get_by_slug(slug, self.get_queryset())
