@@ -233,7 +233,7 @@ class LocationGroup(Location, models.Model):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.orig_priority = self.priority
-        self.orig_category = self.category
+        self.orig_category_id = self.category_id
         self.orig_color = self.color
 
     def _serialize(self, **kwargs):
@@ -266,7 +266,9 @@ class LocationGroup(Location, models.Model):
                 obj.register_change(force=True)
 
     def save(self, *args, **kwargs):
-        if self.orig_color != self.color or self.priority != self.orig_priority or self.category != self.orig_category:
+        if (self.orig_color != self.color or
+                self.priority != self.orig_priority or
+                self.category_id != self.orig_category_id):
             self.register_changed_geometries()
         super().save(*args, **kwargs)
 
