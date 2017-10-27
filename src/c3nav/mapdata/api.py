@@ -188,7 +188,7 @@ class LocationGroupViewSet(MapdataViewSet):
 class LocationViewSet(RetrieveModelMixin, GenericViewSet):
     """
     only accesses locations that have can_search or can_describe set to true.
-    add ?search to onle show locations with can_search set to true
+    add ?search to only show locations with can_search set to true
     add ?detailed to show all attributes
     add ?geometry to show geometries
     /{id}/ add ?show_redirect=1 to suppress redirects and show them as JSON.
