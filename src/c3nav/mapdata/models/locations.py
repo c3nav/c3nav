@@ -16,7 +16,7 @@ class LocationSlugManager(models.Manager):
         if self.model == LocationSlug:
             result = result.select_related(*(model._meta.default_related_name
                                              for model in get_submodels(Location)+[LocationRedirect]))
-        return result
+        return result.defer('levels__render_data')
 
     def select_related_target(self):
         if self.model != LocationSlug:
