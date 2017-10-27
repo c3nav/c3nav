@@ -1,10 +1,11 @@
 from functools import wraps
 
-from django.http import HttpResponseRedirect
+from django.http import HttpResponseNotModified, HttpResponseRedirect
 from django.shortcuts import render
 from django.views.decorators.cache import never_cache
 
 from c3nav.editor.models import ChangeSet
+from c3nav.mapdata.models.access import AccessPermission
 
 
 def sidebar_view(func=None, select_related=None):
@@ -17,13 +18,22 @@ def sidebar_view(func=None, select_related=None):
     def with_ajax_check(request, *args, **kwargs):
         request.changeset = ChangeSet.get_for_request(request, select_related)
 
+        if request.is_ajax() or 'ajax' in request.GET:
+            request.META.pop('HTTP_IF_NONE_MATCH', None)
+
         response = func(request, *args, **kwargs)
         if request.is_ajax() or 'ajax' in request.GET:
             if isinstance(response, HttpResponseRedirect):
                 return render(request, 'editor/redirect.html', {'target': response['location']})
-            response.write(render(request, 'editor/fragment_nav.html', {}).content)
+            if not isinstance(response, HttpResponseNotModified):
+                response.write(render(request, 'editor/fragment_nav.html', {}).content)
             return response
         if isinstance(response, HttpResponseRedirect):
             return response
         return render(request, 'editor/map.html', {'content': response.content})
     return never_cache(with_ajax_check)
+
+
+def etag_func(request, *args, **kwargs):
+    return (request.changeset.raw_cache_key_by_changes + ':' +
+            AccessPermission.cache_key_for_request(request, with_update=False))

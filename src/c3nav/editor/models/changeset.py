@@ -685,7 +685,13 @@ class ChangeSet(models.Model):
 
     @property
     def cache_key_by_changes(self):
-        return ':'.join(('editor:changeset', str(self.pk), MapUpdate.current_cache_key(), self.last_change_cache_key))
+        return 'editor:changeset:' + self.raw_cache_key_by_changes
+
+    @property
+    def raw_cache_key_by_changes(self):
+        if self.pk is None:
+            return MapUpdate.current_cache_key()
+        return ':'.join((str(self.pk), MapUpdate.current_cache_key(), self.last_change_cache_key))
 
     def get_absolute_url(self):
         if self.pk is None:

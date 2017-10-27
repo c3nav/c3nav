@@ -7,9 +7,10 @@ from django.db import models
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.utils.translation import ugettext_lazy as _
+from django.views.decorators.http import etag
 
 from c3nav.editor.forms import GraphEdgeSettingsForm, GraphEditorActionForm, GraphEditorSettingsForm
-from c3nav.editor.views.base import sidebar_view
+from c3nav.editor.views.base import etag_func, sidebar_view
 
 
 def child_model(request, model: typing.Union[str, models.Model], kwargs=None, parent=None):
@@ -30,6 +31,7 @@ def child_model(request, model: typing.Union[str, models.Model], kwargs=None, pa
 
 
 @sidebar_view
+@etag(etag_func)
 def main_index(request):
     Level = request.changeset.wrap_model('Level')
     return render(request, 'editor/index.html', {
@@ -46,6 +48,7 @@ def main_index(request):
 
 
 @sidebar_view
+@etag(etag_func)
 def level_detail(request, pk):
     Level = request.changeset.wrap_model('Level')
     qs = Level.objects.filter(Level.q_for_request(request))
@@ -66,6 +69,7 @@ def level_detail(request, pk):
 
 
 @sidebar_view
+@etag(etag_func)
 def space_detail(request, level, pk):
     Space = request.changeset.wrap_model('Space')
     qs = Space.objects.filter(Space.q_for_request(request))
@@ -84,6 +88,7 @@ def space_detail(request, level, pk):
 
 
 @sidebar_view
+@etag(etag_func)
 def edit(request, pk=None, model=None, level=None, space=None, on_top_of=None, explicit_edit=False):
     model = request.changeset.wrap_model(model)
     related_name = model._meta.default_related_name
@@ -272,6 +277,7 @@ def edit(request, pk=None, model=None, level=None, space=None, on_top_of=None, e
 
 
 @sidebar_view
+@etag(etag_func)
 def list_objects(request, model=None, level=None, space=None, explicit_edit=False):
     if not request.resolver_match.url_name.endswith('.list'):
         raise ValueError('url_name does not end with .list')
@@ -401,6 +407,7 @@ def connect_nodes(request, active_node, clicked_node, edge_settings_form, graph_
 
 
 @sidebar_view
+@etag(etag_func)
 def graph_edit(request, level=None, space=None):
     Level = request.changeset.wrap_model('Level')
     Space = request.changeset.wrap_model('Space')
@@ -557,6 +564,7 @@ def graph_edit(request, level=None, space=None):
 
 
 @sidebar_view
+@etag(etag_func)
 def graph_editing_settings_view(request):
     ctx: dict = {
         'closemodal': False,
