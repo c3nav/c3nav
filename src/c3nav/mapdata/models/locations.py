@@ -1,3 +1,4 @@
+from collections import OrderedDict
 from contextlib import suppress
 
 from django.apps import apps
@@ -73,10 +74,9 @@ class Location(LocationSlug, AccessRestrictionMixin, TitledMixin, models.Model):
     def serialize(self, detailed=True, **kwargs):
         result = super().serialize(detailed=detailed, **kwargs)
         if not detailed:
-            result.pop('type', None)
-            result.pop('id', None)
-            result.pop('slug', None)
-            result.pop('target', None)
+            result = OrderedDict((
+                (name, result[name]) for name in ('slug', 'title', 'subtitle')
+            ))
         return result
 
     def _serialize(self, **kwargs):

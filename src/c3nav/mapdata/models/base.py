@@ -47,10 +47,8 @@ class TitledMixin(SerializableMixin, models.Model):
         super().__init__(*args, **kwargs)
         self.titles = self.titles.copy()
 
-    def serialize(self, detailed=True, **kwargs):
-        result = super().serialize(detailed=detailed, **kwargs)
-        if not detailed:
-            result.pop('title', None)
+    def serialize(self, **kwargs):
+        result = super().serialize(**kwargs)
         return result
 
     def _serialize(self, **kwargs):
