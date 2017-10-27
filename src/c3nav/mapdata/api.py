@@ -32,11 +32,11 @@ def optimize_query(qs):
     return qs
 
 
-def simple_api_cache(permissions=True):
+def simple_api_cache(permissions=True, etag_func=AccessPermission.etag_func):
     def wrapper(func):
         @wraps(func)
         def wrapped_func(self, request, *args, **kwargs):
-            etag = quote_etag(AccessPermission.etag_func(request) if permissions else MapUpdate.current_cache_key())
+            etag = quote_etag(etag_func(request) if permissions else MapUpdate.current_cache_key())
 
             response = get_conditional_response(request, etag=etag)
             if response is None:
