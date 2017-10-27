@@ -157,14 +157,9 @@ class SpecificLocation(Location, models.Model):
 
     @property
     def subtitle(self):
-        related_name = self.__class__._meta.default_related_name
         groups = tuple(self.groups.all())
         if groups:
-            group = max((group for group in groups if getattr(group.category, 'allow_'+related_name)),
-                        key=lambda group: (group.category.priority, group.priority), default=None)
-            return group.title
-        else:
-            return str(self.__class__._meta.verbose_name)
+            return groups[0].title if groups else str(self.__class__._meta.verbose_name)
 
 
 class LocationGroupCategory(TitledMixin, models.Model):
