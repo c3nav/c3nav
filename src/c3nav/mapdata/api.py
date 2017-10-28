@@ -213,7 +213,7 @@ class LocationGroupViewSet(MapdataViewSet):
 class LocationViewSet(RetrieveModelMixin, GenericViewSet):
     """
     only accesses locations that have can_search or can_describe set to true.
-    add ?search to only show locations with can_search set to true ordered by relevance
+    add ?searchable to only show locations with can_search set to true ordered by relevance
     add ?detailed to show all attributes
     add ?geometry to show geometries
     /{id}/ add ?show_redirect=1 to suppress redirects and show them as JSON.
@@ -247,27 +247,27 @@ class LocationViewSet(RetrieveModelMixin, GenericViewSet):
 
     @simple_api_cache()
     def list(self, request, *args, **kwargs):
-        search = 'search' in request.GET
+        searchable = 'searchable' in request.GET
         detailed = 'detailed' in request.GET
         geometry = 'geometry' in request.GET
 
         cache_key = 'mapdata:api:location:list:%d:%s' % (
-            search + detailed*2 + geometry*4,
+            searchable + detailed*2 + geometry*4,
             AccessPermission.cache_key_for_request(self.request)
         )
         result = cache.get(cache_key, None)
         if result is None:
             queryset_cache_key = 'mapdata:api:location:queryset:%d:%s' % (
-                search,
+                searchable,
                 AccessPermission.cache_key_for_request(self.request)
             )
             queryset = cache.get(queryset_cache_key, None)
             if queryset is None:
-                queryset = self.get_queryset(mode=('search' if search else 'search-describe'))
+                queryset = self.get_queryset(mode=('searchable' if searchable else 'searchable-describe'))
                 cache.set(queryset_cache_key, queryset, 300)
 
             queryset = (obj.get_child() for obj in queryset)
-            if search:
+            if searchable:
                 queryset = sorted(queryset, key=operator.attrgetter('order'), reverse=True)
 
             result = tuple(obj.serialize(include_type=True, detailed=detailed, geometry=geometry) for obj in queryset)
