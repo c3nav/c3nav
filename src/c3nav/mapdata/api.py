@@ -231,7 +231,7 @@ class LocationViewSet(RetrieveModelMixin, GenericViewSet):
             if mode == 'search':
                 condition &= Q(**{related_name+'__can_search': True})
             elif mode == 'search-describe':
-                condition &= Q(**{related_name+'__can_search': True, related_name+'__can_describe': True})
+                condition &= Q(**{related_name+'__can_search': True}) | Q(**{related_name+'__can_describe': True})
             # noinspection PyUnresolvedReferences
             condition &= model.q_for_request(self.request, prefix=related_name+'__')
             conditions.append(condition)
