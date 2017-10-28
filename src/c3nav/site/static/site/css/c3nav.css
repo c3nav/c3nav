@@ -109,6 +109,12 @@ main.map {
 .location small {
     line-height: 1.1;
 }
+.location.focus {
+    background-color: #f4f4f4;
+}
+#autocomplete .location {
+    cursor: pointer;
+}
 
 .locationinput {
     position: relative;

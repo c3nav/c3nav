@@ -12,16 +12,19 @@ c3nav = {
     },
 
     init_locationinputs: function () {
-        c3nav.locationinput_locations = [];
+        c3nav.locations = [];
+        c3nav.locations_by_slug = {};
+        c3nav.current_locationinput = null;
         c3nav._last_match_words_key = null;
         $.getJSON('/api/locations/?searchable', function (data) {
             for (var i = 0; i < data.length; i++) {
                 var location = data[i];
-                location.elem = $('<div class="location">').append($('<span>').text(location.title));
-                location.elem.append($('<small>').text(location.subtitle));
+                location.elem = $('<div class="location">').append($('<span>').text(location.title))
+                    .append($('<small>').text(location.subtitle)).attr('data-slug', location.slug);
                 location.title_words = location.title.toLowerCase().split(/\s+/);
                 location.match = ' ' + location.title_words.join(' ') + ' ';
-                c3nav.locationinput_locations.push(location);
+                c3nav.locations.push(location);
+                c3nav.locations_by_slug[location.slug] = location;
             }
         });
 
@@ -29,21 +32,118 @@ c3nav = {
             .on('blur', c3nav._locationinput_blur)
             .on('keydown', c3nav._locationinput_keydown);
         $('.locationinput .clear').on('click', c3nav._locationinput_clear);
+        $('#autocomplete').on('mouseover', '.location', c3nav._locationinput_hover_suggestion)
+            .on('click', '.location', c3nav._locationinput_click_suggestion);
+        $('html').on('focus', '*', c3nav._locationinput_global_focuschange)
     },
     _locationinput_set: function (elem, location) {
+        // set a location input
+        c3nav._locationinput_reset_autocomplete();
         if (location === null || location === undefined) {
-            elem.removeClass('selected').addClass('empty');
-            elem.find('input').val('');
-            elem.find('small').val('');
+            elem.removeClass('selected').addClass('empty').data('location', null).data('lastlocation', null);
+            elem.find('input').val('').data('origval', null);
+            elem.find('small').text('');
             return;
         }
-        elem.addClass('selected').removeClass('empty').data('location', location);
-        elem.find('input').val(location.title);
-        elem.find('small').val(location.subtitle);
+        elem.addClass('selected').removeClass('empty').data('location', location).data('lastlocation', location);
+        elem.find('input').val(location.title).data('origval', null);
+        elem.find('small').text(location.subtitle);
     },
-    _locationinput_clear: function (e) {
+    _locationinput_reset: function (elem) {
+        // reset this locationinput to its last location
+        c3nav._locationinput_set(elem, elem.data('lastlocation'));
+    },
+    _locationinput_clear: function () {
+        // clear this locationinput
         c3nav._locationinput_set($(this).parent(), null);
-        $(this).parent().find('input').focus()
+        $(this).parent().find('input').focus();
+    },
+    _locationinput_reset_autocomplete: function () {
+        // hide autocomplete
+        $autocomplete = $('#autocomplete');
+        $autocomplete.find('.focus').removeClass('focus');
+        $autocomplete.html('');
+        c3nav._last_locationinput_words_key = null;
+        c3nav.current_locationinput = null;
+    },
+    _locationinput_blur: function () {
+        // when a locationinput is blurred…
+        var location = $(this).parent().data('location');
+        if (location !== null && location !== undefined) {
+            // if the current content is a location name, set it
+            c3nav._locationinput_set($(this).parent(), location);
+        } else {
+            // otherwise, forget the last location
+            $(this).parent().data('lastlocation', null);
+        }
+    },
+    _locationinput_global_focuschange: function () {
+        // when focus changed, reset autocomplete if it is outside of locationinputs or autocomplete
+        if (c3nav.current_locationinput === null) return;
+        if ($('#autocomplete > :focus, #' + c3nav.current_locationinput + ' > :focus').length === 0) {
+            c3nav._locationinput_reset_autocomplete();
+        }
+    },
+    _locationinput_keydown: function (e) {
+        var $autocomplete = $('#autocomplete'), $focused, origval;
+        if (e.which === 27) {
+            // escape: reset the location input
+            origval = $(this).data('origval');
+            if (origval !== null) {
+                $(this).val(origval);
+                $(this).data('origval', null);
+                $autocomplete.find('.focus').removeClass('focus')
+            } else {
+                c3nav._locationinput_reset($(this).parent());
+            }
+        } else if (e.which === 40 || e.which === 38) {
+            // arrows up/down
+            var $locations = $autocomplete.find('.location');
+            if ($locations.length === 0) return;
+
+            // save current input value in case we have to restore it
+            origval = $(this).data('origval');
+            if (origval === null || origval === undefined) {
+                origval = $(this).val();
+                $(this).data('origval', origval)
+            }
+
+            // find focused element and remove focus
+            $focused = $locations.filter('.focus');
+            $locations.removeClass('focus');
+
+            // find next element
+            var next;
+            if ($focused.length === 0) {
+                next = $locations.filter((e.which === 40) ? ':first-child' : ':last-child');
+            } else {
+                next = (e.which === 40) ? $focused.next() : $focused.prev();
+            }
+
+            if (next.length === 0) {
+                // if there is no next element, restore original value
+                $(this).val($(this).data('origval')).parent().data('location', null);
+            } else {
+                // otherwise, focus this element, and save location to the input
+                next.addClass('focus');
+                $(this).val(next.find('span').text()).parent()
+                    .data('location', c3nav.locations_by_slug[next.attr('data-slug')]);
+            }
+        } else if (e.which === 13) {
+            // enter: select currently focused suggestion or first suggestion
+            $focused = $autocomplete.find('.location.focus');
+            if ($focused.length === 0) {
+                $focused = $autocomplete.find('.location:first-child');
+            }
+            if ($focused.length === 0) return;
+            c3nav._locationinput_set($(this).parent(), c3nav.locations_by_slug[$focused.attr('data-slug')])
+        }
+    },
+    _locationinput_hover_suggestion: function () {
+        $(this).addClass('focus').siblings().removeClass('focus');
+    },
+    _locationinput_click_suggestion: function () {
+        c3nav._locationinput_set($('#' + c3nav.current_locationinput), c3nav.locations_by_slug[$(this).attr('data-slug')])
     },
     _locationinput_matches_compare: function (a, b) {
         if (a[1] !== b[1]) return b[1] - a[1];
@@ -51,41 +151,26 @@ c3nav = {
         if (a[3] !== b[3]) return b[3] - a[3];
         return a[4] - b[4];
     },
-    _locationinput_blur: function (e) {
-        $('#autocomplete').html('');
-        c3nav._last_locationinput_words_key = null;
-        c3nav._locationinput_set($(this).parent(), $(this).parent().data('location'));
-    },
-    _locationinput_keydown: function (e) {
-        if (e.which === 27) {
-            // escape
-            $(this).blur().focus();
-        }
-    },
-    _locationinput_input: function (e) {
+    _locationinput_input: function () {
         var matches = [],
-            val = $(this).val(),
+            val = $(this).data('origval', null).val(),
             val_trimmed = $.trim(val),
             val_words = val_trimmed.toLowerCase().split(/\s+/),
             val_words_key = val_words.join(' '),
             $autocomplete = $('#autocomplete');
-        $(this).parent().removeClass('selected');
-        if (val === '') {
-            c3nav._locationinput_set($(this).parent(), null);
-        }
+        $(this).parent().removeClass('selected').data('location', null);
+        $autocomplete.find('.focus').removeClass('focus');
+        c3nav.current_locationinput = $(this).parent().attr('id');
 
         if (val_trimmed === '') {
-            $autocomplete.html('');
-            c3nav._last_locationinput_words_key = null;
+            c3nav._locationinput_reset_autocomplete();
             return;
         }
-        if (val_words_key === c3nav._last_locationinput_words_key) {
-            return;
-        }
+        if (val_words_key === c3nav._last_locationinput_words_key) return;
         c3nav._last_locationinput_words_key = val_words_key;
 
-        for (var i = 0; i < c3nav.locationinput_locations.length; i++) {
-            var location = c3nav.locationinput_locations[i],
+        for (var i = 0; i < c3nav.locations.length; i++) {
+            var location = c3nav.locations[i],
                 leading_words_count = 0,
                 words_total_count = 0,
                 words_start_count = 0,
