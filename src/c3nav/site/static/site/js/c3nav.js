@@ -12,6 +12,9 @@ c3nav = {
     },
 
     init_sidebar: function () {
+        c3nav.init_locationinputs();
+    },
+    init_locationinputs: function () {
         c3nav.locations = [];
         c3nav.locations_by_slug = {};
         c3nav.current_locationinput = null;
