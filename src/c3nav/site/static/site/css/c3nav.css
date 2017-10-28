@@ -68,7 +68,7 @@ main.map {
 #sidebar section > * {
     border: 0 #dddddd solid;
     border-top-width: 1px;
-    transition: height 300ms;
+    transition: height 150ms;
     overflow: hidden;
 }
 #sidebar section > :first-child {
