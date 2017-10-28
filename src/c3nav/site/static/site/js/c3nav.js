@@ -47,6 +47,8 @@ c3nav = {
         c3nav._levelControl.finalize();
         c3nav._levelControl.setLevel(c3nav.levels[0][0]);
 
+        c3nav.schedule_refresh_tile_access();
+
     },
 
     schedule_refresh_tile_access: function () {
