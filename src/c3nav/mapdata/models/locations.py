@@ -3,6 +3,8 @@ from contextlib import suppress
 
 from django.apps import apps
 from django.db import models
+from django.db.models import Prefetch
+from django.utils.functional import cached_property
 from django.utils.translation import ugettext_lazy as _
 
 from c3nav.mapdata.models.access import AccessRestrictionMixin
@@ -53,6 +55,10 @@ class LocationSlug(SerializableMixin, models.Model):
         result = super()._serialize(**kwargs)
         result['slug'] = self.get_slug()
         return result
+
+    @cached_property
+    def order(self):
+        return (-1, 0)
 
     class Meta:
         verbose_name = _('Location with Slug')
@@ -160,6 +166,13 @@ class SpecificLocation(Location, models.Model):
         groups = tuple(self.groups.all())
         return groups[0].title if groups else str(self.__class__._meta.verbose_name)
 
+    @cached_property
+    def order(self):
+        groups = tuple(self.groups.all())
+        if not groups:
+            return (0, 0)
+        return (0, groups[0].category.priority, groups[0].priority)
+
 
 class LocationGroupCategory(TitledMixin, models.Model):
     name = models.SlugField(_('Name'), unique=True, max_length=50)
@@ -259,6 +272,10 @@ class LocationGroup(Location, models.Model):
                     query = query.select_related('space')
             for obj in query:
                 obj.register_change(force=True)
+
+    @cached_property
+    def order(self):
+        return (self.category.priority, self.priority)
 
     def save(self, *args, **kwargs):
         if (self.orig_color != self.color or

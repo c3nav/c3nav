@@ -213,7 +213,7 @@ class LocationGroupViewSet(MapdataViewSet):
 class LocationViewSet(RetrieveModelMixin, GenericViewSet):
     """
     only accesses locations that have can_search or can_describe set to true.
-    add ?search to only show locations with can_search set to true
+    add ?search to only show locations with can_search set to true ordered by relevance
     add ?detailed to show all attributes
     add ?geometry to show geometries
     /{id}/ add ?show_redirect=1 to suppress redirects and show them as JSON.
@@ -266,8 +266,11 @@ class LocationViewSet(RetrieveModelMixin, GenericViewSet):
                 queryset = self.get_queryset(mode=('search' if search else 'search-describe'))
                 cache.set(queryset_cache_key, queryset, 300)
 
-            result = tuple(obj.get_child().serialize(include_type=True, detailed=detailed, geometry=geometry)
-                           for obj in queryset)
+            queryset = (obj.get_child() for obj in queryset)
+            if search:
+                queryset = sorted(queryset, key=operator.attrgetter('order'), reverse=True)
+
+            result = tuple(obj.serialize(include_type=True, detailed=detailed, geometry=geometry) for obj in queryset)
             cache.set(cache_key, result, 300)
 
         return Response(result)
