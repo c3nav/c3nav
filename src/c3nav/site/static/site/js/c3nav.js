@@ -38,7 +38,7 @@ c3nav = {
             val = $(this).val(),
             val_trimmed = $.trim(val),
             val_words = val_trimmed.toLowerCase().split(/\s+/),
-            val_words_key = ' '.join(val_words),
+            val_words_key = val_words.join(' '),
             $autocomplete = $('#autocomplete');
         $(this).parent().removeClass('selected').toggleClass('empty', (val === ''));
 
