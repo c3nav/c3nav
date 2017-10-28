@@ -34,7 +34,7 @@ c3nav = {
         $('.locationinput .clear').on('click', c3nav._locationinput_clear);
         $('#autocomplete').on('mouseover', '.location', c3nav._locationinput_hover_suggestion)
             .on('click', '.location', c3nav._locationinput_click_suggestion);
-        $('html').on('focus', '*', c3nav._locationinput_global_focuschange)
+        $('html').on('focus', '*', c3nav._locationinput_global_focuschange);
     },
     _locationinput_set: function (elem, location) {
         // set a location input
