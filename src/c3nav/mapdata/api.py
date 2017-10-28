@@ -17,6 +17,7 @@ from rest_framework.viewsets import GenericViewSet, ReadOnlyModelViewSet, ViewSe
 
 from c3nav.mapdata.models import AccessRestriction, Building, Door, Hole, LocationGroup, MapUpdate, Source, Space
 from c3nav.mapdata.models.access import AccessPermission
+from c3nav.mapdata.models.geometry.base import GeometryMixin
 from c3nav.mapdata.models.geometry.level import LevelGeometryMixin
 from c3nav.mapdata.models.geometry.space import POI, Area, Column, LineObstacle, Obstacle, SpaceGeometryMixin, Stair
 from c3nav.mapdata.models.level import Level
@@ -300,10 +301,14 @@ class LocationViewSet(RetrieveModelMixin, GenericViewSet):
                 for obj in queryset:
                     # noinspection PyStatementEffect
                     obj.subtitle, obj.order
+                    if isinstance(obj, GeometryMixin):
+                        # noinspection PyStatementEffect
+                        obj.centroid
 
                 cache.set(queryset_cache_key, queryset, 300)
 
-            result = tuple(obj.serialize(include_type=True, detailed=detailed, geometry=geometry) for obj in queryset)
+            result = tuple(obj.serialize(include_type=True, detailed=detailed, geometry=geometry, simple_geometry=True)
+                           for obj in queryset)
             cache.set(cache_key, result, 300)
 
         return Response(result)

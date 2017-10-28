@@ -83,7 +83,8 @@ class Location(LocationSlug, AccessRestrictionMixin, TitledMixin, models.Model):
         result = super().serialize(detailed=detailed, **kwargs)
         if not detailed:
             result = OrderedDict((
-                (name, result[name]) for name in ('slug', 'title', 'subtitle')
+                (name, result[name]) for name in ('id', 'slug', 'title', 'subtitle', 'point', 'bounds', 'locations')
+                if name in result
             ))
         return result
 
@@ -246,10 +247,12 @@ class LocationGroup(Location, models.Model):
         self.orig_category_id = self.category_id
         self.orig_color = self.color
 
-    def _serialize(self, **kwargs):
-        result = super()._serialize(**kwargs)
+    def _serialize(self, simple_geometry=False, **kwargs):
+        result = super()._serialize(simple_geometry=simple_geometry, **kwargs)
         result['category'] = self.category_id
         result['color'] = self.color
+        if simple_geometry:
+            result['locations'] = tuple(obj.pk for obj in getattr(self, 'locations', ()))
         return result
 
     @property

@@ -1,6 +1,8 @@
+import math
 from collections import OrderedDict
 
 from django.db import models
+from django.utils.functional import cached_property
 from django.utils.translation import ugettext_lazy as _
 from shapely.geometry import Point, mapping
 
@@ -59,16 +61,25 @@ class GeometryMixin(SerializableMixin):
             result['geomtype'] = cls._meta.get_field('geometry').geomtype
         return result
 
+    @cached_property
+    def centroid(self):
+        return self.geometry.centroid
+
     def serialize(self, geometry=True, **kwargs):
         result = super().serialize(geometry=geometry, **kwargs)
         if geometry:
             result.move_to_end('geometry')
         return result
 
-    def _serialize(self, geometry=True, **kwargs):
-        result = super()._serialize(**kwargs)
+    def _serialize(self, geometry=True, simple_geometry=False, **kwargs):
+        result = super()._serialize(simple_geometry=simple_geometry, **kwargs)
         if geometry:
             result['geometry'] = format_geojson(mapping(self.geometry), round=False)
+        if simple_geometry:
+            result['point'] = (self.level_id, ) + tuple(round(i, 2) for i in self.centroid.coords[0])
+            if not isinstance(self.geometry, Point):
+                result['bounds'] = ((int(math.floor(self.miny)), int(math.floor(self.minx))),
+                                    (int(math.ceil(self.maxy)), int(math.ceil(self.maxx))))
         return result
 
     def get_shadow_geojson(self):

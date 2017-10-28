@@ -1,4 +1,5 @@
 from django.db import models
+from django.utils.functional import cached_property
 from django.utils.text import format_lazy
 from django.utils.translation import ugettext_lazy as _
 from shapely.geometry import CAP_STYLE, JOIN_STYLE, mapping
@@ -16,11 +17,9 @@ class SpaceGeometryMixin(GeometryMixin):
     class Meta:
         abstract = True
 
-    def _serialize(self, space=True, **kwargs):
-        result = super()._serialize(**kwargs)
-        if space:
-            result['space'] = self.space_id
-        return result
+    @cached_property
+    def level_id(self):
+        return self.space.level_id
 
     def get_geojson_properties(self, *args, **kwargs) -> dict:
         result = super().get_geojson_properties(*args, **kwargs)
