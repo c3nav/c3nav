@@ -92,7 +92,8 @@ c3nav = {
         matches.sort(c3nav._typeahead_matches_compare);
 
         $autocomplete.html('');
-        for (i=0;i<matches.length;i++) {
+        var max_items = Math.min(matches.length, Math.floor($('#resultswrapper').height()/55));
+        for (i=0;i<max_items;i++) {
             $autocomplete.append(matches[i][0]);
         }
     },
