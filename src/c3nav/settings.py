@@ -193,6 +193,7 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'c3nav.api.middleware.RemoveEtagFromHTMLApiViewMiddleware'
 ]
 
 with suppress(ImportError):
