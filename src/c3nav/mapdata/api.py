@@ -9,6 +9,7 @@ from django.shortcuts import redirect
 from django.utils.cache import get_conditional_response
 from django.utils.http import quote_etag
 from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import get_language
 from rest_framework.decorators import detail_route, list_route
 from rest_framework.exceptions import NotFound, ValidationError
 from rest_framework.mixins import RetrieveModelMixin
@@ -37,7 +38,7 @@ def simple_api_cache(permissions=True, etag_func=AccessPermission.etag_func):
     def wrapper(func):
         @wraps(func)
         def wrapped_func(self, request, *args, **kwargs):
-            etag = quote_etag(etag_func(request) if permissions else MapUpdate.current_cache_key())
+            etag = quote_etag(get_language()+':'+(etag_func(request) if permissions else MapUpdate.current_cache_key()))
 
             response = get_conditional_response(request, etag=etag)
             if response is None:
