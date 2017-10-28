@@ -262,13 +262,34 @@ class LocationViewSet(RetrieveModelMixin, GenericViewSet):
                 AccessPermission.cache_key_for_request(self.request)
             )
             queryset = cache.get(queryset_cache_key, None)
-            if queryset is None:
+            if queryset is None or 1:
                 queryset = self.get_queryset(mode=('searchable' if searchable else 'searchable-describe'))
-                cache.set(queryset_cache_key, queryset, 300)
 
-            queryset = (obj.get_child() for obj in queryset)
-            if searchable:
-                queryset = sorted(queryset, key=operator.attrgetter('order'), reverse=True)
+                queryset = tuple(obj.get_child() for obj in queryset)
+
+                if searchable:
+                    queryset = sorted(queryset, key=operator.attrgetter('order'), reverse=True)
+                else:
+                    queryset = tuple(queryset)
+
+                # add locations to groups
+                locationgroups = {obj.pk: obj for obj in queryset if isinstance(obj, LocationGroup)}
+                for group in locationgroups.values():
+                    group.locations = []
+                for obj in queryset:
+                    if not isinstance(obj, SpecificLocation):
+                        continue
+                    for group in obj.groups.all():
+                        group = locationgroups.get(group.pk, None)
+                        if group is not None:
+                            group.locations.append(obj)
+
+                # precache cached properties
+                for obj in queryset:
+                    # noinspection PyStatementEffect
+                    obj.subtitle, obj.order
+
+                cache.set(queryset_cache_key, queryset, 300)
 
             result = tuple(obj.serialize(include_type=True, detailed=detailed, geometry=geometry) for obj in queryset)
             cache.set(cache_key, result, 300)

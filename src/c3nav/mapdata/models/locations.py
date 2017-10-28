@@ -5,7 +5,9 @@ from django.apps import apps
 from django.db import models
 from django.db.models import Prefetch
 from django.utils.functional import cached_property
+from django.utils.text import format_lazy
 from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import ungettext_lazy
 
 from c3nav.mapdata.models.access import AccessRestrictionMixin
 from c3nav.mapdata.models.base import SerializableMixin, TitledMixin
@@ -87,7 +89,7 @@ class Location(LocationSlug, AccessRestrictionMixin, TitledMixin, models.Model):
 
     def _serialize(self, **kwargs):
         result = super()._serialize(**kwargs)
-        result['subtitle'] = self.subtitle
+        result['subtitle'] = str(self.subtitle)
         result['can_search'] = self.can_search
         result['can_describe'] = self.can_search
         return result
@@ -275,7 +277,13 @@ class LocationGroup(Location, models.Model):
 
     @property
     def subtitle(self):
-        return self.category.title
+        result = self.category.title
+        if hasattr(self, 'locations'):
+            return format_lazy(_('{category_title}, {num_locations}'),
+                               category_title=result,
+                               num_locations=(ungettext_lazy('%(num)d location', '%(num)d locations', 'num') %
+                                              {'num': len(self.locations)}))
+        return result
 
     @cached_property
     def order(self):
