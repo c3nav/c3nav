@@ -238,7 +238,7 @@ class LocationViewSet(RetrieveModelMixin, GenericViewSet):
         queryset = queryset.filter(reduce(operator.or_, conditions))
 
         # prefetch locationgroups
-        base_qs = LocationGroup.objects.all().select_related('category')
+        base_qs = LocationGroup.qs_for_request(self.request).select_related('category')
         for model in get_submodels(SpecificLocation):
             queryset = queryset.prefetch_related(Prefetch(model._meta.default_related_name + '__groups',
                                                           queryset=base_qs))
