@@ -273,6 +273,10 @@ class LocationGroup(Location, models.Model):
             for obj in query:
                 obj.register_change(force=True)
 
+    @property
+    def subtitle(self):
+        return self.category.title
+
     @cached_property
     def order(self):
         return (self.category.priority, self.priority)
