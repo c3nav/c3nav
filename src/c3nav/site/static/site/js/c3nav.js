@@ -7,6 +7,16 @@
 
 c3nav = {
     init: function () {
+        c3nav.init_typeahead();
+        c3nav.init_map();
+    },
+    init_typeahead: function () {
+        c3nav.typeahead_locations = [];
+        $.getJSON('/api/locations/?searchable', function (data) {
+            c3nav.typeahead_locations = data;
+        });
+    },
+    init_map: function () {
         // Init Map
         var $map = $('#map');
         c3nav.bounds = JSON.parse($map.attr('data-bounds'));
@@ -37,12 +47,16 @@ c3nav = {
         c3nav._levelControl.finalize();
         c3nav._levelControl.setLevel(c3nav.levels[0][0]);
 
+    },
+
+    schedule_refresh_tile_access: function () {
         window.setTimeout(c3nav.refresh_tile_access, 16000);
     },
     refresh_tile_access: function () {
         $.ajax('/map/tile_access');
-        window.setTimeout(c3nav.refresh_tile_access, 16000);
+        c3nav.schedule_refresh_tile_access();
     }
+
 };
 
 LevelControl = L.Control.extend({
