@@ -6,7 +6,8 @@ class RemoveEtagFromHTMLApiViewMiddleware:
         response = self.get_response(request)
 
         if request.path.startswith('/api/'):
-            if response['content-type'].startswith('text/html') and response.has_header('etag'):
-                del response['etag']
+            if response.has_header('content-type') and response['content-type'].startswith('text/html'):
+                if response.has_header('etag'):
+                    del response['etag']
 
         return response
