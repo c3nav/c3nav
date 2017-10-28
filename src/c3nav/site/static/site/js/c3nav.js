@@ -58,8 +58,8 @@ c3nav = {
         $.ajax('/map/tile_access');
         c3nav.schedule_refresh_tile_access();
     }
-
 };
+$(document).ready(c3nav.init);
 
 LevelControl = L.Control.extend({
     options: {
@@ -124,5 +124,3 @@ LevelControl = L.Control.extend({
         buttons.removeClass('current');
     }
 });
-
-$(document).ready(c3nav.init);
