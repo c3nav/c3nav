@@ -158,7 +158,7 @@ c3nav = {
             val_words = val_trimmed.toLowerCase().split(/\s+/),
             val_words_key = val_words.join(' '),
             $autocomplete = $('#autocomplete');
-        $(this).parent().removeClass('selected').data('location', null);
+        $(this).parent().removeClass('selected').toggleClass('empty', val === '').data('location', null);
         $autocomplete.find('.focus').removeClass('focus');
         c3nav.current_locationinput = $(this).parent().attr('id');
 
