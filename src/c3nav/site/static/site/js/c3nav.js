@@ -13,6 +13,7 @@ c3nav = {
 
     init_typeahead: function () {
         c3nav.typeahead_locations = [];
+        c3nav._last_typeahead_words_key = null;
         $.getJSON('/api/locations/?searchable', function (data) {
             for (var i = 0; i < data.length; i++) {
                 var location = data[i];
@@ -37,11 +38,15 @@ c3nav = {
             val = $(this).val(),
             val_trimmed = $.trim(val),
             val_words = val_trimmed.toLowerCase().split(/\s+/),
+            val_words_key = ' '.join(val_words),
             $autocomplete = $('#autocomplete');
         $(this).parent().removeClass('selected').toggleClass('empty', (val === ''));
 
         if (val_trimmed === '') {
             $autocomplete.html('');
+            return;
+        }
+        if (val_words_key === c3nav._last_typeahead_words_key) {
             return;
         }
 
