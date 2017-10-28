@@ -122,7 +122,7 @@ class MapHistory:
         else:
             height, width = data.shape
             minx, miny = max(minx, self.x), max(miny, self.y)
-            maxx, maxy = min(maxx, self.x+width), max(maxy, self.y+height)
+            maxx, maxy = min(maxx, self.x+width), min(maxy, self.y+height)
 
         new_val = len(self.updates) if direct else 1
         for iy, y in enumerate(range(miny*res, maxy*res, res), start=miny-self.y):
