@@ -10,14 +10,88 @@ c3nav = {
         c3nav.init_typeahead();
         c3nav.init_map();
     },
+
     init_typeahead: function () {
         c3nav.typeahead_locations = [];
         $.getJSON('/api/locations/?searchable', function (data) {
-            c3nav.typeahead_locations = data;
+            for (var i = 0; i < data.length; i++) {
+                var location = data[i];
+                location.elem = $('<div class="location">').append($('<span>').text(location.title))
+                                                           .append($('<small>').text(location.subtitle));
+                location.title_words = location.title.toLowerCase().split(/\s+/);
+                location.match = ' '+location.title_words.join(' ')+' ';
+                c3nav.typeahead_locations.push(location);
+            }
         });
+
+        $('.locationinput input').on('input', c3nav._typeahead_input);
     },
+    _typeahead_matches_compare: function (a, b) {
+        if (a[1] !== b[1]) return b[1]-a[1];
+        if (a[2] !== b[2]) return b[2]-a[2];
+        if (a[3] !== b[3]) return b[3]-a[3];
+        return a[4]-b[4];
+    },
+    _typeahead_input: function (e) {
+        var matches = [],
+            val = $(this).val(),
+            val_trimmed = $.trim(val),
+            val_words = val_trimmed.toLowerCase().split(/\s+/),
+            $autocomplete = $('#autocomplete');
+        $(this).parent().removeClass('selected').toggleClass('empty', (val === ''));
+
+        if (val_trimmed === '') {
+            $autocomplete.html('');
+            return;
+        }
+
+        for (var i = 0; i < c3nav.typeahead_locations.length; i++) {
+            var location = c3nav.typeahead_locations[i],
+                leading_words_count = 0,
+                words_total_count = 0,
+                words_start_count = 0,
+                nomatch = false,
+                val_word, j;
+
+            // each word has to be in the location
+            for (j = 0; j < val_words.length; j++) {
+                val_word = val_words[j];
+                if (location.match.indexOf(val_word) === -1) {
+                    nomatch = true;
+                    break;
+                }
+            }
+            if (nomatch) continue;
+
+            // how many words from the beginning are in the title
+            for (j = 0; j < val_words.length; j++) {
+                val_word = val_words[0];
+                if (location.title_words[j] !== val_word &&
+                    (j !== val_words.length-1 || location.title_words[j].indexOf(val_word) !== 0)) break;
+                leading_words_count++;
+            }
+
+            // how many words in total can be found
+            for (j = 0; j < val_words.length; j++) {
+                val_word = val_words[0];
+                if (location.match.indexOf(' '+val_word+' ') !== -1) {
+                    words_total_count++;
+                } else if (location.match.indexOf(' '+val_word) !== -1) {
+                    words_start_count++;
+                }
+            }
+
+            matches.push([location.elem, leading_words_count, words_total_count, words_start_count, i])
+        }
+
+        matches.sort(c3nav._typeahead_matches_compare);
+
+        for (i=0;i<matches.length;i++) {
+            $autocomplete.append(matches[i][0]);
+        }
+    },
+
     init_map: function () {
-        // Init Map
         var $map = $('#map');
         c3nav.bounds = JSON.parse($map.attr('data-bounds'));
         c3nav.levels = JSON.parse($map.attr('data-levels'));
