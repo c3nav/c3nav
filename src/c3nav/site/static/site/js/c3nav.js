@@ -13,7 +13,13 @@ c3nav = {
 
     init_sidebar: function () {
         c3nav.init_locationinputs();
+
+        $('#location-buttons').find('.route').on('click', c3nav._location_buttons_route_click);
     },
+    _location_buttons_route_click: function () {
+        $('#search').removeClass('location-view').addClass('route-view');
+    },
+
     init_locationinputs: function () {
         c3nav.locations = [];
         c3nav.locations_by_slug = {};
