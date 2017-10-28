@@ -7,11 +7,11 @@
 
 c3nav = {
     init: function () {
-        c3nav.init_locationinputs();
+        c3nav.init_sidebar();
         c3nav.init_map();
     },
 
-    init_locationinputs: function () {
+    init_sidebar: function () {
         c3nav.locations = [];
         c3nav.locations_by_slug = {};
         c3nav.current_locationinput = null;
