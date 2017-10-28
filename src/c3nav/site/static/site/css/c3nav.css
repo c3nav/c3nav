@@ -68,22 +68,22 @@ main.map {
 #sidebar section > * {
     border: 0 #dddddd solid;
     border-top-width: 1px;
-    transition: height 150ms;
+    transition: margin-bottom 150ms, opacity 150ms;
     overflow: hidden;
 }
 #sidebar section > :first-child {
     margin-top: -1px;
 }
-#search:not(.location-view) #location-buttons,
-#search:not(.route-view) #origin-input,
-#search:not(.route-view) #route-buttons {
-    margin-top: 0;
-    height: 0;
-    margin-bottom: -1px;
+#search:not(.route-view) #origin-input {
+    margin-bottom: -55px;
     pointer-events: none;
+    opacity: 0;
 }
-#sidebar section > #route-buttons {
-    border-color: transparent !important;
+#search:not(.location-view) #location-buttons,
+#search:not(.route-view) #route-buttons {
+    margin-bottom: -3.3rem;
+    pointer-events: none;
+    opacity: 0;
 }
 #resultswrapper {
     flex-grow: 1;
