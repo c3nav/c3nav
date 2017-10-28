@@ -228,9 +228,9 @@ class LocationViewSet(RetrieveModelMixin, GenericViewSet):
         for model in get_submodels(Location):
             related_name = model._meta.default_related_name
             condition = Q(**{related_name+'__isnull': False})
-            if mode == 1:
+            if mode == 'search':
                 condition &= Q(**{related_name+'__can_search': True})
-            elif mode == 2:
+            elif mode == 'search-describe':
                 condition &= Q(**{related_name+'__can_search': True, related_name+'__can_describe': True})
             # noinspection PyUnresolvedReferences
             condition &= model.q_for_request(self.request, prefix=related_name+'__')
@@ -263,7 +263,7 @@ class LocationViewSet(RetrieveModelMixin, GenericViewSet):
             )
             queryset = cache.get(queryset_cache_key, None)
             if queryset is None:
-                queryset = self.get_queryset(mode=(1 if search else 2))
+                queryset = self.get_queryset(mode=('search' if search else 'search-describe'))
                 cache.set(queryset_cache_key, queryset, 300)
 
             result = tuple(obj.get_child().serialize(include_type=True, detailed=detailed, geometry=geometry)
