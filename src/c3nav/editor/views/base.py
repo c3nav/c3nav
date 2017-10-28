@@ -31,13 +31,13 @@ def sidebar_view(func=None, select_related=None):
             if not isinstance(response, HttpResponseNotModified):
                 response.write(render(request, 'editor/fragment_nav.html', {}).content)
             response['Cache-Control'] = 'no-cache'
-            patch_vary_headers(response, 'X-Requested-With')
+            patch_vary_headers(response, ('X-Requested-With', ))
             return response
         if isinstance(response, HttpResponseRedirect):
             return response
         response = render(request, 'editor/map.html', {'content': response.content})
         response['Cache-Control'] = 'no-cache'
-        patch_vary_headers(response, 'X-Requested-With')
+        patch_vary_headers(response, ('X-Requested-With', ))
         return response
 
     return with_ajax_check
