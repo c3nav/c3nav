@@ -1,4 +1,5 @@
 from django.db import models
+from django.utils.text import format_lazy
 from django.utils.translation import ugettext_lazy as _
 from shapely.geometry import CAP_STYLE, JOIN_STYLE, mapping
 
@@ -28,6 +29,20 @@ class SpaceGeometryMixin(GeometryMixin):
             if color:
                 result['color'] = color
         return result
+
+    @property
+    def subtitle(self):
+        base_subtitle = super().subtitle
+        if self.space_cache is not None:
+            if self.space_cache.level_cache is not None:
+                return format_lazy(_('{category}, {space}, {level}'),
+                                   category=base_subtitle,
+                                   space=self.space_cache.title,
+                                   level=self.space_cache.level_cache.title)
+            return format_lazy(_('{category}, {space}'),
+                               category=base_subtitle,
+                               level=self.space_cache.title)
+        return base_subtitle
 
     def register_change(self, force=True):
         space = self.space

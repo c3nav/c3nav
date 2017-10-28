@@ -166,7 +166,7 @@ class SpecificLocation(Location, models.Model):
     @property
     def subtitle(self):
         groups = tuple(self.groups.all())
-        return groups[0].title if groups else str(self.__class__._meta.verbose_name)
+        return groups[0].title if groups else self.__class__._meta.verbose_name
 
     @cached_property
     def order(self):

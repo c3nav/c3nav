@@ -4,6 +4,7 @@ from operator import attrgetter, itemgetter
 import numpy as np
 from django.db import models
 from django.db.models import F
+from django.utils.text import format_lazy
 from django.utils.translation import ugettext_lazy as _
 from scipy.sparse.csgraph._shortest_path import dijkstra
 from shapely.affinity import scale
@@ -41,6 +42,15 @@ class LevelGeometryMixin(GeometryMixin):
         if level:
             result['level'] = self.level_id
         return result
+
+    @property
+    def subtitle(self):
+        base_subtitle = super().subtitle
+        if self.level_cache is not None:
+            return format_lazy(_('{category}, {level}'),
+                               category=base_subtitle,
+                               level=self.level_cache.title)
+        return base_subtitle
 
     def register_change(self, force=False):
         if force or self.geometry_changed:

@@ -284,6 +284,18 @@ class LocationViewSet(RetrieveModelMixin, GenericViewSet):
                         if group is not None:
                             group.locations.append(obj)
 
+                # add levels to spaces
+                levels = {obj.pk: obj for obj in queryset if isinstance(obj, Level)}
+                for obj in queryset:
+                    if isinstance(obj, LevelGeometryMixin):
+                        obj.level_cache = levels.get(obj.level_id, None)
+
+                # add spaces to areas and POIs
+                spaces = {obj.pk: obj for obj in queryset if isinstance(obj, Space)}
+                for obj in queryset:
+                    if isinstance(obj, SpaceGeometryMixin):
+                        obj.space_cache = spaces.get(obj.space_id, None)
+
                 # precache cached properties
                 for obj in queryset:
                     # noinspection PyStatementEffect
