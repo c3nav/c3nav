@@ -143,14 +143,25 @@ c3nav = {
                 $focused = $autocomplete.find('.location:first-child');
             }
             if ($focused.length === 0) return;
-            c3nav._locationinput_set($(this).parent(), c3nav.locations_by_slug[$focused.attr('data-slug')])
+            c3nav._locationinput_set($(this).parent(), c3nav.locations_by_slug[$focused.attr('data-slug')]);
+            c3nav._locationinput_focus_next($(this).parent());
         }
     },
     _locationinput_hover_suggestion: function () {
         $(this).addClass('focus').siblings().removeClass('focus');
     },
     _locationinput_click_suggestion: function () {
-        c3nav._locationinput_set($('#' + c3nav.current_locationinput), c3nav.locations_by_slug[$(this).attr('data-slug')])
+        $locationinput = $('#' + c3nav.current_locationinput);
+        c3nav._locationinput_set($locationinput, c3nav.locations_by_slug[$(this).attr('data-slug')]);
+        c3nav._locationinput_focus_next($locationinput);
+    },
+    _locationinput_focus_next: function (elem) {
+        $next = $('.locationinput:not(.selected)');
+        if ($next.length === 0) {
+            elem.find('input').blur();
+        } else {
+            $next.find('input').focus();
+        }
     },
     _locationinput_matches_compare: function (a, b) {
         if (a[1] !== b[1]) return b[1] - a[1];
