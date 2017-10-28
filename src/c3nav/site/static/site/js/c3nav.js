@@ -91,6 +91,7 @@ c3nav = {
 
         matches.sort(c3nav._typeahead_matches_compare);
 
+        $autocomplete.html('');
         for (i=0;i<matches.length;i++) {
             $autocomplete.append(matches[i][0]);
         }
