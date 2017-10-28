@@ -39,15 +39,22 @@ c3nav = {
     _locationinput_set: function (elem, location) {
         // set a location input
         c3nav._locationinput_reset_autocomplete();
+        var $search = $('#search');
         if (location === null || location === undefined) {
             elem.removeClass('selected').addClass('empty').data('location', null).data('lastlocation', null);
             elem.find('input').val('').data('origval', null);
             elem.find('small').text('');
+            if (elem.attr('id') === 'destination-input') {
+                $search.removeClass('location-view');
+            }
             return;
         }
         elem.addClass('selected').removeClass('empty').data('location', location).data('lastlocation', location);
         elem.find('input').val(location.title).data('origval', null);
         elem.find('small').text(location.subtitle);
+        if (elem.attr('id') === 'destination-input' && !$search.is('.location-view, .route-view')) {
+            $search.addClass('location-view');
+        }
     },
     _locationinput_reset: function (elem) {
         // reset this locationinput to its last location
@@ -159,6 +166,9 @@ c3nav = {
             val_words_key = val_words.join(' '),
             $autocomplete = $('#autocomplete');
         $(this).parent().removeClass('selected').toggleClass('empty', val === '').data('location', null);
+        if ($(this).parent().attr('id') === 'destination-input') {
+            $('#search').removeClass('location-view');
+        }
         $autocomplete.find('.focus').removeClass('focus');
         c3nav.current_locationinput = $(this).parent().attr('id');
 
