@@ -18,9 +18,9 @@ c3nav = {
             for (var i = 0; i < data.length; i++) {
                 var location = data[i];
                 location.elem = $('<div class="location">').append($('<span>').text(location.title))
-                                                           .append($('<small>').text(location.subtitle));
+                location.elem.append($('<small>').text(location.subtitle));
                 location.title_words = location.title.toLowerCase().split(/\s+/);
-                location.match = ' '+location.title_words.join(' ')+' ';
+                location.match = ' ' + location.title_words.join(' ') + ' ';
                 c3nav.typeahead_locations.push(location);
             }
         });
@@ -28,10 +28,10 @@ c3nav = {
         $('.locationinput input').on('input', c3nav._typeahead_input);
     },
     _typeahead_matches_compare: function (a, b) {
-        if (a[1] !== b[1]) return b[1]-a[1];
-        if (a[2] !== b[2]) return b[2]-a[2];
-        if (a[3] !== b[3]) return b[3]-a[3];
-        return a[4]-b[4];
+        if (a[1] !== b[1]) return b[1] - a[1];
+        if (a[2] !== b[2]) return b[2] - a[2];
+        if (a[3] !== b[3]) return b[3] - a[3];
+        return a[4] - b[4];
     },
     _typeahead_input: function (e) {
         var matches = [],
@@ -72,16 +72,16 @@ c3nav = {
             for (j = 0; j < val_words.length; j++) {
                 val_word = val_words[0];
                 if (location.title_words[j] !== val_word &&
-                    (j !== val_words.length-1 || location.title_words[j].indexOf(val_word) !== 0)) break;
+                    (j !== val_words.length - 1 || location.title_words[j].indexOf(val_word) !== 0)) break;
                 leading_words_count++;
             }
 
             // how many words in total can be found
             for (j = 0; j < val_words.length; j++) {
                 val_word = val_words[0];
-                if (location.match.indexOf(' '+val_word+' ') !== -1) {
+                if (location.match.indexOf(' ' + val_word + ' ') !== -1) {
                     words_total_count++;
-                } else if (location.match.indexOf(' '+val_word) !== -1) {
+                } else if (location.match.indexOf(' ' + val_word) !== -1) {
                     words_start_count++;
                 }
             }
@@ -92,8 +92,8 @@ c3nav = {
         matches.sort(c3nav._typeahead_matches_compare);
 
         $autocomplete.html('');
-        var max_items = Math.min(matches.length, Math.floor($('#resultswrapper').height()/55));
-        for (i=0;i<max_items;i++) {
+        var max_items = Math.min(matches.length, Math.floor($('#resultswrapper').height() / 55));
+        for (i = 0; i < max_items; i++) {
             $autocomplete.append(matches[i][0]);
         }
     },
