@@ -44,11 +44,13 @@ c3nav = {
 
         if (val_trimmed === '') {
             $autocomplete.html('');
+            c3nav._last_locationinput_words_key = null;
             return;
         }
         if (val_words_key === c3nav._last_locationinput_words_key) {
             return;
         }
+        c3nav._last_locationinput_words_key = val_words_key;
 
         for (var i = 0; i < c3nav.locationinput_locations.length; i++) {
             var location = c3nav.locationinput_locations[i],
