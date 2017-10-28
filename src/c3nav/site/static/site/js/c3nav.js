@@ -7,13 +7,13 @@
 
 c3nav = {
     init: function () {
-        c3nav.init_typeahead();
+        c3nav.init_locationinputs();
         c3nav.init_map();
     },
 
-    init_typeahead: function () {
-        c3nav.typeahead_locations = [];
-        c3nav._last_typeahead_words_key = null;
+    init_locationinputs: function () {
+        c3nav.locationinput_locations = [];
+        c3nav._last_match_words_key = null;
         $.getJSON('/api/locations/?searchable', function (data) {
             for (var i = 0; i < data.length; i++) {
                 var location = data[i];
@@ -21,19 +21,19 @@ c3nav = {
                 location.elem.append($('<small>').text(location.subtitle));
                 location.title_words = location.title.toLowerCase().split(/\s+/);
                 location.match = ' ' + location.title_words.join(' ') + ' ';
-                c3nav.typeahead_locations.push(location);
+                c3nav.locationinput_locations.push(location);
             }
         });
 
-        $('.locationinput input').on('input', c3nav._typeahead_input);
+        $('.locationinput input').on('input', c3nav._locationinput_input);
     },
-    _typeahead_matches_compare: function (a, b) {
+    _locationinput_matches_compare: function (a, b) {
         if (a[1] !== b[1]) return b[1] - a[1];
         if (a[2] !== b[2]) return b[2] - a[2];
         if (a[3] !== b[3]) return b[3] - a[3];
         return a[4] - b[4];
     },
-    _typeahead_input: function (e) {
+    _locationinput_input: function (e) {
         var matches = [],
             val = $(this).val(),
             val_trimmed = $.trim(val),
@@ -46,12 +46,12 @@ c3nav = {
             $autocomplete.html('');
             return;
         }
-        if (val_words_key === c3nav._last_typeahead_words_key) {
+        if (val_words_key === c3nav._last_locationinput_words_key) {
             return;
         }
 
-        for (var i = 0; i < c3nav.typeahead_locations.length; i++) {
-            var location = c3nav.typeahead_locations[i],
+        for (var i = 0; i < c3nav.locationinput_locations.length; i++) {
+            var location = c3nav.locationinput_locations[i],
                 leading_words_count = 0,
                 words_total_count = 0,
                 words_start_count = 0,
@@ -89,7 +89,7 @@ c3nav = {
             matches.push([location.elem, leading_words_count, words_total_count, words_start_count, i])
         }
 
-        matches.sort(c3nav._typeahead_matches_compare);
+        matches.sort(c3nav._locationinput_matches_compare);
 
         $autocomplete.html('');
         var max_items = Math.min(matches.length, Math.floor($('#resultswrapper').height() / 55));
