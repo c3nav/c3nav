@@ -157,10 +157,10 @@ main.map {
     background-image: url('../img/icons/locate.svg');
     background-size: 36px 36px;
 }
-.locationinput button.reset {
+.locationinput button.clear {
     background-image: url('../img/icons/cross.svg');
 }
-.locationinput:not(.empty) button.locate, .locationinput.empty button.reset {
+.locationinput:not(.empty) button.locate, .locationinput.empty button.clear {
     transform: scale(0.7);
     opacity: 0;
     pointer-events:none;

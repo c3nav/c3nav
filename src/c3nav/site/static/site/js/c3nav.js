@@ -25,13 +25,42 @@ c3nav = {
             }
         });
 
-        $('.locationinput input').on('input', c3nav._locationinput_input);
+        $('.locationinput input').on('input', c3nav._locationinput_input)
+            .on('blur', c3nav._locationinput_blur)
+            .on('keydown', c3nav._locationinput_keydown);
+        $('.locationinput .clear').on('click', c3nav._locationinput_clear);
+    },
+    _locationinput_set: function (elem, location) {
+        if (location === null || location === undefined) {
+            elem.removeClass('selected').addClass('empty');
+            elem.find('input').val('');
+            elem.find('small').val('');
+            return;
+        }
+        elem.addClass('selected').removeClass('empty').data('location', location);
+        elem.find('input').val(location.title);
+        elem.find('small').val(location.subtitle);
+    },
+    _locationinput_clear: function (e) {
+        c3nav._locationinput_set($(this).parent(), null);
+        $(this).parent().find('input').focus()
     },
     _locationinput_matches_compare: function (a, b) {
         if (a[1] !== b[1]) return b[1] - a[1];
         if (a[2] !== b[2]) return b[2] - a[2];
         if (a[3] !== b[3]) return b[3] - a[3];
         return a[4] - b[4];
+    },
+    _locationinput_blur: function (e) {
+        $('#autocomplete').html('');
+        c3nav._last_locationinput_words_key = null;
+        c3nav._locationinput_set($(this).parent(), $(this).parent().data('location'));
+    },
+    _locationinput_keydown: function (e) {
+        if (e.which === 27) {
+            // escape
+            $(this).blur().focus();
+        }
     },
     _locationinput_input: function (e) {
         var matches = [],
@@ -40,7 +69,10 @@ c3nav = {
             val_words = val_trimmed.toLowerCase().split(/\s+/),
             val_words_key = val_words.join(' '),
             $autocomplete = $('#autocomplete');
-        $(this).parent().removeClass('selected').toggleClass('empty', (val === ''));
+        $(this).parent().removeClass('selected');
+        if (val === '') {
+            c3nav._locationinput_set($(this).parent(), null);
+        }
 
         if (val_trimmed === '') {
             $autocomplete.html('');
