@@ -189,12 +189,13 @@ class LocationGroupCategory(TitledMixin, models.Model):
 
     def register_changed_geometries(self):
         from c3nav.mapdata.models.geometry.space import SpaceGeometryMixin
-        query = self.locationgroups.all()
+        query = self.groups.all()
         for model in get_submodels(SpecificLocation):
-            related_name = SpecificLocation._meta.default_related_name
-            query.prefetch_related('locationgroup__'+related_name)
+            related_name = model._meta.default_related_name
+            subquery = model.objects.all()
             if issubclass(model, SpaceGeometryMixin):
-                query = query.select_related('locationgorups__'+related_name+'__space')
+                subquery = subquery.select_related('space')
+            query.prefetch_related(Prefetch('groups__'+related_name, subquery))
 
         for group in query:
             group.register_changed_geometries(do_query=False)
@@ -252,7 +253,7 @@ class LocationGroup(Location, models.Model):
     def register_changed_geometries(self, do_query=True):
         from c3nav.mapdata.models.geometry.space import SpaceGeometryMixin
         for model in get_submodels(SpecificLocation):
-            query = getattr(self, SpecificLocation._meta.default_related_name).objects.all()
+            query = getattr(self, model._meta.default_related_name).all()
             if do_query:
                 if issubclass(model, SpaceGeometryMixin):
                     query = query.select_related('space')
