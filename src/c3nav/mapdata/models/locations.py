@@ -279,7 +279,7 @@ class LocationGroup(Location, models.Model):
 
     @cached_property
     def order(self):
-        return (self.category.priority, self.priority)
+        return (1, self.category.priority, self.priority)
 
     def save(self, *args, **kwargs):
         if (self.orig_color != self.color or
