@@ -162,13 +162,15 @@ class SVGImage:
             return ''
         return ''.join(self._geometry_to_svg(g) for g in geoms)
 
-    def _create_geometry(self, geometry, attribs='', tag='g'):
+    def _create_geometry(self, geometry, attribs='', tag='g', cache_key=None):
         # convert a shapely geometry into an svg xml element
-        cache_key = (id(geometry), attribs, tag)
-        result = self._create_geometry_cache.get(cache_key, None)
+        result = None
+        if cache_key is not None:
+            result = self._create_geometry_cache.get(cache_key, None)
         if result is None:
             result = self._geometry_to_svg(geometry)
-            self._create_geometry_cache[cache_key] = result
+            if cache_key is not None:
+                self._create_geometry_cache[cache_key] = result
         return '<'+tag+attribs+'>'+result+'</'+tag+'>'
 
     def register_clip_path(self, geometry):
@@ -221,7 +223,7 @@ class SVGImage:
 
     def add_geometry(self, geometry=None, fill_color=None, fill_opacity=None, opacity=None, filter=None,
                      stroke_px=0.0, stroke_width=0.0, stroke_color=None, stroke_opacity=None, stroke_linejoin=None,
-                     clip_path=None, altitude=None, elevation=None):
+                     clip_path=None, altitude=None, elevation=None, shape_cache_key=None):
         # draw a shapely geometry with a given style
         # if altitude is set, the geometry will get a calculated shadow relative to the other geometries
         # if elevation is set, the geometry will get a shadow with exactly this elevation
@@ -274,7 +276,7 @@ class SVGImage:
 
                 self.clip_altitudes(geometry, altitude)
 
-            element = self._create_geometry(geometry, attribs)
+            element = self._create_geometry(geometry, attribs, cache_key=shape_cache_key)
 
         else:
             element = '<rect width="100%" height="100%"'+attribs+'>'
