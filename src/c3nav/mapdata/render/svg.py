@@ -61,7 +61,8 @@ class SVGRenderer:
         return self.update_cache_key + ':' + self.access_cache_key
 
     def render(self):
-        svg = SVGImage(bounds=((self.minx, self.miny), (self.maxx, self.maxy)), scale=self.scale, buffer=1)
+        svg = SVGImage(bounds=((self.minx, self.miny), (self.maxx, self.maxy)),
+                       scale=self.scale, buffer=1, background_color='#DCDCDC')
 
         # add no access restriction to “unlocked“ access restrictions so lookup gets easier
         unlocked_access_restrictions = self.unlocked_access_restrictions | set([None])

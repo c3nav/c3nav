@@ -2,6 +2,7 @@ import io
 import math
 import re
 import subprocess
+import zlib
 from itertools import chain
 
 import numpy as np
@@ -36,7 +37,7 @@ def check_svg_renderer(app_configs, **kwargs):
 
 class SVGImage:
     # draw an svg image. supports pseudo-3D shadow-rendering
-    def __init__(self, bounds, scale: float=1, buffer=0):
+    def __init__(self, bounds, scale: float=1, buffer=0, background_color='#FFFFFF'):
         # get image dimensions.
         # note that these values describe the „viewport“ of the image, not its dimensions in pixels.
         (self.left, self.bottom), (self.right, self.top) = bounds
@@ -63,6 +64,9 @@ class SVGImage:
         # keep track of created blur filters to avoid duplicates
         self.blurs = set()
 
+        self.background_color = background_color
+        self.background_color_rgb = tuple(int(background_color[i:i + 2], 16) for i in range(1, 6, 2))
+
         self._create_geometry_cache = {}
 
     def get_dimensions_px(self, buffer):
@@ -87,18 +91,17 @@ class SVGImage:
         result += '</svg>'
         return result
 
-    empty_tile = (b'\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR\x00\x00\x01\x00\x00\x00\x01\x00\x01\x03\x00\x00\x00f\xbc:%\x00'
-                  b'\x00\x00\x03PLTE\x00\x00\x00\xa7z=\xda\x00\x00\x00\x01tRNS\x00@\xe6\xd8f\x00\x00\x00\x1fIDATh\xde'
-                  b'\xed\xc1\x01\r\x00\x00\x00\xc2\xa0\xf7Om\x0e7\xa0\x00\x00\x00\x00\x00\x00\x00\x00\xbe\r!\x00\x00'
-                  b'\x01\x7f\x19\x9c\xa7\x00\x00\x00\x00IEND\xaeB`\x82')
-
     def get_png(self, f=None):
         # render the image to png. returns bytes if f is None, otherwise it calls f.write()
 
         if self.get_dimensions_px(buffer=False) == (256, 256) and not self.g:
-            return self.empty_tile
-
-        background_color = '#DCDCDC'
+            # create empty tile png with minimal size, indexed color palette with only one entry
+            plte = b'PLTE' + bytearray(self.background_color_rgb)
+            return (b'\x89PNG\r\n\x1a\n' +
+                    b'\x00\x00\x00\rIHDR\x00\x00\x01\x00\x00\x00\x01\x00\x01\x03\x00\x00\x00f\xbc:%\x00\x00\x00\x03' +
+                    plte + zlib.crc32(plte).to_bytes(4, byteorder='big') +
+                    b'\x00\x00\x00\x1fIDATh\xde\xed\xc1\x01\r\x00\x00\x00\xc2\xa0\xf7Om\x0e7\xa0\x00\x00\x00\x00\x00' +
+                    b'\x00\x00\x00\xbe\r!\x00\x00\x01\x7f\x19\x9c\xa7\x00\x00\x00\x00IEND\xaeB`\x82')
 
         if settings.SVG_RENDERER == 'rsvg':
             # create buffered surfaces
@@ -116,7 +119,7 @@ class SVGImage:
             context = cairocffi.Context(surface)
 
             # set background color
-            context.set_source(cairocffi.SolidPattern(*(int(background_color[i:i+2], 16)/255 for i in range(1, 6, 2))))
+            context.set_source(cairocffi.SolidPattern(*(i/255 for i in self.background_color_rgb)))
             context.paint()
 
             # paste buffered immage with offset
@@ -127,7 +130,7 @@ class SVGImage:
             f.write(surface.write_to_png())
 
         elif settings.SVG_RENDERER == 'rsvg-convert':
-            p = subprocess.run(('rsvg-convert', '-b', background_color, '--format', 'png'),
+            p = subprocess.run(('rsvg-convert', '-b', self.background_color, '--format', 'png'),
                                input=self.get_xml(buffer=True).encode(), stdout=subprocess.PIPE, check=True)
             png = io.BytesIO(p.stdout)
             img = Image.open(png)
@@ -142,7 +145,7 @@ class SVGImage:
             img.save(f, 'PNG')
 
         elif settings.SVG_RENDERER == 'inkscape':
-            p = subprocess.run(('inkscape', '-z', '-b', background_color, '-e', '/dev/stderr', '/dev/stdin'),
+            p = subprocess.run(('inkscape', '-z', '-b', self.background_color, '-e', '/dev/stderr', '/dev/stdin'),
                                input=self.get_xml().encode(), stdout=subprocess.PIPE, stderr=subprocess.PIPE,
                                check=True)
             png = p.stderr[p.stderr.index(b'\x89PNG'):]
