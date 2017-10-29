@@ -12,23 +12,37 @@ c3nav = {
     },
 
     init_sidebar: function () {
+        c3nav._set_view('search');
         c3nav.init_locationinputs();
 
         $('#location-buttons').find('.route').on('click', c3nav._location_buttons_route_click);
-        $('#route-buttons').find('.swap').on('click', c3nav._route_buttons_swap_click);
+        $('#route-search-buttons, #route-result-buttons').find('.swap').on('click', c3nav._route_buttons_swap_click);
+        $('#route-search-buttons, #route-summary').find('.close').on('click', c3nav._route_buttons_close_click);
+    },
+    _set_view: function(view) {
+        c3nav._view = view;
+        $('main').attr('data-view', view);
     },
     _location_buttons_route_click: function () {
-        $('#search').removeClass('location-view').addClass('route-view');
+        c3nav._set_view('route-search');
     },
     _route_buttons_swap_click: function () {
-        var $search = $('#search'),
-            $origin = $('#origin-input'),
+        var $origin = $('#origin-input'),
             $destination = $('#destination-input');
         tmp = $origin.data('location');
         c3nav._locationinput_set($origin, $destination.data('location'));
         c3nav._locationinput_set($destination, tmp);
         $origin.stop().css('top', '55px').animate({top: 0}, 150);
         $destination.stop().css('top', '-55px').animate({top: 0}, 150);
+    },
+    _route_buttons_close_click: function () {
+        var $origin = $('#origin-input'),
+            $destination = $('#destination-input');
+        if ($origin.is('.selected') && !$destination.is('.selected')) {
+            c3nav._locationinput_set($destination, $origin.data('location'));
+        }
+        c3nav._locationinput_set($origin, null);
+        c3nav._set_view($destination.is('.selected') ? 'location' : 'search');
     },
 
     init_locationinputs: function () {
@@ -68,12 +82,27 @@ c3nav = {
         elem.find('input').val(title).data('origval', null);
         elem.find('small').text(subtitle);
 
-        if (elem.attr('id') === 'destination-input') {
-            if (location === null) {
-                $search.removeClass('location-view');
-            } else if (!$search.is('.location-view, .route-view')) {
-                $search.addClass('location-view');
-            }
+        switch(c3nav._view) {
+            case 'search':
+                if (elem.attr('id') === 'destination-input' && location !== null) {
+                    c3nav._set_view('location');
+                }
+                break;
+            case 'location':
+                if (elem.attr('id') === 'destination-input' && location === null) {
+                    c3nav._set_view('search');
+                }
+                break;
+            case 'route-search':
+                if (location !== null && $('#origin-input').is('.selected') && $('#destination-input').is('.selected')) {
+                    c3nav._set_view('route-result');
+                }
+                break;
+            case 'route-result':
+                if (location === null) {
+                    c3nav._set_view('route-search');
+                }
+                break;
         }
         c3nav.update_map_locations();
         if (location !== null) {
@@ -204,12 +233,19 @@ c3nav = {
         $parent.toggleClass('empty', val === '');
         if ($parent.is('.selected')) {
             $parent.removeClass('selected').data('location', null);
-        }
-
-        if ($parent.attr('id') === 'destination-input') {
-            $('#search').removeClass('location-view');
+            switch(c3nav._view) {
+                case 'location':
+                    if ($parent.attr('id') === 'destination-input') {
+                        c3nav._set_view('search');
+                    }
+                    break;
+                case 'route-result':
+                    c3nav._set_view('route-search');
+                    break;
+            }
             c3nav.update_map_locations();
         }
+
         $autocomplete.find('.focus').removeClass('focus');
         c3nav.current_locationinput = $parent.attr('id');
 

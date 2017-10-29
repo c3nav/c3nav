@@ -49,7 +49,7 @@ main.map {
     position: absolute;
     z-index: 2;
     top: 0;
-    padding: 10px 10px 26px;
+    padding: 10px 10px 16px;
     width: 100%;
     bottom: 0;
     max-width: 420px;
@@ -64,6 +64,8 @@ main.map {
     box-shadow: 1px 1px 3px rgba(0, 0, 0, 0.2);
     border-radius: 2px;
     overflow: hidden;
+    margin-bottom: 10px;
+    flex-shrink: 0;
 }
 #sidebar section > * {
     border: 0 #dddddd solid;
@@ -74,13 +76,30 @@ main.map {
 #sidebar section > :first-child {
     margin-top: -1px;
 }
-#search:not(.route-view) #origin-input {
+
+#search {
+    z-index: 4;
+/*    height: 54px;
+    transition: height 150ms;
+}
+main[data-view=location] #search {
+    height: 87px;
+}
+main[data-view=route-search] #search {
+    height: 142px;
+}
+main[data-view=route-result] #search {
+    height: 109px;*/
+}
+
+
+main:not([data-view^=route]) #origin-input {
     margin-bottom: -55px;
     pointer-events: none;
     opacity: 0;
 }
-#search:not(.location-view) #location-buttons,
-#search:not(.route-view) #route-buttons {
+main:not([data-view=location]) #location-buttons,
+main:not([data-view=route-search]) #route-search-buttons {
     margin-bottom: -3.3rem;
     pointer-events: none;
     opacity: 0;
@@ -91,11 +110,6 @@ main.map {
 #resultswrapper section {
     max-height: 100%;
     overflow: auto;
-}
-
-#search {
-    margin-bottom: 10px;
-    flex-shrink: 0;
 }
 
 .location {
@@ -146,7 +160,7 @@ main.map {
 .locationinput.selected input {
     padding-bottom: 24px;
 }
-.locationinput button {
+.locationinput button, #route-summary button {
     position: absolute;
     top: 6px;
     right: 6px;
@@ -164,7 +178,7 @@ main.map {
     background-image: url('../img/icons/locate.svg');
     background-size: 36px 36px;
 }
-.locationinput button.clear {
+.locationinput button.clear, #route-summary button.close {
     background-image: url('../img/icons/cross.svg');
 }
 .locationinput:not(.empty) button.locate, .locationinput.empty button.clear {
@@ -193,6 +207,31 @@ main.map {
 }
 .buttons > *:hover, .buttons > *:active {
     background-color: #eeeeee;
+}
+
+#route-header {
+    transition: margin-top 150ms, opacity 150ms;
+    z-index: 3;
+}
+main:not([data-view=route-result]) #route-header {
+    margin-top: -97px;
+    opacity: 0;
+    pointer-events: none;
+}
+
+#route-summary {
+    height: 55px;
+    padding: 6px 10px;
+    position: relative;
+}
+#route-summary > * {
+    display: block;
+    white-space: nowrap;
+}
+#route-summary > small {
+    display: block;
+    white-space: nowrap;
+    line-height: 1.1;
 }
 
 /* leaftlet levels control */
