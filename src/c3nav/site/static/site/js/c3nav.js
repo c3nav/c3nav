@@ -25,6 +25,7 @@ c3nav = {
     },
     _location_buttons_route_click: function () {
         c3nav._set_view('route-search');
+        c3nav._locationinput_focus_next();
     },
     _route_buttons_swap_click: function () {
         var $origin = $('#origin-input'),
@@ -34,6 +35,7 @@ c3nav = {
         c3nav._locationinput_set($destination, tmp);
         $origin.stop().css('top', '55px').animate({top: 0}, 150);
         $destination.stop().css('top', '-55px').animate({top: 0}, 150);
+        c3nav._locationinput_focus_next();
     },
     _route_buttons_close_click: function () {
         var $origin = $('#origin-input'),
@@ -42,6 +44,12 @@ c3nav = {
             c3nav._locationinput_set($destination, $origin.data('location'));
         }
         c3nav._locationinput_set($origin, null);
+        if ($destination.is('.selected')) {
+            c3nav._set_view('location');
+        } else {
+            c3nav._set_view('search');
+            $destination.find('input').focus();
+        }
         c3nav._set_view($destination.is('.selected') ? 'location' : 'search');
     },
 
@@ -211,7 +219,7 @@ c3nav = {
     _locationinput_focus_next: function (elem) {
         $next = $('.locationinput:not(.selected)');
         if ($next.length === 0) {
-            elem.find('input').blur();
+            if (elem) elem.find('input').blur();
         } else {
             $next.find('input').focus();
         }
