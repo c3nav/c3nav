@@ -48,22 +48,23 @@ c3nav = {
     _locationinput_set: function (elem, location) {
         // set a location input
         c3nav._locationinput_reset_autocomplete();
-        var $search = $('#search');
-        if (location === null || location === undefined) {
-            elem.removeClass('selected').addClass('empty').data('location', null).data('lastlocation', null);
-            elem.find('input').val('').data('origval', null);
-            elem.find('small').text('');
-            if (elem.attr('id') === 'destination-input') {
+        var $search = $('#search'),
+            location = (location === undefined) ? null : location,
+            title = (location === null) ? '' : location.title,
+            subtitle = (location === null) ? '' : location.subtitle;
+        elem.toggleClass('selected', location !== null).toggleClass('empty', location === null)
+            .data('location', location).data('lastlocation', location);
+        elem.find('input').val(title).data('origval', null);
+        elem.find('small').text(subtitle);
+
+        if (elem.attr('id') === 'destination-input') {
+            if (location === null) {
                 $search.removeClass('location-view');
+            } else if (!$search.is('.location-view, .route-view')) {
+                $search.addClass('location-view');
             }
-            return;
         }
-        elem.addClass('selected').removeClass('empty').data('location', location).data('lastlocation', location);
-        elem.find('input').val(location.title).data('origval', null);
-        elem.find('small').text(location.subtitle);
-        if (elem.attr('id') === 'destination-input' && !$search.is('.location-view, .route-view')) {
-            $search.addClass('location-view');
-        }
+        if (location !== null) c3nav.add_location_to_map(location);
     },
     _locationinput_reset: function (elem) {
         // reset this locationinput to its last location
@@ -270,15 +271,43 @@ c3nav = {
 
         // setup level control
         c3nav._levelControl = new LevelControl().addTo(c3nav.map);
+        c3nav._markerLayers = {};
+        c3nav._routeLayers = {};
         for (var i = c3nav.levels.length - 1; i >= 0; i--) {
             var level = c3nav.levels[i];
-            c3nav._levelControl.addLevel(level[0], level[1]);
+            var layerGroup = c3nav._levelControl.addLevel(level[0], level[1]);
+            c3nav._markerLayers[level[0]] = L.layerGroup().addTo(layerGroup);
+            c3nav._routeLayers[level[0]] = L.layerGroup().addTo(layerGroup);
         }
         c3nav._levelControl.finalize();
         c3nav._levelControl.setLevel(c3nav.levels[0][0]);
 
         c3nav.schedule_refresh_tile_access();
 
+    },
+    clear_map: function() {
+        for (var level_id in c3nav._markerLayers) {
+            c3nav._markerLayers[level_id].clearLayers()
+        }
+        for (var level_id in c3nav._routeLayers) {
+            c3nav._routeLayers[level_id].clearLayers()
+        }
+    },
+    add_location_to_map: function(location) {
+        if (location.locations !== undefined) {
+            var bounds = EmptyBounds;
+            for (var i=0; i<location.locations.length; i++) {
+                var result = c3nav.add_location_to_map(c3nav.locations_by_id[location.locations[i]]);
+                bounds = bounds.extend(c3nav.add_location_to_map(c3nav.locations_by_id[location.locations[i]]));
+            }
+            return bounds;
+        }
+        var latlng = L.GeoJSON.coordsToLatLng(location.point.slice(1));
+        L.marker(latlng).addTo(c3nav._markerLayers[location.point[0]]);
+
+        return L.latLngBounds(
+            (location.bounds !== undefined) ? L.GeoJSON.coordsToLatLngs(location.bounds) : [latlng, latlng]
+        );
     },
 
     schedule_refresh_tile_access: function () {
@@ -290,6 +319,13 @@ c3nav = {
     }
 };
 $(document).ready(c3nav.init);
+
+EmptyBounds = {
+    extend: function (bounds) {
+        console.log(bounds);
+        return bounds;
+    }
+};
 
 LevelControl = L.Control.extend({
     options: {
@@ -310,7 +346,8 @@ LevelControl = L.Control.extend({
         this._tileLayers[id] = L.tileLayer('/map/' + String(id) + '/{z}/{x}/{y}.png', {
             bounds: c3nav.bounds
         });
-        this._overlayLayers[id] = L.layerGroup();
+        var overlay = L.layerGroup();
+        this._overlayLayers[id] = overlay;
 
         var link = L.DomUtil.create('a', '', this._container);
         link.innerHTML = title;
@@ -322,7 +359,7 @@ LevelControl = L.Control.extend({
             .on(link, 'click', this._levelClick, this);
 
         this._levelButtons[id] = link;
-        return link;
+        return overlay;
     },
 
     setLevel: function (id) {
