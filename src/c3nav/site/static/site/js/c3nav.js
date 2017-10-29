@@ -33,7 +33,7 @@ c3nav = {
             $destination = $('#destination-input');
         tmp = $origin.data('location');
         c3nav._locationinput_set($origin, $destination.data('location'), false);
-        c3nav._locationinput_set($destination, tmp);
+        c3nav._locationinput_set($destination, tmp, false);
         $origin.stop().css('top', '55px').animate({top: 0}, 150);
         $destination.stop().css('top', '-55px').animate({top: 0}, 150);
         c3nav._locationinput_focus_next();
@@ -114,9 +114,11 @@ c3nav = {
                 }
                 break;
         }
-        if (update_map === undefined || update_map) c3nav.update_map_locations();
-        if (location !== null) {
-            c3nav.fly_to_bounds();
+        if (update_map === undefined || update_map) {
+            c3nav.update_map_locations();
+            if (location !== null) {
+                c3nav.fly_to_bounds();
+            }
         }
     },
     _locationinput_reset: function (elem) {
