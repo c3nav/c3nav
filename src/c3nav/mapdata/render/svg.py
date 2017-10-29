@@ -11,12 +11,12 @@ from c3nav.mapdata.utils.svg import SVGImage
 
 
 class SVGRenderer:
-    def __init__(self, level, miny, minx, maxy, maxx, scale=1, access_permissions=None):
+    def __init__(self, level, minx, miny, maxx, maxy, scale=1, access_permissions=None):
         self.level = level
-        self.miny = miny
         self.minx = minx
-        self.maxy = maxy
+        self.miny = miny
         self.maxx = maxx
+        self.maxy = maxy
         self.scale = scale
         self.access_permissions = access_permissions
 
@@ -61,7 +61,7 @@ class SVGRenderer:
         return self.update_cache_key + ':' + self.access_cache_key
 
     def render(self):
-        svg = SVGImage(bounds=((self.miny, self.minx), (self.maxy, self.maxx)), scale=self.scale, buffer=1)
+        svg = SVGImage(bounds=((self.minx, self.miny), (self.maxx, self.maxy)), scale=self.scale, buffer=1)
 
         # add no access restriction to “unlocked“ access restrictions so lookup gets easier
         unlocked_access_restrictions = self.unlocked_access_restrictions | set([None])

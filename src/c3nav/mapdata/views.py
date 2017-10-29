@@ -1,5 +1,6 @@
 import hashlib
 import os
+from itertools import chain
 
 from django.conf import settings
 from django.core.cache import cache
@@ -33,7 +34,7 @@ def tile(request, level, zoom, x, y, format):
 
     # error 404 if tiles is out of bounds
     bounds = Source.max_bounds()
-    if not box(bounds[0][1], bounds[0][0], bounds[1][1], bounds[1][0]).intersects(box(minx, miny, maxx, maxy)):
+    if not box(*chain(*bounds)).intersects(box(minx, miny, maxx, maxy)):
         raise Http404
 
     # is this a valid level?
@@ -46,7 +47,7 @@ def tile(request, level, zoom, x, y, format):
     access_permissions = get_tile_access_cookie(request)
 
     # init renderer
-    renderer = SVGRenderer(level, miny, minx, maxy, maxx, scale=2**zoom, access_permissions=access_permissions)
+    renderer = SVGRenderer(level, minx, miny, maxx, maxy, scale=2**zoom, access_permissions=access_permissions)
     tile_cache_key = renderer.cache_key
     update_cache_key = renderer.update_cache_key
 

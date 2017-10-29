@@ -207,7 +207,7 @@ class MapHistory:
 
     def to_image(self):
         from c3nav.mapdata.models import Source
-        (miny, minx), (maxy, maxx) = Source.max_bounds()
+        (minx, miny), (maxx, maxy) = Source.max_bounds()
 
         height, width = self.data.shape
         image_data = np.zeros((int(math.ceil((maxy-miny)/self.resolution)),

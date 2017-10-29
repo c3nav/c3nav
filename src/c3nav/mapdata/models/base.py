@@ -82,10 +82,10 @@ class BoundsMixin(SerializableMixin, models.Model):
         result = cache.get(cache_key, None)
         if result is not None:
             return result
-        result = cls.objects.all().aggregate(models.Min('bottom'), models.Min('left'),
-                                             models.Max('top'), models.Max('right'))
-        result = ((float(result['bottom__min']), float(result['left__min'])),
-                  (float(result['top__max']), float(result['right__max'])))
+        result = cls.objects.all().aggregate(models.Min('left'), models.Min('bottom'),
+                                             models.Max('right'), models.Max('top'))
+        result = ((float(result['left__min']), float(result['bottom__min'])),
+                  (float(result['right__max']), float(result['top__max'])))
         cache.set(cache_key, result, 900)
         return result
 
@@ -97,4 +97,4 @@ class BoundsMixin(SerializableMixin, models.Model):
     @property
     def bounds(self):
         # noinspection PyTypeChecker
-        return (float(self.bottom), float(self.left)), (float(self.top), float(self.right))
+        return (float(self.left), float(self.bottom)), (float(self.right), float(self.top))

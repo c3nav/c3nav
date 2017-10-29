@@ -39,7 +39,7 @@ class SVGImage:
     def __init__(self, bounds, scale: float=1, buffer=0):
         # get image dimensions.
         # note that these values describe the „viewport“ of the image, not its dimensions in pixels.
-        (self.bottom, self.left), (self.top, self.right) = bounds
+        (self.left, self.bottom), (self.right, self.top) = bounds
         self.width = self.right-self.left
         self.height = self.top-self.bottom
         self.scale = scale

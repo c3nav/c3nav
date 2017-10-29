@@ -259,7 +259,7 @@ c3nav = {
             maxZoom: 10,
             minZoom: 0,
             crs: L.CRS.Simple,
-            maxBounds: c3nav.bounds,
+            maxBounds: L.GeoJSON.coordsToLatLngs(c3nav.bounds),
             closePopupOnClick: false,
             zoomControl: false
         });
