@@ -326,7 +326,11 @@ c3nav = {
         }
         c3nav._levelControl.setLevel(level);
         if (bounds !== null) {
+            var left = 0,
+                top = (left === 0) ? $('#search').height()+10 : 10;
             c3nav.map.flyToBounds(bounds, {
+                paddingTopLeft: L.point(left+13, top+41),
+                paddingBottomRight: L.point(50, 20),
                 duration: 1
             });
         }
