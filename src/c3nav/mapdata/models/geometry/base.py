@@ -78,8 +78,8 @@ class GeometryMixin(SerializableMixin):
         if simple_geometry:
             result['point'] = (self.level_id, ) + tuple(round(i, 2) for i in self.centroid.coords[0])
             if not isinstance(self.geometry, Point):
-                result['bounds'] = ((int(math.floor(self.miny)), int(math.floor(self.minx))),
-                                    (int(math.ceil(self.maxy)), int(math.ceil(self.maxx))))
+                result['bounds'] = ((int(math.floor(self.minx)), int(math.floor(self.miny))),
+                                    (int(math.ceil(self.maxx)), int(math.ceil(self.maxy))))
         return result
 
     def get_shadow_geojson(self):
