@@ -98,6 +98,8 @@ class SVGImage:
         if self.get_dimensions_px(buffer=False) == (256, 256) and not self.g:
             return self.empty_tile
 
+        background_color = '#DCDCDC'
+
         if settings.SVG_RENDERER == 'rsvg':
             # create buffered surfaces
             buffered_surface = cairocffi.SVGSurface(None, *(int(i) for i in self.get_dimensions_px(buffer=True)))
@@ -108,10 +110,16 @@ class SVGImage:
             svg = handle.new_from_data(self.get_xml(buffer=True).encode())
             svg.render_cairo(buffered_context)
 
-            # crop resulting immage
-            surface = buffered_surface.create_similar(buffered_surface.get_content(),
+            # create cropped image
+            surface = buffered_surface.create_similar(cairocffi.CONTENT_COLOR,
                                                       *(int(i) for i in self.get_dimensions_px(buffer=False)))
             context = cairocffi.Context(surface)
+
+            # set background color
+            context.set_source(cairocffi.SolidPattern(*(int(background_color[i:i+2], 16)/255 for i in range(1, 6, 2))))
+            context.paint()
+
+            # paste buffered immage with offset
             context.set_source_surface(buffered_surface, -self.buffer_px, -self.buffer_px)
             context.paint()
             if f is None:
@@ -119,7 +127,7 @@ class SVGImage:
             f.write(surface.write_to_png())
 
         elif settings.SVG_RENDERER == 'rsvg-convert':
-            p = subprocess.run(('rsvg-convert', '--format', 'png'),
+            p = subprocess.run(('rsvg-convert', '-b', background_color, '--format', 'png'),
                                input=self.get_xml(buffer=True).encode(), stdout=subprocess.PIPE, check=True)
             png = io.BytesIO(p.stdout)
             img = Image.open(png)
@@ -134,8 +142,9 @@ class SVGImage:
             img.save(f, 'PNG')
 
         elif settings.SVG_RENDERER == 'inkscape':
-            p = subprocess.run(('inkscape', '-z', '-e', '/dev/stderr', '/dev/stdin'), input=self.get_xml().encode(),
-                               stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True)
+            p = subprocess.run(('inkscape', '-z', '-b', background_color, '-e', '/dev/stderr', '/dev/stdin'),
+                               input=self.get_xml().encode(), stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                               check=True)
             png = p.stderr[p.stderr.index(b'\x89PNG'):]
             if f is None:
                 return png
