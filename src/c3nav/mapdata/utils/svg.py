@@ -63,6 +63,8 @@ class SVGImage:
         # keep track of created blur filters to avoid duplicates
         self.blurs = set()
 
+        self._create_geometry_cache = {}
+
     def get_dimensions_px(self, buffer):
         # get dimensions of the image in pixels, with or without buffer
         width_px = self.width * self.scale + (self.buffer_px * 2 if buffer else 0)
@@ -141,7 +143,7 @@ class SVGImage:
 
     def _trim_decimals(self, data):
         # remove trailing zeros from a decimal – yes this is slow, but it greatly speeds up cairo rendering
-        return re.sub(r'([0-9]+)((\.[1-9])[0-9]+|\.[0-9]+)?', r'\1\3', data)
+        return re.sub(r'([0-9]+)((\.[1-9])[0-9]+|\.[0-9]+)?', r'\1\2', data)
 
     def _geometry_to_svg(self, geom):
         # scale and move geometry and create svg code for it
@@ -162,7 +164,12 @@ class SVGImage:
 
     def _create_geometry(self, geometry, attribs='', tag='g'):
         # convert a shapely geometry into an svg xml element
-        return '<'+tag+attribs+'>'+self._geometry_to_svg(geometry)+'</'+tag+'>'
+        cache_key = (id(geometry), attribs, tag)
+        result = self._create_geometry_cache.get(cache_key, None)
+        if result is None:
+            result = self._geometry_to_svg(geometry)
+            self._create_geometry_cache[cache_key] = result
+        return '<'+tag+attribs+'>'+result+'</'+tag+'>'
 
     def register_clip_path(self, geometry):
         defid = 'clip'+str(self.clip_path_i)
@@ -233,10 +240,13 @@ class SVGImage:
         attribs = ' fill="'+(fill_color or 'none')+'"'
         if fill_opacity:
             attribs += ' fill-opacity="'+str(fill_opacity)[:4]+'"'
-        if stroke_px:
+        if stroke_width:
+            width = stroke_width*self.scale
+            if stroke_px:
+                width = max(width, stroke_px)
+            attribs += ' stroke-width="' + self._trim_decimals(str(width)) + '"'
+        elif stroke_px:
             attribs += ' stroke-width="'+self._trim_decimals(str(stroke_px))+'"'
-        elif stroke_width:
-            attribs += ' stroke-width="'+self._trim_decimals(str(stroke_width * self.scale))+'"'
         if stroke_color:
             attribs += ' stroke="'+stroke_color+'"'
         if stroke_opacity:

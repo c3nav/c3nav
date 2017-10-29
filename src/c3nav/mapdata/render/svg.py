@@ -95,12 +95,18 @@ class SVGRenderer:
                         svg.add_geometry(bbox.intersection(unary_union(areas)), fill_color=color)
 
             # add walls, stroke_px makes sure that all walls are at least 1px thick on all zoom levels,
+            walls = None
             if not add_walls.is_empty or not geoms.walls.is_empty:
-                svg.add_geometry(bbox.intersection(geoms.walls.union(add_walls)),
-                                 fill_color='#aaaaaa', stroke_px=0.5, stroke_color='#aaaaaa', elevation=default_height)
+                walls = bbox.intersection(geoms.walls.union(add_walls))
+
+            if walls is not None:
+                svg.add_geometry(walls, elevation=default_height, fill_color='#aaaaaa')
 
             if not geoms.doors.is_empty:
                 svg.add_geometry(bbox.intersection(geoms.doors.difference(add_walls)),
-                                 fill_color='#ffffff', stroke_px=0.5, stroke_color='#ffffff')
+                                 fill_color='#ffffff', stroke_width=0.05, stroke_px=0.2, stroke_color='#ffffff')
+
+            if walls is not None:
+                svg.add_geometry(walls, stroke_width=0.05, stroke_px=0.2, stroke_color='#666666')
 
         return svg
