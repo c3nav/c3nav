@@ -64,7 +64,10 @@ c3nav = {
                 $search.addClass('location-view');
             }
         }
-        if (location !== null) c3nav.add_location_to_map(location);
+        c3nav.update_map_locations();
+        if (location !== null) {
+            c3nav.fly_to_bounds();
+        }
     },
     _locationinput_reset: function (elem) {
         // reset this locationinput to its last location
@@ -185,13 +188,19 @@ c3nav = {
             val_trimmed = $.trim(val),
             val_words = val_trimmed.toLowerCase().split(/\s+/),
             val_words_key = val_words.join(' '),
-            $autocomplete = $('#autocomplete');
-        $(this).parent().removeClass('selected').toggleClass('empty', val === '').data('location', null);
-        if ($(this).parent().attr('id') === 'destination-input') {
+            $autocomplete = $('#autocomplete'),
+            $parent = $(this).parent();
+        $parent.toggleClass('empty', val === '');
+        if ($parent.is('.selected')) {
+            $parent.removeClass('selected').data('location', null);
+        }
+
+        if ($parent.attr('id') === 'destination-input') {
             $('#search').removeClass('location-view');
+            c3nav.update_map_locations();
         }
         $autocomplete.find('.focus').removeClass('focus');
-        c3nav.current_locationinput = $(this).parent().attr('id');
+        c3nav.current_locationinput = $parent.attr('id');
 
         if (val_trimmed === '') {
             c3nav._locationinput_reset_autocomplete();
@@ -271,12 +280,13 @@ c3nav = {
 
         // setup level control
         c3nav._levelControl = new LevelControl().addTo(c3nav.map);
-        c3nav._markerLayers = {};
+        c3nav._locationLayers = {};
+        c3nav._locationLayerBounds = {};
         c3nav._routeLayers = {};
         for (var i = c3nav.levels.length - 1; i >= 0; i--) {
             var level = c3nav.levels[i];
             var layerGroup = c3nav._levelControl.addLevel(level[0], level[1]);
-            c3nav._markerLayers[level[0]] = L.layerGroup().addTo(layerGroup);
+            c3nav._locationLayers[level[0]] = L.layerGroup().addTo(layerGroup);
             c3nav._routeLayers[level[0]] = L.layerGroup().addTo(layerGroup);
         }
         c3nav._levelControl.finalize();
@@ -285,29 +295,67 @@ c3nav = {
         c3nav.schedule_refresh_tile_access();
 
     },
-    clear_map: function() {
-        for (var level_id in c3nav._markerLayers) {
-            c3nav._markerLayers[level_id].clearLayers()
+    update_map_locations: function () {
+        var $origin = $('#origin-input'),
+            $destination = $('#destination-input'),
+            bounds = {};
+        for (var level_id in c3nav._locationLayers) {
+            c3nav._locationLayers[level_id].clearLayers()
         }
-        for (var level_id in c3nav._routeLayers) {
-            c3nav._routeLayers[level_id].clearLayers()
+        if ($origin.is('.selected')) {
+            c3nav._merge_bounds(bounds, c3nav._add_location_to_map($origin.data('location')))
+        }
+        if ($destination.is('.selected')) {
+            c3nav._merge_bounds(bounds, c3nav._add_location_to_map($destination.data('location')));
+        }
+        c3nav._locationLayerBounds = bounds;
+    },
+    fly_to_bounds: function() {
+        var level = c3nav._levelControl.currentLevel,
+            bounds = null;
+
+        if (c3nav._locationLayerBounds[level] !== undefined) {
+            bounds = c3nav._locationLayerBounds[level];
+        } else {
+            for (var level_id in c3nav._locationLayers) {
+                if (c3nav._locationLayerBounds[level_id] !== undefined) {
+                    bounds = c3nav._locationLayerBounds[level_id];
+                    level = level_id
+                }
+            }
+        }
+        c3nav._levelControl.setLevel(level);
+        if (bounds !== null) {
+            c3nav.map.flyToBounds(bounds, {
+                duration: 1
+            });
         }
     },
-    add_location_to_map: function(location) {
+    _add_location_to_map: function(location) {
         if (location.locations !== undefined) {
-            var bounds = EmptyBounds;
+            var bounds = {};
             for (var i=0; i<location.locations.length; i++) {
-                var result = c3nav.add_location_to_map(c3nav.locations_by_id[location.locations[i]]);
-                bounds = bounds.extend(c3nav.add_location_to_map(c3nav.locations_by_id[location.locations[i]]));
+                c3nav._merge_bounds(bounds, c3nav._add_location_to_map(c3nav.locations_by_id[location.locations[i]]));
             }
             return bounds;
         }
         var latlng = L.GeoJSON.coordsToLatLng(location.point.slice(1));
-        L.marker(latlng).addTo(c3nav._markerLayers[location.point[0]]);
+        L.marker(latlng).addTo(c3nav._locationLayers[location.point[0]]);
 
-        return L.latLngBounds(
+        result = {};
+        result[location.point[0]] = L.latLngBounds(
             (location.bounds !== undefined) ? L.GeoJSON.coordsToLatLngs(location.bounds) : [latlng, latlng]
         );
+        return result
+    },
+    _merge_bounds: function(bounds, new_bounds) {
+        for (var level_id in new_bounds) {
+            if (bounds[level_id] === undefined) {
+                bounds[level_id] = new_bounds[level_id];
+            } else {
+                bounds[level_id] = bounds[level_id].extend(new_bounds[level_id]);
+            }
+        }
     },
 
     schedule_refresh_tile_access: function () {
@@ -363,9 +411,9 @@ LevelControl = L.Control.extend({
     },
 
     setLevel: function (id) {
-        if (this._tileLayers[id] === undefined) {
-            return false;
-        }
+        if (id === this.currentLevel) return true;
+        if (this._tileLayers[id] === undefined) return false;
+
         if (this.currentLevel !== null) {
             this._tileLayers[this.currentLevel].remove();
             this._overlayLayers[this.currentLevel].remove();
