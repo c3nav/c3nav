@@ -25,13 +25,14 @@ c3nav = {
     },
     _location_buttons_route_click: function () {
         c3nav._set_view('route-search');
+        c3nav.update_map_locations();
         c3nav._locationinput_focus_next();
     },
     _route_buttons_swap_click: function () {
         var $origin = $('#origin-input'),
             $destination = $('#destination-input');
         tmp = $origin.data('location');
-        c3nav._locationinput_set($origin, $destination.data('location'));
+        c3nav._locationinput_set($origin, $destination.data('location'), false);
         c3nav._locationinput_set($destination, tmp);
         $origin.stop().css('top', '55px').animate({top: 0}, 150);
         $destination.stop().css('top', '-55px').animate({top: 0}, 150);
@@ -41,9 +42,9 @@ c3nav = {
         var $origin = $('#origin-input'),
             $destination = $('#destination-input');
         if ($origin.is('.selected') && !$destination.is('.selected')) {
-            c3nav._locationinput_set($destination, $origin.data('location'));
+            c3nav._locationinput_set($destination, $origin.data('location'), false);
         }
-        c3nav._locationinput_set($origin, null);
+        c3nav._locationinput_set($origin, null, false);
         if ($destination.is('.selected')) {
             c3nav._set_view('location');
         } else {
@@ -51,6 +52,7 @@ c3nav = {
             $destination.find('input').focus();
         }
         c3nav._set_view($destination.is('.selected') ? 'location' : 'search');
+        c3nav.update_map_locations();
     },
 
     init_locationinputs: function () {
@@ -78,7 +80,7 @@ c3nav = {
             .on('click', '.location', c3nav._locationinput_click_suggestion);
         $('html').on('focus', '*', c3nav._locationinput_global_focuschange);
     },
-    _locationinput_set: function (elem, location) {
+    _locationinput_set: function (elem, location, update_map) {
         // set a location input
         c3nav._locationinput_reset_autocomplete();
         var $search = $('#search'),
@@ -112,7 +114,7 @@ c3nav = {
                 }
                 break;
         }
-        c3nav.update_map_locations();
+        if (update_map === undefined || update_map) c3nav.update_map_locations();
         if (location !== null) {
             c3nav.fly_to_bounds();
         }
@@ -330,8 +332,10 @@ c3nav = {
         });
         c3nav.map.fitBounds(c3nav.bounds, {padding: [30, 50]});
 
-        // fix marker paths
-        L.Icon.Default.imagePath = '/static/leaflet/images/'
+        // set up icons
+        L.Icon.Default.imagePath = '/static/leaflet/images/';
+        c3nav._add_icon('origin');
+        c3nav._add_icon('destination');
 
         // setup scale control
         L.control.scale({imperial: false}).addTo(c3nav.map);
@@ -353,18 +357,31 @@ c3nav = {
         c3nav.schedule_refresh_tile_access();
 
     },
+    _add_icon: function (name) {
+        c3nav[name+'Icon'] = new L.Icon({
+            iconUrl: '/static/img/marker-icon-'+name+'.png',
+            iconRetinaUrl: '/static/img/marker-icon-\'+name+\'-2x.png',
+            shadowUrl: '/static/leaflet/images/marker-shadow.png',
+            iconSize: [25, 41],
+            iconAnchor: [12, 41],
+            popupAnchor: [1, -34],
+            tooltipAnchor: [16, -28],
+            shadowSize: [41, 41]
+        });
+    },
     update_map_locations: function () {
         var $origin = $('#origin-input'),
             $destination = $('#destination-input'),
+            single = !$('main').is('[data-view^=route]'),
             bounds = {};
         for (var level_id in c3nav._locationLayers) {
             c3nav._locationLayers[level_id].clearLayers()
         }
         if ($origin.is('.selected')) {
-            c3nav._merge_bounds(bounds, c3nav._add_location_to_map($origin.data('location')))
+            c3nav._merge_bounds(bounds, c3nav._add_location_to_map($origin.data('location'), single ? new L.Icon.Default() : c3nav.originIcon))
         }
         if ($destination.is('.selected')) {
-            c3nav._merge_bounds(bounds, c3nav._add_location_to_map($destination.data('location')));
+            c3nav._merge_bounds(bounds, c3nav._add_location_to_map($destination.data('location'), single ? new L.Icon.Default() : c3nav.destinationIcon));
         }
         c3nav._locationLayerBounds = bounds;
     },
@@ -393,7 +410,7 @@ c3nav = {
             });
         }
     },
-    _add_location_to_map: function(location) {
+    _add_location_to_map: function(location, icon) {
         if (location.locations !== undefined) {
             var bounds = {};
             for (var i=0; i<location.locations.length; i++) {
@@ -402,7 +419,9 @@ c3nav = {
             return bounds;
         }
         var latlng = L.GeoJSON.coordsToLatLng(location.point.slice(1));
-        L.marker(latlng).addTo(c3nav._locationLayers[location.point[0]]);
+        L.marker(latlng, {
+            icon: icon
+        }).addTo(c3nav._locationLayers[location.point[0]]);
 
         result = {};
         result[location.point[0]] = L.latLngBounds(
