@@ -22,18 +22,18 @@ c3nav = {
 
     init_locationinputs: function () {
         c3nav.locations = [];
-        c3nav.locations_by_slug = {};
+        c3nav.locations_by_id = {};
         c3nav.current_locationinput = null;
         c3nav._last_match_words_key = null;
         $.getJSON('/api/locations/?searchable', function (data) {
             for (var i = 0; i < data.length; i++) {
                 var location = data[i];
                 location.elem = $('<div class="location">').append($('<span>').text(location.title))
-                    .append($('<small>').text(location.subtitle)).attr('data-slug', location.slug);
+                    .append($('<small>').text(location.subtitle)).attr('data-id', location.id);
                 location.title_words = location.title.toLowerCase().split(/\s+/);
                 location.match = ' ' + location.title_words.join(' ') + ' ';
                 c3nav.locations.push(location);
-                c3nav.locations_by_slug[location.slug] = location;
+                c3nav.locations_by_id[location.id] = location;
             }
         });
 
@@ -143,7 +143,7 @@ c3nav = {
                 // otherwise, focus this element, and save location to the input
                 next.addClass('focus');
                 $(this).val(next.find('span').text()).parent()
-                    .data('location', c3nav.locations_by_slug[next.attr('data-slug')]);
+                    .data('location', c3nav.locations_by_id[next.attr('data-id')]);
             }
         } else if (e.which === 13) {
             // enter: select currently focused suggestion or first suggestion
@@ -152,7 +152,7 @@ c3nav = {
                 $focused = $autocomplete.find('.location:first-child');
             }
             if ($focused.length === 0) return;
-            c3nav._locationinput_set($(this).parent(), c3nav.locations_by_slug[$focused.attr('data-slug')]);
+            c3nav._locationinput_set($(this).parent(), c3nav.locations_by_id[$focused.attr('data-id')]);
             c3nav._locationinput_focus_next($(this).parent());
         }
     },
@@ -161,7 +161,7 @@ c3nav = {
     },
     _locationinput_click_suggestion: function () {
         $locationinput = $('#' + c3nav.current_locationinput);
-        c3nav._locationinput_set($locationinput, c3nav.locations_by_slug[$(this).attr('data-slug')]);
+        c3nav._locationinput_set($locationinput, c3nav.locations_by_id[$(this).attr('data-id')]);
         c3nav._locationinput_focus_next($locationinput);
     },
     _locationinput_focus_next: function (elem) {
