@@ -372,12 +372,6 @@ c3nav = {
 };
 $(document).ready(c3nav.init);
 
-EmptyBounds = {
-    extend: function (bounds) {
-        console.log(bounds);
-        return bounds;
-    }
-};
 
 LevelControl = L.Control.extend({
     options: {
