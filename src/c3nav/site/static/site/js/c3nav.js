@@ -3,6 +3,23 @@
         L.Browser.pointer = false;
         L.Browser.touch = false;
     }
+
+    /*
+     * Workaround for 1px lines appearing in some browsers due to fractional transforms
+     * and resulting anti-aliasing.
+     * https://github.com/Leaflet/Leaflet/issues/3575
+     */
+    var originalInitTile = L.GridLayer.prototype._initTile
+    L.GridLayer.include({
+        _initTile: function (tile) {
+            originalInitTile.call(this, tile);
+
+            var tileSize = this.getTileSize();
+
+            tile.style.width = tileSize.x + 1 + 'px';
+            tile.style.height = tileSize.y + 1 + 'px';
+        }
+    });
 }());
 
 c3nav = {
@@ -314,6 +331,7 @@ c3nav = {
             minZoom: 0,
             crs: L.CRS.Simple,
             maxBounds: L.GeoJSON.coordsToLatLngs(c3nav.bounds),
+            zoomSnap: 0,
             zoomControl: false
         });
         c3nav.map.fitBounds(c3nav.bounds, {padding: [30, 50]});
