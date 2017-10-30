@@ -29,10 +29,10 @@ c3nav = {
             $origin = $('#origin-input'),
             view;
         if (routing) {
-            view = ($origin.data('location') === null || $destination.data('location') === null) ? 'route-search' : 'route-result';
+            view = (!$origin.data('location') || !$destination.data('location')) ? 'route-search' : 'route-result';
         } else {
-            view = ($destination.data('location') === null) ? 'search' : 'location';
-            if ($origin.data('location') !== null) {
+            view = (!$destination.data('location')) ? 'search' : 'location';
+            if ($origin.data('location')) {
                 c3nav._locationinput_set($origin, null);
             }
         }
@@ -115,12 +115,10 @@ c3nav = {
     _locationinput_set: function (elem, location) {
         // set a location input
         c3nav._locationinput_reset_autocomplete();
-        var title = (location === null) ? '' : location.title,
-            subtitle = (location === null) ? '' : location.subtitle;
-        elem.toggleClass('selected', location !== null).toggleClass('empty', location === null)
+        elem.toggleClass('selected', !!location).toggleClass('empty', !location)
             .data('location', location).data('lastlocation', location).removeData('suggestion');
-        elem.find('input').val(title).removeData('origval');
-        elem.find('small').text(subtitle);
+        elem.find('input').val(location ? location.title : '').removeData('origval');
+        elem.find('small').text(location ? location.subtitle : '');
     },
     _locationinput_reset: function (elem) {
         // reset this locationinput to its last location
@@ -155,8 +153,8 @@ c3nav = {
     },
     _locationinput_global_focuschange: function () {
         // when focus changed, reset autocomplete if it is outside of locationinputs or autocomplete
-        if (c3nav.current_locationinput === null) return;
-        if ($('#autocomplete > :focus, #' + c3nav.current_locationinput + ' > :focus').length === 0) {
+        if (!c3nav.current_locationinput) return;
+        if (!$('#autocomplete > :focus, #' + c3nav.current_locationinput + ' > :focus').length) {
             c3nav._locationinput_reset_autocomplete();
         }
     },
@@ -175,7 +173,7 @@ c3nav = {
         } else if (e.which === 40 || e.which === 38) {
             // arrows up/down
             var $locations = $autocomplete.find('.location');
-            if ($locations.length === 0) return;
+            if (!$locations.length) return;
 
             // save current input value in case we have to restore it
             if (!$(this).data('origval')) {
@@ -188,13 +186,13 @@ c3nav = {
 
             // find next element
             var next;
-            if ($focused.length === 0) {
+            if (!$focused.length) {
                 next = $locations.filter((e.which === 40) ? ':first-child' : ':last-child');
             } else {
                 next = (e.which === 40) ? $focused.next() : $focused.prev();
             }
 
-            if (next.length === 0) {
+            if (!next.length) {
                 // if there is no next element, restore original value
                 $(this).val($(this).data('origval')).parent().removeData('suggestion');
             } else {
@@ -206,10 +204,10 @@ c3nav = {
         } else if (e.which === 13) {
             // enter: select currently focused suggestion or first suggestion
             $focused = $autocomplete.find('.location.focus');
-            if ($focused.length === 0) {
+            if (!$focused.length) {
                 $focused = $autocomplete.find('.location:first-child');
             }
-            if ($focused.length === 0) return;
+            if (!$focused.length) return;
             c3nav._locationinput_set($(this).parent(), c3nav.locations_by_id[$focused.attr('data-id')]);
             c3nav.update_state();
             c3nav.fly_to_bounds();
@@ -366,12 +364,8 @@ c3nav = {
         for (var level_id in c3nav._locationLayers) {
             c3nav._locationLayers[level_id].clearLayers()
         }
-        if (origin !== null) {
-            c3nav._merge_bounds(bounds, c3nav._add_location_to_map(origin, single ? new L.Icon.Default() : c3nav.originIcon))
-        }
-        if (destination !== null) {
-            c3nav._merge_bounds(bounds, c3nav._add_location_to_map(destination, single ? new L.Icon.Default() : c3nav.destinationIcon));
-        }
+        if (origin) c3nav._merge_bounds(bounds, c3nav._add_location_to_map(origin, single ? new L.Icon.Default() : c3nav.originIcon));
+        if (destination) c3nav._merge_bounds(bounds, c3nav._add_location_to_map(destination, single ? new L.Icon.Default() : c3nav.destinationIcon));
         c3nav._locationLayerBounds = bounds;
     },
     fly_to_bounds: function() {
@@ -379,18 +373,18 @@ c3nav = {
         var level = c3nav._levelControl.currentLevel,
             bounds = null;
 
-        if (c3nav._locationLayerBounds[level] !== undefined) {
+        if (c3nav._locationLayerBounds[level]) {
             bounds = c3nav._locationLayerBounds[level];
         } else {
             for (var level_id in c3nav._locationLayers) {
-                if (c3nav._locationLayerBounds[level_id] !== undefined) {
+                if (c3nav._locationLayerBounds[level_id]) {
                     bounds = c3nav._locationLayerBounds[level_id];
                     level = level_id
                 }
             }
         }
         c3nav._levelControl.setLevel(level);
-        if (bounds !== null) {
+        if (bounds) {
             var left = 0,
                 top = (left === 0) ? $('#search').height()+10 : 10;
             c3nav.map.flyToBounds(bounds, c3nav._add_map_padding({
@@ -408,7 +402,7 @@ c3nav = {
     },
     _add_location_to_map: function(location, icon) {
         // add a location to the map as a marker
-        if (location.locations !== undefined) {
+        if (location.locations) {
             var bounds = {};
             for (var i=0; i<location.locations.length; i++) {
                 c3nav._merge_bounds(bounds, c3nav._add_location_to_map(c3nav.locations_by_id[location.locations[i]], icon));
@@ -424,17 +418,13 @@ c3nav = {
 
         var result = {};
         result[location.point[0]] = L.latLngBounds(
-            (location.bounds !== undefined) ? L.GeoJSON.coordsToLatLngs(location.bounds) : [latlng, latlng]
+            location.bounds ? L.GeoJSON.coordsToLatLngs(location.bounds) : [latlng, latlng]
         );
         return result
     },
     _merge_bounds: function(bounds, new_bounds) {
         for (var level_id in new_bounds) {
-            if (bounds[level_id] === undefined) {
-                bounds[level_id] = new_bounds[level_id];
-            } else {
-                bounds[level_id] = bounds[level_id].extend(new_bounds[level_id]);
-            }
+            bounds[level_id] = bounds[level_id] ? bounds[level_id].extend(new_bounds[level_id]) : new_bounds[level_id];
         }
     },
 
@@ -488,7 +478,7 @@ LevelControl = L.Control.extend({
         if (id === this.currentLevel) return true;
         if (this._tileLayers[id] === undefined) return false;
 
-        if (this.currentLevel !== null) {
+        if (this.currentLevel) {
             this._tileLayers[this.currentLevel].remove();
             this._overlayLayers[this.currentLevel].remove();
             L.DomUtil.removeClass(this._levelButtons[this.currentLevel], 'current');
