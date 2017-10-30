@@ -202,7 +202,7 @@ c3nav = {
                 // otherwise, focus this element, and save location to the input
                 next.addClass('focus');
                 $(this).val(next.find('span').text()).parent()
-                    .data('siggestion', c3nav.locations_by_id[next.attr('data-id')]);
+                    .data('suggestion', c3nav.locations_by_id[next.attr('data-id')]);
             }
         } else if (e.which === 13) {
             // enter: select currently focused suggestion or first suggestion
