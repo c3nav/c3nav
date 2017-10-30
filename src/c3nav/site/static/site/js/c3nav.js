@@ -30,8 +30,8 @@ c3nav = {
     },
     _route_buttons_swap_click: function () {
         var $origin = $('#origin-input'),
-            $destination = $('#destination-input');
-        tmp = $origin.data('location');
+            $destination = $('#destination-input'),
+            tmp = $origin.data('location');
         c3nav._locationinput_set($origin, $destination.data('location'), false);
         c3nav._locationinput_set($destination, tmp, false);
         $origin.stop().css('top', '55px').animate({top: 0}, 150);
@@ -84,8 +84,7 @@ c3nav = {
     _locationinput_set: function (elem, location, update_map) {
         // set a location input
         c3nav._locationinput_reset_autocomplete();
-        var $search = $('#search'),
-            location = (location === undefined) ? null : location,
+        var location = (location === undefined) ? null : location,
             title = (location === null) ? '' : location.title,
             subtitle = (location === null) ? '' : location.subtitle;
         elem.toggleClass('selected', location !== null).toggleClass('empty', location === null)
@@ -133,7 +132,7 @@ c3nav = {
     },
     _locationinput_reset_autocomplete: function () {
         // hide autocomplete
-        $autocomplete = $('#autocomplete');
+        var $autocomplete = $('#autocomplete');
         $autocomplete.find('.focus').removeClass('focus');
         $autocomplete.html('');
         c3nav._last_locationinput_words_key = null;
@@ -217,12 +216,12 @@ c3nav = {
         $(this).addClass('focus').siblings().removeClass('focus');
     },
     _locationinput_click_suggestion: function () {
-        $locationinput = $('#' + c3nav.current_locationinput);
+        var $locationinput = $('#' + c3nav.current_locationinput);
         c3nav._locationinput_set($locationinput, c3nav.locations_by_id[$(this).attr('data-id')]);
         c3nav._locationinput_focus_next($locationinput);
     },
     _locationinput_focus_next: function (elem) {
-        $next = $('.locationinput:not(.selected)');
+        var $next = $('.locationinput:not(.selected)');
         if ($next.length === 0) {
             if (elem) elem.find('input').blur();
         } else {
@@ -432,7 +431,7 @@ c3nav = {
             className: 'location-popup'
         }, 'autoPanPaddingTopLeft', 'autoPanPaddingBottomRight')).addTo(c3nav._locationLayers[location.point[0]]);
 
-        result = {};
+        var result = {};
         result[location.point[0]] = L.latLngBounds(
             (location.bounds !== undefined) ? L.GeoJSON.coordsToLatLngs(location.bounds) : [latlng, latlng]
         );
