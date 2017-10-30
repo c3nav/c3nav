@@ -32,6 +32,10 @@ def tile(request, level, zoom, x, y, format):
     maxx = minx + size
     maxy = miny + size
 
+    # add one pixel so tiles can overlap to avoid rendering bugs in chrome or webkit
+    maxx += size / 256
+    miny -= size / 256
+
     # error 404 if tiles is out of bounds
     bounds = Source.max_bounds()
     if not box(*chain(*bounds)).intersects(box(minx, miny, maxx, maxy)):
