@@ -396,6 +396,7 @@ c3nav = {
         });
     },
     update_map_locations: function () {
+        // update locations markers on the map
         var $origin = $('#origin-input'),
             $destination = $('#destination-input'),
             single = !$('main').is('[data-view^=route]'),
@@ -412,6 +413,7 @@ c3nav = {
         c3nav._locationLayerBounds = bounds;
     },
     fly_to_bounds: function() {
+        // fly to the bounds of the current overlays
         var level = c3nav._levelControl.currentLevel,
             bounds = null;
 
@@ -435,6 +437,7 @@ c3nav = {
         }
     },
     _add_map_padding: function(options, topleft, bottomright) {
+        // add padding information for the current ui layout to fitBoudns options
         var left = 0,
             top = (left === 0) ? $('#search').height()+10 : 10;
         options[topleft] = L.point(left+13, top+41);
@@ -442,6 +445,7 @@ c3nav = {
         return options;
     },
     _add_location_to_map: function(location, icon) {
+        // add a location to the map as a marker
         if (location.locations !== undefined) {
             var bounds = {};
             for (var i=0; i<location.locations.length; i++) {
