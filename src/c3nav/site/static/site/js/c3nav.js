@@ -35,13 +35,16 @@ c3nav = {
         }
         c3nav._view = view;
         $('main').attr('data-view', view);
+
+        $('.locationinput.selected:focus').blur();
+        $('#destination-input, [data-view^=route] #origin-input').filter(':not(.selected)').find('input').first().focus();
+
         c3nav.update_map_locations();
     },
 
     // button handlers
     _location_buttons_route_click: function () {
         c3nav.update_state(true);
-        c3nav._locationinput_focus_next();
     },
     _route_buttons_swap_click: function () {
         var $origin = $('#origin-input'),
@@ -51,7 +54,6 @@ c3nav = {
         c3nav._locationinput_set_raw($destination, tmp);
         $origin.stop().css('top', '55px').animate({top: 0}, 150);
         $destination.stop().css('top', '-55px').animate({top: 0}, 150);
-        c3nav._locationinput_focus_next();
         c3nav.update_state();
     },
     _route_buttons_close_click: function () {
@@ -61,9 +63,6 @@ c3nav = {
             c3nav._locationinput_set_raw($destination, $origin.data('location'));
         }
         c3nav.update_state(false);
-        if (!$destination.is('.selected')) {
-            $destination.find('input').focus();
-        }
     },
     _popup_button_click: function () {
         var location = c3nav.locations_by_id[parseInt($(this).siblings('.location').attr('data-id'))],
@@ -216,7 +215,6 @@ c3nav = {
             }
             if ($focused.length === 0) return;
             c3nav._locationinput_set($(this).parent(), c3nav.locations_by_id[$focused.attr('data-id')]);
-            c3nav._locationinput_focus_next($(this).parent());
         }
     },
     _locationinput_hover_suggestion: function () {
@@ -225,15 +223,6 @@ c3nav = {
     _locationinput_click_suggestion: function () {
         var $locationinput = $('#' + c3nav.current_locationinput);
         c3nav._locationinput_set($locationinput, c3nav.locations_by_id[$(this).attr('data-id')]);
-        c3nav._locationinput_focus_next($locationinput);
-    },
-    _locationinput_focus_next: function (elem) {
-        var $next = $('.locationinput:not(.selected)');
-        if ($next.length === 0) {
-            if (elem) elem.find('input').blur();
-        } else {
-            $next.find('input').focus();
-        }
     },
     _locationinput_matches_compare: function (a, b) {
         if (a[1] !== b[1]) return b[1] - a[1];
