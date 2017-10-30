@@ -37,6 +37,7 @@ c3nav = {
         $origin.stop().css('top', '55px').animate({top: 0}, 150);
         $destination.stop().css('top', '-55px').animate({top: 0}, 150);
         c3nav._locationinput_focus_next();
+        c3nav.update_map_locations();
     },
     _route_buttons_close_click: function () {
         var $origin = $('#origin-input'),
