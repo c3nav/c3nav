@@ -18,6 +18,7 @@ c3nav = {
         $('#location-buttons').find('.route').on('click', c3nav._location_buttons_route_click);
         $('#route-search-buttons, #route-result-buttons').find('.swap').on('click', c3nav._route_buttons_swap_click);
         $('#route-search-buttons, #route-summary').find('.close').on('click', c3nav._route_buttons_close_click);
+        $('#map').on('click', '.location-popup .button-clear', c3nav._popup_button_click);
     },
     _set_view: function(view) {
         c3nav._view = view;
@@ -53,6 +54,30 @@ c3nav = {
             $destination.find('input').focus();
         }
         c3nav._set_view($destination.is('.selected') ? 'location' : 'search');
+        c3nav.update_map_locations();
+    },
+    _popup_button_click: function () {
+        var location = c3nav.locations_by_id[parseInt($(this).siblings('.location').attr('data-id'))],
+            $origin = $('#origin-input'),
+            $destination = $('#destination-input');
+        if ($(this).is('.as-location')) {
+            c3nav._locationinput_set($destination, location, false);
+            c3nav._locationinput_set($origin, null, false);
+            c3nav._set_view('location');
+        } else {
+            var $locationinput = $(this).is('.as-origin') ? $origin : $destination,
+                $other_locationinput = $(this).is('.as-origin') ? $destination : $origin,
+                other_location = $other_locationinput.data('location');
+            c3nav._locationinput_set($locationinput, location, false);
+            if (other_location === null || other_location === undefined) {
+                c3nav._set_view('route-search');
+            } else if (other_location.id !== location.id && (other_location.locations === undefined || other_location.locations.indexOf(location.id) === -1)) {
+                c3nav._set_view('route-result');
+            } else {
+                c3nav._locationinput_set($other_locationinput, null, false);
+                c3nav._set_view('route-search');
+            }
+        }
         c3nav.update_map_locations();
     },
 
