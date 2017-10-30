@@ -197,7 +197,7 @@ c3nav = {
 
             if (next.length === 0) {
                 // if there is no next element, restore original value
-                $(this).val($(this).data('origval')).parent().data('suggestion', null);
+                $(this).val($(this).data('origval')).parent().removeData('suggestion');
             } else {
                 // otherwise, focus this element, and save location to the input
                 next.addClass('focus');
