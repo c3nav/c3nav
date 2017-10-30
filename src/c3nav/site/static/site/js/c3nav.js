@@ -10,7 +10,7 @@ c3nav = {
         c3nav.init_map();
 
         $('.locationinput').data('location', null);
-        c3nav.update_state('search');
+        c3nav.update_state(false);
 
         c3nav.init_locationinputs();
 
@@ -20,17 +20,27 @@ c3nav = {
         $('#map').on('click', '.location-popup .button-clear', c3nav._popup_button_click);
     },
 
-    update_state: function(new_view) {
-        if (new_view) {
-            c3nav._view = new_view;
-            $('main').attr('data-view', new_view);
+    _routing: false,
+    update_state: function(routing) {
+        if (routing === undefined) routing = c3nav._routing;
+        var $destination = $('#destination-input'),
+            $origin = $('#origin-input'),
+            view;
+        if (routing) {
+            view = ($origin.data('location') === null || $destination.data('location') === null) ? 'route-search' : 'route-result';
+        } else {
+            view = ($destination.data('location') === null) ? 'search' : 'location';
+            // todo only if needed
+            c3nav._locationinput_set_raw($origin, null);
         }
+        c3nav._view = view;
+        $('main').attr('data-view', view);
         c3nav.update_map_locations();
     },
 
     // button handlers
     _location_buttons_route_click: function () {
-        c3nav.update_state('route-search');
+        c3nav.update_state(true);
         c3nav._locationinput_focus_next();
     },
     _route_buttons_swap_click: function () {
@@ -50,11 +60,8 @@ c3nav = {
         if ($origin.is('.selected') && !$destination.is('.selected')) {
             c3nav._locationinput_set_raw($destination, $origin.data('location'));
         }
-        c3nav._locationinput_set_raw($origin, null);
-        if ($destination.is('.selected')) {
-            c3nav.update_state('location');
-        } else {
-            c3nav.update_state('search');
+        c3nav.update_state(false);
+        if (!$destination.is('.selected')) {
             $destination.find('input').focus();
         }
     },
@@ -64,21 +71,16 @@ c3nav = {
             $destination = $('#destination-input');
         if ($(this).is('.as-location')) {
             c3nav._locationinput_set_raw($destination, location);
-            c3nav._locationinput_set_raw($origin, null);
-            c3nav.update_state('location');
+            c3nav.update_state(false);
         } else {
             var $locationinput = $(this).is('.as-origin') ? $origin : $destination,
                 $other_locationinput = $(this).is('.as-origin') ? $destination : $origin,
                 other_location = $other_locationinput.data('location');
             c3nav._locationinput_set_raw($locationinput, location);
-            if (other_location === null) {
-                c3nav.update_state('route-search');
-            } else if (other_location.id !== location.id && (other_location.locations === undefined || other_location.locations.indexOf(location.id) === -1)) {
-                c3nav.update_state('route-result');
-            } else {
+            if (other_location && (other_location.id === location.id || (other_location.locations && other_location.locations.includes(location.id)))) {
                 c3nav._locationinput_set_raw($other_locationinput, null);
-                c3nav.update_state('route-search');
             }
+            c3nav.update_state(true);
         }
     },
 
@@ -111,19 +113,7 @@ c3nav = {
     _locationinput_set: function (elem, location) {
         // set a location input and update state accordingly
         c3nav._locationinput_set_raw(elem, location);
-
-        var new_view = null;
-        if (c3nav._view.startsWith('route-')) {
-            if (location === null) {
-                new_view = 'route-search';
-            } else if ($('#origin-input').is('.selected') && $('#destination-input').is('.selected')) {
-                new_view = 'route-search';
-            }
-        } else if (elem.attr('id') === 'destination-input') {
-            new_view = (location === null) ? 'search' : 'location';
-        }
-
-        c3nav.update_state(new_view);
+        c3nav.update_state();
         if (location !== null) {
             c3nav.fly_to_bounds();
         }
@@ -262,13 +252,7 @@ c3nav = {
         $parent.toggleClass('empty', val === '');
         if ($parent.is('.selected')) {
             $parent.removeClass('selected').data('location', null);
-            if (c3nav._view === 'location' && $parent.attr('id') === 'destination-input') {
-                c3nav.update_state('search');
-            } else if (c3nav._view === 'state') {
-                c3nav.update_state('route-search');
-            } else {
-                c3nav.update_state();
-            }
+            c3nav.update_state();
         }
 
         $autocomplete.find('.focus').removeClass('focus');
