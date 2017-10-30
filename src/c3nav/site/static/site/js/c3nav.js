@@ -330,7 +330,6 @@ c3nav = {
             minZoom: 0,
             crs: L.CRS.Simple,
             maxBounds: L.GeoJSON.coordsToLatLngs(c3nav.bounds),
-            closePopupOnClick: false,
             zoomControl: false
         });
         c3nav.map.fitBounds(c3nav.bounds, {padding: [30, 50]});
@@ -406,12 +405,17 @@ c3nav = {
         if (bounds !== null) {
             var left = 0,
                 top = (left === 0) ? $('#search').height()+10 : 10;
-            c3nav.map.flyToBounds(bounds, {
-                paddingTopLeft: L.point(left+13, top+41),
-                paddingBottomRight: L.point(50, 20),
+            c3nav.map.flyToBounds(bounds, c3nav._add_map_padding({
                 duration: 1
-            });
+            }, 'paddingTopLeft', 'paddingBottomRight'));
         }
+    },
+    _add_map_padding: function(options, topleft, bottomright) {
+        var left = 0,
+            top = (left === 0) ? $('#search').height()+10 : 10;
+        options[topleft] = L.point(left+13, top+41);
+        options[bottomright] = L.point(50, 20);
+        return options;
     },
     _add_location_to_map: function(location, icon) {
         if (location.locations !== undefined) {
@@ -424,7 +428,9 @@ c3nav = {
         var latlng = L.GeoJSON.coordsToLatLng(location.point.slice(1));
         L.marker(latlng, {
             icon: icon
-        }).addTo(c3nav._locationLayers[location.point[0]]);
+        }).bindPopup(location.elem[0].outerHTML+$('#popup-buttons').html(), c3nav._add_map_padding({
+            className: 'location-popup'
+        }, 'autoPanPaddingTopLeft', 'autoPanPaddingBottomRight')).addTo(c3nav._locationLayers[location.point[0]]);
 
         result = {};
         result[location.point[0]] = L.latLngBounds(

@@ -176,6 +176,27 @@ main:not([data-view=route-search]) #route-search-buttons {
     pointer-events:none;
 }
 
+#popup-buttons {
+    display: none;
+}
+.location-popup .leaflet-popup-content {
+    font-size: 16px;
+    color: #606c76;
+    overflow: hidden;
+    line-height: 1.6;
+}
+.location-popup .leaflet-popup-content .location {
+    padding: 0;
+    height: auto;
+    margin-bottom: 10px;
+}
+.location-popup .leaflet-popup-content .button-clear {
+    display:block;
+    width: 100%;
+    padding: 0;
+    margin: 0;
+}
+
 .buttons {
     display: flex;
     flex-direction: row;

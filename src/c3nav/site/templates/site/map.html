@@ -22,6 +22,11 @@
         <h1>c3nav</h1>
     </header>
     <main class="map">
+        <section id="popup-buttons">
+            <button class="button-clear as-location">Show only this location</button>
+            <button class="button-clear as-destination">Route to here</button>
+            <button class="button-clear as-origin">Route from here</button>
+        </section>
         <section id="map" data-bounds="{{ bounds }}" data-levels="{{ levels }}"></section>
         <section id="sidebar">
             <section id="search">
