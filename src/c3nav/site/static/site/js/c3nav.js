@@ -23,6 +23,8 @@ c3nav = {
     _routing: false,
     update_state: function(routing) {
         if (routing === undefined) routing = c3nav._routing;
+        c3nav._routing = routing;
+
         var $destination = $('#destination-input'),
             $origin = $('#origin-input'),
             view;
