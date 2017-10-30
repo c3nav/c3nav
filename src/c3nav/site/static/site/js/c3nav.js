@@ -9,7 +9,7 @@
      * and resulting anti-aliasing.
      * https://github.com/Leaflet/Leaflet/issues/3575
      */
-    var originalInitTile = L.GridLayer.prototype._initTile
+    var originalInitTile = L.GridLayer.prototype._initTile;
     L.GridLayer.include({
         _initTile: function (tile) {
             originalInitTile.call(this, tile);
