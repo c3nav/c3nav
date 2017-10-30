@@ -115,9 +115,6 @@ c3nav = {
         // set a location input and update state accordingly
         c3nav._locationinput_set_raw(elem, location);
         c3nav.update_state();
-        if (location !== null) {
-            c3nav.fly_to_bounds();
-        }
     },
     _locationinput_set_raw: function (elem, location) {
         // set a location input
@@ -217,6 +214,7 @@ c3nav = {
             }
             if ($focused.length === 0) return;
             c3nav._locationinput_set($(this).parent(), c3nav.locations_by_id[$focused.attr('data-id')]);
+            c3nav.fly_to_bounds();
         }
     },
     _locationinput_hover_suggestion: function () {
@@ -225,6 +223,7 @@ c3nav = {
     _locationinput_click_suggestion: function () {
         var $locationinput = $('#' + c3nav.current_locationinput);
         c3nav._locationinput_set($locationinput, c3nav.locations_by_id[$(this).attr('data-id')]);
+        c3nav.fly_to_bounds();
     },
     _locationinput_matches_compare: function (a, b) {
         if (a[1] !== b[1]) return b[1] - a[1];
