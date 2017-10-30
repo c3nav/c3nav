@@ -9,7 +9,8 @@ c3nav = {
     init: function () {
         c3nav.init_map();
 
-        c3nav._set_view('search');
+        $('.locationinput').data('location', null);
+        c3nav.update_state('search');
 
         c3nav.init_locationinputs();
 
@@ -19,66 +20,66 @@ c3nav = {
         $('#map').on('click', '.location-popup .button-clear', c3nav._popup_button_click);
     },
 
-    _set_view: function(view) {
-        c3nav._view = view;
-        $('main').attr('data-view', view);
+    update_state: function(new_view) {
+        if (new_view) {
+            c3nav._view = new_view;
+            $('main').attr('data-view', new_view);
+        }
+        c3nav.update_map_locations();
     },
 
     // button handlers
     _location_buttons_route_click: function () {
-        c3nav._set_view('route-search');
-        c3nav.update_map_locations();
+        c3nav.update_state('route-search');
         c3nav._locationinput_focus_next();
     },
     _route_buttons_swap_click: function () {
         var $origin = $('#origin-input'),
             $destination = $('#destination-input'),
             tmp = $origin.data('location');
-        c3nav._locationinput_set($origin, $destination.data('location'), false);
-        c3nav._locationinput_set($destination, tmp, false);
+        c3nav._locationinput_set_raw($origin, $destination.data('location'));
+        c3nav._locationinput_set_raw($destination, tmp);
         $origin.stop().css('top', '55px').animate({top: 0}, 150);
         $destination.stop().css('top', '-55px').animate({top: 0}, 150);
         c3nav._locationinput_focus_next();
-        c3nav.update_map_locations();
+        c3nav.update_state();
     },
     _route_buttons_close_click: function () {
         var $origin = $('#origin-input'),
             $destination = $('#destination-input');
         if ($origin.is('.selected') && !$destination.is('.selected')) {
-            c3nav._locationinput_set($destination, $origin.data('location'), false);
+            c3nav._locationinput_set_raw($destination, $origin.data('location'));
         }
-        c3nav._locationinput_set($origin, null, false);
+        c3nav._locationinput_set_raw($origin, null);
         if ($destination.is('.selected')) {
-            c3nav._set_view('location');
+            c3nav.update_state('location');
         } else {
-            c3nav._set_view('search');
+            c3nav.update_state('search');
             $destination.find('input').focus();
         }
-        c3nav.update_map_locations();
     },
     _popup_button_click: function () {
         var location = c3nav.locations_by_id[parseInt($(this).siblings('.location').attr('data-id'))],
             $origin = $('#origin-input'),
             $destination = $('#destination-input');
         if ($(this).is('.as-location')) {
-            c3nav._locationinput_set($destination, location, false);
-            c3nav._locationinput_set($origin, null, false);
-            c3nav._set_view('location');
+            c3nav._locationinput_set_raw($destination, location);
+            c3nav._locationinput_set_raw($origin, null);
+            c3nav.update_state('location');
         } else {
             var $locationinput = $(this).is('.as-origin') ? $origin : $destination,
                 $other_locationinput = $(this).is('.as-origin') ? $destination : $origin,
                 other_location = $other_locationinput.data('location');
-            c3nav._locationinput_set($locationinput, location, false);
-            if (other_location === null || other_location === undefined) {
-                c3nav._set_view('route-search');
+            c3nav._locationinput_set_raw($locationinput, location);
+            if (other_location === null) {
+                c3nav.update_state('route-search');
             } else if (other_location.id !== location.id && (other_location.locations === undefined || other_location.locations.indexOf(location.id) === -1)) {
-                c3nav._set_view('route-result');
+                c3nav.update_state('route-result');
             } else {
-                c3nav._locationinput_set($other_locationinput, null, false);
-                c3nav._set_view('route-search');
+                c3nav._locationinput_set_raw($other_locationinput, null);
+                c3nav.update_state('route-search');
             }
         }
-        c3nav.update_map_locations();
     },
 
     // location inputs
@@ -107,45 +108,35 @@ c3nav = {
             .on('click', '.location', c3nav._locationinput_click_suggestion);
         $('html').on('focus', '*', c3nav._locationinput_global_focuschange);
     },
-    _locationinput_set: function (elem, location, update_map) {
+    _locationinput_set: function (elem, location) {
+        // set a location input and update state accordingly
+        c3nav._locationinput_set_raw(elem, location);
+
+        var new_view = null;
+        if (c3nav._view.startsWith('route-')) {
+            if (location === null) {
+                new_view = 'route-search';
+            } else if ($('#origin-input').is('.selected') && $('#destination-input').is('.selected')) {
+                new_view = 'route-search';
+            }
+        } else if (elem.attr('id') === 'destination-input') {
+            new_view = (location === null) ? 'search' : 'location';
+        }
+
+        c3nav.update_state(new_view);
+        if (location !== null) {
+            c3nav.fly_to_bounds();
+        }
+    },
+    _locationinput_set_raw: function (elem, location) {
         // set a location input
         c3nav._locationinput_reset_autocomplete();
-        var location = (location === undefined) ? null : location,
-            title = (location === null) ? '' : location.title,
+        var title = (location === null) ? '' : location.title,
             subtitle = (location === null) ? '' : location.subtitle;
         elem.toggleClass('selected', location !== null).toggleClass('empty', location === null)
             .data('location', location).data('lastlocation', location);
         elem.find('input').val(title).data('origval', null);
         elem.find('small').text(subtitle);
-
-        switch(c3nav._view) {
-            case 'search':
-                if (elem.attr('id') === 'destination-input' && location !== null) {
-                    c3nav._set_view('location');
-                }
-                break;
-            case 'location':
-                if (elem.attr('id') === 'destination-input' && location === null) {
-                    c3nav._set_view('search');
-                }
-                break;
-            case 'route-search':
-                if (location !== null && $('#origin-input').is('.selected') && $('#destination-input').is('.selected')) {
-                    c3nav._set_view('route-result');
-                }
-                break;
-            case 'route-result':
-                if (location === null) {
-                    c3nav._set_view('route-search');
-                }
-                break;
-        }
-        if (update_map === undefined || update_map) {
-            c3nav.update_map_locations();
-            if (location !== null) {
-                c3nav.fly_to_bounds();
-            }
-        }
     },
     _locationinput_reset: function (elem) {
         // reset this locationinput to its last location
@@ -167,7 +158,7 @@ c3nav = {
     _locationinput_blur: function () {
         // when a locationinput is blurred…
         var location = $(this).parent().data('location');
-        if (location !== null && location !== undefined) {
+        if (location !== null) {
             // if the current content is a location name, set it
             c3nav._locationinput_set($(this).parent(), location);
         } else {
@@ -271,17 +262,13 @@ c3nav = {
         $parent.toggleClass('empty', val === '');
         if ($parent.is('.selected')) {
             $parent.removeClass('selected').data('location', null);
-            switch(c3nav._view) {
-                case 'location':
-                    if ($parent.attr('id') === 'destination-input') {
-                        c3nav._set_view('search');
-                    }
-                    break;
-                case 'route-result':
-                    c3nav._set_view('route-search');
-                    break;
+            if (c3nav._view === 'location' && $parent.attr('id') === 'destination-input') {
+                c3nav.update_state('search');
+            } else if (c3nav._view === 'state') {
+                c3nav.update_state('route-search');
+            } else {
+                c3nav.update_state();
             }
-            c3nav.update_map_locations();
         }
 
         $autocomplete.find('.focus').removeClass('focus');
@@ -399,18 +386,18 @@ c3nav = {
     },
     update_map_locations: function () {
         // update locations markers on the map
-        var $origin = $('#origin-input'),
-            $destination = $('#destination-input'),
+        var origin = $('#origin-input').data('location'),
+            destination = $('#destination-input').data('location'),
             single = !$('main').is('[data-view^=route]'),
             bounds = {};
         for (var level_id in c3nav._locationLayers) {
             c3nav._locationLayers[level_id].clearLayers()
         }
-        if ($origin.is('.selected')) {
-            c3nav._merge_bounds(bounds, c3nav._add_location_to_map($origin.data('location'), single ? new L.Icon.Default() : c3nav.originIcon))
+        if (origin !== null) {
+            c3nav._merge_bounds(bounds, c3nav._add_location_to_map(origin, single ? new L.Icon.Default() : c3nav.originIcon))
         }
-        if ($destination.is('.selected')) {
-            c3nav._merge_bounds(bounds, c3nav._add_location_to_map($destination.data('location'), single ? new L.Icon.Default() : c3nav.destinationIcon));
+        if (destination !== null) {
+            c3nav._merge_bounds(bounds, c3nav._add_location_to_map(destination, single ? new L.Icon.Default() : c3nav.destinationIcon));
         }
         c3nav._locationLayerBounds = bounds;
     },
