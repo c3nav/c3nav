@@ -416,7 +416,7 @@ c3nav = {
         if (location.locations !== undefined) {
             var bounds = {};
             for (var i=0; i<location.locations.length; i++) {
-                c3nav._merge_bounds(bounds, c3nav._add_location_to_map(c3nav.locations_by_id[location.locations[i]]));
+                c3nav._merge_bounds(bounds, c3nav._add_location_to_map(c3nav.locations_by_id[location.locations[i]], icon));
             }
             return bounds;
         }
