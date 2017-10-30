@@ -334,7 +334,7 @@ c3nav = {
             zoomSnap: 0,
             zoomControl: false
         });
-        c3nav.map.fitBounds(c3nav.bounds, {padding: [30, 50]});
+        c3nav.map.fitBounds(L.GeoJSON.coordsToLatLngs(c3nav.bounds), c3nav._add_map_padding({}));
 
         // set up icons
         L.Icon.Default.imagePath = '/static/leaflet/images/';
@@ -407,15 +407,15 @@ c3nav = {
                 top = (left === 0) ? $('#search').height()+10 : 10;
             c3nav.map.flyToBounds(bounds, c3nav._add_map_padding({
                 duration: 1
-            }, 'paddingTopLeft', 'paddingBottomRight'));
+            }));
         }
     },
     _add_map_padding: function(options, topleft, bottomright) {
         // add padding information for the current ui layout to fitBoudns options
         var left = 0,
             top = (left === 0) ? $('#search').height()+10 : 10;
-        options[topleft] = L.point(left+13, top+41);
-        options[bottomright] = L.point(50, 20);
+        options[topleft || 'paddingTopLeft'] = L.point(left+13, top+41);
+        options[bottomright || 'paddingBottomRight'] = L.point(50, 0);
         return options;
     },
     _add_location_to_map: function(location, icon) {
