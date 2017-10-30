@@ -7,12 +7,10 @@
 
 c3nav = {
     init: function () {
-        c3nav.init_sidebar();
         c3nav.init_map();
-    },
 
-    init_sidebar: function () {
         c3nav._set_view('search');
+
         c3nav.init_locationinputs();
 
         $('#location-buttons').find('.route').on('click', c3nav._location_buttons_route_click);
@@ -20,10 +18,13 @@ c3nav = {
         $('#route-search-buttons, #route-summary').find('.close').on('click', c3nav._route_buttons_close_click);
         $('#map').on('click', '.location-popup .button-clear', c3nav._popup_button_click);
     },
+
     _set_view: function(view) {
         c3nav._view = view;
         $('main').attr('data-view', view);
     },
+
+    // button handlers
     _location_buttons_route_click: function () {
         c3nav._set_view('route-search');
         c3nav.update_map_locations();
@@ -80,6 +81,7 @@ c3nav = {
         c3nav.update_map_locations();
     },
 
+    // location inputs
     init_locationinputs: function () {
         c3nav.locations = [];
         c3nav.locations_by_id = {};
@@ -340,6 +342,7 @@ c3nav = {
         }
     },
 
+    // map
     init_map: function () {
         var $map = $('#map');
         c3nav.bounds = JSON.parse($map.attr('data-bounds'));
