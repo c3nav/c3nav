@@ -32,8 +32,9 @@ c3nav = {
             view = ($origin.data('location') === null || $destination.data('location') === null) ? 'route-search' : 'route-result';
         } else {
             view = ($destination.data('location') === null) ? 'search' : 'location';
-            // todo only if needed
-            c3nav._locationinput_set($origin, null);
+            if ($origin.data('location') !== null) {
+                c3nav._locationinput_set($origin, null);
+            }
         }
         c3nav._view = view;
         $('main').attr('data-view', view);
