@@ -33,7 +33,7 @@ c3nav = {
         } else {
             view = ($destination.data('location') === null) ? 'search' : 'location';
             // todo only if needed
-            c3nav._locationinput_set_raw($origin, null);
+            c3nav._locationinput_set($origin, null);
         }
         c3nav._view = view;
         $('main').attr('data-view', view);
@@ -52,8 +52,8 @@ c3nav = {
         var $origin = $('#origin-input'),
             $destination = $('#destination-input'),
             tmp = $origin.data('location');
-        c3nav._locationinput_set_raw($origin, $destination.data('location'));
-        c3nav._locationinput_set_raw($destination, tmp);
+        c3nav._locationinput_set($origin, $destination.data('location'));
+        c3nav._locationinput_set($destination, tmp);
         $origin.stop().css('top', '55px').animate({top: 0}, 150);
         $destination.stop().css('top', '-55px').animate({top: 0}, 150);
         c3nav.update_state();
@@ -62,7 +62,7 @@ c3nav = {
         var $origin = $('#origin-input'),
             $destination = $('#destination-input');
         if ($origin.is('.selected') && !$destination.is('.selected')) {
-            c3nav._locationinput_set_raw($destination, $origin.data('location'));
+            c3nav._locationinput_set($destination, $origin.data('location'));
         }
         c3nav.update_state(false);
     },
@@ -71,15 +71,15 @@ c3nav = {
             $origin = $('#origin-input'),
             $destination = $('#destination-input');
         if ($(this).is('.as-location')) {
-            c3nav._locationinput_set_raw($destination, location);
+            c3nav._locationinput_set($destination, location);
             c3nav.update_state(false);
         } else {
             var $locationinput = $(this).is('.as-origin') ? $origin : $destination,
                 $other_locationinput = $(this).is('.as-origin') ? $destination : $origin,
                 other_location = $other_locationinput.data('location');
-            c3nav._locationinput_set_raw($locationinput, location);
+            c3nav._locationinput_set($locationinput, location);
             if (other_location && (other_location.id === location.id || (other_location.locations && other_location.locations.includes(location.id)))) {
-                c3nav._locationinput_set_raw($other_locationinput, null);
+                c3nav._locationinput_set($other_locationinput, null);
             }
             c3nav.update_state(true);
         }
@@ -112,11 +112,6 @@ c3nav = {
         $('html').on('focus', '*', c3nav._locationinput_global_focuschange);
     },
     _locationinput_set: function (elem, location) {
-        // set a location input and update state accordingly
-        c3nav._locationinput_set_raw(elem, location);
-        c3nav.update_state();
-    },
-    _locationinput_set_raw: function (elem, location) {
         // set a location input
         c3nav._locationinput_reset_autocomplete();
         var title = (location === null) ? '' : location.title,
@@ -129,10 +124,12 @@ c3nav = {
     _locationinput_reset: function (elem) {
         // reset this locationinput to its last location
         c3nav._locationinput_set(elem, elem.data('lastlocation'));
+        c3nav.update_state();
     },
     _locationinput_clear: function () {
         // clear this locationinput
         c3nav._locationinput_set($(this).parent(), null);
+        c3nav.update_state();
         $(this).parent().find('input').focus();
     },
     _locationinput_reset_autocomplete: function () {
@@ -149,6 +146,7 @@ c3nav = {
         if (suggestion) {
             // if it has a suggested location in it currently
             c3nav._locationinput_set($(this).parent(), suggestion);
+            c3nav.update_state();
         } else {
             // otherwise, forget the last location
             $(this).parent().data('lastlocation', null);
@@ -212,6 +210,7 @@ c3nav = {
             }
             if ($focused.length === 0) return;
             c3nav._locationinput_set($(this).parent(), c3nav.locations_by_id[$focused.attr('data-id')]);
+            c3nav.update_state();
             c3nav.fly_to_bounds();
         }
     },
@@ -221,6 +220,7 @@ c3nav = {
     _locationinput_click_suggestion: function () {
         var $locationinput = $('#' + c3nav.current_locationinput);
         c3nav._locationinput_set($locationinput, c3nav.locations_by_id[$(this).attr('data-id')]);
+        c3nav.update_state();
         c3nav.fly_to_bounds();
     },
     _locationinput_matches_compare: function (a, b) {
