@@ -122,8 +122,8 @@ c3nav = {
         var title = (location === null) ? '' : location.title,
             subtitle = (location === null) ? '' : location.subtitle;
         elem.toggleClass('selected', location !== null).toggleClass('empty', location === null)
-            .data('location', location).data('lastlocation', location);
-        elem.find('input').val(title).data('origval', null);
+            .data('location', location).data('lastlocation', location).removeData('suggestion');
+        elem.find('input').val(title).removeData('origval');
         elem.find('small').text(subtitle);
     },
     _locationinput_reset: function (elem) {
@@ -145,10 +145,10 @@ c3nav = {
     },
     _locationinput_blur: function () {
         // when a locationinput is blurred…
-        var location = $(this).parent().data('location');
-        if (location !== null) {
-            // if the current content is a location name, set it
-            c3nav._locationinput_set($(this).parent(), location);
+        var suggestion = $(this).parent().data('suggestion');
+        if (suggestion) {
+            // if it has a suggested location in it currently
+            c3nav._locationinput_set($(this).parent(), suggestion);
         } else {
             // otherwise, forget the last location
             $(this).parent().data('lastlocation', null);
@@ -166,10 +166,10 @@ c3nav = {
         if (e.which === 27) {
             // escape: reset the location input
             origval = $(this).data('origval');
-            if (origval !== null) {
-                $(this).val(origval);
-                $(this).data('origval', null);
-                $autocomplete.find('.focus').removeClass('focus')
+            if (origval) {
+                $(this).val(origval).removeData('origval');
+                $(this).parent().removeData('suggestion');
+                $autocomplete.find('.focus').removeClass('focus');
             } else {
                 c3nav._locationinput_reset($(this).parent());
             }
@@ -179,10 +179,8 @@ c3nav = {
             if ($locations.length === 0) return;
 
             // save current input value in case we have to restore it
-            origval = $(this).data('origval');
-            if (origval === null || origval === undefined) {
-                origval = $(this).val();
-                $(this).data('origval', origval)
+            if (!$(this).data('origval')) {
+                $(this).data('origval', $(this).val())
             }
 
             // find focused element and remove focus
@@ -199,12 +197,12 @@ c3nav = {
 
             if (next.length === 0) {
                 // if there is no next element, restore original value
-                $(this).val($(this).data('origval')).parent().data('location', null);
+                $(this).val($(this).data('origval')).parent().data('suggestion', null);
             } else {
                 // otherwise, focus this element, and save location to the input
                 next.addClass('focus');
                 $(this).val(next.find('span').text()).parent()
-                    .data('location', c3nav.locations_by_id[next.attr('data-id')]);
+                    .data('siggestion', c3nav.locations_by_id[next.attr('data-id')]);
             }
         } else if (e.which === 13) {
             // enter: select currently focused suggestion or first suggestion
@@ -233,13 +231,13 @@ c3nav = {
     },
     _locationinput_input: function () {
         var matches = [],
-            val = $(this).data('origval', null).val(),
+            val = $(this).removeData('origval').val(),
             val_trimmed = $.trim(val),
             val_words = val_trimmed.toLowerCase().split(/\s+/),
             val_words_key = val_words.join(' '),
             $autocomplete = $('#autocomplete'),
             $parent = $(this).parent();
-        $parent.toggleClass('empty', val === '');
+        $parent.toggleClass('empty', val === '').removeData('suggestion');
         if ($parent.is('.selected')) {
             $parent.removeClass('selected').data('location', null);
             c3nav.update_state();
