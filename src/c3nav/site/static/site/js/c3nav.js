@@ -53,7 +53,6 @@ c3nav = {
             c3nav._set_view('search');
             $destination.find('input').focus();
         }
-        c3nav._set_view($destination.is('.selected') ? 'location' : 'search');
         c3nav.update_map_locations();
     },
     _popup_button_click: function () {
