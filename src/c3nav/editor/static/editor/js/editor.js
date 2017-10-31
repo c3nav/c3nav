@@ -1,11 +1,3 @@
-(function () {
-    if(L.Browser.chrome && !('ontouchstart' in window)) {
-        L.Browser.pointer = false;
-        L.Browser.touch = false;
-    }
-}());
-
-
 editor = {
     options: {
 		position: 'bottomright'
@@ -22,6 +14,9 @@ editor = {
             editable: true,
             closePopupOnClick: false
         });
+        if (L.Browser.chrome && !('ontouchstart' in window)) {
+            $('.leaflet-touch').removeClass('leaflet-touch');
+        }
         editor.map.on('click', function () {
             editor.map.doubleClickZoom.enable();
         });

@@ -1,9 +1,4 @@
 (function () {
-    if (L.Browser.chrome && !('ontouchstart' in window)) {
-        L.Browser.pointer = false;
-        L.Browser.touch = false;
-    }
-
     /*
      * Workaround for 1px lines appearing in some browsers due to fractional transforms
      * and resulting anti-aliasing.
@@ -426,6 +421,10 @@ c3nav = {
             zoomSnap: 0,
             zoomControl: false
         });
+        if (L.Browser.chrome && !('ontouchstart' in window)) {
+            $('.leaflet-touch').removeClass('leaflet-touch');
+        }
+
         c3nav.map.fitBounds(L.GeoJSON.coordsToLatLngs(c3nav.bounds), c3nav._add_map_padding({}));
 
         c3nav.map.on('moveend', c3nav._map_moved);
