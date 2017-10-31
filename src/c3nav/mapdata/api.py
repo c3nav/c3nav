@@ -1,5 +1,4 @@
 import mimetypes
-import operator
 from functools import wraps
 
 from django.core.cache import cache
@@ -18,12 +17,13 @@ from rest_framework.viewsets import GenericViewSet, ReadOnlyModelViewSet, ViewSe
 
 from c3nav.mapdata.models import AccessRestriction, Building, Door, Hole, LocationGroup, MapUpdate, Source, Space
 from c3nav.mapdata.models.access import AccessPermission
-from c3nav.mapdata.models.geometry.base import GeometryMixin
 from c3nav.mapdata.models.geometry.level import LevelGeometryMixin
 from c3nav.mapdata.models.geometry.space import POI, Area, Column, LineObstacle, Obstacle, SpaceGeometryMixin, Stair
 from c3nav.mapdata.models.level import Level
 from c3nav.mapdata.models.locations import (Location, LocationGroupCategory, LocationRedirect, LocationSlug,
                                             SpecificLocation)
+from c3nav.mapdata.utils.locations import (get_location_by_slug_for_request, searchable_locations_for_request,
+                                           visible_locations_for_request)
 from c3nav.mapdata.utils.models import get_submodels
 
 
@@ -223,9 +223,6 @@ class LocationViewSet(RetrieveModelMixin, GenericViewSet):
     queryset = LocationSlug.objects.all()
     lookup_field = 'slug'
 
-    def get_queryset(self, can=None):
-        return LocationSlug.location_qs_for_request(self.request, can=can)
-
     @simple_api_cache()
     def list(self, request, *args, **kwargs):
         searchable = 'searchable' in request.GET
@@ -238,72 +235,34 @@ class LocationViewSet(RetrieveModelMixin, GenericViewSet):
         )
         result = cache.get(cache_key, None)
         if result is None:
-            queryset_cache_key = 'mapdata:api:location:queryset:%d:%s' % (
-                searchable,
-                AccessPermission.cache_key_for_request(self.request)
-            )
-            queryset = cache.get(queryset_cache_key, None)
-            if queryset is None:
-                queryset = self.get_queryset(can=(('search', ) if searchable else ('search', 'describe')))
-
-                queryset = tuple(obj.get_child() for obj in queryset)
-
-                if searchable:
-                    queryset = sorted(queryset, key=operator.attrgetter('order'), reverse=True)
-                else:
-                    queryset = tuple(queryset)
-
-                # add locations to groups
-                locationgroups = {obj.pk: obj for obj in queryset if isinstance(obj, LocationGroup)}
-                for group in locationgroups.values():
-                    group.locations = []
-                for obj in queryset:
-                    if not isinstance(obj, SpecificLocation):
-                        continue
-                    for group in obj.groups.all():
-                        group = locationgroups.get(group.pk, None)
-                        if group is not None:
-                            group.locations.append(obj)
-
-                # add levels to spaces
-                levels = {obj.pk: obj for obj in queryset if isinstance(obj, Level)}
-                for obj in queryset:
-                    if isinstance(obj, LevelGeometryMixin):
-                        obj.level_cache = levels.get(obj.level_id, None)
-
-                # add spaces to areas and POIs
-                spaces = {obj.pk: obj for obj in queryset if isinstance(obj, Space)}
-                for obj in queryset:
-                    if isinstance(obj, SpaceGeometryMixin):
-                        obj.space_cache = spaces.get(obj.space_id, None)
-
-                # precache cached properties
-                for obj in queryset:
-                    # noinspection PyStatementEffect
-                    obj.subtitle, obj.order
-                    if isinstance(obj, GeometryMixin):
-                        # noinspection PyStatementEffect
-                        obj.centroid
-
-                cache.set(queryset_cache_key, queryset, 300)
+            if searchable:
+                locations = searchable_locations_for_request(self.request)
+            else:
+                locations = visible_locations_for_request(self.request).values()
 
             result = tuple(obj.serialize(include_type=True, detailed=detailed, geometry=geometry, simple_geometry=True)
-                           for obj in queryset)
+                           for obj in locations)
             cache.set(cache_key, result, 300)
 
         return Response(result)
 
     @simple_api_cache()
     def retrieve(self, request, slug=None, *args, **kwargs):
-        result = Location.get_by_slug(slug, request)
-        if result is None:
+        show_redirects = 'show_redirects' in request.GET
+        detailed = 'detailed' in request.GET
+        geometry = 'geometry' in request.GET
+
+        location = get_location_by_slug_for_request(slug, request)
+
+        if location is None:
             raise NotFound
-        result = result.get_child()
-        if isinstance(result, LocationRedirect):
-            if 'show_redirects' in request.GET:
-                return Response(result.serialize(include_type=True))
-            return redirect('../'+result.target.slug)  # todo: why does redirect/reverse not work here?
-        return Response(result.serialize(include_type=True, detailed='detailed' in request.GET))
+
+        if isinstance(location, LocationRedirect):
+            if not show_redirects:
+                return redirect('../' + location.target.slug)  # todo: why does redirect/reverse not work here?
+
+        return Response(location.serialize(include_type=True, detailed=detailed,
+                                           geometry=geometry, simple_geometry=True))
 
     @list_route(methods=['get'])
     @simple_api_cache(permissions=False)

@@ -65,9 +65,9 @@ class GeometryMixin(SerializableMixin):
     def centroid(self):
         return self.geometry.centroid
 
-    def serialize(self, geometry=True, **kwargs):
-        result = super().serialize(geometry=geometry, **kwargs)
-        if geometry:
+    def serialize(self, **kwargs):
+        result = super().serialize(**kwargs)
+        if 'geometry' in result:
             result.move_to_end('geometry')
         return result
 
