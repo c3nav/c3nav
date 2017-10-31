@@ -77,7 +77,7 @@ def locations_for_request(request) -> Mapping[int, LocationSlug]:
         obj.subtitle, obj.order
         if isinstance(obj, GeometryMixin):
             # noinspection PyStatementEffect
-            obj.centroid
+            obj.point
 
     cache.set(cache_key, locations, 300)
 

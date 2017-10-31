@@ -4,9 +4,10 @@ from collections import OrderedDict
 from django.db import models
 from django.utils.functional import cached_property
 from django.utils.translation import ugettext_lazy as _
-from shapely.geometry import Point, mapping
+from shapely.geometry import LineString, Point, mapping
 
 from c3nav.mapdata.models.base import SerializableMixin
+from c3nav.mapdata.utils.geometry import assert_multilinestring
 from c3nav.mapdata.utils.json import format_geojson
 
 
@@ -62,8 +63,13 @@ class GeometryMixin(SerializableMixin):
         return result
 
     @cached_property
-    def centroid(self):
-        return self.geometry.centroid
+    def point(self):
+        c = self.geometry.centroid
+        x1, y1, x2, y2 = self.geometry.bounds
+        lines = (tuple(assert_multilinestring(LineString(((x1, c.y), (x2, c.y))).intersection(self.geometry))) +
+                 tuple(assert_multilinestring(LineString(((c.x, y1), (c.x, y2))).intersection(self.geometry))))
+        return min(lines, key=lambda line: (line.distance(c), line.length),
+                   default=self.geometry.representative_point).centroid
 
     def serialize(self, **kwargs):
         result = super().serialize(**kwargs)
@@ -76,7 +82,7 @@ class GeometryMixin(SerializableMixin):
         if geometry:
             result['geometry'] = format_geojson(mapping(self.geometry), round=False)
         if simple_geometry:
-            result['point'] = (self.level_id, ) + tuple(round(i, 2) for i in self.centroid.coords[0])
+            result['point'] = (self.level_id, ) + tuple(round(i, 2) for i in self.point.coords[0])
             if not isinstance(self.geometry, Point):
                 result['bounds'] = ((int(math.floor(self.minx)), int(math.floor(self.miny))),
                                     (int(math.ceil(self.maxx)), int(math.ceil(self.maxy))))
