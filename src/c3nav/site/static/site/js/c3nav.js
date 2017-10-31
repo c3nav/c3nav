@@ -37,20 +37,44 @@ c3nav = {
         $('#map').on('click', '.location-popup .button-clear', c3nav._popup_button_click);
     },
 
+    state: {},
+    _sidebar_state: true,
     _routing: false,
     update_state: function(routing) {
-        if (routing === undefined) routing = c3nav._routing;
+        if (typeof routing !== "boolean") routing = c3nav._routing;
         c3nav._routing = routing;
 
-        var $destination = $('#destination-input'),
-            $origin = $('#origin-input'),
-            view;
-        if (routing) {
-            view = (!$origin.data('location') || !$destination.data('location')) ? 'route-search' : 'route-result';
+        var destination = $('#destination-input').data('location'),
+            origin = $('#origin-input').data('location'),
+            new_state = {
+                routing: routing,
+                origin: origin,
+                destination: destination
+            };
+
+        c3nav._push_state(new_state, true);
+
+        c3nav._sidebar_state_updated(new_state);
+    },
+    update_map_state: function () {
+        var center = c3nav.map.getCenter(),
+            newCenter = c3nav.map._limitCenter(center, c3nav.map.getZoom(), c3nav.map.options.maxBounds);
+        if (!center.equals(newCenter)) return;
+        var new_state = {
+            level: c3nav._levelControl.currentLevel,
+            center: L.GeoJSON.latLngToCoords(c3nav.map.getCenter(), 2),
+            zoom: Math.round(c3nav.map.getZoom() * 100) / 100
+        };
+        c3nav._push_state(new_state, false);
+    },
+    _sidebar_state_updated: function (state) {
+        var view;
+        if (state.routing) {
+            view = (!state.origin || !state.destination) ? 'route-search' : 'route-result';
         } else {
-            view = (!$destination.data('location')) ? 'search' : 'location';
-            if ($origin.data('location')) {
-                c3nav._locationinput_set($origin, null);
+            view = state.destination ? 'location' : 'search';
+            if (state.origin) {
+                c3nav._locationinput_set($('#origin_input'), null);
             }
         }
         c3nav._view = view;
@@ -60,6 +84,36 @@ c3nav = {
         $('#destination-input, [data-view^=route] #origin-input').filter(':not(.selected)').find('input').first().focus();
 
         c3nav.update_map_locations();
+    },
+    _push_state: function (state, sidebar_state) {
+        state = $.extend({}, c3nav.state, state);
+        var old_state = c3nav.state;
+
+        if (!sidebar_state && old_state.level === state.level && old_state.zoom === state.zoom) {
+            if (old_state.center[0] === state.center[0] && old_state.center[1] === state.center[1]) return;
+        }
+
+        console.log(sidebar_state ? 'new sidebar state' : 'new map state');
+
+        var url;
+        if (state.routing) {
+            url = '/r/'+(state.origin?state.origin.slug:'')+'/'+(state.destination?state.destination.slug:'')+'/';
+        } else {
+            url = state.destination?('/l/'+state.destination.slug+'/'):'/';
+        }
+        if (state.center) {
+            url += '@'+String(state.level)+','+String(state.center[0])+','+String(state.center[1])+','+String(state.zoom);
+        }
+
+        c3nav.state = state;
+        if (sidebar_state || (c3nav._sidebar_state && old_state.center)) {
+            console.log('pushed');
+            history.pushState(state, '', url);
+            c3nav._sidebar_state = sidebar_state;
+        } else {
+            console.log('replaced');
+            history.replaceState(state, '', url);
+        }
     },
 
     // button handlers
@@ -113,7 +167,7 @@ c3nav = {
             for (var i = 0; i < data.length; i++) {
                 var location = data[i];
                 location.elem = $('<div class="location">').append($('<span>').text(location.title))
-                    .append($('<small>').text(location.subtitle)).attr('data-id', location.id);
+                    .append($('<small>').text(location.subtitle)).attr('data-id', location.id)[0].outerHTML;
                 location.title_words = location.title.toLowerCase().split(/\s+/);
                 location.match = ' ' + location.title_words.join(' ') + ' ';
                 c3nav.locations.push(location);
@@ -336,6 +390,9 @@ c3nav = {
         });
         c3nav.map.fitBounds(L.GeoJSON.coordsToLatLngs(c3nav.bounds), c3nav._add_map_padding({}));
 
+        c3nav.map.on('zoomend', c3nav.update_map_state);
+        c3nav.map.on('moveend', c3nav.update_map_state);
+
         // set up icons
         L.Icon.Default.imagePath = '/static/leaflet/images/';
         c3nav._add_icon('origin');
@@ -430,7 +487,7 @@ c3nav = {
         var latlng = L.GeoJSON.coordsToLatLng(location.point.slice(1));
         L.marker(latlng, {
             icon: icon
-        }).bindPopup(location.elem[0].outerHTML+$('#popup-buttons').html(), c3nav._add_map_padding({
+        }).bindPopup(location.elem+$('#popup-buttons').html(), c3nav._add_map_padding({
             className: 'location-popup'
         }, 'autoPanPaddingTopLeft', 'autoPanPaddingBottomRight')).addTo(c3nav._locationLayers[location.point[0]]);
 
@@ -512,6 +569,7 @@ LevelControl = L.Control.extend({
         e.preventDefault();
         e.stopPropagation();
         this.setLevel(e.target.level);
+        c3nav.update_map_state();
     },
 
     finalize: function () {
