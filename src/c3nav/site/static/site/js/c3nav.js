@@ -27,7 +27,8 @@ c3nav = {
         c3nav.init_map();
 
         $('.locationinput').data('location', null);
-        c3nav.update_state(false);
+        c3nav.update_state(false, true);
+        c3nav.update_map_state(true);
 
         c3nav.init_locationinputs();
 
@@ -38,9 +39,8 @@ c3nav = {
     },
 
     state: {},
-    _sidebar_state: true,
     _routing: false,
-    update_state: function(routing) {
+    update_state: function(routing, replace) {
         if (typeof routing !== "boolean") routing = c3nav._routing;
         c3nav._routing = routing;
 
@@ -49,23 +49,23 @@ c3nav = {
             new_state = {
                 routing: routing,
                 origin: origin,
-                destination: destination
+                destination: destination,
+                sidebar: true
             };
 
-        c3nav._push_state(new_state, true);
+        c3nav._push_state(new_state, replace);
 
         c3nav._sidebar_state_updated(new_state);
     },
-    update_map_state: function () {
-        var center = c3nav.map.getCenter(),
-            newCenter = c3nav.map._limitCenter(center, c3nav.map.getZoom(), c3nav.map.options.maxBounds);
-        if (!center.equals(newCenter)) return;
+    update_map_state: function (replace, level, center, zoom) {
         var new_state = {
-            level: c3nav._levelControl.currentLevel,
-            center: L.GeoJSON.latLngToCoords(c3nav.map.getCenter(), 2),
-            zoom: Math.round(c3nav.map.getZoom() * 100) / 100
+            level: center ? level : c3nav._levelControl.currentLevel,
+            center: L.GeoJSON.latLngToCoords(center ? center : c3nav.map.getCenter(), 2),
+            zoom: Math.round((center ? zoom : c3nav.map.getZoom()) * 100) / 100
         };
-        c3nav._push_state(new_state, false);
+        if (!replace) new_state.sidebar = false;
+
+        c3nav._push_state(new_state, replace);
     },
     _sidebar_state_updated: function (state) {
         var view;
@@ -85,15 +85,19 @@ c3nav = {
 
         c3nav.update_map_locations();
     },
-    _push_state: function (state, sidebar_state) {
+    _equal_states: function (a, b) {
+        if (a.routing !== b.routing) return false;
+        if ((a.origin && a.origin.id) !== (b.origin && b.origin.id)) return false;
+        if ((a.destination && a.destination.id) !== (b.destination && b.destination.id)) return false;
+        if (a.level !== b.level || a.zoom !== b.zoom) return false;
+        if (a.center[0] !== b.center[0] || a.center[1] !== b.center[1]) return false;
+        return true;
+    },
+    _push_state: function (state, replace) {
         state = $.extend({}, c3nav.state, state);
         var old_state = c3nav.state;
 
-        if (!sidebar_state && old_state.level === state.level && old_state.zoom === state.zoom) {
-            if (old_state.center[0] === state.center[0] && old_state.center[1] === state.center[1]) return;
-        }
-
-        console.log(sidebar_state ? 'new sidebar state' : 'new map state');
+        if (c3nav._equal_states(old_state, state)) return;
 
         var url;
         if (state.routing) {
@@ -106,13 +110,12 @@ c3nav = {
         }
 
         c3nav.state = state;
-        if (sidebar_state || (c3nav._sidebar_state && old_state.center)) {
-            console.log('pushed');
-            history.pushState(state, '', url);
-            c3nav._sidebar_state = sidebar_state;
-        } else {
-            console.log('replaced');
+        if (replace || (!state.sidebar && !old_state.sidebar)) {
+            console.log('state replaced');
             history.replaceState(state, '', url);
+        } else {
+            console.log('state pushed');
+            history.pushState(state, '', url);
         }
     },
 
@@ -281,7 +284,7 @@ c3nav = {
             if (!$focused.length) return;
             c3nav._locationinput_set($(this).parent(), c3nav.locations_by_id[$focused.attr('data-id')]);
             c3nav.update_state();
-            c3nav.fly_to_bounds();
+            c3nav.fly_to_bounds(true);
         }
     },
     _locationinput_hover_suggestion: function () {
@@ -291,7 +294,7 @@ c3nav = {
         var $locationinput = $('#' + c3nav.current_locationinput);
         c3nav._locationinput_set($locationinput, c3nav.locations_by_id[$(this).attr('data-id')]);
         c3nav.update_state();
-        c3nav.fly_to_bounds();
+        c3nav.fly_to_bounds(true);
     },
     _locationinput_matches_compare: function (a, b) {
         if (a[1] !== b[1]) return b[1] - a[1];
@@ -390,8 +393,8 @@ c3nav = {
         });
         c3nav.map.fitBounds(L.GeoJSON.coordsToLatLngs(c3nav.bounds), c3nav._add_map_padding({}));
 
-        c3nav.map.on('zoomend', c3nav.update_map_state);
-        c3nav.map.on('moveend', c3nav.update_map_state);
+        c3nav.map.on('moveend', c3nav._map_moved);
+        c3nav.map.on('zoomend', c3nav._map_zoomed);
 
         // set up icons
         L.Icon.Default.imagePath = '/static/leaflet/images/';
@@ -418,6 +421,12 @@ c3nav = {
         c3nav.schedule_refresh_tile_access();
 
     },
+    _map_moved: function () {
+        c3nav.update_map_state();
+    },
+    _map_zoomed: function () {
+        c3nav.update_map_state();
+    },
     _add_icon: function (name) {
         c3nav[name+'Icon'] = new L.Icon({
             iconUrl: '/static/img/marker-icon-'+name+'.png',
@@ -443,7 +452,7 @@ c3nav = {
         if (destination) c3nav._merge_bounds(bounds, c3nav._add_location_to_map(destination, single ? new L.Icon.Default() : c3nav.destinationIcon));
         c3nav._locationLayerBounds = bounds;
     },
-    fly_to_bounds: function() {
+    fly_to_bounds: function(replace_state) {
         // fly to the bounds of the current overlays
         var level = c3nav._levelControl.currentLevel,
             bounds = null;
@@ -461,10 +470,15 @@ c3nav = {
         c3nav._levelControl.setLevel(level);
         if (bounds) {
             var left = 0,
-                top = (left === 0) ? $('#search').height()+10 : 10;
-            c3nav.map.flyToBounds(bounds, c3nav._add_map_padding({
+                top = (left === 0) ? $('#search').height()+10 : 10,
+                target = c3nav.map._getBoundsCenterZoom(bounds, c3nav._add_map_padding({})),
+                center = c3nav.map._limitCenter(target.center, target.zoom, c3nav.map.options.maxBounds);
+            c3nav.map.flyTo(center, target.zoom, {
                 duration: 1
-            }));
+            });
+            if (replace_state) {
+                c3nav.update_map_state(true, level, center, target.zoom);
+            }
         }
     },
     _add_map_padding: function(options, topleft, bottomright) {
