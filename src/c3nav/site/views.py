@@ -1,16 +1,18 @@
 # flake8: noqa
 import json
+from collections import OrderedDict
 from datetime import timedelta
-from typing import Optional
+from typing import Mapping, Optional
 
 import qrcode
-from django.core.files import File
-from django.http import Http404, HttpResponse, HttpResponseNotModified, JsonResponse
-from django.shortcuts import get_object_or_404, redirect, render
+from django.core.cache import cache
+from django.http import Http404, HttpResponse, JsonResponse
+from django.shortcuts import redirect, render
 from django.urls import reverse
 from django.utils import timezone
 
-from c3nav.mapdata.models import Location, LocationSlug, Source
+from c3nav.mapdata.models import Location, Source
+from c3nav.mapdata.models.access import AccessPermission
 from c3nav.mapdata.models.level import Level
 from c3nav.mapdata.models.locations import LocationRedirect, SpecificLocation
 from c3nav.mapdata.render.base import set_tile_access_cookie
@@ -83,6 +85,20 @@ def check_location(location: Optional[str], request) -> Optional[SpecificLocatio
     return location
 
 
+def get_levels(request) -> Mapping[int, Level]:
+    cache_key = 'mapdata:levels:%s' % AccessPermission.cache_key_for_request(request)
+    levels = cache.get(cache_key, None)
+    if levels is not None:
+        return levels
+
+    levels = OrderedDict(
+        (level.slug, (level.pk, level.slug, level.short_label))
+        for level in Level.qs_for_request(request).order_by('base_altitude')
+    )
+    cache.set(cache_key, levels, 300)
+    return levels
+
+
 def map_index(request, origin=None, destination=None, level=None, x=None, y=None, zoom=None):
     levels = Level.qs_for_request(request).filter(on_top_of_id__isnull=True)
 
@@ -99,16 +115,27 @@ def map_index(request, origin=None, destination=None, level=None, x=None, y=None
                         if destination else None),
         'sidebar': destination_slug is not None,
     }
+
+    levels_cache_key = 'mapdata:levels:%s' % AccessPermission.cache_key_for_request(request)
+    levels = cache.get(levels_cache_key, None)
+    if levels is None:
+        levels = OrderedDict(
+            (level.slug, (level.pk, level.slug, level.short_label))
+            for level in Level.qs_for_request(request).order_by('base_altitude')
+        )
+        cache.set(levels_cache_key, levels, 300)
+
+    level = levels.get(level, None) if level else None
     if level is not None:
         state.update({
-            'level': int(level),
+            'level': level[0],
             'center': (float(x), float(y)),
             'zoom': float(zoom),
         })
 
     ctx = {
         'bounds': json.dumps(Source.max_bounds(), separators=(',', ':')),
-        'levels': json.dumps(tuple((level.pk, level.short_label) for level in levels), separators=(',', ':')),
+        'levels': json.dumps(tuple(levels.values()), separators=(',', ':')),
         'state': json.dumps(state, separators=(',', ':')),
     }
     response = render(request, 'site/map.html', ctx)

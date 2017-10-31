@@ -63,7 +63,7 @@ c3nav = {
     },
     update_map_state: function (replace, level, center, zoom) {
         var new_state = {
-            level: center ? level : c3nav._levelControl.currentLevel,
+            level: c3nav.level_labels_by_id[center ? level : c3nav._levelControl.currentLevel],
             center: L.GeoJSON.latLngToCoords(center ? center : c3nav.map.getCenter(), 2),
             zoom: Math.round((center ? zoom : c3nav.map.getZoom()) * 100) / 100
         };
@@ -399,9 +399,14 @@ c3nav = {
 
     // map
     init_map: function () {
-        var $map = $('#map');
+        var $map = $('#map'), i;
         c3nav.bounds = JSON.parse($map.attr('data-bounds'));
         c3nav.levels = JSON.parse($map.attr('data-levels'));
+
+        c3nav.level_labels_by_id = {};
+        for (i = 0; i < c3nav.levels.length; i ++) {
+            c3nav.level_labels_by_id[c3nav.levels[i][0]] = c3nav.levels[i][1];
+        }
 
         // create leaflet map
         c3nav.map = L.map('map', {
@@ -432,9 +437,9 @@ c3nav = {
         c3nav._locationLayers = {};
         c3nav._locationLayerBounds = {};
         c3nav._routeLayers = {};
-        for (var i = c3nav.levels.length - 1; i >= 0; i--) {
+        for (i = c3nav.levels.length - 1; i >= 0; i--) {
             var level = c3nav.levels[i];
-            var layerGroup = c3nav._levelControl.addLevel(level[0], level[1]);
+            var layerGroup = c3nav._levelControl.addLevel(level[0], level[2]);
             c3nav._locationLayers[level[0]] = L.layerGroup().addTo(layerGroup);
             c3nav._routeLayers[level[0]] = L.layerGroup().addTo(layerGroup);
         }

@@ -30,7 +30,7 @@ class Level(SpecificLocation, models.Model):
     default_height = models.DecimalField(_('default space height'), max_digits=6, decimal_places=2, default=3.0)
     on_top_of = models.ForeignKey('mapdata.Level', null=True, on_delete=models.CASCADE,
                                   related_name='levels_on_top', verbose_name=_('on top of'))
-    short_label = models.CharField(max_length=20, verbose_name=_('short label'), unique=True)
+    short_label = models.SlugField(max_length=20, verbose_name=_('short label'), unique=True)
 
     render_data = models.BinaryField(null=True)
 
