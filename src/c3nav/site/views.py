@@ -287,33 +287,3 @@ def main(request, location=None, origin=None, destination=None):
         response.set_cookie('c3nav_settings', cookie_value, expires=timezone.now() + timedelta(days=30))
 
     return response
-
-
-def map_image(request, area, level):
-    level = get_object_or_404(Level, name=level, intermediate=False)
-    if area == ':base':
-        img = get_render_path('png', level.name, 'full', True)
-    elif area == ':full':
-        if not request.c3nav_full_access:
-            raise Http404
-        img = get_render_path('png', level.name, 'full', False)
-    elif area in request.c3nav_access_list:
-        img = get_render_path(area+'.png', level.name, 'full', False)
-    else:
-        raise Http404
-
-    last_update = get_last_mapdata_update()
-    etag = '-'.join(str(i) for i in last_update.timetuple())
-
-    if_none_match = request.META.get('HTTP_IF_NONE_MATCH')
-    if if_none_match:
-        if if_none_match == etag:
-            return HttpResponseNotModified()
-
-    response = HttpResponse(content_type='image/png')
-    for chunk in File(open(img, 'rb')).chunks():
-        response.write(chunk)
-
-    response['ETag'] = etag
-    response['Cache-Control'] = 'no-cache'
-    return response
