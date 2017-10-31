@@ -243,7 +243,7 @@ class LocationViewSet(RetrieveModelMixin, GenericViewSet):
                 AccessPermission.cache_key_for_request(self.request)
             )
             queryset = cache.get(queryset_cache_key, None)
-            if queryset is None or 1:
+            if queryset is None:
                 queryset = self.get_queryset(can=(('search', ) if searchable else ('search', 'describe')))
 
                 queryset = tuple(obj.get_child() for obj in queryset)
