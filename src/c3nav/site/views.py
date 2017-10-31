@@ -72,7 +72,7 @@ def check_location(location: Optional[str], request) -> Optional[SpecificLocatio
 
     location = get_location_by_slug_for_request(location, request)
     if location is None:
-        return
+        return None
 
     if isinstance(location, LocationRedirect):
         location: Location = location.target
@@ -99,21 +99,30 @@ def get_levels(request) -> Mapping[int, Level]:
     return levels
 
 
-def map_index(request, origin=None, destination=None, level=None, x=None, y=None, zoom=None):
+def map_index(request, mode=None, slug=None, slug2=None, level=None, x=None, y=None, zoom=None):
     levels = Level.qs_for_request(request).filter(on_top_of_id__isnull=True)
 
-    origin_slug, destination_slug = origin, destination
-
-    origin = check_location(origin or None, request)
-    destination = check_location(destination or None, request)
+    origin = None
+    destination = None
+    routing = False
+    if slug2 is not None:
+        routing = True
+        origin = check_location(slug, request)
+        destination = check_location(slug2, request)
+    else:
+        routing = (mode and mode != 'l')
+        if mode == 'o':
+            origin = check_location(slug, request)
+        else:
+            destination = check_location(slug, request)
 
     state = {
-        'routing': origin_slug is not None,
+        'routing': routing,
         'origin': (origin.serialize(detailed=False, simple_geometry=True, geometry=False)
                    if origin else None),
         'destination': (destination.serialize(detailed=False, simple_geometry=True, geometry=False)
                         if destination else None),
-        'sidebar': destination_slug is not None,
+        'sidebar': routing or destination is not None,
     }
 
     levels_cache_key = 'mapdata:levels:%s' % AccessPermission.cache_key_for_request(request)

@@ -107,7 +107,11 @@ c3nav = {
 
         var url;
         if (state.routing) {
-            url = '/r/'+(state.origin?state.origin.slug:'')+'/'+(state.destination?state.destination.slug:'')+'/';
+            if (state.origin) {
+                url = (state.destination) ? '/r/'+state.origin.slug+'/'+state.destination.slug+'/' : '/o/'+state.origin.slug+'/';
+            } else {
+                url = (state.destination) ? '/d/'+state.destination.slug+'/' : '/r/';
+            }
         } else {
             url = state.destination?('/l/'+state.destination.slug+'/'):'/';
         }
