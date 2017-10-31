@@ -83,19 +83,21 @@ def check_location(location: Optional[str], request) -> Optional[SpecificLocatio
     return location
 
 
-def map_index(request, routing=False, origin=None, destination=None, level=None, x=None, y=None, zoom=None):
+def map_index(request, origin=None, destination=None, level=None, x=None, y=None, zoom=None):
     levels = Level.qs_for_request(request).filter(on_top_of_id__isnull=True)
 
-    origin = check_location(origin, request)
-    destination = check_location(destination, request)
+    origin_slug, destination_slug = origin, destination
+
+    origin = check_location(origin or None, request)
+    destination = check_location(destination or None, request)
 
     state = {
-        'routing': routing,
+        'routing': origin_slug is not None,
         'origin': (origin.serialize(detailed=False, simple_geometry=True, geometry=False)
                    if origin else None),
         'destination': (destination.serialize(detailed=False, simple_geometry=True, geometry=False)
                         if destination else None),
-        'sidebar': bool(routing or destination),
+        'sidebar': destination_slug is not None,
     }
     if level is not None:
         state.update({
