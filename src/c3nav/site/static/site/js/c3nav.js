@@ -111,15 +111,15 @@ c3nav = {
 
         c3nav.state = state;
         if (replace || (!state.sidebar && !old_state.sidebar)) {
-            console.log('state replaced');
+            // console.log('state replaced');
             history.replaceState(state, '', url);
         } else {
-            console.log('state pushed');
+            // console.log('state pushed');
             history.pushState(state, '', url);
         }
     },
     _onpopstate: function (e) {
-        console.log('state popped');
+        // console.log('state popped');
         c3nav.load_state(e.state);
     },
     load_state: function (state) {
