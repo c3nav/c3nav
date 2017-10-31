@@ -524,7 +524,7 @@ c3nav = {
         var left = 0,
             top = (left === 0) ? $('#search').height()+10 : 10;
         options[topleft || 'paddingTopLeft'] = L.point(left+13, top+41);
-        options[bottomright || 'paddingBottomRight'] = L.point(50, 0);
+        options[bottomright || 'paddingBottomRight'] = L.point(50, 20);
         return options;
     },
     _add_location_to_map: function(location, icon) {
