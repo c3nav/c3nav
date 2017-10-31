@@ -128,7 +128,7 @@ def locations_by_slug_for_request(request) -> Mapping[str, LocationSlug]:
 
 
 def get_location_by_slug_for_request(slug: str, request) -> Optional[LocationSlug]:
-    cache_key = 'mapdata:location:by_slug:%s' % AccessPermission.cache_key_for_request(request)
+    cache_key = 'mapdata:location:by_slug:%s:%s' % (AccessPermission.cache_key_for_request(request), slug)
     locations = cache.get(cache_key, None)
     if locations is not None:
         return locations
