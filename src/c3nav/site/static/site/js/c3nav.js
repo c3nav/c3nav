@@ -39,10 +39,8 @@ c3nav = {
     },
 
     state: {},
-    _routing: false,
     update_state: function(routing, replace) {
-        if (typeof routing !== "boolean") routing = c3nav._routing;
-        c3nav._routing = routing;
+        if (typeof routing !== "boolean") routing = c3nav.state.routing;
 
         var destination = $('#destination-input').data('location'),
             origin = $('#origin-input').data('location'),
