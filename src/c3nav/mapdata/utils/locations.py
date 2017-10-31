@@ -1,12 +1,14 @@
 import operator
 from functools import reduce
+from itertools import chain
 from typing import List, Mapping, Optional
 
 from django.apps import apps
 from django.core.cache import cache
 from django.db.models import Prefetch, Q
+from shapely.ops import cascaded_union
 
-from c3nav.mapdata.models import Level, Location, LocationGroup
+from c3nav.mapdata.models import Level, Location, LocationGroup, MapUpdate
 from c3nav.mapdata.models.access import AccessPermission
 from c3nav.mapdata.models.geometry.base import GeometryMixin
 from c3nav.mapdata.models.geometry.level import LevelGeometryMixin, Space
@@ -71,6 +73,11 @@ def locations_for_request(request) -> Mapping[int, LocationSlug]:
         if isinstance(obj, LocationRedirect):
             obj.target_cache = locations.get(obj.target_id, None)
 
+    # apply better space geometries
+    for pk, geometry in get_better_space_geometries().items():
+        if pk in locations:
+            locations[pk].geometry = geometry
+
     # precache cached properties
     for obj in locations.values():
         # noinspection PyStatementEffect
@@ -82,6 +89,26 @@ def locations_for_request(request) -> Mapping[int, LocationSlug]:
     cache.set(cache_key, locations, 300)
 
     return locations
+
+
+def get_better_space_geometries():
+    # change space geometries for better representative points
+    cache_key = 'mapdata:better_space_geometries:%s' % MapUpdate.current_cache_key()
+    result = cache.get(cache_key, None)
+    if result is not None:
+        return result
+
+    result = {}
+    for space in Space.objects.prefetch_related('columns', 'holes'):
+        geometry = space.geometry.difference(
+            cascaded_union(tuple(obj.geometry for obj in chain(space.columns.all(), space.holes.all())))
+        )
+        if not geometry.is_empty:
+            result[space.pk] = geometry
+
+    cache.set(cache_key, result, 300)
+
+    return result
 
 
 def visible_locations_for_request(request) -> Mapping[int, Location]:
