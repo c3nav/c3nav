@@ -1,9 +1,11 @@
+import operator
 from collections import OrderedDict
 from contextlib import suppress
+from functools import reduce
 
 from django.apps import apps
 from django.db import models
-from django.db.models import Prefetch
+from django.db.models import Prefetch, Q
 from django.utils.functional import cached_property
 from django.utils.text import format_lazy
 from django.utils.translation import ugettext_lazy as _
@@ -67,6 +69,29 @@ class LocationSlug(SerializableMixin, models.Model):
         verbose_name_plural = _('Location with Slug')
         default_related_name = 'locationslugs'
 
+    @classmethod
+    def location_qs_for_request(cls, request, can=None):
+        queryset = cls.objects.all().order_by('id')
+
+        conditions = []
+        for model in get_submodels(Location):
+            related_name = model._meta.default_related_name
+            condition = Q(**{related_name + '__isnull': False})
+            if can:
+                condition &= reduce(operator.or_, (Q(**{related_name+'__can_'+s: True}) for s in can))
+            # noinspection PyUnresolvedReferences
+            condition &= model.q_for_request(request, prefix=related_name + '__')
+            conditions.append(condition)
+        queryset = queryset.filter(reduce(operator.or_, conditions))
+
+        # prefetch locationgroups
+        base_qs = LocationGroup.qs_for_request(request).select_related('category')
+        for model in get_submodels(SpecificLocation):
+            queryset = queryset.prefetch_related(Prefetch(model._meta.default_related_name + '__groups',
+                                                          queryset=base_qs))
+
+        return queryset
+
 
 class Location(LocationSlug, AccessRestrictionMixin, TitledMixin, models.Model):
     can_search = models.BooleanField(default=True, verbose_name=_('can be searched'))
@@ -103,9 +128,11 @@ class Location(LocationSlug, AccessRestrictionMixin, TitledMixin, models.Model):
         return self.slug
 
     @classmethod
-    def get_by_slug(cls, slug, queryset=None):
-        if queryset is None:
+    def get_by_slug(cls, slug, request=None, can=None):
+        if request is None:
             queryset = LocationSlug.objects.all()
+        else:
+            queryset = LocationSlug.location_qs_for_request(request, can)
 
         if ':' in slug:
             code, pk = slug.split(':', 1)

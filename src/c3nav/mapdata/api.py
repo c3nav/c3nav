@@ -1,9 +1,9 @@
 import mimetypes
 import operator
-from functools import reduce, wraps
+from functools import wraps
 
 from django.core.cache import cache
-from django.db.models import Prefetch, Q
+from django.db.models import Prefetch
 from django.http import HttpResponse
 from django.shortcuts import redirect
 from django.utils.cache import get_conditional_response
@@ -223,29 +223,8 @@ class LocationViewSet(RetrieveModelMixin, GenericViewSet):
     queryset = LocationSlug.objects.all()
     lookup_field = 'slug'
 
-    def get_queryset(self, mode=None):
-        queryset = super().get_queryset().order_by('id')
-
-        conditions = []
-        for model in get_submodels(Location):
-            related_name = model._meta.default_related_name
-            condition = Q(**{related_name+'__isnull': False})
-            if mode == 'search':
-                condition &= Q(**{related_name+'__can_search': True})
-            elif mode == 'search-describe':
-                condition &= Q(**{related_name+'__can_search': True}) | Q(**{related_name+'__can_describe': True})
-            # noinspection PyUnresolvedReferences
-            condition &= model.q_for_request(self.request, prefix=related_name+'__')
-            conditions.append(condition)
-        queryset = queryset.filter(reduce(operator.or_, conditions))
-
-        # prefetch locationgroups
-        base_qs = LocationGroup.qs_for_request(self.request).select_related('category')
-        for model in get_submodels(SpecificLocation):
-            queryset = queryset.prefetch_related(Prefetch(model._meta.default_related_name + '__groups',
-                                                          queryset=base_qs))
-
-        return queryset
+    def get_queryset(self, can=None):
+        return LocationSlug.location_qs_for_request(self.request, can=can)
 
     @simple_api_cache()
     def list(self, request, *args, **kwargs):
@@ -265,7 +244,7 @@ class LocationViewSet(RetrieveModelMixin, GenericViewSet):
             )
             queryset = cache.get(queryset_cache_key, None)
             if queryset is None or 1:
-                queryset = self.get_queryset(mode=('searchable' if searchable else 'searchable-describe'))
+                queryset = self.get_queryset(can=(('search', ) if searchable else ('search', 'describe')))
 
                 queryset = tuple(obj.get_child() for obj in queryset)
 
@@ -316,7 +295,7 @@ class LocationViewSet(RetrieveModelMixin, GenericViewSet):
 
     @simple_api_cache()
     def retrieve(self, request, slug=None, *args, **kwargs):
-        result = Location.get_by_slug(slug, self.get_queryset())
+        result = Location.get_by_slug(slug, request)
         if result is None:
             raise NotFound
         result = result.get_child()
