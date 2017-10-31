@@ -33,7 +33,13 @@ c3nav = {
         c3nav.load_state(state, true);
         c3nav.update_map_locations();
         c3nav._push_state(state, true);
-        if (!state.center) c3nav.update_map_state(true);
+        if (!state.center) {
+            if (state.origin || state.destination) {
+                c3nav.fly_to_bounds(true, true);
+            } else {
+                c3nav.update_map_state(true);
+            }
+        }
 
         c3nav.init_locationinputs();
 
@@ -481,7 +487,7 @@ c3nav = {
         if (destination) c3nav._merge_bounds(bounds, c3nav._add_location_to_map(destination, single ? new L.Icon.Default() : c3nav.destinationIcon));
         c3nav._locationLayerBounds = bounds;
     },
-    fly_to_bounds: function(replace_state) {
+    fly_to_bounds: function(replace_state, nofly) {
         // fly to the bounds of the current overlays
         var level = c3nav._levelControl.currentLevel,
             bounds = null;
@@ -502,9 +508,12 @@ c3nav = {
                 top = (left === 0) ? $('#search').height()+10 : 10,
                 target = c3nav.map._getBoundsCenterZoom(bounds, c3nav._add_map_padding({})),
                 center = c3nav.map._limitCenter(target.center, target.zoom, c3nav.map.options.maxBounds);
-            c3nav.map.flyTo(center, target.zoom, {
-                duration: 1
-            });
+            if (nofly) {
+                c3nav.map.flyTo(center, target.zoom, { animate: false });
+            } else {
+                c3nav.map.flyTo(center, target.zoom, { duration: 1 });
+            }
+
             if (replace_state) {
                 c3nav.update_map_state(true, level, center, target.zoom);
             }
