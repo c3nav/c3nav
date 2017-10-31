@@ -63,7 +63,7 @@ c3nav = {
     },
     update_map_state: function (replace, level, center, zoom) {
         var new_state = {
-            level: c3nav.level_labels_by_id[center ? level : c3nav._levelControl.currentLevel],
+            level: center ? level : c3nav._levelControl.currentLevel,
             center: L.GeoJSON.latLngToCoords(center ? center : c3nav.map.getCenter(), 2),
             zoom: Math.round((center ? zoom : c3nav.map.getZoom()) * 100) / 100
         };
@@ -110,7 +110,7 @@ c3nav = {
             url = state.destination?('/l/'+state.destination.slug+'/'):'/';
         }
         if (state.center) {
-            url += '@'+String(state.level)+','+String(state.center[0])+','+String(state.center[1])+','+String(state.zoom);
+            url += '@'+String(c3nav.level_labels_by_id[state.level])+','+String(state.center[0])+','+String(state.center[1])+','+String(state.zoom);
         }
 
         c3nav.state = state;
