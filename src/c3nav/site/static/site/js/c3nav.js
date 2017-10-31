@@ -36,6 +36,8 @@ c3nav = {
         $('#route-search-buttons, #route-result-buttons').find('.swap').on('click', c3nav._route_buttons_swap_click);
         $('#route-search-buttons, #route-summary').find('.close').on('click', c3nav._route_buttons_close_click);
         $('#map').on('click', '.location-popup .button-clear', c3nav._popup_button_click);
+
+        window.onpopstate = c3nav._onpopstate;
     },
 
     state: {},
@@ -115,6 +117,23 @@ c3nav = {
             console.log('state pushed');
             history.pushState(state, '', url);
         }
+    },
+    _onpopstate: function (e) {
+        console.log('state popped');
+        c3nav.load_state(e.state);
+    },
+    load_state: function (state) {
+        c3nav._locationinput_set($('#origin-input'), state.origin);
+        c3nav._locationinput_set($('#destination-input'), state.destination);
+        c3nav._sidebar_state_updated(state);
+        if (state.center) {
+            c3nav._levelControl.setLevel(state.level);
+            var center = c3nav.map._limitCenter(L.GeoJSON.coordsToLatLng(state.center), state.zoom, c3nav.map.options.maxBounds);
+            c3nav.map.flyTo(center, state.zoom, {
+                duration: 1
+            })
+        }
+        c3nav.state = state;
     },
 
     // button handlers
