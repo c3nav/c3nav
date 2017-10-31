@@ -27,8 +27,12 @@ c3nav = {
         c3nav.init_map();
 
         $('.locationinput').data('location', null);
-        c3nav.update_state(false, true);
-        c3nav.update_map_state(true);
+
+        var state = JSON.parse($('main').attr('data-state'));
+        history.replaceState(state, window.location.path);
+        c3nav.load_state(state, true);
+        c3nav._push_state(state, true);
+        if (!state.center) c3nav.update_map_state(true);
 
         c3nav.init_locationinputs();
 
@@ -97,7 +101,7 @@ c3nav = {
         state = $.extend({}, c3nav.state, state);
         var old_state = c3nav.state;
 
-        if (c3nav._equal_states(old_state, state)) return;
+        if (!replace && c3nav._equal_states(old_state, state)) return;
 
         var url;
         if (state.routing) {
@@ -122,18 +126,20 @@ c3nav = {
         // console.log('state popped');
         c3nav.load_state(e.state);
     },
-    load_state: function (state) {
+    load_state: function (state, nofly) {
         c3nav._locationinput_set($('#origin-input'), state.origin);
         c3nav._locationinput_set($('#destination-input'), state.destination);
         c3nav._sidebar_state_updated(state);
         if (state.center) {
             c3nav._levelControl.setLevel(state.level);
             var center = c3nav.map._limitCenter(L.GeoJSON.coordsToLatLng(state.center), state.zoom, c3nav.map.options.maxBounds);
-            c3nav.map.flyTo(center, state.zoom, {
-                duration: 1
-            })
+            if (nofly) {
+                c3nav.map.setView(center, state.zoom, {animate: false});
+            } else {
+                c3nav.map.flyTo(center, state.zoom, {duration: 1});
+            }
         }
-        c3nav.state = state;
+        $.extend(c3nav.state, state);
     },
 
     // button handlers

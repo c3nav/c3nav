@@ -1,6 +1,7 @@
 # flake8: noqa
 import json
 from datetime import timedelta
+from typing import Optional
 
 import qrcode
 from django.core.files import File
@@ -9,9 +10,11 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.utils import timezone
 
-from c3nav.mapdata.models import Source
+from c3nav.mapdata.models import Location, LocationSlug, Source
 from c3nav.mapdata.models.level import Level
+from c3nav.mapdata.models.locations import LocationRedirect, SpecificLocation
 from c3nav.mapdata.render.base import set_tile_access_cookie
+from c3nav.mapdata.utils.locations import get_location_by_slug_for_request
 
 ctype_mapping = {
     'yes': ('up', 'down'),
@@ -61,12 +64,50 @@ def qr_code(request, location):
     return response
 
 
-def map_index(request):
+def check_location(location: Optional[str], request) -> Optional[SpecificLocation]:
+    if location is None:
+        return None
+
+    location = get_location_by_slug_for_request(location, request)
+    if location is None:
+        return
+
+    if isinstance(location, LocationRedirect):
+        location: Location = location.target
+    if location is None:
+        return None
+
+    if not location.can_search:
+        location = None
+
+    return location
+
+
+def map_index(request, routing=False, origin=None, destination=None, level=None, x=None, y=None, zoom=None):
     levels = Level.qs_for_request(request).filter(on_top_of_id__isnull=True)
+
+    origin = check_location(origin, request)
+    destination = check_location(destination, request)
+
+    state = {
+        'routing': routing,
+        'origin': (origin.serialize(detailed=False, simple_geometry=True, geometry=False)
+                   if origin else None),
+        'destination': (destination.serialize(detailed=False, simple_geometry=True, geometry=False)
+                        if destination else None),
+        'sidebar': bool(routing or destination),
+    }
+    if level is not None:
+        state.update({
+            'level': int(level),
+            'center': (float(x), float(y)),
+            'zoom': float(zoom),
+        })
 
     ctx = {
         'bounds': json.dumps(Source.max_bounds(), separators=(',', ':')),
         'levels': json.dumps(tuple((level.pk, level.short_label) for level in levels), separators=(',', ':')),
+        'state': json.dumps(state),
     }
     response = render(request, 'site/map.html', ctx)
     set_tile_access_cookie(request, response)
