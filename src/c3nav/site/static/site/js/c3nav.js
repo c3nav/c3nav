@@ -31,6 +31,7 @@ c3nav = {
         var state = JSON.parse($('main').attr('data-state'));
         history.replaceState(state, window.location.path);
         c3nav.load_state(state, true);
+        c3nav.update_map_locations();
         c3nav._push_state(state, true);
         if (!state.center) c3nav.update_map_state(true);
 
