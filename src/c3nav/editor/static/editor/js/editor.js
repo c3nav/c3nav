@@ -51,7 +51,7 @@ editor = {
     sources: {},
     get_sources: function () {
         // load sources
-        editor._sources_control = L.control.layers([], [], {autoZIndex: true});
+        editor._sources_control = L.control.layers([], [], { autoZIndex: false });
 
         $.getJSON('/api/sources/', function (sources) {
             var source;

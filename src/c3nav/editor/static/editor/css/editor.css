@@ -170,6 +170,9 @@ form button.invisiblesubmit {
 }
 
 /* Styles inside leaflet */
+.leaflet-map-pane svg {
+    z-index: auto;
+}
 .leaflet-control-layers-overlays label {
     margin-bottom:0;
 }
