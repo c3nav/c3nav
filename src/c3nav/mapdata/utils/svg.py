@@ -245,7 +245,8 @@ class SVGImage:
             try:
                 geometry.geoms
             except AttributeError:
-                pass
+                if not hasattr(geometry, 'exterior'):
+                    return
             else:
                 geometry = type(geometry)(tuple(geom for geom in geometry.geoms if hasattr(geom, 'exterior')))
         if geometry.is_empty:
