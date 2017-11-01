@@ -301,7 +301,7 @@ class LocationViewSet(RetrieveModelMixin, GenericViewSet):
             raise NotFound
 
         if isinstance(location, LocationRedirect):
-            return redirect('../' + location.target.slug)
+            return redirect('../' + location.target.slug + '/display/')
 
         result = location.serialize(geometry=True)
 
