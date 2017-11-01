@@ -1,4 +1,5 @@
 import mimetypes
+from collections import namedtuple
 from functools import wraps
 
 from django.core.cache import cache
@@ -72,53 +73,79 @@ class MapdataViewSet(ReadOnlyModelViewSet):
             return qs.model.qs_for_request(self.request)
         return qs
 
+    qs_filter = namedtuple('qs_filter', ('field', 'model', 'key', 'value'))
+
+    def _get_keys_for_model(self, request, model, key):
+        if hasattr(model, 'qs_for_request'):
+            cache_key = 'mapdata:api:%s:%s:%s' % (model.__name__, key, AccessPermission.cache_key_for_request(request))
+            qs = model.qs_for_request(request)
+        else:
+            cache_key = 'mapdata:api:%s:%s:%s' % (model.__name__, key, MapUpdate.current_cache_key())
+            qs = model.objects.all()
+
+        result = cache.get(cache_key, None)
+        if result is not None:
+            return result
+
+        result = set(qs.values_list(key, flat=True))
+        cache.set(cache_key, result, 300)
+
+        return result
+
+    def _get_list(self, request):
+        qs = optimize_query(self.get_queryset())
+        filters = []
+        if issubclass(qs.model, LevelGeometryMixin) and 'level' in request.GET:
+            filters.append(self.qs_filter(field='level', model=Level, key='pk', value=request.GET['level']))
+
+        if issubclass(qs.model, SpaceGeometryMixin) and 'space' in request.GET:
+            filters.append(self.qs_filter(field='space', model=Space, key='pk', value=request.GET['space']))
+
+        if issubclass(qs.model, LocationGroup) and 'category' in request.GET:
+            filters.append(self.qs_filter(field='category', model=LocationGroupCategory,
+                                          key='pk' if request.GET['category'].isdigit() else 'name',
+                                          value=request.GET['category']))
+
+        if issubclass(qs.model, SpecificLocation) and 'group' in request.GET:
+            filters.append(self.qs_filter(field='groups', model=LocationGroup, key='pk', value=request.GET['group']))
+
+        if qs.model == Level and 'on_top_of' in request.GET:
+            value = None if request.GET['on_top_of'] == 'null' else request.GET['on_top_of']
+            filters.append(self.qs_filter(field='on_top_of', model=Level, key='pk', value=value))
+
+        cache_key = 'mapdata:api:%s:%s' % (qs.model.__name__, AccessPermission.cache_key_for_request(request))
+        for qs_filter in filters:
+            cache_key += ';%s,%s' % (qs_filter.field, qs_filter.value)
+
+        print(cache_key)
+
+        results = cache.get(cache_key, None)
+        if results is not None:
+            return results
+
+        for qs_filter in filters:
+            if qs_filter.key == 'pk' and not qs_filter.value.isdigit():
+                raise ValidationError(detail={
+                    'detail': _('%(field)s is not an integer.') % {'field': qs_filter.field}
+                })
+
+        for qs_filter in filters:
+            if qs_filter.value is not None:
+                keys = self._get_keys_for_model(request, qs_filter.model, qs_filter.key)
+                value = int(qs_filter.value) if qs_filter.key == 'pk' else qs_filter.value
+                if value not in keys:
+                    raise NotFound(detail=_('%(model)s not found.') % {'model': qs_filter.model._meta.verbose_name})
+
+        results = tuple(qs.order_by('id'))
+        cache.set(cache_key, results, 300)
+        return results
+
     @api_etag()
     def list(self, request, *args, **kwargs):
-        qs = optimize_query(self.get_queryset())
         geometry = ('geometry' in request.GET)
-        if issubclass(qs.model, LevelGeometryMixin) and 'level' in request.GET:
-            if not request.GET['level'].isdigit():
-                raise ValidationError(detail={'detail': _('%s is not an integer.') % 'level'})
-            try:
-                level = Level.qs_for_request(request).get(pk=request.GET['level'])
-            except Level.DoesNotExist:
-                raise NotFound(detail=_('level not found.'))
-            qs = qs.filter(level=level)
-        if issubclass(qs.model, SpaceGeometryMixin) and 'space' in request.GET:
-            if not request.GET['space'].isdigit():
-                raise ValidationError(detail={'detail': _('%s is not an integer.') % 'space'})
-            try:
-                space = Space.qs_for_request(request).get(pk=request.GET['space'])
-            except Space.DoesNotExist:
-                raise NotFound(detail=_('space not found.'))
-            qs = qs.filter(space=space)
-        if issubclass(qs.model, LocationGroup) and 'category' in request.GET:
-            kwargs = {('pk' if request.GET['category'].isdigit() else 'name'): request.GET['category']}
-            try:
-                category = LocationGroupCategory.objects.get(**kwargs)
-            except LocationGroupCategory.DoesNotExist:
-                raise NotFound(detail=_('category not found.'))
-            qs = qs.filter(category=category)
-        if issubclass(qs.model, SpecificLocation) and 'group' in request.GET:
-            if not request.GET['group'].isdigit():
-                raise ValidationError(detail={'detail': _('%s is not an integer.') % 'group'})
-            try:
-                group = LocationGroup.objects.get(pk=request.GET['group'])
-            except LocationGroupCategory.DoesNotExist:
-                raise NotFound(detail=_('group not found.'))
-            qs = qs.filter(groups=group)
-        if qs.model == Level and 'on_top_of' in request.GET:
-            if request.GET['on_top_of'] == 'null':
-                qs = qs.filter(on_top_of__isnull=False)
-            else:
-                if not request.GET['on_top_of'].isdigit():
-                    raise ValidationError(detail={'detail': _('%s is not null or an integer.') % 'on_top_of'})
-                try:
-                    level = Level.objects.get(pk=request.GET['on_top_of'])
-                except Level.DoesNotExist:
-                    raise NotFound(detail=_('level not found.'))
-                qs = qs.filter(on_top_of=level)
-        return Response([obj.serialize(geometry=geometry) for obj in qs.order_by('id')])
+        results = self._get_list(request)
+
+        return Response([obj.serialize(geometry=geometry) for obj in results])
 
     @api_etag()
     def retrieve(self, request, *args, **kwargs):
