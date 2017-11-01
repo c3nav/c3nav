@@ -29,7 +29,7 @@ from c3nav.mapdata.utils.models import get_submodels
 
 def optimize_query(qs):
     if issubclass(qs.model, SpecificLocation):
-        base_qs = LocationGroup.objects.select_related('category').only('id', 'titles', 'category')
+        base_qs = LocationGroup.objects.select_related('category')
         qs = qs.prefetch_related(Prefetch('groups', queryset=base_qs))
     return qs
 
