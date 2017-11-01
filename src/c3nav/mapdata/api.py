@@ -34,7 +34,7 @@ def optimize_query(qs):
     return qs
 
 
-def simple_api_cache(permissions=True, etag_func=AccessPermission.etag_func):
+def api_etag(permissions=True, etag_func=AccessPermission.etag_func):
     def wrapper(func):
         @wraps(func)
         def wrapped_func(self, request, *args, **kwargs):
@@ -58,7 +58,7 @@ class MapViewSet(ViewSet):
     """
 
     @list_route(methods=['get'])
-    @simple_api_cache(permissions=False)
+    @api_etag(permissions=False)
     def bounds(self, request, *args, **kwargs):
         return Response({
             'bounds': Source.max_bounds(),
@@ -72,7 +72,7 @@ class MapdataViewSet(ReadOnlyModelViewSet):
             return qs.model.qs_for_request(self.request)
         return qs
 
-    @simple_api_cache()
+    @api_etag()
     def list(self, request, *args, **kwargs):
         qs = optimize_query(self.get_queryset())
         geometry = ('geometry' in request.GET)
@@ -120,7 +120,7 @@ class MapdataViewSet(ReadOnlyModelViewSet):
                 qs = qs.filter(on_top_of=level)
         return Response([obj.serialize(geometry=geometry) for obj in qs.order_by('id')])
 
-    @simple_api_cache()
+    @api_etag()
     def retrieve(self, request, *args, **kwargs):
         return Response(self.get_object().serialize())
 
@@ -136,12 +136,12 @@ class LevelViewSet(MapdataViewSet):
     queryset = Level.objects.all()
 
     @list_route(methods=['get'])
-    @simple_api_cache(permissions=False)
+    @api_etag(permissions=False)
     def geometrytypes(self, request):
         return self.list_types(get_submodels(LevelGeometryMixin))
 
     @detail_route(methods=['get'])
-    @simple_api_cache()
+    @api_etag()
     def svg(self, request, pk=None):
         level = self.get_object()
         response = HttpResponse(level.render_svg(request), 'image/svg+xml')
@@ -158,7 +158,7 @@ class SpaceViewSet(MapdataViewSet):
     queryset = Space.objects.all()
 
     @list_route(methods=['get'])
-    @simple_api_cache(permissions=False)
+    @api_etag(permissions=False)
     def geometrytypes(self, request):
         return self.list_types(get_submodels(SpaceGeometryMixin))
 
@@ -223,7 +223,7 @@ class LocationViewSet(RetrieveModelMixin, GenericViewSet):
     queryset = LocationSlug.objects.all()
     lookup_field = 'slug'
 
-    @simple_api_cache()
+    @api_etag()
     def list(self, request, *args, **kwargs):
         searchable = 'searchable' in request.GET
         detailed = 'detailed' in request.GET
@@ -246,7 +246,7 @@ class LocationViewSet(RetrieveModelMixin, GenericViewSet):
 
         return Response(result)
 
-    @simple_api_cache()
+    @api_etag()
     def retrieve(self, request, slug=None, *args, **kwargs):
         show_redirects = 'show_redirects' in request.GET
         detailed = 'detailed' in request.GET
@@ -265,7 +265,7 @@ class LocationViewSet(RetrieveModelMixin, GenericViewSet):
                                            geometry=geometry, simple_geometry=True))
 
     @list_route(methods=['get'])
-    @simple_api_cache(permissions=False)
+    @api_etag(permissions=False)
     def types(self, request):
         return MapdataViewSet.list_types(get_submodels(Location), geomtype=False)
 
@@ -274,7 +274,7 @@ class SourceViewSet(MapdataViewSet):
     queryset = Source.objects.all()
 
     @detail_route(methods=['get'])
-    @simple_api_cache()
+    @api_etag()
     def image(self, request, pk=None):
         return self._image(request, pk=pk)
 

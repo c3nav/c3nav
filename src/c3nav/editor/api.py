@@ -10,7 +10,7 @@ from shapely.ops import cascaded_union
 
 from c3nav.editor.models import ChangeSet
 from c3nav.editor.views.base import etag_func
-from c3nav.mapdata.api import simple_api_cache
+from c3nav.mapdata.api import api_etag
 from c3nav.mapdata.models import Area, Door, MapUpdate, Source
 from c3nav.mapdata.models.geometry.space import POI
 
@@ -69,7 +69,7 @@ class EditorViewSet(ViewSet):
 
     # noinspection PyPep8Naming
     @list_route(methods=['get'])
-    @simple_api_cache(etag_func)
+    @api_etag(etag_func)
     def geometries(self, request, *args, **kwargs):
         request.changeset = ChangeSet.get_for_request(request)
 
@@ -192,7 +192,7 @@ class EditorViewSet(ViewSet):
             raise ValidationError('No level or space specified.')
 
     @list_route(methods=['get'])
-    @simple_api_cache(MapUpdate.current_cache_key)
+    @api_etag(MapUpdate.current_cache_key)
     def geometrystyles(self, request, *args, **kwargs):
         return Response({
             'building': '#aaaaaa',
@@ -212,7 +212,7 @@ class EditorViewSet(ViewSet):
         })
 
     @list_route(methods=['get'])
-    @simple_api_cache(etag_func)
+    @api_etag(etag_func)
     def bounds(self, request, *args, **kwargs):
         return Response({
             'bounds': Source.max_bounds(),
