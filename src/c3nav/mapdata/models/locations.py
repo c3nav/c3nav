@@ -69,7 +69,7 @@ class LocationSlug(SerializableMixin, models.Model):
 
 class Location(LocationSlug, AccessRestrictionMixin, TitledMixin, models.Model):
     can_search = models.BooleanField(default=True, verbose_name=_('can be searched'))
-    can_describe = models.BooleanField(default=True, verbose_name=_('can be used to describe a position'))
+    can_describe = models.BooleanField(default=True, verbose_name=_('can describe'))
 
     class Meta:
         abstract = True

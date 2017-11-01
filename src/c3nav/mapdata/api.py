@@ -1,15 +1,17 @@
 import mimetypes
 from collections import namedtuple
 from functools import wraps
+from operator import attrgetter
 
 from django.core.cache import cache
-from django.db.models import Prefetch
+from django.db.models import FieldDoesNotExist, Model, Prefetch
 from django.http import HttpResponse
 from django.shortcuts import redirect
+from django.urls import reverse
 from django.utils.cache import get_conditional_response
 from django.utils.http import quote_etag
 from django.utils.translation import ugettext_lazy as _
-from django.utils.translation import get_language
+from django.utils.translation import get_language, get_language_info
 from rest_framework.decorators import detail_route, list_route
 from rest_framework.exceptions import NotFound, ValidationError
 from rest_framework.mixins import RetrieveModelMixin
@@ -17,7 +19,7 @@ from rest_framework.response import Response
 from rest_framework.viewsets import GenericViewSet, ReadOnlyModelViewSet, ViewSet
 
 from c3nav.mapdata.models import AccessRestriction, Building, Door, Hole, LocationGroup, MapUpdate, Source, Space
-from c3nav.mapdata.models.access import AccessPermission
+from c3nav.mapdata.models.access import AccessPermission, AccessRestrictionMixin
 from c3nav.mapdata.models.geometry.level import LevelGeometryMixin
 from c3nav.mapdata.models.geometry.space import POI, Area, Column, LineObstacle, Obstacle, SpaceGeometryMixin, Stair
 from c3nav.mapdata.models.level import Level
@@ -290,6 +292,89 @@ class LocationViewSet(RetrieveModelMixin, GenericViewSet):
 
         return Response(location.serialize(include_type=True, detailed=detailed,
                                            geometry=geometry, simple_geometry=True))
+
+    @detail_route(methods=['get'])
+    @api_etag()
+    def display(self, request, slug=None):
+        location = get_location_by_slug_for_request(slug, request)
+        if location is None:
+            raise NotFound
+
+        if isinstance(location, LocationRedirect):
+            return redirect('../' + location.target.slug)
+
+        result = location.serialize(geometry=True)
+
+        display = [
+            (str(_('Type')), str(location.__class__._meta.verbose_name)),
+            (str(_('ID')), str(location.pk)),
+        ]
+
+        for lang, title in sorted(location.titles.items(), key=lambda item: item[0] != get_language()):
+            language = _('Title ({lang})').format(lang=get_language_info(lang)['name_translated'])
+            display.append((language, title))
+
+        display.append((str(_('Slug')), str(location.get_slug())))
+
+        if isinstance(location, Level):
+            display.append((str(_('short label')), location.short_label))
+
+        if isinstance(location, LevelGeometryMixin):
+            display.append((str(_('Level')), {'slug': location.level.get_slug(), 'title': location.level.title}))
+
+        if isinstance(location, SpaceGeometryMixin):
+            display.append((str(_('Space')), {'slug': location.space.get_slug(), 'title': location.space.title}))
+
+        if isinstance(location, LocationGroup):
+            display.append((str(_('Category')), location.category.title))
+
+        if isinstance(location, AccessRestrictionMixin):
+            display.append((str(_('Access Restriction')),
+                            location.access_restriction_id and location.access_restriction.title))
+
+        groupcategories = {}
+        if isinstance(location, SpecificLocation):
+            for group in location.groups.all():
+                groupcategories.setdefault(group.category, []).append(group)
+
+        for category, groups in sorted(groupcategories.items(), key=lambda item: item[0].priority, reverse=True):
+            display.append((category.title, tuple(
+                {'slug': group.get_slug(), 'title': group.title}
+                for group in sorted(groups, key=attrgetter('priority'), reverse=True)
+            )))
+
+        model: Model = location.__class__
+        for name in ('can_search', 'can_describe', 'color', 'outside', 'base_altitude', 'height', 'default_height',
+                     'priority'):
+            try:
+                field = model._meta.get_field(name)
+            except FieldDoesNotExist:
+                continue
+
+            value = getattr(location, name)
+            if isinstance(value, bool):
+                value = _('Ja') if value else _('Nein')
+            display.append((str(field.verbose_name), value and str(value)))
+
+        editor_url = None
+        if isinstance(location, Level):
+            editor_url = reverse('editor.levels.detail', kwargs={'pk': location.pk})
+        elif isinstance(location, Space):
+            editor_url = reverse('editor.spaces.detail', kwargs={'level': location.level_id, 'pk': location.pk})
+        elif isinstance(location, Area):
+            editor_url = reverse('editor.areas.edit', kwargs={'space': location.space_id, 'pk': location.pk})
+        elif isinstance(location, POI):
+            editor_url = reverse('editor.pois.edit', kwargs={'space': location.space_id, 'pk': location.pk})
+        elif isinstance(location, LocationGroup):
+            editor_url = reverse('editor.locationgroups.edit', kwargs={'pk': location.pk})
+
+        result = {
+            'editor_url': editor_url,
+            'display': display,
+            'geometry': result['geometry'],
+        }
+
+        return Response(result)
 
     @list_route(methods=['get'])
     @api_etag(permissions=False)
