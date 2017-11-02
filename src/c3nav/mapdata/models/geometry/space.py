@@ -1,4 +1,5 @@
 from django.db import models
+from django.urls import reverse
 from django.utils.functional import cached_property
 from django.utils.text import format_lazy
 from django.utils.translation import ugettext_lazy as _
@@ -52,6 +53,11 @@ class SpaceGeometryMixin(GeometryMixin):
                 self.geometry if force else self.get_changed_geometry()
             ))
 
+    def details_display(self):
+        result = super().details_display()
+        result['display'].insert(3, (str(_('Space')), {'slug': self.space.get_slug(), 'title': self.space.title}))
+        return result
+
     def register_delete(self):
         space = self.space
         changed_geometries.register(space.level_id, space.geometry.intersection(self.geometry))
@@ -86,6 +92,11 @@ class Area(SpaceGeometryMixin, SpecificLocation, models.Model):
 
     def _serialize(self, **kwargs):
         result = super()._serialize(**kwargs)
+        return result
+
+    def details_display(self):
+        result = super().details_display()
+        result['editor_url'] = reverse('editor.areas.edit', kwargs={'space': self.space_id, 'pk': self.pk})
         return result
 
 
@@ -167,6 +178,11 @@ class POI(SpaceGeometryMixin, SpecificLocation, models.Model):
         verbose_name = _('Point of Interest')
         verbose_name_plural = _('Points of Interest')
         default_related_name = 'pois'
+
+    def details_display(self):
+        result = super().details_display()
+        result['editor_url'] = reverse('editor.pois.edit', kwargs={'space': self.space_id, 'pk': self.pk})
+        return result
 
 
 class Hole(SpaceGeometryMixin, models.Model):

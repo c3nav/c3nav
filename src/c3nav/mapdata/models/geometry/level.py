@@ -4,6 +4,7 @@ from operator import attrgetter, itemgetter
 import numpy as np
 from django.db import models
 from django.db.models import F
+from django.urls import reverse
 from django.utils.text import format_lazy
 from django.utils.translation import ugettext_lazy as _
 from scipy.sparse.csgraph._shortest_path import dijkstra
@@ -41,6 +42,11 @@ class LevelGeometryMixin(GeometryMixin):
         result = super()._serialize(**kwargs)
         if level:
             result['level'] = self.level_id
+        return result
+
+    def details_display(self):
+        result = super().details_display()
+        result['display'].insert(3, (str(_('Level')), {'slug': self.level.get_slug(), 'title': self.level.title}))
         return result
 
     @property
@@ -94,6 +100,15 @@ class Space(LevelGeometryMixin, SpecificLocation, models.Model):
         result = super()._serialize(geometry=geometry, **kwargs)
         result['outside'] = self.outside
         result['height'] = None if self.height is None else float(str(self.height))
+        return result
+
+    def details_display(self):
+        result = super().details_display()
+        result['display'].extend([
+            (str(_('height')), self.height),
+            (str(_('outside only')), str(_('yes') if self.outside else _('no'))),
+        ])
+        result['editor_url'] = reverse('editor.spaces.detail', kwargs={'level': self.level_id, 'pk': self.pk})
         return result
 
 

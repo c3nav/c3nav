@@ -6,6 +6,7 @@ from operator import attrgetter, itemgetter
 from django.conf import settings
 from django.db import models
 from django.db.models import Prefetch
+from django.urls import reverse
 from django.utils.functional import cached_property
 from django.utils.translation import ugettext_lazy as _
 from shapely.geometry import JOIN_STYLE, box
@@ -86,6 +87,16 @@ class Level(SpecificLocation, models.Model):
         result['on_top_of'] = self.on_top_of_id
         result['base_altitude'] = float(str(self.base_altitude))
         result['default_height'] = float(str(self.default_height))
+        return result
+
+    def details_display(self):
+        result = super().details_display()
+        result['display'].insert(3, (str(_('short label')), self.short_label))
+        result['display'].extend([
+            (str(_('outside only')), self.base_altitude),
+            (str(_('default height')), self.default_height),
+        ])
+        result['editor_url'] = reverse('editor.levels.detail', kwargs={'pk': self.pk})
         return result
 
     def _render_space_ground(self, svg, space):

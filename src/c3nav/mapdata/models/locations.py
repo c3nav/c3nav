@@ -1,8 +1,10 @@
 from collections import OrderedDict
 from contextlib import suppress
+from operator import attrgetter
 
 from django.db import models
 from django.db.models import Prefetch
+from django.urls import reverse
 from django.utils.functional import cached_property
 from django.utils.text import format_lazy
 from django.utils.translation import ugettext_lazy as _
@@ -57,6 +59,11 @@ class LocationSlug(SerializableMixin, models.Model):
         result['slug'] = self.get_slug()
         return result
 
+    def details_display(self):
+        result = super().details_display()
+        result['display'].insert(2, (str(_('Slug')), str(self.get_slug())))
+        return result
+
     @cached_property
     def order(self):
         return (-1, 0)
@@ -92,6 +99,14 @@ class Location(LocationSlug, AccessRestrictionMixin, TitledMixin, models.Model):
         result['subtitle'] = str(self.subtitle)
         result['can_search'] = self.can_search
         result['can_describe'] = self.can_search
+        return result
+
+    def details_display(self):
+        result = super().details_display()
+        result['display'].extend([
+            (str(_('can be searched')), str(_('yes') if self.can_search else _('no'))),
+            (str(_('can describe')), str(_('yes') if self.can_describe else _('no')))
+        ])
         return result
 
     def get_slug(self):
@@ -137,6 +152,21 @@ class SpecificLocation(Location, models.Model):
                       for category, items in groups.items()
                       if getattr(category, 'allow_'+self.__class__._meta.default_related_name)}
             result['groups'] = groups
+        return result
+
+    def details_display(self):
+        result = super().details_display()
+
+        groupcategories = {}
+        for group in self.groups.all():
+            groupcategories.setdefault(group.category, []).append(group)
+
+        for category, groups in sorted(groupcategories.items(), key=lambda item: item[0].priority):
+            result['display'].insert(3, (category.title, tuple(
+                {'slug': group.get_slug(), 'title': group.title}
+                for group in sorted(groups, key=attrgetter('priority'), reverse=True)
+            )))
+
         return result
 
     @property
@@ -228,6 +258,16 @@ class LocationGroup(Location, models.Model):
         result['color'] = self.color
         if simple_geometry:
             result['locations'] = tuple(obj.pk for obj in getattr(self, 'locations', ()))
+        return result
+
+    def details_display(self):
+        result = super().details_display()
+        result['display'].insert(3, (str(_('Category')), self.category.title))
+        result['display'].extend([
+            (str(_('color')), self.color),
+            (str(_('priority')), self.priority),
+        ])
+        result['editor_url'] = reverse('editor.locationgroups.edit', kwargs={'pk': self.pk})
         return result
 
     @property

@@ -3,7 +3,7 @@ from collections import OrderedDict
 from django.core.cache import cache
 from django.db import models
 from django.utils.translation import ugettext_lazy as _
-from django.utils.translation import get_language
+from django.utils.translation import get_language, get_language_info
 
 from c3nav.mapdata.fields import JSONField
 from c3nav.mapdata.models import MapUpdate
@@ -32,6 +32,14 @@ class SerializableMixin(models.Model):
         result['id'] = self.pk
         return result
 
+    def details_display(self):
+        return {
+            'display': [
+                (str(_('Type')), str(self.__class__._meta.verbose_name)),
+                (str(_('ID')), str(self.pk)),
+            ]
+        }
+
     @property
     def title(self):
         return self._meta.verbose_name + ' ' + str(self.id)
@@ -55,6 +63,13 @@ class TitledMixin(SerializableMixin, models.Model):
         result = super()._serialize(**kwargs)
         result['titles'] = self.titles
         result['title'] = self.title
+        return result
+
+    def details_display(self):
+        result = super().details_display()
+        for lang, title in sorted(self.titles.items(), key=lambda item: item[0] != get_language()):
+            language = _('Title ({lang})').format(lang=get_language_info(lang)['name_translated'])
+            result['display'].append((language, title))
         return result
 
     @property

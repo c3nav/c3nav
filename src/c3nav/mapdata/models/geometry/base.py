@@ -88,6 +88,11 @@ class GeometryMixin(SerializableMixin):
                                     (int(math.ceil(self.maxx)), int(math.ceil(self.maxy))))
         return result
 
+    def details_display(self):
+        result = super().details_display()
+        result['geometry'] = format_geojson(mapping(self.geometry), round=False)
+        return result
+
     def get_shadow_geojson(self):
         pass
 

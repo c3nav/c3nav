@@ -89,6 +89,13 @@ class AccessRestrictionMixin(SerializableMixin, models.Model):
         result['access_restriction'] = self.access_restriction_id
         return result
 
+    def details_display(self):
+        result = super().details_display()
+        result['display'].extend([
+            (str(_('Access Restriction')), self.access_restriction_id and self.access_restriction.title),
+        ])
+        return result
+
     @classmethod
     def qs_for_request(cls, request, allow_none=False):
         return cls.objects.filter(cls.q_for_request(request, allow_none=allow_none))
