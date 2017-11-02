@@ -13,7 +13,7 @@ def _preencode(data, magic_marker, in_coords=False, in_groups=False):
                                         in_coords=(name == 'coordinates'), in_groups=(name == 'groups'))
         return data
     elif isinstance(data, (tuple, list)):
-        if (in_coords and len(data) == 2) or in_groups:
+        if (in_coords and data and isinstance(data[0], (int, float))) or in_groups:
             return magic_marker+json.dumps(data)+magic_marker
         else:
             return tuple(_preencode(value, magic_marker, in_coords) for value in data)
