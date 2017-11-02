@@ -119,8 +119,6 @@ class MapdataViewSet(ReadOnlyModelViewSet):
         for qs_filter in filters:
             cache_key += ';%s,%s' % (qs_filter.field, qs_filter.value)
 
-        print(cache_key)
-
         results = cache.get(cache_key, None)
         if results is not None:
             return results
