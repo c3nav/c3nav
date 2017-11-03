@@ -16,6 +16,7 @@ editor = {
         });
         if (L.Browser.chrome && !('ontouchstart' in window)) {
             $('.leaflet-touch').removeClass('leaflet-touch');
+            L.Browser.touch = false;
         }
         editor.map.on('click', function () {
             editor.map.doubleClickZoom.enable();
