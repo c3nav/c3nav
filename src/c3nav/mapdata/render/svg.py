@@ -86,7 +86,8 @@ class SVGRenderer:
             # shadows are directly calculated and added by the SVGImage class
             for altitudearea in geoms.altitudeareas:
                 svg.add_geometry(bbox.intersection(altitudearea.geometry.difference(crop_areas)),
-                                 fill_color='#eeeeee', altitude=altitudearea.altitude)
+                                 fill_color='#eeeeee', altitude=altitudearea.altitude,
+                                 stroke_width=0.05, stroke_px=0.2, stroke_color='rgba(0, 0, 0, 0.15)')
 
                 for color, areas in altitudearea.colors.items():
                     # only select ground colors if their access restriction is unlocked

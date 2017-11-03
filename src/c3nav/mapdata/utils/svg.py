@@ -279,15 +279,20 @@ class SVGImage:
             if not geometry:
                 return
 
-            if altitude is not None or elevation is not None:
-                if elevation is not None:
-                    if elevation:
-                        self.add_shadow(geometry, elevation)
-                else:
-                    for other_altitude, other_geom in self.altitudes.items():
-                        self.add_shadow(geometry, altitude-other_altitude, clip_path=other_geom)
+            if False:
+                # old shadow rendering. currently needs too much resources
+                if altitude is not None or elevation is not None:
+                    if elevation is not None:
+                        if elevation:
+                            self.add_shadow(geometry, elevation)
+                    else:
+                        for other_altitude, other_geom in self.altitudes.items():
+                            self.add_shadow(geometry, altitude-other_altitude, clip_path=other_geom)
 
-                self.clip_altitudes(geometry, altitude)
+                    self.clip_altitudes(geometry, altitude)
+            else:
+                if elevation is not None:
+                    self.add_shadow(geometry, elevation)
 
             element = self._create_geometry(geometry, attribs, cache_key=shape_cache_key)
 
