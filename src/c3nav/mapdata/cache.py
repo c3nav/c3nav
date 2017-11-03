@@ -53,7 +53,7 @@ class MapHistory:
         except (FileNotFoundError, struct.error):
             if default_update is None:
                 default_update = MapUpdate.last_update()
-            new_empty = cls(updates=[default_update])
+            new_empty = cls(updates=[default_update], filename=filename)
             new_empty.save(filename)
             return new_empty
 
