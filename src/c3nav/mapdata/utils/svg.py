@@ -193,7 +193,7 @@ class SVGImage:
 
     def add_shadow(self, geometry, elevation, clip_path=None):
         # add a shadow for the given geometry with the given elevation and, optionally, a clip path
-        elevation = min(elevation, 2)
+        elevation = float(min(elevation, 2))
         blur_radius = elevation / 3 * 0.25
 
         shadow_geom = translate(geometry.buffer(blur_radius),
