@@ -15,7 +15,6 @@ from shapely.ops import cascaded_union
 from c3nav.mapdata.models.locations import SpecificLocation
 from c3nav.mapdata.utils.geometry import assert_multipolygon
 from c3nav.mapdata.utils.scad import add_indent, polygon_scad
-from c3nav.mapdata.utils.svg import SVGImage
 
 
 class LevelManager(models.Manager):
@@ -125,6 +124,7 @@ class Level(SpecificLocation, models.Model):
         svg.add_geometry(obstacle_geometries, fill_color='#999999')
 
     def render_svg(self, request, effects=True, draw_spaces=None):
+        from c3nav.mapdata.render.image.engines.svg import SVGImage
         from c3nav.mapdata.models import Source, Area, Door, Space
 
         bounds = Source.max_bounds()

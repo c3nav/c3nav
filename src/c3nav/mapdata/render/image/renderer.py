@@ -6,11 +6,12 @@ from shapely.ops import unary_union
 
 from c3nav.mapdata.cache import MapHistory
 from c3nav.mapdata.models import MapUpdate
-from c3nav.mapdata.render.base import get_level_render_data
-from c3nav.mapdata.utils.svg import SVGImage
+from c3nav.mapdata.render.image.data import get_level_render_data
+from c3nav.mapdata.render.image.engines.base import FillAttribs, StrokeAttribs
+from c3nav.mapdata.render.image.engines.svg import SVGEngine
 
 
-class SVGRenderer:
+class ImageRenderer:
     def __init__(self, level, minx, miny, maxx, maxy, scale=1, access_permissions=None):
         self.level = level
         self.minx = minx
@@ -19,6 +20,9 @@ class SVGRenderer:
         self.maxy = maxy
         self.scale = scale
         self.access_permissions = access_permissions
+
+        self.width = int(round((maxx - minx) * scale))
+        self.height = int(round((maxy - miny) * scale))
 
     @cached_property
     def bbox(self):
@@ -61,8 +65,8 @@ class SVGRenderer:
         return self.update_cache_key + ':' + self.access_cache_key
 
     def render(self):
-        svg = SVGImage(bounds=((self.minx, self.miny), (self.maxx, self.maxy)),
-                       scale=self.scale, buffer=1, background_color='#DCDCDC')
+        svg = SVGEngine(self.width, self.height, self.minx, self.miny,
+                        scale=self.scale, buffer=1, background='#DCDCDC')
 
         # add no access restriction to “unlocked“ access restrictions so lookup gets easier
         unlocked_access_restrictions = self.unlocked_access_restrictions | set([None])
@@ -86,15 +90,15 @@ class SVGRenderer:
             # shadows are directly calculated and added by the SVGImage class
             for altitudearea in geoms.altitudeareas:
                 svg.add_geometry(bbox.intersection(altitudearea.geometry.difference(crop_areas)),
-                                 fill_color='#eeeeee', altitude=altitudearea.altitude,
-                                 stroke_width=0.05, stroke_px=0.2, stroke_color='rgba(0, 0, 0, 0.15)')
+                                 altitude=altitudearea.altitude, fill=FillAttribs('#eeeeee'),
+                                 stroke=StrokeAttribs('rgba(0, 0, 0, 0.15)', 0.05, min_px=0.2))
 
                 for color, areas in altitudearea.colors.items():
                     # only select ground colors if their access restriction is unlocked
                     areas = tuple(area for access_restriction, area in areas.items()
                                   if access_restriction in unlocked_access_restrictions)
                     if areas:
-                        svg.add_geometry(bbox.intersection(unary_union(areas)), fill_color=color)
+                        svg.add_geometry(bbox.intersection(unary_union(areas)), fill=FillAttribs(color))
 
             # add walls, stroke_px makes sure that all walls are at least 1px thick on all zoom levels,
             walls = None
@@ -102,13 +106,13 @@ class SVGRenderer:
                 walls = bbox.intersection(geoms.walls.union(add_walls))
 
             if walls is not None:
-                svg.add_geometry(walls, elevation=default_height, fill_color='#aaaaaa')
+                svg.add_geometry(walls, elevation=default_height, fill=FillAttribs('#aaaaaa'))
 
             if not geoms.doors.is_empty:
-                svg.add_geometry(bbox.intersection(geoms.doors.difference(add_walls)),
-                                 fill_color='#ffffff', stroke_width=0.05, stroke_px=0.2, stroke_color='#ffffff')
+                svg.add_geometry(bbox.intersection(geoms.doors.difference(add_walls)), fill=FillAttribs('#ffffff'),
+                                 stroke=StrokeAttribs('#ffffff', 0.05, min_px=0.2))
 
             if walls is not None:
-                svg.add_geometry(walls, stroke_width=0.05, stroke_px=0.2, stroke_color='#666666')
+                svg.add_geometry(walls, stroke=StrokeAttribs('#666666', 0.05, min_px=0.2))
 
         return svg

@@ -15,7 +15,7 @@ from c3nav.mapdata.models import Location, Source
 from c3nav.mapdata.models.access import AccessPermission
 from c3nav.mapdata.models.level import Level
 from c3nav.mapdata.models.locations import LocationRedirect, SpecificLocation
-from c3nav.mapdata.render.base import set_tile_access_cookie
+from c3nav.mapdata.render.image.utils import set_tile_access_cookie
 from c3nav.mapdata.utils.locations import get_location_by_slug_for_request
 
 ctype_mapping = {

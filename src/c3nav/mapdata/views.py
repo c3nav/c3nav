@@ -14,8 +14,8 @@ from shapely.geometry import box
 from c3nav.mapdata.cache import MapHistory
 from c3nav.mapdata.middleware import no_language
 from c3nav.mapdata.models import Level, MapUpdate, Source
-from c3nav.mapdata.render.base import get_render_level_ids, get_tile_access_cookie, set_tile_access_cookie
-from c3nav.mapdata.render.svg import SVGRenderer
+from c3nav.mapdata.render.image import (ImageRenderer, get_render_level_ids, get_tile_access_cookie,
+                                        set_tile_access_cookie)
 
 
 @no_language()
@@ -51,7 +51,7 @@ def tile(request, level, zoom, x, y, format):
     access_permissions = get_tile_access_cookie(request)
 
     # init renderer
-    renderer = SVGRenderer(level, minx, miny, maxx, maxy, scale=2**zoom, access_permissions=access_permissions)
+    renderer = ImageRenderer(level, minx, miny, maxx, maxy, scale=2**zoom, access_permissions=access_permissions)
     tile_cache_key = renderer.cache_key
     update_cache_key = renderer.update_cache_key
 

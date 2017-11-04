@@ -1,9 +1,9 @@
 import io
-import math
 import re
 import subprocess
 import zlib
 from itertools import chain
+from typing import Optional
 
 import numpy as np
 from django.conf import settings
@@ -14,6 +14,8 @@ from shapely.geometry import LineString, Polygon
 from shapely.ops import unary_union
 
 # import gobject-inspect, cairo and rsvg if the native rsvg SVG_RENDERER should be used
+from c3nav.mapdata.render.image.engines.base import FillAttribs, RenderEngine, StrokeAttribs
+
 if settings.SVG_RENDERER == 'rsvg':
     import pgi
     import cairocffi
@@ -35,18 +37,10 @@ def check_svg_renderer(app_configs, **kwargs):
     return errors
 
 
-class SVGImage:
+class SVGEngine(RenderEngine):
     # draw an svg image. supports pseudo-3D shadow-rendering
-    def __init__(self, bounds, scale: float=1, buffer=0, background_color='#FFFFFF'):
-        # get image dimensions.
-        # note that these values describe the „viewport“ of the image, not its dimensions in pixels.
-        (self.left, self.bottom), (self.right, self.top) = bounds
-        self.width = self.right-self.left
-        self.height = self.top-self.bottom
-        self.scale = scale
-
-        # how many pixels around the image should be added and later cropped (otherwise rsvg does not blur correctly)
-        self.buffer_px = int(math.ceil(buffer*self.scale))
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
 
         # create base elements and counter for clip path ids
         self.g = ''
@@ -59,28 +53,24 @@ class SVGImage:
 
         # for fast numpy operations
         self.np_scale = np.array((self.scale, -self.scale))
-        self.np_offset = np.array((-self.left*self.scale, self.top*self.scale))
+        self.np_offset = np.array((-self.minx * self.scale, self.maxy * self.scale))
 
         # keep track of created blur filters to avoid duplicates
         self.blurs = set()
 
-        self.background_color = background_color
-        self.background_color_rgb = tuple(int(background_color[i:i + 2], 16) for i in range(1, 6, 2))
-
         self._create_geometry_cache = {}
-
-    def get_dimensions_px(self, buffer):
-        # get dimensions of the image in pixels, with or without buffer
-        width_px = self.width * self.scale + (self.buffer_px * 2 if buffer else 0)
-        height_px = self.height * self.scale + (self.buffer_px * 2 if buffer else 0)
-        return height_px, width_px
 
     def get_xml(self, buffer=False):
         # get the root <svg> element as an ElementTree element, with or without buffer
-        height_px, width_px = (self._trim_decimals(str(i)) for i in self.get_dimensions_px(buffer))
-        offset_px = self._trim_decimals(str(-self.buffer_px)) if buffer else '0'
-
-        attribs = ' viewBox="'+' '.join((offset_px, offset_px, width_px, height_px))+'"' if buffer else ''
+        if buffer:
+            width_px = self._trim_decimals(str(self.buffered_width))
+            height_px = self._trim_decimals(str(self.buffered_height))
+            offset_px = self._trim_decimals(str(-self.buffer))
+            attribs = ' viewBox="' + ' '.join((offset_px, offset_px, width_px, height_px)) + '"' if buffer else ''
+        else:
+            width_px = self._trim_decimals(str(self.width))
+            height_px = self._trim_decimals(str(self.height))
+            attribs = ''
 
         result = ('<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" '
                   'width="'+width_px+'" height="'+height_px+'"'+attribs+'>')
@@ -91,12 +81,12 @@ class SVGImage:
         result += '</svg>'
         return result
 
-    def get_png(self, f=None):
+    def get_png(self):
         # render the image to png. returns bytes if f is None, otherwise it calls f.write()
 
-        if self.get_dimensions_px(buffer=False) == (256, 256) and not self.g:
+        if self.width == 256 and self.height == 256 and not self.g:
             # create empty tile png with minimal size, indexed color palette with only one entry
-            plte = b'PLTE' + bytearray(self.background_color_rgb)
+            plte = b'PLTE' + bytearray(self.background_rgb)
             return (b'\x89PNG\r\n\x1a\n' +
                     b'\x00\x00\x00\rIHDR\x00\x00\x01\x00\x00\x00\x01\x00\x01\x03\x00\x00\x00f\xbc:%\x00\x00\x00\x03' +
                     plte + zlib.crc32(plte).to_bytes(4, byteorder='big') +
@@ -105,7 +95,7 @@ class SVGImage:
 
         if settings.SVG_RENDERER == 'rsvg':
             # create buffered surfaces
-            buffered_surface = cairocffi.SVGSurface(None, *(int(i) for i in self.get_dimensions_px(buffer=True)))
+            buffered_surface = cairocffi.SVGSurface(None, self.buffered_width, self.buffered_height)
             buffered_context = cairocffi.Context(buffered_surface)
 
             # draw svg with rsvg
@@ -114,44 +104,39 @@ class SVGImage:
             svg.render_cairo(buffered_context)
 
             # create cropped image
-            surface = buffered_surface.create_similar(cairocffi.CONTENT_COLOR,
-                                                      *(int(i) for i in self.get_dimensions_px(buffer=False)))
+            surface = buffered_surface.create_similar(cairocffi.CONTENT_COLOR, self.width, self.height)
             context = cairocffi.Context(surface)
 
             # set background color
-            context.set_source(cairocffi.SolidPattern(*(i/255 for i in self.background_color_rgb)))
+            context.set_source(cairocffi.SolidPattern(*(i/255 for i in self.background_rgb)))
             context.paint()
 
             # paste buffered immage with offset
-            context.set_source_surface(buffered_surface, -self.buffer_px, -self.buffer_px)
+            context.set_source_surface(buffered_surface, -self.buffer, -self.buffer)
             context.paint()
-            if f is None:
-                return surface.write_to_png()
-            f.write(surface.write_to_png())
+
+            return surface.write_to_png()
 
         elif settings.SVG_RENDERER == 'rsvg-convert':
-            p = subprocess.run(('rsvg-convert', '-b', self.background_color, '--format', 'png'),
+            p = subprocess.run(('rsvg-convert', '-b', self.background, '--format', 'png'),
                                input=self.get_xml(buffer=True).encode(), stdout=subprocess.PIPE, check=True)
             png = io.BytesIO(p.stdout)
             img = Image.open(png)
-            img = img.crop((self.buffer_px, self.buffer_px,
-                            self.buffer_px + int(self.width * self.scale),
-                            self.buffer_px + int(self.height * self.scale)))
-            if f is None:
-                f = io.BytesIO()
-                img.save(f, 'PNG')
-                f.seek(0)
-                return f.read()
+            img = img.crop((self.buffer, self.buffer,
+                            self.buffer + self.width,
+                            self.buffer + self.height))
+
+            f = io.BytesIO()
             img.save(f, 'PNG')
+            f.seek(0)
+            return f.read()
 
         elif settings.SVG_RENDERER == 'inkscape':
-            p = subprocess.run(('inkscape', '-z', '-b', self.background_color, '-e', '/dev/stderr', '/dev/stdin'),
+            p = subprocess.run(('inkscape', '-z', '-b', self.background, '-e', '/dev/stderr', '/dev/stdin'),
                                input=self.get_xml().encode(), stdout=subprocess.PIPE, stderr=subprocess.PIPE,
                                check=True)
             png = p.stderr[p.stderr.index(b'\x89PNG'):]
-            if f is None:
-                return png
-            f.write(png)
+            return png
 
     def _trim_decimals(self, data):
         # remove trailing zeros from a decimal – yes this is slow, but it greatly speeds up cairo rendering
@@ -233,51 +218,30 @@ class SVGImage:
             else:
                 self.altitudes[new_altitude] = new_geometry
 
-    def add_geometry(self, geometry=None, fill_color=None, fill_opacity=None, opacity=None, filter=None,
-                     stroke_px=0.0, stroke_width=0.0, stroke_color=None, stroke_opacity=None, stroke_linejoin=None,
-                     clip_path=None, altitude=None, elevation=None, shape_cache_key=None):
-        # draw a shapely geometry with a given style
-        # if altitude is set, the geometry will get a calculated shadow relative to the other geometries
-        # if elevation is set, the geometry will get a shadow with exactly this elevation
+    def _add_geometry(self, geometry, fill: Optional[FillAttribs] = None, stroke: Optional[StrokeAttribs] = None,
+                      filter=None, clip_path=None, altitude=None, elevation=None, shape_cache_key=None):
 
-        # if fill_color is set, filter out geometries that cannot be filled
-        if fill_color is not None:
-            try:
-                geometry.geoms
-            except AttributeError:
-                if not hasattr(geometry, 'exterior'):
-                    return
-            else:
-                geometry = type(geometry)(tuple(geom for geom in geometry.geoms if hasattr(geom, 'exterior')))
-        if geometry.is_empty:
-            pass
+        if fill:
+            attribs = ' fill="'+(fill.color)+'"'
+            if fill.opacity:
+                attribs += ' fill-opacity="'+str(fill.opacity)[:4]+'"'
+        else:
+            attribs = ' fill="none"'
 
-        attribs = ' fill="'+(fill_color or 'none')+'"'
-        if fill_opacity:
-            attribs += ' fill-opacity="'+str(fill_opacity)[:4]+'"'
-        if stroke_width:
-            width = stroke_width*self.scale
-            if stroke_px:
-                width = max(width, stroke_px)
-            attribs += ' stroke-width="' + self._trim_decimals(str(width)) + '"'
-        elif stroke_px:
-            attribs += ' stroke-width="'+self._trim_decimals(str(stroke_px))+'"'
-        if stroke_color:
-            attribs += ' stroke="'+stroke_color+'"'
-        if stroke_opacity:
-            attribs += ' stroke-opacity="'+str(stroke_opacity)[:4]+'"'
-        if stroke_linejoin:
-            attribs += ' stroke-linejoin="'+stroke_linejoin+'"'
-        if opacity:
-            attribs += ' opacity="'+str(opacity)[:4]+'"'
+        if stroke:
+            width = stroke.width*self.scale
+            if stroke.min_px:
+                width = max(width, stroke.min_px)
+            attribs += ' stroke-width="' + self._trim_decimals(str(width)) + '" stroke="' + stroke.color + '"'
+            if stroke.opacity:
+                attribs += ' stroke-opacity="'+str(stroke.opacity)[:4]+'"'
+
         if filter:
             attribs += ' filter="url(#'+filter+')"'
         if clip_path:
             attribs += ' clip-path="url(#'+clip_path+')"'
 
         if geometry is not None:
-            if not geometry:
-                return
 
             if False:
                 # old shadow rendering. currently needs too much resources
