@@ -100,8 +100,6 @@ def get_levels(request) -> Mapping[int, Level]:
 
 
 def map_index(request, mode=None, slug=None, slug2=None, level=None, x=None, y=None, zoom=None):
-    levels = Level.qs_for_request(request).filter(on_top_of_id__isnull=True)
-
     origin = None
     destination = None
     routing = False
@@ -130,7 +128,7 @@ def map_index(request, mode=None, slug=None, slug2=None, level=None, x=None, y=N
     if levels is None:
         levels = OrderedDict(
             (level.slug, (level.pk, level.slug, level.short_label))
-            for level in Level.qs_for_request(request).order_by('base_altitude')
+            for level in Level.qs_for_request(request).filter(on_top_of_id__isnull=True).order_by('base_altitude')
         )
         cache.set(levels_cache_key, levels, 300)
 
