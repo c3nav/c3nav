@@ -202,7 +202,7 @@ class SVGEngine(RenderEngine):
         self.g += shadow
 
     def clip_altitudes(self, new_geometry, new_altitude=None):
-        # registrer new geometry with specific (or no) altitude
+        # register new geometry with specific (or no) altitude
         # a geometry with no altitude will reset the altitude information of its area as if nothing was ever there
         for altitude, geometry in tuple(self.altitudes.items()):
             if altitude != new_altitude:
@@ -219,7 +219,7 @@ class SVGEngine(RenderEngine):
                 self.altitudes[new_altitude] = new_geometry
 
     def _add_geometry(self, geometry, fill: Optional[FillAttribs] = None, stroke: Optional[StrokeAttribs] = None,
-                      filter=None, clip_path=None, altitude=None, elevation=None, shape_cache_key=None):
+                      filter=None, clip_path=None, altitude=None, height=None, shape_cache_key=None):
 
         if fill:
             attribs = ' fill="'+(fill.color)+'"'
@@ -245,18 +245,18 @@ class SVGEngine(RenderEngine):
 
             if False:
                 # old shadow rendering. currently needs too much resources
-                if altitude is not None or elevation is not None:
-                    if elevation is not None:
-                        if elevation:
-                            self.add_shadow(geometry, elevation)
+                if altitude is not None or height is not None:
+                    if height is not None:
+                        if height:
+                            self.add_shadow(geometry, height)
                     else:
                         for other_altitude, other_geom in self.altitudes.items():
                             self.add_shadow(geometry, altitude-other_altitude, clip_path=other_geom)
 
                     self.clip_altitudes(geometry, altitude)
             else:
-                if elevation is not None:
-                    self.add_shadow(geometry, elevation)
+                if height is not None:
+                    self.add_shadow(geometry, height)
 
             element = self._create_geometry(geometry, attribs, cache_key=shape_cache_key)
 
