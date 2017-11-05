@@ -219,7 +219,7 @@ class SVGEngine(RenderEngine):
                 self.altitudes[new_altitude] = new_geometry
 
     def _add_geometry(self, geometry, fill: Optional[FillAttribs] = None, stroke: Optional[StrokeAttribs] = None,
-                      filter=None, clip_path=None, altitude=None, height=None, shape_cache_key=None):
+                      altitude=None, height=None, shape_cache_key=None):
 
         if fill:
             attribs = ' fill="'+(fill.color)+'"'
@@ -235,11 +235,6 @@ class SVGEngine(RenderEngine):
             attribs += ' stroke-width="' + self._trim_decimals(str(width)) + '" stroke="' + stroke.color + '"'
             if stroke.opacity:
                 attribs += ' stroke-opacity="'+str(stroke.opacity)[:4]+'"'
-
-        if filter:
-            attribs += ' filter="url(#'+filter+')"'
-        if clip_path:
-            attribs += ' clip-path="url(#'+clip_path+')"'
 
         if geometry is not None:
 

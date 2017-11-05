@@ -48,7 +48,7 @@ class RenderEngine(ABC):
         pass
 
     def add_geometry(self, geometry, fill: Optional[FillAttribs] = None, stroke: Optional[StrokeAttribs] = None,
-                     filter=None, clip_path=None, altitude=None, heigth=None, shape_cache_key=None):
+                     altitude=None, height=None, shape_cache_key=None):
         # draw a shapely geometry with a given style
         # altitude is the absolute altitude of the upper bound of the element
         # height is the height of the element
@@ -66,10 +66,10 @@ class RenderEngine(ABC):
         if geometry.is_empty:
             return
 
-        self._add_geometry(geometry=geometry, fill=fill, stroke=stroke, filter=filter, clip_path=clip_path,
-                           altitude=altitude, height=heigth, shape_cache_key=shape_cache_key)
+        self._add_geometry(geometry=geometry, fill=fill, stroke=stroke,
+                           altitude=altitude, height=height, shape_cache_key=shape_cache_key)
 
     @abstractmethod
     def _add_geometry(self, geometry, fill: Optional[FillAttribs] = None, stroke: Optional[StrokeAttribs] = None,
-                      filter=None, clip_path=None, altitude=None, height=None, shape_cache_key=None):
+                      altitude=None, height=None, shape_cache_key=None):
         pass

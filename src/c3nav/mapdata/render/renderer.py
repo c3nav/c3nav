@@ -106,7 +106,7 @@ class ImageRenderer:
                 walls = bbox.intersection(geoms.walls.union(add_walls))
 
             if walls is not None:
-                svg.add_geometry(walls, heigth=default_height, fill=FillAttribs('#aaaaaa'))
+                svg.add_geometry(walls, height=default_height, fill=FillAttribs('#aaaaaa'))
 
             if not geoms.doors.is_empty:
                 svg.add_geometry(bbox.intersection(geoms.doors.difference(add_walls)), fill=FillAttribs('#ffffff'),
