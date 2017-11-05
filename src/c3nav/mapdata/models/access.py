@@ -67,6 +67,11 @@ class AccessPermission(models.Model):
 
     @classmethod
     def cache_key_for_request(cls, request, with_update=True):
+        if request.user.is_superuser:
+            return (
+                ((MapUpdate.current_cache_key() + ':') if with_update else '') +
+                'SU'
+            )
         return (
             ((MapUpdate.current_cache_key()+':') if with_update else '') +
             ','.join(str(i) for i in sorted(AccessPermission.get_for_request(request)) or '0')
