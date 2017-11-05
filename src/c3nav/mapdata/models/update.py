@@ -69,7 +69,7 @@ class MapUpdate(models.Model):
         from c3nav.mapdata.cache import changed_geometries
         changed_geometries.save(last_map_update, self.to_tuple)
 
-        from c3nav.mapdata.render.image.data import LevelRenderData
+        from c3nav.mapdata.render.data import LevelRenderData
         LevelRenderData.rebuild()
 
         cache.set('mapdata:last_update', self.to_tuple, 900)
