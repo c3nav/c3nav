@@ -45,4 +45,4 @@ def sidebar_view(func=None, select_related=None):
 
 def etag_func(request, *args, **kwargs):
     return (get_language() + ':' + request.changeset.raw_cache_key_by_changes + ':' +
-            AccessPermission.cache_key_for_request(request, with_update=False))
+            AccessPermission.cache_key_for_request(request, with_update=False) + ':' + str(request.user.pk or 0))
