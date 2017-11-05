@@ -3,6 +3,7 @@
 {% include 'editor/fragment_levels.html' %}
 
 <h3>{{ space.title }}</h3>
+{% bootstrap_messages %}
 <p>
     <a class="btn btn-default btn-xs" accesskey="e" href="{% url 'editor.spaces.edit' level=space.level.pk pk=space.pk %}">
         {% trans 'Space' as model_title %}

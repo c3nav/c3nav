@@ -10,6 +10,7 @@
         {% endwith %}
     {% endif %}
 </h3>
+{% bootstrap_messages %}
 <p>
     <a class="btn btn-default btn-xs" accesskey="e" href="{% url 'editor.levels.edit' pk=level.pk %}">
         {% trans 'Level' as model_title %}
