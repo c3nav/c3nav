@@ -15,6 +15,17 @@
             tile.style.height = tileSize.y + 1 + 'px';
         }
     });
+
+    /*
+     * Fix scroll wheel zoom on precise scrolling devices
+     */
+    var originalPerformZoom = L.Map.ScrollWheelZoom.prototype._performZoom;
+    L.Map.ScrollWheelZoom.include({
+        _performZoom: function () {
+            if (this._delta) this._delta = (this._delta > 0) ? Math.max(this._delta, 60) : Math.min(this._delta, -60);
+            originalPerformZoom.call(this);
+        }
+    });
 }());
 
 c3nav = {
