@@ -9,7 +9,7 @@ from django.apps import apps
 from django.conf import settings
 from django.core.cache import cache
 from django.core.exceptions import FieldDoesNotExist
-from django.db import connection, models, transaction
+from django.db import models, transaction
 from django.db.models import Q
 from django.urls import reverse
 from django.utils.http import int_to_base36
@@ -438,6 +438,13 @@ class ChangeSet(models.Model):
     def _cleaning_changes(self, value):
         self.cleaning_changes_cache[self.pk] = value
 
+    objects_changed_count = 0
+
+    @classmethod
+    def object_changed_handler(cls, sender, instance, **kwargs):
+        if sender._meta.app_label == 'mapdata':
+            cls.objects_changed_count += 1
+
     @contextmanager
     def lock_to_edit(self, request=None):
         with transaction.atomic():
@@ -455,10 +462,9 @@ class ChangeSet(models.Model):
             elif self.direct_editing:
                 with MapUpdate.lock():
                     changed_geometries.reset()
-                    queries_before = len(connection.queries)
+                    ChangeSet.objects_changed_count = 0
                     yield self
-                    if any((q['sql'].startswith('UPDATE') or q['sql'].startswith('INSERT') or
-                            q['sql'].startswith('DELETE')) for q in connection.queries[queries_before:]):
+                    if ChangeSet.objects_changed_count:
                         MapUpdate.objects.create(user=user, type='direct_edit')
             else:
                 yield self
