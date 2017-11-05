@@ -6,9 +6,9 @@ from shapely.ops import unary_union
 
 from c3nav.mapdata.cache import MapHistory
 from c3nav.mapdata.models import MapUpdate
-from c3nav.mapdata.render.image.data import get_level_render_data
-from c3nav.mapdata.render.image.engines.base import FillAttribs, StrokeAttribs
-from c3nav.mapdata.render.image.engines.svg import SVGEngine
+from c3nav.mapdata.render.data import get_level_render_data
+from c3nav.mapdata.render.engines.base import FillAttribs, StrokeAttribs
+from c3nav.mapdata.render.engines.svg import SVGEngine
 
 
 class ImageRenderer:

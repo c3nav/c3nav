@@ -14,8 +14,7 @@ from shapely.geometry import box
 from c3nav.mapdata.cache import MapHistory
 from c3nav.mapdata.middleware import no_language
 from c3nav.mapdata.models import Level, MapUpdate, Source
-from c3nav.mapdata.render.image import (ImageRenderer, get_render_level_ids, get_tile_access_cookie,
-                                        set_tile_access_cookie)
+from c3nav.mapdata.render import ImageRenderer, get_render_level_ids, get_tile_access_cookie, set_tile_access_cookie
 
 
 @no_language()

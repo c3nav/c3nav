@@ -14,7 +14,7 @@ from shapely.geometry import LineString, Polygon
 from shapely.ops import unary_union
 
 # import gobject-inspect, cairo and rsvg if the native rsvg SVG_RENDERER should be used
-from c3nav.mapdata.render.image.engines.base import FillAttribs, RenderEngine, StrokeAttribs
+from c3nav.mapdata.render.engines.base import FillAttribs, RenderEngine, StrokeAttribs
 
 if settings.SVG_RENDERER == 'rsvg':
     import pgi
