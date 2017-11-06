@@ -53,6 +53,10 @@ class RenderEngine(ABC):
         # render the image to png.
         pass
 
+    @staticmethod
+    def hex_to_rgb(hexcolor):
+        return tuple(int(hexcolor[i:i + 2], 16)/255 for i in range(1, 6, 2))
+
     def clip_altitudes(self, new_geometry, new_altitude=None):
         # register new geometry with an altitude
         # a geometry with no altitude will reset the altitude information of its area as if nothing was ever there
