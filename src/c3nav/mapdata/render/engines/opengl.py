@@ -73,6 +73,10 @@ class OpenGLEngine(RenderEngine):
 
     def _add_geometry(self, geometry, fill=None, stroke=None, altitude=None, height=None, shape_cache_key=None):
         if fill is not None:
+            if stroke is not None and fill.color == stroke.color:
+                geometry = geometry.buffer(max(stroke.width, (stroke.min_px or 0) / self.scale),
+                                           cap_style=CAP_STYLE.flat, join_style=JOIN_STYLE.mitre)
+                stroke = None
             self.vertices.append(self._create_geometry(geometry, self.hex_to_rgb(fill.color)))
 
         if stroke is not None and stroke.color.startswith('#'):
