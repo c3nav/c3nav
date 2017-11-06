@@ -1,11 +1,13 @@
 import io
 from collections import deque
+from itertools import chain
 from typing import Union
 
 import ModernGL
 import numpy as np
 from PIL import Image
-from shapely.geometry import MultiPolygon, Polygon
+from shapely.geometry import CAP_STYLE, JOIN_STYLE, LinearRing, LineString, MultiLineString, MultiPolygon, Polygon
+from shapely.ops import unary_union
 from trimesh.creation import triangulate_polygon
 
 from c3nav.mapdata.render.engines.base import RenderEngine
@@ -72,6 +74,23 @@ class OpenGLEngine(RenderEngine):
     def _add_geometry(self, geometry, fill=None, stroke=None, altitude=None, height=None, shape_cache_key=None):
         if fill is not None:
             self.vertices.append(self._create_geometry(geometry, self.hex_to_rgb(fill.color)))
+
+        if stroke is not None and stroke.color.startswith('#'):
+            if isinstance(geometry, MultiLineString):
+                lines = (geometry, )
+            elif isinstance(geometry, (LinearRing, LineString)):
+                lines = (geometry, )
+            elif isinstance(geometry, (Polygon, MultiPolygon)):
+                lines = tuple(chain(*((polygon.exterior, *polygon.interiors)
+                                      for polygon in assert_multipolygon(geometry))))
+            else:
+                raise ValueError('Unknown geometry for add_geometry!')
+
+            self.vertices.append(self._create_geometry(
+                unary_union(lines).buffer(max(stroke.width, (stroke.min_px or 0) / self.scale)/2,
+                                          cap_style=CAP_STYLE.flat, join_style=JOIN_STYLE.mitre),
+                self.hex_to_rgb(stroke.color)
+            ))
 
     def get_png(self) -> bytes:
         if self.vertices:
