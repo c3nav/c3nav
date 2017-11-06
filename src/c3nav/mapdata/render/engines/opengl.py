@@ -1,7 +1,7 @@
 import io
 from collections import deque
 from itertools import chain
-from typing import Union
+from typing import Optional, Union
 
 import ModernGL
 import numpy as np
@@ -10,7 +10,7 @@ from shapely.geometry import CAP_STYLE, JOIN_STYLE, LinearRing, LineString, Mult
 from shapely.ops import unary_union
 from trimesh.creation import triangulate_polygon
 
-from c3nav.mapdata.render.engines.base import RenderEngine
+from c3nav.mapdata.render.engines.base import FillAttribs, RenderEngine, StrokeAttribs
 from c3nav.mapdata.utils.geometry import assert_multipolygon
 
 
@@ -71,7 +71,8 @@ class OpenGLEngine(RenderEngine):
             ))
         return vertices.flatten()
 
-    def _add_geometry(self, geometry, fill=None, stroke=None, altitude=None, height=None, shape_cache_key=None):
+    def _add_geometry(self, geometry, fill: Optional[FillAttribs] = None, stroke: Optional[StrokeAttribs] = None,
+                      altitude=None, height=None, shape_cache_key=None):
         if fill is not None:
             if stroke is not None and fill.color == stroke.color:
                 geometry = geometry.buffer(max(stroke.width, (stroke.min_px or 0) / self.scale),
