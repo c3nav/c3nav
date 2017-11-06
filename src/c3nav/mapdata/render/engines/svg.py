@@ -6,9 +6,9 @@ from itertools import chain
 from typing import Optional
 
 import numpy as np
-from PIL import Image
 from django.conf import settings
 from django.core import checks
+from PIL import Image
 from shapely.affinity import translate
 from shapely.geometry import LineString, Polygon
 
@@ -30,7 +30,7 @@ def check_svg_renderer(app_configs, **kwargs):
             checks.Error(
                 'Invalid SVG renderer: '+settings.SVG_RENDERER,
                 obj='settings.SVG_RENDERER',
-                id='c3nav.mapdata.E001',
+                id='c3nav.mapdata.E002',
             )
         )
     return errors
