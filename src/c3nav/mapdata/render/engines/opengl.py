@@ -6,7 +6,7 @@ from typing import Optional, Union
 import ModernGL
 import numpy as np
 from PIL import Image
-from shapely.geometry import CAP_STYLE, JOIN_STYLE, LinearRing, LineString, MultiLineString, MultiPolygon, Polygon
+from shapely.geometry import CAP_STYLE, JOIN_STYLE, MultiPolygon, Polygon
 from shapely.ops import unary_union
 from trimesh.creation import triangulate_polygon
 
@@ -81,16 +81,10 @@ class OpenGLEngine(RenderEngine):
             self.vertices.append(self._create_geometry(geometry, self.hex_to_rgb(fill.color)))
 
         if stroke is not None and stroke.color.startswith('#'):
-            if isinstance(geometry, MultiLineString):
-                lines = (geometry, )
-            elif isinstance(geometry, (LinearRing, LineString)):
-                lines = (geometry, )
-            elif isinstance(geometry, (Polygon, MultiPolygon)):
-                lines = tuple(chain(*((polygon.exterior, *polygon.interiors)
-                                      for polygon in assert_multipolygon(geometry))))
-            else:
-                raise ValueError('Unknown geometry for add_geometry!')
-
+            lines = tuple(chain(*(
+                ((geom.exterior, *geom.interiors) if isinstance(geom, Polygon) else geom)
+                for geom in getattr(geometry, 'geoms', (geometry, ))
+            )))
             self.vertices.append(self._create_geometry(
                 unary_union(lines).buffer(max(stroke.width, (stroke.min_px or 0) / self.scale)/2,
                                           cap_style=CAP_STYLE.flat, join_style=JOIN_STYLE.mitre),
