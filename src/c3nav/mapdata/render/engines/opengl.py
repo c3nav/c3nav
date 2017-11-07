@@ -4,13 +4,13 @@ from functools import lru_cache
 from itertools import chain
 from typing import Optional, Union
 
-import meshpy.triangle as triangle
-import ModernGL
 import numpy as np
 from PIL import Image
 from shapely.geometry import CAP_STYLE, JOIN_STYLE, MultiPolygon, Polygon
 from shapely.ops import unary_union
 
+import meshpy.triangle as triangle
+import ModernGL
 from c3nav.mapdata.render.engines.base import FillAttribs, RenderEngine, StrokeAttribs
 from c3nav.mapdata.utils.geometry import assert_multipolygon
 

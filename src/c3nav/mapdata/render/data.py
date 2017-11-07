@@ -43,6 +43,9 @@ class LevelRenderData:
 
             map_history = MapHistory.open_level(level.pk, 'base')
 
+            sublevels = tuple(sublevel for sublevel in levels
+                              if sublevel.on_top_of_id == level.pk or sublevel.base_altitude <= level.base_altitude)
+
             level_crop_to = {}
 
             # choose a crop area for each level. non-intermediate levels (not on_top_of) below the one that we are
@@ -50,7 +53,7 @@ class LevelRenderData:
             # levels above them.
             crop_to = None
             primary_level_count = 0
-            for sublevel in reversed(levels[:i + 1]):
+            for sublevel in reversed(sublevels):
                 geoms = single_level_geoms[sublevel.pk]
 
                 if geoms.holes is not None:
@@ -68,7 +71,7 @@ class LevelRenderData:
             render_data = LevelRenderData()
             render_data.access_restriction_affected = {}
 
-            for sublevel in levels[:i + 1]:
+            for sublevel in sublevels:
                 old_geoms = single_level_geoms[sublevel.pk]
                 crop_to = level_crop_to[sublevel.pk]
 
