@@ -42,7 +42,7 @@ def _triangulate_polygon(polygon: Polygon, keep_holes=False):
 
 def triangulate_polygon(geometry: Union[Polygon, MultiPolygon], keep_holes=False):
     if isinstance(geometry, Polygon):
-        return _triangulate_polygon(geometry)
+        return _triangulate_polygon(geometry, keep_holes=keep_holes)
 
     vertices = deque()
     faces = deque()
