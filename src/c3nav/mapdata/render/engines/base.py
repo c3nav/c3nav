@@ -1,5 +1,6 @@
 import math
 from abc import ABC, abstractmethod
+from functools import lru_cache
 from typing import Optional
 
 from shapely.ops import unary_union
@@ -54,6 +55,7 @@ class RenderEngine(ABC):
         pass
 
     @staticmethod
+    @lru_cache()
     def color_to_rgb(color, alpha=None):
         if color.startswith('#'):
             return (*(int(color[i:i + 2], 16) / 255 for i in range(1, 6, 2)), 1 if alpha is None else alpha)
