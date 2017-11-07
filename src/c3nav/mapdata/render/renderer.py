@@ -86,7 +86,7 @@ class MapRenderer:
             ).union(add_walls)
 
             # render altitude areas in default ground color and add ground colors to each one afterwards
-            # shadows are directly calculated and added by the SVGImage class
+            # shadows are directly calculated and added by the engine
             for altitudearea in geoms.altitudeareas:
                 engine.add_geometry(bbox.intersection(altitudearea.geometry.difference(crop_areas)),
                                     altitude=altitudearea.altitude, fill=FillAttribs('#eeeeee'),
