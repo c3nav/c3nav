@@ -1,18 +1,16 @@
 import io
 from collections import deque
-from functools import lru_cache
 from itertools import chain
 from typing import Optional, Union
 
+import ModernGL
 import numpy as np
 from PIL import Image
 from shapely.geometry import CAP_STYLE, JOIN_STYLE, MultiPolygon, Polygon
 from shapely.ops import unary_union
 
-import meshpy.triangle as triangle
-import ModernGL
 from c3nav.mapdata.render.engines.base import FillAttribs, RenderEngine, StrokeAttribs
-from c3nav.mapdata.utils.geometry import assert_multipolygon
+from c3nav.mapdata.utils.mesh import triangulate_polygon
 
 
 class OpenGLEngine(RenderEngine):
@@ -55,43 +53,11 @@ class OpenGLEngine(RenderEngine):
         self.np_scale = np.array((scale_x, -scale_y))
         self.np_offset = np.array((-self.minx * scale_x - 1, self.maxy * scale_y - 1))
 
-    @staticmethod
-    @lru_cache()
-    def get_face_indizes(start, length):
-        indices = np.tile(np.arange(start, start + length).reshape((-1, 1)), 2).flatten()[1:-1].reshape((length-1, 2))
-        return np.vstack((indices, (indices[-1][-1], indices[0][0])))
-
-    @staticmethod
-    def triangulate_polygon(polygon):
-        vertices = deque()
-        faces = deque()
-
-        offset = 0
-        for ring in chain((polygon.exterior, ), polygon.interiors):
-            new_vertices = np.array(ring.coords)[:-1]
-            vertices.append(new_vertices)
-            faces.append(OpenGLEngine.get_face_indizes(offset, len(new_vertices)))
-            offset += len(new_vertices)
-
-        holes = np.array(tuple(
-            Polygon(ring).representative_point().coords for ring in polygon.interiors
-        ))
-
-        info = triangle.MeshInfo()
-        info.set_points(np.vstack(vertices))
-        info.set_facets(np.vstack(faces).tolist())
-        if holes.size:
-            info.set_holes(holes.reshape((holes.shape[0], -1)))
-
-        mesh = triangle.build(info)
-        return np.array(mesh.points), np.array(mesh.elements)
-
     def _create_geometry(self, geometry: Union[Polygon, MultiPolygon], append=None):
         triangles = deque()
 
-        for i, polygon in enumerate(assert_multipolygon(geometry)):
-            vertices, faces = self.triangulate_polygon(polygon)
-            triangles.append(vertices[faces.flatten()])
+        vertices, faces = triangulate_polygon(geometry)
+        triangles = vertices[faces.flatten()]
 
         vertices = np.vstack(triangles).astype(np.float32)
         vertices = vertices * self.np_scale + self.np_offset
