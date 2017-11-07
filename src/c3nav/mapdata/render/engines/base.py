@@ -54,8 +54,13 @@ class RenderEngine(ABC):
         pass
 
     @staticmethod
-    def hex_to_rgb(hexcolor):
-        return tuple(int(hexcolor[i:i + 2], 16)/255 for i in range(1, 6, 2))
+    def color_to_rgb(color, alpha=None):
+        if color.startswith('#'):
+            return (*(int(color[i:i + 2], 16) / 255 for i in range(1, 6, 2)), 1 if alpha is None else alpha)
+        if color.startswith('rgba('):
+            color = tuple(float(i.strip()) for i in color.strip()[5:-1].split(','))
+            return (*(i/255 for i in color[:3]), color[3] if alpha is None else alpha)
+        raise ValueError('invalid color string!')
 
     def clip_altitudes(self, new_geometry, new_altitude=None):
         # register new geometry with an altitude

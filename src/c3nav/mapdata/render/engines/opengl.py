@@ -31,8 +31,8 @@ class OpenGLEngine(RenderEngine):
             self.ctx.vertex_shader('''
                 #version 330
                 in vec2 in_vert;
-                in vec3 in_color;
-                out vec3 v_color;
+                in vec4 in_color;
+                out vec4 v_color;
                 void main() {
                     gl_Position = vec4(in_vert, 0.0, 1.0);
                     v_color = in_color;
@@ -40,10 +40,10 @@ class OpenGLEngine(RenderEngine):
             '''),
             self.ctx.fragment_shader('''
                 #version 330
-                in vec3 v_color;
+                in vec4 v_color;
                 out vec4 f_color;
                 void main() {
-                    f_color = vec4(v_color, 1.0);
+                    f_color = v_color;
                 }
             '''),
         ])
@@ -78,17 +78,23 @@ class OpenGLEngine(RenderEngine):
                 geometry = geometry.buffer(max(stroke.width, (stroke.min_px or 0) / self.scale),
                                            cap_style=CAP_STYLE.flat, join_style=JOIN_STYLE.mitre)
                 stroke = None
-            self.vertices.append(self._create_geometry(geometry, self.hex_to_rgb(fill.color)))
+            self.vertices.append(self._create_geometry(geometry, self.color_to_rgb(fill.color)))
 
-        if stroke is not None and stroke.color.startswith('#'):
+        if stroke is not None:
             lines = tuple(chain(*(
                 ((geom.exterior, *geom.interiors) if isinstance(geom, Polygon) else geom)
                 for geom in getattr(geometry, 'geoms', (geometry, ))
             )))
+            one_pixel = 1 / self.scale / 2
+            width = max(stroke.width, (stroke.min_px or 0) / self.scale) / 2
+            if width < one_pixel:
+                alpha = width/one_pixel
+                width = one_pixel
+            else:
+                alpha = 1
             self.vertices.append(self._create_geometry(
-                unary_union(lines).buffer(max(stroke.width, (stroke.min_px or 0) / self.scale)/2,
-                                          cap_style=CAP_STYLE.flat, join_style=JOIN_STYLE.mitre),
-                self.hex_to_rgb(stroke.color)
+                unary_union(lines).buffer(width, cap_style=CAP_STYLE.flat, join_style=JOIN_STYLE.mitre),
+                self.color_to_rgb(stroke.color, alpha=alpha)
             ))
 
     def get_png(self) -> bytes:
