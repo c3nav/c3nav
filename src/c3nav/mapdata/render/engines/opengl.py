@@ -1,7 +1,9 @@
 import io
-from collections import deque
+import threading
+from collections import deque, namedtuple
 from itertools import chain
-from typing import Optional, Union
+from queue import Queue
+from typing import Optional, Tuple, Union
 
 import ModernGL
 import numpy as np
@@ -13,21 +15,20 @@ from c3nav.mapdata.render.engines.base import FillAttribs, RenderEngine, StrokeA
 from c3nav.mapdata.utils.mesh import triangulate_polygon
 
 
-class OpenGLEngine(RenderEngine):
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
+class RenderContext(namedtuple('RenderContext', ('width', 'height', 'ctx', 'prog', 'fbo'))):
+    """
+    A OpenGL Render Context with program and framebuffer. Can only be used by thread that created it.
+    """
+    @classmethod
+    def create(cls, width, height):
+        ctx = ModernGL.create_standalone_context()
 
-        self.vertices = []
-        self.ctx = ModernGL.create_standalone_context()
+        color_rbo = ctx.renderbuffer((width, height))
+        fbo = ctx.framebuffer([color_rbo])
+        fbo.use()
 
-        self.color_rbo = self.ctx.renderbuffer((self.width, self.height))
-        self.fbo = self.ctx.framebuffer([self.color_rbo])
-        self.fbo.use()
-
-        self.ctx.clear(*(i/255 for i in self.background_rgb))
-
-        self.prog = self.ctx.program([
-            self.ctx.vertex_shader('''
+        prog = ctx.program([
+            ctx.vertex_shader('''
                 #version 330
                 in vec2 in_vert;
                 in vec4 in_color;
@@ -37,7 +38,7 @@ class OpenGLEngine(RenderEngine):
                     v_color = in_color;
                 }
             '''),
-            self.ctx.fragment_shader('''
+            ctx.fragment_shader('''
                 #version 330
                 in vec4 v_color;
                 out vec4 f_color;
@@ -46,6 +47,90 @@ class OpenGLEngine(RenderEngine):
                 }
             '''),
         ])
+
+        return cls(width, height, ctx, prog, fbo)
+
+
+class RenderTask:
+    """
+    Async Render Task
+    """
+    __slots__ = ('width', 'height', 'background_rgb', 'vertices', 'event', 'result')
+
+    def __init__(self, width, height, background_rgb, vertices):
+        self.width = width
+        self.height = height
+        self.background_rgb = background_rgb
+        self.vertices = vertices
+
+        self.event = threading.Event()
+        self.result = None
+
+    def get_result(self) -> bytes:
+        """
+        Wait the task to complete and return the result.
+        """
+        self.event.wait()
+        return self.result
+
+    def set_result(self, result: bytes):
+        """
+        Set the task result and mark it as completed.
+        """
+        self.result = result
+        self.event.set()
+
+
+class OpenGLWorker(threading.Thread):
+    """
+    OpenGL Worker Thread
+    This is needed to reuse OpenGL resources, because they have to be always accessed from the same thread.
+    """
+    def __init__(self):
+        threading.Thread.__init__(self, daemon=True)
+        self._queue = Queue()
+        self.ctx = None
+
+    def _get_ctx(self, width, height):
+        ctx = self.ctx
+        if ctx is None or ctx.width != width or ctx.height != height:
+            ctx = RenderContext.create(width, height)
+            self.ctx = ctx
+        return ctx
+
+    def run(self):
+        while True:
+            task = self._queue.get()
+
+            ctx = self._get_ctx(task.width, task.height)
+            ctx.ctx.clear(*(i / 255 for i in task.background_rgb))
+
+            if task.vertices:
+                vbo = ctx.ctx.buffer(task.vertices)
+                vao = ctx.ctx.simple_vertex_array(ctx.prog, vbo, ['in_vert', 'in_color'])
+                vao.render()
+
+            img = Image.frombytes('RGB', (ctx.width, ctx.height), ctx.fbo.read(components=3))
+
+            f = io.BytesIO()
+            img.save(f, 'PNG')
+            f.seek(0)
+            task.set_result(f.read())
+
+    def render(self, width: int, height: int, background_rgb: Tuple[int, int, int], vertices: bytes) -> bytes:
+        """
+        Render image and return it as PNG bytes
+        """
+        task = RenderTask(width, height, background_rgb, vertices)
+        self._queue.put(task)
+        return task.get_result()
+
+
+class OpenGLEngine(RenderEngine):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        self.vertices = []
 
         scale_x = self.scale / self.width * 2
         scale_y = self.scale / self.height * 2
@@ -95,17 +180,11 @@ class OpenGLEngine(RenderEngine):
                 self.color_to_rgb(stroke.color, alpha=alpha)
             ))
 
+    worker = OpenGLWorker()
+
     def get_png(self) -> bytes:
-        if self.vertices:
-            vbo = self.ctx.buffer(np.hstack(self.vertices).astype(np.float32).tobytes())
+        return self.worker.render(self.width, self.height, self.background_rgb,
+                                  np.hstack(self.vertices).astype(np.float32).tobytes())
 
-            # We control the 'in_vert' and `in_color' variables
-            vao = self.ctx.simple_vertex_array(self.prog, vbo, ['in_vert', 'in_color'])
-            vao.render()
 
-        img = Image.frombytes('RGB', (self.width, self.height), self.fbo.read(components=3))
-
-        f = io.BytesIO()
-        img.save(f, 'PNG')
-        f.seek(0)
-        return f.read()
+OpenGLEngine.worker.start()
