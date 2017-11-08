@@ -14,6 +14,31 @@ def get_face_indizes(start, length):
     return np.vstack((indices, (indices[-1][-1], indices[0][0])))
 
 
+def triangulate_rings(rings, holes=None):
+    rings = tuple(tuple(tuple(vertex) for vertex in (np.array(ring.coords)*1000).astype(np.uint64)) for ring in rings)
+
+    if not rings:
+        return np.empty((0, 2), dtype=np.float32), np.empty((0, 3), dtype=np.int32)
+
+    vertices = tuple(set(chain(*rings)))
+    vertices_lookup = {vertex: i for i, vertex in enumerate(vertices)}
+
+    segments = set()
+    for ring in rings:
+        indices = tuple(vertices_lookup[vertex] for vertex in ring[:-1])
+        segments.update(zip(indices, indices[1:]+indices[:1]))
+
+    info = triangle.MeshInfo()
+    info.set_points(np.array(vertices).tolist())
+    info.set_facets(segments)
+
+    if holes is not None:
+        info.set_holes(holes)
+
+    mesh = triangle.build(info, quality_meshing=False)
+    return np.array(mesh.points)/1000, np.array(mesh.elements)
+
+
 def _triangulate_polygon(polygon: Polygon, keep_holes=False):
     vertices = deque()
     segments = deque()

@@ -1,11 +1,29 @@
 import pickle
+from itertools import chain
 
+import numpy as np
 from django.core.cache import cache
 from django.db import transaction
+from shapely.geometry import LineString, MultiLineString
 from shapely.ops import unary_union
 
 from c3nav.mapdata.cache import MapHistory
 from c3nav.mapdata.models import Level, MapUpdate
+from c3nav.mapdata.utils.geometry import get_rings
+from c3nav.mapdata.utils.mesh import triangulate_rings
+from c3nav.mapdata.utils.mpl import shapely_to_mpl
+
+
+class HybridGeometry:
+    def __init__(self, geom, faces):
+        self._geom = geom
+        self._faces = faces
+
+    @classmethod
+    def create(cls, geom, face_centers):
+        if isinstance(geom, (LineString, MultiLineString)):
+            return HybridGeometry(geom, set())
+        return HybridGeometry(geom, set(np.argwhere(shapely_to_mpl(geom).contains_points(face_centers)).flatten()))
 
 
 class AltitudeAreaGeometries:
@@ -17,6 +35,14 @@ class AltitudeAreaGeometries:
             self.geometry = None
             self.altitude = None
         self.colors = colors
+
+    def get_geometries(self):
+        return chain((self.geometry, ), chain(*(areas.values() for areas in self.colors.values())))
+
+    def create_hybrid_geometries(self, face_centers):
+        self.geometry = HybridGeometry.create(self.geometry, face_centers)
+        self.colors = {color: {key: HybridGeometry.create(geom, face_centers) for key, geom in areas.items()}
+                       for color, areas in self.colors.items()}
 
 
 class FakeCropper:
@@ -129,6 +155,8 @@ class LevelRenderData:
                     if not new_area.is_empty:
                         new_geoms.restricted_spaces_outdoors[access_restriction] = new_area
 
+                new_geoms.build_mesh()
+
                 render_data.levels.append((new_geoms, sublevel.default_height))
 
             render_data.access_restriction_affected = {
@@ -155,6 +183,9 @@ class LevelGeometries:
         self.restricted_spaces_indoors = None
         self.restricted_spaces_outdoors = None
         self.affected_area = None
+
+        self.vertices = None
+        self.faces = None
 
     @staticmethod
     def build_for_level(level):
@@ -236,7 +267,27 @@ class LevelGeometries:
                                             for access_restriction, spaces in restricted_spaces_outdoors.items()}
 
         geoms.walls = buildings_geom.difference(spaces_geom).difference(doors_geom)
+
         return geoms
+
+    def get_geometries(self):
+        return chain(chain(*(area.get_geometries() for area in self.altitudeareas)), (self.walls, self.doors, ),
+                     self.restricted_spaces_indoors.values(), self.restricted_spaces_outdoors.values())
+
+    def create_hybrid_geometries(self, face_centers):
+        for area in self.altitudeareas:
+            area.create_hybrid_geometries(face_centers)
+        self.walls = HybridGeometry.create(self.walls, face_centers)
+        self.doors = HybridGeometry.create(self.doors, face_centers)
+        self.restricted_spaces_indoors = {key: HybridGeometry.create(geom, face_centers)
+                                          for key, geom in self.restricted_spaces_indoors.items()}
+        self.restricted_spaces_outdoors = {key: HybridGeometry.create(geom, face_centers)
+                                           for key, geom in self.restricted_spaces_outdoors.items()}
+
+    def build_mesh(self):
+        rings = tuple(chain(*(get_rings(geom) for geom in self.get_geometries())))
+        self.vertices, self.faces = triangulate_rings(rings)
+        self.create_hybrid_geometries(face_centers=self.vertices[self.faces].sum(axis=1)/3)
 
 
 def get_level_render_data(level):

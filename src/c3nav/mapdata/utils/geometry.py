@@ -5,7 +5,7 @@ from django.core import checks
 from matplotlib.patches import PathPatch
 from matplotlib.path import Path
 from shapely import speedups
-from shapely.geometry import LineString, Polygon
+from shapely.geometry import LinearRing, LineString, Polygon
 
 if speedups.available:
     speedups.enable()
@@ -91,3 +91,19 @@ def plot_geometry(geom, title=None, bounds=None):
     patch = PathPatch(path)
     axes.add_patch(patch)
     plt.show()
+
+
+def get_rings(geometry):
+    if isinstance(geometry, Polygon):
+        return chain((geometry.exterior, ), geometry.interiors)
+    try:
+        geoms = geometry.geoms
+    except AttributeError:
+        pass
+    else:
+        return chain(*(get_rings(geom) for geom in geoms))
+
+    if isinstance(geometry, LinearRing):
+        return (geometry, )
+
+    return ()
