@@ -12,12 +12,12 @@ from shapely.geometry import CAP_STYLE, JOIN_STYLE, LineString
 
 from c3nav.mapdata.utils.geometry import assert_multilinestring, assert_multipolygon
 from c3nav.mapdata.utils.misc import get_public_private_area
+from c3nav.mapdata.utils.mpl import shapely_to_mpl
 from c3nav.routing.point import GraphPoint
 from c3nav.routing.room import GraphRoom
 from c3nav.routing.utils.base import get_nearest_point
 from c3nav.routing.utils.coords import coord_angle
 from c3nav.routing.utils.draw import _ellipse_bbox, _line_coords
-from c3nav.routing.utils.mpl import shapely_to_mpl
 
 
 class GraphLevel():

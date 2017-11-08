@@ -1,7 +1,8 @@
 from abc import ABC, abstractmethod
 
+import numpy as np
 from matplotlib.path import Path
-from shapely.geometry import MultiPolygon, Polygon
+from shapely.geometry import GeometryCollection, MultiPolygon, Polygon
 
 from c3nav.mapdata.utils.geometry import assert_multipolygon
 
@@ -36,6 +37,13 @@ class MplMultipolygonPath(MplPathProxy):
                 return True
         return False
 
+    def contains_points(self, points):
+        result = np.full((len(points),), fill_value=False, dtype=np.bool)
+        for polygon in self.polygons:
+            ix = np.argwhere(np.logical_not(result)).flatten()
+            result[ix] = polygon.contains_points(points[ix])
+        return result
+
 
 class MplPolygonPath(MplPathProxy):
     def __init__(self, polygon):
@@ -64,6 +72,15 @@ class MplPolygonPath(MplPathProxy):
                     return True
             return False
 
+    def contains_points(self, points):
+        result = self.exterior.contains_points(points)
+        for interior in self.interiors:
+            if not result.any():
+                break
+            ix = np.argwhere(result).flatten()
+            result[ix] = np.logical_not(interior.contains_points(points[ix]))
+        return result
+
     def contains_point(self, point):
         if not self.exterior.contains_point(point):
             return False
@@ -82,18 +99,11 @@ def shapely_to_mpl(geometry):
     """
     if isinstance(geometry, Polygon):
         return MplPolygonPath(geometry)
-    elif isinstance(geometry, MultiPolygon) or geometry.is_empty:
+    elif isinstance(geometry, MultiPolygon) or geometry.is_empty or isinstance(geometry, GeometryCollection):
         return MplMultipolygonPath(geometry)
     raise TypeError
 
 
 def linearring_to_mpl_path(linearring):
-    vertices = []
-    codes = []
-    coords = list(linearring.coords)
-    vertices.extend(coords)
-    vertices.append(coords[0])
-    codes.append(Path.MOVETO)
-    codes.extend([Path.LINETO] * (len(coords)-1))
-    codes.append(Path.CLOSEPOLY)
-    return Path(vertices, codes, readonly=True)
+    return Path(np.array(linearring),
+                (Path.MOVETO, *([Path.LINETO] * (len(linearring.coords)-2)), Path.CLOSEPOLY), readonly=True)

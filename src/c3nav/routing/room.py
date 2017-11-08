@@ -8,11 +8,11 @@ from shapely.geometry import CAP_STYLE, JOIN_STYLE, LineString
 from shapely.ops import cascaded_union
 
 from c3nav.mapdata.utils.geometry import assert_multilinestring, assert_multipolygon
+from c3nav.mapdata.utils.mpl import shapely_to_mpl
 from c3nav.routing.area import GraphArea
 from c3nav.routing.connection import GraphConnection
 from c3nav.routing.point import GraphPoint
 from c3nav.routing.utils.coords import get_coords_angles
-from c3nav.routing.utils.mpl import shapely_to_mpl
 
 
 class GraphRoom():
