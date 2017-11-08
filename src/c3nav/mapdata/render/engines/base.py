@@ -4,7 +4,6 @@ from functools import lru_cache
 from typing import Optional
 
 from shapely.geometry import JOIN_STYLE, box
-from shapely.ops import unary_union
 
 
 class FillAttribs:
@@ -48,10 +47,6 @@ class RenderEngine(ABC):
 
         self.background_rgb = tuple(int(background[i:i + 2], 16)/255 for i in range(1, 6, 2))
 
-        # keep track which area of the image has which altitude currently
-        self.altitudes = {}
-        self.last_altitude = None
-
     @abstractmethod
     def get_png(self) -> bytes:
         # render the image to png.
@@ -66,17 +61,6 @@ class RenderEngine(ABC):
             color = tuple(float(i.strip()) for i in color.strip()[5:-1].split(','))
             return (*(i/255 for i in color[:3]), color[3] if alpha is None else alpha)
         raise ValueError('invalid color string!')
-
-    def clip_altitudes(self, new_geometry, new_altitude=None):
-        # register new geometry with an altitude
-        # a geometry with no altitude will reset the altitude information of its area as if nothing was ever there
-        if self.last_altitude is not None and self.last_altitude > new_altitude:
-            raise ValueError('Altitudes have to be ascending.')
-
-        if new_altitude in self.altitudes:
-            self.altitudes[new_altitude] = unary_union([self.altitudes[new_altitude], new_geometry])
-        else:
-            self.altitudes[new_altitude] = new_geometry
 
     def add_geometry(self, geometry, fill: Optional[FillAttribs] = None, stroke: Optional[StrokeAttribs] = None,
                      altitude=None, height=None, shape_cache_key=None):

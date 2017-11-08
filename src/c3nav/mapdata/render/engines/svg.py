@@ -11,8 +11,9 @@ from django.core import checks
 from PIL import Image
 from shapely.affinity import translate
 from shapely.geometry import LineString, Polygon
-
 # import gobject-inspect, cairo and rsvg if the native rsvg SVG_RENDERER should be used
+from shapely.ops import unary_union
+
 from c3nav.mapdata.render.engines.base import FillAttribs, RenderEngine, StrokeAttribs
 
 if settings.SVG_RENDERER == 'rsvg':
@@ -52,6 +53,10 @@ class SVGEngine(RenderEngine):
 
         # keep track of created blur filters to avoid duplicates
         self.blurs = set()
+
+        # keep track which area of the image has which altitude currently
+        self.altitudes = {}
+        self.last_altitude = None
 
         self._create_geometry_cache = {}
 
@@ -195,6 +200,17 @@ class SVGEngine(RenderEngine):
             attribs += ' clip-path="url(#'+self.register_clip_path(clip_path)+')"'
         shadow = self._create_geometry(shadow_geom, attribs)
         self.g += shadow
+
+    def clip_altitudes(self, new_geometry, new_altitude=None):
+        # register new geometry with an altitude
+        # a geometry with no altitude will reset the altitude information of its area as if nothing was ever there
+        if self.last_altitude is not None and self.last_altitude > new_altitude:
+            raise ValueError('Altitudes have to be ascending.')
+
+        if new_altitude in self.altitudes:
+            self.altitudes[new_altitude] = unary_union([self.altitudes[new_altitude], new_geometry])
+        else:
+            self.altitudes[new_altitude] = new_geometry
 
     def _add_geometry(self, geometry, fill: Optional[FillAttribs] = None, stroke: Optional[StrokeAttribs] = None,
                       altitude=None, height=None, shape_cache_key=None):
