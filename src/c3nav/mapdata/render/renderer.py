@@ -89,8 +89,7 @@ class MapRenderer:
             # shadows are directly calculated and added by the engine
             for altitudearea in geoms.altitudeareas:
                 engine.add_geometry(bbox.intersection(altitudearea.geometry.difference(crop_areas)),
-                                    altitude=altitudearea.altitude, fill=FillAttribs('#eeeeee'),
-                                    stroke=StrokeAttribs('rgba(0, 0, 0, 0.15)', 0.05, min_px=0.2))
+                                    altitude=altitudearea.altitude, fill=FillAttribs('#eeeeee'))
 
                 for color, areas in altitudearea.colors.items():
                     # only select ground colors if their access restriction is unlocked
