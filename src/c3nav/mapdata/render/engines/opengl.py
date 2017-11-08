@@ -191,7 +191,7 @@ class OpenGLEngine(RenderEngine):
 
             width = max(stroke.width, (stroke.min_px or 0) / self.scale) / 2
 
-            # if width would be <1px, emulate it thorugh opacity on a 1px width
+            # if width would be <1px, emulate it through opacity on a 1px width
             one_pixel = 1 / self.scale / 2
             if width < one_pixel:
                 alpha = width/one_pixel
