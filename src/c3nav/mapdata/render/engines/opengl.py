@@ -173,13 +173,17 @@ class OpenGLEngine(RenderEngine):
                 ((geom.exterior, *geom.interiors) if isinstance(geom, Polygon) else (geom, ))
                 for geom in getattr(geometry, 'geoms', (geometry, ))
             )))
-            one_pixel = 1 / self.scale / 2 / self.samples
+
             width = max(stroke.width, (stroke.min_px or 0) / self.scale) / 2
+
+            # if width would be <1px in the upsampled rendering, emulate it thorugh opacity on a 1px width
+            one_pixel = 1 / self.scale / 2 / self.samples
             if width < one_pixel:
                 alpha = width/one_pixel
                 width = one_pixel
             else:
                 alpha = 1
+
             self.vertices.append(self._create_geometry(
                 unary_union(lines).buffer(width, cap_style=CAP_STYLE.flat, join_style=JOIN_STYLE.mitre),
                 self.color_to_rgb(stroke.color, alpha=alpha)
