@@ -8,6 +8,7 @@ from itertools import chain
 import numpy as np
 from django.db import transaction
 from django.utils.functional import cached_property
+from scipy.interpolate import NearestNDInterpolator
 from shapely.geometry import GeometryCollection, LineString, MultiLineString
 from shapely.ops import unary_union
 
@@ -230,6 +231,7 @@ class LevelGeometries:
 
         self.vertices = None
         self.faces = None
+        self.vertex_altitudes = None
 
     @staticmethod
     def build_for_level(level):
@@ -332,3 +334,19 @@ class LevelGeometries:
         rings = tuple(chain(*(get_rings(geom) for geom in self.get_geometries())))
         self.vertices, self.faces = triangulate_rings(rings)
         self.create_hybrid_geometries(face_centers=self.vertices[self.faces].sum(axis=1) / 3)
+
+        # calculate altitudes
+        self.vertex_altitudes = np.empty(self.vertices.shape[:1], dtype=np.int32)
+        vertex_altitude_mask = np.full(self.vertices.shape[:1], fill_value=False, dtype=np.bool)
+
+        for area in self.altitudeareas:
+            i_vertices = np.unique(self.faces[np.array(tuple(area.geometry.faces))].flatten())
+            self.vertex_altitudes[i_vertices] = int(area.altitude*100)
+            vertex_altitude_mask[i_vertices] = True
+
+        if not np.all(vertex_altitude_mask):
+            interpolate = NearestNDInterpolator(self.vertices[vertex_altitude_mask],
+                                                self.vertex_altitudes[vertex_altitude_mask])
+            self.vertex_altitudes[np.logical_not(vertex_altitude_mask)] = interpolate(
+                *np.transpose(self.vertices[np.logical_not(vertex_altitude_mask)])
+            )
