@@ -24,7 +24,7 @@ class RenderContext(namedtuple('RenderContext', ('width', 'height', 'ctx', 'prog
     def create(cls, width, height):
         ctx = ModernGL.create_standalone_context()
 
-        color_rbo = ctx.renderbuffer((width, height))
+        color_rbo = ctx.renderbuffer((width, height), samples=ctx.max_samples)
         fbo = ctx.framebuffer([color_rbo])
         fbo.use()
 
@@ -56,12 +56,11 @@ class RenderTask:
     """
     Async Render Task
     """
-    __slots__ = ('width', 'height', 'samples', 'background_rgb', 'vertices', 'event', 'result')
+    __slots__ = ('width', 'height', 'background_rgb', 'vertices', 'event', 'result')
 
-    def __init__(self, width, height, samples, background_rgb, vertices):
+    def __init__(self, width, height, background_rgb, vertices):
         self.width = width
         self.height = height
-        self.samples = samples
         self.background_rgb = background_rgb
         self.vertices = vertices
 
@@ -104,7 +103,7 @@ class OpenGLWorker(threading.Thread):
         while True:
             task = self._queue.get()
 
-            ctx = self._get_ctx(task.width*task.samples, task.height*task.samples)
+            ctx = self._get_ctx(task.width, task.height)
             ctx.ctx.clear(*task.background_rgb)
 
             if task.vertices:
@@ -112,20 +111,22 @@ class OpenGLWorker(threading.Thread):
                 vao = ctx.ctx.simple_vertex_array(ctx.prog, vbo, ['in_vert', 'in_color'])
                 vao.render()
 
-            img = Image.frombytes('RGB', (ctx.width, ctx.height), ctx.fbo.read(components=3))
-            img = img.resize((task.width, task.height), Image.BICUBIC)
+            color_rbo2 = ctx.ctx.renderbuffer((task.width, task.height))
+            fbo2 = ctx.ctx.framebuffer(color_rbo2)
+            ctx.ctx.copy_framebuffer(fbo2, ctx.fbo)
+
+            img = Image.frombytes('RGB', (task.width, task.height), fbo2.read(components=3))
 
             f = io.BytesIO()
             img.save(f, 'PNG')
             f.seek(0)
             task.set_result(f.read())
 
-    def render(self, width: int, height: int, samples: int,
-               background_rgb: Tuple[int, int, int], vertices: bytes) -> bytes:
+    def render(self, width: int, height: int, background_rgb: Tuple[int, int, int], vertices: bytes) -> bytes:
         """
         Render image and return it as PNG bytes
         """
-        task = RenderTask(width, height, samples, background_rgb, vertices)
+        task = RenderTask(width, height, background_rgb, vertices)
         self._queue.put(task)
         return task.get_result()
 
@@ -138,8 +139,6 @@ class OpenGLEngine(RenderEngine):
 
         scale_x = self.scale / self.width * 2
         scale_y = self.scale / self.height * 2
-
-        self.samples = 4
 
         self.np_scale = np.array((scale_x, -scale_y))
         self.np_offset = np.array((-self.minx * scale_x - 1, self.maxy * scale_y - 1))
@@ -192,8 +191,8 @@ class OpenGLEngine(RenderEngine):
 
             width = max(stroke.width, (stroke.min_px or 0) / self.scale) / 2
 
-            # if width would be <1px in the upsampled rendering, emulate it thorugh opacity on a 1px width
-            one_pixel = 1 / self.scale / 2 / self.samples
+            # if width would be <1px, emulate it thorugh opacity on a 1px width
+            one_pixel = 1 / self.scale / 2
             if width < one_pixel:
                 alpha = width/one_pixel
                 width = one_pixel
@@ -208,7 +207,7 @@ class OpenGLEngine(RenderEngine):
     worker = OpenGLWorker()
 
     def get_png(self) -> bytes:
-        return self.worker.render(self.width, self.height, self.samples, self.background_rgb,
+        return self.worker.render(self.width, self.height, self.background_rgb,
                                   np.hstack(self.vertices).astype(np.float32).tobytes() if self.vertices else b'')
 
 
