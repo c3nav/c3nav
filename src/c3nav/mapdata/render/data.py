@@ -1,11 +1,11 @@
 import operator
 import pickle
+import threading
 from collections import namedtuple
 from functools import reduce
 from itertools import chain
 
 import numpy as np
-from django.core.cache import cache
 from django.db import transaction
 from django.utils.functional import cached_property
 from shapely.geometry import GeometryCollection, LineString, MultiLineString
@@ -191,6 +191,31 @@ class LevelRenderData:
             for level in levels:
                 level.save()
 
+    cached = {}
+    cache_key = None
+    cache_lock = threading.Lock()
+
+    @classmethod
+    def get(cls, level):
+        with cls.cache_lock:
+            cache_key = MapUpdate.current_cache_key()
+            level_pk = str(level.pk if isinstance(level, Level) else level)
+            if cls.cache_key != cache_key:
+                cls.cache_key = cache_key
+                cls.cached = {}
+            else:
+                result = cls.cached.get(level_pk, None)
+                if result is not None:
+                    return result
+
+            if isinstance(level, Level):
+                result = pickle.loads(level.render_data)
+            else:
+                result = pickle.loads(Level.objects.filter(pk=level).values_list('render_data', flat=True)[0])
+
+            cls.cached[level_pk] = result
+            return result
+
 
 class LevelGeometries:
     def __init__(self):
@@ -307,20 +332,3 @@ class LevelGeometries:
         rings = tuple(chain(*(get_rings(geom) for geom in self.get_geometries())))
         self.vertices, self.faces = triangulate_rings(rings)
         self.create_hybrid_geometries(face_centers=self.vertices[self.faces].sum(axis=1) / 3)
-
-
-def get_level_render_data(level):
-    cache_key = 'mapdata:level_render_data:%s:%s' % (str(level.pk if isinstance(level, Level) else level),
-                                                     MapUpdate.current_cache_key())
-    result = cache.get(cache_key, None)
-    if result is not None:
-        return result
-
-    if isinstance(level, Level):
-        result = pickle.loads(level.render_data)
-    else:
-        result = pickle.loads(Level.objects.filter(pk=level).values_list('render_data', flat=True)[0])
-
-    cache.set(cache_key, result, 900)
-
-    return result

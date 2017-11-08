@@ -5,7 +5,7 @@ from shapely.geometry import box
 
 from c3nav.mapdata.cache import MapHistory
 from c3nav.mapdata.models import MapUpdate
-from c3nav.mapdata.render.data import get_level_render_data, hybrid_union
+from c3nav.mapdata.render.data import LevelRenderData, hybrid_union
 from c3nav.mapdata.render.engines.base import FillAttribs, StrokeAttribs
 
 
@@ -28,7 +28,7 @@ class MapRenderer:
 
     @cached_property
     def level_render_data(self):
-        return get_level_render_data(self.level)
+        return LevelRenderData.get(self.level)
 
     @cached_property
     def last_update(self):
