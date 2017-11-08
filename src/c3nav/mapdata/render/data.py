@@ -153,6 +153,12 @@ class LevelRenderData:
                 if new_geoms.walls.is_empty and not new_geoms.altitudeareas:
                     continue
 
+                new_geoms.heightareas = tuple(
+                    (area, height) for area, height in ((crop_to.intersection(area), height)
+                                                        for area, height in old_geoms.heightareas)
+                    if not area.is_empty
+                )
+
                 new_geoms.affected_area = unary_union((
                     *(altitudearea.geometry for altitudearea in new_geoms.altitudeareas),
                     crop_to.intersection(new_geoms.walls.buffer(1))
@@ -221,6 +227,7 @@ class LevelRenderData:
 class LevelGeometries:
     def __init__(self):
         self.altitudeareas = []
+        self.heightareas = []
         self.walls = None
         self.doors = None
         self.holes = None
@@ -232,6 +239,7 @@ class LevelGeometries:
         self.vertices = None
         self.faces = None
         self.vertex_altitudes = None
+        self.vertex_heights = None
 
     @staticmethod
     def build_for_level(level):
@@ -261,10 +269,9 @@ class LevelGeometries:
         restricted_spaces_indoors = {}
         restricted_spaces_outdoors = {}
 
-        # ground colors
+        # go through spaces and their areas for access control, ground colors and height areas
         colors = {}
-
-        # go through spaces and their areas for access control and ground colors
+        heightareas = {}
         for space in level.spaces.all():
             access_restriction = space.access_restriction_id
             if access_restriction is not None:
@@ -288,6 +295,8 @@ class LevelGeometries:
                 if access_restriction is not None:
                     access_restriction_affected.setdefault(access_restriction, []).append(area.geometry)
                 colors.setdefault(area.get_color(), {}).setdefault(access_restriction, []).append(area.geometry)
+
+            heightareas.setdefault(space.height or level.default_height, []).append(space.geometry)
         colors.pop(None, None)
 
         # merge ground colors
@@ -304,6 +313,10 @@ class LevelGeometries:
             altitudearea_colors = {color: areas for color, areas in altitudearea_colors.items() if areas}
             geoms.altitudeareas.append(AltitudeAreaGeometries(altitudearea, altitudearea_colors))
 
+        # merge height areas
+        geoms.heightareas = tuple((unary_union(geoms), height)
+                                  for height, geoms in sorted(heightareas.items(), key=operator.itemgetter(0)))
+
         # merge access restrictions
         geoms.access_restriction_affected = {access_restriction: unary_union(areas)
                                              for access_restriction, areas in access_restriction_affected.items()}
@@ -317,12 +330,15 @@ class LevelGeometries:
         return geoms
 
     def get_geometries(self):
+        # omit heightareas as these are never drawn
         return chain(chain(*(area.get_geometries() for area in self.altitudeareas)), (self.walls, self.doors,),
                      self.restricted_spaces_indoors.values(), self.restricted_spaces_outdoors.values())
 
     def create_hybrid_geometries(self, face_centers):
         for area in self.altitudeareas:
             area.create_hybrid_geometries(face_centers)
+        self.heightareas = tuple((HybridGeometry.create(area, face_centers), height)
+                                 for area, height in self.heightareas)
         self.walls = HybridGeometry.create(self.walls, face_centers)
         self.doors = HybridGeometry.create(self.doors, face_centers)
         self.restricted_spaces_indoors = {key: HybridGeometry.create(geom, face_centers)
@@ -330,23 +346,34 @@ class LevelGeometries:
         self.restricted_spaces_outdoors = {key: HybridGeometry.create(geom, face_centers)
                                            for key, geom in self.restricted_spaces_outdoors.items()}
 
+    def _build_vertex_values(self, area_values):
+        vertex_values = np.empty(self.vertices.shape[:1], dtype=np.int32)
+        vertex_value_mask = np.full(self.vertices.shape[:1], fill_value=False, dtype=np.bool)
+
+        for area, value in area_values:
+            i_vertices = np.unique(self.faces[np.array(tuple(area.faces))].flatten())
+            vertex_values[i_vertices] = value
+            vertex_value_mask[i_vertices] = True
+
+        if not np.all(vertex_value_mask):
+            interpolate = NearestNDInterpolator(self.vertices[vertex_value_mask],
+                                                vertex_values[vertex_value_mask])
+            vertex_values[np.logical_not(vertex_value_mask)] = interpolate(
+                *np.transpose(self.vertices[np.logical_not(vertex_value_mask)])
+            )
+
+        return vertex_values
+
     def build_mesh(self):
         rings = tuple(chain(*(get_rings(geom) for geom in self.get_geometries())))
         self.vertices, self.faces = triangulate_rings(rings)
         self.create_hybrid_geometries(face_centers=self.vertices[self.faces].sum(axis=1) / 3)
 
         # calculate altitudes
-        self.vertex_altitudes = np.empty(self.vertices.shape[:1], dtype=np.int32)
-        vertex_altitude_mask = np.full(self.vertices.shape[:1], fill_value=False, dtype=np.bool)
+        self.vertex_altitudes = self._build_vertex_values((area.geometry, int(area.altitude*100))
+                                                          for area in self.altitudeareas)
+        self.vertex_heights = self._build_vertex_values((area, int(height*100))
+                                                        for area, height in self.heightareas)
 
-        for area in self.altitudeareas:
-            i_vertices = np.unique(self.faces[np.array(tuple(area.geometry.faces))].flatten())
-            self.vertex_altitudes[i_vertices] = int(area.altitude*100)
-            vertex_altitude_mask[i_vertices] = True
-
-        if not np.all(vertex_altitude_mask):
-            interpolate = NearestNDInterpolator(self.vertices[vertex_altitude_mask],
-                                                self.vertex_altitudes[vertex_altitude_mask])
-            self.vertex_altitudes[np.logical_not(vertex_altitude_mask)] = interpolate(
-                *np.transpose(self.vertices[np.logical_not(vertex_altitude_mask)])
-            )
+        # unset heightareas, they are no loinger needed
+        self.heightareas = None
