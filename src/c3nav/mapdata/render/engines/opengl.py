@@ -55,11 +55,12 @@ class RenderTask:
     """
     Async Render Task
     """
-    __slots__ = ('width', 'height', 'background_rgb', 'vertices', 'event', 'result')
+    __slots__ = ('width', 'height', 'samples', 'background_rgb', 'vertices', 'event', 'result')
 
-    def __init__(self, width, height, background_rgb, vertices):
+    def __init__(self, width, height, samples, background_rgb, vertices):
         self.width = width
         self.height = height
+        self.samples = samples
         self.background_rgb = background_rgb
         self.vertices = vertices
 
@@ -102,7 +103,7 @@ class OpenGLWorker(threading.Thread):
         while True:
             task = self._queue.get()
 
-            ctx = self._get_ctx(task.width, task.height)
+            ctx = self._get_ctx(task.width*task.samples, task.height*task.samples)
             ctx.ctx.clear(*(i / 255 for i in task.background_rgb))
 
             if task.vertices:
@@ -111,17 +112,19 @@ class OpenGLWorker(threading.Thread):
                 vao.render()
 
             img = Image.frombytes('RGB', (ctx.width, ctx.height), ctx.fbo.read(components=3))
+            img = img.resize((task.width, task.height), Image.BICUBIC)
 
             f = io.BytesIO()
             img.save(f, 'PNG')
             f.seek(0)
             task.set_result(f.read())
 
-    def render(self, width: int, height: int, background_rgb: Tuple[int, int, int], vertices: bytes) -> bytes:
+    def render(self, width: int, height: int, samples: int,
+               background_rgb: Tuple[int, int, int], vertices: bytes) -> bytes:
         """
         Render image and return it as PNG bytes
         """
-        task = RenderTask(width, height, background_rgb, vertices)
+        task = RenderTask(width, height, samples, background_rgb, vertices)
         self._queue.put(task)
         return task.get_result()
 
@@ -134,6 +137,8 @@ class OpenGLEngine(RenderEngine):
 
         scale_x = self.scale / self.width * 2
         scale_y = self.scale / self.height * 2
+
+        self.samples = 4
 
         self.np_scale = np.array((scale_x, -scale_y))
         self.np_offset = np.array((-self.minx * scale_x - 1, self.maxy * scale_y - 1))
@@ -168,7 +173,7 @@ class OpenGLEngine(RenderEngine):
                 ((geom.exterior, *geom.interiors) if isinstance(geom, Polygon) else (geom, ))
                 for geom in getattr(geometry, 'geoms', (geometry, ))
             )))
-            one_pixel = 1 / self.scale / 2
+            one_pixel = 1 / self.scale / 2 / self.samples
             width = max(stroke.width, (stroke.min_px or 0) / self.scale) / 2
             if width < one_pixel:
                 alpha = width/one_pixel
@@ -183,7 +188,7 @@ class OpenGLEngine(RenderEngine):
     worker = OpenGLWorker()
 
     def get_png(self) -> bytes:
-        return self.worker.render(self.width, self.height, self.background_rgb,
+        return self.worker.render(self.width, self.height, self.samples, self.background_rgb,
                                   np.hstack(self.vertices).astype(np.float32).tobytes())
 
 
