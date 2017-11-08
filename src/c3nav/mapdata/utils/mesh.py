@@ -36,7 +36,7 @@ def _triangulate_polygon(polygon: Polygon, keep_holes=False):
         if holes.size:
             info.set_holes(holes.reshape((holes.shape[0], -1)))
 
-    mesh = triangle.build(info)
+    mesh = triangle.build(info, quality_meshing=False)
     return np.array(mesh.points), np.array(mesh.elements)
 
 
