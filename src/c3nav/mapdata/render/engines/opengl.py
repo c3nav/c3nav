@@ -146,10 +146,14 @@ class OpenGLEngine(RenderEngine):
         # mesh data
         self.vertices_lookup = None
         self.faces_lookup = None
+        self.vertices_altitudes = None
+        self.vertices_heightss = None
 
-    def set_mesh_lookup_data(self, vertices, faces):
-        self.vertices_lookup = vertices
-        self.faces_lookup = faces
+    def set_mesh_lookup_data(self, data):
+        self.vertices_lookup = data.vertices
+        self.faces_lookup = data.faces
+        self.vertices_altitudes = data.vertices_altitudes
+        self.vertices_heights = data.vertices_heights
 
     def _create_geometry(self, geometry: Union[Polygon, MultiPolygon, HybridGeometry], append=None):
         if isinstance(geometry, HybridGeometry):

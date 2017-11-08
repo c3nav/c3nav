@@ -81,5 +81,5 @@ class RenderEngine(ABC):
                       altitude=None, height=None, shape_cache_key=None):
         pass
 
-    def set_mesh_lookup_data(self, vertices, faces):
+    def set_mesh_lookup_data(self, data):
         pass
