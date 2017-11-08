@@ -81,7 +81,7 @@ class SVGEngine(RenderEngine):
 
         if self.width == 256 and self.height == 256 and not self.g:
             # create empty tile png with minimal size, indexed color palette with only one entry
-            plte = b'PLTE' + bytearray(self.background_rgb)
+            plte = b'PLTE' + bytearray(tuple(int(i*255) for i in self.background_rgb))
             return (b'\x89PNG\r\n\x1a\n' +
                     b'\x00\x00\x00\rIHDR\x00\x00\x01\x00\x00\x00\x01\x00\x01\x03\x00\x00\x00f\xbc:%\x00\x00\x00\x03' +
                     plte + zlib.crc32(plte).to_bytes(4, byteorder='big') +
@@ -103,7 +103,7 @@ class SVGEngine(RenderEngine):
             context = cairocffi.Context(surface)
 
             # set background color
-            context.set_source(cairocffi.SolidPattern(*(i/255 for i in self.background_rgb)))
+            context.set_source(cairocffi.SolidPattern(*self.background_rgb))
             context.paint()
 
             # paste buffered immage with offset

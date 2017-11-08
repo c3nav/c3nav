@@ -104,7 +104,7 @@ class OpenGLWorker(threading.Thread):
             task = self._queue.get()
 
             ctx = self._get_ctx(task.width*task.samples, task.height*task.samples)
-            ctx.ctx.clear(*(i / 255 for i in task.background_rgb))
+            ctx.ctx.clear(*task.background_rgb)
 
             if task.vertices:
                 vbo = ctx.ctx.buffer(task.vertices)

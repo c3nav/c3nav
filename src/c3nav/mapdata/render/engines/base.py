@@ -43,7 +43,7 @@ class RenderEngine(ABC):
         self.buffered_width = self.width + 2 * self.buffer
         self.buffered_height = self.height + 2 * self.buffer
 
-        self.background_rgb = tuple(int(background[i:i + 2], 16) for i in range(1, 6, 2))
+        self.background_rgb = tuple(int(background[i:i + 2], 16)/255 for i in range(1, 6, 2))
 
         # keep track which area of the image has which altitude currently
         self.altitudes = {}
