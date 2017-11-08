@@ -80,7 +80,7 @@ class OpenGLEngine(RenderEngine):
 
         if stroke is not None:
             lines = tuple(chain(*(
-                ((geom.exterior, *geom.interiors) if isinstance(geom, Polygon) else geom)
+                ((geom.exterior, *geom.interiors) if isinstance(geom, Polygon) else (geom, ))
                 for geom in getattr(geometry, 'geoms', (geometry, ))
             )))
             one_pixel = 1 / self.scale / 2
