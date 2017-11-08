@@ -3,7 +3,12 @@ from abc import ABC, abstractmethod
 from functools import lru_cache
 from typing import Optional
 
+import numpy as np
+import time
+from shapely import prepared
 from shapely.ops import unary_union
+
+from c3nav.routing.utils.mpl import shapely_to_mpl
 
 
 class FillAttribs:
@@ -49,6 +54,18 @@ class RenderEngine(ABC):
         self.altitudes = {}
         self.last_altitude = None
 
+        self.altitudes_by_index = []
+        self.altitude_indizes = {}
+
+        samples = 2
+        np_width = self.buffered_width * samples
+        np_height = self.buffered_height * samples
+        self.np_altitudes = np.full((np_height, np_width), fill_value=0, dtype=np.uint8)
+
+        np_x = (np.arange(np_width) + 1/2/samples) / (scale*samples) + (self.minx-self.buffer/scale)
+        np_y = (np.arange(np_height) + 1/2/samples) / (scale*samples) + (self.miny-self.buffer/scale)
+        self.np_coords = np.stack((np.tile(np_x, np_height), np.repeat(np_y, np_width)), 1)
+
     @abstractmethod
     def get_png(self) -> bytes:
         # render the image to png.
@@ -69,6 +86,28 @@ class RenderEngine(ABC):
         # a geometry with no altitude will reset the altitude information of its area as if nothing was ever there
         if self.last_altitude is not None and self.last_altitude > new_altitude:
             raise ValueError('Altitudes have to be ascending.')
+
+        if new_altitude is None:
+            new_value = 0
+        else:
+            try:
+                new_value = self.altitude_indizes[new_altitude]
+            except KeyError:
+                self.altitudes_by_index.append(new_altitude)
+                new_value = len(self.altitudes_by_index)
+                self.altitude_indizes[new_altitude] = new_value
+        print(new_value)
+
+        geometry = shapely_to_mpl(new_geometry)
+
+        #print(self.np_coords)
+        #print(new_geometry)
+        start = time.time()
+        bla = geometry.contains_points(self.np_coords)
+        print(time.time()-start)
+        #print(type(geometry), bla.shape, bla.astype(int).sum())
+        self.np_altitudes[bla.reshape(self.np_altitudes.shape)] = new_value
+        return
 
         if new_altitude in self.altitudes:
             self.altitudes[new_altitude] = unary_union([self.altitudes[new_altitude], new_geometry])

@@ -105,7 +105,7 @@ class MapRenderer:
                 walls = bbox.intersection(geoms.walls.union(add_walls))
 
             if walls is not None:
-                engine.add_geometry(walls, height=default_height, fill=FillAttribs('#aaaaaa'))
+                engine.add_geometry(geoms.walls.union(add_walls), height=default_height, fill=FillAttribs('#aaaaaa'))
 
             if not geoms.doors.is_empty:
                 engine.add_geometry(bbox.intersection(geoms.doors.difference(add_walls)), fill=FillAttribs('#ffffff'),

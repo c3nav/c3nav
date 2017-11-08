@@ -78,6 +78,8 @@ class SVGEngine(RenderEngine):
 
     def get_png(self):
         # render the image to png. returns bytes if f is None, otherwise it calls f.write()
+        Image.fromarray((self.np_altitudes/self.np_altitudes.max()*255).astype(np.uint8), 'L').show()
+
 
         if self.width == 256 and self.height == 256 and not self.g:
             # create empty tile png with minimal size, indexed color palette with only one entry
@@ -230,6 +232,7 @@ class SVGEngine(RenderEngine):
             else:
                 if height is not None:
                     self.add_shadow(geometry, height)
+                self.clip_altitudes(geometry, altitude)
 
             element = self._create_geometry(geometry, attribs, cache_key=shape_cache_key)
 

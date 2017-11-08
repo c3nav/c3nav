@@ -94,6 +94,11 @@ def tile(request, level, zoom, x, y, format):
     content_type = 'image/svg+xml' if format == 'svg' else 'image/png'
 
     if data is None:
+        import cProfile
+        import pstats
+        pr = cProfile.Profile()
+        pr.enable()
+
         svg = renderer.render(ImageRenderEngine)
         if format == 'svg':
             data = svg.get_xml()
@@ -103,6 +108,12 @@ def tile(request, level, zoom, x, y, format):
             filemode = 'wb'
         else:
             raise ValueError
+
+        pr.disable()
+        s = open('/tmp/profiled', 'w')
+        sortby = 'cumulative'
+        ps = pstats.Stats(pr, stream=s).sort_stats(sortby)
+        ps.print_stats()
 
         if settings.CACHE_TILES:
             os.makedirs(tile_dirname, exist_ok=True)
