@@ -198,6 +198,7 @@ class SVGEngine(RenderEngine):
 
     def _add_geometry(self, geometry, fill: Optional[FillAttribs] = None, stroke: Optional[StrokeAttribs] = None,
                       altitude=None, height=None, shape_cache_key=None):
+        geometry = self.buffered_bbox.intersection(geometry.geom)
 
         if fill:
             attribs = ' fill="'+(fill.color)+'"'

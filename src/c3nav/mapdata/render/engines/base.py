@@ -3,6 +3,7 @@ from abc import ABC, abstractmethod
 from functools import lru_cache
 from typing import Optional
 
+from shapely.geometry import JOIN_STYLE, box
 from shapely.ops import unary_union
 
 
@@ -32,6 +33,7 @@ class RenderEngine(ABC):
         self.minx = xoff
         self.miny = yoff
         self.scale = scale
+        self.orig_buffer = buffer
         self.buffer = int(math.ceil(buffer*self.scale))
         self.background = background
 
@@ -42,6 +44,7 @@ class RenderEngine(ABC):
         self.buffer = int(math.ceil(buffer*self.scale))
         self.buffered_width = self.width + 2 * self.buffer
         self.buffered_height = self.height + 2 * self.buffer
+        self.buffered_bbox = box(self.minx, self.miny, self.maxx, self.maxy).buffer(buffer, join_style=JOIN_STYLE.mitre)
 
         self.background_rgb = tuple(int(background[i:i + 2], 16)/255 for i in range(1, 6, 2))
 
@@ -83,14 +86,6 @@ class RenderEngine(ABC):
         # if altitude is not set but height is, the altitude will depend on the geometries below
 
         # if fill_color is set, filter out geometries that cannot be filled
-        if fill is not None:
-            try:
-                geometry.geoms
-            except AttributeError:
-                if not hasattr(geometry, 'exterior'):
-                    return
-            else:
-                geometry = type(geometry)(tuple(geom for geom in geometry.geoms if hasattr(geom, 'exterior')))
         if geometry.is_empty:
             return
 
@@ -100,4 +95,7 @@ class RenderEngine(ABC):
     @abstractmethod
     def _add_geometry(self, geometry, fill: Optional[FillAttribs] = None, stroke: Optional[StrokeAttribs] = None,
                       altitude=None, height=None, shape_cache_key=None):
+        pass
+
+    def set_mesh_lookup_data(self, vertices, faces):
         pass

@@ -2,11 +2,10 @@ from django.core.cache import cache
 from django.utils.functional import cached_property
 from shapely import prepared
 from shapely.geometry import box
-from shapely.ops import unary_union
 
 from c3nav.mapdata.cache import MapHistory
 from c3nav.mapdata.models import MapUpdate
-from c3nav.mapdata.render.data import get_level_render_data
+from c3nav.mapdata.render.data import get_level_render_data, hybrid_union
 from c3nav.mapdata.render.engines.base import FillAttribs, StrokeAttribs
 
 
@@ -70,17 +69,18 @@ class MapRenderer:
         # add no access restriction to “unlocked“ access restrictions so lookup gets easier
         unlocked_access_restrictions = self.unlocked_access_restrictions | set([None])
 
-        bbox = self.bbox
-        bbox_prep = prepared.prep(bbox)
+        bbox = prepared.prep(self.bbox)
 
         for geoms, default_height in self.level_render_data.levels:
-            if not bbox_prep.intersects(geoms.affected_area):
+            if not bbox.intersects(geoms.affected_area):
                 continue
 
+            engine.set_mesh_lookup_data(geoms.vertices, geoms.faces)
+
             # hide indoor and outdoor rooms if their access restriction was not unlocked
-            add_walls = unary_union(tuple(area for access_restriction, area in geoms.restricted_spaces_indoors.items()
-                                          if access_restriction not in unlocked_access_restrictions))
-            crop_areas = unary_union(
+            add_walls = hybrid_union(tuple(area for access_restriction, area in geoms.restricted_spaces_indoors.items()
+                                           if access_restriction not in unlocked_access_restrictions))
+            crop_areas = hybrid_union(
                 tuple(area for access_restriction, area in geoms.restricted_spaces_outdoors.items()
                       if access_restriction not in unlocked_access_restrictions)
             ).union(add_walls)
@@ -88,7 +88,7 @@ class MapRenderer:
             # render altitude areas in default ground color and add ground colors to each one afterwards
             # shadows are directly calculated and added by the engine
             for altitudearea in geoms.altitudeareas:
-                engine.add_geometry(bbox.intersection(altitudearea.geometry.difference(crop_areas)),
+                engine.add_geometry(altitudearea.geometry.difference(crop_areas),
                                     altitude=altitudearea.altitude, fill=FillAttribs('#eeeeee'))
 
                 for color, areas in altitudearea.colors.items():
@@ -96,18 +96,18 @@ class MapRenderer:
                     areas = tuple(area for access_restriction, area in areas.items()
                                   if access_restriction in unlocked_access_restrictions)
                     if areas:
-                        engine.add_geometry(bbox.intersection(unary_union(areas)), fill=FillAttribs(color))
+                        engine.add_geometry(hybrid_union(areas), fill=FillAttribs(color))
 
             # add walls, stroke_px makes sure that all walls are at least 1px thick on all zoom levels,
             walls = None
             if not add_walls.is_empty or not geoms.walls.is_empty:
-                walls = bbox.intersection(geoms.walls.union(add_walls))
+                walls = geoms.walls.union(add_walls)
 
             if walls is not None:
                 engine.add_geometry(walls, height=default_height, fill=FillAttribs('#aaaaaa'))
 
             if not geoms.doors.is_empty:
-                engine.add_geometry(bbox.intersection(geoms.doors.difference(add_walls)), fill=FillAttribs('#ffffff'),
+                engine.add_geometry(geoms.doors.difference(add_walls), fill=FillAttribs('#ffffff'),
                                     stroke=StrokeAttribs('#ffffff', 0.05, min_px=0.2))
 
             if walls is not None:

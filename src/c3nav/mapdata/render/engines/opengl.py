@@ -1,6 +1,6 @@
 import io
 import threading
-from collections import deque, namedtuple
+from collections import namedtuple
 from itertools import chain
 from queue import Queue
 from typing import Optional, Tuple, Union
@@ -11,6 +11,7 @@ from PIL import Image
 from shapely.geometry import CAP_STYLE, JOIN_STYLE, MultiPolygon, Polygon
 from shapely.ops import unary_union
 
+from c3nav.mapdata.render.data import HybridGeometry
 from c3nav.mapdata.render.engines.base import FillAttribs, RenderEngine, StrokeAttribs
 from c3nav.mapdata.utils.mesh import triangulate_polygon
 
@@ -143,13 +144,24 @@ class OpenGLEngine(RenderEngine):
         self.np_scale = np.array((scale_x, -scale_y))
         self.np_offset = np.array((-self.minx * scale_x - 1, self.maxy * scale_y - 1))
 
-    def _create_geometry(self, geometry: Union[Polygon, MultiPolygon], append=None):
-        triangles = deque()
+        # mesh data
+        self.vertices_lookup = None
+        self.faces_lookup = None
 
-        vertices, faces = triangulate_polygon(geometry)
-        triangles = vertices[faces.flatten()]
+    def set_mesh_lookup_data(self, vertices, faces):
+        self.vertices_lookup = vertices
+        self.faces_lookup = faces
 
-        vertices = np.vstack(triangles).astype(np.float32)
+    def _create_geometry(self, geometry: Union[Polygon, MultiPolygon, HybridGeometry], append=None):
+        if isinstance(geometry, HybridGeometry):
+            vertices = self.vertices_lookup[
+                self.faces_lookup[np.array(tuple(geometry.faces))].flatten()
+            ].astype(np.float32)
+        else:
+            vertices, faces = triangulate_polygon(geometry)
+            triangles = vertices[faces.flatten()]
+            vertices = np.vstack(triangles).astype(np.float32)
+
         vertices = vertices * self.np_scale + self.np_offset
         if append is not None:
             append = np.array(append, dtype=np.float32).flatten()
@@ -162,17 +174,21 @@ class OpenGLEngine(RenderEngine):
     def _add_geometry(self, geometry, fill: Optional[FillAttribs] = None, stroke: Optional[StrokeAttribs] = None,
                       altitude=None, height=None, shape_cache_key=None):
         if fill is not None:
-            if stroke is not None and fill.color == stroke.color:
+            if stroke is not None and fill.color == stroke.color and 0:
                 geometry = geometry.buffer(max(stroke.width, (stroke.min_px or 0) / self.scale),
                                            cap_style=CAP_STYLE.flat, join_style=JOIN_STYLE.mitre)
                 stroke = None
             self.vertices.append(self._create_geometry(geometry, self.color_to_rgb(fill.color)))
 
         if stroke is not None:
+            geometry = self.buffered_bbox.intersection(geometry.geom)
             lines = tuple(chain(*(
                 ((geom.exterior, *geom.interiors) if isinstance(geom, Polygon) else (geom, ))
                 for geom in getattr(geometry, 'geoms', (geometry, ))
             )))
+
+            if not lines:
+                return
 
             width = max(stroke.width, (stroke.min_px or 0) / self.scale) / 2
 
@@ -193,7 +209,7 @@ class OpenGLEngine(RenderEngine):
 
     def get_png(self) -> bytes:
         return self.worker.render(self.width, self.height, self.samples, self.background_rgb,
-                                  np.hstack(self.vertices).astype(np.float32).tobytes())
+                                  np.hstack(self.vertices).astype(np.float32).tobytes() if self.vertices else b'')
 
 
 OpenGLEngine.worker.start()

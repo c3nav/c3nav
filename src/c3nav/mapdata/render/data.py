@@ -1,10 +1,14 @@
+import operator
 import pickle
+from collections import namedtuple
+from functools import reduce
 from itertools import chain
 
 import numpy as np
 from django.core.cache import cache
 from django.db import transaction
-from shapely.geometry import LineString, MultiLineString
+from django.utils.functional import cached_property
+from shapely.geometry import GeometryCollection, LineString, MultiLineString
 from shapely.ops import unary_union
 
 from c3nav.mapdata.cache import MapHistory
@@ -14,16 +18,31 @@ from c3nav.mapdata.utils.mesh import triangulate_rings
 from c3nav.mapdata.utils.mpl import shapely_to_mpl
 
 
-class HybridGeometry:
-    def __init__(self, geom, faces):
-        self._geom = geom
-        self._faces = faces
+def hybrid_union(geoms):
+    if not geoms:
+        return HybridGeometry(GeometryCollection(), set())
+    if len(geoms) == 1:
+        return geoms[0]
+    return HybridGeometry(unary_union(tuple(geom.geom for geom in geoms)),
+                          reduce(operator.or_, (geom.faces for geom in geoms), set()))
 
+
+class HybridGeometry(namedtuple('HybridGeometry', ('geom', 'faces'))):
     @classmethod
     def create(cls, geom, face_centers):
         if isinstance(geom, (LineString, MultiLineString)):
             return HybridGeometry(geom, set())
         return HybridGeometry(geom, set(np.argwhere(shapely_to_mpl(geom).contains_points(face_centers)).flatten()))
+
+    def union(self, geom):
+        return HybridGeometry(self.geom.union(geom.geom), self.faces | geom.faces)
+
+    def difference(self, geom):
+        return HybridGeometry(self.geom.difference(geom.geom), self.faces - geom.faces)
+
+    @cached_property
+    def is_empty(self):
+        return not self.faces
 
 
 class AltitudeAreaGeometries:
@@ -37,7 +56,7 @@ class AltitudeAreaGeometries:
         self.colors = colors
 
     def get_geometries(self):
-        return chain((self.geometry, ), chain(*(areas.values() for areas in self.colors.values())))
+        return chain((self.geometry,), chain(*(areas.values() for areas in self.colors.values())))
 
     def create_hybrid_geometries(self, face_centers):
         self.geometry = HybridGeometry.create(self.geometry, face_centers)
@@ -271,7 +290,7 @@ class LevelGeometries:
         return geoms
 
     def get_geometries(self):
-        return chain(chain(*(area.get_geometries() for area in self.altitudeareas)), (self.walls, self.doors, ),
+        return chain(chain(*(area.get_geometries() for area in self.altitudeareas)), (self.walls, self.doors,),
                      self.restricted_spaces_indoors.values(), self.restricted_spaces_outdoors.values())
 
     def create_hybrid_geometries(self, face_centers):
@@ -287,7 +306,7 @@ class LevelGeometries:
     def build_mesh(self):
         rings = tuple(chain(*(get_rings(geom) for geom in self.get_geometries())))
         self.vertices, self.faces = triangulate_rings(rings)
-        self.create_hybrid_geometries(face_centers=self.vertices[self.faces].sum(axis=1)/3)
+        self.create_hybrid_geometries(face_centers=self.vertices[self.faces].sum(axis=1) / 3)
 
 
 def get_level_render_data(level):
