@@ -104,7 +104,7 @@ class AltitudeAreaGeometries:
         altitude = float(self.altitude)
         self.geometry.build_polyhedron(create_polyhedron, bottom=altitude-0.7, top=altitude, crops=crops)
         for geometry in chain(*(areas.values() for areas in self.colors.values())):
-            geometry.build_polyhedron(create_polyhedron, bottom=altitude-0.1, top=0.001, crops=crops)
+            geometry.build_polyhedron(create_polyhedron, bottom=altitude-0.1, top=altitude+0.001, crops=crops)
 
 
 class FakeCropper:
