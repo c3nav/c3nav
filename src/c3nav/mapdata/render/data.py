@@ -376,7 +376,7 @@ class LevelGeometries:
         boundaries = deque()
         for subfaces in geometry.faces:
             subfaces = self.faces[np.array(tuple(subfaces))]
-            segments = np.hstack((subfaces[:, (0, 1)], subfaces[:, (1, 2)], subfaces[:, (2, 0)])).reshape((-1, 2))
+            segments = subfaces[:, (0, 1, 1, 2, 2, 0)].reshape((-1, 2))
             edges = set(edge for edge, num in Counter(tuple(a) for a in np.sort(segments, axis=1)).items() if num == 1)
             edges = {a: b for a, b in segments if (a, b) in edges or (b, a) in edges}
             while edges:
