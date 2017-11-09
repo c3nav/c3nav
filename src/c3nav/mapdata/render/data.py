@@ -1,7 +1,7 @@
 import operator
 import pickle
 import threading
-from collections import namedtuple
+from collections import Counter, deque, namedtuple
 from functools import reduce
 from itertools import chain
 
@@ -14,7 +14,7 @@ from shapely.ops import unary_union
 
 from c3nav.mapdata.cache import MapHistory
 from c3nav.mapdata.models import Level, MapUpdate
-from c3nav.mapdata.utils.geometry import get_rings
+from c3nav.mapdata.utils.geometry import assert_multipolygon, get_rings
 from c3nav.mapdata.utils.mesh import triangulate_rings
 from c3nav.mapdata.utils.mpl import shapely_to_mpl
 
@@ -33,7 +33,11 @@ class HybridGeometry(namedtuple('HybridGeometry', ('geom', 'faces'))):
     def create(cls, geom, face_centers):
         if isinstance(geom, (LineString, MultiLineString)):
             return HybridGeometry(geom, set())
-        return HybridGeometry(geom, set(np.argwhere(shapely_to_mpl(geom).contains_points(face_centers)).flatten()))
+        faces = tuple(
+            set(np.argwhere(shapely_to_mpl(subgeom).contains_points(face_centers)).flatten())
+            for subgeom in assert_multipolygon(geom)
+        )
+        return HybridGeometry(geom, tuple(f for f in faces if f))
 
     def union(self, geom):
         return HybridGeometry(self.geom.union(geom.geom), self.faces | geom.faces)
@@ -351,7 +355,7 @@ class LevelGeometries:
         vertex_value_mask = np.full(self.vertices.shape[:1], fill_value=False, dtype=np.bool)
 
         for area, value in area_values:
-            i_vertices = np.unique(self.faces[np.array(tuple(area.faces))].flatten())
+            i_vertices = np.unique(self.faces[np.array(tuple(chain(*area.faces)))].flatten())
             vertex_values[i_vertices] = value
             vertex_value_mask[i_vertices] = True
 
@@ -364,6 +368,54 @@ class LevelGeometries:
 
         return vertex_values
 
+    def _create_polyhedron(self, geometry, bottom=None, top=None):
+        if geometry.is_empty:
+            return
+
+        # collect rings/boundaries
+        boundaries = deque()
+        for subfaces in geometry.faces:
+            subfaces = self.faces[np.array(tuple(subfaces))]
+            segments = np.hstack((subfaces[:, (0, 1)], subfaces[:, (1, 2)], subfaces[:, (2, 0)])).reshape((-1, 2))
+            edges = set(edge for edge, num in Counter(tuple(a) for a in np.sort(segments, axis=1)).items() if num == 1)
+            edges = {a: b for a, b in segments if (a, b) in edges or (b, a) in edges}
+            while edges:
+                new_ring = deque()
+                start, last = next(iter(edges.items()))
+                edges.pop(start)
+                new_ring.append(start)
+                while start != last:
+                    new_ring.append(last)
+                    last = edges.pop(last)
+                new_ring = np.array(new_ring, dtype=np.int64)
+                boundaries.append(tuple(zip(chain((new_ring[-1], ), new_ring), new_ring)))
+        boundaries = np.vstack(boundaries)
+
+        faces = deque()
+        geom_faces = self.faces[np.array(tuple(chain(*geometry.faces)))]
+
+        if not isinstance(top, np.ndarray):
+            top = np.full(self.vertices.shape[0], fill_value=top)
+
+        if not isinstance(bottom, np.ndarray):
+            bottom = np.full(self.vertices.shape[0], fill_value=bottom)
+
+        # upper faces
+        faces.append(np.dstack((self.vertices[geom_faces], top[geom_faces])))
+
+        # side faces (upper)
+        faces.append(np.dstack((self.vertices[boundaries[:, (1, 0, 0)]],
+                                np.hstack((top[boundaries[:, (1, 0)]], bottom[boundaries[:, (0,)]])))))
+
+        # side faces (lower)
+        faces.append(np.dstack((self.vertices[boundaries[:, (0, 1, 1)]],
+                                np.hstack((bottom[boundaries[:, (0, 1)]], top[boundaries[:, (1,)]])))))
+
+        # lower faces
+        faces.append(np.dstack((self.vertices[np.flip(geom_faces, axis=1)], bottom[geom_faces])))
+
+        return np.vstack(faces)
+
     def build_mesh(self):
         rings = tuple(chain(*(get_rings(geom) for geom in self.get_geometries())))
         self.vertices, self.faces = triangulate_rings(rings)
@@ -371,9 +423,13 @@ class LevelGeometries:
 
         # calculate altitudes
         self.vertex_altitudes = self._build_vertex_values((area.geometry, int(area.altitude*100))
-                                                          for area in self.altitudeareas)
+                                                          for area in reversed(self.altitudeareas))/100
         self.vertex_heights = self._build_vertex_values((area, int(height*100))
-                                                        for area, height in self.heightareas)
+                                                        for area, height in self.heightareas)/100
+        self.vertex_wall_heights = self.vertex_altitudes+self.vertex_heights
+
+        # create polyhedrons
+        self._create_polyhedron(self.walls, bottom=self.vertex_altitudes, top=self.vertex_wall_heights)
 
         # unset heightareas, they are no loinger needed
         self.heightareas = None
