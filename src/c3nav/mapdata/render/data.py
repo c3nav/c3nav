@@ -156,12 +156,19 @@ class LevelRenderData:
                     else:
                         crop_to = crop_to.intersection(geoms.holes)
 
+                    if crop_to.is_empty:
+                        break
+
             render_data = LevelRenderData()
             render_data.access_restriction_affected = {}
 
             for sublevel in sublevels:
+                try:
+                    crop_to = level_crop_to[sublevel.pk]
+                except KeyError:
+                    break
+
                 old_geoms = single_level_geoms[sublevel.pk]
-                crop_to = level_crop_to[sublevel.pk]
 
                 if crop_to is not FakeCropper:
                     map_history.composite(MapHistory.open_level(sublevel.pk, 'base'), crop_to)
