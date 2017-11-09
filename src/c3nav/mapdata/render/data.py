@@ -532,13 +532,6 @@ class LevelGeometries:
                                          bottom=self.min_altitude-0.8, top=vertex_altitudes-0.6)
         self.optional_base.build_polyhedron(self._create_polyhedron, bottom=0, top=1)
 
-        """
-        for area in self.altitudeareas:
-            area.create_hybrid_geometries(face_centers)
-        self.restricted_spaces_outdoors = {key: HybridGeometry.create(geom, face_centers)
-                                           for key, geom in self.restricted_spaces_outdoors.items()}
-        """
-
         # unset heightareas, they are no loinger needed
         self.heightareas = None
         self.vertices = None
