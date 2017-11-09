@@ -1,3 +1,5 @@
+from itertools import chain
+
 import numpy as np
 
 from c3nav.mapdata.render.data import HybridGeometry
@@ -27,6 +29,6 @@ class Base3DEngine(RenderEngine):
         return vertices
 
     def _place_geometry(self, geometry: HybridGeometry, append=None):
-        faces = geometry.faces[0] if len(geometry.faces) == 1 else np.vstack(geometry.faces)
+        faces = np.vstack(tuple(chain(geometry.faces, *geometry.add_faces.values())))
         vertices = faces.reshape(-1, 3) * self.np_scale + self.np_offset
         return self._append_to_vertices(vertices, append).flatten()
