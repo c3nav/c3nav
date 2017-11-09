@@ -223,9 +223,11 @@ class LevelRenderData:
                     if not new_area.is_empty:
                         new_geoms.restricted_spaces_outdoors[access_restriction] = new_area
 
+                new_geoms.default_height = old_geoms.default_height
+
                 new_geoms.build_mesh()
 
-                render_data.levels.append((new_geoms, sublevel.default_height))
+                render_data.levels.append(new_geoms)
 
             render_data.access_restriction_affected = {
                 access_restriction: unary_union(areas)
@@ -277,6 +279,8 @@ class LevelGeometries:
         self.restricted_spaces_indoors = None
         self.restricted_spaces_outdoors = None
         self.affected_area = None
+
+        self.default_height = None
 
     @staticmethod
     def build_for_level(level):
@@ -363,6 +367,9 @@ class LevelGeometries:
                                             for access_restriction, spaces in restricted_spaces_outdoors.items()}
 
         geoms.walls = buildings_geom.difference(spaces_geom).difference(doors_geom)
+
+        # general level infos
+        geoms.default_height = level.default_height
 
         return geoms
 

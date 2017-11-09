@@ -71,7 +71,7 @@ class MapRenderer:
 
         bbox = prepared.prep(self.bbox)
 
-        for geoms, default_height in self.level_render_data.levels:
+        for geoms in self.level_render_data.levels:
             if not bbox.intersects(geoms.affected_area):
                 continue
 
@@ -102,7 +102,7 @@ class MapRenderer:
                 walls = geoms.walls.union(add_walls)
 
             if walls is not None:
-                engine.add_geometry(walls, height=default_height, fill=FillAttribs('#aaaaaa'))
+                engine.add_geometry(walls, height=geoms.default_height, fill=FillAttribs('#aaaaaa'))
 
             if not geoms.doors.is_empty:
                 engine.add_geometry(geoms.doors.difference(add_walls), fill=FillAttribs('#ffffff'),
