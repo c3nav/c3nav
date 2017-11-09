@@ -72,9 +72,11 @@ class AltitudeAreaGeometries:
         self.colors = {color: {key: HybridGeometry.create(geom, face_centers) for key, geom in areas.items()}
                        for color, areas in self.colors.items()}
 
-    def create_polyhedrons(self):
-        for geometry in self.get_geometries():
-            geometry.faces = None
+    def create_polyhedrons(self, create_polyhedron):
+        altitude = float(self.altitude)
+        self.geometry.faces = create_polyhedron(self.geometry, bottom=altitude-0.7, top=altitude)
+        for geometry in chain(*(areas.values() for areas in self.colors.values())):
+            geometry.faces = create_polyhedron(geometry, bottom=altitude-0.1, top=0.001)
 
 
 class FakeCropper:
@@ -440,7 +442,7 @@ class LevelGeometries:
             geometry.faces = None
 
         for area in self.altitudeareas:
-            area.create_polyhedrons()
+            area.create_polyhedrons(self._create_polyhedron)
 
         """
         for area in self.altitudeareas:
