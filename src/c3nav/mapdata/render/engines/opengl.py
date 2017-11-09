@@ -166,10 +166,10 @@ class OpenGLEngine(Base3DEngine):
         lines = unary_union(lines).buffer(width, cap_style=CAP_STYLE.flat, join_style=JOIN_STYLE.mitre)
 
         vertices, faces = triangulate_polygon(lines)
-        triangles = np.hstack((vertices[faces.flatten()], np.full((faces.size, 1), fill_value=altitude)))
-        vertices = np.vstack(triangles).astype(np.float32) * self.np_scale + self.np_offset
+        triangles = np.dstack((vertices[faces], np.full((faces.size, 1), fill_value=altitude).reshape((-1, 3, 1))))
+        triangles = triangles.astype(np.float32) * self.np_scale + self.np_offset
 
-        return self._append_to_vertices(vertices, append).flatten()
+        return self._append_to_vertices(triangles, append).flatten()
 
     worker = OpenGLWorker()
 
