@@ -169,13 +169,13 @@ class OpenGLEngine(Base3DEngine):
         triangles = np.dstack((vertices[faces], np.full((faces.size, 1), fill_value=altitude).reshape((-1, 3, 1))))
         triangles = triangles.astype(np.float32) * self.np_scale + self.np_offset
 
-        return self._append_to_vertices(triangles, append).flatten()
+        return self._append_to_vertices(triangles, append)
 
     worker = OpenGLWorker()
 
     def render(self) -> bytes:
         return self.worker.render(self.width, self.height, self.background_rgb,
-                                  np.hstack(self.vertices).astype(np.float32).tobytes() if self.vertices else b'')
+                                  np.vstack(self.vertices).astype(np.float32).tobytes() if self.vertices else b'')
 
 
 OpenGLEngine.worker.start()
