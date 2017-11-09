@@ -13,12 +13,9 @@ class Base3DEngine(RenderEngine):
 
         self.vertices = []
 
-        scale_x = self.scale / self.width * 2
-        scale_y = self.scale / self.height * 2
-        scale_z = (scale_x+scale_y)/2
+        self.np_scale = np.array((self.scale, self.scale, self.scale))
+        self.np_offset = np.array((-self.minx * self.scale, -self.maxy * self.scale, 0))
 
-        self.np_scale = np.array((scale_x, -scale_y, scale_z))
-        self.np_offset = np.array((-self.minx * scale_x - 1, self.maxy * scale_y - 1, 0))
 
     def _append_to_vertices(self, vertices, append=None):
         if append is not None:

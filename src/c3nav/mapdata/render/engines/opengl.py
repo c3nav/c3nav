@@ -133,6 +133,16 @@ class OpenGLWorker(threading.Thread):
 
 
 class OpenGLEngine(Base3DEngine):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        scale_x = self.scale / self.width * 2
+        scale_y = self.scale / self.height * 2
+        scale_z = (scale_x+scale_y) / 2
+
+        self.np_scale = np.array((scale_x, -scale_y, scale_z))
+        self.np_offset = np.array((-self.minx * scale_x - 1, self.maxy * scale_y - 1, 0))
+
     def _add_geometry(self, geometry, fill: Optional[FillAttribs], stroke: Optional[StrokeAttribs], **kwargs):
 
         if fill is not None:
