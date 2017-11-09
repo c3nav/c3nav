@@ -2,6 +2,7 @@ from django.conf import settings
 from django.core import checks
 
 from c3nav.mapdata.render.engines.svg import SVGEngine  # noqa
+from c3nav.mapdata.render.engines.stl import STLEngine  # noqa
 
 
 @checks.register()

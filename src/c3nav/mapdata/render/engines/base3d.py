@@ -16,6 +16,9 @@ class Base3DEngine(RenderEngine):
         self.np_scale = np.array((self.scale, self.scale, self.scale))
         self.np_offset = np.array((-self.minx * self.scale, -self.maxy * self.scale, 0))
 
+    def _add_geometry(self, geometry, fill: Optional[FillAttribs], stroke: Optional[StrokeAttribs], **kwargs):
+        if fill is not None:
+            self.vertices.append(self._place_geometry(geometry))
 
     def _append_to_vertices(self, vertices, append=None):
         if append is not None:

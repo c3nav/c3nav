@@ -4,7 +4,7 @@ from shapely import prepared
 from shapely.geometry import box
 
 from c3nav.mapdata.cache import MapHistory
-from c3nav.mapdata.models import MapUpdate, Level
+from c3nav.mapdata.models import Level, MapUpdate
 from c3nav.mapdata.render.data import LevelRenderData, hybrid_union
 from c3nav.mapdata.render.engines.base import FillAttribs, StrokeAttribs
 
