@@ -1,13 +1,11 @@
 import operator
 import pickle
 import threading
-from collections import Counter, deque, namedtuple
-from functools import reduce
+from collections import Counter, deque
 from itertools import chain
 
 import numpy as np
 from django.db import transaction
-from django.utils.functional import cached_property
 from scipy.interpolate import NearestNDInterpolator
 from shapely.geometry import GeometryCollection, LineString, MultiLineString
 from shapely.ops import unary_union
@@ -21,14 +19,20 @@ from c3nav.mapdata.utils.mpl import shapely_to_mpl
 
 def hybrid_union(geoms):
     if not geoms:
-        return HybridGeometry(GeometryCollection(), set())
+        return HybridGeometry(GeometryCollection(), ())
     if len(geoms) == 1:
         return geoms[0]
     return HybridGeometry(unary_union(tuple(geom.geom for geom in geoms)),
-                          reduce(operator.or_, (geom.faces for geom in geoms), set()))
+                          tuple(chain(*(geom.faces for geom in geoms))))
 
 
-class HybridGeometry(namedtuple('HybridGeometry', ('geom', 'faces'))):
+class HybridGeometry:
+    __slots__ = ('geom', 'faces')
+
+    def __init__(self, geom, faces):
+        self.geom = geom
+        self.faces = faces
+
     @classmethod
     def create(cls, geom, face_centers):
         if isinstance(geom, (LineString, MultiLineString)):
@@ -40,12 +44,12 @@ class HybridGeometry(namedtuple('HybridGeometry', ('geom', 'faces'))):
         return HybridGeometry(geom, tuple(f for f in faces if f))
 
     def union(self, geom):
-        return HybridGeometry(self.geom.union(geom.geom), self.faces | geom.faces)
+        return HybridGeometry(self.geom.union(geom.geom), self.faces+geom.faces)
 
     def difference(self, geom):
-        return HybridGeometry(self.geom.difference(geom.geom), self.faces - geom.faces)
+        return HybridGeometry(self.geom.difference(geom.geom), self.faces)
 
-    @cached_property
+    @property
     def is_empty(self):
         return not self.faces
 
@@ -67,6 +71,10 @@ class AltitudeAreaGeometries:
         self.geometry = HybridGeometry.create(self.geometry, face_centers)
         self.colors = {color: {key: HybridGeometry.create(geom, face_centers) for key, geom in areas.items()}
                        for color, areas in self.colors.items()}
+
+    def create_polyhedrons(self):
+        for geometry in self.get_geometries():
+            geometry.faces = None
 
 
 class FakeCropper:
@@ -240,11 +248,6 @@ class LevelGeometries:
         self.restricted_spaces_outdoors = None
         self.affected_area = None
 
-        self.vertices = None
-        self.faces = None
-        self.vertex_altitudes = None
-        self.vertex_heights = None
-
     @staticmethod
     def build_for_level(level):
         geoms = LevelGeometries()
@@ -414,7 +417,7 @@ class LevelGeometries:
         # lower faces
         faces.append(np.dstack((self.vertices[np.flip(geom_faces, axis=1)], bottom[geom_faces])))
 
-        return np.vstack(faces)
+        return (np.vstack(faces), )
 
     def build_mesh(self):
         rings = tuple(chain(*(get_rings(geom) for geom in self.get_geometries())))
@@ -422,14 +425,31 @@ class LevelGeometries:
         self.create_hybrid_geometries(face_centers=self.vertices[self.faces].sum(axis=1) / 3)
 
         # calculate altitudes
-        self.vertex_altitudes = self._build_vertex_values((area.geometry, int(area.altitude*100))
-                                                          for area in reversed(self.altitudeareas))/100
-        self.vertex_heights = self._build_vertex_values((area, int(height*100))
-                                                        for area, height in self.heightareas)/100
-        self.vertex_wall_heights = self.vertex_altitudes+self.vertex_heights
+        vertex_altitudes = self._build_vertex_values((area.geometry, int(area.altitude*100))
+                                                     for area in reversed(self.altitudeareas))/100
+        vertex_heights = self._build_vertex_values((area, int(height*100))
+                                                   for area, height in self.heightareas)/100
+        vertex_wall_heights = vertex_altitudes + vertex_heights
 
         # create polyhedrons
-        self._create_polyhedron(self.walls, bottom=self.vertex_altitudes, top=self.vertex_wall_heights)
+        self.walls.faces = self._create_polyhedron(self.walls, bottom=vertex_altitudes, top=vertex_wall_heights)
+        self.doors.faces = self._create_polyhedron(self.doors, bottom=vertex_wall_heights-1, top=vertex_wall_heights)
+        for key, geometry in self.restricted_spaces_indoors.items():
+            geometry.faces = self._create_polyhedron(geometry, bottom=vertex_altitudes, top=vertex_wall_heights)
+        for key, geometry in self.restricted_spaces_outdoors.items():
+            geometry.faces = None
+
+        for area in self.altitudeareas:
+            area.create_polyhedrons()
+
+        """
+        for area in self.altitudeareas:
+            area.create_hybrid_geometries(face_centers)
+        self.restricted_spaces_outdoors = {key: HybridGeometry.create(geom, face_centers)
+                                           for key, geom in self.restricted_spaces_outdoors.items()}
+        """
 
         # unset heightareas, they are no loinger needed
         self.heightareas = None
+        self.vertices = None
+        self.faces = None

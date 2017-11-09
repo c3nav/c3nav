@@ -3,16 +3,17 @@ import threading
 from collections import namedtuple
 from itertools import chain
 from queue import Queue
-from typing import Optional, Tuple, Union
+from typing import Optional, Tuple
 
 import ModernGL
 import numpy as np
 from PIL import Image
-from shapely.geometry import CAP_STYLE, JOIN_STYLE, MultiPolygon, Polygon
+from shapely.geometry import CAP_STYLE, JOIN_STYLE, Polygon
 from shapely.ops import unary_union
 
 from c3nav.mapdata.render.data import HybridGeometry
-from c3nav.mapdata.render.engines.base import FillAttribs, RenderEngine, StrokeAttribs
+from c3nav.mapdata.render.engines.base import FillAttribs, StrokeAttribs
+from c3nav.mapdata.render.engines.base3d import Base3DEngine
 from c3nav.mapdata.utils.mesh import triangulate_polygon
 
 
@@ -31,11 +32,11 @@ class RenderContext(namedtuple('RenderContext', ('width', 'height', 'ctx', 'prog
         prog = ctx.program([
             ctx.vertex_shader('''
                 #version 330
-                in vec2 in_vert;
+                in vec3 in_vert;
                 in vec4 in_color;
                 out vec4 v_color;
                 void main() {
-                    gl_Position = vec4(in_vert, 0.0, 1.0);
+                    gl_Position = vec4(in_vert, 1.0);
                     v_color = in_color;
                 }
             '''),
@@ -131,68 +132,13 @@ class OpenGLWorker(threading.Thread):
         return task.get_result()
 
 
-class OpenGLEngine(RenderEngine):
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
+class OpenGLEngine(Base3DEngine):
+    def _add_geometry(self, geometry, fill: Optional[FillAttribs], stroke: Optional[StrokeAttribs], **kwargs):
 
-        self.vertices = []
-
-        scale_x = self.scale / self.width * 2
-        scale_y = self.scale / self.height * 2
-
-        self.np_scale = np.array((scale_x, -scale_y))
-        self.np_offset = np.array((-self.minx * scale_x - 1, self.maxy * scale_y - 1))
-
-        # mesh data
-        self.vertices_lookup = None
-        self.faces_lookup = None
-        self.vertices_altitudes = None
-        self.vertices_heightss = None
-
-    def set_mesh_lookup_data(self, data):
-        self.vertices_lookup = data.vertices
-        self.faces_lookup = data.faces
-        self.vertices_altitudes = data.vertices_altitudes
-        self.vertices_heights = data.vertices_heights
-
-    def _create_geometry(self, geometry: Union[Polygon, MultiPolygon, HybridGeometry], append=None):
-        if isinstance(geometry, HybridGeometry):
-            vertices = self.vertices_lookup[
-                self.faces_lookup[np.array(tuple(geometry.faces))].flatten()
-            ].astype(np.float32)
-        else:
-            vertices, faces = triangulate_polygon(geometry)
-            triangles = vertices[faces.flatten()]
-            vertices = np.vstack(triangles).astype(np.float32)
-
-        vertices = vertices * self.np_scale + self.np_offset
-        if append is not None:
-            append = np.array(append, dtype=np.float32).flatten()
-            vertices = np.hstack((
-                vertices,
-                append.reshape(1, append.size).repeat(vertices.shape[0], 0)
-            ))
-        return vertices.flatten()
-
-    def _add_geometry(self, geometry, fill: Optional[FillAttribs] = None, stroke: Optional[StrokeAttribs] = None,
-                      altitude=None, height=None, shape_cache_key=None):
         if fill is not None:
-            if stroke is not None and fill.color == stroke.color and 0:
-                geometry = geometry.buffer(max(stroke.width, (stroke.min_px or 0) / self.scale),
-                                           cap_style=CAP_STYLE.flat, join_style=JOIN_STYLE.mitre)
-                stroke = None
-            self.vertices.append(self._create_geometry(geometry, self.color_to_rgb(fill.color)))
+            self.vertices.append(self._place_geometry(geometry, self.color_to_rgb(fill.color)))
 
         if stroke is not None:
-            geometry = self.buffered_bbox.intersection(geometry.geom)
-            lines = tuple(chain(*(
-                ((geom.exterior, *geom.interiors) if isinstance(geom, Polygon) else (geom, ))
-                for geom in getattr(geometry, 'geoms', (geometry, ))
-            )))
-
-            if not lines:
-                return
-
             width = max(stroke.width, (stroke.min_px or 0) / self.scale) / 2
 
             # if width would be <1px, emulate it through opacity on a 1px width
@@ -203,10 +149,27 @@ class OpenGLEngine(RenderEngine):
             else:
                 alpha = 1
 
-            self.vertices.append(self._create_geometry(
-                unary_union(lines).buffer(width, cap_style=CAP_STYLE.flat, join_style=JOIN_STYLE.mitre),
-                self.color_to_rgb(stroke.color, alpha=alpha)
-            ))
+            self.vertices.append(self._create_border(geometry, width, self.color_to_rgb(stroke.color, alpha=alpha)))
+
+    def _create_border(self, geometry: HybridGeometry, width, append=None):
+        altitude = np.vstack(geometry.faces)[:, :, 2].max()+0.001
+        geometry = self.buffered_bbox.intersection(geometry.geom)
+
+        lines = tuple(chain(*(
+            ((geom.exterior, *geom.interiors) if isinstance(geom, Polygon) else (geom,))
+            for geom in getattr(geometry, 'geoms', (geometry,))
+        )))
+
+        if not lines:
+            return np.empty((0, ))
+
+        lines = unary_union(lines).buffer(width, cap_style=CAP_STYLE.flat, join_style=JOIN_STYLE.mitre)
+
+        vertices, faces = triangulate_polygon(lines)
+        triangles = np.hstack((vertices[faces.flatten()], np.full((faces.size, 1), fill_value=altitude)))
+        vertices = np.vstack(triangles).astype(np.float32) * self.np_scale + self.np_offset
+
+        return self._append_to_vertices(vertices, append).flatten()
 
     worker = OpenGLWorker()
 

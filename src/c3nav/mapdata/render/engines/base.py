@@ -63,7 +63,7 @@ class RenderEngine(ABC):
         raise ValueError('invalid color string!')
 
     def add_geometry(self, geometry, fill: Optional[FillAttribs] = None, stroke: Optional[StrokeAttribs] = None,
-                     altitude=None, height=None, shape_cache_key=None):
+                     altitude=None, height=None, auto_height=False, shape_cache_key=None):
         # draw a shapely geometry with a given style
         # altitude is the absolute altitude of the upper bound of the element
         # height is the height of the element
@@ -74,10 +74,10 @@ class RenderEngine(ABC):
             return
 
         self._add_geometry(geometry=geometry, fill=fill, stroke=stroke,
-                           altitude=altitude, height=height, shape_cache_key=shape_cache_key)
+                           altitude=altitude, height=height, auto_height=auto_height, shape_cache_key=shape_cache_key)
 
     @abstractmethod
-    def _add_geometry(self, geometry, fill: Optional[FillAttribs] = None, stroke: Optional[StrokeAttribs] = None,
+    def _add_geometry(self, geometry, fill: Optional[FillAttribs], stroke: Optional[StrokeAttribs],
                       altitude=None, height=None, shape_cache_key=None):
         pass
 

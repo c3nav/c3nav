@@ -212,7 +212,7 @@ class SVGEngine(RenderEngine):
         else:
             self.altitudes[new_altitude] = new_geometry
 
-    def _add_geometry(self, geometry, fill: Optional[FillAttribs] = None, stroke: Optional[StrokeAttribs] = None,
+    def _add_geometry(self, geometry, fill: Optional[FillAttribs], stroke: Optional[StrokeAttribs],
                       altitude=None, height=None, shape_cache_key=None):
         geometry = self.buffered_bbox.intersection(geometry.geom)
 
