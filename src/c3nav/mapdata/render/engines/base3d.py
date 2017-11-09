@@ -8,6 +8,8 @@ from c3nav.mapdata.render.engines.base import FillAttribs, RenderEngine, StrokeA
 
 
 class Base3DEngine(RenderEngine):
+    is_3d = True
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 

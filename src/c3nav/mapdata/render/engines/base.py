@@ -25,6 +25,8 @@ class StrokeAttribs:
 
 
 class RenderEngine(ABC):
+    is_3d = False
+
     # draw an svg image. supports pseudo-3D shadow-rendering
     def __init__(self, width: int, height: int, xoff=0, yoff=0, scale=1, buffer=0, background='#FFFFFF'):
         self.width = width
