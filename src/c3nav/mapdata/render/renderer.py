@@ -4,20 +4,20 @@ from shapely import prepared
 from shapely.geometry import box
 
 from c3nav.mapdata.cache import MapHistory
-from c3nav.mapdata.models import MapUpdate
+from c3nav.mapdata.models import MapUpdate, Level
 from c3nav.mapdata.render.data import LevelRenderData, hybrid_union
 from c3nav.mapdata.render.engines.base import FillAttribs, StrokeAttribs
 
 
 class MapRenderer:
     def __init__(self, level, minx, miny, maxx, maxy, scale=1, access_permissions=None):
-        self.level = level
+        self.level = level.pk if isinstance(level, Level) else level
         self.minx = minx
         self.miny = miny
         self.maxx = maxx
         self.maxy = maxy
         self.scale = scale
-        self.access_permissions = access_permissions
+        self.access_permissions = set(access_permissions) if access_permissions else set()
 
         self.width = int(round((maxx - minx) * scale))
         self.height = int(round((maxy - miny) * scale))
