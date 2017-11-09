@@ -464,7 +464,7 @@ class LevelGeometries:
         vertex_wall_heights = vertex_altitudes + vertex_heights
 
         # create polyhedrons
-        self.walls.build_polyhedron(self._create_polyhedron, bottom=vertex_altitudes, top=vertex_wall_heights)
+        self.walls.build_polyhedron(self._create_polyhedron, bottom=vertex_altitudes-0.7, top=vertex_wall_heights)
 
         for key, geometry in self.restricted_spaces_indoors.items():
             geometry.crop_ids = frozenset(('in:%s' % key, ))
