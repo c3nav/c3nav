@@ -173,7 +173,7 @@ class OpenGLEngine(Base3DEngine):
 
     worker = OpenGLWorker()
 
-    def get_png(self) -> bytes:
+    def render(self) -> bytes:
         return self.worker.render(self.width, self.height, self.background_rgb,
                                   np.hstack(self.vertices).astype(np.float32).tobytes() if self.vertices else b'')
 

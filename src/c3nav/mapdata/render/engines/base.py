@@ -48,7 +48,7 @@ class RenderEngine(ABC):
         self.background_rgb = tuple(int(background[i:i + 2], 16)/255 for i in range(1, 6, 2))
 
     @abstractmethod
-    def get_png(self) -> bytes:
+    def render(self) -> bytes:
         # render the image to png.
         pass
 

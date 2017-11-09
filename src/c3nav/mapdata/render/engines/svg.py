@@ -81,7 +81,7 @@ class SVGEngine(RenderEngine):
         result += '</svg>'
         return result
 
-    def get_png(self):
+    def render(self):
         # render the image to png. returns bytes if f is None, otherwise it calls f.write()
 
         if self.width == 256 and self.height == 256 and not self.g:

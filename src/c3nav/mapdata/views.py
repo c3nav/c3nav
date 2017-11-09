@@ -19,7 +19,7 @@ from c3nav.mapdata.render.engines import ImageRenderEngine
 
 
 @no_language()
-def tile(request, level, zoom, x, y, format):
+def tile(request, level, zoom, x, y):
     zoom = int(zoom)
     if not (0 <= zoom <= 10):
         raise Http404
@@ -70,7 +70,7 @@ def tile(request, level, zoom, x, y, format):
     if settings.CACHE_TILES:
         tile_dirname = os.path.sep.join((settings.TILES_ROOT, str(level), str(zoom), str(x), str(y)))
         last_update_filename = os.path.join(tile_dirname, 'last_update')
-        tile_filename = os.path.join(tile_dirname, renderer.access_cache_key+'.'+format)
+        tile_filename = os.path.join(tile_dirname, renderer.access_cache_key+'.png')
 
         # get tile cache last update
         tile_cache_update_cache_key = 'mapdata:tile-cache-update:%d-%d-%d-%d' % (level, zoom, x, y)
@@ -91,28 +91,19 @@ def tile(request, level, zoom, x, y, format):
             except FileNotFoundError:
                 pass
 
-    content_type = 'image/svg+xml' if format == 'svg' else 'image/png'
-
     if data is None:
-        svg = renderer.render(ImageRenderEngine)
-        if format == 'svg':
-            data = svg.get_xml()
-            filemode = 'w'
-        elif format == 'png':
-            data = svg.get_png()
-            filemode = 'wb'
-        else:
-            raise ValueError
+        image = renderer.render(ImageRenderEngine)
+        data = image.render()
 
         if settings.CACHE_TILES:
             os.makedirs(tile_dirname, exist_ok=True)
-            with open(tile_filename, filemode) as f:
+            with open(tile_filename, 'wb') as f:
                 f.write(data)
             with open(last_update_filename, 'w') as f:
                 f.write(update_cache_key)
             cache.get(tile_cache_update_cache_key, update_cache_key, 60)
 
-    response = HttpResponse(data, content_type)
+    response = HttpResponse(data, 'image/png')
     response['ETag'] = etag
     response['Cache-Control'] = 'no-cache'
     response['Vary'] = 'Cookie'
