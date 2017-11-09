@@ -83,6 +83,8 @@ class MapRenderer:
         else:
             levels = self.level_render_data.levels
 
+        min_altitude = float(min(chain(*(tuple(area.altitude for area in geoms.altitudeareas) for geoms in levels))))
+
         for geoms in levels:
             if not bbox.intersects(geoms.affected_area):
                 continue
@@ -94,6 +96,12 @@ class MapRenderer:
                 tuple(area for access_restriction, area in geoms.restricted_spaces_outdoors.items()
                       if access_restriction not in unlocked_access_restrictions)
             ).union(add_walls)
+
+            if not self.full_levels:
+                engine.add_geometry(geoms.level_base, fill=FillAttribs('#aaaaaa'))
+                if min_altitude < geoms.min_altitude:
+                    engine.add_geometry(geoms.optional_base.fit(min_altitude, geoms.min_altitude+0.05),
+                                        fill=FillAttribs('#aaaaaa'))
 
             # render altitude areas in default ground color and add ground colors to each one afterwards
             # shadows are directly calculated and added by the engine

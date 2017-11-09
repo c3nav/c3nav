@@ -66,6 +66,14 @@ class HybridGeometry:
                                          if crop_id not in other.crop_ids},
                               crop_ids=self.crop_ids - other.crop_ids)
 
+    def fit(self, bottom, top):
+        offset = np.array((0, 0, bottom))
+        scale = np.array((1, 1, top-bottom))
+        return HybridGeometry(geom=self.geom, crop_ids=self.crop_ids,
+                              faces=tuple((faces*scale+offset) for faces in self.faces),
+                              add_faces={crop_id: tuple((faces*scale+offset) for faces in self.faces)
+                                         for crop_id, faces in self.add_faces})
+
     @property
     def is_empty(self):
         return not self.faces and not any(self.add_faces.values())
@@ -230,9 +238,15 @@ class LevelRenderData:
                     if not new_area.is_empty:
                         new_geoms.restricted_spaces_outdoors[access_restriction] = new_area
 
+                new_geoms.level_base = unary_union((new_geoms.walls,
+                                                    *(area.geometry for area in new_geoms.altitudeareas)))
+
                 new_geoms.pk = old_geoms.pk
                 new_geoms.on_top_of_id = old_geoms.on_top_of_id
+                new_geoms.base_altitude = old_geoms.base_altitude
                 new_geoms.default_height = old_geoms.default_height
+                new_geoms.min_altitude = float(min(area.altitude for area in new_geoms.altitudeareas)
+                                               if new_geoms.altitudeareas else new_geoms.base_altitude)
 
                 new_geoms.build_mesh()
 
@@ -289,9 +303,14 @@ class LevelGeometries:
         self.restricted_spaces_outdoors = None
         self.affected_area = None
 
+        self.level_base = None
+        self.optional_base = None
+
         self.pk = None
         self.on_top_of_id = None
+        self.base_altitude = None
         self.default_height = None
+        self.min_altitude = None
 
     @staticmethod
     def build_for_level(level):
@@ -382,7 +401,10 @@ class LevelGeometries:
         # general level infos
         geoms.pk = level.pk
         geoms.on_top_of_id = level.on_top_of_id
+        geoms.base_altititude = level.base_altitude
         geoms.default_height = level.default_height
+        geoms.min_altitude = float(min(area.altitude for area in geoms.altitudeareas)
+                                   if geoms.altitudeareas else level.base_altitude)
 
         return geoms
 
@@ -402,6 +424,7 @@ class LevelGeometries:
                                           for key, geom in self.restricted_spaces_indoors.items()}
         self.restricted_spaces_outdoors = {key: HybridGeometry.create(geom, face_centers)
                                            for key, geom in self.restricted_spaces_outdoors.items()}
+        self.level_base = HybridGeometry.create(self.level_base, face_centers)
 
     def _build_vertex_values(self, area_values):
         vertex_values = np.empty(self.vertices.shape[:1], dtype=np.int32)
@@ -503,6 +526,11 @@ class LevelGeometries:
             geometry.build_polyhedron(self._create_polyhedron, bottom=vertex_altitudes, top=vertex_wall_heights)
         for key, geometry in self.restricted_spaces_outdoors.items():
             geometry.faces = None
+
+        self.optional_base = HybridGeometry(self.level_base.geom, self.level_base.faces)
+        self.level_base.build_polyhedron(self._create_polyhedron,
+                                         bottom=self.min_altitude-0.8, top=vertex_altitudes-0.6)
+        self.optional_base.build_polyhedron(self._create_polyhedron, bottom=0, top=1)
 
         """
         for area in self.altitudeareas:
