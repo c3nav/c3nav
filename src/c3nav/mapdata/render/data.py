@@ -223,6 +223,8 @@ class LevelRenderData:
                     if not new_area.is_empty:
                         new_geoms.restricted_spaces_outdoors[access_restriction] = new_area
 
+                new_geoms.pk = old_geoms.pk
+                new_geoms.on_top_of_id = old_geoms.on_top_of_id
                 new_geoms.default_height = old_geoms.default_height
 
                 new_geoms.build_mesh()
@@ -280,6 +282,8 @@ class LevelGeometries:
         self.restricted_spaces_outdoors = None
         self.affected_area = None
 
+        self.pk = None
+        self.on_top_of_id = None
         self.default_height = None
 
     @staticmethod
@@ -369,6 +373,8 @@ class LevelGeometries:
         geoms.walls = buildings_geom.difference(spaces_geom).difference(doors_geom)
 
         # general level infos
+        geoms.pk = level.pk
+        geoms.on_top_of_id = level.on_top_of_id
         geoms.default_height = level.default_height
 
         return geoms

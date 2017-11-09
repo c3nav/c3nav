@@ -1,3 +1,5 @@
+from itertools import chain
+
 from django.core.cache import cache
 from django.utils.functional import cached_property
 from shapely import prepared
@@ -10,7 +12,7 @@ from c3nav.mapdata.render.engines.base import FillAttribs, StrokeAttribs
 
 
 class MapRenderer:
-    def __init__(self, level, minx, miny, maxx, maxy, scale=1, access_permissions=None):
+    def __init__(self, level, minx, miny, maxx, maxy, scale=1, access_permissions=None, full_levels=False):
         self.level = level.pk if isinstance(level, Level) else level
         self.minx = minx
         self.miny = miny
@@ -18,6 +20,7 @@ class MapRenderer:
         self.maxy = maxy
         self.scale = scale
         self.access_permissions = set(access_permissions) if access_permissions else set()
+        self.full_levels = full_levels
 
         self.width = int(round((maxx - minx) * scale))
         self.height = int(round((maxy - miny) * scale))
@@ -71,7 +74,16 @@ class MapRenderer:
 
         bbox = prepared.prep(self.bbox)
 
-        for geoms in self.level_render_data.levels:
+        if self.full_levels:
+            levels = tuple(chain(*(
+                tuple(sublevel for sublevel in LevelRenderData.get(level.pk).levels
+                      if sublevel.pk == level.pk or sublevel.on_top_of_id == level.pk)
+                for level in self.level_render_data.levels if level.on_top_of_id is None
+            )))
+        else:
+            levels = self.level_render_data.levels
+
+        for geoms in levels:
             if not bbox.intersects(geoms.affected_area):
                 continue
 

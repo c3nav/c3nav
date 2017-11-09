@@ -54,11 +54,14 @@ class Command(BaseCommand):
                             help=_('levels to render, e.g. 0,1,2 or * for all levels (default)'))
         parser.add_argument('--permissions', default='0', type=self.permissions_value,
                             help=_('permissions, e.g. 2,3 or * for all permissions or 0 for none (default)'))
+        parser.add_argument('--full-levels', action='store_const', const=True, default=False,
+                            help=_('render all levels completely'))
 
     def handle(self, *args, **options):
         (minx, miny), (maxx, maxy) = Source.max_bounds()
         for level in options['levels']:
-            renderer = MapRenderer(level.pk, minx, miny, maxx, maxy, access_permissions=options['permissions'])
+            renderer = MapRenderer(level.pk, minx, miny, maxx, maxy, access_permissions=options['permissions'],
+                                   full_levels=options['full_levels'])
 
             stl = renderer.render(STLEngine)
             data = stl.render()
