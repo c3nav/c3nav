@@ -523,7 +523,7 @@ class LevelGeometries:
             area.create_polyhedrons(self._create_polyhedron, crops=crops)
 
         for key, geometry in self.restricted_spaces_indoors.items():
-            geometry.build_polyhedron(self._create_polyhedron, bottom=vertex_altitudes, top=vertex_wall_heights)
+            geometry.build_polyhedron(self._create_polyhedron, bottom=vertex_altitudes-0.7, top=vertex_wall_heights)
         for key, geometry in self.restricted_spaces_outdoors.items():
             geometry.faces = None
 
