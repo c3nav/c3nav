@@ -86,17 +86,17 @@ class MapUpdate(models.Model):
             if not new_updates:
                 return ()
 
+            last_processed_update = cls.objects.filter(processed=True).latest().to_tuple
+            for new_update in new_updates:
+                pickle.loads(new_update.changed_geometries).save(last_processed_update, new_update.to_tuple)
+                new_update.processed = True
+                new_update.save()
+
             from c3nav.mapdata.models import AltitudeArea
             AltitudeArea.recalculate()
 
             from c3nav.mapdata.render.data import LevelRenderData
             LevelRenderData.rebuild()
-
-            last_unprocessed_update = cls.objects.filter(processed=False).latest().to_tuple
-            for new_update in new_updates:
-                pickle.loads(new_update.changed_geometries).save(last_unprocessed_update, new_update.to_tuple)
-                new_update.processed = True
-                new_update.save()
 
             cache.set('mapdata:last_processed_update', new_updates[-1].to_tuple, 900)
 
