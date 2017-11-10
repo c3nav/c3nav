@@ -216,6 +216,9 @@ class SVGEngine(RenderEngine):
                       altitude=None, height=None, shape_cache_key=None):
         geometry = self.buffered_bbox.intersection(geometry.geom)
 
+        if geometry.is_empty:
+            return
+
         if fill:
             attribs = ' fill="'+(fill.color)+'"'
             if fill.opacity:
