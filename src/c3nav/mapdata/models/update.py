@@ -8,6 +8,8 @@ from django.utils.http import int_to_base36
 from django.utils.timezone import make_naive
 from django.utils.translation import ugettext_lazy as _
 
+from c3nav.mapdata.tasks import process_map_updates
+
 
 class MapUpdate(models.Model):
     """
@@ -101,7 +103,8 @@ class MapUpdate(models.Model):
             return new_updates
 
     def save(self, **kwargs):
-        if self.pk is not None and (self.was_processed or not self.processed):
+        new = self.pk is None
+        if not new and (self.was_processed or not self.processed):
             raise TypeError
 
         from c3nav.mapdata.cache import changed_geometries
@@ -110,3 +113,6 @@ class MapUpdate(models.Model):
         super().save(**kwargs)
 
         cache.set('mapdata:last_update', self.to_tuple, 900)
+
+        if new and settings.HAS_CELERY:
+            process_map_updates.apply_async()
