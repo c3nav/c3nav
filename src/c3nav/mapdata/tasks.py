@@ -1,3 +1,4 @@
+from django.db import DatabaseError
 from django.utils.formats import date_format
 from django.utils.translation import ugettext_lazy as _
 from django.utils.translation import ungettext_lazy
@@ -5,10 +6,15 @@ from django.utils.translation import ungettext_lazy
 from c3nav.celery import app
 
 
-@app.task(rate_limit='1/m')
-def process_map_updates():
+@app.task(bind=True, max_retries=10)
+def process_map_updates(self):
     from c3nav.mapdata.models import MapUpdate
-    updates = MapUpdate.process_updates()
+    try:
+        updates = MapUpdate.process_updates()
+    except DatabaseError:
+        if self.request.called_directly:
+            raise
+        raise self.retry(countdown=30)
 
     if updates:
         print()

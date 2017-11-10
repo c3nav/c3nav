@@ -81,8 +81,8 @@ class MapUpdate(models.Model):
 
     @classmethod
     def process_updates(cls):
-        with cls.lock():
-            new_updates = tuple(cls.objects.filter(processed=False))
+        with transaction.atomic():
+            new_updates = tuple(cls.objects.filter(processed=False).select_for_update(nowait=True))
             if not new_updates:
                 return ()
 
