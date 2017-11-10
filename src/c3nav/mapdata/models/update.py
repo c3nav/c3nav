@@ -115,4 +115,4 @@ class MapUpdate(models.Model):
         cache.set('mapdata:last_update', self.to_tuple, 900)
 
         if new and settings.HAS_CELERY:
-            process_map_updates.apply_async()
+            process_map_updates.delay()
