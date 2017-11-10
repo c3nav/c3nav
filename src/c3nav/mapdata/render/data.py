@@ -292,7 +292,7 @@ class LevelRenderData:
     @classmethod
     def get(cls, level):
         with cls.cache_lock:
-            cache_key = MapUpdate.current_cache_key()
+            cache_key = MapUpdate.current_processed_cache_key()
             level_pk = str(level.pk if isinstance(level, Level) else level)
             if cls.cache_key != cache_key:
                 cls.cache_key = cache_key
