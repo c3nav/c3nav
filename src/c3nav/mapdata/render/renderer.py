@@ -124,6 +124,9 @@ class MapRenderer:
             if walls is not None:
                 engine.add_geometry(walls, height=geoms.default_height, fill=FillAttribs('#aaaaaa'))
 
+            if geoms.walls_extended and self.full_levels and engine.is_3d:
+                engine.add_geometry(geoms.walls_extended, height=geoms.default_height, fill=FillAttribs('#aaaaaa'))
+
             if not geoms.doors.is_empty:
                 engine.add_geometry(geoms.doors.difference(add_walls), fill=FillAttribs('#ffffff'),
                                     stroke=StrokeAttribs('#ffffff', 0.05, min_px=0.2))

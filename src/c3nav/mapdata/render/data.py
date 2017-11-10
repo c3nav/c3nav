@@ -15,7 +15,7 @@ from shapely.ops import unary_union
 from c3nav.mapdata.cache import MapHistory
 from c3nav.mapdata.models import Level, MapUpdate
 from c3nav.mapdata.utils.geometry import assert_multipolygon, get_rings
-from c3nav.mapdata.utils.mesh import triangulate_rings
+from c3nav.mapdata.utils.mesh import triangulate_rings, triangulate_polygon
 from c3nav.mapdata.utils.mpl import shapely_to_mpl
 
 
@@ -133,6 +133,25 @@ class LevelRenderData:
 
         single_level_geoms = {level.pk: LevelGeometries.build_for_level(level) for level in levels}
 
+
+        interpolators = {}
+        last_interpolator = None
+        for level in reversed(levels):
+            if level.on_top_of_id is not None:
+                continue
+
+            if last_interpolator is not None:
+                interpolators[level.pk] = last_interpolator
+
+            coords = deque()
+            values = deque()
+            for area in single_level_geoms[level.pk].altitudeareas:
+                new_coords = np.vstack(tuple(np.array(ring.coords) for ring in get_rings(area.geometry)))
+                coords.append(new_coords)
+                values.append(np.full((new_coords.shape[0], ), fill_value=float(area.altitude)))
+
+            last_interpolator = NearestNDInterpolator(np.hstack(coords), np.hstack(values))
+
         for i, level in enumerate(levels):
             if level.on_top_of_id is not None:
                 continue
@@ -184,6 +203,7 @@ class LevelRenderData:
                 new_geoms = LevelGeometries()
                 new_geoms.doors = crop_to.intersection(old_geoms.doors)
                 new_geoms.walls = crop_to.intersection(old_geoms.walls)
+                new_geoms.walls_extended = crop_to.intersection(old_geoms.walls_extended)
 
                 for altitudearea in old_geoms.altitudeareas:
                     new_geometry = crop_to.intersection(altitudearea.geometry)
@@ -248,7 +268,7 @@ class LevelRenderData:
                 new_geoms.min_altitude = float(min(area.altitude for area in new_geoms.altitudeareas)
                                                if new_geoms.altitudeareas else new_geoms.base_altitude)
 
-                new_geoms.build_mesh()
+                new_geoms.build_mesh(interpolators.get(level.pk) if sublevel.pk == level.pk else None)
 
                 render_data.levels.append(new_geoms)
 
@@ -296,12 +316,16 @@ class LevelGeometries:
         self.altitudeareas = []
         self.heightareas = []
         self.walls = None
+        self.walls_extended = None
         self.doors = None
         self.holes = None
         self.access_restriction_affected = None
         self.restricted_spaces_indoors = None
         self.restricted_spaces_outdoors = None
         self.affected_area = None
+
+        self.vertices = None
+        self.faces = None
 
         self.level_base = None
         self.optional_base = None
@@ -397,6 +421,7 @@ class LevelGeometries:
                                             for access_restriction, spaces in restricted_spaces_outdoors.items()}
 
         geoms.walls = buildings_geom.difference(spaces_geom).difference(doors_geom)
+        geoms.walls_extended = buildings_geom.difference(spaces_geom)
 
         # general level infos
         geoms.pk = level.pk
@@ -419,6 +444,7 @@ class LevelGeometries:
         self.heightareas = tuple((HybridGeometry.create(area, face_centers), height)
                                  for area, height in self.heightareas)
         self.walls = HybridGeometry.create(self.walls, face_centers)
+        self.walls_extended = HybridGeometry.create(self.walls_extended, face_centers)
         self.doors = HybridGeometry.create(self.doors, face_centers)
         self.restricted_spaces_indoors = {key: HybridGeometry.create(geom, face_centers)
                                           for key, geom in self.restricted_spaces_indoors.items()}
@@ -494,7 +520,7 @@ class LevelGeometries:
 
         return (np.vstack(new_faces), )
 
-    def build_mesh(self):
+    def build_mesh(self, interpolator=None):
         rings = tuple(chain(*(get_rings(geom) for geom in self.get_geometries())))
         self.vertices, self.faces = triangulate_rings(rings)
         self.create_hybrid_geometries(face_centers=self.vertices[self.faces].sum(axis=1) / 3)
@@ -508,6 +534,13 @@ class LevelGeometries:
 
         # create polyhedrons
         self.walls.build_polyhedron(self._create_polyhedron, bottom=vertex_altitudes-0.7, top=vertex_wall_heights)
+
+        if interpolator is not None:
+            self.walls_extended.build_polyhedron(self._create_polyhedron,
+                                                 bottom=vertex_wall_heights,
+                                                 top=interpolator(*np.transpose(self.vertices))-0.3)
+        else:
+            self.walls_extended = None
 
         for key, geometry in self.restricted_spaces_indoors.items():
             geometry.crop_ids = frozenset(('in:%s' % key, ))
@@ -533,6 +566,7 @@ class LevelGeometries:
         self.optional_base.build_polyhedron(self._create_polyhedron, bottom=0, top=1)
 
         # unset heightareas, they are no loinger needed
+        self.vertex_altitudes = None
         self.heightareas = None
         self.vertices = None
         self.faces = None
