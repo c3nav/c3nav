@@ -129,7 +129,8 @@ class LevelRenderData:
     @staticmethod
     def rebuild():
         levels = tuple(Level.objects.prefetch_related('altitudeareas', 'buildings', 'doors', 'spaces',
-                                                      'spaces__holes', 'spaces__columns', 'spaces__locationgroups'))
+                                                      'spaces__holes', 'spaces__areas', 'spaces__columns',
+                                                      'spaces__groups'))
 
         single_level_geoms = {level.pk: LevelGeometries.build_for_level(level) for level in levels}
 
