@@ -10,6 +10,7 @@ from shapely.geometry import MultiPolygon, Polygon
 
 @lru_cache()
 def get_face_indizes(start, length):
+    # noinspection PyTypeChecker
     indices = np.tile(np.arange(start, start + length).reshape((-1, 1)), 2).flatten()[1:-1].reshape((length - 1, 2))
     return np.vstack((indices, (indices[-1][-1], indices[0][0])))
 
@@ -28,6 +29,7 @@ def triangulate_rings(rings, holes=None):
         indices = tuple(vertices_lookup[vertex] for vertex in ring[:-1])
         segments.update(zip(indices, indices[1:]+indices[:1]))
 
+    # noinspection PyArgumentList
     info = triangle.MeshInfo()
     info.set_points(np.array(vertices).tolist())
     info.set_facets(segments)
@@ -50,6 +52,7 @@ def _triangulate_polygon(polygon: Polygon, keep_holes=False):
         segments.append(get_face_indizes(offset, len(new_vertices)))
         offset += len(new_vertices)
 
+    # noinspection PyArgumentList
     info = triangle.MeshInfo()
     info.set_points(np.vstack(vertices))
     info.set_facets(np.vstack(segments).tolist())

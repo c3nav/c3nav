@@ -7,6 +7,7 @@ from c3nav.mapdata.render.data import HybridGeometry
 from c3nav.mapdata.render.engines.base import FillAttribs, RenderEngine, StrokeAttribs
 
 
+# noinspection PyAbstractClass
 class Base3DEngine(RenderEngine):
     is_3d = True
 
@@ -22,7 +23,8 @@ class Base3DEngine(RenderEngine):
         if fill is not None:
             self.vertices.append(self._place_geometry(geometry))
 
-    def _append_to_vertices(self, vertices, append=None):
+    @staticmethod
+    def _append_to_vertices(vertices, append=None):
         if append is not None:
             append = np.array(append, dtype=np.float32).flatten()
             vertices = np.dstack((

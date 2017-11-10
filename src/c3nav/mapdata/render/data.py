@@ -518,7 +518,7 @@ class LevelGeometries:
         # lower faces
         new_faces.append(np.dstack((self.vertices[np.flip(geom_faces, axis=1)], bottom[geom_faces])))
 
-        return (np.vstack(new_faces), )
+        return tuple((np.vstack(new_faces), ))
 
     def build_mesh(self, interpolator=None):
         rings = tuple(chain(*(get_rings(geom) for geom in self.get_geometries())))
@@ -566,7 +566,6 @@ class LevelGeometries:
         self.optional_base.build_polyhedron(self._create_polyhedron, bottom=0, top=1)
 
         # unset heightareas, they are no loinger needed
-        self.vertex_altitudes = None
         self.heightareas = None
         self.vertices = None
         self.faces = None
