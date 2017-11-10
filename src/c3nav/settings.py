@@ -118,11 +118,13 @@ CACHES = {
         'LOCATION': 'unique-snowflake',
     }
 }
+HAS_REAL_CACHE = False
 
 SESSION_ENGINE = "django.contrib.sessions.backends.db"
 
 HAS_MEMCACHED = config.has_option('memcached', 'location')
 if HAS_MEMCACHED:
+    HAS_REAL_CACHE = True
     CACHES['default'] = {
         'BACKEND': 'django.core.cache.backends.memcached.PyLibMCCache',
         'LOCATION': config.get('memcached', 'location'),
@@ -131,6 +133,7 @@ if HAS_MEMCACHED:
 
 HAS_REDIS = config.has_option('redis', 'location')
 if HAS_REDIS:
+    HAS_REAL_CACHE = True
     CACHES['redis'] = {
         "BACKEND": "django_redis.cache.RedisCache",
         "LOCATION": config.get('redis', 'location'),
