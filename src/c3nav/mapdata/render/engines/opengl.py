@@ -54,6 +54,8 @@ class RenderContext(namedtuple('RenderContext', ('width', 'height', 'ctx', 'prog
             '''),
         ])
 
+        ctx.enable(ModernGL.BLEND)
+
         return cls(width, height, ctx, prog, fbo)
 
 
