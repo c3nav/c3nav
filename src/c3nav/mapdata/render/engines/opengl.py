@@ -171,7 +171,7 @@ class OpenGLEngine(Base3DEngine):
         )))
 
         if not lines:
-            return np.empty((0, ))
+            return np.empty((0, 3, 3+len(append)))
 
         lines = unary_union(lines).buffer(width, cap_style=CAP_STYLE.flat, join_style=JOIN_STYLE.mitre)
 
