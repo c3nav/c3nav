@@ -185,6 +185,7 @@ class AltitudeArea(LevelGeometryMixin, models.Model):
                         space_areas[space.pk].append(area)
 
             # divide areas using stairs
+            identical_steps = False
             for stair in stairs:
                 for area in space_areas[stair.space]:
                     if not stair.intersects(area.geometry):
@@ -233,7 +234,10 @@ class AltitudeArea(LevelGeometryMixin, models.Model):
                             area.connected_to.remove(other_area)
                     break
                 else:
-                    raise ValueError
+                    identical_steps = True
+
+            if identical_steps:
+                print('There are propably identical stairs in your data.')
 
             # give altitudes to areas
             for space in level.spaces.all():
