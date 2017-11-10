@@ -15,7 +15,7 @@ from shapely.ops import unary_union
 from c3nav.mapdata.cache import MapHistory
 from c3nav.mapdata.models import Level, MapUpdate
 from c3nav.mapdata.utils.geometry import assert_multipolygon, get_rings
-from c3nav.mapdata.utils.mesh import triangulate_rings, triangulate_polygon
+from c3nav.mapdata.utils.mesh import triangulate_rings
 from c3nav.mapdata.utils.mpl import shapely_to_mpl
 
 
@@ -132,7 +132,6 @@ class LevelRenderData:
                                                       'spaces__holes', 'spaces__columns', 'spaces__locationgroups'))
 
         single_level_geoms = {level.pk: LevelGeometries.build_for_level(level) for level in levels}
-
 
         interpolators = {}
         last_interpolator = None
@@ -538,7 +537,7 @@ class LevelGeometries:
         if interpolator is not None:
             self.walls_extended.build_polyhedron(self._create_polyhedron,
                                                  bottom=vertex_wall_heights,
-                                                 top=interpolator(*np.transpose(self.vertices))-0.3)
+                                                 top=interpolator(*np.transpose(self.vertices))-0.2)
         else:
             self.walls_extended = None
 
