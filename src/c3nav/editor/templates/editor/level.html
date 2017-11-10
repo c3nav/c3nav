@@ -24,7 +24,6 @@
         <a href="{% url 'editor.levels.detail' pk=level.on_top_of.pk %}">&laquo; {% trans 'back to parent level' %}</a>
     {% endif %}
 </p>
-{% bootstrap_messages %}
 
 {% url 'editor.levels.graph' level=level.pk as graph_url %}
 {% include 'editor/fragment_child_models.html' with graph_url=graph_url %}

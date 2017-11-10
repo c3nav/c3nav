@@ -13,7 +13,6 @@
 <p>
     <a href="{% url 'editor.spaces.list' level=space.level.pk %}">&laquo; {% trans 'back to overview' %}</a>
 </p>
-{% bootstrap_messages %}
 
 {% url 'editor.spaces.graph' space=space.pk as graph_url %}
 {% include 'editor/fragment_child_models.html' with graph_url=graph_url %}
