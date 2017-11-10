@@ -260,4 +260,3 @@ class SVGEngine(RenderEngine):
             element = '<rect width="100%" height="100%"'+attribs+'>'
 
         self.g += element
-        return element
