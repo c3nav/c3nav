@@ -16,7 +16,7 @@ class Command(BaseCommand):
         print(ungettext_lazy('%d map update processed.', '%d map updates processed.', len(updates)) % len(updates))
 
         if updates:
-            print(_('Last processed Update: %(date)s (#%(id)d)') % {
+            print(_('Last processed update: %(date)s (#%(id)d)') % {
                 'date': date_format(updates[-1].datetime, 'DATETIME_FORMAT'),
                 'id': updates[-1].pk,
             })
