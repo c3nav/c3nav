@@ -3,7 +3,7 @@ import threading
 from collections import namedtuple
 from itertools import chain
 from queue import Queue
-from typing import Optional, Tuple
+from typing import Optional
 
 import ModernGL
 import numpy as np
@@ -35,8 +35,12 @@ class RenderContext(namedtuple('RenderContext', ('width', 'height', 'ctx', 'prog
                 in vec3 in_vert;
                 in vec4 in_color;
                 out vec4 v_color;
+
+                uniform vec3 scale;
+                uniform vec3 offset;
+
                 void main() {
-                    gl_Position = vec4(in_vert, 1.0);
+                    gl_Position = vec4(in_vert*scale+offset, 1.0);
                     v_color = in_color;
                 }
             '''),
@@ -57,11 +61,13 @@ class RenderTask:
     """
     Async Render Task
     """
-    __slots__ = ('width', 'height', 'background_rgb', 'vertices', 'event', 'result')
+    __slots__ = ('width', 'height', 'scale', 'offset', 'background_rgb', 'vertices', 'event', 'result')
 
-    def __init__(self, width, height, background_rgb, vertices):
+    def __init__(self, width, height, scale, offset, background_rgb, vertices):
         self.width = width
         self.height = height
+        self.scale = scale
+        self.offset = offset
         self.background_rgb = background_rgb
         self.vertices = vertices
 
@@ -107,6 +113,9 @@ class OpenGLWorker(threading.Thread):
             ctx = self._get_ctx(task.width, task.height)
             ctx.ctx.clear(*task.background_rgb)
 
+            ctx.prog.uniforms['scale'].value = task.scale
+            ctx.prog.uniforms['offset'].value = task.offset
+
             if task.vertices:
                 vbo = ctx.ctx.buffer(task.vertices)
                 vao = ctx.ctx.simple_vertex_array(ctx.prog, vbo, ['in_vert', 'in_color'])
@@ -123,11 +132,11 @@ class OpenGLWorker(threading.Thread):
             f.seek(0)
             task.set_result(f.read())
 
-    def render(self, width: int, height: int, background_rgb: Tuple[int, int, int], vertices: bytes) -> bytes:
+    def render(self, width: int, height: int, scale: tuple, offset: tuple, background_rgb: tuple, vertices: bytes):
         """
         Render image and return it as PNG bytes
         """
-        task = RenderTask(width, height, background_rgb, vertices)
+        task = RenderTask(width, height, scale, offset, background_rgb, vertices)
         self._queue.put(task)
         return task.get_result()
 
@@ -140,12 +149,12 @@ class OpenGLEngine(Base3DEngine):
         scale_y = self.scale / self.height * 2
         scale_z = (scale_x+scale_y) / 2
 
-        self.np_scale = np.array((scale_x, -scale_y, scale_z))
-        self.np_offset = np.array((-self.minx * scale_x - 1, self.maxy * scale_y - 1, 0))
+        self.gl_scale = (scale_x, -scale_y, scale_z)
+        self.gl_offset = (-self.minx * scale_x - 1, self.maxy * scale_y - 1, 0)
 
     def _add_geometry(self, geometry, fill: Optional[FillAttribs], stroke: Optional[StrokeAttribs], **kwargs):
         if fill is not None:
-            self.vertices.append(self._place_geometry(geometry, self.color_to_rgb(fill.color)))
+            self.vertices.append(self._place_geometry(geometry, self.color_to_rgb(fill.color), offset=False))
 
         if stroke is not None:
             width = max(stroke.width, (stroke.min_px or 0) / self.scale) / 2
@@ -176,14 +185,13 @@ class OpenGLEngine(Base3DEngine):
 
         vertices, faces = triangulate_polygon(lines)
         triangles = np.dstack((vertices[faces], np.full((faces.size, 1), fill_value=altitude).reshape((-1, 3, 1))))
-        triangles = triangles.astype(np.float32) * self.np_scale + self.np_offset
 
-        return self._append_to_vertices(triangles, append)
+        return self._append_to_vertices(triangles.astype(np.float32), append)
 
     worker = OpenGLWorker()
 
     def render(self) -> bytes:
-        return self.worker.render(self.width, self.height, self.background_rgb,
+        return self.worker.render(self.width, self.height, self.gl_scale, self.gl_offset, self.background_rgb,
                                   np.vstack(self.vertices).astype(np.float32).tobytes() if self.vertices else b'')
 
 

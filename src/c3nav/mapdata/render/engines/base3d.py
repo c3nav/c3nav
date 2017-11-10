@@ -33,7 +33,8 @@ class Base3DEngine(RenderEngine):
             ))
         return vertices
 
-    def _place_geometry(self, geometry: HybridGeometry, append=None):
-        faces = np.vstack(tuple(chain(geometry.faces, *geometry.add_faces.values())))
-        vertices = faces * self.np_scale + self.np_offset
+    def _place_geometry(self, geometry: HybridGeometry, append=None, offset=True):
+        vertices = np.vstack(tuple(chain(geometry.faces, *geometry.add_faces.values())))
+        if offset:
+            vertices = vertices * self.np_scale + self.np_offset
         return self._append_to_vertices(vertices, append)
