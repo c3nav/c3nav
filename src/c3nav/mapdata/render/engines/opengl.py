@@ -144,7 +144,6 @@ class OpenGLEngine(Base3DEngine):
         self.np_offset = np.array((-self.minx * scale_x - 1, self.maxy * scale_y - 1, 0))
 
     def _add_geometry(self, geometry, fill: Optional[FillAttribs], stroke: Optional[StrokeAttribs], **kwargs):
-
         if fill is not None:
             self.vertices.append(self._place_geometry(geometry, self.color_to_rgb(fill.color)))
 
