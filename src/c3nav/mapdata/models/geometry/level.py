@@ -214,7 +214,7 @@ class AltitudeArea(LevelGeometryMixin, models.Model):
                             for subarea in (area, new_area):
                                 spaces_before = subarea.spaces
                                 subarea.spaces = set(space for space in original_spaces
-                                                     if spaces[space].geometry.intersects(subarea.geometry))
+                                                     if subarea.geometry_prep.intersects(spaces[space].geometry))
                                 for space in spaces_before-subarea.spaces:
                                     space_areas[space].remove(subarea)
                                 for space in subarea.spaces-spaces_before:
