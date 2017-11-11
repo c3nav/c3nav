@@ -11,7 +11,7 @@ from scipy.sparse.csgraph._shortest_path import dijkstra
 from shapely import prepared
 from shapely.affinity import scale
 from shapely.geometry import JOIN_STYLE, LineString
-from shapely.ops import cascaded_union
+from shapely.ops import unary_union
 
 from c3nav.mapdata.cache import changed_geometries
 from c3nav.mapdata.fields import GeometryField
@@ -152,7 +152,7 @@ class AltitudeArea(LevelGeometryMixin, models.Model):
             stairs = []
 
             # collect all accessible areas on this level
-            buildings_geom = cascaded_union(tuple(building.geometry for building in level.buildings.all()))
+            buildings_geom = unary_union(tuple(building.geometry for building in level.buildings.all()))
             for space in level.spaces.all():
                 space.orig_geometry = space.geometry
                 if space.outside:
@@ -160,10 +160,10 @@ class AltitudeArea(LevelGeometryMixin, models.Model):
                 spaces[space.pk] = space
                 area = space.geometry
                 buffered = space.geometry.buffer(0.0001)
-                remove = cascaded_union(tuple(c.geometry for c in space.columns.all()) +
-                                        tuple(o.geometry for o in space.obstacles.all()) +
-                                        tuple(o.buffered_geometry for o in space.lineobstacles.all()) +
-                                        tuple(h.geometry for h in space.holes.all()))
+                remove = unary_union(tuple(c.geometry for c in space.columns.all()) +
+                                     tuple(o.geometry for o in space.obstacles.all()) +
+                                     tuple(o.buffered_geometry for o in space.lineobstacles.all()) +
+                                     tuple(h.geometry for h in space.holes.all()))
                 areas.extend(assert_multipolygon(space.geometry.difference(remove)))
                 for stair in space.stairs.all():
                     substairs = tuple(assert_multilinestring(stair.geometry.intersection(buffered).difference(remove)))
@@ -171,7 +171,7 @@ class AltitudeArea(LevelGeometryMixin, models.Model):
                         substair.space = space.pk
                     stairs.extend(substairs)
 
-            areas = assert_multipolygon(cascaded_union(areas+list(door.geometry for door in level.doors.all())))
+            areas = assert_multipolygon(unary_union(areas+list(door.geometry for door in level.doors.all())))
             areas = [AltitudeArea(geometry=area, level=level) for area in areas]
 
             space_areas.update({space.pk: [] for space in level.spaces.all()})
@@ -372,7 +372,7 @@ class AltitudeArea(LevelGeometryMixin, models.Model):
                     altitude_areas.setdefault(area.altitude, []).append(area.geometry)
 
                 for altitude in altitude_areas.keys():
-                    altitude_areas[altitude] = cascaded_union(altitude_areas[altitude])
+                    altitude_areas[altitude] = unary_union(altitude_areas[altitude])
                 for tmpid in contained_areas_without_altitude:
                     area = areas[tmpid]
                     area.altitude = min(altitude_areas.items(), key=lambda aa: aa[1].distance(area.geometry))[0]
@@ -394,25 +394,25 @@ class AltitudeArea(LevelGeometryMixin, models.Model):
             for space in level.spaces.all():
                 space.geometry = space.orig_geometry
 
-            buildings_geom = cascaded_union(tuple(b.geometry for b in level.buildings.all()))
-            doors_geom = cascaded_union(tuple(d.geometry for d in level.doors.all()))
-            space_geom = cascaded_union(tuple((s.geometry if not s.outside else s.geometry.difference(buildings_geom))
-                                              for s in level.spaces.all()))
-            accessible_area = cascaded_union((doors_geom, space_geom))
+            buildings_geom = unary_union(tuple(b.geometry for b in level.buildings.all()))
+            doors_geom = unary_union(tuple(d.geometry for d in level.doors.all()))
+            space_geom = unary_union(tuple((s.geometry if not s.outside else s.geometry.difference(buildings_geom))
+                                           for s in level.spaces.all()))
+            accessible_area = unary_union((doors_geom, space_geom))
             for space in level.spaces.all():
                 accessible_area = accessible_area.difference(space.geometry.intersection(
-                    cascaded_union(tuple(h.geometry for h in space.holes.all()))
+                    unary_union(tuple(h.geometry for h in space.holes.all()))
                 ))
 
             areas_by_altitude = {}
             for tmpid in level_areas.get(level, []):
                 area = areas[tmpid]
                 areas_by_altitude.setdefault(area.altitude, []).append(area.geometry.buffer(0.01))
-            areas_by_altitude = {altitude: [cascaded_union(alt_areas)]
+            areas_by_altitude = {altitude: [unary_union(alt_areas)]
                                  for altitude, alt_areas in areas_by_altitude.items()}
 
             accessible_area = accessible_area.difference(
-                cascaded_union(tuple(itertools.chain(*areas_by_altitude.values())))
+                unary_union(tuple(itertools.chain(*areas_by_altitude.values())))
             )
 
             stairs = []
@@ -434,7 +434,7 @@ class AltitudeArea(LevelGeometryMixin, models.Model):
                             scaled = scale(line, xfact=fact, yfact=fact)
                             stairs.append(scaled.buffer(0.0001, JOIN_STYLE.mitre).intersection(geom.buffer(0.0001)))
                 if stairs:
-                    stairs = cascaded_union(stairs)
+                    stairs = unary_union(stairs)
                     remaining_space = remaining_space.difference(stairs)
 
                 for polygon in assert_multipolygon(remaining_space.buffer(0)):
@@ -452,7 +452,7 @@ class AltitudeArea(LevelGeometryMixin, models.Model):
 
                     # plot_geometry(remaining_space, title=space.title)
 
-            areas_by_altitude = {altitude: cascaded_union(alt_areas)
+            areas_by_altitude = {altitude: unary_union(alt_areas)
                                  for altitude, alt_areas in areas_by_altitude.items()}
 
             level_areas[level] = [AltitudeArea(level=level, geometry=geometry, altitude=altitude)
