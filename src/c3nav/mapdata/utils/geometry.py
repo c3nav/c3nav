@@ -12,7 +12,7 @@ if speedups.available:
 
 
 @checks.register()
-def check_svg_renderer(app_configs, **kwargs):
+def check_speedups(app_configs, **kwargs):
     errors = []
     if not speedups.available:
         errors.append(
