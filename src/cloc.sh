@@ -1,2 +1,2 @@
-cloc --exclude-dir=bootstrap,leaflet,jquery,migrations --not-match-f='typeahead' .
+cloc --exclude-dir=bootstrap,leaflet,jquery,milligram,normalize,migrations .
 
