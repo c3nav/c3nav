@@ -489,7 +489,7 @@ c3nav = {
     _add_icon: function (name) {
         c3nav[name+'Icon'] = new L.Icon({
             iconUrl: '/static/img/marker-icon-'+name+'.png',
-            iconRetinaUrl: '/static/img/marker-icon-\'+name+\'-2x.png',
+            iconRetinaUrl: '/static/img/marker-icon-'+name+'-2x.png',
             shadowUrl: '/static/leaflet/images/marker-shadow.png',
             iconSize: [25, 41],
             iconAnchor: [12, 41],
