@@ -78,6 +78,7 @@ main.map {
 }
 
 #search {
+    transition: margin-bottom 150ms, opacity 150ms;
     z-index: 4;
 }
 
@@ -88,7 +89,8 @@ main:not([data-view^=route]) #origin-input {
     opacity: 0;
 }
 main:not([data-view=location]) #location-buttons,
-main:not([data-view=route-search]) #route-search-buttons {
+main:not([data-view=route-search]) #route-search-buttons,
+main:not([data-view=route-result]) #route-result-buttons{
     margin-bottom: -3.3rem;
     pointer-events: none;
     opacity: 0;
@@ -149,7 +151,7 @@ main:not([data-view=route-search]) #route-search-buttons {
 .locationinput.selected input {
     padding-bottom: 24px;
 }
-.locationinput button, #route-summary button {
+.locationinput button {
     position: absolute;
     top: 6px;
     right: 6px;
@@ -219,29 +221,43 @@ main:not([data-view=route-search]) #route-search-buttons {
     background-color: #eeeeee;
 }
 
-#route-header {
+#route-summary > div:first-child {
+    padding: 10px;
+}
+#route-summary > div > span {
+    display: block;
+    white-space: nowrap;
+    min-width: 50%;
+}
+#route-summary > div > span:not(:last-child) {
+    padding-bottom: 5px;
+}
+#route-summary small {
+    display: block;
+    white-space: nowrap;
+    line-height: 1.1;
+}
+
+#route-summary {
     transition: margin-top 150ms, opacity 150ms;
     z-index: 3;
 }
-main:not([data-view=route-result]) #route-header {
-    margin-top: -97px;
+main:not([data-view=route-result]) #route-summary,
+main:not(.summary-only) #route-summary {
+    margin-top: -163px;
+    opacity: 0;
+    pointer-events: none;
+}
+main[data-view=route-result].summary-only #search {
+    margin-bottom: -142px;
     opacity: 0;
     pointer-events: none;
 }
 
-#route-summary {
-    height: 55px;
-    padding: 6px 10px;
-    position: relative;
-}
-#route-summary > * {
-    display: block;
-    white-space: nowrap;
-}
-#route-summary > small {
-    display: block;
-    white-space: nowrap;
-    line-height: 1.1;
+@media (min-width: 1000px) {
+    button.show-map {
+        display: none;
+    }
 }
 
 /* leaftlet levels control */
