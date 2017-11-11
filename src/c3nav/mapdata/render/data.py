@@ -482,15 +482,28 @@ class LevelGeometries:
             subfaces = self.faces[np.array(tuple(subfaces))]
             segments = subfaces[:, (0, 1, 1, 2, 2, 0)].reshape((-1, 2))
             edges = set(edge for edge, num in Counter(tuple(a) for a in np.sort(segments, axis=1)).items() if num == 1)
-            edges = {a: b for a, b in segments if (a, b) in edges or (b, a) in edges}
+            new_edges = {}
+            for a, b in segments:
+                if (a, b) in edges or (b, a) in edges:
+                    new_edges.setdefault(a, deque()).append(b)
+            edges = new_edges
+            double_points = [a for a, bs in edges.items() if len(bs) > 1]
             while edges:
                 new_ring = deque()
-                start, last = next(iter(edges.items()))
-                edges.pop(start)
+                if double_points:
+                    start = double_points.pop()
+                else:
+                    start = next(iter(edges.keys()))
+                last = edges[start].pop()
+                if not edges[start]:
+                    edges.pop(start)
                 new_ring.append(start)
                 while start != last:
                     new_ring.append(last)
-                    last = edges.pop(last)
+                    new_last = edges[last].pop()
+                    if not edges[last]:
+                        edges.pop(last)
+                    last = new_last
                 new_ring = np.array(new_ring, dtype=np.int64)
                 boundaries.append(tuple(zip(chain((new_ring[-1], ), new_ring), new_ring)))
         boundaries = np.vstack(boundaries)
