@@ -91,7 +91,7 @@ c3nav = {
         } else {
             view = state.destination ? 'location' : 'search';
             if (state.origin) {
-                c3nav._locationinput_set($('#origin_input'), null);
+                c3nav._locationinput_set($('#origin-input'), null);
             }
         }
         c3nav._view = view;
