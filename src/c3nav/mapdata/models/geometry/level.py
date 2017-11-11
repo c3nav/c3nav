@@ -8,6 +8,7 @@ from django.urls import reverse
 from django.utils.text import format_lazy
 from django.utils.translation import ugettext_lazy as _
 from scipy.sparse.csgraph._shortest_path import dijkstra
+from shapely import prepared
 from shapely.affinity import scale
 from shapely.geometry import JOIN_STYLE, LineString
 from shapely.ops import cascaded_union
@@ -179,8 +180,9 @@ class AltitudeArea(LevelGeometryMixin, models.Model):
             for area in areas:
                 area.spaces = set()
                 area.connected_to = []
+                area.geometry_prep = prepared.prep(area.geometry)
                 for space in level.spaces.all():
-                    if area.geometry.intersects(space.geometry):
+                    if area.geometry_prep.intersects(space.geometry):
                         area.spaces.add(space.pk)
                         space_areas[space.pk].append(area)
 
@@ -188,15 +190,17 @@ class AltitudeArea(LevelGeometryMixin, models.Model):
             identical_steps = False
             for stair in stairs:
                 for area in space_areas[stair.space]:
-                    if not stair.intersects(area.geometry):
+                    if not area.geometry_prep.intersects(stair):
                         continue
 
                     divided = assert_multipolygon(area.geometry.difference(stair.buffer(0.0001)))
                     if len(divided) > 2:
                         raise ValueError
                     area.geometry = divided[0]
+                    area.geometry_prep = prepared.prep(divided[0])
                     if len(divided) == 2:
                         new_area = AltitudeArea(geometry=divided[1], level=level)
+                        new_area.geometry_prep = prepared.prep(divided[1])
                         new_area.spaces = set()
                         new_area.connected_to = [area]
                         area.connected_to.append(new_area)
@@ -221,12 +225,12 @@ class AltitudeArea(LevelGeometryMixin, models.Model):
                         buffer_new_area = new_area.geometry.buffer(0.0005, join_style=JOIN_STYLE.mitre)
                         remove_area_connected_to = []
                         for other_area in area.connected_to:
-                            if not buffer_area.intersects(other_area.geometry):
+                            if not other_area.geometry_prep.intersects(buffer_area):
                                 new_area.connected_to.append(other_area)
                                 remove_area_connected_to.append(other_area)
                                 other_area.connected_to.remove(area)
                                 other_area.connected_to.append(new_area)
-                            elif other_area != new_area and buffer_new_area.intersects(other_area.geometry):
+                            elif other_area != new_area and other_area.geometry_prep.intersects(buffer_new_area):
                                 new_area.connected_to.append(other_area)
                                 other_area.connected_to.append(new_area)
 
@@ -243,7 +247,7 @@ class AltitudeArea(LevelGeometryMixin, models.Model):
             for space in level.spaces.all():
                 for altitudemarker in space.altitudemarkers.all():
                     for area in space_areas[space.pk]:
-                        if area.geometry.contains(altitudemarker.geometry):
+                        if area.geometry_prep.contains(altitudemarker.geometry):
                             area.altitude = altitudemarker.altitude
                             break
                     else:
