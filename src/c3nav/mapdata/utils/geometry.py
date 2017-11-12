@@ -53,9 +53,9 @@ def assert_multipolygon(geometry):
 
 def assert_multilinestring(geometry):
     """
-    given a Geometry or GeometryCollection, return a list of Geometries
-    :param geometry: a Geometry or a GeometryCollection
-    :return: a list of Geometries
+    given a LineString or MultiLineString, return a list of LineStrings
+    :param geometry: a LineString or a MultiLineString
+    :return: a list of LineStrings
     """
     if geometry.is_empty:
         return []
