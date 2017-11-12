@@ -61,7 +61,7 @@ def assert_multilinestring(geometry):
         return []
     if isinstance(geometry, LineString):
         return [geometry]
-    return geometry.geoms
+    return [geom for geom in geometry.geoms if isinstance(geom, LineString)]
 
 
 def plot_geometry(geom, title=None, bounds=None):
