@@ -218,11 +218,6 @@ def cut_polygon_with_line(polygon: Polygon, line: LineString):
 
         # if we cut through emptiness, continue
         if not (angle_backwards < angle_segment < angle_forwards):
-
-            print('backwards', point_backwards, math.degrees(angle_backwards))
-            print('forwards', point_forwards, math.degrees(angle_forwards))
-            print('segment', last.point, math.degrees(angle_segment))
-            print('nope')
             last = current
             continue
 
