@@ -154,77 +154,84 @@ def cut_polygon_with_line(polygon: Polygon, line: LineString):
     last = points.popleft()
     while points:
         current = points.popleft()
-        if current.polygon == last.polygon:
-            polygon = polygons[current.polygon]
-            segment = cut_line_with_point(cut_line_with_point(line, last.point)[-1], current.point)[0]
-            if current.ring != last.ring:
-                # connect rings
-                ring1 = cut_line_with_point(polygon[last.ring], last.point)
-                ring2 = cut_line_with_point(polygon[current.ring], current.point)
-                new_ring = LinearRing(ring1[1].coords[:-1] + ring1[0].coords[:-1] + segment.coords[:-1] +
-                                      ring2[1].coords[:-1] + ring2[0].coords[:-1] + segment.coords[::-1])
-                if current.ring == 0 or last.ring == 0:
-                    new_i = 0
-                    polygon[0] = new_ring
-                    interior = current.ring if last.ring == 0 else last.ring
-                    polygon[interior] = None
-                    mapping = {interior: new_i}
-                else:
-                    new_i = len(polygon)
-                    mapping = {last.ring: new_i, current.ring: new_i}
-                    polygon.append(new_ring)
-                    polygon[last.ring] = None
-                    polygon[current.ring] = None
 
-                points = deque((cutpoint(item.point, item.polygon, mapping[item.ring])
-                                if (item.polygon == current.polygon and item.ring in mapping) else item)
-                               for item in points)
-                current = cutpoint(current.point, current.polygon, new_i)
+        # don't to anything between different polygons
+        if current.polygon != last.polygon:
+            last = current
+            continue
 
-            elif current.ring == 0:
-                # cut polygon
-                new_i = len(polygons)
-                exterior = cut_line_with_point(polygon[0], current.point)
-                exterior = cut_line_with_point(LinearRing(exterior[1].coords[:-1] +
-                                                          exterior[0].coords[0:]), last.point)
+        polygon = polygons[current.polygon]
+        segment = cut_line_with_point(cut_line_with_point(line, last.point)[-1], current.point)[0]
+        if current.ring != last.ring:
+            # connect rings
+            ring1 = cut_line_with_point(polygon[last.ring], last.point)
+            ring2 = cut_line_with_point(polygon[current.ring], current.point)
+            new_ring = LinearRing(ring1[1].coords[:-1] + ring1[0].coords[:-1] + segment.coords[:-1] +
+                                  ring2[1].coords[:-1] + ring2[0].coords[:-1] + segment.coords[::-1])
+            if current.ring == 0 or last.ring == 0:
+                new_i = 0
+                polygon[0] = new_ring
+                interior = current.ring if last.ring == 0 else last.ring
+                polygon[interior] = None
+                mapping = {interior: new_i}
+            else:
+                new_i = len(polygon)
+                mapping = {last.ring: new_i, current.ring: new_i}
+                polygon.append(new_ring)
+                polygon[last.ring] = None
+                polygon[current.ring] = None
 
-                point_forwards = exterior[1].coords[1]
-                point_backwards = exterior[0].coords[-2]
-                angle_forwards = math.atan2(point_forwards[0] - last.point.x, point_forwards[1] - last.point.y)
-                angle_backwards = math.atan2(point_backwards[0] - last.point.x, point_backwards[1] - last.point.y)
-                angle_segment = math.atan2(current.point.x - last.point.x, current.point.y - last.point.y)
+            points = deque((cutpoint(item.point, item.polygon, mapping[item.ring])
+                            if (item.polygon == current.polygon and item.ring in mapping) else item)
+                           for item in points)
+            last = cutpoint(current.point, current.polygon, new_i)
+            continue
 
-                while angle_forwards <= angle_backwards:
-                    angle_forwards += 2*math.pi
-                if angle_segment < angle_backwards:
-                    while angle_segment < angle_backwards:
-                        angle_segment += 2*math.pi
-                else:
-                    while angle_segment > angle_forwards:
-                        angle_segment -= 2*math.pi
+        # cut polygon?
+        new_i = len(polygons)
+        exterior = cut_line_with_point(polygon[0], current.point)
+        exterior = cut_line_with_point(LinearRing(exterior[1].coords[:-1] +
+                                                  exterior[0].coords[0:]), last.point)
 
-                # cut polygon only if segment is inside polygon
-                if angle_backwards < angle_segment < angle_forwards:
-                    exterior1 = LinearRing(exterior[0].coords[:-1] + segment.coords[0:])
-                    exterior2 = LinearRing(exterior[1].coords[:-1] + segment.coords[::-1])
-                    geom = Polygon(exterior1)
-                    polygon[0] = exterior1
-                    new_polygon = [exterior2]
-                    polygons.append(new_polygon)
-                    mapping = {}
-                    for i, interior in enumerate(polygon[1:]):
-                        if interior is not None and not geom.contains(interior):
-                            mapping[i] = len(new_polygon)
-                            new_polygon.append(interior)
+        point_forwards = exterior[1].coords[1]
+        point_backwards = exterior[0].coords[-2]
+        angle_forwards = math.atan2(point_forwards[0] - last.point.x, point_forwards[1] - last.point.y)
+        angle_backwards = math.atan2(point_backwards[0] - last.point.x, point_backwards[1] - last.point.y)
+        angle_segment = math.atan2(current.point.x - last.point.x, current.point.y - last.point.y)
 
-                    points = deque((cutpoint(item.point, new_i, mapping[item.ring])
-                                    if (item.polygon == current.polygon and item.ring in mapping) else item)
-                                   for item in points)
-                    points = deque((cutpoint(item.point, new_i, 0)
-                                    if (item.polygon == current.polygon and item.ring == 0 and
-                                        not exterior1.contains(item.point)) else item)
-                                   for item in points)
-                    current = cutpoint(current.point, new_i, 0)
-        last = current
+        while angle_forwards <= angle_backwards:
+            angle_forwards += 2*math.pi
+        if angle_segment < angle_backwards:
+            while angle_segment < angle_backwards:
+                angle_segment += 2*math.pi
+        else:
+            while angle_segment > angle_forwards:
+                angle_segment -= 2*math.pi
+
+        # don't cut polygon if segment is not inside polygon (= we don't cut through emptyness)
+        if not (angle_backwards < angle_segment < angle_forwards):
+            last = current
+            continue
+
+        exterior1 = LinearRing(exterior[0].coords[:-1] + segment.coords[0:])
+        exterior2 = LinearRing(exterior[1].coords[:-1] + segment.coords[::-1])
+        geom = Polygon(exterior1)
+        polygon[0] = exterior1
+        new_polygon = [exterior2]
+        polygons.append(new_polygon)
+        mapping = {}
+        for i, interior in enumerate(polygon[1:]):
+            if interior is not None and not geom.contains(interior):
+                mapping[i] = len(new_polygon)
+                new_polygon.append(interior)
+
+        points = deque((cutpoint(item.point, new_i, mapping[item.ring])
+                        if (item.polygon == current.polygon and item.ring in mapping) else item)
+                       for item in points)
+        points = deque((cutpoint(item.point, new_i, 0)
+                        if (item.polygon == current.polygon and item.ring == 0 and
+                            not exterior1.contains(item.point)) else item)
+                       for item in points)
+        last = cutpoint(current.point, new_i, 0)
     return tuple(Polygon(polygon[0], tuple(ring for ring in polygon[1:] if ring is not None))
                  for polygon in polygons)
