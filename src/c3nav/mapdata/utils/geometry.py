@@ -266,7 +266,6 @@ def cut_polygon_with_line(polygon: Polygon, line: LineString):
 
 
 def clean_cut_polygon(polygon: Polygon) -> Polygon:
-    polygon = orient(polygon)
     interiors = []
     interiors.extend(cut_ring(polygon.exterior))
     exteriors = [(i, ring) for (i, ring) in enumerate(interiors) if ring.is_ccw]

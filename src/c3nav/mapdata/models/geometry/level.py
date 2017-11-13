@@ -11,6 +11,7 @@ from scipy.sparse.csgraph._shortest_path import dijkstra
 from shapely import prepared
 from shapely.affinity import scale
 from shapely.geometry import JOIN_STYLE, LineString, MultiPolygon
+from shapely.geometry.polygon import orient
 from shapely.ops import unary_union
 
 from c3nav.mapdata.cache import changed_geometries
@@ -165,7 +166,8 @@ class AltitudeArea(LevelGeometryMixin, models.Model):
                                 tuple(o.buffered_geometry for o in space.lineobstacles.all()) +
                                 tuple(h.geometry for h in space.holes.all()))
                 ))
-            areas = unary_union(areas+list(door.geometry for door in level.doors.all()))
+
+            areas = orient(unary_union(areas+list(door.geometry for door in level.doors.all())))
 
             # collect all stairs on this level
             for space in level.spaces.all():
