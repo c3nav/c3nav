@@ -79,7 +79,11 @@ class GeometryField(models.TextField):
         json_value = format_geojson(mapping(value))
         rounded_value = shape(json_value)
         if not rounded_value.is_valid:
-            json_value = format_geojson(mapping(rounded_value.buffer(0)), round=False)
+            rounded_value = rounded_value.buffer(0)
+            if not rounded_value.is_empty:
+                json_value = format_geojson(mapping(rounded_value), round=False)
+            else:
+                json_value = format_geojson(mapping(value), round=False)
         return json.dumps(json_value)
 
     def value_to_string(self, obj):
