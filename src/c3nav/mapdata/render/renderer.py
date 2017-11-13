@@ -98,9 +98,16 @@ class MapRenderer:
             ).union(add_walls)
 
             if not self.full_levels and engine.is_3d:
-                engine.add_geometry(geoms.level_base, fill=FillAttribs('#aaaaaa'))
+                engine.add_geometry(geoms.walls_base, fill=FillAttribs('#aaaaaa'))
                 if min_altitude < geoms.min_altitude:
-                    engine.add_geometry(geoms.optional_base.fit(min_altitude, geoms.min_altitude+0.05),
+                    engine.add_geometry(geoms.walls_bottom.fit(scale=geoms.min_altitude-min_altitude,
+                                                               offset=min_altitude),
+                                        fill=FillAttribs('#aaaaaa'))
+                for altitudearea in geoms.altitudeareas:
+                    bottom = float(altitudearea.altitude) - 0.7
+                    scale = (bottom - min_altitude) / 0.7
+                    offset = min_altitude - bottom * scale
+                    engine.add_geometry(altitudearea.geometry.fit(scale=scale, offset=offset),
                                         fill=FillAttribs('#aaaaaa'))
 
             # render altitude areas in default ground color and add ground colors to each one afterwards
