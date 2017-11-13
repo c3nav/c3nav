@@ -19,7 +19,8 @@ from c3nav.mapdata.models import Level
 from c3nav.mapdata.models.access import AccessRestrictionMixin
 from c3nav.mapdata.models.geometry.base import GeometryMixin
 from c3nav.mapdata.models.locations import SpecificLocation
-from c3nav.mapdata.utils.geometry import assert_multilinestring, assert_multipolygon, clean_geometry
+from c3nav.mapdata.utils.geometry import (assert_multilinestring, assert_multipolygon, clean_geometry,
+                                          cut_polygon_with_line)
 
 
 class LevelGeometryMixin(GeometryMixin):
@@ -193,7 +194,7 @@ class AltitudeArea(LevelGeometryMixin, models.Model):
                     if not area.geometry_prep.intersects(stair):
                         continue
 
-                    divided = assert_multipolygon(area.geometry.difference(stair.buffer(0.0001)))
+                    divided = assert_multipolygon(cut_polygon_with_line(area.geometry, stair))
                     if len(divided) > 2:
                         raise ValueError
                     area.geometry = divided[0]
