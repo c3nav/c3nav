@@ -167,7 +167,9 @@ class AltitudeArea(LevelGeometryMixin, models.Model):
                                 tuple(h.geometry for h in space.holes.all()))
                 ))
 
-            areas = orient(unary_union(areas+list(door.geometry for door in level.doors.all())))
+            areas = MultiPolygon(tuple(orient(polygon) for polygon in assert_multipolygon(
+                unary_union(areas+list(door.geometry for door in level.doors.all())))
+            ))
 
             # collect all stairs on this level
             for space in level.spaces.all():
