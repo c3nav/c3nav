@@ -487,7 +487,7 @@ class LevelGeometries:
                 if (a, b) in edges or (b, a) in edges:
                     new_edges.setdefault(a, deque()).append(b)
             edges = new_edges
-            double_points = [a for a, bs in edges.items() if len(bs) > 1]
+            double_points = set(a for a, bs in edges.items() if len(bs) > 1)
             while edges:
                 new_ring = deque()
                 if double_points:
@@ -500,6 +500,7 @@ class LevelGeometries:
                 new_ring.append(start)
                 while start != last:
                     new_ring.append(last)
+                    double_points.discard(last)
                     new_last = edges[last].pop()
                     if not edges[last]:
                         edges.pop(last)
