@@ -188,13 +188,12 @@ class AltitudeArea(LevelGeometryMixin, models.Model):
                         space_areas[space.pk].append(area)
 
             # divide areas using stairs
-            identical_steps = False
             for stair in stairs:
                 for area in space_areas[stair.space]:
                     if not area.geometry_prep.intersects(stair):
                         continue
 
-                    divided = assert_multipolygon(cut_polygon_with_line(area.geometry, stair))
+                    divided = cut_polygon_with_line(area.geometry, stair)
                     if len(divided) > 2:
                         raise ValueError
                     area.geometry = divided[0]
@@ -222,27 +221,20 @@ class AltitudeArea(LevelGeometryMixin, models.Model):
                                     space_areas[space].append(subarea)
 
                         # update area connections
-                        buffer_area = area.geometry.buffer(0.0005, join_style=JOIN_STYLE.mitre)
-                        buffer_new_area = new_area.geometry.buffer(0.0005, join_style=JOIN_STYLE.mitre)
                         remove_area_connected_to = []
                         for other_area in area.connected_to:
-                            if not other_area.geometry_prep.intersects(buffer_area):
+                            if not other_area.geometry_prep.intersects(area.geometry):
                                 new_area.connected_to.append(other_area)
                                 remove_area_connected_to.append(other_area)
                                 other_area.connected_to.remove(area)
                                 other_area.connected_to.append(new_area)
-                            elif other_area != new_area and other_area.geometry_prep.intersects(buffer_new_area):
+                            elif other_area != new_area and other_area.geometry_prep.intersects(new_area.geometry):
                                 new_area.connected_to.append(other_area)
                                 other_area.connected_to.append(new_area)
 
                         for other_area in remove_area_connected_to:
                             area.connected_to.remove(other_area)
                     break
-                else:
-                    identical_steps = True
-
-            if identical_steps:
-                print('There are propably identical stairs in your data.')
 
             # give altitudes to areas
             for space in level.spaces.all():
