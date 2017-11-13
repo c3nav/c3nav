@@ -187,6 +187,7 @@ def cut_polygon_with_line(polygon: Polygon, line: LineString):
                 polygon[last.ring] = None
                 polygon[current.ring] = None
 
+            # fix all remaining cut points that refer to the rings we just joined to point the the correct ring
             points = deque((cutpoint(item.point, item.polygon, mapping[item.ring])
                             if (item.polygon == current.polygon and item.ring in mapping) else item)
                            for item in points)
