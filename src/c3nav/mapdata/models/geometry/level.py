@@ -375,12 +375,12 @@ class AltitudeArea(LevelGeometryMixin, models.Model):
             areas_by_altitude = {}
             for tmpid in level_areas.get(level, []):
                 area = areas[tmpid]
-                areas_by_altitude.setdefault(area.altitude, []).append(area.geometry.buffer(0.01))
+                areas_by_altitude.setdefault(area.altitude, []).append(area.geometry)
             areas_by_altitude = {altitude: [unary_union(alt_areas)]
                                  for altitude, alt_areas in areas_by_altitude.items()}
 
             accessible_area = accessible_area.difference(
-                unary_union(tuple(chain(*areas_by_altitude.values())))
+                unary_union(tuple(chain(*areas_by_altitude.values()))).buffer(0.00001)
             )
 
             stairs = []
@@ -392,7 +392,8 @@ class AltitudeArea(LevelGeometryMixin, models.Model):
                 if remaining_space.is_empty:
                     continue
 
-                max_len = ((geom.bounds[0] - geom.bounds[2]) ** 2 + (geom.bounds[1] - geom.bounds[3]) ** 2) ** 0.5
+                bounds = geom.bounds
+                max_len = ((bounds[0] - bounds[2]) ** 2 + (bounds[1] - bounds[3]) ** 2) ** 0.5
                 stairs = []
                 for stair in space.stairs.all():
                     for substair in assert_multilinestring(stair.geometry):
@@ -400,25 +401,27 @@ class AltitudeArea(LevelGeometryMixin, models.Model):
                             line = LineString([coord1, coord2])
                             fact = (max_len * 3) / line.length
                             scaled = scale(line, xfact=fact, yfact=fact)
-                            stairs.append(scaled.buffer(0.0001, JOIN_STYLE.mitre).intersection(geom.buffer(0.0001)))
-                if stairs:
-                    stairs = unary_union(stairs)
-                    remaining_space = remaining_space.difference(stairs)
+                            stairs.append(scaled)
 
-                for polygon in assert_multipolygon(remaining_space.buffer(0)):
+                remaining_space = MultiPolygon(tuple(
+                    orient(polygon) for polygon in assert_multipolygon(remaining_space)
+                ))
+                for stair in stairs:
+                    remaining_space = MultiPolygon(cut_polygon_with_line(remaining_space, stair))
+
+                for polygon in assert_multipolygon(remaining_space):
+                    polygon = clean_cut_polygon(polygon)
+
                     center = polygon.centroid
-                    buffered = polygon.buffer(0.001, JOIN_STYLE.mitre)
-                    touches = tuple((altitude, buffered.intersection(alt_areas[0]).area)
+                    touches = tuple((altitude, polygon.intersection(alt_areas[0]).length)
                                     for altitude, alt_areas in areas_by_altitude.items()
-                                    if buffered.intersects(alt_areas[0]))
+                                    if polygon.intersects(alt_areas[0]))
                     if touches:
                         max_intersection = max(touches, key=itemgetter(1))[1]
                         altitude = max(altitude for altitude, area in touches if area > max_intersection / 2)
                     else:
                         altitude = min(areas_by_altitude.items(), key=lambda a: a[1][0].distance(center))[0]
-                    areas_by_altitude[altitude].append(polygon.buffer(0.001, JOIN_STYLE.mitre))
-
-                    # plot_geometry(remaining_space, title=space.title)
+                    areas_by_altitude[altitude].append(polygon)
 
             areas_by_altitude = {altitude: unary_union(alt_areas)
                                  for altitude, alt_areas in areas_by_altitude.items()}

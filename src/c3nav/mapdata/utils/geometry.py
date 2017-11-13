@@ -132,7 +132,7 @@ def cut_line_with_point(line: LineString, point: Point):
                     LineString(pointlist + line.coords[i+(1 if subdistance == distance else 0):]))
 
 
-def cut_polygon_with_line(polygon: Polygon, line: LineString):
+def cut_polygon_with_line(polygon: Union[Polygon, MultiPolygon], line: LineString):
     orig_polygon = polygon
     polygons = (orient(polygon) for polygon in assert_multipolygon(polygon))
     polygons: List[List[LinearRing]] = [[polygon.exterior, *polygon.interiors] for polygon in polygons]
