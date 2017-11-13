@@ -472,7 +472,7 @@ class LevelGeometries:
 
     def _create_polyhedron(self, faces, bottom=None, top=None, crops=None):
         if not any(faces):
-            return
+            return ()
 
         # collect rings/boundaries
         boundaries = deque()
