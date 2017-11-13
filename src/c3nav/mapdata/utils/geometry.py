@@ -133,6 +133,7 @@ def cut_line_with_point(line: LineString, point: Point):
 
 
 def cut_polygon_with_line(polygon: Polygon, line: LineString):
+    orig_polygon = polygon
     polygons = (orient(polygon) for polygon in assert_multipolygon(polygon))
     polygons: List[List[LinearRing]] = [[polygon.exterior, *polygon.interiors] for polygon in polygons]
 
@@ -152,6 +153,9 @@ def cut_polygon_with_line(polygon: Polygon, line: LineString):
 
     # sort the points by distance along the line
     points = deque(sorted(points, key=lambda p: line.project(p.point)))
+
+    if not points:
+        return orig_polygon
 
     # go through all points and cut pair-wise
     last = points.popleft()
@@ -262,6 +266,7 @@ def cut_polygon_with_line(polygon: Polygon, line: LineString):
 
 
 def clean_cut_polygon(polygon: Polygon) -> Polygon:
+    polygon = orient(polygon)
     interiors = []
     interiors.extend(cut_ring(polygon.exterior))
     exteriors = [(i, ring) for (i, ring) in enumerate(interiors) if ring.is_ccw]

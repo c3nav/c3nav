@@ -1,4 +1,4 @@
-import itertools
+from itertools import chain, combinations
 from operator import attrgetter, itemgetter
 
 import numpy as np
@@ -10,7 +10,7 @@ from django.utils.translation import ugettext_lazy as _
 from scipy.sparse.csgraph._shortest_path import dijkstra
 from shapely import prepared
 from shapely.affinity import scale
-from shapely.geometry import JOIN_STYLE, LineString
+from shapely.geometry import JOIN_STYLE, LineString, MultiPolygon
 from shapely.ops import unary_union
 
 from c3nav.mapdata.cache import changed_geometries
@@ -19,7 +19,7 @@ from c3nav.mapdata.models import Level
 from c3nav.mapdata.models.access import AccessRestrictionMixin
 from c3nav.mapdata.models.geometry.base import GeometryMixin
 from c3nav.mapdata.models.locations import SpecificLocation
-from c3nav.mapdata.utils.geometry import (assert_multilinestring, assert_multipolygon, clean_geometry,
+from c3nav.mapdata.utils.geometry import (assert_multilinestring, assert_multipolygon, clean_cut_polygon,
                                           cut_polygon_with_line)
 
 
@@ -155,86 +155,46 @@ class AltitudeArea(LevelGeometryMixin, models.Model):
             # collect all accessible areas on this level
             buildings_geom = unary_union(tuple(building.geometry for building in level.buildings.all()))
             for space in level.spaces.all():
+                spaces[space.pk] = space
                 space.orig_geometry = space.geometry
                 if space.outside:
                     space.geometry = space.geometry.difference(buildings_geom)
-                spaces[space.pk] = space
-                area = space.geometry
-                buffered = space.geometry.buffer(0.0001)
-                remove = unary_union(tuple(c.geometry for c in space.columns.all()) +
-                                     tuple(o.geometry for o in space.obstacles.all()) +
-                                     tuple(o.buffered_geometry for o in space.lineobstacles.all()) +
-                                     tuple(h.geometry for h in space.holes.all()))
-                areas.extend(assert_multipolygon(space.geometry.difference(remove)))
+                areas.append(space.geometry.difference(
+                    unary_union(tuple(c.geometry for c in space.columns.all()) +
+                                tuple(o.geometry for o in space.obstacles.all()) +
+                                tuple(o.buffered_geometry for o in space.lineobstacles.all()) +
+                                tuple(h.geometry for h in space.holes.all()))
+                ))
+            areas = unary_union(areas+list(door.geometry for door in level.doors.all()))
+
+            # collect all stairs on this level
+            for space in level.spaces.all():
                 for stair in space.stairs.all():
-                    substairs = tuple(assert_multilinestring(stair.geometry.intersection(buffered).difference(remove)))
-                    for substair in substairs:
-                        substair.space = space.pk
-                    stairs.extend(substairs)
+                    stairs.extend(assert_multilinestring(
+                        stair.geometry.intersection(space.geometry.buffer(0.001, join_style=JOIN_STYLE.mitre))
+                    ))
 
-            areas = assert_multipolygon(unary_union(areas+list(door.geometry for door in level.doors.all())))
-            areas = [AltitudeArea(geometry=area, level=level) for area in areas]
+            # divide areas using stairs
+            for stair in stairs:
+                areas = MultiPolygon(cut_polygon_with_line(areas, stair))
 
-            space_areas.update({space.pk: [] for space in level.spaces.all()})
+            # create altitudearea objects
+            areas = [AltitudeArea(geometry=clean_cut_polygon(area), level=level)
+                     for area in assert_multipolygon(areas)]
+
+            # prepare area geometries
+            for area in areas:
+                area.geometry_prep = prepared.prep(area.geometry)
 
             # assign spaces to areas
+            space_areas.update({space.pk: [] for space in level.spaces.all()})
             for area in areas:
                 area.spaces = set()
-                area.connected_to = []
                 area.geometry_prep = prepared.prep(area.geometry)
                 for space in level.spaces.all():
                     if area.geometry_prep.intersects(space.geometry):
                         area.spaces.add(space.pk)
                         space_areas[space.pk].append(area)
-
-            # divide areas using stairs
-            for stair in stairs:
-                for area in space_areas[stair.space]:
-                    if not area.geometry_prep.intersects(stair):
-                        continue
-
-                    divided = cut_polygon_with_line(area.geometry, stair)
-                    if len(divided) > 2:
-                        raise ValueError
-                    area.geometry = divided[0]
-                    area.geometry_prep = prepared.prep(divided[0])
-                    if len(divided) == 2:
-                        new_area = AltitudeArea(geometry=divided[1], level=level)
-                        new_area.geometry_prep = prepared.prep(divided[1])
-                        new_area.spaces = set()
-                        new_area.connected_to = [area]
-                        area.connected_to.append(new_area)
-                        areas.append(new_area)
-                        original_spaces = area.spaces
-                        if len(area.spaces) == 1:
-                            new_area.spaces = area.spaces
-                            space_areas[next(iter(area.spaces))].append(new_area)
-                        else:
-                            # update area spaces
-                            for subarea in (area, new_area):
-                                spaces_before = subarea.spaces
-                                subarea.spaces = set(space for space in original_spaces
-                                                     if subarea.geometry_prep.intersects(spaces[space].geometry))
-                                for space in spaces_before-subarea.spaces:
-                                    space_areas[space].remove(subarea)
-                                for space in subarea.spaces-spaces_before:
-                                    space_areas[space].append(subarea)
-
-                        # update area connections
-                        remove_area_connected_to = []
-                        for other_area in area.connected_to:
-                            if not other_area.geometry_prep.intersects(area.geometry):
-                                new_area.connected_to.append(other_area)
-                                remove_area_connected_to.append(other_area)
-                                other_area.connected_to.remove(area)
-                                other_area.connected_to.append(new_area)
-                            elif other_area != new_area and other_area.geometry_prep.intersects(new_area.geometry):
-                                new_area.connected_to.append(other_area)
-                                other_area.connected_to.append(new_area)
-
-                        for other_area in remove_area_connected_to:
-                            area.connected_to.remove(other_area)
-                    break
 
             # give altitudes to areas
             for space in level.spaces.all():
@@ -246,12 +206,23 @@ class AltitudeArea(LevelGeometryMixin, models.Model):
                     else:
                         raise ValueError(space.title)
 
+            # determine altitude area connections
+            for area in areas:
+                area.connected_to = []
+            for area, other_area in combinations(areas, 2):
+                if area.geometry_prep.intersects(other_area.geometry):
+                    area.connected_to.append(other_area)
+                    other_area.connected_to.append(area)
+
+            # add areas to global areas
             all_areas.extend(areas)
 
+        # for area in all_areas:
+        #     area.geometry = clean_geometry(area.geometry)
+        # areas = [area for area in all_areas if not area.geometry.is_empty]
+
         # give temporary ids to all areas
-        for area in all_areas:
-            area.geometry = clean_geometry(area.geometry)
-        areas = [area for area in all_areas if not area.geometry.is_empty]
+        areas = all_areas
         for i, area in enumerate(areas):
             area.tmpid = i
         for area in areas:
@@ -405,7 +376,7 @@ class AltitudeArea(LevelGeometryMixin, models.Model):
                                  for altitude, alt_areas in areas_by_altitude.items()}
 
             accessible_area = accessible_area.difference(
-                unary_union(tuple(itertools.chain(*areas_by_altitude.values())))
+                unary_union(tuple(chain(*areas_by_altitude.values())))
             )
 
             stairs = []
@@ -451,7 +422,7 @@ class AltitudeArea(LevelGeometryMixin, models.Model):
             level_areas[level] = [AltitudeArea(level=level, geometry=geometry, altitude=altitude)
                                   for altitude, geometry in areas_by_altitude.items()]
 
-        areas = tuple(itertools.chain(*(a for a in level_areas.values())))
+        areas = tuple(chain(*(a for a in level_areas.values())))
         for i, area in enumerate(areas):
             area.tmpid = i
         for level in levels:
