@@ -259,3 +259,37 @@ def cut_polygon_with_line(polygon: Polygon, line: LineString):
         last = cutpoint(current.point, new_i, 0)
     return tuple(Polygon(polygon[0], tuple(ring for ring in polygon[1:] if ring is not None))
                  for polygon in polygons)
+
+
+def clean_cut_polygon(polygon: Polygon) -> Polygon:
+    interiors = []
+    interiors.extend(cut_ring(polygon.exterior))
+    exteriors = [(i, ring) for (i, ring) in enumerate(interiors) if ring.is_ccw]
+
+    if len(exteriors) != 1:
+        raise ValueError('Invalid cut polygon!')
+    exterior = interiors[exteriors[0][0]]
+    interiors.pop(exteriors[0][0])
+
+    for ring in polygon.interiors:
+        interiors.extend(cut_ring(ring))
+
+    return Polygon(exterior, interiors)
+
+
+def cut_ring(ring: LinearRing) -> List[LinearRing]:
+    rings = []
+    new_ring = []
+    # noinspection PyPropertyAccess
+    for point in ring.coords:
+        try:
+            index = new_ring.index(point)
+        except ValueError:
+            new_ring.append(point)
+            continue
+
+        if len(new_ring) > 2+index:
+            rings.append(LinearRing(new_ring[index:]+[point]))
+        new_ring = new_ring[:index+1]
+
+    return rings
