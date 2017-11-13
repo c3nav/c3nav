@@ -130,7 +130,7 @@ class EditorViewSet(ViewSet):
 
             levels, levels_on_top, levels_under = self._get_levels_pk(request, level.primary_level)
             if level.on_top_of_id is not None:
-                levels = chain([level], levels_on_top)
+                levels = chain([level.pk], levels_on_top)
             other_spaces = Space.objects.filter(space_q_for_request, level__pk__in=levels).prefetch_related('groups')
 
             space = next(s for s in other_spaces if s.pk == space.pk)
