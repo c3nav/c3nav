@@ -379,16 +379,14 @@ class AltitudeArea(LevelGeometryMixin, models.Model):
             areas_by_altitude = {altitude: [unary_union(alt_areas)]
                                  for altitude, alt_areas in areas_by_altitude.items()}
 
-            accessible_area = accessible_area.difference(
-                unary_union(tuple(chain(*areas_by_altitude.values()))).buffer(0.00001)
-            )
-
             stairs = []
             for space in level.spaces.all():
                 geom = space.geometry
                 if space.outside:
                     geom = space_geom.difference(buildings_geom)
-                remaining_space = geom.intersection(accessible_area)
+                remaining_space = unary_union(tuple(c.geometry for c in space.columns.all()) +
+                                              tuple(o.geometry for o in space.obstacles.all()) +
+                                              tuple(o.buffered_geometry for o in space.lineobstacles.all()))
                 if remaining_space.is_empty:
                     continue
 
