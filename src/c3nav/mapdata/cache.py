@@ -197,8 +197,11 @@ class MapHistory:
         maximum = np.maximum(self.data, other_data)
 
         # add with mask
-        mask = self.add_new(mask_geometry.buffer(1), data=np.zeros_like(self.data, dtype=np.bool))
-        self.data[mask] = maximum[mask]
+        if mask_geometry is not None:
+            mask = self.add_new(mask_geometry.buffer(1), data=np.zeros_like(self.data, dtype=np.bool))
+            self.data[mask] = maximum[mask]
+        else:
+            self.data = maximum
 
         # write new updates
         self.updates = new_updates

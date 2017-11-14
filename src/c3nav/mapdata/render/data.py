@@ -231,6 +231,8 @@ class LevelRenderData:
 
                 if crop_to is not FakeCropper:
                     map_history.composite(MapHistory.open_level(sublevel.pk, 'base'), crop_to)
+                elif level.pk != sublevel.pk:
+                    map_history.composite(MapHistory.open_level(sublevel.pk, 'base'), None)
 
                 new_geoms = LevelGeometries()
                 new_geoms.doors = crop_to.intersection(old_geoms.doors)
