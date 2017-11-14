@@ -80,6 +80,7 @@ class Level(SpecificLocation, models.Model):
         result['on_top_of'] = self.on_top_of_id
         result['base_altitude'] = float(str(self.base_altitude))
         result['default_height'] = float(str(self.default_height))
+        result['door_height'] = float(str(self.door_height))
         return result
 
     def details_display(self):
