@@ -326,7 +326,9 @@ class Mesh:
         return self.top, self.sides, self.bottom
 
     def __mul__(self, other):
-        return Mesh(self.top*other, self.sides*other, self.bottom*other)
+        return Mesh(top=self.top*other,
+                    sides=self.sides*other if other[2] != 0 else np.empty((0, 3, 3), dtype=np.float64),
+                    bottom=self.bottom*other)
 
     def __add__(self, other):
         return Mesh(self.top+other, self.sides+other, self.bottom+other)
@@ -611,8 +613,9 @@ class LevelGeometries:
 
         self.walls_base.build_polyhedron(self._create_polyhedron,
                                          lower=self.min_altitude-0.7,
-                                         upper=vertex_altitudes-0.7)
-        self.walls_bottom.build_polyhedron(self._create_polyhedron, lower=0, upper=1)
+                                         upper=vertex_altitudes-0.7,
+                                         top=False, bottom=False)
+        self.walls_bottom.build_polyhedron(self._create_polyhedron, lower=0, upper=1, top=False)
 
         # unset heightareas, they are no loinger needed
         self.heightareas = None
