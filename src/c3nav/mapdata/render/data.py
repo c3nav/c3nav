@@ -78,16 +78,16 @@ class HybridGeometry:
     def is_empty(self):
         return not self.faces and not any(self.add_faces.values())
 
-    def build_polyhedron(self, create_polyhedron, bottom, top, crops=None):
+    def build_polyhedron(self, create_polyhedron, crops=None, **kwargs):
         remaining_faces = self.faces
         for crop, prep in crops or ():
             if prep.intersects(self.geom):
                 crop_faces = set(chain(*crop.faces))
                 crop_id = tuple(crop.crop_ids)[0]
-                self.add_faces[crop_id] = create_polyhedron(tuple((faces & crop_faces) for faces in self.faces),
-                                                            bottom=bottom, top=top)
+                self.add_faces[crop_id] = create_polyhedron(tuple((faces & crop_faces)
+                                                                  for faces in self.faces), **kwargs)
                 remaining_faces = tuple((faces - crop_faces) for faces in self.faces)
-        self.faces = create_polyhedron(remaining_faces, bottom=bottom, top=top)
+        self.faces = create_polyhedron(remaining_faces, **kwargs)
 
 
 class AltitudeAreaGeometries:
@@ -110,9 +110,15 @@ class AltitudeAreaGeometries:
 
     def create_polyhedrons(self, create_polyhedron, crops):
         altitude = float(self.altitude)
-        self.geometry.build_polyhedron(create_polyhedron, bottom=altitude-0.7, top=altitude, crops=crops)
+        self.geometry.build_polyhedron(create_polyhedron,
+                                       lower=altitude-0.7,
+                                       upper=altitude,
+                                       crops=crops)
         for geometry in chain(*(areas.values() for areas in self.colors.values())):
-            geometry.build_polyhedron(create_polyhedron, bottom=altitude-0.1, top=altitude+0.001, crops=crops)
+            geometry.build_polyhedron(create_polyhedron,
+                                      lower=altitude-0.1,
+                                      upper=altitude+0.001,
+                                      crops=crops)
 
 
 class FakeCropper:
@@ -308,6 +314,24 @@ class LevelRenderData:
             return result
 
 
+class Mesh:
+    __slots__ = ('top', 'sides', 'bottom')
+
+    def __init__(self, top=None, sides=None, bottom=None):
+        self.top = np.empty((0, 3, 3), dtype=np.float64) if top is None else top
+        self.sides = np.empty((0, 3, 3), dtype=np.float64) if sides is None else sides
+        self.bottom = np.empty((0, 3, 3), dtype=np.float64) if bottom is None else bottom
+
+    def tolist(self):
+        return self.top, self.sides, self.bottom
+
+    def __mul__(self, other):
+        return Mesh(self.top*other, self.sides*other, self.bottom*other)
+
+    def __add__(self, other):
+        return Mesh(self.top+other, self.sides+other, self.bottom+other)
+
+
 class LevelGeometries:
     def __init__(self):
         self.altitudeareas = []
@@ -466,7 +490,7 @@ class LevelGeometries:
 
         return vertex_values
 
-    def _create_polyhedron(self, faces, bottom=None, top=None, crops=None):
+    def _create_polyhedron(self, faces, lower, upper, top=True, sides=True, bottom=True):
         if not any(faces):
             return ()
 
@@ -505,30 +529,36 @@ class LevelGeometries:
                 boundaries.append(tuple(zip(chain((new_ring[-1], ), new_ring), new_ring)))
         boundaries = np.vstack(boundaries)
 
-        new_faces = deque()
         geom_faces = self.faces[np.array(tuple(chain(*faces)))]
 
-        if not isinstance(top, np.ndarray):
-            top = np.full(self.vertices.shape[0], fill_value=top)
+        if not isinstance(upper, np.ndarray):
+            upper = np.full(self.vertices.shape[0], fill_value=upper)
 
-        if not isinstance(bottom, np.ndarray):
-            bottom = np.full(self.vertices.shape[0], fill_value=bottom)
+        if not isinstance(lower, np.ndarray):
+            lower = np.full(self.vertices.shape[0], fill_value=lower)
 
-        # upper faces
-        new_faces.append(np.dstack((self.vertices[geom_faces], top[geom_faces])))
+        mesh = Mesh()
 
-        # side faces (upper)
-        new_faces.append(np.dstack((self.vertices[boundaries[:, (1, 0, 0)]],
-                                    np.hstack((top[boundaries[:, (1, 0)]], bottom[boundaries[:, (0,)]])))))
+        # top faces
+        if top:
+            mesh.top = np.dstack((self.vertices[geom_faces], upper[geom_faces]))
 
-        # side faces (lower)
-        new_faces.append(np.dstack((self.vertices[boundaries[:, (0, 1, 1)]],
-                                    np.hstack((bottom[boundaries[:, (0, 1)]], top[boundaries[:, (1,)]])))))
+        # side faces
+        if sides:
+            mesh.sides = np.vstack((
+                # upper
+                np.dstack((self.vertices[boundaries[:, (1, 0, 0)]],
+                           np.hstack((upper[boundaries[:, (1, 0)]], lower[boundaries[:, (0,)]])))),
+                # lower
+                np.dstack((self.vertices[boundaries[:, (0, 1, 1)]],
+                           np.hstack((lower[boundaries[:, (0, 1)]], upper[boundaries[:, (1,)]]))))
+            ))
 
-        # lower faces
-        new_faces.append(np.dstack((self.vertices[np.flip(geom_faces, axis=1)], bottom[geom_faces])))
+        # bottom faces
+        if bottom:
+            mesh.bottom = np.dstack((self.vertices[np.flip(geom_faces, axis=1)], lower[geom_faces]))
 
-        return tuple((np.vstack(new_faces), ))
+        return tuple((mesh, ))
 
     def build_mesh(self, interpolator=None):
         rings = tuple(chain(*(get_rings(geom) for geom in self.get_geometries())))
@@ -546,12 +576,14 @@ class LevelGeometries:
         self.walls_base = HybridGeometry(self.walls.geom, self.walls.faces)
         self.walls_bottom = HybridGeometry(self.walls.geom, self.walls.faces)
 
-        self.walls.build_polyhedron(self._create_polyhedron, bottom=vertex_altitudes-0.7, top=vertex_wall_heights)
+        self.walls.build_polyhedron(self._create_polyhedron,
+                                    lower=vertex_altitudes-0.7,
+                                    upper=vertex_wall_heights)
 
         if interpolator is not None:
             self.walls_extended.build_polyhedron(self._create_polyhedron,
-                                                 bottom=vertex_wall_heights,
-                                                 top=interpolator(*np.transpose(self.vertices))-0.2)
+                                                 lower=vertex_wall_heights,
+                                                 upper=interpolator(*np.transpose(self.vertices))-0.2)
         else:
             self.walls_extended = None
 
@@ -562,20 +594,25 @@ class LevelGeometries:
         crops = tuple((crop, prepared.prep(crop.geom)) for crop in chain(self.restricted_spaces_indoors.values(),
                                                                          self.restricted_spaces_outdoors.values()))
 
-        self.doors.build_polyhedron(self._create_polyhedron, crops=crops,
-                                    bottom=vertex_wall_heights-1, top=vertex_wall_heights)
+        self.doors.build_polyhedron(self._create_polyhedron,
+                                    crops=crops,
+                                    lower=vertex_wall_heights-1,
+                                    upper=vertex_wall_heights)
 
         for area in self.altitudeareas:
             area.create_polyhedrons(self._create_polyhedron, crops=crops)
 
         for key, geometry in self.restricted_spaces_indoors.items():
-            geometry.build_polyhedron(self._create_polyhedron, bottom=vertex_altitudes-0.7, top=vertex_wall_heights)
+            geometry.build_polyhedron(self._create_polyhedron,
+                                      lower=vertex_altitudes-0.7,
+                                      upper=vertex_wall_heights)
         for key, geometry in self.restricted_spaces_outdoors.items():
             geometry.faces = None
 
         self.walls_base.build_polyhedron(self._create_polyhedron,
-                                         bottom=self.min_altitude-0.8, top=vertex_altitudes-0.6)
-        self.walls_bottom.build_polyhedron(self._create_polyhedron, bottom=0, top=1)
+                                         lower=self.min_altitude-0.7,
+                                         upper=vertex_altitudes-0.7)
+        self.walls_bottom.build_polyhedron(self._create_polyhedron, lower=0, upper=1)
 
         # unset heightareas, they are no loinger needed
         self.heightareas = None
