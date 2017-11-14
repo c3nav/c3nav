@@ -100,7 +100,7 @@ class HybridGeometry:
 
 
 class AltitudeAreaGeometries:
-    def __init__(self, altitudearea=None, colors=None):
+    def __init__(self, altitudearea=None, colors=None, obstacles=None):
         if altitudearea is not None:
             self.geometry = altitudearea.geometry
             self.altitude = int(altitudearea.altitude * 1000)
@@ -108,14 +108,19 @@ class AltitudeAreaGeometries:
             self.geometry = None
             self.altitude = None
         self.colors = colors
+        self.obstacles = obstacles
 
     def get_geometries(self):
-        return chain((self.geometry,), chain(*(areas.values() for areas in self.colors.values())))
+        return chain((self.geometry,),
+                     chain(*(areas.values() for areas in self.colors.values())),
+                     self.obstacles.values())
 
     def create_hybrid_geometries(self, face_centers):
         self.geometry = HybridGeometry.create(self.geometry, face_centers)
         self.colors = {color: {key: HybridGeometry.create(geom, face_centers) for key, geom in areas.items()}
                        for color, areas in self.colors.items()}
+        self.obstacles = {key: HybridGeometry.create(geom, face_centers)
+                          for key, geom in self.obstacles.items()}
 
     def remove_faces(self, faces):
         self.geometry.remove_faces(faces)
@@ -134,6 +139,12 @@ class AltitudeAreaGeometries:
                                       lower=altitude,
                                       upper=altitude + int(0.001 * 1000),
                                       crops=crops)
+        for height, geometry in self.obstacles.items():
+            print(height)
+            geometry.build_polyhedron(create_polyhedron,
+                                      lower=altitude,
+                                      upper=altitude + height,
+                                      crops=crops)
 
 
 class FakeCropper:
@@ -151,6 +162,7 @@ class LevelRenderData:
     def rebuild():
         levels = tuple(Level.objects.prefetch_related('altitudeareas', 'buildings', 'doors', 'spaces',
                                                       'spaces__holes', 'spaces__areas', 'spaces__columns',
+                                                      'spaces__obstacles', 'spaces__lineobstacles',
                                                       'spaces__groups'))
 
         single_level_geoms = {level.pk: LevelGeometries.build_for_level(level) for level in levels}
@@ -243,8 +255,12 @@ class LevelRenderData:
                                 new_areas[access_restriction] = new_area
                         if new_areas:
                             new_colors[color] = new_areas
-
                     new_altitudearea.colors = new_colors
+
+                    new_altitudearea.obstacles = {key: new_geometry.intersection(areas)
+                                                  for key, areas in altitudearea.obstacles.items()
+                                                  if new_geometry.intersects(areas)}
+
                     new_geoms.altitudeareas.append(new_altitudearea)
 
                 if new_geoms.walls.is_empty and not new_geoms.altitudeareas:
@@ -413,8 +429,9 @@ class LevelGeometries:
         restricted_spaces_indoors = {}
         restricted_spaces_outdoors = {}
 
-        # go through spaces and their areas for access control, ground colors and height areas
+        # go through spaces and their areas for access control, ground colors, height areas and obstacles
         colors = {}
+        obstacles = {}
         heightareas = {}
         for space in level.spaces.all():
             access_restriction = space.access_restriction_id
@@ -440,6 +457,12 @@ class LevelGeometries:
                     access_restriction_affected.setdefault(access_restriction, []).append(area.geometry)
                 colors.setdefault(area.get_color(), {}).setdefault(access_restriction, []).append(area.geometry)
 
+            for obstacle in space.obstacles.all():
+                obstacles.setdefault(int(obstacle.height*1000), []).append(obstacle.geometry)
+
+            for lineobstacle in space.lineobstacles.all():
+                obstacles.setdefault(int(lineobstacle.height*1000), []).append(lineobstacle.buffered_geometry)
+
             heightareas.setdefault(int((space.height or level.default_height)*1000), []).append(space.geometry)
         colors.pop(None, None)
 
@@ -448,6 +471,9 @@ class LevelGeometries:
             for access_restriction, areas in tuple(color_group.items()):
                 color_group[access_restriction] = unary_union(areas)
 
+        # merge obstacles
+        obstacles = {key: unary_union(polygons) for key, polygons in obstacles.items()}
+
         # add altitudegroup geometries and split ground colors into them
         for altitudearea in level.altitudeareas.all():
             altitudearea_colors = {color: {access_restriction: area.intersection(altitudearea.geometry)
@@ -455,7 +481,13 @@ class LevelGeometries:
                                            if area.intersects(altitudearea.geometry)}
                                    for color, areas in colors.items()}
             altitudearea_colors = {color: areas for color, areas in altitudearea_colors.items() if areas}
-            geoms.altitudeareas.append(AltitudeAreaGeometries(altitudearea, altitudearea_colors))
+
+            altitudearea_obstacles = {height: area.intersection(altitudearea.geometry)
+                                      for height, area in obstacles.items()
+                                      if area.intersects(altitudearea.geometry)}
+            geoms.altitudeareas.append(AltitudeAreaGeometries(altitudearea,
+                                                              altitudearea_colors,
+                                                              altitudearea_obstacles))
 
         # merge height areas
         geoms.heightareas = tuple((unary_union(geoms), height)

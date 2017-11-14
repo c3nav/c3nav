@@ -133,6 +133,9 @@ class MapRenderer:
                         engine.add_geometry(hybrid_union(areas), fill=FillAttribs(color),
                                             category='groundcolor%s' % i, item=i)
 
+                for height, obstacle in altitudearea.obstacles.items():
+                    engine.add_geometry(obstacle, fill=FillAttribs('#cccccc'), category='obstacles')
+
             # add walls, stroke_px makes sure that all walls are at least 1px thick on all zoom levels,
             walls = None
             if not add_walls.is_empty or not geoms.walls.is_empty:
