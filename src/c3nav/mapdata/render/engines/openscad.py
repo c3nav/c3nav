@@ -33,6 +33,7 @@ class OpenSCADEngine(Base3DEngine):
                              for group in self.groups.keys()) + b'\n' +
                   b'}\n\n')
         for group, subgroups in self.groups.items():
+            # noinspection PyStringFormat
             result += (b'module ' + group.replace('-', 'minus').encode() + b'() {\n' +
                        b'\n'.join((b'  color([%.2f, %.2f, %.2f]) %s();' %
                                    (*self.colors[subgroup][:3], subgroup.replace('-', 'minus').encode()))
