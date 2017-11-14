@@ -196,7 +196,7 @@ class OpenGLEngine(Base3DEngine):
 
     worker = OpenGLWorker()
 
-    def render(self) -> bytes:
+    def render(self, filename=None) -> bytes:
         return self.worker.render(self.width, self.height, self.gl_scale, self.gl_offset, self.background_rgb,
                                   np.vstack(self.vertices).astype(np.float32).tobytes() if self.vertices else b'')
 

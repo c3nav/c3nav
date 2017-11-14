@@ -67,10 +67,19 @@ class Command(BaseCommand):
             renderer = MapRenderer(level.pk, minx, miny, maxx, maxy, access_permissions=options['permissions'],
                                    full_levels=options['full_levels'])
 
-            stl = renderer.render(get_engine(options['filetype']), center=not options['no_center'])
-            data = stl.render()
             filename = os.path.join(settings.RENDER_ROOT,
                                     'level_%s_%s.%s' % (level.short_label,
                                                         renderer.access_cache_key.replace('_', '-'),
                                                         options['filetype']))
+
+            render = renderer.render(get_engine(options['filetype']), center=not options['no_center'])
+            data = render.render(filename)
+            if isinstance(data, tuple):
+                other_data = data[1:]
+                data = data[0]
+            else:
+                other_data = ()
+
             open(filename, 'wb').write(data)
+            for filename, data in other_data:
+                open(filename, 'wb').write(data)

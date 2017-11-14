@@ -3,6 +3,7 @@ from django.core import checks
 
 from c3nav.mapdata.render.engines.base import register_engine, get_engine, get_engine_filetypes  # noqa
 from c3nav.mapdata.render.engines.openscad import OpenSCADEngine  # noqa
+from c3nav.mapdata.render.engines.wavefront import WavefrontEngine  # noqa
 from c3nav.mapdata.render.engines.stl import STLEngine  # noqa
 from c3nav.mapdata.render.engines.svg import SVGEngine  # noqa
 

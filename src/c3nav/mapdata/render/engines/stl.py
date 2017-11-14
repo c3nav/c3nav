@@ -21,7 +21,7 @@ class STLEngine(Base3DEngine):
     def _create_facet(self, facet) -> bytes:
         return self.facet_template % tuple(facet.flatten())
 
-    def render(self) -> bytes:
+    def render(self, filename=None) -> bytes:
         facets = np.vstack(chain(*(chain(*v.values()) for v in self.vertices.values())))
         facets = np.hstack((np.cross(facets[:, 1]-facets[:, 0], facets[:, 2]-facets[:, 1]).reshape((-1, 1, 3)),
                             facets))

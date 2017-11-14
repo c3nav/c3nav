@@ -28,7 +28,7 @@ class OpenSCADEngine(Base3DEngine):
                 b'    convexity = 10\n' +
                 b'  );')
 
-    def render(self) -> bytes:
+    def render(self, filename=None) -> bytes:
         result = (b'c3nav_export();\n\n' +
                   b'module c3nav_export() {\n' +
                   b'\n'.join((b'  %s();' % group.replace('-', 'minus').encode())
