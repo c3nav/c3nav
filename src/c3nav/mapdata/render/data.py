@@ -124,8 +124,7 @@ class AltitudeAreaGeometries:
             geometry.build_polyhedron(create_polyhedron,
                                       lower=altitude,
                                       upper=altitude + int(0.001 * 1000),
-                                      crops=crops,
-                                      bottom=False)
+                                      crops=crops)
 
 
 class FakeCropper:
