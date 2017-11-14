@@ -104,22 +104,22 @@ class MapRenderer:
 
             if not_full_levels:
                 engine.add_geometry(geoms.walls_base, fill=FillAttribs('#aaaaaa'), category='walls')
-                if min_altitude < geoms.min_altitude:
-                    engine.add_geometry(geoms.walls_bottom.fit(scale=geoms.min_altitude-min_altitude,
-                                                               offset=min_altitude),
-                                        fill=FillAttribs('#aaaaaa'), category='walls')
+                engine.add_geometry(geoms.walls_bottom.fit(scale=geoms.min_altitude-min_altitude-int(0.7*1000),
+                                                           offset=min_altitude),
+                                    fill=FillAttribs('#aaaaaa'), category='walls')
                 for altitudearea in geoms.altitudeareas:
                     bottom = altitudearea.altitude - int(0.7 * 1000)
                     scale = (bottom - min_altitude) / int(0.7 * 1000)
                     offset = min_altitude - bottom * scale
-                    engine.add_geometry(altitudearea.geometry.fit(scale=scale, offset=offset).filter(top=False),
+                    geometry = altitudearea.geometry.difference(crop_areas)
+                    engine.add_geometry(geometry.fit(scale=scale, offset=offset).filter(top=False),
                                         fill=FillAttribs('#eeeeee'), category='ground')
 
             # render altitude areas in default ground color and add ground colors to each one afterwards
             # shadows are directly calculated and added by the engine
             for altitudearea in geoms.altitudeareas:
                 geometry = altitudearea.geometry.difference(crop_areas)
-                if not self.full_levels and engine.is_3d:
+                if not_full_levels:
                     geometry = geometry.filter(bottom=False)
                 engine.add_geometry(geometry, altitude=altitudearea.altitude, fill=FillAttribs('#eeeeee'),
                                     category='ground')
