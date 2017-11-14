@@ -176,7 +176,7 @@ class OpenGLEngine(Base3DEngine):
             self.vertices.append(self._create_border(geometry, width, self.color_to_rgb(stroke.color, alpha=alpha)))
 
     def _create_border(self, geometry: HybridGeometry, width, append=None):
-        altitude = np.vstack(geometry.faces)[:, :, 2].max()+0.001
+        altitude = np.vstack(chain(*(mesh.tolist() for mesh in geometry.faces)))[:, :, 2].max()+0.001
         geometry = self.buffered_bbox.intersection(geometry.geom)
 
         lines = tuple(chain(*(
