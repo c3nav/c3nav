@@ -11,6 +11,11 @@ from django.utils.translation import ugettext_lazy as _
 from c3nav.mapdata.tasks import process_map_updates
 
 
+class MapUpdateManager(models.Manager):
+    def get_queryset(self, *args, **kwargs):
+        return super().get_queryset(*args, **kwargs).defer('changed_geometries')
+
+
 class MapUpdate(models.Model):
     """
     A map update. created whenever mapdata is changed.
@@ -21,11 +26,14 @@ class MapUpdate(models.Model):
     processed = models.BooleanField(default=False)
     changed_geometries = models.BinaryField(null=True)
 
+    objects = MapUpdateManager()
+
     class Meta:
         verbose_name = _('Map update')
         verbose_name_plural = _('Map updates')
         default_related_name = 'mapupdates'
         get_latest_by = 'datetime'
+        base_manager_name = 'objects'
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -82,7 +90,7 @@ class MapUpdate(models.Model):
     @classmethod
     def process_updates(cls):
         with transaction.atomic():
-            new_updates = tuple(cls.objects.filter(processed=False).select_for_update(nowait=True))
+            new_updates = tuple(cls.objects.filter(processed=False).defer(None).select_for_update(nowait=True))
             if not new_updates:
                 return ()
 
