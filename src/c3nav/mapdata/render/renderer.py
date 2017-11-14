@@ -84,7 +84,7 @@ class MapRenderer:
             levels = self.level_render_data.levels
 
         min_altitude = min(chain(*(tuple(area.altitude for area in geoms.altitudeareas)
-                                   for geoms in levels))) - int(0.7*1000)
+                                   for geoms in levels)))
 
         not_full_levels = not self.full_levels and engine.is_3d
         full_levels = self.full_levels and engine.is_3d
@@ -104,13 +104,12 @@ class MapRenderer:
 
             if not_full_levels:
                 engine.add_geometry(geoms.walls_base, fill=FillAttribs('#aaaaaa'), category='walls')
-                engine.add_geometry(geoms.walls_bottom.fit(scale=geoms.min_altitude-min_altitude-int(0.7*1000),
-                                                           offset=min_altitude),
+                engine.add_geometry(geoms.walls_bottom.fit(scale=geoms.min_altitude-min_altitude,
+                                                           offset=min_altitude-int(0.7*1000)),
                                     fill=FillAttribs('#aaaaaa'), category='walls')
                 for altitudearea in geoms.altitudeareas:
-                    bottom = altitudearea.altitude - int(0.7 * 1000)
-                    scale = (bottom - min_altitude) / int(0.7 * 1000)
-                    offset = min_altitude - bottom * scale
+                    scale = (altitudearea.altitude - min_altitude) / int(0.7 * 1000)
+                    offset = (min_altitude - int(0.7*1000)) - (altitudearea.altitude - int(0.7*1000)) * scale
                     geometry = altitudearea.geometry.difference(crop_areas)
                     engine.add_geometry(geometry.fit(scale=scale, offset=offset).filter(top=False),
                                         fill=FillAttribs('#eeeeee'), category='ground')
