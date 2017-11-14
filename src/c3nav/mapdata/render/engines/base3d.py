@@ -18,9 +18,11 @@ class Base3DEngine(RenderEngine):
         self._current_group = None
         self.groups = OrderedDict()
         self.vertices = OrderedDict()
+        self.colors = OrderedDict()
 
         self.np_scale = np.array((self.scale, self.scale, self.scale))
         self.np_offset = np.array((-self.minx * self.scale, -self.miny * self.scale, 0))
+
         if center:
             self.np_offset -= np.array(((self.maxx - self.minx) * self.scale / 2,
                                         (self.maxy - self.miny) * self.scale / 2,
@@ -37,6 +39,7 @@ class Base3DEngine(RenderEngine):
             if key not in self.vertices:
                 self.groups[self._current_group].append(key)
             self.vertices.setdefault(key, []).append(self._place_geometry(geometry))
+            self.colors.setdefault(key, self.color_to_rgb(fill.color))
 
     @staticmethod
     def _append_to_vertices(vertices, append=None):

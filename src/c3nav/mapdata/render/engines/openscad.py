@@ -34,7 +34,8 @@ class OpenSCADEngine(Base3DEngine):
                   b'}\n\n')
         for group, subgroups in self.groups.items():
             result += (b'module ' + group.replace('-', 'minus').encode() + b'() {\n' +
-                       b'\n'.join((b'  %s();' % subgroup.replace('-', 'minus').encode())
+                       b'\n'.join((b'  color([%.2f, %.2f, %.2f]) %s();' %
+                                   (*self.colors[subgroup][:3], subgroup.replace('-', 'minus').encode()))
                                   for subgroup in subgroups) + b'\n' +
                        b'}\n')
         result += b'\n'
