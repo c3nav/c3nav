@@ -8,11 +8,11 @@ from django.utils.translation import ungettext_lazy
 
 from c3nav.mapdata.models import AccessRestriction, Level, Source
 from c3nav.mapdata.render import MapRenderer
-from c3nav.mapdata.render.engines import STLEngine
+from c3nav.mapdata.render.engines import get_engine, get_engine_filetypes
 
 
 class Command(BaseCommand):
-    help = 'render the map to stl files'
+    help = 'render the map'
 
     @staticmethod
     def levels_value(value):
@@ -50,6 +50,8 @@ class Command(BaseCommand):
         return permissions
 
     def add_arguments(self, parser):
+        parser.add_argument('filetype', type=str, choices=get_engine_filetypes(),
+                            help=_('filetype to render'))
         parser.add_argument('--levels', default='*', type=self.levels_value,
                             help=_('levels to render, e.g. 0,1,2 or * for all levels (default)'))
         parser.add_argument('--permissions', default='0', type=self.permissions_value,
@@ -63,9 +65,10 @@ class Command(BaseCommand):
             renderer = MapRenderer(level.pk, minx, miny, maxx, maxy, access_permissions=options['permissions'],
                                    full_levels=options['full_levels'])
 
-            stl = renderer.render(STLEngine)
+            stl = renderer.render(get_engine(options['filetype']))
             data = stl.render()
             filename = os.path.join(settings.RENDER_ROOT,
-                                    'level_%s_%s.stl' % (level.short_label,
-                                                         renderer.access_cache_key.replace('_', '-')))
+                                    'level_%s_%s.%s' % (level.short_label,
+                                                        renderer.access_cache_key.replace('_', '-'),
+                                                        options['filetype']))
             open(filename, 'wb').write(data)

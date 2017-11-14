@@ -38,6 +38,8 @@ def check_svg_renderer(app_configs, **kwargs):
 
 
 class SVGEngine(RenderEngine):
+    filetype = 'png'
+
     # draw an svg image. supports pseudo-3D shadow-rendering
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)

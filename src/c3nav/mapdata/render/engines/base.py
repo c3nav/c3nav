@@ -26,6 +26,7 @@ class StrokeAttribs:
 
 class RenderEngine(ABC):
     is_3d = False
+    filetype = 'dat'
 
     # draw an svg image. supports pseudo-3D shadow-rendering
     def __init__(self, width: int, height: int, xoff=0, yoff=0, scale=1, buffer=0, background='#FFFFFF'):
@@ -85,3 +86,19 @@ class RenderEngine(ABC):
 
     def set_mesh_lookup_data(self, data):
         pass
+
+
+engines_by_filetype = {}
+
+
+def register_engine(engine=None):
+    engines_by_filetype[engine.filetype] = engine
+    return engine
+
+
+def get_engine(filetype):
+    return engines_by_filetype[filetype]
+
+
+def get_engine_filetypes():
+    return tuple(engines_by_filetype.keys())

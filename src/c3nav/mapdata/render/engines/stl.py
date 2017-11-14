@@ -1,9 +1,13 @@
 import numpy as np
 
+from c3nav.mapdata.render.engines import register_engine
 from c3nav.mapdata.render.engines.base3d import Base3DEngine
 
 
+@register_engine
 class STLEngine(Base3DEngine):
+    filetype = 'stl'
+
     facet_template = (b'  facet normal %f %f %f\n'
                       b'    outer loop\n'
                       b'      vertex %.3f %.3f %.3f\n'
