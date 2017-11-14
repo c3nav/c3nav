@@ -605,7 +605,7 @@ class LevelGeometries:
                                     upper=vertex_wall_heights)
 
         if interpolator is not None:
-            upper = interpolator(*np.transpose(self.vertices)).astype(np.int32)
+            upper = interpolator(*np.transpose(self.vertices)).astype(np.int32) - int(0.7 * 1000)
             self.walls_extended.build_polyhedron(self._create_polyhedron,
                                                  lower=vertex_wall_heights,
                                                  upper=upper,
