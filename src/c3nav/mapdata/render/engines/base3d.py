@@ -38,5 +38,7 @@ class Base3DEngine(RenderEngine):
             mesh.tolist() for mesh in chain(geometry.faces, *geometry.add_faces.values())
         ))))
         if offset:
-            vertices = vertices * self.np_scale + self.np_offset
+            vertices = vertices / 1000 * self.np_scale + self.np_offset
+        else:
+            vertices = vertices / 1000
         return self._append_to_vertices(vertices, append)

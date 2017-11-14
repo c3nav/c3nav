@@ -100,7 +100,7 @@ class AltitudeAreaGeometries:
     def __init__(self, altitudearea=None, colors=None):
         if altitudearea is not None:
             self.geometry = altitudearea.geometry
-            self.altitude = altitudearea.altitude
+            self.altitude = int(altitudearea.altitude * 1000)
         else:
             self.geometry = None
             self.altitude = None
@@ -115,15 +115,15 @@ class AltitudeAreaGeometries:
                        for color, areas in self.colors.items()}
 
     def create_polyhedrons(self, create_polyhedron, crops):
-        altitude = float(self.altitude)
+        altitude = self.altitude
         self.geometry.build_polyhedron(create_polyhedron,
-                                       lower=altitude-0.7,
+                                       lower=altitude - int(0.7 * 1000),
                                        upper=altitude,
                                        crops=crops)
         for geometry in chain(*(areas.values() for areas in self.colors.values())):
             geometry.build_polyhedron(create_polyhedron,
-                                      lower=altitude-0.1,
-                                      upper=altitude+0.001,
+                                      lower=altitude - int(0.1 * 1000),
+                                      upper=altitude + int(0.001 * 1000),
                                       crops=crops)
 
 
@@ -160,7 +160,7 @@ class LevelRenderData:
             for area in single_level_geoms[level.pk].altitudeareas:
                 new_coords = np.vstack(tuple(np.array(ring.coords) for ring in get_rings(area.geometry)))
                 coords.append(new_coords)
-                values.append(np.full((new_coords.shape[0], ), fill_value=float(area.altitude)))
+                values.append(np.full((new_coords.shape[0], ), fill_value=area.altitude))
 
             last_interpolator = NearestNDInterpolator(np.hstack(coords), np.hstack(values))
 
@@ -274,8 +274,8 @@ class LevelRenderData:
                 new_geoms.on_top_of_id = old_geoms.on_top_of_id
                 new_geoms.base_altitude = old_geoms.base_altitude
                 new_geoms.default_height = old_geoms.default_height
-                new_geoms.min_altitude = float(min(area.altitude for area in new_geoms.altitudeareas)
-                                               if new_geoms.altitudeareas else new_geoms.base_altitude)
+                new_geoms.min_altitude = (min(area.altitude for area in new_geoms.altitudeareas)
+                                          if new_geoms.altitudeareas else new_geoms.base_altitude)
 
                 new_geoms.build_mesh(interpolators.get(level.pk) if sublevel.pk == level.pk else None)
 
@@ -324,20 +324,22 @@ class Mesh:
     __slots__ = ('top', 'sides', 'bottom')
 
     def __init__(self, top=None, sides=None, bottom=None):
-        self.top = np.empty((0, 3, 3), dtype=np.float64) if top is None else top
-        self.sides = np.empty((0, 3, 3), dtype=np.float64) if sides is None else sides
-        self.bottom = np.empty((0, 3, 3), dtype=np.float64) if bottom is None else bottom
+        self.top = np.empty((0, 3, 3), dtype=np.int32) if top is None else top
+        self.sides = np.empty((0, 3, 3), dtype=np.int32) if sides is None else sides
+        self.bottom = np.empty((0, 3, 3), dtype=np.int32) if bottom is None else bottom
 
     def tolist(self):
         return self.top, self.sides, self.bottom
 
     def __mul__(self, other):
-        return Mesh(top=self.top*other,
-                    sides=self.sides*other if other[2] != 0 else np.empty((0, 3, 3), dtype=np.float64),
-                    bottom=self.bottom*other)
+        return Mesh(top=np.rint(self.top*other).astype(np.int32),
+                    sides=np.rint(self.sides*other if other[2] != 0 else np.empty((0, 3, 3))).astype(np.int32),
+                    bottom=np.rint(self.bottom*other).astype(np.int32))
 
     def __add__(self, other):
-        return Mesh(self.top+other, self.sides+other, self.bottom+other)
+        return Mesh(np.rint(self.top+other).astype(np.int32),
+                    np.rint(self.sides+other).astype(np.int32),
+                    np.rint(self.bottom+other).astype(np.int32))
 
     def filter(self, top=True, sides=True, bottom=True):
         return Mesh(top=self.top if top else None,
@@ -425,7 +427,7 @@ class LevelGeometries:
                     access_restriction_affected.setdefault(access_restriction, []).append(area.geometry)
                 colors.setdefault(area.get_color(), {}).setdefault(access_restriction, []).append(area.geometry)
 
-            heightareas.setdefault(space.height or level.default_height, []).append(space.geometry)
+            heightareas.setdefault(int((space.height or level.default_height)*1000), []).append(space.geometry)
         colors.pop(None, None)
 
         # merge ground colors
@@ -460,10 +462,10 @@ class LevelGeometries:
         # general level infos
         geoms.pk = level.pk
         geoms.on_top_of_id = level.on_top_of_id
-        geoms.base_altititude = level.base_altitude
-        geoms.default_height = level.default_height
-        geoms.min_altitude = float(min(area.altitude for area in geoms.altitudeareas)
-                                   if geoms.altitudeareas else level.base_altitude)
+        geoms.base_altititude = int(level.base_altitude * 1000)
+        geoms.default_height = int(level.default_height * 1000)
+        geoms.min_altitude = (min(area.altitude for area in geoms.altitudeareas)
+                              if geoms.altitudeareas else geoms.base_altitude)
 
         return geoms
 
@@ -538,17 +540,17 @@ class LevelGeometries:
                     if not edges[last]:
                         edges.pop(last)
                     last = new_last
-                new_ring = np.array(new_ring, dtype=np.int64)
+                new_ring = np.array(new_ring, dtype=np.uint32)
                 boundaries.append(tuple(zip(chain((new_ring[-1], ), new_ring), new_ring)))
         boundaries = np.vstack(boundaries)
 
         geom_faces = self.faces[np.array(tuple(chain(*faces)))]
 
         if not isinstance(upper, np.ndarray):
-            upper = np.full(self.vertices.shape[0], fill_value=upper)
+            upper = np.full(self.vertices.shape[0], fill_value=upper, dtype=np.int32)
 
         if not isinstance(lower, np.ndarray):
-            lower = np.full(self.vertices.shape[0], fill_value=lower)
+            lower = np.full(self.vertices.shape[0], fill_value=lower, dtype=np.int32)
 
         mesh = Mesh()
 
@@ -576,13 +578,13 @@ class LevelGeometries:
     def build_mesh(self, interpolator=None):
         rings = tuple(chain(*(get_rings(geom) for geom in self.get_geometries())))
         self.vertices, self.faces = triangulate_rings(rings)
-        self.create_hybrid_geometries(face_centers=self.vertices[self.faces].sum(axis=1) / 3)
+        self.create_hybrid_geometries(face_centers=self.vertices[self.faces].sum(axis=1) / 3000)
 
         # calculate altitudes
-        vertex_altitudes = self._build_vertex_values((area.geometry, int(area.altitude*100))
-                                                     for area in reversed(self.altitudeareas))/100
-        vertex_heights = self._build_vertex_values((area, int(height*100))
-                                                   for area, height in self.heightareas)/100
+        vertex_altitudes = self._build_vertex_values((area.geometry, area.altitude)
+                                                     for area in reversed(self.altitudeareas))
+        vertex_heights = self._build_vertex_values((area, height)
+                                                   for area, height in self.heightareas)
         vertex_wall_heights = vertex_altitudes + vertex_heights
 
         # create polyhedrons
@@ -590,13 +592,14 @@ class LevelGeometries:
         self.walls_bottom = HybridGeometry(self.walls.geom, self.walls.faces)
 
         self.walls.build_polyhedron(self._create_polyhedron,
-                                    lower=vertex_altitudes-0.7,
+                                    lower=vertex_altitudes - int(0.7 * 1000),
                                     upper=vertex_wall_heights)
 
         if interpolator is not None:
+            upper = interpolator(*np.transpose(self.vertices)).astype(np.int32) - int(0.7 * 1000)
             self.walls_extended.build_polyhedron(self._create_polyhedron,
                                                  lower=vertex_wall_heights,
-                                                 upper=interpolator(*np.transpose(self.vertices))-0.2)
+                                                 upper=upper)
         else:
             self.walls_extended = None
 
@@ -609,7 +612,7 @@ class LevelGeometries:
 
         self.doors.build_polyhedron(self._create_polyhedron,
                                     crops=crops,
-                                    lower=vertex_wall_heights-1,
+                                    lower=vertex_wall_heights - int(1 * 1000),
                                     upper=vertex_wall_heights)
 
         for area in self.altitudeareas:
@@ -617,14 +620,14 @@ class LevelGeometries:
 
         for key, geometry in self.restricted_spaces_indoors.items():
             geometry.build_polyhedron(self._create_polyhedron,
-                                      lower=vertex_altitudes-0.7,
+                                      lower=vertex_altitudes - int(0.7 * 1000),
                                       upper=vertex_wall_heights)
         for key, geometry in self.restricted_spaces_outdoors.items():
             geometry.faces = None
 
         self.walls_base.build_polyhedron(self._create_polyhedron,
-                                         lower=self.min_altitude-0.7,
-                                         upper=vertex_altitudes-0.7,
+                                         lower=self.min_altitude - int(0.7 * 1000),
+                                         upper=vertex_altitudes - int(0.7 * 1000),
                                          top=False, bottom=False)
         self.walls_bottom.build_polyhedron(self._create_polyhedron, lower=0, upper=1, top=False)
 
