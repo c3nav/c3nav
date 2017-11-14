@@ -86,6 +86,8 @@ class MapRenderer:
         min_altitude = min(chain(*(tuple(area.altitude for area in geoms.altitudeareas)
                                    for geoms in levels))) - int(0.7*1000)
 
+        not_full_levels = not self.full_levels and engine.is_3d
+        full_levels = self.full_levels and engine.is_3d
         for geoms in levels:
             if not bbox.intersects(geoms.affected_area):
                 continue
@@ -100,7 +102,7 @@ class MapRenderer:
                       if access_restriction not in unlocked_access_restrictions)
             ).union(add_walls)
 
-            if not self.full_levels and engine.is_3d:
+            if not_full_levels:
                 engine.add_geometry(geoms.walls_base, fill=FillAttribs('#aaaaaa'), category='walls')
                 if min_altitude < geoms.min_altitude:
                     engine.add_geometry(geoms.walls_bottom.fit(scale=geoms.min_altitude-min_altitude,
@@ -136,19 +138,24 @@ class MapRenderer:
             if not add_walls.is_empty or not geoms.walls.is_empty:
                 walls = geoms.walls.union(add_walls)
 
-            walls_extended = geoms.walls_extended and self.full_levels and engine.is_3d
+            walls_extended = geoms.walls_extended and full_levels
             if walls is not None:
-                engine.add_geometry(walls.filter(bottom=(self.full_levels or not engine.is_3d),
+                engine.add_geometry(walls.filter(bottom=not not_full_levels,
                                                  top=not walls_extended),
                                     height=geoms.default_height, fill=FillAttribs('#aaaaaa'), category='walls')
 
             if walls_extended:
-                engine.add_geometry(geoms.walls_extended, height=geoms.default_height, fill=FillAttribs('#aaaaaa'),
-                                    category='walls')
+                engine.add_geometry(geoms.walls_extended, fill=FillAttribs('#aaaaaa'), category='walls')
 
+            doors_extended = geoms.doors_extended and full_levels
             if not geoms.doors.is_empty:
-                engine.add_geometry(geoms.doors.difference(add_walls), fill=FillAttribs('#ffffff'),
-                                    stroke=StrokeAttribs('#ffffff', 0.05, min_px=0.2), category='doors')
+                engine.add_geometry(geoms.doors.difference(add_walls).filter(top=not doors_extended),
+                                    fill=FillAttribs('#ffffff'),
+                                    stroke=StrokeAttribs('#ffffff', 0.05, min_px=0.2),
+                                    category='doors')
+
+            if doors_extended:
+                engine.add_geometry(geoms.doors_extended, fill=FillAttribs('#aaaaaa'), category='doors')
 
             if walls is not None:
                 engine.add_geometry(walls, stroke=StrokeAttribs('#666666', 0.05, min_px=0.2), category='walls')

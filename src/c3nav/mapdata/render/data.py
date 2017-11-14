@@ -216,7 +216,6 @@ class LevelRenderData:
                 new_geoms = LevelGeometries()
                 new_geoms.doors = crop_to.intersection(old_geoms.doors)
                 new_geoms.walls = crop_to.intersection(old_geoms.walls)
-                new_geoms.walls_extended = crop_to.intersection(old_geoms.walls_extended)
 
                 for altitudearea in old_geoms.altitudeareas:
                     new_geometry = crop_to.intersection(altitudearea.geometry)
@@ -356,6 +355,7 @@ class LevelGeometries:
         self.walls = None
         self.walls_extended = None
         self.doors = None
+        self.doors_extended = None
         self.holes = None
         self.access_restriction_affected = None
         self.restricted_spaces_indoors = None
@@ -460,7 +460,6 @@ class LevelGeometries:
                                             for access_restriction, spaces in restricted_spaces_outdoors.items()}
 
         geoms.walls = buildings_geom.difference(spaces_geom).difference(doors_geom)
-        geoms.walls_extended = buildings_geom.difference(spaces_geom)
 
         # general level infos
         geoms.pk = level.pk
@@ -484,7 +483,6 @@ class LevelGeometries:
         self.heightareas = tuple((HybridGeometry.create(area, face_centers), height)
                                  for area, height in self.heightareas)
         self.walls = HybridGeometry.create(self.walls, face_centers)
-        self.walls_extended = HybridGeometry.create(self.walls_extended, face_centers)
         self.doors = HybridGeometry.create(self.doors, face_centers)
         self.restricted_spaces_indoors = {key: HybridGeometry.create(geom, face_centers)
                                           for key, geom in self.restricted_spaces_indoors.items()}
@@ -599,19 +597,10 @@ class LevelGeometries:
         # create polyhedrons
         self.walls_base = HybridGeometry(self.walls.geom, self.walls.faces)
         self.walls_bottom = HybridGeometry(self.walls.geom, self.walls.faces)
-
+        self.walls_extended = HybridGeometry(self.walls.geom, self.walls.faces)
         self.walls.build_polyhedron(self._create_polyhedron,
                                     lower=vertex_altitudes - int(0.7 * 1000),
                                     upper=vertex_wall_heights)
-
-        if interpolator is not None:
-            upper = interpolator(*np.transpose(self.vertices)).astype(np.int32) - int(0.7 * 1000)
-            self.walls_extended.build_polyhedron(self._create_polyhedron,
-                                                 lower=vertex_wall_heights,
-                                                 upper=upper,
-                                                 bottom=False)
-        else:
-            self.walls_extended = None
 
         for key, geometry in self.restricted_spaces_indoors.items():
             geometry.crop_ids = frozenset(('in:%s' % key, ))
@@ -620,10 +609,25 @@ class LevelGeometries:
         crops = tuple((crop, prepared.prep(crop.geom)) for crop in chain(self.restricted_spaces_indoors.values(),
                                                                          self.restricted_spaces_outdoors.values()))
 
+        self.doors_extended = HybridGeometry(self.doors.geom, self.doors.faces)
         self.doors.build_polyhedron(self._create_polyhedron,
                                     crops=crops,
                                     lower=vertex_wall_heights - int(1 * 1000),
                                     upper=vertex_wall_heights)
+
+        if interpolator is not None:
+            upper = interpolator(*np.transpose(self.vertices)).astype(np.int32) - int(0.7 * 1000)
+            self.walls_extended.build_polyhedron(self._create_polyhedron,
+                                                 lower=vertex_wall_heights,
+                                                 upper=upper,
+                                                 bottom=False)
+            self.doors_extended.build_polyhedron(self._create_polyhedron,
+                                                 lower=vertex_wall_heights,
+                                                 upper=upper,
+                                                 bottom=False)
+        else:
+            self.walls_extended = None
+            self.doors_extended = None
 
         for area in self.altitudeareas:
             area.create_polyhedrons(self._create_polyhedron, crops=crops)
