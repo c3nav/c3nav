@@ -132,7 +132,7 @@ class MapRenderer:
                 walls = geoms.walls.union(add_walls)
 
             if walls is not None:
-                engine.add_geometry(walls.filter(bottom=(not self.full_levels and engine.is_3d)),
+                engine.add_geometry(walls.filter(bottom=(self.full_levels or not engine.is_3d)),
                                     height=geoms.default_height, fill=FillAttribs('#aaaaaa'))
 
             if geoms.walls_extended and self.full_levels and engine.is_3d:
