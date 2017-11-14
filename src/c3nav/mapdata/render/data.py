@@ -273,6 +273,7 @@ class LevelRenderData:
 
                 new_geoms.pk = old_geoms.pk
                 new_geoms.on_top_of_id = old_geoms.on_top_of_id
+                new_geoms.short_label = old_geoms.short_label
                 new_geoms.base_altitude = old_geoms.base_altitude
                 new_geoms.default_height = old_geoms.default_height
                 new_geoms.min_altitude = (min(area.altitude for area in new_geoms.altitudeareas)
@@ -369,6 +370,7 @@ class LevelGeometries:
 
         self.pk = None
         self.on_top_of_id = None
+        self.short_label = None
         self.base_altitude = None
         self.default_height = None
         self.min_altitude = None
@@ -463,6 +465,7 @@ class LevelGeometries:
         # general level infos
         geoms.pk = level.pk
         geoms.on_top_of_id = level.on_top_of_id
+        geoms.short_label = level.short_label
         geoms.base_altititude = int(level.base_altitude * 1000)
         geoms.default_height = int(level.default_height * 1000)
         geoms.min_altitude = (min(area.altitude for area in geoms.altitudeareas)

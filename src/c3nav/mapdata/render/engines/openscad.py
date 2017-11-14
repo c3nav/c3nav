@@ -13,7 +13,7 @@ class OpenSCADEngine(Base3DEngine):
         vertices = tuple(set(tuple(vertex) for vertex in facets.reshape((-1, 3))))
         lookup = {vertex: i for i, vertex in enumerate(vertices)}
 
-        return (b'module ' + name.encode() + b'() {\n' +
+        return (b'module ' + name.replace('-', 'minus').encode() + b'() {\n' +
                 b'  polyhedron(\n' +
                 b'    points = [\n' +
                 b'\n'.join((b'      [%.3f, %.3f, %.3f],' % tuple(vertex)) for vertex in vertices) + b'\n' +
@@ -29,11 +29,13 @@ class OpenSCADEngine(Base3DEngine):
     def render(self) -> bytes:
         result = (b'c3nav_export();\n\n' +
                   b'module c3nav_export() {\n' +
-                  b'\n'.join((b'  %s();' % group.encode()) for group in self.groups.keys()) + b'\n' +
+                  b'\n'.join((b'  %s();' % group.replace('-', 'minus').encode())
+                             for group in self.groups.keys()) + b'\n' +
                   b'}\n\n')
         for group, subgroups in self.groups.items():
-            result += (b'module ' + group.encode() + b'() {\n' +
-                       b'\n'.join((b'  %s();' % subgroup.encode()) for subgroup in subgroups) + b'\n' +
+            result += (b'module ' + group.replace('-', 'minus').encode() + b'() {\n' +
+                       b'\n'.join((b'  %s();' % subgroup.replace('-', 'minus').encode())
+                                  for subgroup in subgroups) + b'\n' +
                        b'}\n')
         result += b'\n'
         for group, vertices in self.vertices.items():

@@ -90,7 +90,7 @@ class MapRenderer:
             if not bbox.intersects(geoms.affected_area):
                 continue
 
-            engine.add_group('level_%s' % geoms.pk)
+            engine.add_group('level_%s' % geoms.short_label)
 
             # hide indoor and outdoor rooms if their access restriction was not unlocked
             add_walls = hybrid_union(tuple(area for access_restriction, area in geoms.restricted_spaces_indoors.items()
