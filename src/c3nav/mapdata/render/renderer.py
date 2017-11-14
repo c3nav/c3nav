@@ -122,12 +122,14 @@ class MapRenderer:
                 engine.add_geometry(geometry, altitude=altitudearea.altitude, fill=FillAttribs('#eeeeee'),
                                     category='ground')
 
+                i = 0
                 for color, areas in altitudearea.colors.items():
                     # only select ground colors if their access restriction is unlocked
                     areas = tuple(area for access_restriction, area in areas.items()
                                   if access_restriction in unlocked_access_restrictions)
                     if areas:
-                        engine.add_geometry(hybrid_union(areas), fill=FillAttribs(color), category='ground')
+                        i += 1
+                        engine.add_geometry(hybrid_union(areas), fill=FillAttribs(color), category='groundcolor%s' % i)
 
             # add walls, stroke_px makes sure that all walls are at least 1px thick on all zoom levels,
             walls = None
