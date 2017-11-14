@@ -283,6 +283,7 @@ class LevelRenderData:
                 new_geoms.short_label = old_geoms.short_label
                 new_geoms.base_altitude = old_geoms.base_altitude
                 new_geoms.default_height = old_geoms.default_height
+                new_geoms.door_height = old_geoms.door_height
                 new_geoms.min_altitude = (min(area.altitude for area in new_geoms.altitudeareas)
                                           if new_geoms.altitudeareas else new_geoms.base_altitude)
 
@@ -381,6 +382,7 @@ class LevelGeometries:
         self.short_label = None
         self.base_altitude = None
         self.default_height = None
+        self.door_height = None
         self.min_altitude = None
 
     @staticmethod
@@ -475,6 +477,7 @@ class LevelGeometries:
         geoms.short_label = level.short_label
         geoms.base_altititude = int(level.base_altitude * 1000)
         geoms.default_height = int(level.default_height * 1000)
+        geoms.door_height = int(level.door_height * 1000)
         geoms.min_altitude = (min(area.altitude for area in geoms.altitudeareas)
                               if geoms.altitudeareas else geoms.base_altitude)
 
@@ -624,8 +627,8 @@ class LevelGeometries:
         self.doors_extended = HybridGeometry(self.doors.geom, self.doors.faces)
         self.doors.build_polyhedron(self._create_polyhedron,
                                     crops=crops,
-                                    lower=vertex_wall_heights - int(1 * 1000),
-                                    upper=vertex_wall_heights)
+                                    lower=vertex_altitudes + self.door_height,
+                                    upper=vertex_wall_heights - 1)
 
         if interpolator is not None:
             upper = interpolator(*np.transpose(self.vertices)).astype(np.int32) - int(0.7 * 1000)
@@ -634,7 +637,7 @@ class LevelGeometries:
                                                  upper=upper,
                                                  bottom=False)
             self.doors_extended.build_polyhedron(self._create_polyhedron,
-                                                 lower=vertex_wall_heights,
+                                                 lower=vertex_wall_heights - 1,
                                                  upper=upper,
                                                  bottom=False)
         else:
