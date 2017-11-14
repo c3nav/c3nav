@@ -598,11 +598,11 @@ class LevelGeometries:
         self.walls_bottom = HybridGeometry(self.walls.geom, self.walls.faces)
 
         self.walls.build_polyhedron(self._create_polyhedron,
-                                    lower=vertex_altitudes - int(0.7 * 1000),
+                                    lower=vertex_altitudes,
                                     upper=vertex_wall_heights)
 
         if interpolator is not None:
-            upper = interpolator(*np.transpose(self.vertices)).astype(np.int32) - int(0.7 * 1000)
+            upper = interpolator(*np.transpose(self.vertices)).astype(np.int32)
             self.walls_extended.build_polyhedron(self._create_polyhedron,
                                                  lower=vertex_wall_heights,
                                                  upper=upper,
