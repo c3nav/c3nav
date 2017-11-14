@@ -627,8 +627,9 @@ class LevelGeometries:
 
         for key, geometry in self.restricted_spaces_indoors.items():
             geometry.build_polyhedron(self._create_polyhedron,
-                                      lower=vertex_altitudes - int(0.7 * 1000),
-                                      upper=vertex_wall_heights)
+                                      lower=vertex_altitudes,
+                                      upper=vertex_wall_heights,
+                                      bottom=False)
         for key, geometry in self.restricted_spaces_outdoors.items():
             geometry.faces = None
 
