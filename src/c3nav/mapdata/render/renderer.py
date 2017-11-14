@@ -107,21 +107,21 @@ class MapRenderer:
                 engine.add_geometry(geoms.walls_bottom.fit(scale=geoms.min_altitude-min_altitude,
                                                            offset=min_altitude-int(0.7*1000)),
                                     fill=FillAttribs('#aaaaaa'), category='walls')
-                for altitudearea in geoms.altitudeareas:
+                for i, altitudearea in enumerate(geoms.altitudeareas):
                     scale = (altitudearea.altitude - min_altitude) / int(0.7 * 1000)
                     offset = (min_altitude - int(0.7*1000)) - (altitudearea.altitude - int(0.7*1000)) * scale
                     geometry = altitudearea.geometry.difference(crop_areas)
                     engine.add_geometry(geometry.fit(scale=scale, offset=offset).filter(top=False),
-                                        fill=FillAttribs('#eeeeee'), category='ground')
+                                        fill=FillAttribs('#eeeeee'), category='ground', item=i)
 
             # render altitude areas in default ground color and add ground colors to each one afterwards
             # shadows are directly calculated and added by the engine
-            for altitudearea in geoms.altitudeareas:
+            for i, altitudearea in enumerate(geoms.altitudeareas):
                 geometry = altitudearea.geometry.difference(crop_areas)
                 if not_full_levels:
                     geometry = geometry.filter(bottom=False)
                 engine.add_geometry(geometry, altitude=altitudearea.altitude, fill=FillAttribs('#eeeeee'),
-                                    category='ground')
+                                    category='ground', item=i)
 
                 i = 0
                 for color, areas in altitudearea.colors.items():
@@ -130,7 +130,8 @@ class MapRenderer:
                                   if access_restriction in unlocked_access_restrictions)
                     if areas:
                         i += 1
-                        engine.add_geometry(hybrid_union(areas), fill=FillAttribs(color), category='groundcolor%s' % i)
+                        engine.add_geometry(hybrid_union(areas), fill=FillAttribs(color),
+                                            category='groundcolor%s' % i, item=i)
 
             # add walls, stroke_px makes sure that all walls are at least 1px thick on all zoom levels,
             walls = None

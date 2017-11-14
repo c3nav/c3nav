@@ -8,13 +8,12 @@ from c3nav.mapdata.render.engines.base3d import Base3DEngine
 class OpenSCADEngine(Base3DEngine):
     filetype = 'scad'
 
-    def _create_polyhedron(self, name, vertices):
+    def _create_polyhedron(self, vertices):
         facets = np.vstack(vertices)
         vertices = tuple(set(tuple(vertex) for vertex in facets.reshape((-1, 3))))
         lookup = {vertex: i for i, vertex in enumerate(vertices)}
 
-        return (b'module ' + name.replace('-', 'minus').encode() + b'() {\n' +
-                b'  polyhedron(\n' +
+        return (b'  polyhedron(\n' +
                 b'    points = [\n' +
                 b'\n'.join((b'      [%.3f, %.3f, %.3f],' % tuple(vertex)) for vertex in vertices) + b'\n' +
                 b'    ],\n' +
@@ -23,8 +22,7 @@ class OpenSCADEngine(Base3DEngine):
                            for a, b, c in facets) + b'\n' +
                 b'    ],\n' +
                 b'    convexity = 10\n' +
-                b'  );\n'
-                b'}\n')
+                b'  );')
 
     def render(self) -> bytes:
         result = (b'c3nav_export();\n\n' +
@@ -41,5 +39,7 @@ class OpenSCADEngine(Base3DEngine):
                        b'}\n')
         result += b'\n'
         for group, vertices in self.vertices.items():
-            result += self._create_polyhedron(group, vertices)
+            result += (b'module ' + group.replace('-', 'minus').encode() + b'() {\n' +
+                       b'\n'.join(self._create_polyhedron(v) for v in vertices.values()) +
+                       b'}\n')
         return result

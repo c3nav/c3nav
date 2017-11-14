@@ -32,13 +32,13 @@ class Base3DEngine(RenderEngine):
         self._current_group = group
         self.groups.setdefault(group, [])
 
-    def _add_geometry(self, geometry, fill: Optional[FillAttribs], stroke: Optional[StrokeAttribs], category=None,
-                      **kwargs):
+    def _add_geometry(self, geometry, fill: Optional[FillAttribs], stroke: Optional[StrokeAttribs],
+                      category=None, item=None, **kwargs):
         if fill is not None:
             key = '%s_%s' % (self._current_group, category)
             if key not in self.vertices:
                 self.groups[self._current_group].append(key)
-            self.vertices.setdefault(key, []).append(self._place_geometry(geometry))
+            self.vertices.setdefault(key, OrderedDict()).setdefault(item, []).append(self._place_geometry(geometry))
             self.colors.setdefault(key, self.color_to_rgb(fill.color))
 
     @staticmethod
