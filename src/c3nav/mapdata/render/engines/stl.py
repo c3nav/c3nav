@@ -17,7 +17,7 @@ class STLEngine(Base3DEngine):
 
     def render(self) -> bytes:
         facets = np.vstack(self.vertices)
-        facets = np.hstack((np.cross(facets[:, 1]-facets[:, 0], facets[:, 2]-facets[:, 1]).reshape((-1, 1, 3))*1e11,
+        facets = np.hstack((np.cross(facets[:, 1]-facets[:, 0], facets[:, 2]-facets[:, 1]).reshape((-1, 1, 3)),
                             facets))
         return (b'solid c3nav_export\n' +
                 b'\n'.join((self._create_facet(facet) for facet in facets)) +
