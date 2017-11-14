@@ -125,7 +125,7 @@ class AltitudeAreaGeometries:
                                       lower=altitude,
                                       upper=altitude + int(0.001 * 1000),
                                       crops=crops,
-                                      bottom=0)
+                                      bottom=False)
 
 
 class FakeCropper:
