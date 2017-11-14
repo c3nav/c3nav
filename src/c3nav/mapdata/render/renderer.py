@@ -108,14 +108,16 @@ class MapRenderer:
                     bottom = float(altitudearea.altitude) - 0.7
                     scale = (bottom - min_altitude) / 0.7
                     offset = min_altitude - bottom * scale
-                    engine.add_geometry(altitudearea.geometry.fit(scale=scale, offset=offset),
+                    engine.add_geometry(altitudearea.geometry.fit(scale=scale, offset=offset).filter(top=False),
                                         fill=FillAttribs('#aaaaaa'))
 
             # render altitude areas in default ground color and add ground colors to each one afterwards
             # shadows are directly calculated and added by the engine
             for altitudearea in geoms.altitudeareas:
-                engine.add_geometry(altitudearea.geometry.difference(crop_areas),
-                                    altitude=altitudearea.altitude, fill=FillAttribs('#eeeeee'))
+                geometry = altitudearea.geometry.difference(crop_areas)
+                if not self.full_levels and engine.is_3d:
+                    geometry = geometry.filter(bottom=False)
+                engine.add_geometry(geometry, altitude=altitudearea.altitude, fill=FillAttribs('#eeeeee'))
 
                 for color, areas in altitudearea.colors.items():
                     # only select ground colors if their access restriction is unlocked

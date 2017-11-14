@@ -74,6 +74,12 @@ class HybridGeometry:
                               add_faces={crop_id: tuple((faces*scale+offset) for faces in self.faces)
                                          for crop_id, faces in self.add_faces})
 
+    def filter(self, **kwargs):
+        return HybridGeometry(geom=self.geom, crop_ids=self.crop_ids,
+                              faces=tuple(mesh.filter(**kwargs) for mesh in self.faces),
+                              add_faces={crop_id: tuple(mesh.filter(**kwargs) for mesh in faces)
+                                         for crop_id, faces in self.add_faces.items()})
+
     @property
     def is_empty(self):
         return not self.faces and not any(self.add_faces.values())
@@ -332,6 +338,11 @@ class Mesh:
 
     def __add__(self, other):
         return Mesh(self.top+other, self.sides+other, self.bottom+other)
+
+    def filter(self, top=True, sides=True, bottom=True):
+        return Mesh(top=self.top if top else None,
+                    sides=self.sides if sides else None,
+                    bottom=self.bottom if bottom else None)
 
 
 class LevelGeometries:
