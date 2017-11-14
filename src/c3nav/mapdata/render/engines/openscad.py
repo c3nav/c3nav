@@ -13,6 +13,10 @@ class OpenSCADEngine(Base3DEngine):
         vertices = tuple(set(tuple(vertex) for vertex in facets.reshape((-1, 3))))
         lookup = {vertex: i for i, vertex in enumerate(vertices)}
 
+        # from collections import Counter
+        # print(Counter(Counter([tuple(sorted((tuple(a), tuple(b))))
+        #                        for a, b in facets[:, (0, 1, 1, 2, 2, 0), :].reshape((-1, 2, 3))]).values()))
+
         return (b'  polyhedron(\n' +
                 b'    points = [\n' +
                 b'\n'.join((b'      [%.3f, %.3f, %.3f],' % tuple(vertex)) for vertex in vertices) + b'\n' +
