@@ -83,7 +83,8 @@ class MapRenderer:
         else:
             levels = self.level_render_data.levels
 
-        min_altitude = float(min(chain(*(tuple(area.altitude for area in geoms.altitudeareas) for geoms in levels))))
+        min_altitude = float(min(chain(*(tuple(area.altitude for area in geoms.altitudeareas)
+                                         for geoms in levels)))) - 0.7
 
         for geoms in levels:
             if not bbox.intersects(geoms.affected_area):
