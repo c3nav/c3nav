@@ -505,6 +505,9 @@ class LevelGeometries:
 
         return vertex_values
 
+    def _filter_faces(self, faces):
+        return faces[np.all(np.any(faces[:, (0, 1, 2), :]-faces[:, (2, 0, 1), :], axis=2), axis=1)]
+
     def _create_polyhedron(self, faces, lower, upper, top=True, sides=True, bottom=True):
         if not any(faces):
             return ()
@@ -556,22 +559,24 @@ class LevelGeometries:
 
         # top faces
         if top:
-            mesh.top = np.dstack((self.vertices[geom_faces], upper[geom_faces]))
+            mesh.top = self._filter_faces(np.dstack((self.vertices[geom_faces], upper[geom_faces])))
 
         # side faces
         if sides:
-            mesh.sides = np.vstack((
+            mesh.sides = self._filter_faces(np.vstack((
                 # upper
                 np.dstack((self.vertices[boundaries[:, (1, 0, 0)]],
                            np.hstack((upper[boundaries[:, (1, 0)]], lower[boundaries[:, (0,)]])))),
                 # lower
                 np.dstack((self.vertices[boundaries[:, (0, 1, 1)]],
                            np.hstack((lower[boundaries[:, (0, 1)]], upper[boundaries[:, (1,)]]))))
-            ))
+            )))
 
         # bottom faces
         if bottom:
-            mesh.bottom = np.dstack((self.vertices[np.flip(geom_faces, axis=1)], lower[geom_faces]))
+            mesh.bottom = self._filter_faces(
+                np.dstack((self.vertices[np.flip(geom_faces, axis=1)], lower[geom_faces]))
+            )
 
         return tuple((mesh, ))
 
