@@ -27,7 +27,7 @@ class OpenSCADEngine(Base3DEngine):
                 b'}\n')
 
     def render(self) -> bytes:
-        result = (b'scale([100, 100, 100]) c3nav_export();\n\n' +
+        result = (b'c3nav_export();\n\n' +
                   b'module c3nav_export() {\n' +
                   b'\n'.join((b'  %s();' % group.encode()) for group in self.groups.keys()) + b'\n' +
                   b'}\n\n')
