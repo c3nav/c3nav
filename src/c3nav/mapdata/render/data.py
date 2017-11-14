@@ -122,9 +122,10 @@ class AltitudeAreaGeometries:
                                        crops=crops)
         for geometry in chain(*(areas.values() for areas in self.colors.values())):
             geometry.build_polyhedron(create_polyhedron,
-                                      lower=altitude - int(0.1 * 1000),
+                                      lower=altitude,
                                       upper=altitude + int(0.001 * 1000),
-                                      crops=crops)
+                                      crops=crops,
+                                      bottom=0)
 
 
 class FakeCropper:
