@@ -65,9 +65,9 @@ class MapRenderer:
     def cache_key(self):
         return self.update_cache_key + ':' + self.access_cache_key
 
-    def render(self, engine_cls):
+    def render(self, engine_cls, center=True):
         engine = engine_cls(self.width, self.height, self.minx, self.miny,
-                            scale=self.scale, buffer=1, background='#DCDCDC')
+                            scale=self.scale, buffer=1, background='#DCDCDC', center=center)
 
         # add no access restriction to “unlocked“ access restrictions so lookup gets easier
         unlocked_access_restrictions = self.unlocked_access_restrictions | set([None])

@@ -58,6 +58,8 @@ class Command(BaseCommand):
                             help=_('permissions, e.g. 2,3 or * for all permissions or 0 for none (default)'))
         parser.add_argument('--full-levels', action='store_const', const=True, default=False,
                             help=_('render all levels completely'))
+        parser.add_argument('--no-center', action='store_const', const=True, default=False,
+                            help=_('do not center the output'))
 
     def handle(self, *args, **options):
         (minx, miny), (maxx, maxy) = Source.max_bounds()
@@ -65,7 +67,7 @@ class Command(BaseCommand):
             renderer = MapRenderer(level.pk, minx, miny, maxx, maxy, access_permissions=options['permissions'],
                                    full_levels=options['full_levels'])
 
-            stl = renderer.render(get_engine(options['filetype']))
+            stl = renderer.render(get_engine(options['filetype']), center=not options['no_center'])
             data = stl.render()
             filename = os.path.join(settings.RENDER_ROOT,
                                     'level_%s_%s.%s' % (level.short_label,

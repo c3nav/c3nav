@@ -11,13 +11,17 @@ from c3nav.mapdata.render.engines.base import FillAttribs, RenderEngine, StrokeA
 class Base3DEngine(RenderEngine):
     is_3d = True
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, center=True, **kwargs):
         super().__init__(*args, **kwargs)
 
         self.vertices = []
 
         self.np_scale = np.array((self.scale, self.scale, self.scale))
         self.np_offset = np.array((-self.minx * self.scale, -self.miny * self.scale, 0))
+        if center:
+            self.np_offset -= np.array(((self.minx - self.maxx) * self.scale / 2,
+                                        (self.miny - self.maxy) * self.scale / 2,
+                                        0))
 
     def _add_geometry(self, geometry, fill: Optional[FillAttribs], stroke: Optional[StrokeAttribs], **kwargs):
         if fill is not None:
