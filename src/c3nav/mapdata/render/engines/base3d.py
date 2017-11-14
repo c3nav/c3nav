@@ -22,8 +22,8 @@ class Base3DEngine(RenderEngine):
         self.np_scale = np.array((self.scale, self.scale, self.scale))
         self.np_offset = np.array((-self.minx * self.scale, -self.miny * self.scale, 0))
         if center:
-            self.np_offset -= np.array(((self.minx - self.maxx) * self.scale / 2,
-                                        (self.miny - self.maxy) * self.scale / 2,
+            self.np_offset -= np.array(((self.maxx - self.minx) * self.scale / 2,
+                                        (self.maxy - self.miny) * self.scale / 2,
                                         0))
 
     def add_group(self, group):
