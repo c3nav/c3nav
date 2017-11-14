@@ -140,7 +140,6 @@ class AltitudeAreaGeometries:
                                       upper=altitude + int(0.001 * 1000),
                                       crops=crops)
         for height, geometry in self.obstacles.items():
-            print(height)
             geometry.build_polyhedron(create_polyhedron,
                                       lower=altitude,
                                       upper=altitude + height,
