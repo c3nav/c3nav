@@ -80,6 +80,9 @@ class HybridGeometry:
                               add_faces={crop_id: tuple(mesh.filter(**kwargs) for mesh in faces)
                                          for crop_id, faces in self.add_faces.items()})
 
+    def remove_faces(self, faces):
+        self.faces = tuple((subfaces-faces) for subfaces in self.faces)
+
     @property
     def is_empty(self):
         return not self.faces and not any(self.add_faces.values())
@@ -113,6 +116,12 @@ class AltitudeAreaGeometries:
         self.geometry = HybridGeometry.create(self.geometry, face_centers)
         self.colors = {color: {key: HybridGeometry.create(geom, face_centers) for key, geom in areas.items()}
                        for color, areas in self.colors.items()}
+
+    def remove_faces(self, faces):
+        self.geometry.remove_faces(faces)
+        for areas in self.colors.values():
+            for area in areas.values():
+                area.remove_faces(faces)
 
     def create_polyhedrons(self, create_polyhedron, crops):
         altitude = self.altitude
@@ -592,6 +601,10 @@ class LevelGeometries:
         vertex_heights = self._build_vertex_values((area, height)
                                                    for area, height in self.heightareas)
         vertex_wall_heights = vertex_altitudes + vertex_heights
+
+        # remove altitude area faces inside walls
+        for area in self.altitudeareas:
+            area.remove_faces(reduce(operator.or_, self.walls.faces, set()))
 
         # create polyhedrons
         self.walls_base = HybridGeometry(self.walls.geom, self.walls.faces)
