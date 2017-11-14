@@ -8,21 +8,34 @@ from c3nav.mapdata.render.engines.base3d import Base3DEngine
 class OpenSCADEngine(Base3DEngine):
     filetype = 'scad'
 
-    def render(self) -> bytes:
-        facets = np.vstack(self.vertices)
-        result = b''
-        for facets in self.vertices:
-            vertices = tuple(set(tuple(vertex) for vertex in facets.reshape((-1, 3))))
-            lookup = {vertex: i for i, vertex in enumerate(vertices)}
+    def _create_polyhedron(self, name, vertices):
+        facets = np.vstack(vertices)
+        vertices = tuple(set(tuple(vertex) for vertex in facets.reshape((-1, 3))))
+        lookup = {vertex: i for i, vertex in enumerate(vertices)}
 
-            result += (b'polyhedron(\n' +
-                       b'  points = [\n' +
-                       b'\n'.join((b'    [%.3f, %.3f, %.3f],' % tuple(vertex)) for vertex in vertices) + b'\n' +
-                       b'  ],\n' +
-                       b'  faces = [\n' +
-                       b'\n'.join((b'    [%d, %d, %d],' % (lookup[tuple(a)], lookup[tuple(b)], lookup[tuple(c)]))
-                                  for a, b, c in facets) + b'\n' +
-                       b'  ],\n' +
-                       b'  convexity = 10\n' +
-                       b');\n')
+        return (b'module ' + name.encode() + b'() {\n' +
+                b'  polyhedron(\n' +
+                b'    points = [\n' +
+                b'\n'.join((b'      [%.3f, %.3f, %.3f],' % tuple(vertex)) for vertex in vertices) + b'\n' +
+                b'    ],\n' +
+                b'    faces = [\n' +
+                b'\n'.join((b'      [%d, %d, %d],' % (lookup[tuple(a)], lookup[tuple(b)], lookup[tuple(c)]))
+                           for a, b, c in facets) + b'\n' +
+                b'    ],\n' +
+                b'    convexity = 10\n' +
+                b'  );\n'
+                b'}\n')
+
+    def render(self) -> bytes:
+        result = (b'scale([100, 100, 100]) c3nav_export();\n\n' +
+                  b'module c3nav_export() {\n' +
+                  b'\n'.join((b'  %s();' % group.encode()) for group in self.groups.keys()) + b'\n' +
+                  b'}\n\n')
+        for group, subgroups in self.groups.items():
+            result += (b'module ' + group.encode() + b'() {\n' +
+                       b'\n'.join((b'  %s();' % subgroup.encode()) for subgroup in subgroups) + b'\n' +
+                       b'}\n')
+        result += b'\n'
+        for group, vertices in self.vertices.items():
+            result += self._create_polyhedron(group, vertices)
         return result

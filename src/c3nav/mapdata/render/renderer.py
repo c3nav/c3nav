@@ -90,6 +90,8 @@ class MapRenderer:
             if not bbox.intersects(geoms.affected_area):
                 continue
 
+            engine.add_group('level_%s' % geoms.pk)
+
             # hide indoor and outdoor rooms if their access restriction was not unlocked
             add_walls = hybrid_union(tuple(area for access_restriction, area in geoms.restricted_spaces_indoors.items()
                                            if access_restriction not in unlocked_access_restrictions))
@@ -99,17 +101,17 @@ class MapRenderer:
             ).union(add_walls)
 
             if not self.full_levels and engine.is_3d:
-                engine.add_geometry(geoms.walls_base, fill=FillAttribs('#aaaaaa'))
+                engine.add_geometry(geoms.walls_base, fill=FillAttribs('#aaaaaa'), category='walls')
                 if min_altitude < geoms.min_altitude:
                     engine.add_geometry(geoms.walls_bottom.fit(scale=geoms.min_altitude-min_altitude,
                                                                offset=min_altitude),
-                                        fill=FillAttribs('#aaaaaa'))
+                                        fill=FillAttribs('#aaaaaa'), category='walls')
                 for altitudearea in geoms.altitudeareas:
                     bottom = altitudearea.altitude - int(0.7 * 1000)
                     scale = (bottom - min_altitude) / int(0.7 * 1000)
                     offset = min_altitude - bottom * scale
                     engine.add_geometry(altitudearea.geometry.fit(scale=scale, offset=offset).filter(top=False),
-                                        fill=FillAttribs('#aaaaaa'))
+                                        fill=FillAttribs('#aaaaaa'), category='ground')
 
             # render altitude areas in default ground color and add ground colors to each one afterwards
             # shadows are directly calculated and added by the engine
@@ -117,14 +119,15 @@ class MapRenderer:
                 geometry = altitudearea.geometry.difference(crop_areas)
                 if not self.full_levels and engine.is_3d:
                     geometry = geometry.filter(bottom=False)
-                engine.add_geometry(geometry, altitude=altitudearea.altitude, fill=FillAttribs('#eeeeee'))
+                engine.add_geometry(geometry, altitude=altitudearea.altitude, fill=FillAttribs('#eeeeee'),
+                                    category='ground')
 
                 for color, areas in altitudearea.colors.items():
                     # only select ground colors if their access restriction is unlocked
                     areas = tuple(area for access_restriction, area in areas.items()
                                   if access_restriction in unlocked_access_restrictions)
                     if areas:
-                        engine.add_geometry(hybrid_union(areas), fill=FillAttribs(color))
+                        engine.add_geometry(hybrid_union(areas), fill=FillAttribs(color), category='ground')
 
             # add walls, stroke_px makes sure that all walls are at least 1px thick on all zoom levels,
             walls = None
@@ -133,16 +136,17 @@ class MapRenderer:
 
             if walls is not None:
                 engine.add_geometry(walls.filter(bottom=(self.full_levels or not engine.is_3d)),
-                                    height=geoms.default_height, fill=FillAttribs('#aaaaaa'))
+                                    height=geoms.default_height, fill=FillAttribs('#aaaaaa'), category='walls')
 
             if geoms.walls_extended and self.full_levels and engine.is_3d:
-                engine.add_geometry(geoms.walls_extended, height=geoms.default_height, fill=FillAttribs('#aaaaaa'))
+                engine.add_geometry(geoms.walls_extended, height=geoms.default_height, fill=FillAttribs('#aaaaaa'),
+                                    category='walls')
 
             if not geoms.doors.is_empty:
                 engine.add_geometry(geoms.doors.difference(add_walls), fill=FillAttribs('#ffffff'),
-                                    stroke=StrokeAttribs('#ffffff', 0.05, min_px=0.2))
+                                    stroke=StrokeAttribs('#ffffff', 0.05, min_px=0.2), category='doors')
 
             if walls is not None:
-                engine.add_geometry(walls, stroke=StrokeAttribs('#666666', 0.05, min_px=0.2))
+                engine.add_geometry(walls, stroke=StrokeAttribs('#666666', 0.05, min_px=0.2), category='walls')
 
         return engine

@@ -1,3 +1,4 @@
+from collections import OrderedDict
 from itertools import chain
 from typing import Optional
 
@@ -14,7 +15,9 @@ class Base3DEngine(RenderEngine):
     def __init__(self, *args, center=True, **kwargs):
         super().__init__(*args, **kwargs)
 
-        self.vertices = []
+        self._current_group = None
+        self.groups = OrderedDict()
+        self.vertices = OrderedDict()
 
         self.np_scale = np.array((self.scale, self.scale, self.scale))
         self.np_offset = np.array((-self.minx * self.scale, -self.miny * self.scale, 0))
@@ -23,9 +26,17 @@ class Base3DEngine(RenderEngine):
                                         (self.miny - self.maxy) * self.scale / 2,
                                         0))
 
-    def _add_geometry(self, geometry, fill: Optional[FillAttribs], stroke: Optional[StrokeAttribs], **kwargs):
+    def add_group(self, group):
+        self._current_group = group
+        self.groups.setdefault(group, [])
+
+    def _add_geometry(self, geometry, fill: Optional[FillAttribs], stroke: Optional[StrokeAttribs], category=None,
+                      **kwargs):
         if fill is not None:
-            self.vertices.append(self._place_geometry(geometry))
+            key = '%s_%s' % (self._current_group, category)
+            if key not in self.vertices:
+                self.groups[self._current_group].append(key)
+            self.vertices.setdefault(key, []).append(self._place_geometry(geometry))
 
     @staticmethod
     def _append_to_vertices(vertices, append=None):

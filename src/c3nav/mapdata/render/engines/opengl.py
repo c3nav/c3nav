@@ -156,6 +156,8 @@ class OpenGLEngine(Base3DEngine):
         self.gl_scale = (scale_x, -scale_y, scale_z)
         self.gl_offset = (-self.minx * scale_x - 1, self.maxy * scale_y - 1, 0)
 
+        self.vertices = []
+
     def _add_geometry(self, geometry, fill: Optional[FillAttribs], stroke: Optional[StrokeAttribs], **kwargs):
         if fill is not None:
             self.vertices.append(self._place_geometry(geometry, self.color_to_rgb(fill.color), offset=False))
