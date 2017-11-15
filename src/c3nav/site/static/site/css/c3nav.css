@@ -241,9 +241,14 @@ main:not([data-view=route-result]) #route-dots {
     line-height: 1.6;
 }
 .location-popup .leaflet-popup-content .location {
-    padding: 0;
+    padding: 0 0 0 42px;
     height: auto;
     margin-bottom: 10px;
+    position: relative;
+}
+.location-popup .leaflet-popup-content .icon {
+    top: 3px;
+    left: 0;
 }
 .location-popup .leaflet-popup-content .button-clear {
     display:block;
