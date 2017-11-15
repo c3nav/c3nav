@@ -274,10 +274,10 @@ c3nav = {
             $(this).parent().data('lastlocation', null);
         }
     },
-    _locationinput_global_focuschange: function () {
+    _locationinput_global_focuschange: function (e) {
         // when focus changed, reset autocomplete if it is outside of locationinputs or autocomplete
         if (!c3nav.current_locationinput) return;
-        if (!$('#autocomplete > :focus, #' + c3nav.current_locationinput + ' > :focus').length) {
+        if (!$(e.target).is('#autocomplete *, #' + c3nav.current_locationinput + ' *')) {
             c3nav._locationinput_reset_autocomplete();
         }
     },
