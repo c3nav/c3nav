@@ -121,7 +121,7 @@ main:not([data-view=route-result]) #route-result-buttons{
     left: 9px;
     cursor: default;
     color: #7C848A;
-    transition: color 150ms;
+    transition: color 150ms, transform 150ms, top 150ms;
 }
 .location .icon:empty::before {
     display: block;
@@ -197,7 +197,7 @@ main:not([data-view=route-result]) #route-result-buttons{
     background-repeat: no-repeat;
     background-position: center;
     border-width: 0;
-    transition: transform 150ms, opacity 150ms;
+    transition: transform 150ms, opacity 150ms, top 150ms, right 150ms;
     font-size: 42px;
     color: #b2b2b2;
 }
@@ -219,7 +219,7 @@ main:not([data-view=route-result]) #route-result-buttons{
     top: 53px;
     left: 25px;
     text-shadow: 2px 0 1px #fff, -2px 0 1px #fff;
-    transition: top 150ms, opacity 150ms, color 150ms;
+    transition: top 150ms, opacity 150ms, color 150ms, transform 150ms;
     color: #7C848A;
 }
 main:not([data-view^=route]) #route-dots {
@@ -307,6 +307,36 @@ main:not([data-view=route-result]) #route-summary {
     margin-bottom: -55px;
     pointer-events: none;
     opacity: 0;
+}
+
+@media not all and (min-height: 700px) and (min-width: 1150px) {
+    main[data-view=route-result] .locationinput {
+        margin-bottom: -21px;
+    }
+    main[data-view=route-result] .locationinput input {
+        padding-bottom: 28px;
+    }
+    main[data-view=route-result] .locationinput small {
+        opacity: 0;
+        -webkit-user-select: none;
+        -moz-user-select: none;
+        -ms-user-select: none;
+        user-select: none;
+        pointer-events: none;
+    }
+    main[data-view=route-result] .locationinput .icon {
+        transform: scale(0.6);
+        top: -1px;
+    }
+    main[data-view=route-result] .locationinput button {
+        transform: scale(0.6);
+        top: -5px;
+        right: -5px;
+    }
+    main[data-view=route-result] #route-dots {
+        transform: scale(0.7);
+        top: 32px;
+    }
 }
 
 /* leaftlet levels control */
