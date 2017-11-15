@@ -288,6 +288,7 @@ editor = {
     _graph_edges_from: {},
     _graph_edges_to: {},
     _arrow_colors: [],
+    _last_vertex: null,
     init_geometries: function () {
         // init geometries and edit listeners
         editor._highlight_layer = L.layerGroup().addTo(editor.map);
@@ -302,15 +303,31 @@ editor = {
         editor.map.on('editable:vertex:click', function () {
             editor.map.doubleClickZoom.disable();
         });
+        editor.map.on('editable:drawing:start editable:drawing:end', function() {
+            editor._last_vertex = null;
+        });
+        editor.map.on('editable:vertex:new', function(e) {
+            editor._last_vertex = e.vertex;
+        });
         editor.map.on('editable:vertex:drag', function (e) {
             e.vertex.setLatLng([Math.round(e.latlng.lat*100)/100, Math.round(e.latlng.lng*100)/100]);
         });
-        editor.map.on('editable:drawing:click', function (e) {
+        editor.map.on('editable:drawing:click editable:drawing:move', function (e) {
+            if (e.originalEvent.ctrlKey && editor._last_vertex) {
+                var dx = e.latlng.lng - editor._last_vertex.latlng.lng,
+                    dy = e.latlng.lat - editor._last_vertex.latlng.lat,
+                    angle = Math.atan2(dy, dx) * (180 / Math.PI),
+                    distance = Math.hypot(dx, dy),
+                    newangle = Math.round(angle/15)*15 / (180 / Math.PI);
+                e.latlng.lat = editor._last_vertex.latlng.lat + Math.sin(newangle)*distance;
+                e.latlng.lng = editor._last_vertex.latlng.lng + Math.cos(newangle)*distance;
+            }
             e.latlng.lat = Math.round(e.latlng.lat*100)/100;
             e.latlng.lng = Math.round(e.latlng.lng*100)/100;
         });
         editor.map.on('editable:vertex:ctrlclick editable:vertex:metakeyclick', function (e) {
             e.vertex.continue();
+            editor._last_vertex = e.vertex;
         });
 
         editor.map.on('zoomend', editor._adjust_line_zoom);
