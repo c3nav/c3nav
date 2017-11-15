@@ -122,6 +122,7 @@ main:not([data-view=route-result]) #route-result-buttons{
     cursor: default;
     color: #7C848A;
     transition: color 150ms, transform 150ms, top 150ms;
+    pointer-events: none;
 }
 .location .icon:empty::before {
     display: block;
@@ -221,6 +222,7 @@ main:not([data-view=route-result]) #route-result-buttons{
     text-shadow: 2px 0 1px #fff, -2px 0 1px #fff;
     transition: top 150ms, opacity 150ms, color 150ms, transform 150ms;
     color: #7C848A;
+    pointer-events: none;
 }
 main:not([data-view^=route]) #route-dots {
     position: absolute;

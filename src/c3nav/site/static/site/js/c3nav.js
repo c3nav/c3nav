@@ -281,7 +281,7 @@ c3nav = {
         }
         if (!$(e.target).is('#search *')) {
             $('#search').removeClass('focused');
-        } else if ($(e.target).is('.locationinput *')) {
+        } else if ($(e.target).is('.locationinput input')) {
             $('#search').addClass('focused');
         }
     },
