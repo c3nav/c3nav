@@ -249,7 +249,7 @@ editor = {
     _sidebar_submit: function(e) {
         // listener for form submits in the sidebar.
         e.preventDefault();
-        if (editor._loading_geometry) return;
+        if (editor._loading_geometry || $(this).is('.creation-lock')) return;
         var data = $(this).serialize();
         var btn = $(this).data('btn');
         if (btn !== undefined && btn !== null) {
