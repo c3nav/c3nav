@@ -124,10 +124,6 @@ main:not([data-view=route-result]) #route-result-buttons{
     transition: color 150ms, transform 150ms, top 150ms;
     pointer-events: none;
 }
-.location .icon:empty::before {
-    display: block;
-    content: "place";
-}
 .location > * {
     display: block;
     white-space: nowrap;
