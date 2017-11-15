@@ -556,8 +556,10 @@ c3nav = {
     },
     _add_map_padding: function(options, topleft, bottomright) {
         // add padding information for the current ui layout to fitBoudns options
-        var left = 0,
-            top = (left === 0) ? $('#search').height()+10 : 10;
+        var $search = $('#search'),
+            padBesideSidebar = ($(window).width() > 1000 && $(window).height() < 600),
+            left = padBesideSidebar ? $search.width()+10 : 0,
+            top = padBesideSidebar ? 10 : $search.height()+10;
         options[topleft || 'paddingTopLeft'] = L.point(left+13, top+41);
         options[bottomright || 'paddingBottomRight'] = L.point(50, 20);
         return options;
