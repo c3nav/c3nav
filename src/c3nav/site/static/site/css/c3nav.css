@@ -175,7 +175,7 @@ main:not([data-view=route-result]) #route-result-buttons{
 }
 .locationinput .icon::before {
     position: absolute;
-    top: 1px;
+    top: 0;
     left: 1px;
     content: "search";
     color: #b2b2b2;
@@ -206,8 +206,8 @@ main:not([data-view=route-result]) #route-result-buttons{
     color: #a2a2a2;
 }
 .locationinput button.locate {
-    font-size: 34px;
-    top: 6px;
+    font-size: 35px;
+    top: 5px;
 }
 .locationinput:not(.empty) button.locate, .locationinput.empty button.clear {
     transform: scale(0.7);
