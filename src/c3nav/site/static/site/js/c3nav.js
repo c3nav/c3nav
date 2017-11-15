@@ -47,8 +47,6 @@ c3nav = {
             }
         }
 
-        c3nav.narrow = ($(document).width() < 1000);
-
         c3nav.init_locationinputs();
 
         $('#location-buttons').find('.route').on('click', c3nav._location_buttons_route_click);
