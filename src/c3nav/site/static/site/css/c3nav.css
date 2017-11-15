@@ -151,7 +151,7 @@ main:not([data-view=route-result]) #route-result-buttons{
     border-width:0;
     height: 54px;
     transition: padding-bottom 150ms;
-    line-height:2.5;
+    line-height:3.5;
     padding-left: 52px;
 }
 .locationinput small {
