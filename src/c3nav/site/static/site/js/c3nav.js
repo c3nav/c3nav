@@ -212,7 +212,9 @@ c3nav = {
         $.getJSON('/api/locations/?searchable', function (data) {
             for (var i = 0; i < data.length; i++) {
                 var location = data[i];
-                location.elem = $('<div class="location">').append($('<span>').text(location.title))
+                location.elem = $('<div class="location">')
+                    .append($('<i class="icon material-icons">').text('place'))
+                    .append($('<span>').text(location.title))
                     .append($('<small>').text(location.subtitle)).attr('data-id', location.id)[0].outerHTML;
                 location.title_words = location.title.toLowerCase().split(/\s+/);
                 location.match = ' ' + location.title_words.join(' ') + ' ';
