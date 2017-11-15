@@ -716,6 +716,7 @@
             this.editor.refresh();
             var icon = this._icon;
             var marker = this.editor.addVertexMarker(e.latlng, this.latlngs);
+            this.editor.onNewVertex(marker);
             /* Hack to workaround browser not firing touchend when element is no more on DOM */
             var parent = marker._icon.parentNode;
             parent.removeChild(marker._icon);
@@ -1018,7 +1019,7 @@
         initVertexMarkers: function (latlngs) {
             if (!this.enabled()) return;
             latlngs = latlngs || this.getLatLngs();
-            if (L.Polyline._flat(latlngs)) this.addVertexMarkers(latlngs);
+            if (isFlat(latlngs)) this.addVertexMarkers(latlngs);
             else for (var i = 0; i < latlngs.length; i++) this.initVertexMarkers(latlngs[i]);
         },
 
@@ -1035,6 +1036,14 @@
 
         addVertexMarker: function (latlng, latlngs) {
             return new this.tools.options.vertexMarkerClass(latlng, latlngs, this);
+        },
+
+        onNewVertex: function (vertex) {
+            // 🍂namespace Editable
+            // 🍂section Vertex events
+            // 🍂event editable:vertex:new: VertexEvent
+            // Fired when a new vertex is created.
+            this.fireAndForward('editable:vertex:new', {latlng: vertex.latlng, vertex: vertex});
         },
 
         addVertexMarkers: function (latlngs) {
@@ -1219,7 +1228,8 @@
             if (this._drawing === L.Editable.FORWARD) this._drawnLatLngs.push(latlng);
             else this._drawnLatLngs.unshift(latlng);
             this.feature._bounds.extend(latlng);
-            this.addVertexMarker(latlng, this._drawnLatLngs);
+            var vertex = this.addVertexMarker(latlng, this._drawnLatLngs);
+            this.onNewVertex(vertex);
             this.refresh();
         },
 
@@ -1431,7 +1441,7 @@
         },
 
         ensureMulti: function () {
-            if (this.feature._latlngs.length && L.Polyline._flat(this.feature._latlngs)) {
+            if (this.feature._latlngs.length && isFlat(this.feature._latlngs)) {
                 this.feature._latlngs = [this.feature._latlngs];
             }
         },
@@ -1447,7 +1457,7 @@
         },
 
         formatShape: function (shape) {
-            if (L.Polyline._flat(shape)) return shape;
+            if (isFlat(shape)) return shape;
             else if (shape[0]) return this.formatShape(shape[0]);
         },
 
@@ -1512,13 +1522,13 @@
         },
 
         ensureMulti: function () {
-            if (this.feature._latlngs.length && L.Polyline._flat(this.feature._latlngs[0])) {
+            if (this.feature._latlngs.length && isFlat(this.feature._latlngs[0])) {
                 this.feature._latlngs = [this.feature._latlngs];
             }
         },
 
         ensureNotFlat: function () {
-            if (!this.feature._latlngs.length || L.Polyline._flat(this.feature._latlngs)) this.feature._latlngs = [this.feature._latlngs];
+            if (!this.feature._latlngs.length || isFlat(this.feature._latlngs)) this.feature._latlngs = [this.feature._latlngs];
         },
 
         vertexCanBeDeleted: function (vertex) {
@@ -1537,7 +1547,7 @@
             // [[1, 2], [3, 4]] => must be nested
             // [] => must be nested
             // [[]] => is already nested
-            if (L.Polyline._flat(shape) && (!shape[0] || shape[0].length !== 0)) return [shape];
+            if (isFlat(shape) && (!shape[0] || shape[0].length !== 0)) return [shape];
             else return shape;
         }
 
@@ -1768,7 +1778,7 @@
             var shape = null;
             latlngs = latlngs || this._latlngs;
             if (!latlngs.length) return shape;
-            else if (L.Polyline._flat(latlngs) && this.isInLatLngs(latlng, latlngs)) shape = latlngs;
+            else if (isFlat(latlngs) && this.isInLatLngs(latlng, latlngs)) shape = latlngs;
             else for (var i = 0; i < latlngs.length; i++) if (this.isInLatLngs(latlng, latlngs[i])) return latlngs[i];
             return shape;
         },
@@ -1807,8 +1817,8 @@
             var shape = null;
             latlngs = latlngs || this._latlngs;
             if (!latlngs.length) return shape;
-            else if (L.Polyline._flat(latlngs) && this.isInLatLngs(latlng, latlngs)) shape = latlngs;
-            else if (L.Polyline._flat(latlngs[0]) && this.isInLatLngs(latlng, latlngs[0])) shape = latlngs;
+            else if (isFlat(latlngs) && this.isInLatLngs(latlng, latlngs)) shape = latlngs;
+            else if (isFlat(latlngs[0]) && this.isInLatLngs(latlng, latlngs[0])) shape = latlngs;
             else for (var i = 0; i < latlngs.length; i++) if (this.isInLatLngs(latlng, latlngs[i][0])) return latlngs[i];
             return shape;
         },
@@ -1872,6 +1882,7 @@
         this.on('add', this._onEditableAdd);
     };
 
+    var isFlat = L.LineUtil.isFlat || L.LineUtil._flat || L.Polyline._flat;  // <=> 1.1 compat.
 
 
     if (L.Polyline) {
