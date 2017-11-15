@@ -101,11 +101,9 @@ editor = {
     _fill_level_control: function (level_control, level_list) {
         var levels = level_list.find('a');
         if (levels.length) {
-            var current;
             for (var i = 0; i < levels.length; i++) {
                 var level = $(levels[i]);
                 level_control.addLevel(level.attr('data-id'), level.text(), level.attr('href'), level.is('.current'));
-
             }
             if (levels.length > 1) {
                 level_control.enable();
@@ -366,9 +364,11 @@ editor = {
             if (editor._geometries_layer !== null) {
                 editor.map.removeLayer(editor._geometries_layer);
             }
-            var feature = null, remove_feature = null;
+            var feature = null,
+                remove_feature = null,
+                i;
             if (editor._editing_id !== null) {
-                for (var i=0;i<geometries.length;i++) {
+                for (i=0;i<geometries.length;i++) {
                     feature = geometries[i];
                     if (feature.properties.original_type !== undefined && feature.properties.original_type+'-'+String(feature.properties.original_id) === editor._editing_id) {
                         remove_feature = i;
@@ -413,9 +413,10 @@ editor = {
                 } else {
                     defs.innerHTML = '';
                 }
-                for(var i=0;i<editor._arrow_colors.length;i++) {
+                for(i=0;i<editor._arrow_colors.length;i++) {
                     var color = editor._arrow_colors[i];
                     defs = editor.map.options.renderer._container.querySelector('defs');
+                    // noinspection HtmlUnknownAttribute
                     defs.insertAdjacentHTML('beforeend', '<marker id="graph-edge-arrow-'+String(i)+'" markerWidth="2" markerHeight="3" refX="3.5" refY="1.5" orient="auto"><path d="M0,0 L2,1.5 L0,3 L0,0" fill="'+color+'"></path></marker>');
                 }
             }
@@ -704,7 +705,7 @@ editor = {
                 stroke: false
             });
             e.target.setStyle({
-                opacity: 0,
+                opacity: 0
             });
             var sidebar = $('#sidebar');
             sidebar.find('[data-active-node]').remove();
