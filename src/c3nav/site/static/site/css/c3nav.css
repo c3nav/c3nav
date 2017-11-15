@@ -309,7 +309,7 @@ main:not([data-view=route-result]) #route-summary {
     opacity: 0;
 }
 
-@media not all and (min-height: 700px) and (min-width: 1150px) {
+@media not all and (min-height: 700px) and (min-width: 1100px) {
     main[data-view=route-result] .locationinput {
         margin-bottom: -21px;
     }
