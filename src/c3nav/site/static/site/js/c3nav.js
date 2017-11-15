@@ -100,8 +100,12 @@ c3nav = {
         c3nav._view = view;
         $('main').attr('data-view', view);
 
-        $('.locationinput.selected:focus').blur();
+        var $selected_locationinputs = $('.locationinput.selected');
+        $selected_locationinputs.filter(':focus').blur();
         $('#destination-input, [data-view^=route] #origin-input').filter(':not(.selected)').find('input').first().focus();
+        if (!$selected_locationinputs.filter(':focus').length) {
+            $('#search').removeClass('focused');
+        }
 
         c3nav.update_map_locations();
     },
