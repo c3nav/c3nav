@@ -173,9 +173,6 @@ main:not([data-view=route-result]) #route-result-buttons{
     font-size: 38px;
     top: 7px;
 }
-.locationinput button.clear, #route-summary button.close {
-
-}
 .locationinput:not(.empty) button.locate, .locationinput.empty button.clear {
     transform: scale(0.7);
     opacity: 0;
@@ -223,6 +220,10 @@ main:not([data-view=route-result]) #route-result-buttons{
 }
 .buttons > *:hover, .buttons > *:active {
     background-color: #eeeeee;
+}
+.buttons .material-icons {
+    font-size: 15px;
+    vertical-align: -3px;
 }
 
 #route-summary > div:first-child {
