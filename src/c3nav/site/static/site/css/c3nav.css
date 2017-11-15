@@ -65,6 +65,11 @@ main.map {
     flex-direction: column;
     overflow: hidden;
 }
+@media (max-width: 500px) {
+    #sidebar {
+        max-width: 500px;
+    }
+}
 #sidebar section {
     pointer-events: auto;
     background-color: #ffffff;
