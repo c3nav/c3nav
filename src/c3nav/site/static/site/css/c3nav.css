@@ -78,25 +78,33 @@ main.map {
     border-top-width: 1px;
     transition: margin-bottom 150ms, opacity 150ms;
     overflow: hidden;
+    background-color: #ffffff;
 }
 #sidebar section > div:first-child {
     margin-top: -1px;
 }
 
 #search {
-    transition: margin-bottom 150ms, opacity 150ms;
     z-index: 4;
+    min-height: 54px;
+    background: url('../../img/loader.gif') no-repeat 4px 3px;
+    min-width: 54px;
+    width: 100%;
+    transition: width 150ms;
+}
+#search.loading {
+    width: 5%;
 }
 
-
-main:not([data-view^=route]) #origin-input {
+main:not([data-view^=route]) #origin-input,
+#search.loading #destination-input {
     margin-bottom: -55px;
     pointer-events: none;
     opacity: 0;
 }
 main:not([data-view=location]) #location-buttons,
 main:not([data-view=route-search]) #route-search-buttons,
-main:not([data-view=route-result]) #route-result-buttons{
+main:not([data-view=route-result]) #route-result-buttons {
     margin-bottom: -3.3rem;
     pointer-events: none;
     opacity: 0;

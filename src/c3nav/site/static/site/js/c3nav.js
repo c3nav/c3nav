@@ -47,6 +47,8 @@ c3nav = {
             }
         }
 
+        $('#search').removeClass('loading');
+
         c3nav.narrow = ($(document).width() < 1000);
 
         c3nav.init_locationinputs();
