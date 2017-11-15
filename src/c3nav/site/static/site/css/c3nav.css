@@ -183,7 +183,7 @@ main:not([data-view=route-result]) #route-result-buttons{
 .locationinput.selected input {
     padding-bottom: 25px;
 }
-.locationinput button, #route-summary button {
+.locationinput button {
     position: absolute;
     top: 6px;
     right: 6px;
@@ -198,7 +198,7 @@ main:not([data-view=route-result]) #route-result-buttons{
     font-size: 42px;
     color: #b2b2b2;
 }
-.locationinput button:hover, #route-summary button:hover {
+.locationinput button:hover {
     color: #a2a2a2;
 }
 .locationinput button.locate {
