@@ -41,6 +41,7 @@ main.map {
     top:50px;
     right:0;
     bottom:0;
+    /*noinspection CssUnknownTarget*/
     background: url('../../img/loader.gif') no-repeat center;
 }
 #map {
@@ -87,6 +88,7 @@ main.map {
 #search {
     z-index: 4;
     min-height: 54px;
+    /*noinspection CssUnknownTarget*/
     background: url('../../img/loader.gif') no-repeat 4px 3px;
     min-width: 54px;
     width: 100%;
