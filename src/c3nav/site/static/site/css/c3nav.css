@@ -104,7 +104,7 @@ main:not([data-view=route-result]) #route-result-buttons{
 }
 
 .location {
-    padding: 6px 10px;
+    padding: 5px 10px;
     height: 55px;
 }
 .location > * {
@@ -135,7 +135,7 @@ main:not([data-view=route-result]) #route-result-buttons{
 .locationinput small {
     position: absolute;
     left: 10px;
-    top: 31px;
+    top: 30px;
     line-height: 1.1;
     opacity: 1;
     transition: opacity 150ms;
@@ -149,14 +149,13 @@ main:not([data-view=route-result]) #route-result-buttons{
     pointer-events: none;
 }
 .locationinput.selected input {
-    padding-bottom: 24px;
+    padding-bottom: 25px;
 }
-.locationinput button {
+.locationinput button, #route-summary button {
     position: absolute;
     top: 6px;
     right: 6px;
     padding: 0;
-    opacity: 0.3;
     width: 42px;
     height: 42px;
     background-size: 42px 42px;
@@ -164,13 +163,18 @@ main:not([data-view=route-result]) #route-result-buttons{
     background-position: center;
     border-width: 0;
     transition: transform 150ms, opacity 150ms;
+    font-size: 42px;
+    color: #b2b2b2;
+}
+.locationinput button:hover, #route-summary button:hover {
+    color: #a2a2a2;
 }
 .locationinput button.locate {
-    background-image: url('../img/icons/locate.svg');
-    background-size: 36px 36px;
+    font-size: 38px;
+    top: 7px;
 }
 .locationinput button.clear, #route-summary button.close {
-    background-image: url('../img/icons/cross.svg');
+
 }
 .locationinput:not(.empty) button.locate, .locationinput.empty button.clear {
     transform: scale(0.7);

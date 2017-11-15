@@ -12,6 +12,7 @@
         <link href="{% static 'normalize/normalize.css' %}" rel="stylesheet">
         <link href="{% static 'milligram/milligram.css' %}" rel="stylesheet">
         <link href="{% static 'leaflet/leaflet.css' %}" rel="stylesheet">
+        <link href="{% static 'material-icons/material-icons.css' %}" rel="stylesheet">
         <link href="{% static 'site/css/c3nav.css' %}" rel="stylesheet">
     {% endcompress %}
   </head>
@@ -32,14 +33,14 @@
                 <div class="location locationinput empty" id="origin-input">
                     <input type="text" autocomplete="off" spellcheck="false" placeholder="{% trans 'Search any location…' %}">
                     <small></small>
-                    <button class="button-clear locate"></button>
-                    <button class="button-clear clear"></button>
+                    <button class="button-clear locate material-icons">my_location</button>
+                    <button class="button-clear clear material-icons">clear</button>
                 </div>
                 <div class="location locationinput empty" id="destination-input">
                     <input type="text" autocomplete="off" spellcheck="false" placeholder="{% trans 'Search any location…' %}">
                     <small></small>
-                    <button class="button-clear locate"></button>
-                    <button class="button-clear clear"></button>
+                    <button class="button-clear locate material-icons">my_location</button>
+                    <button class="button-clear clear material-icons">clear</button>
                 </div>
                 <div class="buttons" id="location-buttons">
                     <button class="button-clear details">Details</button>
