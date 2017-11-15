@@ -47,8 +47,6 @@ c3nav = {
             }
         }
 
-        $('#search').removeClass('loading');
-
         c3nav.narrow = ($(document).width() < 1000);
 
         c3nav.init_locationinputs();
@@ -102,11 +100,14 @@ c3nav = {
         c3nav._view = view;
         $('main').attr('data-view', view);
 
+        var $search = $('#search');
+        $search.removeClass('loading');
+
         var $selected_locationinputs = $('.locationinput.selected');
         $selected_locationinputs.filter(':focus').blur();
         $('#destination-input, [data-view^=route] #origin-input').filter(':not(.selected)').find('input').first().focus();
         if (!$selected_locationinputs.filter(':focus').length) {
-            $('#search').removeClass('focused');
+            $search.removeClass('focused');
         }
 
         c3nav.update_map_locations();
