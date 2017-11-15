@@ -205,8 +205,8 @@ main:not([data-view=route-result]) #route-result-buttons{
     color: #a2a2a2;
 }
 .locationinput button.locate {
-    font-size: 38px;
-    top: 7px;
+    font-size: 34px;
+    top: 6px;
 }
 .locationinput:not(.empty) button.locate, .locationinput.empty button.clear {
     transform: scale(0.7);
