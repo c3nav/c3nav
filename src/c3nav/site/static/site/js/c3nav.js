@@ -56,7 +56,6 @@ c3nav = {
         $('#location-buttons').find('.route').on('click', c3nav._location_buttons_route_click);
         $('#route-search-buttons, #route-result-buttons').find('.swap').on('click', c3nav._route_buttons_swap_click);
         $('#route-search-buttons').find('.close').on('click', c3nav._route_buttons_close_click);
-        $('#route-result-buttons').find('.show-map').on('click', c3nav._route_buttons_show_map_click);
         $('#map').on('click', '.location-popup .button-clear', c3nav._popup_button_click);
 
         window.onpopstate = c3nav._onpopstate;
