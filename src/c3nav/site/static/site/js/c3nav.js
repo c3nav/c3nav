@@ -78,6 +78,7 @@ c3nav = {
         c3nav._push_state(new_state, replace);
 
         c3nav._sidebar_state_updated(new_state);
+        c3nav.set_max_bounds();
     },
     update_map_state: function (replace, level, center, zoom) {
         var new_state = {
@@ -157,6 +158,7 @@ c3nav = {
         c3nav._locationinput_set($('#destination-input'), state.destination);
         c3nav._sidebar_state_updated(state);
         if (state.center) {
+            c3nav.set_max_bounds(state.zoom);
             c3nav._levelControl.setLevel(state.level);
             var center = c3nav.map._limitCenter(L.GeoJSON.coordsToLatLng(state.center), state.zoom, c3nav.map.options.maxBounds);
             if (nofly) {
@@ -447,11 +449,11 @@ c3nav = {
         // create leaflet map
         c3nav.map = L.map('map', {
             renderer: L.svg({padding: 2}),
-            zoom: 2,
+            zoom: 0,
             maxZoom: 10,
             minZoom: 0,
             crs: L.CRS.Simple,
-            maxBounds: L.GeoJSON.coordsToLatLngs(c3nav.bounds),
+            maxBounds: L.GeoJSON.coordsToLatLngs(c3nav._get_padded_max_bounds(0)),
             zoomSnap: 0,
             zoomControl: false
         });
@@ -493,6 +495,7 @@ c3nav = {
         c3nav.update_map_state();
     },
     _map_zoomed: function () {
+        c3nav.set_max_bounds();
         c3nav.update_map_state();
     },
     _add_icon: function (name) {
@@ -537,8 +540,9 @@ c3nav = {
         }
         c3nav._levelControl.setLevel(level);
         if (bounds) {
-            var target = c3nav.map._getBoundsCenterZoom(bounds, c3nav._add_map_padding({})),
-                center = c3nav.map._limitCenter(target.center, target.zoom, c3nav.map.options.maxBounds);
+            var target = c3nav.map._getBoundsCenterZoom(bounds, c3nav._add_map_padding({}));
+            c3nav.set_max_bounds(target.zoom);
+            var center = c3nav.map._limitCenter(target.center, target.zoom, c3nav.map.options.maxBounds);
             if (nofly) {
                 c3nav.map.flyTo(center, target.zoom, { animate: false });
             } else {
@@ -557,6 +561,19 @@ c3nav = {
         options[topleft || 'paddingTopLeft'] = L.point(left+13, top+41);
         options[bottomright || 'paddingBottomRight'] = L.point(50, 20);
         return options;
+    },
+    _get_padded_max_bounds: function(zoom) {
+        if (zoom === undefined) zoom = c3nav.map.getZoom();
+        var bounds = c3nav.bounds,
+            pad = c3nav._add_map_padding({}),
+            factor = Math.pow(2, zoom);
+        return [
+            [bounds[0][0]-(pad.paddingTopLeft.x+10)/factor, bounds[0][1]-(pad.paddingBottomRight.y+10)/factor],
+            [bounds[1][0]+(pad.paddingBottomRight.x+10)/factor, bounds[1][1]+(pad.paddingTopLeft.y+10)/factor]
+        ];
+    },
+    set_max_bounds: function(zoom) {
+        c3nav.map.setMaxBounds(L.GeoJSON.coordsToLatLngs(c3nav._get_padded_max_bounds(zoom)));
     },
     _add_location_to_map: function(location, icon) {
         // add a location to the map as a marker
