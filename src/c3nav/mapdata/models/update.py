@@ -106,7 +106,9 @@ class MapUpdate(models.Model):
             from c3nav.mapdata.render.data import LevelRenderData
             LevelRenderData.rebuild()
 
-            cache.set('mapdata:last_processed_update', new_updates[-1].to_tuple, 900)
+            transaction.on_commit(
+                lambda: cache.set('mapdata:last_processed_update', new_updates[-1].to_tuple, 900)
+            )
 
             return new_updates
 
@@ -120,7 +122,11 @@ class MapUpdate(models.Model):
 
         super().save(**kwargs)
 
-        cache.set('mapdata:last_update', self.to_tuple, 900)
+        transaction.on_commit(
+            lambda: cache.set('mapdata:last_update', self.to_tuple, 900)
+        )
 
         if new and settings.HAS_CELERY:
-            process_map_updates.delay()
+            transaction.on_commit(
+                lambda: process_map_updates.delay()
+            )
