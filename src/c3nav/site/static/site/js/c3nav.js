@@ -212,10 +212,7 @@ c3nav = {
         $.getJSON('/api/locations/?searchable', function (data) {
             for (var i = 0; i < data.length; i++) {
                 var location = data[i];
-                location.elem = $('<div class="location">')
-                    .append($('<i class="icon material-icons">').text('place'))
-                    .append($('<span>').text(location.title))
-                    .append($('<small>').text(location.subtitle)).attr('data-id', location.id)[0].outerHTML;
+                location.elem = c3nav._build_location_html(location);
                 location.title_words = location.title.toLowerCase().split(/\s+/);
                 location.match = ' ' + location.title_words.join(' ') + ' ';
                 c3nav.locations.push(location);
@@ -231,8 +228,15 @@ c3nav = {
             .on('click', '.location', c3nav._locationinput_click_suggestion);
         $('html').on('focus', '*', c3nav._locationinput_global_focuschange);
     },
+    _build_location_html: function(location) {
+        return $('<div class="location">')
+            .append($('<i class="icon material-icons">').text('place'))
+            .append($('<span>').text(location.title))
+            .append($('<small>').text(location.subtitle)).attr('data-id', location.id)[0].outerHTML
+    },
     _locationinput_set: function (elem, location) {
         // set a location input
+        if (location && location.elem === undefined) location.elem = c3nav._build_location_html(location);
         c3nav._locationinput_reset_autocomplete();
         elem.toggleClass('selected', !!location).toggleClass('empty', !location)
             .data('location', location).data('lastlocation', location).removeData('suggestion');
