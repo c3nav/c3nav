@@ -310,13 +310,13 @@ main:not([data-view=route-result]) #route-summary {
 }
 
 @media not all and (min-height: 700px) and (min-width: 1100px) {
-    main[data-view=route-result] .locationinput {
+    main[data-view=route-result] #search:not(.focused) .locationinput {
         margin-bottom: -21px;
     }
-    main[data-view=route-result] .locationinput input {
+    main[data-view=route-result] #search:not(.focused) .locationinput input {
         padding-bottom: 28px;
     }
-    main[data-view=route-result] .locationinput small {
+    main[data-view=route-result] #search:not(.focused) .locationinput small {
         opacity: 0;
         -webkit-user-select: none;
         -moz-user-select: none;
@@ -324,16 +324,16 @@ main:not([data-view=route-result]) #route-summary {
         user-select: none;
         pointer-events: none;
     }
-    main[data-view=route-result] .locationinput .icon {
+    main[data-view=route-result] #search:not(.focused) .locationinput .icon {
         transform: scale(0.6);
         top: -1px;
     }
-    main[data-view=route-result] .locationinput button {
+    main[data-view=route-result] #search:not(.focused) .locationinput button {
         transform: scale(0.6);
         top: -5px;
         right: -5px;
     }
-    main[data-view=route-result] #route-dots {
+    main[data-view=route-result] #search:not(.focused) #route-dots {
         transform: scale(0.7);
         top: 32px;
     }

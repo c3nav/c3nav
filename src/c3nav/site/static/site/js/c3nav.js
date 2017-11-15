@@ -276,9 +276,13 @@ c3nav = {
     },
     _locationinput_global_focuschange: function (e) {
         // when focus changed, reset autocomplete if it is outside of locationinputs or autocomplete
-        if (!c3nav.current_locationinput) return;
-        if (!$(e.target).is('#autocomplete *, #' + c3nav.current_locationinput + ' *')) {
+        if (c3nav.current_locationinput && !$(e.target).is('#autocomplete *, #' + c3nav.current_locationinput + ' *')) {
             c3nav._locationinput_reset_autocomplete();
+        }
+        if (!$(e.target).is('#search *')) {
+            $('#search').removeClass('focused');
+        } else if ($(e.target).is('.locationinput *')) {
+            $('#search').addClass('focused');
         }
     },
     _locationinput_keydown: function (e) {
