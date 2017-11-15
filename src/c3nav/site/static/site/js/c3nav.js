@@ -53,9 +53,8 @@ c3nav = {
 
         $('#location-buttons').find('.route').on('click', c3nav._location_buttons_route_click);
         $('#route-search-buttons, #route-result-buttons').find('.swap').on('click', c3nav._route_buttons_swap_click);
-        $('#route-search-buttons, #route-summary').find('.close').on('click', c3nav._route_buttons_close_click);
+        $('#route-search-buttons').find('.close').on('click', c3nav._route_buttons_close_click);
         $('#route-result-buttons').find('.show-map').on('click', c3nav._route_buttons_show_map_click);
-        $('#route-summary-buttons').find('.show-details').on('click', c3nav._route_buttons_show_details_click);
         $('#map').on('click', '.location-popup .button-clear', c3nav._popup_button_click);
 
         window.onpopstate = c3nav._onpopstate;
@@ -184,12 +183,6 @@ c3nav = {
             c3nav._locationinput_set($destination, $origin.data('location'));
         }
         c3nav.update_state(false);
-    },
-    _route_buttons_show_map_click: function () {
-        $('main').addClass('summary-only');
-    },
-    _route_buttons_show_details_click: function () {
-        $('main').removeClass('summary-only');
     },
     _popup_button_click: function () {
         var location = c3nav.locations_by_id[parseInt($(this).siblings('.location').attr('data-id'))],

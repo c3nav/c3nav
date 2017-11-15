@@ -28,6 +28,12 @@ input {
 ::-moz-placeholder {
     color: #9DA2A6;
 }
+.material-icons {
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+}
 
 main.map {
     position:absolute;
@@ -67,13 +73,13 @@ main.map {
     margin-bottom: 10px;
     flex-shrink: 0;
 }
-#sidebar section > * {
+#sidebar section > div {
     border: 0 #dddddd solid;
     border-top-width: 1px;
     transition: margin-bottom 150ms, opacity 150ms;
     overflow: hidden;
 }
-#sidebar section > :first-child {
+#sidebar section > div:first-child {
     margin-top: -1px;
 }
 
@@ -107,6 +113,19 @@ main:not([data-view=route-result]) #route-result-buttons{
     padding: 5px 10px;
     height: 55px;
 }
+.location .icon {
+    font-size: 36px;
+    position: absolute;
+    top: 9px;
+    left: 9px;
+    cursor: default;
+    color: #7C848A;
+    transition: color 150ms;
+}
+.location .icon:empty::before {
+    display: block;
+    content: "place";
+}
 .location > * {
     display: block;
     white-space: nowrap;
@@ -131,10 +150,11 @@ main:not([data-view=route-result]) #route-result-buttons{
     height: 54px;
     transition: padding-bottom 150ms;
     line-height:2.5;
+    padding-left: 52px;
 }
 .locationinput small {
     position: absolute;
-    left: 10px;
+    left: 52px;
     top: 30px;
     line-height: 1.1;
     opacity: 1;
@@ -147,6 +167,20 @@ main:not([data-view=route-result]) #route-result-buttons{
     -ms-user-select: none;      /* IE 10+ */
     user-select: none;          /* Likely future */
     pointer-events: none;
+}
+.locationinput:not(.selected) .icon {
+    color: transparent;
+}
+.locationinput .icon::before {
+    position: absolute;
+    top: 1px;
+    left: 1px;
+    content: "search";
+    color: #b2b2b2;
+    transition: color 150ms;
+}
+.locationinput.selected .icon::before {
+    color: transparent;
 }
 .locationinput.selected input {
     padding-bottom: 25px;
@@ -177,6 +211,23 @@ main:not([data-view=route-result]) #route-result-buttons{
     transform: scale(0.7);
     opacity: 0;
     pointer-events:none;
+}
+
+#route-dots {
+    position: absolute;
+    top: 53px;
+    left: 25px;
+    text-shadow: 2px 0 1px #fff, -2px 0 1px #fff;
+    transition: top 150ms, opacity 150ms, color 150ms;
+    color: #7C848A;
+}
+main:not([data-view^=route]) #route-dots {
+    position: absolute;
+    top: 40px;
+    opacity: 0;
+}
+main:not([data-view=route-result]) #route-dots {
+    color: #b2b2b2;
 }
 
 #popup-buttons {
@@ -226,43 +277,30 @@ main:not([data-view=route-result]) #route-result-buttons{
     vertical-align: -3px;
 }
 
-#route-summary > div:first-child {
-    padding: 10px;
+#route-summary {
+    position: relative;
+    padding: 6px 10px 5px 52px;
+    height: 55px;
 }
-#route-summary > div > span {
+#route-summary > * {
     display: block;
     white-space: nowrap;
-    min-width: 50%;
 }
-#route-summary > div > span:not(:last-child) {
-    padding-bottom: 5px;
+#route-summary .icon {
+    font-size: 36px;
+    position: absolute;
+    top: 10px;
+    left: 9px;
+    cursor: default;
+    color: #7C848A;
 }
 #route-summary small {
-    display: block;
-    white-space: nowrap;
     line-height: 1.1;
 }
-
-#route-summary {
-    transition: margin-top 150ms, opacity 150ms;
-    z-index: 3;
-}
-main:not([data-view=route-result]) #route-summary,
-main:not(.summary-only) #route-summary {
-    margin-top: -163px;
-    opacity: 0;
+main:not([data-view=route-result]) #route-summary {
+    margin-bottom: -55px;
     pointer-events: none;
-}
-main[data-view=route-result].summary-only #search {
-    margin-bottom: -142px;
     opacity: 0;
-    pointer-events: none;
-}
-
-@media (min-width: 1000px) {
-    button.show-map {
-        display: none;
-    }
 }
 
 /* leaftlet levels control */

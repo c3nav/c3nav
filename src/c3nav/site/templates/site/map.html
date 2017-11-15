@@ -31,17 +31,20 @@
         <section id="sidebar">
             <section id="search">
                 <div class="location locationinput empty" id="origin-input">
+                    <i class="icon material-icons">place</i>
                     <input type="text" autocomplete="off" spellcheck="false" placeholder="{% trans 'Search any location…' %}">
                     <small></small>
                     <button class="button-clear locate material-icons">my_location</button>
                     <button class="button-clear clear material-icons">clear</button>
                 </div>
                 <div class="location locationinput empty" id="destination-input">
+                    <i class="icon material-icons">place</i>
                     <input type="text" autocomplete="off" spellcheck="false" placeholder="{% trans 'Search any location…' %}">
                     <small></small>
                     <button class="button-clear locate material-icons">my_location</button>
                     <button class="button-clear clear material-icons">clear</button>
                 </div>
+                <i class="material-icons" id="route-dots">more_vert</i>
                 <div class="buttons" id="location-buttons">
                     <button class="button-clear details">
                         <i class="material-icons">arrow_downward</i>
@@ -52,9 +55,14 @@
                         Share
                     </button>
                     <button class="button-clear route">
-                        <i class="material-icons">navigation</i>
+                        <i class="material-icons">directions</i>
                         Route
                     </button>
+                </div>
+                <div id="route-summary">
+                    <i class="icon material-icons">directions</i>
+                    <span>10min (100m)… sorry no routing yet</span>
+                    <small><em>default options</em></small>
                 </div>
                 <div class="buttons" id="route-search-buttons">
                     <button class="button-clear swap">
@@ -75,23 +83,6 @@
                         <i class="material-icons">arrow_downward</i>
                         Details
                     </button>
-                </div>
-            </section>
-            <section id="route-summary">
-                <div>
-                    <span class="origin">
-                        <span class="title">Location1</span>
-                    </span>
-                    <span class="destination">
-                        <span class="title">Location1</span>
-                    </span>
-                    <span class="result">
-                        <span>10min (100m)… sorry no routing yet</span>
-                        <small><em>default options</em></small>
-                    </span>
-                </div>
-                <div class="buttons" id="route-summary-buttons">
-                    <button class="button-clear show-details">Show Details</button>
                 </div>
             </section>
             <div id="resultswrapper">
