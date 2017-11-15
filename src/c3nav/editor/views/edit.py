@@ -322,6 +322,7 @@ def list_objects(request, model=None, level=None, space=None, explicit_edit=Fals
         queryset = queryset.filter(space=space).defer('geometry')
         ctx.update({
             'level': space.level,
+            'space': space,
             'back_url': reverse('editor.spaces.detail', kwargs={'level': space.level.pk, 'pk': space.pk}),
             'back_title': _('back to space'),
             'geometry_url': '/api/editor/geometries/?space='+str(space.pk),
