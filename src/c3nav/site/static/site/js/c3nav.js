@@ -537,9 +537,7 @@ c3nav = {
         }
         c3nav._levelControl.setLevel(level);
         if (bounds) {
-            var left = 0,
-                top = (left === 0) ? $('#search').height()+10 : 10,
-                target = c3nav.map._getBoundsCenterZoom(bounds, c3nav._add_map_padding({})),
+            var target = c3nav.map._getBoundsCenterZoom(bounds, c3nav._add_map_padding({})),
                 center = c3nav.map._limitCenter(target.center, target.zoom, c3nav.map.options.maxBounds);
             if (nofly) {
                 c3nav.map.flyTo(center, target.zoom, { animate: false });
