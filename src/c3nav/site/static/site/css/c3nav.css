@@ -190,9 +190,6 @@ main:not([data-view=route-result]) #route-result-buttons{
     padding: 0;
     width: 42px;
     height: 42px;
-    background-size: 42px 42px;
-    background-repeat: no-repeat;
-    background-position: center;
     border-width: 0;
     transition: transform 150ms, opacity 150ms, top 150ms, right 150ms;
     font-size: 42px;
