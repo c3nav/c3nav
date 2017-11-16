@@ -9,6 +9,7 @@ from django.utils.http import int_to_base36
 from django.utils.timezone import make_naive
 from django.utils.translation import ugettext_lazy as _
 
+from c3nav.mapdata.cache import changed_geometries
 from c3nav.mapdata.tasks import process_map_updates
 
 
@@ -89,16 +90,28 @@ class MapUpdate(models.Model):
             if not new_updates:
                 return ()
 
-            last_processed_update = cls.objects.filter(processed=True).latest().to_tuple
-            for new_update in new_updates:
-                with suppress(FileNotFoundError):
-                    changed_geometries = pickle.load(open(new_update._changed_geometries_filename(), 'rb'))
-                    changed_geometries.save(last_processed_update, new_update.to_tuple)
-                new_update.processed = True
-                new_update.save()
+            changed_geometries.reset()
 
             from c3nav.mapdata.models import AltitudeArea
             AltitudeArea.recalculate()
+
+            for new_update in new_updates:
+                print(new_update)
+                try:
+                    changed_geometries.combine(
+                        pickle.load(open(new_update._changed_geometries_filename(), 'rb'))
+                    )
+                except FileNotFoundError:
+                    print('Changed geometries file not found. File not found!')
+                with suppress(FileNotFoundError):
+
+                    print('done')
+                new_update.processed = True
+                new_update.save()
+
+            last_processed_update = cls.objects.filter(processed=True).latest().to_tuple
+
+            changed_geometries.save(last_processed_update, new_updates[-1].to_tuple)
 
             from c3nav.mapdata.render.data import LevelRenderData
             LevelRenderData.rebuild()

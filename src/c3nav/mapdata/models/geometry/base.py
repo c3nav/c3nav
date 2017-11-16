@@ -5,9 +5,10 @@ from django.db import models
 from django.utils.functional import cached_property
 from django.utils.translation import ugettext_lazy as _
 from shapely.geometry import LineString, Point, mapping
+from shapely.ops import unary_union
 
 from c3nav.mapdata.models.base import SerializableMixin
-from c3nav.mapdata.utils.geometry import assert_multilinestring
+from c3nav.mapdata.utils.geometry import assert_multilinestring, assert_multipolygon
 from c3nav.mapdata.utils.json import format_geojson
 
 
@@ -117,7 +118,12 @@ class GeometryMixin(SerializableMixin):
         return False
 
     def get_changed_geometry(self):
-        return self.geometry if self.orig_geometry is None else self.geometry.symmetric_difference(self.orig_geometry)
+        if self.orig_geometry is None:
+            return self.geometry
+        difference = self.geometry.symmetric_difference(self.orig_geometry)
+        if self._meta.get_field('geomety').geomtype in ('polygon', 'multipolygon'):
+            difference = unary_union(assert_multipolygon(difference))
+        return difference
 
     def save(self, *args, **kwargs):
         self.recalculate_bounds()

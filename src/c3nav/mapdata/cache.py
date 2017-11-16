@@ -256,13 +256,23 @@ class GeometryChangeTracker:
         self._geometries_by_level = {}
         self._deleted_levels = set()
 
-    def save(self, last_update, new_update):
+    def finalize(self):
         for level_id in self._deleted_levels:
             try:
                 os.remove(MapHistory.level_filename(level_id, mode='base'))
             except FileNotFoundError:
                 pass
             self._geometries_by_level.pop(level_id, None)
+        self._deleted_levels = set()
+
+    def combine(self, other):
+        self.finalize()
+        other.finalize()
+        for level_id, geometries in other._geometries_by_level.items():
+            self._geometries_by_level.setdefault(level_id, []).extend(geometries)
+
+    def save(self, last_update, new_update):
+        self.finalize()
 
         for level_id, geometries in self._geometries_by_level.items():
             geometries = unary_union(geometries)
