@@ -1,3 +1,4 @@
+import logging
 import math
 import os
 import struct
@@ -98,6 +99,9 @@ class MapHistory:
         f.write(self.data.tobytes('C'))
 
     def add_new(self, geometry, data=None):
+        logging.info('add_new called, res=%d, x=%d, y=%d, shape=%s, updates=%s' %
+                     (self.resolution, self.x, self.y, self.data.shape, self.updates))
+
         prep = prepared.prep(geometry)
         minx, miny, maxx, maxy = geometry.bounds
         res = self.resolution
@@ -106,20 +110,28 @@ class MapHistory:
         maxx = int(math.ceil(maxx/res))
         maxy = int(math.ceil(maxy/res))
 
+        logging.info('minx=%d, miny=%d, maxx=%d, maxy=%d' % (minx, miny, maxx, maxy))
+
         direct = data is None
 
         if direct:
+            logging.info('direct!')
             data = self.data
             if self.resolution != settings.CACHE_RESOLUTION:
+                logging.info('cache_resolution does not match')
                 data = None
                 self.updates = self.updates[-1:]
 
             if not data.size:
+                logging.info('data is empty, creating new map')
                 data = np.zeros(((maxy-miny), (maxx-minx)), dtype=np.uint16)
+                logging.info('data is empty, created new! shape=%s' % data.shape)
                 self.x, self.y = minx, miny
             else:
+                logging.info('resize?')
                 orig_height, orig_width = data.shape
                 if minx < self.x or miny < self.y or maxx > self.x+orig_width or maxy > self.y+orig_height:
+                    logging.info('resize!')
                     new_x, new_y = min(minx, self.x), min(miny, self.y)
                     new_width = max(maxx, self.x+orig_width)-new_x
                     new_height = max(maxy, self.y+orig_height)-new_y
@@ -128,18 +140,26 @@ class MapHistory:
                     new_data[dy:(dy+orig_height), dx:(dx+orig_width)] = data
                     data = new_data
                     self.x, self.y = new_x, new_y
+                logging.info('')
+                logging.info('add_new called, dx=%d, dy=%d, x=%d, y=%d, shape=%s' %
+                             (self.resolution, self.x, self.y, data.shape, self.updates))
         else:
+            logging.info('not direct!')
             height, width = data.shape
             minx, miny = max(minx, self.x), max(miny, self.y)
             maxx, maxy = min(maxx, self.x+width), min(maxy, self.y+height)
 
         new_val = len(self.updates) if direct else 1
+        i = 0
         for iy, y in enumerate(range(miny*res, maxy*res, res), start=miny-self.y):
             for ix, x in enumerate(range(minx*res, maxx*res, res), start=minx-self.x):
                 if prep.intersects(box(x, y, x+res, y+res)):
                     data[iy, ix] = new_val
+                    i += 1
+        logging.info('%d points changed' % i)
 
         if direct:
+            logging.info('saved data')
             self.data = data
             self.unfinished = True
         else:
@@ -151,22 +171,29 @@ class MapHistory:
         self.simplify()
 
     def simplify(self):
+        logging.info('simplify!')
         # remove updates that have no longer any array cells
         new_updates = ((update, (self.data == i)) for i, update in enumerate(self.updates))
+        logging.info('before: %s' % self.updates)
         self.updates, new_affected = zip(*((update, affected) for update, affected in new_updates if affected.any()))
+        logging.info('after: %s' % self.updates)
         for i, affected in enumerate(new_affected):
             self.data[affected] = i
 
         # remove borders
         rows = self.data.any(axis=1).nonzero()[0]
+        logging.info('rows: %s' % rows)
         if not rows.size:
+            logging.info('no rows, empty_array')
             self.data = self.empty_array
             self.x = 0
             self.y = 0
             return
         cols = self.data.any(axis=0).nonzero()[0]
+        logging.info('cols: %s' % cols)
         miny, maxy = rows.min(), rows.max()
         minx, maxx = cols.min(), cols.max()
+        logging.info('minx=%d, miny=%d, maxx=%d, maxy=%d' % (minx, miny, maxx, maxy))
         self.x += minx
         self.y += miny
         self.data = self.data[miny:maxy+1, minx:maxx+1]
