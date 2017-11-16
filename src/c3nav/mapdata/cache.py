@@ -174,9 +174,9 @@ class MapHistory:
         logging.info('simplify!')
         # remove updates that have no longer any array cells
         new_updates = ((update, (self.data == i)) for i, update in enumerate(self.updates))
-        logging.info('before: %s' % self.updates)
+        logging.info('before: %s' % (self.updates, ))
         self.updates, new_affected = zip(*((update, affected) for update, affected in new_updates if affected.any()))
-        logging.info('after: %s' % self.updates)
+        logging.info('after: %s' % (self.updates, ))
         for i, affected in enumerate(new_affected):
             self.data[affected] = i
 
