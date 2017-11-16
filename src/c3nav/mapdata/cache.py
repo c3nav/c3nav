@@ -144,9 +144,9 @@ class MapHistory:
                     new_data[dy:(dy+orig_height), dx:(dx+orig_width)] = data
                     data = new_data
                     self.x, self.y = new_x, new_y
-                logging.info('')
-                logging.info('add_new called, dx=%d, dy=%d, x=%d, y=%d, shape=%s' %
-                             (self.resolution, self.x, self.y, data.shape, self.updates))
+                    logging.info('resized dx=%d, dy=%d, x=%d, y=%d, shape=%s' %
+                                 (dx, dy, self.x, self.y, data.shape))
+
         else:
             logging.info('not direct!')
             height, width = data.shape
