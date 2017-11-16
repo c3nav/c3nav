@@ -118,9 +118,12 @@ class GeometryMixin(SerializableMixin):
         return False
 
     def get_changed_geometry(self):
+        field = self._meta.get_field('geometry')
+        new_geometry = self.geometry
+        new_geometry = field.to_python(field.get_prep_value(new_geometry))
         if self.orig_geometry is None:
-            return self.geometry
-        difference = self.geometry.symmetric_difference(self.orig_geometry)
+            return new_geometry
+        difference = new_geometry.symmetric_difference(self.orig_geometry)
         if self._meta.get_field('geometry').geomtype in ('polygon', 'multipolygon'):
             difference = unary_union(assert_multipolygon(difference))
         return difference
