@@ -103,7 +103,7 @@ class MapHistory:
         f.write(self.data.tobytes('C'))
 
     def add_new(self, geometry, data=None):
-        logging.info('add_new called, res=%d, x=%d, y=%d, shape=%s, updates=%s' %
+        logging.info('add_new called, res=%s, x=%s, y=%s, shape=%s, updates=%s' %
                      (self.resolution, self.x, self.y, self.data.shape, self.updates))
 
         prep = prepared.prep(geometry)
