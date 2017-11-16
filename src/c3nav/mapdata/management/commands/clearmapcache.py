@@ -24,7 +24,7 @@ class Command(BaseCommand):
         if options['include_history']:
             logger.info('Deleting base history...')
             for filename in os.listdir(settings.CACHE_ROOT):
-                if filename.startswith('level_') and '_history_' in filename:
+                if filename.startswith('level_') and '_history_base' in filename:
                     logger.info('Deleting %s...' % filename)
                     os.remove(os.path.join(settings.CACHE_ROOT, filename))
             logger.info('Base history deleted.')
