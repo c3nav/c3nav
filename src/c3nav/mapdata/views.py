@@ -127,7 +127,7 @@ def history(request, level, mode, format):
         raise PermissionDenied
     level = get_object_or_404(Level, pk=level)
 
-    if mode == 'render' and level.on_top_of_id is not None:
+    if mode == 'composite' and level.on_top_of_id is not None:
         raise Http404
 
     history = MapHistory.open_level(level.pk, mode)

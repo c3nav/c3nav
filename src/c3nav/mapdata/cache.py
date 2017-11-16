@@ -59,7 +59,7 @@ class MapHistory:
 
     @staticmethod
     def level_filename(level_id, mode):
-        return os.path.join(settings.CACHE_ROOT, 'level_%s_%d' % (mode, level_id))
+        return os.path.join(settings.CACHE_ROOT, 'level_%d_history_%s' % (level_id, mode))
 
     @classmethod
     def open_level(cls, level_id, mode, default_update=None):

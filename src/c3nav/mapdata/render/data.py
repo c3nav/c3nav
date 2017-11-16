@@ -315,7 +315,7 @@ class LevelRenderData:
 
             level.render_data = pickle.dumps(render_data)
 
-            map_history.save(MapHistory.level_filename(level.pk, 'render'))
+            map_history.save(MapHistory.level_filename(level.pk, 'composite'))
 
         with transaction.atomic():
             for level in levels:

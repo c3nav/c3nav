@@ -35,8 +35,8 @@ class MapRenderer:
 
     @cached_property
     def last_update(self):
-        return MapHistory.open_level_cached(self.level, 'render').last_update(self.minx, self.miny,
-                                                                              self.maxx, self.maxy)
+        return MapHistory.open_level_cached(self.level, 'composite').last_update(self.minx, self.miny,
+                                                                                 self.maxx, self.maxy)
 
     @cached_property
     def update_cache_key(self):
