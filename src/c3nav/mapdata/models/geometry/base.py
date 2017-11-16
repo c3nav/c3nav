@@ -121,7 +121,7 @@ class GeometryMixin(SerializableMixin):
         if self.orig_geometry is None:
             return self.geometry
         difference = self.geometry.symmetric_difference(self.orig_geometry)
-        if self._meta.get_field('geomety').geomtype in ('polygon', 'multipolygon'):
+        if self._meta.get_field('geometry').geomtype in ('polygon', 'multipolygon'):
             difference = unary_union(assert_multipolygon(difference))
         return difference
 
