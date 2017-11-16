@@ -1,11 +1,11 @@
 import math
 import os
 import struct
+import threading
 from itertools import chain
 
 import numpy as np
 from django.conf import settings
-from django.core.cache import cache
 from django.db.models.signals import m2m_changed, post_delete
 from PIL import Image
 from shapely import prepared
@@ -65,16 +65,25 @@ class MapHistory:
     def open_level(cls, level_id, mode, default_update=None):
         return cls.open(cls.level_filename(level_id, mode), default_update)
 
+    cached = {}
+    cache_key = None
+    cache_lock = threading.Lock()
+
     @classmethod
-    def open_level_cached(cls, level_id, mode, cache_key=None):
-        if cache_key is None:
-            cache_key = MapUpdate.current_cache_key()
-        cache_key = 'mapdata:map-history-%d-%s:%s' % (level_id, mode, cache_key)
-        result = cache.get(cache_key, None)
-        if result is None:
+    def open_level_cached(cls, level_id, mode):
+        with cls.cache_lock:
+            cache_key = MapUpdate.current_processed_cache_key()
+            if cls.cache_key != cache_key:
+                cls.cache_key = cache_key
+                cls.cached = {}
+            else:
+                result = cls.cached.get((level_id, mode), None)
+                if result is not None:
+                    return result
+
             result = cls.open_level(level_id, mode)
-            cache.set(cache_key, result, 120)
-        return result
+            cls.cached[(level_id, mode)] = result
+            return result
 
     def save(self, filename=None):
         if filename is None:
