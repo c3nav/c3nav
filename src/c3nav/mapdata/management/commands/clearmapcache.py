@@ -17,9 +17,9 @@ class Command(BaseCommand):
         MapUpdate.objects.create(type='management')
 
         if options['include_history']:
-            for file in os.listdir(settings.CACHE_ROOT):
-                if file.startswith('level_'):
-                    os.remove(os.path.join(settings.CACHE_ROOT, file))
+            for filename in os.listdir(settings.CACHE_ROOT):
+                if filename.startswith('level_') and '_history_' in filename:
+                    os.remove(os.path.join(settings.CACHE_ROOT, filename))
 
         if not settings.HAS_REAL_CACHE:
             print(_('You have no external cache configured, so don\'t forget to restart your c3nav instance!'))

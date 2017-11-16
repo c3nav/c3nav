@@ -26,8 +26,6 @@ class Level(SpecificLocation, models.Model):
                                   related_name='levels_on_top', verbose_name=_('on top of'))
     short_label = models.SlugField(max_length=20, verbose_name=_('short label'), unique=True)
 
-    render_data = models.BinaryField(null=True)
-
     objects = LevelManager()
 
     class Meta:

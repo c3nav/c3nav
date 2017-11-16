@@ -1,4 +1,5 @@
 import operator
+import os
 import pickle
 import threading
 from collections import Counter, deque
@@ -6,6 +7,7 @@ from functools import reduce
 from itertools import chain
 
 import numpy as np
+from django.conf import settings
 from django.db import transaction
 from scipy.interpolate import NearestNDInterpolator
 from shapely import prepared
@@ -313,7 +315,7 @@ class LevelRenderData:
                 for access_restriction, areas in render_data.access_restriction_affected.items()
             }
 
-            level.render_data = pickle.dumps(render_data)
+            render_data.save(level.pk)
 
             map_history.save(MapHistory.level_filename(level.pk, 'composite'))
 
@@ -324,6 +326,10 @@ class LevelRenderData:
     cached = {}
     cache_key = None
     cache_lock = threading.Lock()
+
+    @staticmethod
+    def _level_filename(pk):
+        return os.path.join(settings.CACHE_ROOT, 'level_%d_render_data.pickle' % pk)
 
     @classmethod
     def get(cls, level):
@@ -338,13 +344,14 @@ class LevelRenderData:
                 if result is not None:
                     return result
 
-            if isinstance(level, Level):
-                result = pickle.loads(level.render_data)
-            else:
-                result = pickle.loads(Level.objects.filter(pk=level).values_list('render_data', flat=True)[0])
+            pk = level.pk if isinstance(level, Level) else level
+            result = pickle.load(open(cls._level_filename(pk), 'rb'))
 
             cls.cached[level_pk] = result
             return result
+
+    def save(self, pk):
+        return pickle.dump(self, open(self._level_filename(pk), 'wb'))
 
 
 class Mesh:
