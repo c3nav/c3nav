@@ -10,11 +10,6 @@ from shapely.ops import cascaded_union
 from c3nav.mapdata.models.locations import SpecificLocation
 
 
-class LevelManager(models.Manager):
-    def get_queryset(self, *args, **kwargs):
-        return super().get_queryset(*args, **kwargs).defer('render_data')
-
-
 class Level(SpecificLocation, models.Model):
     """
     A map level
@@ -26,14 +21,11 @@ class Level(SpecificLocation, models.Model):
                                   related_name='levels_on_top', verbose_name=_('on top of'))
     short_label = models.SlugField(max_length=20, verbose_name=_('short label'), unique=True)
 
-    objects = LevelManager()
-
     class Meta:
         verbose_name = _('Level')
         verbose_name_plural = _('Levels')
         default_related_name = 'levels'
         ordering = ['base_altitude']
-        base_manager_name = 'objects'
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
