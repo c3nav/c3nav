@@ -12,7 +12,7 @@ editor = {
             minZoom: 0,
             crs: L.CRS.Simple,
             editable: true,
-            closePopupOnClick: false
+            zoomSnap: 0
         });
         if (L.Browser.chrome && !('ontouchstart' in window)) {
             $('.leaflet-touch').removeClass('leaflet-touch');
@@ -21,6 +21,18 @@ editor = {
         editor.map.on('click', function () {
             editor.map.doubleClickZoom.enable();
         });
+
+        /*
+         * Fix scroll wheel zoom on precise scrolling devices
+         */
+        var originalPerformZoom = L.Map.ScrollWheelZoom.prototype._performZoom;
+        L.Map.ScrollWheelZoom.include({
+            _performZoom: function () {
+                if (this._delta) this._delta = (this._delta > 0) ? Math.max(this._delta, 60) : Math.min(this._delta, -60);
+                originalPerformZoom.call(this);
+            }
+        });
+
         window.onbeforeunload = editor._onbeforeunload;
 
         L.control.scale({imperial: false}).addTo(editor.map);
