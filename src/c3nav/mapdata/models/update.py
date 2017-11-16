@@ -96,13 +96,13 @@ class MapUpdate(models.Model):
             AltitudeArea.recalculate()
 
             for new_update in new_updates:
-                print(new_update)
+                print('Applying changed geometries from MapUpdate #%s!' % new_update.pk)
                 try:
                     changed_geometries.combine(
                         pickle.load(open(new_update._changed_geometries_filename(), 'rb'))
                     )
                 except FileNotFoundError:
-                    print('Changed geometries file not found. File not found!')
+                    print('Changed geometries file not found!')
                 with suppress(FileNotFoundError):
 
                     print('done')
