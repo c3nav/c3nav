@@ -3,6 +3,7 @@ import math
 import os
 import struct
 import threading
+import traceback
 from itertools import chain
 
 import numpy as np
@@ -15,6 +16,8 @@ from shapely.ops import unary_union
 
 from c3nav.mapdata.models import MapUpdate
 from c3nav.mapdata.utils.models import get_submodels
+
+logger = logging.getLogger('c3nav')
 
 
 class MapHistory:
@@ -51,7 +54,8 @@ class MapHistory:
                 # noinspection PyTypeChecker
                 data = np.fromstring(f.read(width*height*2), np.uint16).reshape((height, width))
                 return cls(resolution, x, y, list(updates), data, filename)
-        except (FileNotFoundError, struct.error):
+        except (FileNotFoundError, struct.error) as e:
+            logger.info('Exception in MapHistory loading! %s' % traceback.format_exc())
             if default_update is None:
                 default_update = MapUpdate.last_update()
             new_empty = cls(updates=[default_update], filename=filename)
