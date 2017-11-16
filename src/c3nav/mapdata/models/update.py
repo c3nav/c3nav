@@ -9,7 +9,6 @@ from django.utils.http import int_to_base36
 from django.utils.timezone import make_naive
 from django.utils.translation import ugettext_lazy as _
 
-from c3nav.mapdata.cache import changed_geometries
 from c3nav.mapdata.tasks import process_map_updates
 
 
@@ -90,6 +89,7 @@ class MapUpdate(models.Model):
             if not new_updates:
                 return ()
 
+            from c3nav.mapdata.cache import changed_geometries
             changed_geometries.reset()
 
             from c3nav.mapdata.models import AltitudeArea
