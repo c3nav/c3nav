@@ -192,9 +192,9 @@ class MapHistory:
         # check overlapping area
         self_height, self_width = self.data.shape
         other_height, other_width = other.data.shape
-        minx, miny = min(self.x, other.x), min(self.y, other.y)
-        maxx = max(self.x+self_width-1, other.x+other_width-1)
-        maxy = max(self.y+self_height-1, other.y+other_height-1)
+        minx, miny = max(self.x, other.x), max(self.y, other.y)
+        maxx = min(self.x+self_width-1, other.x+other_width-1)
+        maxy = min(self.y+self_height-1, other.y+other_height-1)
         if maxx < minx or maxy < miny:
             return
 
