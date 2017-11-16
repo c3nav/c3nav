@@ -466,10 +466,14 @@ class LevelGeometries:
                 colors.setdefault(area.get_color(), {}).setdefault(access_restriction, []).append(area.geometry)
 
             for obstacle in space.obstacles.all():
-                obstacles.setdefault(int(obstacle.height*1000), []).append(obstacle.geometry)
+                obstacles.setdefault(int(obstacle.height*1000), []).append(
+                    obstacle.geometry.intersection(space.walkable_geom)
+                )
 
             for lineobstacle in space.lineobstacles.all():
-                obstacles.setdefault(int(lineobstacle.height*1000), []).append(lineobstacle.buffered_geometry)
+                obstacles.setdefault(int(lineobstacle.height*1000), []).append(
+                    lineobstacle.buffered_geometry.intersection(space.walkable_geom)
+                )
 
             heightareas.setdefault(int((space.height or level.default_height)*1000), []).append(space.geometry)
         colors.pop(None, None)
