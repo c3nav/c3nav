@@ -185,24 +185,6 @@ class MapHistory:
         for i, affected in enumerate(new_affected):
             self.data[affected] = i
 
-        # remove borders
-        rows = self.data.any(axis=1).nonzero()[0]
-        logging.info('rows: %s' % rows)
-        if not rows.size:
-            logging.info('no rows, empty_array')
-            self.data = self.empty_array
-            self.x = 0
-            self.y = 0
-            return
-        cols = self.data.any(axis=0).nonzero()[0]
-        logging.info('cols: %s' % cols)
-        miny, maxy = rows.min(), rows.max()
-        minx, maxx = cols.min(), cols.max()
-        logging.info('minx=%d, miny=%d, maxx=%d, maxy=%d' % (minx, miny, maxx, maxy))
-        self.x += minx
-        self.y += miny
-        self.data = self.data[miny:maxy+1, minx:maxx+1]
-
     def composite(self, other, mask_geometry):
         if other.resolution != other.resolution:
             return
