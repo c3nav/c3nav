@@ -1,5 +1,6 @@
+import os
 import pickle
-from contextlib import contextmanager
+from contextlib import contextmanager, suppress
 
 from django.conf import settings
 from django.core.cache import cache
@@ -11,11 +12,6 @@ from django.utils.translation import ugettext_lazy as _
 from c3nav.mapdata.tasks import process_map_updates
 
 
-class MapUpdateManager(models.Manager):
-    def get_queryset(self, *args, **kwargs):
-        return super().get_queryset(*args, **kwargs).defer('changed_geometries')
-
-
 class MapUpdate(models.Model):
     """
     A map update. created whenever mapdata is changed.
@@ -24,16 +20,12 @@ class MapUpdate(models.Model):
     user = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, on_delete=models.PROTECT)
     type = models.CharField(max_length=32)
     processed = models.BooleanField(default=False)
-    changed_geometries = models.BinaryField(null=True)
-
-    objects = MapUpdateManager()
 
     class Meta:
         verbose_name = _('Map update')
         verbose_name_plural = _('Map updates')
         default_related_name = 'mapupdates'
         get_latest_by = 'datetime'
-        base_manager_name = 'objects'
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -87,16 +79,20 @@ class MapUpdate(models.Model):
         with transaction.atomic():
             yield cls.objects.select_for_update().earliest()
 
+    def _changed_geometries_filename(self):
+        return os.path.join(settings.CACHE_ROOT, 'changed_geometries', 'update_%d.pickle' % self.pk)
+
     @classmethod
     def process_updates(cls):
         with transaction.atomic():
-            new_updates = tuple(cls.objects.filter(processed=False).defer(None).select_for_update(nowait=True))
+            new_updates = tuple(cls.objects.filter(processed=False).select_for_update(nowait=True))
             if not new_updates:
                 return ()
 
             last_processed_update = cls.objects.filter(processed=True).latest().to_tuple
             for new_update in new_updates:
-                pickle.loads(new_update.changed_geometries).save(last_processed_update, new_update.to_tuple)
+                changed_geometries = pickle.load(open(new_update._changed_geometries_filename(), 'rb'))
+                changed_geometries.save(last_processed_update, new_update.to_tuple)
                 new_update.processed = True
                 new_update.save()
 
@@ -107,7 +103,7 @@ class MapUpdate(models.Model):
             LevelRenderData.rebuild()
 
             transaction.on_commit(
-                lambda: cache.set('mapdata:last_processed_update', new_updates[-1].to_tuple, 900)
+                lambda: cache.set('mapdachanged_geometriesta:last_processed_update', new_updates[-1].to_tuple, 900)
             )
 
             return new_updates
@@ -117,10 +113,13 @@ class MapUpdate(models.Model):
         if not new and (self.was_processed or not self.processed):
             raise TypeError
 
-        from c3nav.mapdata.cache import changed_geometries
-        self.changed_geometries = pickle.dumps(changed_geometries)
-
         super().save(**kwargs)
+
+        with suppress(FileExistsError):
+            os.mkdir(os.path.dirname(self._changed_geometries_filename()))
+
+        from c3nav.mapdata.cache import changed_geometries
+        pickle.dump(changed_geometries, open(self._changed_geometries_filename(), 'wb'))
 
         transaction.on_commit(
             lambda: cache.set('mapdata:last_update', self.to_tuple, 900)

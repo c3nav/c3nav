@@ -16,4 +16,8 @@ class Migration(migrations.Migration):
             model_name='level',
             name='render_data',
         ),
+        migrations.AlterModelOptions(
+            name='level',
+            options={'ordering': ['base_altitude'], 'verbose_name': 'Level', 'verbose_name_plural': 'Levels'},
+        ),
     ]
