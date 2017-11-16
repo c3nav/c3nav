@@ -125,7 +125,7 @@ class MapHistory:
             if not data.size:
                 logging.info('data is empty, creating new map')
                 data = np.zeros(((maxy-miny), (maxx-minx)), dtype=np.uint16)
-                logging.info('data is empty, created new! shape=%s' % data.shape)
+                logging.info('data is empty, created new! shape=%s' % (data.shape, ))
                 self.x, self.y = minx, miny
             else:
                 logging.info('resize?')
