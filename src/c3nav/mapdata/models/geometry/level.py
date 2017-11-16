@@ -375,8 +375,7 @@ class AltitudeArea(LevelGeometryMixin, models.Model):
             areas_by_altitude = {}
             for tmpid in level_areas.get(level, []):
                 area = areas[tmpid]
-                if area.geometry:  # todo: how can this be None?
-                    areas_by_altitude.setdefault(area.altitude, []).append(area.geometry)
+                areas_by_altitude.setdefault(area.altitude, []).append(area.geometry)
             areas_by_altitude = {altitude: [unary_union(alt_areas)]
                                  for altitude, alt_areas in areas_by_altitude.items()}
 

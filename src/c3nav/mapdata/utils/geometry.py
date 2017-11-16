@@ -146,8 +146,8 @@ def cut_polygon_with_line(polygon: Union[Polygon, MultiPolygon], line: LineStrin
                 if isinstance(item, Point):
                     points.append(cutpoint(item, i, j))
                 elif isinstance(item, LineString):
-                    points.append(cutpoint(item.coords[0], i, j))
-                    points.append(cutpoint(item.coords[-1], i, j))
+                    points.append(cutpoint(Point(*item.coords[0]), i, j))
+                    points.append(cutpoint(Point(*item.coords[-1]), i, j))
                 else:
                     raise ValueError
 
@@ -230,12 +230,12 @@ def cut_polygon_with_line(polygon: Union[Polygon, MultiPolygon], line: LineStrin
         old_ring = LinearRing(ring[0].coords[:-1] + segment.coords[0:])
         new_ring = LinearRing(ring[1].coords[:-1] + segment.coords[::-1])
 
-        # if this is not an exterior cut but creaes a new polygon inside a hole,
+        # if this is not an exterior cut but creates a new polygon inside a hole,
         # make sure that new_ring contains the exterior for the new polygon
         if current.ring != 0 and not new_ring.is_ccw:
             new_ring, old_ring = old_ring, new_ring
 
-        geom = Polygon(old_ring)
+        new_geom = Polygon(new_ring)
         polygon[current.ring] = old_ring
         new_polygon = [new_ring]
         polygons.append(new_polygon)
@@ -245,7 +245,8 @@ def cut_polygon_with_line(polygon: Union[Polygon, MultiPolygon], line: LineStrin
         for i, interior in enumerate(polygon[1:], start=1):
             if i == current.ring:
                 continue
-            if interior is not None and not geom.contains(interior):
+            if interior is not None and new_geom.contains(interior):
+                polygon[i] = None
                 mapping[i] = len(new_polygon)
                 new_polygon.append(interior)
 
