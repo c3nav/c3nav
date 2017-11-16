@@ -91,8 +91,9 @@ class MapUpdate(models.Model):
 
             last_processed_update = cls.objects.filter(processed=True).latest().to_tuple
             for new_update in new_updates:
-                changed_geometries = pickle.load(open(new_update._changed_geometries_filename(), 'rb'))
-                changed_geometries.save(last_processed_update, new_update.to_tuple)
+                with suppress(FileNotFoundError):
+                    changed_geometries = pickle.load(open(new_update._changed_geometries_filename(), 'rb'))
+                    changed_geometries.save(last_processed_update, new_update.to_tuple)
                 new_update.processed = True
                 new_update.save()
 
