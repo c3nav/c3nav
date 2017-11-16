@@ -256,6 +256,12 @@ class GeometryChangeTracker:
         self._geometries_by_level = {}
         self._deleted_levels = set()
 
+    @property
+    def area(self):
+        return sum((unary_union(geometries).area
+                    for level_id, geometries in self._geometries_by_level.items()
+                    if level_id not in self._deleted_levels), 0)
+
     def finalize(self):
         for level_id in self._deleted_levels:
             try:

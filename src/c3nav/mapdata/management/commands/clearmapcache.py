@@ -1,3 +1,4 @@
+import logging
 import os
 
 from django.conf import settings
@@ -14,12 +15,22 @@ class Command(BaseCommand):
 
     def handle(self, *args, **options):
         from c3nav.mapdata.models import MapUpdate
+
+        logger = logging.getLogger('c3nav')
+
         MapUpdate.objects.create(type='management')
+        logger.info('New management update created.')
 
         if options['include_history']:
+            logger.info('Deleting base history...')
             for filename in os.listdir(settings.CACHE_ROOT):
                 if filename.startswith('level_') and '_history_' in filename:
+                    logger.info('Deleting %s...' % filename)
                     os.remove(os.path.join(settings.CACHE_ROOT, filename))
+            logger.info('Base history deleted.')
 
         if not settings.HAS_REAL_CACHE:
             print(_('You have no external cache configured, so don\'t forget to restart your c3nav instance!'))
+
+        if not settings.HAS_CELERY:
+            print(_('You don\'t have celery installed, so don\'t forget to call processupdates!'))

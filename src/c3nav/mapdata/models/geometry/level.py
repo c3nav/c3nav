@@ -1,3 +1,4 @@
+import logging
 from itertools import chain, combinations
 from operator import attrgetter, itemgetter
 
@@ -483,5 +484,6 @@ class AltitudeArea(LevelGeometryMixin, models.Model):
                 num_created += 1
                 areas[tmpid].save()
 
-            print(_('%d altitude areas built.') % len(areas))
-            print(_('%d modified, %d deleted, %d created.') % (num_modified, num_deleted, num_created))
+            logger = logging.getLogger('c3nav')
+            logger.info(_('%d altitude areas built.') % len(areas))
+            logger.info(_('%d modified, %d deleted, %d created.') % (num_modified, num_deleted, num_created))

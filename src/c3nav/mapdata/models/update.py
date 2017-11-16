@@ -1,3 +1,4 @@
+import logging
 import os
 import pickle
 from contextlib import contextmanager, suppress
@@ -84,6 +85,8 @@ class MapUpdate(models.Model):
 
     @classmethod
     def process_updates(cls):
+        logger = logging.getLogger('c3nav')
+
         with transaction.atomic():
             new_updates = tuple(cls.objects.filter(processed=False).select_for_update(nowait=True))
             if not new_updates:
@@ -92,26 +95,33 @@ class MapUpdate(models.Model):
             from c3nav.mapdata.cache import changed_geometries
             changed_geometries.reset()
 
+            logger.info('Recalculating altitude areas...')
+
             from c3nav.mapdata.models import AltitudeArea
             AltitudeArea.recalculate()
 
-            for new_update in new_updates:
-                print('Applying changed geometries from MapUpdate #%s!' % new_update.pk)
-                try:
-                    changed_geometries.combine(
-                        pickle.load(open(new_update._changed_geometries_filename(), 'rb'))
-                    )
-                except FileNotFoundError:
-                    print('Changed geometries file not found!')
-                with suppress(FileNotFoundError):
+            logger.info('%.3f m² of altitude areas affected.' % changed_geometries.area)
 
-                    print('done')
+            for new_update in new_updates:
+                logger.info('Applying changed geometries from MapUpdate #%(id)s (%(type)s)...' %
+                            {'id': new_update.pk, 'type': new_update.type})
+                try:
+                    new_changes = pickle.load(open(new_update._changed_geometries_filename(), 'rb'))
+                except FileNotFoundError:
+                    logger.warning('changed_geometries pickle file not found.')
+                else:
+                    logger.info('%.3f m² affected by this update.' % new_changes.area)
+                    changed_geometries.combine(new_changes)
                 new_update.processed = True
                 new_update.save()
+
+            logger.info('%.3f m² of geometries affected in total.' % changed_geometries.area)
 
             last_processed_update = cls.objects.filter(processed=True).latest().to_tuple
 
             changed_geometries.save(last_processed_update, new_updates[-1].to_tuple)
+
+            logger.info('Rebuilding level render data...')
 
             from c3nav.mapdata.render.data import LevelRenderData
             LevelRenderData.rebuild()

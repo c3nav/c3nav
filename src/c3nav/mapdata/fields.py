@@ -1,4 +1,5 @@
 import json
+import logging
 import typing
 
 from django.core.exceptions import ValidationError
@@ -15,6 +16,8 @@ from c3nav.mapdata.utils.json import format_geojson
 validate_bssid_lines = RegexValidator(regex=r'^([0-9a-f]{2}(:[0-9a-f]{2}){5}(\r?\n[0-9a-f]{2}(:[0-9a-f]{2}){5})*)?$',
                                       message=_('please enter a newline seperated lowercase list of BSSIDs'))
 
+logger = logging.getLogger('c3nav')
+
 
 def validate_geometry(geometry: BaseGeometry):
     if not isinstance(geometry, BaseGeometry):
@@ -22,6 +25,9 @@ def validate_geometry(geometry: BaseGeometry):
 
     if not geometry.is_valid:
         raise ValidationError('Invalid geometry: %s' % validation.explain_validity(geometry))
+
+
+shapely_logger = logging.getLogger('shapely.geos')
 
 
 class GeometryField(models.TextField):
@@ -77,13 +83,17 @@ class GeometryField(models.TextField):
             return None
         self._validate_geomtype(value, exception=TypeError)
         json_value = format_geojson(mapping(value))
+        shapely_logger.setLevel('ERROR')
         rounded_value = shape(json_value)
         if not rounded_value.is_valid:
+            logging.debug('Rounded geometry is invalid, trying to fix this...')
             rounded_value = rounded_value.buffer(0)
             if not rounded_value.is_empty:
                 json_value = format_geojson(mapping(rounded_value), round=False)
             else:
+                logging.debug('Fixing failed, saving it to the database without rounding.')
                 json_value = format_geojson(mapping(value), round=False)
+        shapely_logger.setLevel('INFO')
         return json.dumps(json_value)
 
     def value_to_string(self, obj):
