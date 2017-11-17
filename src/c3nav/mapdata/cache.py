@@ -251,11 +251,12 @@ class MapHistory(GeometryIndexed):
     def simplify(self):
         # remove updates that have no longer any array cells
         new_updates = ((i, update, (self.data == i)) for i, update in enumerate(self.updates))
-        logger.info('before simplify: %s' % self.updates)
+        logger.info('before simplify: %s' % (self.updates, ))
+        logger.info('new updates: %s' % (new_updates,))
         logger.info(str(self.data))
         self.updates, new_affected = zip(*((update, affected) for i, update, affected in new_updates
                                            if i == 0 or affected.any()))
-        logger.info('after simplify: %s' % self.updates)
+        logger.info('after simplify: %s' % (self.updates, ))
         for i, affected in enumerate(new_affected):
             self.data[affected] = i
 
