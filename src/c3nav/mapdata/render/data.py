@@ -166,12 +166,16 @@ class LevelRenderData:
                                                       'spaces__obstacles', 'spaces__lineobstacles',
                                                       'spaces__groups'))
 
-        single_level_geoms = {level.pk: LevelGeometries.build_for_level(level) for level in levels}
-
+        single_level_geoms = {}
         interpolators = {}
         last_interpolator = None
+        altitudeareas_above = []
         for level in reversed(levels):
+            single_level_geoms[level.pk] = LevelGeometries.build_for_level(level, altitudeareas_above)
+
             if level.on_top_of_id is not None:
+                altitudeareas_above.extend(single_level_geoms[level.pk].altitudeareas)
+                altitudeareas_above.sort(key=operator.attrgetter('altitude'))
                 continue
 
             if last_interpolator is not None:
@@ -239,6 +243,11 @@ class LevelRenderData:
                 new_geoms = LevelGeometries()
                 new_geoms.doors = crop_to.intersection(old_geoms.doors)
                 new_geoms.walls = crop_to.intersection(old_geoms.walls)
+                new_geoms.all_walls = crop_to.intersection(old_geoms.all_walls)
+                new_geoms.short_walls = tuple((altitude, geom) for altitude, geom in tuple(
+                    (altitude, crop_to.intersection(geom))
+                    for altitude, geom in old_geoms.short_walls
+                ) if not geom.is_empty)
 
                 for altitudearea in old_geoms.altitudeareas:
                     new_geometry = crop_to.intersection(altitudearea.geometry)
@@ -387,6 +396,8 @@ class LevelGeometries:
         self.heightareas = []
         self.walls = None
         self.walls_extended = None
+        self.all_walls = None
+        self.short_walls = []
         self.doors = None
         self.doors_extended = None
         self.holes = None
@@ -410,7 +421,7 @@ class LevelGeometries:
         self.min_altitude = None
 
     @staticmethod
-    def build_for_level(level):
+    def build_for_level(level, altitudeareas_above):
         geoms = LevelGeometries()
         buildings_geom = unary_union([b.geometry for b in level.buildings.all()])
 
@@ -515,6 +526,19 @@ class LevelGeometries:
 
         geoms.walls = buildings_geom.difference(spaces_geom).difference(doors_geom)
 
+        # shorten walls if there are altitudeareas above
+        remaining = geoms.walls
+        for altitudearea in altitudeareas_above:
+            intersection = altitudearea.geometry.intersection(remaining).buffer(0)
+            if intersection.is_empty:
+                continue
+            remaining = remaining.difference(altitudearea.geometry)
+            geoms.short_walls.append((altitudearea.altitude, intersection))
+        geoms.all_walls = geoms.walls
+        geoms.walls = geoms.walls.difference(
+            unary_union(tuple(altitudearea.geometry for altitudearea in altitudeareas_above))
+        )
+
         # general level infos
         geoms.pk = level.pk
         geoms.on_top_of_id = level.on_top_of_id
@@ -530,7 +554,8 @@ class LevelGeometries:
     def get_geometries(self):
         # omit heightareas as these are never drawn
         return chain(chain(*(area.get_geometries() for area in self.altitudeareas)), (self.walls, self.doors,),
-                     self.restricted_spaces_indoors.values(), self.restricted_spaces_outdoors.values())
+                     self.restricted_spaces_indoors.values(), self.restricted_spaces_outdoors.values(),
+                     (geom for altitude, geom in self.short_walls))
 
     def create_hybrid_geometries(self, face_centers):
         for area in self.altitudeareas:
@@ -538,6 +563,9 @@ class LevelGeometries:
         self.heightareas = tuple((HybridGeometry.create(area, face_centers), height)
                                  for area, height in self.heightareas)
         self.walls = HybridGeometry.create(self.walls, face_centers)
+        self.short_walls = tuple((altitude, HybridGeometry.create(geom, face_centers))
+                                 for altitude, geom in self.short_walls)
+        self.all_walls = HybridGeometry.create(self.all_walls, face_centers)
         self.doors = HybridGeometry.create(self.doors, face_centers)
         self.restricted_spaces_indoors = {key: HybridGeometry.create(geom, face_centers)
                                           for key, geom in self.restricted_spaces_indoors.items()}
@@ -654,12 +682,18 @@ class LevelGeometries:
             area.remove_faces(reduce(operator.or_, self.walls.faces, set()))
 
         # create polyhedrons
-        self.walls_base = HybridGeometry(self.walls.geom, self.walls.faces)
-        self.walls_bottom = HybridGeometry(self.walls.geom, self.walls.faces)
+        self.walls_base = HybridGeometry(self.all_walls.geom, self.all_walls.faces)
+        self.walls_bottom = HybridGeometry(self.all_walls.geom, self.all_walls.faces)
         self.walls_extended = HybridGeometry(self.walls.geom, self.walls.faces)
         self.walls.build_polyhedron(self._create_polyhedron,
                                     lower=vertex_altitudes - int(0.7 * 1000),
                                     upper=vertex_wall_heights)
+
+        for altitude, geom in self.short_walls:
+            geom.build_polyhedron(self._create_polyhedron,
+                                  lower=vertex_altitudes - int(0.7 * 1000),
+                                  upper=altitude - int(0.7 * 1000))
+        self.short_walls = tuple(geom for altitude, geom in self.short_walls)
 
         for key, geometry in self.restricted_spaces_indoors.items():
             geometry.crop_ids = frozenset(('in:%s' % key, ))
@@ -706,6 +740,7 @@ class LevelGeometries:
         self.walls_bottom.build_polyhedron(self._create_polyhedron, lower=0, upper=1, top=False)
 
         # unset heightareas, they are no loinger needed
+        self.all_walls = None
         self.heightareas = None
         self.vertices = None
         self.faces = None
