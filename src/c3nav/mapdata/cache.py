@@ -188,7 +188,6 @@ class MapHistory(GeometryIndexed):
     def __init__(self, updates, **kwargs):
         super().__init__(**kwargs)
         self.updates = updates
-        self.unfinished = False
 
     @classmethod
     def _read_metadata(cls, f, kwargs):
