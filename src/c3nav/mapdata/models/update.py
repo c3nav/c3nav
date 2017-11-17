@@ -102,6 +102,8 @@ class MapUpdate(models.Model):
 
             logger.info('%.3f m² of altitude areas affected.' % changed_geometries.area)
 
+            last_processed_update = cls.objects.filter(processed=True).latest().to_tuple
+
             for new_update in new_updates:
                 logger.info('Applying changed geometries from MapUpdate #%(id)s (%(type)s)...' %
                             {'id': new_update.pk, 'type': new_update.type})
@@ -116,8 +118,6 @@ class MapUpdate(models.Model):
                 new_update.save()
 
             logger.info('%.3f m² of geometries affected in total.' % changed_geometries.area)
-
-            last_processed_update = cls.objects.filter(processed=True).latest().to_tuple
 
             changed_geometries.save(last_processed_update, new_updates[-1].to_tuple)
 
