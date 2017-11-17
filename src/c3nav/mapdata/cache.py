@@ -101,8 +101,8 @@ class GeometryIndexed:
         if self.data.size:
             minx = min(self.x, minx)
             miny = min(self.y, miny)
-            maxx = max(self.x + width, maxx - minx)
-            maxy = max(self.y + height, maxy - miny)
+            maxx = max(self.x + width, maxx)
+            maxy = max(self.y + height, maxy)
 
         new_data = np.zeros((maxy - miny, maxx - minx), dtype=self.dtype)
 
