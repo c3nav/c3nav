@@ -388,8 +388,8 @@ class AltitudeArea(LevelGeometryMixin, models.Model):
                 remaining_space = unary_union(
                     tuple(c.geometry for c in space.columns.all()) +
                     tuple(o.geometry for o in space.obstacles.all()) +
-                    tuple(o.buffered_geometry for o in space.lineobstacles.all()))
-                remaining_space = remaining_space.difference(
+                    tuple(o.buffered_geometry for o in space.lineobstacles.all())
+                ).intersection(geom).difference(
                     unary_union(tuple(h.geometry for h in space.holes.all()))
                 )
                 if remaining_space.is_empty:
