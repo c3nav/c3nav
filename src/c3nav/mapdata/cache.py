@@ -1,4 +1,3 @@
-import logging
 import math
 import os
 import struct
@@ -16,8 +15,6 @@ from shapely.ops import unary_union
 
 from c3nav.mapdata.models import MapUpdate
 from c3nav.mapdata.utils.models import get_submodels
-
-logger = logging.getLogger('c3nav')
 
 
 class GeometryIndexed:
@@ -251,12 +248,8 @@ class MapHistory(GeometryIndexed):
     def simplify(self):
         # remove updates that have no longer any array cells
         new_updates = ((i, update, (self.data == i)) for i, update in enumerate(self.updates))
-        logger.info('before simplify: %s' % (self.updates, ))
-        logger.info('new updates: %s' % (new_updates,))
-        logger.info(str(self.data))
         self.updates, new_affected = zip(*((update, affected) for i, update, affected in new_updates
                                            if i == 0 or affected.any()))
-        logger.info('after simplify: %s' % (self.updates, ))
         for i, affected in enumerate(new_affected):
             self.data[affected] = i
 
