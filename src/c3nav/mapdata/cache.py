@@ -146,7 +146,23 @@ class GeometryIndexed:
             bounds = self._get_geometry_bounds(key)
             return self.data[self.get_geometry_cells(key, bounds)]
 
-        raise TypeError('GeometryIndexed index must be a shapely geometry, not %s' % type(key).__name__)
+        if isinstance(key, tuple):
+            xx, yy = key
+
+            minx = int(math.floor(xx.start / self.resolution))
+            miny = int(math.floor(yy.start / self.resolution))
+            maxx = int(math.ceil(xx.stop / self.resolution))
+            maxy = int(math.ceil(yy.stop / self.resolution))
+
+            height, width = self.data.shape
+            minx = min(self.x, minx)
+            miny = min(self.y, miny)
+            maxx = max(self.x + width, maxx)
+            maxy = max(self.y + height, maxy)
+
+            return self.data[miny:maxy, minx:maxx].flatten()
+
+        raise TypeError('GeometryIndexed index must be a shapely geometry or tuple, not %s' % type(key).__name__)
 
     def __setitem__(self, key, value):
         if isinstance(key, BaseGeometry):
@@ -291,7 +307,7 @@ class MapHistory(GeometryIndexed):
         self.simplify()
 
     def last_update(self, minx, miny, maxx, maxy):
-        cells = self[box(minx, miny, maxx, maxy)]
+        cells = self[minx:maxx, miny:maxy]
         if cells.size:
             return self.updates[cells.max()]
         return self.updates[0]
