@@ -134,6 +134,9 @@ class AltitudeArea(LevelGeometryMixin, models.Model):
     """
     geometry = GeometryField('multipolygon')
     altitude = models.DecimalField(_('altitude'), null=False, max_digits=6, decimal_places=2)
+    altitude2 = models.DecimalField(_('second altitude'), null=True, max_digits=6, decimal_places=2)
+    point1 = GeometryField('point', null=True)
+    point2 = GeometryField('point', null=True)
 
     class Meta:
         verbose_name = _('Altitude Area')
@@ -145,13 +148,17 @@ class AltitudeArea(LevelGeometryMixin, models.Model):
     def recalculate(cls):
         # collect location areas
         all_areas = []
+        all_ramps = []
         space_areas = {}
         spaces = {}
         levels = Level.objects.prefetch_related('buildings', 'doors', 'spaces', 'spaces__columns',
                                                 'spaces__obstacles', 'spaces__lineobstacles', 'spaces__holes',
-                                                'spaces__stairs', 'spaces__altitudemarkers')
+                                                'spaces__stairs', 'spaces__ramps', 'spaces__altitudemarkers')
+        logger = logging.getLogger('c3nav')
+
         for level in levels:
             areas = []
+            ramps = []
             stairs = []
 
             # collect all accessible areas on this level
@@ -161,12 +168,20 @@ class AltitudeArea(LevelGeometryMixin, models.Model):
                 space.orig_geometry = space.geometry
                 if space.outside:
                     space.geometry = space.geometry.difference(buildings_geom)
-                areas.append(space.geometry.difference(
+                space_accessible = space.geometry.difference(
                     unary_union(tuple(c.geometry for c in space.columns.all()) +
                                 tuple(o.geometry for o in space.obstacles.all()) +
                                 tuple(o.buffered_geometry for o in space.lineobstacles.all()) +
                                 tuple(h.geometry for h in space.holes.all()))
-                ))
+                )
+
+                space_ramps = unary_union(tuple(r.geometry for r in space.ramps.all()))
+                areas.append(space_accessible.difference(space_ramps))
+                for geometry in assert_multipolygon(space_accessible.intersection(space_ramps)):
+                    ramp = AltitudeArea(geometry=geometry, level=level)
+                    ramp.geometry_prep = prepared.prep(geometry)
+                    ramp.space = space.pk
+                    ramps.append(ramp)
 
             areas = MultiPolygon(tuple(orient(polygon) for polygon in assert_multipolygon(
                 unary_union(areas+list(door.geometry for door in level.doors.all())))
@@ -219,8 +234,25 @@ class AltitudeArea(LevelGeometryMixin, models.Model):
                     area.connected_to.append(other_area)
                     other_area.connected_to.append(area)
 
+            # determine ramp connections
+            for ramp in ramps:
+                ramp.connected_to = []
+                buffered = ramp.geometry.buffer(0.001)
+                for area in areas:
+                    if area.geometry_prep.intersects(buffered):
+                        intersection = area.geometry.intersection(buffered)
+                        ramp.connected_to.append((area, intersection))
+                if len(ramp.connected_to) != 2:
+                    if len(ramp.connected_to) == 0:
+                        logger.warning('Ramp with no connections!')
+                    elif len(ramp.connected_to) == 1:
+                        logger.warning('Ramp with only one connection!')
+                    else:
+                        logger.warning('Ramp with more than one connections!')
+
             # add areas to global areas
             all_areas.extend(areas)
+            all_ramps.extend(ramps)
 
         # for area in all_areas:
         #     area.geometry = clean_geometry(area.geometry)
@@ -228,6 +260,7 @@ class AltitudeArea(LevelGeometryMixin, models.Model):
 
         # give temporary ids to all areas
         areas = all_areas
+        ramps = all_ramps
         for i, area in enumerate(areas):
             area.tmpid = i
         for area in areas:
@@ -352,9 +385,51 @@ class AltitudeArea(LevelGeometryMixin, models.Model):
             area = areas[tmpid]
             area.altitude = area.level.base_altitude
 
+        # prepare per-level operations
         level_areas = {}
         for area in areas:
             level_areas.setdefault(area.level, set()).add(area.tmpid)
+
+        # make sure there is only one altitude area per altitude per level
+        for level in levels:
+            areas_by_altitude = {}
+            for tmpid in level_areas.get(level, []):
+                area = areas[tmpid]
+                areas_by_altitude.setdefault(area.altitude, []).append(area.geometry)
+
+            level_areas[level] = [AltitudeArea(level=level, geometry=unary_union(geometries), altitude=altitude)
+                                  for altitude, geometries in areas_by_altitude.items()]
+
+        # renumber joined areas
+        areas = list(chain(*(a for a in level_areas.values())))
+        for i, area in enumerate(areas):
+            area.tmpid = i
+
+        # finalize ramps
+        for ramp in ramps:
+            if not ramp.connected_to:
+                for area in space_areas[ramp.space]:
+                    ramp.altitude = areas[area].altitude
+                    break
+                else:
+                    ramp.altitude = ramp.level.base_altitude
+                continue
+
+            if len(ramp.connected_to) == 1:
+                ramp.altitude = ramp.connected_to[0][0].altitude
+                continue
+
+            if len(ramp.connected_to) > 2:
+                ramp.connected_to = sorted(ramp.connected_to, key=lambda item: item[1].area)[-2:]
+
+            ramp.point1 = ramp.connected_to[0][1].centroid
+            ramp.point2 = ramp.connected_to[1][1].centroid
+            ramp.altitude = ramp.connected_to[0][0].altitude
+            ramp.altitude2 = ramp.connected_to[1][0].altitude
+
+            ramp.tmpid = len(areas)
+            areas.append(ramp)
+            level_areas[ramp.level].append(ramp)
 
         #
         # now fill in the obstacles and so on
@@ -373,12 +448,9 @@ class AltitudeArea(LevelGeometryMixin, models.Model):
                     unary_union(tuple(h.geometry for h in space.holes.all()))
                 ))
 
-            areas_by_altitude = {}
-            for tmpid in level_areas.get(level, []):
-                area = areas[tmpid]
-                areas_by_altitude.setdefault(area.altitude, []).append(area.geometry)
-            areas_by_altitude = {altitude: [unary_union(alt_areas)]
-                                 for altitude, alt_areas in areas_by_altitude.items()}
+            our_areas = level_areas.get(level, [])
+            for area in our_areas:
+                area.orig_geometry = area.geometry
 
             stairs = []
             for space in level.spaces.all():
@@ -414,27 +486,18 @@ class AltitudeArea(LevelGeometryMixin, models.Model):
 
                 for polygon in assert_multipolygon(remaining_space):
                     polygon = clean_cut_polygon(polygon)
+                    buffered = polygon.buffer(0.001)
 
                     center = polygon.centroid
-                    touches = tuple((altitude, polygon.intersection(alt_areas[0]).length)
-                                    for altitude, alt_areas in areas_by_altitude.items()
-                                    if polygon.intersects(alt_areas[0]))
+                    touches = tuple((area, buffered.intersection(area.orig_geometry).area)
+                                    for area in our_areas
+                                    if buffered.intersects(area.orig_geometry))
                     if touches:
-                        max_intersection = max(touches, key=itemgetter(1))[1]
-                        altitude = max(altitude for altitude, area in touches if area > max_intersection / 2)
+                        area = max(touches, key=itemgetter(1))[0]
                     else:
-                        altitude = min(areas_by_altitude.items(), key=lambda a: a[1][0].distance(center))[0]
-                    areas_by_altitude[altitude].append(polygon)
+                        area = min(our_areas, key=lambda a: a.orig_geometry.distance(center))
+                    area.geometry = area.geometry.union(polygon)
 
-            areas_by_altitude = {altitude: unary_union(alt_areas)
-                                 for altitude, alt_areas in areas_by_altitude.items()}
-
-            level_areas[level] = [AltitudeArea(level=level, geometry=geometry, altitude=altitude)
-                                  for altitude, geometry in areas_by_altitude.items()]
-
-        areas = tuple(chain(*(a for a in level_areas.values())))
-        for i, area in enumerate(areas):
-            area.tmpid = i
         for level in levels:
             level_areas[level] = set(area.tmpid for area in level_areas.get(level, []))
 
@@ -474,6 +537,9 @@ class AltitudeArea(LevelGeometryMixin, models.Model):
 
             candidate.geometry = new_area.geometry
             candidate.altitude = new_area.altitude
+            candidate.altitude2 = new_area.altitude2
+            candidate.point1 = new_area.point1
+            candidate.point2 = new_area.point2
             candidate.save()
             areas_to_save.discard(new_area.tmpid)
             level_areas[new_area.level].discard(new_area.tmpid)
