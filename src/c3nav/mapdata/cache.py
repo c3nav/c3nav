@@ -153,7 +153,6 @@ class GeometryIndexed:
             bounds = self._get_geometry_bounds(key)
             self.fit_bounds(*bounds)
             cells = self.get_geometry_cells(key, bounds)
-            print('setitem: %s' % cells)
             self.data[cells] = value
             return
 
