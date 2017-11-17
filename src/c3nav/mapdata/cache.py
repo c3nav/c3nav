@@ -171,7 +171,7 @@ class GeometryIndexed:
         if self.data.size:
             minval = max(self.data.min(), 0)
             maxval = max(self.data.max(), minval+0.01)
-            visible_data = (self.data.astype(float)-minval*255/(maxval-minval)).clip(0, 255).astype(np.uint8)
+            visible_data = ((self.data.astype(float)-minval)*255/(maxval-minval)).clip(0, 255).astype(np.uint8)
             image_data[self.y:self.y+height, self.x:self.x+width] = visible_data
 
         return Image.fromarray(np.flip(image_data, axis=0), 'L')
