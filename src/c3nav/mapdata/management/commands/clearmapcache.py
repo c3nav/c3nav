@@ -3,7 +3,10 @@ import os
 
 from django.conf import settings
 from django.core.management.base import BaseCommand
+from django.db import DatabaseError
 from django.utils.translation import ugettext_lazy as _
+
+from c3nav.mapdata.tasks import process_map_updates
 
 
 class Command(BaseCommand):
@@ -29,8 +32,12 @@ class Command(BaseCommand):
                     os.remove(os.path.join(settings.CACHE_ROOT, filename))
             logger.info('Base history deleted.')
 
+        if not settings.HAS_CELERY:
+            print(_('You don\'t have celery installed, so we will run processupdates now...'))
+            try:
+                process_map_updates()
+            except DatabaseError:
+                logger.error('Didn\'t work, there is already map update processing in progress.')
+
         if not settings.HAS_REAL_CACHE:
             print(_('You have no external cache configured, so don\'t forget to restart your c3nav instance!'))
-
-        if not settings.HAS_CELERY:
-            print(_('You don\'t have celery installed, so don\'t forget to call processupdates!'))
