@@ -112,6 +112,18 @@ class Stair(SpaceGeometryMixin, models.Model):
         default_related_name = 'stairs'
 
 
+class Ramp(SpaceGeometryMixin, models.Model):
+    """
+    A ramp
+    """
+    geometry = GeometryField('polygon')
+
+    class Meta:
+        verbose_name = _('Ramp')
+        verbose_name_plural = _('Ramps')
+        default_related_name = 'ramps'
+
+
 class Obstacle(SpaceGeometryMixin, models.Model):
     """
     An obstacle

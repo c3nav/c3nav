@@ -19,7 +19,8 @@ from rest_framework.viewsets import GenericViewSet, ReadOnlyModelViewSet, ViewSe
 from c3nav.mapdata.models import AccessRestriction, Building, Door, Hole, LocationGroup, MapUpdate, Source, Space
 from c3nav.mapdata.models.access import AccessPermission
 from c3nav.mapdata.models.geometry.level import LevelGeometryMixin
-from c3nav.mapdata.models.geometry.space import POI, Area, Column, LineObstacle, Obstacle, SpaceGeometryMixin, Stair
+from c3nav.mapdata.models.geometry.space import (POI, Area, Column, LineObstacle, Obstacle, Ramp, SpaceGeometryMixin,
+                                                 Stair)
 from c3nav.mapdata.models.level import Level
 from c3nav.mapdata.models.locations import (Location, LocationGroupCategory, LocationRedirect, LocationSlug,
                                             SpecificLocation)
@@ -206,6 +207,11 @@ class AreaViewSet(MapdataViewSet):
 class StairViewSet(MapdataViewSet):
     """ Add ?geometry=1 to get geometries, add ?space=<id> to filter by space. """
     queryset = Stair.objects.all()
+
+
+class RampViewSet(MapdataViewSet):
+    """ Add ?geometry=1 to get geometries, add ?space=<id> to filter by space. """
+    queryset = Ramp.objects.all()
 
 
 class ObstacleViewSet(MapdataViewSet):
