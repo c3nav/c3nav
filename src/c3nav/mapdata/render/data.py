@@ -455,6 +455,9 @@ class LevelGeometries:
             subtract = []
             if space.outside:
                 subtract.append(buildings_geom)
+            columns = [c.geometry for c in space.columns.all()]
+            if columns:
+                subtract.extend(columns)
             if subtract:
                 space.geometry = space.geometry.difference(unary_union(subtract))
 
