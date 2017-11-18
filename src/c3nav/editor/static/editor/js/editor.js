@@ -299,6 +299,7 @@ editor = {
     _graph_edges_to: {},
     _arrow_colors: [],
     _last_vertex: null,
+    _orig_vertex_pos: null,
     init_geometries: function () {
         // init geometries and edit listeners
         editor._highlight_layer = L.layerGroup().addTo(editor.map);
@@ -319,7 +320,22 @@ editor = {
         editor.map.on('editable:vertex:new', function(e) {
             editor._last_vertex = e.vertex;
         });
+        editor.map.on('editable:vertex:dragstart', function (e) {
+            editor._orig_vertex_pos = [e.vertex.latlng.lat, e.vertex.latlng.lng];
+        });
+        editor.map.on('editable:vertex:dragend', function (e) {
+            editor._orig_vertex_pos = null;
+        });
         editor.map.on('editable:vertex:drag', function (e) {
+            if (e.originalEvent.ctrlKey && editor._orig_vertex_pos) {
+                var dx = e.latlng.lng - editor._orig_vertex_pos[1],
+                    dy = e.latlng.lat - editor._orig_vertex_pos[0],
+                    angle = Math.atan2(dy, dx) * (180 / Math.PI),
+                    distance = Math.hypot(dx, dy),
+                    newangle = Math.round(angle/15)*15 / (180 / Math.PI);
+                e.latlng.lat = editor._orig_vertex_pos[0] + Math.sin(newangle)*distance;
+                e.latlng.lng = editor._orig_vertex_pos[1] + Math.cos(newangle)*distance;
+            }
             e.vertex.setLatLng([Math.round(e.latlng.lat*100)/100, Math.round(e.latlng.lng*100)/100]);
         });
         editor.map.on('editable:drawing:click editable:drawing:move', function (e) {
