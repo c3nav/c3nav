@@ -678,7 +678,7 @@ class LevelGeometries:
         # bottom faces
         if bottom:
             mesh.bottom = self._filter_faces(
-                np.dstack((self.vertices[np.flip(geom_faces, axis=1)], lower[geom_faces]))
+                np.flip(np.dstack((self.vertices[geom_faces], lower[geom_faces])), axis=1)
             )
 
         return tuple((mesh, ))
