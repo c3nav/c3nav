@@ -323,7 +323,7 @@ editor = {
         editor.map.on('editable:vertex:dragstart', function (e) {
             editor._orig_vertex_pos = [e.vertex.latlng.lat, e.vertex.latlng.lng];
         });
-        editor.map.on('editable:vertex:dragend', function (e) {
+        editor.map.on('editable:vertex:dragend', function () {
             editor._orig_vertex_pos = null;
         });
         editor.map.on('editable:vertex:drag', function (e) {
