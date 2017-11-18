@@ -144,6 +144,24 @@ class AltitudeArea(LevelGeometryMixin, models.Model):
         default_related_name = 'altitudeareas'
         ordering = ('altitude', )
 
+    def get_altitudes(self, points):
+        points = np.asanyarray(points).reshape((-1, 2))
+        if self.altitude2 is None:
+            return np.full((points.shape[0], ), fill_value=float(self.altitude))
+
+        a_to_p = points - np.array(self.point1)
+        a_to_b = np.array(self.point2) - np.array(self.point1)
+
+        atb2 = (a_to_b**2).sum()
+
+        atp_dot_atb = a_to_p[:, 0] * a_to_b[0] + a_to_p[:, 1] * a_to_b[1]
+
+        distances = atp_dot_atb / atb2
+
+        distances = distances.clip(0, 1)
+
+        return self.altitude + distances*(self.altitude2-self.altitude)
+
     @classmethod
     def recalculate(cls):
         # collect location areas

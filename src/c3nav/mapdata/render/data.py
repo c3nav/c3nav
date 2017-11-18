@@ -15,7 +15,7 @@ from shapely.geometry import GeometryCollection, LineString, MultiLineString
 from shapely.ops import unary_union
 
 from c3nav.mapdata.cache import MapHistory
-from c3nav.mapdata.models import Level, MapUpdate
+from c3nav.mapdata.models import AltitudeArea, Level, MapUpdate
 from c3nav.mapdata.utils.geometry import assert_multipolygon, get_rings
 from c3nav.mapdata.utils.mesh import triangulate_rings
 from c3nav.mapdata.utils.mpl import shapely_to_mpl
@@ -106,11 +106,21 @@ class AltitudeAreaGeometries:
         if altitudearea is not None:
             self.geometry = altitudearea.geometry
             self.altitude = int(altitudearea.altitude * 1000)
+            self.altitude2 = None if altitudearea.altitude2 is None else int(altitudearea.altitude2 * 1000)
+            self.point1 = altitudearea.point1
+            self.point2 = altitudearea.point2
         else:
             self.geometry = None
             self.altitude = None
+            self.altitude2 = None
+            self.point1 = None
+            self.point2 = None
         self.colors = colors
         self.obstacles = obstacles
+
+    def get_altitudes(self, points):
+        # noinspection PyCallByClass,PyTypeChecker
+        return AltitudeArea.get_altitudes(self, points/1000).astype(np.int32)
 
     def get_geometries(self):
         return chain((self.geometry,),
@@ -130,21 +140,23 @@ class AltitudeAreaGeometries:
             for area in areas.values():
                 area.remove_faces(faces)
 
-    def create_polyhedrons(self, create_polyhedron, crops):
-        altitude = self.altitude
+    def create_polyhedrons(self, create_polyhedron, altitudes, crops):
+        if self.altitude2 is None:
+            altitudes = self.altitude
+
         self.geometry.build_polyhedron(create_polyhedron,
-                                       lower=altitude - int(0.7 * 1000),
-                                       upper=altitude,
+                                       lower=altitudes - int(0.7 * 1000),
+                                       upper=altitudes,
                                        crops=crops)
         for geometry in chain(*(areas.values() for areas in self.colors.values())):
             geometry.build_polyhedron(create_polyhedron,
-                                      lower=altitude,
-                                      upper=altitude + int(0.001 * 1000),
+                                      lower=altitudes,
+                                      upper=altitudes + int(0.001 * 1000),
                                       crops=crops)
         for height, geometry in self.obstacles.items():
             geometry.build_polyhedron(create_polyhedron,
-                                      lower=altitude,
-                                      upper=altitude + height,
+                                      lower=altitudes,
+                                      upper=altitudes + height,
                                       crops=crops)
 
 
@@ -257,6 +269,9 @@ class LevelRenderData:
                     new_altitudearea = AltitudeAreaGeometries()
                     new_altitudearea.geometry = new_geometry
                     new_altitudearea.altitude = altitudearea.altitude
+                    new_altitudearea.altitude2 = altitudearea.altitude2
+                    new_altitudearea.point1 = altitudearea.point1
+                    new_altitudearea.point2 = altitudearea.point2
 
                     new_colors = {}
                     for color, areas in altitudearea.colors.items():
@@ -572,13 +587,16 @@ class LevelGeometries:
         self.restricted_spaces_outdoors = {key: HybridGeometry.create(geom, face_centers)
                                            for key, geom in self.restricted_spaces_outdoors.items()}
 
-    def _build_vertex_values(self, area_values):
+    def _get_altitudearea_vertex_values(self, area, i_vertices):
+        return area.get_altitudes(self.vertices[i_vertices])
+
+    def _build_vertex_values(self, items, area_func, value_func):
         vertex_values = np.empty(self.vertices.shape[:1], dtype=np.int32)
         vertex_value_mask = np.full(self.vertices.shape[:1], fill_value=False, dtype=np.bool)
 
-        for area, value in area_values:
-            i_vertices = np.unique(self.faces[np.array(tuple(chain(*area.faces)))].flatten())
-            vertex_values[i_vertices] = value
+        for item in items:
+            i_vertices = np.unique(self.faces[np.array(tuple(chain(*area_func(item).faces)))].flatten())
+            vertex_values[i_vertices] = value_func(item, i_vertices)
             vertex_value_mask[i_vertices] = True
 
         if not np.all(vertex_value_mask):
@@ -671,10 +689,12 @@ class LevelGeometries:
         self.create_hybrid_geometries(face_centers=self.vertices[self.faces].sum(axis=1) / 3000)
 
         # calculate altitudes
-        vertex_altitudes = self._build_vertex_values((area.geometry, area.altitude)
-                                                     for area in reversed(self.altitudeareas))
-        vertex_heights = self._build_vertex_values((area, height)
-                                                   for area, height in self.heightareas)
+        vertex_altitudes = self._build_vertex_values(reversed(self.altitudeareas),
+                                                     area_func=operator.attrgetter('geometry'),
+                                                     value_func=self._get_altitudearea_vertex_values)
+        vertex_heights = self._build_vertex_values(self.heightareas,
+                                                   area_func=operator.itemgetter(0),
+                                                   value_func=lambda a, i: a[1])
         vertex_wall_heights = vertex_altitudes + vertex_heights
 
         # remove altitude area faces inside walls
@@ -723,7 +743,11 @@ class LevelGeometries:
             self.doors_extended = None
 
         for area in self.altitudeareas:
-            area.create_polyhedrons(self._create_polyhedron, crops=crops)
+            area.create_polyhedrons(self._create_polyhedron,
+                                    self._build_vertex_values([area],
+                                                              area_func=operator.attrgetter('geometry'),
+                                                              value_func=self._get_altitudearea_vertex_values),
+                                    crops=crops)
 
         for key, geometry in self.restricted_spaces_indoors.items():
             geometry.build_polyhedron(self._create_polyhedron,
