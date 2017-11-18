@@ -176,7 +176,7 @@ class LevelRenderData:
         levels = tuple(Level.objects.prefetch_related('altitudeareas', 'buildings', 'doors', 'spaces',
                                                       'spaces__holes', 'spaces__areas', 'spaces__columns',
                                                       'spaces__obstacles', 'spaces__lineobstacles',
-                                                      'spaces__groups'))
+                                                      'spaces__groups', 'spaces__ramps'))
 
         single_level_geoms = {}
         interpolators = {}
@@ -292,6 +292,11 @@ class LevelRenderData:
 
                 if new_geoms.walls.is_empty and not new_geoms.altitudeareas:
                     continue
+
+                new_geoms.ramps = tuple(
+                    ramp for ramp in (crop_to.intersection(ramp) for ramp in old_geoms.ramps)
+                    if not ramp.is_empty
+                )
 
                 new_geoms.heightareas = tuple(
                     (area, height) for area, height in ((crop_to.intersection(area), height)
@@ -420,6 +425,7 @@ class LevelGeometries:
         self.restricted_spaces_indoors = None
         self.restricted_spaces_outdoors = None
         self.affected_area = None
+        self.ramps = []
 
         self.vertices = None
         self.faces = None
@@ -501,6 +507,8 @@ class LevelGeometries:
                     lineobstacle.buffered_geometry.intersection(space.walkable_geom)
                 )
 
+            geoms.ramps.extend(ramp.geometry for ramp in space.ramps.all())
+
             heightareas.setdefault(int((space.height or level.default_height)*1000), []).append(space.geometry)
         colors.pop(None, None)
 
@@ -569,7 +577,7 @@ class LevelGeometries:
     def get_geometries(self):
         # omit heightareas as these are never drawn
         return chain(chain(*(area.get_geometries() for area in self.altitudeareas)), (self.walls, self.doors,),
-                     self.restricted_spaces_indoors.values(), self.restricted_spaces_outdoors.values(),
+                     self.restricted_spaces_indoors.values(), self.restricted_spaces_outdoors.values(), self.ramps,
                      (geom for altitude, geom in self.short_walls))
 
     def create_hybrid_geometries(self, face_centers):
@@ -770,6 +778,7 @@ class LevelGeometries:
 
         # unset heightareas, they are no loinger needed
         self.all_walls = None
+        self.ramps = None
         self.heightareas = None
         self.vertices = None
         self.faces = None
