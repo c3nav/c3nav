@@ -220,3 +220,7 @@ class AltitudeMarker(SpaceGeometryMixin, models.Model):
         verbose_name = _('Altitude Marker')
         verbose_name_plural = _('Altitude Markers')
         default_related_name = 'altitudemarkers'
+
+    @property
+    def title(self):
+        return '%s (%sm)' % (super().title, self.altitude)
