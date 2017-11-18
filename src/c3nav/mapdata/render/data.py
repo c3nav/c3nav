@@ -2,7 +2,7 @@ import operator
 import os
 import pickle
 import threading
-from collections import Counter, deque
+from collections import Counter, deque, namedtuple
 from functools import reduce
 from itertools import chain
 
@@ -391,20 +391,15 @@ class LevelRenderData:
         return pickle.dump(self, open(self._level_filename(pk), 'wb'))
 
 
-class Mesh:
-    __slots__ = ('top', 'sides', 'bottom')
-
-    def __init__(self, top=None, sides=None, bottom=None):
-        self.top = np.empty((0, 3, 3), dtype=np.int32) if top is None else top
-        self.sides = np.empty((0, 3, 3), dtype=np.int32) if sides is None else sides
-        self.bottom = np.empty((0, 3, 3), dtype=np.int32) if bottom is None else bottom
+class Mesh(namedtuple('Mesh', ('top', 'sides', 'bottom'))):
+    empty_faces = np.empty((0, 3, 3)).astype(np.int32)
 
     def tolist(self):
         return self.top, self.sides, self.bottom
 
     def __mul__(self, other):
         return Mesh(top=np.rint(self.top*other).astype(np.int32),
-                    sides=np.rint(self.sides*other if other[2] != 0 else np.empty((0, 3, 3))).astype(np.int32),
+                    sides=np.rint(self.sides*other if other[2] != 0 else self.empty_faces),
                     bottom=np.rint(self.bottom*other).astype(np.int32))
 
     def __add__(self, other):
@@ -413,9 +408,9 @@ class Mesh:
                     np.rint(self.bottom+other).astype(np.int32))
 
     def filter(self, top=True, sides=True, bottom=True):
-        return Mesh(top=self.top if top else None,
-                    sides=self.sides if sides else None,
-                    bottom=self.bottom if bottom else None)
+        return Mesh(top=self.top if top else self.empty_faces,
+                    sides=self.sides if sides else self.empty_faces,
+                    bottom=self.bottom if bottom else self.empty_faces)
 
 
 class LevelGeometries:
@@ -699,15 +694,15 @@ class LevelGeometries:
         # remove faces that have identical upper and lower coordinates
         geom_faces = geom_faces[(upper[geom_faces]-lower[geom_faces]).any(axis=1)]
 
-        mesh = Mesh()
-
         # top faces
         if top:
-            mesh.top = self._filter_faces(np.dstack((self.vertices[geom_faces], upper[geom_faces])))
+            top = self._filter_faces(np.dstack((self.vertices[geom_faces], upper[geom_faces])))
+        else:
+            top = Mesh.empty_faces
 
         # side faces
         if sides:
-            mesh.sides = self._filter_faces(np.vstack((
+            sides = self._filter_faces(np.vstack((
                 # upper
                 np.dstack((self.vertices[boundaries[:, (1, 0, 0)]],
                            np.hstack((upper[boundaries[:, (1, 0)]], lower[boundaries[:, (0,)]])))),
@@ -715,14 +710,18 @@ class LevelGeometries:
                 np.dstack((self.vertices[boundaries[:, (0, 1, 1)]],
                            np.hstack((lower[boundaries[:, (0, 1)]], upper[boundaries[:, (1,)]]))))
             )))
+        else:
+            sides = Mesh.empty_faces
 
         # bottom faces
         if bottom:
-            mesh.bottom = self._filter_faces(
+            bottom = self._filter_faces(
                 np.flip(np.dstack((self.vertices[geom_faces], lower[geom_faces])), axis=1)
             )
+        else:
+            bottom = Mesh.empty_faces
 
-        return tuple((mesh, ))
+        return tuple((Mesh(top, sides, bottom), ))
 
     def build_mesh(self, interpolator=None):
         rings = tuple(chain(*(get_rings(geom) for geom in self.get_geometries())))

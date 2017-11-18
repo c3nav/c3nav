@@ -52,9 +52,7 @@ class Base3DEngine(RenderEngine):
         return vertices
 
     def _place_geometry(self, geometry: HybridGeometry, append=None, offset=True):
-        vertices = np.vstack(tuple(chain(*(
-            mesh.tolist() for mesh in chain(geometry.faces, *geometry.add_faces.values())
-        ))))
+        vertices = np.vstack(tuple(chain(*chain(geometry.faces, *geometry.add_faces.values()))))
         if offset:
             vertices = vertices / 1000 * self.np_scale + self.np_offset
         else:
