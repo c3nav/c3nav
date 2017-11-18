@@ -669,6 +669,12 @@ class LevelGeometries:
         if not isinstance(lower, np.ndarray):
             lower = np.full(self.vertices.shape[0], fill_value=lower, dtype=np.int32)
 
+        # lower should always be lower or equal than upper
+        lower = np.minimum(upper, lower)
+
+        # remove faces that have identical upper and lower coordinates
+        geom_faces = geom_faces[(upper[geom_faces]-lower[geom_faces]).any(axis=1)]
+
         mesh = Mesh()
 
         # top faces
