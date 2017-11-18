@@ -159,10 +159,20 @@ class AltitudeAreaGeometries:
                                       crops=crops)
 
 
-class FakeCropper:
-    @staticmethod
-    def intersection(other):
-        return other
+empty_geometry_collection = GeometryCollection()
+
+
+class Cropper:
+    def __init__(self, geometry=None):
+        self.geometry = geometry
+        self.geometry_prep = None if geometry is None else prepared.prep(geometry)
+
+    def intersection(self, other):
+        if self.geometry is None:
+            return other
+        if self.geometry_prep.intersects(other):
+            return self.geometry.intersection(other)
+        return empty_geometry_collection
 
 
 class LevelRenderData:
@@ -224,7 +234,7 @@ class LevelRenderData:
                     primary_level_count += 1
 
                 # set crop area if we area on the second primary layer from top or below
-                level_crop_to[sublevel.pk] = crop_to if primary_level_count > 1 else FakeCropper
+                level_crop_to[sublevel.pk] = Cropper(crop_to if primary_level_count > 1 else None)
 
                 if geoms.holes is not None:
                     if crop_to is None:
@@ -246,8 +256,8 @@ class LevelRenderData:
 
                 old_geoms = single_level_geoms[sublevel.pk]
 
-                if crop_to is not FakeCropper:
-                    map_history.composite(MapHistory.open_level(sublevel.pk, 'base'), crop_to)
+                if crop_to.geometry is not None:
+                    map_history.composite(MapHistory.open_level(sublevel.pk, 'base'), crop_to.geometry)
                 elif level.pk != sublevel.pk:
                     map_history.composite(MapHistory.open_level(sublevel.pk, 'base'), None)
 
@@ -264,6 +274,7 @@ class LevelRenderData:
                     new_geometry = crop_to.intersection(altitudearea.geometry)
                     if new_geometry.is_empty:
                         continue
+                    new_geometry_prep = prepared.prep(new_geometry)
 
                     new_altitudearea = AltitudeAreaGeometries()
                     new_altitudearea.geometry = new_geometry
@@ -276,6 +287,8 @@ class LevelRenderData:
                     for color, areas in altitudearea.colors.items():
                         new_areas = {}
                         for access_restriction, area in areas.items():
+                            if not new_geometry_prep.intersects(area):
+                                continue
                             new_area = new_geometry.intersection(area)
                             if not new_area.is_empty:
                                 new_areas[access_restriction] = new_area
@@ -285,7 +298,7 @@ class LevelRenderData:
 
                     new_altitudearea.obstacles = {key: new_geometry.intersection(areas)
                                                   for key, areas in altitudearea.obstacles.items()
-                                                  if new_geometry.intersects(areas)}
+                                                  if new_geometry_prep.intersects(areas)}
 
                     new_geoms.altitudeareas.append(new_altitudearea)
 
@@ -436,18 +449,27 @@ class LevelGeometries:
         self.door_height = None
         self.min_altitude = None
 
-    @staticmethod
-    def build_for_level(level, altitudeareas_above):
+    @classmethod
+    def build_for_level(cls, level, altitudeareas_above):
         geoms = LevelGeometries()
         buildings_geom = unary_union([b.geometry for b in level.buildings.all()])
+        buildings_geom_prep = prepared.prep(buildings_geom)
 
         # remove columns and holes from space areas
         for space in level.spaces.all():
+            subtract = []
             if space.outside:
-                space.geometry = space.geometry.difference(buildings_geom)
-            space.geometry = space.geometry.difference(unary_union([c.geometry for c in space.columns.all()]))
-            space.holes_geom = unary_union([h.geometry for h in space.holes.all()])
-            space.walkable_geom = space.geometry.difference(space.holes_geom)
+                subtract.append(buildings_geom)
+            if subtract:
+                space.geometry = space.geometry.difference(unary_union(subtract))
+
+            holes = tuple(h.geometry for h in space.holes.all())
+            if holes:
+                space.holes_geom = unary_union([h.geometry for h in space.holes.all()])
+                space.walkable_geom = space.geometry.difference(space.holes_geom)
+            else:
+                space.holes_geom = empty_geometry_collection
+                space.walkable_geom = space.geometry
 
         spaces_geom = unary_union([s.geometry for s in level.spaces.all()])
         doors_geom = unary_union([d.geometry for d in level.doors.all()])
@@ -475,11 +497,13 @@ class LevelGeometries:
                 buffered = space.geometry.buffer(0.01).union(unary_union(
                     tuple(door.geometry for door in level.doors.all() if door.geometry.intersects(space.geometry))
                 ).difference(walkable_spaces_geom))
-                if buffered.intersects(buildings_geom):
+
+                intersects = buildings_geom_prep.intersects(buffered)
+                if intersects:
                     restricted_spaces_indoors.setdefault(access_restriction, []).append(
                         buffered.intersection(buildings_geom)
                     )
-                if not buffered.within(buildings_geom):
+                if not intersects or not buildings_geom_prep.contains(buffered):
                     restricted_spaces_outdoors.setdefault(access_restriction, []).append(
                         buffered.difference(buildings_geom)
                     )
@@ -517,15 +541,16 @@ class LevelGeometries:
 
         # add altitudegroup geometries and split ground colors into them
         for altitudearea in level.altitudeareas.all():
+            altitudearea_prep = prepared.prep(altitudearea.geometry)
             altitudearea_colors = {color: {access_restriction: area.intersection(altitudearea.geometry)
                                            for access_restriction, area in areas.items()
-                                           if area.intersects(altitudearea.geometry)}
+                                           if altitudearea_prep.intersects(area)}
                                    for color, areas in colors.items()}
             altitudearea_colors = {color: areas for color, areas in altitudearea_colors.items() if areas}
 
             altitudearea_obstacles = {height: area.intersection(altitudearea.geometry)
                                       for height, area in obstacles.items()
-                                      if area.intersects(altitudearea.geometry)}
+                                      if altitudearea_prep.intersects(area)}
             geoms.altitudeareas.append(AltitudeAreaGeometries(altitudearea,
                                                               altitudearea_colors,
                                                               altitudearea_obstacles))
@@ -542,7 +567,7 @@ class LevelGeometries:
         geoms.restricted_spaces_outdoors = {access_restriction: unary_union(spaces)
                                             for access_restriction, spaces in restricted_spaces_outdoors.items()}
 
-        geoms.walls = buildings_geom.difference(spaces_geom).difference(doors_geom)
+        geoms.walls = buildings_geom.difference(unary_union((spaces_geom, doors_geom)))
 
         # shorten walls if there are altitudeareas above
         remaining = geoms.walls
