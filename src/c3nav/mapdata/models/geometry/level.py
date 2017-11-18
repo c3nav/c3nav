@@ -507,7 +507,9 @@ class AltitudeArea(LevelGeometryMixin, models.Model):
                                     for area in our_areas
                                     if buffered.intersects(area.orig_geometry))
                     if touches:
-                        area = max(touches, key=itemgetter(1))[0]
+                        area = max(touches, key=lambda item: (item[0].altitude2 is not None,
+                                                              item[0].altitude,
+                                                              item[1]))[0]
                     else:
                         area = min(our_areas, key=lambda a: a.orig_geometry.distance(center))
                     area.geometry = area.geometry.union(polygon)

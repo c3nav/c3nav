@@ -209,7 +209,8 @@ def cut_polygon_with_line(polygon: Union[Polygon, MultiPolygon], line: LineStrin
         point_backwards = ring[0].coords[-2]
         angle_forwards = math.atan2(point_forwards[0] - last.point.x, point_forwards[1] - last.point.y)
         angle_backwards = math.atan2(point_backwards[0] - last.point.x, point_backwards[1] - last.point.y)
-        angle_segment = math.atan2(current.point.x - last.point.x, current.point.y - last.point.y)
+        next_segment_point = Point(segment.coords[1])
+        angle_segment = math.atan2(next_segment_point.x - last.point.x, next_segment_point.y - last.point.y)
 
         while angle_forwards <= angle_backwards:
             angle_forwards += 2*math.pi
