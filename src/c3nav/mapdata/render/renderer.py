@@ -88,9 +88,13 @@ class MapRenderer:
 
         not_full_levels = not self.full_levels and engine.is_3d
         full_levels = self.full_levels and engine.is_3d
-        for geoms in levels:
+        for i, geoms in reversed(tuple(enumerate(reversed(levels)))):
             if not bbox.intersects(geoms.affected_area):
                 continue
+
+            if i == 0:
+                not_full_levels = True
+                full_levels = False
 
             engine.add_group('level_%s' % geoms.short_label)
 
@@ -108,11 +112,12 @@ class MapRenderer:
                                                            offset=min_altitude-int(0.7*1000)),
                                     fill=FillAttribs('#aaaaaa'), category='walls')
                 for i, altitudearea in enumerate(geoms.altitudeareas):
-                    scale = (altitudearea.altitude - min_altitude) / int(0.7 * 1000)
-                    offset = (min_altitude - int(0.7*1000)) - (altitudearea.altitude - int(0.7*1000)) * scale
-                    geometry = altitudearea.geometry.difference(crop_areas)
-                    engine.add_geometry(geometry.fit(scale=scale, offset=offset).filter(top=False),
-                                        fill=FillAttribs('#eeeeee'), category='ground', item=i)
+                    base = altitudearea.base.difference(crop_areas)
+                    bottom = altitudearea.bottom.difference(crop_areas)
+                    engine.add_geometry(base, fill=FillAttribs('#eeeeee'), category='ground', item=i)
+                    engine.add_geometry(bottom.fit(scale=geoms.min_altitude - min_altitude,
+                                                   offset=min_altitude - int(0.7 * 1000)),
+                                        fill=FillAttribs('#aaaaaa'), category='walls')
 
             # render altitude areas in default ground color and add ground colors to each one afterwards
             # shadows are directly calculated and added by the engine

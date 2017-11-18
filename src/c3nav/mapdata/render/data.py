@@ -114,6 +114,8 @@ class AltitudeAreaGeometries:
             self.altitude2 = None
             self.point1 = None
             self.point2 = None
+        self.base = None
+        self.bottom = None
         self.colors = colors
         self.obstacles = obstacles
 
@@ -139,14 +141,26 @@ class AltitudeAreaGeometries:
             for area in areas.values():
                 area.remove_faces(faces)
 
-    def create_polyhedrons(self, create_polyhedron, altitudes, crops):
+    def create_polyhedrons(self, create_polyhedron, altitudes, min_altitude, crops):
         if self.altitude2 is None:
             altitudes = self.altitude
 
+        self.base = HybridGeometry(self.geometry.geom, self.geometry.faces)
+        self.bottom = HybridGeometry(self.geometry.geom, self.geometry.faces)
         self.geometry.build_polyhedron(create_polyhedron,
                                        lower=altitudes - int(0.7 * 1000),
                                        upper=altitudes,
                                        crops=crops)
+        self.base.build_polyhedron(create_polyhedron,
+                                   lower=min_altitude - int(0.7 * 1000),
+                                   upper=altitudes - int(0.7 * 1000),
+                                   crops=crops,
+                                   top=False, bottom=False)
+        self.bottom.build_polyhedron(create_polyhedron,
+                                     lower=0, upper=1,
+                                     crops=crops,
+                                     top=False)
+
         for geometry in chain(*(areas.values() for areas in self.colors.values())):
             geometry.build_polyhedron(create_polyhedron,
                                       lower=altitudes,
@@ -792,6 +806,7 @@ class LevelGeometries:
                                     self._build_vertex_values([area],
                                                               area_func=operator.attrgetter('geometry'),
                                                               value_func=self._get_altitudearea_vertex_values),
+                                    min_altitude=self.min_altitude,
                                     crops=crops)
 
         for key, geometry in self.restricted_spaces_indoors.items():
