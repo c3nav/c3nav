@@ -1,5 +1,6 @@
 import math
 from collections import deque, namedtuple
+from contextlib import suppress
 from itertools import chain
 from typing import List, Sequence, Union
 
@@ -9,7 +10,6 @@ from matplotlib.patches import PathPatch
 from matplotlib.path import Path
 from shapely import speedups
 from shapely.geometry import GeometryCollection, LinearRing, LineString, MultiLineString, MultiPolygon, Point, Polygon
-from shapely.geometry.polygon import orient
 
 if speedups.available:
     speedups.enable()
@@ -134,8 +134,13 @@ def cut_line_with_point(line: LineString, point: Point):
 
 def cut_polygon_with_line(polygon: Union[Polygon, MultiPolygon], line: LineString, debug=False) -> Sequence[Polygon]:
     orig_polygon = polygon
-    polygons = (orient(polygon) for polygon in assert_multipolygon(polygon))
-    polygons: List[List[LinearRing]] = [[polygon.exterior, *polygon.interiors] for polygon in polygons]
+    polygons: List[List[LinearRing]] = []
+    for polygon in assert_multipolygon(polygon):
+        rings = getattr(polygon, 'c3nav_cache', None)
+        if not rings:
+            rings = [polygon.exterior, *polygon.interiors]
+            polygon.c3nav_cache = rings
+        polygons.append(rings)
 
     # find intersection points between the line and polygon rings
     points = deque()
@@ -263,14 +268,23 @@ def cut_polygon_with_line(polygon: Union[Polygon, MultiPolygon], line: LineStrin
                        for item in points)
 
         last = cutpoint(current.point, new_i, 0)
-    return tuple(Polygon(polygon[0], tuple(ring for ring in polygon[1:] if ring is not None))
-                 for polygon in polygons)
+
+    result = deque()
+    for polygon in polygons:
+        polygon = [ring for ring in polygon if ring is not None]
+        new_polygon = Polygon(polygon[0], tuple(polygon[1:]))
+        new_polygon.c3nav_cache = polygon
+        result.append(new_polygon)
+    return tuple(result)
 
 
 def clean_cut_polygon(polygon: Polygon) -> Polygon:
     interiors = []
     interiors.extend(cut_ring(polygon.exterior))
     exteriors = [(i, ring) for (i, ring) in enumerate(interiors) if ring.is_ccw]
+
+    with suppress(AttributeError):
+        delattr(polygon, 'c3nav_cache')
 
     if len(exteriors) != 1:
         raise ValueError('Invalid cut polygon!')
