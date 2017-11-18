@@ -821,8 +821,8 @@ editor = {
                 layer.editor._resizeLatLng.__vertex._icon.style.display = 'none';
             }
             editor._update_editing();
-            $('#sidebar').find('.content').find('form.creation-lock').removeClass('creation-lock');
-            $('#id_name').focus();
+            $('#sidebar').find('.content').find('form.creation-lock').removeClass('creation-lock')
+                .find('input:not([type=hidden], .btn)').focus();
         }
     },
     _update_editing: function () {
