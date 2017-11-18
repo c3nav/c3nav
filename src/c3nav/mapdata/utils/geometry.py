@@ -1,7 +1,7 @@
 import math
 from collections import deque, namedtuple
 from itertools import chain
-from typing import List, Union
+from typing import List, Sequence, Union
 
 import matplotlib.pyplot as plt
 from django.core import checks
@@ -132,7 +132,7 @@ def cut_line_with_point(line: LineString, point: Point):
                     LineString(pointlist + line.coords[i+(1 if subdistance == distance else 0):]))
 
 
-def cut_polygon_with_line(polygon: Union[Polygon, MultiPolygon], line: LineString):
+def cut_polygon_with_line(polygon: Union[Polygon, MultiPolygon], line: LineString, debug=False) -> Sequence[Polygon]:
     orig_polygon = polygon
     polygons = (orient(polygon) for polygon in assert_multipolygon(polygon))
     polygons: List[List[LinearRing]] = [[polygon.exterior, *polygon.interiors] for polygon in polygons]
@@ -155,7 +155,7 @@ def cut_polygon_with_line(polygon: Union[Polygon, MultiPolygon], line: LineStrin
     points = deque(sorted(points, key=lambda p: line.project(p.point)))
 
     if not points:
-        return orig_polygon
+        return tuple(assert_multipolygon(orig_polygon))
 
     # go through all points and cut pair-wise
     last = points.popleft()
@@ -202,8 +202,8 @@ def cut_polygon_with_line(polygon: Union[Polygon, MultiPolygon], line: LineStrin
         # half-cut polygons are invalid geometry and shapely won't deal with them
         # so we have to do this the complicated way
         ring = cut_line_with_point(polygon[current.ring], current.point)
-        ring = cut_line_with_point(LinearRing(ring[1].coords[:-1] +
-                                              ring[0].coords[0:]), last.point)
+        ring = ring[0] if len(ring) == 1 else LinearRing(ring[1].coords[:-1] + ring[0].coords[0:])
+        ring = cut_line_with_point(ring, last.point)
 
         point_forwards = ring[1].coords[1]
         point_backwards = ring[0].coords[-2]
