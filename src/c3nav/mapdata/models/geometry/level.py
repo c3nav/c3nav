@@ -263,10 +263,6 @@ class AltitudeArea(LevelGeometryMixin, models.Model):
             all_areas.extend(areas)
             all_ramps.extend(ramps)
 
-        # for area in all_areas:
-        #     area.geometry = clean_geometry(area.geometry)
-        # areas = [area for area in all_areas if not area.geometry.is_empty]
-
         # give temporary ids to all areas
         areas = all_areas
         ramps = all_ramps
