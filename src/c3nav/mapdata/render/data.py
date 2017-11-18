@@ -548,7 +548,7 @@ class LevelGeometries:
             if intersection.is_empty:
                 continue
             remaining = remaining.difference(altitudearea.geometry)
-            geoms.short_walls.append((altitudearea.altitude, intersection))
+            geoms.short_walls.append((altitudearea, intersection))
         geoms.all_walls = geoms.walls
         geoms.walls = geoms.walls.difference(
             unary_union(tuple(altitudearea.geometry for altitudearea in altitudeareas_above))
@@ -578,8 +578,8 @@ class LevelGeometries:
         self.heightareas = tuple((HybridGeometry.create(area, face_centers), height)
                                  for area, height in self.heightareas)
         self.walls = HybridGeometry.create(self.walls, face_centers)
-        self.short_walls = tuple((altitude, HybridGeometry.create(geom, face_centers))
-                                 for altitude, geom in self.short_walls)
+        self.short_walls = tuple((altitudearea, HybridGeometry.create(geom, face_centers))
+                                 for altitudearea, geom in self.short_walls)
         self.all_walls = HybridGeometry.create(self.all_walls, face_centers)
         self.doors = HybridGeometry.create(self.doors, face_centers)
         self.restricted_spaces_indoors = {key: HybridGeometry.create(geom, face_centers)
@@ -589,6 +589,9 @@ class LevelGeometries:
 
     def _get_altitudearea_vertex_values(self, area, i_vertices):
         return area.get_altitudes(self.vertices[i_vertices])
+
+    def _get_short_wall_vertex_values(self, item, i_vertices):
+        return item[0].get_altitudes(self.vertices[i_vertices]) - int(0.7 * 1000)
 
     def _build_vertex_values(self, items, area_func, value_func):
         vertex_values = np.empty(self.vertices.shape[:1], dtype=np.int32)
@@ -709,10 +712,12 @@ class LevelGeometries:
                                     lower=vertex_altitudes - int(0.7 * 1000),
                                     upper=vertex_wall_heights)
 
-        for altitude, geom in self.short_walls:
+        for altitudearea, geom in self.short_walls:
             geom.build_polyhedron(self._create_polyhedron,
                                   lower=vertex_altitudes - int(0.7 * 1000),
-                                  upper=altitude - int(0.7 * 1000))
+                                  upper=self._build_vertex_values([(altitudearea, geom)],
+                                                                  area_func=operator.itemgetter(1),
+                                                                  value_func=self._get_short_wall_vertex_values))
         self.short_walls = tuple(geom for altitude, geom in self.short_walls)
 
         for key, geometry in self.restricted_spaces_indoors.items():
