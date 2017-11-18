@@ -327,7 +327,7 @@ editor = {
             editor._orig_vertex_pos = null;
         });
         editor.map.on('editable:vertex:drag', function (e) {
-            if (e.originalEvent.ctrlKey && editor._orig_vertex_pos) {
+            if (e.originalEvent.shiftKey && editor._orig_vertex_pos) {
                 var dx = e.latlng.lng - editor._orig_vertex_pos[1],
                     dy = e.latlng.lat - editor._orig_vertex_pos[0],
                     angle = Math.atan2(dy, dx) * (180 / Math.PI),
@@ -339,7 +339,7 @@ editor = {
             e.vertex.setLatLng([Math.round(e.latlng.lat*100)/100, Math.round(e.latlng.lng*100)/100]);
         });
         editor.map.on('editable:drawing:click editable:drawing:move', function (e) {
-            if (e.originalEvent.ctrlKey && editor._last_vertex) {
+            if (e.originalEvent.shiftKey && editor._last_vertex) {
                 var dx = e.latlng.lng - editor._last_vertex.latlng.lng,
                     dy = e.latlng.lat - editor._last_vertex.latlng.lat,
                     angle = Math.atan2(dy, dx) * (180 / Math.PI),
