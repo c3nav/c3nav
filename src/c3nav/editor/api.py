@@ -210,7 +210,7 @@ class EditorViewSet(ViewSet):
             'shadow': '#000000',
             'graphnode': '#009900',
             'graphedge': '#00CC00',
-            'altitudemarker': '#ffff00',
+            'altitudemarker': '#0000FF',
         })
 
     @list_route(methods=['get'])
