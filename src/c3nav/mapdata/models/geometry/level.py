@@ -192,8 +192,8 @@ class AltitudeArea(LevelGeometryMixin, models.Model):
                     ramp.space = space.pk
                     ramps.append(ramp)
 
-            areas = MultiPolygon(tuple(orient(polygon) for polygon in assert_multipolygon(
-                unary_union(areas+list(door.geometry for door in level.doors.all())))
+            areas = tuple(orient(polygon) for polygon in assert_multipolygon(
+                unary_union(areas+list(door.geometry for door in level.doors.all()))
             ))
 
             # collect all stairs on this level
@@ -205,11 +205,11 @@ class AltitudeArea(LevelGeometryMixin, models.Model):
 
             # divide areas using stairs
             for stair in stairs:
-                areas = MultiPolygon(cut_polygon_with_line(areas, stair))
+                areas = cut_polygon_with_line(areas, stair)
 
             # create altitudearea objects
             areas = [AltitudeArea(geometry=clean_cut_polygon(area), level=level)
-                     for area in assert_multipolygon(areas)]
+                     for area in areas]
 
             # prepare area geometries
             for area in areas:

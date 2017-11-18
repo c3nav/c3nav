@@ -133,9 +133,9 @@ def cut_line_with_point(line: LineString, point: Point):
 
 
 def cut_polygon_with_line(polygon: Union[Polygon, MultiPolygon], line: LineString, debug=False) -> Sequence[Polygon]:
-    orig_polygon = polygon
+    orig_polygon = assert_multipolygon(polygon) if isinstance(polygon, (MultiPolygon, Polygon)) else polygon
     polygons: List[List[LinearRing]] = []
-    for polygon in assert_multipolygon(polygon):
+    for polygon in orig_polygon:
         rings = getattr(polygon, 'c3nav_cache', None)
         if not rings:
             rings = [polygon.exterior, *polygon.interiors]
@@ -160,7 +160,7 @@ def cut_polygon_with_line(polygon: Union[Polygon, MultiPolygon], line: LineStrin
     points = deque(sorted(points, key=lambda p: line.project(p.point)))
 
     if not points:
-        return tuple(assert_multipolygon(orig_polygon))
+        return orig_polygon
 
     # go through all points and cut pair-wise
     last = points.popleft()
