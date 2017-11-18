@@ -8,7 +8,6 @@ from itertools import chain
 
 import numpy as np
 from django.conf import settings
-from django.db import transaction
 from scipy.interpolate import NearestNDInterpolator
 from shapely import prepared
 from shapely.geometry import GeometryCollection, LineString, MultiLineString
@@ -347,10 +346,6 @@ class LevelRenderData:
             render_data.save(level.pk)
 
             map_history.save(MapHistory.level_filename(level.pk, 'composite'))
-
-        with transaction.atomic():
-            for level in levels:
-                level.save()
 
     cached = {}
     cache_key = None
