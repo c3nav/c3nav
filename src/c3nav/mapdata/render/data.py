@@ -198,9 +198,9 @@ class LevelRenderData:
             for area in single_level_geoms[level.pk].altitudeareas:
                 new_coords = np.vstack(tuple(np.array(ring.coords) for ring in get_rings(area.geometry)))
                 coords.append(new_coords)
-                values.append(np.full((new_coords.shape[0], ), fill_value=area.altitude))
+                values.append(np.full((new_coords.shape[0], 1), fill_value=area.altitude))
 
-            last_interpolator = NearestNDInterpolator(np.hstack(coords), np.hstack(values))
+            last_interpolator = NearestNDInterpolator(np.vstack(coords), np.vstack(values))
 
         for i, level in enumerate(levels):
             if level.on_top_of_id is not None:
@@ -665,9 +665,13 @@ class LevelGeometries:
 
         if not isinstance(upper, np.ndarray):
             upper = np.full(self.vertices.shape[0], fill_value=upper, dtype=np.int32)
+        else:
+            upper = upper.flatten()
 
         if not isinstance(lower, np.ndarray):
             lower = np.full(self.vertices.shape[0], fill_value=lower, dtype=np.int32)
+        else:
+            lower = lower.flatten()
 
         # lower should always be lower or equal than upper
         lower = np.minimum(upper, lower)
