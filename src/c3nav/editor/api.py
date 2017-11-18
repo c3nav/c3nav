@@ -90,7 +90,7 @@ class EditorViewSet(ViewSet):
             levels = levels.prefetch_related(
                 Prefetch('spaces', request.changeset.wrap_model('Space').objects.filter(Space.q_for_request(request))),
                 Prefetch('doors', request.changeset.wrap_model('Door').objects.filter(Door.q_for_request(request))),
-                'buildings', 'spaces__holes', 'spaces__groups', 'spaces__columns',
+                'buildings', 'spaces__holes', 'spaces__groups', 'spaces__columns', 'spaces__altitudemarkers',
                 Prefetch('spaces__graphnodes', graphnodes)
             )
 
@@ -113,6 +113,7 @@ class EditorViewSet(ViewSet):
                 *(self._get_level_geometries(l) for l in levels_under),
                 self._get_level_geometries(level),
                 *(self._get_level_geometries(l) for l in levels_on_top),
+                *(space.altitudemarkers.all() for space in level.spaces.all()),
                 graphedges,
                 graphnodes,
             )
