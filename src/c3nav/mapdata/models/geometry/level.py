@@ -463,20 +463,23 @@ class AltitudeArea(LevelGeometryMixin, models.Model):
 
             stairs = []
             for space in level.spaces.all():
-                geom = space.geometry
+                space_geom = space.geometry
                 if space.outside:
-                    geom = space_geom.difference(buildings_geom)
-                remaining_space = unary_union(
+                    space_geom = space_geom.difference(buildings_geom)
+                holes_geom = unary_union(tuple(h.geometry for h in space.holes.all()))
+                remaining_space = (
                     tuple(c.geometry for c in space.columns.all()) +
                     tuple(o.geometry for o in space.obstacles.all()) +
                     tuple(o.buffered_geometry for o in space.lineobstacles.all())
-                ).intersection(geom).difference(
-                    unary_union(tuple(h.geometry for h in space.holes.all()))
                 )
-                if remaining_space.is_empty:
+                remaining_space = tuple(g.intersection(space_geom).difference(holes_geom) for g in remaining_space)
+                remaining_space = tuple(chain(*(
+                    assert_multipolygon(g) for g in remaining_space if not g.is_empty
+                )))
+                if not remaining_space:
                     continue
 
-                bounds = geom.bounds
+                bounds = space_geom.bounds
                 max_len = ((bounds[0] - bounds[2]) ** 2 + (bounds[1] - bounds[3]) ** 2) ** 0.5
                 stairs = []
                 for stair in space.stairs.all():
@@ -487,11 +490,13 @@ class AltitudeArea(LevelGeometryMixin, models.Model):
                             scaled = scale(line, xfact=fact, yfact=fact)
                             stairs.append(scaled)
 
-                remaining_space = MultiPolygon(tuple(
-                    orient(polygon) for polygon in assert_multipolygon(remaining_space)
-                ))
+                remaining_space = tuple(
+                    orient(polygon) for polygon in remaining_space
+                )
                 for stair in stairs:
-                    remaining_space = MultiPolygon(cut_polygon_with_line(remaining_space, stair))
+                    remaining_space = tuple(chain(*(cut_polygon_with_line(geom, stair)
+                                                    for geom in remaining_space)))
+                remaining_space = MultiPolygon(remaining_space)
 
                 for polygon in assert_multipolygon(remaining_space):
                     polygon = clean_cut_polygon(polygon)
