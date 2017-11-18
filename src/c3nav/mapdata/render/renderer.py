@@ -117,7 +117,7 @@ class MapRenderer:
                     engine.add_geometry(base, fill=FillAttribs('#eeeeee'), category='ground', item=i)
                     engine.add_geometry(bottom.fit(scale=geoms.min_altitude - min_altitude,
                                                    offset=min_altitude - int(0.7 * 1000)),
-                                        fill=FillAttribs('#aaaaaa'), category='walls')
+                                        fill=FillAttribs('#aaaaaa'), category='ground')
 
             # render altitude areas in default ground color and add ground colors to each one afterwards
             # shadows are directly calculated and added by the engine
