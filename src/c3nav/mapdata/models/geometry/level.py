@@ -460,6 +460,7 @@ class AltitudeArea(LevelGeometryMixin, models.Model):
             our_areas = level_areas.get(level, [])
             for area in our_areas:
                 area.orig_geometry = area.geometry
+                area.orig_geometry_prep = prepared.prep(area.geometry)
 
             stairs = []
             for space in level.spaces.all():
@@ -504,7 +505,7 @@ class AltitudeArea(LevelGeometryMixin, models.Model):
                     center = polygon.centroid
                     touches = tuple((area, buffered.intersection(area.orig_geometry).area)
                                     for area in our_areas
-                                    if buffered.intersects(area.orig_geometry))
+                                    if area.orig_geometry_prep.intersects(buffered))
                     if touches:
                         area = max(touches, key=lambda item: (item[0].altitude2 is not None,
                                                               item[0].altitude,
@@ -523,6 +524,7 @@ class AltitudeArea(LevelGeometryMixin, models.Model):
         all_candidates = AltitudeArea.objects.select_related('level')
         for candidate in all_candidates:
             candidate.area = candidate.geometry.area
+            candidate.geometry_prep = prepared.prep(candidate.geometry)
         all_candidates = sorted(all_candidates, key=attrgetter('area'), reverse=True)
 
         num_modified = 0
@@ -538,8 +540,9 @@ class AltitudeArea(LevelGeometryMixin, models.Model):
                     break
 
             if new_area is None:
-                potential_areas = [(tmpid, areas[tmpid].geometry.intersection(candidate.geometry.buffer(0)).area)
-                                   for tmpid in level_areas.get(candidate.level, set())]
+                potential_areas = [(tmpid, areas[tmpid].geometry.intersection(candidate.geometry).area)
+                                   for tmpid in level_areas.get(candidate.level, set())
+                                   if candidate.geometry_prep.intersects(areas[tmpid].geometry)]
                 potential_areas = [(tmpid, size) for tmpid, size in potential_areas
                                    if candidate.area and size/candidate.area > 0.9]
                 if potential_areas:
