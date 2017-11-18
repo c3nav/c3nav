@@ -467,12 +467,15 @@ class AltitudeArea(LevelGeometryMixin, models.Model):
                 space_geom = space.geometry
                 if space.outside:
                     space_geom = space_geom.difference(buildings_geom)
+                space_geom_prep = prepared.prep(space_geom)
                 holes_geom = unary_union(tuple(h.geometry for h in space.holes.all()))
                 remaining_space = (
                     tuple(o.geometry for o in space.obstacles.all()) +
                     tuple(o.buffered_geometry for o in space.lineobstacles.all())
                 )
-                remaining_space = tuple(g.intersection(space_geom).difference(holes_geom) for g in remaining_space)
+                remaining_space = tuple(g.intersection(space_geom).difference(holes_geom)
+                                        for g in remaining_space
+                                        if space_geom_prep.intersects(g))
                 remaining_space = tuple(chain(*(
                     assert_multipolygon(g) for g in remaining_space if not g.is_empty
                 )))
