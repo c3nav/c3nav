@@ -71,12 +71,15 @@ def level_detail(request, pk):
 @sidebar_view
 @etag(etag_func)
 def space_detail(request, level, pk):
+    Level = request.changeset.wrap_model('Level')
     Space = request.changeset.wrap_model('Space')
     qs = Space.objects.filter(Space.q_for_request(request))
     space = get_object_or_404(qs.select_related('level'), level__pk=level, pk=pk)
 
     return render(request, 'editor/space.html', {
+        'levels': Level.objects.filter(Level.q_for_request(request), on_top_of__isnull=True),
         'level': space.level,
+        'level_url': 'editor.spaces.list',
         'space': space,
         'can_edit': request.changeset.can_edit(request),
 
