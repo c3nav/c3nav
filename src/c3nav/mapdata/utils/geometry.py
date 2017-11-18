@@ -8,7 +8,7 @@ import matplotlib.pyplot as plt
 from django.core import checks
 from matplotlib.patches import PathPatch
 from matplotlib.path import Path
-from shapely import speedups
+from shapely import prepared, speedups
 from shapely.geometry import GeometryCollection, LinearRing, LineString, MultiLineString, MultiPolygon, Point, Polygon
 
 if speedups.available:
@@ -132,9 +132,10 @@ def cut_line_with_point(line: LineString, point: Point):
                     LineString(pointlist + line.coords[i+(1 if subdistance == distance else 0):]))
 
 
-def cut_polygon_with_line(polygon: Union[Polygon, MultiPolygon], line: LineString, debug=False) -> Sequence[Polygon]:
+def cut_polygon_with_line(polygon: Union[Polygon, MultiPolygon, Sequence[Polygon]], line: LineString) -> List[Polygon]:
     orig_polygon = assert_multipolygon(polygon) if isinstance(polygon, (MultiPolygon, Polygon)) else polygon
     polygons: List[List[LinearRing]] = []
+    # noinspection PyTypeChecker
     for polygon in orig_polygon:
         rings = getattr(polygon, 'c3nav_cache', None)
         if not rings:
@@ -144,8 +145,11 @@ def cut_polygon_with_line(polygon: Union[Polygon, MultiPolygon], line: LineStrin
 
     # find intersection points between the line and polygon rings
     points = deque()
+    line_prep = prepared.prep(line)
     for i, polygon in enumerate(polygons):
         for j, ring in enumerate(polygon):
+            if not line_prep.intersects(ring):
+                continue
             intersection = ring.intersection(line)
             for item in getattr(intersection, 'geoms', (intersection, )):
                 if isinstance(item, Point):
@@ -275,7 +279,7 @@ def cut_polygon_with_line(polygon: Union[Polygon, MultiPolygon], line: LineStrin
         new_polygon = Polygon(polygon[0], tuple(polygon[1:]))
         new_polygon.c3nav_cache = polygon
         result.append(new_polygon)
-    return tuple(result)
+    return list(result)
 
 
 def clean_cut_polygon(polygon: Polygon) -> Polygon:
