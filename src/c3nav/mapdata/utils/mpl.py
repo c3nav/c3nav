@@ -18,8 +18,10 @@ class MplPathProxy(ABC):
 
 
 class MplMultipolygonPath(MplPathProxy):
+    __slots__ = ('polygons')
+
     def __init__(self, polygon):
-        self.polygons = [MplPolygonPath(polygon) for polygon in assert_multipolygon(polygon)]
+        self.polygons = tuple(MplPolygonPath(polygon) for polygon in assert_multipolygon(polygon))
 
     @property
     def exteriors(self):
@@ -46,6 +48,8 @@ class MplMultipolygonPath(MplPathProxy):
 
 
 class MplPolygonPath(MplPathProxy):
+    __slots__ = ('exterior', 'interiors')
+
     def __init__(self, polygon):
         self.exterior = linearring_to_mpl_path(polygon.exterior)
         self.interiors = [linearring_to_mpl_path(interior) for interior in polygon.interiors]
