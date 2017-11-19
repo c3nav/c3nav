@@ -153,26 +153,26 @@ class AltitudeAreaGeometries:
 
         for color, areas in self.colors.items():
             for key in tuple(areas.keys()):
-                geom = areas[key]
-                new_geom, new_vertices, new_faces = HybridGeometry.create_full(geom, vertices_offset, faces_offset)
-                areas[key] = new_geom
-                vertices_offset += new_vertices.shape[0]
-                faces_offset += new_faces.shape[0]
-                vertices.append(new_vertices)
-                faces.append(new_faces)
+                faces_offset, vertices_offset = self._call_create_full(areas, key, faces, vertices,
+                                                                       faces_offset, vertices_offset)
 
         for key in tuple(self.obstacles.keys()):
-            geom = self.obstacles[key]
-            new_geom, new_vertices, new_faces = HybridGeometry.create_full(geom, vertices_offset, faces_offset)
-            self.obstacles[key] = new_geom
-            vertices_offset += new_vertices.shape[0]
-            faces_offset += new_faces.shape[0]
-            vertices.append(new_vertices)
-            faces.append(new_faces)
+            faces_offset, vertices_offset = self._call_create_full(self.obstacles, key, faces, vertices,
+                                                                   faces_offset, vertices_offset)
 
         if not vertices:
             return np.empty((0, 2), dtype=np.int32), np.empty((0, 3), dtype=np.uint32)
         return np.vstack(vertices), np.vstack(faces)
+
+    def _call_create_full(self, mapping, key, faces, vertices, faces_offset, vertices_offset):
+        geom = mapping[key]
+        new_geom, new_vertices, new_faces = HybridGeometry.create_full(geom, vertices_offset, faces_offset)
+        mapping[key] = new_geom
+        vertices_offset += new_vertices.shape[0]
+        faces_offset += new_faces.shape[0]
+        vertices.append(new_vertices)
+        faces.append(new_faces)
+        return faces_offset, vertices_offset
 
     def remove_faces(self, faces):
         self.geometry.remove_faces(faces)
