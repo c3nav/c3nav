@@ -195,7 +195,7 @@ class MapHistory(GeometryIndexed):
     # 2 bytes (uint16): number of updates
     # n uptates times:
     #     4 bytes (uint32): update id
-    #     8 bytes (uint64): timestamp
+    #     4 bytes (uint32): timestamp
     dtype = np.uint16
     variant_id = 1
 
