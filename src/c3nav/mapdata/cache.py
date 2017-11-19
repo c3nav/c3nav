@@ -334,7 +334,14 @@ class GeometryChangeTracker:
         self._unary_unions = {}
 
     def _get_unary_union(self, level_id):
-        union = self._unary_unions.get(level_id)
+
+        try:
+            union = self._unary_unions.get(level_id)
+        except AttributeError:
+            # fallback if there are still old pickled updates in the queue
+            self._unary_unions = {}
+            union = None
+
         if union is None:
             union = unary_union(self._geometries_by_level[level_id])
             self._unary_unions[level_id] = union
