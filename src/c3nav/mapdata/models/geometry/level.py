@@ -233,7 +233,8 @@ class AltitudeArea(LevelGeometryMixin, models.Model):
                             area.altitude = altitudemarker.altitude
                             break
                     else:
-                        raise ValueError(space.title)
+                        logger.error(_('AltitudeMarker #%d in Space #%d on Level %s is not placed in an '
+                                       'accessible area') % (altitudemarker.pk, space.pk, level.short_label))
 
             # determine altitude area connections
             for area in areas:
