@@ -1,5 +1,6 @@
 import logging
 
+from celery.exceptions import MaxRetriesExceededError
 from django.db import DatabaseError
 from django.utils.formats import date_format
 from django.utils.translation import ugettext_lazy as _
@@ -19,12 +20,16 @@ def process_map_updates(self):
 
     from c3nav.mapdata.models import MapUpdate
     try:
-        updates = MapUpdate.process_updates()
-    except DatabaseError:
-        if self.request.called_directly:
-            raise
-        logger.info('Processing is already running, retrying in 30 seconds.')
-        raise self.retry(countdown=30)
+        try:
+            updates = MapUpdate.process_updates()
+        except DatabaseError:
+            if self.request.called_directly:
+                raise
+            logger.info('Processing is already running, retrying in 30 seconds.')
+            raise self.retry(countdown=30)
+    except MaxRetriesExceededError:
+        logger.info('Cannot retry, retries exceeded. Exiting.')
+        return
 
     if updates:
         print()
