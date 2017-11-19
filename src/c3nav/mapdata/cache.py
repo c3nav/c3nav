@@ -320,7 +320,7 @@ class GeometryChangeTracker:
         self._deleted_levels = set()
 
     def register(self, level_id, geometry):
-        self._geometries_by_level.setdefault(level_id, []).append(geometry)
+        self._geometries_by_level.setdefault(level_id, []).append(geometry.buffer(0.01))
 
     def level_deleted(self, level_id):
         self._deleted_levels.add(level_id)
