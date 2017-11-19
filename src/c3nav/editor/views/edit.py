@@ -324,7 +324,9 @@ def list_objects(request, model=None, level=None, space=None, explicit_edit=Fals
         space = get_object_or_404(sub_qs, pk=space)
         queryset = queryset.filter(space=space).defer('geometry')
         ctx.update({
+            'levels': Level.objects.filter(Level.q_for_request(request), on_top_of__isnull=True),
             'level': space.level,
+            'level_url': 'editor.spaces.list',
             'space': space,
             'back_url': reverse('editor.spaces.detail', kwargs={'level': space.level.pk, 'pk': space.pk}),
             'back_title': _('back to space'),
