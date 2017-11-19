@@ -215,7 +215,6 @@ class MapHistory(GeometryIndexed):
         f.write(struct.pack('<H', len(self.updates)))
         f.write(struct.pack('<'+'II'*len(self.updates), *chain(*self.updates)))
 
-    # todo: continue
     @classmethod
     def open(cls, filename, default_update=None):
         try:
