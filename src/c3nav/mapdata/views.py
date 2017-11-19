@@ -105,6 +105,7 @@ def tile(request, level, zoom, x, y):
 
     response = HttpResponse(data, 'image/png')
     response['ETag'] = etag
+    response['X-ETag-Unencoded'] = '%d-%d-%d-%d:%s:%s' % (level, zoom, x, y, tile_cache_key, settings.SECRET_TILE_KEY)
     response['Cache-Control'] = 'no-cache'
     response['Vary'] = 'Cookie'
     response['X-Access-Restrictions'] = ', '.join(str(s) for s in renderer.unlocked_access_restrictions) or '0'
