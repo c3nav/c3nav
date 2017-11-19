@@ -285,10 +285,11 @@ class MapHistory(GeometryIndexed):
         new_updates = sorted(set(self_update_i.keys()) | set(other_update_i.keys()))
 
         # reindex according to merged update list
+        self_data = self.data.copy()
         other_data = other.data.copy()
         for i, update in enumerate(new_updates):
             if update in self_update_i:
-                self.data[self.data == self_update_i[update]] = i
+                self.data[self_data == self_update_i[update]] = i
             if update in other_update_i:
                 other_data[other_data == other_update_i[update]] = i
 
