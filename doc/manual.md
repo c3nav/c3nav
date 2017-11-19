@@ -53,8 +53,10 @@ pip3 install -r requirements.txt
 
 Wanna use redis, mysql, postgres, memcached or deploy c3nav in a public place?
 
+```
 pip3 install -r requirements/mysql.txt -r requirements/postgres.txt \
              -r requirements/memcached.txt -r requirements/redis.txt gunicorn
+```
 
 ### Add Configuration
 
@@ -81,7 +83,7 @@ python3 manage.py compilemessages
 For the 33c3, this would be c3nav-cch and c3nav-33c3:
 
 ```
-cd data/maps/
+cd data/map/
 git clone https://github.com/c3nav/c3nav-cch.git
 git clone https://github.com/c3nav/c3nav-33c3.git
 ```
