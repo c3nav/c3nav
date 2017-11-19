@@ -20,9 +20,9 @@ from django.utils.translation import ungettext_lazy
 from c3nav.editor.models.changedobject import ApplyToInstanceError, ChangedObject
 from c3nav.editor.utils import is_created_pk
 from c3nav.editor.wrappers import ModelInstanceWrapper, ModelWrapper
-from c3nav.mapdata.cache import changed_geometries
 from c3nav.mapdata.models import LocationSlug, MapUpdate
 from c3nav.mapdata.models.locations import LocationRedirect
+from c3nav.mapdata.utils.cache import changed_geometries
 from c3nav.mapdata.utils.models import get_submodels
 
 

@@ -92,7 +92,7 @@ class MapUpdate(models.Model):
             if not new_updates:
                 return ()
 
-            from c3nav.mapdata.cache import changed_geometries
+            from c3nav.mapdata.utils.cache import changed_geometries
             changed_geometries.reset()
 
             logger.info('Recalculating altitude areas...')
@@ -142,7 +142,7 @@ class MapUpdate(models.Model):
         with suppress(FileExistsError):
             os.mkdir(os.path.dirname(self._changed_geometries_filename()))
 
-        from c3nav.mapdata.cache import changed_geometries
+        from c3nav.mapdata.utils.cache import changed_geometries
         pickle.dump(changed_geometries, open(self._changed_geometries_filename(), 'wb'))
 
         transaction.on_commit(

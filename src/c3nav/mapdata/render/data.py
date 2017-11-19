@@ -13,8 +13,8 @@ from shapely import prepared
 from shapely.geometry import GeometryCollection, LineString, MultiLineString
 from shapely.ops import unary_union
 
-from c3nav.mapdata.cache import MapHistory
 from c3nav.mapdata.models import AltitudeArea, Level, MapUpdate
+from c3nav.mapdata.utils.cache import MapHistory
 from c3nav.mapdata.utils.geometry import assert_multipolygon, get_rings
 from c3nav.mapdata.utils.mesh import triangulate_polygon, triangulate_rings
 from c3nav.mapdata.utils.mpl import shapely_to_mpl

@@ -11,11 +11,11 @@ from django.shortcuts import get_object_or_404
 from django.views.decorators.http import etag
 from shapely.geometry import box
 
-from c3nav.mapdata.cache import MapHistory
 from c3nav.mapdata.middleware import no_language
 from c3nav.mapdata.models import Level, MapUpdate, Source
 from c3nav.mapdata.render import MapRenderer, get_render_level_ids, get_tile_access_cookie, set_tile_access_cookie
 from c3nav.mapdata.render.engines import ImageRenderEngine
+from c3nav.mapdata.utils.cache import MapHistory
 
 
 @no_language()
