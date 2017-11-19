@@ -318,21 +318,32 @@ class GeometryChangeTracker:
     def __init__(self):
         self._geometries_by_level = {}
         self._deleted_levels = set()
+        self._unary_unions = {}
 
     def register(self, level_id, geometry):
         self._geometries_by_level.setdefault(level_id, []).append(geometry.buffer(0.01))
+        self._unary_unions.pop(level_id, None)
 
     def level_deleted(self, level_id):
         self._deleted_levels.add(level_id)
+        self._unary_unions.pop(level_id, None)
 
     def reset(self):
         self._geometries_by_level = {}
         self._deleted_levels = set()
+        self._unary_unions = {}
+
+    def _get_unary_union(self, level_id):
+        union = self._unary_unions.get(level_id)
+        if union is None:
+            union = unary_union(self._geometries_by_level[level_id])
+            self._unary_unions[level_id] = union
+        return union
 
     @property
     def area(self):
-        return sum((unary_union(geometries).area
-                    for level_id, geometries in self._geometries_by_level.items()
+        return sum((self._get_unary_union(level_id).area
+                    for level_id in self._geometries_by_level.keys()
                     if level_id not in self._deleted_levels), 0)
 
     def finalize(self):
@@ -347,8 +358,9 @@ class GeometryChangeTracker:
     def combine(self, other):
         self.finalize()
         other.finalize()
-        for level_id, geometries in other._geometries_by_level.items():
-            self._geometries_by_level.setdefault(level_id, []).extend(geometries)
+        for level_id in other._geometries_by_level.keys():
+            self._geometries_by_level.setdefault(level_id, []).extend(self._get_unary_union(level_id))
+        self._unary_unions = {}
 
     def save(self, last_update, new_update):
         self.finalize()
