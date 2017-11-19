@@ -92,10 +92,6 @@ class MapRenderer:
             if not bbox.intersects(geoms.affected_area):
                 continue
 
-            if i == 0:
-                not_full_levels = True
-                full_levels = False
-
             engine.add_group('level_%s' % geoms.short_label)
 
             # hide indoor and outdoor rooms if their access restriction was not unlocked
