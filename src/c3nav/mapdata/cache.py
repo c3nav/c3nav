@@ -359,7 +359,7 @@ class GeometryChangeTracker:
         self.finalize()
         other.finalize()
         for level_id in other._geometries_by_level.keys():
-            self._geometries_by_level.setdefault(level_id, []).append(self._get_unary_union(level_id))
+            self._geometries_by_level.setdefault(level_id, []).append(other._get_unary_union(level_id))
         self._unary_unions = {}
 
     def save(self, last_update, new_update):
