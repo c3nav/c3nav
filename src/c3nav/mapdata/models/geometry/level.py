@@ -510,8 +510,8 @@ class AltitudeArea(LevelGeometryMixin, models.Model):
             else:
                 potential_areas = [areas[tmpid] for tmpid in level_areas.get(candidate.level, set())]
                 potential_areas = [area for area in potential_areas
-                                   if (candidate.altitude2 == area.altitude2 and
-                                       candidate.altitude == area.altitude)]
+                                   if (candidate.altitude, candidate.altitude2) in ((area.altitude, area.altitude2),
+                                                                                    (area.altitude2, area.altitude))]
                 potential_areas = [(area, area.geometry.intersection(candidate.geometry).area)
                                    for area in potential_areas
                                    if candidate.geometry_prep.intersects(area.geometry)]
