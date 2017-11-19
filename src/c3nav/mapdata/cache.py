@@ -223,6 +223,7 @@ class MapHistory(GeometryIndexed):
             if default_update is None:
                 default_update = MapUpdate.last_processed_update()
             instance = cls(updates=[default_update], filename=filename)
+            instance.save()
         return instance
 
     @staticmethod
