@@ -13,7 +13,6 @@ from shapely.geometry import box
 from shapely.geometry.base import BaseGeometry
 from shapely.ops import unary_union
 
-from c3nav.mapdata.models import MapUpdate
 from c3nav.mapdata.utils.models import get_submodels
 
 
@@ -221,6 +220,7 @@ class MapHistory(GeometryIndexed):
             instance = super().open(filename)
         except FileNotFoundError:
             if default_update is None:
+                from c3nav.mapdata.models import MapUpdate
                 default_update = MapUpdate.last_processed_update()
             instance = cls(updates=[default_update], filename=filename)
             instance.save()
@@ -241,6 +241,7 @@ class MapHistory(GeometryIndexed):
     @classmethod
     def open_level_cached(cls, level_id, mode):
         with cls.cache_lock:
+            from c3nav.mapdata.models import MapUpdate
             cache_key = MapUpdate.current_processed_cache_key()
             if cls.cache_key != cache_key:
                 cls.cache_key = cache_key
