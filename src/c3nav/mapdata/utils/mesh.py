@@ -30,7 +30,10 @@ def triangulate_rings(rings, holes=None):
     segments = set()
     for ring in rings:
         indices = tuple(vertices_lookup[vertex] for vertex in ring[:-1])
-        segments.update(zip(indices, indices[1:]+indices[:1]))
+        segments.update(tuple(sorted((a, b))) for a, b in zip(indices, indices[1:]+indices[:1]) if a != b)
+
+    if len(segments) < 3:
+        return np.empty((0, 2), dtype=np.int32), np.empty((0, 3), dtype=np.uint32)
 
     # noinspection PyArgumentList
     info = triangle.MeshInfo()
@@ -45,30 +48,14 @@ def triangulate_rings(rings, holes=None):
 
 
 def _triangulate_polygon(polygon: Polygon, keep_holes=False):
-    vertices = deque()
-    segments = deque()
-
-    offset = 0
-    for ring in chain((polygon.exterior,), polygon.interiors):
-        new_vertices = np.array(ring.coords)[:-1]
-        vertices.append(new_vertices)
-        segments.append(get_face_indizes(offset, len(new_vertices)))
-        offset += len(new_vertices)
-
-    # noinspection PyArgumentList
-    info = triangle.MeshInfo()
-    info.set_points(np.vstack(vertices))
-    info.set_facets(np.vstack(segments).tolist())
-
+    holes = None
     if not keep_holes:
         holes = np.array(tuple(
             Polygon(ring).representative_point().coords for ring in polygon.interiors
         ))
-        if holes.size:
-            info.set_holes(holes.reshape((holes.shape[0], -1)))
+        holes = holes.reshape((-1, 2)) if holes.size else None
 
-    mesh = triangle.build(info, quality_meshing=False)
-    return np.array(mesh.points), np.array(mesh.elements)
+    return triangulate_rings((polygon.exterior, *polygon.interiors), holes)
 
 
 def triangulate_polygon(geometry: Union[Polygon, MultiPolygon], keep_holes=False):

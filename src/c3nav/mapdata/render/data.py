@@ -16,7 +16,7 @@ from shapely.ops import unary_union
 from c3nav.mapdata.cache import MapHistory
 from c3nav.mapdata.models import AltitudeArea, Level, MapUpdate
 from c3nav.mapdata.utils.geometry import assert_multipolygon, get_rings
-from c3nav.mapdata.utils.mesh import triangulate_rings
+from c3nav.mapdata.utils.mesh import triangulate_polygon, triangulate_rings
 from c3nav.mapdata.utils.mpl import shapely_to_mpl
 
 
@@ -53,6 +53,28 @@ class HybridGeometry:
             for subgeom in assert_multipolygon(geom)
         )
         return HybridGeometry(geom, tuple(f for f in faces if f))
+
+    @classmethod
+    def create_full(cls, geom, vertices_offset, faces_offset):
+        if isinstance(geom, (LineString, MultiLineString)):
+            return HybridGeometry(geom, set()), np.empty((0, 2), dtype=np.int32), np.empty((0, 3), dtype=np.uint32)
+
+        vertices = deque()
+        faces = deque()
+        faces_i = deque()
+        for subgeom in assert_multipolygon(geom):
+            new_vertices, new_faces = triangulate_polygon(subgeom)
+            new_faces += vertices_offset
+            vertices.append(new_vertices)
+            faces.append(new_faces)
+            faces_i.append(set(range(faces_offset, faces_offset+new_faces.shape[0])))
+            vertices_offset += new_vertices.shape[0]
+            faces_offset += new_faces.shape[0]
+
+        vertices = np.vstack(vertices)
+        faces = np.vstack(faces)
+
+        return HybridGeometry(geom, tuple(faces_i)), vertices, faces
 
     def union(self, other):
         add_faces = self.add_faces
@@ -123,17 +145,34 @@ class AltitudeAreaGeometries:
         # noinspection PyCallByClass,PyTypeChecker
         return AltitudeArea.get_altitudes(self, points/1000).astype(np.int32)
 
-    def get_geometries(self):
-        return chain((self.geometry,),
-                     chain(*(areas.values() for areas in self.colors.values())),
-                     self.obstacles.values())
-
-    def create_hybrid_geometries(self, face_centers):
+    def create_hybrid_geometries(self, face_centers, vertices_offset, faces_offset):
         self.geometry = HybridGeometry.create(self.geometry, face_centers)
-        self.colors = {color: {key: HybridGeometry.create(geom, face_centers) for key, geom in areas.items()}
-                       for color, areas in self.colors.items()}
-        self.obstacles = {key: HybridGeometry.create(geom, face_centers)
-                          for key, geom in self.obstacles.items()}
+
+        vertices = deque()
+        faces = deque()
+
+        for color, areas in self.colors.items():
+            for key in tuple(areas.keys()):
+                geom = areas[key]
+                new_geom, new_vertices, new_faces = HybridGeometry.create_full(geom, vertices_offset, faces_offset)
+                areas[key] = new_geom
+                vertices_offset += new_vertices.shape[0]
+                faces_offset += new_faces.shape[0]
+                vertices.append(new_vertices)
+                faces.append(new_faces)
+
+        for key in tuple(self.obstacles.keys()):
+            geom = self.obstacles[key]
+            new_geom, new_vertices, new_faces = HybridGeometry.create_full(geom, vertices_offset, faces_offset)
+            self.obstacles[key] = new_geom
+            vertices_offset += new_vertices.shape[0]
+            faces_offset += new_faces.shape[0]
+            vertices.append(new_vertices)
+            faces.append(new_faces)
+
+        if not vertices:
+            return np.empty((0, 2), dtype=np.int32), np.empty((0, 3), dtype=np.uint32)
+        return np.vstack(vertices), np.vstack(faces)
 
     def remove_faces(self, faces):
         self.geometry.remove_faces(faces)
@@ -608,13 +647,25 @@ class LevelGeometries:
 
     def get_geometries(self):
         # omit heightareas as these are never drawn
-        return chain(chain(*(area.get_geometries() for area in self.altitudeareas)), (self.walls, self.doors,),
+        return chain((area.geometry for area in self.altitudeareas), (self.walls, self.doors,),
                      self.restricted_spaces_indoors.values(), self.restricted_spaces_outdoors.values(), self.ramps,
                      (geom for altitude, geom in self.short_walls))
 
     def create_hybrid_geometries(self, face_centers):
+        vertices_offset = self.vertices.shape[0]
+        faces_offset = self.faces.shape[0]
+        new_vertices = deque()
+        new_faces = deque()
         for area in self.altitudeareas:
-            area.create_hybrid_geometries(face_centers)
+            area_vertices, area_faces = area.create_hybrid_geometries(face_centers, vertices_offset, faces_offset)
+            vertices_offset += area_vertices.shape[0]
+            faces_offset += area_faces.shape[0]
+            new_vertices.append(area_vertices)
+            new_faces.append(area_faces)
+        if new_vertices:
+            self.vertices = np.vstack((self.vertices, *new_vertices))
+            self.faces = np.vstack((self.faces, *new_faces))
+
         self.heightareas = tuple((HybridGeometry.create(area, face_centers), height)
                                  for area, height in self.heightareas)
         self.walls = HybridGeometry.create(self.walls, face_centers)
