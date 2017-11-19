@@ -822,7 +822,7 @@ editor = {
             }
             editor._update_editing();
             $('#sidebar').find('.content').find('form.creation-lock').removeClass('creation-lock')
-                .find('input:not([type=hidden], .btn)').focus();
+                .find('input:not([type=hidden], .btn)').first().focus();
         }
     },
     _update_editing: function () {
