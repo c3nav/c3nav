@@ -496,6 +496,8 @@ class AltitudeArea(LevelGeometryMixin, models.Model):
         num_deleted = 0
         num_created = 0
 
+        field = AltitudeArea._meta.get_field('geometry')
+
         for candidate in all_candidates:
             new_area = None
 
@@ -516,7 +518,7 @@ class AltitudeArea(LevelGeometryMixin, models.Model):
                 if potential_areas:
                     new_area = max(potential_areas, key=itemgetter(1))[0]
 
-            if not new_area.geometry.almost_equals(candidate.geometry):
+            if not field.get_final_value(new_area.geometry).almost_equals(candidate.geometry):
                 num_modified += 1
 
             if new_area is None:

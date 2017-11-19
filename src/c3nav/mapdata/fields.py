@@ -78,23 +78,28 @@ class GeometryField(models.TextField):
         elif self.geomtype == 'point' and not isinstance(value, Point):
             raise exception('Expected Point instance, got %s instead.' % repr(value))
 
+    def get_final_value(self, value, as_json=False):
+        json_value = format_geojson(mapping(value))
+        rounded_value = shape(json_value)
+
+        shapely_logger.setLevel('ERROR')
+        if rounded_value.is_valid:
+            return json_value if as_json else rounded_value
+        shapely_logger.setLevel('INFO')
+
+        rounded_value = rounded_value.buffer(0)
+        if not rounded_value.is_empty:
+            value = rounded_value
+        else:
+            logging.debug('Fixing rounded geometry failed, saving it to the database without rounding.')
+
+        return format_geojson(mapping(value), round=False) if as_json else value
+
     def get_prep_value(self, value):
         if value is None:
             return None
         self._validate_geomtype(value, exception=TypeError)
-        json_value = format_geojson(mapping(value))
-        shapely_logger.setLevel('ERROR')
-        rounded_value = shape(json_value)
-        if not rounded_value.is_valid:
-            logging.debug('Rounded geometry is invalid, trying to fix this...')
-            rounded_value = rounded_value.buffer(0)
-            if not rounded_value.is_empty:
-                json_value = format_geojson(mapping(rounded_value), round=False)
-            else:
-                logging.debug('Fixing failed, saving it to the database without rounding.')
-                json_value = format_geojson(mapping(value), round=False)
-        shapely_logger.setLevel('INFO')
-        return json.dumps(json_value)
+        return json.dumps(self.get_final_value(value, as_json=True))
 
     def value_to_string(self, obj):
         value = self.value_from_object(obj)
