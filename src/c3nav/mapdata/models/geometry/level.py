@@ -442,22 +442,21 @@ class AltitudeArea(LevelGeometryMixin, models.Model):
                 if not remaining_space:
                     continue
 
-                bounds = space_geom.bounds
-                max_len = ((bounds[0] - bounds[2]) ** 2 + (bounds[1] - bounds[3]) ** 2) ** 0.5
-                stairs = []
-                for stair in space.stairs.all():
-                    for substair in assert_multilinestring(stair.geometry):
-                        for coord1, coord2 in zip(tuple(substair.coords)[:-1], tuple(substair.coords)[1:]):
-                            line = LineString([coord1, coord2])
-                            fact = (max_len * 3) / line.length
-                            scaled = scale(line, xfact=fact, yfact=fact)
-                            stairs.append(scaled)
+                cuts = []
+                for cut in chain(*(assert_multilinestring(stair.geometry) for stair in space.stairs.all()),
+                                 (ramp.geometry.exterior for ramp in space.ramps.all())):
+                    for coord1, coord2 in zip(tuple(cut.coords)[:-1], tuple(cut.coords)[1:]):
+                        line = space_geom.intersection(LineString([coord1, coord2]))
+                        if line.is_empty:
+                            continue
+                        cuts.append(scale(line, xfact=1.02, yfact=1.02))
 
                 remaining_space = tuple(
                     orient(polygon) for polygon in remaining_space
                 )
-                for stair in stairs:
-                    remaining_space = tuple(chain(*(cut_polygon_with_line(geom, stair)
+
+                for cut in cuts:
+                    remaining_space = tuple(chain(*(cut_polygon_with_line(geom, cut)
                                                     for geom in remaining_space)))
                 remaining_space = MultiPolygon(remaining_space)
 
@@ -470,7 +469,9 @@ class AltitudeArea(LevelGeometryMixin, models.Model):
                                     for area in our_areas
                                     if area.orig_geometry_prep.intersects(buffered))
                     if touches:
-                        area = max(touches, key=lambda item: (item[0].altitude2 is not None,
+                        min_touches = sum((t[1] for t in touches), 0)/4
+                        area = max(touches, key=lambda item: (item[1] > min_touches,
+                                                              item[0].altitude2 is not None,
                                                               item[0].altitude,
                                                               item[1]))[0]
                     else:
