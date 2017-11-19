@@ -155,10 +155,10 @@ class GeometryIndexed:
             maxy = int(math.ceil(yy.stop / self.resolution))
 
             height, width = self.data.shape
-            minx = min(self.x, minx)
-            miny = min(self.y, miny)
-            maxx = max(self.x + width, maxx)
-            maxy = max(self.y + height, maxy)
+            minx = min(self.x, minx) - self.x
+            miny = min(self.y, miny) - self.x
+            maxx = max(self.x + width, maxx) - self.y
+            maxy = max(self.y + height, maxy) - self.y
 
             return self.data[miny:maxy, minx:maxx].flatten()
 
