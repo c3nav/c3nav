@@ -1,4 +1,5 @@
 import logging
+from decimal import Decimal
 from itertools import chain, combinations
 from operator import attrgetter, itemgetter
 
@@ -309,7 +310,7 @@ class AltitudeArea(LevelGeometryMixin, models.Model):
 
                 for i, tmpid in enumerate(reversed(path[1:-1]), start=1):
                     area = areas[tmpid]
-                    area.altitude = from_altitude+delta_altitude*i
+                    area.altitude = Decimal(from_altitude+delta_altitude*i).quantize(Decimal('1.00'))
                     areas_without_altitude.discard(tmpid)
                     area.i = len(areas_with_altitude)
                     areas_with_altitude.append(tmpid)
@@ -497,21 +498,26 @@ class AltitudeArea(LevelGeometryMixin, models.Model):
 
         for candidate in all_candidates:
             new_area = None
-            for tmpid in level_areas.get(candidate.level, set()):
-                area = areas[tmpid]
-                if area.geometry.almost_equals(candidate.geometry, 1):
-                    new_area = area
-                    break
 
-            if new_area is None:
-                potential_areas = [(tmpid, areas[tmpid].geometry.intersection(candidate.geometry).area)
-                                   for tmpid in level_areas.get(candidate.level, set())
-                                   if candidate.geometry_prep.intersects(areas[tmpid].geometry)]
-                potential_areas = [(tmpid, size) for tmpid, size in potential_areas
-                                   if candidate.area and size/candidate.area > 0.9]
+            if candidate.altitude2 is None:
+                for tmpid in level_areas.get(candidate.level, set()):
+                    area = areas[tmpid]
+                    if area.altitude2 is None and area.altitude == candidate.altitude:
+                        new_area = area
+                        break
+            else:
+                potential_areas = [areas[tmpid] for tmpid in level_areas.get(candidate.level, set())]
+                potential_areas = [area for area in potential_areas
+                                   if (candidate.altitude2 == area.altitude2 and
+                                       candidate.altitude == area.altitude)]
+                potential_areas = [(area, area.geometry.intersection(candidate.geometry).area)
+                                   for area in potential_areas
+                                   if candidate.geometry_prep.intersects(area.geometry)]
                 if potential_areas:
-                    num_modified += 1
-                    new_area = areas[max(potential_areas, key=itemgetter(1))[0]]
+                    new_area = max(potential_areas, key=itemgetter(1))[0]
+
+            if not new_area.geometry.almost_equals(candidate.geometry):
+                num_modified += 1
 
             if new_area is None:
                 candidate.delete()
