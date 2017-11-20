@@ -4,6 +4,7 @@ static.dist
 c3nav.cfg
 /src/data
 loadproduction.sh
+runtileserver.sh
 
 .idea
 

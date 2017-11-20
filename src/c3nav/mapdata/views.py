@@ -1,12 +1,14 @@
+import base64
 import hashlib
 import os
 from itertools import chain
+from wsgiref.util import FileWrapper
 
 from django.conf import settings
 from django.core.cache import cache
 from django.core.exceptions import PermissionDenied
 from django.core.signing import b64_encode
-from django.http import Http404, HttpResponse, HttpResponseNotModified
+from django.http import Http404, HttpResponse, HttpResponseNotModified, StreamingHttpResponse
 from django.shortcuts import get_object_or_404
 from django.views.decorators.http import etag
 from shapely.geometry import box
@@ -122,7 +124,7 @@ def tile_access(request):
     return response
 
 
-@etag(lambda *args, **kwargs: MapUpdate.current_cache_key())
+@etag(lambda *args, **kwargs: MapUpdate.current_processed_cache_key())
 @no_language()
 def history(request, level, mode, format):
     if not request.user.is_superuser:
@@ -142,4 +144,31 @@ def history(request, level, mode, format):
     else:
         raise ValueError
     response['Cache-Control'] = 'no-cache'
+    return response
+
+
+encoded_tile_secret = base64.b64encode(settings.SECRET_TILE_KEY.encode()).decode()
+
+
+@etag(lambda *args, **kwargs: MapUpdate.current_processed_cache_key())
+@no_language()
+def cache_package(request, filetype):
+    x_tile_secret = request.META.get('HTTP_X_TILE_SECRET')
+    if x_tile_secret:
+        if x_tile_secret != encoded_tile_secret:
+            raise PermissionDenied
+    elif not request.user.is_superuser:
+        raise PermissionDenied
+
+    filename = os.path.join(settings.CACHE_ROOT, 'package'+filetype)
+    f = open(filename, 'rb')
+
+    f.seek(0, os.SEEK_END)
+    size = f.tell()
+    f.seek(0)
+
+    content_type = 'application/' + {'.tar': 'x-tar', '.tar.gz': 'gzip', '.tar.xz': 'x-xz'}[filetype]
+
+    response = StreamingHttpResponse(FileWrapper(f), content_type=content_type)
+    response['Content-Length'] = size
     return response
