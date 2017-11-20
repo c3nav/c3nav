@@ -7,8 +7,8 @@ from django.utils.translation import ugettext_lazy as _
 from django.utils.translation import ungettext_lazy
 
 from c3nav.mapdata.models import AccessRestriction, Level, Source
-from c3nav.mapdata.render import MapRenderer
 from c3nav.mapdata.render.engines import get_engine, get_engine_filetypes
+from c3nav.mapdata.render.renderer import MapRenderer
 
 
 class Command(BaseCommand):

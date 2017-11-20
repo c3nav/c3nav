@@ -123,7 +123,7 @@ class MapUpdate(models.Model):
 
             logger.info('Rebuilding level render data...')
 
-            from c3nav.mapdata.render import LevelRenderData
+            from c3nav.mapdata.render.renderdata import LevelRenderData
             LevelRenderData.rebuild()
 
             transaction.on_commit(
