@@ -9,7 +9,7 @@ from c3nav.mapdata.models import Level, MapUpdate
 from c3nav.mapdata.render.engines.base import FillAttribs, StrokeAttribs
 from c3nav.mapdata.render.geometry import hybrid_union
 from c3nav.mapdata.render.renderdata import LevelRenderData
-from c3nav.mapdata.utils.cache import MapHistory
+from c3nav.mapdata.utils.cache import AccessRestrictionAffected, MapHistory
 
 
 class MapRenderer:
@@ -49,8 +49,8 @@ class MapRenderer:
                                                                      self.update_cache_key)
         result = cache.get(cache_key, None)
         if result is None:
-            result = set(ar for ar, area in self.level_render_data.access_restriction_affected.items()
-                         if area.intersects(self.bbox))
+            result = set(AccessRestrictionAffected.open_level_cached(self.level, 'composite')[self.minx:self.maxx,
+                                                                                              self.miny:self.maxy])
             cache.set(cache_key, result, 120)
         return result
 
