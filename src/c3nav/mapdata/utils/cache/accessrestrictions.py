@@ -87,7 +87,7 @@ class AccessRestrictionAffectedCells:
         # expand array
         bounds = self.parent._get_geometry_bounds(self.selector)
         self.parent.fit_bounds(*bounds)
-        self._get_values()
+        self.values = self._get_values()
 
         i = self.parent._get_restriction_index(restriction, create=True)
         self._set(self.values | (2**i))
