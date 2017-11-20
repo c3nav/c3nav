@@ -200,6 +200,10 @@ class LevelGeometryIndexed(GeometryIndexed):
         # noinspection PyArgumentList
         return cls.open(cls.level_filename(level_id, mode), **kwargs)
 
+    def save_level(self, level_id, mode):
+        # noinspection PyArgumentList
+        return self.save(self.level_filename(level_id, mode))
+
     cached = {}
     cache_key = None
     cache_lock = threading.Lock()

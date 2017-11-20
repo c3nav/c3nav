@@ -13,7 +13,7 @@ from shapely.ops import unary_union
 
 from c3nav.mapdata.models import Level, MapUpdate
 from c3nav.mapdata.render.geometry import AltitudeAreaGeometries, LevelGeometries
-from c3nav.mapdata.utils.cache import MapHistory
+from c3nav.mapdata.utils.cache import AccessRestrictionAffected, MapHistory
 from c3nav.mapdata.utils.geometry import get_rings
 
 empty_geometry_collection = GeometryCollection()
@@ -35,7 +35,6 @@ class Cropper:
 class LevelRenderData:
     def __init__(self):
         self.levels = []
-        self.access_restriction_affected = None
 
     @staticmethod
     def rebuild():
@@ -103,7 +102,7 @@ class LevelRenderData:
                         break
 
             render_data = LevelRenderData()
-            render_data.access_restriction_affected = {}
+            access_restriction_affected = {}
 
             for sublevel in sublevels:
                 try:
@@ -178,10 +177,10 @@ class LevelRenderData:
                     crop_to.intersection(new_geoms.walls.buffer(1))
                 ))
 
-                for access_restriction, area in old_geoms.restricted_spaces_indoors.items():
+                for access_restriction, area in old_geoms.access_restriction_affected.items():
                     new_area = crop_to.intersection(area)
                     if not new_area.is_empty:
-                        render_data.access_restriction_affected.setdefault(access_restriction, []).append(new_area)
+                        access_restriction_affected.setdefault(access_restriction, []).append(new_area)
 
                 new_geoms.restricted_spaces_indoors = {}
                 for access_restriction, area in old_geoms.restricted_spaces_indoors.items():
@@ -208,10 +207,12 @@ class LevelRenderData:
 
                 render_data.levels.append(new_geoms)
 
-            render_data.access_restriction_affected = {
+            access_restriction_affected = {
                 access_restriction: unary_union(areas)
-                for access_restriction, areas in render_data.access_restriction_affected.items()
+                for access_restriction, areas in access_restriction_affected.items()
             }
+
+            AccessRestrictionAffected.build(access_restriction_affected).save_level(level.pk, 'composite')
 
             render_data.save(level.pk)
 

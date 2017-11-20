@@ -12,6 +12,7 @@ from shapely.ops import unary_union
 from c3nav.mapdata.render.geometry.altitudearea import AltitudeAreaGeometries
 from c3nav.mapdata.render.geometry.hybrid import HybridGeometry
 from c3nav.mapdata.render.geometry.mesh import Mesh
+from c3nav.mapdata.utils.cache import AccessRestrictionAffected
 from c3nav.mapdata.utils.geometry import get_rings
 from c3nav.mapdata.utils.mesh import triangulate_rings
 
@@ -169,6 +170,8 @@ class LevelGeometries:
                                            for access_restriction, spaces in restricted_spaces_indoors.items()}
         geoms.restricted_spaces_outdoors = {access_restriction: unary_union(spaces)
                                             for access_restriction, spaces in restricted_spaces_outdoors.items()}
+
+        AccessRestrictionAffected.build(geoms.access_restriction_affected).save_level(level.pk, 'base')
 
         geoms.walls = buildings_geom.difference(unary_union((spaces_geom, doors_geom)))
 
