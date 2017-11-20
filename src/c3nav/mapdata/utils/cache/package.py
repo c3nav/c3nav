@@ -1,0 +1,52 @@
+import os
+import struct
+from collections import namedtuple
+from io import BytesIO
+from tarfile import TarFile, TarInfo
+
+from c3nav.mapdata.utils.cache import AccessRestrictionAffected, GeometryIndexed, MapHistory
+
+CachePackageLevel = namedtuple('CachePackageLevel', ('history', 'restrictions'))
+
+
+class CachePackage:
+    def __init__(self, bounds, levels=None):
+        self.bounds = bounds
+        self.levels = {} if levels is None else levels
+
+    def add_level(self, level_id: int, history: MapHistory, restrictions: AccessRestrictionAffected):
+        self.levels[level_id] = CachePackageLevel(history, restrictions)
+
+    def save(self, filename=None, compression=None):
+        if filename is None:
+            from django.conf import settings
+            filename = os.path.join(settings.CACHE_ROOT, 'package.tar')
+            if compression is not None:
+                filename += '.' + compression
+
+        filemode = 'w'
+        if compression is not None:
+            filemode += ':' + compression
+
+        with TarFile.open(filename, filemode) as f:
+            self._add_bytesio(f, 'bounds', BytesIO(struct.pack('<IIII', *(int(i*100) for i in self.bounds))))
+
+            for level_id, level_data in self.levels.items():
+                self._add_geometryindexed(f, 'history_%d' % level_id, level_data.history)
+                self._add_geometryindexed(f, 'restrictions_%d' % level_id, level_data.restrictions)
+
+    def _add_bytesio(self, f: TarFile, filename: str, data: BytesIO):
+        data.seek(0, os.SEEK_END)
+        tarinfo = TarInfo(name=filename)
+        tarinfo.size = data.tell()
+        data.seek(0)
+        f.addfile(tarinfo, data)
+
+    def _add_geometryindexed(self, f: TarFile, filename: str, obj: GeometryIndexed):
+        data = BytesIO()
+        obj.write(data)
+        self._add_bytesio(f, filename, data)
+
+    def save_all(self, filename=None):
+        for compression in (None, 'gz', 'xz'):
+            self.save(filename, compression)

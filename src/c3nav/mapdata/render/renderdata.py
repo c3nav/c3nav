@@ -3,6 +3,7 @@ import os
 import pickle
 import threading
 from collections import deque
+from itertools import chain
 
 import numpy as np
 from django.conf import settings
@@ -11,9 +12,10 @@ from shapely import prepared
 from shapely.geometry import GeometryCollection
 from shapely.ops import unary_union
 
-from c3nav.mapdata.models import Level, MapUpdate
+from c3nav.mapdata.models import Level, MapUpdate, Source
 from c3nav.mapdata.render.geometry import AltitudeAreaGeometries, LevelGeometries
 from c3nav.mapdata.utils.cache import AccessRestrictionAffected, MapHistory
+from c3nav.mapdata.utils.cache.package import CachePackage
 from c3nav.mapdata.utils.geometry import get_rings
 
 empty_geometry_collection = GeometryCollection()
@@ -42,6 +44,8 @@ class LevelRenderData:
                                                       'spaces__holes', 'spaces__areas', 'spaces__columns',
                                                       'spaces__obstacles', 'spaces__lineobstacles',
                                                       'spaces__groups', 'spaces__ramps'))
+
+        package = CachePackage(bounds=tuple(chain(*Source.max_bounds())))
 
         single_level_geoms = {}
         interpolators = {}
@@ -212,11 +216,16 @@ class LevelRenderData:
                 for access_restriction, areas in access_restriction_affected.items()
             }
 
-            AccessRestrictionAffected.build(access_restriction_affected).save_level(level.pk, 'composite')
+            access_restriction_affected = AccessRestrictionAffected.build(access_restriction_affected)
+            access_restriction_affected.save_level(level.pk, 'composite')
+
+            map_history.save_level(level.pk, 'composite')
+
+            package.add_level(level.pk, map_history, access_restriction_affected)
 
             render_data.save(level.pk)
 
-            map_history.save(MapHistory.level_filename(level.pk, 'composite'))
+        package.save_all()
 
     cached = {}
     cache_key = None
