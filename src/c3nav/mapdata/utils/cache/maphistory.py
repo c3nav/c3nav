@@ -12,9 +12,10 @@ from c3nav.mapdata.utils.cache import GeometryIndexed
 class MapHistory(GeometryIndexed):
     # metadata format:
     # 2 bytes (uint16): number of updates
-    # n uptates times:
+    # n updates times:
     #     4 bytes (uint32): update id
     #     4 bytes (uint32): timestamp
+    # each uint16 cell contains the index of the newest update
     dtype = np.uint16
     variant_id = 1
 
