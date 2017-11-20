@@ -1,8 +1,9 @@
 import math
+import os
 import struct
+import threading
 
 import numpy as np
-from django.conf import settings
 from PIL import Image
 from shapely import prepared
 from shapely.geometry import box
@@ -22,7 +23,10 @@ class GeometryIndexed:
     dtype = np.uint16
     variant_id = 0
 
-    def __init__(self, resolution=settings.CACHE_RESOLUTION, x=0, y=0, data=None, filename=None):
+    def __init__(self, resolution=None, x=0, y=0, data=None, filename=None):
+        if resolution is None:
+            from django.conf import settings
+            resolution = settings.CACHE_RESOLUTION
         self.resolution = resolution
         self.x = x
         self.y = y
@@ -181,3 +185,38 @@ class GeometryIndexed:
             image_data[self.y:self.y+height, self.x:self.x+width] = visible_data
 
         return Image.fromarray(np.flip(image_data, axis=0), 'L')
+
+
+class LevelGeometryIndexed(GeometryIndexed):
+    variant_name = None
+
+    @classmethod
+    def level_filename(cls, level_id, mode):
+        from django.conf import settings
+        return os.path.join(settings.CACHE_ROOT, 'level_%d_%s_%s' % (level_id, cls.variant_name, mode))
+
+    @classmethod
+    def open_level(cls, level_id, mode, **kwargs):
+        # noinspection PyArgumentList
+        return cls.open(cls.level_filename(level_id, mode), **kwargs)
+
+    cached = {}
+    cache_key = None
+    cache_lock = threading.Lock()
+
+    @classmethod
+    def open_level_cached(cls, level_id, mode):
+        with cls.cache_lock:
+            from c3nav.mapdata.models import MapUpdate
+            cache_key = MapUpdate.current_processed_cache_key()
+            if cls.cache_key != cache_key:
+                cls.cache_key = cache_key
+                cls.cached = {}
+            else:
+                result = cls.cached.get((level_id, mode), None)
+                if result is not None:
+                    return result
+
+            result = cls.open_level(level_id, mode)
+            cls.cached[(level_id, mode)] = result
+            return result

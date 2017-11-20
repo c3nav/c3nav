@@ -1,15 +1,12 @@
-import os
 import struct
-import threading
 from itertools import chain
 
 import numpy as np
-from django.conf import settings
 
-from c3nav.mapdata.utils.cache import GeometryIndexed
+from c3nav.mapdata.utils.cache.indexed import LevelGeometryIndexed
 
 
-class MapHistory(GeometryIndexed):
+class MapHistory(LevelGeometryIndexed):
     # metadata format:
     # 2 bytes (uint16): number of updates
     # n updates times:
@@ -18,6 +15,7 @@ class MapHistory(GeometryIndexed):
     # each uint16 cell contains the index of the newest update
     dtype = np.uint16
     variant_id = 1
+    variant_name = 'history'
 
     def __init__(self, updates, **kwargs):
         super().__init__(**kwargs)
@@ -45,35 +43,6 @@ class MapHistory(GeometryIndexed):
             instance = cls(updates=[default_update], filename=filename)
             instance.save()
         return instance
-
-    @staticmethod
-    def level_filename(level_id, mode):
-        return os.path.join(settings.CACHE_ROOT, 'level_%d_history_%s' % (level_id, mode))
-
-    @classmethod
-    def open_level(cls, level_id, mode, default_update=None):
-        return cls.open(cls.level_filename(level_id, mode), default_update)
-
-    cached = {}
-    cache_key = None
-    cache_lock = threading.Lock()
-
-    @classmethod
-    def open_level_cached(cls, level_id, mode):
-        with cls.cache_lock:
-            from c3nav.mapdata.models import MapUpdate
-            cache_key = MapUpdate.current_processed_cache_key()
-            if cls.cache_key != cache_key:
-                cls.cache_key = cache_key
-                cls.cached = {}
-            else:
-                result = cls.cached.get((level_id, mode), None)
-                if result is not None:
-                    return result
-
-            result = cls.open_level(level_id, mode)
-            cls.cached[(level_id, mode)] = result
-            return result
 
     def add_geometry(self, geometry, update):
         if self.updates[-1] != update:
