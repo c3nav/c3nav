@@ -36,8 +36,23 @@ def set_tile_access_cookie(func):
     return wrapper
 
 
+encoded_tile_secret = base64.b64encode(settings.SECRET_TILE_KEY.encode()).decode()
+
+
+def enforce_tile_secret_auth(request):
+    x_tile_secret = request.META.get('HTTP_X_TILE_SECRET')
+    if x_tile_secret:
+        if x_tile_secret != encoded_tile_secret:
+            raise PermissionDenied
+    elif not request.user.is_superuser:
+        raise PermissionDenied
+
+
 @no_language()
-def tile(request, level, zoom, x, y):
+def tile(request, level, zoom, x, y, access_permissions=None):
+    if access_permissions is not None:
+        enforce_tile_secret_auth(request)
+
     zoom = int(zoom)
     if not (0 <= zoom <= 10):
         raise Http404
@@ -58,12 +73,15 @@ def tile(request, level, zoom, x, y):
         raise Http404
 
     # decode access permissions
-    try:
-        cookie = request.COOKIES[settings.TILE_ACCESS_COOKIE_NAME]
-    except KeyError:
-        access_permissions = set()
+    if access_permissions is None:
+        try:
+            cookie = request.COOKIES[settings.TILE_ACCESS_COOKIE_NAME]
+        except KeyError:
+            access_permissions = set()
+        else:
+            access_permissions = parse_tile_access_cookie(cookie, settings.SECRET_TILE_KEY)
     else:
-        access_permissions = parse_tile_access_cookie(cookie, settings.SECRET_TILE_KEY)
+        access_permissions = set(int(i) for i in access_permissions.split('-')) - set([0])
 
     # only access permissions that are affecting this tile
     access_permissions &= set(level_data.restrictions[minx:miny, maxx:maxy])
@@ -159,18 +177,10 @@ def map_history(request, level, mode, filetype):
     return response
 
 
-encoded_tile_secret = base64.b64encode(settings.SECRET_TILE_KEY.encode()).decode()
-
-
 @etag(lambda *args, **kwargs: MapUpdate.current_processed_cache_key())
 @no_language()
 def get_cache_package(request, filetype):
-    x_tile_secret = request.META.get('HTTP_X_TILE_SECRET')
-    if x_tile_secret:
-        if x_tile_secret != encoded_tile_secret:
-            raise PermissionDenied
-    elif not request.user.is_superuser:
-        raise PermissionDenied
+    enforce_tile_secret_auth(request)
 
     filename = os.path.join(settings.CACHE_ROOT, 'package.'+filetype)
     f = open(filename, 'rb')
