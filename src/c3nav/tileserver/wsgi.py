@@ -3,11 +3,14 @@ import logging
 import os
 import re
 import time
+from http.cookies import SimpleCookie
 from io import BytesIO
 
 import requests
 
 from c3nav.mapdata.utils.cache import CachePackage
+from c3nav.mapdata.utils.tiles import (build_access_cache_key, build_base_cache_key, build_tile_etag, get_tile_bounds,
+                                       parse_tile_access_cookie)
 
 logging.basicConfig(level=logging.DEBUG if os.environ.get('C3NAV_DEBUG') else logging.INFO,
                     format='[%(asctime)s] [%(process)s] [%(levelname)s] %(name)s: %(message)s',
@@ -92,15 +95,51 @@ class TileServer:
             return self.not_found(start_response, b'zoom out of bounds.')
 
         # do this to be thread safe
-        cache_package = self.cache_package  # noqa
+        cache_package = self.cache_package
 
-        x = int(match.group('x'))  # noqa
-        y = int(match.group('y'))  # noqa
+        # check if bounds are valid
+        x = int(match.group('x'))
+        y = int(match.group('y'))
+        minx, miny, maxx, maxy = get_tile_bounds(zoom, x, y)
+        if not cache_package.bounds_valid(minx, miny, maxx, maxy):
+            return self.not_found(start_response, b'coordinates out of bounds.')
 
-        level = int(match.group('level'))  # noqa
+        # get level
+        level = int(match.group('level'))
+        level_data = cache_package.levels.get(level)
+        if level_data is None:
+            return self.not_found(start_response, b'invalid level.')
 
-        start_response('200 OK', [('Content-Type', 'text/plain')])
-        return [b'mau?']
+        # decode access permissions
+        try:
+            cookie = SimpleCookie(env['HTTP_COOKIE'])['c3nav_tile_access'].value
+        except KeyError:
+            access_permissions = set()
+        else:
+            access_permissions = parse_tile_access_cookie(cookie, self.tile_secret)
+
+        # only access permissions that are affecting this tile
+        access_permissions &= set(level_data.restrictions[minx:miny, maxx:maxy])
+
+        # build cache keys
+        last_update = level_data.history.last_update(minx, miny, maxx, maxy)
+        base_cache_key = build_base_cache_key(last_update)
+        access_cache_key = build_access_cache_key(access_permissions)
+
+        # check browser cache
+        tile_etag = build_tile_etag(level, zoom, x, y, base_cache_key, access_cache_key, self.tile_secret)
+        if_none_match = env.get('HTTP_IF_NONE_MATCH')
+        if if_none_match == tile_etag:
+            start_response('304 Not Modified', [('Content-Type', 'text/plain'), ('ETag', tile_etag)])
+            return [b'']
+
+        r = requests.get('%s/map/%d/%d/%d/%d/%s.png' % (self.upstream_base, level, zoom, x, y, access_cache_key),
+                         headers=self.auth_headers)
+
+        start_response('%d %s' % (r.status_code, r.reason),
+                       [('Content-Type', r.headers['Content-Type']),
+                        ('ETag', r.headers['ETag'])])
+        return [r.content]
 
 
 application = TileServer()
