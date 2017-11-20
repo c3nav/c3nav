@@ -224,7 +224,7 @@ class LevelRenderData:
 
     @staticmethod
     def _level_filename(pk):
-        return os.path.join(settings.CACHE_ROOT, 'level_%d_render_data.pickle' % pk)
+        return os.path.join(settings.CACHE_ROOT, 'render_data_level_%d.pickle' % pk)
 
     @classmethod
     def get(cls, level):
