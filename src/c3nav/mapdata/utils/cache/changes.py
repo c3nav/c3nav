@@ -1,6 +1,6 @@
 import os
 
-from django.db.models.signals import post_delete, m2m_changed
+from django.db.models.signals import m2m_changed, post_delete
 from shapely.ops import unary_union
 
 from c3nav.mapdata.utils.cache.maphistory import MapHistory

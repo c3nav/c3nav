@@ -2,8 +2,8 @@ import math
 import struct
 
 import numpy as np
-from PIL import Image
 from django.conf import settings
+from PIL import Image
 from shapely import prepared
 from shapely.geometry import box
 from shapely.geometry.base import BaseGeometry
