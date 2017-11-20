@@ -4,7 +4,7 @@ from itertools import chain
 import numpy as np
 
 from c3nav.mapdata.models import AltitudeArea
-from c3nav.mapdata.render.data.hybridgeom import HybridGeometry
+from c3nav.mapdata.render.geometry.hybrid import HybridGeometry
 
 
 class AltitudeAreaGeometries:

@@ -9,9 +9,9 @@ from shapely import prepared
 from shapely.geometry import GeometryCollection
 from shapely.ops import unary_union
 
-from c3nav.mapdata.render.data.altitudearea import AltitudeAreaGeometries
-from c3nav.mapdata.render.data.hybridgeom import HybridGeometry
-from c3nav.mapdata.render.data.mesh import Mesh
+from c3nav.mapdata.render.geometry.altitudearea import AltitudeAreaGeometries
+from c3nav.mapdata.render.geometry.hybrid import HybridGeometry
+from c3nav.mapdata.render.geometry.mesh import Mesh
 from c3nav.mapdata.utils.geometry import get_rings
 from c3nav.mapdata.utils.mesh import triangulate_rings
 

@@ -4,8 +4,8 @@ from typing import Optional
 
 import numpy as np
 
-from c3nav.mapdata.render.data import HybridGeometry
 from c3nav.mapdata.render.engines.base import FillAttribs, RenderEngine, StrokeAttribs
+from c3nav.mapdata.render.geometry import HybridGeometry
 
 
 # noinspection PyAbstractClass

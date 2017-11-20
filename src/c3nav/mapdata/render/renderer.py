@@ -6,8 +6,9 @@ from shapely import prepared
 from shapely.geometry import box
 
 from c3nav.mapdata.models import Level, MapUpdate
-from c3nav.mapdata.render.data import LevelRenderData, hybrid_union
 from c3nav.mapdata.render.engines.base import FillAttribs, StrokeAttribs
+from c3nav.mapdata.render.geometry import hybrid_union
+from c3nav.mapdata.render.renderdata import LevelRenderData
 from c3nav.mapdata.utils.cache import MapHistory
 
 

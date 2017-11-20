@@ -12,8 +12,7 @@ from shapely.geometry import GeometryCollection
 from shapely.ops import unary_union
 
 from c3nav.mapdata.models import Level, MapUpdate
-from c3nav.mapdata.render.data.altitudearea import AltitudeAreaGeometries
-from c3nav.mapdata.render.data.levelgeom import LevelGeometries
+from c3nav.mapdata.render.geometry import AltitudeAreaGeometries, LevelGeometries
 from c3nav.mapdata.utils.cache import MapHistory
 from c3nav.mapdata.utils.geometry import get_rings
 
