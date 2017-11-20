@@ -15,8 +15,8 @@ from c3nav.mapdata.models import Location, Source
 from c3nav.mapdata.models.access import AccessPermission
 from c3nav.mapdata.models.level import Level
 from c3nav.mapdata.models.locations import LocationRedirect, SpecificLocation
-from c3nav.mapdata.render.utils import set_tile_access_cookie
 from c3nav.mapdata.utils.locations import get_location_by_slug_for_request
+from c3nav.mapdata.views import set_tile_access_cookie
 
 ctype_mapping = {
     'yes': ('up', 'down'),
@@ -99,6 +99,7 @@ def get_levels(request) -> Mapping[int, Level]:
     return levels
 
 
+@set_tile_access_cookie
 def map_index(request, mode=None, slug=None, slug2=None, level=None, x=None, y=None, zoom=None):
     origin = None
     destination = None
@@ -145,9 +146,7 @@ def map_index(request, mode=None, slug=None, slug2=None, level=None, x=None, y=N
         'levels': json.dumps(tuple(levels.values()), separators=(',', ':')),
         'state': json.dumps(state, separators=(',', ':')),
     }
-    response = render(request, 'site/map.html', ctx)
-    set_tile_access_cookie(request, response)
-    return response
+    return render(request, 'site/map.html', ctx)
 
 
 def main(request, location=None, origin=None, destination=None):

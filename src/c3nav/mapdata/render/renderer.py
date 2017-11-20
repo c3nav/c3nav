@@ -1,15 +1,13 @@
 from itertools import chain
 
-from django.core.cache import cache
 from django.utils.functional import cached_property
 from shapely import prepared
 from shapely.geometry import box
 
-from c3nav.mapdata.models import Level, MapUpdate
+from c3nav.mapdata.models import Level
 from c3nav.mapdata.render.engines.base import FillAttribs, StrokeAttribs
 from c3nav.mapdata.render.geometry import hybrid_union
 from c3nav.mapdata.render.renderdata import LevelRenderData
-from c3nav.mapdata.utils.cache import AccessRestrictionAffected, MapHistory
 
 
 class MapRenderer:
@@ -30,59 +28,25 @@ class MapRenderer:
     def bbox(self):
         return box(self.minx-1, self.miny-1, self.maxx+1, self.maxy+1)
 
-    @cached_property
-    def level_render_data(self):
-        return LevelRenderData.get(self.level)
-
-    @cached_property
-    def last_update(self):
-        return MapHistory.open_level_cached(self.level, 'composite').last_update(self.minx, self.miny,
-                                                                                 self.maxx, self.maxy)
-
-    @cached_property
-    def update_cache_key(self):
-        return MapUpdate.build_cache_key(*self.last_update)
-
-    @cached_property
-    def affected_access_restrictions(self):
-        cache_key = 'mapdata:affected-ars-%.2f-%.2f-%.2f-%.2f:%s' % (self.minx, self.miny, self.maxx, self.maxy,
-                                                                     self.update_cache_key)
-        result = cache.get(cache_key, None)
-        if result is None:
-            result = set(AccessRestrictionAffected.open_level_cached(self.level, 'composite')[self.minx:self.maxx,
-                                                                                              self.miny:self.maxy])
-            cache.set(cache_key, result, 120)
-        return result
-
-    @cached_property
-    def unlocked_access_restrictions(self):
-        return self.affected_access_restrictions & self.access_permissions
-
-    @cached_property
-    def access_cache_key(self):
-        return '_'.join(str(i) for i in sorted(self.unlocked_access_restrictions)) or '0'
-
-    @cached_property
-    def cache_key(self):
-        return self.update_cache_key + ':' + self.access_cache_key
-
     def render(self, engine_cls, center=True):
         engine = engine_cls(self.width, self.height, self.minx, self.miny,
                             scale=self.scale, buffer=1, background='#DCDCDC', center=center)
 
         # add no access restriction to “unlocked“ access restrictions so lookup gets easier
-        unlocked_access_restrictions = self.unlocked_access_restrictions | set([None])
+        access_permissions = self.access_permissions | set([None])
 
         bbox = prepared.prep(self.bbox)
+
+        level_render_data = LevelRenderData.get(self.level)
 
         if self.full_levels:
             levels = tuple(chain(*(
                 tuple(sublevel for sublevel in LevelRenderData.get(level.pk).levels
                       if sublevel.pk == level.pk or sublevel.on_top_of_id == level.pk)
-                for level in self.level_render_data.levels if level.on_top_of_id is None
+                for level in level_render_data.levels if level.on_top_of_id is None
             )))
         else:
-            levels = self.level_render_data.levels
+            levels = level_render_data.levels
 
         min_altitude = min(chain(*(tuple(area.altitude for area in geoms.altitudeareas)
                                    for geoms in levels)))
@@ -97,10 +61,10 @@ class MapRenderer:
 
             # hide indoor and outdoor rooms if their access restriction was not unlocked
             add_walls = hybrid_union(tuple(area for access_restriction, area in geoms.restricted_spaces_indoors.items()
-                                           if access_restriction not in unlocked_access_restrictions))
+                                           if access_restriction not in access_permissions))
             crop_areas = hybrid_union(
                 tuple(area for access_restriction, area in geoms.restricted_spaces_outdoors.items()
-                      if access_restriction not in unlocked_access_restrictions)
+                      if access_restriction not in access_permissions)
             ).union(add_walls)
 
             if not_full_levels:
@@ -129,7 +93,7 @@ class MapRenderer:
                 for color, areas in altitudearea.colors.items():
                     # only select ground colors if their access restriction is unlocked
                     areas = tuple(area for access_restriction, area in areas.items()
-                                  if access_restriction in unlocked_access_restrictions)
+                                  if access_restriction in access_permissions)
                     if areas:
                         i += 1
                         engine.add_geometry(hybrid_union(areas), fill=FillAttribs(color),

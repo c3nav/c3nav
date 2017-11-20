@@ -1,24 +1,39 @@
 import base64
-import hashlib
 import os
-from itertools import chain
+from functools import wraps
 from wsgiref.util import FileWrapper
 
 from django.conf import settings
 from django.core.cache import cache
 from django.core.exceptions import PermissionDenied
-from django.core.signing import b64_encode
 from django.http import Http404, HttpResponse, HttpResponseNotModified, StreamingHttpResponse
 from django.shortcuts import get_object_or_404
 from django.views.decorators.http import etag
-from shapely.geometry import box
 
 from c3nav.mapdata.middleware import no_language
-from c3nav.mapdata.models import Level, MapUpdate, Source
+from c3nav.mapdata.models import Level, MapUpdate
+from c3nav.mapdata.models.access import AccessPermission
 from c3nav.mapdata.render.engines import ImageRenderEngine
 from c3nav.mapdata.render.renderer import MapRenderer
-from c3nav.mapdata.render.utils import get_render_level_ids, get_tile_access_cookie, set_tile_access_cookie
-from c3nav.mapdata.utils.cache import MapHistory
+from c3nav.mapdata.utils.cache import CachePackage, MapHistory
+from c3nav.mapdata.utils.tiles import (build_access_cache_key, build_base_cache_key, build_tile_access_cookie,
+                                       build_tile_etag, get_tile_bounds, parse_tile_access_cookie)
+
+
+def set_tile_access_cookie(func):
+    @wraps(func)
+    def wrapper(request, *args, **kwargs):
+        response = func(request, *args, **kwargs)
+
+        access_permissions = AccessPermission.get_for_request(request)
+        if access_permissions:
+            bla = build_tile_access_cookie(access_permissions, settings.SECRET_TILE_KEY)
+            response.set_cookie(settings.TILE_ACCESS_COOKIE_NAME, bla, max_age=60)
+        else:
+            response.delete_cookie(settings.TILE_ACCESS_COOKIE_NAME)
+
+        return response
+    return wrapper
 
 
 @no_language()
@@ -27,43 +42,41 @@ def tile(request, level, zoom, x, y):
     if not (0 <= zoom <= 10):
         raise Http404
 
-    # calculate bounds
-    x, y = int(x), int(y)
-    size = 256/2**zoom
-    minx = size * x
-    miny = size * (-y-1)
-    maxx = minx + size
-    maxy = miny + size
+    cache_package = CachePackage.open_cached()
 
-    # add one pixel so tiles can overlap to avoid rendering bugs in chrome or webkit
-    maxx += size / 256
-    miny -= size / 256
-
-    # error 404 if tiles is out of bounds
-    bounds = Source.max_bounds()
-    if not box(*chain(*bounds)).intersects(box(minx, miny, maxx, maxy)):
+    # check if bounds are valid
+    x = int(x)
+    y = int(y)
+    minx, miny, maxx, maxy = get_tile_bounds(zoom, x, y)
+    if not cache_package.bounds_valid(minx, miny, maxx, maxy):
         raise Http404
 
-    # is this a valid level?
-    cache_key = MapUpdate.current_cache_key()
+    # get level
     level = int(level)
-    if level not in get_render_level_ids(cache_key):
+    level_data = cache_package.levels.get(level)
+    if level_data is None:
         raise Http404
 
     # decode access permissions
-    access_permissions = get_tile_access_cookie(request)
+    try:
+        cookie = request.COOKIES[settings.TILE_ACCESS_COOKIE_NAME]
+    except KeyError:
+        access_permissions = set()
+    else:
+        access_permissions = parse_tile_access_cookie(cookie, settings.SECRET_TILE_KEY)
 
-    # init renderer
-    renderer = MapRenderer(level, minx, miny, maxx, maxy, scale=2 ** zoom, access_permissions=access_permissions)
-    tile_cache_key = renderer.cache_key
-    update_cache_key = renderer.update_cache_key
+    # only access permissions that are affecting this tile
+    access_permissions &= set(level_data.restrictions[minx:miny, maxx:maxy])
+
+    # build cache keys
+    last_update = level_data.history.last_update(minx, miny, maxx, maxy)
+    base_cache_key = build_base_cache_key(last_update)
+    access_cache_key = build_access_cache_key(access_permissions)
 
     # check browser cache
-    etag = '"'+b64_encode(hashlib.sha256(
-        ('%d-%d-%d-%d:%s:%s' % (level, zoom, x, y, tile_cache_key, settings.SECRET_TILE_KEY)).encode()
-    ).digest()).decode()+'"'
+    tile_etag = build_tile_etag(level, zoom, x, y, base_cache_key, access_cache_key, settings.SECRET_TILE_KEY)
     if_none_match = request.META.get('HTTP_IF_NONE_MATCH')
-    if if_none_match == etag:
+    if if_none_match == tile_etag:
         return HttpResponseNotModified()
 
     data = None
@@ -71,12 +84,12 @@ def tile(request, level, zoom, x, y):
 
     # get tile cache last update
     if settings.CACHE_TILES:
-        tile_dirname = os.path.sep.join((settings.TILES_ROOT, str(level), str(zoom), str(x), str(y)))
+        tile_dirname = os.path.sep.join((settings.TILES_ROOT, str(level_data), str(zoom), str(x), str(y)))
         last_update_filename = os.path.join(tile_dirname, 'last_update')
-        tile_filename = os.path.join(tile_dirname, renderer.access_cache_key+'.png')
+        tile_filename = os.path.join(tile_dirname, access_cache_key+'.png')
 
         # get tile cache last update
-        tile_cache_update_cache_key = 'mapdata:tile-cache-update:%d-%d-%d-%d' % (level, zoom, x, y)
+        tile_cache_update_cache_key = 'mapdata:tile-cache-update:%d-%d-%d-%d' % (level_data, zoom, x, y)
         tile_cache_update = cache.get(tile_cache_update_cache_key, None)
         if tile_cache_update is None:
             try:
@@ -85,7 +98,7 @@ def tile(request, level, zoom, x, y):
             except FileNotFoundError:
                 pass
 
-        if tile_cache_update != update_cache_key:
+        if tile_cache_update != base_cache_key:
             os.system('rm -rf '+os.path.join(tile_dirname, '*'))
         else:
             try:
@@ -95,6 +108,7 @@ def tile(request, level, zoom, x, y):
                 pass
 
     if data is None:
+        renderer = MapRenderer(level, minx, miny, maxx, maxy, scale=2 ** zoom, access_permissions=access_permissions)
         image = renderer.render(ImageRenderEngine)
         data = image.render()
 
@@ -103,30 +117,28 @@ def tile(request, level, zoom, x, y):
             with open(tile_filename, 'wb') as f:
                 f.write(data)
             with open(last_update_filename, 'w') as f:
-                f.write(update_cache_key)
-            cache.get(tile_cache_update_cache_key, update_cache_key, 60)
+                f.write(base_cache_key)
+            cache.get(tile_cache_update_cache_key, base_cache_key, 60)
 
     response = HttpResponse(data, 'image/png')
-    response['ETag'] = etag
-    response['X-ETag-Unencoded'] = '%d-%d-%d-%d:%s' % (level, zoom, x, y, tile_cache_key)
+    response['ETag'] = tile_etag
     response['Cache-Control'] = 'no-cache'
     response['Vary'] = 'Cookie'
-    response['X-Access-Restrictions'] = ', '.join(str(s) for s in renderer.unlocked_access_restrictions) or '0'
 
     return response
 
 
 @no_language()
+@set_tile_access_cookie
 def tile_access(request):
     response = HttpResponse(content_type='text/plain')
-    set_tile_access_cookie(request, response)
     response['Cache-Control'] = 'no-cache'
     return response
 
 
 @etag(lambda *args, **kwargs: MapUpdate.current_processed_cache_key())
 @no_language()
-def history(request, level, mode, format):
+def map_history(request, level, mode, filetype):
     if not request.user.is_superuser:
         raise PermissionDenied
     level = get_object_or_404(Level, pk=level)
@@ -135,10 +147,10 @@ def history(request, level, mode, format):
         raise Http404
 
     history = MapHistory.open_level(level.pk, mode)
-    if format == 'png':
+    if filetype == 'png':
         response = HttpResponse(content_type='image/png')
         history.to_image().save(response, format='PNG')
-    elif format == 'data':
+    elif filetype == 'data':
         response = HttpResponse(content_type='application/octet-stream')
         history.write(response)
     else:
@@ -152,7 +164,7 @@ encoded_tile_secret = base64.b64encode(settings.SECRET_TILE_KEY.encode()).decode
 
 @etag(lambda *args, **kwargs: MapUpdate.current_processed_cache_key())
 @no_language()
-def cache_package(request, filetype):
+def get_cache_package(request, filetype):
     x_tile_secret = request.META.get('HTTP_X_TILE_SECRET')
     if x_tile_secret:
         if x_tile_secret != encoded_tile_secret:
@@ -160,14 +172,14 @@ def cache_package(request, filetype):
     elif not request.user.is_superuser:
         raise PermissionDenied
 
-    filename = os.path.join(settings.CACHE_ROOT, 'package'+filetype)
+    filename = os.path.join(settings.CACHE_ROOT, 'package.'+filetype)
     f = open(filename, 'rb')
 
     f.seek(0, os.SEEK_END)
     size = f.tell()
     f.seek(0)
 
-    content_type = 'application/' + {'.tar': 'x-tar', '.tar.gz': 'gzip', '.tar.xz': 'x-xz'}[filetype]
+    content_type = 'application/' + {'tar': 'x-tar', 'tar.gz': 'gzip', 'tar.xz': 'x-xz'}[filetype]
 
     response = StreamingHttpResponse(FileWrapper(f), content_type=content_type)
     response['Content-Length'] = size

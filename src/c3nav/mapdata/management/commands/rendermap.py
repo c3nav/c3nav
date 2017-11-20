@@ -68,9 +68,7 @@ class Command(BaseCommand):
                                    full_levels=options['full_levels'])
 
             filename = os.path.join(settings.RENDER_ROOT,
-                                    'level_%s_%s.%s' % (level.short_label,
-                                                        renderer.access_cache_key.replace('_', '-'),
-                                                        options['filetype']))
+                                    'level_%s.%s' % (level.short_label, options['filetype']))
 
             render = renderer.render(get_engine(options['filetype']), center=not options['no_center'])
             data = render.render(filename)

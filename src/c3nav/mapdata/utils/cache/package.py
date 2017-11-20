@@ -1,8 +1,11 @@
 import os
 import struct
+import threading
 from collections import namedtuple
 from io import BytesIO
 from tarfile import TarFile, TarInfo
+
+from django.conf import settings
 
 from c3nav.mapdata.utils.cache import AccessRestrictionAffected, GeometryIndexed, MapHistory
 
@@ -69,3 +72,31 @@ class CachePackage:
             )
 
         return cls(bounds, levels)
+
+    @classmethod
+    def open(cls, filename=None):
+        if filename is None:
+            filename = os.path.join(settings.CACHE_ROOT, 'package.tar')
+        return cls.read(open(filename, 'rb'))
+
+    cached = None
+    cache_key = None
+    cache_lock = threading.Lock()
+
+    @classmethod
+    def open_cached(cls):
+        with cls.cache_lock:
+            from c3nav.mapdata.models import MapUpdate
+            cache_key = MapUpdate.current_processed_cache_key()
+            if cls.cache_key != cache_key:
+                cls.cache_key = cache_key
+                cls.cached = None
+
+            if cls.cached is None:
+                cls.cached = cls.open()
+
+            return cls.cached
+
+    def bounds_valid(self, minx, miny, maxx, maxy):
+        return (minx <= self.bounds[2] and maxx >= self.bounds[0] and
+                miny <= self.bounds[3] and maxy >= self.bounds[1])
