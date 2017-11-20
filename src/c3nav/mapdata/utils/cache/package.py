@@ -50,3 +50,22 @@ class CachePackage:
     def save_all(self, filename=None):
         for compression in (None, 'gz', 'xz'):
             self.save(filename, compression)
+
+    @classmethod
+    def read(cls, f):
+        f = TarFile.open(fileobj=f)
+        files = {info.name: info for info in f.getmembers()}
+
+        bounds = tuple(i/100 for i in struct.unpack('<IIII', f.extractfile(files['bounds']).read()))
+
+        levels = {}
+        for filename in files:
+            if not filename.startswith('history_'):
+                continue
+            level_id = int(filename[8:])
+            levels[level_id] = CachePackageLevel(
+                history=MapHistory.read(f.extractfile(files['history_%d' % level_id])),
+                restrictions=AccessRestrictionAffected.read(f.extractfile(files['restrictions_%d' % level_id]))
+            )
+
+        return cls(bounds, levels)
