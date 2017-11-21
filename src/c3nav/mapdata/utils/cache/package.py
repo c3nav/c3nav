@@ -5,8 +5,6 @@ from collections import namedtuple
 from io import BytesIO
 from tarfile import TarFile, TarInfo
 
-from django.conf import settings
-
 from c3nav.mapdata.utils.cache import AccessRestrictionAffected, GeometryIndexed, MapHistory
 
 CachePackageLevel = namedtuple('CachePackageLevel', ('history', 'restrictions'))
@@ -76,6 +74,7 @@ class CachePackage:
     @classmethod
     def open(cls, filename=None):
         if filename is None:
+            from django.conf import settings
             filename = os.path.join(settings.CACHE_ROOT, 'package.tar')
         return cls.read(open(filename, 'rb'))
 

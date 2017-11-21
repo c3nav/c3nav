@@ -20,7 +20,7 @@ from c3nav.mapdata.models import Level
 from c3nav.mapdata.models.access import AccessRestrictionMixin
 from c3nav.mapdata.models.geometry.base import GeometryMixin
 from c3nav.mapdata.models.locations import SpecificLocation
-from c3nav.mapdata.utils.cache import changed_geometries
+from c3nav.mapdata.utils.cache.changes import changed_geometries
 from c3nav.mapdata.utils.geometry import (assert_multilinestring, assert_multipolygon, clean_cut_polygon,
                                           cut_polygon_with_line)
 

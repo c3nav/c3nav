@@ -3,7 +3,6 @@ import struct
 from functools import reduce
 
 import numpy as np
-from shapely.geometry.base import BaseGeometry
 
 from c3nav.mapdata.utils.cache.indexed import LevelGeometryIndexed
 
@@ -81,6 +80,7 @@ class AccessRestrictionAffectedCells:
         return (self.values & (2**i)).any()
 
     def add(self, restriction):
+        from shapely.geometry.base import BaseGeometry
         if not isinstance(self.selector, BaseGeometry):
             raise TypeError('Can only add restrictions with Geometry based selectors')
 
@@ -93,6 +93,7 @@ class AccessRestrictionAffectedCells:
         self._set(self.values | (2**i))
 
     def discard(self, restriction):
+        from shapely.geometry.base import BaseGeometry
         if not isinstance(self.selector, BaseGeometry):
             raise TypeError('Can only discard restrictions with Geometry based selectors')
 

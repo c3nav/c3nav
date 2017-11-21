@@ -4,10 +4,6 @@ import struct
 import threading
 
 import numpy as np
-from PIL import Image
-from shapely import prepared
-from shapely.geometry import box
-from shapely.geometry.base import BaseGeometry
 
 
 class GeometryIndexed:
@@ -122,6 +118,9 @@ class GeometryIndexed:
         maxx = min(maxx, self.x + width)
         maxy = min(maxy, self.y + height)
 
+        from shapely import prepared
+        from shapely.geometry import box
+
         cells = np.zeros_like(self.data, dtype=np.bool)
         prep = prepared.prep(geometry)
         res = self.resolution
@@ -138,10 +137,6 @@ class GeometryIndexed:
         return self.x, self.y, self.x+width, self.y+height
 
     def __getitem__(self, key):
-        if isinstance(key, BaseGeometry):
-            bounds = self._get_geometry_bounds(key)
-            return self.data[self.get_geometry_cells(key, bounds)]
-
         if isinstance(key, tuple):
             xx, yy = key
 
@@ -158,9 +153,15 @@ class GeometryIndexed:
 
             return self.data[miny:maxy, minx:maxx].flatten()
 
+        from shapely.geometry.base import BaseGeometry
+        if isinstance(key, BaseGeometry):
+            bounds = self._get_geometry_bounds(key)
+            return self.data[self.get_geometry_cells(key, bounds)]
+
         raise TypeError('GeometryIndexed index must be a shapely geometry or tuple, not %s' % type(key).__name__)
 
     def __setitem__(self, key, value):
+        from shapely.geometry.base import BaseGeometry
         if isinstance(key, BaseGeometry):
             bounds = self._get_geometry_bounds(key)
             self.fit_bounds(*bounds)
@@ -184,6 +185,7 @@ class GeometryIndexed:
             visible_data = ((self.data.astype(float)-minval)*255/(maxval-minval)).clip(0, 255).astype(np.uint8)
             image_data[self.y:self.y+height, self.x:self.x+width] = visible_data
 
+        from PIL import Image
         return Image.fromarray(np.flip(image_data, axis=0), 'L')
 
 
