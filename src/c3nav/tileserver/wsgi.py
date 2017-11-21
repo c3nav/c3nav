@@ -4,6 +4,7 @@ import os
 import re
 import threading
 import time
+from email.utils import formatdate
 from io import BytesIO
 
 import pylibmc
@@ -102,12 +103,19 @@ class TileServer:
             return False
         return True
 
+    def get_date_header(self):
+        return 'Date', formatdate(timeval=time.time(), localtime=False, usegmt=True)
+
     def not_found(self, start_response, text):
-        start_response('404 Not Found', [('Content-Type', 'text/plain')])
+        start_response('404 Not Found', [self.get_date_header(),
+                                         ('Content-Type', 'text/plain'),
+                                         ('Content-Length', len(text))])
         return [text]
 
     def deliver_tile(self, start_response, etag, data):
-        start_response('200 OK', [('Content-Type', 'image/png'),
+        start_response('200 OK', [self.get_date_header(),
+                                  ('Content-Type', 'image/png'),
+                                  ('Content-Length', len(data)),
                                   ('Cache-Control', 'no-cache'),
                                   ('ETag', etag)])
         return [data]
@@ -159,7 +167,8 @@ class TileServer:
         if_none_match = env.get('HTTP_IF_NONE_MATCH')
         tile_etag = build_tile_etag(level, zoom, x, y, base_cache_key, access_cache_key, self.tile_secret)
         if if_none_match == tile_etag:
-            start_response('304 Not Modified', [('Content-Type', 'text/plain'),
+            start_response('304 Not Modified', [self.get_date_header(),
+                                                ('Content-Length', '0'),
                                                 ('ETag', tile_etag)])
             return [b'']
 
@@ -174,7 +183,9 @@ class TileServer:
             self.tile_cache[tile_etag] = r.content
             return self.deliver_tile(start_response, tile_etag, r.content)
 
-        start_response('%d %s' % (r.status_code, r.reason), [('Content-Type', r.headers['Content-Type'])])
+        start_response('%d %s' % (r.status_code, r.reason), [self.get_date_header(),
+                                                             ('Content-Length', len(r.content)),
+                                                             ('Content-Type', r.headers['Content-Type'])])
         return [r.content]
 
 
