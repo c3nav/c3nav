@@ -2,6 +2,7 @@ import base64
 import logging
 import os
 import re
+import threading
 import time
 from io import BytesIO
 
@@ -53,6 +54,13 @@ class TileServer:
             time.sleep(wait)
             wait = min(2, wait*2)
 
+        threading.Thread(target=self.update_cache_package_thread, daemon=True).start()
+
+    def update_cache_package_thread(self):
+        while True:
+            time.sleep(60)
+            self.load_cache_package()
+
     def load_cache_package(self):
         logger.debug('Downloading cache package from upstream...')
         try:
@@ -77,8 +85,12 @@ class TileServer:
             logger.error('Cache package download failed: %s' % e)
             return False
 
-        self.cache_package = CachePackage.read(BytesIO(r.content))
-        self.cache_package_etag = r.headers.get('ETag', None)
+        try:
+            self.cache_package = CachePackage.read(BytesIO(r.content))
+            self.cache_package_etag = r.headers.get('ETag', None)
+        except Exception as e:
+            logger.error('Cache package parsing failed: %s' % e)
+            return False
         return True
 
     def not_found(self, start_response, text):
