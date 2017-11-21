@@ -146,12 +146,12 @@ class GeometryIndexed:
             maxy = int(math.ceil(yy.stop / self.resolution))
 
             height, width = self.data.shape
-            minx = max(self.x, min(self.x + width, minx)) - self.x
-            miny = max(self.y, min(self.y + height, miny)) - self.y
-            maxx = max(self.x, min(self.x + width, maxx)) - self.x
-            maxy = max(self.y, min(self.y + height, maxy)) - self.y
+            minx = max(0, minx - self.x)
+            miny = max(0, miny - self.y)
+            maxx = max(0, maxx - self.x)
+            maxy = max(0, maxy - self.y)
 
-            return self.data[miny:maxy, minx:maxx].flatten()
+            return self.data[miny:maxy, minx:maxx].ravel()
 
         from shapely.geometry.base import BaseGeometry
         if isinstance(key, BaseGeometry):
