@@ -154,21 +154,22 @@ class TileServer:
         if level_data is None:
             return self.not_found(start_response, b'invalid level.')
 
+        # build cache keys
+        last_update = level_data.history.last_update(minx, miny, maxx, maxy)
+        base_cache_key = build_base_cache_key(last_update)
+
         # decode access permissions
+        access_permissions = set()
+        access_cache_key = '0'
+
         cookie = env.get('HTTP_COOKIE', None)
         if cookie:
             cookie = self.cookie_regex.search(cookie)
             if cookie:
                 cookie = cookie.group(2)
-            access_permissions = (parse_tile_access_cookie(cookie, self.tile_secret) &
-                                  set(level_data.restrictions[minx:miny, maxx:maxy]))
-        else:
-            access_permissions = set()
-
-        # build cache keys
-        last_update = level_data.history.last_update(minx, miny, maxx, maxy)
-        base_cache_key = build_base_cache_key(last_update)
-        access_cache_key = build_access_cache_key(access_permissions)
+                access_permissions = (parse_tile_access_cookie(cookie, self.tile_secret) &
+                                      set(level_data.restrictions[minx:miny, maxx:maxy]))
+                access_cache_key = build_access_cache_key(access_permissions)
 
         # check browser cache
         if_none_match = env.get('HTTP_IF_NONE_MATCH')
