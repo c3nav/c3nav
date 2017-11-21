@@ -6,6 +6,7 @@ import threading
 import time
 from io import BytesIO
 
+import pylibmc
 import requests
 
 from c3nav.mapdata.utils.cache import CachePackage
@@ -43,6 +44,8 @@ class TileServer:
 
         self.cache_package = None
         self.cache_package_etag = None
+
+        self.tile_cache = pylibmc.Client(["127.0.0.1"], binary=True, behaviors={"tcp_nodelay": True, "ketama": True})
 
         wait = 1
         while True:
@@ -97,6 +100,12 @@ class TileServer:
         start_response('404 Not Found', [('Content-Type', 'text/plain')])
         return [text]
 
+    def deliver_tile(self, start_response, etag, data):
+        start_response('200 OK', [('Content-Type', 'image/png'),
+                                  ('Cache-Control', 'no-cache'),
+                                  ('ETag', etag)])
+        return [data]
+
     def __call__(self, env, start_response):
         match = self.path_regex.match(env['PATH_INFO'])
         if match is None:
@@ -142,19 +151,24 @@ class TileServer:
 
         # check browser cache
         if_none_match = env.get('HTTP_IF_NONE_MATCH')
-        if if_none_match:
-            tile_etag = build_tile_etag(level, zoom, x, y, base_cache_key, access_cache_key, self.tile_secret)
-            if if_none_match == tile_etag:
-                start_response('304 Not Modified', [('Content-Type', 'text/plain'), ('ETag', tile_etag)])
-                return [b'']
+        tile_etag = build_tile_etag(level, zoom, x, y, base_cache_key, access_cache_key, self.tile_secret)
+        if if_none_match == tile_etag:
+            start_response('304 Not Modified', [('Content-Type', 'text/plain'),
+                                                ('ETag', tile_etag)])
+            return [b'']
+
+        cached_result = self.tile_cache.get(tile_etag)
+        if cached_result is not None:
+            return self.deliver_tile(start_response, tile_etag, cached_result)
 
         r = requests.get('%s/map/%d/%d/%d/%d/%s.png' % (self.upstream_base, level, zoom, x, y, access_cache_key),
                          headers=self.auth_headers)
 
-        headers = [('Content-Type', r.headers['Content-Type'])]
-        if 'ETag' in r.headers:
-            headers.append(('ETag', r.headers['ETag']))
-        start_response('%d %s' % (r.status_code, r.reason), headers)
+        if r.status_code == 200 and r.headers['Content-Type'] == 'image/png':
+            self.tile_cache[tile_etag] = r.content
+            return self.deliver_tile(start_response, tile_etag, r.content)
+
+        start_response('%d %s' % (r.status_code, r.reason), [('Content-Type', r.headers['Content-Type'])])
         return [r.content]
 
 
