@@ -56,7 +56,7 @@ main.map {
     position: absolute;
     z-index: 2;
     top: 0;
-    padding: 10px 10px 16px;
+    padding: 10px 10px 32px;
     width: 100%;
     bottom: 0;
     max-width: 420px;
@@ -77,7 +77,6 @@ main.map {
     border-radius: 2px;
     overflow: hidden;
     margin-bottom: 10px;
-    flex-shrink: 0;
 }
 #sidebar section > div {
     border: 0 #dddddd solid;
@@ -97,6 +96,7 @@ main.map {
     min-width: 54px;
     width: 100%;
     transition: width 150ms;
+    flex-shrink: 0;
 }
 #search.loading {
     width: 5%;
@@ -117,10 +117,24 @@ main:not([data-view=route-result]) #route-result-buttons {
 }
 #resultswrapper {
     flex-grow: 1;
+    flex-shrink: 1;
+    display: flex;
+    flex-direction: column;
 }
 #resultswrapper section {
     max-height: 100%;
     overflow: auto;
+    margin: 0;
+}
+#location-details, #route-details {
+    padding: 10px;
+}
+main:not([data-view$=search]) #autocomplete,
+main:not([data-view=location]) #location-details,
+main:not(.show-details) #location-details,
+main:not([data-view=route-result]) #route-details,
+main:not(.show-details) #route-details {
+    display:none;
 }
 
 .location {
