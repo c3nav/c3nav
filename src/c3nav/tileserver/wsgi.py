@@ -52,6 +52,9 @@ class TileServer:
         self.cache_package = None
         self.cache_package_etag = None
 
+        self.date_header = ('Date', '0')
+        threading.Thread(target=self.date_thread, daemon=True).start()
+
         self.tile_cache = pylibmc.Client(["127.0.0.1"], binary=True, behaviors={"tcp_nodelay": True, "ketama": True})
 
         wait = 1
@@ -70,6 +73,13 @@ class TileServer:
         while True:
             time.sleep(60)
             self.load_cache_package()
+
+    def date_thread(self):
+        # why do we do this in a thread? because it makes us able to handle 2000 requests per second more
+        while True:
+            now = time.time()
+            self.date_header = 'Date', formatdate(timeval=time.time(), localtime=False, usegmt=True)
+            time.sleep(1-(now-int(now)))
 
     def load_cache_package(self):
         logger.debug('Downloading cache package from upstream...')
@@ -103,17 +113,14 @@ class TileServer:
             return False
         return True
 
-    def get_date_header(self):
-        return 'Date', formatdate(timeval=time.time(), localtime=False, usegmt=True)
-
     def not_found(self, start_response, text):
-        start_response('404 Not Found', [self.get_date_header(),
+        start_response('404 Not Found', [self.date_header,
                                          ('Content-Type', 'text/plain'),
                                          ('Content-Length', str(len(text)))])
         return [text]
 
     def deliver_tile(self, start_response, etag, data):
-        start_response('200 OK', [self.get_date_header(),
+        start_response('200 OK', [self.date_header,
                                   ('Content-Type', 'image/png'),
                                   ('Content-Length', str(len(data))),
                                   ('Cache-Control', 'no-cache'),
@@ -167,7 +174,7 @@ class TileServer:
         if_none_match = env.get('HTTP_IF_NONE_MATCH')
         tile_etag = build_tile_etag(level, zoom, x, y, base_cache_key, access_cache_key, self.tile_secret)
         if if_none_match == tile_etag:
-            start_response('304 Not Modified', [self.get_date_header(),
+            start_response('304 Not Modified', [self.date_header,
                                                 ('Content-Length', '0'),
                                                 ('ETag', tile_etag)])
             return [b'']
@@ -183,7 +190,7 @@ class TileServer:
             self.tile_cache[tile_etag] = r.content
             return self.deliver_tile(start_response, tile_etag, r.content)
 
-        start_response('%d %s' % (r.status_code, r.reason), [self.get_date_header(),
+        start_response('%d %s' % (r.status_code, r.reason), [self.date_header,
                                                              ('Content-Length', len(r.content)),
                                                              ('Content-Type', r.headers['Content-Type'])])
         return [r.content]
