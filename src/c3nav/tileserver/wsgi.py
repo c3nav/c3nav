@@ -109,13 +109,13 @@ class TileServer:
     def not_found(self, start_response, text):
         start_response('404 Not Found', [self.get_date_header(),
                                          ('Content-Type', 'text/plain'),
-                                         ('Content-Length', len(text))])
+                                         ('Content-Length', str(len(text)))])
         return [text]
 
     def deliver_tile(self, start_response, etag, data):
         start_response('200 OK', [self.get_date_header(),
                                   ('Content-Type', 'image/png'),
-                                  ('Content-Length', len(data)),
+                                  ('Content-Length', str(len(data))),
                                   ('Cache-Control', 'no-cache'),
                                   ('ETag', etag)])
         return [data]
