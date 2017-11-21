@@ -103,12 +103,12 @@ def tile(request, level, zoom, x, y, access_permissions=None):
 
     # get tile cache last update
     if settings.CACHE_TILES:
-        tile_dirname = os.path.sep.join((settings.TILES_ROOT, str(level_data), str(zoom), str(x), str(y)))
+        tile_dirname = os.path.sep.join((settings.TILES_ROOT, str(level), str(zoom), str(x), str(y)))
         last_update_filename = os.path.join(tile_dirname, 'last_update')
         tile_filename = os.path.join(tile_dirname, access_cache_key+'.png')
 
         # get tile cache last update
-        tile_cache_update_cache_key = 'mapdata:tile-cache-update:%d-%d-%d-%d' % (level_data, zoom, x, y)
+        tile_cache_update_cache_key = 'mapdata:tile-cache-update:%d-%d-%d-%d' % (level, zoom, x, y)
         tile_cache_update = cache.get(tile_cache_update_cache_key, None)
         if tile_cache_update is None:
             try:
