@@ -55,7 +55,7 @@ class TileServer:
                 break
             logger.info('Retrying after %s seconds...' % wait)
             time.sleep(wait)
-            wait = min(2, wait*2)
+            wait = min(10, wait*2)
 
         threading.Thread(target=self.update_cache_package_thread, daemon=True).start()
 
