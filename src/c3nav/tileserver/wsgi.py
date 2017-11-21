@@ -160,7 +160,9 @@ class TileServer:
             cookie = self.cookie_regex.search(cookie)
             if cookie:
                 cookie = cookie.group(2)
-        access_permissions = parse_tile_access_cookie(cookie, self.tile_secret) if cookie else set()
+            access_permissions = parse_tile_access_cookie(cookie, self.tile_secret)
+        else:
+            access_permissions = set()
 
         # only access permissions that are affecting this tile
         access_permissions &= set(level_data.restrictions[minx:miny, maxx:maxy])
