@@ -27,7 +27,7 @@
             <button class="button-clear as-destination">Route to here</button>
             <button class="button-clear as-origin">Route from here</button>
         </section>
-        <section id="map" data-bounds="{{ bounds }}" data-levels="{{ levels }}"></section>
+        <section id="map" data-bounds="{{ bounds }}" data-levels="{{ levels }}"{% if tile_cache_server %} data-tile-server="{{ tile_cache_server }}"{% endif %}></section>
         <section id="sidebar">
             <section id="search" class="loading">
                 <div class="location locationinput empty" id="origin-input">

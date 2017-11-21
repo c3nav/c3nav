@@ -5,6 +5,7 @@ from datetime import timedelta
 from typing import Mapping, Optional
 
 import qrcode
+from django.conf import settings
 from django.core.cache import cache
 from django.http import Http404, HttpResponse, JsonResponse
 from django.shortcuts import redirect, render
@@ -145,6 +146,7 @@ def map_index(request, mode=None, slug=None, slug2=None, level=None, x=None, y=N
         'bounds': json.dumps(Source.max_bounds(), separators=(',', ':')),
         'levels': json.dumps(tuple(levels.values()), separators=(',', ':')),
         'state': json.dumps(state, separators=(',', ':')),
+        'tile_cache_server': settings.TILE_CACHE_SERVER,
     }
     return render(request, 'site/map.html', ctx)
 

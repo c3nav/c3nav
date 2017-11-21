@@ -13,6 +13,8 @@ config = configparser.RawConfigParser()
 config.read(['/etc/c3nav/c3nav.cfg', os.path.expanduser('~/.c3nav.cfg'), os.environ.get('C3NAV_CONFIG', 'c3nav.cfg')],
             encoding='utf-8')
 
+INSTANCE_NAME = config.get('c3nav', 'name', fallback='noname')
+
 # Build paths inside the project like this: os.path.join(BASE_DIR, ...)
 BASE_DIR = os.path.dirname(os.path.dirname(__file__))
 DATA_DIR = config.get('c3nav', 'datadir', fallback=os.environ.get('DATA_DIR', 'data'))
@@ -161,13 +163,16 @@ CELERY_RESULT_SERIALIZER = 'json'
 SESSION_COOKIE_DOMAIN = config.get('c3nav', 'cookie_domain', fallback=None)
 SESSION_COOKIE_SECURE = config.getboolean('c3nav', 'session_cookie_secure', fallback=False)
 
+TILE_CACHE_SERVER = config.get('c3nav', 'tile_cache_server', fallback=None)
+TILE_ACCESS_COOKIE_DOMAIN = config.get('c3nav', 'tile_access_cookie_domain', fallback=None)
+
 # Internal settings
 STATIC_ROOT = os.path.join(os.path.dirname(__file__), 'static.dist')
 
-SESSION_COOKIE_NAME = 'c3nav_session'
-LANGUAGE_COOKIE_NAME = 'c3nav_language'
-CSRF_COOKIE_NAME = 'c3nav_csrftoken'
-TILE_ACCESS_COOKIE_NAME = 'c3nav_tile_access'
+SESSION_COOKIE_NAME = 'c3nav_%s_session' % INSTANCE_NAME
+LANGUAGE_COOKIE_NAME = 'c3nav_%s_language' % INSTANCE_NAME
+CSRF_COOKIE_NAME = 'c3nav_%s_csrftoken' % INSTANCE_NAME
+TILE_ACCESS_COOKIE_NAME = 'c3nav_%s_tile_access' % INSTANCE_NAME
 SESSION_COOKIE_HTTPONLY = True
 
 # Application definition

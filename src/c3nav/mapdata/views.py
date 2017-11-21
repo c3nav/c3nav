@@ -27,8 +27,9 @@ def set_tile_access_cookie(func):
 
         access_permissions = AccessPermission.get_for_request(request)
         if access_permissions:
-            bla = build_tile_access_cookie(access_permissions, settings.SECRET_TILE_KEY)
-            response.set_cookie(settings.TILE_ACCESS_COOKIE_NAME, bla, max_age=60)
+            cookie = build_tile_access_cookie(access_permissions, settings.SECRET_TILE_KEY)
+            response.set_cookie(settings.TILE_ACCESS_COOKIE_NAME, cookie, max_age=60,
+                                domain=settings.TILE_ACCESS_COOKIE_DOMAIN)
         else:
             response.delete_cookie(settings.TILE_ACCESS_COOKIE_NAME)
 

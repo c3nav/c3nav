@@ -438,6 +438,7 @@ c3nav = {
         var $map = $('#map'), i;
         c3nav.bounds = JSON.parse($map.attr('data-bounds'));
         c3nav.levels = JSON.parse($map.attr('data-levels'));
+        c3nav.tile_server = $map.attr('data-tile-server');
 
         c3nav.level_labels_by_id = {};
         for (i = 0; i < c3nav.levels.length; i ++) {
@@ -630,7 +631,7 @@ LevelControl = L.Control.extend({
     },
 
     addLevel: function (id, title) {
-        this._tileLayers[id] = L.tileLayer('/map/' + String(id) + '/{z}/{x}/{y}.png', {
+        this._tileLayers[id] = L.tileLayer((c3nav.tile_server || '/map/') + String(id) + '/{z}/{x}/{y}.png', {
             bounds: L.GeoJSON.coordsToLatLngs(c3nav.bounds)
         });
         var overlay = L.layerGroup();
