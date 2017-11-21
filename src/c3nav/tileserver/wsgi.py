@@ -20,10 +20,16 @@ logger = logging.getLogger('c3nav')
 
 
 class TileServer:
-    path_regex = re.compile(r'^/(\d+)/(\d+)/(-?\d+)/(-?\d+).png$')
-    cookie_regex = re.compile(r'[^ ]c3nav_tile_access=([^; ])')
-
     def __init__(self):
+        self.path_regex = re.compile(r'^/(\d+)/(\d+)/(-?\d+)/(-?\d+).png$')
+
+        try:
+            self.instance_name = os.environ['C3NAV_INSTANCE_NAME']
+        except KeyError:
+            raise Exception('C3NAV_INSTANCE_NAME needs to be set.')
+
+        self.cookie_regex = re.compile(r'(^| )c3nav_'+re.escape(self.instance_name)+r'_tile_access="?([^;" ]+)"?')
+
         try:
             self.upstream_base = os.environ['C3NAV_UPSTREAM_BASE'].strip('/')
         except KeyError:
@@ -136,9 +142,9 @@ class TileServer:
         # decode access permissions
         cookie = env.get('HTTP_COOKIE', None)
         if cookie:
-            cookie = self.cookie_regex.match(cookie)
+            cookie = self.cookie_regex.search(cookie)
             if cookie:
-                cookie = cookie.group(1)
+                cookie = cookie.group(2)
         access_permissions = parse_tile_access_cookie(cookie, self.tile_secret) if cookie else set()
 
         # only access permissions that are affecting this tile
