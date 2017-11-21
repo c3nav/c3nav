@@ -151,9 +151,10 @@ class TileServer:
         r = requests.get('%s/map/%d/%d/%d/%d/%s.png' % (self.upstream_base, level, zoom, x, y, access_cache_key),
                          headers=self.auth_headers)
 
-        start_response('%d %s' % (r.status_code, r.reason),
-                       [('Content-Type', r.headers['Content-Type']),
-                        ('ETag', r.headers['ETag'])])
+        headers = [('Content-Type', r.headers['Content-Type'])]
+        if 'ETag' in r.headers:
+            headers.append(('ETag', r.headers['ETag']))
+        start_response('%d %s' % (r.status_code, r.reason), headers)
         return [r.content]
 
 
