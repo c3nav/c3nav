@@ -84,7 +84,6 @@ main.map {
     border-top-width: 1px;
     transition: margin-bottom 150ms, opacity 150ms;
     overflow: hidden;
-    background-color: #ffffff;
 }
 #sidebar section > div:first-child {
     margin-top: -1px;
@@ -156,6 +155,7 @@ main:not([data-view=route-result]) #route-result-buttons {
 .locationinput {
     position: relative;
     padding: 0;
+    background-color: #ffffff;
 }
 .locationinput input {
     box-sizing: border-box;
