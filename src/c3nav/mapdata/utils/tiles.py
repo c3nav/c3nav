@@ -52,4 +52,4 @@ def build_tile_etag(level_id, zoom, x, y, base_cache_key, access_cache_key, tile
     # we want a short etag so HTTP 304 responses are tiny
     return '"' + binascii.b2a_base64(hashlib.sha256(
         ('%d-%d-%d-%d:%s:%s:%s' % (level_id, zoom, x, y, base_cache_key, access_cache_key, tile_secret[:26])).encode()
-    ).digest(), newline=False).decode()[:16] + '"'
+    ).digest()[:15], newline=False).decode() + '"'
