@@ -30,7 +30,7 @@ def parse_tile_access_cookie(cookie, tile_secret):
     except ValueError:
         return set()
     value = access_permissions + ':' + expire
-    key = hashlib.sha1(tile_secret).digest()
+    key = hashlib.sha1(tile_secret.encode()).digest()
     signed_verify = base64.b64encode(hmac.new(key, msg=value.encode(), digestmod=hashlib.sha256).digest()).decode()
     if signed != signed_verify:
         return set()
