@@ -7,7 +7,7 @@ python:
 
 install:
     - pip install --upgrade setuptools pip
-    - pip install -r src/requirements.txt -r src/requirements/dev.txt
+    - pip install -r src/requirements.txt -r src/requirements/dev.txt -r src/requirements_tileserver.txt -r requirements/opengl.txt
 
 before_script:
     - cd src
