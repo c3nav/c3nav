@@ -141,21 +141,52 @@ section.details > * {
     flex-grow: 0;
 }
 section.details > .details-head {
-    padding: 11px 10px 9px;
+    padding: 11px 10px 8px;
 }
 .details-head > button {
     margin: 0;
+    transition: none;
 }
 #sidebar section.details > .details-body {
     border: 0;
-    padding-top: 0;
     overflow: auto;
     flex-grow: 1;
     flex-shrink: 1;
 }
 
+section.details {
+    /*noinspection CssUnknownTarget*/
+    background: url('../../img/loader.gif') no-repeat right 4px top 3px;
+}
+#sidebar section.details.loading > .details-head {
+    background-color: rgba(255, 255, 255, 0);
+}
+#sidebar section.details.loading > .details-head button {
+    pointer-events: none;
+    opacity: 0;
+}
+#sidebar section.details.loading > .details-body {
+    max-height: 0;
+    opacity: 0;
+}
+#sidebar section.details:not(.loading) > .details-head {
+    transition: background-color 50ms;
+    background-color: rgba(255, 255, 255, 1);
+}
+#sidebar section.details:not(.loading) > .details-head button {
+    transition: opacity 150ms;
+    pointer-events: auto;
+    opacity: 1;
+}
+#sidebar section.details:not(.loading) > div.details-body {
+    max-height: 100vh;
+    transition: max-height 150ms, opacity 50ms;
+    transition-timing-function: ease-in;
+    opacity: 1;
+}
+
 #location-details .details-body {
-    padding: 0 10px 5px;
+    padding: 0 10px;
 }
 #location-details dl {
     display: flex;
