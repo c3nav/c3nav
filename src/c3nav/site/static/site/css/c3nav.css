@@ -183,7 +183,20 @@ section.details {
     max-height: 100vh;
     transition: max-height 150ms, opacity 50ms;
     transition-timing-function: ease-in;
+    animation: show-details-body;
+    animation-duration: 160ms;
     opacity: 1;
+}
+@keyframes show-details-body {
+    from {
+        overflow: hidden;
+    }
+    99% {
+        overflow: hidden;
+    }
+    to {
+        overflow: auto;
+    }
 }
 
 #location-details .details-body {
@@ -221,9 +234,6 @@ main.show-details .buttons .details .material-icons {
 main.show-details #resultswrapper .details {
     animation: show-details;
     animation-duration: 150ms;
-    -webkit-animation-timing-function: ease-out;
-    -moz-animation-timing-function: ease-out;
-    -o-animation-timing-function: ease-out;
     animation-timing-function: ease-out;
 }
 @keyframes show-details {
