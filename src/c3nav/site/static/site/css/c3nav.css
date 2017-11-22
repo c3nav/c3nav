@@ -193,15 +193,16 @@ section.details {
     display: flex;
     flex-wrap: wrap;
     margin: 0;
+    font-size:90%;
 }
 #location-details dt {
     width: 39%;
-    margin: 0 0 1rem;
+    margin: 0 0 0.7rem;
     font-weight: 700;
 }
 #location-details dd {
     width: 60%;
-    margin: 0 0 1rem;
+    margin: 0 0 0.7rem;
     padding: 0 0 0 1rem;
 }
 
