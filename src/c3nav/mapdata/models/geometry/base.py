@@ -1,9 +1,7 @@
 import math
 from collections import OrderedDict
 
-from django.db import models
 from django.utils.functional import cached_property
-from django.utils.translation import ugettext_lazy as _
 from shapely.geometry import LineString, Point, mapping
 from shapely.ops import unary_union
 
@@ -12,25 +10,14 @@ from c3nav.mapdata.utils.geometry import assert_multilinestring, assert_multipol
 from c3nav.mapdata.utils.json import format_geojson
 
 
-class GeometryManager(models.Manager):
-    def within(self, minx, miny, maxx, maxy):
-        return self.get_queryset().filter(minx__lte=maxx, maxx__gte=minx, miny__lte=maxy, maxy__gte=miny)
-
-
 class GeometryMixin(SerializableMixin):
     """
     A map feature with a geometry
     """
     geometry = None
-    minx = models.DecimalField(_('min x coordinate'), max_digits=6, decimal_places=2, db_index=True)
-    miny = models.DecimalField(_('min y coordinate'), max_digits=6, decimal_places=2, db_index=True)
-    maxx = models.DecimalField(_('max x coordinate'), max_digits=6, decimal_places=2, db_index=True)
-    maxy = models.DecimalField(_('max y coordinate'), max_digits=6, decimal_places=2, db_index=True)
-    objects = GeometryManager()
 
     class Meta:
         abstract = True
-        base_manager_name = 'objects'
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -85,8 +72,9 @@ class GeometryMixin(SerializableMixin):
         if simple_geometry:
             result['point'] = (self.level_id, ) + tuple(round(i, 2) for i in self.point.coords[0])
             if not isinstance(self.geometry, Point):
-                result['bounds'] = ((int(math.floor(self.minx)), int(math.floor(self.miny))),
-                                    (int(math.ceil(self.maxx)), int(math.ceil(self.maxy))))
+                minx, miny, maxx, maxy = self.geometry.bounds
+                result['bounds'] = ((int(math.floor(minx)), int(math.floor(miny))),
+                                    (int(math.ceil(maxx)), int(math.ceil(maxy))))
         return result
 
     def details_display(self):
@@ -99,9 +87,6 @@ class GeometryMixin(SerializableMixin):
 
     def contains(self, x, y) -> bool:
         return self.geometry.contains(Point(x, y))
-
-    def recalculate_bounds(self):
-        self.minx, self.miny, self.maxx, self.maxy = self.geometry.bounds
 
     @property
     def geometry_changed(self):
@@ -126,7 +111,3 @@ class GeometryMixin(SerializableMixin):
         if self._meta.get_field('geometry').geomtype in ('polygon', 'multipolygon'):
             difference = unary_union(assert_multipolygon(difference))
         return difference
-
-    def save(self, *args, **kwargs):
-        self.recalculate_bounds()
-        super().save(*args, **kwargs)
