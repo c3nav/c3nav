@@ -132,7 +132,7 @@ c3nav = {
                     // loaded too late, information no longer needed
                     return;
                 }
-                var line, dest, link, elem = $('<dl>');
+                var line, sublocations, loc, loclist, elem = $('<dl>');
                 for (var i = 0; i < data.display.length; i++) {
                     line = data.display[i];
                     elem.append($('<dt>').text(line[0]));
@@ -141,13 +141,18 @@ c3nav = {
                     } else if (line[1] === null) {
                         elem.append($('<dd>').text('-'));
                     } else {
-                        dest = line[1];
-                        link = $('<a>').attr('href', '/l/'+dest.slug+'/details/').attr('data-id', dest.id).click(function (e) {
-                            e.preventDefault();
-                            c3nav._locationinput_set($('#destination-input'), c3nav.locations_by_id[parseInt($(this).attr('data-id'))]);
-                            c3nav.update_state(false, false, true);
-                        }).text(dest.title);
-                        elem.append($('<dd>').append(link));
+                        sublocations = (line[1].length === undefined) ? [line[1]] : line[1];
+                        loclist = $('<dd>');
+                        console.log(sublocations);
+                        for (var j = 0; j < sublocations.length; j++) {
+                            loc = sublocations[j];
+                            loclist.append($('<a>').attr('href', '/l/' + loc.slug + '/details/').attr('data-id', loc.id).click(function (e) {
+                                e.preventDefault();
+                                c3nav._locationinput_set($('#destination-input'), c3nav.locations_by_id[parseInt($(this).attr('data-id'))]);
+                                c3nav.update_state(false, false, true);
+                            }).text(loc.title));
+                        }
+                        elem.append(loclist);
                     }
 
                 }
