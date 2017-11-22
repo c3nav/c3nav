@@ -259,7 +259,12 @@ editor = {
         var btn = $(this).data('btn');
         if (btn !== undefined && btn !== null) {
             if ($(btn).is('[name]')) {
-                data += '&' + $('<input>').attr('name', $(btn).attr('name')).val($(btn).val()).serialize();
+                var name = $(btn).attr('name');
+                data += '&' + $('<input>').attr('name', name).val($(btn).val()).serialize();
+                if (name === 'delete_confirm') {
+                    editor._active_graph_node = null;
+                    editor._active_graph_node_html = null;
+                }
             }
         }
         var action = $(this).attr('action');

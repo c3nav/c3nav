@@ -419,6 +419,27 @@ def graph_edit(request, level=None, space=None):
         create_nodes = True
 
     if request.method == 'POST':
+        if request.POST.get('delete') == '1':
+            # Delete this graphnode!
+            node = get_object_or_404(GraphNode, pk=request.POST.get('pk'))
+
+            if request.POST.get('delete_confirm') == '1':
+                with request.changeset.lock_to_edit(request) as changeset:
+                    if changeset.can_edit(request):
+                        node.edges_from_here.all().delete()
+                        node.edges_to_here.all().delete()
+                        node.delete()
+                    else:
+                        messages.error(request, _('You can not edit changes on this changeset.'))
+                        return redirect(request.path)
+                messages.success(request, _('Graph Node was successfully deleted.'))
+                return redirect(request.path)
+            return render(request, 'editor/delete.html', {
+                'model_title': GraphNode._meta.verbose_name,
+                'pk': node.pk,
+                'obj_title': node.title
+            })
+
         edge_settings_form = GraphEdgeSettingsForm(instance=GraphEdge(), request=request, data=request.POST)
         graph_action_form = GraphEditorActionForm(request=request, allow_clicked_position=create_nodes,
                                                   data=request.POST)

@@ -33,6 +33,11 @@
             {% blocktrans %}in space {{ space_title }}{% endblocktrans %}<br>
             {% blocktrans %}on level {{ level_title }}{% endblocktrans %}
         {% endwith %}
+        <form action="{{ request.path }}" method="post">
+            {% csrf_token %}
+            <input type="hidden" name="pk" value="{{ active_node.pk }}">
+            <button type="submit" class="btn btn-danger btn-xs" name="delete" value="1">{% trans 'Delete Node' %}</button>
+        </form>
     </div>
 {% else %}
     <div data-active-node class="well well-sm"></div>

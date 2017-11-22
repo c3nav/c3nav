@@ -119,6 +119,9 @@ legend {
     right: 8px;
     top: 8px;
 }
+[data-active-node] form button {
+    margin-top: 5px;
+}
 [data-levels], [data-sublevels], #sidebar .nav, [data-modal-close] {
     display:none;
 }
