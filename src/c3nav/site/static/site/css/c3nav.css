@@ -210,6 +210,12 @@ main:not([data-view=route-result]) #route-details,
 main:not(.show-details) #resultswrapper .details {
     display:none;
 }
+main .buttons .details .material-icons {
+    transition: transform 250ms;
+}
+main.show-details .buttons .details .material-icons {
+    transform: scale(1, -1);
+}
 main.show-details #resultswrapper .details {
     animation: show-details;
     animation-duration: 150ms;
