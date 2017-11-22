@@ -412,8 +412,9 @@ class ChangeSet(models.Model):
         return self.state in ('finallyrejected', 'applied')
 
     def is_author(self, request):
-        return (self.author == request.user or (self.author is None and not request.user.is_authenticated and
-                                                request.session.get('changeset', None) == self.pk))
+        return (self.pk is None or self.author == request.user or
+                (self.author is None and not request.user.is_authenticated and
+                 request.session.get('changeset', None) == self.pk))
 
     def can_see(self, request):
         return self.is_author(request)
