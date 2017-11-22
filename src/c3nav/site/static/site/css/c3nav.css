@@ -156,7 +156,7 @@ section.details > .details-head {
 
 section.details {
     /*noinspection CssUnknownTarget*/
-    background: url('../../img/loader.gif') no-repeat right 4px top 3px;
+    background: url('../../img/loader.gif') no-repeat right 2px top 2px;
 }
 #sidebar section.details.loading > .details-head {
     background-color: rgba(255, 255, 255, 0);
