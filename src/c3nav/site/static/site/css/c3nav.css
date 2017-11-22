@@ -218,6 +218,9 @@ section.details {
     margin: 0 0 0.7rem;
     padding: 0 0 0 1rem;
 }
+#location-details dd > * {
+    display:block;
+}
 
 main:not([data-view$=search]) #autocomplete,
 main:not([data-view=location]) #location-details,

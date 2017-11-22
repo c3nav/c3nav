@@ -162,10 +162,15 @@ class SpecificLocation(Location, models.Model):
             groupcategories.setdefault(group.category, []).append(group)
 
         for category, groups in sorted(groupcategories.items(), key=lambda item: item[0].priority):
-            result['display'].insert(3, (category.title, tuple(
-                {'id': group.pk, 'slug': group.get_slug(), 'title': group.title}
-                for group in sorted(groups, key=attrgetter('priority'), reverse=True)
-            )))
+            result['display'].insert(3, (
+                category.title,
+                tuple({
+                    'id': group.pk,
+                    'slug': group.get_slug(),
+                    'title': group.title,
+                    'can_search': group.can_search,
+                } for group in sorted(groups, key=attrgetter('priority'), reverse=True))
+            ))
 
         return result
 

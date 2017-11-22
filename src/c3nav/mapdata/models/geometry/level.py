@@ -50,9 +50,15 @@ class LevelGeometryMixin(GeometryMixin):
 
     def details_display(self):
         result = super().details_display()
-        result['display'].insert(3, (str(_('Level')), {'id': self.level_id,
-                                                       'slug': self.level.get_slug(),
-                                                       'title': self.level.title}))
+        result['display'].insert(3, (
+            str(_('Level')),
+            {
+                'id': self.level_id,
+                'slug': self.level.get_slug(),
+                'title': self.level.title,
+                'can_search': self.level.can_search,
+            },
+        ))
         return result
 
     @property

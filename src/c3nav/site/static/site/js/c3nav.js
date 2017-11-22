@@ -146,11 +146,15 @@ c3nav = {
                         console.log(sublocations);
                         for (var j = 0; j < sublocations.length; j++) {
                             loc = sublocations[j];
-                            loclist.append($('<a>').attr('href', '/l/' + loc.slug + '/details/').attr('data-id', loc.id).click(function (e) {
-                                e.preventDefault();
-                                c3nav._locationinput_set($('#destination-input'), c3nav.locations_by_id[parseInt($(this).attr('data-id'))]);
-                                c3nav.update_state(false, false, true);
-                            }).text(loc.title));
+                            if (loc.can_searc) {
+                                loclist.append($('<a>').attr('href', '/l/' + loc.slug + '/details/').attr('data-id', loc.id).click(function (e) {
+                                    e.preventDefault();
+                                    c3nav._locationinput_set($('#destination-input'), c3nav.locations_by_id[parseInt($(this).attr('data-id'))]);
+                                    c3nav.update_state(false, false, true);
+                                }).text(loc.title));
+                            } else {
+                                loclist.append($('<span>').text(loc.title));
+                            }
                         }
                         elem.append(loclist);
                     }
