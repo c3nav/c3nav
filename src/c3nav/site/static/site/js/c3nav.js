@@ -103,6 +103,8 @@ c3nav = {
 
         if (view === 'location' && state.details) {
             this.load_location_details(state.destination);
+        } else {
+            $('#location-details').removeAttr('data-id');
         }
 
         $('main').attr('data-view', view).toggleClass('show-details', state.details);
