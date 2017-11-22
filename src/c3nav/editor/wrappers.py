@@ -271,6 +271,10 @@ class BaseQueryWrapper(BaseWrapper):
         self._created_pks = created_pks
         self._extra = extra
 
+    @property
+    def model(self):
+        return self._wrap_model(self._obj.model)
+
     def _get_initial_created_pks(self):
         """
         Get all created pks for this query's model an submodels.
