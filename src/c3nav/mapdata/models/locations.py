@@ -104,8 +104,8 @@ class Location(LocationSlug, AccessRestrictionMixin, TitledMixin, models.Model):
     def details_display(self):
         result = super().details_display()
         result['display'].extend([
-            (str(_('can be searched')), str(_('yes') if self.can_search else _('no'))),
-            (str(_('can describe')), str(_('yes') if self.can_describe else _('no')))
+            (str(_('searchable')), str(_('Yes') if self.can_search else _('No'))),
+            (str(_('can describe')), str(_('Yes') if self.can_describe else _('No')))
         ])
         return result
 

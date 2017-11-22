@@ -110,7 +110,7 @@ class Space(LevelGeometryMixin, SpecificLocation, models.Model):
         result = super().details_display()
         result['display'].extend([
             (str(_('height')), self.height),
-            (str(_('outside only')), str(_('yes') if self.outside else _('no'))),
+            (str(_('outside only')), str(_('Yes') if self.outside else _('No'))),
         ])
         result['editor_url'] = reverse('editor.spaces.detail', kwargs={'level': self.level_id, 'pk': self.pk})
         return result
