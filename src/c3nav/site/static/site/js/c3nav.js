@@ -574,6 +574,7 @@ c3nav = {
         });
     },
     update_map_locations: function () {
+        console.log('ha!');
         // update locations markers on the map
         var origin = $('#origin-input').data('location'),
             destination = $('#destination-input').data('location'),
