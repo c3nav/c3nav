@@ -120,7 +120,6 @@ c3nav = {
                         return;
                     }
                     var line, elem = $('<dl>');
-                    console.log(data);
                     for (var i = 0; i < data.display.length; i++) {
                         line = data.display[i];
                         elem.append($('<dt>').text(line[0]));
