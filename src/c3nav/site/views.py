@@ -86,20 +86,6 @@ def check_location(location: Optional[str], request) -> Optional[SpecificLocatio
     return location
 
 
-def get_levels(request) -> Mapping[int, Level]:
-    cache_key = 'mapdata:levels:%s' % AccessPermission.cache_key_for_request(request)
-    levels = cache.get(cache_key, None)
-    if levels is not None:
-        return levels
-
-    levels = OrderedDict(
-        (level.slug, (level.pk, level.slug, level.short_label))
-        for level in Level.qs_for_request(request).order_by('base_altitude')
-    )
-    cache.set(cache_key, levels, 300)
-    return levels
-
-
 @set_tile_access_cookie
 def map_index(request, mode=None, slug=None, slug2=None, details=None, level=None, x=None, y=None, zoom=None):
     origin = None
