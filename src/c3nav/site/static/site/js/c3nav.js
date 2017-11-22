@@ -62,7 +62,10 @@ c3nav = {
 
     state: {},
     toggle_details: function(details) {
-        c3nav._push_state({'details': (details === undefined) ? !c3nav.state.details : details});
+        c3nav._push_state({
+            details: (details === undefined) ? !c3nav.state.details : details,
+            sidebar: true
+        });
         c3nav._sidebar_state_updated(c3nav.state);
         c3nav.set_max_bounds();
     },
