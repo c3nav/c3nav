@@ -504,14 +504,20 @@ c3nav = {
             c3nav.level_labels_by_id[c3nav.levels[i][0]] = c3nav.levels[i][1];
         }
 
+        minZoom = Math.log2(Math.max(0.25, Math.min(
+            ($(window).width()-40)/(c3nav.bounds[1][0]-c3nav.bounds[0][0]),
+            ($(window).height()-250)/(c3nav.bounds[1][1]-c3nav.bounds[0][1])
+        )));
+        console.log(minZoom);
+
         // create leaflet map
         c3nav.map = L.map('map', {
             renderer: L.svg({padding: 2}),
             zoom: 0,
             maxZoom: 10,
-            minZoom: 0,
+            minZoom: minZoom,
             crs: L.CRS.Simple,
-            maxBounds: L.GeoJSON.coordsToLatLngs(c3nav._get_padded_max_bounds(0)),
+            maxBounds: L.GeoJSON.coordsToLatLngs(c3nav._get_padded_max_bounds(minZoom)),
             zoomSnap: 0,
             zoomControl: false
         });
