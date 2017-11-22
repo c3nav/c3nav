@@ -101,7 +101,7 @@ def get_levels(request) -> Mapping[int, Level]:
 
 
 @set_tile_access_cookie
-def map_index(request, mode=None, slug=None, slug2=None, level=None, x=None, y=None, zoom=None):
+def map_index(request, mode=None, slug=None, slug2=None, details=None, level=None, x=None, y=None, zoom=None):
     origin = None
     destination = None
     routing = False
@@ -123,6 +123,7 @@ def map_index(request, mode=None, slug=None, slug2=None, level=None, x=None, y=N
         'destination': (destination.serialize(detailed=False, simple_geometry=True, geometry=False)
                         if destination else None),
         'sidebar': routing or destination is not None,
+        'details': True if details else False,
     }
 
     levels_cache_key = 'mapdata:levels:%s' % AccessPermission.cache_key_for_request(request)

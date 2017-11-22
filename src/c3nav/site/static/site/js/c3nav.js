@@ -49,7 +49,10 @@ c3nav = {
 
         c3nav.init_locationinputs();
 
-        $('#location-buttons').find('.route').on('click', c3nav._location_buttons_route_click);
+        var $location_buttons = $('#location-buttons');
+        $location_buttons.find('.details').on('click', c3nav._location_buttons_details_click);
+        $location_buttons.find('.route').on('click', c3nav._location_buttons_route_click);
+
         $('#route-search-buttons, #route-result-buttons').find('.swap').on('click', c3nav._route_buttons_swap_click);
         $('#route-search-buttons').find('.close').on('click', c3nav._route_buttons_close_click);
         $('#map').on('click', '.location-popup .button-clear', c3nav._popup_button_click);
@@ -58,6 +61,11 @@ c3nav = {
     },
 
     state: {},
+    toggle_details: function(details) {
+        c3nav._push_state({'details': (details === undefined) ? !c3nav.state.details : details});
+        c3nav._sidebar_state_updated(c3nav.state);
+        c3nav.set_max_bounds();
+    },
     update_state: function(routing, replace) {
         if (typeof routing !== "boolean") routing = c3nav.state.routing;
 
@@ -67,7 +75,8 @@ c3nav = {
                 routing: routing,
                 origin: origin,
                 destination: destination,
-                sidebar: true
+                sidebar: true,
+                details: false
             };
 
         c3nav._push_state(new_state, replace);
@@ -96,7 +105,16 @@ c3nav = {
             }
         }
         c3nav._view = view;
-        $('main').attr('data-view', view);
+
+        if (view === 'location' && state.details) {
+            var $location_details = $('#location-details');
+            if (parseInt($location_details.attr('data-id')) !== state.destination.id) {
+                $location_details.addClass('loading');
+                // todo: load location data
+            }
+        }
+
+        $('main').attr('data-view', view).toggleClass('show-details', state.details);
 
         var $search = $('#search');
         $search.removeClass('loading');
@@ -111,7 +129,7 @@ c3nav = {
         c3nav.update_map_locations();
     },
     _equal_states: function (a, b) {
-        if (a.routing !== b.routing) return false;
+        if (a.routing !== b.routing || a.details !== b.details) return false;
         if ((a.origin && a.origin.id) !== (b.origin && b.origin.id)) return false;
         if ((a.destination && a.destination.id) !== (b.destination && b.destination.id)) return false;
         if (a.level !== b.level || a.zoom !== b.zoom) return false;
@@ -133,6 +151,9 @@ c3nav = {
             }
         } else {
             url = state.destination?('/l/'+state.destination.slug+'/'):'/';
+        }
+        if (state.details && (url.startsWith('/l/') || url.startsWith('/r/'))) {
+            url += 'details/'
         }
         if (state.center) {
             url += '@'+String(c3nav.level_labels_by_id[state.level])+','+String(state.center[0])+','+String(state.center[1])+','+String(state.zoom);
@@ -169,6 +190,9 @@ c3nav = {
     },
 
     // button handlers
+    _location_buttons_details_click: function () {
+        c3nav.toggle_details();
+    },
     _location_buttons_route_click: function () {
         c3nav.update_state(true);
     },
