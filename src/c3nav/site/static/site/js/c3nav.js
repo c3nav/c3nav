@@ -111,9 +111,24 @@ c3nav = {
 
         if (view === 'location' && state.details) {
             var $location_details = $('#location-details');
-            if (parseInt($location_details.attr('data-id')) !== state.destination.id) {
-                $location_details.addClass('loading');
-                // todo: load location data
+            var location_id = state.destination.id;
+            if (parseInt($location_details.attr('data-id')) !== location_id) {
+                $location_details.addClass('loading').attr('data-id', location_id);
+                $.getJSON('/api/locations/'+state.destination.slug+'/display', function (data) {
+                    if (parseInt($location_details.attr('data-id')) !== location_id) {
+                        // loaded too late, information no longer needed
+                        return;
+                    }
+                    var line, elem = $('<dl>');
+                    console.log(data);
+                    for (var i = 0; i < data.display.length; i++) {
+                        line = data.display[i];
+                        elem.append($('<dt>').text(line[0]));
+                        elem.append($('<dd>').text(line[1]));
+                    }
+                    $location_details.find('.details-body').html('').append(elem);
+                    $location_details.removeClass('loading');
+                });
             }
         }
 

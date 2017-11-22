@@ -194,12 +194,12 @@ section.details {
     margin: 0;
 }
 #location-details dt {
-    width: 29%;
+    width: 39%;
     margin: 0 0 1rem;
     font-weight: 700;
 }
 #location-details dd {
-    width: 70%;
+    width: 60%;
     margin: 0 0 1rem;
     padding: 0 0 0 1rem;
 }
