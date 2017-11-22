@@ -55,7 +55,9 @@ class SpaceGeometryMixin(GeometryMixin):
 
     def details_display(self):
         result = super().details_display()
-        result['display'].insert(3, (str(_('Space')), {'slug': self.space.get_slug(), 'title': self.space.title}))
+        result['display'].insert(3, (str(_('Space')), {'id': self.space_id,
+                                                       'slug': self.space.get_slug(),
+                                                       'title': self.space.title}))
         return result
 
     def register_delete(self):

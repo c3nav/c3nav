@@ -61,15 +61,7 @@ c3nav = {
     },
 
     state: {},
-    toggle_details: function(details) {
-        c3nav._push_state({
-            details: (details === undefined) ? !c3nav.state.details : details,
-            sidebar: true
-        });
-        c3nav._sidebar_state_updated(c3nav.state);
-        c3nav.set_max_bounds();
-    },
-    update_state: function(routing, replace) {
+    update_state: function(routing, replace, details) {
         if (typeof routing !== "boolean") routing = c3nav.state.routing;
 
         var destination = $('#destination-input').data('location'),
@@ -79,7 +71,7 @@ c3nav = {
                 origin: origin,
                 destination: destination,
                 sidebar: true,
-                details: false
+                details: !!details
             };
 
         c3nav._push_state(new_state, replace);
@@ -110,25 +102,7 @@ c3nav = {
         c3nav._view = view;
 
         if (view === 'location' && state.details) {
-            var $location_details = $('#location-details');
-            var location_id = state.destination.id;
-            if (parseInt($location_details.attr('data-id')) !== location_id) {
-                $location_details.addClass('loading').attr('data-id', location_id);
-                $.getJSON('/api/locations/'+state.destination.slug+'/display', function (data) {
-                    if (parseInt($location_details.attr('data-id')) !== location_id) {
-                        // loaded too late, information no longer needed
-                        return;
-                    }
-                    var line, elem = $('<dl>');
-                    for (var i = 0; i < data.display.length; i++) {
-                        line = data.display[i];
-                        elem.append($('<dt>').text(line[0]));
-                        elem.append($('<dd>').text(line[1]));
-                    }
-                    $location_details.find('.details-body').html('').append(elem);
-                    $location_details.removeClass('loading').find('.editor').attr('href', data.editor_url);
-                });
-            }
+            this.load_location_details(state.destination);
         }
 
         $('main').attr('data-view', view).toggleClass('show-details', state.details);
@@ -144,6 +118,41 @@ c3nav = {
         }
 
         c3nav.update_map_locations();
+    },
+
+    load_location_details: function (location) {
+        var $location_details = $('#location-details');
+        if (parseInt($location_details.attr('data-id')) !== location.id) {
+            $location_details.addClass('loading').attr('data-id', location.id);
+            var location_id = location.id;
+            $.getJSON('/api/locations/'+location.slug+'/display', function (data) {
+                if (parseInt($location_details.attr('data-id')) !== location_id) {
+                    // loaded too late, information no longer needed
+                    return;
+                }
+                var line, dest, link, elem = $('<dl>');
+                for (var i = 0; i < data.display.length; i++) {
+                    line = data.display[i];
+                    elem.append($('<dt>').text(line[0]));
+                    if (typeof line[1] === 'string') {
+                        elem.append($('<dd>').text(line[1]));
+                    } else if (line[1] === null) {
+                        elem.append($('<dd>').text('-'));
+                    } else {
+                        dest = line[1];
+                        link = $('<a>').attr('href', '/l/'+dest.slug+'/details/').attr('data-id', dest.id).click(function (e) {
+                            e.preventDefault();
+                            c3nav._locationinput_set($('#destination-input'), c3nav.locations_by_id[parseInt($(this).attr('data-id'))]);
+                            c3nav.update_state(false, false, true);
+                        }).text(dest.title);
+                        elem.append($('<dd>').append(link));
+                    }
+
+                }
+                $location_details.find('.details-body').html('').append(elem);
+                $location_details.removeClass('loading').find('.editor').attr('href', data.editor_url);
+            });
+        }
     },
     _equal_states: function (a, b) {
         if (a.routing !== b.routing || a.details !== b.details) return false;
@@ -208,7 +217,7 @@ c3nav = {
 
     // button handlers
     _location_buttons_details_click: function () {
-        c3nav.toggle_details();
+        c3nav.update_state(null, null, !c3nav.state.details);
     },
     _location_buttons_route_click: function () {
         c3nav.update_state(true);

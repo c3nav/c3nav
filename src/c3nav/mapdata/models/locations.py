@@ -163,7 +163,7 @@ class SpecificLocation(Location, models.Model):
 
         for category, groups in sorted(groupcategories.items(), key=lambda item: item[0].priority):
             result['display'].insert(3, (category.title, tuple(
-                {'slug': group.get_slug(), 'title': group.title}
+                {'id': group.pk, 'slug': group.get_slug(), 'title': group.title}
                 for group in sorted(groups, key=attrgetter('priority'), reverse=True)
             )))
 
