@@ -2,8 +2,7 @@ from django.apps import apps
 from django.conf.urls import url
 
 from c3nav.editor.views.changes import changeset_detail, changeset_edit
-from c3nav.editor.views.edit import (edit, graph_edit, graph_editing_settings_view, level_detail, list_objects,
-                                     main_index, space_detail)
+from c3nav.editor.views.edit import edit, graph_edit, level_detail, list_objects, main_index, space_detail
 from c3nav.editor.views.login import login_view, logout_view
 from c3nav.editor.views.users import user_detail
 
@@ -40,7 +39,6 @@ urlpatterns = [
         kwargs={'model': 'Level'}),
     url(r'^levels/(?P<level>c?[0-9]+)/graph/$', graph_edit, name='editor.levels.graph'),
     url(r'^spaces/(?P<space>c?[0-9]+)/graph/$', graph_edit, name='editor.spaces.graph'),
-    url(r'^graphsettings/$', graph_editing_settings_view, name='editor.graph.settings'),
     url(r'^changesets/(?P<pk>[0-9]+)/$', changeset_detail, name='editor.changesets.detail'),
     url(r'^changesets/(?P<pk>[0-9]+)/edit$', changeset_edit, name='editor.changesets.edit'),
     url(r'^users/(?P<pk>[0-9]+)/$', user_detail, name='editor.users.detail'),

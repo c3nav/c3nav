@@ -16,8 +16,6 @@
         {% endif %}
     </small>
 </h3>
-
-<a href="{% url 'editor.graph.settings' %}" class="btn btn-default btn-xs pull-right">{% trans 'Settings' %}</a>
 <p>
     <a href="{{ back_url }}">&laquo; {{ back_title }}</a>
 </p>
@@ -40,10 +38,10 @@
     <div data-active-node class="well well-sm"></div>
 {% endif %}
 
-<form action="{{ request.path }}" method="post" data-graph-editing="{{ graph_editing }}"{% if deactivate_node_on_click %} data-deactivate-node-on-click{% endif %} data-nozoom>
+<form action="{{ request.path }}" method="post" data-graph-editing{% if create_nodes %} data-graph-create-nodes{% endif %} data-nozoom>
     {% csrf_token %}
 
-    <h4>{% trans 'Default edge properties' %}</h4>
+    <h4>{% trans 'Settings for new edges' %}</h4>
     {% bootstrap_form edge_settings_form %}
 
     {% bootstrap_form graph_action_form %}

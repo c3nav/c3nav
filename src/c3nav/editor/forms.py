@@ -194,6 +194,8 @@ class RejectForm(ModelForm):
 
 
 class GraphEdgeSettingsForm(ModelForm):
+    oneway = BooleanField(label=_('create one way edges'), required=False)
+
     class Meta:
         model = GraphEdge
         fields = ('waytype', 'access_restriction', )
@@ -231,51 +233,3 @@ class GraphEditorActionForm(Form):
 
     def clean_clicked_position(self):
         return GeometryField(geomtype='point').to_python(self.cleaned_data['clicked_position'])
-
-
-class GraphEditorSettingsForm(Form):
-    node_click = ChoiceField(label=_('when clicking on an existing node…'), choices=(
-        ('connect_or_toggle', _('connect if possible, otherwise toggle')),
-        ('connect', _('connect if possible')),
-        ('activate', _('activate')),
-        ('deactivate', _('deactivate')),
-        ('toggle', _('toggle')),
-        ('delete', _('delete node')),
-        ('noop', _('do nothing')),
-    ), initial='connect_or_toggle')
-
-    click_anywhere = ChoiceField(label=_('when clicking anywhere…'), choices=(
-        ('create_node', _('create node')),
-        ('create_node_if_none_active', _('create node if no node is active')),
-        ('create_node_if_other_active', _('create node if another node is active')),
-        ('noop', _('do nothing')),
-    ), initial='create_node')
-
-    after_create_node = ChoiceField(label=_('after creating a new node…'), choices=(
-        ('connect', _('connect to active node if possible')),
-        ('activate', _('activate node')),
-        ('deactivate', _('deactivate active node')),
-        ('noop', _('do nothing')),
-    ), initial='connect')
-
-    connect_nodes = ChoiceField(label=_('when connecting two nodes…'), choices=(
-        ('bidirectional', _('create edge in both directions')),
-        ('unidirectional', _('create edge in one direction')),
-        ('unidirectional_force', _('create edge, delete other direction')),
-        ('delete_bidirectional', _('delete edges in both directions')),
-        ('delete_unidirectional', _('delete edge in one direction')),
-    ), initial='bidirectional')
-
-    create_existing_edge = ChoiceField(label=_('when creating an already existing edge…'), choices=(
-        ('overwrite_toggle', _('overwrite if not identical, otherwise delete')),
-        ('overwrite_always', _('overwrite')),
-        ('overwrite_waytype', _('overwrite waytype')),
-        ('overwrite_access', _('overwrite access restriction')),
-        ('delete', _('delete')),
-    ), initial='overwrite_toggle')
-
-    after_connect_nodes = ChoiceField(label=_('after connecting two nodes…'), choices=(
-        ('reset', _('deactivate active node')),
-        ('keep_first_active', _('keep first node active')),
-        ('set_second_active', _('set second node as active')),
-    ), initial='reset')

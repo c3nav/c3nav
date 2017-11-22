@@ -9,7 +9,7 @@ from django.urls import reverse
 from django.utils.translation import ugettext_lazy as _
 from django.views.decorators.http import etag
 
-from c3nav.editor.forms import GraphEdgeSettingsForm, GraphEditorActionForm, GraphEditorSettingsForm
+from c3nav.editor.forms import GraphEdgeSettingsForm, GraphEditorActionForm
 from c3nav.editor.views.base import etag_func, sidebar_view
 
 
@@ -352,64 +352,29 @@ def list_objects(request, model=None, level=None, space=None, explicit_edit=Fals
     return render(request, 'editor/list.html', ctx)
 
 
-def connect_nodes(request, active_node, clicked_node, edge_settings_form, graph_editing_settings):
-    connect_nodes_setting = graph_editing_settings['connect_nodes']
-    create_existing_edge_setting = graph_editing_settings['create_existing_edge']
-    after_connect_nodes_setting = graph_editing_settings['after_connect_nodes']
-
+def connect_nodes(request, active_node, clicked_node, edge_settings_form):
     new_connections = []
-    if connect_nodes_setting in ('bidirectional', 'unidirectional', 'unidirectional_force') and active_node is not None:
-        new_connections.append((active_node, clicked_node, False))
-        if connect_nodes_setting == 'bidirectional':
-            new_connections.append((clicked_node, active_node, True))
+    new_connections.append((active_node, clicked_node, False))
+    if not edge_settings_form.cleaned_data['oneway']:
+        new_connections.append((clicked_node, active_node, True))
 
-    if new_connections:
-        instance = edge_settings_form.instance
-        for from_node, to_node, is_reverse in new_connections:
-            existing = from_node.edges_from_here.filter(to_node=to_node).first()
-            if existing is None:
-                instance.pk = None
-                instance.from_node = from_node
-                instance.to_node = to_node
-                instance.save()
-                messages.success(request, _('Reverse edge created.') if is_reverse else _('Edge created.'))
-            elif create_existing_edge_setting == 'delete':
-                existing.delete()
-                messages.success(request, _('Reverse edge deleted.') if is_reverse else _('Edge deleted.'))
-            elif create_existing_edge_setting == 'overwrite_toggle':
-                if existing.waytype == instance.waytype and existing.access_restriction == instance.access_restriction:
-                    existing.delete()
-                    messages.success(request, _('Reverse edge deleted.') if is_reverse else _('Edge deleted.'))
-                else:
-                    existing.waytype = instance.waytype
-                    existing.access_restriction = instance.access_restriction
-                    existing.save()
-                    messages.success(request, _('Reverse edge overwritten.') if is_reverse else _('Edge overwritten.'))
-            elif create_existing_edge_setting in ('overwrite_always', 'overwrite_waytype', 'overwrite_access'):
-                if create_existing_edge_setting in ('overwrite_always', 'overwrite_waytype'):
-                    existing.waytype = instance.waytype
-                if create_existing_edge_setting in ('overwrite_always', 'overwrite_access'):
-                    existing.access_restriction = instance.access_restriction
-                existing.save()
-                messages.success(request, _('Reverse edge overwritten.') if is_reverse else _('Edge overwritten.'))
-
-    if connect_nodes_setting in ('delete_unidirectional', 'delete_bidirectional'):
-        existing = active_node.edges_from_here.filter(to_node=clicked_node).first()
-        if existing is not None:
+    instance = edge_settings_form.instance
+    for from_node, to_node, is_reverse in new_connections:
+        existing = from_node.edges_from_here.filter(to_node=to_node).first()
+        if existing is None:
+            instance.pk = None
+            instance.from_node = from_node
+            instance.to_node = to_node
+            instance.save()
+            messages.success(request, _('Reverse edge created.') if is_reverse else _('Edge created.'))
+        elif existing.waytype == instance.waytype and existing.access_restriction == instance.access_restriction:
             existing.delete()
-            messages.success(request, _('Edge deleted.'))
-
-    if connect_nodes_setting in ('unidirectional_force', 'delete_bidirectional'):
-        existing = clicked_node.edges_from_here.filter(to_node=active_node).first()
-        if existing is not None:
-            existing.delete()
-            messages.success(request, _('Reverse edge deleted.'))
-
-    if after_connect_nodes_setting == 'reset':
-        return None, True
-    elif after_connect_nodes_setting == 'set_second_active':
-        return clicked_node, True
-    return active_node, False
+            messages.success(request, _('Reverse edge deleted.') if is_reverse else _('Edge deleted.'))
+        else:
+            existing.waytype = instance.waytype
+            existing.access_restriction = instance.access_restriction
+            existing.save()
+            messages.success(request, _('Reverse edge overwritten.') if is_reverse else _('Edge overwritten.'))
 
 
 @sidebar_view
@@ -427,11 +392,7 @@ def graph_edit(request, level=None, space=None):
         'can_edit': can_edit,
     }
 
-    graph_editing_settings = {field.name: field.initial for field in GraphEditorSettingsForm()}
-    graph_editing_settings.update(request.session.get('graph_editing_settings', {}))
-
-    graph_editing = 'edit-nodes'
-    allow_clicked_position = False
+    create_nodes = False
 
     if level is not None:
         level = get_object_or_404(Level.objects.filter(Level.q_for_request(request)), pk=level)
@@ -455,17 +416,11 @@ def graph_edit(request, level=None, space=None):
             'parent_title': _('to level graph'),
             'geometry_url': '/api/editor/geometries/?space='+str(space.pk),
         })
-        if graph_editing_settings['click_anywhere'] != 'noop':
-            graph_editing = 'edit-create-nodes'
-            if graph_editing_settings['click_anywhere'] == 'create_node_if_none_active':
-                graph_editing = 'edit-create-if-no-active-node'
-            elif graph_editing_settings['click_anywhere'] == 'create_node_if_other_active':
-                graph_editing = 'edit-create-if-active-node'
-            allow_clicked_position = True
+        create_nodes = True
 
     if request.method == 'POST':
         edge_settings_form = GraphEdgeSettingsForm(instance=GraphEdge(), request=request, data=request.POST)
-        graph_action_form = GraphEditorActionForm(request=request, allow_clicked_position=allow_clicked_position,
+        graph_action_form = GraphEditorActionForm(request=request, allow_clicked_position=create_nodes,
                                                   data=request.POST)
         if edge_settings_form.is_valid() and graph_action_form.is_valid():
             goto_space = graph_action_form.cleaned_data['goto_space']
@@ -477,77 +432,32 @@ def graph_edit(request, level=None, space=None):
             clicked_node = graph_action_form.cleaned_data['clicked_node']
             clicked_position = graph_action_form.cleaned_data.get('clicked_position')
             if clicked_node is not None and clicked_position is None:
-                node_click_setting = graph_editing_settings['node_click']
-                if node_click_setting in ('connect', 'connect_or_toggle'):
-                    connect = False
-                    if node_click_setting == 'connect':
-                        connect = True
-                    elif active_node is None:
-                        active_node = clicked_node
-                        set_active_node = True
-                    elif active_node == clicked_node:
-                        active_node = None
-                        set_active_node = True
-                    else:
-                        connect = True
-
-                    if connect:
-                        with request.changeset.lock_to_edit(request) as changeset:
-                            if changeset.can_edit(request):
-                                active_node, set_active_node = connect_nodes(request, active_node, clicked_node,
-                                                                             edge_settings_form, graph_editing_settings)
-                            else:
-                                messages.error(request, _('You can not edit changes on this changeset.'))
-                elif node_click_setting == 'activate':
+                if active_node is None:
                     active_node = clicked_node
                     set_active_node = True
-                elif node_click_setting == 'deactivate':
+                elif active_node == clicked_node:
                     active_node = None
                     set_active_node = True
-                elif node_click_setting == 'toggle':
-                    active_node = None if active_node == clicked_node else clicked_node
-                    set_active_node = True
-                elif node_click_setting == 'delete':
+                else:
                     with request.changeset.lock_to_edit(request) as changeset:
                         if changeset.can_edit(request):
-                            try:
-                                if not request.changeset.get_changed_object(clicked_node).can_delete():
-                                    raise PermissionError
-                            except (ObjectDoesNotExist, PermissionError):
-                                messages.error(request, _('This node is connected to other nodes.'))
-                            else:
-                                clicked_node.delete()
-                                if clicked_node == active_node:
-                                    active_node = None
-                                    set_active_node = True
-                                messages.success(request, _('Node deleted.'))
+                            connect_nodes(request, active_node, clicked_node, edge_settings_form)
+                            active_node = None
+                            set_active_node = True
                         else:
                             messages.error(request, _('You can not edit changes on this changeset.'))
 
-            elif clicked_node is None and clicked_position is not None:
-                click_anywhere_setting = graph_editing_settings['click_anywhere']
-                if (click_anywhere_setting == 'create_node' or
-                        (click_anywhere_setting != 'create_node_if_none_active' or active_node is None) or
-                        (click_anywhere_setting != 'create_node_if_other_active' or active_node is not None)):
-                    if space.geometry.contains(clicked_position):
-                        with request.changeset.lock_to_edit(request) as changeset:
-                            if changeset.can_edit(request):
-                                after_create_node_setting = graph_editing_settings['after_create_node']
-                                node = GraphNode(space=space, geometry=clicked_position)
-                                node.save()
-                                messages.success(request, _('New graph node created.'))
-                                if after_create_node_setting == 'connect':
-                                    active_node, set_active_node = connect_nodes(request, active_node, node,
-                                                                                 edge_settings_form,
-                                                                                 graph_editing_settings)
-                                elif after_create_node_setting == 'activate':
-                                    active_node = node
-                                    set_active_node = True
-                                elif after_create_node_setting == 'deactivate':
-                                    active_node = None
-                                    set_active_node = True
-                            else:
-                                messages.error(request, _('You can not edit changes on this changeset.'))
+            elif clicked_node is None and clicked_position is not None and space.geometry.contains(clicked_position):
+                with request.changeset.lock_to_edit(request) as changeset:
+                    if changeset.can_edit(request):
+                        node = GraphNode(space=space, geometry=clicked_position)
+                        node.save()
+                        messages.success(request, _('New graph node created.'))
+
+                        active_node = node
+                        set_active_node = True
+                    else:
+                        messages.error(request, _('You can not edit changes on this changeset.'))
 
             if set_active_node:
                 ctx.update({
@@ -556,38 +466,13 @@ def graph_edit(request, level=None, space=None):
                 })
     else:
         edge_settings_form = GraphEdgeSettingsForm(request=request)
-    graph_action_form = GraphEditorActionForm(request=request, allow_clicked_position=allow_clicked_position)
+
+    graph_action_form = GraphEditorActionForm(request=request, allow_clicked_position=create_nodes)
 
     ctx.update({
         'edge_settings_form': edge_settings_form,
         'graph_action_form': graph_action_form,
-        'graph_editing': graph_editing,
-        'deactivate_node_on_click': graph_editing_settings['node_click'] in ('deactivate', 'toggle',
-                                                                             'connect_or_toggle'),
+        'create_nodes': create_nodes,
     })
 
     return render(request, 'editor/graph.html', ctx)
-
-
-@sidebar_view
-@etag(etag_func)
-def graph_editing_settings_view(request):
-    ctx: dict = {
-        'closemodal': False,
-    }
-    if request.method == 'POST':
-        form = GraphEditorSettingsForm(data=request.POST)
-        if form.is_valid():
-            messages.success(request, _('Graph Editing Settings were successfully saved.'))
-            request.session['graph_editing_settings'] = form.cleaned_data
-            if request.POST.get('can_close_modal') == '1':
-                ctx['closemodal'] = True
-    else:
-        graph_editing_settings = {field.name: field.initial for field in GraphEditorSettingsForm()}
-        graph_editing_settings.update(request.session.get('graph_editing_settings', {}))
-        form = GraphEditorSettingsForm(data=graph_editing_settings)
-
-    ctx.update({
-        'form': form,
-    })
-    return render(request, 'editor/graph_editing_settings.html', ctx)

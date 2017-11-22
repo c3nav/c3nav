@@ -188,19 +188,12 @@ editor = {
 
         var graph_editing = content.find('[data-graph-editing]');
         if (graph_editing.length) {
-            graph_editing = graph_editing.attr('data-graph-editing');
             editor._graph_editing = true;
-            editor._graph_creating = (graph_editing === 'edit-create-nodes' ||
-                                      (graph_editing === 'edit-create-if-no-active-node' &&
-                                       editor._active_graph_node === null) ||
-                                      (graph_editing === 'edit-create-if-active-node' &&
-                                       editor._active_graph_node !== null));
+            editor._graph_creating = (content.find('[data-graph-create-nodes]').length > 0);
             editor._last_graph_path = editor.get_location_path();
         } else if (!editor._in_modal) {
             editor._last_graph_path = null;
         }
-
-        editor._deactivate_graph_node_on_click = (content.find('[data-deactivate-node-on-click]').length > 0);
 
         var geometry_url = content.find('[data-geometry-url]');
         var $body = $('body');
@@ -294,7 +287,6 @@ editor = {
     _graph_creating: false,
     _active_graph_node: null,
     _active_graph_node_html: null,
-    _deactivate_graph_node_on_click: false,
     _graph_edges_from: {},
     _graph_edges_to: {},
     _arrow_colors: [],
@@ -520,7 +512,7 @@ editor = {
         if (feature.properties.type === 'graphnode' && String(feature.properties.id) === editor._active_graph_node) {
             style.stroke = true;
             style.weight = 3;
-            style.color = '#ffff00';
+            style.color = '#00ff00';
         }
         if (feature.properties.color !== undefined) {
             style.fillColor = feature.properties.color;
@@ -728,7 +720,7 @@ editor = {
     _click_graph_node: function(e) {
         // click callback for a graph node
         if (editor._loading_geometry) return;
-        if (editor._deactivate_graph_node_on_click && editor._active_graph_node === e.target.feature.properties.id) {
+        if (editor._active_graph_node === e.target.feature.properties.id) {
             e.target.node_layer.setStyle({
                 stroke: false
             });
