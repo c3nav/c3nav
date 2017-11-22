@@ -126,7 +126,7 @@ c3nav = {
                         elem.append($('<dd>').text(line[1]));
                     }
                     $location_details.find('.details-body').html('').append(elem);
-                    $location_details.removeClass('loading');
+                    $location_details.removeClass('loading').find('.editor').attr('href', data.editor_url);
                 });
             }
         }

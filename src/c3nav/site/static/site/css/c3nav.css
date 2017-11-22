@@ -143,9 +143,10 @@ section.details > * {
 section.details > .details-head {
     padding: 11px 10px 8px;
 }
-.details-head > button {
+.details-head > .button {
     margin: -2px 0 0;
     transition: none;
+    line-height: 2.5;
 }
 #sidebar section.details > .details-body {
     border: 0;
@@ -161,7 +162,7 @@ section.details {
 #sidebar section.details.loading > .details-head {
     background-color: rgba(255, 255, 255, 0);
 }
-#sidebar section.details.loading > .details-head button {
+#sidebar section.details.loading > .details-head .button {
     pointer-events: none;
     opacity: 0;
 }
@@ -173,7 +174,7 @@ section.details {
     transition: background-color 50ms;
     background-color: rgba(255, 255, 255, 1);
 }
-#sidebar section.details:not(.loading) > .details-head button {
+#sidebar section.details:not(.loading) > .details-head .button {
     transition: opacity 150ms;
     pointer-events: auto;
     opacity: 1;
@@ -400,13 +401,13 @@ main:not([data-view=route-result]) #route-dots {
 .buttons > *:hover, .buttons > *:active {
     background-color: #eeeeee;
 }
-button {
+button, .button {
     font-size: 1.3rem;
     line-height: 1.3;
     height: 3.3rem;
     padding: 0;
 }
-button .material-icons {
+button .material-icons, .button .material-icons {
     font-size: 15px;
     vertical-align: -3px;
 }
