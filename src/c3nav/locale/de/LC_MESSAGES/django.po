@@ -7,8 +7,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2017-11-23 00:08+0000\n"
-"PO-Revision-Date: 2017-07-13 13:38+0200\n"
+"POT-Creation-Date: 2017-11-23 00:30+0000\n"
+"PO-Revision-Date: 2017-11-23 01:29+0100\n"
 "Last-Translator: Laura Klünder <laura@codingcatgirl.de>\n"
 "Language-Team: \n"
 "Language: de\n"
@@ -16,7 +16,7 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
-"X-Generator: Poedit 2.0.2\n"
+"X-Generator: Poedit 2.0.4\n"
 
 #: c3nav/editor/forms.py:89 c3nav/editor/views/changes.py:283
 #: c3nav/mapdata/models/base.py:71
@@ -47,10 +47,8 @@ msgid "Final rejection"
 msgstr "Endgültige Ablehnung"
 
 #: c3nav/editor/forms.py:197
-#, fuzzy
-#| msgid "creation date"
 msgid "create one way edges"
-msgstr "Erstellungsdatum"
+msgstr "Kante nur in eine Richtung erstellen"
 
 #: c3nav/editor/models/changedobject.py:26 c3nav/editor/models/changeset.py:56
 msgid "Change Set"
@@ -409,7 +407,7 @@ msgstr "Details"
 #: c3nav/editor/templates/editor/fragment_child_models.html:12
 #: c3nav/editor/templates/editor/graph.html:6
 msgid "Graph"
-msgstr ""
+msgstr "Graph"
 
 #: c3nav/editor/templates/editor/fragment_modal_close.html:4
 msgid "close dialog"
@@ -440,20 +438,16 @@ msgid "on level %(level_title)s"
 msgstr "in der Etage %(level_title)s"
 
 #: c3nav/editor/templates/editor/graph.html:31
-#, fuzzy
-#| msgid "Active Tokens"
 msgid "Active node:"
-msgstr "Aktive Token"
+msgstr "Aktiver Knoten:"
 
 #: c3nav/editor/templates/editor/graph.html:39
-#, fuzzy
-#| msgid "Delete"
 msgid "Delete Node"
-msgstr "Löschen"
+msgstr "Knoten löschen"
 
 #: c3nav/editor/templates/editor/graph.html:49
 msgid "Settings for new edges"
-msgstr ""
+msgstr "Einstellungen für neue Kanten"
 
 #: c3nav/editor/templates/editor/index.html:10
 #: c3nav/editor/templates/editor/level.html:16
@@ -555,15 +549,12 @@ msgid "Object has been successfully restored."
 msgstr "Objekt wurde erfolgreich wiederhergestellt."
 
 #: c3nav/editor/views/changes.py:51
-#, fuzzy
-#| msgid ""
-#| "You cannot restore this object, because it depends on a deleted object."
 msgid ""
 "You cannot restore this object, because it depends on a deleted object or it "
 "would violate a unique contraint."
 msgstr ""
 "Du kannst dieses Objekt nicht wiederherstellen weil es ein anderes Objekt "
-"benötigt."
+"benötigt oder weil es einer Eindeutigen Beschränkung wiedersprechen würde."
 
 #: c3nav/editor/views/changes.py:55
 msgid "You can not edit changes on this change set."
@@ -700,45 +691,39 @@ msgstr "zurück zum Raum"
 
 #: c3nav/editor/views/edit.py:369
 msgid "Reverse edge created."
-msgstr ""
+msgstr "Umgekehrte Kante erstellt."
 
 #: c3nav/editor/views/edit.py:369
-#, fuzzy
-#| msgid "created"
 msgid "Edge created."
-msgstr "erstellt"
+msgstr "Kante erstellt."
 
 #: c3nav/editor/views/edit.py:372
 msgid "Reverse edge deleted."
-msgstr ""
+msgstr "Umgekehrte Kante gelöscht."
 
 #: c3nav/editor/views/edit.py:372
-#, fuzzy
-#| msgid "deleted"
 msgid "Edge deleted."
-msgstr "gelöscht"
+msgstr "Kante gelöscht."
 
 #: c3nav/editor/views/edit.py:377
 msgid "Reverse edge overwritten."
-msgstr ""
+msgstr "Umgekehrte Kante überschrieben."
 
 #: c3nav/editor/views/edit.py:377
 msgid "Edge overwritten."
-msgstr ""
+msgstr "Kante überschrieben."
 
 #: c3nav/editor/views/edit.py:416
 msgid "to level graph"
-msgstr ""
+msgstr "zum Etagengraph"
 
 #: c3nav/editor/views/edit.py:435
-#, fuzzy
-#| msgid "Object was successfully deleted."
 msgid "Graph Node was successfully deleted."
-msgstr "Objekt wurde erfolgreich gelöscht."
+msgstr "Graphknoten wurde erfolgreich gelöscht."
 
 #: c3nav/editor/views/edit.py:476
 msgid "New graph node created."
-msgstr ""
+msgstr "Neuer Graphknoten erstellt."
 
 #: c3nav/editor/views/users.py:20
 msgid "You deactivated your current changeset."
@@ -753,16 +738,14 @@ msgid "You deactivated direct editing."
 msgstr "Du hast direktes Bearbeiten deaktiviert."
 
 #: c3nav/mapdata/api.py:128
-#, fuzzy, python-format
-#| msgid "%s is not an integer."
+#, python-format
 msgid "%(field)s is not an integer."
-msgstr "%s ist keine ganze Zahl."
+msgstr "%(field)s ist keine ganze Zahl."
 
 #: c3nav/mapdata/api.py:136
-#, fuzzy, python-format
-#| msgid "level not found."
+#, python-format
 msgid "%(model)s not found."
-msgstr "Etage nicht gefunden."
+msgstr "%(model)s nicht gefunden."
 
 #: c3nav/mapdata/fields.py:17
 msgid "please enter a newline seperated lowercase list of BSSIDs"
@@ -773,18 +756,16 @@ msgid "Invalid GeoJSON."
 msgstr "Invalides GeoJSON."
 
 #: c3nav/mapdata/fields.py:67
-#, fuzzy
-#| msgid "edited geometry"
 msgid "Could not clean geometry."
-msgstr "Geometrie bearbeitet"
+msgstr "Konnte Geometrie nicht bereinigen."
 
 #: c3nav/mapdata/management/commands/clearmapcache.py:17
 msgid "incluce all history as well"
-msgstr ""
+msgstr "einschließlich der kompletten Versionsgeschichte"
 
 #: c3nav/mapdata/management/commands/clearmapcache.py:36
 msgid "You don't have celery installed, so we will run processupdates now..."
-msgstr ""
+msgstr "Celery ist nicht installiert, also führen wir nun processupdates aus…"
 
 #: c3nav/mapdata/management/commands/clearmapcache.py:43
 #: c3nav/mapdata/management/commands/processupdates.py:23
@@ -792,84 +773,79 @@ msgid ""
 "You have no external cache configured, so don't forget to restart your c3nav "
 "instance!"
 msgstr ""
+"Es ist kein externer Cache eingerichtet, vergiss also nicht, c3nav "
+"neuzustarten!"
 
 #: c3nav/mapdata/management/commands/processupdates.py:20
 msgid "There is already map update processing in progress."
-msgstr ""
+msgstr "Es läuft bereits eine Mapmap update ."
 
 #: c3nav/mapdata/management/commands/rendermap.py:28
-#, fuzzy, python-format
-#| msgid "allow levels"
+#, python-format
 msgid "Unknown level: %s"
 msgid_plural "Unknown levels: %s"
-msgstr[0] "bei Etagen erlauben"
-msgstr[1] "bei Etagen erlauben"
+msgstr[0] "Unbekannte Etage: %s"
+msgstr[1] "Unbekannte Etagen: %s"
 
 #: c3nav/mapdata/management/commands/rendermap.py:46
 #, python-format
 msgid "Unknown access restriction: %s"
 msgid_plural "Unknown access restrictions: %s"
-msgstr[0] ""
-msgstr[1] ""
+msgstr[0] "Unbekannte Zugangsbeschränkung: %s"
+msgstr[1] "Unbekannte Zugangsbeschränkungen: %s"
 
 #: c3nav/mapdata/management/commands/rendermap.py:54
 msgid "filetype to render"
-msgstr ""
+msgstr "Dateityp, der gerendert werden soll"
 
 #: c3nav/mapdata/management/commands/rendermap.py:56
 msgid "levels to render, e.g. 0,1,2 or * for all levels (default)"
 msgstr ""
+"Etagen, die gerendert werden sollen, z.b. 0,1,2 oder * für alle Etagen "
+"(Vorgabe)"
 
 #: c3nav/mapdata/management/commands/rendermap.py:58
 msgid "permissions, e.g. 2,3 or * for all permissions or 0 for none (default)"
 msgstr ""
+"Zugangserlaubnisse, z.B. 2,3 oder * für alle Erlaubnisse oder 0 für keine "
+"Erlaubnisse (Vorgabe)"
 
 #: c3nav/mapdata/management/commands/rendermap.py:60
 msgid "render all levels completely"
-msgstr ""
+msgstr "rendere alle Etagen vollständig"
 
 #: c3nav/mapdata/management/commands/rendermap.py:62
 msgid "do not center the output"
-msgstr ""
+msgstr "Ausgabe nicht zentrieren"
 
 #: c3nav/mapdata/models/access.py:19
 msgid "open"
-msgstr ""
+msgstr "öffnen"
 
 #: c3nav/mapdata/models/access.py:22 c3nav/mapdata/models/access.py:87
 #: c3nav/mapdata/models/access.py:100
-#, fuzzy
-#| msgid "Access Operator"
 msgid "Access Restriction"
-msgstr "Zugangsverwalter"
+msgstr "Zugangsbeschränkung"
 
 #: c3nav/mapdata/models/access.py:23
-#, fuzzy
-#| msgid "Access Operator"
 msgid "Access Restrictions"
-msgstr "Zugangsverwalter"
+msgstr "Zugangsbeschränkungen"
 
 #: c3nav/mapdata/models/access.py:36
-#, fuzzy
-#| msgid "expired"
 msgid "expires"
-msgstr "abgelaufen"
+msgstr "läuft ab"
 
 #: c3nav/mapdata/models/access.py:39
-#, fuzzy
-#| msgid "Permissions"
 msgid "Access Permission"
-msgstr "Zugänge"
+msgstr "Zugangserlaubnis"
 
 #: c3nav/mapdata/models/access.py:40
-#, fuzzy
-#| msgid "Permissions"
 msgid "Access Permissions"
-msgstr "Zugänge"
+msgstr "Zugangserlaubnisse"
 
 #: c3nav/mapdata/models/base.py:38
 msgid "Type"
-msgstr ""
+msgstr "Typ"
 
 #: c3nav/mapdata/models/base.py:39
 msgid "ID"
@@ -898,7 +874,7 @@ msgstr "Etage"
 #: c3nav/mapdata/models/geometry/level.py:69
 #, python-brace-format
 msgid "{category}, {level}"
-msgstr ""
+msgstr "{category}, {level}"
 
 #: c3nav/mapdata/models/geometry/level.py:93
 msgid "Building"
@@ -913,7 +889,7 @@ msgstr "Gebäude"
 #: c3nav/mapdata/models/geometry/space.py:140
 #: c3nav/mapdata/models/geometry/space.py:159
 msgid "height"
-msgstr ""
+msgstr "Höhe"
 
 #: c3nav/mapdata/models/geometry/level.py:104
 msgid "only outside of building"
@@ -925,17 +901,17 @@ msgstr "Räume"
 
 #: c3nav/mapdata/models/geometry/level.py:121 c3nav/mapdata/models/level.py:80
 msgid "outside only"
-msgstr ""
+msgstr "Nur draußen"
 
 #: c3nav/mapdata/models/geometry/level.py:121
 #: c3nav/mapdata/models/locations.py:107 c3nav/mapdata/models/locations.py:108
 msgid "Yes"
-msgstr ""
+msgstr "Ja"
 
 #: c3nav/mapdata/models/geometry/level.py:121
 #: c3nav/mapdata/models/locations.py:107 c3nav/mapdata/models/locations.py:108
 msgid "No"
-msgstr ""
+msgstr "Nein"
 
 #: c3nav/mapdata/models/geometry/level.py:134
 msgid "Door"
@@ -947,28 +923,20 @@ msgstr "Türen"
 
 #: c3nav/mapdata/models/geometry/level.py:144
 #: c3nav/mapdata/models/geometry/space.py:225
-#, fuzzy
-#| msgid "level altitude"
 msgid "altitude"
-msgstr "Bodenhöhe"
+msgstr "Höhe"
 
 #: c3nav/mapdata/models/geometry/level.py:145
-#, fuzzy
-#| msgid "level altitude"
 msgid "second altitude"
-msgstr "Bodenhöhe"
+msgstr "zweite Bodenhöhe"
 
 #: c3nav/mapdata/models/geometry/level.py:150
-#, fuzzy
-#| msgid "Outside Area"
 msgid "Altitude Area"
-msgstr "Außenbereich"
+msgstr "Höhenbereich"
 
 #: c3nav/mapdata/models/geometry/level.py:151
-#, fuzzy
-#| msgid "Outside Areas"
 msgid "Altitude Areas"
-msgstr "Außenbereiche"
+msgstr "Höhenbereiche"
 
 #: c3nav/mapdata/models/geometry/level.py:246
 #, python-format
@@ -976,17 +944,21 @@ msgid ""
 "AltitudeMarker #%(marker_id)d in Space #%(space_id)d on Level "
 "%(level_label)s is not placed in an accessible area"
 msgstr ""
+"Höhenmarker #%(marker_id)d in Raum #%(space_id)d auf Etage %(level_label)s "
+"ist nicht in einem begehbaren Bereich platziert"
 
 #: c3nav/mapdata/models/geometry/level.py:554
 #, python-format
 msgid "%d altitude areas built."
-msgstr ""
+msgstr "%d Höhenbereiche gebaut."
 
 #: c3nav/mapdata/models/geometry/level.py:555
 #, python-format
 msgid ""
 "%(num_modified)d modified, %(num_deleted)d deleted, %(num_created)d created."
 msgstr ""
+"%(num_modified)d geändert, %(num_deleted)d entfernt, %(num_created)d "
+"erstellt."
 
 #: c3nav/mapdata/models/geometry/space.py:16
 msgid "space"
@@ -995,12 +967,12 @@ msgstr "Raum"
 #: c3nav/mapdata/models/geometry/space.py:40
 #, python-brace-format
 msgid "{category}, {space}, {level}"
-msgstr ""
+msgstr "{category}, {space}, {level}"
 
 #: c3nav/mapdata/models/geometry/space.py:44
 #, python-brace-format
 msgid "{category}, {space}"
-msgstr ""
+msgstr "{category}, {space}"
 
 #: c3nav/mapdata/models/geometry/space.py:85
 msgid "Column"
@@ -1029,11 +1001,11 @@ msgstr "Stufen"
 
 #: c3nav/mapdata/models/geometry/space.py:130
 msgid "Ramp"
-msgstr ""
+msgstr "Rampe"
 
 #: c3nav/mapdata/models/geometry/space.py:131
 msgid "Ramps"
-msgstr ""
+msgstr "Rampen"
 
 #: c3nav/mapdata/models/geometry/space.py:143
 msgid "Obstacle"
@@ -1045,7 +1017,7 @@ msgstr "Hindernisse"
 
 #: c3nav/mapdata/models/geometry/space.py:158
 msgid "width"
-msgstr ""
+msgstr "Breite"
 
 #: c3nav/mapdata/models/geometry/space.py:162
 msgid "Line Obstacle"
@@ -1073,73 +1045,67 @@ msgstr "Löcher"
 
 #: c3nav/mapdata/models/geometry/space.py:228
 msgid "Altitude Marker"
-msgstr ""
+msgstr "Höhenmarker"
 
 #: c3nav/mapdata/models/geometry/space.py:229
 msgid "Altitude Markers"
-msgstr ""
+msgstr "Höhenmarker"
 
 #: c3nav/mapdata/models/graph.py:21
 msgid "Graph Node"
-msgstr ""
+msgstr "Graphknoten"
 
 #: c3nav/mapdata/models/graph.py:22
 msgid "Graph Nodes"
-msgstr ""
+msgstr "Graphknoten"
 
 #: c3nav/mapdata/models/graph.py:34
-#, fuzzy
-#| msgid "color"
 msgid "edge color"
-msgstr "Farbe"
+msgstr "Kantenfarbe"
 
 #: c3nav/mapdata/models/graph.py:37 c3nav/mapdata/models/graph.py:50
 msgid "Way Type"
-msgstr ""
+msgstr "Wegtyp"
 
 #: c3nav/mapdata/models/graph.py:38
 msgid "Way Types"
-msgstr ""
+msgstr "Wegtypen"
 
 #: c3nav/mapdata/models/graph.py:47
 msgid "from node"
-msgstr ""
+msgstr "Startknoten"
 
 #: c3nav/mapdata/models/graph.py:49
 msgid "to node"
-msgstr ""
+msgstr "Zielknoten"
 
 #: c3nav/mapdata/models/graph.py:53
 msgid "Graph Edge"
-msgstr ""
+msgstr "Graphkante"
 
 #: c3nav/mapdata/models/graph.py:54
 msgid "Graph Edges"
-msgstr ""
+msgstr "Graphkanten"
 
 #: c3nav/mapdata/models/level.py:17
-#, fuzzy
-#| msgid "level altitude"
 msgid "base altitude"
-msgstr "Bodenhöhe"
+msgstr "Basisbodenhöhe"
 
 #: c3nav/mapdata/models/level.py:18
 msgid "default space height"
-msgstr ""
+msgstr "Standardraumhöhe"
 
 #: c3nav/mapdata/models/level.py:19
 msgid "door height"
-msgstr ""
+msgstr "Türhöhe"
 
 #: c3nav/mapdata/models/level.py:21
 msgid "on top of"
 msgstr "Halbetage über"
 
 #: c3nav/mapdata/models/level.py:22 c3nav/mapdata/models/level.py:78
-#, fuzzy
-#| msgid "Button label"
 msgid "short label"
-msgstr "Knopfbeschriftung"
+msgstr "kurze Bezeichnung"
 
 #: c3nav/mapdata/models/level.py:26
 msgid "Levels"
@@ -1147,7 +1113,7 @@ msgstr "Etagen"
 
 #: c3nav/mapdata/models/level.py:81
 msgid "default height"
-msgstr ""
+msgstr "Standardhöhe"
 
 #: c3nav/mapdata/models/locations.py:44 c3nav/mapdata/models/locations.py:64
 msgid "Slug"
@@ -1162,16 +1128,12 @@ msgid "can be searched"
 msgstr "zur Suche zugelassen"
 
 #: c3nav/mapdata/models/locations.py:79 c3nav/mapdata/models/locations.py:108
-#, fuzzy
-#| msgid "describe"
 msgid "can describe"
-msgstr "beschreiben"
+msgstr "beschreibend"
 
 #: c3nav/mapdata/models/locations.py:107
-#, fuzzy
-#| msgid "search"
 msgid "searchable"
-msgstr "suchen"
+msgstr "suchbar"
 
 #: c3nav/mapdata/models/locations.py:140 c3nav/mapdata/models/locations.py:250
 msgid "Location Groups"
@@ -1227,7 +1189,7 @@ msgstr "Farbe"
 
 #: c3nav/mapdata/models/locations.py:273
 msgid "priority"
-msgstr ""
+msgstr "Priorität"
 
 #: c3nav/mapdata/models/locations.py:282
 msgid "search"
@@ -1244,16 +1206,14 @@ msgstr "intern"
 #: c3nav/mapdata/models/locations.py:305
 #, python-brace-format
 msgid "{category_title}, {num_locations}"
-msgstr ""
+msgstr "{category_title}, {num_locations}"
 
 #: c3nav/mapdata/models/locations.py:307
-#, fuzzy, python-format
-#| msgid "%d location"
-#| msgid_plural "%d locations"
+#, python-format
 msgid "%(num)d location"
 msgid_plural "%(num)d locations"
-msgstr[0] "%d Ort"
-msgstr[1] "%d Orte"
+msgstr[0] "%(num)d Ort"
+msgstr[1] "%(num)d Orte"
 
 #: c3nav/mapdata/models/locations.py:325
 msgid "target"
@@ -1279,13 +1239,13 @@ msgstr "Kartenupdates"
 #, python-format
 msgid "%d map update processed."
 msgid_plural "%d map updates processed."
-msgstr[0] ""
-msgstr[1] ""
+msgstr[0] "%d Kartenupdate verarbeitet."
+msgstr[1] "%d Kartenupdates verarbeitet."
 
 #: c3nav/mapdata/tasks.py:40
 #, python-format
 msgid "Last processed update: %(date)s (#%(id)d)"
-msgstr ""
+msgstr "Letztes verarbeitetes Update: %(date)s (#%(id)d)"
 
 #: c3nav/routing/route.py:69 c3nav/routing/route.py:71
 msgid "Unknown Location"
@@ -1410,7 +1370,7 @@ msgstr "schließen"
 
 #: c3nav/site/templates/site/fragment_location.html:61
 msgid "Click or tap the desired location on the map."
-msgstr "Klick oder berühre den gewünschte Ort auf der Karte"
+msgstr "Klick oder berühre den gewünschte Ort auf der Karte."
 
 #: c3nav/site/templates/site/fragment_location.html:77
 msgid "Sorry, we could not detect your position."
@@ -1547,380 +1507,28 @@ msgstr "Verknüpfung"
 
 #: c3nav/site/templates/site/map.html:26
 msgid "Show only this location"
-msgstr ""
+msgstr "Nur diesen Ort anzeigen"
 
 #: c3nav/site/templates/site/map.html:35 c3nav/site/templates/site/map.html:42
-#, fuzzy
-#| msgid "Search any Location…"
 msgid "Search any location…"
-msgstr "Tipp einen beliebigen Ort ein…"
+msgstr "Suche einen beliebigen Ort…"
 
 #: c3nav/site/templates/site/map.html:55
-#, fuzzy
-#| msgid "share"
 msgid "Share"
 msgstr "Teilen"
 
 #: c3nav/site/templates/site/map.html:59
-#, fuzzy
-#| msgid "Get Route"
 msgid "Route"
-msgstr "Route berechnen"
+msgstr "Route"
 
 #: c3nav/site/templates/site/map.html:70 c3nav/site/templates/site/map.html:80
 msgid "Swap"
-msgstr ""
+msgstr "Vertauschen"
 
 #: c3nav/site/templates/site/map.html:74
-#, fuzzy
-#| msgid "close"
 msgid "Close"
-msgstr "schließen"
+msgstr "Schließen"
 
 #: c3nav/site/templates/site/map.html:94
-#, fuzzy
-#| msgid "Editor"
 msgid "Open in Editor"
-msgstr "Editor"
-
-#~ msgid "space not found."
-#~ msgstr "Raum nicht gefunden."
-
-#~ msgid "category not found."
-#~ msgstr "Kategorie nicht gefunden."
-
-#~ msgid "group not found."
-#~ msgstr "Gruppe nicht gefunden."
-
-#~ msgid "%s is not null or an integer."
-#~ msgstr "%s ist weder null noch eine ganze Zahl."
-
-#~ msgid "normal"
-#~ msgstr "normal"
-
-#~ msgid "stairs"
-#~ msgstr "Stufen"
-
-#~ msgid "escalator"
-#~ msgstr "Rolltreppe"
-
-#~ msgid "elevator"
-#~ msgstr "Aufzug"
-
-#~ msgid "obstacle width"
-#~ msgstr "Hindernisbreite"
-
-#~ msgid "can be used to describe a position"
-#~ msgstr "kann einen Ort beschreiben"
-
-#~ msgid "public"
-#~ msgstr "öffentlich"
-
-#~ msgid "category"
-#~ msgstr "Kategorie"
-
-#~ msgid "stuffed area"
-#~ msgstr "Vollgestopfter Bereich"
-
-#~ msgid "is a compiled room"
-#~ msgstr "zusammengesetzter Raum"
-
-#~ msgid "is a compiled area"
-#~ msgstr "zusammengesetzter Raum"
-
-#~ msgid "comp. room"
-#~ msgstr "zusammengesetzter Raum"
-
-#~ msgid "comp. area"
-#~ msgstr "zusammengesetzter Bereich"
-
-#~ msgid "Changeset #%(id)s"
-#~ msgstr "Änderungsset Nr. %(id)s"
-
-#~ msgid "Lucation with Slug"
-#~ msgstr "Ort mit Slug"
-
-#~ msgid "%(model_title_plural)s"
-#~ msgstr "%(model_title_plural)s"
-
-#~ msgid "Important dates"
-#~ msgstr "Wichtige Daten"
-
-#~ msgid "Full Permissions"
-#~ msgstr "Voller Zugang"
-
-#~ msgid "%(grouptitle)s (%(count)s nonpublic locations)"
-#~ msgstr "%(grouptitle)s (%(count)s nichtöffentliche Orte)"
-
-#~ msgid "can award permissions"
-#~ msgstr "kann Zugänge verteilen"
-
-#~ msgid "has access from"
-#~ msgstr "hat Zugang von"
-
-#~ msgid "has access until"
-#~ msgstr "hat Zugang bis"
-
-#~ msgid "access name"
-#~ msgstr "Zugangsname"
-
-#~ msgid "Usually an URL to a profile somewhere"
-#~ msgstr "üblicherweise eine URL zu einem Profil irgendwo"
-
-#~ msgid "Access User"
-#~ msgstr "Zugangsnutzer"
-
-#~ msgid "Access Users"
-#~ msgstr "Zugangsnutzer"
-
-#~ msgid "permissions"
-#~ msgstr "Zugänge"
-
-#~ msgid "is expired"
-#~ msgstr "abgelaufen"
-
-#~ msgid "activated"
-#~ msgstr "aktiviert"
-
-#~ msgid "Access Token"
-#~ msgstr "Zugangstoken"
-
-#~ msgid "Access Tokens"
-#~ msgstr "Zugangstoken"
-
-#~ msgid "access secret"
-#~ msgstr "Zugangsschlüssel"
-
-#~ msgid "Access Token Instance"
-#~ msgstr "Zugangstokeninstanz"
-
-#~ msgid "Access Token Instances"
-#~ msgstr "Zugangstokeninstanzen"
-
-#~ msgid "Your access token was installed on your device!"
-#~ msgstr "Der Zugangstoken wurde auf deinem Gerät aktiviert!"
-
-#~ msgid "Link to this token / in this QR code"
-#~ msgstr "Link zu diesem Token / in diesem QR Code"
-
-#~ msgid "Activate token on this device"
-#~ msgstr "Token auf diesem Gerät aktivieren!"
-
-#~ msgid ""
-#~ "This link QR Code / Link only works once. If you want access on multiple "
-#~ "devices, you need multiple tokens."
-#~ msgstr ""
-#~ "Dieser QR Code / link funktioniert nur einmal. Wenn du auf mehreren "
-#~ "Geräten zugang willst, brauchst du mehrere Token."
-
-#~ msgid "Users"
-#~ msgstr "Nutzer"
-
-#~ msgid "This is the non-public backend for creation of access tokens."
-#~ msgstr ""
-#~ "Das hier ist das nichtöffentliche Backend zum Erstellen von Zugangstokens."
-
-#~ msgid "Prove that you should have access"
-#~ msgstr "Beweise dass du Zugang haben solltest"
-
-#~ msgid "Prove access rights"
-#~ msgstr "Zugangsrechte beweisen"
-
-#~ msgid ""
-#~ "Please enter a valid authentication code for the hosters of the following "
-#~ "non-public map packages:"
-#~ msgstr ""
-#~ "Bitte gebe einen gültigen API Token für die Hoster der folgenden "
-#~ "nichtöffentlichen Kartenpakete an:"
-
-#~ msgid "Thanks – you get full access to the map!"
-#~ msgstr "Danke – du kriegst vollen Zugang zur Karte!"
-
-#~ msgid "All previous tokens have been invalidated."
-#~ msgstr "Alle bisherigen Token wurden deaktiviert."
-
-#~ msgid "Sorry."
-#~ msgstr "Sorry."
-
-#~ msgid "One or more access tokens were not correct."
-#~ msgstr "Ein oder mehrere Token waren ungültig."
-
-#~ msgid "You already have a valid access token."
-#~ msgstr "Du hast bereits einen gültigen Zugangstoken."
-
-#~ msgid "Invalidate previous token(s)."
-#~ msgstr "Bisherige token invalidieren."
-
-#~ msgid "Submit"
-#~ msgstr "Absenden"
-
-#~ msgid "Sorry, this service is currently not available."
-#~ msgstr "Sorry, dieses Feature is aktuell nicht verfügbar."
-
-#~ msgid "Add new access token"
-#~ msgstr "Neuen "
-
-#~ msgid "Add"
-#~ msgstr "Hinzufügen"
-
-#~ msgid "Creation Date"
-#~ msgstr "Erstellungsdatum"
-
-#~ msgid "Expiration"
-#~ msgstr "Ablaufdatum"
-
-#~ msgid "Action"
-#~ msgstr "Aktion"
-
-#~ msgid "never"
-#~ msgstr "nie"
-
-#~ msgid "Expire"
-#~ msgstr "Invalidieren"
-
-#~ msgid "previous"
-#~ msgstr "vorherige"
-
-#~ msgid "Page %(number)s of %(total)s"
-#~ msgstr "Seite %(number)s von %(total)s"
-
-#~ msgid "next"
-#~ msgstr "nächste"
-
-#~ msgid "Add new access user"
-#~ msgstr "Neuen Zugangsnutzer erstellen"
-
-#~ msgid "Add new User"
-#~ msgstr "Neuen Nutzer erstellen"
-
-#~ msgid "Please select at least two levels."
-#~ msgstr "Bitte wähle mindestens zwei Etagen."
-
-#~ msgid "You have to select a title in at least one language."
-#~ msgstr "Du musst einen Titel für mindestens eine Sprache wählen."
-
-#~ msgid "non-public areas"
-#~ msgstr "nichtöffentliche Bereiche"
-
-#~ msgid "Room"
-#~ msgstr "Raum"
-
-#~ msgid "Rooms"
-#~ msgstr "Räume"
-
-#~ msgid "Stuffed Areas"
-#~ msgstr "Vollgestopfte Bereiche"
-
-#~ msgid "up"
-#~ msgstr "hoch"
-
-#~ msgid "down"
-#~ msgstr "runter"
-
-#~ msgid "Escalator Slope"
-#~ msgstr "Rolltreppensteigung"
-
-#~ msgid "Escalator Slopes"
-#~ msgstr "Rolltreppensteigungen"
-
-#~ msgid "Oneway"
-#~ msgstr "Einbahnweg"
-
-#~ msgid "Oneways"
-#~ msgstr "Einbahnwege"
-
-#~ msgid "Level Connectors"
-#~ msgstr "Etagenverbinder"
-
-#~ msgid "override level altitude"
-#~ msgstr "Bodenhöhe der Etage überschreiben"
-
-#~ msgid "Elevator Level"
-#~ msgstr "Aufzugetage"
-
-#~ msgid "Elevator Levels"
-#~ msgstr "Aufzugetagen"
-
-#~ msgid "level name"
-#~ msgstr "Etagenname"
-
-#~ msgid "Usually just an integer (e.g. -1, 0, 1, 2)"
-#~ msgstr "Üblicherweise eine Zahl (z.b. -1, 0, 1, 2)"
-
-#~ msgid "intermediate level"
-#~ msgstr "Zwischenetage"
-
-#~ msgid "if set, has to be a valid color for svg images"
-#~ msgstr "muss, falls gesetzt, eine gültige SVG Farbe sein"
-
-#~ msgid "General Area"
-#~ msgstr "Allgemeiner Bereich"
-
-#~ msgid "Room Segment"
-#~ msgstr "Raumteil"
-
-#~ msgid "Default, include if map package is unlocked"
-#~ msgstr "Standard: einbeziehen wenn das Kartenpaket zugänglich ist"
-
-#~ msgid "Included, but allow excluding"
-#~ msgstr "Einbeziehen, aber Vermeiden erlauben"
-
-#~ msgid "Avoided, but allow including"
-#~ msgstr "Vermeiden, aber Einbeziehen erlauben"
-
-#~ msgid "Excluded, needs permission to include"
-#~ msgstr "Vermeiden, Erlaubnis zum Einbeziehen notwendig"
-
-#~ msgid "Location Type"
-#~ msgstr "Orttyp"
-
-#~ msgid "Routing Inclusion"
-#~ msgstr "Routeneinbeziehung"
-
-#~ msgid "BSSIDs"
-#~ msgstr "BSSIDs"
-
-#~ msgid "Area Location"
-#~ msgstr "Ortbereich"
-
-#~ msgid "Area Locations"
-#~ msgstr "Ortbereiche"
-
-#~ msgid "Unreachable Coordinates"
-#~ msgstr "Unerreichbare Koordinaten"
-
-#~ msgid "Coordinates"
-#~ msgstr "Koordinaten"
-
-#~ msgid "Coordinates in %(location)s"
-#~ msgstr "Koordinaten innerhalb %(location)s"
-
-#~ msgid "Coordinates near %(location)s"
-#~ msgstr "Koordinaten in der Nähe von %(location)s"
-
-#~ msgid "package identifier"
-#~ msgstr "Paket ID"
-
-#~ msgid "e.g. de.c3nav.33c3.base"
-#~ msgstr "z.b. de.c3nav.33c3.base"
-
-#~ msgid "URL to the home git repository"
-#~ msgstr "URL des originalen git repos"
-
-#~ msgid "current commit id"
-#~ msgstr "aktuelle commit id"
-
-#~ msgid "folder name"
-#~ msgstr "Verzeichnisname"
-
-#~ msgid "Map Package"
-#~ msgstr "Kartenpaket"
-
-#~ msgid "Access Tokens Instance"
-#~ msgstr "Zugangtokeninstanzen"
-
-#~ msgid "This Source belongs to a package you don't have access to."
-#~ msgstr "Diese Vorlage gehört zu einem Paket, auf das du kein Zugriff hast."
-
-#~ msgid "You have reached your destination."
-#~ msgstr "Du hast dein Ziel erreich."
+msgstr "Im Editor öffnen"
