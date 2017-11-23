@@ -23,9 +23,9 @@
     </header>
     <main class="map" data-state="{{ state }}">
         <section id="popup-buttons">
-            <button class="button-clear as-location">Show only this location</button>
-            <button class="button-clear as-destination">Route to here</button>
-            <button class="button-clear as-origin">Route from here</button>
+            <button class="button-clear as-location">{% trans 'Show only this location' %}</button>
+            <button class="button-clear as-destination">{% trans 'Route to here' %}</button>
+            <button class="button-clear as-origin">{% trans 'Route from here' %}</button>
         </section>
         <section id="map" data-bounds="{{ bounds }}" data-levels="{{ levels }}"{% if tile_cache_server %} data-tile-server="{{ tile_cache_server }}"{% endif %}></section>
         <section id="sidebar">
@@ -48,15 +48,15 @@
                 <div class="buttons" id="location-buttons">
                     <button class="button-clear details">
                         <i class="material-icons">expand_more</i>
-                        Details
+                        {% trans 'Details' %}
                     </button>
                     <button class="button-clear share">
                         <i class="material-icons">share</i>
-                        Share
+                        {% trans 'Share' %}
                     </button>
                     <button class="button-clear route">
                         <i class="material-icons">directions</i>
-                        Route
+                        {% trans 'Route' %}
                     </button>
                 </div>
                 <div id="route-summary">
@@ -67,21 +67,21 @@
                 <div class="buttons" id="route-search-buttons">
                     <button class="button-clear swap">
                         <i class="material-icons">swap_vert</i>
-                        Swap
+                        {% trans 'Swap' %}
                     </button>
                     <button class="button-clear close">
                         <i class="material-icons">close</i>
-                        Close
+                        {% trans 'Close' %}
                     </button>
                 </div>
                 <div class="buttons" id="route-result-buttons">
                     <button class="button-clear swap">
                         <i class="material-icons">swap_vert</i>
-                        Swap
+                        {% trans 'Swap' %}
                     </button>
                     <button class="button-clear details">
                         <i class="material-icons">arrow_downward</i>
-                        Details
+                        {% trans 'Details' %}
                     </button>
                 </div>
             </section>
@@ -91,18 +91,11 @@
                     <div class="details-head">
                         <a class="button button-clear editor float-right" target="_blank">
                             <i class="material-icons">edit</i>
-                            Open in Editor
+                            {% trans 'Open in Editor' %}
                         </a>
-                        <h2>Details</h2>
+                        <h2>{% trans 'Details' %}</h2>
                     </div>
-                    <div class="details-body">
-                        <dl>
-                            <dt>Name</dt>
-                            <dd>CCL Atrium Ebene 1</dd>
-                            <dt>Name</dt>
-                            <dd>CCL Atrium Ebene 1</dd>
-                        </dl>
-                    </div>
+                    <div class="details-body"></div>
                 </section>
                 <section id="route-details" class="details"></section>
             </div>
