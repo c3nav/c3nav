@@ -8,7 +8,7 @@ msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2017-11-23 00:30+0000\n"
-"PO-Revision-Date: 2017-11-23 01:29+0100\n"
+"PO-Revision-Date: 2017-11-23 02:07+0100\n"
 "Last-Translator: Laura Klünder <laura@codingcatgirl.de>\n"
 "Language-Team: \n"
 "Language: de\n"
@@ -825,11 +825,11 @@ msgstr "öffnen"
 #: c3nav/mapdata/models/access.py:22 c3nav/mapdata/models/access.py:87
 #: c3nav/mapdata/models/access.py:100
 msgid "Access Restriction"
-msgstr "Zugangsbeschränkung"
+msgstr "Zugangs­beschränkung"
 
 #: c3nav/mapdata/models/access.py:23
 msgid "Access Restrictions"
-msgstr "Zugangsbeschränkungen"
+msgstr "Zugangs­beschränkungen"
 
 #: c3nav/mapdata/models/access.py:36
 msgid "expires"
