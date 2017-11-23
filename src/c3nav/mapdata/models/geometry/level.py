@@ -242,8 +242,11 @@ class AltitudeArea(LevelGeometryMixin, models.Model):
                             area.altitude = altitudemarker.altitude
                             break
                     else:
-                        logger.error(_('AltitudeMarker #%d in Space #%d on Level %s is not placed in an '
-                                       'accessible area') % (altitudemarker.pk, space.pk, level.short_label))
+                        logger.error(
+                            _('AltitudeMarker #%(marker_id)d in Space #%(space_id)d on Level %(level_label)s '
+                              'is not placed in an accessible area') % {'marker_id': altitudemarker.pk,
+                                                                        'space_id': space.pk,
+                                                                        'level_label': level.short_label})
 
             # determine altitude area connections
             for area in areas:
@@ -549,4 +552,5 @@ class AltitudeArea(LevelGeometryMixin, models.Model):
 
         logger = logging.getLogger('c3nav')
         logger.info(_('%d altitude areas built.') % len(areas))
-        logger.info(_('%d modified, %d deleted, %d created.') % (num_modified, num_deleted, num_created))
+        logger.info(_('%(num_modified)d modified, %(num_deleted)d deleted, %(num_created)d created.') %
+                    {'num_modified': num_modified, 'num_deleted': num_deleted, 'num_created': num_created})
