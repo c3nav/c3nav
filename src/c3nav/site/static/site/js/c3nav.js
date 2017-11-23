@@ -237,8 +237,9 @@ c3nav = {
             tmp = $origin.data('location');
         c3nav._locationinput_set($origin, $destination.data('location'));
         c3nav._locationinput_set($destination, tmp);
-        $origin.stop().css('top', '55px').animate({top: 0}, 150);
-        $destination.stop().css('top', '-55px').animate({top: 0}, 150);
+        var offset = $destination.position().top-$origin.position().top;
+        $origin.stop().css('top', offset).animate({top: 0}, 150);
+        $destination.stop().css('top', -offset).animate({top: 0}, 150);
         c3nav.update_state();
     },
     _route_buttons_close_click: function () {
