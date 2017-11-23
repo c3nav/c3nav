@@ -91,14 +91,14 @@ main.map {
 #search {
     z-index: 4;
     min-height: 54px;
-    /*noinspection CssUnknownTarget*/
-    background: url('../../img/loader.gif') no-repeat 4px 3px;
     min-width: 54px;
     width: 100%;
     transition: width 150ms;
     flex-shrink: 0;
 }
 #search.loading {
+    /*noinspection CssUnknownTarget*/
+    background: url('../../img/loader.gif') no-repeat 4px 3px;
     width: 5%;
 }
 
@@ -284,7 +284,6 @@ main.show-details #resultswrapper .details {
 .locationinput {
     position: relative;
     padding: 0;
-    background-color: #ffffff;
 }
 .locationinput input {
     box-sizing: border-box;
