@@ -8,7 +8,7 @@ msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2017-11-23 00:30+0000\n"
-"PO-Revision-Date: 2017-11-23 02:07+0100\n"
+"PO-Revision-Date: 2017-11-23 02:14+0100\n"
 "Last-Translator: Laura Klünder <laura@codingcatgirl.de>\n"
 "Language-Team: \n"
 "Language: de\n"
@@ -889,7 +889,7 @@ msgstr "Gebäude"
 #: c3nav/mapdata/models/geometry/space.py:140
 #: c3nav/mapdata/models/geometry/space.py:159
 msgid "height"
-msgstr "Höhe"
+msgstr "Deckenhöhe"
 
 #: c3nav/mapdata/models/geometry/level.py:104
 msgid "only outside of building"
@@ -1113,7 +1113,7 @@ msgstr "Etagen"
 
 #: c3nav/mapdata/models/level.py:81
 msgid "default height"
-msgstr "Standardhöhe"
+msgstr "Standarddeckenhöhe"
 
 #: c3nav/mapdata/models/locations.py:44 c3nav/mapdata/models/locations.py:64
 msgid "Slug"
