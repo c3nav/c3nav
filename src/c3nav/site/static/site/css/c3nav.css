@@ -499,5 +499,6 @@ main:not([data-view=route-result]) #route-summary {
     padding: 0 3px;
 }
 .leaflet-control-levels a.current {
-    font-weight:bold;
+    font-weight: bold;
+    background-color: #eeeeee;
 }
