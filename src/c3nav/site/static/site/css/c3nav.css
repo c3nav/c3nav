@@ -290,7 +290,7 @@ main.show-details #resultswrapper .details {
     border-width:0;
     height: 54px;
     transition: padding-bottom 150ms;
-    line-height:3.5;
+    line-height: 1.0;
     padding-left: 52px;
 }
 .locationinput small {
