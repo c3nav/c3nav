@@ -28,16 +28,43 @@
 
 {% if set_active_node %}
     <div data-active-node="{% if active_node %}{{ active_node.pk }}{% else %}null{% endif %}" class="well well-sm">
-        <strong>{% trans 'Active node:' %} {{ active_node.pk }}</strong><br>
-        {% with space_title=active_node.space.title level_title=active_node.space.level.title %}
-            {% blocktrans %}in space {{ space_title }}{% endblocktrans %}<br>
-            {% blocktrans %}on level {{ level_title }}{% endblocktrans %}
-        {% endwith %}
+        <p>
+            <strong>{% trans 'Active node:' %} {{ active_node.pk }}</strong><br>
+            {% with space_title=active_node.space.title level_title=active_node.space.level.title %}
+                {% blocktrans %}in space {{ space_title }}{% endblocktrans %}<br>
+                {% blocktrans %}on level {{ level_title }}{% endblocktrans %}
+            {% endwith %}
+        </p>
         <form action="{{ request.path }}" method="post">
             {% csrf_token %}
             <input type="hidden" name="pk" value="{{ active_node.pk }}">
             <button type="submit" class="btn btn-danger btn-xs" name="delete" value="1">{% trans 'Delete Node' %}</button>
-        </form>
+        </form><br>
+        <strong>{% trans 'Connections:' %}</strong><br>
+        {% for connections in active_node_connections %}
+            <small>
+                <strong>
+                    {% with space_title=connections.0.other_node.space.title level_title=connections.0.other_node.space.level.title %}
+                        {% blocktrans %}Space {{ space_title }}{% endblocktrans %}<br>
+                        {% blocktrans %}on level {{ level_title }}{% endblocktrans %}
+                    {% endwith %}
+                </strong>
+                <br>
+                →
+                {% for connection in connections %}
+                    {% if connection.from_node_id == active_node.pk %}
+                        {{ connection.other_node.pk }}{% if connection.waytype %}{{ connection.waytype.title }}{% endif %},
+                    {% endif %}
+                {% endfor %}
+                <br>
+                ←
+                {% for connection in connections %}
+                    {% if connection.from_node_id != active_node.pk %}
+                        {{ connection.other_node.pk }}{% if connection.waytype %}{{ connection.waytype.title }}{% endif %},
+                    {% endif %}
+                {% endfor %}
+            </small><br><br>
+        {% endfor %}
     </div>
 {% else %}
     <div data-active-node class="well well-sm"></div>

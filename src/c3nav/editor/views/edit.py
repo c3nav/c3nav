@@ -4,6 +4,7 @@ from contextlib import suppress
 from django.contrib import messages
 from django.core.exceptions import FieldDoesNotExist, ObjectDoesNotExist
 from django.db import models
+from django.db.models import Q
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.utils.translation import ugettext_lazy as _
@@ -11,6 +12,7 @@ from django.views.decorators.http import etag
 
 from c3nav.editor.forms import GraphEdgeSettingsForm, GraphEditorActionForm
 from c3nav.editor.views.base import etag_func, sidebar_view
+from c3nav.mapdata.models.access import AccessPermission
 
 
 def child_model(request, model: typing.Union[str, models.Model], kwargs=None, parent=None):
@@ -407,12 +409,13 @@ def graph_edit(request, level=None, space=None):
     elif space is not None:
         queryset = Space.objects.filter(Space.q_for_request(request)).select_related('level').defer('geometry')
         space = get_object_or_404(queryset, pk=space)
+        level = space.level
         ctx.update({
             'space': space,
             'level': space.level,
-            'back_url': reverse('editor.spaces.detail', kwargs={'level': space.level.pk, 'pk': space.pk}),
+            'back_url': reverse('editor.spaces.detail', kwargs={'level': level.pk, 'pk': space.pk}),
             'back_title': _('back to space'),
-            'parent_url': reverse('editor.levels.graph', kwargs={'level': space.level.pk}),
+            'parent_url': reverse('editor.levels.graph', kwargs={'level': level.pk}),
             'parent_title': _('to level graph'),
             'geometry_url': '/api/editor/geometries/?space='+str(space.pk),
         })
@@ -440,6 +443,7 @@ def graph_edit(request, level=None, space=None):
                 'obj_title': node.title
             })
 
+        permissions = AccessPermission.get_for_request(request) | set([None])
         edge_settings_form = GraphEdgeSettingsForm(instance=GraphEdge(), request=request, data=request.POST)
         graph_action_form = GraphEditorActionForm(request=request, allow_clicked_position=create_nodes,
                                                   data=request.POST)
@@ -482,9 +486,28 @@ def graph_edit(request, level=None, space=None):
                         messages.error(request, _('You can not edit changes on this changeset.'))
 
             if set_active_node:
+                if active_node:
+                    connections = {}
+                    for self_node, other_node in (('from_node', 'to_node'), ('to_node', 'from_node')):
+                        conn_qs = GraphEdge.objects.filter(Q(**{self_node+'__pk': active_node.pk}))
+                        conn_qs = conn_qs.select_related(other_node+'__space', other_node+'__space__level', 'waytype')
+
+                        for edge in conn_qs:
+                            edge.other_node = getattr(edge, other_node)
+                            if (edge.other_node.space.access_restriction_id not in permissions
+                                    or edge.other_node.space.level.access_restriction_id not in permissions):
+                                continue
+                            connections.setdefault(edge.other_node.space_id, []).append(edge)
+                    connections = sorted(
+                        connections.values(),
+                        key=lambda c: (c[0].other_node.space.level == level,
+                                       c[0].other_node.space == space,
+                                       c[0].other_node.space.level.base_altitude)
+                    )
                 ctx.update({
                     'set_active_node': set_active_node,
                     'active_node': active_node,
+                    'active_node_connections': connections,
                 })
     else:
         edge_settings_form = GraphEdgeSettingsForm(request=request)
