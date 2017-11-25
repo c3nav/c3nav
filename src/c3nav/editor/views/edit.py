@@ -490,7 +490,8 @@ def graph_edit(request, level=None, space=None):
                 if active_node:
                     for self_node, other_node in (('from_node', 'to_node'), ('to_node', 'from_node')):
                         conn_qs = GraphEdge.objects.filter(Q(**{self_node+'__pk': active_node.pk}))
-                        conn_qs = conn_qs.select_related(other_node+'__space', other_node+'__space__level', 'waytype')
+                        conn_qs = conn_qs.select_related(other_node+'__space', other_node+'__space__level',
+                                                         'waytype', 'access_restriction')
 
                         for edge in conn_qs:
                             edge.other_node = getattr(edge, other_node)
