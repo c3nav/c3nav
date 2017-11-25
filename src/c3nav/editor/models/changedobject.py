@@ -155,7 +155,10 @@ class ChangedObject(models.Model):
                         else:
                             setattr(instance, field.get_cache_name(), obj)
                     else:
-                        delattr(instance, field.get_cache_name())
+                        try:
+                            delattr(instance, field.get_cache_name())
+                        except AttributeError:
+                            pass
                         try:
                             value = created_pks[field.related_model][value]
                         except KeyError:
