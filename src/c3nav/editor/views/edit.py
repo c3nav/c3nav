@@ -468,7 +468,8 @@ def graph_edit(request, level=None, space=None):
                         else:
                             messages.error(request, _('You can not edit changes on this changeset.'))
 
-            elif clicked_node is None and clicked_position is not None and space.geometry.contains(clicked_position):
+            elif (clicked_node is None and clicked_position is not None and
+                  active_node is None and space.geometry.contains(clicked_position)):
                 with request.changeset.lock_to_edit(request) as changeset:
                     if changeset.can_edit(request):
                         node = GraphNode(space=space, geometry=clicked_position)
