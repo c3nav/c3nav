@@ -12,7 +12,7 @@ class Source(BoundsMixin, AccessRestrictionMixin, models.Model):
     """
     A map source, images of levels that can be useful as backgrounds for the map editor
     """
-    name = models.SlugField(_('Name'), unique=True, max_length=50)
+    name = models.CharField(_('Name'), unique=True, max_length=50)  # a slugfield would forbid periods
 
     class Meta:
         verbose_name = _('Source')
