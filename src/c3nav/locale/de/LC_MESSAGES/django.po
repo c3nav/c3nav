@@ -889,7 +889,7 @@ msgstr "Gebäude"
 #: c3nav/mapdata/models/geometry/space.py:140
 #: c3nav/mapdata/models/geometry/space.py:159
 msgid "height"
-msgstr "Deckenhöhe"
+msgstr "Höhe"
 
 #: c3nav/mapdata/models/geometry/level.py:104
 msgid "only outside of building"
@@ -924,7 +924,7 @@ msgstr "Türen"
 #: c3nav/mapdata/models/geometry/level.py:144
 #: c3nav/mapdata/models/geometry/space.py:225
 msgid "altitude"
-msgstr "Höhe"
+msgstr "Bodenhöhe"
 
 #: c3nav/mapdata/models/geometry/level.py:145
 msgid "second altitude"
