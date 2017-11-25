@@ -486,8 +486,8 @@ def graph_edit(request, level=None, space=None):
                         messages.error(request, _('You can not edit changes on this changeset.'))
 
             if set_active_node:
+                connections = {}
                 if active_node:
-                    connections = {}
                     for self_node, other_node in (('from_node', 'to_node'), ('to_node', 'from_node')):
                         conn_qs = GraphEdge.objects.filter(Q(**{self_node+'__pk': active_node.pk}))
                         conn_qs = conn_qs.select_related(other_node+'__space', other_node+'__space__level', 'waytype')
