@@ -463,7 +463,12 @@ class AltitudeArea(LevelGeometryMixin, models.Model):
                         line = space_geom.intersection(LineString([coord1, coord2]))
                         if line.is_empty:
                             continue
-                        cuts.append(scale(line, xfact=1.02, yfact=1.02))
+                        factor = (line.length + 2) / line.length
+                        line = scale(line, xfact=factor, yfact=factor)
+                        centroid = line.centroid
+                        line = min(assert_multilinestring(space_geom.intersection(line)),
+                                   key=lambda l: l.centroid.distance(centroid), default=None)
+                        cuts.append(scale(line, xfact=1.01, yfact=1.01))
 
                 remaining_space = tuple(
                     orient(polygon) for polygon in remaining_space
