@@ -413,9 +413,7 @@ class LevelGeometries:
 
         for area in self.altitudeareas:
             area.create_polyhedrons(self._create_polyhedron,
-                                    self._build_vertex_values([area],
-                                                              area_func=operator.attrgetter('geometry'),
-                                                              value_func=self._get_altitudearea_vertex_values),
+                                    area.get_altitudes(self.vertices),
                                     min_altitude=self.min_altitude,
                                     crops=crops)
 
