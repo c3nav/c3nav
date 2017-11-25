@@ -2,13 +2,11 @@ from collections import OrderedDict
 
 from django.db import models
 from django.utils.translation import ugettext_lazy as _
-from shapely.geometry import LineString, mapping
 
 from c3nav.mapdata.fields import GeometryField
 from c3nav.mapdata.models.access import AccessRestrictionMixin
 from c3nav.mapdata.models.base import TitledMixin
 from c3nav.mapdata.models.geometry.space import SpaceGeometryMixin
-from c3nav.mapdata.utils.json import format_geojson
 
 
 class GraphNode(SpaceGeometryMixin, models.Model):
@@ -56,7 +54,6 @@ class GraphEdge(AccessRestrictionMixin, models.Model):
         unique_together = (('from_node', 'to_node'), )
 
     def to_geojson(self, instance=None) -> dict:
-        geometry = LineString([self.from_node.geometry, self.to_node.geometry])
         result = OrderedDict((
             ('type', 'Feature'),
             ('properties', OrderedDict((
@@ -65,7 +62,10 @@ class GraphEdge(AccessRestrictionMixin, models.Model):
                 ('from_node', self.from_node_id),
                 ('to_node', self.to_node_id),
             ))),
-            ('geometry', format_geojson(mapping(geometry), round=False)),
+            ('geometry', {
+                'type': 'LineString',
+                'coordinates': (self.from_node.geometry.coords[0], self.to_node.geometry.coords[0]),
+            }),
         ))
         if self.waytype_id is not None:
             result['properties']['color'] = self.waytype.color
