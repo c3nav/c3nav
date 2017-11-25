@@ -173,7 +173,7 @@ editor = {
                     editor._active_graph_node_html = null;
                     active_graph_node.remove();
                 } else {
-                    editor._active_graph_node = active_graph_node_id;
+                    editor._active_graph_node = parseInt(active_graph_node_id);
                     editor._active_graph_node_html = active_graph_node.html();
                 }
             } else if (editor._active_graph_node_html !== null) {
@@ -514,7 +514,7 @@ editor = {
                 style.fillOpacity = 0.5;
             }
         }
-        if (feature.properties.type === 'graphnode' && String(feature.properties.id) === editor._active_graph_node) {
+        if (feature.properties.type === 'graphnode' && feature.properties.id === editor._active_graph_node) {
             style.stroke = true;
             style.weight = 3;
             style.color = '#00ff00';
