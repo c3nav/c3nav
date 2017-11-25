@@ -50,9 +50,6 @@ class AccessPermission(models.Model):
         if not request.user.is_authenticated:
             return set()
 
-        if request.user.is_superuser:
-            return set(AccessRestriction.objects.all().values_list('pk', flat=True))
-
         cache_key = cls.user_access_permission_key(request.user)
         access_restriction_ids = cache.get(cache_key, None)
         if access_restriction_ids is None:
