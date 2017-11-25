@@ -113,4 +113,4 @@ class AccessRestrictionMixin(SerializableMixin, models.Model):
         if request is None and allow_none or request.user.is_superuser:
             return Q()
         return (Q(**{prefix+'access_restriction__isnull': True}) |
-                Q(**{prefix+'access_restriction__in': AccessPermission.get_for_request(request)}))
+                Q(**{prefix+'access_restriction__pk__in': AccessPermission.get_for_request(request)}))
