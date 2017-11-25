@@ -43,12 +43,10 @@
         <strong>{% trans 'Connections:' %}</strong><br>
         {% for connections in active_node_connections %}
             <small>
-                <strong>
-                    {% with space_title=connections.0.other_node.space.title level_title=connections.0.other_node.space.level.title %}
-                        {% blocktrans %}Space {{ space_title }}{% endblocktrans %}<br>
-                        {% blocktrans %}on level {{ level_title }}{% endblocktrans %}
-                    {% endwith %}
-                </strong>
+                {% with space_title=connections.0.other_node.space.title level_title=connections.0.other_node.space.level.title %}
+                    {% blocktrans %}Space {{ space_title }}{% endblocktrans %}<br>
+                    {% blocktrans %}on level {{ level_title }}{% endblocktrans %}
+                {% endwith %}
                 <br>
                 →
                 {% for connection in connections %}
