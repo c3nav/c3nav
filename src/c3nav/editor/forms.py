@@ -195,6 +195,7 @@ class RejectForm(ModelForm):
 
 class GraphEdgeSettingsForm(ModelForm):
     oneway = BooleanField(label=_('create one way edges'), required=False)
+    activate_next = BooleanField(label=_('activate next node after connecting'), required=False)
 
     class Meta:
         model = GraphEdge

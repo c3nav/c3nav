@@ -463,7 +463,7 @@ def graph_edit(request, level=None, space=None):
                     with request.changeset.lock_to_edit(request) as changeset:
                         if changeset.can_edit(request):
                             connect_nodes(request, active_node, clicked_node, edge_settings_form)
-                            active_node = None
+                            active_node = clicked_node if edge_settings_form.cleaned_data['activate_next'] else None
                             set_active_node = True
                         else:
                             messages.error(request, _('You can not edit changes on this changeset.'))
