@@ -86,12 +86,12 @@ class EditorViewSet(ViewSet):
             levels, levels_on_top, levels_under = self._get_levels_pk(request, level)
             # don't prefetch groups for now as changesets do not yet work with m2m-prefetches
             levels = Level.objects.filter(pk__in=levels).filter(Level.q_for_request(request))
-            graphnodes = request.changeset.wrap_model('GraphNode').objects.all()
+            graphnodes_qs = request.changeset.wrap_model('GraphNode').objects.all()
             levels = levels.prefetch_related(
                 Prefetch('spaces', request.changeset.wrap_model('Space').objects.filter(Space.q_for_request(request))),
                 Prefetch('doors', request.changeset.wrap_model('Door').objects.filter(Door.q_for_request(request))),
                 'buildings', 'spaces__holes', 'spaces__groups', 'spaces__columns', 'spaces__altitudemarkers',
-                Prefetch('spaces__graphnodes', graphnodes)
+                Prefetch('spaces__graphnodes', graphnodes_qs)
             )
 
             levels = {s.pk: s for s in levels}
@@ -103,10 +103,20 @@ class EditorViewSet(ViewSet):
             # todo: permissions
             graphnodes = tuple(chain(*(space.graphnodes.all()
                                        for space in chain(*(level.spaces.all() for level in levels.values())))))
+            graphnodes_lookup = {node.pk: node for node in graphnodes}
 
             graphedges = request.changeset.wrap_model('GraphEdge').objects.all()
             graphedges = graphedges.filter(Q(from_node__in=graphnodes) | Q(to_node__in=graphnodes))
-            graphedges = graphedges.select_related('from_node', 'to_node', 'waytype')
+            graphedges = graphedges.select_related('waytype')
+
+            # this is faster because we only deserialize graphnode geometries once
+            missing_graphnodes = graphnodes_qs.filter(pk__in=set(chain(*((edge.from_node_id, edge.to_node_id)
+                                                                         for edge in graphedges))))
+            graphnodes_lookup.update({node.pk: node for node in missing_graphnodes})
+            for edge in graphedges:
+                edge._from_node_cache = graphnodes_lookup[edge.from_node_id]
+                edge._to_node_cache = graphnodes_lookup[edge.to_node_id]
+
             # graphedges = [edge for edge in graphedges if edge.from_node.space_id != edge.to_node.space_id]
 
             results = chain(
