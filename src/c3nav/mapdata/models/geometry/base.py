@@ -9,6 +9,8 @@ from c3nav.mapdata.models.base import SerializableMixin
 from c3nav.mapdata.utils.geometry import assert_multilinestring, assert_multipolygon
 from c3nav.mapdata.utils.json import format_geojson
 
+geometry_affecting_fields = ('height', 'width', 'access_restriction')
+
 
 class GeometryMixin(SerializableMixin):
     """
@@ -22,6 +24,10 @@ class GeometryMixin(SerializableMixin):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.orig_geometry = None if 'geometry' in self.get_deferred_fields() else self.geometry
+        self._orig = {field.attname: (None if field.name in self.get_deferred_fields()
+                                      else getattr(self, field.attname))
+                      for field in self._meta.get_fields()
+                      if field.name in geometry_affecting_fields}
 
     def get_geojson_properties(self, *args, **kwargs) -> dict:
         result = OrderedDict((
@@ -87,6 +93,10 @@ class GeometryMixin(SerializableMixin):
 
     def contains(self, x, y) -> bool:
         return self.geometry.contains(Point(x, y))
+
+    @property
+    def all_geometry_changed(self):
+        return any(getattr(self, attname) != value for attname, value in self._orig.items())
 
     @property
     def geometry_changed(self):
