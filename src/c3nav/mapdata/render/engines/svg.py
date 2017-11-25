@@ -229,7 +229,7 @@ class SVGEngine(RenderEngine):
             attribs = ' fill="none"'
 
         if altitude is not None and stroke is None:
-            stroke = StrokeAttribs('rgba(0, 0, 0, 0.15)', 0.05, min_px=0.2)
+            stroke = StrokeAttribs('rgba(255, 0, 0, 1)', 0.05, min_px=0.2)
 
         if stroke:
             width = stroke.width*self.scale

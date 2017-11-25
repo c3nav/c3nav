@@ -51,9 +51,9 @@ class MapRenderer:
         min_altitude = min(chain(*(tuple(area.altitude for area in geoms.altitudeareas)
                                    for geoms in levels)))
 
-        not_full_levels = not self.full_levels and engine.is_3d
+        not_full_levels = engine.is_3d  # always do non-full-levels until after the first primary level
         full_levels = self.full_levels and engine.is_3d
-        for i, geoms in reversed(tuple(enumerate(reversed(levels)))):
+        for geoms in levels:
             if not bbox.intersects(geoms.affected_area):
                 continue
 
@@ -89,15 +89,15 @@ class MapRenderer:
                 engine.add_geometry(geometry, altitude=altitudearea.altitude, fill=FillAttribs('#eeeeee'),
                                     category='ground', item=i)
 
-                i = 0
+                j = 0
                 for color, areas in altitudearea.colors.items():
                     # only select ground colors if their access restriction is unlocked
                     areas = tuple(area for access_restriction, area in areas.items()
                                   if access_restriction in access_permissions)
                     if areas:
-                        i += 1
+                        j += 1
                         engine.add_geometry(hybrid_union(areas), fill=FillAttribs(color),
-                                            category='groundcolor%s' % i, item=i)
+                                            category='groundcolor%s' % j, item=j)
 
                 for height, obstacle in altitudearea.obstacles.items():
                     engine.add_geometry(obstacle, fill=FillAttribs('#cccccc'), category='obstacles')
@@ -132,5 +132,8 @@ class MapRenderer:
 
             if walls is not None:
                 engine.add_geometry(walls, stroke=StrokeAttribs('#666666', 0.05, min_px=0.2), category='walls')
+
+            if geoms.on_top_of_id is None:
+                not_full_levels = not self.full_levels and engine.is_3d
 
         return engine
