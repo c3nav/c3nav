@@ -121,11 +121,15 @@ class LevelGeometries:
                 colors.setdefault(area.get_color(), {}).setdefault(access_restriction, []).append(area.geometry)
 
             for obstacle in space.obstacles.all():
+                if not obstacle.height:
+                    continue
                 obstacles.setdefault(int(obstacle.height*1000), []).append(
                     obstacle.geometry.intersection(space.walkable_geom)
                 )
 
             for lineobstacle in space.lineobstacles.all():
+                if not lineobstacle.height:
+                    continue
                 obstacles.setdefault(int(lineobstacle.height*1000), []).append(
                     lineobstacle.buffered_geometry.intersection(space.walkable_geom)
                 )
