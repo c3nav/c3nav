@@ -58,7 +58,7 @@
                 ←
                 {% for connection in connections %}
                     {% if connection.from_node_id != active_node.pk %}
-                        {{ connection.other_node.pk }}{% if connection.waytype %}{{ connection.waytype.title }}{% endif %},
+                        {{ connection.other_node.pk }}{% if connection.waytype %} ({{ connection.waytype.title }}){% endif %}{% if connection.access_restriction_id %} ({{ connection.access_restriction.title }}){% endif %},
                     {% endif %}
                 {% endfor %}
             </small><br><br>
