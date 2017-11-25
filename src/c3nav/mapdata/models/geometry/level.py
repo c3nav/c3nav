@@ -4,6 +4,7 @@ from itertools import chain, combinations
 from operator import attrgetter, itemgetter
 
 import numpy as np
+from django.core.validators import MinValueValidator
 from django.db import models
 from django.urls import reverse
 from django.utils.text import format_lazy
@@ -100,7 +101,8 @@ class Space(LevelGeometryMixin, SpecificLocation, models.Model):
     An accessible space. Shouldn't overlap with spaces on the same level.
     """
     geometry = GeometryField('polygon')
-    height = models.DecimalField(_('height'), max_digits=6, decimal_places=2, null=True, blank=True)
+    height = models.DecimalField(_('height'), max_digits=6, decimal_places=2, null=True, blank=True,
+                                 validators=[MinValueValidator(Decimal('0'))])
     outside = models.BooleanField(default=False, verbose_name=_('only outside of building'))
 
     class Meta:

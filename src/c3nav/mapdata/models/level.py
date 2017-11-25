@@ -1,6 +1,8 @@
+from decimal import Decimal
 from itertools import chain
 from operator import attrgetter
 
+from django.core.validators import MinValueValidator
 from django.db import models
 from django.urls import reverse
 from django.utils.functional import cached_property
@@ -15,8 +17,10 @@ class Level(SpecificLocation, models.Model):
     A map level
     """
     base_altitude = models.DecimalField(_('base altitude'), null=False, unique=True, max_digits=6, decimal_places=2)
-    default_height = models.DecimalField(_('default space height'), max_digits=6, decimal_places=2, default=3.0)
-    door_height = models.DecimalField(_('door height'), max_digits=6, decimal_places=2, default=2.0)
+    default_height = models.DecimalField(_('default space height'), max_digits=6, decimal_places=2, default=3.0,
+                                         validators=[MinValueValidator(Decimal('0'))])
+    door_height = models.DecimalField(_('door height'), max_digits=6, decimal_places=2, default=2.0,
+                                      validators=[MinValueValidator(Decimal('0'))])
     on_top_of = models.ForeignKey('mapdata.Level', null=True, on_delete=models.CASCADE,
                                   related_name='levels_on_top', verbose_name=_('on top of'))
     short_label = models.SlugField(max_length=20, verbose_name=_('short label'), unique=True)

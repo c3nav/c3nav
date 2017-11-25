@@ -1,3 +1,6 @@
+from decimal import Decimal
+
+from django.core.validators import MinValueValidator
 from django.db import models
 from django.urls import reverse
 from django.utils.functional import cached_property
@@ -137,7 +140,8 @@ class Obstacle(SpaceGeometryMixin, models.Model):
     An obstacle
     """
     geometry = GeometryField('polygon')
-    height = models.DecimalField(_('height'), max_digits=6, decimal_places=2, default=0.8)
+    height = models.DecimalField(_('height'), max_digits=6, decimal_places=2, default=0.8,
+                                 validators=[MinValueValidator(Decimal('0'))])
 
     class Meta:
         verbose_name = _('Obstacle')
@@ -156,7 +160,8 @@ class LineObstacle(SpaceGeometryMixin, models.Model):
     """
     geometry = GeometryField('linestring')
     width = models.DecimalField(_('width'), max_digits=4, decimal_places=2, default=0.15)
-    height = models.DecimalField(_('height'), max_digits=6, decimal_places=2, default=0.8)
+    height = models.DecimalField(_('height'), max_digits=6, decimal_places=2, default=0.8,
+                                 validators=[MinValueValidator(Decimal('0'))])
 
     class Meta:
         verbose_name = _('Line Obstacle')
