@@ -63,6 +63,9 @@ class HybridGeometry:
             vertices_offset += new_vertices.shape[0]
             faces_offset += new_faces.shape[0]
 
+        if not vertices:
+            return HybridGeometry(geom, set()), np.empty((0, 2), dtype=np.int32), np.empty((0, 3), dtype=np.uint32)
+
         vertices = np.vstack(vertices)
         faces = np.vstack(faces)
 
