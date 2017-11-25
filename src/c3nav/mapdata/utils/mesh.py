@@ -41,7 +41,7 @@ def triangulate_rings(rings, holes=None):
     info.set_facets(segments)
 
     if holes is not None:
-        info.set_holes(holes)
+        info.set_holes(np.rint(np.array(holes)*1000))
 
     mesh = triangle.build(info, quality_meshing=False)
     return np.rint(np.array(mesh.points)).astype(np.int32), np.array(mesh.elements, dtype=np.uint32)
@@ -51,7 +51,7 @@ def _triangulate_polygon(polygon: Polygon, keep_holes=False):
     holes = None
     if not keep_holes:
         holes = np.array(tuple(
-            Polygon(ring).representative_point().coords for ring in polygon.interiors
+            Polygon(ring).representative_point().coords for ring in polygon.buffer(0.02).interiors
         ))
         holes = holes.reshape((-1, 2)) if holes.size else None
 
