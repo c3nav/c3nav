@@ -454,7 +454,7 @@ def graph_edit(request, level=None, space=None):
             clicked_position = graph_action_form.cleaned_data.get('clicked_position')
             if clicked_node is not None and clicked_position is None:
                 if active_node is None:
-                    active_node = clicked_node
+                    active_node = None
                     set_active_node = True
                 elif active_node == clicked_node:
                     active_node = None
