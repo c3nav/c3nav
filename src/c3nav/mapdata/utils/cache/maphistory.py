@@ -53,8 +53,9 @@ class MapHistory(LevelGeometryIndexed):
     def simplify(self):
         # remove updates that have no longer any array cells
         new_updates = ((i, update, (self.data == i)) for i, update in enumerate(self.updates))
-        self.updates, new_affected = zip(*((update, affected) for i, update, affected in new_updates
-                                           if i == 0 or affected.any()))
+        new_updates, new_affected = zip(*((update, affected) for i, update, affected in new_updates
+                                          if i == 0 or affected.any()))
+        self.updates = list(new_updates)
         for i, affected in enumerate(new_affected):
             self.data[affected] = i
 
