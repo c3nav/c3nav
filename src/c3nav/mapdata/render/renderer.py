@@ -100,6 +100,8 @@ class MapRenderer:
                         engine.add_geometry(hybrid_union(areas), fill=FillAttribs(color),
                                             category='ground_%s' % hexcolor, item=j)
 
+            # add obstacles after everything related to ground for the nice right order
+            for i, altitudearea in enumerate(geoms.altitudeareas):
                 for height, obstacle in altitudearea.obstacles.items():
                     engine.add_geometry(obstacle, fill=FillAttribs('#cccccc'), category='obstacles')
 
