@@ -20,7 +20,7 @@ class WavefrontEngine(Base3DEngine):
         vertices_lookup = {vertex: i for i, vertex in enumerate(vertices, start=1)}
 
         normals = np.cross(facets[:, 1] - facets[:, 0], facets[:, 2] - facets[:, 1]).reshape((-1, 3))
-        normals = normals / np.amax(np.absolute(normals), axis=1).reshape((-1, 1))
+        normals = normals / np.maximum(1, np.amax(np.absolute(normals), axis=1)).reshape((-1, 1))
         normals = tuple(set(tuple(normal) for normal in normals))
         normals_lookup = {normal: i for i, normal in enumerate(normals, start=1)}
 
@@ -50,7 +50,7 @@ class WavefrontEngine(Base3DEngine):
                         if not facets.size:
                             continue
                         normals = np.cross(facets[:, 1] - facets[:, 0], facets[:, 2] - facets[:, 1]).reshape((-1, 3))
-                        normals = normals / np.amax(np.absolute(normals), axis=1).reshape((-1, 1))
+                        normals = normals / np.maximum(1, np.amax(np.absolute(normals), axis=1)).reshape((-1, 1))
                         normals = tuple(normals_lookup[tuple(normal)] for normal in normals)
                         result += ((b'g %s_%d_%d\n' % (subgroup.encode(), i, j)) +
                                    (b'usemtl %s\n' % subgroup.encode()) +
