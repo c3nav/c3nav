@@ -4,6 +4,7 @@ import numpy as np
 
 
 class Mesh(namedtuple('Mesh', ('top', 'sides', 'bottom'))):
+    __slots__ = ()
     empty_faces = np.empty((0, 3, 3)).astype(np.int32)
 
     def tolist(self):

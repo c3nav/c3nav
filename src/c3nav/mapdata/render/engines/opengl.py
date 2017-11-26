@@ -21,6 +21,8 @@ class RenderContext(namedtuple('RenderContext', ('width', 'height', 'ctx', 'prog
     """
     A OpenGL Render Context with program and framebuffer. Can only be used by thread that created it.
     """
+    __slots__ = ()
+
     @classmethod
     def create(cls, width, height):
         ctx = ModernGL.create_standalone_context()
