@@ -96,8 +96,9 @@ class MapRenderer:
                                   if access_restriction in access_permissions)
                     if areas:
                         j += 1
+                        hexcolor = ''.join(hex(int(i*255))[2:].zfill(2) for i in engine.color_to_rgb(color)).upper()
                         engine.add_geometry(hybrid_union(areas), fill=FillAttribs(color),
-                                            category='groundcolor%s' % j, item=j)
+                                            category='groundcolor_%s' % hexcolor, item=j)
 
                 for height, obstacle in altitudearea.obstacles.items():
                     engine.add_geometry(obstacle, fill=FillAttribs('#cccccc'), category='obstacles')
