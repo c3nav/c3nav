@@ -53,7 +53,8 @@ class TitledMixin(SerializableMixin, models.Model):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.titles = self.titles.copy()
+        if 'titles' not in self.get_deferred_fields():
+            self.titles = self.titles.copy()
 
     def serialize(self, **kwargs):
         result = super().serialize(**kwargs)

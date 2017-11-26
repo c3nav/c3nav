@@ -24,7 +24,7 @@ class GeometryMixin(SerializableMixin):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.orig_geometry = None if 'geometry' in self.get_deferred_fields() else self.geometry
-        self._orig = {field.attname: (None if field.name in self.get_deferred_fields()
+        self._orig = {field.attname: (None if field.attname in self.get_deferred_fields()
                                       else getattr(self, field.attname))
                       for field in self._meta.get_fields()
                       if field.name in geometry_affecting_fields}
