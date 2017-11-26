@@ -44,7 +44,16 @@ def triangulate_rings(rings, holes=None):
         info.set_holes(np.rint(np.array(holes)*1000))
 
     mesh = triangle.build(info, quality_meshing=False)
-    return np.rint(np.array(mesh.points)).astype(np.int32), np.array(mesh.elements, dtype=np.uint32)
+
+    mesh_points = np.rint(np.array(mesh.points)).astype(np.int32)
+    mesh_elements = np.array(mesh.elements, dtype=np.uint32)
+
+    # remove triangles with no area
+    facets = np.dstack((np.zeros(mesh_elements.shape), mesh_points[mesh_elements]))
+    ok_index = np.cross(facets[:, 1] - facets[:, 0], facets[:, 2] - facets[:, 1]).max(axis=1) != 0
+    mesh_elements = mesh_elements[ok_index]
+
+    return mesh_points, mesh_elements
 
 
 def _triangulate_polygon(polygon: Polygon, keep_holes=False):
