@@ -7,7 +7,7 @@ from c3nav.routing.router import Router
 
 
 class RoutingViewSet(ViewSet):
-    @list_route(methods=['get'])
+    @list_route(methods=['get', 'post'])
     def route(self, request, *args, **kwargs):
         params = request.POST if request.method == 'POST' else request.GET
         form = RouteForm(params, request=request)
