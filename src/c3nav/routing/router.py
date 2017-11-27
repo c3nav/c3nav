@@ -112,15 +112,12 @@ class Router:
         # collect nodes
         nodes = tuple(nodes)
         nodes_lookup = {node.pk: node.i for node in nodes}
-        nodes_coords = np.array(tuple((node.x*100, node.y*100) for node in nodes), dtype=np.uint32)  # noqa
-        # todo: remove #noqa when we're ready
 
         # collect edges
         edges = tuple(RouterEdge(from_node=nodes[nodes_lookup[edge.from_node_id]],
                                  to_node=nodes[nodes_lookup[edge.to_node_id]],
                                  waytype=waytypes_lookup[edge.waytype_id]) for edge in GraphEdge.objects.all())
-        edges = {(edge.from_node.i, edge.to_node.i): edge for edge in edges}  # noqa
-        # todo: remove #noqa when we're ready
+        edges = {(edge.from_node.i, edge.to_node.i): edge for edge in edges}
 
         # build graph matrix
         graph = np.full(shape=(len(nodes), len(nodes)), fill_value=np.inf, dtype=np.float32)
