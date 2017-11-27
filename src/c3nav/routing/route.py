@@ -7,6 +7,16 @@ from django.utils.functional import cached_property
 from django.utils.translation import ugettext_lazy as _
 
 
+def describe_location(location, locations):
+    if location.can_describe:
+        final_location = locations.get(location.pk)
+        if final_location is not None:
+            location = final_location
+        else:
+            location.can_describe = False
+    return location.serialize(detailed=False, describe_only=True)
+
+
 class Route:
     def __init__(self, router, origin, destination, distance, path_nodes):
         self.router = router
@@ -15,7 +25,7 @@ class Route:
         self.distance = distance
         self.path_nodes = path_nodes
 
-    def serialize(self):
+    def serialize(self, locations):
         items = deque()
         last_node = None
         last_item = None
@@ -29,10 +39,10 @@ class Route:
             last_item = item
             last_node = node
         return OrderedDict((
-            ('origin', self.origin.serialize(detailed=False)),
-            ('destination', self.destination.serialize(detailed=False)),
+            ('origin', describe_location(self.origin, locations)),
+            ('destination', describe_location(self.origin, locations)),
             ('distance', round(distance, 2)),
-            ('items', tuple(item.serialize() for item in items)),
+            ('items', tuple(item.serialize(locations=locations) for item in items)),
         ))
 
 
@@ -56,7 +66,7 @@ class RouteItem:
     def level(self):
         return self.route.router.levels[self.space.level_id]
 
-    def serialize(self):
+    def serialize(self, locations):
         result = OrderedDict((
             ('id', self.node.pk),
             ('coordinates', (self.node.x, self.node.y, self.node.altitude)),
@@ -67,10 +77,10 @@ class RouteItem:
             result['waytype'] = self.waytype.serialize(detailed=False)
 
         if not self.last_item or self.space.pk != self.last_item.space.pk:
-            result['space'] = self.space.serialize(detailed=False, describe_only=True)
+            result['space'] = describe_location(self.space, locations)
 
         if not self.last_item or self.level.pk != self.last_item.level.pk:
-            result['level'] = self.level.serialize(detailed=False, describe_only=True)
+            result['level'] = describe_location(self.level, locations)
         return result
 
 
