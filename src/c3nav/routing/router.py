@@ -153,6 +153,8 @@ class BaseRouterProxy:
         return result
 
     def __getattr__(self, name):
+        if name == '__setstate__':
+            raise AttributeError
         return getattr(self.src, name)
 
 
