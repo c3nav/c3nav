@@ -89,7 +89,8 @@ class Location(LocationSlug, AccessRestrictionMixin, TitledMixin, models.Model):
         result = super().serialize(detailed=detailed, **kwargs)
         if not detailed:
             result = OrderedDict((
-                (name, result[name]) for name in ('id', 'slug', 'title', 'subtitle', 'point', 'bounds', 'locations')
+                (name, result[name]) for name in ('id', 'type', 'slug', 'title', 'subtitle', 'point', 'bounds',
+                                                  'locations')
                 if name in result
             ))
         return result
