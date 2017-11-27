@@ -126,6 +126,10 @@ class MapUpdate(models.Model):
             from c3nav.mapdata.render.renderdata import LevelRenderData
             LevelRenderData.rebuild()
 
+            logger.info('Rebuilding router...')
+            from c3nav.routing.router import Router
+            Router.rebuild()
+
             transaction.on_commit(
                 lambda: cache.set('mapdata:last_processed_update', new_updates[-1].to_tuple, 900)
             )

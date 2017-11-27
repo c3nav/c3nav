@@ -33,7 +33,7 @@ class Router:
         return max(area.get_altitudes(point)[0] for area in areas if area.geometry_prep.intersects(point))
 
     @classmethod
-    def build(cls):
+    def rebuild(cls):
         levels_query = Level.objects.prefetch_related('buildings', 'spaces', 'altitudeareas',
                                                       'spaces__holes', 'spaces__columns',
                                                       'spaces__obstacles', 'spaces__lineobstacles',
