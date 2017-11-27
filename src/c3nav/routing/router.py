@@ -3,6 +3,7 @@ import os
 import pickle
 from collections import deque
 from functools import reduce
+from itertools import chain
 
 import numpy as np
 from django.conf import settings
@@ -12,17 +13,18 @@ from shapely import prepared
 from shapely.geometry import Point
 from shapely.ops import unary_union
 
-from c3nav.mapdata.models import AltitudeArea, Area, GraphEdge, Level, Space, WayType
+from c3nav.mapdata.models import AltitudeArea, Area, GraphEdge, Level, LocationGroup, Space, WayType
 from c3nav.routing.route import Route
 
 
 class Router:
     filename = os.path.join(settings.CACHE_ROOT, 'router')
 
-    def __init__(self, levels, spaces, areas, nodes, edges, waytypes, graph):
+    def __init__(self, levels, spaces, areas, groups, nodes, edges, waytypes, graph):
         self.levels = levels
         self.spaces = spaces
         self.areas = areas
+        self.groups = groups
         self.nodes = nodes
         self.edges = edges
         self.waytypes = waytypes
@@ -34,19 +36,23 @@ class Router:
 
     @classmethod
     def rebuild(cls):
-        levels_query = Level.objects.prefetch_related('buildings', 'spaces', 'altitudeareas',
-                                                      'spaces__holes', 'spaces__columns',
+        levels_query = Level.objects.prefetch_related('buildings', 'spaces', 'altitudeareas', 'groups',
+                                                      'spaces__holes', 'spaces__columns', 'spaces__groups',
                                                       'spaces__obstacles', 'spaces__lineobstacles',
-                                                      'spaces__areas', 'spaces__graphnodes')
+                                                      'spaces__graphnodes', 'spaces__areas', 'spaces__areas__groups')
 
         levels = {}
         spaces = {}
         areas = {}
+        groups = {}
         nodes = deque()
         for level in levels_query:
             buildings_geom = unary_union(tuple(building.geometry for building in level.buildings.all()))
 
             nodes_before_count = len(nodes)
+
+            for group in level.groups.all():
+                groups.setdefault(group.pk, {}).setdefault('levels', set()).add(level.pk)
 
             for space in level.spaces.all():
                 # create space geometries
@@ -61,6 +67,9 @@ class Router:
                 )
                 # todo: do something with this, then remove #noqa
 
+                for group in space.groups.all():
+                    groups.setdefault(group.pk, {}).setdefault('spaces', set()).add(space.pk)
+
                 space_nodes = tuple(RouterNode.from_graph_node(node, i)
                                     for i, node in enumerate(space.graphnodes.all()))
                 for i, node in enumerate(space_nodes, start=len(nodes)):
@@ -68,6 +77,10 @@ class Router:
                 nodes.extend(space_nodes)
 
                 for area in space.areas.all():
+                    for group in area.groups.all():
+                        groups.setdefault(group.pk, {}).setdefault('areas', set()).add(area.pk)
+                    area._prefetched_objects_cache = {}
+
                     area = RouterArea(area)
                     area_nodes = tuple(node for node in space_nodes if area.geometry_prep.intersects(node.point))
                     area.nodes = set(node.i for node in area_nodes)
@@ -132,7 +145,7 @@ class Router:
             waytype.upwards_indices = np.array(waytype.upwards_indices, dtype=np.uint32).reshape((-1, 2))
             waytype.nonupwards_indices = np.array(waytype.nonupwards_indices, dtype=np.uint32).reshape((-1, 2))
 
-        router = cls(levels, spaces, areas, nodes, edges, waytypes, graph)
+        router = cls(levels, spaces, areas, groups, nodes, edges, waytypes, graph)
         pickle.dump(router, open(cls.filename, 'wb'))
         return router
 
@@ -140,21 +153,32 @@ class Router:
     def load(cls):
         return pickle.load(open(cls.filename, 'rb'))
 
-    def get_locations(self, location):
+    def get_locations(self, location, permissions=frozenset()):
+        locations = ()
         if isinstance(location, Level):
-            return RouterLocation((self.levels[location.pk], ))
-        if isinstance(location, Space):
-            return RouterLocation((self.spaces[location.pk], ))
-        if isinstance(location, Area):
-            return RouterLocation((self.areas[location.pk], ))
+            locations = (self.levels.get(location.pk), )
+        elif isinstance(location, Space):
+            locations = (self.spaces.get(location.pk), )
+        elif isinstance(location, Area):
+            locations = (self.areas.get(location.pk), )
+        elif isinstance(location, LocationGroup):
+            group = self.groups.get(location.pk)
+            locations = tuple(chain(
+                (self.levels[pk] for pk in group.get('levels', ())),
+                (self.spaces[pk] for pk in group.get('spaces', ())),
+                (self.areas[pk] for pk in group.get('areas', ()))
+            ))
         # todo: route from/to POI or custom location
-        # todo: route from/to location group
-        return RouterLocation()
+        return RouterLocation(tuple(location for location in locations
+                                    if location is not None and (location.access_restriction_id is None or
+                                                                 location.access_restriction_id in permissions)))
 
-    def get_route(self, origin, destination):
+    def get_route(self, origin, destination, permissions=frozenset()):
         # get possible origins and destinations
-        origins = self.get_locations(origin)
-        destinations = self.get_locations(destination)
+        origins = self.get_locations(origin, permissions=permissions)
+        destinations = self.get_locations(destination, permissions=permissions)
+
+        # todo: throw error if route is impossible
 
         # calculate shortest path matrix
         distances, predecessors = shortest_path(self.graph, directed=True, return_predecessors=True)
@@ -162,8 +186,10 @@ class Router:
         # find shortest path for our origins and destinations
         origin_nodes = np.array(tuple(origins.nodes))
         destination_nodes = np.array(tuple(destinations.nodes))
-        origin_node, destination_node = np.unravel_index(distances[origin_nodes, destination_nodes].argmin(),
-                                                         (len(origin_nodes), len(destination_nodes)))
+        origin_node, destination_node = np.unravel_index(
+            distances[origin_nodes.reshape((-1, 1)), destination_nodes].argmin(),
+            (len(origin_nodes), len(destination_nodes))
+        )
         origin_node = origin_nodes[origin_node]
         destination_node = destination_nodes[destination_node]
 
