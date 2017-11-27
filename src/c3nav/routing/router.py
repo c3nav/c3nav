@@ -262,8 +262,8 @@ class RouterNode:
         return Point(self.x, self.y)
 
     @cached_property
-    def xy(self):
-        return np.array((self.x, self.y))
+    def xyz(self):
+        return np.array((self.x, self.y, self.altitude))
 
 
 class RouterEdge:
@@ -272,7 +272,7 @@ class RouterEdge:
         self.to_node = to_node
         self.waytype = waytype
         self.rise = rise if rise is not None else (self.to_node.altitude - self.from_node.altitude)
-        self.distance = distance if distance is not None else np.linalg.norm(to_node.xy - from_node.xy)
+        self.distance = distance if distance is not None else np.linalg.norm(to_node.xyz - from_node.xyz)
 
 
 class RouterWayType:
