@@ -7,16 +7,6 @@ from c3nav.routing.router import Router
 
 
 class RoutingViewSet(ViewSet):
-    """
-    Routing API
-    /geometries/ returns a list of geojson features, you have to specify ?level=<id> or ?space=<id>
-    /geometrystyles/ returns styling information for all geometry types
-    /bounds/ returns the maximum bounds of the map
-    """
-
-    def list(self, request):
-        return []
-
     @list_route(methods=['get'])
     def route(self, request, *args, **kwargs):
         params = request.POST if request.method == 'POST' else request.GET
