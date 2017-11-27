@@ -1,6 +1,9 @@
+import os
+import pickle
 from collections import deque
 
 import numpy as np
+from django.conf import settings
 from django.utils.functional import cached_property
 from shapely import prepared
 from shapely.geometry import Point
@@ -10,10 +13,15 @@ from c3nav.mapdata.models import AltitudeArea, GraphEdge, Level, WayType
 
 
 class Router:
-    def __init__(self):
-        self.nodes = None
-        self.node_coords = None
-        self.node_lookup = None
+    filename = os.path.join(settings.CACHE_ROOT, 'router')
+
+    def __init__(self, levels, spaces, areas, nodes, waytypes, graph):
+        self.levels = levels
+        self.spaces = spaces
+        self.areas = areas
+        self.nodes = nodes
+        self.waytypes = waytypes
+        self.graph = graph
 
     @staticmethod
     def get_altitude_in_areas(areas, point):
@@ -21,8 +29,6 @@ class Router:
 
     @classmethod
     def build(cls):
-        graph = cls()
-
         levels_query = Level.objects.prefetch_related('buildings', 'spaces', 'altitudeareas',
                                                       'spaces__holes', 'spaces__columns',
                                                       'spaces__obstacles', 'spaces__lineobstacles',
@@ -122,6 +128,14 @@ class Router:
         for waytype in waytypes:
             waytype.upwards_indices = np.array(waytype.upwards_indices, dtype=np.uint32).reshape((-1, 2))
             waytype.nonupwards_indices = np.array(waytype.nonupwards_indices, dtype=np.uint32).reshape((-1, 2))
+
+        router = cls(levels, spaces, areas, nodes, waytypes, graph)
+        pickle.dump(router, open(cls.filename, 'wb'))
+        return router
+
+    @classmethod
+    def load(cls):
+        return pickle.load(open(cls.filename, 'rb'))
 
 
 class BaseRouterProxy:
