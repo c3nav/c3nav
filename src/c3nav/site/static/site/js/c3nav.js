@@ -126,7 +126,7 @@ c3nav = {
         if (parseInt($location_details.attr('data-id')) !== location.id) {
             $location_details.addClass('loading').attr('data-id', location.id);
             var location_id = location.id;
-            $.getJSON('/api/locations/'+location.slug+'/display', function (data) {
+            $.getJSON('/api/locations/'+location.id+'/display', function (data) {
                 if (parseInt($location_details.attr('data-id')) !== location_id) {
                     // loaded too late, information no longer needed
                     return;
