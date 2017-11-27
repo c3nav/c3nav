@@ -54,7 +54,7 @@ class RouteItem:
     def serialize(self):
         result = OrderedDict((
             ('id', self.node.pk),
-            ('coords', (self.node.x, self.node.y, self.node.altitude)),
+            ('coordinates', (self.node.x, self.node.y, self.node.altitude)),
             ('waytype', (self.route.router.waytypes[self.edge.waytype].serialize(detailed=False)
                          if self.edge and self.edge.waytype else None)),
         ))
