@@ -40,7 +40,7 @@ class Route:
             last_node = node
         return OrderedDict((
             ('origin', describe_location(self.origin, locations)),
-            ('destination', describe_location(self.origin, locations)),
+            ('destination', describe_location(self.destination, locations)),
             ('distance', round(distance, 2)),
             ('items', tuple(item.serialize(locations=locations) for item in items)),
         ))
