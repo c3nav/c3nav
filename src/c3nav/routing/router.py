@@ -150,7 +150,8 @@ class Router:
             return RouterLocation((self.spaces[location.pk], ))
         if isinstance(location, Area):
             return RouterLocation((self.areas[location.pk], ))
-        # todo: route from POI or custom location
+        # todo: route from/to POI or custom location
+        # todo: route from/to location group
         return RouterLocation()
 
     def get_route(self, origin, destination):
