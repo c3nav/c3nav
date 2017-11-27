@@ -67,10 +67,10 @@ class RouteItem:
             result['waytype'] = self.waytype.serialize(detailed=False)
 
         if not self.last_item or self.space.pk != self.last_item.space.pk:
-            result['space'] = self.space.serialize(detailed=False)
+            result['space'] = self.space.serialize(detailed=False, describe_only=True)
 
         if not self.last_item or self.level.pk != self.last_item.level.pk:
-            result['level'] = self.level.serialize(detailed=False)
+            result['level'] = self.level.serialize(detailed=False, describe_only=True)
         return result
 
 

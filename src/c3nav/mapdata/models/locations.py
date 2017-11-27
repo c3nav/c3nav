@@ -85,14 +85,14 @@ class Location(LocationSlug, AccessRestrictionMixin, TitledMixin, models.Model):
         super().__init__(*args, **kwargs)
         self.titles = self.titles.copy()
 
-    def serialize(self, detailed=True, **kwargs):
+    def serialize(self, detailed=True, describe_only=False, **kwargs):
         result = super().serialize(detailed=detailed, **kwargs)
         if not detailed:
-            result = OrderedDict((
-                (name, result[name]) for name in ('id', 'type', 'slug', 'title', 'subtitle', 'point', 'bounds',
-                                                  'locations')
-                if name in result
-            ))
+            if describe_only and not self.can_describe:
+                fields = ('id', 'on_top_of')
+            else:
+                fields = ('id', 'type', 'slug', 'title', 'subtitle', 'point', 'bounds', 'locations', 'on_top_of')
+            result = OrderedDict(((name, result[name]) for name in fields if name in result))
         return result
 
     def _serialize(self, **kwargs):
