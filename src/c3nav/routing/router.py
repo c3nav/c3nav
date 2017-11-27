@@ -1,25 +1,30 @@
+import operator
 import os
 import pickle
 from collections import deque
+from functools import reduce
 
 import numpy as np
 from django.conf import settings
 from django.utils.functional import cached_property
+from scipy.sparse.csgraph._shortest_path import shortest_path
 from shapely import prepared
 from shapely.geometry import Point
 from shapely.ops import unary_union
 
-from c3nav.mapdata.models import AltitudeArea, GraphEdge, Level, WayType
+from c3nav.mapdata.models import AltitudeArea, GraphEdge, Level, Space, WayType
+from c3nav.routing.route import Route
 
 
 class Router:
     filename = os.path.join(settings.CACHE_ROOT, 'router')
 
-    def __init__(self, levels, spaces, areas, nodes, waytypes, graph):
+    def __init__(self, levels, spaces, areas, nodes, edges, waytypes, graph):
         self.levels = levels
         self.spaces = spaces
         self.areas = areas
         self.nodes = nodes
+        self.edges = edges
         self.waytypes = waytypes
         self.graph = graph
 
@@ -56,7 +61,8 @@ class Router:
                 )
                 # todo: do something with this, then remove #noqa
 
-                space_nodes = tuple(RouterNode.from_graph_node(node) for node in space.graphnodes.all())
+                space_nodes = tuple(RouterNode.from_graph_node(node, i)
+                                    for i, node in enumerate(space.graphnodes.all()))
                 for i, node in enumerate(space_nodes, start=len(nodes)):
                     node.i = i
                 nodes.extend(space_nodes)
@@ -113,12 +119,12 @@ class Router:
         edges = tuple(RouterEdge(from_node=nodes[nodes_lookup[edge.from_node_id]],
                                  to_node=nodes[nodes_lookup[edge.to_node_id]],
                                  waytype=waytypes_lookup[edge.waytype_id]) for edge in GraphEdge.objects.all())
-        edges_lookup = {(edge.from_node.i, edge.to_node.i): edge for edge in edges}  # noqa
+        edges = {(edge.from_node.i, edge.to_node.i): edge for edge in edges}  # noqa
         # todo: remove #noqa when we're ready
 
         # build graph matrix
         graph = np.full(shape=(len(nodes), len(nodes)), fill_value=np.inf, dtype=np.float32)
-        for edge in edges:
+        for edge in edges.values():
             index = (edge.from_node.i, edge.to_node.i)
             graph[index] = edge.distance
             waytype = waytypes[edge.waytype]
@@ -129,13 +135,48 @@ class Router:
             waytype.upwards_indices = np.array(waytype.upwards_indices, dtype=np.uint32).reshape((-1, 2))
             waytype.nonupwards_indices = np.array(waytype.nonupwards_indices, dtype=np.uint32).reshape((-1, 2))
 
-        router = cls(levels, spaces, areas, nodes, waytypes, graph)
+        router = cls(levels, spaces, areas, nodes, edges, waytypes, graph)
         pickle.dump(router, open(cls.filename, 'wb'))
         return router
 
     @classmethod
     def load(cls):
         return pickle.load(open(cls.filename, 'rb'))
+
+    def get_locations(self, location):
+        if isinstance(location, Space):
+            return RouterLocation((self.spaces[location.pk], ))
+        return RouterLocation()
+
+    def get_route(self, origin, destination):
+        # get possible origins and destinations
+        origins = self.get_locations(origin)
+        destinations = self.get_locations(destination)
+
+        # calculate shortest path matrix
+        distances, predecessors = shortest_path(self.graph, directed=True, return_predecessors=True)
+
+        # find shortest path for our origins and destinations
+        origin_nodes = np.array(tuple(origins.nodes))
+        destination_nodes = np.array(tuple(destinations.nodes))
+        origin_node, destination_node = np.unravel_index(distances[origin_nodes, destination_nodes].argmin(),
+                                                         (len(origin_nodes), len(destination_nodes)))
+        origin_node = origin_nodes[origin_node]
+        destination_node = destination_nodes[destination_node]
+
+        # get best origin and destination
+        origin = origins.get_location_for_node(origin_node)
+        destination = destinations.get_location_for_node(destination_node)
+
+        # recreate path
+        path_nodes = deque((destination_node, ))
+        last_node = destination_node
+        while last_node != origin_node:
+            last_node = predecessors[origin_node, last_node]
+            path_nodes.appendleft(last_node)
+        path_nodes = tuple(path_nodes)
+
+        return Route(self, origin, destination, distances[origin_node, destination_node], path_nodes)
 
 
 class BaseRouterProxy:
@@ -197,7 +238,8 @@ class RouterAltitudeArea:
 
 
 class RouterNode:
-    def __init__(self, pk, x, y, space, altitude=None, areas=None):
+    def __init__(self, i, pk, x, y, space, altitude=None, areas=None):
+        self.i = i
         self.pk = pk
         self.x = x
         self.y = y
@@ -206,8 +248,8 @@ class RouterNode:
         self.areas = areas if areas else set()
 
     @classmethod
-    def from_graph_node(cls, node):
-        return cls(node.pk, node.geometry.x, node.geometry.y, node.space_id)
+    def from_graph_node(cls, node, i):
+        return cls(i, node.pk, node.geometry.x, node.geometry.y, node.space_id)
 
     @cached_property
     def point(self):
@@ -229,6 +271,26 @@ class RouterEdge:
 
 class RouterWayType:
     def __init__(self, waytype):
-        self.waytype = waytype
+        self.src = waytype
         self.upwards_indices = deque()
         self.nonupwards_indices = deque()
+
+    def __getattr__(self, name):
+        if name == '__setstate__':
+            raise AttributeError
+        return getattr(self.src, name)
+
+
+class RouterLocation:
+    def __init__(self, locations=()):
+        self.locations = locations
+
+    @cached_property
+    def nodes(self):
+        return reduce(operator.or_, (location.nodes for location in self.locations), frozenset())
+
+    def get_location_for_node(self, node):
+        for location in self.locations:
+            if node in location.nodes:
+                return location
+        return None

@@ -60,9 +60,10 @@ class TitledMixin(SerializableMixin, models.Model):
         result = super().serialize(**kwargs)
         return result
 
-    def _serialize(self, **kwargs):
-        result = super()._serialize(**kwargs)
-        result['titles'] = self.titles
+    def _serialize(self, detailed=True, **kwargs):
+        result = super()._serialize(detailed=detailed, **kwargs)
+        if detailed:
+            result['titles'] = self.titles
         result['title'] = self.title
         return result
 
