@@ -2,6 +2,7 @@ from rest_framework.decorators import list_route
 from rest_framework.response import Response
 from rest_framework.viewsets import ViewSet
 
+from c3nav.mapdata.models.access import AccessPermission
 from c3nav.mapdata.utils.locations import visible_locations_for_request
 from c3nav.routing.forms import RouteForm
 from c3nav.routing.router import Router
@@ -18,6 +19,8 @@ class RoutingViewSet(ViewSet):
                 'errors': form.errors,
             })
 
-        route = Router.load().get_route(form.cleaned_data['origin'], form.cleaned_data['destination'])
+        route = Router.load().get_route(origin=form.cleaned_data['origin'],
+                                        destination=form.cleaned_data['destination'],
+                                        permissions=AccessPermission.get_for_request(request))
 
         return Response(route.serialize(locations=visible_locations_for_request(request)))
