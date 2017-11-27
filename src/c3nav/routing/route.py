@@ -27,6 +27,8 @@ class Route:
             last_item = item
             last_node = node
         return OrderedDict((
+            ('origin', self.origin.serialize(detailed=False)),
+            ('destination', self.destination.serialize(detailed=False)),
             ('items', tuple(item.serialize() for item in items)),
         ))
 
