@@ -162,7 +162,7 @@ class AltitudeArea(LevelGeometryMixin, models.Model):
 
         slope = np.array(self.point2) - np.array(self.point1)
         distances = (np.sum(((points - np.array(self.point1)) * slope), axis=1) / (slope ** 2).sum()).clip(0, 1)
-        return self.altitude + distances*(self.altitude2-self.altitude)
+        return float(self.altitude) + distances*(float(self.altitude2)-float(self.altitude))
 
     @classmethod
     def recalculate(cls):
