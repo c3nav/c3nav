@@ -12,7 +12,7 @@ from shapely import prepared
 from shapely.geometry import Point
 from shapely.ops import unary_union
 
-from c3nav.mapdata.models import AltitudeArea, GraphEdge, Level, Space, WayType
+from c3nav.mapdata.models import AltitudeArea, Area, GraphEdge, Level, Space, WayType
 from c3nav.routing.route import Route
 
 
@@ -144,8 +144,13 @@ class Router:
         return pickle.load(open(cls.filename, 'rb'))
 
     def get_locations(self, location):
+        if isinstance(location, Level):
+            return RouterLocation((self.levels[location.pk], ))
         if isinstance(location, Space):
             return RouterLocation((self.spaces[location.pk], ))
+        if isinstance(location, Area):
+            return RouterLocation((self.areas[location.pk], ))
+        # todo: route from POI or custom location
         return RouterLocation()
 
     def get_route(self, origin, destination):
