@@ -19,16 +19,19 @@ class Route:
         items = deque()
         last_node = None
         last_item = None
+        distance = 0
         for i, node in enumerate(self.path_nodes):
-            item = RouteItem(self, self.router.nodes[node],
-                             self.router.edges[last_node, node] if last_node else None,
-                             last_item)
+            edge = self.router.edges[last_node, node] if last_node else None
+            item = RouteItem(self, self.router.nodes[node], edge, last_item)
+            if edge:
+                distance += edge.distance
             items.append(item)
             last_item = item
             last_node = node
         return OrderedDict((
             ('origin', self.origin.serialize(detailed=False)),
             ('destination', self.destination.serialize(detailed=False)),
+            ('distance', round(distance, 2)),
             ('items', tuple(item.serialize() for item in items)),
         ))
 
