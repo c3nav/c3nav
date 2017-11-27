@@ -24,8 +24,8 @@ from c3nav.mapdata.models.geometry.space import (POI, Area, Column, LineObstacle
 from c3nav.mapdata.models.level import Level
 from c3nav.mapdata.models.locations import (Location, LocationGroupCategory, LocationRedirect, LocationSlug,
                                             SpecificLocation)
-from c3nav.mapdata.utils.locations import (get_location_by_slug_for_request, searchable_locations_for_request,
-                                           visible_locations_for_request)
+from c3nav.mapdata.utils.locations import (get_location_by_slug_for_request, locations_for_request,
+                                           searchable_locations_for_request, visible_locations_for_request)
 from c3nav.mapdata.utils.models import get_submodels
 
 
@@ -252,7 +252,6 @@ class LocationViewSet(RetrieveModelMixin, GenericViewSet):
     /{id}/ add ?show_redirect=1 to suppress redirects and show them as JSON.
     """
     queryset = LocationSlug.objects.all()
-    lookup_field = 'slug'
 
     @api_etag()
     def list(self, request, *args, **kwargs):
@@ -276,6 +275,52 @@ class LocationViewSet(RetrieveModelMixin, GenericViewSet):
             cache.set(cache_key, result, 300)
 
         return Response(result)
+
+    @api_etag()
+    def retrieve(self, request, pk=None, *args, **kwargs):
+        show_redirects = 'show_redirects' in request.GET
+        detailed = 'detailed' in request.GET
+        geometry = 'geometry' in request.GET
+
+        if not pk.isdigit():
+            raise NotFound
+
+        location = locations_for_request(request).get(int(pk))
+
+        if location is None:
+            raise NotFound
+
+        if isinstance(location, LocationRedirect):
+            if not show_redirects:
+                return redirect('../' + str(location.target.slug))  # todo: why does redirect/reverse not work here?
+
+        return Response(location.serialize(include_type=True, detailed=detailed,
+                                           geometry=geometry, simple_geometry=True))
+
+    @detail_route(methods=['get'])
+    @api_etag()
+    def display(self, request, pk=None):
+        if not pk.isdigit():
+            raise NotFound
+
+        location = locations_for_request(request).get(int(pk))
+        if location is None:
+            raise NotFound
+
+        if isinstance(location, LocationRedirect):
+            return redirect('../' + str(location.target.pk) + '/display/')
+
+        return Response(location.details_display())
+
+    @list_route(methods=['get'])
+    @api_etag(permissions=False)
+    def types(self, request):
+        return MapdataViewSet.list_types(get_submodels(Location), geomtype=False)
+
+
+class LocationBySlugViewSet(RetrieveModelMixin, GenericViewSet):
+    queryset = LocationSlug.objects.all()
+    lookup_field = 'slug'
 
     @api_etag()
     def retrieve(self, request, slug=None, *args, **kwargs):
@@ -306,11 +351,6 @@ class LocationViewSet(RetrieveModelMixin, GenericViewSet):
             return redirect('../' + location.target.slug + '/display/')
 
         return Response(location.details_display())
-
-    @list_route(methods=['get'])
-    @api_etag(permissions=False)
-    def types(self, request):
-        return MapdataViewSet.list_types(get_submodels(Location), geomtype=False)
 
 
 class SourceViewSet(MapdataViewSet):
