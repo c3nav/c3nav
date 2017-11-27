@@ -65,7 +65,7 @@ class LevelGeometryMixin(GeometryMixin):
     @property
     def subtitle(self):
         base_subtitle = super().subtitle
-        level = getattr(self, 'level_cache', None)
+        level = getattr(self, '_level_cache', None)
         if level is not None:
             return format_lazy(_('{category}, {level}'),
                                category=base_subtitle,

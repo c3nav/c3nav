@@ -59,19 +59,19 @@ def locations_for_request(request) -> Mapping[int, LocationSlug]:
     levels = {pk: obj for pk, obj in locations.items() if isinstance(obj, Level)}
     for obj in locations.values():
         if isinstance(obj, LevelGeometryMixin):
-            obj.level_cache = levels.get(obj.level_id, None)
+            obj._level_cache = levels.get(obj.level_id, None)
 
     # add spaces to areas and POIs
     spaces = {pk: obj for pk, obj in locations.items() if isinstance(obj, Space)}
     for obj in locations.values():
         if isinstance(obj, SpaceGeometryMixin):
-            obj.space_cache = spaces.get(obj.space_id, None)
+            obj._space_cache = spaces.get(obj.space_id, None)
 
     # add targets to LocationRedirects
     levels = {pk: obj for pk, obj in locations.items() if isinstance(obj, Level)}
     for obj in locations.values():
         if isinstance(obj, LocationRedirect):
-            obj.target_cache = locations.get(obj.target_id, None)
+            obj._target_cache = locations.get(obj.target_id, None)
 
     # apply better space geometries
     for pk, geometry in get_better_space_geometries().items():

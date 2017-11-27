@@ -36,9 +36,9 @@ class SpaceGeometryMixin(GeometryMixin):
     @property
     def subtitle(self):
         base_subtitle = super().subtitle
-        space = getattr(self, 'space_cache', None)
+        space = getattr(self, '_space_cache', None)
         if space is not None:
-            level = getattr(space, 'level_cache', None)
+            level = getattr(space, '_level_cache', None)
             if level is not None:
                 return format_lazy(_('{category}, {space}, {level}'),
                                    category=base_subtitle,
