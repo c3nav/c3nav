@@ -148,7 +148,8 @@ c3nav = {
         c3nav.update_map_locations();
     },
     _clear_route_layers: function() {
-        console.log('clear route layers');
+        c3nav._firstRouteLevel = null;
+        c3nav._routeLayerBounds = {};
         for (var id in c3nav._routeLayers) {
             c3nav._routeLayers[id].clearLayers();
         }
@@ -216,7 +217,6 @@ c3nav = {
         }
         c3nav._push_state({route_result: data.result}, true);
         c3nav._display_route_result(data.result);
-        $route.removeClass('loading');
     },
     _display_route_result: function(result) {
         var $route = $('#route-summary'),
@@ -226,6 +226,7 @@ c3nav = {
             next_level_collect = [],
             in_intermediate_level = true,
             item, coords;
+        c3nav._clear_route_layers();
         for (var i=0; i < result.items.length; i++) {
             item = result.items[i];
             coords = [item.coordinates[0], item.coordinates[1]];
@@ -236,7 +237,7 @@ c3nav = {
                     next_level_collect = next_level_collect.concat(level_collect);
                 } else if (last_primary_level) {
                     // if we were in an intermediate level, add this line to it
-                    c3nav._add_line_to_level(last_primary_level, level_collect);
+                    c3nav._add_line_to_route(last_primary_level, level_collect);
                 }
 
                 if (item.level.on_top_of) {
@@ -245,8 +246,8 @@ c3nav = {
                 } else {
                     // if we are now in a primary level, add intermediate lines as links to last primary and this level
                     in_intermediate_level = false;
-                    c3nav._add_line_to_level(last_primary_level, next_level_collect, false, item.level.id);
-                    c3nav._add_line_to_level(item.level.id, next_level_collect, false, last_primary_level);
+                    c3nav._add_line_to_route(last_primary_level, next_level_collect, false, item.level.id);
+                    c3nav._add_line_to_route(item.level.id, next_level_collect, false, last_primary_level);
                     if (!first_primary_level) first_primary_level = item.level.id;
                     last_primary_level = item.level.id;
                     next_level_collect = [];
@@ -255,28 +256,35 @@ c3nav = {
             }
         }
         if (last_primary_level) {
-            c3nav._add_line_to_level(last_primary_level, next_level_collect);
-            c3nav._add_line_to_level(last_primary_level, level_collect);
+            c3nav._add_line_to_route(last_primary_level, next_level_collect);
+            c3nav._add_line_to_route(last_primary_level, level_collect);
         }
-        c3nav._add_line_to_level(first_primary_level, [
+        c3nav._add_line_to_route(first_primary_level, [
             [result.origin.point[1], result.origin.point[2]],
             result.items[0].coordinates.slice(0, 2)
         ], true);
-        c3nav._add_line_to_level(last_primary_level, [
+        c3nav._add_line_to_route(last_primary_level, [
             item.coordinates.slice(0, 2),
             [result.destination.point[1], result.destination.point[2]]
         ], true);
+        c3nav._firstRouteLevel = first_primary_level;
         $route.find('span').text(String(result.distance)+' m');
+        $route.removeClass('loading');
+        c3nav.fly_to_bounds(true);
     },
-    _add_line_to_level: function(level, coords, gray, link_to_level) {
+    _add_line_to_route: function(level, coords, gray, link_to_level) {
         if (coords.length < 2) return;
         var latlngs = L.GeoJSON.coordsToLatLngs(coords),
             routeLayer = c3nav._routeLayers[level];
+            line = L.polyline(latlngs, {
+                color: gray ? '#888888': $('button.swap').css('color'),
+                dashArray: (gray || link_to_level) ? '7' : null
+            }).addTo(routeLayer),
+            bounds = {};
+        bounds[level] = line.getBounds();
 
-        L.polyline(latlngs, {
-            color: gray ? '#888888': $('button.swap').css('color'),
-            dashArray: (gray || link_to_level) ? '7' : null
-        }).addTo(routeLayer);
+        c3nav._merge_bounds(c3nav._routeLayerBounds, bounds);
+
         if (link_to_level) {
             L.polyline(latlngs, {
                 opacity: 0,
@@ -655,6 +663,8 @@ c3nav = {
         c3nav._locationLayers = {};
         c3nav._locationLayerBounds = {};
         c3nav._routeLayers = {};
+        c3nav._routeLayerBounds = {};
+        c3nav._firstRouteLevel = null;
         for (i = c3nav.levels.length - 1; i >= 0; i--) {
             var level = c3nav.levels[i];
             var layerGroup = c3nav._levelControl.addLevel(level[0], level[2]);
@@ -703,7 +713,10 @@ c3nav = {
         var level = c3nav._levelControl.currentLevel,
             bounds = null;
 
-        if (c3nav._locationLayerBounds[level]) {
+        if (c3nav._firstRouteLevel) {
+            level = c3nav._firstRouteLevel;
+            bounds = c3nav._routeLayerBounds[level];
+        } else if (c3nav._locationLayerBounds[level]) {
             bounds = c3nav._locationLayerBounds[level];
         } else {
             for (var level_id in c3nav._locationLayers) {
