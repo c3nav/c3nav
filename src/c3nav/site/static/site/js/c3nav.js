@@ -268,12 +268,12 @@ c3nav = {
         }
 
         // add origin and destination lines
-        c3nav._add_line_to_route(first_primary_level, c3nav._add_intermediate_points(
+        c3nav._add_line_to_route(first_primary_level, c3nav._add_intermediate_point(
             result.origin.point.slice(1),
             result.items[0].coordinates.slice(0, 2),
             result.items[1].coordinates.slice(0, 2)
         ), true);
-        c3nav._add_line_to_route(last_primary_level, c3nav._add_intermediate_points(
+        c3nav._add_line_to_route(last_primary_level, c3nav._add_intermediate_point(
             result.destination.point.slice(1),
             result.items[result.items.length-1].coordinates.slice(0, 2),
             result.items[result.items.length-2].coordinates.slice(0, 2)
@@ -284,7 +284,7 @@ c3nav = {
         $route.removeClass('loading');
         if (!nofly) c3nav.fly_to_bounds(true);
     },
-    _add_intermediate_points: function(origin, destination, next) {
+    _add_intermediate_point: function(origin, destination, next) {
         var angle = Math.atan2(destination[1]-next[1], destination[0]-next[0]),
             distance = Math.sqrt(Math.pow(origin[0]-destination[0], 2) + Math.pow(origin[1]-destination[1], 2)),
             offset = Math.min(1.5, distance/4),
