@@ -32,7 +32,7 @@ class Route:
         if self.origin_addition and any(self.origin_addition):
             nodes.insert(0, (self.origin_addition[0], None))
             nodes[1][1] = self.origin_addition[1]
-        if self.destination_addition and any(self.origin_addition):
+        if self.destination_addition and any(self.destination_addition):
             nodes.append(self.destination_addition)
 
         items = deque()
