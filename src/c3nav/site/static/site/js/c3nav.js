@@ -138,7 +138,6 @@ c3nav = {
         var $location_details = $('#location-details');
         if (parseInt($location_details.attr('data-id')) !== location.id) {
             $location_details.addClass('loading').attr('data-id', location.id);
-            var location_id = location.id;
             $.getJSON('/api/locations/'+location.id+'/display', c3nav._location_details_loaded);
         }
     },
@@ -158,7 +157,6 @@ c3nav = {
             } else {
                 sublocations = (line[1].length === undefined) ? [line[1]] : line[1];
                 loclist = $('<dd>');
-                console.log(sublocations);
                 for (var j = 0; j < sublocations.length; j++) {
                     loc = sublocations[j];
                     if (loc.can_searc) {
