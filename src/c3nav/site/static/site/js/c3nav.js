@@ -142,6 +142,7 @@ c3nav = {
         }
     },
     _location_details_loaded: function(data) {
+        var $location_details = $('#location-details');
         if (parseInt($location_details.attr('data-id')) !== data.id) {
             // loaded too late, information no longer needed
             return;
