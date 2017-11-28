@@ -240,6 +240,13 @@ class CustomLocation:
                                                                 'x': self.x,
                                                                 'y': self.y})
 
+    @property
+    def serialized_geometry(self):
+        return {
+            'type': 'Point',
+            'coordinates': (self.x, self.y)
+        }
+
     def serialize(self, simple_geometry=False, geometry=True, **kwargs):
         result = OrderedDict((
             ('id', self.pk),
@@ -252,8 +259,26 @@ class CustomLocation:
             result['bounds'] = ((int(math.floor(self.x)), int(math.floor(self.y))),
                                 (int(math.ceil(self.x)), int(math.ceil(self.y))))
         if geometry:
-            result['geometry'] = {
-               'type': 'Point',
-               'coordinates': (self.x, self.y)
-            }
+            result['geometry'] = self.serialized_geometry
         return result
+
+    def details_display(self):
+        return {
+            'id': self.pk,
+            'display': [
+                (str(_('Type')), str(_('Coordinates'))),
+                (str(_('ID')), str(self.pk)),
+                (str(_('Slug')), str(self.pk)),
+                (str(_('Level')), {
+                    'id': self.level.pk,
+                    'slug': self.level.get_slug(),
+                    'title': self.level.title,
+                    'can_search': self.level.can_search,
+                }),
+                (str(_('X Coordinate')), str(self.x)),
+                (str(_('Y Coordinate')), str(self.y)),
+                (str(_('Title')), str(self.title)),
+                (str(_('Subtitle')), str(self.subtitle)),
+            ],
+            'geometry': self.serialized_geometry,
+        }

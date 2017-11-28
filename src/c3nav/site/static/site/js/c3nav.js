@@ -159,14 +159,14 @@ c3nav = {
 
     load_location_details: function (location) {
         var $location_details = $('#location-details');
-        if (parseInt($location_details.attr('data-id')) !== location.id) {
+        if ($location_details.attr('data-id') !== String(location.id)) {
             $location_details.addClass('loading').attr('data-id', location.id);
             $.getJSON('/api/locations/'+location.id+'/display', c3nav._location_details_loaded);
         }
     },
     _location_details_loaded: function(data) {
         var $location_details = $('#location-details');
-        if (parseInt($location_details.attr('data-id')) !== data.id) {
+        if ($location_details.attr('data-id') !== String(data.id)) {
             // loaded too late, information no longer needed
             return;
         }
@@ -183,7 +183,7 @@ c3nav = {
                 loclist = $('<dd>');
                 for (var j = 0; j < sublocations.length; j++) {
                     loc = sublocations[j];
-                    if (loc.can_searc) {
+                    if (loc.can_search) {
                         loclist.append($('<a>').attr('href', '/l/' + loc.slug + '/details/').attr('data-id', loc.id).click(function (e) {
                             e.preventDefault();
                             c3nav._locationinput_set($('#destination-input'), c3nav.locations_by_id[parseInt($(this).attr('data-id'))]);
@@ -197,11 +197,11 @@ c3nav = {
             }
         }
         $location_details.find('.details-body').html('').append(elem);
-        $location_details.removeClass('loading').find('.editor').attr('href', data.editor_url);
+        $location_details.removeClass('loading').find('.editor').toggle(data.editor_url).attr('href', data.editor_url);
     },
     load_route: function (origin, destination, nofly) {
         var $route = $('#route-summary');
-        if (parseInt($route.attr('data-origin')) !== origin.id || parseInt($route.attr('data-destination')) !== destination.id) {
+        if ($route.attr('data-origin') !== String(origin.id) || $route.attr('data-destination') !== String(destination.id)) {
             c3nav._clear_route_layers();
             $route.addClass('loading').attr('data-origin', origin.id).attr('data-destination', destination.id);
             $.post('/api/routing/route/', {

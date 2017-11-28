@@ -25,8 +25,7 @@ from c3nav.mapdata.models.level import Level
 from c3nav.mapdata.models.locations import (Location, LocationGroupCategory, LocationRedirect, LocationSlug,
                                             SpecificLocation)
 from c3nav.mapdata.utils.locations import (get_location_by_id_for_request, get_location_by_slug_for_request,
-                                           locations_for_request, searchable_locations_for_request,
-                                           visible_locations_for_request)
+                                           searchable_locations_for_request, visible_locations_for_request)
 from c3nav.mapdata.utils.models import get_submodels
 
 
@@ -299,10 +298,8 @@ class LocationViewSet(RetrieveModelMixin, GenericViewSet):
     @detail_route(methods=['get'])
     @api_etag()
     def display(self, request, pk=None):
-        if not pk.isdigit():
-            raise NotFound
+        location = get_location_by_id_for_request(pk, request)
 
-        location = locations_for_request(request).get(int(pk))
         if location is None:
             raise NotFound
 
