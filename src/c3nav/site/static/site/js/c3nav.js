@@ -275,7 +275,7 @@ c3nav = {
 
         L.polyline(latlngs, {
             color: gray ? '#888888': $('button.swap').css('color'),
-            dashArray: gray ? '5' : null
+            dashArray: (gray || link_to_level) ? '7' : null
         }).addTo(routeLayer);
         if (link_to_level) {
             L.polyline(latlngs, {
