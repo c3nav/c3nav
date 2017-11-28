@@ -1,4 +1,7 @@
+import math
 import operator
+import re
+from collections import OrderedDict
 from functools import reduce
 from itertools import chain
 from typing import List, Mapping, Optional
@@ -6,6 +9,7 @@ from typing import List, Mapping, Optional
 from django.apps import apps
 from django.core.cache import cache
 from django.db.models import Prefetch, Q
+from django.utils.translation import ugettext_lazy as _
 from shapely.ops import cascaded_union
 
 from c3nav.mapdata.models import Level, Location, LocationGroup, MapUpdate
@@ -154,13 +158,26 @@ def locations_by_slug_for_request(request) -> Mapping[str, LocationSlug]:
     return locations
 
 
+def get_location_by_id_for_request(pk, request):
+    if isinstance(pk, str):
+        if pk.isdigit():
+            pk = int(pk)
+        else:
+            return get_custom_location_for_request(pk, request)
+    return locations_for_request(request).get(pk)
+
+
 def get_location_by_slug_for_request(slug: str, request) -> Optional[LocationSlug]:
     cache_key = 'mapdata:location:by_slug:%s:%s' % (AccessPermission.cache_key_for_request(request), slug)
     location = cache.get(cache_key, None)
     if location is not None:
         return location
 
-    if ':' in slug:
+    if slug.startswith('c:'):
+        location = get_custom_location_for_request(slug, request)
+        if location is None:
+            return None
+    elif ':' in slug:
         code, pk = slug.split(':', 1)
         model_name = LocationSlug.LOCATION_TYPE_BY_CODE.get(code)
         if model_name is None or not pk.isdigit():
@@ -180,3 +197,45 @@ def get_location_by_slug_for_request(slug: str, request) -> Optional[LocationSlu
     cache.set(cache_key, location, 300)
 
     return location
+
+
+def get_custom_location_for_request(slug: str, request):
+    match = re.match(r'^c:(?P<level>[a-z0-9-_]+):(?P<x>-?\d+(\.\d\d?)?):(?P<y>-?\d+(\.\d\d?)?)$', slug)
+    if match is None:
+        return None
+    level = locations_by_slug_for_request(request).get(match.group('level'))
+    if not isinstance(level, Level):
+        return None
+    return CustomLocation(level, float(match.group('x')), float(match.group('y')))
+
+
+class CustomLocation:
+    can_search = True
+
+    def __init__(self, level, x, y):
+        self.pk = 'c:%s:%s:%s' % (level.short_label, x, y)
+        self.level = level
+        self.x = x
+        self.y = y
+        self.title = str(_('Coordinates'))
+        self.subtitle = str(_('%(level)s, x=%(x)s, y=%(y)s') % {'level': self.level.title,
+                                                                'x': self.x,
+                                                                'y': self.y})
+
+    def serialize(self, simple_geometry=False, geometry=True, **kwargs):
+        result = OrderedDict((
+            ('id', self.pk),
+            ('slug', self.pk),
+            ('title', self.title),
+            ('subtitle', self.subtitle),
+        ))
+        if simple_geometry:
+            result['point'] = (self.level.pk, self.x, self.y)
+            result['bounds'] = ((int(math.floor(self.x)), int(math.floor(self.y))),
+                                (int(math.ceil(self.x)), int(math.ceil(self.y))))
+        if geometry:
+            result['geometry'] = {
+               'type': 'Point',
+               'coordinates': (self.x, self.y)
+            }
+        return result

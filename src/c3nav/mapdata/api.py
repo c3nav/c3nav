@@ -24,8 +24,9 @@ from c3nav.mapdata.models.geometry.space import (POI, Area, Column, LineObstacle
 from c3nav.mapdata.models.level import Level
 from c3nav.mapdata.models.locations import (Location, LocationGroupCategory, LocationRedirect, LocationSlug,
                                             SpecificLocation)
-from c3nav.mapdata.utils.locations import (get_location_by_slug_for_request, locations_for_request,
-                                           searchable_locations_for_request, visible_locations_for_request)
+from c3nav.mapdata.utils.locations import (get_location_by_id_for_request, get_location_by_slug_for_request,
+                                           locations_for_request, searchable_locations_for_request,
+                                           visible_locations_for_request)
 from c3nav.mapdata.utils.models import get_submodels
 
 
@@ -252,6 +253,7 @@ class LocationViewSet(RetrieveModelMixin, GenericViewSet):
     /{id}/ add ?show_redirect=1 to suppress redirects and show them as JSON.
     """
     queryset = LocationSlug.objects.all()
+    lookup_value_regex = r'[^/]+'
 
     @api_etag()
     def list(self, request, *args, **kwargs):
@@ -282,10 +284,7 @@ class LocationViewSet(RetrieveModelMixin, GenericViewSet):
         detailed = 'detailed' in request.GET
         geometry = 'geometry' in request.GET
 
-        if not pk.isdigit():
-            raise NotFound
-
-        location = locations_for_request(request).get(int(pk))
+        location = get_location_by_id_for_request(pk, request)
 
         if location is None:
             raise NotFound
@@ -321,6 +320,7 @@ class LocationViewSet(RetrieveModelMixin, GenericViewSet):
 class LocationBySlugViewSet(RetrieveModelMixin, GenericViewSet):
     queryset = LocationSlug.objects.all()
     lookup_field = 'slug'
+    lookup_value_regex = r'[^/]+'
 
     @api_etag()
     def retrieve(self, request, slug=None, *args, **kwargs):
