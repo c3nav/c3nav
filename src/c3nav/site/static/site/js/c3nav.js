@@ -231,27 +231,31 @@ c3nav = {
             coords = [item.coordinates[0], item.coordinates[1]];
             level_collect.push(coords);
             if (item.level) {
-                if (last_primary_level) {
+                if (in_intermediate_level) {
+                    // if we were in a secondary level, collect this line for the next primary level
+                    next_level_collect = next_level_collect.concat(level_collect);
+                } else if (last_primary_level) {
+                    // if we were in an intermediate level, add this line to it
                     c3nav._add_line_to_level(last_primary_level, level_collect);
                 }
 
-                if (in_intermediate_level) {
-                    next_level_collect = next_level_collect.concat(level_collect);
-                }
-
                 if (item.level.on_top_of) {
+                    // if we area now in an intermediate level, note this
                     in_intermediate_level = true;
                 } else {
+                    // if we are now in a primary level, add intermediate lines as links to last primary and this level
                     in_intermediate_level = false;
-                    last_primary_level = item.level.id;
+                    c3nav._add_line_to_level(last_primary_level, next_level_collect, false, item.level.id);
+                    c3nav._add_line_to_level(item.level.id, next_level_collect, false, last_primary_level);
                     if (!first_primary_level) first_primary_level = item.level.id;
-                    c3nav._add_line_to_level(last_primary_level, next_level_collect);
+                    last_primary_level = item.level.id;
                     next_level_collect = [];
                 }
                 level_collect = level_collect.slice(-1);
             }
         }
-        if (last_primary_level && level_collect.length >= 2) {
+        if (last_primary_level) {
+            c3nav._add_line_to_level(last_primary_level, next_level_collect);
             c3nav._add_line_to_level(last_primary_level, level_collect);
         }
         c3nav._add_line_to_level(first_primary_level, [
@@ -264,12 +268,23 @@ c3nav = {
         ], true);
         $route.find('span').text(String(result.distance)+' m');
     },
-    _add_line_to_level: function(level, coords, gray) {
+    _add_line_to_level: function(level, coords, gray, link_to_level) {
         if (coords.length < 2) return;
-        L.polyline(L.GeoJSON.coordsToLatLngs(coords), {
+        var latlngs = L.GeoJSON.coordsToLatLngs(coords),
+            routeLayer = c3nav._routeLayers[level];
+
+        L.polyline(latlngs, {
             color: gray ? '#888888': $('button.swap').css('color'),
             dashArray: gray ? '5' : null
-        }).addTo(c3nav._routeLayers[level]);
+        }).addTo(routeLayer);
+        if (link_to_level) {
+            L.polyline(latlngs, {
+                opacity: 0,
+                weight: 15
+            }).addTo(routeLayer).on('click', function() {
+                c3nav._levelControl.setLevel(link_to_level);
+            });
+        }
     },
     _equal_states: function (a, b) {
         if (a.routing !== b.routing || a.details !== b.details) return false;
