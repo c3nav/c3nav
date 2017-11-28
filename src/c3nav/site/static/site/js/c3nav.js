@@ -280,16 +280,9 @@ c3nav = {
         if (!nofly) c3nav.fly_to_bounds(true);
     },
     _add_intermediate_points: function(origin, destination, next) {
-        // todo: this propably could be nicer
-        var angle = Math.atan2(next[1]-destination[1], next[0]-destination[0]) - Math.PI,
-            distance = Math.pow(Math.pow(destination[0]-origin[0], 2) + Math.pow(destination[1]-origin[1], 2), 0.5)/2,
-            point1 = [destination[0]+Math.cos(angle)*distance, destination[1]+Math.sin(angle)*distance],
-            point2 = [(destination[0]+origin[0])/2, (destination[1]+origin[1])/2];
-        return [
-            origin,
-            [(point1[0]+origin[0]+point2[0])/3, (point1[1]+origin[1]+point2[1])/3],
-            [(point1[0]+destination[0])/2, (point1[1]+destination[1])/2],
-            destination];
+        var angle = Math.atan2(destination[1]-next[1], destination[0]-next[0]),
+            point = [destination[0]+Math.cos(angle)*1.5, destination[1]+Math.sin(angle)*1.5];
+        return [origin, point, destination];
     },
     _add_line_to_route: function(level, coords, gray, link_to_level) {
         if (coords.length < 2) return;
