@@ -220,10 +220,11 @@ c3nav = {
     },
     _display_route_result: function(result) {
         var $route = $('#route-summary'),
+            first_primary_level = null,
             last_primary_level = null,
             origin = c3nav.locations_by_id[result.origin.id],
             destination = c3nav.locations_by_id[result.destination.id],
-            level_collect = [[origin.point[1], origin.point[2]]],
+            level_collect = [],
             next_level_collect = [],
             in_intermediate_level = true,
             item, coords;
@@ -245,6 +246,7 @@ c3nav = {
                 } else {
                     in_intermediate_level = false;
                     last_primary_level = item.level.id;
+                    if (!first_primary_level) first_primary_level = item.level.id;
                     c3nav._add_line_to_level(last_primary_level, next_level_collect);
                     next_level_collect = [];
                 }
@@ -255,11 +257,22 @@ c3nav = {
         if (last_primary_level && level_collect.length >= 2) {
             c3nav._add_line_to_level(last_primary_level, level_collect);
         }
+        c3nav._add_line_to_level(first_primary_level, [
+            [origin.point[1], origin.point[2]],
+            result.items[0].coordinates.slice(0, 2)
+        ], true);
+        c3nav._add_line_to_level(last_primary_level, [
+            item.coordinates.slice(0, 2),
+            [destination.point[1], destination.point[2]]
+        ], true);
         $route.find('span').text(String(result.distance)+' m');
     },
-    _add_line_to_level: function(level, coords) {
+    _add_line_to_level: function(level, coords, gray) {
         if (coords.length < 2) return;
-        L.polyline(L.GeoJSON.coordsToLatLngs(coords)).addTo(c3nav._routeLayers[level]);
+        L.polyline(L.GeoJSON.coordsToLatLngs(coords), {
+            color: gray ? '#888888': $('button.swap').css('color'),
+            dashArray: gray ? '5' : null
+        }).addTo(c3nav._routeLayers[level]);
     },
     _equal_states: function (a, b) {
         if (a.routing !== b.routing || a.details !== b.details) return false;
