@@ -723,6 +723,7 @@ c3nav = {
     },
     _click_anywhere_popup: null,
     _click_anywhere: function(e) {
+        if (e.originalEvent.target.id !== 'map') return;
         var popup = L.popup().setLatLng(e.latlng).setContent('<div class="loader"></div>'),
             level = c3nav._levelControl.currentLevel,
             name = 'c:'+String(c3nav.level_labels_by_id[level])+':'+Math.round(e.latlng.lng*100)/100+':'+Math.round(e.latlng.lat*100)/100;
