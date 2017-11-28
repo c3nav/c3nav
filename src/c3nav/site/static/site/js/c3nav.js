@@ -30,6 +30,19 @@
 
 c3nav = {
     init: function () {
+        $.getJSON('/api/locations/?searchable', function (data) {
+            for (var i = 0; i < data.length; i++) {
+                var location = data[i];
+                location.elem = c3nav._build_location_html(location);
+                location.title_words = location.title.toLowerCase().split(/\s+/);
+                location.match = ' ' + location.title_words.join(' ') + ' ';
+                c3nav.locations.push(location);
+                c3nav.locations_by_id[location.id] = location;
+            }
+            c3nav.continue_init();
+        });
+    },
+    continue_init: function() {
         c3nav.init_map();
 
         $('.locationinput').data('location', null);
@@ -270,21 +283,11 @@ c3nav = {
     },
 
     // location inputs
+    locations: [],
+    locations_by_id: {},
+    current_locationinput: null,
+    last_match_words_key: null,
     init_locationinputs: function () {
-        c3nav.locations = [];
-        c3nav.locations_by_id = {};
-        c3nav.current_locationinput = null;
-        c3nav._last_match_words_key = null;
-        $.getJSON('/api/locations/?searchable', function (data) {
-            for (var i = 0; i < data.length; i++) {
-                var location = data[i];
-                location.elem = c3nav._build_location_html(location);
-                location.title_words = location.title.toLowerCase().split(/\s+/);
-                location.match = ' ' + location.title_words.join(' ') + ' ';
-                c3nav.locations.push(location);
-                c3nav.locations_by_id[location.id] = location;
-            }
-        });
 
         $('.locationinput input').on('input', c3nav._locationinput_input)
             .on('blur', c3nav._locationinput_blur)
