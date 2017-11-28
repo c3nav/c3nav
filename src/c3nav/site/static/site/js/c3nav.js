@@ -276,7 +276,7 @@ c3nav = {
     },
     _add_line_to_route: function(level, coords, gray, link_to_level) {
         if (coords.length < 2) return;
-        var latlngs = L.GeoJSON.coordsToLatLngs(coords),
+        var latlngs = L.GeoJSON.coordsToLatLngs(c3nav._smooth_line(coords)),
             routeLayer = c3nav._routeLayers[level];
             line = L.polyline(latlngs, {
                 color: gray ? '#888888': $('button.swap').css('color'),
@@ -295,6 +295,24 @@ c3nav = {
                 c3nav._levelControl.setLevel(link_to_level);
             });
         }
+    },
+    _smooth_line: function(coords) {
+        if (coords.length > 2) {
+            for (var i=0; i<4; i++) {
+                coords = c3nav._smooth_line_iteration(coords);
+            }
+        }
+        return coords
+    },
+    _smooth_line_iteration: function(coords) {
+        // Chaikin'S Corner Cutting Algorithm
+        var new_coords = [coords[0]];
+        for (var i=1; i<coords.length-1; i++) {
+            new_coords.push([(coords[i][0]*5+coords[i-1][0])/6, (coords[i][1]*5+coords[i-1][1])/6]);
+            new_coords.push([(coords[i][0]*5+coords[i+1][0])/6, (coords[i][1]*5+coords[i+1][1])/6]);
+        }
+        new_coords.push(coords[coords.length-1]);
+        return new_coords
     },
     _equal_states: function (a, b) {
         if (a.routing !== b.routing || a.details !== b.details) return false;
