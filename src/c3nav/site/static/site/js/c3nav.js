@@ -512,7 +512,6 @@ c3nav = {
             ($(window).width()-40)/(c3nav.bounds[1][0]-c3nav.bounds[0][0]),
             ($(window).height()-250)/(c3nav.bounds[1][1]-c3nav.bounds[0][1])
         )));
-        console.log(minZoom);
 
         // create leaflet map
         c3nav.map = L.map('map', {
@@ -578,7 +577,6 @@ c3nav = {
         });
     },
     update_map_locations: function () {
-        console.log('ha!');
         // update locations markers on the map
         var origin = $('#origin-input').data('location'),
             destination = $('#destination-input').data('location'),
