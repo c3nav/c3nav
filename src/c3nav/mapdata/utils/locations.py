@@ -216,7 +216,7 @@ def get_location_by_slug_for_request(slug: str, request) -> Optional[LocationSlu
 
 
 def get_custom_location_for_request(slug: str, request):
-    match = re.match(r'^c:(?P<level>[a-z0-9-_]+):(?P<x>-?\d+(\.\d\d?)?):(?P<y>-?\d+(\.\d\d?)?)$', slug)
+    match = re.match(r'^c:(?P<level>[a-z0-9-_]+):(?P<x>-?\d+(\.\d+)?):(?P<y>-?\d+(\.\d+)?)$', slug)
     if match is None:
         return None
     level = levels_by_short_label_for_request(request).get(match.group('level'))
@@ -229,6 +229,8 @@ class CustomLocation:
     can_search = True
 
     def __init__(self, level, x, y):
+        x = round(x, 2)
+        y = round(y, 2)
         self.pk = 'c:%s:%s:%s' % (level.short_label, x, y)
         self.level = level
         self.x = x
