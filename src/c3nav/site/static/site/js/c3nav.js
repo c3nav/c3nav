@@ -197,7 +197,12 @@ c3nav = {
             }
         }
         $location_details.find('.details-body').html('').append(elem);
-        $location_details.removeClass('loading').find('.editor').toggle(data.editor_url).attr('href', data.editor_url);
+        var $editor = $location_details.removeClass('loading').find('.editor');
+        if (data.editor_url) {
+            $editor.attr('href', data.editor_url).show();
+        } else {
+            $editor.hide();
+        }
     },
     load_route: function (origin, destination, nofly) {
         var $route = $('#route-summary');
