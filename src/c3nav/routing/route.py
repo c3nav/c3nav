@@ -18,21 +18,33 @@ def describe_location(location, locations):
 
 
 class Route:
-    def __init__(self, router, origin, destination, distance, path_nodes):
+    def __init__(self, router, origin, destination, distance, path_nodes, origin_addition, destination_addition):
         self.router = router
         self.origin = origin
         self.destination = destination
         self.distance = distance
         self.path_nodes = path_nodes
+        self.origin_addition = origin_addition
+        self.destination_addition = destination_addition
 
     def serialize(self, locations):
+        nodes = [[node, None] for node in self.path_nodes]
+        if self.origin_addition:
+            nodes.insert(0, (self.origin_addition[0], None))
+            nodes[1][1] = self.origin_addition[1]
+        if self.destination_addition:
+            nodes.append(self.destination_addition)
+
         items = deque()
         last_node = None
         last_item = None
         distance = 0
-        for i, node in enumerate(self.path_nodes):
-            edge = self.router.edges[last_node, node] if last_node else None
-            item = RouteItem(self, self.router.nodes[node], edge, last_item)
+        for i, (node, edge) in enumerate(nodes):
+            if edge is None:
+                print(i)
+                edge = self.router.edges[last_node, node] if last_node else None
+            node_obj = self.router.nodes[node] if isinstance(node, (int, np.int32, np.int64)) else node
+            item = RouteItem(self, node_obj, edge, last_item)
             if edge:
                 distance += edge.distance
             items.append(item)

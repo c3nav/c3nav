@@ -267,7 +267,12 @@ class Router:
             path_nodes.appendleft(last_node)
         path_nodes = tuple(path_nodes)
 
-        return Route(self, origin, destination, distances[origin_node, destination_node], path_nodes)
+        origin_addition = origin.nodes_addition.get(origin_node)
+        destination_addition = destination.nodes_addition.get(destination_node)
+        print(origin_addition, destination_addition)
+
+        return Route(self, origin, destination, distances[origin_node, destination_node], path_nodes,
+                     origin_addition, destination_addition)
 
 
 class BaseRouterProxy:
@@ -350,11 +355,11 @@ class RouterAltitudeArea:
                 node = all_nodes[node]
                 line = LineString([(node.x, node.y), (point.x, point.y)])
                 if line.length < 5 and not self.clear_geometry_prep.crosses(line):
-                    nodes[node.i] = None
+                    nodes[node.i] = (None, None)
             if not nodes:
                 nearest_node = min(tuple(all_nodes[node] for node in self.nodes),
                                    key=lambda node: point.distance(node.point))
-                nodes[nearest_node.i] = None
+                nodes[nearest_node.i] = (None, None)
         else:
             nodes = self.fallback_nodes
         return nodes
