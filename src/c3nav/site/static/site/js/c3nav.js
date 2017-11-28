@@ -411,7 +411,8 @@ c3nav = {
         c3nav.update_state(false);
     },
     _popup_button_click: function () {
-        var location = c3nav.locations_by_id[parseInt($(this).siblings('.location').attr('data-id'))],
+        var $location = $(this).siblings('.location'),
+            location = $location.is('[data-location]') ? JSON.parse($location.attr('data-location')) : c3nav.locations_by_id[parseInt($location.attr('data-id'))],
             $origin = $('#origin-input'),
             $destination = $('#destination-input');
         if ($(this).is('.as-location')) {
@@ -442,13 +443,16 @@ c3nav = {
         $('.locationinput .clear').on('click', c3nav._locationinput_clear);
         $('#autocomplete').on('mouseover', '.location', c3nav._locationinput_hover_suggestion)
             .on('click', '.location', c3nav._locationinput_click_suggestion);
-        $('html').on('focus', '*', c3nav._locationinput_global_focuschange);
+        $('html').on('focus', '*', c3nav._locationinput_global_focuschange)
+            .on('mousedown', '*', c3nav._locationinput_global_focuschange);
     },
-    _build_location_html: function(location) {
-        return $('<div class="location">')
+    _build_location_html: function(location, add_data) {
+        html = $('<div class="location">')
             .append($('<i class="icon material-icons">').text('place'))
             .append($('<span>').text(location.title))
-            .append($('<small>').text(location.subtitle)).attr('data-id', location.id)[0].outerHTML
+            .append($('<small>').text(location.subtitle)).attr('data-id', location.id);
+        if (add_data) html.attr('data-location', JSON.stringify(location));
+        return html[0].outerHTML;
     },
     _locationinput_set: function (elem, location) {
         // set a location input
@@ -494,6 +498,9 @@ c3nav = {
         // when focus changed, reset autocomplete if it is outside of locationinputs or autocomplete
         if (c3nav.current_locationinput && !$(e.target).is('#autocomplete *, #' + c3nav.current_locationinput + ' *')) {
             c3nav._locationinput_reset_autocomplete();
+        }
+        if (c3nav._click_anywhere_popup && !$(e.target).is('.leaflet-popup > *')) {
+            c3nav._click_anywhere_popup.remove();
         }
         if (!$(e.target).is('#search *')) {
             $('#search').removeClass('focused');
@@ -704,8 +711,26 @@ c3nav = {
         c3nav._levelControl.finalize();
         c3nav._levelControl.setLevel(c3nav.levels[0][0]);
 
+        c3nav.map.on('click', c3nav._click_anywhere);
+
         c3nav.schedule_refresh_tile_access();
 
+    },
+    _click_anywhere_popup: null,
+    _click_anywhere: function(e) {
+        var popup = L.popup().setLatLng(e.latlng).setContent('<div class="loader"></div>'),
+            level = c3nav._levelControl.currentLevel,
+            name = 'c:'+String(c3nav.level_labels_by_id[level])+':'+Math.round(e.latlng.lng*100)/100+':'+Math.round(e.latlng.lat*100)/100;
+        c3nav._click_anywhere_popup = popup;
+        popup.on('remove', function() { c3nav._click_anywhere_popup = null }).openOn(c3nav.map);
+        $.getJSON('/api/locations/'+name+'/', function(data) {
+            if (c3nav._click_anywhere_popup !== popup || !popup.isOpen()) return;
+            popup.remove();
+            popup = L.popup(c3nav._add_map_padding({className: 'location-popup'}, 'autoPanPaddingTopLeft', 'autoPanPaddingBottomRight'));
+            popup.setLatLng(e.latlng).setContent(c3nav._build_location_html(data, true)+$('#popup-buttons').html());
+            c3nav._click_anywhere_popup = popup;
+            popup.on('remove', function() { c3nav._click_anywhere_popup = null }).openOn(c3nav.map);
+        });
     },
     _map_moved: function () {
         c3nav.update_map_state();

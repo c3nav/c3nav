@@ -102,6 +102,13 @@ main.map {
     width: 5%;
 }
 
+.loader {
+    width: 48px;
+    height: 48px;
+    /*noinspection CssUnknownTarget*/
+    background: url('../../img/loader.gif');
+}
+
 main:not([data-view^=route]) #origin-input,
 #search.loading #destination-input {
     margin-bottom: -55px;
