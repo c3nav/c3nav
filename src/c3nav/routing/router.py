@@ -16,6 +16,7 @@ from shapely.ops import unary_union
 from c3nav.mapdata.models import AltitudeArea, Area, GraphEdge, Level, LocationGroup, Space, WayType
 from c3nav.mapdata.models.geometry.space import POI
 from c3nav.mapdata.utils.geometry import assert_multipolygon, good_representative_point
+from c3nav.mapdata.utils.locations import CustomLocation
 from c3nav.routing.route import Route
 
 
@@ -122,7 +123,7 @@ class Router:
                         # todo: check waytypes here
                         for node in space_nodes:
                             line = LineString([(node.x, node.y), (fallback_node.x, fallback_node.y)])
-                            if not clear_geom_prep.crosses(line):
+                            if line.length < 5 and not clear_geom_prep.crosses(line):
                                 area.fallback_nodes[node.i] = (
                                     fallback_node,
                                     RouterEdge(fallback_node, node, 0)
@@ -139,10 +140,9 @@ class Router:
                         groups.setdefault(group.pk, {}).setdefault('pois', set()).add(poi.pk)
                     poi._prefetched_objects_cache = {}
 
-                    poi = RouterPOI(poi)
+                    poi = RouterPoint(poi)
                     altitudearea = space.altitudearea_for_point(poi.geometry)
                     poi_nodes = altitudearea.nodes_for_point(poi.geometry, all_nodes=nodes)
-                    print(poi_nodes)
                     poi.nodes = set(i for i in poi_nodes.keys())
                     poi.nodes_addition = poi_nodes
                     pois[poi.pk] = poi
@@ -212,10 +212,28 @@ class Router:
                 (self.spaces[pk] for pk in group.get('spaces', ())),
                 (self.areas[pk] for pk in group.get('areas', ()))
             ))
+        elif isinstance(location, CustomLocation):
+            point = Point(location.x, location.y)
+            location = RouterPoint(location)
+            space = self.space_for_point(location.level.pk, point)
+            altitudearea = space.altitudearea_for_point(point)
+            location_nodes = altitudearea.nodes_for_point(point, all_nodes=self.nodes)
+            location.nodes = set(i for i in location_nodes.keys())
+            location.nodes_addition = location_nodes
+            locations = tuple((location, ))
         # todo: route from/to custom location
         return RouterLocation(tuple(location for location in locations
                                     if location is not None and (location.access_restriction_id is None or
                                                                  location.access_restriction_id in permissions)))
+
+    def space_for_point(self, level, point):
+        # todo: only spaces that the user can see
+        point = Point(point.x, point.y)
+        level = self.levels[level]
+        for space in level.spaces:
+            if self.spaces[space].geometry_prep.intersects(point):
+                return self.spaces[space]
+        return self.spaces[min(level.spaces, key=lambda space: self.spaces[space].geometry.distance(point))]
 
     def get_route(self, origin, destination, permissions=frozenset()):
         # get possible origins and destinations
@@ -289,14 +307,14 @@ class RouterSpace(BaseRouterProxy):
         for area in self.altitudeareas:
             if area.geometry_prep.intersects(point):
                 return area
-        return self.altitudareas[0]
+        return min(self.altitudeareas, key=lambda area: area.geometry.distance(point))
 
 
 class RouterArea(BaseRouterProxy):
     pass
 
 
-class RouterPOI(BaseRouterProxy):
+class RouterPoint(BaseRouterProxy):
     pass
 
 
@@ -331,7 +349,7 @@ class RouterAltitudeArea:
             for node in self.nodes:
                 node = all_nodes[node]
                 line = LineString([(node.x, node.y), (point.x, point.y)])
-                if not self.clear_geometry_prep.crosses(line):
+                if line.length < 5 and not self.clear_geometry_prep.crosses(line):
                     nodes[node.i] = None
             if not nodes:
                 nearest_node = min(tuple(all_nodes[node] for node in self.nodes),
@@ -394,7 +412,7 @@ class RouterWayType:
 
 class RouterLocation:
     def __init__(self, locations=()):
-        self.locations = tuple(location for location in locations if locations)
+        self.locations = locations
 
     @cached_property
     def nodes(self):

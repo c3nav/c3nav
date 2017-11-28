@@ -69,6 +69,8 @@ def assert_multilinestring(geometry: Union[LineString, MultiLineString, Geometry
 
 
 def good_representative_point(geometry):
+    if isinstance(geometry, Point):
+        return geometry
     c = geometry.centroid
     x1, y1, x2, y2 = geometry.bounds
     lines = (tuple(assert_multilinestring(LineString(((x1, c.y), (x2, c.y))).intersection(geometry))) +

@@ -1,25 +1,25 @@
 from django import forms
 from django.utils.translation import ugettext_lazy
 
-from c3nav.mapdata.utils.locations import locations_for_request
+from c3nav.mapdata.utils.locations import get_location_by_id_for_request
 
 
 class RouteForm(forms.Form):
-    origin = forms.IntegerField(min_value=1)
-    destination = forms.IntegerField(min_value=1)
+    origin = forms.CharField()
+    destination = forms.CharField()
 
     def __init__(self, *args, request=None, **kwargs):
         self.request = request
         super().__init__(*args, **kwargs)
 
     def clean_origin(self):
-        try:
-            return locations_for_request(self.request)[self.cleaned_data['origin']]
-        except KeyError:
+        location = get_location_by_id_for_request(self.cleaned_data['origin'], self.request)
+        if location is None:
             raise forms.ValidationError(ugettext_lazy('Unknown origin.'))
+        return location
 
     def clean_destination(self):
-        try:
-            return locations_for_request(self.request)[self.cleaned_data['destination']]
-        except KeyError:
+        location = get_location_by_id_for_request(self.cleaned_data['destination'], self.request)
+        if location is None:
             raise forms.ValidationError(ugettext_lazy('Unknown destination.'))
+        return location

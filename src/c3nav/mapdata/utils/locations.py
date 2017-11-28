@@ -227,6 +227,8 @@ def get_custom_location_for_request(slug: str, request):
 
 class CustomLocation:
     can_search = True
+    can_describe = True
+    access_restriction_id = None
 
     def __init__(self, level, x, y):
         x = round(x, 2)

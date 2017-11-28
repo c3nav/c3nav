@@ -218,7 +218,7 @@ c3nav = {
     },
     _route_loaded: function(data, nofly) {
         var $route = $('#route-summary');
-        if (parseInt($route.attr('data-origin')) !== data.request.origin || parseInt($route.attr('data-destination')) !== data.request.destination) {
+        if ($route.attr('data-origin') !== String(data.request.origin) || $route.attr('data-destination') !== String(data.request.destination)) {
             // loaded too late, information no longer needed
             return;
         }
