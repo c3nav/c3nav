@@ -14,7 +14,7 @@ from c3nav.mapdata.models import Location, Source
 from c3nav.mapdata.models.access import AccessPermission
 from c3nav.mapdata.models.level import Level
 from c3nav.mapdata.models.locations import LocationRedirect, SpecificLocation
-from c3nav.mapdata.utils.locations import get_location_by_slug_for_request
+from c3nav.mapdata.utils.locations import get_location_by_slug_for_request, levels_by_short_label_for_request
 from c3nav.mapdata.views import set_tile_access_cookie
 
 ctype_mapping = {
@@ -110,14 +110,7 @@ def map_index(request, mode=None, slug=None, slug2=None, details=None, level=Non
         'details': True if details else False,
     }
 
-    levels_cache_key = 'mapdata:levels:%s' % AccessPermission.cache_key_for_request(request)
-    levels = cache.get(levels_cache_key, None)
-    if levels is None:
-        levels = OrderedDict(
-            (level.slug, (level.pk, level.slug, level.short_label))
-            for level in Level.qs_for_request(request).filter(on_top_of_id__isnull=True).order_by('base_altitude')
-        )
-        cache.set(levels_cache_key, levels, 300)
+    levels = levels_by_short_label_for_request(request)
 
     level = levels.get(level, None) if level else None
     if level is not None:

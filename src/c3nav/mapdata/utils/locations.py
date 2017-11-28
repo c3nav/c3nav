@@ -158,6 +158,22 @@ def locations_by_slug_for_request(request) -> Mapping[str, LocationSlug]:
     return locations
 
 
+def levels_by_short_label_for_request(request) -> Mapping[str, LocationSlug]:
+    cache_key = 'mapdata:levels:by_short_label:%s' % AccessPermission.cache_key_for_request(request)
+    levels = cache.get(cache_key, None)
+    if levels is not None:
+        return levels
+
+    levels = OrderedDict(
+        (level.short_label, level)
+        for level in Level.qs_for_request(request).filter(on_top_of_id__isnull=True).order_by('base_altitude')
+    )
+
+    cache.set(cache_key, levels, 300)
+
+    return levels
+
+
 def get_location_by_id_for_request(pk, request):
     if isinstance(pk, str):
         if pk.isdigit():
@@ -203,7 +219,7 @@ def get_custom_location_for_request(slug: str, request):
     match = re.match(r'^c:(?P<level>[a-z0-9-_]+):(?P<x>-?\d+(\.\d\d?)?):(?P<y>-?\d+(\.\d\d?)?)$', slug)
     if match is None:
         return None
-    level = locations_by_slug_for_request(request).get(match.group('level'))
+    level = levels_by_short_label_for_request(request).get(match.group('level'))
     if not isinstance(level, Level):
         return None
     return CustomLocation(level, float(match.group('x')), float(match.group('y')))
