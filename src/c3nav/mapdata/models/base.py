@@ -34,6 +34,7 @@ class SerializableMixin(models.Model):
 
     def details_display(self):
         return {
+            'id': self.pk,
             'display': [
                 (str(_('Type')), str(self.__class__._meta.verbose_name)),
                 (str(_('ID')), str(self.pk)),

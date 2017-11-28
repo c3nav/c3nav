@@ -139,43 +139,43 @@ c3nav = {
         if (parseInt($location_details.attr('data-id')) !== location.id) {
             $location_details.addClass('loading').attr('data-id', location.id);
             var location_id = location.id;
-            $.getJSON('/api/locations/'+location.id+'/display', function (data) {
-                if (parseInt($location_details.attr('data-id')) !== location_id) {
-                    // loaded too late, information no longer needed
-                    return;
-                }
-                var line, sublocations, loc, loclist, elem = $('<dl>');
-                for (var i = 0; i < data.display.length; i++) {
-                    line = data.display[i];
-                    elem.append($('<dt>').text(line[0]));
-                    if (typeof line[1] === 'string') {
-                        elem.append($('<dd>').text(line[1]));
-                    } else if (line[1] === null) {
-                        elem.append($('<dd>').text('-'));
-                    } else {
-                        sublocations = (line[1].length === undefined) ? [line[1]] : line[1];
-                        loclist = $('<dd>');
-                        console.log(sublocations);
-                        for (var j = 0; j < sublocations.length; j++) {
-                            loc = sublocations[j];
-                            if (loc.can_searc) {
-                                loclist.append($('<a>').attr('href', '/l/' + loc.slug + '/details/').attr('data-id', loc.id).click(function (e) {
-                                    e.preventDefault();
-                                    c3nav._locationinput_set($('#destination-input'), c3nav.locations_by_id[parseInt($(this).attr('data-id'))]);
-                                    c3nav.update_state(false, false, true);
-                                }).text(loc.title));
-                            } else {
-                                loclist.append($('<span>').text(loc.title));
-                            }
-                        }
-                        elem.append(loclist);
-                    }
-
-                }
-                $location_details.find('.details-body').html('').append(elem);
-                $location_details.removeClass('loading').find('.editor').attr('href', data.editor_url);
-            });
+            $.getJSON('/api/locations/'+location.id+'/display', c3nav._location_details_loaded);
         }
+    },
+    _location_details_loaded: function(data) {
+        if (parseInt($location_details.attr('data-id')) !== data.id) {
+            // loaded too late, information no longer needed
+            return;
+        }
+        var line, sublocations, loc, loclist, elem = $('<dl>');
+        for (var i = 0; i < data.display.length; i++) {
+            line = data.display[i];
+            elem.append($('<dt>').text(line[0]));
+            if (typeof line[1] === 'string') {
+                elem.append($('<dd>').text(line[1]));
+            } else if (line[1] === null) {
+                elem.append($('<dd>').text('-'));
+            } else {
+                sublocations = (line[1].length === undefined) ? [line[1]] : line[1];
+                loclist = $('<dd>');
+                console.log(sublocations);
+                for (var j = 0; j < sublocations.length; j++) {
+                    loc = sublocations[j];
+                    if (loc.can_searc) {
+                        loclist.append($('<a>').attr('href', '/l/' + loc.slug + '/details/').attr('data-id', loc.id).click(function (e) {
+                            e.preventDefault();
+                            c3nav._locationinput_set($('#destination-input'), c3nav.locations_by_id[parseInt($(this).attr('data-id'))]);
+                            c3nav.update_state(false, false, true);
+                        }).text(loc.title));
+                    } else {
+                        loclist.append($('<span>').text(loc.title));
+                    }
+                }
+                elem.append(loclist);
+            }
+        }
+        $location_details.find('.details-body').html('').append(elem);
+        $location_details.removeClass('loading').find('.editor').attr('href', data.editor_url);
     },
     _equal_states: function (a, b) {
         if (a.routing !== b.routing || a.details !== b.details) return false;
