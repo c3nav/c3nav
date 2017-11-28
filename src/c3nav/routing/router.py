@@ -10,10 +10,11 @@ from django.conf import settings
 from django.utils.functional import cached_property
 from scipy.sparse.csgraph._shortest_path import shortest_path
 from shapely import prepared
-from shapely.geometry import Point
+from shapely.geometry import LineString, Point
 from shapely.ops import unary_union
 
 from c3nav.mapdata.models import AltitudeArea, Area, GraphEdge, Level, LocationGroup, Space, WayType
+from c3nav.mapdata.utils.geometry import assert_multipolygon, good_representative_point
 from c3nav.routing.route import Route
 
 
@@ -61,11 +62,10 @@ class Router:
                     tuple(hole.geometry for hole in space.holes.all()) +
                     ((buildings_geom, ) if space.outside else ())
                 ))
-                obstacles_geom = unary_union(  # noqa
+                obstacles_geom = unary_union(
                     tuple(obstacle.geometry for obstacle in space.obstacles.all()) +
                     tuple(lineobstacle.buffered_geometry for lineobstacle in space.lineobstacles.all())
                 )
-                # todo: do something with this, then remove #noqa
 
                 for group in space.groups.all():
                     groups.setdefault(group.pk, {}).setdefault('spaces', set()).add(space.pk)
@@ -95,15 +95,38 @@ class Router:
                 for area in level.altitudeareas.all():
                     if not space.geometry_prep.intersects(area.geometry):
                         continue
-                    area = RouterAltitudeArea(accessible_geom.intersection(area.geometry),
-                                              area.altitude, area.altitude2, area.point1, area.point2)
-                    area_nodes = tuple(node for node in space_nodes if area.geometry_prep.intersects(node.point))
-                    area.nodes = set(node.i for node in area_nodes)
-                    for node in area_nodes:
-                        altitude = area.get_altitude(node)
-                        if node.altitude is None or node.altitude < altitude:
-                            node.altitude = altitude
-                    space.altitudeareas.append(area)
+                    for subgeom in assert_multipolygon(accessible_geom.intersection(area.geometry)):
+                        area = RouterAltitudeArea(subgeom, subgeom.difference(obstacles_geom),
+                                                  area.altitude, area.altitude2, area.point1, area.point2)
+                        area_nodes = tuple(node for node in space_nodes if area.geometry_prep.intersects(node.point))
+                        area.nodes = set(node.i for node in area_nodes)
+                        for node in area_nodes:
+                            altitude = area.get_altitude(node)
+                            if node.altitude is None or node.altitude < altitude:
+                                node.altitude = altitude
+
+                        space.altitudeareas.append(area)
+
+                for area in space.altitudeareas:
+                    # create fallback nodes
+                    if not area.nodes and space_nodes:
+                        fallback_point = good_representative_point(area.clear_geometry)
+                        fallback_node = RouterNode(None, None, fallback_point.x, fallback_point.y,
+                                                   space.pk, area.get_altitude(fallback_point))
+                        # todo: check waytypes here
+                        for node in space_nodes:
+                            line = LineString([(node.x, node.y), (fallback_node.x, fallback_node.y)])
+                            if not area.clear_geometry_prep.intersects(line):
+                                area.fallback_nodes[node.i] = (
+                                    fallback_node,
+                                    RouterEdge(fallback_node, node, 0)
+                                )
+                        if not area.fallback_nodes:
+                            nearest_node = min(space_nodes, key=lambda node: fallback_point.distance(node.point))
+                            area.fallback_nodes[nearest_node.i] = (
+                                fallback_node,
+                                RouterEdge(fallback_node, nearest_node, 0)
+                            )
 
                 spaces[space.pk] = space
 
@@ -130,12 +153,12 @@ class Router:
         edges = tuple(RouterEdge(from_node=nodes[nodes_lookup[edge.from_node_id]],
                                  to_node=nodes[nodes_lookup[edge.to_node_id]],
                                  waytype=waytypes_lookup[edge.waytype_id]) for edge in GraphEdge.objects.all())
-        edges = {(edge.from_node.i, edge.to_node.i): edge for edge in edges}
+        edges = {(edge.from_node, edge.to_node): edge for edge in edges}
 
         # build graph matrix
         graph = np.full(shape=(len(nodes), len(nodes)), fill_value=np.inf, dtype=np.float32)
         for edge in edges.values():
-            index = (edge.from_node.i, edge.to_node.i)
+            index = (edge.from_node, edge.to_node)
             graph[index] = edge.distance
             waytype = waytypes[edge.waytype]
             (waytype.upwards_indices if edge.rise > 0 else waytype.nonupwards_indices).append(index)
@@ -245,16 +268,23 @@ class RouterArea(BaseRouterProxy):
 
 
 class RouterAltitudeArea:
-    def __init__(self, geometry, altitude, altitude2, point1, point2):
+    def __init__(self, geometry, clear_geometry, altitude, altitude2, point1, point2):
         self.geometry = geometry
+        self.clear_geometry = clear_geometry
         self.altitude = altitude
         self.altitude2 = altitude2
         self.point1 = point1
         self.point2 = point2
+        self.nodes = frozenset()
+        self.fallback_nodes = {}
 
     @cached_property
     def geometry_prep(self):
         return prepared.prep(self.geometry)
+
+    @cached_property
+    def clear_geometry_prep(self):
+        return prepared.prep(self.clear_geometry)
 
     def get_altitude(self, point):
         # noinspection PyTypeChecker,PyCallByClass
@@ -263,6 +293,7 @@ class RouterAltitudeArea:
     def __getstate__(self):
         result = self.__dict__.copy()
         result.pop('geometry_prep', None)
+        result.pop('clear_geometry_prep', None)
         return result
 
 
@@ -291,10 +322,10 @@ class RouterNode:
 
 class RouterEdge:
     def __init__(self, from_node, to_node, waytype, rise=None, distance=None):
-        self.from_node = from_node
-        self.to_node = to_node
+        self.from_node = from_node.i
+        self.to_node = to_node.i
         self.waytype = waytype
-        self.rise = rise if rise is not None else (self.to_node.altitude - self.from_node.altitude)
+        self.rise = rise if rise is not None else (to_node.altitude - from_node.altitude)
         self.distance = distance if distance is not None else np.linalg.norm(to_node.xyz - from_node.xyz)
 
 

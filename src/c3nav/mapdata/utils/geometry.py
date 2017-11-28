@@ -68,6 +68,15 @@ def assert_multilinestring(geometry: Union[LineString, MultiLineString, Geometry
     return [geom for geom in geometry.geoms if isinstance(geom, LineString)]
 
 
+def good_representative_point(geometry):
+    c = geometry.centroid
+    x1, y1, x2, y2 = geometry.bounds
+    lines = (tuple(assert_multilinestring(LineString(((x1, c.y), (x2, c.y))).intersection(geometry))) +
+             tuple(assert_multilinestring(LineString(((c.x, y1), (c.x, y2))).intersection(geometry))))
+    return min(lines, key=lambda line: (line.distance(c), line.length),
+               default=geometry.representative_point).centroid
+
+
 def plot_geometry(geom, title=None, bounds=None):
     fig = plt.figure()
     axes = fig.add_subplot(111)

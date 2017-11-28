@@ -2,11 +2,11 @@ import math
 from collections import OrderedDict
 
 from django.utils.functional import cached_property
-from shapely.geometry import LineString, Point, mapping
+from shapely.geometry import Point, mapping
 from shapely.ops import unary_union
 
 from c3nav.mapdata.models.base import SerializableMixin
-from c3nav.mapdata.utils.geometry import assert_multilinestring, assert_multipolygon
+from c3nav.mapdata.utils.geometry import assert_multipolygon, good_representative_point
 from c3nav.mapdata.utils.json import format_geojson
 
 geometry_affecting_fields = ('height', 'width', 'access_restriction')
@@ -58,12 +58,7 @@ class GeometryMixin(SerializableMixin):
 
     @cached_property
     def point(self):
-        c = self.geometry.centroid
-        x1, y1, x2, y2 = self.geometry.bounds
-        lines = (tuple(assert_multilinestring(LineString(((x1, c.y), (x2, c.y))).intersection(self.geometry))) +
-                 tuple(assert_multilinestring(LineString(((c.x, y1), (c.x, y2))).intersection(self.geometry))))
-        return min(lines, key=lambda line: (line.distance(c), line.length),
-                   default=self.geometry.representative_point).centroid
+        return good_representative_point(self.geometry)
 
     def serialize(self, **kwargs):
         result = super().serialize(**kwargs)
