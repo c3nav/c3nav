@@ -515,7 +515,7 @@ c3nav = {
         c3nav.map = L.map('map', {
             renderer: L.svg({padding: 2}),
             zoom: 0,
-            maxZoom: 10,
+            maxZoom: 5,
             minZoom: minZoom,
             crs: L.CRS.Simple,
             maxBounds: L.GeoJSON.coordsToLatLngs(c3nav._get_padded_max_bounds(minZoom)),
