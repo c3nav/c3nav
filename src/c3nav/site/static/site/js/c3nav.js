@@ -286,7 +286,9 @@ c3nav = {
     },
     _add_intermediate_points: function(origin, destination, next) {
         var angle = Math.atan2(destination[1]-next[1], destination[0]-next[0]),
-            point = [destination[0]+Math.cos(angle)*1.5, destination[1]+Math.sin(angle)*1.5];
+            distance = Math.sqrt(Math.pow(origin[0]-destination[0], 2) + Math.pow(origin[1]-destination[1], 2)),
+            offset = Math.min(1.5, distance/3),
+            point = [destination[0]+Math.cos(angle)*offset, destination[1]+Math.sin(angle)*offset];
         return [origin, point, destination];
     },
     _add_line_to_route: function(level, coords, gray, link_to_level) {
