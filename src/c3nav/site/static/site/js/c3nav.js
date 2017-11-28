@@ -72,6 +72,9 @@ c3nav = {
 
         window.onpopstate = c3nav._onpopstate;
     },
+    get_csrf_token: function() {
+        return document.cookie.match(new RegExp('c3nav_csrftoken=([^;]+)'))[1];
+    },
 
     state: {},
     update_state: function(routing, replace, details) {
@@ -114,9 +117,16 @@ c3nav = {
         c3nav._view = view;
 
         if (view === 'location' && state.details) {
-            this.load_location_details(state.destination);
+            c3nav.load_location_details(state.destination);
         } else {
             $('#location-details').removeAttr('data-id');
+        }
+
+        if (view === 'route-result') {
+            c3nav.load_route(state.origin, state.destination);
+        } else {
+            $('#route-summary').removeAttr('data-origin').removeAttr('data-destination');
+            c3nav._clear_route_layers();
         }
 
         $('main').attr('data-view', view).toggleClass('show-details', state.details);
@@ -132,6 +142,12 @@ c3nav = {
         }
 
         c3nav.update_map_locations();
+    },
+    _clear_route_layers: function() {
+        console.log('clear route layers');
+        for (var id in c3nav._routeLayers) {
+            c3nav._routeLayers[id].clearLayers();
+        }
     },
 
     load_location_details: function (location) {
@@ -175,6 +191,64 @@ c3nav = {
         }
         $location_details.find('.details-body').html('').append(elem);
         $location_details.removeClass('loading').find('.editor').attr('href', data.editor_url);
+    },
+    load_route: function (origin, destination) {
+        var $route = $('#route-summary');
+        if (parseInt($route.attr('data-origin')) !== origin.id || parseInt($route.attr('data-destination')) !== destination.id) {
+            c3nav._clear_route_layers();
+            $route.addClass('loading').attr('data-origin', origin.id).attr('data-destination', destination.id);
+            $.post('/api/routing/route/', {
+                'origin': origin.id,
+                'destination': destination.id,
+                'csrfmiddlewaretoken': c3nav.get_csrf_token()
+            }, c3nav._route_loaded, 'json');
+        }
+    },
+    _route_loaded: function(data) {
+        var $route = $('#route-summary');
+        if (parseInt($route.attr('data-origin')) !== data.request.origin || parseInt($route.attr('data-destination')) !== data.request.destination) {
+            // loaded too late, information no longer needed
+            return;
+        }
+        var result = data.result,
+            last_primary_level = null,
+            level_collect = [],
+            next_level_collect = [],
+            in_intermediate_level = true,
+            item, coords;
+        for (var i=0; i < result.items.length; i++) {
+            item = result.items[i];
+            coords = [item.coordinates[0], item.coordinates[1]];
+            level_collect.push(coords);
+            if (item.level) {
+                if (last_primary_level) {
+                    c3nav._add_line_to_level(last_primary_level, level_collect);
+                }
+
+                if (in_intermediate_level) {
+                    next_level_collect = next_level_collect.concat(level_collect);
+                }
+
+                if (item.level.on_top_of) {
+                    in_intermediate_level = true;
+                } else {
+                    in_intermediate_level = false;
+                    last_primary_level = item.level.id;
+                    c3nav._add_line_to_level(last_primary_level, next_level_collect);
+                    next_level_collect = [];
+                }
+                level_collect = level_collect.slice(-1);
+            }
+        }
+        if (last_primary_level && level_collect.length >= 2) {
+            c3nav._add_line_to_level(last_primary_level, level_collect);
+        }
+        $route.find('span').text(String(result.distance)+' m');
+        $route.removeClass('loading');
+    },
+    _add_line_to_level: function(level, coords) {
+        if (coords.length < 2) return;
+        L.polyline(L.GeoJSON.coordsToLatLngs(coords)).addTo(c3nav._routeLayers[level]);
     },
     _equal_states: function (a, b) {
         if (a.routing !== b.routing || a.details !== b.details) return false;

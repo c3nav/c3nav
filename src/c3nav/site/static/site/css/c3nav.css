@@ -447,6 +447,13 @@ button .material-icons, .button .material-icons {
 #route-summary small {
     line-height: 1.1;
 }
+#route-summary.loading {
+    /*noinspection CssUnknownTarget*/
+    background: url('../../img/loader.gif') no-repeat 4px 4px;
+}
+#route-summary.loading > * {
+    display: none;
+}
 main:not([data-view=route-result]) #route-summary {
     margin-bottom: -55px;
     pointer-events: none;

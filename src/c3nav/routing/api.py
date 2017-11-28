@@ -23,4 +23,10 @@ class RoutingViewSet(ViewSet):
                                         destination=form.cleaned_data['destination'],
                                         permissions=AccessPermission.get_for_request(request))
 
-        return Response(route.serialize(locations=visible_locations_for_request(request)))
+        return Response({
+            'request': {
+                'origin': form.cleaned_data['origin'].pk,
+                'destination': form.cleaned_data['destination'].pk,
+            },
+            'result': route.serialize(locations=visible_locations_for_request(request)),
+        })
