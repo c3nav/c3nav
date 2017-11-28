@@ -221,7 +221,9 @@ c3nav = {
     _display_route_result: function(result) {
         var $route = $('#route-summary'),
             last_primary_level = null,
-            level_collect = [],
+            origin = c3nav.locations_by_id[result.origin.id],
+            destination = c3nav.locations_by_id[result.destination.id],
+            level_collect = [[origin.point[1], origin.point[2]]],
             next_level_collect = [],
             in_intermediate_level = true,
             item, coords;
@@ -249,6 +251,7 @@ c3nav = {
                 level_collect = level_collect.slice(-1);
             }
         }
+        level_collect.push([destination.point[1], destination.point[2]]);
         if (last_primary_level && level_collect.length >= 2) {
             c3nav._add_line_to_level(last_primary_level, level_collect);
         }
