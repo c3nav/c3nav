@@ -53,7 +53,9 @@ c3nav = {
         c3nav.update_map_locations();
         c3nav._push_state(state, true);
         if (!state.center) {
-            if (state.origin || state.destination) {
+            if (state.routing && state.origin && state.destination) {
+                // do nothing, we will fly after loading the route result
+            } else if (state.origin || state.destination) {
                 c3nav.fly_to_bounds(true, true);
             } else {
                 c3nav.update_map_state(true);
@@ -104,7 +106,7 @@ c3nav = {
 
         c3nav._push_state(new_state, replace);
     },
-    _sidebar_state_updated: function (state) {
+    _sidebar_state_updated: function (state, nofly) {
         var view;
         if (state.routing) {
             view = (!state.origin || !state.destination) ? 'route-search' : 'route-result';
@@ -124,9 +126,9 @@ c3nav = {
 
         if (view === 'route-result') {
             if (state.route_result) {
-                c3nav._display_route_result(state.route_result);
+                c3nav._display_route_result(state.route_result, nofly);
             } else {
-                c3nav.load_route(state.origin, state.destination);
+                c3nav.load_route(state.origin, state.destination, nofly);
             }
         } else {
             $('#route-summary').removeAttr('data-origin').removeAttr('data-destination');
@@ -197,7 +199,7 @@ c3nav = {
         $location_details.find('.details-body').html('').append(elem);
         $location_details.removeClass('loading').find('.editor').attr('href', data.editor_url);
     },
-    load_route: function (origin, destination) {
+    load_route: function (origin, destination, nofly) {
         var $route = $('#route-summary');
         if (parseInt($route.attr('data-origin')) !== origin.id || parseInt($route.attr('data-destination')) !== destination.id) {
             c3nav._clear_route_layers();
@@ -206,19 +208,19 @@ c3nav = {
                 'origin': origin.id,
                 'destination': destination.id,
                 'csrfmiddlewaretoken': c3nav.get_csrf_token()
-            }, c3nav._route_loaded, 'json');
+            }, function(data) { c3nav._route_loaded(data, nofly) }, 'json');
         }
     },
-    _route_loaded: function(data) {
+    _route_loaded: function(data, nofly) {
         var $route = $('#route-summary');
         if (parseInt($route.attr('data-origin')) !== data.request.origin || parseInt($route.attr('data-destination')) !== data.request.destination) {
             // loaded too late, information no longer needed
             return;
         }
         c3nav._push_state({route_result: data.result}, true);
-        c3nav._display_route_result(data.result);
+        c3nav._display_route_result(data.result, nofly);
     },
-    _display_route_result: function(result) {
+    _display_route_result: function(result, nofly) {
         var $route = $('#route-summary'),
             first_primary_level = null,
             last_primary_level = null,
@@ -270,7 +272,7 @@ c3nav = {
         c3nav._firstRouteLevel = first_primary_level;
         $route.find('span').text(String(result.distance)+' m');
         $route.removeClass('loading');
-        c3nav.fly_to_bounds(true);
+        if (!nofly) c3nav.fly_to_bounds(true);
     },
     _add_line_to_route: function(level, coords, gray, link_to_level) {
         if (coords.length < 2) return;
@@ -341,7 +343,7 @@ c3nav = {
     load_state: function (state, nofly) {
         c3nav._locationinput_set($('#origin-input'), state.origin);
         c3nav._locationinput_set($('#destination-input'), state.destination);
-        c3nav._sidebar_state_updated(state);
+        c3nav._sidebar_state_updated(state, (nofly && state.center));
         if (state.center) {
             c3nav._levelControl.setLevel(state.level);
             var center = c3nav.map._limitCenter(L.GeoJSON.coordsToLatLng(state.center), state.zoom, c3nav.map.options.maxBounds);
