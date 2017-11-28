@@ -222,8 +222,6 @@ c3nav = {
         var $route = $('#route-summary'),
             first_primary_level = null,
             last_primary_level = null,
-            origin = c3nav.locations_by_id[result.origin.id],
-            destination = c3nav.locations_by_id[result.destination.id],
             level_collect = [],
             next_level_collect = [],
             in_intermediate_level = true,
@@ -253,17 +251,16 @@ c3nav = {
                 level_collect = level_collect.slice(-1);
             }
         }
-        level_collect.push([destination.point[1], destination.point[2]]);
         if (last_primary_level && level_collect.length >= 2) {
             c3nav._add_line_to_level(last_primary_level, level_collect);
         }
         c3nav._add_line_to_level(first_primary_level, [
-            [origin.point[1], origin.point[2]],
+            [result.origin.point[1], result.origin.point[2]],
             result.items[0].coordinates.slice(0, 2)
         ], true);
         c3nav._add_line_to_level(last_primary_level, [
             item.coordinates.slice(0, 2),
-            [destination.point[1], destination.point[2]]
+            [result.destination.point[1], result.destination.point[2]]
         ], true);
         $route.find('span').text(String(result.distance)+' m');
     },
