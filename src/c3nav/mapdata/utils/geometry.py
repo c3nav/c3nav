@@ -76,7 +76,7 @@ def good_representative_point(geometry):
     lines = (tuple(assert_multilinestring(LineString(((x1, c.y), (x2, c.y))).intersection(geometry))) +
              tuple(assert_multilinestring(LineString(((c.x, y1), (c.x, y2))).intersection(geometry))))
     return min(lines, key=lambda line: (line.distance(c), line.length),
-               default=geometry.representative_point).centroid
+               default=geometry.representative_point()).centroid
 
 
 def plot_geometry(geom, title=None, bounds=None):
