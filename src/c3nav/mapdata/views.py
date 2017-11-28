@@ -55,7 +55,7 @@ def tile(request, level, zoom, x, y, access_permissions=None):
         enforce_tile_secret_auth(request)
 
     zoom = int(zoom)
-    if not (0 <= zoom <= 5):
+    if not (-2 <= zoom <= 5):
         raise Http404
 
     cache_package = CachePackage.open_cached()

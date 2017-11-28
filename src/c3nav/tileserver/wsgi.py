@@ -135,7 +135,7 @@ class TileServer:
         level, zoom, x, y = match.groups()
 
         zoom = int(zoom)
-        if not (0 <= zoom <= 5):
+        if not (-2 <= zoom <= 5):
             return self.not_found(start_response, b'zoom out of bounds.')
 
         # do this to be thread safe

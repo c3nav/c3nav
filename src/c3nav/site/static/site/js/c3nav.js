@@ -818,6 +818,8 @@ LevelControl = L.Control.extend({
 
     addLevel: function (id, title) {
         this._tileLayers[id] = L.tileLayer((c3nav.tile_server || '/map/') + String(id) + '/{z}/{x}/{y}.png', {
+            minZoom: -2,
+            maxZoom: 5,
             bounds: L.GeoJSON.coordsToLatLngs(c3nav.bounds)
         });
         var overlay = L.layerGroup();
