@@ -261,18 +261,35 @@ c3nav = {
             c3nav._add_line_to_route(last_primary_level, next_level_collect);
             c3nav._add_line_to_route(last_primary_level, level_collect);
         }
-        c3nav._add_line_to_route(first_primary_level, [
-            [result.origin.point[1], result.origin.point[2]],
-            result.items[0].coordinates.slice(0, 2)
-        ], true);
-        c3nav._add_line_to_route(last_primary_level, [
-            item.coordinates.slice(0, 2),
-            [result.destination.point[1], result.destination.point[2]]
-        ], true);
+
+        // add origin and destination lines
+        c3nav._add_line_to_route(first_primary_level, c3nav._add_intermediate_point(
+            result.origin.point.slice(1),
+            result.items[0].coordinates.slice(0, 2),
+            result.items[1].coordinates.slice(0, 2)
+        ), true);
+        c3nav._add_line_to_route(last_primary_level, c3nav._add_intermediate_point(
+            result.destination.point.slice(1),
+            result.items[result.items.length-1].coordinates.slice(0, 2),
+            result.items[result.items.length-2].coordinates.slice(0, 2)
+        ).reverse(), true);
+
         c3nav._firstRouteLevel = first_primary_level;
         $route.find('span').text(String(result.distance)+' m');
         $route.removeClass('loading');
         if (!nofly) c3nav.fly_to_bounds(true);
+    },
+    _add_intermediate_point: function(origin, destination, next) {
+        // todo: this propably could be nicer
+        var angle = Math.atan2(next[1]-destination[1], next[0]-destination[0]) - Math.PI,
+            distance = Math.pow(Math.pow(destination[0]-origin[0], 2) + Math.pow(destination[1]-origin[1], 2), 0.5)/2,
+            point1 = [destination[0]+Math.cos(angle)*distance, destination[1]+Math.sin(angle)*distance],
+            point2 = [(destination[0]+origin[0])/2, (destination[1]+origin[1])/2];
+        return [
+            origin,
+            [(point1[0]+origin[0]+point2[0])/3, (point1[1]+origin[1]+point2[1])/3],
+            [(point1[0]+destination[0])/2, (point1[1]+destination[1])/2],
+            destination];
     },
     _add_line_to_route: function(level, coords, gray, link_to_level) {
         if (coords.length < 2) return;
