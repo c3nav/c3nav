@@ -123,7 +123,11 @@ c3nav = {
         }
 
         if (view === 'route-result') {
-            c3nav.load_route(state.origin, state.destination);
+            if (state.route_result) {
+                c3nav._display_route_result(state.route_result);
+            } else {
+                c3nav.load_route(state.origin, state.destination);
+            }
         } else {
             $('#route-summary').removeAttr('data-origin').removeAttr('data-destination');
             c3nav._clear_route_layers();
@@ -210,7 +214,12 @@ c3nav = {
             // loaded too late, information no longer needed
             return;
         }
-        var result = data.result,
+        c3nav._push_state({route_result: data.result}, true);
+        c3nav._display_route_result(data.result);
+        $route.removeClass('loading');
+    },
+    _display_route_result: function(result) {
+        var $route = $('#route-summary'),
             last_primary_level = null,
             level_collect = [],
             next_level_collect = [],
@@ -244,7 +253,6 @@ c3nav = {
             c3nav._add_line_to_level(last_primary_level, level_collect);
         }
         $route.find('span').text(String(result.distance)+' m');
-        $route.removeClass('loading');
     },
     _add_line_to_level: function(level, coords) {
         if (coords.length < 2) return;
