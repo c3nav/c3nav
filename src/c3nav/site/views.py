@@ -115,7 +115,7 @@ def map_index(request, mode=None, slug=None, slug2=None, details=None, level=Non
     level = levels.get(level, None) if level else None
     if level is not None:
         state.update({
-            'level': level[0],
+            'level': level.pk,
             'center': (float(x), float(y)),
             'zoom': float(zoom),
         })
