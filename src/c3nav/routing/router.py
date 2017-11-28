@@ -1,6 +1,7 @@
 import operator
 import os
 import pickle
+import threading
 from collections import deque
 from functools import reduce
 from itertools import chain
@@ -15,7 +16,7 @@ from shapely.ops import unary_union
 
 from c3nav.mapdata.models import AltitudeArea, Area, GraphEdge, Level, LocationGroup, Space, WayType
 from c3nav.mapdata.models.geometry.space import POI
-from c3nav.mapdata.utils.geometry import assert_multipolygon, good_representative_point
+from c3nav.mapdata.utils.geometry import assert_multipolygon, get_rings, good_representative_point
 from c3nav.mapdata.utils.locations import CustomLocation
 from c3nav.routing.route import Route
 
@@ -71,7 +72,7 @@ class Router:
                     tuple(obstacle.geometry for obstacle in space.obstacles.all()) +
                     tuple(lineobstacle.buffered_geometry for lineobstacle in space.lineobstacles.all())
                 )
-                clear_geom = accessible_geom.difference(obstacles_geom)
+                clear_geom = unary_union(tuple(get_rings(accessible_geom.difference(obstacles_geom))))
                 clear_geom_prep = prepared.prep(clear_geom)
 
                 for group in space.groups.all():
@@ -103,7 +104,8 @@ class Router:
                     if not space.geometry_prep.intersects(area.geometry):
                         continue
                     for subgeom in assert_multipolygon(accessible_geom.intersection(area.geometry)):
-                        area = RouterAltitudeArea(subgeom, subgeom.difference(obstacles_geom),
+                        area_clear_geom = unary_union(tuple(get_rings(subgeom.difference(obstacles_geom))))
+                        area = RouterAltitudeArea(subgeom, area_clear_geom,
                                                   area.altitude, area.altitude2, area.point1, area.point2)
                         area_nodes = tuple(node for node in space_nodes if area.geometry_prep.intersects(node.point))
                         area.nodes = set(node.i for node in area_nodes)
@@ -123,7 +125,7 @@ class Router:
                         # todo: check waytypes here
                         for node in space_nodes:
                             line = LineString([(node.x, node.y), (fallback_node.x, fallback_node.y)])
-                            if line.length < 5 and not clear_geom_prep.crosses(line):
+                            if line.length < 5 and not clear_geom_prep.intersects(line):
                                 area.fallback_nodes[node.i] = (
                                     fallback_node,
                                     RouterEdge(fallback_node, node, 0)
@@ -192,8 +194,22 @@ class Router:
         return router
 
     @classmethod
-    def load(cls):
+    def load_nocache(cls):
         return pickle.load(open(cls.filename, 'rb'))
+
+    cached = None
+    cache_key = None
+    cache_lock = threading.Lock()
+
+    @classmethod
+    def load(cls):
+        from c3nav.mapdata.models import MapUpdate
+        cache_key = MapUpdate.current_processed_cache_key()
+        if cls.cache_key != cache_key:
+            with cls.cache_lock:
+                cls.cache_key = cache_key
+                cls.cached = cls.load_nocache()
+        return cls.cached
 
     def get_locations(self, location, permissions=frozenset()):
         locations = ()
@@ -231,9 +247,13 @@ class Router:
         point = Point(point.x, point.y)
         level = self.levels[level]
         for space in level.spaces:
-            if self.spaces[space].geometry_prep.intersects(point):
+            if self.spaces[space].geometry_prep.contains(point):
                 return self.spaces[space]
         return self.spaces[min(level.spaces, key=lambda space: self.spaces[space].geometry.distance(point))]
+
+    @cached_property
+    def shortest_path(self):
+        return shortest_path(self.graph, directed=True, return_predecessors=True)
 
     def get_route(self, origin, destination, permissions=frozenset()):
         # get possible origins and destinations
@@ -243,7 +263,7 @@ class Router:
         # todo: throw error if route is impossible
 
         # calculate shortest path matrix
-        distances, predecessors = shortest_path(self.graph, directed=True, return_predecessors=True)
+        distances, predecessors = self.shortest_path
 
         # find shortest path for our origins and destinations
         origin_nodes = np.array(tuple(origins.nodes))
@@ -269,7 +289,6 @@ class Router:
 
         origin_addition = origin.nodes_addition.get(origin_node)
         destination_addition = destination.nodes_addition.get(destination_node)
-        print(origin_addition, destination_addition)
 
         return Route(self, origin, destination, distances[origin_node, destination_node], path_nodes,
                      origin_addition, destination_addition)
@@ -354,7 +373,7 @@ class RouterAltitudeArea:
             for node in self.nodes:
                 node = all_nodes[node]
                 line = LineString([(node.x, node.y), (point.x, point.y)])
-                if line.length < 5 and not self.clear_geometry_prep.crosses(line):
+                if line.length < 5 and not self.clear_geometry_prep.intersects(line):
                     nodes[node.i] = (None, None)
             if not nodes:
                 nearest_node = min(tuple(all_nodes[node] for node in self.nodes),
