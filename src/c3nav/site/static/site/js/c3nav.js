@@ -697,7 +697,7 @@ c3nav = {
         c3nav._firstRouteLevel = null;
         for (i = c3nav.levels.length - 1; i >= 0; i--) {
             var level = c3nav.levels[i];
-            var layerGroup = c3nav._levelControl.addLevel(level[0], level[2]);
+            var layerGroup = c3nav._levelControl.addLevel(level[0], level[1]);
             c3nav._locationLayers[level[0]] = L.layerGroup().addTo(layerGroup);
             c3nav._routeLayers[level[0]] = L.layerGroup().addTo(layerGroup);
         }

@@ -122,7 +122,7 @@ def map_index(request, mode=None, slug=None, slug2=None, details=None, level=Non
 
     ctx = {
         'bounds': json.dumps(Source.max_bounds(), separators=(',', ':')),
-        'levels': json.dumps(tuple(levels.values()), separators=(',', ':')),
+        'levels': json.dumps(tuple((level.pk, level.short_label) for level in levels.values()), separators=(',', ':')),
         'state': json.dumps(state, separators=(',', ':')),
         'tile_cache_server': settings.TILE_CACHE_SERVER,
     }

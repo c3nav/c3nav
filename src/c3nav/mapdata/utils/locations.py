@@ -158,7 +158,7 @@ def locations_by_slug_for_request(request) -> Mapping[str, LocationSlug]:
     return locations
 
 
-def levels_by_short_label_for_request(request) -> Mapping[str, LocationSlug]:
+def levels_by_short_label_for_request(request) -> Mapping[str, Level]:
     cache_key = 'mapdata:levels:by_short_label:%s' % AccessPermission.cache_key_for_request(request)
     levels = cache.get(cache_key, None)
     if levels is not None:
