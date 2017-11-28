@@ -343,7 +343,7 @@ c3nav = {
     load_state: function (state, nofly) {
         c3nav._locationinput_set($('#origin-input'), state.origin);
         c3nav._locationinput_set($('#destination-input'), state.destination);
-        c3nav._sidebar_state_updated(state, (nofly && state.center));
+        c3nav._sidebar_state_updated(state, state.center);
         if (state.center) {
             c3nav._levelControl.setLevel(state.level);
             var center = c3nav.map._limitCenter(L.GeoJSON.coordsToLatLng(state.center), state.zoom, c3nav.map.options.maxBounds);
