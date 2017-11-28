@@ -14,6 +14,7 @@ from shapely.geometry import LineString, Point
 from shapely.ops import unary_union
 
 from c3nav.mapdata.models import AltitudeArea, Area, GraphEdge, Level, LocationGroup, Space, WayType
+from c3nav.mapdata.models.geometry.space import POI
 from c3nav.mapdata.utils.geometry import assert_multipolygon, good_representative_point
 from c3nav.routing.route import Route
 
@@ -21,10 +22,11 @@ from c3nav.routing.route import Route
 class Router:
     filename = os.path.join(settings.CACHE_ROOT, 'router')
 
-    def __init__(self, levels, spaces, areas, groups, nodes, edges, waytypes, graph):
+    def __init__(self, levels, spaces, areas, pois, groups, nodes, edges, waytypes, graph):
         self.levels = levels
         self.spaces = spaces
         self.areas = areas
+        self.pois = pois
         self.groups = groups
         self.nodes = nodes
         self.edges = edges
@@ -40,11 +42,13 @@ class Router:
         levels_query = Level.objects.prefetch_related('buildings', 'spaces', 'altitudeareas', 'groups',
                                                       'spaces__holes', 'spaces__columns', 'spaces__groups',
                                                       'spaces__obstacles', 'spaces__lineobstacles',
-                                                      'spaces__graphnodes', 'spaces__areas', 'spaces__areas__groups')
+                                                      'spaces__graphnodes', 'spaces__areas', 'spaces__areas__groups',
+                                                      'spaces__pois',  'spaces__pois__groups')
 
         levels = {}
         spaces = {}
         areas = {}
+        pois = {}
         groups = {}
         nodes = deque()
         for level in levels_query:
@@ -66,6 +70,8 @@ class Router:
                     tuple(obstacle.geometry for obstacle in space.obstacles.all()) +
                     tuple(lineobstacle.buffered_geometry for lineobstacle in space.lineobstacles.all())
                 )
+                clear_geom = accessible_geom.difference(obstacles_geom)
+                clear_geom_prep = prepared.prep(clear_geom)
 
                 for group in space.groups.all():
                     groups.setdefault(group.pk, {}).setdefault('spaces', set()).add(space.pk)
@@ -116,7 +122,7 @@ class Router:
                         # todo: check waytypes here
                         for node in space_nodes:
                             line = LineString([(node.x, node.y), (fallback_node.x, fallback_node.y)])
-                            if not area.clear_geometry_prep.intersects(line):
+                            if not clear_geom_prep.crosses(line):
                                 area.fallback_nodes[node.i] = (
                                     fallback_node,
                                     RouterEdge(fallback_node, node, 0)
@@ -127,6 +133,19 @@ class Router:
                                 fallback_node,
                                 RouterEdge(fallback_node, nearest_node, 0)
                             )
+
+                for poi in space.pois.all():
+                    for group in poi.groups.all():
+                        groups.setdefault(group.pk, {}).setdefault('pois', set()).add(poi.pk)
+                    poi._prefetched_objects_cache = {}
+
+                    poi = RouterPOI(poi)
+                    altitudearea = space.altitudearea_for_point(poi.geometry)
+                    poi_nodes = altitudearea.nodes_for_point(poi.geometry, all_nodes=nodes)
+                    print(poi_nodes)
+                    poi.nodes = set(i for i in poi_nodes.keys())
+                    poi.nodes_addition = poi_nodes
+                    pois[poi.pk] = poi
 
                 spaces[space.pk] = space
 
@@ -168,7 +187,7 @@ class Router:
             waytype.upwards_indices = np.array(waytype.upwards_indices, dtype=np.uint32).reshape((-1, 2))
             waytype.nonupwards_indices = np.array(waytype.nonupwards_indices, dtype=np.uint32).reshape((-1, 2))
 
-        router = cls(levels, spaces, areas, groups, nodes, edges, waytypes, graph)
+        router = cls(levels, spaces, areas, pois, groups, nodes, edges, waytypes, graph)
         pickle.dump(router, open(cls.filename, 'wb'))
         return router
 
@@ -184,6 +203,8 @@ class Router:
             locations = (self.spaces.get(location.pk), )
         elif isinstance(location, Area):
             locations = (self.areas.get(location.pk), )
+        elif isinstance(location, POI):
+            locations = (self.pois.get(location.pk), )
         elif isinstance(location, LocationGroup):
             group = self.groups.get(location.pk)
             locations = tuple(chain(
@@ -191,7 +212,7 @@ class Router:
                 (self.spaces[pk] for pk in group.get('spaces', ())),
                 (self.areas[pk] for pk in group.get('areas', ()))
             ))
-        # todo: route from/to POI or custom location
+        # todo: route from/to custom location
         return RouterLocation(tuple(location for location in locations
                                     if location is not None and (location.access_restriction_id is None or
                                                                  location.access_restriction_id in permissions)))
@@ -235,6 +256,7 @@ class BaseRouterProxy:
     def __init__(self, src):
         self.src = src
         self.nodes = set()
+        self.nodes_addition = {}
 
     @cached_property
     def geometry_prep(self):
@@ -262,8 +284,19 @@ class RouterSpace(BaseRouterProxy):
         super().__init__(space)
         self.altitudeareas = altitudeareas if altitudeareas else []
 
+    def altitudearea_for_point(self, point):
+        point = Point(point.x, point.y)
+        for area in self.altitudeareas:
+            if area.geometry_prep.intersects(point):
+                return area
+        return self.altitudareas[0]
+
 
 class RouterArea(BaseRouterProxy):
+    pass
+
+
+class RouterPOI(BaseRouterProxy):
     pass
 
 
@@ -289,6 +322,24 @@ class RouterAltitudeArea:
     def get_altitude(self, point):
         # noinspection PyTypeChecker,PyCallByClass
         return AltitudeArea.get_altitudes(self, (point.x, point.y))[0]
+
+    def nodes_for_point(self, point, all_nodes):
+        point = Point(point.x, point.y)
+
+        nodes = {}
+        if self.nodes:
+            for node in self.nodes:
+                node = all_nodes[node]
+                line = LineString([(node.x, node.y), (point.x, point.y)])
+                if not self.clear_geometry_prep.crosses(line):
+                    nodes[node.i] = None
+            if not nodes:
+                nearest_node = min(tuple(all_nodes[node] for node in self.nodes),
+                                   key=lambda node: point.distance(node.point))
+                nodes[nearest_node.i] = None
+        else:
+            nodes = self.fallback_nodes
+        return nodes
 
     def __getstate__(self):
         result = self.__dict__.copy()
@@ -343,7 +394,7 @@ class RouterWayType:
 
 class RouterLocation:
     def __init__(self, locations=()):
-        self.locations = locations
+        self.locations = tuple(location for location in locations if locations)
 
     @cached_property
     def nodes(self):
