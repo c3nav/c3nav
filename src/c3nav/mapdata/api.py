@@ -7,7 +7,7 @@ from django.db.models import Prefetch
 from django.http import HttpResponse
 from django.shortcuts import redirect
 from django.utils.cache import get_conditional_response
-from django.utils.http import quote_etag
+from django.utils.http import quote_etag, urlsafe_base64_encode
 from django.utils.translation import ugettext_lazy as _
 from django.utils.translation import get_language
 from rest_framework.decorators import detail_route, list_route
@@ -36,15 +36,29 @@ def optimize_query(qs):
     return qs
 
 
-def api_etag(permissions=True, etag_func=AccessPermission.etag_func):
+def api_etag(permissions=True, etag_func=AccessPermission.etag_func, cache_parameters=None):
     def wrapper(func):
         @wraps(func)
         def wrapped_func(self, request, *args, **kwargs):
-            etag = quote_etag(get_language()+':'+(etag_func(request) if permissions else MapUpdate.current_cache_key()))
+            raw_etag = get_language()+':'+(etag_func(request) if permissions else MapUpdate.current_cache_key())
+            etag = quote_etag(raw_etag)
 
             response = get_conditional_response(request, etag=etag)
             if response is None:
-                response = func(self, request, *args, **kwargs)
+                cache_key = 'mapdata:api:'+request.path_info[5:].replace('/', '-').strip('-')+':'+raw_etag
+                if cache_parameters is not None:
+                    for param, type_ in cache_parameters.items():
+                        value = int(param in request.GET) if type_ == bool else type_(request.GET.get(param))
+                        cache_key += ':'+urlsafe_base64_encode(str(value).encode()).decode()
+                    data = cache.get(cache_key)
+                    if data is not None:
+                        response = Response(data)
+
+                if response is None:
+                    response = func(self, request, *args, **kwargs)
+                    if cache_parameters is not None and response.status_code == 200:
+                        print(response)
+                        cache.set(cache_key, response.data, 300)
 
             response['ETag'] = etag
             response['Cache-Control'] = 'no-cache'
@@ -60,7 +74,7 @@ class MapViewSet(ViewSet):
     """
 
     @list_route(methods=['get'])
-    @api_etag(permissions=False)
+    @api_etag(permissions=False, cache_parameters={})
     def bounds(self, request, *args, **kwargs):
         return Response({
             'bounds': Source.max_bounds(),
@@ -78,10 +92,12 @@ class MapdataViewSet(ReadOnlyModelViewSet):
 
     def _get_keys_for_model(self, request, model, key):
         if hasattr(model, 'qs_for_request'):
-            cache_key = 'mapdata:api:%s:%s:%s' % (model.__name__, key, AccessPermission.cache_key_for_request(request))
+            cache_key = 'mapdata:api:keys:%s:%s:%s' % (model.__name__, key,
+                                                       AccessPermission.cache_key_for_request(request))
             qs = model.qs_for_request(request)
         else:
-            cache_key = 'mapdata:api:%s:%s:%s' % (model.__name__, key, MapUpdate.current_cache_key())
+            cache_key = 'mapdata:api:keys:%s:%s:%s' % (model.__name__, key,
+                                                       MapUpdate.current_cache_key())
             qs = model.objects.all()
 
         result = cache.get(cache_key, None)
@@ -165,7 +181,7 @@ class LevelViewSet(MapdataViewSet):
     queryset = Level.objects.all()
 
     @list_route(methods=['get'])
-    @api_etag(permissions=False)
+    @api_etag(permissions=False, cache_parameters={})
     def geometrytypes(self, request):
         return self.list_types(get_submodels(LevelGeometryMixin))
 
@@ -183,7 +199,7 @@ class SpaceViewSet(MapdataViewSet):
     queryset = Space.objects.all()
 
     @list_route(methods=['get'])
-    @api_etag(permissions=False)
+    @api_etag(permissions=False, cache_parameters={})
     def geometrytypes(self, request):
         return self.list_types(get_submodels(SpaceGeometryMixin))
 
@@ -266,7 +282,7 @@ class LocationViewSet(RetrieveModelMixin, GenericViewSet):
     queryset = LocationSlug.objects.all()
     lookup_value_regex = r'[^/]+'
 
-    @api_etag()
+    @api_etag(cache_parameters={'searchable': bool, 'detailed': bool, 'geometry': bool})
     def list(self, request, *args, **kwargs):
         searchable = 'searchable' in request.GET
         detailed = 'detailed' in request.GET
@@ -289,7 +305,7 @@ class LocationViewSet(RetrieveModelMixin, GenericViewSet):
 
         return Response(result)
 
-    @api_etag()
+    @api_etag(cache_parameters={'show_redirects': bool, 'detailed': bool, 'geometry': bool})
     def retrieve(self, request, pk=None, *args, **kwargs):
         show_redirects = 'show_redirects' in request.GET
         detailed = 'detailed' in request.GET
@@ -331,7 +347,7 @@ class LocationBySlugViewSet(RetrieveModelMixin, GenericViewSet):
     lookup_field = 'slug'
     lookup_value_regex = r'[^/]+'
 
-    @api_etag()
+    @api_etag(cache_parameters={'show_redirects': bool, 'detailed': bool, 'geometry': bool})
     def retrieve(self, request, slug=None, *args, **kwargs):
         show_redirects = 'show_redirects' in request.GET
         detailed = 'detailed' in request.GET
