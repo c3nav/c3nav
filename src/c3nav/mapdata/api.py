@@ -166,13 +166,6 @@ class LevelViewSet(MapdataViewSet):
     def geometrytypes(self, request):
         return self.list_types(get_submodels(LevelGeometryMixin))
 
-    @detail_route(methods=['get'])
-    @api_etag()
-    def svg(self, request, pk=None):
-        level = self.get_object()
-        response = HttpResponse(level.render_svg(request), 'image/svg+xml')
-        return response
-
 
 class BuildingViewSet(MapdataViewSet):
     """ Add ?geometry=1 to get geometries, add ?level=<id> to filter by level. """
