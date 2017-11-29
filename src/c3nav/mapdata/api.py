@@ -60,7 +60,6 @@ def api_etag(permissions=True, etag_func=AccessPermission.etag_func, cache_param
                 if response is None:
                     response = func(self, request, *args, **kwargs)
                     if cache_parameters is not None and response.status_code == 200:
-                        print(response)
                         cache.set(cache_key, response.data, 300)
 
             response['ETag'] = etag
