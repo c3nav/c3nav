@@ -69,7 +69,7 @@ class EditorViewSet(ViewSet):
 
     # noinspection PyPep8Naming
     @list_route(methods=['get'])
-    @api_etag(etag_func)
+    @api_etag(etag_func, cache_parameters={'level': str, 'space': str})
     def geometries(self, request, *args, **kwargs):
         request.changeset = ChangeSet.get_for_request(request)
 
@@ -204,7 +204,7 @@ class EditorViewSet(ViewSet):
             raise ValidationError('No level or space specified.')
 
     @list_route(methods=['get'])
-    @api_etag(MapUpdate.current_cache_key)
+    @api_etag(MapUpdate.current_cache_key, cache_parameters={})
     def geometrystyles(self, request, *args, **kwargs):
         return Response({
             'building': '#aaaaaa',
@@ -225,7 +225,7 @@ class EditorViewSet(ViewSet):
         })
 
     @list_route(methods=['get'])
-    @api_etag(etag_func)
+    @api_etag(etag_func, cache_parameters={})
     def bounds(self, request, *args, **kwargs):
         return Response({
             'bounds': Source.max_bounds(),
