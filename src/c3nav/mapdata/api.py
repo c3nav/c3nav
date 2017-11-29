@@ -40,7 +40,10 @@ def api_etag(permissions=True, etag_func=AccessPermission.etag_func, cache_param
     def wrapper(func):
         @wraps(func)
         def wrapped_func(self, request, *args, **kwargs):
-            raw_etag = get_language()+':'+(etag_func(request) if permissions else MapUpdate.current_cache_key())
+            response_format = self.perform_content_negotiation(request)[0].format
+            etag_user = (':'+str(request.user.pk or 0)) if response_format == 'api' else ''
+            raw_etag = '%s%s:%s:%s' % (response_format, etag_user, get_language(),
+                                       (etag_func(request) if permissions else MapUpdate.current_cache_key()))
             etag = quote_etag(raw_etag)
 
             response = get_conditional_response(request, etag=etag)
