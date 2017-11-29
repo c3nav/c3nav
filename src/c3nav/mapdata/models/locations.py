@@ -118,12 +118,6 @@ class Location(LocationSlug, AccessRestrictionMixin, TitledMixin, models.Model):
         return self.slug
 
     @property
-    def title(self):
-        if not self.titles and self.slug:
-            return self._meta.verbose_name + ' ' + self.slug
-        return super().title
-
-    @property
     def subtitle(self):
         return ''
 

@@ -2,11 +2,14 @@ import json
 import logging
 import typing
 
+from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.core.validators import RegexValidator
 from django.db import models
-from django.utils.functional import cached_property
+from django.utils.functional import cached_property, lazy
+from django.utils.text import format_lazy
 from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import get_language
 from shapely import validation
 from shapely.geometry import LineString, MultiPolygon, Point, Polygon, mapping, shape
 from shapely.geometry.base import BaseGeometry
@@ -126,3 +129,67 @@ class JSONField(models.TextField):
     def value_to_string(self, obj):
         value = self.value_from_object(obj)
         return self.get_prep_value(value)
+
+
+def get_i18n_value(i18n_dict, fallback_language, fallback_any, fallback_value):
+    lang = get_language()
+    if i18n_dict:
+        if lang in i18n_dict:
+            return i18n_dict[lang]
+        if fallback_language in i18n_dict:
+            return i18n_dict[fallback_language]
+        if fallback_any:
+            return next(iter(i18n_dict.values()))
+    return str(fallback_value)
+
+
+lazy_get_i18n_value = lazy(get_i18n_value, str)
+
+
+class I18nDescriptor:
+    def __init__(self, field):
+        self.field = field
+
+    def __get__(self, instance, cls=None):
+        if instance is None:
+            return self
+
+        fallback_value = self.field.fallback_value
+        if fallback_value is not None:
+            fallback_value = format_lazy(fallback_value, model_name=instance._meta.verbose_name, pk=instance.pk)
+        return lazy_get_i18n_value(getattr(instance, self.field.attname),
+                                   fallback_language=self.field.fallback_language,
+                                   fallback_any=self.field.fallback_any,
+                                   fallback_value=fallback_value)
+
+
+class I18nField(JSONField):
+    def __init__(self, plural_name=None, fallback_language=settings.LANGUAGE_CODE,
+                 fallback_any=False, fallback_value=None, default=None):
+        self.plural_name = plural_name
+        self.fallback_language = fallback_language
+        self.fallback_any = fallback_any
+        self.fallback_value = fallback_value
+        super().__init__(default=(dict(default) if default else {}), null=False)
+
+    def deconstruct(self):
+        name, path, args, kwargs = super().deconstruct()
+        kwargs = {}
+        if self.default != {}:
+            kwargs['default'] = self.default
+        if self.plural_name is not None:
+            kwargs['plural_name'] = self.plural_name
+        if self.fallback_language != settings.LANGUAGE_CODE:
+            kwargs['fallback_language'] = self.fallback_language
+        if self.fallback_any:
+            kwargs['fallback_any'] = self.fallback_any
+        if self.fallback_value is not None:
+            kwargs['fallback_value'] = self.fallback_value
+        return name, path, args, kwargs
+
+    def contribute_to_class(self, cls, name, *args, **kwargs):
+        super().contribute_to_class(cls, name, *args, **kwargs)
+        setattr(cls, self.name, I18nDescriptor(self))
+
+    def get_attname(self):
+        return self.name+'_i18n' if self.plural_name is None else self.plural_name

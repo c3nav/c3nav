@@ -5,7 +5,7 @@ from django.db import models
 from django.utils.translation import ugettext_lazy as _
 from django.utils.translation import get_language, get_language_info
 
-from c3nav.mapdata.fields import JSONField
+from c3nav.mapdata.fields import I18nField
 from c3nav.mapdata.models import MapUpdate
 
 
@@ -47,7 +47,7 @@ class SerializableMixin(models.Model):
 
 
 class TitledMixin(SerializableMixin, models.Model):
-    titles = JSONField(default={})
+    title = I18nField(plural_name='titles', fallback_any=True, fallback_value='{model_name} {pk}')
 
     class Meta:
         abstract = True
@@ -74,15 +74,6 @@ class TitledMixin(SerializableMixin, models.Model):
             language = _('Title ({lang})').format(lang=get_language_info(lang)['name_translated'])
             result['display'].append((language, title))
         return result
-
-    @property
-    def title(self):
-        lang = get_language()
-        if self.titles:
-            if lang in self.titles:
-                return self.titles[lang]
-            return next(iter(self.titles.values()))
-        return super().title
 
 
 class BoundsMixin(SerializableMixin, models.Model):
