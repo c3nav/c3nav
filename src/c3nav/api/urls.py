@@ -45,8 +45,9 @@ router.register(r'changesets', ChangeSetViewSet)
 class APIRoot(GenericAPIView):
     """
     Welcome to the c3nav RESTful API.
-    The HTML preview is only shown because your Browser sent text/html in it's Accept header.
+    The HTML preview is only shown because your Browser sent text/html in its Accept header.
     If you want to use this API on a large scale, please use a client that supports E-Tags.
+    For more information on a specific API endpoint, access it with a browser.
     """
 
     def _format_pattern(self, pattern):

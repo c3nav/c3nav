@@ -158,7 +158,10 @@ class MapdataViewSet(ReadOnlyModelViewSet):
 
 
 class LevelViewSet(MapdataViewSet):
-    """ Add ?on_top_of=<null or id> to filter by on_top_of, add ?group=<id> to filter by group. """
+    """
+    Add ?on_top_of=<null or id> to filter by on_top_of, add ?group=<id> to filter by group.
+    A Level is a Location – so if it is visible, you can use its ID in the Location API as well.
+    """
     queryset = Level.objects.all()
 
     @list_route(methods=['get'])
@@ -173,7 +176,10 @@ class BuildingViewSet(MapdataViewSet):
 
 
 class SpaceViewSet(MapdataViewSet):
-    """ Add ?geometry=1 to get geometries, add ?level=<id> to filter by level, add ?group=<id> to filter by group. """
+    """
+    Add ?geometry=1 to get geometries, add ?level=<id> to filter by level, add ?group=<id> to filter by group.
+    A Space is a Location – so if it is visible, you can use its ID in the Location API as well.
+    """
     queryset = Space.objects.all()
 
     @list_route(methods=['get'])
@@ -193,7 +199,10 @@ class HoleViewSet(MapdataViewSet):
 
 
 class AreaViewSet(MapdataViewSet):
-    """ Add ?geometry=1 to get geometries, add ?space=<id> to filter by space, add ?group=<id> to filter by group. """
+    """
+    Add ?geometry=1 to get geometries, add ?space=<id> to filter by space, add ?group=<id> to filter by group.
+    An Area is a Location – so if it is visible, you can use its ID in the Location API as well.
+    """
     queryset = Area.objects.all()
 
 
@@ -223,7 +232,10 @@ class ColumnViewSet(MapdataViewSet):
 
 
 class POIViewSet(MapdataViewSet):
-    """ Add ?geometry=1 to get geometries, add ?space=<id> to filter by space, add ?group=<id> to filter by group. """
+    """
+    Add ?geometry=1 to get geometries, add ?space=<id> to filter by space, add ?group=<id> to filter by group.
+    A POI is a Location – so if it is visible, you can use its ID in the Location API as well.
+    """
     queryset = POI.objects.all()
 
 
@@ -232,13 +244,20 @@ class LocationGroupCategoryViewSet(MapdataViewSet):
 
 
 class LocationGroupViewSet(MapdataViewSet):
-    """ Add ?category=<id or name> to filter by category. """
+    """
+    Add ?category=<id or name> to filter by category.
+    A Location Group is a Location – so if it is visible, you can use its ID in the Location API as well.
+    """
     queryset = LocationGroup.objects.all()
 
 
 class LocationViewSet(RetrieveModelMixin, GenericViewSet):
     """
-    only accesses locations that have can_search or can_describe set to true.
+    Locations are Levels, Spaces, Areas, POIs and Location Groups (see /locations/types/). They have a shared ID pool.
+    This API endpoint only accesses locations that have can_search or can_describe set to true.
+    If you want to access all of them, use the API endpoints for the Location Types.
+    Additionally, you can access Custom Locations (Coordinates) by using c:<level.short_label>:x:y as an id or slug.
+
     add ?searchable to only show locations with can_search set to true ordered by relevance
     add ?detailed to show all attributes
     add ?geometry to show geometries
