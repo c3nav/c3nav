@@ -141,7 +141,7 @@ class OpenGLWorker(threading.Thread):
         Render image and return it as PNG bytes
         """
         task = RenderTask(width, height, scale, offset, background_rgb, vertices)
-        self._queue.put(task)
+        self._queue.put(task, timeout=3)
         return task.get_result()
 
 
