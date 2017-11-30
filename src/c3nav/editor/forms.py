@@ -14,7 +14,7 @@ from django.utils.translation import get_language_info
 from shapely.geometry.geo import mapping
 
 from c3nav.editor.models import ChangeSet, ChangeSetUpdate
-from c3nav.mapdata.fields import GeometryField
+from c3nav.mapdata.fields import GeometryField, I18nField
 from c3nav.mapdata.models import GraphEdge
 
 
@@ -23,6 +23,39 @@ class EditorFormBase(ModelForm):
         self.request = request
         super().__init__(*args, **kwargs)
         creating = not self.instance.pk
+
+        new_fields = OrderedDict()
+        self.i18n_fields = []
+        for name, form_field in self.fields.items():
+            model_field = self.instance._meta.get_field(name)
+
+            if not isinstance(model_field, I18nField):
+                new_fields[name] = form_field
+                continue
+
+            values = OrderedDict((lang_code, '') for lang_code, language in settings.LANGUAGES)
+            if self.instance is not None and self.instance.pk:
+                values.update(getattr(self.instance, model_field.attname))
+
+            has_values = False
+            for language in values.keys():
+                sub_field_name = '%s__%s' % (name, language)
+                new_value = self.data.get(sub_field_name)
+                if new_value is not None:
+                    has_values = True
+                    values[language] = new_value
+                language_info = get_language_info(language)
+                field_title = format_lazy(_('{field_name} ({lang})'),
+                                          field_name=model_field.verbose_name,
+                                          lang=language_info['name_translated'])
+                new_fields[sub_field_name] = CharField(label=field_title,
+                                                       required=False,
+                                                       initial=values[language].strip(), max_length=50)
+
+            if has_values:
+                self.i18n_fields.append((model_field, values))
+
+        self.fields = new_fields
 
         if 'level' in self.fields:
             # hide level widget
@@ -63,7 +96,6 @@ class EditorFormBase(ModelForm):
                     name = 'groups_'+category.name
                     field = MultipleChoiceField(label=category.title, required=False, initial=initial, choices=choices)
                 self.fields[name] = field
-                self.fields.move_to_end(name, last=False)
 
         if 'category' in self.fields:
             self.fields['category'].label_from_instance = lambda obj: obj.title
@@ -73,31 +105,6 @@ class EditorFormBase(ModelForm):
 
             self.fields['access_restriction'].label_from_instance = lambda obj: obj.title
             self.fields['access_restriction'].queryset = AccessRestriction.qs_for_request(self.request)
-
-        # parse titles
-        self.titles = None
-        if hasattr(self.instance, 'titles'):
-            titles = OrderedDict((lang_code, '') for lang_code, language in settings.LANGUAGES)
-            if self.instance is not None and self.instance.pk:
-                titles.update(self.instance.titles)
-
-            for language in reversed(titles.keys()):
-                new_title = self.data.get('title_' + language)
-                if new_title is not None:
-                    titles[language] = new_title
-                language_info = get_language_info(language)
-                field_title = format_lazy(_('Title ({lang})'), lang=language_info['name_translated'])
-                self.fields['title_' + language] = CharField(label=field_title,
-                                                             required=False,
-                                                             initial=titles[language].strip(), max_length=50)
-                self.fields.move_to_end('title_' + language, last=False)
-            self.titles = titles
-
-        if 'short_label' in self.fields:
-            self.fields.move_to_end('short_label', last=False)
-
-        if 'name' in self.fields:
-            self.fields.move_to_end('name', last=False)
 
         self.redirect_slugs = None
         self.add_redirect_slugs = None
@@ -147,6 +154,11 @@ class EditorFormBase(ModelForm):
 
         super().clean()
 
+    def full_clean(self):
+        super().full_clean()
+        for field, values in self.i18n_fields:
+            setattr(self.instance, field.attname, {lang: value for lang, value in values.items() if value})
+
     def _save_m2m(self):
         super()._save_m2m()
         try:
@@ -163,9 +175,9 @@ class EditorFormBase(ModelForm):
 
 
 def create_editor_form(editor_model):
-    possible_fields = ['slug', 'name', 'ordering', 'category', 'width', 'groups', 'color', 'priority', 'base_altitude',
-                       'waytype', 'access_restriction', 'height', 'default_height', 'door_height', 'outside',
-                       'can_search', 'can_describe', 'geometry', 'single',  'altitude', 'short_label',
+    possible_fields = ['slug', 'name', 'title', 'ordering', 'category', 'width', 'groups', 'color', 'priority',
+                       'base_altitude', 'waytype', 'access_restriction', 'height', 'default_height', 'door_height',
+                       'outside', 'can_search', 'can_describe', 'geometry', 'single',  'altitude', 'short_label',
                        'allow_levels', 'allow_spaces', 'allow_areas', 'allow_pois', 'left', 'top', 'right', 'bottom']
     field_names = [field.name for field in editor_model._meta.get_fields() if not field.one_to_many]
     existing_fields = [name for name in possible_fields if name in field_names]

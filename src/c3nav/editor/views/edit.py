@@ -239,12 +239,6 @@ def edit(request, pk=None, model=None, level=None, space=None, on_top_of=None, e
             # Update/create objects
             obj = form.save(commit=False)
 
-            if form.titles is not None:
-                obj.titles = {}
-                for language, title in form.titles.items():
-                    if title:
-                        obj.titles[language] = title
-
             if level is not None:
                 obj.level = level
 
