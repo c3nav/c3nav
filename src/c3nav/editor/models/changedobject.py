@@ -244,7 +244,7 @@ class ChangedObject(models.Model):
                 continue
 
             elif not field.is_relation:
-                value = getattr(instance, field.name)
+                value = getattr(instance, field.attname)
                 if isinstance(field, I18nField):
                     for lang, subvalue in value.items():
                         self.updated_fields['%s__i18n__%s' % (field.name, lang)] = subvalue
