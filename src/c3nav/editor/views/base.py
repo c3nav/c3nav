@@ -44,5 +44,11 @@ def sidebar_view(func=None, select_related=None):
 
 
 def etag_func(request, *args, **kwargs):
-    return (get_language() + ':' + request.changeset.raw_cache_key_by_changes + ':' +
+    try:
+        changeset = request.changeset
+    except AttributeError:
+        changeset = ChangeSet.get_for_request(request)
+        request.changeset = changeset
+
+    return (get_language() + ':' + changeset.raw_cache_key_by_changes + ':' +
             AccessPermission.cache_key_for_request(request, with_update=False) + ':' + str(request.user.pk or 0))
