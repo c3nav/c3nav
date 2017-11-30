@@ -13,8 +13,8 @@ from django.utils.translation import get_language_info
 
 from c3nav.editor.forms import ChangeSetForm, RejectForm
 from c3nav.editor.models import ChangeSet
-from c3nav.editor.utils import is_created_pk
 from c3nav.editor.views.base import sidebar_view
+from c3nav.editor.wrappers import is_created_pk
 from c3nav.mapdata.models.locations import LocationRedirect, LocationSlug
 
 

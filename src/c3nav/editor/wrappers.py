@@ -9,7 +9,6 @@ from django.db import models
 from django.db.models import FieldDoesNotExist, Manager, ManyToManyRel, Prefetch, Q
 from django.utils.functional import cached_property
 
-from c3nav.editor.utils import is_created_pk
 from c3nav.mapdata.utils.models import get_submodels
 
 
@@ -172,6 +171,10 @@ class ModelWrapper(BaseWrapper):
 
     def __repr__(self):
         return '<ModelWrapper '+repr(self._obj.__name__)+'>'
+
+
+def is_created_pk(pk):
+    return isinstance(pk, str) and pk.startswith('c') and pk[1:].isnumeric()
 
 
 class ModelInstanceWrapper(BaseWrapper):

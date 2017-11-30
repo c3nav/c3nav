@@ -7,8 +7,7 @@ from django.db import models
 from django.db.models import DecimalField, Field
 from django.utils.translation import ugettext_lazy as _
 
-from c3nav.editor.utils import is_created_pk
-from c3nav.editor.wrappers import ModelInstanceWrapper
+from c3nav.editor.wrappers import ModelInstanceWrapper, is_created_pk
 from c3nav.mapdata.fields import I18nField, JSONField
 from c3nav.mapdata.models.locations import LocationRedirect
 
