@@ -97,7 +97,7 @@ class AccessRestrictionMixin(SerializableMixin, models.Model):
     def details_display(self):
         result = super().details_display()
         result['display'].extend([
-            (str(_('Access Restriction')), self.access_restriction_id and self.access_restriction.title),
+            (_('Access Restriction'), self.access_restriction_id and self.access_restriction.title),
         ])
         return result
 

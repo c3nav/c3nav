@@ -60,7 +60,7 @@ class SpaceGeometryMixin(GeometryMixin):
     def details_display(self):
         result = super().details_display()
         result['display'].insert(3, (
-            str(_('Space')),
+            _('Space'),
             {
                 'id': self.space_id,
                 'slug': self.space.get_slug(),

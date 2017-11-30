@@ -79,10 +79,10 @@ class Level(SpecificLocation, models.Model):
 
     def details_display(self):
         result = super().details_display()
-        result['display'].insert(3, (str(_('short label')), self.short_label))
+        result['display'].insert(3, (_('short label'), self.short_label))
         result['display'].extend([
-            (str(_('outside only')), self.base_altitude),
-            (str(_('default height')), self.default_height),
+            (_('outside only'), self.base_altitude),
+            (_('default height'), self.default_height),
         ])
         result['editor_url'] = reverse('editor.levels.detail', kwargs={'pk': self.pk})
         return result

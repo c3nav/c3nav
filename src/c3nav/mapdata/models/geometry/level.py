@@ -52,7 +52,7 @@ class LevelGeometryMixin(GeometryMixin):
     def details_display(self):
         result = super().details_display()
         result['display'].insert(3, (
-            str(_('Level')),
+            _('Level'),
             {
                 'id': self.level_id,
                 'slug': self.level.get_slug(),
@@ -120,8 +120,8 @@ class Space(LevelGeometryMixin, SpecificLocation, models.Model):
     def details_display(self):
         result = super().details_display()
         result['display'].extend([
-            (str(_('height')), self.height),
-            (str(_('outside only')), str(_('Yes') if self.outside else _('No'))),
+            (_('height'), self.height),
+            (_('outside only'), _('Yes') if self.outside else _('No')),
         ])
         result['editor_url'] = reverse('editor.spaces.detail', kwargs={'level': self.level_id, 'pk': self.pk})
         return result

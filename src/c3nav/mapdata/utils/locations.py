@@ -237,10 +237,8 @@ class CustomLocation:
         self.level = level
         self.x = x
         self.y = y
-        self.title = str(_('Coordinates'))
-        self.subtitle = str(_('%(level)s, x=%(x)s, y=%(y)s') % {'level': self.level.title,
-                                                                'x': self.x,
-                                                                'y': self.y})
+        self.title = _('Coordinates')
+        self.subtitle = _('%(level)s, x=%(x)s, y=%(y)s') % {'level': self.level.title, 'x': self.x, 'y': self.y}
 
     @property
     def serialized_geometry(self):
@@ -268,19 +266,19 @@ class CustomLocation:
         return {
             'id': self.pk,
             'display': [
-                (str(_('Type')), str(_('Coordinates'))),
-                (str(_('ID')), str(self.pk)),
-                (str(_('Slug')), str(self.pk)),
-                (str(_('Level')), {
+                (_('Type'), _('Coordinates')),
+                (_('ID'), self.pk),
+                (_('Slug'), self.pk),
+                (_('Level'), {
                     'id': self.level.pk,
                     'slug': self.level.get_slug(),
                     'title': self.level.title,
                     'can_search': self.level.can_search,
                 }),
-                (str(_('X Coordinate')), str(self.x)),
-                (str(_('Y Coordinate')), str(self.y)),
-                (str(_('Title')), str(self.title)),
-                (str(_('Subtitle')), str(self.subtitle)),
+                (_('X Coordinate'), str(self.x)),
+                (_('Y Coordinate'), str(self.y)),
+                (_('Title'), self.title),
+                (_('Subtitle'), self.subtitle),
             ],
             'geometry': self.serialized_geometry,
         }

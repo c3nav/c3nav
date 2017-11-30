@@ -61,7 +61,7 @@ class LocationSlug(SerializableMixin, models.Model):
 
     def details_display(self):
         result = super().details_display()
-        result['display'].insert(2, (str(_('Slug')), str(self.get_slug())))
+        result['display'].insert(2, (_('Slug'), str(self.get_slug())))
         return result
 
     @cached_property
@@ -105,8 +105,8 @@ class Location(LocationSlug, AccessRestrictionMixin, TitledMixin, models.Model):
     def details_display(self):
         result = super().details_display()
         result['display'].extend([
-            (str(_('searchable')), str(_('Yes') if self.can_search else _('No'))),
-            (str(_('can describe')), str(_('Yes') if self.can_describe else _('No')))
+            (_('searchable'), _('Yes') if self.can_search else _('No')),
+            (_('can describe'), _('Yes') if self.can_describe else _('No'))
         ])
         return result
 
@@ -262,10 +262,10 @@ class LocationGroup(Location, models.Model):
 
     def details_display(self):
         result = super().details_display()
-        result['display'].insert(3, (str(_('Category')), self.category.title))
+        result['display'].insert(3, (_('Category'), self.category.title))
         result['display'].extend([
-            (str(_('color')), self.color),
-            (str(_('priority')), self.priority),
+            (_('color'), self.color),
+            (_('priority'), self.priority),
         ])
         result['editor_url'] = reverse('editor.locationgroups.edit', kwargs={'pk': self.pk})
         return result

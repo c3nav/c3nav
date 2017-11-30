@@ -36,8 +36,8 @@ class SerializableMixin(models.Model):
         return {
             'id': self.pk,
             'display': [
-                (str(_('Type')), str(self.__class__._meta.verbose_name)),
-                (str(_('ID')), str(self.pk)),
+                (_('Type'), str(self.__class__._meta.verbose_name)),
+                (_('ID'), str(self.pk)),
             ]
         }
 
