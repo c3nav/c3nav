@@ -7,9 +7,11 @@ import qrcode
 from django.conf import settings
 from django.core.cache import cache
 from django.core.serializers.json import DjangoJSONEncoder
-from django.http import Http404, HttpResponse
+from django.http import Http404, HttpResponse, HttpResponseBadRequest
 from django.shortcuts import render
 from django.urls import reverse
+from django.views.decorators.cache import cache_control
+from django.views.decorators.http import etag
 
 from c3nav.mapdata.models import Location, Source
 from c3nav.mapdata.models.access import AccessPermission
@@ -17,53 +19,6 @@ from c3nav.mapdata.models.level import Level
 from c3nav.mapdata.models.locations import LocationRedirect, SpecificLocation
 from c3nav.mapdata.utils.locations import get_location_by_slug_for_request, levels_by_short_label_for_request
 from c3nav.mapdata.views import set_tile_access_cookie
-
-ctype_mapping = {
-    'yes': ('up', 'down'),
-    'up': ('up', ),
-    'down': ('down', ),
-    'no': ()
-}
-
-
-def get_ctypes(prefix, value):
-    return tuple((prefix+'_'+direction) for direction in ctype_mapping.get(value, ('up', 'down')))
-
-
-def reverse_ctypes(ctypes, name):
-    if name+'_up' in ctypes:
-        return 'yes' if name + '_down' in ctypes else 'up'
-    else:
-        return 'down' if name + '_down' in ctypes else 'no'
-
-
-def get_location_or_404(request, location):
-    if location is None:
-        return None
-
-    get_location = None
-    location = get_location(request, location)
-    if location is None:
-        raise Http404
-
-    return location
-
-
-def qr_code(request, location):
-    location = get_location_or_404(request, location)
-
-    qr = qrcode.QRCode(
-        version=1,
-        error_correction=qrcode.constants.ERROR_CORRECT_L,
-        box_size=10,
-        border=4,
-    )
-    qr.add_data(request.build_absolute_uri(reverse('site.location', kwargs={'location': location.location_id})))
-    qr.make(fit=True)
-
-    response = HttpResponse(content_type='image/png')
-    qr.make_image().save(response, 'PNG')
-    return response
 
 
 def check_location(location: Optional[str], request) -> Optional[SpecificLocation]:
@@ -128,3 +83,29 @@ def map_index(request, mode=None, slug=None, slug2=None, details=None, level=Non
         'tile_cache_server': settings.TILE_CACHE_SERVER,
     }
     return render(request, 'site/map.html', ctx)
+
+
+def qr_code_etag(request, path):
+    return '1'
+
+
+@etag(qr_code_etag)
+@cache_control(max_age=3600)
+def qr_code(request, path):
+    data = (request.build_absolute_uri('/'+path) +
+            ('?'+request.META['QUERY_STRING'] if request.META['QUERY_STRING'] else ''))
+    if len(data) > 256:
+        return HttpResponseBadRequest()
+
+    qr = qrcode.QRCode(
+        version=1,
+        error_correction=qrcode.constants.ERROR_CORRECT_L,
+        box_size=10,
+        border=4,
+    )
+    qr.add_data(data)
+    qr.make(fit=True)
+
+    response = HttpResponse(content_type='image/png')
+    qr.make_image().save(response, 'PNG')
+    return response
