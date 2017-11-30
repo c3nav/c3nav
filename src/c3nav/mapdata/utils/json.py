@@ -1,20 +1,22 @@
 import json
 from collections import OrderedDict
 
+from django.core.serializers.json import DjangoJSONEncoder
+
 
 def _preencode(data, magic_marker, in_coords=False, in_groups=False):
     if isinstance(data, dict):
         data = data.copy()
         for name, value in tuple(data.items()):
             if name in ('bounds', 'point', 'locations') and isinstance(value, (tuple, list)):
-                data[name] = magic_marker+json.dumps(value)+magic_marker
+                data[name] = magic_marker+json.dumps(value, cls=DjangoJSONEncoder)+magic_marker
             else:
                 data[name] = _preencode(value, magic_marker,
                                         in_coords=(name == 'coordinates'), in_groups=(name == 'groups'))
         return data
     elif isinstance(data, (tuple, list)):
         if (in_coords and data and isinstance(data[0], (int, float))) or in_groups:
-            return magic_marker+json.dumps(data)+magic_marker
+            return magic_marker+json.dumps(data, cls=DjangoJSONEncoder)+magic_marker
         else:
             return tuple(_preencode(value, magic_marker, in_coords) for value in data)
     else:
@@ -23,7 +25,7 @@ def _preencode(data, magic_marker, in_coords=False, in_groups=False):
 
 def json_encoder_reindent(method, data, *args, **kwargs):
     magic_marker = '***JSON_MAGIC_MARKER***'
-    test_encode = json.dumps(data)
+    test_encode = json.dumps(data, cls=DjangoJSONEncoder)
     while magic_marker in test_encode:
         magic_marker += '*'
     result = method(_preencode(data, magic_marker), *args, **kwargs)
