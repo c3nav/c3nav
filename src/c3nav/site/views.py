@@ -6,6 +6,7 @@ from typing import Optional
 import qrcode
 from django.conf import settings
 from django.core.cache import cache
+from django.core.serializers.json import DjangoJSONEncoder
 from django.http import Http404, HttpResponse
 from django.shortcuts import render
 from django.urls import reverse
@@ -123,7 +124,7 @@ def map_index(request, mode=None, slug=None, slug2=None, details=None, level=Non
     ctx = {
         'bounds': json.dumps(Source.max_bounds(), separators=(',', ':')),
         'levels': json.dumps(tuple((level.pk, level.short_label) for level in levels.values()), separators=(',', ':')),
-        'state': json.dumps(state, separators=(',', ':')),
+        'state': json.dumps(state, separators=(',', ':'), cls=DjangoJSONEncoder),
         'tile_cache_server': settings.TILE_CACHE_SERVER,
     }
     return render(request, 'site/map.html', ctx)
