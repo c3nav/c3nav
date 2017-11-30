@@ -269,7 +269,45 @@ class LocationGroupViewSet(MapdataViewSet):
     queryset = LocationGroup.objects.all()
 
 
-class LocationViewSet(RetrieveModelMixin, GenericViewSet):
+class LocationViewSetBase(RetrieveModelMixin, GenericViewSet):
+    queryset = LocationSlug.objects.all()
+
+    def get_object(self) -> LocationSlug:
+        raise NotImplementedError
+
+    @api_etag(cache_parameters={'show_redirects': bool, 'detailed': bool, 'geometry': bool})
+    def retrieve(self, request, key=None, *args, **kwargs):
+        show_redirects = 'show_redirects' in request.GET
+        detailed = 'detailed' in request.GET
+        geometry = 'geometry' in request.GET
+
+        location = self.get_object()
+
+        if location is None:
+            raise NotFound
+
+        if isinstance(location, LocationRedirect):
+            if not show_redirects:
+                return redirect('../' + str(location.target.slug))  # todo: why does redirect/reverse not work here?
+
+        return Response(location.serialize(include_type=True, detailed=detailed,
+                                           geometry=geometry, simple_geometry=True))
+
+    @detail_route(methods=['get'])
+    @api_etag()
+    def display(self, request, key=None):
+        location = self.get_object()
+
+        if location is None:
+            raise NotFound
+
+        if isinstance(location, LocationRedirect):
+            return redirect('../' + str(location.target.pk) + '/display/')
+
+        return Response(location.details_display())
+
+
+class LocationViewSet(LocationViewSetBase):
     """
     Locations are Levels, Spaces, Areas, POIs and Location Groups (see /locations/types/). They have a shared ID pool.
     This API endpoint only accesses locations that have can_search or can_describe set to true.
@@ -283,6 +321,9 @@ class LocationViewSet(RetrieveModelMixin, GenericViewSet):
     """
     queryset = LocationSlug.objects.all()
     lookup_value_regex = r'[^/]+'
+
+    def get_object(self):
+        return get_location_by_id_for_request(self.kwargs['pk'], self.request)
 
     @api_etag(cache_parameters={'searchable': bool, 'detailed': bool, 'geometry': bool})
     def list(self, request, *args, **kwargs):
@@ -307,77 +348,19 @@ class LocationViewSet(RetrieveModelMixin, GenericViewSet):
 
         return Response(result)
 
-    @api_etag(cache_parameters={'show_redirects': bool, 'detailed': bool, 'geometry': bool})
-    def retrieve(self, request, pk=None, *args, **kwargs):
-        show_redirects = 'show_redirects' in request.GET
-        detailed = 'detailed' in request.GET
-        geometry = 'geometry' in request.GET
-
-        location = get_location_by_id_for_request(pk, request)
-
-        if location is None:
-            raise NotFound
-
-        if isinstance(location, LocationRedirect):
-            if not show_redirects:
-                return redirect('../' + str(location.target.slug))  # todo: why does redirect/reverse not work here?
-
-        return Response(location.serialize(include_type=True, detailed=detailed,
-                                           geometry=geometry, simple_geometry=True))
-
-    @detail_route(methods=['get'])
-    @api_etag()
-    def display(self, request, pk=None):
-        location = get_location_by_id_for_request(pk, request)
-
-        if location is None:
-            raise NotFound
-
-        if isinstance(location, LocationRedirect):
-            return redirect('../' + str(location.target.pk) + '/display/')
-
-        return Response(location.details_display())
-
     @list_route(methods=['get'])
     @api_etag(permissions=False)
     def types(self, request):
         return MapdataViewSet.list_types(get_submodels(Location), geomtype=False)
 
 
-class LocationBySlugViewSet(RetrieveModelMixin, GenericViewSet):
+class LocationBySlugViewSet(LocationViewSetBase):
     queryset = LocationSlug.objects.all()
     lookup_field = 'slug'
     lookup_value_regex = r'[^/]+'
 
-    @api_etag(cache_parameters={'show_redirects': bool, 'detailed': bool, 'geometry': bool})
-    def retrieve(self, request, slug=None, *args, **kwargs):
-        show_redirects = 'show_redirects' in request.GET
-        detailed = 'detailed' in request.GET
-        geometry = 'geometry' in request.GET
-
-        location = get_location_by_slug_for_request(slug, request)
-
-        if location is None:
-            raise NotFound
-
-        if isinstance(location, LocationRedirect):
-            if not show_redirects:
-                return redirect('../' + location.target.slug)  # todo: why does redirect/reverse not work here?
-
-        return Response(location.serialize(include_type=True, detailed=detailed,
-                                           geometry=geometry, simple_geometry=True))
-
-    @detail_route(methods=['get'])
-    @api_etag()
-    def display(self, request, slug=None):
-        location = get_location_by_slug_for_request(slug, request)
-        if location is None:
-            raise NotFound
-
-        if isinstance(location, LocationRedirect):
-            return redirect('../' + location.target.slug + '/display/')
-
-        return Response(location.details_display())
+    def get_object(self):
+        return get_location_by_slug_for_request(self.kwargs['slug'], self.request)
 
 
 class SourceViewSet(MapdataViewSet):
