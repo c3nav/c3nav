@@ -156,7 +156,7 @@ class I18nDescriptor:
 
         fallback_value = self.field.fallback_value
         if fallback_value is not None:
-            fallback_value = format_lazy(fallback_value, model_name=instance._meta.verbose_name, pk=instance.pk)
+            fallback_value = format_lazy(fallback_value, model=instance._meta.verbose_name, pk=instance.pk)
         return lazy_get_i18n_value(getattr(instance, self.field.attname),
                                    fallback_language=self.field.fallback_language,
                                    fallback_any=self.field.fallback_any,
@@ -164,21 +164,24 @@ class I18nDescriptor:
 
 
 class I18nField(JSONField):
-    def __init__(self, plural_name=None, fallback_language=settings.LANGUAGE_CODE,
-                 fallback_any=False, fallback_value=None, default=None):
+    def __init__(self, verbose_name=None, plural_name=None, max_length=None, default=None,
+                 fallback_language=settings.LANGUAGE_CODE, fallback_any=False, fallback_value=None, **kwargs):
+        self.i18n_max_length = max_length
         self.plural_name = plural_name
         self.fallback_language = fallback_language
         self.fallback_any = fallback_any
         self.fallback_value = fallback_value
-        super().__init__(default=(dict(default) if default else {}), null=False)
+        kwargs.pop('null', None)
+        super().__init__(verbose_name=verbose_name, default=(dict(default) if default else {}), null=False, **kwargs)
 
     def deconstruct(self):
         name, path, args, kwargs = super().deconstruct()
-        kwargs = {}
-        if self.default != {}:
-            kwargs['default'] = self.default
+        if self.default == {}:
+            kwargs.pop('default')
         if self.plural_name is not None:
             kwargs['plural_name'] = self.plural_name
+        if self.i18n_max_length is not None:
+            kwargs['max_length'] = self.i18n_max_length
         if self.fallback_language != settings.LANGUAGE_CODE:
             kwargs['fallback_language'] = self.fallback_language
         if self.fallback_any:

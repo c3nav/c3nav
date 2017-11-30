@@ -47,7 +47,7 @@ class SerializableMixin(models.Model):
 
 
 class TitledMixin(SerializableMixin, models.Model):
-    title = I18nField(plural_name='titles', fallback_any=True, fallback_value='{model_name} {pk}')
+    title = I18nField(_('Title'), plural_name='titles', blank=True, fallback_any=True, fallback_value='{model} {pk}')
 
     class Meta:
         abstract = True

@@ -50,7 +50,8 @@ class EditorFormBase(ModelForm):
                                           lang=language_info['name_translated'])
                 new_fields[sub_field_name] = CharField(label=field_title,
                                                        required=False,
-                                                       initial=values[language].strip(), max_length=50)
+                                                       initial=values[language].strip(),
+                                                       max_length=model_field.i18n_max_length)
 
             if has_values:
                 self.i18n_fields.append((model_field, values))
@@ -151,6 +152,12 @@ class EditorFormBase(ModelForm):
         if 'geometry' in self.fields:
             if not self.cleaned_data.get('geometry'):
                 raise ValidationError('Missing geometry.')
+
+        for field, values in self.i18n_fields:
+            if not field.blank and not any(values.values()):
+                raise ValidationError(_('You have to choose a value for {field} in at least one language.').format(
+                    field=field.verbose_name
+                ))
 
         super().clean()
 
