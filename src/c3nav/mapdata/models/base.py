@@ -52,11 +52,6 @@ class TitledMixin(SerializableMixin, models.Model):
     class Meta:
         abstract = True
 
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        if 'titles' not in self.get_deferred_fields():
-            self.titles = self.titles.copy()
-
     def serialize(self, **kwargs):
         result = super().serialize(**kwargs)
         return result

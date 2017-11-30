@@ -174,6 +174,9 @@ class I18nField(JSONField):
         kwargs.pop('null', None)
         super().__init__(verbose_name=verbose_name, default=(dict(default) if default else {}), null=False, **kwargs)
 
+    def get_default(self):
+        return self.default.copy()
+
     def deconstruct(self):
         name, path, args, kwargs = super().deconstruct()
         if self.default == {}:
