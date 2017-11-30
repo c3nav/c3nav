@@ -95,7 +95,8 @@ class EditorFormBase(ModelForm):
                     field = ChoiceField(label=category.title, required=False, initial=initial, choices=choices)
                 else:
                     name = 'groups_'+category.name
-                    field = MultipleChoiceField(label=category.title, required=False, initial=initial, choices=choices)
+                    field = MultipleChoiceField(label=category.title_plural, required=False,
+                                                initial=initial, choices=choices)
                 self.fields[name] = field
 
         if 'category' in self.fields:
@@ -182,7 +183,8 @@ class EditorFormBase(ModelForm):
 
 
 def create_editor_form(editor_model):
-    possible_fields = ['slug', 'name', 'title', 'ordering', 'category', 'width', 'groups', 'color', 'priority',
+    possible_fields = ['slug', 'name', 'title', 'title_plural',
+                       'ordering', 'category', 'width', 'groups', 'color', 'priority',
                        'base_altitude', 'waytype', 'access_restriction', 'height', 'default_height', 'door_height',
                        'outside', 'can_search', 'can_describe', 'geometry', 'single',  'altitude', 'short_label',
                        'allow_levels', 'allow_spaces', 'allow_areas', 'allow_pois', 'left', 'top', 'right', 'bottom']

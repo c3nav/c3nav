@@ -10,6 +10,7 @@ from django.utils.text import format_lazy
 from django.utils.translation import ugettext_lazy as _
 from django.utils.translation import ungettext_lazy
 
+from c3nav.mapdata.fields import I18nField
 from c3nav.mapdata.models.access import AccessRestrictionMixin
 from c3nav.mapdata.models.base import SerializableMixin, TitledMixin
 from c3nav.mapdata.utils.models import get_submodels
@@ -178,9 +179,11 @@ class SpecificLocation(Location, models.Model):
         return (0, groups[0].category.priority, groups[0].priority)
 
 
-class LocationGroupCategory(TitledMixin, models.Model):
+class LocationGroupCategory(SerializableMixin, models.Model):
     name = models.SlugField(_('Name'), unique=True, max_length=50)
     single = models.BooleanField(_('single selection'), default=False)
+    title = I18nField(_('Title'), plural_name='titles', fallback_any=True)
+    title_plural = I18nField(_('Title (Plural)'), plural_name='titles_plural', fallback_any=True)
     allow_levels = models.BooleanField(_('allow levels'), db_index=True, default=True)
     allow_spaces = models.BooleanField(_('allow spaces'), db_index=True, default=True)
     allow_areas = models.BooleanField(_('allow areas'), db_index=True, default=True)
@@ -197,11 +200,12 @@ class LocationGroupCategory(TitledMixin, models.Model):
         default_related_name = 'locationgroupcategories'
         ordering = ('-priority', )
 
-    def _serialize(self, **kwargs):
-        result = super()._serialize(**kwargs)
+    def _serialize(self, detailed=True, **kwargs):
+        result = super()._serialize(detailed=detailed, **kwargs)
         result['name'] = self.name
-        result.move_to_end('name', last=False)
-        result.move_to_end('id', last=False)
+        if detailed:
+            result['titles'] = self.titles
+        result['title'] = self.title
         return result
 
     def register_changed_geometries(self):
