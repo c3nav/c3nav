@@ -243,7 +243,7 @@ def changeset_detail(request, pk):
                 'model_title': obj.__class__._meta.verbose_name,
                 'pk': changed_object.pk,
                 'desc': obj_desc,
-                'title': obj.title if getattr(obj, 'titles', None) else None,
+                'title': obj.title if getattr(obj, 'title', None) else None,
                 'changes': changes,
                 'edit_url': edit_url,
                 'deleted': changed_object.deleted,
@@ -277,15 +277,18 @@ def changeset_detail(request, pk):
                         'order': (8,),
                     })
                 else:
-                    if name.startswith('title_'):
-                        lang = name[6:]
+                    if '__i18n__' in name:
+                        orig_name, i18n, lang = name.split('__')
                         lang_info = get_language_info(lang)
-                        field_title = format_lazy(_('Title ({lang})'), lang=lang_info['name_translated'])
+                        field = model._meta.get_field(orig_name)
+                        field_title = format_lazy(_('{field_name} ({lang})'),
+                                                  field_name=field.verbose_name,
+                                                  lang=lang_info['name_translated'])
                         field_value = str(value)
                         if field_value:
-                            obj.titles[lang] = field_value
+                            getattr(obj, field.attname)[lang] = field_value
                         else:
-                            obj.titles.pop(lang, None)
+                            getattr(obj, field.attname).pop(lang, None)
                         change_data.update({
                             'order': (4, tuple(code for code, title in settings.LANGUAGES).index(lang)),
                         })

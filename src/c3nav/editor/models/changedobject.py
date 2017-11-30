@@ -9,7 +9,7 @@ from django.utils.translation import ugettext_lazy as _
 
 from c3nav.editor.utils import is_created_pk
 from c3nav.editor.wrappers import ModelInstanceWrapper
-from c3nav.mapdata.fields import JSONField
+from c3nav.mapdata.fields import I18nField, JSONField
 from c3nav.mapdata.models.locations import LocationRedirect
 
 
@@ -95,7 +95,7 @@ class ChangedObject(models.Model):
     def add_relevant_object_pks(self, object_pks, many=True):
         object_pks.setdefault(self.model_class, set()).add(self.obj_pk)
         for name, value in self.updated_fields.items():
-            if name.startswith('title_'):
+            if '__i18n__' in name:
                 continue
             field = self.model_class._meta.get_field(name)
             if field.is_relation:
@@ -135,11 +135,13 @@ class ChangedObject(models.Model):
 
     def apply_to_instance(self, instance: ModelInstanceWrapper, created_pks=None):
         for name, value in self.updated_fields.items():
-            if name.startswith('title_'):
+            if '__i18n__' in name:
+                name, i18n, lang = name.split('__')
+                field = instance._meta.get_field(name)
                 if not value:
-                    instance.titles.pop(name[6:], None)
+                    getattr(instance, field.attname).pop(lang, None)
                 else:
-                    instance.titles[name[6:]] = value
+                    getattr(instance, field.attname)[lang] = value
                 continue
 
             field = instance._meta.get_field(name)
@@ -182,8 +184,10 @@ class ChangedObject(models.Model):
 
         delete_fields = set()
         for name, new_value in self.updated_fields.items():
-            if name.startswith('title_'):
-                current_value = current_obj.titles.get(name[6:], '')
+            if '__i18n__' in name:
+                orig_name, i18n, lang = name.split('__')
+                field = self.model_class._meta.get_field(orig_name)
+                current_value = getattr(current_obj, field.attname).get(lang, '')
             else:
                 field = self.model_class._meta.get_field(name)
 
@@ -206,7 +210,7 @@ class ChangedObject(models.Model):
             return False
 
         for name, value in self.updated_fields.items():
-            if name.startswith('title_'):
+            if '__i18n__' in name:
                 continue
             field = self.model_class._meta.get_field(name)
             if field.is_relation:
@@ -239,11 +243,11 @@ class ChangedObject(models.Model):
             if not isinstance(field, Field) or field.primary_key:
                 continue
 
-            if not field.is_relation:
+            elif not field.is_relation:
                 value = getattr(instance, field.name)
-                if field.name == 'titles':
-                    for lang, title in value.items():
-                        self.updated_fields['title_'+lang] = title
+                if isinstance(field, I18nField):
+                    for lang, subvalue in value.items():
+                        self.updated_fields['%s__i18n__%s' % (field.name, lang)] = subvalue
                 elif isinstance(field, DecimalField):
                     self.updated_fields[field.name] = str(value)
                 else:
