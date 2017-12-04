@@ -20,6 +20,10 @@
   <body>
     <header>
         <h1>c3nav</h1>
+        <a href="#" id="user">
+            <span>{{ user_data.title }}</span>
+            {% if user_data.subtitle %}<small>{{ user_data.subtitle }}</small>{% endif %}
+        </a>
     </header>
     <main class="map" data-state="{{ state }}">
         <section id="popup-buttons">

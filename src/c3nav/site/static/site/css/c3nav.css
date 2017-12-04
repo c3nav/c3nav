@@ -12,10 +12,20 @@ header {
     padding: 10px;
     display: flex;
     align-items: center;
+    justify-content: space-between;
 }
 header h1 {
     font-size: 3rem;
-    margin:0;
+    margin: 0;
+}
+header #user {
+    text-align: right;
+    padding: 0 0 3px 10px;
+}
+header #user small {
+    display: block;
+    margin-top: -3px;
+    color: #606c76;
 }
 
 input {

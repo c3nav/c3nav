@@ -1,23 +1,18 @@
-# flake8: noqa
 import json
-from collections import OrderedDict
 from typing import Optional
 
 import qrcode
 from django.conf import settings
-from django.core.cache import cache
 from django.core.serializers.json import DjangoJSONEncoder
-from django.http import Http404, HttpResponse, HttpResponseBadRequest
+from django.http import HttpResponse, HttpResponseBadRequest
 from django.shortcuts import render
-from django.urls import reverse
 from django.views.decorators.cache import cache_control
 from django.views.decorators.http import etag
 
 from c3nav.mapdata.models import Location, Source
-from c3nav.mapdata.models.access import AccessPermission
-from c3nav.mapdata.models.level import Level
 from c3nav.mapdata.models.locations import LocationRedirect, SpecificLocation
 from c3nav.mapdata.utils.locations import get_location_by_slug_for_request, levels_by_short_label_for_request
+from c3nav.mapdata.utils.user import get_user_data
 from c3nav.mapdata.views import set_tile_access_cookie
 
 
@@ -81,6 +76,7 @@ def map_index(request, mode=None, slug=None, slug2=None, details=None, level=Non
         'levels': json.dumps(tuple((level.pk, level.short_label) for level in levels.values()), separators=(',', ':')),
         'state': json.dumps(state, separators=(',', ':'), cls=DjangoJSONEncoder),
         'tile_cache_server': settings.TILE_CACHE_SERVER,
+        'user_data': get_user_data(request),
     }
     return render(request, 'site/map.html', ctx)
 

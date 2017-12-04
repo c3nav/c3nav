@@ -11,7 +11,8 @@ from c3nav.editor.api import ChangeSetViewSet, EditorViewSet
 from c3nav.mapdata.api import (AccessRestrictionViewSet, AreaViewSet, BuildingViewSet, ColumnViewSet, DoorViewSet,
                                HoleViewSet, LevelViewSet, LineObstacleViewSet, LocationBySlugViewSet,
                                LocationGroupCategoryViewSet, LocationGroupViewSet, LocationViewSet, MapViewSet,
-                               ObstacleViewSet, POIViewSet, RampViewSet, SourceViewSet, SpaceViewSet, StairViewSet)
+                               ObstacleViewSet, POIViewSet, RampViewSet, SourceViewSet, SpaceViewSet, StairViewSet,
+                               UserViewSet)
 from c3nav.routing.api import RoutingViewSet
 
 router = SimpleRouter()
@@ -35,6 +36,8 @@ router.register(r'locations', LocationViewSet)
 router.register(r'locations/by_slug', LocationBySlugViewSet, base_name='location-by-slug')
 router.register(r'locationgroupcategories', LocationGroupCategoryViewSet)
 router.register(r'locationgroups', LocationGroupViewSet)
+
+router.register(r'user', UserViewSet, base_name='user')
 
 router.register(r'routing', RoutingViewSet, base_name='routing')
 

@@ -27,6 +27,7 @@ from c3nav.mapdata.models.locations import (Location, LocationGroupCategory, Loc
 from c3nav.mapdata.utils.locations import (get_location_by_id_for_request, get_location_by_slug_for_request,
                                            searchable_locations_for_request, visible_locations_for_request)
 from c3nav.mapdata.utils.models import get_submodels
+from c3nav.mapdata.utils.user import get_user_data
 
 
 def optimize_query(qs):
@@ -378,3 +379,9 @@ class SourceViewSet(MapdataViewSet):
 
 class AccessRestrictionViewSet(MapdataViewSet):
     queryset = AccessRestriction.objects.all()
+
+
+class UserViewSet(MapdataViewSet):
+    @list_route(methods=['get'])
+    def current(self, request, key=None):
+        return Response(get_user_data(request))
