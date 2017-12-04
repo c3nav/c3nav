@@ -158,7 +158,7 @@ CELERY_TASK_SERIALIZER = 'json'
 CELERY_ACCEPT_CONTENT = ['json']
 CELERY_RESULT_SERIALIZER = 'json'
 
-SESSION_COOKIE_DOMAIN = config.get('c3nav', 'cookie_domain', fallback=None)
+SESSION_COOKIE_DOMAIN = config.get('c3nav', 'session_cookie_domain', fallback=None)
 SESSION_COOKIE_SECURE = config.getboolean('c3nav', 'session_cookie_secure', fallback=False)
 
 TILE_CACHE_SERVER = config.get('c3nav', 'tile_cache_server', fallback=None)
