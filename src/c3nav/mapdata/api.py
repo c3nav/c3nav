@@ -28,6 +28,7 @@ from c3nav.mapdata.utils.locations import (get_location_by_id_for_request, get_l
                                            searchable_locations_for_request, visible_locations_for_request)
 from c3nav.mapdata.utils.models import get_submodels
 from c3nav.mapdata.utils.user import get_user_data
+from c3nav.mapdata.views import set_tile_access_cookie
 
 
 def optimize_query(qs):
@@ -381,7 +382,13 @@ class AccessRestrictionViewSet(MapdataViewSet):
     queryset = AccessRestriction.objects.all()
 
 
-class UserViewSet(MapdataViewSet):
+class UserViewSet(GenericViewSet):
+    """
+    Get display information about the current user. This endpoint also sets the tile access cookie.
+    The tile access cookie is only valid for 1 minute, so if you are displaying a map, call this endpoint repeatedly.
+    """
     @list_route(methods=['get'])
     def current(self, request, key=None):
-        return Response(get_user_data(request))
+        response = Response(get_user_data(request))
+        set_tile_access_cookie(request, response)
+        return response

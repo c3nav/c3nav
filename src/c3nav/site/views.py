@@ -35,7 +35,6 @@ def check_location(location: Optional[str], request) -> Optional[SpecificLocatio
     return location
 
 
-@set_tile_access_cookie
 def map_index(request, mode=None, slug=None, slug2=None, details=None, level=None, x=None, y=None, zoom=None):
     origin = None
     destination = None
@@ -78,7 +77,9 @@ def map_index(request, mode=None, slug=None, slug2=None, details=None, level=Non
         'tile_cache_server': settings.TILE_CACHE_SERVER,
         'user_data': get_user_data(request),
     }
-    return render(request, 'site/map.html', ctx)
+    response = render(request, 'site/map.html', ctx)
+    set_tile_access_cookie(request, response)
+    return response
 
 
 def qr_code_etag(request, path):

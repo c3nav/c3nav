@@ -855,7 +855,7 @@ c3nav = {
         window.setTimeout(c3nav.refresh_tile_access, 16000);
     },
     refresh_tile_access: function () {
-        $.ajax('/map/tile_access');
+        $.ajax('/api/users/current/');
         c3nav.schedule_refresh_tile_access();
     }
 };

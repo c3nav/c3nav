@@ -1,6 +1,5 @@
 import base64
 import os
-from functools import wraps
 from wsgiref.util import FileWrapper
 
 from django.conf import settings
@@ -20,21 +19,15 @@ from c3nav.mapdata.utils.tiles import (build_access_cache_key, build_base_cache_
                                        build_tile_etag, get_tile_bounds, parse_tile_access_cookie)
 
 
-def set_tile_access_cookie(func):
-    @wraps(func)
-    def wrapper(request, *args, **kwargs):
-        response = func(request, *args, **kwargs)
-
-        access_permissions = AccessPermission.get_for_request(request)
-        if access_permissions:
-            cookie = build_tile_access_cookie(access_permissions, settings.SECRET_TILE_KEY)
-            response.set_cookie(settings.TILE_ACCESS_COOKIE_NAME, cookie, max_age=60,
-                                domain=settings.TILE_ACCESS_COOKIE_DOMAIN)
-        else:
-            response.delete_cookie(settings.TILE_ACCESS_COOKIE_NAME)
-
-        return response
-    return wrapper
+def set_tile_access_cookie(request, response):
+    access_permissions = AccessPermission.get_for_request(request)
+    if access_permissions:
+        cookie = build_tile_access_cookie(access_permissions, settings.SECRET_TILE_KEY)
+        response.set_cookie(settings.TILE_ACCESS_COOKIE_NAME, cookie, max_age=60,
+                            domain=settings.TILE_ACCESS_COOKIE_DOMAIN)
+    else:
+        response.delete_cookie(settings.TILE_ACCESS_COOKIE_NAME)
+    response['Cache-Control'] = 'no-cache'
 
 
 encoded_tile_secret = base64.b64encode(settings.SECRET_TILE_KEY.encode()).decode()
@@ -142,14 +135,6 @@ def tile(request, level, zoom, x, y, access_permissions=None):
     response['Cache-Control'] = 'no-cache'
     response['Vary'] = 'Cookie'
 
-    return response
-
-
-@no_language()
-@set_tile_access_cookie
-def tile_access(request):
-    response = HttpResponse(content_type='text/plain')
-    response['Cache-Control'] = 'no-cache'
     return response
 
 
