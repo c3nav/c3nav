@@ -38,11 +38,10 @@ class RenderContext(namedtuple('RenderContext', ('width', 'height', 'ctx', 'prog
                 in vec4 in_color;
                 out vec4 v_color;
 
-                uniform vec3 scale;
-                uniform vec3 offset;
+                uniform mat4 mvp;
 
                 void main() {
-                    gl_Position = vec4(in_vert*scale+offset, 1.0);
+                    gl_Position = mvp * vec4(in_vert, 1.0);
                     v_color = in_color;
                 }
             '''),
@@ -65,13 +64,12 @@ class RenderTask:
     """
     Async Render Task
     """
-    __slots__ = ('width', 'height', 'scale', 'offset', 'background_rgb', 'vertices', 'event', 'result')
+    __slots__ = ('width', 'height', 'mvp', 'background_rgb', 'vertices', 'event', 'result')
 
-    def __init__(self, width, height, scale, offset, background_rgb, vertices):
+    def __init__(self, width, height, mvp, background_rgb, vertices):
         self.width = width
         self.height = height
-        self.scale = scale
-        self.offset = offset
+        self.mvp = mvp
         self.background_rgb = background_rgb
         self.vertices = vertices
 
@@ -117,8 +115,7 @@ class OpenGLWorker(threading.Thread):
             ctx = self._get_ctx(task.width, task.height)
             ctx.ctx.clear(*task.background_rgb)
 
-            ctx.prog.uniforms['scale'].value = task.scale
-            ctx.prog.uniforms['offset'].value = task.offset
+            ctx.prog.uniforms['mvp'].value = task.mvp
 
             if task.vertices:
                 vbo = ctx.ctx.buffer(task.vertices)
@@ -136,11 +133,11 @@ class OpenGLWorker(threading.Thread):
             f.seek(0)
             task.set_result(f.read())
 
-    def render(self, width: int, height: int, scale: tuple, offset: tuple, background_rgb: tuple, vertices: bytes):
+    def render(self, width: int, height: int, mvp: tuple, background_rgb: tuple, vertices: bytes):
         """
         Render image and return it as PNG bytes
         """
-        task = RenderTask(width, height, scale, offset, background_rgb, vertices)
+        task = RenderTask(width, height, mvp, background_rgb, vertices)
         self._queue.put(task, timeout=3)
         return task.get_result()
 
@@ -157,6 +154,12 @@ class OpenGLEngine(Base3DEngine):
 
         self.gl_scale = (scale_x, -scale_y, scale_z)
         self.gl_offset = (-self.minx * scale_x - 1, self.maxy * scale_y - 1, -self.base_z * scale_z)
+        self.gl_mvp = (
+            scale_x, 0, 0, 0,
+            0, -scale_y, 0, 0,
+            0, 0, scale_z, 0,
+            -self.minx * scale_x - 1, self.maxy * scale_y - 1, -self.base_z * scale_z, 1,
+        )
 
         self.vertices = []
 
@@ -199,7 +202,7 @@ class OpenGLEngine(Base3DEngine):
     worker = OpenGLWorker()
 
     def render(self, filename=None) -> bytes:
-        return self.worker.render(self.width, self.height, self.gl_scale, self.gl_offset, self.background_rgb,
+        return self.worker.render(self.width, self.height, self.gl_mvp, self.background_rgb,
                                   np.vstack(self.vertices).astype(np.float32).tobytes() if self.vertices else b'')
 
 
