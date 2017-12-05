@@ -526,3 +526,68 @@ main:not([data-view=route-result]) #route-summary {
     font-weight: bold;
     background-color: #eeeeee;
 }
+
+
+#modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background-color: rgba(0, 0, 0, 0.3);
+    z-index: 2;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    transition: opacity 300ms;
+    pointer-events: none;
+}
+#modal.show {
+    opacity: 1;
+    pointer-events: auto;
+}
+#modal-content {
+    box-shadow: 1px 1px 3px rgba(0, 0, 0, 0.2);
+    border-radius: 2px;
+    background-color: #ffffff;
+    width: 380px;
+    min-height: 150px;
+    max-height: 95vh;
+    max-width: 95vw;
+    padding: 20px;
+    overflow: auto;
+    position: relative;
+}
+#modal.loading #modal-content {
+    /*noinspection CssUnknownTarget*/
+    background: #ffffff url('../../img/loader.gif') no-repeat center;
+}
+#close-modal {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    font-size: 30px;
+    color: #b2b2b2;
+}
+#close-modal:hover {
+    color: #a2a2a2;
+}
+
+.share-ui {
+    text-align: center;
+}
+.share-ui h3 {
+    text-align: left;
+    margin: 0;
+}
+.share-ui img {
+    width: 100%;
+    max-width: 50vh;
+}
+.share-ui input {
+    margin: 0;
+}
+main > .share-ui {
+    display: none;
+}

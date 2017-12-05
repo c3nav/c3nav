@@ -31,6 +31,11 @@
             <button class="button-clear as-destination">{% trans 'Route to here' %}</button>
             <button class="button-clear as-origin">{% trans 'Route from here' %}</button>
         </section>
+        <section class="share-ui">
+            <h3>Share</h3>
+            <img src="">
+            <input type="text" readonly>
+        </section>
         <section id="map" data-bounds="{{ bounds }}" data-levels="{{ levels }}"{% if tile_cache_server %} data-tile-server="{{ tile_cache_server }}"{% endif %}></section>
         <section id="sidebar">
             <section id="search" class="loading">
@@ -105,6 +110,11 @@
             </div>
         </section>
     </main>
+    <div id="modal" class="loading">
+        <div id="modal-content">
+
+        </div>
+    </div>
     {% compress js %}
         <script type="text/javascript" src="{% static 'jquery/jquery.js' %}"></script>
         <script type="text/javascript" src="{% static 'leaflet/leaflet.js' %}"></script>

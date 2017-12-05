@@ -68,9 +68,12 @@ c3nav = {
         $location_buttons.find('.details').on('click', c3nav._location_buttons_details_click);
         $location_buttons.find('.route').on('click', c3nav._location_buttons_route_click);
 
+        $('#location-buttons, #route-result-buttons').find('.share').on('click', c3nav._buttons_share_click);
         $('#route-search-buttons, #route-result-buttons').find('.swap').on('click', c3nav._route_buttons_swap_click);
         $('#route-search-buttons').find('.close').on('click', c3nav._route_buttons_close_click);
         $('#map').on('click', '.location-popup .button-clear', c3nav._popup_button_click);
+
+        $('#modal').on('click', c3nav._modal_click);
 
         window.onpopstate = c3nav._onpopstate;
     },
@@ -332,6 +335,7 @@ c3nav = {
         return new_coords
     },
     _equal_states: function (a, b) {
+        if (a.modal !== b.modal) return false;
         if (a.routing !== b.routing || a.details !== b.details) return false;
         if ((a.origin && a.origin.id) !== (b.origin && b.origin.id)) return false;
         if ((a.destination && a.destination.id) !== (b.destination && b.destination.id)) return false;
@@ -339,12 +343,7 @@ c3nav = {
         if (a.center[0] !== b.center[0] || a.center[1] !== b.center[1]) return false;
         return true;
     },
-    _push_state: function (state, replace) {
-        state = $.extend({}, c3nav.state, state);
-        var old_state = c3nav.state;
-
-        if (!replace && c3nav._equal_states(old_state, state)) return;
-
+    _build_state_url: function (state) {
         var url;
         if (state.routing) {
             if (state.origin) {
@@ -361,6 +360,15 @@ c3nav = {
         if (state.center) {
             url += '@'+String(c3nav.level_labels_by_id[state.level])+','+String(state.center[0])+','+String(state.center[1])+','+String(state.zoom);
         }
+        return url
+    },
+    _push_state: function (state, replace) {
+        state = $.extend({}, c3nav.state, state);
+        var old_state = c3nav.state;
+
+        if (!replace && c3nav._equal_states(old_state, state)) return;
+
+        var url = c3nav._build_state_url(state);
 
         c3nav.state = state;
         if (replace || (!state.sidebar && !old_state.sidebar)) {
@@ -376,6 +384,12 @@ c3nav = {
         c3nav.load_state(e.state);
     },
     load_state: function (state, nofly) {
+        if (state.modal) {
+            history.back();
+            return;
+        }
+        state.modal = false;
+        $('#modal').removeClass('show');
         c3nav._locationinput_set($('#origin-input'), state.origin);
         c3nav._locationinput_set($('#destination-input'), state.destination);
         c3nav._sidebar_state_updated(state, state.center);
@@ -435,6 +449,24 @@ c3nav = {
             }
             c3nav.update_state(true);
         }
+    },
+
+    // share logic
+    _buttons_share_click: function () {
+        c3nav.open_modal($('main > .share-ui')[0].outerHTML);
+        c3nav._update_share_ui();
+    },
+    _update_share_ui: function(with_position) {
+        var $share = $('#modal .share-ui'),
+            state = $.extend({}, c3nav.state),
+            url;
+        if (!with_position) {
+            state.center = null;
+        }
+        url = c3nav._build_state_url(state);
+        $share.find('img').attr('src', '/qr'+url);
+        $share.find('input').val(window.location.protocol+'://'+window.location.host+url)[0].select();
+        console.log(url);
     },
 
     // location inputs
@@ -654,6 +686,23 @@ c3nav = {
         var max_items = Math.min(matches.length, Math.floor($('#resultswrapper').height() / 55));
         for (i = 0; i < max_items; i++) {
             $autocomplete.append(matches[i][0]);
+        }
+    },
+
+    open_modal: function (content) {
+        var $modal = $('#modal');
+        $modal.toggleClass('loading', !content)
+            .find('#modal-content')
+            .html('<button class="button-clear material-icons" id="close-modal">clear</button>')
+            .append(content || '');
+        if (!$modal.is('.show')) {
+            c3nav._push_state({modal: true, sidebar: true});
+            $modal.addClass('show');
+        }
+    },
+    _modal_click: function(e) {
+        if (e.target.id === 'modal' || e.target.id === 'close-modal') {
+            history.back();
         }
     },
 
