@@ -465,7 +465,7 @@ c3nav = {
         }
         url = c3nav._build_state_url(state);
         $share.find('img').attr('src', '/qr'+url);
-        $share.find('input').val(window.location.protocol+'://'+window.location.host+url)[0].select();
+        $share.find('input').val(window.location.protocol+'//'+window.location.host+url)[0].select();
         console.log(url);
     },
 
