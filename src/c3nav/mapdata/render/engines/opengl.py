@@ -153,10 +153,10 @@ class OpenGLEngine(Base3DEngine):
 
         scale_x = self.scale / self.width * 2
         scale_y = self.scale / self.height * 2
-        scale_z = (scale_x+scale_y) / 2
+        scale_z = 0.05
 
         self.gl_scale = (scale_x, -scale_y, scale_z)
-        self.gl_offset = (-self.minx * scale_x - 1, self.maxy * scale_y - 1, 0)
+        self.gl_offset = (-self.minx * scale_x - 1, self.maxy * scale_y - 1, -self.base_z * scale_z)
 
         self.vertices = []
 

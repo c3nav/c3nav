@@ -29,15 +29,15 @@ class MapRenderer:
         return box(self.minx-1, self.miny-1, self.maxx+1, self.maxy+1)
 
     def render(self, engine_cls, center=True):
-        engine = engine_cls(self.width, self.height, self.minx, self.miny,
-                            scale=self.scale, buffer=1, background='#DCDCDC', center=center)
-
         # add no access restriction to “unlocked“ access restrictions so lookup gets easier
         access_permissions = self.access_permissions | set([None])
 
         bbox = prepared.prep(self.bbox)
 
         level_render_data = LevelRenderData.get(self.level)
+
+        engine = engine_cls(self.width, self.height, self.minx, self.miny, float(level_render_data.base_altitude),
+                            scale=self.scale, buffer=1, background='#DCDCDC', center=center)
 
         if self.full_levels:
             levels = tuple(chain(*(

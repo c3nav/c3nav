@@ -37,6 +37,7 @@ class Cropper:
 class LevelRenderData:
     def __init__(self):
         self.levels = []
+        self.base_altitude = None
 
     @staticmethod
     def rebuild():
@@ -106,6 +107,7 @@ class LevelRenderData:
                         break
 
             render_data = LevelRenderData()
+            render_data.base_altitude = level.base_altitude
             access_restriction_affected = {}
 
             for sublevel in sublevels:

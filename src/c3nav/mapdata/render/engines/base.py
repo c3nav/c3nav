@@ -29,11 +29,13 @@ class RenderEngine(ABC):
     filetype = 'dat'
 
     # draw an svg image. supports pseudo-3D shadow-rendering
-    def __init__(self, width: int, height: int, xoff=0, yoff=0, scale=1, buffer=0, background='#FFFFFF', center=True):
+    def __init__(self, width: int, height: int, xoff=0, yoff=0, zoff=0,
+                 scale=1, buffer=0, background='#FFFFFF', center=True):
         self.width = width
         self.height = height
         self.minx = xoff
         self.miny = yoff
+        self.base_z = zoff
         self.scale = scale
         self.orig_buffer = buffer
         self.buffer = int(math.ceil(buffer*self.scale))
