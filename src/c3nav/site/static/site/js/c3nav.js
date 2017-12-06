@@ -707,7 +707,9 @@ c3nav = {
 
     // map
     init_map: function () {
-        var $map = $('#map'), i;
+        var $map = $('#map'),
+            $main = $('main'),
+            i;
         c3nav.bounds = JSON.parse($map.attr('data-bounds'));
         c3nav.levels = JSON.parse($map.attr('data-levels'));
         c3nav.tile_server = $map.attr('data-tile-server');
@@ -718,8 +720,8 @@ c3nav = {
         }
 
         minZoom = Math.log2(Math.max(0.25, Math.min(
-            ($(window).width()-40)/(c3nav.bounds[1][0]-c3nav.bounds[0][0]),
-            ($(window).height()-250)/(c3nav.bounds[1][1]-c3nav.bounds[0][1])
+            ($main.width()-40)/(c3nav.bounds[1][0]-c3nav.bounds[0][0]),
+            ($main.height()-250)/(c3nav.bounds[1][1]-c3nav.bounds[0][1])
         )));
 
         // create leaflet map
@@ -855,7 +857,8 @@ c3nav = {
     _add_map_padding: function(options, topleft, bottomright) {
         // add padding information for the current ui layout to fitBoudns options
         var $search = $('#search'),
-            padBesideSidebar = ($(window).width() > 1000 && ($(window).height() < 250 || c3nav.state.details)),
+            $main = $('main'),
+            padBesideSidebar = ($main.width() > 1000 && ($main.height() < 250 || c3nav.state.details)),
             left = padBesideSidebar ? $search.width()+10 : 0,
             top = padBesideSidebar ? 10 : $search.height()+10;
         options[topleft || 'paddingTopLeft'] = L.point(left+13, top+41);
