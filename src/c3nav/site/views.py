@@ -7,6 +7,7 @@ from django.core.serializers.json import DjangoJSONEncoder
 from django.http import HttpResponse, HttpResponseBadRequest
 from django.shortcuts import render
 from django.views.decorators.cache import cache_control
+from django.views.decorators.clickjacking import xframe_options_exempt
 from django.views.decorators.http import etag
 
 from c3nav.mapdata.models import Location, Source
@@ -35,7 +36,8 @@ def check_location(location: Optional[str], request) -> Optional[SpecificLocatio
     return location
 
 
-def map_index(request, mode=None, slug=None, slug2=None, details=None, level=None, x=None, y=None, zoom=None):
+def map_index(request, mode=None, slug=None, slug2=None, details=None,
+              level=None, x=None, y=None, zoom=None, embed=None):
     origin = None
     destination = None
     routing = False
@@ -76,9 +78,12 @@ def map_index(request, mode=None, slug=None, slug2=None, details=None, level=Non
         'state': json.dumps(state, separators=(',', ':'), cls=DjangoJSONEncoder),
         'tile_cache_server': settings.TILE_CACHE_SERVER,
         'user_data': get_user_data(request),
+        'embed': bool(embed),
     }
     response = render(request, 'site/map.html', ctx)
     set_tile_access_cookie(request, response)
+    if embed:
+        xframe_options_exempt(lambda: response)()
     return response
 
 

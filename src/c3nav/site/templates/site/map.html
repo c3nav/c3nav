@@ -3,7 +3,7 @@
 {% load i18n %}
 <!DOCTYPE html>
 <html lang="{{ LANGUAGE_CODE }}">
-  <head>
+<head>
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, user-scalable=no">
     <title>c3nav</title>
@@ -15,110 +15,120 @@
         <link href="{% static 'material-icons/material-icons.css' %}" rel="stylesheet">
         <link href="{% static 'site/css/c3nav.css' %}" rel="stylesheet">
     {% endcompress %}
-  </head>
-
-  <body>
-    <header>
-        <h1>c3nav</h1>
-        <a href="#" id="user">
-            <span>{{ user_data.title }}</span>
-            {% if user_data.subtitle %}<small>{{ user_data.subtitle }}</small>{% endif %}
-        </a>
-    </header>
-    <main class="map" data-state="{{ state }}">
-        <section id="popup-buttons">
-            <button class="button-clear as-location">{% trans 'Show only this location' %}</button>
-            <button class="button-clear as-destination">{% trans 'Route to here' %}</button>
-            <button class="button-clear as-origin">{% trans 'Route from here' %}</button>
-        </section>
-        <section class="share-ui">
-            <h3>Share</h3>
-            <img src="">
-            <input type="text" readonly>
-        </section>
+</head>
+<body>
+    {% if not embed %}
+        <header>
+            <h1>c3nav</h1>
+            <a href="#" id="user">
+                <span>{{ user_data.title }}</span>
+                {% if user_data.subtitle %}<small>{{ user_data.subtitle }}</small>{% endif %}
+            </a>
+        </header>
+    {% endif %}
+    <main class="map" data-state="{{ state }}"{% if embed %} data-embed{% endif %}>
         <section id="map" data-bounds="{{ bounds }}" data-levels="{{ levels }}"{% if tile_cache_server %} data-tile-server="{{ tile_cache_server }}"{% endif %}></section>
-        <section id="sidebar">
-            <section id="search" class="loading">
-                <div class="location locationinput empty" id="origin-input">
-                    <i class="icon material-icons">place</i>
-                    <input type="text" autocomplete="off" spellcheck="false" placeholder="{% trans 'Search any location…' %}">
-                    <small></small>
-                    <button class="button-clear locate material-icons">my_location</button>
-                    <button class="button-clear clear material-icons">clear</button>
-                </div>
-                <div class="location locationinput empty" id="destination-input">
-                    <i class="icon material-icons">place</i>
-                    <input type="text" autocomplete="off" spellcheck="false" placeholder="{% trans 'Search any location…' %}">
-                    <small></small>
-                    <button class="button-clear locate material-icons">my_location</button>
-                    <button class="button-clear clear material-icons">clear</button>
-                </div>
-                <i class="material-icons" id="route-dots">more_vert</i>
-                <div class="buttons" id="location-buttons">
-                    <button class="button-clear details">
-                        <i class="material-icons">expand_more</i>
-                        {% trans 'Details' %}
-                    </button>
-                    <button class="button-clear share">
-                        <i class="material-icons">share</i>
-                        {% trans 'Share' %}
-                    </button>
-                    <button class="button-clear route">
-                        <i class="material-icons">directions</i>
-                        {% trans 'Route' %}
-                    </button>
-                </div>
-                <div id="route-summary">
-                    <i class="icon material-icons">directions</i>
-                    <span>10min (100m)… sorry no routing yet</span>
-                    <small><em>default options</em></small>
-                </div>
-                <div class="buttons" id="route-search-buttons">
-                    <button class="button-clear swap">
-                        <i class="material-icons">swap_vert</i>
-                        {% trans 'Swap' %}
-                    </button>
-                    <button class="button-clear close">
-                        <i class="material-icons">close</i>
-                        {% trans 'Close' %}
-                    </button>
-                </div>
-                <div class="buttons" id="route-result-buttons">
-                    <button class="button-clear swap">
-                        <i class="material-icons">swap_vert</i>
-                        {% trans 'Swap' %}
-                    </button>
-                    <button class="button-clear details">
-                        <i class="material-icons">arrow_downward</i>
-                        {% trans 'Details' %}
-                    </button>
+        {% if not embed %}
+            <section id="popup-buttons">
+                <button class="button-clear as-location">{% trans 'Show only this location' %}</button>
+                <button class="button-clear as-destination">{% trans 'Route to here' %}</button>
+                <button class="button-clear as-origin">{% trans 'Route from here' %}</button>
+            </section>
+            <section class="share-ui">
+                <h3>Share</h3>
+                <img src="">
+                <input type="text" readonly>
+            </section>
+            <section id="sidebar">
+                <section id="search" class="loading">
+                    <div class="location locationinput empty" id="origin-input">
+                        <i class="icon material-icons">place</i>
+                        <input type="text" autocomplete="off" spellcheck="false" placeholder="{% trans 'Search any location…' %}">
+                        <small></small>
+                        <button class="button-clear locate material-icons">my_location</button>
+                        <button class="button-clear clear material-icons">clear</button>
+                    </div>
+                    <div class="location locationinput empty" id="destination-input">
+                        <i class="icon material-icons">place</i>
+                        <input type="text" autocomplete="off" spellcheck="false" placeholder="{% trans 'Search any location…' %}">
+                        <small></small>
+                        <button class="button-clear locate material-icons">my_location</button>
+                        <button class="button-clear clear material-icons">clear</button>
+                    </div>
+                    <i class="material-icons" id="route-dots">more_vert</i>
+                    <div class="buttons" id="location-buttons">
+                        <button class="button-clear details">
+                            <i class="material-icons">expand_more</i>
+                            {% trans 'Details' %}
+                        </button>
+                        <button class="button-clear share">
+                            <i class="material-icons">share</i>
+                            {% trans 'Share' %}
+                        </button>
+                        <button class="button-clear route">
+                            <i class="material-icons">directions</i>
+                            {% trans 'Route' %}
+                        </button>
+                    </div>
+                    <div id="route-summary">
+                        <i class="icon material-icons">directions</i>
+                        <span>10min (100m)… sorry no routing yet</span>
+                        <small><em>default options</em></small>
+                    </div>
+                    <div class="buttons" id="route-search-buttons">
+                        <button class="button-clear swap">
+                            <i class="material-icons">swap_vert</i>
+                            {% trans 'Swap' %}
+                        </button>
+                        <button class="button-clear close">
+                            <i class="material-icons">close</i>
+                            {% trans 'Close' %}
+                        </button>
+                    </div>
+                    <div class="buttons" id="route-result-buttons">
+                        <button class="button-clear swap">
+                            <i class="material-icons">swap_vert</i>
+                            {% trans 'Swap' %}
+                        </button>
+                        <button class="button-clear details">
+                            <i class="material-icons">arrow_downward</i>
+                            {% trans 'Details' %}
+                        </button>
+                    </div>
+                </section>
+                <div id="resultswrapper">
+                    <section id="autocomplete"></section>
+                    <section id="location-details" class="details">
+                        <div class="details-head">
+                            <a class="button button-clear editor float-right" target="_blank">
+                                <i class="material-icons">edit</i>
+                                {% trans 'Open in Editor' %}
+                            </a>
+                            <h2>{% trans 'Details' %}</h2>
+                        </div>
+                        <div class="details-body"></div>
+                    </section>
+                    <section id="route-details" class="details"></section>
                 </div>
             </section>
-            <div id="resultswrapper">
-                <section id="autocomplete"></section>
-                <section id="location-details" class="details">
-                    <div class="details-head">
-                        <a class="button button-clear editor float-right" target="_blank">
-                            <i class="material-icons">edit</i>
-                            {% trans 'Open in Editor' %}
-                        </a>
-                        <h2>{% trans 'Details' %}</h2>
-                    </div>
-                    <div class="details-body"></div>
-                </section>
-                <section id="route-details" class="details"></section>
-            </div>
-        </section>
+        {% else %}
+            <a id="embed-logo">c3nav</a>
+            <section id="popup-buttons"></section>
+            <section id="search">
+                <input type="hidden" id="origin-input">
+                <input type="hidden" id="destination-input">
+            </section>
+        {% endif %}
     </main>
-    <div id="modal" class="loading">
-        <div id="modal-content">
-
+    {% if not embed %}
+        <div id="modal" class="loading">
+            <div id="modal-content"></div>
         </div>
-    </div>
+    {% endif %}
     {% compress js %}
         <script type="text/javascript" src="{% static 'jquery/jquery.js' %}"></script>
         <script type="text/javascript" src="{% static 'leaflet/leaflet.js' %}"></script>
         <script type="text/javascript" src="{% static 'site/js/c3nav.js' %}"></script>
     {% endcompress %}
-  </body>
+</body>
 </html>

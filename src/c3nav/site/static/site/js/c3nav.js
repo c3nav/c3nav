@@ -47,7 +47,10 @@ c3nav = {
 
         $('.locationinput').data('location', null);
 
-        var state = JSON.parse($('main').attr('data-state'));
+        var $main = $('main'),
+            state = JSON.parse($main.attr('data-state'));
+        c3nav.embed = $main.is('[data-embed]');
+
         history.replaceState(state, window.location.path);
         c3nav.load_state(state, true);
         c3nav.update_map_locations();
@@ -343,16 +346,16 @@ c3nav = {
         if (a.center[0] !== b.center[0] || a.center[1] !== b.center[1]) return false;
         return true;
     },
-    _build_state_url: function (state) {
-        var url;
+    _build_state_url: function (state, embed) {
+        var url = embed ? '/embed' : '';
         if (state.routing) {
             if (state.origin) {
-                url = (state.destination) ? '/r/'+state.origin.slug+'/'+state.destination.slug+'/' : '/o/'+state.origin.slug+'/';
+                url += (state.destination) ? '/r/'+state.origin.slug+'/'+state.destination.slug+'/' : '/o/'+state.origin.slug+'/';
             } else {
-                url = (state.destination) ? '/d/'+state.destination.slug+'/' : '/r/';
+                url += (state.destination) ? '/d/'+state.destination.slug+'/' : '/r/';
             }
         } else {
-            url = state.destination?('/l/'+state.destination.slug+'/'):'/';
+            url += state.destination?('/l/'+state.destination.slug+'/'):'/';
         }
         if (state.details && (url.startsWith('/l/') || url.startsWith('/r/'))) {
             url += 'details/'
@@ -368,7 +371,12 @@ c3nav = {
 
         if (!replace && c3nav._equal_states(old_state, state)) return;
 
-        var url = c3nav._build_state_url(state);
+        var url = c3nav._build_state_url(state, c3nav.embed),
+            embed_logo = $('#embed-logo');
+
+        if (embed_logo.length) {
+            embed_logo.attr('href', c3nav._build_state_url(state));
+        }
 
         c3nav.state = state;
         if (replace || (!state.sidebar && !old_state.sidebar)) {
@@ -859,8 +867,8 @@ c3nav = {
         var $search = $('#search'),
             $main = $('main'),
             padBesideSidebar = ($main.width() > 1000 && ($main.height() < 250 || c3nav.state.details)),
-            left = padBesideSidebar ? $search.width()+10 : 0,
-            top = padBesideSidebar ? 10 : $search.height()+10;
+            left = padBesideSidebar ? ($search.width() || 0)+10 : 0,
+            top = padBesideSidebar ? 10 : ($search.height() || 0)+10;
         options[topleft || 'paddingTopLeft'] = L.point(left+13, top+41);
         options[bottomright || 'paddingBottomRight'] = L.point(50, 20);
         return options;
