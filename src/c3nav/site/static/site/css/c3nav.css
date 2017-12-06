@@ -1,15 +1,13 @@
 body {
-    margin-top: 58px;
     font-weight: normal;
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
 }
 
 header {
-    position: fixed;
-    left: 0;
-    right: 0;
-    top: 0;
-    height: 50px;
     padding: 10px;
+    height: 50px;
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -45,14 +43,13 @@ input {
     user-select: none;
 }
 
+main {
+    flex-grow: 1;
+}
 main.map {
-    position: absolute;
-    left: 0;
-    top: 50px;
-    right: 0;
-    bottom: 0;
     /*noinspection CssUnknownTarget*/
     background: url('../../img/loader.gif') no-repeat center;
+    position: relative;
 }
 #map {
     position: absolute;
