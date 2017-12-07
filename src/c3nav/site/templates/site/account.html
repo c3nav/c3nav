@@ -5,6 +5,8 @@
 <main class="account">
     <h2>{% trans 'Your Account' %}</h2>
 
+    {% include 'site/fragment_messages.html' %}
+
     <p>
         {% with username=request.user.username %}
             {% blocktrans %}You are logged in as <strong>{{ username }}</strong>.{% endblocktrans %}

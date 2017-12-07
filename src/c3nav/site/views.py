@@ -3,6 +3,7 @@ from typing import Optional
 
 import qrcode
 from django.conf import settings
+from django.contrib import messages
 from django.contrib.auth import login, logout
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.forms import AuthenticationForm, PasswordChangeForm, UserCreationForm
@@ -10,6 +11,7 @@ from django.core.serializers.json import DjangoJSONEncoder
 from django.http import HttpResponse, HttpResponseBadRequest
 from django.shortcuts import redirect, render
 from django.urls import reverse
+from django.utils.translation import ugettext_lazy as _
 from django.views.decorators.cache import cache_control, never_cache
 from django.views.decorators.clickjacking import xframe_options_exempt
 from django.views.decorators.http import etag
@@ -176,6 +178,8 @@ def change_password_view(request):
         form = PasswordChangeForm(user=request.user, data=request.POST)
         if form.is_valid():
             form.save()
+            login(request, request.user)
+            messages.success(request, _('Password successfully changed.'))
             return redirect('site.account')
     else:
         form = PasswordChangeForm(user=request.user)

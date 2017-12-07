@@ -649,6 +649,7 @@ ul.errorlist {
 
 ul.messages {
     list-style-type:none;
+    margin: 0 0 1.0rem;
 }
 ul.messages li {
     padding:1.0rem;
@@ -657,22 +658,22 @@ ul.messages li {
     background-color:#EEEEEE;
 }
 
-ul.messages li.info {
+ul.messages li.alert-info {
     color: #006688;
     border-color: #006688;
     background-color:#DDE4FF;
 }
-ul.messages li.success {
+ul.messages li.alert-success {
     color: #338800;
     border-color: #339900;
     background-color:#E4FFDD;
 }
-ul.messages li.warning {
+ul.messages li.alert-warning {
     color: #CC6600;
     border-color: #FF9900;
     background-color:#FFFFDD;
 }
-ul.messages li.error {
+ul.messages li.alert-danger {
     color: #CC0000;
     border-color: #CC0000;
     background-color:#FFEEEE;
