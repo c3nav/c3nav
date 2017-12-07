@@ -5,7 +5,7 @@ import qrcode
 from django.conf import settings
 from django.contrib.auth import login, logout
 from django.contrib.auth.decorators import login_required
-from django.contrib.auth.forms import AuthenticationForm, UserCreationForm
+from django.contrib.auth.forms import AuthenticationForm, PasswordChangeForm, UserCreationForm
 from django.core.serializers.json import DjangoJSONEncoder
 from django.http import HttpResponse, HttpResponseBadRequest
 from django.shortcuts import redirect, render
@@ -167,6 +167,23 @@ def register_view(request):
         field.help_text = None
 
     return render(request, 'site/register.html', {'form': form})
+
+
+@never_cache
+@login_required(login_url='site.login')
+def change_password_view(request):
+    if request.method == 'POST':
+        form = PasswordChangeForm(user=request.user, data=request.POST)
+        if form.is_valid():
+            form.save()
+            return redirect('site.account')
+    else:
+        form = PasswordChangeForm(user=request.user)
+
+    for field in form.fields.values():
+        field.help_text = None
+
+    return render(request, 'site/change_password.html', {'form': form})
 
 
 @never_cache

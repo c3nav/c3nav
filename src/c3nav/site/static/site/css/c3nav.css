@@ -68,6 +68,9 @@ main.account form {
     display: block;
     width: 100%;
 }
+#modal-content p, main.account p {
+    margin-bottom: 10px;
+}
 #modal-content :last-child {
     margin: 0;
 }
