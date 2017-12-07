@@ -1,0 +1,26 @@
+{% load bootstrap3 %}
+{% load i18n %}
+
+{% include 'editor/fragment_modal_close.html' %}
+<h3>{{ title }}</h3>
+
+{% bootstrap_messages %}
+
+{% if back_url %}
+    <p>
+        <a href="{{ back_url }}">&laquo; {% trans 'back' %}</a>
+    </p>
+{% endif %}
+
+<form method="post" action="{{ request.path_info }}?{{ request.GET.urlencode }}">
+    {% csrf_token %}
+    {% bootstrap_form form %}
+    <div class="form-group">
+        <button type="submit" class="btn btn-primary btn-block">{{ title }}</button>
+    </div>
+    {% if bottom_link_url %}
+        <p>
+            <a href="{{ bottom_link_url }}?{{ request.GET.urlencode }}">{{ bottom_link_text }}</a>
+        </p>
+    {% endif %}
+</form>

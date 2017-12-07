@@ -27,7 +27,12 @@ def login_view(request):
     else:
         form = AuthenticationForm(request)
 
-    return render(request, 'editor/login.html', {'form': form})
+    return render(request, 'editor/account_form.html', {
+        'title': _('Log in'),
+        'form': form,
+        'bottom_link_url': reverse('site.register'),
+        'bottom_link_text': _('Create new account')
+    })
 
 
 @sidebar_view
@@ -61,7 +66,11 @@ def register_view(request):
     for field in form.fields.values():
         field.help_text = None
 
-    return render(request, 'editor/register.html', {'form': form})
+    return render(request, 'editor/account_form.html', {
+        'title': _('Change new account'),
+        'back_url': reverse('site.login'),
+        'form': form
+    })
 
 
 @sidebar_view
@@ -81,4 +90,8 @@ def change_password_view(request):
     for field in form.fields.values():
         field.help_text = None
 
-    return render(request, 'editor/change_password.html', {'form': form})
+    return render(request, 'editor/account_form.html', {
+        'title': _('Change password'),
+        'back_url': reverse('site.account'),
+        'form': form
+    })
