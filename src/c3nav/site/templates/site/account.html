@@ -1,0 +1,18 @@
+{% extends 'site/base.html' %}
+{% load i18n %}
+
+{% block content %}
+<main class="account">
+    <h2>{% trans 'Your Account' %}</h2>
+
+    <p>
+        {% with username=request.user.username %}
+            {% blocktrans %}You are logged in as <strong>{{ username }}</strong>.{% endblocktrans %}
+        {% endwith %}
+    </p>
+
+    <p>
+        <a class="button" href="{% url 'site.logout' %}">{% trans 'Log out' %}</a>
+    </p>
+</main>
+{% endblock %}

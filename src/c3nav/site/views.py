@@ -151,5 +151,4 @@ def logout_view(request):
 @never_cache
 @login_required(login_url='site.login')
 def account_view(request):
-    # todo: show account info here
-    pass
+    return render(request, 'site/account.html', {})
