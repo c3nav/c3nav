@@ -162,6 +162,7 @@ def register_view(request):
     else:
         form = UserCreationForm()
 
+    form.fields['username'].max_length = 20
     for field in form.fields.values():
         field.help_text = None
 
