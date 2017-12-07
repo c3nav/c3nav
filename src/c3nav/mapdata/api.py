@@ -86,6 +86,8 @@ class MapViewSet(ViewSet):
 
 
 class MapdataViewSet(ReadOnlyModelViewSet):
+    order_by = ('id', )
+
     def get_queryset(self):
         qs = super().get_queryset()
         if hasattr(qs.model, 'qs_for_request'):
@@ -155,7 +157,7 @@ class MapdataViewSet(ReadOnlyModelViewSet):
                 if value not in keys:
                     raise NotFound(detail=_('%(model)s not found.') % {'model': qs_filter.model._meta.verbose_name})
 
-        results = tuple(qs.order_by('id'))
+        results = tuple(qs.order_by(*self.order_by))
         cache.set(cache_key, results, 300)
         return results
 
@@ -367,6 +369,7 @@ class LocationBySlugViewSet(LocationViewSetBase):
 
 class SourceViewSet(MapdataViewSet):
     queryset = Source.objects.all()
+    order_by = ('name',)
 
     @detail_route(methods=['get'])
     @api_etag()
