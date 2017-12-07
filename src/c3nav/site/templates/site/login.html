@@ -1,0 +1,14 @@
+{% extends 'site/base.html' %}
+{% load i18n %}
+
+{% block content %}
+<main class="account">
+    <h2>{% trans 'Log in' %}</h2>
+
+    <form method="post" action="{{ request.path_info }}?{{ request.GET.urlencode }}">
+        {% csrf_token %}
+        {{ form }}
+        <button type="submit">{% trans 'Log in' %}</button>
+    </form>
+</main>
+{% endblock %}

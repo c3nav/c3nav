@@ -25,6 +25,9 @@ header #user small {
     margin-top: -3px;
     color: #606c76;
 }
+header #user small:empty {
+    display:none;
+}
 
 input {
     font-family: inherit;
@@ -45,12 +48,26 @@ input {
 
 main {
     flex-grow: 1;
+    border: 0 solid #CCCCCC;
+    border-top-width: 1px;
+    padding: 10px;
+    padding-top: 20px;
 }
 main.map {
     /*noinspection CssUnknownTarget*/
     background: url('../../img/loader.gif') no-repeat center;
     position: relative;
+    padding: 0;
+    border-top-width: 0;
 }
+
+main.account form {
+    max-width: 400px;
+}
+#modal-content :last-child {
+    margin: 0;
+}
+
 #map {
     position: absolute;
     z-index: 1;
@@ -165,6 +182,9 @@ main:not([data-view=route-result]) #route-result-buttons {
 
 h2 {
     font-size: 2.5rem;
+    margin: 0 0 1rem;
+}
+.details-head h2 {
     margin: 0;
 }
 
@@ -453,7 +473,7 @@ main:not([data-view=route-result]) #route-dots {
 .buttons > *:hover, .buttons > *:active {
     background-color: #eeeeee;
 }
-button, .button {
+main.map button, main.map .button {
     font-size: 1.3rem;
     line-height: 1.3;
     height: 3.3rem;
@@ -588,6 +608,7 @@ main:not([data-view=route-result]) #route-summary {
     top: 8px;
     right: 8px;
     font-size: 30px;
+    padding: 0;
     color: #b2b2b2;
 }
 #close-modal:hover {
@@ -610,4 +631,42 @@ main:not([data-view=route-result]) #route-summary {
 }
 main > .share-ui {
     display: none;
+}
+
+
+ul.errorlist {
+    margin-bottom:0.5rem;
+    color:red;
+    list-style-type:none;
+}
+
+ul.messages {
+    list-style-type:none;
+}
+ul.messages li {
+    padding:1.0rem;
+    border-radius: .4rem;
+    border: 0.1rem solid #666666;
+    background-color:#EEEEEE;
+}
+
+ul.messages li.info {
+    color: #006688;
+    border-color: #006688;
+    background-color:#DDE4FF;
+}
+ul.messages li.success {
+    color: #338800;
+    border-color: #339900;
+    background-color:#E4FFDD;
+}
+ul.messages li.warning {
+    color: #CC6600;
+    border-color: #FF9900;
+    background-color:#FFFFDD;
+}
+ul.messages li.error {
+    color: #CC0000;
+    border-color: #CC0000;
+    background-color:#FFEEEE;
 }

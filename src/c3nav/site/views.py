@@ -3,10 +3,14 @@ from typing import Optional
 
 import qrcode
 from django.conf import settings
+from django.contrib.auth import login, logout
+from django.contrib.auth.decorators import login_required
+from django.contrib.auth.forms import AuthenticationForm
 from django.core.serializers.json import DjangoJSONEncoder
 from django.http import HttpResponse, HttpResponseBadRequest
-from django.shortcuts import render
-from django.views.decorators.cache import cache_control
+from django.shortcuts import redirect, render
+from django.urls import reverse
+from django.views.decorators.cache import cache_control, never_cache
 from django.views.decorators.clickjacking import xframe_options_exempt
 from django.views.decorators.http import etag
 
@@ -111,3 +115,41 @@ def qr_code(request, path):
     response = HttpResponse(content_type='image/png')
     qr.make_image().save(response, 'PNG')
     return response
+
+
+def close_response(request):
+    ajax = request.is_ajax() or 'ajax' in request.GET
+    if ajax:
+        return HttpResponse(json.dumps(get_user_data(request), cls=DjangoJSONEncoder).encode(),
+                            content_type='text/plain')
+    redirect_path = request.GET['next'] if request.GET.get('next', '').startswith('/') else reverse('site.index')
+    return redirect(redirect_path)
+
+
+@never_cache
+def login_view(request):
+    if request.user.is_authenticated:
+        return close_response(request)
+
+    if request.method == 'POST':
+        form = AuthenticationForm(request, data=request.POST)
+        if form.is_valid():
+            login(request, form.user_cache)
+            return close_response(request)
+    else:
+        form = AuthenticationForm(request)
+
+    return render(request, 'site/login.html', {'form': form})
+
+
+@never_cache
+def logout_view(request):
+    logout(request)
+    return close_response(request)
+
+
+@never_cache
+@login_required(login_url='site.login')
+def account_view(request):
+    # todo: show account info here
+    pass

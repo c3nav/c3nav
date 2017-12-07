@@ -20,9 +20,9 @@
     {% if not embed %}
         <header>
             <h1>c3nav</h1>
-            <a href="#" id="user">
+            <a href="/account/" id="user">
                 <span>{{ user_data.title }}</span>
-                {% if user_data.subtitle %}<small>{{ user_data.subtitle }}</small>{% endif %}
+                <small>{% if user_data.subtitle %}{{ user_data.subtitle }}{% endif %}</small>
             </a>
         </header>
     {% endif %}

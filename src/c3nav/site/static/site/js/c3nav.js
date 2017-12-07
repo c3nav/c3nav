@@ -76,7 +76,10 @@ c3nav = {
         $('#route-search-buttons').find('.close').on('click', c3nav._route_buttons_close_click);
         $('#map').on('click', '.location-popup .button-clear', c3nav._popup_button_click);
 
-        $('#modal').on('click', c3nav._modal_click);
+        $('#modal').on('click', c3nav._modal_click)
+            .on('click', 'a', c3nav._modal_link_click)
+            .on('submit', 'form', c3nav._modal_submit);
+        $('header #user').on('click', c3nav._modal_link_click);
 
         window.onpopstate = c3nav._onpopstate;
     },
@@ -713,19 +716,43 @@ c3nav = {
 
     open_modal: function (content) {
         var $modal = $('#modal');
-        $modal.toggleClass('loading', !content)
-            .find('#modal-content')
-            .html('<button class="button-clear material-icons" id="close-modal">clear</button>')
-            .append(content || '');
+        c3nav._set_modal_content(content);
         if (!$modal.is('.show')) {
             c3nav._push_state({modal: true, sidebar: true});
             $modal.addClass('show');
         }
     },
+    _set_modal_content: function(content) {
+        $('#modal').toggleClass('loading', !content)
+            .find('#modal-content')
+            .html('<button class="button-clear material-icons" id="close-modal">clear</button>')
+            .append(content || '');
+    },
     _modal_click: function(e) {
         if (e.target.id === 'modal' || e.target.id === 'close-modal') {
             history.back();
         }
+    },
+    _modal_link_click: function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        c3nav.open_modal();
+        $.get($(this).attr('href'), c3nav._modal_loaded).fail(c3nav._modal_error);
+    },
+    _modal_submit: function(e) {
+        e.preventDefault();
+        $.post($(this).attr('action'), $(this).serialize(), c3nav._modal_loaded).fail(c3nav._modal_error);
+    },
+    _modal_loaded: function(data) {
+        if (data.startsWith('{')) {
+            c3nav._set_user_data(JSON.parse(data));
+            history.back();
+            return;
+        }
+        c3nav._set_modal_content($('<div>'+data+'</div>').find('main').html());
+    },
+    _modal_error: function(data) {
+        $('#modal').removeClass('loading').find('#modal-content').html('<h3>Error '+data.status+'</h3>');
     },
 
     // map
@@ -929,8 +956,13 @@ c3nav = {
         window.setTimeout(c3nav.refresh_tile_access, 16000);
     },
     refresh_tile_access: function () {
-        $.ajax('/api/users/current/');
+        $.get('/api/users/current/', c3nav._set_user_data);
         c3nav.schedule_refresh_tile_access();
+    },
+    _set_user_data: function (data) {
+        var $user = $('header #user');
+        $user.find('span').text(data.title);
+        $user.find('small').text(data.subtitle || '');
     }
 };
 $(document).ready(c3nav.init);
