@@ -1,62 +1,25 @@
 import json
 import operator
-from collections import OrderedDict
 from functools import reduce
 
-from django.conf import settings
 from django.core.exceptions import FieldDoesNotExist
 from django.forms import (BooleanField, CharField, ChoiceField, Form, ModelChoiceField, ModelForm, MultipleChoiceField,
                           ValidationError)
 from django.forms.widgets import HiddenInput
-from django.utils.text import format_lazy
 from django.utils.translation import ugettext_lazy as _
-from django.utils.translation import get_language_info
 from shapely.geometry.geo import mapping
 
 from c3nav.editor.models import ChangeSet, ChangeSetUpdate
-from c3nav.mapdata.fields import GeometryField, I18nField
+from c3nav.mapdata.fields import GeometryField
+from c3nav.mapdata.forms import I18nModelFormMixin
 from c3nav.mapdata.models import GraphEdge
 
 
-class EditorFormBase(ModelForm):
+class EditorFormBase(I18nModelFormMixin, ModelForm):
     def __init__(self, *args, request=None, **kwargs):
         self.request = request
         super().__init__(*args, **kwargs)
         creating = not self.instance.pk
-
-        new_fields = OrderedDict()
-        self.i18n_fields = []
-        for name, form_field in self.fields.items():
-            model_field = self.instance._meta.get_field(name)
-
-            if not isinstance(model_field, I18nField):
-                new_fields[name] = form_field
-                continue
-
-            values = OrderedDict((lang_code, '') for lang_code, language in settings.LANGUAGES)
-            if self.instance is not None and self.instance.pk:
-                values.update(getattr(self.instance, model_field.attname))
-
-            has_values = False
-            for language in values.keys():
-                sub_field_name = '%s__%s' % (name, language)
-                new_value = self.data.get(sub_field_name)
-                if new_value is not None:
-                    has_values = True
-                    values[language] = new_value
-                language_info = get_language_info(language)
-                field_title = format_lazy(_('{field_name} ({lang})'),
-                                          field_name=model_field.verbose_name,
-                                          lang=language_info['name_translated'])
-                new_fields[sub_field_name] = CharField(label=field_title,
-                                                       required=False,
-                                                       initial=values[language].strip(),
-                                                       max_length=model_field.i18n_max_length)
-
-            if has_values:
-                self.i18n_fields.append((model_field, values))
-
-        self.fields = new_fields
 
         if 'level' in self.fields:
             # hide level widget
@@ -154,18 +117,7 @@ class EditorFormBase(ModelForm):
             if not self.cleaned_data.get('geometry'):
                 raise ValidationError('Missing geometry.')
 
-        for field, values in self.i18n_fields:
-            if not field.blank and not any(values.values()):
-                raise ValidationError(_('You have to choose a value for {field} in at least one language.').format(
-                    field=field.verbose_name
-                ))
-
         super().clean()
-
-    def full_clean(self):
-        super().full_clean()
-        for field, values in self.i18n_fields:
-            setattr(self.instance, field.attname, {lang: value for lang, value in values.items() if value})
 
     def _save_m2m(self):
         super()._save_m2m()
