@@ -249,18 +249,31 @@ c3nav = {
                     // if we were in a secondary level, collect this line for the next primary level
                     next_level_collect = next_level_collect.concat(level_collect);
                 } else if (last_primary_level) {
-                    // if we were in an intermediate level, add this line to it
-                    c3nav._add_line_to_route(last_primary_level, level_collect);
+                    // if we were in an primary level, add this line to it
+                    if (!item.level.on_top_of) {
+                        // directly from primary level to primary level
+                        console.log('add to primary (to primary)');
+                        c3nav._add_line_to_route(last_primary_level, level_collect.slice(0, -1));
+                    } else {
+                        console.log('add to primary (to secondary)');
+                        c3nav._add_line_to_route(last_primary_level, level_collect);
+                    }
                 }
 
                 if (item.level.on_top_of) {
-                    // if we area now in an intermediate level, note this
+                    // if we area now in an secondary level, note this
                     in_intermediate_level = true;
                 } else {
                     // if we are now in a primary level, add intermediate lines as links to last primary and this level
+                    if (last_primary_level) {
+                        if (!in_intermediate_level) {
+                            next_level_collect = level_collect.slice(-2);
+                        }
+                        console.log('add blargh');
+                        c3nav._add_line_to_route(last_primary_level, next_level_collect, false, item.level.id);
+                        c3nav._add_line_to_route(item.level.id, next_level_collect, false, last_primary_level);
+                    }
                     in_intermediate_level = false;
-                    c3nav._add_line_to_route(last_primary_level, next_level_collect, false, item.level.id);
-                    c3nav._add_line_to_route(item.level.id, next_level_collect, false, last_primary_level);
                     if (!first_primary_level) first_primary_level = item.level.id;
                     last_primary_level = item.level.id;
                     next_level_collect = [];
@@ -303,7 +316,8 @@ c3nav = {
             routeLayer = c3nav._routeLayers[level];
             line = L.polyline(latlngs, {
                 color: gray ? '#888888': $('button.swap').css('color'),
-                dashArray: (gray || link_to_level) ? '7' : null
+                dashArray: (gray || link_to_level) ? '7' : null,
+                interactive: false
             }).addTo(routeLayer),
             bounds = {};
         bounds[level] = line.getBounds();
@@ -313,7 +327,8 @@ c3nav = {
         if (link_to_level) {
             L.polyline(latlngs, {
                 opacity: 0,
-                weight: 15
+                weight: 15,
+                interactive: true
             }).addTo(routeLayer).on('click', function() {
                 c3nav._levelControl.setLevel(link_to_level);
             });
