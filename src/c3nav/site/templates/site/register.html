@@ -3,13 +3,12 @@
 
 {% block content %}
 <main class="account">
-    <h2>{% trans 'Log in' %}</h2>
+    <h2>{% trans 'Create new account' %}</h2>
 
     <form method="post" action="{{ request.path_info }}?{{ request.GET.urlencode }}">
         {% csrf_token %}
         {{ form }}
-        <button type="submit">{% trans 'Log in' %}</button>
-        <a href="{% url 'site.register' %}">{% trans 'Create new account' %}</a>
+        <button type="submit">{% trans 'Create new account' %}</button>
     </form>
 </main>
 {% endblock %}

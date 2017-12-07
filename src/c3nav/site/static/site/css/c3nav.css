@@ -64,6 +64,10 @@ main.map {
 main.account form {
     max-width: 400px;
 }
+#modal-content form button[type=submit] {
+    display: block;
+    width: 100%;
+}
 #modal-content :last-child {
     margin: 0;
 }

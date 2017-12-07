@@ -1,6 +1,6 @@
 from django.conf.urls import url
 
-from c3nav.site.views import account_view, login_view, logout_view, map_index, qr_code
+from c3nav.site.views import account_view, login_view, logout_view, map_index, qr_code, register_view
 
 slug = r'(?P<slug>[a-z0-9-_.:]+)'
 slug2 = r'(?P<slug2>[a-z0-9-_.:]+)'
@@ -17,5 +17,6 @@ urlpatterns = [
     url(r'^qr/(?P<path>.*)$', qr_code, name='site.qr'),
     url(r'^login$', login_view, name='site.login'),
     url(r'^logout$', logout_view, name='site.logout'),
+    url(r'^register$', register_view, name='site.register'),
     url(r'^account/$', account_view, name='site.account'),
 ]

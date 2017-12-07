@@ -5,7 +5,7 @@ import qrcode
 from django.conf import settings
 from django.contrib.auth import login, logout
 from django.contrib.auth.decorators import login_required
-from django.contrib.auth.forms import AuthenticationForm
+from django.contrib.auth.forms import AuthenticationForm, UserCreationForm
 from django.core.serializers.json import DjangoJSONEncoder
 from django.http import HttpResponse, HttpResponseBadRequest
 from django.shortcuts import redirect, render
@@ -146,6 +146,26 @@ def login_view(request):
 def logout_view(request):
     logout(request)
     return close_response(request)
+
+
+@never_cache
+def register_view(request):
+    if request.user.is_authenticated:
+        return close_response(request)
+
+    if request.method == 'POST':
+        form = UserCreationForm(data=request.POST)
+        if form.is_valid():
+            user = form.save()
+            login(request, user)
+            return close_response(request)
+    else:
+        form = UserCreationForm()
+
+    for field in form.fields.values():
+        field.help_text = None
+
+    return render(request, 'site/register.html', {'form': form})
 
 
 @never_cache
