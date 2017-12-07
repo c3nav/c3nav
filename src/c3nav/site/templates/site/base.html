@@ -1,34 +1,32 @@
 {% load static %}
 {% load compress %}
 {% load i18n %}
-
 <!DOCTYPE html>
-<html lang="en">
-  <head>
-    <meta charset="utf-8">
+<html lang="{{ LANGUAGE_CODE }}">
+<head>
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, user-scalable=no">
     <title>c3nav</title>
     {% compress css %}
-        <link href="{% static 'bootstrap/css/bootstrap.css' %}" rel="stylesheet">
+        <link href="{% static 'fonts/fonts.css' %}" rel="stylesheet">
+        <link href="{% static 'normalize/normalize.css' %}" rel="stylesheet">
+        <link href="{% static 'milligram/milligram.css' %}" rel="stylesheet">
+        <link href="{% static 'leaflet/leaflet.css' %}" rel="stylesheet">
+        <link href="{% static 'material-icons/material-icons.css' %}" rel="stylesheet">
         <link href="{% static 'site/css/c3nav.css' %}" rel="stylesheet">
     {% endcompress %}
-  </head>
-
-  <body class="{% block bodyclass %}{% endblock %}">
-
-    <div class="container" id="main">
-        <h1><a href="{% url 'site.index' %}">c3nav</a></h1>
-        {% block content %}
-        {% endblock %}
-
-        {% include 'site/footer.html' %}
-    </div>
-
-    {% compress js %}
-        <script type="text/javascript" src="{% static 'jquery/jquery.js' %}"></script>
-        <!--<script type="text/javascript" src="{% static 'site/js/typeahead.js' %}"></script>-->
-        <script type="text/javascript" src="{% static 'site/js/c3nav.js' %}"></script>
-    {% endcompress %}
-  </body>
+</head>
+<body>
+    {% if not embed %}
+        <header>
+            <h1>c3nav</h1>
+            <a href="#" id="user">
+                <span>{{ user_data.title }}</span>
+                {% if user_data.subtitle %}<small>{{ user_data.subtitle }}</small>{% endif %}
+            </a>
+        </header>
+    {% endif %}
+    {% block content %}
+    {% endblock %}
+</body>
 </html>

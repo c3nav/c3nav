@@ -1,31 +1,9 @@
+{% extends 'site/base.html' %}
 {% load static %}
 {% load compress %}
 {% load i18n %}
-<!DOCTYPE html>
-<html lang="{{ LANGUAGE_CODE }}">
-<head>
-    <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <meta name="viewport" content="width=device-width, user-scalable=no">
-    <title>c3nav</title>
-    {% compress css %}
-        <link href="{% static 'fonts/fonts.css' %}" rel="stylesheet">
-        <link href="{% static 'normalize/normalize.css' %}" rel="stylesheet">
-        <link href="{% static 'milligram/milligram.css' %}" rel="stylesheet">
-        <link href="{% static 'leaflet/leaflet.css' %}" rel="stylesheet">
-        <link href="{% static 'material-icons/material-icons.css' %}" rel="stylesheet">
-        <link href="{% static 'site/css/c3nav.css' %}" rel="stylesheet">
-    {% endcompress %}
-</head>
-<body>
-    {% if not embed %}
-        <header>
-            <h1>c3nav</h1>
-            <a href="#" id="user">
-                <span>{{ user_data.title }}</span>
-                {% if user_data.subtitle %}<small>{{ user_data.subtitle }}</small>{% endif %}
-            </a>
-        </header>
-    {% endif %}
+
+{% block content %}
     <main class="map" data-state="{{ state }}"{% if embed %} data-embed{% endif %}>
         <section id="map" data-bounds="{{ bounds }}" data-levels="{{ levels }}"{% if tile_cache_server %} data-tile-server="{{ tile_cache_server }}"{% endif %}></section>
         {% if not embed %}
@@ -130,5 +108,4 @@
         <script type="text/javascript" src="{% static 'leaflet/leaflet.js' %}"></script>
         <script type="text/javascript" src="{% static 'site/js/c3nav.js' %}"></script>
     {% endcompress %}
-</body>
-</html>
+{% endblock %}
