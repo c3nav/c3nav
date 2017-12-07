@@ -162,6 +162,12 @@ class I18nDescriptor:
                                    fallback_any=self.field.fallback_any,
                                    fallback_value=fallback_value)
 
+    def __set__(self, instance, value):
+        # this is only implemented to make sure loaddata works
+        if not isinstance(value, dict):
+            raise AttributeError('can\'t set attribute')
+        setattr(instance, self.field.attname, value)
+
 
 class I18nField(JSONField):
     def __init__(self, verbose_name=None, plural_name=None, max_length=None, default=None,
