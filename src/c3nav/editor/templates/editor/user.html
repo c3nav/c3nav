@@ -30,7 +30,9 @@
         </p>
         <form method="post" action="{{ request.path }}">
             {% csrf_token %}
-            <button type="submit" class="btn btn-xs btn-warning" name="direct_editing" value="0">{% trans 'Deactivate direct editing' %}</button>
+            <p>
+                <button type="submit" class="btn btn-xs btn-warning" name="direct_editing" value="0">{% trans 'Deactivate direct editing' %}</button>
+            </p>
         </form>
     {% else %}
         <p>
@@ -40,9 +42,15 @@
         {% if can_direct_edit %}
             <form method="post" action="{{ request.path }}">
                 {% csrf_token %}
-                <button type="submit" class="btn btn-xs btn-warning" name="direct_editing" value="1">{% trans 'Activate direct editing' %}</button>
+                <p>
+                    <button type="submit" class="btn btn-xs btn-warning" name="direct_editing" value="1">{% trans 'Activate direct editing' %}</button>
+                </p>
             </form>
         {% endif %}
+        <p>
+            {% csrf_token %}
+            <a class="btn btn-xs btn-default" href="{% url 'editor.change_password' %}">{% trans 'Change password' %}</a>
+        </p>
     {% endif %}
 {% endif %}
 

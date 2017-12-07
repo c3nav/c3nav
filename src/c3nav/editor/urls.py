@@ -1,9 +1,9 @@
 from django.apps import apps
 from django.conf.urls import url
 
+from c3nav.editor.views.account import change_password_view, login_view, logout_view, register_view
 from c3nav.editor.views.changes import changeset_detail, changeset_edit
 from c3nav.editor.views.edit import edit, graph_edit, level_detail, list_objects, main_index, space_detail
-from c3nav.editor.views.login import login_view, logout_view
 from c3nav.editor.views.users import user_detail
 
 
@@ -44,6 +44,8 @@ urlpatterns = [
     url(r'^users/(?P<pk>[0-9]+)/$', user_detail, name='editor.users.detail'),
     url(r'^login$', login_view, name='editor.login'),
     url(r'^logout$', logout_view, name='editor.logout'),
+    url(r'^register$', register_view, name='editor.register'),
+    url(r'^change_password$', change_password_view, name='editor.change_password'),
 ]
 urlpatterns.extend(add_editor_urls('Level', with_list=False, explicit_edit=True))
 urlpatterns.extend(add_editor_urls('LocationGroupCategory'))

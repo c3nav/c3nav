@@ -2,15 +2,16 @@
 {% load i18n %}
 
 {% include 'editor/fragment_modal_close.html' %}
-<h3>{% trans 'Log in' %}</h3>
+<h3>{% trans 'Create new account' %}</h3>
 
-{% bootstrap_messages %}
+<p>
+    <a href="{% url 'editor.login' %}">&laquo; {% trans 'back' %}</a>
+</p>
 
 <form method="post" action="{{ request.path_info }}?{{ request.GET.urlencode }}">
     {% csrf_token %}
     {% bootstrap_form form %}
     <div class="form-group">
-        <button type="submit" class="btn btn-primary btn-block">{% trans 'Log in' %}</button>
+        <button type="submit" class="btn btn-primary btn-block">{% trans 'Create new account' %}</button>
     </div>
-    <a href="{% url 'editor.register' %}?{{ request.GET.urlencode }}">{% trans 'Create new account' %}</a>
 </form>
