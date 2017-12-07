@@ -56,6 +56,11 @@ class ChangeSet(models.Model):
         verbose_name_plural = _('Change Sets')
         default_related_name = 'changesets'
 
+        permissions = (
+            ('review_changeset', _('Can review change sets')),
+            ('direct_edit', _('Can use direct edit')),
+        )
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.changed_objects = None
@@ -486,13 +491,12 @@ class ChangeSet(models.Model):
         return self.author_id == request.user.pk and self.state in ('proposed', 'reproposed')
 
     def can_review(self, request):
-        # todo implement permissions
-        return request.user.is_superuser
+        return request.user.has_perm('editor.review_changeset')
 
     @classmethod
     def can_direct_edit(cls, request):
-        # todo implement permissions
-        return request.user.is_superuser
+        print(request.user.has_perm('editor.direct_edit'))
+        return request.user.has_perm('editor.direct_edit')
 
     def can_start_review(self, request):
         return self.can_review(request) and self.state in ('proposed', 'reproposed')
