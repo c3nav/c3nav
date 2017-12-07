@@ -16,6 +16,9 @@ header h1 {
     font-size: 3rem;
     margin: 0;
 }
+header h1 a {
+    color: inherit;
+}
 header #user {
     text-align: right;
     padding: 0 0 3px 10px;

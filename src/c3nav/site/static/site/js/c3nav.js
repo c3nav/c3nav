@@ -81,6 +81,8 @@ c3nav = {
             .on('submit', 'form', c3nav._modal_submit);
         $('header #user').on('click', c3nav._modal_link_click);
 
+        $('header h1 a').removeAttr('href');
+
         window.onpopstate = c3nav._onpopstate;
     },
     get_csrf_token: function() {
