@@ -893,8 +893,8 @@ c3nav = {
         var bounds = c3nav.bounds,
             factor = Math.pow(2, zoom);
         return [
-            [bounds[0][0]-510/factor, bounds[0][1]-30/factor],
-            [bounds[1][0]+60/factor, bounds[1][1]+160/factor]
+            [bounds[0][0]-600/factor, bounds[0][1]-200/factor],
+            [bounds[1][0]+600/factor, bounds[1][1]+200/factor]
         ];
     },
     _add_location_to_map: function(location, icon) {
