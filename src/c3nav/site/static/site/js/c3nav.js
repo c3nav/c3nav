@@ -787,6 +787,7 @@ c3nav = {
             zoomSnap: 0,
             zoomControl: false
         });
+        c3nav.map.attributionControl.setPrefix($('#attributions').html());
         if (L.Browser.chrome && !('ontouchstart' in window)) {
             $('.leaflet-touch').removeClass('leaflet-touch');
         }

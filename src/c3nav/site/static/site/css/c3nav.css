@@ -436,7 +436,7 @@ main:not([data-view=route-result]) #route-dots {
     color: #b2b2b2;
 }
 
-#popup-buttons {
+#popup-buttons, #attributions {
     display: none;
 }
 .location-popup .leaflet-popup-content {
