@@ -7,6 +7,13 @@
 
 {% block content %}
 <main>
+    <h2>{% block heading %}{% endblock %}</h2>
+    <nav>
+        <p>
+            <a href="{% url 'control.index' %}">{% trans 'Overview' %}</a> &middot;
+            <a href="{% url 'control.users' %}">{% trans 'Users' %}</a>
+        </p>
+    </nav>
     {% block subcontent %}
     {% endblock %}
 </main>

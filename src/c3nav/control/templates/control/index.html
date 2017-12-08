@@ -1,8 +1,8 @@
 {% extends 'control/base.html' %}
 {% load i18n %}
 
-{% block subcontent %}
-<h2>{% trans 'Overview' %}</h2>
+{% block heading %}{% trans 'Overview' %}{% endblock %}
 
-<p>{% trans 'Welcome to the c3nav control panel.' %}</p>
+{% block subcontent %}
+    <p>{% trans 'Welcome to the c3nav control panel.' %}</p>
 {% endblock %}

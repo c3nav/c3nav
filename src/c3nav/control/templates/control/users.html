@@ -1,9 +1,9 @@
 {% extends 'control/base.html' %}
 {% load i18n %}
 
-{% block subcontent %}
-    <h2>{% trans 'Users' %}</h2>
+{% block heading %}{% trans 'Users' %}{% endblock %}
 
+{% block subcontent %}
     <form class="search-form">
         <input type="text" name="s" value="{{ request.GET.s }}"> <button type="submit">{% trans 'Search' %}</button>
     </form>
