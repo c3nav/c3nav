@@ -17,6 +17,7 @@ class UserAdmin(BaseUserAdmin):
         (_('Permissions'), {'fields': ('is_active', 'is_staff', 'is_superuser')}),
         (_('Important dates'), {'fields': ('last_login', 'date_joined')}),
     )
+    readonly_fields = ('last_login', 'date_joined')
     inlines = (UserPermissionsInline, )
 
 
