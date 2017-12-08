@@ -1,6 +1,8 @@
 import re
 from functools import wraps
 
+from c3nav.mapdata.utils.user import get_user_data_lazy
+
 
 class NoLanguageMiddleware:
     def __init__(self, get_response):
@@ -38,3 +40,12 @@ def no_language(keep_content_language=False):
             return response
         return wrapper
     return decorator
+
+
+class GetUserDataMiddleware:
+    def __init__(self, get_response):
+        self.get_response = get_response
+
+    def __call__(self, request):
+        request.user_data = get_user_data_lazy(request)
+        return self.get_response(request)

@@ -21,8 +21,8 @@
         <header>
             <h1><a href="{% block header_title_url %}/{% endblock %}">{% block header_title %}c3nav{% endblock %}</a></h1>
             <a href="/account/" id="user">
-                <span>{{ user_data.title }}</span>
-                <small>{% if user_data.subtitle %}{{ user_data.subtitle }}{% endif %}</small>
+                <span>{{ request.user_data.title }}</span>
+                <small>{% if request.user_data.subtitle %}{{ request.user_data.subtitle }}{% endif %}</small>
             </a>
         </header>
     {% endif %}
