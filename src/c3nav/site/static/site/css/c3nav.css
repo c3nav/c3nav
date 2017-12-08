@@ -700,6 +700,17 @@ main.control h4, main.control h2 {
 main.control h4 {
     margin-top: 2.5rem;
 }
+main.control form tr > * {
+    white-space: nowrap;
+}
+.button-cell {
+    padding-top: 4px;
+    padding-bottom: 4px;
+    text-align: right;
+}
+.button-cell button {
+    margin: 0;
+}
 
 .user-permissions-form label {
     font-weight: 400;

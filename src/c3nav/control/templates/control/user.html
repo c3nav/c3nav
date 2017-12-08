@@ -25,20 +25,29 @@
 
     <h4>{% trans 'Access Permissions' %}</h4>
     {% if user.accesspermissions.all %}
+        <form method="post">
+        {% csrf_token %}
         <table>
             <tr>
                 <th>{% trans 'Access Restriction' %}</th>
                 <th>{% trans 'expires' %}</th>
                 <th>{% trans 'can grant' %}</th>
+                {% if request.user_permissions.access_all %}
+                    <th></th>
+                {% endif %}
             </tr>
             {% for access_permission in user.accesspermissions.all %}
                 <tr>
                     <td>{{ access_permission.access_restriction.title }}</td>
                     <td>{{ access_permission.expire_date }}</td>
                     <td>{% if access_permission.can_grant %}{% trans 'Yes' %}{% else %}{% trans 'No' %}{% endif %}</td>
+                    {% if request.user_permissions.access_all %}
+                        <td class="button-cell"><button type="submit" name="delete_access_permission" value="{{ access_permission.pk }}">{% trans 'Delete' %}</button></td>
+                    {% endif %}
                 </tr>
             {% endfor %}
         </table>
+        </form>
     {% else %}
         <p><em>{% trans 'none' %}</em></p>
     {% endif %}

@@ -57,6 +57,18 @@ def user_detail(request, user):
     )
     user = get_object_or_404(qs, pk=user)
 
+    if request.method == 'POST':
+        delete_access_permission = request.POST.get('delete_access_permission')
+        if delete_access_permission:
+            try:
+                permission = AccessPermission.objects.get(pk=delete_access_permission)
+            except AccessPermission.DoesNotExist:
+                messages.error(request, _('Unknown access permission.'))
+            else:
+                permission.delete()
+                messages.success(request, _('Access Permission successfully deleted.'))
+            return redirect(request.path_info)
+
     ctx = {
         'user': user,
     }
