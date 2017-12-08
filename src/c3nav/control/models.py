@@ -15,6 +15,7 @@ class UserPermissions(models.Model):
     control_panel = models.BooleanField(default=False, verbose_name=_('can access control panel'))
     grant_permissions = models.BooleanField(default=False, verbose_name=_('can grant control permissions'))
     manage_announcements = models.BooleanField(default=False, verbose_name=_('manage announcements'))
+    access_all = models.BooleanField(default=False, verbose_name=_('can access and grant access to everything'))
 
     class Meta:
         verbose_name = _('User Permissions')
