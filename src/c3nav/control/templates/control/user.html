@@ -29,11 +29,13 @@
             <tr>
                 <th>{% trans 'Access Restriction' %}</th>
                 <th>{% trans 'expires' %}</th>
+                <th>{% trans 'can grant' %}</th>
             </tr>
             {% for access_permission in user.accesspermissions.all %}
                 <tr>
                     <td>{{ access_permission.access_restriction.title }}</td>
                     <td>{{ access_permission.expire_date }}</td>
+                    <td>{% if access_permission.can_grant %}{% trans 'Yes' %}{% else %}{% trans 'No' %}{% endif %}</td>
                 </tr>
             {% endfor %}
         </table>
