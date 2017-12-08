@@ -18,7 +18,7 @@
         {% for user in users %}
             <tr>
                 <td>{{ user.id }}</td>
-                <td>{{ user.username }}</td>
+                <td><a href="{% url 'control.users.detail' user=user.pk %}">{{ user.username }}</a></td>
             </tr>
         {% endfor %}
     </table>
