@@ -26,9 +26,7 @@ class AccessRestriction(TitledMixin, models.Model):
 
     @classmethod
     def qs_for_request(cls, request):
-        if request.user.is_authenticated and request.user.is_superuser:
-            return cls.objects.all()
-        return cls.objects.none()
+        return cls.objects.all()
 
 
 class AccessPermission(models.Model):
@@ -71,11 +69,6 @@ class AccessPermission(models.Model):
 
     @classmethod
     def cache_key_for_request(cls, request, with_update=True):
-        if request.user.is_superuser:
-            return (
-                ((MapUpdate.current_cache_key() + ':') if with_update else '') +
-                'SU'
-            )
         return (
             ((MapUpdate.current_cache_key()+':') if with_update else '') +
             ','.join(str(i) for i in sorted(AccessPermission.get_for_request(request)) or '0')
@@ -121,7 +114,7 @@ class AccessRestrictionMixin(SerializableMixin, models.Model):
 
     @classmethod
     def q_for_request(cls, request, prefix='', allow_none=False):
-        if request is None and allow_none or request.user.is_superuser:
+        if request is None and allow_none:
             return Q()
         return (Q(**{prefix+'access_restriction__isnull': True}) |
                 Q(**{prefix+'access_restriction__pk__in': AccessPermission.get_for_request(request)}))
