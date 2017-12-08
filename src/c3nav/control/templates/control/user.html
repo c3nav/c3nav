@@ -40,28 +40,6 @@
     {% else %}
         <p><em>{% trans 'none' %}</em></p>
     {% endif %}
-    <form method="POST" class="access-permissions-form">
-        {% csrf_token %}
-        {{ access_permission_form.non_field_errors }}
-        {{ access_permission_form.access_permissions.errors }}
-        {{ access_permission_form.expires.errors }}
-        <div class="fields">
-            <div class="field">
-                {{ access_permission_form.access_restrictions }}
-            </div>
-            <div class="field">
-                {{ access_permission_form.expires }}
-            </div>
-            {% if access_permission_form.can_grant %}
-                <div class="field">
-                    {{ access_permission_form.can_grant }}
-                </div>
-            {% endif %}
-            <div class="field">
-                <button type="submit" name="submit_access_permissions" value="1">{% trans 'Create' %}</button>
-            </div>
-        </div>
-
-
-    </form>
+    {% trans 'Add' as button_label %}
+    {% include 'control/fragment_access_permissions_form.html' with button_label=button_label %}
 {% endblock %}
