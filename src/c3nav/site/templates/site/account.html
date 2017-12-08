@@ -13,6 +13,17 @@
         {% endwith %}
     </p>
 
+    {% if request.user_permissions.control_panel %}
+        <hr>
+        <p>
+            {% trans 'You can access the control panel.' %}
+        </p>
+        <p>
+            <a class="button" href="{% url 'control.index' %}">{% trans 'c3nav control panel' %}</a>
+        </p>
+    {% endif %}
+
+    <hr>
     <p>
         <a class="button" href="{% url 'site.logout' %}">{% trans 'Log out' %}</a>
         <a class="button" href="{% url 'site.account.change_password' %}">{% trans 'Change password' %}</a>

@@ -1,6 +1,7 @@
 from django.conf import settings
 from django.core.cache import cache
 from django.db import models
+from django.utils.functional import lazy
 from django.utils.translation import ugettext_lazy as _
 
 
@@ -36,10 +37,17 @@ class UserPermissions(models.Model):
                     break
         if result:
             return result
-        result = user.permissions
+        try:
+            result = user.permissions
+        except AttributeError:
+            result = cls()
         cache.set(cache_key, result, 900)
+        return result
 
     def save(self, *args, **kwargs):
         super().save(*args, **kwargs)
         cache_key = self.get_cache_key(self.pk)
         cache.set(cache_key, self, 900)
+
+
+get_permissions_for_user_lazy = lazy(UserPermissions.get_for_user, UserPermissions)

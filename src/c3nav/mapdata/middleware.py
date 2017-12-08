@@ -42,7 +42,7 @@ def no_language(keep_content_language=False):
     return decorator
 
 
-class GetUserDataMiddleware:
+class UserDataMiddleware:
     def __init__(self, get_response):
         self.get_response = get_response
 

@@ -736,10 +736,15 @@ c3nav = {
         }
     },
     _modal_link_click: function(e) {
+        var location = $(this).attr('href');
+        if (location.startsWith('/control/')) {
+            $(this).attr('target', '_blank');
+            return;
+        }
         e.preventDefault();
         e.stopPropagation();
         c3nav.open_modal();
-        $.get($(this).attr('href'), c3nav._modal_loaded).fail(c3nav._modal_error);
+        $.get(location, c3nav._modal_loaded).fail(c3nav._modal_error);
     },
     _modal_submit: function(e) {
         e.preventDefault();
