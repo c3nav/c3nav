@@ -1,3 +1,4 @@
+from django.utils.functional import lazy
 from django.utils.translation import ugettext_lazy as _
 from django.utils.translation import ungettext_lazy
 
@@ -24,3 +25,6 @@ def get_user_data(request):
     if request.user.is_authenticated:
         result['title'] = request.user.username
     return result
+
+
+get_user_data_lazy = lazy(get_user_data, dict)

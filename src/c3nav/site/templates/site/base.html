@@ -6,7 +6,7 @@
 <head>
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, user-scalable=no">
-    <title>c3nav</title>
+    <title>{% block title %}c3nav{% endblock %}</title>
     {% compress css %}
         <link href="{% static 'fonts/fonts.css' %}" rel="stylesheet">
         <link href="{% static 'normalize/normalize.css' %}" rel="stylesheet">
@@ -19,7 +19,7 @@
 <body>
     {% if not embed %}
         <header>
-            <h1><a href="/">c3nav</a></h1>
+            <h1><a href="{% block header_title_url %}/{% endblock %}">{% block header_title %}c3nav{% endblock %}</a></h1>
             <a href="/account/" id="user">
                 <span>{{ user_data.title }}</span>
                 <small>{% if user_data.subtitle %}{{ user_data.subtitle }}{% endif %}</small>

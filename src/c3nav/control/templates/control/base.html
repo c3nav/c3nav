@@ -1,0 +1,13 @@
+{% extends 'site/base.html' %}
+{% load i18n %}
+
+{% block title %}{% trans 'c3nav control panel' %}{% endblock %}
+{% block header_title %}{% trans 'c3nav control panel' %}{% endblock %}
+{% block header_title_url %}{% url 'control.index' %}{% endblock %}
+
+{% block content %}
+<main>
+    {% block subcontent %}
+    {% endblock %}
+</main>
+{% endblock %}

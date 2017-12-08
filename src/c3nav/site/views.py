@@ -83,7 +83,6 @@ def map_index(request, mode=None, slug=None, slug2=None, details=None,
         'levels': json.dumps(tuple((level.pk, level.short_label) for level in levels.values()), separators=(',', ':')),
         'state': json.dumps(state, separators=(',', ':'), cls=DjangoJSONEncoder),
         'tile_cache_server': settings.TILE_CACHE_SERVER,
-        'user_data': get_user_data(request),
         'embed': bool(embed),
     }
     response = render(request, 'site/map.html', ctx)

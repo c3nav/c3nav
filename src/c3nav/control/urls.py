@@ -1,6 +1,7 @@
-# from django.conf.urls import url
+from django.conf.urls import url
 
+from c3nav.control.views import main_index
 
 urlpatterns = [
-    # url(r'^register$', register_view, name='control.index'),
+    url(r'^$', main_index, name='control.index'),
 ]

@@ -268,6 +268,7 @@ TEMPLATES = [
                 'django.template.context_processors.request',
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
+                'c3nav.mapdata.context_processors.user_data',
             ],
             'loaders': template_loaders
         },
