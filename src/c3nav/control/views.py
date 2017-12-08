@@ -1,10 +1,15 @@
 from functools import wraps
 
+from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User
 from django.core.exceptions import PermissionDenied
 from django.core.paginator import Paginator
-from django.shortcuts import render
+from django.shortcuts import get_object_or_404, redirect, render
+from django.utils.translation import ugettext_lazy as _
+
+from c3nav.control.forms import UserPermissionsForm
+from c3nav.control.models import UserPermissions
 
 
 def control_panel_view(func):
@@ -38,3 +43,40 @@ def user_list(request):
     return render(request, 'control/users.html', {
         'users': users,
     })
+
+
+@login_required
+@control_panel_view
+def user_detail(request, user):
+    qs = User.objects.select_related('permissions').prefetch_related('accesspermissions')
+    user = get_object_or_404(qs, pk=user)
+
+    ctx = {
+        'user': user,
+    }
+
+    # user permissions
+    try:
+        permissions = user.permissions
+    except AttributeError:
+        permissions = UserPermissions(user=user)
+    ctx.update({
+        'user_permissions': tuple(
+            field.verbose_name for field in UserPermissions._meta.get_fields()
+            if not field.one_to_one and getattr(permissions, field.attname)
+        )
+    })
+    if request.user_permissions.grant_permissions:
+        if request.method == 'POST' and request.POST.get('submit_user_permissions'):
+            form = UserPermissionsForm(instance=permissions, data=request.POST)
+            if form.is_valid():
+                form.save()
+                messages.success(request, _('General permissions successfully updated.'))
+                return redirect(request.path_info)
+        else:
+            form = UserPermissionsForm(instance=permissions)
+        ctx.update({
+            'user_permissions_form': form
+        })
+
+    return render(request, 'control/user.html', ctx)

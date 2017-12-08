@@ -1,0 +1,25 @@
+{% extends 'control/base.html' %}
+{% load i18n %}
+
+{% block heading %}{{ user.username }}{% endblock %}
+
+{% block subcontent %}
+    <h4>{% trans 'General Permissions' %}</h4>
+    {% if user_permissions_form %}
+        <form method="POST" class="user-permissions-form">
+            {% csrf_token %}
+            {% for field in user_permissions_form %}
+                <label>{{ field }} {{ field.label }}</label>
+            {% endfor %}
+            <button type="submit" name="submit_user_permissions" value="1">{% trans 'Save' %}</button>
+        </form>
+    {% else %}
+        <p>
+            {% for permission_title in user_permissions %}
+                {{ permission_title }},<br>
+            {% empty %}
+                <em>{% trans 'none' %}</em>
+            {% endfor %}
+        </p>
+    {% endif %}
+{% endblock %}

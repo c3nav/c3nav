@@ -690,3 +690,17 @@ ul.messages li.alert-danger {
     max-width: 400px;
     vertical-align: top;
 }
+
+main.control p {
+    margin-bottom: 1.0rem;
+}
+main.control h4, main.control h2 {
+    margin-bottom: 0.8rem;
+}
+main.control h4 {
+    margin-top: 2.5rem;
+}
+
+.user-permissions-form label {
+    font-weight: 400;
+}

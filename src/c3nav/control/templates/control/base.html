@@ -6,7 +6,8 @@
 {% block header_title_url %}{% url 'control.index' %}{% endblock %}
 
 {% block content %}
-<main>
+<main class="control">
+    {% include 'site/fragment_messages.html' %}
     <h2>{% block heading %}{% endblock %}</h2>
     <nav>
         <p>
