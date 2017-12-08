@@ -2,7 +2,7 @@ from datetime import timedelta
 
 from django.conf import settings
 from django.core.cache import cache
-from django.db import models
+from django.db import models, transaction
 from django.db.models import Q
 from django.utils import timezone
 from django.utils.translation import ugettext_lazy as _
@@ -46,15 +46,15 @@ class AccessPermission(models.Model):
         unique_together = (('user', 'access_restriction'), )
 
     @staticmethod
-    def user_access_permission_key(user):
-        return 'mapdata:user_access_permission:%d' % user.pk
+    def user_access_permission_key(user_id):
+        return 'mapdata:user_access_permission:%d' % user_id
 
     @classmethod
     def get_for_request(cls, request):
         if not request.user.is_authenticated:
             return set()
 
-        cache_key = cls.user_access_permission_key(request.user)
+        cache_key = cls.user_access_permission_key(request.user.pk)
         access_restriction_ids = cache.get(cache_key, None)
         if access_restriction_ids is None:
             result = tuple(request.user.accesspermissions.filter(
@@ -84,6 +84,16 @@ class AccessPermission(models.Model):
     @classmethod
     def etag_func(cls, request, *args, **kwargs):
         return cls.cache_key_for_request(request)
+
+    def save(self, *args, **kwargs):
+        with transaction.atomic():
+            super().save(*args, **kwargs)
+            transaction.on_commit(lambda: cache.delete(self.user_access_permission_key(self.user_id)))
+
+    def delete(self, *args, **kwargs):
+        with transaction.atomic():
+            super().delete(*args, **kwargs)
+            transaction.on_commit(lambda: cache.delete(self.user_access_permission_key(self.user_id)))
 
 
 class AccessRestrictionMixin(SerializableMixin, models.Model):
