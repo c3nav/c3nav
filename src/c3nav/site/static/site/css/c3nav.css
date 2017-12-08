@@ -706,3 +706,20 @@ main.control h4 {
     width: auto;
     display: inline;
 }
+.fields {
+    display: flex;
+    align-items: center;
+}
+.fields .field {
+    flex-grow: 1;
+}
+.fields .field > * {
+    width: 100%;
+    margin: 0;
+}
+.fields .field input {
+    margin: 0;
+}
+.fields .field:not(:first-child) {
+    margin-left: 10px;
+}

@@ -96,7 +96,7 @@ def user_detail(request, user):
         form = AccessPermissionForm(request=request)
 
     ctx.update({
-        'add_access_permission_form': form
+        'access_permission_form': form
     })
 
     return render(request, 'control/user.html', ctx)

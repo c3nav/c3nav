@@ -42,7 +42,26 @@
     {% endif %}
     <form method="POST" class="access-permissions-form">
         {% csrf_token %}
-        {{ add_access_permission_form }}
-        <button type="submit" name="submit_access_permissions" value="1">{% trans 'Save' %}</button>
+        {{ access_permission_form.non_field_errors }}
+        {{ access_permission_form.access_permissions.errors }}
+        {{ access_permission_form.expires.errors }}
+        <div class="fields">
+            <div class="field">
+                {{ access_permission_form.access_restrictions }}
+            </div>
+            <div class="field">
+                {{ access_permission_form.expires }}
+            </div>
+            {% if access_permission_form.can_grant %}
+                <div class="field">
+                    <label>{{ access_permission_form.can_grant }} {{ access_permission_form.can_grant.label }}</label>
+                </div>
+            {% endif %}
+            <div class="field">
+                <button type="submit" name="submit_access_permissions" value="1">{% trans 'Create' %}</button>
+            </div>
+        </div>
+
+
     </form>
 {% endblock %}
