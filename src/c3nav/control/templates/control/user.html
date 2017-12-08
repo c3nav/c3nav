@@ -9,7 +9,7 @@
         <form method="POST" class="user-permissions-form">
             {% csrf_token %}
             {% for field in user_permissions_form %}
-                <label>{{ field }} {{ field.label }}</label>
+                <label>{{ field }} {{ field.label }}</label><br>
             {% endfor %}
             <button type="submit" name="submit_user_permissions" value="1">{% trans 'Save' %}</button>
         </form>
@@ -22,4 +22,27 @@
             {% endfor %}
         </p>
     {% endif %}
+
+    <h4>{% trans 'Access Permissions' %}</h4>
+    {% if user.accesspermissions.all %}
+        <table>
+            <tr>
+                <th>{% trans 'Access Restriction' %}</th>
+                <th>{% trans 'expires' %}</th>
+            </tr>
+            {% for access_permission in user.accesspermissions.all %}
+                <tr>
+                    <td>{{ access_permission.access_restriction.title }}</td>
+                    <td>{{ access_permission.expire_date }}</td>
+                </tr>
+            {% endfor %}
+        </table>
+    {% else %}
+        <p><em>{% trans 'none' %}</em></p>
+    {% endif %}
+    <form method="POST" class="access-permissions-form">
+        {% csrf_token %}
+        {{ add_access_permission_form }}
+        <button type="submit" name="submit_access_permissions" value="1">{% trans 'Save' %}</button>
+    </form>
 {% endblock %}

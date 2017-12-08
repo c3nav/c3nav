@@ -15,7 +15,8 @@ class AccessRestriction(TitledMixin, models.Model):
     """
     An access restriction
     """
-    users = models.ManyToManyField(settings.AUTH_USER_MODEL, through='AccessPermission')
+    users = models.ManyToManyField(settings.AUTH_USER_MODEL, through='AccessPermission',
+                                   through_fields=('access_restriction', 'user'))
     open = models.BooleanField(default=False, verbose_name=_('open'))
 
     class Meta:
@@ -34,6 +35,9 @@ class AccessPermission(models.Model):
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
     access_restriction = models.ForeignKey(AccessRestriction, on_delete=models.CASCADE)
     expire_date = models.DateTimeField(null=True, verbose_name=_('expires'))
+    can_grant = models.BooleanField(default=False, verbose_name=_('can grant'))
+    author = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, on_delete=models.SET_NULL,
+                               related_name='authored_access_permissions', verbose_name=_('Author'))
 
     class Meta:
         verbose_name = _('Access Permission')
