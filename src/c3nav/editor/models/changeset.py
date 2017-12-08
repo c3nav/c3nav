@@ -17,6 +17,7 @@ from django.utils.timezone import make_naive
 from django.utils.translation import ugettext_lazy as _
 from django.utils.translation import ungettext_lazy
 
+from c3nav.control.models import UserPermissions
 from c3nav.editor.models.changedobject import ApplyToInstanceError, ChangedObject
 from c3nav.editor.wrappers import ModelInstanceWrapper, ModelWrapper, is_created_pk
 from c3nav.mapdata.models import LocationSlug, MapUpdate
@@ -55,11 +56,6 @@ class ChangeSet(models.Model):
         verbose_name = _('Change Set')
         verbose_name_plural = _('Change Sets')
         default_related_name = 'changesets'
-
-        permissions = (
-            ('review_changeset', _('Can review change sets')),
-            ('direct_edit', _('Can use direct edit')),
-        )
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -491,12 +487,11 @@ class ChangeSet(models.Model):
         return self.author_id == request.user.pk and self.state in ('proposed', 'reproposed')
 
     def can_review(self, request):
-        return request.user.has_perm('editor.review_changeset')
+        return UserPermissions.get_for_user(request.user).review_changesets
 
     @classmethod
     def can_direct_edit(cls, request):
-        print(request.user.has_perm('editor.direct_edit'))
-        return request.user.has_perm('editor.direct_edit')
+        return UserPermissions.get_for_user(request.user).direct_edit
 
     def can_start_review(self, request):
         return self.can_review(request) and self.state in ('proposed', 'reproposed')

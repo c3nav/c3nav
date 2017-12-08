@@ -189,6 +189,7 @@ INSTALLED_APPS = [
     'c3nav.mapdata',
     'c3nav.routing',
     'c3nav.site',
+    'c3nav.control',
     'c3nav.editor',
 ]
 
