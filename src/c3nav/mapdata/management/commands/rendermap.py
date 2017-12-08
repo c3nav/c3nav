@@ -49,6 +49,18 @@ class Command(BaseCommand):
 
         return permissions
 
+    @staticmethod
+    def scale_value(value):
+        try:
+            value = float(value)
+        except (ValueError, TypeError):
+            raise argparse.ArgumentTypeError(_('Invalid zoom'))
+
+        if not (1 <= value <= 32):
+            raise argparse.ArgumentTypeError(_('Zoom has to be between 1 and 32'))
+
+        return value
+
     def add_arguments(self, parser):
         parser.add_argument('filetype', type=str, choices=get_engine_filetypes(),
                             help=_('filetype to render'))
@@ -60,12 +72,14 @@ class Command(BaseCommand):
                             help=_('render all levels completely'))
         parser.add_argument('--no-center', action='store_const', const=True, default=False,
                             help=_('do not center the output'))
+        parser.add_argument('--scale', default=1, type=self.scale_value,
+                            help=_('scale (from 1 to 32), only relevant for image renderers'))
 
     def handle(self, *args, **options):
         (minx, miny), (maxx, maxy) = Source.max_bounds()
         for level in options['levels']:
             renderer = MapRenderer(level.pk, minx, miny, maxx, maxy, access_permissions=options['permissions'],
-                                   full_levels=options['full_levels'])
+                                   scale=options['scale'], full_levels=options['full_levels'])
 
             filename = os.path.join(settings.RENDER_ROOT,
                                     'level_%s.%s' % (level.short_label, options['filetype']))
