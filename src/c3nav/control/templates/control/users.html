@@ -1,0 +1,27 @@
+{% extends 'control/base.html' %}
+{% load i18n %}
+
+{% block subcontent %}
+    <h2>{% trans 'Users' %}</h2>
+
+    <form class="search-form">
+        <input type="text" name="s" value="{{ request.GET.s }}"> <button type="submit">{% trans 'Search' %}</button>
+    </form>
+
+    {% include 'control/fragment_pagination.html' with objects=users %}
+
+    <table>
+        <tr>
+            <th>{% trans 'ID' %}</th>
+            <th>{% trans 'Username' %}</th>
+        </tr>
+        {% for user in users %}
+            <tr>
+                <td>{{ user.id }}</td>
+                <td>{{ user.username }}</td>
+            </tr>
+        {% endfor %}
+    </table>
+
+    {% include 'control/fragment_pagination.html' with objects=users %}
+{% endblock %}

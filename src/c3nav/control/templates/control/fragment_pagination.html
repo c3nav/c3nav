@@ -1,0 +1,24 @@
+{% load i18n %}
+<p>
+    {% if objects.has_previous %}
+        <a href="?{% if request.GET.s %}s={{ request.GET.s | urlencode }}&{% endif %}page=1">
+            « {% trans 'first' %}
+        </a> &middot;
+        <a href="?{% if request.GET.s %}s={{ request.GET.s | urlencode }}&{% endif %}page={{ objects.previous_page_number }}">
+            ‹ {% trans 'previous' %}
+        </a> &middot;
+    {% endif %}
+    {% with page_number=objects.number num_pages=objects.paginator.num_pages %}
+        {% blocktrans %}
+            Page {{ page_number }} of {{ num_pages }}
+        {% endblocktrans %}
+    {% endwith %}
+    {% if objects.has_next %}
+        &middot; <a href="?{% if request.GET.s %}s={{ request.GET.s | urlencode }}&{% endif %}page={{ objects.next_page_number }}">
+            {% trans 'next' %} ›
+        </a>
+        &middot; <a href="?{% if request.GET.s %}s={{ request.GET.s | urlencode }}&{% endif %}page={{ objects.paginator.num_pages }}">
+            {% trans 'last' %} »
+        </a>
+    {% endif %}
+</p>

@@ -685,3 +685,8 @@ ul.messages li.alert-danger {
     border-color: #CC0000;
     background-color:#FFEEEE;
 }
+
+.search-form input {
+    max-width: 400px;
+    vertical-align: top;
+}
