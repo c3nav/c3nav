@@ -40,7 +40,7 @@ class UserPermissions(models.Model):
         try:
             result = user.permissions
         except AttributeError:
-            result = cls()
+            result = cls(user=user)
         cache.set(cache_key, result, 900)
         return result
 
