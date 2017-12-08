@@ -54,7 +54,7 @@
             </div>
             {% if access_permission_form.can_grant %}
                 <div class="field">
-                    <label>{{ access_permission_form.can_grant }} {{ access_permission_form.can_grant.label }}</label>
+                    {{ access_permission_form.can_grant }}
                 </div>
             {% endif %}
             <div class="field">

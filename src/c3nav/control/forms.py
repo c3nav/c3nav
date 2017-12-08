@@ -6,7 +6,7 @@ from itertools import chain
 from django.core.cache import cache
 from django.db import transaction
 from django.db.models import Q
-from django.forms import BooleanField, ChoiceField, Form, ModelForm
+from django.forms import ChoiceField, Form, ModelForm
 from django.utils import timezone
 from django.utils.translation import ugettext_lazy as _
 from django.utils.translation import ungettext_lazy
@@ -60,8 +60,7 @@ class AccessPermissionForm(Form):
             for pk, access_restriction in self.access_restrictions.items()
         )))
 
-        self.fields['access_restrictions'] = ChoiceField(label=_('Access Permission'),
-                                                         choices=choices, required=True)
+        self.fields['access_restrictions'] = ChoiceField(choices=choices, required=True)
 
         expire_choices = [
             ('', _('never')),
@@ -82,11 +81,11 @@ class AccessPermissionForm(Form):
                 (str(days*24*60), ungettext_lazy('in %d day', 'in %d days', days) % days)
             )
 
-        self.fields['expires'] = ChoiceField(label=_('expires'), required=False, initial='60',
-                                             choices=expire_choices)
+        self.fields['expires'] = ChoiceField(required=False, initial='60', choices=expire_choices)
 
         if request.user_permissions.access_all:
-            self.fields['can_grant'] = BooleanField(label=_('can grant'), required=False)
+            choices = [('0', '---')]*6 + [('1', _('can pass on'))] + [('0', '---')]*3
+            self.fields['can_grant'] = ChoiceField(required=False, initial='60', choices=choices)
 
     def clean_access_restrictions(self):
         data = self.cleaned_data['access_restrictions']
@@ -123,7 +122,7 @@ class AccessPermissionForm(Form):
             if author_expires is not None:
                 expires = author_expires if expires is None else min(expires, author_expires)
             restrictions.append((restriction.pk, expires))
-        return (tuple(restrictions), self.author.pk, self.cleaned_data.get('can_grant', False))
+        return (tuple(restrictions), self.author.pk, self.cleaned_data.get('can_grant', '0') == '1')
 
     @classmethod
     def _save_code(cls, code, user):
