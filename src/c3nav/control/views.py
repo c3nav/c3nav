@@ -179,7 +179,7 @@ def announcement_list(request):
     if not request.user_permissions.manage_announcements:
         raise PermissionDenied
 
-    announcements = Announcement.objects.order_by('id')
+    announcements = Announcement.objects.order_by('-created')
 
     if request.method == 'POST':
         form = AnnouncementForm(data=request.POST)
