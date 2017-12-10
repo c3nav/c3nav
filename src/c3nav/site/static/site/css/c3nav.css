@@ -735,6 +735,9 @@ main .narrow {
 main .narrow p, main .narrow form, main .narrow button {
     margin-bottom: 1.0rem;
 }
+main .narrow form button {
+    width: 100%;
+}
 
 .user-permissions-form label {
     font-weight: 400;
