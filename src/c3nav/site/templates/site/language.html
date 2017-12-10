@@ -1,0 +1,25 @@
+{% extends 'site/base.html' %}
+{% load i18n %}
+
+{% block content %}
+<main class="account">
+    <div class="narrow">
+        <h2>{% trans 'Pick your language' %}</h2>
+
+        <form action="{% url 'set_language' %}" method="post">
+            {% csrf_token %}
+            <input name="next" type="hidden" value="{% url 'site.index' %}" />
+            {% get_current_language as CURRENT_LANGUAGE %}
+            {% get_available_languages as LANGUAGES %}
+            <select name="language">
+                {% for language, title in LANGUAGES %}
+                    <option value="{{ language }}"{% if language == CURRENT_LANGUAGE %} selected="selected"{% endif %}>
+                        {{ language | language_name_local }}
+                    </option>
+                {% endfor %}
+            </select>
+            <button type="submit">{% trans 'Set language' %}</button>
+        </form>
+    </div>
+</main>
+{% endblock %}

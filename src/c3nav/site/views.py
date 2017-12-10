@@ -274,3 +274,7 @@ def access_redeem_view(request, token):
                                  num_restrictions),
                   ', '.join(str(restriction.title) for restriction in token.restrictions)),
     })
+
+
+def choose_language(request):
+    return render(request, 'site/language.html', {})
