@@ -25,6 +25,7 @@ from c3nav.mapdata.models.locations import LocationRedirect, SpecificLocation
 from c3nav.mapdata.utils.locations import get_location_by_slug_for_request, levels_by_short_label_for_request
 from c3nav.mapdata.utils.user import get_user_data
 from c3nav.mapdata.views import set_tile_access_cookie
+from c3nav.site.models import Announcement
 
 
 def check_location(location: Optional[str], request) -> Optional[SpecificLocation]:
@@ -89,6 +90,11 @@ def map_index(request, mode=None, slug=None, slug2=None, details=None,
         'tile_cache_server': settings.TILE_CACHE_SERVER,
         'embed': bool(embed),
     }
+
+    announcement = Announcement.get_current()
+    if announcement:
+        messages.info(request, announcement.text)
+
     response = render(request, 'site/map.html', ctx)
     set_tile_access_cookie(request, response)
     if embed:

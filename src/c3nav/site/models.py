@@ -1,4 +1,5 @@
 from django.conf import settings
+from django.core.cache import cache
 from django.db import models
 from django.db.models import Q
 from django.utils import timezone
@@ -22,8 +23,23 @@ class Announcement(models.Model):
 
     @classmethod
     def get_current(cls):
+        result = cache.get('site:announcement', None)
+        if result is not None:
+            return result
+
         try:
-            return cls.objects.filter(Q(active=True) & (Q(active_until__isnull=True) |
-                                                        Q(active_until__gt=timezone.now()))).latest()
+            result = cls.objects.filter(Q(active=True) & (Q(active_until__isnull=True) |
+                                                          Q(active_until__gt=timezone.now()))).latest()
         except cls.DoesNotExist:
-            return None
+            result = None
+
+        timeout = 300
+        if result.active_until:
+            timeout = max(0, min(timeout, (result.active_until-timezone.now()).total_seconds()))
+        cache.set('site:announcement', result, timeout)
+
+        return result
+
+    def save(self, *args, **kwargs):
+        super().save(*args, **kwargs)
+        cache.delete('site:announcement')
