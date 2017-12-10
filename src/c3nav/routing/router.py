@@ -149,6 +149,8 @@ class Router:
                     poi.nodes_addition = poi_nodes
                     pois[poi.pk] = poi
 
+                space.src.geometry = accessible_geom
+
                 spaces[space.pk] = space
 
             level_spaces = set(space.pk for space in level.spaces.all())
