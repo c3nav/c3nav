@@ -9,6 +9,8 @@ from typing import List, Mapping, Optional
 from django.apps import apps
 from django.core.cache import cache
 from django.db.models import Prefetch, Q
+from django.utils.functional import cached_property
+from django.utils.text import format_lazy
 from django.utils.translation import ugettext_lazy as _
 from shapely.ops import cascaded_union
 
@@ -237,8 +239,6 @@ class CustomLocation:
         self.level = level
         self.x = x
         self.y = y
-        self.title = _('Coordinates')
-        self.subtitle = _('%(level)s, x=%(x)s, y=%(y)s') % {'level': self.level.title, 'x': self.x, 'y': self.y}
 
     @property
     def serialized_geometry(self):
@@ -253,11 +253,14 @@ class CustomLocation:
             ('slug', self.pk),
             ('title', self.title),
             ('subtitle', self.subtitle),
+            ('level', self.level.pk),
+            ('space', self.space.pk),
         ))
         if simple_geometry:
             result['point'] = (self.level.pk, self.x, self.y)
             result['bounds'] = ((int(math.floor(self.x)), int(math.floor(self.y))),
                                 (int(math.ceil(self.x)), int(math.ceil(self.y))))
+
         if geometry:
             result['geometry'] = self.serialized_geometry
         return result
@@ -275,6 +278,12 @@ class CustomLocation:
                     'title': self.level.title,
                     'can_search': self.level.can_search,
                 }),
+                (_('Space'), {
+                    'id': self.space.pk,
+                    'slug': self.space.get_slug(),
+                    'title': self.space.title,
+                    'can_search': self.space.can_search,
+                } if self.space else None),
                 (_('X Coordinate'), str(self.x)),
                 (_('Y Coordinate'), str(self.y)),
                 (_('Title'), self.title),
@@ -282,3 +291,35 @@ class CustomLocation:
             ],
             'geometry': self.serialized_geometry,
         }
+
+    @cached_property
+    def description(self):
+        from c3nav.routing.router import Router
+        return Router.load().describe_custom_location(self)
+
+    @cached_property
+    def space(self):
+        try:
+            return self.description.space
+        except Exception:
+            return None
+
+    @cached_property
+    def title(self):
+        if self.space:
+            if self.space.can_describe:
+                return _('Coordinates in %(space)s') % {'space': self.space.title}
+            else:
+                return _('Coordinates on %(level)s') % {'level': self.level.title}
+        return _('Unreachable coordinates')
+
+    @cached_property
+    def subtitle(self):
+        if self.space and self.space.can_describe:
+            return format_lazy(_('{category}, {space}, {level}'),
+                               category=_('Custom location'),
+                               space=self.space.title,
+                               level=self.level.title)
+        return format_lazy(_('{category}, {level}'),
+                           category=_('Custom location'),
+                           level=self.level.title)

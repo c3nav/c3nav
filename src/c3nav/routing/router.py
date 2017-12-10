@@ -2,7 +2,7 @@ import operator
 import os
 import pickle
 import threading
-from collections import deque
+from collections import deque, namedtuple
 from functools import reduce
 from itertools import chain
 
@@ -252,6 +252,11 @@ class Router:
                 return self.spaces[space]
         return self.spaces[min(level.spaces, key=lambda space: self.spaces[space].geometry.distance(point))]
 
+    def describe_custom_location(self, location):
+        return CustomLocationDescription(
+            space=self.space_for_point(location.level.pk, location)
+        )
+
     @cached_property
     def shortest_path(self):
         return shortest_path(self.graph, directed=True, return_predecessors=True)
@@ -293,6 +298,9 @@ class Router:
 
         return Route(self, origin, destination, distances[origin_node, destination_node], path_nodes,
                      origin_addition, destination_addition)
+
+
+CustomLocationDescription = namedtuple('CustomLocationDescription', ('space'))
 
 
 class BaseRouterProxy:
