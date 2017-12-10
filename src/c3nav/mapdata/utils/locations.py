@@ -256,7 +256,7 @@ class CustomLocation:
             ('title', self.title),
             ('subtitle', self.subtitle),
             ('level', self.level.pk),
-            ('space', self.space.pk),
+            ('space', self.space.pk if self.space else None),
         ))
         if simple_geometry:
             result['point'] = (self.level.pk, self.x, self.y)
