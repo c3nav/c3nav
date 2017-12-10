@@ -8,7 +8,7 @@ from django.utils.translation import ugettext_lazy as _
 from django.utils.translation import ungettext_lazy
 
 from c3nav.control.models import UserPermissions
-from c3nav.mapdata.models.access import AccessPermissionToken, AccessRestriction
+from c3nav.mapdata.models.access import AccessPermissionToken, AccessPermissionTokenItem, AccessRestriction
 
 
 class UserPermissionsForm(ModelForm):
@@ -99,11 +99,12 @@ class AccessPermissionForm(Form):
     def get_token(self):
         restrictions = []
         for restriction in self.cleaned_data['access_restrictions']:
-            expires = self.cleaned_data['expires']
-            author_expires = self.author_access_permissions.get(restriction.pk)
-            if author_expires is not None:
-                expires = author_expires if expires is None else min(expires, author_expires)
-            restrictions.append((restriction.pk, expires))
+            expire_date = self.cleaned_data['expires']
+            author_expire_date = self.author_access_permissions.get(restriction.pk)
+            if author_expire_date is not None:
+                expire_date = author_expire_date if expire_date is None else min(expire_date, author_expire_date)
+            restrictions.append(AccessPermissionTokenItem(pk=restriction.pk, expire_date=expire_date,
+                                                          title=restriction.title))
         return AccessPermissionToken(author=self.author,
                                      can_grant=self.cleaned_data.get('can_grant', '0') == '1',
                                      restrictions=tuple(restrictions))

@@ -155,12 +155,14 @@ def grant_access_qr(request, token):
                 messages.error(request, _('You can only display your most recently created token.'))
 
         if token is None:
-            redirect('control.access')
+            return redirect('control.access')
 
         token.bump()
         token.save()
 
+    url = reverse('site.access.redeem', kwargs={'token': str(token.id)})
     return render(request, 'control/access_qr.html', {
-        'token': token.id,
-        'absolute_url': request.build_absolute_uri('/access/qr/%s' % token.id)
+        'url': url,
+        'url_qr': reverse('site.qr', kwargs={'path': url}),
+        'url_absolute': request.build_absolute_uri(url),
     })

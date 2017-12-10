@@ -7,16 +7,21 @@ from django.contrib import messages
 from django.contrib.auth import login, logout
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.forms import AuthenticationForm, PasswordChangeForm, UserCreationForm
+from django.contrib.auth.views import redirect_to_login
 from django.core.serializers.json import DjangoJSONEncoder
+from django.db import transaction
 from django.http import HttpResponse, HttpResponseBadRequest
 from django.shortcuts import redirect, render
 from django.urls import reverse
+from django.utils import timezone
 from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import ungettext_lazy
 from django.views.decorators.cache import cache_control, never_cache
 from django.views.decorators.clickjacking import xframe_options_exempt
 from django.views.decorators.http import etag
 
 from c3nav.mapdata.models import Location, Source
+from c3nav.mapdata.models.access import AccessPermissionToken
 from c3nav.mapdata.models.locations import LocationRedirect, SpecificLocation
 from c3nav.mapdata.utils.locations import get_location_by_slug_for_request, levels_by_short_label_for_request
 from c3nav.mapdata.utils.user import get_user_data
@@ -206,3 +211,41 @@ def change_password_view(request):
 @login_required(login_url='site.login')
 def account_view(request):
     return render(request, 'site/account.html', {})
+
+
+@never_cache
+@login_required(login_url='site.login')
+def access_redeem_view(request, token):
+    with transaction.atomic():
+        try:
+            token = AccessPermissionToken.objects.select_for_update().get(id=token, redeemed=False,
+                                                                          valid_until__gte=timezone.now())
+        except AccessPermissionToken.DoesNotExist:
+            messages.error(request, _('This token does not exist or was already redeemed.'))
+            return redirect('site.index')
+
+        num_restrictions = len(token.restrictions)
+
+        if request.method == 'POST':
+            token.redeemed = True
+            token.save()
+
+            if not request.user.is_authenticated:
+                messages.info(request, _('You need to log in to unlock areas.'))
+                request.session['redeem_token_on_login'] = token.id
+                return redirect_to_login(request.get_full_path(), 'site.login')
+
+            token.redeemed_by = request.user
+            token.save()
+
+            messages.success(request, ungettext_lazy('Area successfully unlocked.',
+                                                     'Areas successfully unlocked.', num_restrictions))
+            return redirect('site.index')
+
+    return render(request, 'site/confirm.html', {
+        'title': ungettext_lazy('Unlock area', 'Unlock areas', num_restrictions),
+        'texts': (ungettext_lazy('You have been invited to unlock the following area:',
+                                 'You have been invited to unlock the following areas:',
+                                 num_restrictions),
+                  ', '.join(str(restriction.title) for restriction in token.restrictions)),
+    })

@@ -1,6 +1,8 @@
 import pickle
 import uuid
+from collections import namedtuple
 from datetime import timedelta
+from typing import Iterable
 
 from django.conf import settings
 from django.core.cache import cache
@@ -35,6 +37,9 @@ def default_valid_until():
     return timezone.now()+timedelta(seconds=20)
 
 
+AccessPermissionTokenItem = namedtuple('AccessPermissionTokenItem', ('pk', 'expire_date', 'title'))
+
+
 class AccessPermissionToken(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     author = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT,
@@ -52,11 +57,11 @@ class AccessPermissionToken(models.Model):
     data = models.BinaryField()
 
     @property
-    def restrictions(self):
+    def restrictions(self) -> Iterable[AccessPermissionTokenItem]:
         return pickle.loads(self.data)
 
     @restrictions.setter
-    def restrictions(self, value):
+    def restrictions(self, value: Iterable[AccessPermissionTokenItem]):
         self.data = pickle.dumps(value)
 
     def redeem(self, user=None):
@@ -68,13 +73,13 @@ class AccessPermissionToken(models.Model):
 
         self.redeemed = True
         if user:
-            for pk, expire_date in self.restrictions:
+            for restriction in self.restrictions:
                 obj, created = AccessPermission.objects.get_or_create(
                     user=user,
-                    access_restriction_id=pk
+                    access_restriction_id=restriction.pk
                 )
                 obj.author_id = self.author_id
-                obj.expire_date = expire_date
+                obj.expire_date = restriction.expire_date
                 obj.can_grant = self.can_grant
                 obj.save()
             self.redeemed_by = user

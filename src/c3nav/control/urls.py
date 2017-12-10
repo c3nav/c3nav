@@ -6,6 +6,6 @@ urlpatterns = [
     url(r'^users/$', user_list, name='control.users'),
     url(r'^users/(?P<user>\d+)/$', user_detail, name='control.users.detail'),
     url(r'^access/$', grant_access, name='control.access'),
-    url(r'^access/qr/(?P<token>[^/]+)', grant_access_qr, name='control.access.qr'),
+    url(r'^access/(?P<token>[^/]+)$', grant_access_qr, name='control.access.qr'),
     url(r'^$', main_index, name='control.index'),
 ]

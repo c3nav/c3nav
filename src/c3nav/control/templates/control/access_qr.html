@@ -11,10 +11,10 @@
         {% trans 'Scan this QR code to get access permissions:' %}
     </p>
     <p>
-        <img src="/qr/access/{{ token }}">
+        <img src="{{ url_qr }}">
     </p>
     <p>
-        {{ absolute_url }}
+        {{ url_absolute }}
     </p>
     <p>
         <a href="{% url 'control.access' %}">« {% trans 'back' %}</a>

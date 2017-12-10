@@ -5,6 +5,7 @@
 
 {% block content %}
     <main class="map" data-state="{{ state }}"{% if embed %} data-embed{% endif %}>
+        <section id="messages">{% include 'site/fragment_messages.html' %}</section>
         <section id="attributions">
             <a href="{% url 'editor.index' %}" target="_blank">{% trans 'Editor' %}</a> //
             <a href="/api/" target="_blank">{% trans 'API' %}</a> //

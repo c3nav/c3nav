@@ -3,7 +3,10 @@
 
 {% block content %}
 <main class="account">
+    <div class="narrow">
     <h2>{{ title }}</h2>
+
+    {% include 'site/fragment_messages.html' %}
 
     {% if back_url %}
         <p><a href="{{ back_url }}">« {% trans 'back' %}</a></p>
@@ -17,5 +20,6 @@
             <a href="{{ bottom_link_url }}?{{ request.GET.urlencode }}">{{ bottom_link_text }}</a>
         {% endif %}
     </form>
+    </div>
 </main>
 {% endblock %}

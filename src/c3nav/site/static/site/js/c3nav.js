@@ -41,6 +41,15 @@ c3nav = {
             }
             c3nav.continue_init();
         });
+
+        $('#messages').find('ul.messages li').each(function() {
+            $(this).prepend(
+                $('<a href="#" class="close"><i class="material-icons">close</i></a>').click(function(e) {
+                    e.preventDefault();
+                    $(this).parent().remove();
+                })
+            );
+        })
     },
     continue_init: function() {
         c3nav.init_map();

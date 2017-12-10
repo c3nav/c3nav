@@ -1,0 +1,24 @@
+{% extends 'site/base.html' %}
+{% load i18n %}
+
+{% block content %}
+<main>
+    <div class="narrow">
+        <h2>{{ title }}</h2>
+
+        <form method="post">
+            {% include 'site/fragment_messages.html' %}
+
+            {% for text in texts %}
+                <p>{{ text }}</p>
+            {% endfor %}
+
+                {% csrf_token %}
+                <button>{% if button_text %}{{ button_text }}{% else %}{{ title }}{% endif %}</button>
+            <p>
+                <a href="{% url 'site.index' %}">« {% trans 'back' %}</a>
+            </p>
+        </form>
+    </div>
+</main>
+{% endblock %}

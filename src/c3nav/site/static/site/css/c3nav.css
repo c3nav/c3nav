@@ -686,6 +686,22 @@ ul.messages li.alert-danger {
     background-color:#FFEEEE;
 }
 
+#messages {
+    z-index: 5;
+    position: absolute;
+    top: -20px;
+    width: 100vw;
+    padding: 10px;
+}
+#messages ul.messages {
+    margin: auto;
+    max-width: 700px;
+}
+#messages ul.messages .close {
+    float: right;
+    color: inherit;
+}
+
 .search-form input {
     max-width: 400px;
     vertical-align: top;
@@ -710,6 +726,14 @@ main.control form tr > * {
 }
 .button-cell button {
     margin: 0;
+}
+
+main .narrow {
+    max-width: 400px;
+    margin: auto;
+}
+main .narrow p, main .narrow form, main .narrow button {
+    margin-bottom: 1.0rem;
 }
 
 .user-permissions-form label {
