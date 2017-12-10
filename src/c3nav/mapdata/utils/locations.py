@@ -224,7 +224,8 @@ def get_custom_location_for_request(slug: str, request):
     level = levels_by_short_label_for_request(request).get(match.group('level'))
     if not isinstance(level, Level):
         return None
-    return CustomLocation(request, level, float(match.group('x')), float(match.group('y')))
+    return CustomLocation(level, float(match.group('x')), float(match.group('y')),
+                          AccessPermission.get_for_request(request))
 
 
 class CustomLocation:
@@ -232,11 +233,11 @@ class CustomLocation:
     can_describe = True
     access_restriction_id = None
 
-    def __init__(self, request, level, x, y):
+    def __init__(self, level, x, y, permissions):
         x = round(x, 2)
         y = round(y, 2)
         self.pk = 'c:%s:%s:%s' % (level.short_label, x, y)
-        self.request = request
+        self.permissions = permissions
         self.level = level
         self.x = x
         self.y = y

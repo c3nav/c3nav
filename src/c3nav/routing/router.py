@@ -16,7 +16,6 @@ from shapely.geometry import LineString, Point
 from shapely.ops import unary_union
 
 from c3nav.mapdata.models import AltitudeArea, Area, GraphEdge, Level, LocationGroup, MapUpdate, Space, WayType
-from c3nav.mapdata.models.access import AccessPermission
 from c3nav.mapdata.models.geometry.space import POI
 from c3nav.mapdata.utils.geometry import assert_multipolygon, get_rings, good_representative_point
 from c3nav.mapdata.utils.locations import CustomLocation
@@ -295,7 +294,7 @@ class Router:
         # todo: location.request
         return CustomLocationDescription(
             space=self.space_for_point(location.level.pk, location,
-                                       self.get_restrictions(AccessPermission.get_for_request(location.request)))
+                                       self.get_restrictions(location.permissions))
         )
 
     def shortest_path(self, restrictions):
