@@ -203,6 +203,8 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'c3nav.mapdata.middleware.UserDataMiddleware',
+    'c3nav.control.middleware.UserPermissionsMiddleware',
 ]
 
 with suppress(ImportError):
