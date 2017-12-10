@@ -1,0 +1,34 @@
+{% extends 'control/base.html' %}
+{% load i18n %}
+
+{% block heading %}{% trans 'Users' %}{% endblock %}
+
+{% block subcontent %}
+    <table>
+        <tr>
+            <th>{% trans 'ID' %}</th>
+            <th>{% trans 'Text' %}</th>
+            <th>{% trans 'Author' %}</th>
+            <th>{% trans 'Active' %}</th>
+            <th>{% trans 'Active until' %}</th>
+            <th></th>
+        </tr>
+        {% for announcement in announcements %}
+            <tr>
+                <td>{{ announcement.id }}</td>
+                <td>{{ announcement.text }}</td>
+                <td>{{ announcement.author }}</td>
+                <td>{{ announcement.active }}</td>
+                <td>{{ announcement.active_until }}</td>
+                <td><a href="{% url 'control.announcements.detail' announcement=user.pk %}">{% trans 'Edit' %}</a></td>
+            </tr>
+        {% endfor %}
+    </table>
+
+    <h4>{% trans 'Create new announcement' %}</h4>
+    <form method="post">
+        {% csrf_token %}
+        {{ form }}
+        <button type="submit">{% trans 'Create new announcement' %}</button>
+    </form>
+{% endblock %}

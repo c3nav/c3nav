@@ -8,7 +8,9 @@ from django.utils.translation import ugettext_lazy as _
 from django.utils.translation import ungettext_lazy
 
 from c3nav.control.models import UserPermissions
+from c3nav.mapdata.forms import I18nModelFormMixin
 from c3nav.mapdata.models.access import AccessPermissionToken, AccessPermissionTokenItem, AccessRestriction
+from c3nav.site.models import Announcement
 
 
 class UserPermissionsForm(ModelForm):
@@ -108,3 +110,13 @@ class AccessPermissionForm(Form):
         return AccessPermissionToken(author=self.author,
                                      can_grant=self.cleaned_data.get('can_grant', '0') == '1',
                                      restrictions=tuple(restrictions))
+
+
+class AnnouncementForm(I18nModelFormMixin, ModelForm):
+    class Meta:
+        model = Announcement
+        fields = ('text', 'active', 'active_until')
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields['active_until'].initial = timezone.now()

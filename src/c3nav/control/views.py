@@ -11,9 +11,10 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.utils.translation import ugettext_lazy as _
 
-from c3nav.control.forms import AccessPermissionForm, UserPermissionsForm
+from c3nav.control.forms import AccessPermissionForm, AnnouncementForm, UserPermissionsForm
 from c3nav.control.models import UserPermissions
 from c3nav.mapdata.models.access import AccessPermission, AccessPermissionToken
+from c3nav.site.models import Announcement
 
 
 def control_panel_view(func):
@@ -169,4 +170,50 @@ def grant_access_qr(request, token):
         'url': url,
         'url_qr': reverse('site.qr', kwargs={'path': url}),
         'url_absolute': request.build_absolute_uri(url),
+    })
+
+
+@login_required
+@control_panel_view
+def announcement_list(request):
+    if not request.user_permissions.manage_announcements:
+        raise PermissionDenied
+
+    announcements = Announcement.objects.order_by('id')
+
+    if request.method == 'POST':
+        form = AnnouncementForm(data=request.POST)
+        if form.is_valid():
+            announcement = form.instance
+            announcement = request.user
+            announcement.save()
+            return redirect('control.announcements')
+    else:
+        form = AnnouncementForm()
+
+    return render(request, 'control/announcements.html', {
+        'form': form,
+        'announcements': announcements,
+    })
+
+
+@login_required
+@control_panel_view
+def announcement_detail(request, announcement):
+    if not request.user_permissions.manage_announcements:
+        raise PermissionDenied
+
+    announcement = get_object_or_404(Announcement, pk=announcement)
+
+    if request.method == 'POST':
+        form = AnnouncementForm(instance=announcement, data=request.POST)
+        if form.is_valid():
+            form.save()
+            return redirect('control.announcements')
+    else:
+        form = AnnouncementForm(instance=announcement)
+
+    return render(request, 'control/announcement.html', {
+        'form': form,
+        'announcement': announcement,
     })
