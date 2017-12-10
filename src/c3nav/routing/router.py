@@ -24,12 +24,13 @@ from c3nav.routing.route import Route
 class Router:
     filename = os.path.join(settings.CACHE_ROOT, 'router')
 
-    def __init__(self, levels, spaces, areas, pois, groups, nodes, edges, waytypes, graph):
+    def __init__(self, levels, spaces, areas, pois, groups, restrictions, nodes, edges, waytypes, graph):
         self.levels = levels
         self.spaces = spaces
         self.areas = areas
         self.pois = pois
         self.groups = groups
+        self.restrictions = restrictions
         self.nodes = nodes
         self.edges = edges
         self.waytypes = waytypes
@@ -52,6 +53,7 @@ class Router:
         areas = {}
         pois = {}
         groups = {}
+        restrictions = {}
         nodes = deque()
         for level in levels_query:
             buildings_geom = unary_union(tuple(building.geometry for building in level.buildings.all()))
@@ -60,6 +62,11 @@ class Router:
 
             for group in level.groups.all():
                 groups.setdefault(group.pk, {}).setdefault('levels', set()).add(level.pk)
+
+            if level.access_restriction_id:
+                restrictions.setdefault(level.access_restriction_id, RouterRestriction()).spaces.update(
+                    space.pk for space in level.spaces.all()
+                )
 
             for space in level.spaces.all():
                 # create space geometries
@@ -77,6 +84,9 @@ class Router:
 
                 for group in space.groups.all():
                     groups.setdefault(group.pk, {}).setdefault('spaces', set()).add(space.pk)
+
+                if space.access_restriction_id:
+                    restrictions.setdefault(space.access_restriction_id, RouterRestriction()).spaces.add(space.pk)
 
                 space_nodes = tuple(RouterNode.from_graph_node(node, i)
                                     for i, node in enumerate(space.graphnodes.all()))
@@ -175,7 +185,8 @@ class Router:
         # collect edges
         edges = tuple(RouterEdge(from_node=nodes[nodes_lookup[edge.from_node_id]],
                                  to_node=nodes[nodes_lookup[edge.to_node_id]],
-                                 waytype=waytypes_lookup[edge.waytype_id]) for edge in GraphEdge.objects.all())
+                                 waytype=waytypes_lookup[edge.waytype_id],
+                                 access_restriction=edge.access_restriction_id) for edge in GraphEdge.objects.all())
         edges = {(edge.from_node, edge.to_node): edge for edge in edges}
 
         # build graph matrix
@@ -185,13 +196,19 @@ class Router:
             graph[index] = edge.distance
             waytype = waytypes[edge.waytype]
             (waytype.upwards_indices if edge.rise > 0 else waytype.nonupwards_indices).append(index)
+            if edge.access_restriction:
+                restrictions.setdefault(edge.access_restriction, RouterRestriction()).edges.append(index)
 
         # finalize waytype matrixes
         for waytype in waytypes:
             waytype.upwards_indices = np.array(waytype.upwards_indices, dtype=np.uint32).reshape((-1, 2))
             waytype.nonupwards_indices = np.array(waytype.nonupwards_indices, dtype=np.uint32).reshape((-1, 2))
 
-        router = cls(levels, spaces, areas, pois, groups, nodes, edges, waytypes, graph)
+        # finalize restriction edge matrixes
+        for restriction in restrictions.values():
+            restriction.edges = np.array(restriction.edges, dtype=np.uint32).reshape((-1, 2))
+
+        router = cls(levels, spaces, areas, pois, groups, restrictions, nodes, edges, waytypes, graph)
         pickle.dump(router, open(cls.filename, 'wb'))
         return router
 
@@ -423,10 +440,11 @@ class RouterNode:
 
 
 class RouterEdge:
-    def __init__(self, from_node, to_node, waytype, rise=None, distance=None):
+    def __init__(self, from_node, to_node, waytype, access_restriction=None, rise=None, distance=None):
         self.from_node = from_node.i
         self.to_node = to_node.i
         self.waytype = waytype
+        self.access_restriction = access_restriction
         self.rise = rise if rise is not None else (to_node.altitude - from_node.altitude)
         self.distance = distance if distance is not None else np.linalg.norm(to_node.xyz - from_node.xyz)
 
@@ -456,3 +474,9 @@ class RouterLocation:
             if node in location.nodes:
                 return location
         return None
+
+
+class RouterRestriction:
+    def __init__(self, spaces=None):
+        self.spaces = spaces if spaces else set()
+        self.edges = deque()
