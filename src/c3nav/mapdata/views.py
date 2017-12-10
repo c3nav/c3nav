@@ -128,7 +128,7 @@ def tile(request, level, zoom, x, y, access_permissions=None):
                 f.write(data)
             with open(last_update_filename, 'w') as f:
                 f.write(base_cache_key)
-            cache.get(tile_cache_update_cache_key, base_cache_key, 60)
+            cache.set(tile_cache_update_cache_key, base_cache_key, 60)
 
     response = HttpResponse(data, 'image/png')
     response['ETag'] = tile_etag
