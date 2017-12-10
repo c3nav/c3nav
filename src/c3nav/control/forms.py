@@ -1,10 +1,6 @@
-import time
-import uuid
 from datetime import timedelta
 from itertools import chain
 
-from django.core.cache import cache
-from django.db import transaction
 from django.db.models import Q
 from django.forms import ChoiceField, Form, ModelForm
 from django.utils import timezone
@@ -12,7 +8,7 @@ from django.utils.translation import ugettext_lazy as _
 from django.utils.translation import ungettext_lazy
 
 from c3nav.control.models import UserPermissions
-from c3nav.mapdata.models.access import AccessPermission, AccessRestriction
+from c3nav.mapdata.models.access import AccessPermissionToken, AccessRestriction
 
 
 class UserPermissionsForm(ModelForm):
@@ -100,21 +96,7 @@ class AccessPermissionForm(Form):
     def save(self, user):
         self._save_code(self._create_code(), user)
 
-    def create_code(self, timeout=30):
-        code = uuid.uuid4()
-        cache.set('access:code:%s' % code, (self._create_code(), time.time()+timeout), timeout)
-
-    def save_code(self, code, user):
-        cache_key = 'access:code:%s' % code
-        with transaction.atomic():
-            AccessPermission.objects.select_for_update().first()
-            code, expires = cache.get(cache_key, (None, None))
-            if code is None or expires < time.time():
-                raise ValueError
-            self._save_code(code, user)
-            cache.delete(cache_key)
-
-    def _create_code(self):
+    def get_token(self):
         restrictions = []
         for restriction in self.cleaned_data['access_restrictions']:
             expires = self.cleaned_data['expires']
@@ -122,19 +104,6 @@ class AccessPermissionForm(Form):
             if author_expires is not None:
                 expires = author_expires if expires is None else min(expires, author_expires)
             restrictions.append((restriction.pk, expires))
-        return (tuple(restrictions), self.author.pk, self.cleaned_data.get('can_grant', '0') == '1')
-
-    @classmethod
-    def _save_code(cls, code, user):
-        restrictions, author_id, can_grant = code
-        print(code)
-        with transaction.atomic():
-            for pk, expire_date in restrictions:
-                obj, created = AccessPermission.objects.get_or_create(
-                    user=user,
-                    access_restriction_id=pk
-                )
-                obj.author_id = author_id
-                obj.expire_date = expire_date
-                obj.can_grant = can_grant
-                obj.save()
+        return AccessPermissionToken(author=self.author,
+                                     can_grant=self.cleaned_data.get('can_grant', '0') == '1',
+                                     restrictions=tuple(restrictions))

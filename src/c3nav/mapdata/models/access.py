@@ -1,3 +1,5 @@
+import pickle
+import uuid
 from datetime import timedelta
 
 from django.conf import settings
@@ -27,6 +29,54 @@ class AccessRestriction(TitledMixin, models.Model):
     @classmethod
     def qs_for_request(cls, request):
         return cls.objects.all()
+
+
+def default_valid_until():
+    return timezone.now()+timedelta(seconds=20)
+
+
+class AccessPermissionToken(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    author = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT,
+                               related_name='created_accesspermission_tokens',
+                               verbose_name=_('author'))
+    valid_until = models.DateTimeField(db_index=True, default=default_valid_until,
+                                       verbose_name=_('valid until'))
+    unlimited = models.BooleanField(default=False, db_index=True, verbose_name=_('unlimited'))
+    redeemed = models.BooleanField(default=False, db_index=True, verbose_name=_('redeemed'))
+    redeemed_by = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, on_delete=models.SET_NULL,
+                                    related_name='redeemed_accesspermission_tokens',
+                                    verbose_name=_('redeemed by'))
+
+    can_grant = models.BooleanField(default=False, db_index=True, verbose_name=_('can grant'))
+    data = models.BinaryField()
+
+    @property
+    def restrictions(self):
+        return pickle.loads(self.data)
+
+    @restrictions.setter
+    def restrictions(self, value):
+        self.data = pickle.dumps(value)
+
+    def redeem(self, user=None):
+        if self.redeemed_by_id or (user is None and self.redeemed):
+            raise TypeError('Already redeemed.')
+        self.redeemed = True
+        if user:
+            for pk, expire_date in self.restrictions:
+                obj, created = AccessPermission.objects.get_or_create(
+                    user=user,
+                    access_restriction_id=pk
+                )
+                obj.author_id = self.author_id
+                obj.expire_date = expire_date
+                obj.can_grant = self.can_grant
+                obj.save()
+            self.redeemed_by = user
+
+        if self.pk:
+            self.save()
 
 
 class AccessPermission(models.Model):

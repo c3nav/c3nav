@@ -101,8 +101,8 @@ def user_detail(request, user):
     if request.method == 'POST' and request.POST.get('submit_access_permissions'):
         form = AccessPermissionForm(request=request, data=request.POST)
         if form.is_valid():
-            form.save(user)
-            messages.success(request, _('Access permissions successfully updated.'))
+            form.get_token().redeem(user)
+            messages.success(request, _('Access permissions successfully granted.'))
             return redirect(request.path_info)
     else:
         form = AccessPermissionForm(request=request)
