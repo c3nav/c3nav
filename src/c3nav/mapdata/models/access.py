@@ -126,7 +126,7 @@ class AccessPermission(models.Model):
         access_restriction_ids = cache.get(cache_key, None)
         if access_restriction_ids is None:
             result = tuple(request.user.accesspermissions.filter(
-                Q(expire_date__isnull=True) | Q(expire_date__lt=timezone.now())
+                Q(expire_date__isnull=True) | Q(expire_date__gt=timezone.now())
             ).values_list('access_restriction_id', 'expire_date'))
             if result:
                 access_restriction_ids, expire_dates = zip(*result)
