@@ -6,8 +6,10 @@
 {% block content %}
     <main class="map" data-state="{{ state }}"{% if embed %} data-embed{% endif %}>
         <section id="attributions">
-            {% get_current_language as CURRENT_LANGUAGE %}
-            <a href="{% url 'site.language' %}" id="choose-language">{{ CURRENT_LANGUAGE | language_name_local }}</a> –
+            {% if not embed %}
+                {% get_current_language as CURRENT_LANGUAGE %}
+                <a href="{% url 'site.language' %}" id="choose-language">{{ CURRENT_LANGUAGE | language_name_local }}</a> –
+            {% endif %}
             <a href="{% url 'editor.index' %}" target="_blank">{% trans 'Editor' %}</a> //
             <a href="/api/" target="_blank">{% trans 'API' %}</a> //
             <a href="https://twitter.com/c3nav/" rel="external" target="_blank">Twitter</a> //
