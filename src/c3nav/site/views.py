@@ -7,7 +7,6 @@ from django.contrib import messages
 from django.contrib.auth import login, logout
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.forms import AuthenticationForm, PasswordChangeForm, UserCreationForm
-from django.contrib.auth.views import redirect_to_login
 from django.core.serializers.json import DjangoJSONEncoder
 from django.db import transaction
 from django.http import HttpResponse, HttpResponseBadRequest
@@ -132,6 +131,25 @@ def close_response(request):
     return redirect(redirect_path)
 
 
+def redeem_token_after_login(request):
+    token = request.session.pop('redeem_token_on_login')
+    if not token:
+        return
+
+    try:
+        token = AccessPermissionToken.objects.get(id=token)
+    except AccessPermissionToken.DoesNotExist:
+        return
+
+    try:
+        token.redeem(request.user)
+    except AccessPermissionToken.RedeemError:
+        messages.error(request, _('Areas could not be unlocked because the token has expired.'))
+        return
+
+    messages.success(request, token.redeem_success_message)
+
+
 @never_cache
 def login_view(request):
     if request.user.is_authenticated:
@@ -141,6 +159,7 @@ def login_view(request):
         form = AuthenticationForm(request, data=request.POST)
         if form.is_valid():
             login(request, form.user_cache)
+            redeem_token_after_login(request)
             return close_response(request)
     else:
         form = AuthenticationForm(request)
@@ -169,6 +188,7 @@ def register_view(request):
         if form.is_valid():
             user = form.save()
             login(request, user)
+            redeem_token_after_login(request)
             return close_response(request)
     else:
         form = UserCreationForm()
@@ -214,7 +234,6 @@ def account_view(request):
 
 
 @never_cache
-@login_required(login_url='site.login')
 def access_redeem_view(request, token):
     with transaction.atomic():
         try:
@@ -232,8 +251,8 @@ def access_redeem_view(request, token):
 
             if not request.user.is_authenticated:
                 messages.info(request, _('You need to log in to unlock areas.'))
-                request.session['redeem_token_on_login'] = token.id
-                return redirect_to_login(request.get_full_path(), 'site.login')
+                request.session['redeem_token_on_login'] = str(token.id)
+                return redirect('site.login')
 
             token.redeemed_by = request.user
             token.save()

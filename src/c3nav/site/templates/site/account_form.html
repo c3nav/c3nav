@@ -9,15 +9,15 @@
     {% include 'site/fragment_messages.html' %}
 
     {% if back_url %}
-        <p><a href="{{ back_url }}">« {% trans 'back' %}</a></p>
+        <p><a href="{{ back_url }}?{{ request.META.QUERY_STRING }}">« {% trans 'back' %}</a></p>
     {% endif %}
 
-    <form method="post" action="{{ request.path_info }}?{{ request.GET.urlencode }}">
+    <form method="post" action="{{ request.path_info }}?{{ request.META.QUERY_STRING }}">
         {% csrf_token %}
         {{ form }}
         <button type="submit">{{ title }}</button>
         {% if bottom_link_url %}
-            <a href="{{ bottom_link_url }}?{{ request.GET.urlencode }}">{{ bottom_link_text }}</a>
+            <a href="{{ bottom_link_url }}?{{ request.META.QUERY_STRING }}">{{ bottom_link_text }}</a>
         {% endif %}
     </form>
     </div>

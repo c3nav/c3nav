@@ -2,7 +2,7 @@ import pickle
 import uuid
 from collections import namedtuple
 from datetime import timedelta
-from typing import Iterable
+from typing import Sequence
 
 from django.conf import settings
 from django.core.cache import cache
@@ -10,6 +10,7 @@ from django.db import models, transaction
 from django.db.models import Q
 from django.utils import timezone
 from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import ungettext_lazy
 
 from c3nav.mapdata.models import MapUpdate
 from c3nav.mapdata.models.base import SerializableMixin, TitledMixin
@@ -57,19 +58,22 @@ class AccessPermissionToken(models.Model):
     data = models.BinaryField()
 
     @property
-    def restrictions(self) -> Iterable[AccessPermissionTokenItem]:
+    def restrictions(self) -> Sequence[AccessPermissionTokenItem]:
         return pickle.loads(self.data)
 
     @restrictions.setter
-    def restrictions(self, value: Iterable[AccessPermissionTokenItem]):
+    def restrictions(self, value: Sequence[AccessPermissionTokenItem]):
         self.data = pickle.dumps(value)
+
+    class RedeemError(Exception):
+        pass
 
     def redeem(self, user=None):
         if self.redeemed_by_id or (user is None and self.redeemed):
-            raise TypeError('Already redeemed.')
+            raise self.RedeemError('Already redeemed.')
 
-        if timezone.now()+timedelta(minutes=300 if self.redeemed else 0) > self.valid_until:
-            raise TypeError('No longer valid.')
+        if timezone.now() > self.valid_until + timedelta(minutes=5 if self.redeemed else 0):
+            raise self.RedeemError('No longer valid.')
 
         self.redeemed = True
         if user:
@@ -89,6 +93,10 @@ class AccessPermissionToken(models.Model):
 
     def bump(self):
         self.valid_until = default_valid_until()
+
+    @property
+    def redeem_success_message(self):
+        return ungettext_lazy('Area successfully unlocked.', 'Areas successfully unlocked.', len(self.restrictions))
 
 
 class AccessPermission(models.Model):
