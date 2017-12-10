@@ -8,16 +8,18 @@ from itertools import chain
 
 import numpy as np
 from django.conf import settings
+from django.core.cache import cache
 from django.utils.functional import cached_property
 from scipy.sparse.csgraph._shortest_path import shortest_path
 from shapely import prepared
 from shapely.geometry import LineString, Point
 from shapely.ops import unary_union
 
-from c3nav.mapdata.models import AltitudeArea, Area, GraphEdge, Level, LocationGroup, Space, WayType
+from c3nav.mapdata.models import AltitudeArea, Area, GraphEdge, Level, LocationGroup, MapUpdate, Space, WayType
 from c3nav.mapdata.models.geometry.space import POI
 from c3nav.mapdata.utils.geometry import assert_multipolygon, get_rings, good_representative_point
 from c3nav.mapdata.utils.locations import CustomLocation
+from c3nav.routing.exceptions import NotYetRoutable
 from c3nav.routing.route import Route
 
 
@@ -230,63 +232,102 @@ class Router:
                 cls.cached = cls.load_nocache()
         return cls.cached
 
-    def get_locations(self, location, permissions=frozenset()):
+    def get_locations(self, location, restrictions):
         locations = ()
         if isinstance(location, Level):
-            locations = (self.levels.get(location.pk), )
+            if location.access_restriction_id not in restrictions:
+                if location.pk not in self.levels:
+                    raise NotYetRoutable
+                locations = (self.levels[location.pk], )
         elif isinstance(location, Space):
-            locations = (self.spaces.get(location.pk), )
+            if location.pk not in restrictions.spaces:
+                if location.pk not in self.spaces:
+                    raise NotYetRoutable
+                locations = (self.spaces[location.pk], )
         elif isinstance(location, Area):
-            locations = (self.areas.get(location.pk), )
+            if location.space_id not in restrictions.spaces and location.access_restriction_id not in restrictions:
+                if location.pk not in self.areas:
+                    raise NotYetRoutable
+                locations = (self.areas[location.pk], )
         elif isinstance(location, POI):
-            locations = (self.pois.get(location.pk), )
+            if location.space_id not in restrictions.spaces and location.access_restriction_id not in restrictions:
+                if location.pk not in self.pois:
+                    raise NotYetRoutable
+                locations = (self.pois[location.pk], )
         elif isinstance(location, LocationGroup):
-            group = self.groups.get(location.pk)
+            if location.pk not in self.groups:
+                raise NotYetRoutable
+            group = self.groups[location.pk]
             locations = tuple(chain(
-                (self.levels[pk] for pk in group.get('levels', ())),
-                (self.spaces[pk] for pk in group.get('spaces', ())),
-                (self.areas[pk] for pk in group.get('areas', ()))
+                (level for level in (self.levels[pk] for pk in group.get('levels', ()))
+                 if level.access_restriction_id not in restrictions),
+                (space for space in (self.spaces[pk] for pk in group.get('spaces', ()))
+                 if space.pk not in restrictions.spaces),
+                (area for area in (self.areas[pk] for pk in group.get('areas', ()))
+                 if area.space_id not in restrictions.spaces and area.access_restriction_id not in restrictions),
+                (poi for poi in (self.pois[pk] for pk in group.get('pois', ()))
+                 if poi.space_id not in restrictions.spaces and poi.access_restriction_id not in restrictions),
             ))
         elif isinstance(location, CustomLocation):
             point = Point(location.x, location.y)
             location = RouterPoint(location)
-            space = self.space_for_point(location.level.pk, point)
+            space = self.space_for_point(location.level.pk, point, restrictions)
             altitudearea = space.altitudearea_for_point(point)
             location_nodes = altitudearea.nodes_for_point(point, all_nodes=self.nodes)
             location.nodes = set(i for i in location_nodes.keys())
             location.nodes_addition = location_nodes
             locations = tuple((location, ))
-        return RouterLocation(tuple(location for location in locations
-                                    if location is not None and (location.access_restriction_id is None or
-                                                                 location.access_restriction_id in permissions)))
+        return RouterLocation(locations)
 
-    def space_for_point(self, level, point):
-        # todo: only spaces that the user can see
+    def space_for_point(self, level, point, restrictions=None):
         point = Point(point.x, point.y)
         level = self.levels[level]
+        excluded_spaces = restrictions.spaces if restrictions else ()
         for space in level.spaces:
+            if space in excluded_spaces:
+                continue
             if self.spaces[space].geometry_prep.contains(point):
                 return self.spaces[space]
         return self.spaces[min(level.spaces, key=lambda space: self.spaces[space].geometry.distance(point))]
 
     def describe_custom_location(self, location):
+        # todo: location.request
         return CustomLocationDescription(
             space=self.space_for_point(location.level.pk, location)
         )
 
-    @cached_property
-    def shortest_path(self):
-        return shortest_path(self.graph, directed=True, return_predecessors=True)
+    def shortest_path(self, restrictions):
+        cache_key = 'router:shortest_path:%s:%s' % (MapUpdate.current_processed_cache_key(),
+                                                    restrictions.cache_key)
+        result = cache.get(cache_key)
+        if result:
+            return result
+
+        graph = self.graph.copy()
+        graph[tuple(restrictions.spaces), :] = np.inf
+        graph[:, tuple(restrictions.spaces)] = np.inf
+        graph[restrictions.edges.transpose().tolist()] = np.inf
+
+        result = shortest_path(graph, directed=True, return_predecessors=True)
+        cache.set(cache_key, result, 600)
+        return result
+
+    def get_restrictions(self, permissions):
+        return RouterRestrictionSet({
+            pk: restriction for pk, restriction in self.restrictions.items() if pk not in permissions
+        })
 
     def get_route(self, origin, destination, permissions=frozenset()):
+        restrictions = self.get_restrictions(permissions)
+
         # get possible origins and destinations
-        origins = self.get_locations(origin, permissions=permissions)
-        destinations = self.get_locations(destination, permissions=permissions)
+        origins = self.get_locations(origin, restrictions)
+        destinations = self.get_locations(destination, restrictions)
 
         # todo: throw error if route is impossible
 
         # calculate shortest path matrix
-        distances, predecessors = self.shortest_path
+        distances, predecessors = self.shortest_path(restrictions)
 
         # find shortest path for our origins and destinations
         origin_nodes = np.array(tuple(origins.nodes))
@@ -480,3 +521,26 @@ class RouterRestriction:
     def __init__(self, spaces=None):
         self.spaces = spaces if spaces else set()
         self.edges = deque()
+
+
+class RouterRestrictionSet:
+    def __init__(self, restrictions):
+        self.restrictions = restrictions
+
+    @cached_property
+    def spaces(self):
+        return reduce(operator.or_, (restriction.spaces for restriction in self.restrictions.values()), frozenset())
+
+    @cached_property
+    def edges(self):
+        if not self.restrictions:
+            return np.array((), dtype=np.uint32).reshape((-1, 2))
+        return np.vstack(tuple(restriction.edges for restriction in self.restrictions.values()))
+
+    @cached_property
+    def cache_key(self):
+        return '%s_%s' % ('-'.join(str(i) for i in self.spaces),
+                          '-'.join(str(i) for i in self.edges.flatten().tolist()))
+
+    def __contains__(self, pk):
+        return pk in self.restrictions
