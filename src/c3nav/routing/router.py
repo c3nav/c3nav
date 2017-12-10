@@ -237,7 +237,6 @@ class Router:
             location.nodes = set(i for i in location_nodes.keys())
             location.nodes_addition = location_nodes
             locations = tuple((location, ))
-        # todo: route from/to custom location
         return RouterLocation(tuple(location for location in locations
                                     if location is not None and (location.access_restriction_id is None or
                                                                  location.access_restriction_id in permissions)))
