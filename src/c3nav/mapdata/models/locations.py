@@ -168,7 +168,7 @@ class SpecificLocation(Location, models.Model):
 
     @property
     def subtitle(self):
-        groups = tuple(self.groups.all() if 'group' in self._prefetched_objects_cache else ())
+        groups = tuple(self.groups.all() if 'group' in getattr(self, '_prefetched_objects_cache', ()) else ())
         return groups[0].title if groups else self.__class__._meta.verbose_name
 
     @cached_property
