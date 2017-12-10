@@ -34,7 +34,7 @@ class Announcement(models.Model):
             result = None
 
         timeout = 300
-        if result.active_until:
+        if result and result.active_until:
             timeout = max(0, min(timeout, (result.active_until-timezone.now()).total_seconds()))
         cache.set('site:announcement', result, timeout)
 
