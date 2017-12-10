@@ -63,7 +63,7 @@ class AccessPermissionToken(models.Model):
         if self.redeemed_by_id or (user is None and self.redeemed):
             raise TypeError('Already redeemed.')
 
-        if timezone.now()+timedelta(minutes=300 if self.redeemed else 0) < self.valid_until:
+        if timezone.now()+timedelta(minutes=300 if self.redeemed else 0) > self.valid_until:
             raise TypeError('No longer valid.')
 
         self.redeemed = True
