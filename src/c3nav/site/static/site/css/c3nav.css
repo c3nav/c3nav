@@ -2,7 +2,11 @@ body {
     font-weight: normal;
     display: flex;
     flex-direction: column;
-    min-height: 100vh;
+    position: absolute;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    right: 0;
 }
 
 header {
@@ -587,8 +591,8 @@ main:not([data-view=route-result]) #route-summary {
     position: fixed;
     top: 0;
     left: 0;
-    width: 100vw;
-    height: 100vh;
+    bottom: 0;
+    right: 0;
     background-color: rgba(0, 0, 0, 0.3);
     z-index: 2;
     display: flex;
