@@ -141,7 +141,7 @@ def grant_access_qr(request, token):
     with transaction.atomic():
         token = AccessPermissionToken.objects.select_for_update().get(id=token, author=request.user)
         if token.redeemed:
-            messages.success(_('Access successfully granted!'))
+            messages.success(request, _('Access successfully granted!'))
             token = None
         elif not token.unlimited:
             try:
@@ -152,7 +152,7 @@ def grant_access_qr(request, token):
                 if latest.id != token.id:
                     token = None
             if token is None:
-                messages.error(_('You can only display your most recently created token.'))
+                messages.error(request, _('You can only display your most recently created token.'))
 
         if token is None:
             redirect('control.access')
