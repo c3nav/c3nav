@@ -5,7 +5,6 @@
 
 {% block content %}
     <main class="map" data-state="{{ state }}"{% if embed %} data-embed{% endif %}>
-        <section id="messages">{% include 'site/fragment_messages.html' %}</section>
         <section id="attributions">
             <a href="{% url 'editor.index' %}" target="_blank">{% trans 'Editor' %}</a> //
             <a href="/api/" target="_blank">{% trans 'API' %}</a> //
@@ -13,6 +12,7 @@
         </section>
         <section id="map" data-bounds="{{ bounds }}" data-levels="{{ levels }}"{% if tile_cache_server %} data-tile-server="{{ tile_cache_server }}"{% endif %}></section>
         {% if not embed %}
+            <section id="messages">{% include 'site/fragment_messages.html' %}</section>
             <section id="popup-buttons">
                 <button class="button-clear as-location">{% trans 'Show only this location' %}</button>
                 <button class="button-clear as-destination">{% trans 'Route to here' %}</button>
