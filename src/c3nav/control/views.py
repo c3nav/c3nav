@@ -141,8 +141,12 @@ def grant_access_qr(request, token):
     with transaction.atomic():
         token = AccessPermissionToken.objects.select_for_update().get(id=token, author=request.user)
         if token.redeemed:
-            messages.success(request, _('Access successfully granted!'))
+            messages.success(request, _('Access successfully granted.'))
             token = None
+        elif request.method == 'POST' and request.POST.get('revoke'):
+            token.delete()
+            messages.success(request, _('Token successfully revoked.'))
+            return redirect('control.access')
         elif not token.unlimited:
             try:
                 latest = AccessPermissionToken.objects.filter(author=request.user).latest('valid_until')

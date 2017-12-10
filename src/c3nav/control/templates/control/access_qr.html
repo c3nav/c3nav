@@ -14,11 +14,17 @@
         <img src="{{ url_qr }}">
     </p>
     <p>
-        {{ url_absolute }}
+        <a href="{{ url }}">{{ url_absolute }}</a>
     </p>
     <p>
-        <a href="{% url 'control.access' %}">« {% trans 'back' %}</a>
+        <em>{% trans 'Please wait. You will be redirected back when the token is redeemed.' %}</em>
     </p>
+    <form method="post">
+        {% csrf_token %}
+        <p>
+            <button type="submit" name="revoke" value="1">{% trans 'Revoke Token' %}</button>
+        </p>
+    </form>
     <script type="text/javascript">
         window.setTimeout(function() { window.location.reload(); }, 3000);
     </script>
