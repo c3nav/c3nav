@@ -5,13 +5,15 @@ from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User
 from django.core.exceptions import PermissionDenied
 from django.core.paginator import Paginator
+from django.db import transaction
 from django.db.models import Prefetch
 from django.shortcuts import get_object_or_404, redirect, render
+from django.urls import reverse
 from django.utils.translation import ugettext_lazy as _
 
 from c3nav.control.forms import AccessPermissionForm, UserPermissionsForm
 from c3nav.control.models import UserPermissions
-from c3nav.mapdata.models.access import AccessPermission
+from c3nav.mapdata.models.access import AccessPermission, AccessPermissionToken
 
 
 def control_panel_view(func):
@@ -112,3 +114,53 @@ def user_detail(request, user):
     })
 
     return render(request, 'control/user.html', ctx)
+
+
+@login_required
+@control_panel_view
+def grant_access(request):
+    if request.method == 'POST' and request.POST.get('submit_access_permissions'):
+        form = AccessPermissionForm(request=request, data=request.POST)
+        if form.is_valid():
+            token = form.get_token()
+            token.save()
+            return redirect(reverse('control.access.qr', kwargs={'token': token.id}))
+    else:
+        form = AccessPermissionForm(request=request)
+
+    ctx = {
+        'access_permission_form': form
+    }
+
+    return render(request, 'control/access.html', ctx)
+
+
+@login_required
+@control_panel_view
+def grant_access_qr(request, token):
+    with transaction.atomic():
+        token = AccessPermissionToken.objects.select_for_update().get(id=token, author=request.user)
+        if token.redeemed:
+            messages.success(_('Access successfully granted!'))
+            token = None
+        elif not token.unlimited:
+            try:
+                latest = AccessPermissionToken.objects.filter(author=request.user).latest('valid_until')
+            except AccessPermissionToken.DoesNotExist:
+                token = None
+            else:
+                if latest.id != token.id:
+                    token = None
+            if token is None:
+                messages.error(_('You can only display your most recently created token.'))
+
+        if token is None:
+            redirect('control.access')
+
+        token.bump()
+        token.save()
+
+    return render(request, 'control/access_qr.html', {
+        'token': token.id,
+        'absolute_url': request.build_absolute_uri('/access/qr/%s' % token.id)
+    })

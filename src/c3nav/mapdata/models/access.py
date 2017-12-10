@@ -78,6 +78,9 @@ class AccessPermissionToken(models.Model):
         if self.pk:
             self.save()
 
+    def bump(self):
+        self.valid_until = default_valid_until()
+
 
 class AccessPermission(models.Model):
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)

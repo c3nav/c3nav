@@ -1,0 +1,9 @@
+{% extends 'control/base.html' %}
+{% load i18n %}
+
+{% block heading %}{% trans 'Access Permissions' %}{% endblock %}
+
+{% block subcontent %}
+    {% trans 'Generate QR Code' as button_label %}
+    {% include 'control/fragment_access_permissions_form.html' with button_label=button_label %}
+{% endblock %}

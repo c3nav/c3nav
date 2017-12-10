@@ -6,15 +6,18 @@
 {% block header_title_url %}{% url 'control.index' %}{% endblock %}
 
 {% block content %}
-<main class="control">
+<main class="control"{% block addattributes %}{% endblock %}>
     {% include 'site/fragment_messages.html' %}
     <h2>{% block heading %}{% endblock %}</h2>
+    {% block menu %}
     <nav>
         <p>
             <a href="{% url 'control.index' %}">{% trans 'Overview' %}</a> &middot;
-            <a href="{% url 'control.users' %}">{% trans 'Users' %}</a>
+            <a href="{% url 'control.users' %}">{% trans 'Users' %}</a> &middot;
+            <a href="{% url 'control.access' %}">{% trans 'Access' %}</a>
         </p>
     </nav>
+    {% endblock %}
     {% block subcontent %}
     {% endblock %}
 </main>

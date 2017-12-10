@@ -1,0 +1,25 @@
+{% extends 'control/base.html' %}
+{% load i18n %}
+
+{% block heading %}{% trans 'Access Permission QR Code' %}{% endblock %}
+
+{% block addattributes %} style="text-align: center;"{% endblock %}
+{% block menu %}{% endblock %}
+
+{% block subcontent %}
+    <p>
+        {% trans 'Scan this QR code to get access permissions:' %}
+    </p>
+    <p>
+        <img src="/qr/access/{{ token }}">
+    </p>
+    <p>
+        {{ absolute_url }}
+    </p>
+    <p>
+        <a href="{% url 'control.access' %}">« {% trans 'back' %}</a>
+    </p>
+    <script type="text/javascript">
+        window.setTimeout(function() { window.location.reload(); }, 3000);
+    </script>
+{% endblock %}
