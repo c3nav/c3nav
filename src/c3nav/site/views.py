@@ -178,7 +178,7 @@ def register_view(request):
         field.help_text = None
 
     return render(request, 'site/account_form.html', {
-        'title': _('Change new account'),
+        'title': _('Create new account'),
         'back_url': reverse('site.login'),
         'form': form
     })
