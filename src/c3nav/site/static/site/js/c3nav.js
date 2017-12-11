@@ -217,12 +217,13 @@ c3nav = {
             }
         }
         $location_details.find('.details-body').html('').append(elem);
-        var $editor = $location_details.removeClass('loading').find('.editor');
+        var $editor = $location_details.find('.editor');
         if (data.editor_url) {
             $editor.attr('href', data.editor_url).show();
         } else {
             $editor.hide();
         }
+        $location_details.removeClass('loading');
     },
     load_route: function (origin, destination, nofly) {
         var $route = $('#route-summary');
