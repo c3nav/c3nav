@@ -139,7 +139,7 @@ def create_editor_form(editor_model):
                        'ordering', 'category', 'width', 'groups', 'color', 'priority', 'icon_name',
                        'base_altitude', 'waytype', 'access_restriction', 'height', 'default_height', 'door_height',
                        'outside', 'can_search', 'can_describe', 'geometry', 'single', 'altitude', 'short_label',
-                       'extra_time', 'speed', 'description', 'speed_up', 'description_up',
+                       'extra_seconds', 'speed', 'description', 'speed_up', 'description_up',
                        'allow_levels', 'allow_spaces', 'allow_areas', 'allow_pois', 'left', 'top', 'right', 'bottom']
     field_names = [field.name for field in editor_model._meta.get_fields() if not field.one_to_many]
     existing_fields = [name for name in possible_fields if name in field_names]
