@@ -402,7 +402,7 @@ main.show-details #resultswrapper .details {
 .locationinput.selected input {
     padding-bottom: 25px;
 }
-.locationinput button {
+main.map .locationinput button {
     position: absolute;
     top: 6px;
     right: 6px;
@@ -413,6 +413,7 @@ main.show-details #resultswrapper .details {
     transition: transform 150ms, opacity 150ms, top 150ms, right 150ms;
     font-size: 42px;
     color: #b2b2b2;
+    line-height: 1;
 }
 .locationinput button:hover {
     color: #a2a2a2;
