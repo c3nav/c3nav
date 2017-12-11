@@ -3,7 +3,7 @@ from collections import OrderedDict
 from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.forms import CharField, ModelForm
-from django.utils.text import format_lazy
+from django.utils.text import capfirst, format_lazy
 from django.utils.translation import ugettext_lazy as _
 from django.utils.translation import get_language_info
 
@@ -36,7 +36,7 @@ class I18nModelFormMixin(ModelForm):
                     values[language] = new_value
                 language_info = get_language_info(language)
                 field_title = format_lazy(_('{field_name} ({lang})'),
-                                          field_name=model_field.verbose_name,
+                                          field_name=capfirst(model_field.verbose_name),
                                           lang=language_info['name_translated'])
                 new_fields[sub_field_name] = CharField(label=field_title,
                                                        required=False,
