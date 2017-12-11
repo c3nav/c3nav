@@ -238,6 +238,11 @@ c3nav = {
     },
     _route_loaded: function(data, nofly) {
         var $route = $('#route-summary');
+        if (data.error && $route.is('.loading')) {
+            $route.find('span').text(data.error);
+            $route.removeClass('loading');
+            return;
+        }
         if ($route.attr('data-origin') !== String(data.request.origin) || $route.attr('data-destination') !== String(data.request.destination)) {
             // loaded too late, information no longer needed
             return;
