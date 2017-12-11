@@ -446,6 +446,22 @@ main:not([data-view=route-result]) #route-dots {
     color: #b2b2b2;
 }
 
+#route-details .details-body > div:not(:last-child) {
+    border: 0 #dddddd solid;
+    border-bottom-width: 1px;
+}
+.routeitem {
+    padding: 3px 10px 2px 53px;
+    position: relative;
+}
+.routeitem .icon {
+    color: #7C848A;
+    position: absolute;
+    top: 4px;
+    left: 16px;
+    font-size: 21px;
+}
+
 #popup-buttons, #attributions {
     display: none;
 }

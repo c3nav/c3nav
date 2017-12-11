@@ -76,11 +76,11 @@ c3nav = {
 
         c3nav.init_locationinputs();
 
-        var $location_buttons = $('#location-buttons');
-        $location_buttons.find('.details').on('click', c3nav._location_buttons_details_click);
-        $location_buttons.find('.route').on('click', c3nav._location_buttons_route_click);
+        $('#location-buttons').find('.route').on('click', c3nav._location_buttons_route_click);
 
-        $('#location-buttons, #route-result-buttons').find('.share').on('click', c3nav._buttons_share_click);
+        var $result_buttons = $('#location-buttons, #route-result-buttons');
+        $result_buttons.find('.share').on('click', c3nav._buttons_share_click);
+        $result_buttons.find('.details').on('click', c3nav._buttons_details_click);
         $('#route-search-buttons, #route-result-buttons').find('.swap').on('click', c3nav._route_buttons_swap_click);
         $('#route-search-buttons').find('.close').on('click', c3nav._route_buttons_close_click);
         $('#map').on('click', '.location-popup .button-clear', c3nav._popup_button_click);
@@ -232,10 +232,12 @@ c3nav = {
         $location_details.removeClass('loading');
     },
     load_route: function (origin, destination, nofly) {
-        var $route = $('#route-summary');
+        var $route = $('#route-summary'),
+            $details_wrapper = $('#route-details');
         if ($route.attr('data-origin') !== String(origin.id) || $route.attr('data-destination') !== String(destination.id)) {
             c3nav._clear_route_layers();
             $route.addClass('loading').attr('data-origin', origin.id).attr('data-destination', destination.id);
+            $details_wrapper.addClass('loading');
             $.post('/api/routing/route/', {
                 'origin': origin.id,
                 'destination': destination.id,
@@ -265,15 +267,27 @@ c3nav = {
     },
     _display_route_result: function(result, nofly) {
         var $route = $('#route-summary'),
+            $details_wrapper = $('#route-details'),
+            $details = $details_wrapper.find('.details-body'),
             first_primary_level = null,
             last_primary_level = null,
             level_collect = [],
             next_level_collect = [],
             in_intermediate_level = true,
-            item, coords;
+            item, coords, description;
         c3nav._clear_route_layers();
+
+        $details.html('');
+        $details.append(c3nav._build_location_html(result.origin));
+
         for (var i=0; i < result.items.length; i++) {
             item = result.items[i];
+
+            for (var j=0; j < item.descriptions.length; j++) {
+                description = item.descriptions[j];
+                $details.append(c3nav._build_route_item('more_vert', description));
+            }
+
             coords = [item.coordinates[0], item.coordinates[1]];
             level_collect.push(coords);
             if (item.level) {
@@ -312,11 +326,16 @@ c3nav = {
                 }
                 level_collect = level_collect.slice(-1);
             }
+            if (i > 0 && item.space && item.space.title && item.space.id !== result.destination.id) {
+                $details.append(c3nav._build_route_item('place', item.space.title));
+            }
         }
         if (last_primary_level) {
             c3nav._add_line_to_route(last_primary_level, next_level_collect);
             c3nav._add_line_to_route(last_primary_level, level_collect);
         }
+
+        $details.append(c3nav._build_location_html(result.destination));
 
         // add origin and destination lines
         c3nav._add_line_to_route(first_primary_level, c3nav._add_intermediate_point(
@@ -333,7 +352,14 @@ c3nav = {
         c3nav._firstRouteLevel = first_primary_level;
         $route.find('span').text(String(result.distance)+' m');
         $route.removeClass('loading');
+        $details_wrapper.removeClass('loading');
+
         if (!nofly) c3nav.fly_to_bounds(true);
+    },
+    _build_route_item: function (icon, text) {
+        return $('<div class="routeitem">')
+            .append($('<i class="icon material-icons">'+icon+'</i>'))
+            .append($('<span>').text(text));
     },
     _add_intermediate_point: function(origin, destination, next) {
         var angle = Math.atan2(destination[1]-next[1], destination[0]-next[0]),
@@ -461,7 +487,7 @@ c3nav = {
     },
 
     // button handlers
-    _location_buttons_details_click: function () {
+    _buttons_details_click: function () {
         c3nav.update_state(null, null, !c3nav.state.details);
     },
     _location_buttons_route_click: function () {
