@@ -181,7 +181,13 @@ c3nav = {
         var $location_details = $('#location-details');
         if ($location_details.attr('data-id') !== String(location.id)) {
             $location_details.addClass('loading').attr('data-id', location.id);
-            $.getJSON('/api/locations/'+location.id+'/display', c3nav._location_details_loaded);
+            $.getJSON('/api/locations/'+location.id+'/display', c3nav._location_details_loaded).fail(function (data) {
+                var $location_details = $('#location-details');
+                $location_details.find('.details-body').text('Error '+String(data.status));
+                $location_details.find('.details-body').html('').append(elem);
+                $location_details.find('.editor').hide();
+                $location_details.removeClass('loading');
+            });
         }
     },
     _location_details_loaded: function(data) {
@@ -234,7 +240,13 @@ c3nav = {
                 'origin': origin.id,
                 'destination': destination.id,
                 'csrfmiddlewaretoken': c3nav.get_csrf_token()
-            }, function(data) { c3nav._route_loaded(data, nofly) }, 'json');
+            }, function(data) {
+                c3nav._route_loaded(data, nofly)
+            }, 'json').fail(function(data) {
+                c3nav._route_loaded({
+                    'error': 'Error '+String(data.status)
+                })
+            });
         }
     },
     _route_loaded: function(data, nofly) {
@@ -861,6 +873,8 @@ c3nav = {
             popup.setLatLng(e.latlng).setContent(c3nav._build_location_html(data, true)+$('#popup-buttons').html());
             c3nav._click_anywhere_popup = popup;
             popup.on('remove', function() { c3nav._click_anywhere_popup = null }).openOn(c3nav.map);
+        }).fail(function() {
+            popup.remove();
         });
     },
     _map_moved: function () {
@@ -975,14 +989,16 @@ c3nav = {
         }
     },
 
-    schedule_refresh_tile_access: function () {
-        window.setTimeout(c3nav.refresh_tile_access, 16000);
+    schedule_refresh_tile_access: function (timeout) {
+        window.setTimeout(c3nav.refresh_tile_access, timeout || 16000);
     },
     refresh_tile_access: function () {
-        $.get('/api/users/current/', c3nav._set_user_data);
-        c3nav.schedule_refresh_tile_access();
+        $.get('/api/users/current/', c3nav._set_user_data).fail(function() {
+            c3nav.schedule_refresh_tile_access(1000);
+        });
     },
     _set_user_data: function (data) {
+        c3nav.schedule_refresh_tile_access();
         var $user = $('header #user');
         $user.find('span').text(data.title);
         $user.find('small').text(data.subtitle || '');
