@@ -57,13 +57,13 @@ class Route:
                 if item.waytype.join_edges and next_item and next_item.waytype == item.waytype:
                     continue
                 if item.waytype.up_separate and item.edge.rise > 0:
-                    item.description.append(item.waytype.description_up)
+                    item.descriptions.append(item.waytype.description_up)
                 else:
-                    item.description.append(item.waytype.description)
+                    item.descriptions.append(item.waytype.description)
             elif item.new_space:
                 pass  # todo: custom space transition descriptions
 
-        items[-1].description.append(_('You have reached your destination.'))
+        items[-1].descriptions.append(_('You have reached your destination.'))
 
         return OrderedDict((
             ('origin', describe_location(self.origin, locations)),
@@ -118,8 +118,7 @@ class RouteItem:
         if self.new_level:
             result['level'] = describe_location(self.level, locations)
 
-        if self.description:
-            result['description'] = self.description
+        result['descriptions'] = self.descriptions
         return result
 
 
