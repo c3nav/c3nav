@@ -138,7 +138,7 @@ def close_response(request):
 
 
 def redeem_token_after_login(request):
-    token = request.session.pop('redeem_token_on_login')
+    token = request.session.pop('redeem_token_on_login', None)
     if not token:
         return
 
