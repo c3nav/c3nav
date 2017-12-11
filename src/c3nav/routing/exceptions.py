@@ -1,10 +1,10 @@
-class NoRouteFound(Exception):
-    pass
-
-
 class NotYetRoutable(Exception):
     pass
 
 
-class AlreadyThere(Exception):
+class LocationUnreachable(Exception):
+    pass
+
+
+class NoRouteFound(Exception):
     pass

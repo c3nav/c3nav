@@ -19,7 +19,7 @@ from c3nav.mapdata.models import AltitudeArea, Area, GraphEdge, Level, LocationG
 from c3nav.mapdata.models.geometry.space import POI
 from c3nav.mapdata.utils.geometry import assert_multipolygon, get_rings, good_representative_point
 from c3nav.mapdata.utils.locations import CustomLocation
-from c3nav.routing.exceptions import NotYetRoutable
+from c3nav.routing.exceptions import LocationUnreachable, NoRouteFound, NotYetRoutable
 from c3nav.routing.route import Route
 
 
@@ -277,7 +277,10 @@ class Router:
             location.nodes = set(i for i in location_nodes.keys())
             location.nodes_addition = location_nodes
             locations = tuple((location, ))
-        return RouterLocation(locations)
+        result = RouterLocation(locations)
+        if not result.nodes:
+            raise LocationUnreachable
+        return result
 
     def space_for_point(self, level, point, restrictions=None):
         point = Point(point.x, point.y)
@@ -324,8 +327,6 @@ class Router:
         origins = self.get_locations(origin, restrictions)
         destinations = self.get_locations(destination, restrictions)
 
-        # todo: throw error if route is impossible
-
         # calculate shortest path matrix
         distances, predecessors = self.shortest_path(restrictions)
 
@@ -338,6 +339,9 @@ class Router:
         )
         origin_node = origin_nodes[origin_node]
         destination_node = destination_nodes[destination_node]
+
+        if distances[origin_node, destination_node] == np.inf:
+            raise NoRouteFound
 
         # get best origin and destination
         origin = origins.get_location_for_node(origin_node)
