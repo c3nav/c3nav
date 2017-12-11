@@ -455,11 +455,20 @@ main:not([data-view=route-result]) #route-dots {
     position: relative;
 }
 .routeitem .icon {
-    color: #7C848A;
     position: absolute;
     top: 4px;
-    left: 16px;
+    left: 12px;
+    width: 29px;
+    height: 21px;
+    text-align: center;
+}
+.routeitem .icon .material-icons {
+    color: #7C848A;
     font-size: 21px;
+}
+.routeitem .icon img {
+    opacity: 0.6;
+    height: 21px;
 }
 
 #popup-buttons, #attributions {

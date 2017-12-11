@@ -285,7 +285,7 @@ c3nav = {
 
             for (var j=0; j < item.descriptions.length; j++) {
                 description = item.descriptions[j];
-                $details.append(c3nav._build_route_item('more_vert', description));
+                $details.append(c3nav._build_route_item(description[0], description[1]));
             }
 
             coords = [item.coordinates[0], item.coordinates[1]];
@@ -357,9 +357,14 @@ c3nav = {
         if (!nofly) c3nav.fly_to_bounds(true);
     },
     _build_route_item: function (icon, text) {
-        return $('<div class="routeitem">')
-            .append($('<i class="icon material-icons">'+icon+'</i>'))
-            .append($('<span>').text(text));
+        var elem = $('<div class="routeitem">');
+        if (icon.indexOf('.') === -1) {
+            elem.append($('<span class="icon"><i class="material-icons">' + icon + '</i></span>'));
+        } else {
+            elem.append($('<span class="icon"><img src="/static/site/img/icons/' + icon + '"></span>'));
+        }
+        elem.append($('<span>').text(text));
+        return elem;
     },
     _add_intermediate_point: function(origin, destination, next) {
         var angle = Math.atan2(destination[1]-next[1], destination[0]-next[0]),
@@ -376,7 +381,7 @@ c3nav = {
                 color: gray ? '#888888': $('button.swap').css('color'),
                 dashArray: (gray || link_to_level) ? '7' : null,
                 interactive: false
-            }).addTo(routeLayer),
+            }).addTo(routeLayer)
             bounds = {};
         bounds[level] = line.getBounds();
 

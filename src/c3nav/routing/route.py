@@ -53,17 +53,24 @@ class Route:
         # descriptions for waytypes
         next_item = None
         for item in reversed(items):
+            icon = 'arrow'
             if item.waytype:
+                icon = item.waytype.icon_name or 'arrow'
                 if item.waytype.join_edges and next_item and next_item.waytype == item.waytype:
                     continue
+                if item.waytype.icon_name:
+                    icon = item.waytype.icon_name
+                    if item.waytype.up_separate:
+                        icon += '-up' if item.edge.rise > 0 else '-down'
+                icon += '.svg'
                 if item.waytype.up_separate and item.edge.rise > 0:
-                    item.descriptions.append(item.waytype.description_up)
+                    item.descriptions.append((icon, item.waytype.description_up))
                 else:
-                    item.descriptions.append(item.waytype.description)
+                    item.descriptions.append((icon, item.waytype.description))
             elif item.new_space:
                 pass  # todo: custom space transition descriptions
 
-        items[-1].descriptions.append(_('You have reached your destination.'))
+        items[-1].descriptions.append(('done', _('You have reached your destination.')))
 
         return OrderedDict((
             ('origin', describe_location(self.origin, locations)),
