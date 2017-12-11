@@ -92,7 +92,7 @@ class AccessPermissionToken(models.Model):
             self.save()
 
     def bump(self):
-        self.valid_until = default_valid_until()
+        self.valid_until = max(self.valid_until, default_valid_until())
 
     @property
     def redeem_success_message(self):
