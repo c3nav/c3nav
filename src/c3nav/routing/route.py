@@ -49,6 +49,20 @@ class Route:
             items.append(item)
             last_item = item
             last_node = node
+
+        # descriptions for waytypes
+        next_item = None
+        for item in reversed(items):
+            if item.waytype:
+                if item.waytype.join_edges and next_item and next_item.waytype == item.waytype:
+                    continue
+                if item.waytype.up_separate and item.edge.rise > 0:
+                    item.description = item.waytype.description_up
+                else:
+                    item.description = item.waytype.description
+            elif item.new_space:
+                item.description = _('Enter %(space)s.') % {'space': item.space.title}
+
         return OrderedDict((
             ('origin', describe_location(self.origin, locations)),
             ('destination', describe_location(self.destination, locations)),
@@ -63,6 +77,7 @@ class RouteItem:
         self.node = node
         self.edge = edge
         self.last_item = last_item
+        self.description = None
 
     @cached_property
     def waytype(self):
@@ -77,6 +92,14 @@ class RouteItem:
     def level(self):
         return self.route.router.levels[self.space.level_id]
 
+    @cached_property
+    def new_space(self):
+        return not self.last_item or self.space.pk != self.last_item.space.pk
+
+    @cached_property
+    def new_level(self):
+        return not self.last_item or self.level.pk != self.last_item.level.pk
+
     def serialize(self, locations):
         result = OrderedDict((
             ('id', self.node.pk),
@@ -87,11 +110,14 @@ class RouteItem:
         if self.waytype:
             result['waytype'] = self.waytype.serialize(detailed=False)
 
-        if not self.last_item or self.space.pk != self.last_item.space.pk:
+        if self.new_space:
             result['space'] = describe_location(self.space, locations)
 
-        if not self.last_item or self.level.pk != self.last_item.level.pk:
+        if self.new_level:
             result['level'] = describe_location(self.level, locations)
+
+        if self.description:
+            result['description'] = self.description
         return result
 
 
