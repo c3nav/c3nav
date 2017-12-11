@@ -291,7 +291,6 @@ class Router:
         return self.spaces[min(level.spaces, key=lambda space: self.spaces[space].geometry.distance(point))]
 
     def describe_custom_location(self, location):
-        # todo: location.request
         return CustomLocationDescription(
             space=self.space_for_point(location.level.pk, location,
                                        self.get_restrictions(location.permissions))
