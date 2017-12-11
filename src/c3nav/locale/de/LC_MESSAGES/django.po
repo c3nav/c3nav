@@ -7,8 +7,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2017-12-10 17:24+0000\n"
-"PO-Revision-Date: 2017-12-10 18:24+0100\n"
+"POT-Creation-Date: 2017-12-11 00:57+0000\n"
+"PO-Revision-Date: 2017-12-11 02:01+0100\n"
 "Last-Translator: Laura Klünder <laura@codingcatgirl.de>\n"
 "Language-Team: \n"
 "Language: de\n"
@@ -144,7 +144,7 @@ msgstr "Benutzer"
 
 #: c3nav/control/templates/control/announcements.html:9
 #: c3nav/control/templates/control/users.html:15
-#: c3nav/mapdata/models/base.py:40 c3nav/mapdata/utils/locations.py:273
+#: c3nav/mapdata/models/base.py:40 c3nav/mapdata/utils/locations.py:275
 msgid "ID"
 msgstr "ID"
 
@@ -206,11 +206,7 @@ msgid "previous"
 msgstr "vorherige"
 
 #: c3nav/control/templates/control/fragment_pagination.html:12
-#, fuzzy, python-format
-#| msgid ""
-#| "\n"
-#| "            Page %(page_number)s of %(num_pages)s\n"
-#| "        "
+#, python-format
 msgid "Page %(page_number)s of %(num_pages)s"
 msgstr "Seite %(page_number)s von %(num_pages)s"
 
@@ -418,7 +414,7 @@ msgid "last state update"
 msgstr "letzte Statusänderung"
 
 #: c3nav/editor/models/changeset.py:48 c3nav/mapdata/models/base.py:50
-#: c3nav/mapdata/models/locations.py:185 c3nav/mapdata/utils/locations.py:289
+#: c3nav/mapdata/models/locations.py:185 c3nav/mapdata/utils/locations.py:291
 msgid "Title"
 msgstr "Titel"
 
@@ -738,7 +734,7 @@ msgstr "Einstellungen für neue Kanten"
 #: c3nav/editor/templates/editor/index.html:10
 #: c3nav/editor/templates/editor/level.html:16
 #: c3nav/mapdata/models/geometry/level.py:55 c3nav/mapdata/models/level.py:29
-#: c3nav/mapdata/utils/locations.py:275
+#: c3nav/mapdata/utils/locations.py:277
 msgid "Level"
 msgstr "Etage"
 
@@ -770,7 +766,7 @@ msgstr "Details anzeigen"
 #: c3nav/editor/templates/editor/space.html:9
 #: c3nav/mapdata/models/geometry/level.py:110
 #: c3nav/mapdata/models/geometry/space.py:63
-#: c3nav/mapdata/utils/locations.py:281
+#: c3nav/mapdata/utils/locations.py:283
 msgid "Space"
 msgstr "Raum"
 
@@ -1180,7 +1176,7 @@ msgstr[1] "Bereiche erfolgreich freigeschaltet."
 msgid "Access Permission"
 msgstr "Zugangserlaubnis"
 
-#: c3nav/mapdata/models/base.py:39 c3nav/mapdata/utils/locations.py:272
+#: c3nav/mapdata/models/base.py:39 c3nav/mapdata/utils/locations.py:274
 msgid "Type"
 msgstr "Typ"
 
@@ -1210,7 +1206,7 @@ msgid "level"
 msgstr "Etage"
 
 #: c3nav/mapdata/models/geometry/level.py:70
-#: c3nav/mapdata/utils/locations.py:323
+#: c3nav/mapdata/utils/locations.py:325
 #, python-brace-format
 msgid "{category}, {level}"
 msgstr "{category}, {level}"
@@ -1294,7 +1290,7 @@ msgid "space"
 msgstr "Raum"
 
 #: c3nav/mapdata/models/geometry/space.py:43
-#: c3nav/mapdata/utils/locations.py:319
+#: c3nav/mapdata/utils/locations.py:321
 #, python-brace-format
 msgid "{category}, {space}, {level}"
 msgstr "{category}, {space}, {level}"
@@ -1445,7 +1441,7 @@ msgid "default height"
 msgstr "Standarddeckenhöhe"
 
 #: c3nav/mapdata/models/locations.py:45 c3nav/mapdata/models/locations.py:65
-#: c3nav/mapdata/utils/locations.py:274
+#: c3nav/mapdata/utils/locations.py:276
 msgid "Slug"
 msgstr "Slug"
 
@@ -1581,37 +1577,37 @@ msgstr[1] "%d Kartenupdates verarbeitet."
 msgid "Last processed update: %(date)s (#%(id)d)"
 msgstr "Letztes verarbeitetes Update: %(date)s (#%(id)d)"
 
-#: c3nav/mapdata/utils/locations.py:272
+#: c3nav/mapdata/utils/locations.py:274
 msgid "Coordinates"
 msgstr "Koordinaten"
 
-#: c3nav/mapdata/utils/locations.py:287
+#: c3nav/mapdata/utils/locations.py:289
 msgid "X Coordinate"
 msgstr "X-Koordinate"
 
-#: c3nav/mapdata/utils/locations.py:288
+#: c3nav/mapdata/utils/locations.py:290
 msgid "Y Coordinate"
 msgstr "Y-Koordinate"
 
-#: c3nav/mapdata/utils/locations.py:290
+#: c3nav/mapdata/utils/locations.py:292
 msgid "Subtitle"
 msgstr "Untertitel"
 
-#: c3nav/mapdata/utils/locations.py:311
+#: c3nav/mapdata/utils/locations.py:313
 #, python-format
 msgid "Coordinates in %(space)s"
 msgstr "Koordinaten in %(space)s"
 
-#: c3nav/mapdata/utils/locations.py:313
+#: c3nav/mapdata/utils/locations.py:315
 #, python-format
 msgid "Coordinates on %(level)s"
 msgstr "Koordinaten in %(level)s"
 
-#: c3nav/mapdata/utils/locations.py:314
+#: c3nav/mapdata/utils/locations.py:316
 msgid "Unreachable coordinates"
 msgstr "Unerreichbare Koordinaten"
 
-#: c3nav/mapdata/utils/locations.py:320 c3nav/mapdata/utils/locations.py:324
+#: c3nav/mapdata/utils/locations.py:322 c3nav/mapdata/utils/locations.py:326
 msgid "Custom location"
 msgstr "Benutzerdefinierter Ort"
 
@@ -1629,6 +1625,18 @@ msgstr[1] "%d freigeschaltete Bereiche"
 #: c3nav/mapdata/utils/user.py:21
 msgid "Login"
 msgstr "Anmelden"
+
+#: c3nav/routing/api.py:35
+msgid "Not yet routable, try again shortly."
+msgstr "Noch nicht routebar, bitte einige Minuten warten."
+
+#: c3nav/routing/api.py:39
+msgid "Unreachable location."
+msgstr "Unerreichbarer Ort."
+
+#: c3nav/routing/api.py:43
+msgid "No route found."
+msgstr "Keine Route gefunden."
 
 #: c3nav/routing/forms.py:18
 msgid "Unknown origin."
