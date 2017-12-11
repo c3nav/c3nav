@@ -175,7 +175,7 @@ class SpecificLocation(Location, models.Model):
     def order(self):
         groups = tuple(self.groups.all())
         if not groups:
-            return (0, 0)
+            return (0, 0, 0)
         return (0, groups[0].category.priority, groups[0].priority)
 
 
