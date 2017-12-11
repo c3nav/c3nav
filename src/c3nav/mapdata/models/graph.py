@@ -1,11 +1,13 @@
 from collections import OrderedDict
+from decimal import Decimal
 
+from django.core.validators import MinValueValidator
 from django.db import models
 from django.utils.translation import ugettext_lazy as _
 
-from c3nav.mapdata.fields import GeometryField
+from c3nav.mapdata.fields import GeometryField, I18nField
 from c3nav.mapdata.models.access import AccessRestrictionMixin
-from c3nav.mapdata.models.base import TitledMixin
+from c3nav.mapdata.models.base import SerializableMixin
 from c3nav.mapdata.models.geometry.space import SpaceGeometryMixin
 
 
@@ -25,11 +27,24 @@ class GraphNode(SpaceGeometryMixin, models.Model):
         return result
 
 
-class WayType(TitledMixin, models.Model):
+class WayType(SerializableMixin, models.Model):
     """
     A special way type
     """
+    title = I18nField(_('Title'), plural_name='titles', fallback_any=True)
+    title_plural = I18nField(_('Title (Plural)'), plural_name='titles_plural', fallback_any=True)
+    join_edges = models.BooleanField(_('join consecutive edges'), default=True)
+    up_separate = models.BooleanField(_('upwards separately'), default=True)
+    walk = models.BooleanField(_('walking'), default=False)
     color = models.CharField(max_length=32, verbose_name=_('edge color'))
+    icon_name = models.CharField(_('icon name'), max_length=32, null=True, blank=True)
+    extra_seconds = models.PositiveSmallIntegerField(_('extra seconds per edge'), default=0)
+    speed = models.DecimalField(_('speed (m/s)'), max_digits=3, decimal_places=1, default=1,
+                                validators=[MinValueValidator(Decimal('0.1'))])
+    description = I18nField(_('description'), fallback_any=True)
+    speed_up = models.DecimalField(_('speed upwards (m/s)'), max_digits=3, decimal_places=1, default=1,
+                                   validators=[MinValueValidator(Decimal('0.1'))])
+    description_up = I18nField(_('description upwards'), fallback_any=True)
 
     class Meta:
         verbose_name = _('Way Type')
