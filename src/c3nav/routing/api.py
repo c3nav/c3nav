@@ -7,6 +7,7 @@ from c3nav.mapdata.models.access import AccessPermission
 from c3nav.mapdata.utils.locations import visible_locations_for_request
 from c3nav.routing.exceptions import LocationUnreachable, NoRouteFound, NotYetRoutable
 from c3nav.routing.forms import RouteForm
+from c3nav.routing.models import RouteOptions
 from c3nav.routing.router import Router
 
 
@@ -44,4 +45,23 @@ class RoutingViewSet(ViewSet):
                 'destination': form.cleaned_data['destination'].pk,
             },
             'result': route.serialize(locations=visible_locations_for_request(request)),
+        })
+
+    @list_route(methods=['get', 'post'])
+    def options(self, request, *args, **kwargs):
+        params = request.POST if request.method == 'POST' else request.GET
+
+        if request.method == 'POST' or 'save' in params:
+            pass
+
+        options = RouteOptions.get_for_request(request)
+        return Response({
+            'options': options.data,
+            'fields': {
+                name: {
+                    'type': field.widget.input_type,
+                    'label': field.label,
+                    'choices': dict(field.choices),
+                }
+                for name, field in options.get_fields().items()},
         })
