@@ -69,6 +69,7 @@ class Route:
                     item.descriptions.append((icon, item.waytype.description))
             elif item.new_space:
                 pass  # todo: custom space transition descriptions
+            next_item = item
 
         items[-1].descriptions.append(('done', _('You have reached your destination.')))
 
