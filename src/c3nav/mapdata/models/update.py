@@ -40,7 +40,7 @@ class MapUpdate(models.Model):
         with cls.lock():
             last_update = cls.objects.latest()
             result = last_update.to_tuple
-            cache.set('mapdata:last_update', result, 900)
+            cache.set('mapdata:last_update', result, 60)
         return result
 
     @classmethod
@@ -51,7 +51,7 @@ class MapUpdate(models.Model):
         with cls.lock():
             last_processed_update = cls.objects.filter(processed=True).latest()
             result = last_processed_update.to_tuple
-            cache.set('mapdata:last_processed_update', result, 900)
+            cache.set('mapdata:last_processed_update', result, 60)
         return result
 
     @property
@@ -131,7 +131,7 @@ class MapUpdate(models.Model):
             Router.rebuild()
 
             transaction.on_commit(
-                lambda: cache.set('mapdata:last_processed_update', new_updates[-1].to_tuple, 900)
+                lambda: cache.delete('mapdata:last_processed_update')
             )
 
             return new_updates
@@ -150,7 +150,7 @@ class MapUpdate(models.Model):
         pickle.dump(changed_geometries, open(self._changed_geometries_filename(), 'wb'))
 
         transaction.on_commit(
-            lambda: cache.set('mapdata:last_update', self.to_tuple, 900)
+            lambda: cache.delete('mapdata:last_update')
         )
 
         if new and settings.HAS_CELERY:
