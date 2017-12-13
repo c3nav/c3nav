@@ -149,11 +149,11 @@ class MapUpdate(models.Model):
         from c3nav.mapdata.utils.cache.changes import changed_geometries
         pickle.dump(changed_geometries, open(self._changed_geometries_filename(), 'wb'))
 
-        transaction.on_commit(
-            lambda: cache.delete('mapdata:last_update')
-        )
-
-        if new and settings.HAS_CELERY:
+        if new:
             transaction.on_commit(
-                lambda: process_map_updates.delay()
+                lambda: cache.delete('mapdata:last_update')
             )
+            if settings.HAS_CELERY:
+                transaction.on_commit(
+                    lambda: process_map_updates.delay()
+                )
