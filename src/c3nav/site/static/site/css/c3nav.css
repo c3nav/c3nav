@@ -241,6 +241,7 @@ section.details {
 #sidebar section.details.loading > .details-head .button {
     pointer-events: none;
     opacity: 0;
+    line-height: 2;
 }
 #sidebar section.details.loading > .details-body {
     max-height: 0;
