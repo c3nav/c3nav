@@ -35,6 +35,10 @@ class Cropper:
 
 
 class LevelRenderData:
+    """
+    Renderdata for a level to display.
+    This contains multiple LevelGeometries instances because you might to look through holes onto lower levels.
+    """
     def __init__(self):
         self.levels = []
         self.base_altitude = None
@@ -48,6 +52,7 @@ class LevelRenderData:
 
         package = CachePackage(bounds=tuple(chain(*Source.max_bounds())))
 
+        # first pass in reverse to collect some data that we need later
         single_level_geoms = {}
         interpolators = {}
         last_interpolator = None
@@ -55,11 +60,13 @@ class LevelRenderData:
         for level in reversed(levels):
             single_level_geoms[level.pk] = LevelGeometries.build_for_level(level, altitudeareas_above)
 
+            # ignore intermediate levels in this pass
             if level.on_top_of_id is not None:
                 altitudeareas_above.extend(single_level_geoms[level.pk].altitudeareas)
                 altitudeareas_above.sort(key=operator.attrgetter('altitude'))
                 continue
 
+            # create interpolator to create the pieces that fit multiple layers together
             if last_interpolator is not None:
                 interpolators[level.pk] = last_interpolator
 
@@ -110,6 +117,7 @@ class LevelRenderData:
             render_data.base_altitude = level.base_altitude
             access_restriction_affected = {}
 
+            # go through sublevels, get their level geometries and crop them
             for sublevel in sublevels:
                 try:
                     crop_to = level_crop_to[sublevel.pk]
@@ -239,6 +247,8 @@ class LevelRenderData:
 
     @classmethod
     def get(cls, level):
+        # get the current render data from local variable if no new processed mapupdate exists.
+        # this is much faster than any other possible cache
         with cls.cache_lock:
             cache_key = MapUpdate.current_processed_cache_key()
             level_pk = str(level.pk if isinstance(level, Level) else level)
