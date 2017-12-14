@@ -5,6 +5,9 @@ from c3nav.mapdata.utils.user import get_user_data_lazy
 
 
 class NoLanguageMiddleware:
+    """
+    Middleware that allows unsetting the Language HTTP header usind the @no_language decorator.
+    """
     def __init__(self, get_response):
         self.get_response = get_response
 
@@ -43,6 +46,9 @@ def no_language(keep_content_language=False):
 
 
 class UserDataMiddleware:
+    """
+    Enables getting user_data using request.user_data.
+    """
     def __init__(self, get_response):
         self.get_response = get_response
 
