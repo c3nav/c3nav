@@ -23,8 +23,10 @@ class AccessPermissionForm(Form):
     def __init__(self, request, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
+        # remember author if this form is saved
         self.author = request.user
 
+        # determine which access permissions the author can grant
         if not request.user_permissions.access_all:
             self.author_access_permissions = {
                 pk: expire_date for pk, expire_date in self.author.accesspermissions.filter(
@@ -48,6 +50,7 @@ class AccessPermissionForm(Form):
             **{str(pk): (access_restriction, ) for pk, access_restriction in self.access_restrictions.items()}
         }
 
+        # construct choice field for access permissions
         choices = [('', _('choose permissions…')),
                    ('all', ungettext_lazy('everything possible (%d permission)',
                                           'everything possible (%d permissions)',
@@ -60,6 +63,7 @@ class AccessPermissionForm(Form):
 
         self.fields['access_restrictions'] = ChoiceField(choices=choices, required=True)
 
+        # construct choices for the expire field
         expire_choices = [
             ('', _('never')),
         ]
@@ -81,6 +85,7 @@ class AccessPermissionForm(Form):
 
         self.fields['expires'] = ChoiceField(required=False, initial='60', choices=expire_choices)
 
+        # if applicable, add field to grant pass on permissions
         if request.user_permissions.access_all:
             choices = [('0', '---')]*6 + [('1', _('can pass on'))] + [('0', '---')]*3
             self.fields['can_grant'] = ChoiceField(required=False, initial='60', choices=choices)
@@ -99,6 +104,7 @@ class AccessPermissionForm(Form):
         self._save_code(self._create_code(), user)
 
     def get_token(self):
+        # create an AccessPermissionToken from this form and return it
         restrictions = []
         for restriction in self.cleaned_data['access_restrictions']:
             expire_date = self.cleaned_data['expires']
