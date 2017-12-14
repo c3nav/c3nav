@@ -299,7 +299,7 @@ class LocationViewSetBase(RetrieveModelMixin, GenericViewSet):
 
     @detail_route(methods=['get'])
     @api_etag()
-    def display(self, request, key=None):
+    def display(self, request, **kwargs):
         location = self.get_object()
 
         if location is None:
