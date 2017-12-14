@@ -23,8 +23,8 @@ class Announcement(models.Model):
 
     @classmethod
     def get_current(cls):
-        result = cache.get('site:announcement', None)
-        if result is not None:
+        result = cache.get('site:announcement', False)
+        if result is not False:
             return result
 
         try:
