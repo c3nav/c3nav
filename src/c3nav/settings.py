@@ -169,7 +169,9 @@ SESSION_COOKIE_HTTPONLY = True
 SESSION_COOKIE_SECURE = not DEBUG
 
 LANGUAGE_COOKIE_NAME = 'c3nav_language'
+
 CSRF_COOKIE_NAME = 'c3nav_csrftoken'
+CSRF_COOKIE_SECURE = not DEBUG
 
 TILE_ACCESS_COOKIE_NAME = 'c3nav_tile_access'
 TILE_ACCESS_COOKIE_DOMAIN = config.get('c3nav', 'tile_access_cookie_domain', fallback=None)
