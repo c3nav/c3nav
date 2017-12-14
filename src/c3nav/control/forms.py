@@ -109,6 +109,7 @@ class AccessPermissionForm(Form):
         for restriction in self.cleaned_data['access_restrictions']:
             expire_date = self.cleaned_data['expires']
             author_expire_date = self.author_access_permissions.get(restriction.pk)
+            # make sure that each permission is not granted for a longer time than the author has it
             if author_expire_date is not None:
                 expire_date = author_expire_date if expire_date is None else min(expire_date, author_expire_date)
             restrictions.append(AccessPermissionTokenItem(pk=restriction.pk, expire_date=expire_date,

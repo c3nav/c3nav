@@ -20,6 +20,9 @@ empty_geometry_collection = GeometryCollection()
 
 
 class LevelGeometries:
+    """
+    Store geometries for a Level.
+    """
     def __init__(self):
         self.altitudeareas = []
         self.heightareas = []
@@ -244,6 +247,9 @@ class LevelGeometries:
         return item[0].get_altitudes(self.vertices[i_vertices]) - int(0.7 * 1000)
 
     def _build_vertex_values(self, items, area_func, value_func):
+        """
+        Interpolate vertice with known altitudes to get altitudes for the remaining ones.
+        """
         vertex_values = np.empty(self.vertices.shape[:1], dtype=np.int32)
         vertex_value_mask = np.full(self.vertices.shape[:1], fill_value=False, dtype=np.bool)
 
@@ -262,9 +268,15 @@ class LevelGeometries:
         return vertex_values
 
     def _filter_faces(self, faces):
+        """
+        Filter faces so that no zero area faces remain.
+        """
         return faces[np.all(np.any(faces[:, (0, 1, 2), :]-faces[:, (2, 0, 1), :], axis=2), axis=1)]
 
     def _create_polyhedron(self, faces, lower, upper, top=True, sides=True, bottom=True):
+        """
+        Callback function for HybridGeometry.create_polyhedron()
+        """
         if not any(faces):
             return ()
 
@@ -351,6 +363,11 @@ class LevelGeometries:
         return tuple((Mesh(top, sides, bottom),))
 
     def build_mesh(self, interpolator=None):
+        """
+        Build the entire mesh
+        """
+
+        # first we triangulate most polygons in one go
         rings = tuple(chain(*(get_rings(geom) for geom in self.get_geometries())))
         self.vertices, self.faces = triangulate_rings(rings)
         self.create_hybrid_geometries(face_centers=self.vertices[self.faces].sum(axis=1) / 3000)
@@ -369,6 +386,7 @@ class LevelGeometries:
             area.remove_faces(reduce(operator.or_, self.walls.faces, set()))
 
         # create polyhedrons
+        # we build the walls to often so we can extend them to create leveled 3d model bases.
         self.walls_base = HybridGeometry(self.all_walls.geom, self.all_walls.faces)
         self.walls_bottom = HybridGeometry(self.all_walls.geom, self.all_walls.faces)
         self.walls_extended = HybridGeometry(self.walls.geom, self.walls.faces)
@@ -384,6 +402,7 @@ class LevelGeometries:
                                                                   value_func=self._get_short_wall_vertex_values))
         self.short_walls = tuple(geom for altitude, geom in self.short_walls)
 
+        # make sure we are able to crop spaces when a access restriction is apply
         for key, geometry in self.restricted_spaces_indoors.items():
             geometry.crop_ids = frozenset(('in:%s' % key, ))
         for key, geometry in self.restricted_spaces_outdoors.items():

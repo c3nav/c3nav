@@ -28,6 +28,14 @@ def hybrid_union(geoms):
 
 
 class HybridGeometry:
+    """
+    A geometry containing a mesh as well as a shapely geometry,
+    so it can be used for different kinds of render engines.
+
+    This object can be in 2 states:
+    - 2d mesh state where faces refers to indizes of faces from an external list
+    - 3d mesh state where faces refers to Mesh instances
+    """
     __slots__ = ('geom', 'faces', 'crop_ids', 'add_faces')
 
     def __init__(self, geom, faces, crop_ids=frozenset(), add_faces=None):
@@ -38,6 +46,9 @@ class HybridGeometry:
 
     @classmethod
     def create(cls, geom, face_centers):
+        """
+        Create from existing facets and just select the ones that lie inside this polygon.
+        """
         if isinstance(geom, (LineString, MultiLineString)):
             return HybridGeometry(geom, set())
         faces = tuple(
@@ -48,6 +59,9 @@ class HybridGeometry:
 
     @classmethod
     def create_full(cls, geom, vertices_offset, faces_offset):
+        """
+        Create by triangulating a polygon and adding the resulting facets to the total list.
+        """
         if isinstance(geom, (LineString, MultiLineString)):
             return HybridGeometry(geom, set()), np.empty((0, 2), dtype=np.int32), np.empty((0, 3), dtype=np.uint32)
 
@@ -85,6 +99,9 @@ class HybridGeometry:
                               crop_ids=self.crop_ids - other.crop_ids)
 
     def fit(self, scale, offset):
+        """
+        Fit this object (when it has minz=0 maxz=1) into a given minz, maxz range.
+        """
         offset = np.array((0, 0, offset))
         scale = np.array((1, 1, scale))
         return HybridGeometry(geom=self.geom, crop_ids=self.crop_ids,
@@ -93,6 +110,9 @@ class HybridGeometry:
                                          for crop_id, faces in self.add_faces})
 
     def filter(self, **kwargs):
+        """
+        Remove top, bottom or side facets.
+        """
         return HybridGeometry(geom=self.geom, crop_ids=self.crop_ids,
                               faces=tuple(mesh.filter(**kwargs) for mesh in self.faces),
                               add_faces={crop_id: tuple(mesh.filter(**kwargs) for mesh in faces)
@@ -106,6 +126,10 @@ class HybridGeometry:
         return not self.faces and not any(self.add_faces.values())
 
     def build_polyhedron(self, create_polyhedron, crops=None, **kwargs):
+        """
+        Create polyhedron using an externel function from this object,
+        which means converting it from a flat mesh to a 3d mesh state.
+        """
         remaining_faces = self.faces
         for crop, prep in crops or ():
             if prep.intersects(self.geom):

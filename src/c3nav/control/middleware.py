@@ -4,6 +4,9 @@ from c3nav.control.models import UserPermissions
 
 
 class UserPermissionsMiddleware:
+    """
+    This middleware adds request.user_permissions to get the UserPermissions for the current request/user.
+    """
     def __init__(self, get_response):
         self.get_response = get_response
 

@@ -4,6 +4,9 @@ import numpy as np
 
 
 class Mesh(namedtuple('Mesh', ('top', 'sides', 'bottom'))):
+    """
+    Store a mesh, divided into top, bottom and side facets.
+    """
     __slots__ = ()
     empty_faces = np.empty((0, 3, 3)).astype(np.int32)
 
@@ -21,6 +24,9 @@ class Mesh(namedtuple('Mesh', ('top', 'sides', 'bottom'))):
                     np.rint(self.bottom+other).astype(np.int32))
 
     def filter(self, top=True, sides=True, bottom=True):
+        """
+        Remove top, bottom or side facets.
+        """
         return Mesh(top=self.top if top else self.empty_faces,
                     sides=self.sides if sides else self.empty_faces,
                     bottom=self.bottom if bottom else self.empty_faces)
