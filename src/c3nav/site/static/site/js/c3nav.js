@@ -181,7 +181,7 @@ c3nav = {
         var $location_details = $('#location-details');
         if ($location_details.attr('data-id') !== String(location.id)) {
             $location_details.addClass('loading').attr('data-id', location.id);
-            $.getJSON('/api/locations/'+location.id+'/display', c3nav._location_details_loaded).fail(function (data) {
+            $.getJSON('/api/locations/'+location.id+'/details', c3nav._location_details_loaded).fail(function (data) {
                 var $location_details = $('#location-details');
                 $location_details.find('.details-body').text('Error '+String(data.status));
                 $location_details.find('.details-body').html('').append(elem);

@@ -299,14 +299,14 @@ class LocationViewSetBase(RetrieveModelMixin, GenericViewSet):
 
     @detail_route(methods=['get'])
     @api_etag()
-    def display(self, request, **kwargs):
+    def details(self, request, **kwargs):
         location = self.get_object()
 
         if location is None:
             raise NotFound
 
         if isinstance(location, LocationRedirect):
-            return redirect('../' + str(location.target.pk) + '/display/')
+            return redirect('../' + str(location.target.pk) + '/details/')
 
         return Response(location.details_display())
 
