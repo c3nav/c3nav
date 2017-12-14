@@ -263,6 +263,10 @@ template_loaders = (
     'django.template.loaders.filesystem.Loader',
     'django.template.loaders.app_directories.Loader',
 )
+if not DEBUG:
+    template_loaders = (
+        ('django.template.loaders.cached.Loader', template_loaders),
+    )
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
@@ -281,10 +285,6 @@ TEMPLATES = [
         },
     },
 ]
-if not DEBUG:
-    template_loaders = (
-        ('django.template.loaders.cached.Loader', template_loaders),
-    )
 
 
 STATICFILES_FINDERS = (
