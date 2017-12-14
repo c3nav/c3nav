@@ -308,10 +308,9 @@ class LocationGroup(Location, models.Model):
         return (1, self.category.priority, self.priority)
 
     def save(self, *args, **kwargs):
-        if (self.pk and
-                self.orig_color != self.color or
-                self.priority != self.orig_priority or
-                self.category_id != self.orig_category_id):
+        if self.pk and (self.orig_color != self.color or
+                        self.priority != self.orig_priority or
+                        self.category_id != self.orig_category_id):
             self.register_changed_geometries()
         super().save(*args, **kwargs)
 
