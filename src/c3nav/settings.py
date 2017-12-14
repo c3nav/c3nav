@@ -158,20 +158,24 @@ CELERY_TASK_SERIALIZER = 'json'
 CELERY_ACCEPT_CONTENT = ['json']
 CELERY_RESULT_SERIALIZER = 'json'
 
-SESSION_COOKIE_DOMAIN = config.get('c3nav', 'session_cookie_domain', fallback=None)
-SESSION_COOKIE_SECURE = config.getboolean('c3nav', 'session_cookie_secure', fallback=False)
-
 TILE_CACHE_SERVER = config.get('c3nav', 'tile_cache_server', fallback=None)
-TILE_ACCESS_COOKIE_DOMAIN = config.get('c3nav', 'tile_access_cookie_domain', fallback=None)
 
 # Internal settings
 STATIC_ROOT = os.path.join(os.path.dirname(__file__), 'static.dist')
 
 SESSION_COOKIE_NAME = 'c3nav_session'
+SESSION_COOKIE_DOMAIN = config.get('c3nav', 'session_cookie_domain', fallback=None)
+SESSION_COOKIE_HTTPONLY = True
+SESSION_COOKIE_SECURE = not DEBUG
+
 LANGUAGE_COOKIE_NAME = 'c3nav_language'
 CSRF_COOKIE_NAME = 'c3nav_csrftoken'
+
 TILE_ACCESS_COOKIE_NAME = 'c3nav_tile_access'
-SESSION_COOKIE_HTTPONLY = True
+TILE_ACCESS_COOKIE_DOMAIN = config.get('c3nav', 'tile_access_cookie_domain', fallback=None)
+TILE_ACCESS_COOKIE_HTTPONLY = True
+TILE_ACCESS_COOKIE_SECURE = not DEBUG
+
 
 # Application definition
 
