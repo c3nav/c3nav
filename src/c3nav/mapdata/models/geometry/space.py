@@ -31,6 +31,8 @@ class SpaceGeometryMixin(GeometryMixin):
             color = self.get_color()
             if color:
                 result['color'] = color
+        if hasattr(self, 'opacity'):
+            result['opacity'] = self.opacity
         return result
 
     @property
