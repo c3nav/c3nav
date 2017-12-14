@@ -48,6 +48,9 @@ def enforce_tile_secret_auth(request):
 def tile(request, level, zoom, x, y, access_permissions=None):
     if access_permissions is not None:
         enforce_tile_secret_auth(request)
+    elif settings.TILE_CACHE_SERVER:
+        return HttpResponse('use %s instead of /map/' % settings.TILE_CACHE_SERVER,
+                            status=400, content_type='text/plain')
 
     zoom = int(zoom)
     if not (-2 <= zoom <= 5):
