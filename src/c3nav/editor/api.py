@@ -178,13 +178,17 @@ class EditorViewSet(ViewSet):
             graphedges = graphedges.filter(Q(from_node__in=space_graphnodes) | Q(to_node__in=space_graphnodes))
             graphedges = graphedges.select_related('from_node', 'to_node', 'waytype')
 
+            areas = space.areas.filter(Area.q_for_request(request)).prefetch_related('groups')
+            for area in areas:
+                area.opacity = 0.5
+
             results = chain(
                 buildings,
                 other_spaces_lower,
                 doors,
                 other_spaces,
                 [space],
-                space.areas.filter(Area.q_for_request(request)).prefetch_related('groups'),
+                areas,
                 space.holes.all(),
                 space.stairs.all(),
                 space.ramps.all(),
@@ -209,7 +213,7 @@ class EditorViewSet(ViewSet):
             'space': '#eeeeee',
             'hole': 'rgba(255, 0, 0, 0.3)',
             'door': '#ffffff',
-            'area': 'rgba(85, 170, 255, 0.2)',
+            'area': '#55aaff',
             'stair': '#a000a0',
             'ramp': 'rgba(160, 0, 160, 0.2)',
             'obstacle': '#999999',
