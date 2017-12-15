@@ -68,12 +68,13 @@ class LevelGeometries:
             if columns:
                 subtract.extend(columns)
             if subtract:
-                space.geometry = space.geometry.difference(unary_union(subtract)).buffer(0)
+                space.geometry = space.geometry.difference(unary_union(subtract))
 
             holes = tuple(h.geometry for h in space.holes.all())
             if holes:
                 space.holes_geom = unary_union([h.geometry for h in space.holes.all()])
-                space.walkable_geom = space.geometry.difference(space.holes_geom).buffer(0)
+                space.walkable_geom = space.geometry.difference(space.holes_geom)
+                space.holes_geom = space.geometry.intersection(space.holes_geom)
             else:
                 space.holes_geom = empty_geometry_collection
                 space.walkable_geom = space.geometry
@@ -81,10 +82,9 @@ class LevelGeometries:
         spaces_geom = unary_union([s.geometry for s in level.spaces.all()])
         doors_geom = unary_union([d.geometry for d in level.doors.all()])
         walkable_spaces_geom = unary_union([s.walkable_geom for s in level.spaces.all()])
-        geoms.doors = doors_geom.difference(walkable_spaces_geom).buffer(0)
-        walkable_geom = walkable_spaces_geom.union(geoms.doors)
+        geoms.doors = doors_geom.difference(walkable_spaces_geom)
         if level.on_top_of_id is None:
-            geoms.holes = spaces_geom.difference(walkable_geom).buffer(0)
+            geoms.holes = unary_union([s.holes_geom for s in level.spaces.all()])
 
         # keep track which areas are affected by access restrictions
         access_restriction_affected = {}
