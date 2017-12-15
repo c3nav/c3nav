@@ -68,12 +68,12 @@ class LevelGeometries:
             if columns:
                 subtract.extend(columns)
             if subtract:
-                space.geometry = space.geometry.difference(unary_union(subtract))
+                space.geometry = space.geometry.difference(unary_union(subtract)).buffer(0)
 
             holes = tuple(h.geometry for h in space.holes.all())
             if holes:
                 space.holes_geom = unary_union([h.geometry for h in space.holes.all()])
-                space.walkable_geom = space.geometry.difference(space.holes_geom)
+                space.walkable_geom = space.geometry.difference(space.holes_geom).buffer(0)
             else:
                 space.holes_geom = empty_geometry_collection
                 space.walkable_geom = space.geometry
