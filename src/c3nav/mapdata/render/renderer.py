@@ -103,7 +103,7 @@ class MapRenderer:
             # add obstacles after everything related to ground for the nice right order
             for i, altitudearea in enumerate(geoms.altitudeareas):
                 for height, obstacle in altitudearea.obstacles.items():
-                    engine.add_geometry(obstacle, fill=FillAttribs('#cccccc'), category='obstacles')
+                    engine.add_geometry(obstacle, fill=FillAttribs('#B7B7B7'), category='obstacles')
 
             # add walls, stroke_px makes sure that all walls are at least 1px thick on all zoom levels,
             walls = None
