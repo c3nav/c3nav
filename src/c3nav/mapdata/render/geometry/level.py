@@ -119,6 +119,7 @@ class LevelGeometries:
 
             for area in space.areas.all():
                 access_restriction = area.access_restriction_id or space.access_restriction_id
+                area.geometry = area.geometry.intersection(space.walkable_geom)
                 if access_restriction is not None:
                     access_restriction_affected.setdefault(access_restriction, []).append(area.geometry)
                 colors.setdefault(area.get_color(), {}).setdefault(access_restriction, []).append(area.geometry)
