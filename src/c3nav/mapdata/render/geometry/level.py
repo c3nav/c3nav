@@ -81,10 +81,10 @@ class LevelGeometries:
         spaces_geom = unary_union([s.geometry for s in level.spaces.all()])
         doors_geom = unary_union([d.geometry for d in level.doors.all()])
         walkable_spaces_geom = unary_union([s.walkable_geom for s in level.spaces.all()])
-        geoms.doors = doors_geom.difference(walkable_spaces_geom)
+        geoms.doors = doors_geom.difference(walkable_spaces_geom).buffer(0)
         walkable_geom = walkable_spaces_geom.union(geoms.doors)
         if level.on_top_of_id is None:
-            geoms.holes = spaces_geom.difference(walkable_geom)
+            geoms.holes = spaces_geom.difference(walkable_geom).buffer(0)
 
         # keep track which areas are affected by access restrictions
         access_restriction_affected = {}
