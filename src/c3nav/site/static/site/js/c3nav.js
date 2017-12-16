@@ -669,7 +669,7 @@ c3nav = {
         if (c3nav.current_locationinput && !$(e.target).is('#autocomplete *, #' + c3nav.current_locationinput + ' *')) {
             c3nav._locationinput_reset_autocomplete();
         }
-        if (c3nav._click_anywhere_popup && !$(e.target).is('.leaflet-popup > *')) {
+        if (c3nav._click_anywhere_popup && !$(e.target).is('.leaflet-popup *')) {
             c3nav._click_anywhere_popup.remove();
         }
         if (!$(e.target).is('#search *')) {
