@@ -291,7 +291,10 @@ class Router:
                 continue
             if self.spaces[space].geometry_prep.contains(point):
                 return self.spaces[space]
-        return self.spaces[min(level.spaces, key=lambda space: self.spaces[space].geometry.distance(point))]
+        spaces = (self.spaces[space] for space in level.spaces)
+        spaces = ((space, space.geometry.distance(point)) for space in spaces)
+        spaces = ((space, distance) for space, distance in spaces if distance < 0.5)
+        return min(spaces, key=operator.itemgetter(1))[0]
 
     def describe_custom_location(self, location):
         return CustomLocationDescription(
