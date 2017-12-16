@@ -83,6 +83,8 @@ c3nav = {
         $result_buttons.find('.details').on('click', c3nav._buttons_details_click);
         $('#route-search-buttons, #route-result-buttons').find('.swap').on('click', c3nav._route_buttons_swap_click);
         $('#route-search-buttons').find('.close').on('click', c3nav._route_buttons_close_click);
+        $('#route-summary').find('.options').on('click', c3nav._buttons_options_click);
+        $('#route-options').find('.close').on('click', c3nav._route_options_close_click);
         $('#map').on('click', '.location-popup .button-clear', c3nav._popup_button_click);
 
         $('#modal').on('click', c3nav._modal_click)
@@ -99,8 +101,14 @@ c3nav = {
     },
 
     state: {},
-    update_state: function(routing, replace, details) {
+    update_state: function(routing, replace, details, options) {
         if (typeof routing !== "boolean") routing = c3nav.state.routing;
+
+        if (details) {
+            options = false;
+        } else if (options) {
+            details = false;
+        }
 
         var destination = $('#destination-input').data('location'),
             origin = $('#origin-input').data('location'),
@@ -109,7 +117,8 @@ c3nav = {
                 origin: origin,
                 destination: destination,
                 sidebar: true,
-                details: !!details
+                details: !!details,
+                options: !!options
             };
 
         c3nav._push_state(new_state, replace);
@@ -147,6 +156,7 @@ c3nav = {
         if (view === 'route-result') {
             if (state.route_result) {
                 c3nav._display_route_result(state.route_result, nofly);
+                c3nav._display_route_options(state.route_options);
             } else {
                 c3nav.load_route(state.origin, state.destination, nofly);
             }
@@ -155,7 +165,9 @@ c3nav = {
             c3nav._clear_route_layers();
         }
 
-        $('main').attr('data-view', view).toggleClass('show-details', state.details);
+        $('main').attr('data-view', view)
+            .toggleClass('show-details', !!state.details)
+            .toggleClass('show-options', !!state.options);
 
         var $search = $('#search');
         $search.removeClass('loading');
@@ -233,11 +245,13 @@ c3nav = {
     },
     load_route: function (origin, destination, nofly) {
         var $route = $('#route-summary'),
-            $details_wrapper = $('#route-details');
+            $details_wrapper = $('#route-details'),
+            $options_wrapper = $('#route-options');
         if ($route.attr('data-origin') !== String(origin.id) || $route.attr('data-destination') !== String(destination.id)) {
             c3nav._clear_route_layers();
             $route.addClass('loading').attr('data-origin', origin.id).attr('data-destination', destination.id);
             $details_wrapper.addClass('loading');
+            $options_wrapper.addClass('loading');
             $.post('/api/routing/route/', {
                 'origin': origin.id,
                 'destination': destination.id,
@@ -262,8 +276,9 @@ c3nav = {
             // loaded too late, information no longer needed
             return;
         }
-        c3nav._push_state({route_result: data.result}, true);
+        c3nav._push_state({route_result: data.result, route_options: data.options}, true);
         c3nav._display_route_result(data.result, nofly);
+        c3nav._display_route_options(data.options);
     },
     _display_route_result: function(result, nofly) {
         var $route = $('#route-summary'),
@@ -415,9 +430,31 @@ c3nav = {
         new_coords.push(coords[coords.length-1]);
         return new_coords
     },
+    _display_route_options: function(options) {
+        var $options_wrapper = $('#route-options'),
+            $options = $options_wrapper.find('.route-options-fields'),
+            option, field, field_id, choice;
+        $options.html('');
+        for (var i=0; i<options.length; i++) {
+            option = options[i];
+            field_id = 'option_id_'+option.name;
+            $options.append($('<label for="'+field_id+'">').text(option.label));
+            if (option.type === 'select') {
+                field = $('<select name="'+name+'" id="'+field_id+'">');
+                for (j=0; j<option.choices.length; j++) {
+                    choice = option.choices[j];
+                    field.append($('<option name="'+choice.name+'">').text(choice.title));
+                }
+            }
+            field.val(option.value);
+            $options.append(field);
+        }
+        $options_wrapper.removeClass('loading');
+    },
+
     _equal_states: function (a, b) {
         if (a.modal !== b.modal) return false;
-        if (a.routing !== b.routing || a.details !== b.details) return false;
+        if (a.routing !== b.routing || a.details !== b.details || a.options !== b.options) return false;
         if ((a.origin && a.origin.id) !== (b.origin && b.origin.id)) return false;
         if ((a.destination && a.destination.id) !== (b.destination && b.destination.id)) return false;
         if (a.level !== b.level || a.zoom !== b.zoom) return false;
@@ -437,6 +474,9 @@ c3nav = {
         }
         if (state.details && (url.startsWith('/l/') || url.startsWith('/r/'))) {
             url += 'details/'
+        }
+        if (state.options && url.startsWith('/r/')) {
+            url += 'options/'
         }
         if (state.center) {
             url += '@'+String(c3nav.level_labels_by_id[state.level])+','+String(state.center[0])+','+String(state.center[1])+','+String(state.zoom);
@@ -494,6 +534,12 @@ c3nav = {
     // button handlers
     _buttons_details_click: function () {
         c3nav.update_state(null, null, !c3nav.state.details);
+    },
+    _buttons_options_click: function () {
+        c3nav.update_state(null, null, null, !c3nav.state.options);
+    },
+    _route_options_close_click: function () {
+        c3nav.update_state(null, null, null, false);
     },
     _location_buttons_route_click: function () {
         c3nav.update_state(true);
@@ -976,7 +1022,10 @@ c3nav = {
         // add padding information for the current ui layout to fitBoudns options
         var $search = $('#search'),
             $main = $('main'),
-            padBesideSidebar = ($main.width() > 1000 && ($main.height() < 250 || c3nav.state.details)),
+            padBesideSidebar = (
+                $main.width() > 1000 &&
+                ($main.height() < 250 || c3nav.state.details || c3nav.state.options)
+            ),
             left = padBesideSidebar ? ($search.width() || 0)+10 : 0,
             top = padBesideSidebar ? 10 : ($search.height() || 0)+10;
         options[topleft || 'paddingTopLeft'] = L.point(left+13, top+41);

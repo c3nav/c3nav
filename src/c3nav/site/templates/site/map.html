@@ -63,6 +63,7 @@
                         <i class="icon material-icons">directions</i>
                         <span>10min (100m)… sorry no routing yet</span>
                         <small><em>default options</em></small>
+                        <button class="button-clear options material-icons">settings</button>
                     </div>
                     <div class="buttons" id="route-search-buttons">
                         <button class="button-clear swap">
@@ -103,12 +104,17 @@
                         </div>
                         <div class="details-body"></div>
                     </section>
-                    <section id="route-settings" class="details">
+                    <section id="route-options" class="details">
                         <div class="details-head">
+                            <button class="button close button-clear material-icons float-right">close</button>
                             <h2>{% trans 'Route options' %}</h2>
                         </div>
                         <div class="details-body">
-
+                            <div class="route-options-fields"></div>
+                            <div class="route-options-buttons">
+                                <button>{% trans 'Save and reroute' %}</button>
+                                <button class="button-outline">{% trans 'Just reroute' %}</button>
+                            </div>
                         </div>
                     </section>
                 </div>

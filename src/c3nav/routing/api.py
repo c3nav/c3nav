@@ -1,3 +1,4 @@
+from django.core.exceptions import ValidationError
 from django.utils.translation import ugettext_lazy as _
 from rest_framework.decorators import list_route
 from rest_framework.response import Response
@@ -12,6 +13,10 @@ from c3nav.routing.router import Router
 
 
 class RoutingViewSet(ViewSet):
+    """
+    /route/ Get routes.
+    /options/ Get or set route options.
+    """
     @list_route(methods=['get', 'post'])
     def route(self, request, *args, **kwargs):
         params = request.POST if request.method == 'POST' else request.GET
@@ -20,7 +25,15 @@ class RoutingViewSet(ViewSet):
         if not form.is_valid():
             return Response({
                 'errors': form.errors,
-            })
+            }, status=400)
+
+        options = RouteOptions.get_for_request(request)
+        try:
+            options.update(params, ignore_unknown=True)
+        except ValidationError as e:
+            return Response({
+                'errors': (str(e), ),
+            }, status=400)
 
         try:
             route = Router.load().get_route(origin=form.cleaned_data['origin'],
@@ -44,6 +57,7 @@ class RoutingViewSet(ViewSet):
                 'origin': form.cleaned_data['origin'].pk,
                 'destination': form.cleaned_data['destination'].pk,
             },
+            'options': options.serialize(),
             'result': route.serialize(locations=visible_locations_for_request(request)),
         })
 
@@ -55,13 +69,4 @@ class RoutingViewSet(ViewSet):
             pass
 
         options = RouteOptions.get_for_request(request)
-        return Response({
-            'options': options.data,
-            'fields': {
-                name: {
-                    'type': field.widget.input_type,
-                    'label': field.label,
-                    'choices': dict(field.choices),
-                }
-                for name, field in options.get_fields().items()},
-        })
+        return Response(options.serialize())

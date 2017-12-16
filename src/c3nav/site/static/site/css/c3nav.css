@@ -219,7 +219,7 @@ section.details > * {
 section.details > .details-head {
     padding: 11px 10px 8px;
 }
-.details-head > .button {
+section.details > .details-head > .button {
     margin: -2px 0 0;
     transition: none;
     line-height: 2.5;
@@ -304,7 +304,9 @@ section.details {
 main:not([data-view$=search]) #autocomplete,
 main:not([data-view=location]) #location-details,
 main:not([data-view=route-result]) #route-details,
-main:not(.show-details) #resultswrapper .details {
+main:not([data-view=route-result]) #route-options,
+main:not(.show-details) #resultswrapper .details:not(#route-options),
+main:not(.show-options) #resultswrapper #route-options {
     display:none;
 }
 main .buttons .details .material-icons {
@@ -313,7 +315,8 @@ main .buttons .details .material-icons {
 main.show-details .buttons .details .material-icons {
     transform: scale(1, -1);
 }
-main.show-details #resultswrapper .details {
+main.show-details #resultswrapper .details,
+main.show-options #resultswrapper #route-options {
     animation: show-details;
     animation-duration: 150ms;
     animation-timing-function: ease-out;
@@ -327,6 +330,27 @@ main.show-details #resultswrapper .details {
         opacity: 1;
         top: 0;
     }
+}
+.route-options-fields {
+    padding: 0 10px 5px;
+}
+.route-options-fields input, .route-options-fields select {
+    margin-bottom: 1rem;
+}
+.route-options-buttons {
+    display: flex;
+    flex-wrap: wrap;
+    padding: 0 0 15px 10px;
+}
+.route-options-buttons button {
+    padding: 0 1rem;
+    margin: 0 10px 0 0;
+    flex-grow: 1;
+}
+#route-options .details-head button {
+    font-size: 30px;
+    line-height: 1.0;
+    color: #b2b2b2;
 }
 
 .location {
@@ -519,7 +543,7 @@ main:not([data-view=route-result]) #route-dots {
 .buttons > *:hover, .buttons > *:active {
     background-color: #eeeeee;
 }
-main.map button, main.map .button {
+#search button, .leaflet-popup button, .details-head .button {
     font-size: 1.3rem;
     line-height: 1.3;
     height: 3.3rem;
@@ -561,6 +585,19 @@ main:not([data-view=route-result]) #route-summary {
     margin-bottom: -55px;
     pointer-events: none;
     opacity: 0;
+}
+
+#route-summary button.options {
+    position: absolute;
+    top: 8px;
+    right: 6px;
+    padding: 0;
+    width: 37px;
+    height: 37px;
+    border-width: 0;
+    font-size: 36px;
+    color: #b2b2b2;
+    line-height: 1;
 }
 
 @media not all and (min-height: 700px) and (min-width: 1100px) {

@@ -116,14 +116,14 @@ class RouteOptions(models.Model):
         except AttributeError:
             return self.get_fields()[key].initial
 
-    def update(self, value_dict, ignore_errors=False):
+    def update(self, value_dict, ignore_errors=False, ignore_unknown=False):
         if not value_dict:
             return
         fields = self.get_fields()
         for key, value in value_dict.items():
             field = fields.get(key)
             if not field:
-                if ignore_errors:
+                if ignore_errors or ignore_unknown:
                     continue
                 raise ValidationError(_('Unknown route option: %s') % key)
             if value is None or value not in dict(field.choices):
@@ -134,6 +134,24 @@ class RouteOptions(models.Model):
 
     def __setitem__(self, key, value):
         self.update({key: value})
+
+    def serialize(self):
+        return [
+            {
+                'name': name,
+                'type': field.widget.input_type,
+                'label': field.label,
+                'choices': [
+                    {
+                        'name': choice_name,
+                        'title': choice_title,
+                    }
+                    for choice_name, choice_title in field.choices
+                ],
+                'value': self[name],
+            }
+            for name, field in self.get_fields().items()
+        ]
 
     def save(self, *args, **kwargs):
         if self.request is None or self.request.user.is_authenticated:
