@@ -313,10 +313,8 @@ c3nav = {
                     // if we were in an primary level, add this line to it
                     if (!item.level.on_top_of) {
                         // directly from primary level to primary level
-                        console.log('add to primary (to primary)');
                         c3nav._add_line_to_route(last_primary_level, level_collect.slice(0, -1));
                     } else {
-                        console.log('add to primary (to secondary)');
                         c3nav._add_line_to_route(last_primary_level, level_collect);
                     }
                 }
@@ -330,7 +328,6 @@ c3nav = {
                         if (!in_intermediate_level) {
                             next_level_collect = level_collect.slice(-2);
                         }
-                        console.log('add blargh');
                         c3nav._add_line_to_route(last_primary_level, next_level_collect, false, item.level.id);
                         c3nav._add_line_to_route(item.level.id, next_level_collect, false, last_primary_level);
                     }
