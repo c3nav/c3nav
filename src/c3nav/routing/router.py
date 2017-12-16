@@ -313,16 +313,41 @@ class Router:
             return result
 
         graph = self.graph.copy()
-        graph[tuple(restrictions.spaces), :] = np.inf
-        graph[:, tuple(restrictions.spaces)] = np.inf
-        graph[restrictions.edges.transpose().tolist()] = np.inf
 
+        # speeds of waytypes, if relevant
+        if options['mode'] == 'fastest':
+            self.waytypes[0].speed = 1
+            self.waytypes[0].speed_up = 1
+            self.waytypes[0].extra_seconds = 0
+            self.waytypes[0].walk = True
+
+            for waytype in self.waytypes:
+                speed = float(waytype.speed)
+                speed_up = float(waytype.speed_up)
+                if waytype.walk:
+                    speed *= options.walk_factor
+                    speed_up *= options.walk_factor
+
+                for indices, dir_speed in ((waytype.nonupwards_indices, speed), (waytype.upwards_indices, speed_up)):
+                    indices = indices.transpose().tolist()
+                    values = graph[indices]
+                    values /= dir_speed
+                    if waytype.extra_seconds:
+                        values += int(waytype.extra_seconds)
+                    graph[indices] = values
+
+        # avoid waytypes as specified in settings
         for waytype in self.waytypes[1:]:
             value = options.get('waytype_%s' % waytype.pk, 'allow')
             if value in ('avoid', 'avoid_up'):
                 graph[waytype.upwards_indices.transpose().tolist()] *= 100000
             if value in ('avoid', 'avoid_down'):
                 graph[waytype.nonupwards_indices.transpose().tolist()] *= 100000
+
+        # exclude spaces and edges
+        graph[tuple(restrictions.spaces), :] = np.inf
+        graph[:, tuple(restrictions.spaces)] = np.inf
+        graph[restrictions.edges.transpose().tolist()] = np.inf
 
         result = shortest_path(graph, directed=True, return_predecessors=True)
         cache.set(cache_key, result, 600)

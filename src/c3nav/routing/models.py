@@ -28,6 +28,11 @@ class RouteOptions(models.Model):
     @classmethod
     def build_fields(cls):
         fields = OrderedDict()
+        fields['mode'] = forms.ChoiceField(
+            label=_('Routing mode'),
+            choices=(('fastest', _('fastest')), ('shortest', _('shortest'))),
+            initial='fastest'
+        )
         fields['walk_speed'] = forms.ChoiceField(
             label=_('Walk speed'),
             choices=(('slow', _('slow')), ('default', _('default')), ('fast', _('fast'))),
@@ -136,6 +141,10 @@ class RouteOptions(models.Model):
 
     def __setitem__(self, key, value):
         self.update({key: value})
+
+    @property
+    def walk_factor(self):
+        return {'slow': 0.8, 'default': 1, 'fast': 1.2}[self['walk_speed']]
 
     def get(self, key, default):
         try:
