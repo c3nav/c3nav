@@ -63,10 +63,15 @@ class RoutingViewSet(ViewSet):
 
     @list_route(methods=['get', 'post'])
     def options(self, request, *args, **kwargs):
-        params = request.POST if request.method == 'POST' else request.GET
-
-        if request.method == 'POST' or 'save' in params:
-            pass
-
         options = RouteOptions.get_for_request(request)
+
+        if request.method == 'POST':
+            try:
+                options.update(request.POST, ignore_unknown=True)
+            except ValidationError as e:
+                return Response({
+                    'errors': (str(e),),
+                }, status=400)
+            options.save()
+
         return Response(options.serialize())

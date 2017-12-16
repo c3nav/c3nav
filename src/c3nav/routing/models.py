@@ -119,6 +119,8 @@ class RouteOptions(models.Model):
     def update(self, value_dict, ignore_errors=False, ignore_unknown=False):
         if not value_dict:
             return
+        if isinstance(value_dict, RouteOptions):
+            value_dict = value_dict.data
         fields = self.get_fields()
         for key, value in value_dict.items():
             field = fields.get(key)
@@ -156,6 +158,6 @@ class RouteOptions(models.Model):
     def save(self, *args, **kwargs):
         if self.request is None or self.request.user.is_authenticated:
             self.user = self.request.user
-            super().save(*args, **kwargs)
+            return super().save(*args, **kwargs)
 
         self.request.session['route_options'] = self

@@ -84,7 +84,10 @@ c3nav = {
         $('#route-search-buttons, #route-result-buttons').find('.swap').on('click', c3nav._route_buttons_swap_click);
         $('#route-search-buttons').find('.close').on('click', c3nav._route_buttons_close_click);
         $('#route-summary').find('.options').on('click', c3nav._buttons_options_click);
-        $('#route-options').find('.close').on('click', c3nav._route_options_close_click);
+
+        var $route_options = $('#route-options');
+        $route_options.find('.close').on('click', c3nav._route_options_close_click);
+        $route_options.find('button').on('click', c3nav._route_options_submit);
         $('#map').on('click', '.location-popup .button-clear', c3nav._popup_button_click);
 
         $('#modal').on('click', c3nav._modal_click)
@@ -243,20 +246,21 @@ c3nav = {
         }
         $location_details.removeClass('loading');
     },
+    next_route_options: null,
     load_route: function (origin, destination, nofly) {
         var $route = $('#route-summary'),
             $details_wrapper = $('#route-details'),
             $options_wrapper = $('#route-options');
-        if ($route.attr('data-origin') !== String(origin.id) || $route.attr('data-destination') !== String(destination.id)) {
+        if (c3nav.next_route_options || $route.attr('data-origin') !== String(origin.id) || $route.attr('data-destination') !== String(destination.id)) {
             c3nav._clear_route_layers();
             $route.addClass('loading').attr('data-origin', origin.id).attr('data-destination', destination.id);
             $details_wrapper.addClass('loading');
             $options_wrapper.addClass('loading');
-            $.post('/api/routing/route/', {
+            $.post('/api/routing/route/', $.extend({
                 'origin': origin.id,
                 'destination': destination.id,
                 'csrfmiddlewaretoken': c3nav.get_csrf_token()
-            }, function(data) {
+            }, c3nav.next_route_options || {}), function(data) {
                 c3nav._route_loaded(data, nofly)
             }, 'json').fail(function(data) {
                 c3nav._route_loaded({
@@ -264,6 +268,7 @@ c3nav = {
                 })
             });
         }
+        c3nav.next_route_options = null;
     },
     _route_loaded: function(data, nofly) {
         var $route = $('#route-summary');
@@ -437,10 +442,10 @@ c3nav = {
             field_id = 'option_id_'+option.name;
             $options.append($('<label for="'+field_id+'">').text(option.label));
             if (option.type === 'select') {
-                field = $('<select name="'+name+'" id="'+field_id+'">');
+                field = $('<select name="'+option.name+'" id="'+field_id+'">');
                 for (j=0; j<option.choices.length; j++) {
                     choice = option.choices[j];
-                    field.append($('<option name="'+choice.name+'">').text(choice.title));
+                    field.append($('<option value="'+choice.name+'">').text(choice.title));
                 }
             }
             field.val(option.value);
@@ -536,6 +541,19 @@ c3nav = {
         c3nav.update_state(null, null, null, !c3nav.state.options);
     },
     _route_options_close_click: function () {
+        c3nav.update_state(null, null, null, false);
+    },
+    _route_options_submit: function () {
+        var options = {
+            'csrfmiddlewaretoken': c3nav.get_csrf_token()
+        };
+        $('#route-options').find('.route-options-fields [name]').each(function() {
+            options[$(this).attr('name')] = $(this).val();
+        });
+        if ($(this).is('.save')) {
+            $.post('/api/routing/options/', options);
+        }
+        c3nav.next_route_options = options
         c3nav.update_state(null, null, null, false);
     },
     _location_buttons_route_click: function () {
