@@ -7,8 +7,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2017-12-11 00:57+0000\n"
-"PO-Revision-Date: 2017-12-11 02:01+0100\n"
+"POT-Creation-Date: 2017-12-16 23:57+0100\n"
+"PO-Revision-Date: 2017-12-17 00:02+0100\n"
 "Last-Translator: Laura Klünder <laura@codingcatgirl.de>\n"
 "Language-Team: \n"
 "Language: de\n"
@@ -26,53 +26,53 @@ msgstr "Befugnisse"
 msgid "Important dates"
 msgstr "Wichtige Daten"
 
-#: c3nav/control/forms.py:51
+#: c3nav/control/forms.py:54
 msgid "choose permissions…"
 msgstr "Erlaubnsise auswählen…"
 
-#: c3nav/control/forms.py:52
+#: c3nav/control/forms.py:55
 #, python-format
 msgid "everything possible (%d permission)"
 msgid_plural "everything possible (%d permissions)"
 msgstr[0] "alles mögliche (%d Erlaubnis)"
 msgstr[1] "alles mögliche (%d Erlaubnisse)"
 
-#: c3nav/control/forms.py:56 c3nav/control/templates/control/access.html:4
+#: c3nav/control/forms.py:59 c3nav/control/templates/control/access.html:4
 #: c3nav/control/templates/control/user.html:26
 #: c3nav/mapdata/models/access.py:112
 msgid "Access Permissions"
 msgstr "Zugangserlaubnisse"
 
-#: c3nav/control/forms.py:64
+#: c3nav/control/forms.py:68
 msgid "never"
 msgstr "nie"
 
-#: c3nav/control/forms.py:68
+#: c3nav/control/forms.py:72
 #, python-format
 msgid "in %d minute"
 msgid_plural "in %d minutes"
 msgstr[0] "in %d Minute"
 msgstr[1] "in %d Minuten"
 
-#: c3nav/control/forms.py:72
+#: c3nav/control/forms.py:76
 #, python-format
 msgid "in %d hour"
 msgid_plural "in %d hours"
 msgstr[0] "in %d Stunde"
 msgstr[1] "in %d Stunden"
 
-#: c3nav/control/forms.py:75
+#: c3nav/control/forms.py:79
 msgid "in 1½ hour"
 msgstr "in 1½ Stunden"
 
-#: c3nav/control/forms.py:79
+#: c3nav/control/forms.py:83
 #, python-format
 msgid "in %d day"
 msgid_plural "in %d days"
 msgstr[0] "in %d Tag"
 msgstr[1] "in %d Tagen"
 
-#: c3nav/control/forms.py:85
+#: c3nav/control/forms.py:90
 msgid "can pass on"
 msgstr "kann weitergeben"
 
@@ -123,7 +123,7 @@ msgstr ""
 
 #: c3nav/control/templates/control/access_qr.html:25
 msgid "Revoke Token"
-msgstr "Code invalidieren."
+msgstr "Code invalidieren"
 
 #: c3nav/control/templates/control/announcement.html:4
 msgid "Edit announcement"
@@ -324,15 +324,15 @@ msgstr ""
 "Umleitungs-Slug „%s“ kann nicht hinzugefügt werden: Er wird bereits an "
 "anderer Stelle verwendet."
 
-#: c3nav/editor/forms.py:162
+#: c3nav/editor/forms.py:163
 msgid "Final rejection"
 msgstr "Endgültige Ablehnung"
 
-#: c3nav/editor/forms.py:170
+#: c3nav/editor/forms.py:171
 msgid "create one way edges"
 msgstr "Kante nur in eine Richtung erstellen"
 
-#: c3nav/editor/forms.py:171
+#: c3nav/editor/forms.py:172
 msgid "activate next node after connecting"
 msgstr "nächsten Knoten nach dem Verbinden aktivieren"
 
@@ -414,7 +414,8 @@ msgid "last state update"
 msgstr "letzte Statusänderung"
 
 #: c3nav/editor/models/changeset.py:48 c3nav/mapdata/models/base.py:50
-#: c3nav/mapdata/models/locations.py:185 c3nav/mapdata/utils/locations.py:291
+#: c3nav/mapdata/models/graph.py:34 c3nav/mapdata/models/locations.py:185
+#: c3nav/mapdata/utils/locations.py:291
 msgid "Title"
 msgstr "Titel"
 
@@ -671,8 +672,8 @@ msgstr "(kein Titel)"
 
 #: c3nav/editor/templates/editor/fragment_changesets.html:10
 #: c3nav/editor/templates/editor/list.html:26
-#: c3nav/site/templates/site/map.html:51 c3nav/site/templates/site/map.html:84
-#: c3nav/site/templates/site/map.html:96
+#: c3nav/site/templates/site/map.html:51 c3nav/site/templates/site/map.html:85
+#: c3nav/site/templates/site/map.html:97 c3nav/site/templates/site/map.html:103
 msgid "Details"
 msgstr "Details"
 
@@ -691,7 +692,7 @@ msgid "Log out"
 msgstr "Abmelden"
 
 #: c3nav/editor/templates/editor/fragment_nav.html:20
-#: c3nav/editor/views/account.py:31 c3nav/site/views.py:174
+#: c3nav/editor/views/account.py:31 c3nav/site/views.py:175
 msgid "Log in"
 msgstr "Anmelden"
 
@@ -765,7 +766,7 @@ msgstr "Details anzeigen"
 
 #: c3nav/editor/templates/editor/space.html:9
 #: c3nav/mapdata/models/geometry/level.py:110
-#: c3nav/mapdata/models/geometry/space.py:63
+#: c3nav/mapdata/models/geometry/space.py:66
 #: c3nav/mapdata/utils/locations.py:283
 msgid "Space"
 msgstr "Raum"
@@ -825,7 +826,7 @@ msgid "Activate direct editing"
 msgstr "Direktes Bearbeiten aktivieren"
 
 #: c3nav/editor/templates/editor/user.html:52 c3nav/editor/views/account.py:94
-#: c3nav/site/templates/site/account.html:29 c3nav/site/views.py:230
+#: c3nav/site/templates/site/account.html:29 c3nav/site/views.py:231
 msgid "Change password"
 msgstr "Passwort ändern"
 
@@ -834,13 +835,13 @@ msgid "Recent change sets"
 msgstr "Aktuelle Änderungssets"
 
 #: c3nav/editor/views/account.py:34 c3nav/editor/views/account.py:70
-#: c3nav/site/views.py:177 c3nav/site/views.py:207
+#: c3nav/site/views.py:178 c3nav/site/views.py:208
 msgid "Create new account"
 msgstr "Neues Konto erstellen"
 
-#: c3nav/editor/views/account.py:84 c3nav/site/views.py:221
+#: c3nav/editor/views/account.py:84 c3nav/site/views.py:222
 msgid "Password successfully changed."
-msgstr "Passwort erfolgreich geändert"
+msgstr "Passwort erfolgreich geändert."
 
 #: c3nav/editor/views/changes.py:49
 msgid "Object has been successfully restored."
@@ -1108,7 +1109,7 @@ msgstr "Invalider zoom"
 
 #: c3nav/mapdata/management/commands/rendermap.py:60
 msgid "Zoom has to be between 1 and 32"
-msgstr "Zoom muss zwischen 1 und 32 liegen."
+msgstr "Zoom muss zwischen 1 und 32 liegen"
 
 #: c3nav/mapdata/management/commands/rendermap.py:66
 msgid "filetype to render"
@@ -1146,7 +1147,8 @@ msgstr "öffnen"
 msgid "Access Restrictions"
 msgstr "Zugangs­beschränkungen"
 
-#: c3nav/mapdata/models/access.py:48 c3nav/site/models.py:15
+#: c3nav/mapdata/models/access.py:48 c3nav/mapdata/models/geometry/space.py:251
+#: c3nav/site/models.py:15
 msgid "author"
 msgstr "Autor"
 
@@ -1166,7 +1168,7 @@ msgstr "eingelöst"
 msgid "redeemed by"
 msgstr "eingelöst von"
 
-#: c3nav/mapdata/models/access.py:99 c3nav/site/views.py:266
+#: c3nav/mapdata/models/access.py:99 c3nav/site/views.py:267
 msgid "Area successfully unlocked."
 msgid_plural "Areas successfully unlocked."
 msgstr[0] "Bereich erfolgreich freigeschaltet."
@@ -1206,7 +1208,6 @@ msgid "level"
 msgstr "Etage"
 
 #: c3nav/mapdata/models/geometry/level.py:70
-#: c3nav/mapdata/utils/locations.py:325
 #, python-brace-format
 msgid "{category}, {level}"
 msgstr "{category}, {level}"
@@ -1221,8 +1222,8 @@ msgstr "Gebäude"
 
 #: c3nav/mapdata/models/geometry/level.py:105
 #: c3nav/mapdata/models/geometry/level.py:123
-#: c3nav/mapdata/models/geometry/space.py:144
-#: c3nav/mapdata/models/geometry/space.py:164
+#: c3nav/mapdata/models/geometry/space.py:147
+#: c3nav/mapdata/models/geometry/space.py:167
 msgid "height"
 msgstr "Höhe"
 
@@ -1247,7 +1248,7 @@ msgid "Doors"
 msgstr "Türen"
 
 #: c3nav/mapdata/models/geometry/level.py:147
-#: c3nav/mapdata/models/geometry/space.py:231
+#: c3nav/mapdata/models/geometry/space.py:234
 msgid "altitude"
 msgstr "Bodenhöhe"
 
@@ -1285,130 +1286,185 @@ msgstr ""
 "%(num_modified)d geändert, %(num_deleted)d entfernt, %(num_created)d "
 "erstellt."
 
-#: c3nav/mapdata/models/geometry/space.py:19
+#: c3nav/mapdata/models/geometry/space.py:20
 msgid "space"
 msgstr "Raum"
 
-#: c3nav/mapdata/models/geometry/space.py:43
-#: c3nav/mapdata/utils/locations.py:321
+#: c3nav/mapdata/models/geometry/space.py:46
 #, python-brace-format
 msgid "{category}, {space}, {level}"
 msgstr "{category}, {space}, {level}"
 
-#: c3nav/mapdata/models/geometry/space.py:47
+#: c3nav/mapdata/models/geometry/space.py:50
 #, python-brace-format
 msgid "{category}, {space}"
 msgstr "{category}, {space}"
 
-#: c3nav/mapdata/models/geometry/space.py:89
+#: c3nav/mapdata/models/geometry/space.py:92
 msgid "Column"
 msgstr "Säule"
 
-#: c3nav/mapdata/models/geometry/space.py:90
+#: c3nav/mapdata/models/geometry/space.py:93
 msgid "Columns"
 msgstr "Säulen"
 
-#: c3nav/mapdata/models/geometry/space.py:101
+#: c3nav/mapdata/models/geometry/space.py:104
 msgid "Area"
 msgstr "Bereich"
 
-#: c3nav/mapdata/models/geometry/space.py:102
+#: c3nav/mapdata/models/geometry/space.py:105
 msgid "Areas"
 msgstr "Bereiche"
 
-#: c3nav/mapdata/models/geometry/space.py:122
+#: c3nav/mapdata/models/geometry/space.py:125
 msgid "Stair"
 msgstr "Stufe"
 
-#: c3nav/mapdata/models/geometry/space.py:123
+#: c3nav/mapdata/models/geometry/space.py:126
 msgid "Stairs"
 msgstr "Stufen"
 
-#: c3nav/mapdata/models/geometry/space.py:134
+#: c3nav/mapdata/models/geometry/space.py:137
 msgid "Ramp"
 msgstr "Rampe"
 
-#: c3nav/mapdata/models/geometry/space.py:135
+#: c3nav/mapdata/models/geometry/space.py:138
 msgid "Ramps"
 msgstr "Rampen"
 
-#: c3nav/mapdata/models/geometry/space.py:148
+#: c3nav/mapdata/models/geometry/space.py:151
 msgid "Obstacle"
 msgstr "Hindernis"
 
-#: c3nav/mapdata/models/geometry/space.py:149
+#: c3nav/mapdata/models/geometry/space.py:152
 msgid "Obstacles"
 msgstr "Hindernisse"
 
-#: c3nav/mapdata/models/geometry/space.py:163
+#: c3nav/mapdata/models/geometry/space.py:166
 msgid "width"
 msgstr "Breite"
 
-#: c3nav/mapdata/models/geometry/space.py:168
+#: c3nav/mapdata/models/geometry/space.py:171
 msgid "Line Obstacle"
 msgstr "Linienhindernis"
 
-#: c3nav/mapdata/models/geometry/space.py:169
+#: c3nav/mapdata/models/geometry/space.py:172
 msgid "Line Obstacles"
 msgstr "Linienhindernisse"
 
-#: c3nav/mapdata/models/geometry/space.py:204
+#: c3nav/mapdata/models/geometry/space.py:207
 msgid "Point of Interest"
 msgstr "Ort von Interesse"
 
-#: c3nav/mapdata/models/geometry/space.py:205
+#: c3nav/mapdata/models/geometry/space.py:208
 msgid "Points of Interest"
 msgstr "Orte von Interesse"
 
-#: c3nav/mapdata/models/geometry/space.py:221
+#: c3nav/mapdata/models/geometry/space.py:224
 msgid "Hole"
 msgstr "Loch"
 
-#: c3nav/mapdata/models/geometry/space.py:222
+#: c3nav/mapdata/models/geometry/space.py:225
 msgid "Holes"
 msgstr "Löcher"
 
-#: c3nav/mapdata/models/geometry/space.py:234
+#: c3nav/mapdata/models/geometry/space.py:237
 msgid "Altitude Marker"
 msgstr "Höhenmarker"
 
-#: c3nav/mapdata/models/geometry/space.py:235
+#: c3nav/mapdata/models/geometry/space.py:238
 msgid "Altitude Markers"
 msgstr "Höhenmarker"
 
-#: c3nav/mapdata/models/graph.py:19
+#: c3nav/mapdata/models/geometry/space.py:252
+msgid "comment"
+msgstr "Kommentar"
+
+#: c3nav/mapdata/models/geometry/space.py:253
+msgid "Measurement list"
+msgstr "Messungsliste"
+
+#: c3nav/mapdata/models/geometry/space.py:256
+msgid "Wi-Fi Measurement"
+msgstr "WLAN Messung"
+
+#: c3nav/mapdata/models/geometry/space.py:257
+msgid "Wi-Fi Measurements"
+msgstr "WLAN Messungen"
+
+#: c3nav/mapdata/models/graph.py:21
 msgid "Graph Node"
 msgstr "Graphknoten"
 
-#: c3nav/mapdata/models/graph.py:20
+#: c3nav/mapdata/models/graph.py:22
 msgid "Graph Nodes"
 msgstr "Graphknoten"
 
-#: c3nav/mapdata/models/graph.py:32
+#: c3nav/mapdata/models/graph.py:35 c3nav/mapdata/models/locations.py:186
+msgid "Title (Plural)"
+msgstr "Titel (Plural)"
+
+#: c3nav/mapdata/models/graph.py:36
+msgid "join consecutive edges"
+msgstr "aufeinandefolgende Kanten zusammenfassen"
+
+#: c3nav/mapdata/models/graph.py:37
+msgid "upwards separately"
+msgstr "aufwärts seperat"
+
+#: c3nav/mapdata/models/graph.py:38
+msgid "walking"
+msgstr "zu Fuß"
+
+#: c3nav/mapdata/models/graph.py:39
 msgid "edge color"
 msgstr "Kantenfarbe"
 
-#: c3nav/mapdata/models/graph.py:35 c3nav/mapdata/models/graph.py:48
+#: c3nav/mapdata/models/graph.py:40
+msgid "icon name"
+msgstr "Iconname"
+
+#: c3nav/mapdata/models/graph.py:41
+msgid "extra seconds per edge"
+msgstr "Extra-Sekunden pro Kante"
+
+#: c3nav/mapdata/models/graph.py:42
+msgid "speed (m/s)"
+msgstr "Geschwindigkeit (m/s)"
+
+#: c3nav/mapdata/models/graph.py:44
+msgid "description"
+msgstr "Beschreibung"
+
+#: c3nav/mapdata/models/graph.py:45
+msgid "speed upwards (m/s)"
+msgstr "Geschwindigkeit aufwärts (m/s)"
+
+#: c3nav/mapdata/models/graph.py:47
+msgid "description upwards"
+msgstr "Beschreibung aufwärts"
+
+#: c3nav/mapdata/models/graph.py:50 c3nav/mapdata/models/graph.py:63
 msgid "Way Type"
 msgstr "Wegtyp"
 
-#: c3nav/mapdata/models/graph.py:36
+#: c3nav/mapdata/models/graph.py:51
 msgid "Way Types"
 msgstr "Wegtypen"
 
-#: c3nav/mapdata/models/graph.py:45
+#: c3nav/mapdata/models/graph.py:60
 msgid "from node"
 msgstr "Startknoten"
 
-#: c3nav/mapdata/models/graph.py:47
+#: c3nav/mapdata/models/graph.py:62
 msgid "to node"
 msgstr "Zielknoten"
 
-#: c3nav/mapdata/models/graph.py:51
+#: c3nav/mapdata/models/graph.py:66
 msgid "Graph Edge"
 msgstr "Graphkante"
 
-#: c3nav/mapdata/models/graph.py:52
+#: c3nav/mapdata/models/graph.py:67
 msgid "Graph Edges"
 msgstr "Graphkanten"
 
@@ -1472,10 +1528,6 @@ msgstr "Name"
 #: c3nav/mapdata/models/locations.py:184
 msgid "single selection"
 msgstr "nur eine Auswahl möglich"
-
-#: c3nav/mapdata/models/locations.py:186
-msgid "Title (Plural)"
-msgstr "Titel (Plural)"
 
 #: c3nav/mapdata/models/locations.py:187
 msgid "allow levels"
@@ -1593,23 +1645,14 @@ msgstr "Y-Koordinate"
 msgid "Subtitle"
 msgstr "Untertitel"
 
-#: c3nav/mapdata/utils/locations.py:313
-#, python-format
-msgid "Coordinates in %(space)s"
-msgstr "Koordinaten in %(space)s"
-
-#: c3nav/mapdata/utils/locations.py:315
-#, python-format
-msgid "Coordinates on %(level)s"
-msgstr "Koordinaten in %(level)s"
+#: c3nav/mapdata/utils/locations.py:311
+msgid "Custom Location"
+msgstr "Benutzerdefinierter Ort"
 
 #: c3nav/mapdata/utils/locations.py:316
-msgid "Unreachable coordinates"
-msgstr "Unerreichbare Koordinaten"
-
-#: c3nav/mapdata/utils/locations.py:322 c3nav/mapdata/utils/locations.py:326
-msgid "Custom location"
-msgstr "Benutzerdefinierter Ort"
+#, python-brace-format
+msgid "{space}, {level}"
+msgstr "{space}, {level}"
 
 #: c3nav/mapdata/utils/user.py:15
 msgid "not logged in"
@@ -1626,15 +1669,15 @@ msgstr[1] "%d freigeschaltete Bereiche"
 msgid "Login"
 msgstr "Anmelden"
 
-#: c3nav/routing/api.py:35
+#: c3nav/routing/api.py:45
 msgid "Not yet routable, try again shortly."
 msgstr "Noch nicht routebar, bitte einige Minuten warten."
 
-#: c3nav/routing/api.py:39
+#: c3nav/routing/api.py:49
 msgid "Unreachable location."
 msgstr "Unerreichbarer Ort."
 
-#: c3nav/routing/api.py:43
+#: c3nav/routing/api.py:53
 msgid "No route found."
 msgstr "Keine Route gefunden."
 
@@ -1646,11 +1689,66 @@ msgstr "Unbekannter Startort."
 msgid "Unknown destination."
 msgstr "Unbekannter Zielort."
 
-#: c3nav/settings.py:252
+#: c3nav/routing/models.py:20 c3nav/routing/models.py:21
+#: c3nav/site/templates/site/map.html:110
+msgid "Route options"
+msgstr "Routenoptionen"
+
+#: c3nav/routing/models.py:32
+msgid "Walk speed"
+msgstr "Gehgeschwindigkeit"
+
+#: c3nav/routing/models.py:33
+msgid "slow"
+msgstr "langsam"
+
+#: c3nav/routing/models.py:33
+msgid "default"
+msgstr "standard"
+
+#: c3nav/routing/models.py:33
+msgid "fast"
+msgstr "schnell"
+
+#: c3nav/routing/models.py:39
+msgid "allow"
+msgstr "erlaubt"
+
+#: c3nav/routing/models.py:41
+msgid "avoid upwards"
+msgstr "aufwärts vermeiden"
+
+#: c3nav/routing/models.py:42
+msgid "avoid downwards"
+msgstr "abwärts vermeiden"
+
+#: c3nav/routing/models.py:43
+msgid "avoid completely"
+msgstr "komplett vermeiden"
+
+#: c3nav/routing/models.py:45
+msgid "avoid"
+msgstr "vermeiden"
+
+#: c3nav/routing/models.py:130
+#, python-format
+msgid "Unknown route option: %s"
+msgstr "Unbekannte Routenoption: %s"
+
+#: c3nav/routing/models.py:134
+#, python-format
+msgid "Invalid value for route option %s."
+msgstr "Invalider Wert für Routenoption %s."
+
+#: c3nav/routing/route.py:74
+msgid "You have reached your destination."
+msgstr "Du hast dein Ziel erreicht."
+
+#: c3nav/settings.py:258
 msgid "English"
 msgstr "Englisch"
 
-#: c3nav/settings.py:253
+#: c3nav/settings.py:259
 msgid "German"
 msgstr "Deutsch"
 
@@ -1719,42 +1817,59 @@ msgstr "Teilen"
 msgid "Route"
 msgstr "Route"
 
-#: c3nav/site/templates/site/map.html:70 c3nav/site/templates/site/map.html:80
+#: c3nav/site/templates/site/map.html:71 c3nav/site/templates/site/map.html:81
 msgid "Swap"
 msgstr "Vertauschen"
 
-#: c3nav/site/templates/site/map.html:74
+#: c3nav/site/templates/site/map.html:75
 msgid "Close"
 msgstr "Schließen"
 
-#: c3nav/site/templates/site/map.html:94
+#: c3nav/site/templates/site/map.html:95
 msgid "Open in Editor"
 msgstr "Im Editor öffnen"
 
-#: c3nav/site/views.py:153
+#: c3nav/site/templates/site/map.html:115
+msgid "Save and reroute"
+msgstr "Speichern und neu routen"
+
+#: c3nav/site/templates/site/map.html:116
+msgid "Just reroute"
+msgstr "Nur neu routen"
+
+#: c3nav/site/views.py:154
 msgid "Areas could not be unlocked because the token has expired."
 msgstr ""
 "Zugangserlaubnis konnte nicht gewährt werden weil der Code abgelaufen ist."
 
-#: c3nav/site/views.py:249
+#: c3nav/site/views.py:250
 msgid "This token does not exist or was already redeemed."
 msgstr "Dieser Code existiert nicht oder wurde bereits eingelöst."
 
-#: c3nav/site/views.py:259
+#: c3nav/site/views.py:260
 msgid "You need to log in to unlock areas."
 msgstr "Du musst dich anmelden um Bereiche freizuschalten."
 
-#: c3nav/site/views.py:271
+#: c3nav/site/views.py:272
 msgid "Unlock area"
 msgid_plural "Unlock areas"
 msgstr[0] "Bereich freischalten"
 msgstr[1] "Bereiche freischalten"
 
-#: c3nav/site/views.py:272
+#: c3nav/site/views.py:273
 msgid "You have been invited to unlock the following area:"
 msgid_plural "You have been invited to unlock the following areas:"
 msgstr[0] "Du wurdest eingeladen, den folgenden Bereich freizuschalten:"
 msgstr[1] "Du wurdest eingeladen, die folgenden Bereiche freizuschalten:"
+
+#~ msgid "Coordinates in %(space)s"
+#~ msgstr "Koordinaten in %(space)s"
+
+#~ msgid "Coordinates on %(level)s"
+#~ msgstr "Koordinaten in %(level)s"
+
+#~ msgid "Unreachable coordinates"
+#~ msgstr "Unerreichbare Koordinaten"
 
 #~ msgid "%(level)s, x=%(x)s, y=%(y)s"
 #~ msgstr "%(level)s, x=%(x)s, y=%(y)s"
@@ -1845,18 +1960,6 @@ msgstr[1] "Du wurdest eingeladen, die folgenden Bereiche freizuschalten:"
 
 #~ msgid "This Route contains way types you wanted to avoid."
 #~ msgstr "Diese Route enthält Wegtypen die du vermeiden wolltest."
-
-#~ msgid "allow"
-#~ msgstr "erlaubt"
-
-#~ msgid "only upwards"
-#~ msgstr "nur nach oben"
-
-#~ msgid "only downwards"
-#~ msgstr "nur nach unten"
-
-#~ msgid "avoid"
-#~ msgstr "vermeiden"
 
 #~ msgid "Origin"
 #~ msgstr "Start"
