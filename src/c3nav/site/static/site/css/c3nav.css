@@ -427,7 +427,7 @@ main.show-options #resultswrapper #route-options {
 .locationinput.selected input {
     padding-bottom: 25px;
 }
-main.map .locationinput button {
+#search .locationinput button {
     position: absolute;
     top: 6px;
     right: 6px;
@@ -440,10 +440,10 @@ main.map .locationinput button {
     color: #b2b2b2;
     line-height: 1;
 }
-.locationinput button:hover {
+#search button:hover {
     color: #a2a2a2;
 }
-.locationinput button.locate {
+#search button.locate {
     font-size: 35px;
     top: 5px;
 }
