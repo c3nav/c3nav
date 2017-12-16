@@ -308,20 +308,12 @@ class CustomLocation:
 
     @cached_property
     def title(self):
-        if self.space:
-            if self.space.can_describe:
-                return _('Coordinates in %(space)s') % {'space': self.space.title}
-            else:
-                return _('Coordinates on %(level)s') % {'level': self.level.title}
-        return _('Unreachable coordinates')
+        return _('Custom Location')
 
     @cached_property
     def subtitle(self):
         if self.space and self.space.can_describe:
-            return format_lazy(_('{category}, {space}, {level}'),
-                               category=_('Custom location'),
+            return format_lazy(_('{space}, {level}'),
                                space=self.space.title,
                                level=self.level.title)
-        return format_lazy(_('{category}, {level}'),
-                           category=_('Custom location'),
-                           level=self.level.title)
+        return self.level.title
