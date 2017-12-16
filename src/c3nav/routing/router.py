@@ -1,3 +1,4 @@
+import json
 import operator
 import os
 import pickle
@@ -302,9 +303,11 @@ class Router:
                                        self.get_restrictions(location.permissions))
         )
 
-    def shortest_path(self, restrictions):
-        cache_key = 'router:shortest_path:%s:%s' % (MapUpdate.current_processed_cache_key(),
-                                                    restrictions.cache_key)
+    def shortest_path(self, restrictions, options):
+        options_key = json.dumps(options.data, separators=(',', '='), sort_keys=True)[1:-1]
+        cache_key = 'router:shortest_path:%s:%s:%s' % (MapUpdate.current_processed_cache_key(),
+                                                       restrictions.cache_key,
+                                                       options_key)
         result = cache.get(cache_key)
         if result:
             return result
@@ -313,6 +316,13 @@ class Router:
         graph[tuple(restrictions.spaces), :] = np.inf
         graph[:, tuple(restrictions.spaces)] = np.inf
         graph[restrictions.edges.transpose().tolist()] = np.inf
+
+        for waytype in self.waytypes[1:]:
+            value = options.get('waytype_%s' % waytype.pk, 'allow')
+            if value in ('avoid', 'avoid_up'):
+                graph[waytype.upwards_indices.transpose().tolist()] *= 100000
+            if value in ('avoid', 'avoid_down'):
+                graph[waytype.nonupwards_indices.transpose().tolist()] *= 100000
 
         result = shortest_path(graph, directed=True, return_predecessors=True)
         cache.set(cache_key, result, 600)
@@ -323,7 +333,7 @@ class Router:
             pk: restriction for pk, restriction in self.restrictions.items() if pk not in permissions
         })
 
-    def get_route(self, origin, destination, permissions=frozenset()):
+    def get_route(self, origin, destination, permissions, options):
         restrictions = self.get_restrictions(permissions)
 
         # get possible origins and destinations
@@ -331,7 +341,7 @@ class Router:
         destinations = self.get_locations(destination, restrictions)
 
         # calculate shortest path matrix
-        distances, predecessors = self.shortest_path(restrictions)
+        distances, predecessors = self.shortest_path(restrictions, options=options)
 
         # find shortest path for our origins and destinations
         origin_nodes = np.array(tuple(origins.nodes))

@@ -38,7 +38,8 @@ class RoutingViewSet(ViewSet):
         try:
             route = Router.load().get_route(origin=form.cleaned_data['origin'],
                                             destination=form.cleaned_data['destination'],
-                                            permissions=AccessPermission.get_for_request(request))
+                                            permissions=AccessPermission.get_for_request(request),
+                                            options=options)
         except NotYetRoutable:
             return Response({
                 'error': _('Not yet routable, try again shortly.'),

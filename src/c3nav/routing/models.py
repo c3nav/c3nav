@@ -137,6 +137,12 @@ class RouteOptions(models.Model):
     def __setitem__(self, key, value):
         self.update({key: value})
 
+    def get(self, key, default):
+        try:
+            return self[key]
+        except AttributeError:
+            return default
+
     def serialize(self):
         return [
             {
