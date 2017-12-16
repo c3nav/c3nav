@@ -1,5 +1,6 @@
 from decimal import Decimal
 
+from django.conf import settings
 from django.core.validators import MinValueValidator
 from django.db import models
 from django.urls import reverse
@@ -8,7 +9,7 @@ from django.utils.text import format_lazy
 from django.utils.translation import ugettext_lazy as _
 from shapely.geometry import CAP_STYLE, JOIN_STYLE, mapping
 
-from c3nav.mapdata.fields import GeometryField
+from c3nav.mapdata.fields import GeometryField, JSONField
 from c3nav.mapdata.models.geometry.base import GeometryMixin
 from c3nav.mapdata.models.locations import SpecificLocation
 from c3nav.mapdata.utils.cache.changes import changed_geometries
@@ -240,3 +241,18 @@ class AltitudeMarker(SpaceGeometryMixin, models.Model):
     @property
     def title(self):
         return '%s (%sm)' % (super().title, self.altitude)
+
+
+class WifiMeasurement(SpaceGeometryMixin, models.Model):
+    """
+    A Wi-Fi measurement
+    """
+    geometry = GeometryField('point')
+    author = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT, verbose_name=_('author'))
+    comment = models.TextField(null=True, blank=True, verbose_name=_('comment'))
+    data = JSONField(_('Measurement list'))
+
+    class Meta:
+        verbose_name = _('Wi-Fi Measurement')
+        verbose_name_plural = _('Wi-Fi Measurements')
+        default_related_name = 'wifi_measurements'
