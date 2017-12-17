@@ -249,7 +249,7 @@ class CustomLocation:
             'coordinates': (self.x, self.y)
         }
 
-    def serialize(self, simple_geometry=False, geometry=True, **kwargs):
+    def serialize(self, include_type=False, simple_geometry=False, geometry=True, **kwargs):
         result = OrderedDict((
             ('id', self.pk),
             ('slug', self.pk),
@@ -258,6 +258,9 @@ class CustomLocation:
             ('level', self.level.pk),
             ('space', self.space.pk if self.space else None),
         ))
+        if include_type:
+            result['type'] = 'custom'
+            result.move_to_end('type', last=False)
         if simple_geometry:
             result['point'] = (self.level.pk, self.x, self.y)
             result['bounds'] = ((int(math.floor(self.x)), int(math.floor(self.y))),

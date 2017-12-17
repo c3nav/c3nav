@@ -355,16 +355,22 @@ c3nav = {
         $details.append(c3nav._build_location_html(result.destination));
 
         // add origin and destination lines
-        c3nav._add_line_to_route(first_primary_level, c3nav._add_intermediate_point(
-            result.origin.point.slice(1),
-            result.items[0].coordinates.slice(0, 2),
-            result.items[1].coordinates.slice(0, 2)
-        ), true);
-        c3nav._add_line_to_route(last_primary_level, c3nav._add_intermediate_point(
-            result.destination.point.slice(1),
-            result.items[result.items.length-1].coordinates.slice(0, 2),
-            result.items[result.items.length-2].coordinates.slice(0, 2)
-        ).reverse(), true);
+        c3nav._location_point_overrides = {};
+        if (!c3nav._add_location_point_override(result.origin, result.items[0])) {
+            c3nav._add_line_to_route(first_primary_level, c3nav._add_intermediate_point(
+                result.origin.point.slice(1),
+                result.items[0].coordinates.slice(0, 2),
+                result.items[1].coordinates.slice(0, 2)
+            ), true);
+        }
+        if (!c3nav._add_location_point_override(result.destination, result.items.slice(-1)[0])) {
+            c3nav._add_line_to_route(last_primary_level, c3nav._add_intermediate_point(
+                result.destination.point.slice(1),
+                result.items[result.items.length - 1].coordinates.slice(0, 2),
+                result.items[result.items.length - 2].coordinates.slice(0, 2)
+            ).reverse(), true);
+        }
+        c3nav.update_map_locations();
 
         c3nav._firstRouteLevel = first_primary_level;
         $route.find('span').text(result.summary);
@@ -373,6 +379,13 @@ c3nav = {
         $details_wrapper.removeClass('loading');
 
         if (!nofly) c3nav.fly_to_bounds(true);
+    },
+    _add_location_point_override: function (location, item) {
+        if (location.type === 'level' || location.type === 'space' || location.type === 'area') {
+            c3nav._location_point_overrides[location.id] = item.coordinates.slice(0, -1);
+            return true;
+        }
+        return false;
     },
     _build_route_item: function (icon, text) {
         var elem = $('<div class="routeitem">');
@@ -1057,6 +1070,7 @@ c3nav = {
             [bounds[1][0]+600/factor, bounds[1][1]+200/factor]
         ];
     },
+    _location_point_overrides: {},
     _add_location_to_map: function(location, icon) {
         // add a location to the map as a marker
         if (location.locations) {
@@ -1066,7 +1080,9 @@ c3nav = {
             }
             return bounds;
         }
-        var latlng = L.GeoJSON.coordsToLatLng(location.point.slice(1));
+
+        var point = c3nav._location_point_overrides[location.id] || location.point.slice(1),
+            latlng = L.GeoJSON.coordsToLatLng(point);
         L.marker(latlng, {
             icon: icon
         }).bindPopup(location.elem+$('#popup-buttons').html(), c3nav._add_map_padding({
