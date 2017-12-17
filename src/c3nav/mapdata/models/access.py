@@ -20,8 +20,6 @@ class AccessRestriction(TitledMixin, models.Model):
     """
     An access restriction
     """
-    users = models.ManyToManyField(settings.AUTH_USER_MODEL, through='AccessPermission',
-                                   through_fields=('access_restriction', 'user'))
     open = models.BooleanField(default=False, verbose_name=_('open'))
 
     class Meta:
@@ -50,10 +48,6 @@ class AccessPermissionToken(models.Model):
                                        verbose_name=_('valid until'))
     unlimited = models.BooleanField(default=False, db_index=True, verbose_name=_('unlimited'))
     redeemed = models.BooleanField(default=False, db_index=True, verbose_name=_('redeemed'))
-    redeemed_by = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, on_delete=models.SET_NULL,
-                                    related_name='redeemed_accesspermission_tokens',
-                                    verbose_name=_('redeemed by'))
-
     can_grant = models.BooleanField(default=False, db_index=True, verbose_name=_('can grant'))
     data = models.BinaryField()
 
@@ -69,26 +63,25 @@ class AccessPermissionToken(models.Model):
         pass
 
     def redeem(self, user=None):
-        if self.redeemed_by_id or (user is None and self.redeemed):
+        if (user is None and self.redeemed) or self.accesspermissions.exists():
             raise self.RedeemError('Already redeemed.')
 
         if timezone.now() > self.valid_until + timedelta(minutes=5 if self.redeemed else 0):
             raise self.RedeemError('No longer valid.')
 
-        self.redeemed = True
         if user:
             for restriction in self.restrictions:
-                obj, created = AccessPermission.objects.get_or_create(
+                AccessPermission.objects.create(
                     user=user,
-                    access_restriction_id=restriction.pk
+                    access_restriction_id=restriction.pk,
+                    author_id=self.author_id,
+                    expire_date=restriction.expire_date,
+                    can_grant=self.can_grant,
+                    token=self if self.pk else None,
                 )
-                obj.author_id = self.author_id
-                obj.expire_date = restriction.expire_date
-                obj.can_grant = self.can_grant
-                obj.save()
-            self.redeemed_by = user
 
-        if self.pk:
+        if self.pk and not self.unlimited:
+            self.redeemed = True
             self.save()
 
     def bump(self):
@@ -106,12 +99,13 @@ class AccessPermission(models.Model):
     can_grant = models.BooleanField(default=False, verbose_name=_('can grant'))
     author = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, on_delete=models.SET_NULL,
                                related_name='authored_access_permissions', verbose_name=_('Author'))
+    token = models.ForeignKey(AccessPermissionToken, null=True, on_delete=models.CASCADE,
+                              verbose_name=_('Access permission token'))
 
     class Meta:
         verbose_name = _('Access Permission')
         verbose_name_plural = _('Access Permissions')
         default_related_name = 'accesspermissions'
-        unique_together = (('user', 'access_restriction'), )
 
     @staticmethod
     def user_access_permission_key(user_id):
@@ -128,12 +122,21 @@ class AccessPermission(models.Model):
             result = tuple(request.user.accesspermissions.filter(
                 Q(expire_date__isnull=True) | Q(expire_date__gt=timezone.now())
             ).values_list('access_restriction_id', 'expire_date'))
-            if result:
-                access_restriction_ids, expire_dates = zip(*result)
-            else:
-                access_restriction_ids, expire_dates = (), ()
 
-            expire_date = min((e for e in expire_dates if e), default=timezone.now()+timedelta(seconds=120))
+            # collect permissions (can be multiple for one restriction)
+            permissions = {}
+            for access_restriction_id, expire_date in result:
+                permissions.setdefault(access_restriction_id, set()).add(expire_date)
+
+            # get latest expire date for each permission
+            permissions = {
+                access_restriction_id: None if None in expire_dates else max(expire_dates)
+                for access_restriction_id, expire_dates in permissions.items()
+            }
+
+            access_restriction_ids = set(permissions.keys())
+
+            expire_date = min((e for e in permissions.values() if e), default=timezone.now()+timedelta(seconds=120))
             cache.set(cache_key, access_restriction_ids, max(0, (expire_date-timezone.now()).total_seconds()))
         return set(access_restriction_ids)
 
