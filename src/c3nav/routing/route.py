@@ -14,7 +14,7 @@ def describe_location(location, locations):
             location = final_location
         else:
             location.can_describe = False
-    return location.serialize(detailed=False, describe_only=True, simple_geometry=True)
+    return location.serialize(include_type=True, detailed=False, describe_only=True, simple_geometry=True)
 
 
 class Route:

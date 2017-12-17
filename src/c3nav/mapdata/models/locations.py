@@ -319,13 +319,13 @@ class LocationRedirect(LocationSlug):
     target = models.ForeignKey(LocationSlug, related_name='redirects', on_delete=models.CASCADE,
                                verbose_name=_('target'))
 
-    def _serialize(self, with_type=True, **kwargs):
-        result = super()._serialize(with_type=with_type, **kwargs)
+    def _serialize(self, include_type=True, **kwargs):
+        result = super()._serialize(include_type=include_type, **kwargs)
         if type(self.target) == LocationSlug:
             result['target'] = self.target.get_child().slug
         else:
             result['target'] = self.target.slug
-        if with_type:
+        if include_type:
             result['type'] = 'redirect'
         result.pop('id')
         return result
