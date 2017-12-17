@@ -89,6 +89,24 @@ class Route:
         distance_str = '%d m' % distance
         summary = '%s (%s)' % (duration_str, distance_str)
 
+        options_summary = [
+            {
+                'fastest': _('fastest route'),
+                'shortest': _('shortest route')
+            }[self.options['mode']],
+        ]
+
+        waytypes_excluded = sum((name.startswith('waytype_') and value != 'allow')
+                                for name, value in self.options.items())
+
+        if waytypes_excluded:
+            options_summary.append(_('some path types avoided'))
+        else:
+            options_summary.append(_('default options'))
+
+        options_summary = ', '.join(str(s) for s in options_summary)
+
+
         return OrderedDict((
             ('origin', describe_location(self.origin, locations)),
             ('destination', describe_location(self.destination, locations)),
@@ -97,6 +115,7 @@ class Route:
             ('distance_str', distance_str),
             ('duration_str', duration_str),
             ('summary', summary),
+            ('options_summary', options_summary),
             ('items', tuple(item.serialize(locations=locations) for item in items)),
         ))
 

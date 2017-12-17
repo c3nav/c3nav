@@ -368,6 +368,7 @@ c3nav = {
 
         c3nav._firstRouteLevel = first_primary_level;
         $route.find('span').text(result.summary);
+        $route.find('em').text(result.options_summary);
         $route.removeClass('loading');
         $details_wrapper.removeClass('loading');
 

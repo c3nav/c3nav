@@ -176,3 +176,6 @@ class RouteOptions(models.Model):
             return super().save(*args, **kwargs)
 
         self.request.session['route_options'] = self
+
+    def items(self):
+        yield from self.data.items()
