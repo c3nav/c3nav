@@ -367,7 +367,7 @@ c3nav = {
         ).reverse(), true);
 
         c3nav._firstRouteLevel = first_primary_level;
-        $route.find('span').text(String(result.distance)+' m');
+        $route.find('span').text(result.summary);
         $route.removeClass('loading');
         $details_wrapper.removeClass('loading');
 

@@ -77,11 +77,26 @@ class Route:
 
         items[-1].descriptions.append(('done', _('You have reached your destination.')))
 
+        duration = round(duration)
+        seconds = int(duration) % 60
+        minutes = int(duration/60)
+        if minutes:
+            duration_str = '%d min %d s' % (minutes, seconds)
+        else:
+            duration_str = '%d s' % seconds
+
+        distance = round(distance, 1)
+        distance_str = '%d m' % distance
+        summary = '%s (%s)' % (duration_str, distance_str)
+
         return OrderedDict((
             ('origin', describe_location(self.origin, locations)),
             ('destination', describe_location(self.destination, locations)),
             ('distance', round(distance, 2)),
             ('duration', round(duration)),
+            ('distance_str', distance_str),
+            ('duration_str', duration_str),
+            ('summary', summary),
             ('items', tuple(item.serialize(locations=locations) for item in items)),
         ))
 
