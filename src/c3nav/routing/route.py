@@ -18,12 +18,13 @@ def describe_location(location, locations):
 
 
 class Route:
-    def __init__(self, router, origin, destination, distance, path_nodes, origin_addition, destination_addition):
+    def __init__(self, router, origin, destination, path_nodes, options,
+                 origin_addition, destination_addition):
         self.router = router
         self.origin = origin
         self.destination = destination
-        self.distance = distance
         self.path_nodes = path_nodes
+        self.options = options
         self.origin_addition = origin_addition
         self.destination_addition = destination_addition
 
@@ -39,6 +40,8 @@ class Route:
         last_node = None
         last_item = None
         distance = 0
+        duration = 0
+        walk_factor = self.options.walk_factor
         for i, (node, edge) in enumerate(nodes):
             if edge is None:
                 edge = self.router.edges[last_node, node] if last_node else None
@@ -46,6 +49,7 @@ class Route:
             item = RouteItem(self, node_obj, edge, last_item)
             if edge:
                 distance += edge.distance
+                duration += item.router_waytype.get_duration(edge, walk_factor)
             items.append(item)
             last_item = item
             last_node = node
@@ -77,6 +81,7 @@ class Route:
             ('origin', describe_location(self.origin, locations)),
             ('destination', describe_location(self.destination, locations)),
             ('distance', round(distance, 2)),
+            ('duration', round(duration)),
             ('items', tuple(item.serialize(locations=locations) for item in items)),
         ))
 
@@ -92,6 +97,11 @@ class RouteItem:
     @cached_property
     def waytype(self):
         if self.edge and self.edge.waytype:
+            return self.route.router.waytypes[self.edge.waytype]
+
+    @cached_property
+    def router_waytype(self):
+        if self.edge:
             return self.route.router.waytypes[self.edge.waytype]
 
     @cached_property

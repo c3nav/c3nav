@@ -396,7 +396,7 @@ class Router:
         origin_addition = origin.nodes_addition.get(origin_node)
         destination_addition = destination.nodes_addition.get(destination_node)
 
-        return Route(self, origin, destination, distances[origin_node, destination_node], path_nodes,
+        return Route(self, origin, destination, path_nodes, options,
                      origin_addition, destination_addition)
 
 
@@ -542,6 +542,14 @@ class RouterWayType:
         if name == '__setstate__':
             raise AttributeError
         return getattr(self.src, name)
+
+    def get_duration(self, edge, walk_factor):
+        if edge.rise > 0:
+            duration = edge.distance / (float(self.speed_up) * walk_factor)
+        else:
+            duration = edge.distance / (float(self.speed) * walk_factor)
+        duration += self.extra_seconds
+        return duration
 
 
 class RouterLocation:
