@@ -7,8 +7,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2017-12-16 23:57+0100\n"
-"PO-Revision-Date: 2017-12-17 00:02+0100\n"
+"POT-Creation-Date: 2017-12-17 01:18+0100\n"
+"PO-Revision-Date: 2017-12-17 01:18+0100\n"
 "Last-Translator: Laura Klünder <laura@codingcatgirl.de>\n"
 "Language-Team: \n"
 "Language: de\n"
@@ -1695,52 +1695,64 @@ msgid "Route options"
 msgstr "Routenoptionen"
 
 #: c3nav/routing/models.py:32
+msgid "Routing mode"
+msgstr "Routemodus"
+
+#: c3nav/routing/models.py:33
+msgid "fastest"
+msgstr "schnellste"
+
+#: c3nav/routing/models.py:33
+msgid "shortest"
+msgstr "kürzeste"
+
+#: c3nav/routing/models.py:37
 msgid "Walk speed"
 msgstr "Gehgeschwindigkeit"
 
-#: c3nav/routing/models.py:33
+#: c3nav/routing/models.py:38
 msgid "slow"
 msgstr "langsam"
 
-#: c3nav/routing/models.py:33
+#: c3nav/routing/models.py:38
 msgid "default"
 msgstr "standard"
 
-#: c3nav/routing/models.py:33
+#: c3nav/routing/models.py:38
 msgid "fast"
 msgstr "schnell"
 
-#: c3nav/routing/models.py:39
+#: c3nav/routing/models.py:44
 msgid "allow"
 msgstr "erlaubt"
 
-#: c3nav/routing/models.py:41
+#: c3nav/routing/models.py:46
 msgid "avoid upwards"
 msgstr "aufwärts vermeiden"
 
-#: c3nav/routing/models.py:42
+#: c3nav/routing/models.py:47
 msgid "avoid downwards"
 msgstr "abwärts vermeiden"
 
-#: c3nav/routing/models.py:43
+#: c3nav/routing/models.py:48
 msgid "avoid completely"
 msgstr "komplett vermeiden"
 
-#: c3nav/routing/models.py:45
+#: c3nav/routing/models.py:50
 msgid "avoid"
 msgstr "vermeiden"
 
-#: c3nav/routing/models.py:130
+#: c3nav/routing/models.py:135
 #, python-format
 msgid "Unknown route option: %s"
 msgstr "Unbekannte Routenoption: %s"
 
-#: c3nav/routing/models.py:134
+#: c3nav/routing/models.py:139
 #, python-format
 msgid "Invalid value for route option %s."
 msgstr "Invalider Wert für Routenoption %s."
 
-#: c3nav/routing/route.py:74
+#: c3nav/routing/route.py:78
 msgid "You have reached your destination."
 msgstr "Du hast dein Ziel erreicht."
 
@@ -2017,6 +2029,3 @@ msgstr[1] "Du wurdest eingeladen, die folgenden Bereiche freizuschalten:"
 
 #~ msgid "share"
 #~ msgstr "Teilen"
-
-#~ msgid "shortcut"
-#~ msgstr "Verknüpfung"
