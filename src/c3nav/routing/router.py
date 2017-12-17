@@ -548,7 +548,7 @@ class RouterWayType:
             duration = edge.distance / (float(self.speed_up if self.src else 1) * walk_factor)
         else:
             duration = edge.distance / (float(self.speed if self.src else 1) * walk_factor)
-        duration += self.extra_seconds
+        duration += self.extra_seconds if self.src else 0
         return duration
 
 
