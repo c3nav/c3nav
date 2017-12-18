@@ -10,6 +10,7 @@ from django.contrib.auth.forms import AuthenticationForm, PasswordChangeForm, Us
 from django.core.serializers.json import DjangoJSONEncoder
 from django.db import transaction
 from django.http import HttpResponse, HttpResponseBadRequest
+from django.middleware import csrf
 from django.shortcuts import redirect, render
 from django.urls import reverse
 from django.utils import timezone
@@ -91,6 +92,8 @@ def map_index(request, mode=None, slug=None, slug2=None, details=None, options=N
         'tile_cache_server': settings.TILE_CACHE_SERVER,
         'embed': bool(embed),
     }
+
+    csrf.get_token(request)
 
     announcement = Announcement.get_current()
     if announcement:
