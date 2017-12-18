@@ -125,7 +125,7 @@ def grant_access(request):
         if form.is_valid():
             token = form.get_token()
             token.save()
-            return redirect(reverse('control.access.qr', kwargs={'token': token.id}))
+            return redirect(reverse('control.access.qr', kwargs={'token': token.token}))
     else:
         form = AccessPermissionForm(request=request)
 
