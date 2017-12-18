@@ -56,6 +56,8 @@ c3nav = {
     continue_init: function() {
         c3nav.init_map();
 
+        c3nav._route_color = $('.leaflet-control-attribution a:not(:hover)').css('color');
+
         $('.locationinput').data('location', null);
 
         var $main = $('main'),
@@ -403,12 +405,13 @@ c3nav = {
             point = [destination[0]+Math.cos(angle)*offset, destination[1]+Math.sin(angle)*offset];
         return [origin, point, destination];
     },
+    _route_color: null,
     _add_line_to_route: function(level, coords, gray, link_to_level) {
         if (coords.length < 2) return;
         var latlngs = L.GeoJSON.coordsToLatLngs(c3nav._smooth_line(coords)),
             routeLayer = c3nav._routeLayers[level];
             line = L.polyline(latlngs, {
-                color: gray ? '#888888': $('.leaflet-control-attribution a:not(:hover)').css('color'),
+                color: gray ? '#888888': c3nav._route_color,
                 dashArray: (gray || link_to_level) ? '7' : null,
                 interactive: false,
                 smoothFactor: 0.5
