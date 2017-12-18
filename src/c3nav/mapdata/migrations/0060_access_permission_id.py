@@ -20,6 +20,10 @@ class Migration(migrations.Migration):
             model_name='accesspermissiontoken',
             name='author',
         ),
+        migrations.RemoveField(
+            model_name='accesspermission',
+            name='token',
+        ),
         migrations.DeleteModel(
             name='AccessPermissionToken',
         ),
