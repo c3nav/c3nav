@@ -71,6 +71,12 @@ class EditorFormBase(I18nModelFormMixin, ModelForm):
             self.fields['access_restriction'].label_from_instance = lambda obj: obj.title
             self.fields['access_restriction'].queryset = AccessRestriction.qs_for_request(self.request)
 
+        Space = self.request.changeset.wrap_model('Space')
+        for space_field in ('origin_space', 'target_space'):
+            if space_field in self.fields:
+                self.fields[space_field].label_from_instance = lambda obj: obj.title
+                self.fields[space_field].queryset = Space.qs_for_request(self.request)
+
         self.redirect_slugs = None
         self.add_redirect_slugs = None
         self.remove_redirect_slugs = None
@@ -139,6 +145,7 @@ def create_editor_form(editor_model):
                        'ordering', 'category', 'width', 'groups', 'color', 'priority', 'icon_name',
                        'base_altitude', 'waytype', 'access_restriction', 'height', 'default_height', 'door_height',
                        'outside', 'can_search', 'can_describe', 'geometry', 'single', 'altitude', 'short_label',
+                       'origin_space', 'target_space',
                        'extra_seconds', 'speed', 'description', 'speed_up', 'description_up',
                        'allow_levels', 'allow_spaces', 'allow_areas', 'allow_pois', 'left', 'top', 'right', 'bottom']
     field_names = [field.name for field in editor_model._meta.get_fields() if not field.one_to_many]

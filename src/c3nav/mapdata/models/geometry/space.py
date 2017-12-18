@@ -243,7 +243,7 @@ class AltitudeMarker(SpaceGeometryMixin, models.Model):
         return '%s (%sm)' % (super().title, self.altitude)
 
 
-class LeaveDecription(SpaceGeometryMixin, models.Model):
+class LeaveDescription(models.Model):
     """
     A description for leaving a space to another space
     """
@@ -258,7 +258,7 @@ class LeaveDecription(SpaceGeometryMixin, models.Model):
         default_related_name = 'leave_descriptions'
 
 
-class CrossDecription(SpaceGeometryMixin, models.Model):
+class CrossDescription(models.Model):
     """
     A description for crossing a space from one space to another space
     """

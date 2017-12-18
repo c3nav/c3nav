@@ -87,7 +87,7 @@ def space_detail(request, level, pk):
 
         'child_models': [child_model(request, model_name, kwargs={'space': pk}, parent=space)
                          for model_name in ('POI', 'Area', 'Obstacle', 'LineObstacle', 'Stair', 'Ramp', 'Column',
-                                            'Hole', 'AltitudeMarker')],
+                                            'Hole', 'AltitudeMarker', 'LeaveDescription', 'CrossDescription')],
         'geometry_url': '/api/editor/geometries/?space='+pk,
     })
 
@@ -318,7 +318,13 @@ def list_objects(request, model=None, level=None, space=None, explicit_edit=Fals
         reverse_kwargs['space'] = space
         sub_qs = Space.objects.filter(Space.q_for_request(request)).select_related('level').defer('geometry')
         space = get_object_or_404(sub_qs, pk=space)
-        queryset = queryset.filter(space=space).defer('geometry')
+        queryset = queryset.filter(space=space)
+        try:
+            model._meta.get_field('geometry')
+        except FieldDoesNotExist:
+            pass
+        else:
+            queryset = queryset.defer('geometry')
         ctx.update({
             'levels': Level.objects.filter(Level.q_for_request(request), on_top_of__isnull=True),
             'level': space.level,
