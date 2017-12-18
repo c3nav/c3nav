@@ -312,6 +312,17 @@ COMPRESS_CSS_FILTERS = (
     'compressor.filters.cssmin.CSSCompressorFilter',
 )
 
+PRIMARY_COLOR = config.get('c3nav', 'primary_color', fallback='')
+HEADER_BACKGROUND_COLOR = config.get('c3nav', 'header_background_color', fallback='')
+HEADER_TEXT_COLOR = config.get('c3nav', 'header_text_color', fallback='')
+
+
+LIBSASS_CUSTOM_FUNCTIONS = {
+    'primary_color': lambda: PRIMARY_COLOR,
+    'header_background_color': lambda: HEADER_BACKGROUND_COLOR,
+    'header_text_color': lambda: HEADER_TEXT_COLOR,
+}
+
 INTERNAL_IPS = ('127.0.0.1', '::1')
 
 MESSAGE_TAGS = {

@@ -1,5 +1,22 @@
+//noinspection CssInvalidFunction
+@if primary_color() != "" {
+    $color-primary: primary_color() !global;
+    $color-header-primary: primary_color() !global;
+}
+//noinspection CssInvalidFunction
+@if header_background_color() != "" {
+    $color-header-background: header_background_color() !global;
+}
+//noinspection CssInvalidFunction
+@if header_text_color() != "" {
+    $color-header-text: header_text_color() !global;
+}
+
 @import 'milligram/milligram.sass';
 
+$color-header-background: #ffffff !default;
+$color-header-primary: $color-secondary !default;
+$color-header-text: $color-primary !default;
 $color-icon: #7c848a;
 $color-icon-light: #b2b2b2;
 $color-placeholder: #9da2a6;
@@ -22,25 +39,30 @@ header {
     display: flex;
     align-items: center;
     justify-content: space-between;
+    background-color: $color-header-background
 }
 header h1 {
     font-size: 3rem;
     margin: 0;
 }
-header h1 a {
-    color: inherit;
+header h1 a, header h1 a:hover {
+    color: $color-header-primary;
 }
 header #user {
     text-align: right;
     padding: 0 0 3px 10px;
+    color: $color-header-text;
 }
 header #user small {
     display: block;
     margin-top: -3px;
-    color: $color-secondary;
+    color: inherit;
 }
 header #user small:empty {
     display:none;
+}
+header #user:hover {
+    color: $color-header-primary;
 }
 
 input {
