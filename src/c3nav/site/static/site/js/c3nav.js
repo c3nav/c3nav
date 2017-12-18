@@ -49,7 +49,9 @@ c3nav = {
                     $(this).parent().remove();
                 })
             );
-        })
+        });
+
+        if (window.mobileclient) $('#attributions').find('a:not([href^="http"]):not([href^="//"])').removeAttr('target');
     },
     continue_init: function() {
         c3nav.init_map();
