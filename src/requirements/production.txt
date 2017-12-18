@@ -13,3 +13,4 @@ Pillow>=4.1,<4.2
 qrcode>=5.3,<5.4
 matplotlib>=2.0,<2.1
 scipy>=0.19,<0.20
+django_libsass>=0.7,<0.8
