@@ -71,6 +71,7 @@ main.map {
     position: relative;
     padding: 0;
     border-top-width: 0;
+    overscroll-behavior: contain;
 }
 
 main.account form {
