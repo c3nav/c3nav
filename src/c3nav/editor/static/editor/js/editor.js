@@ -237,9 +237,11 @@ editor = {
     },
     _sidebar_link_click: function(e) {
         // listener for link-clicks in the sidebar.
+        var href = $(this).attr('href');
+        if (href && !href.startsWith('/editor/')) return;
         e.preventDefault();
         if (editor._loading_geometry) return;
-        if ($(this).attr('href') === '') return;
+        if (!href) return;
         if ($(this).is('[data-force-next-zoom]')) editor._next_zoom = true;
         if ($(this).is('[data-no-next-zoom]')) editor._next_zoom = false;
         editor.sidebar_get($(this).attr('href'));

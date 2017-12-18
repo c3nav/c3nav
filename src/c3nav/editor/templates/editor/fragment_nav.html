@@ -1,6 +1,9 @@
 {% load i18n %}
 
 <ul class="nav navbar-nav navbar-right">
+    <li><a href="{% url 'site.index' %}">
+        &laquo; {% trans 'back to c3nav' %}
+    </a></li>
     <li><a href="{{ request.changeset.get_absolute_url }}">
         {% if request.changeset.direct_editing %}
             <span class="text-warning">{{ request.changeset.count_display }}</span>
