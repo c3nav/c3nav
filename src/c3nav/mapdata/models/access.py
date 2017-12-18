@@ -40,7 +40,7 @@ AccessPermissionTokenItem = namedtuple('AccessPermissionTokenItem', ('pk', 'expi
 
 
 class AccessPermissionToken(models.Model):
-    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    token = models.UUIDField(unique=True, default=uuid.uuid4, editable=False)
     author = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT,
                                related_name='created_accesspermission_tokens',
                                verbose_name=_('author'))

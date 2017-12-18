@@ -140,7 +140,7 @@ def grant_access(request):
 @control_panel_view
 def grant_access_qr(request, token):
     with transaction.atomic():
-        token = AccessPermissionToken.objects.select_for_update().get(id=token, author=request.user)
+        token = AccessPermissionToken.objects.select_for_update().get(token=token, author=request.user)
         if token.redeemed:
             messages.success(request, _('Access successfully granted.'))
             token = None
@@ -165,7 +165,7 @@ def grant_access_qr(request, token):
         token.bump()
         token.save()
 
-    url = reverse('site.access.redeem', kwargs={'token': str(token.id)})
+    url = reverse('site.access.redeem', kwargs={'token': str(token.token)})
     return render(request, 'control/access_qr.html', {
         'url': url,
         'url_qr': reverse('site.qr', kwargs={'path': url}),

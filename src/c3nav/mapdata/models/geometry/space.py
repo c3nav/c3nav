@@ -9,7 +9,7 @@ from django.utils.text import format_lazy
 from django.utils.translation import ugettext_lazy as _
 from shapely.geometry import CAP_STYLE, JOIN_STYLE, mapping
 
-from c3nav.mapdata.fields import GeometryField, JSONField
+from c3nav.mapdata.fields import GeometryField, JSONField, I18nField
 from c3nav.mapdata.models.geometry.base import GeometryMixin
 from c3nav.mapdata.models.locations import SpecificLocation
 from c3nav.mapdata.utils.cache.changes import changed_geometries

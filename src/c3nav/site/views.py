@@ -144,7 +144,7 @@ def redeem_token_after_login(request):
         return
 
     try:
-        token = AccessPermissionToken.objects.get(id=token)
+        token = AccessPermissionToken.objects.get(token=token)
     except AccessPermissionToken.DoesNotExist:
         return
 
@@ -244,7 +244,7 @@ def account_view(request):
 def access_redeem_view(request, token):
     with transaction.atomic():
         try:
-            token = AccessPermissionToken.objects.select_for_update().get(id=token, redeemed=False,
+            token = AccessPermissionToken.objects.select_for_update().get(token=token, redeemed=False,
                                                                           valid_until__gte=timezone.now())
         except AccessPermissionToken.DoesNotExist:
             messages.error(request, _('This token does not exist or was already redeemed.'))
@@ -258,7 +258,7 @@ def access_redeem_view(request, token):
 
             if not request.user.is_authenticated:
                 messages.info(request, _('You need to log in to unlock areas.'))
-                request.session['redeem_token_on_login'] = str(token.id)
+                request.session['redeem_token_on_login'] = str(token.token)
                 return redirect('site.login')
 
             token.redeemed_by = request.user
