@@ -695,6 +695,13 @@ main:not([data-view=route-result]) #route-summary {
     font-weight: bold;
     background-color: #eeeeee;
 }
+.leaflet-control-attribution a {
+    color: $color-primary;
+}
+.leaflet-control-attribution a:hover {
+    color: $color-secondary;
+    text-decoration: none;
+}
 
 
 #modal {
