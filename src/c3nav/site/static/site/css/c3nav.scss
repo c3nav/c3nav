@@ -44,7 +44,8 @@ header {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    background-color: $color-header-background
+    background-color: $color-header-background;
+    flex-shrink: 0;
 }
 header h1 {
     font-size: 3rem;
@@ -69,7 +70,7 @@ header #user {
 }
 header #user small {
     display: block;
-    margin-top: -3px;
+    margin-top: -2px;
     color: inherit;
 }
 header #user small:empty {
