@@ -294,14 +294,15 @@ class Router:
                 return self.spaces[space]
         spaces = (self.spaces[space] for space in level.spaces)
         spaces = ((space, space.geometry.distance(point)) for space in spaces)
-        spaces = ((space, distance) for space, distance in spaces if distance < 0.5)
+        spaces = tuple((space, distance) for space, distance in spaces if distance < 0.5)
+        if not spaces:
+            return None
         return min(spaces, key=operator.itemgetter(1))[0]
 
     def describe_custom_location(self, location):
-        return CustomLocationDescription(
-            space=self.space_for_point(location.level.pk, location,
-                                       self.get_restrictions(location.permissions))
-        )
+        space = self.space_for_point(location.level.pk, location, self.get_restrictions(location.permissions))
+        altitude = space.altitudearea_for_point(location).get_altitude(location) if space else None
+        return CustomLocationDescription(space=space, altitude=altitude)
 
     def shortest_path(self, restrictions, options):
         options_key = json.dumps(options.data, separators=(',', '='), sort_keys=True)[1:-1]
@@ -400,7 +401,7 @@ class Router:
                      origin_addition, destination_addition)
 
 
-CustomLocationDescription = namedtuple('CustomLocationDescription', ('space'))
+CustomLocationDescription = namedtuple('CustomLocationDescription', ('space', 'altitude'))
 
 
 class BaseRouterProxy:

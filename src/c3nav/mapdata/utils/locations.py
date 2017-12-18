@@ -257,6 +257,7 @@ class CustomLocation:
             ('subtitle', self.subtitle),
             ('level', self.level.pk),
             ('space', self.space.pk if self.space else None),
+            ('altitude', None if self.altitude is None else round(self.altitude, 2))
         ))
         if include_type:
             result['type'] = 'custom'
@@ -291,6 +292,7 @@ class CustomLocation:
                 } if self.space else None),
                 (_('X Coordinate'), str(self.x)),
                 (_('Y Coordinate'), str(self.y)),
+                (_('Altitude'), None if self.altitude is None else str(round(self.altitude, 2))),
                 (_('Title'), self.title),
                 (_('Subtitle'), self.subtitle),
             ],
@@ -304,10 +306,11 @@ class CustomLocation:
 
     @cached_property
     def space(self):
-        try:
-            return self.description.space
-        except Exception:
-            return None
+        return self.description.space
+
+    @cached_property
+    def altitude(self):
+        return self.description.altitude
 
     @cached_property
     def title(self):
