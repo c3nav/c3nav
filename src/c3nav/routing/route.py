@@ -17,7 +17,7 @@ def describe_location(location, locations):
 
 class Route:
     def __init__(self, router, origin, destination, path_nodes, options,
-                 origin_addition, destination_addition):
+                 origin_addition, destination_addition, origin_xyz, destination_xyz):
         self.router = router
         self.origin = origin
         self.destination = destination
@@ -25,6 +25,8 @@ class Route:
         self.options = options
         self.origin_addition = origin_addition
         self.destination_addition = destination_addition
+        self.origin_xyz = origin_xyz
+        self.destination_xyz = destination_xyz
 
     def serialize(self, locations):
         nodes = [[node, None] for node in self.path_nodes]
@@ -34,12 +36,22 @@ class Route:
         if self.destination_addition and any(self.destination_addition):
             nodes.append(self.destination_addition)
 
+        if self.origin_xyz is not None:
+            origin_distance = np.linalg.norm(self.router.nodes[nodes[0][0]].xyz - self.origin_xyz)
+        else:
+            origin_distance = 0
+
+        if self.destination_xyz is not None:
+            destination_distance = np.linalg.norm(self.router.nodes[nodes[-1][0]].xyz - self.destination_xyz)
+        else:
+            destination_distance = 0
+
         items = deque()
         last_node = None
         last_item = None
-        distance = 0
-        duration = 0
         walk_factor = self.options.walk_factor
+        distance = origin_distance
+        duration = origin_distance * walk_factor
         for i, (node, edge) in enumerate(nodes):
             if edge is None:
                 edge = self.router.edges[last_node, node] if last_node else None
@@ -51,6 +63,9 @@ class Route:
             items.append(item)
             last_item = item
             last_node = node
+
+        distance += destination_distance
+        duration += destination_distance * walk_factor
 
         # descriptions for waytypes
         next_item = None
@@ -76,7 +91,7 @@ class Route:
             next_item = item
 
         # add description for last space
-        remaining_distance = 0
+        remaining_distance = destination_distance
         for item in reversed(items):
             if item.descriptions:
                 break

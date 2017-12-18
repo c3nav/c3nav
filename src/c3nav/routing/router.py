@@ -157,6 +157,7 @@ class Router:
 
                     poi = RouterPoint(poi)
                     altitudearea = space.altitudearea_for_point(poi.geometry)
+                    poi.altitude = altitudearea.get_altitude(poi.geometry)
                     poi_nodes = altitudearea.nodes_for_point(poi.geometry, all_nodes=nodes)
                     poi.nodes = set(i for i in poi_nodes.keys())
                     poi.nodes_addition = poi_nodes
@@ -274,6 +275,7 @@ class Router:
             location = RouterPoint(location)
             space = self.space_for_point(location.level.pk, point, restrictions)
             altitudearea = space.altitudearea_for_point(point)
+            location.altitude = altitudearea.get_altitude(point)
             location_nodes = altitudearea.nodes_for_point(point, all_nodes=self.nodes)
             location.nodes = set(i for i in location_nodes.keys())
             location.nodes_addition = location_nodes
@@ -397,8 +399,12 @@ class Router:
         origin_addition = origin.nodes_addition.get(origin_node)
         destination_addition = destination.nodes_addition.get(destination_node)
 
+        # get additional distance at origin and destination
+        origin_xyz = origin.xyz if isinstance(origin, RouterPoint) else None
+        destination_xyz = destination.xyz if isinstance(destination, RouterPoint) else None
+
         return Route(self, origin, destination, path_nodes, options,
-                     origin_addition, destination_addition)
+                     origin_addition, destination_addition, origin_xyz, destination_xyz)
 
 
 CustomLocationDescription = namedtuple('CustomLocationDescription', ('space', 'altitude'))
@@ -449,7 +455,13 @@ class RouterArea(BaseRouterProxy):
 
 
 class RouterPoint(BaseRouterProxy):
-    pass
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.altitude = None
+
+    @cached_property
+    def xyz(self):
+        return np.array((self.x, self.y, self.altitude))
 
 
 class RouterAltitudeArea:
