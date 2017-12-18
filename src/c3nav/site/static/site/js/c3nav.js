@@ -408,7 +408,7 @@ c3nav = {
         var latlngs = L.GeoJSON.coordsToLatLngs(c3nav._smooth_line(coords)),
             routeLayer = c3nav._routeLayers[level];
             line = L.polyline(latlngs, {
-                color: gray ? '#888888': $('button.swap').css('color'),
+                color: gray ? '#888888': $('.leaflet-control-attribution a:not(:hover)').css('color'),
                 dashArray: (gray || link_to_level) ? '7' : null,
                 interactive: false,
                 smoothFactor: 0.5
