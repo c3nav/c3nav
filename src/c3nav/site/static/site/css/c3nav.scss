@@ -47,6 +47,15 @@ header h1 {
 }
 header h1 a, header h1 a:hover {
     color: $color-header-primary;
+    line-height: 50px;
+    display: block;
+    height: 50px;
+}
+header h1 img {
+    height: 50px;
+    vertical-align: top;
+    margin-left: -10px;
+    max-width: none;
 }
 header #user {
     text-align: right;
