@@ -26,13 +26,13 @@ def control_panel_view(func):
     return login_required(login_url='site.login')(wrapped_func)
 
 
-@login_required
+@login_required(login_url='site.login')
 @control_panel_view
 def main_index(request):
     return render(request, 'control/index.html', {})
 
 
-@login_required
+@login_required(login_url='site.login')
 @control_panel_view
 def user_list(request):
     search = request.GET.get('s')
@@ -50,7 +50,7 @@ def user_list(request):
     })
 
 
-@login_required
+@login_required(login_url='site.login')
 @control_panel_view
 def user_detail(request, user):
     qs = User.objects.select_related(
@@ -117,7 +117,7 @@ def user_detail(request, user):
     return render(request, 'control/user.html', ctx)
 
 
-@login_required
+@login_required(login_url='site.login')
 @control_panel_view
 def grant_access(request):
     if request.method == 'POST' and request.POST.get('submit_access_permissions'):
@@ -136,7 +136,7 @@ def grant_access(request):
     return render(request, 'control/access.html', ctx)
 
 
-@login_required
+@login_required(login_url='site.login')
 @control_panel_view
 def grant_access_qr(request, token):
     with transaction.atomic():
@@ -173,7 +173,7 @@ def grant_access_qr(request, token):
     })
 
 
-@login_required
+@login_required(login_url='site.login')
 @control_panel_view
 def announcement_list(request):
     if not request.user_permissions.manage_announcements:
@@ -197,7 +197,7 @@ def announcement_list(request):
     })
 
 
-@login_required
+@login_required(login_url='site.login')
 @control_panel_view
 def announcement_detail(request, announcement):
     if not request.user_permissions.manage_announcements:
