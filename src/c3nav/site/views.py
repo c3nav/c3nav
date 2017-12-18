@@ -253,15 +253,13 @@ def access_redeem_view(request, token):
         num_restrictions = len(token.restrictions)
 
         if request.method == 'POST':
-            token.redeemed = True
-            token.save()
-
             if not request.user.is_authenticated:
                 messages.info(request, _('You need to log in to unlock areas.'))
                 request.session['redeem_token_on_login'] = str(token.token)
+                token.redeem()
                 return redirect('site.login')
 
-            token.redeemed_by = request.user
+            token.redeem(request.user)
             token.save()
 
             messages.success(request, ungettext_lazy('Area successfully unlocked.',
