@@ -11,12 +11,17 @@
 @if header_text_color() != "" {
     $color-header-text: header_text_color() !global;
 }
+//noinspection CssInvalidFunction
+@if header_text_hover_color() != "" {
+    $color-header-text-hover: header_text_hover_color() !global;
+}
 
 @import 'milligram/milligram.sass';
 
 $color-header-background: #ffffff !default;
 $color-header-primary: $color-secondary !default;
 $color-header-text: $color-primary !default;
+$color-header-text-hover: $color-secondary !default;
 $color-icon: #7c848a;
 $color-icon-light: #b2b2b2;
 $color-placeholder: #9da2a6;
@@ -71,7 +76,7 @@ header #user small:empty {
     display:none;
 }
 header #user:hover {
-    color: $color-header-primary;
+    color: $color-header-text-hover;
 }
 
 input {
