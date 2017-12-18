@@ -9,7 +9,7 @@ from django.utils.text import format_lazy
 from django.utils.translation import ugettext_lazy as _
 from shapely.geometry import CAP_STYLE, JOIN_STYLE, mapping
 
-from c3nav.mapdata.fields import GeometryField, JSONField, I18nField
+from c3nav.mapdata.fields import GeometryField, I18nField, JSONField
 from c3nav.mapdata.models.geometry.base import GeometryMixin
 from c3nav.mapdata.models.locations import SpecificLocation
 from c3nav.mapdata.utils.cache.changes import changed_geometries
@@ -241,6 +241,38 @@ class AltitudeMarker(SpaceGeometryMixin, models.Model):
     @property
     def title(self):
         return '%s (%sm)' % (super().title, self.altitude)
+
+
+class LeaveDecription(SpaceGeometryMixin, models.Model):
+    """
+    A description for leaving a space to another space
+    """
+    space = models.ForeignKey('mapdata.Space', on_delete=models.CASCADE, verbose_name=_('space'))
+    target_space = models.ForeignKey('mapdata.Space', on_delete=models.CASCADE, verbose_name=_('target space'),
+                                     related_name='enter_descriptions')
+    description = I18nField(_('description'))
+
+    class Meta:
+        verbose_name = _('Leave description')
+        verbose_name_plural = _('Leave descriptions')
+        default_related_name = 'leave_descriptions'
+
+
+class CrossDecription(SpaceGeometryMixin, models.Model):
+    """
+    A description for crossing a space from one space to another space
+    """
+    space = models.ForeignKey('mapdata.Space', on_delete=models.CASCADE, verbose_name=_('space'))
+    origin_space = models.ForeignKey('mapdata.Space', on_delete=models.CASCADE, verbose_name=_('origin space'),
+                                     related_name='leave_cross_descriptions')
+    target_space = models.ForeignKey('mapdata.Space', on_delete=models.CASCADE, verbose_name=_('target space'),
+                                     related_name='cross_enter_descriptions')
+    description = I18nField(_('description'))
+
+    class Meta:
+        verbose_name = _('Cross description')
+        verbose_name_plural = _('Cross descriptions')
+        default_related_name = 'cross_descriptions'
 
 
 class WifiMeasurement(SpaceGeometryMixin, models.Model):
