@@ -23,15 +23,19 @@ class Migration(migrations.Migration):
             model_name='accesspermission',
             name='token',
         ),
+        migrations.RemoveField(
+            model_name='accesspermission',
+            name='id',
+        ),
+        migrations.AddField(
+            model_name='accesspermissiontoken',
+            name='id',
+            field=models.AutoField(primary_key=True, serialize=False),
+        ),
         migrations.AddField(
             model_name='accesspermissiontoken',
             name='token',
             field=models.UUIDField(default=uuid.uuid4, editable=False, unique=True),
-        ),
-        migrations.AlterField(
-            model_name='accesspermissiontoken',
-            name='id',
-            field=models.AutoField(primary_key=True, serialize=False),
         ),
         migrations.AddField(
             model_name='accesspermission',
