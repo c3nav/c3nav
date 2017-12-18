@@ -71,11 +71,13 @@ class EditorFormBase(I18nModelFormMixin, ModelForm):
             self.fields['access_restriction'].label_from_instance = lambda obj: obj.title
             self.fields['access_restriction'].queryset = AccessRestriction.qs_for_request(self.request)
 
-        Space = self.request.changeset.wrap_model('Space')
-        for space_field in ('origin_space', 'target_space'):
-            if space_field in self.fields:
-                self.fields[space_field].label_from_instance = lambda obj: obj.title
-                self.fields[space_field].queryset = Space.qs_for_request(self.request)
+        if 'target_space' in self.fields:
+            Space = self.request.changeset.wrap_model('Space')
+            space_qs = Space.qs_for_request(self.request)
+            for space_field in ('origin_space', 'target_space'):
+                if space_field in self.fields:
+                    self.fields[space_field].label_from_instance = lambda obj: obj.title
+                    self.fields[space_field].queryset = space_qs
 
         self.redirect_slugs = None
         self.add_redirect_slugs = None
