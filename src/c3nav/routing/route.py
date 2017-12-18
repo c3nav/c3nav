@@ -71,9 +71,21 @@ class Route:
                     item.descriptions.append((icon, item.waytype.description_up))
                 else:
                     item.descriptions.append((icon, item.waytype.description))
-            elif item.new_space:
-                pass  # todo: custom space transition descriptions
+            elif item.last_item and item.new_space:
+                item.descriptions.append(('more_vert', _('Go to %(space_title)s.') % {
+                    'space_title': item.space.title
+                }))
             next_item = item
+
+        # add description for last space
+        remaining_distance = 0
+        for item in reversed(items):
+            if item.descriptions:
+                break
+            if item.edge:
+                remaining_distance += item.edge.distance
+        if remaining_distance:
+            item.descriptions.append(('more_vert', _('%d m remaining to your destination.') % max(remaining_distance, 1)))
 
         items[-1].descriptions.append(('done', _('You have reached your destination.')))
 

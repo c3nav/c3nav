@@ -343,9 +343,6 @@ c3nav = {
                 }
                 level_collect = level_collect.slice(-1);
             }
-            if (i > 0 && item.space && item.space.title && item.space.id !== result.destination.id) {
-                $details.append(c3nav._build_route_item('place', item.space.title));
-            }
         }
         if (last_primary_level) {
             c3nav._add_line_to_route(last_primary_level, next_level_collect);
