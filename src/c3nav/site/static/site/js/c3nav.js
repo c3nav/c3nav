@@ -408,7 +408,8 @@ c3nav = {
             line = L.polyline(latlngs, {
                 color: gray ? '#888888': $('button.swap').css('color'),
                 dashArray: (gray || link_to_level) ? '7' : null,
-                interactive: false
+                interactive: false,
+                smoothFactor: 0.5
             }).addTo(routeLayer)
             bounds = {};
         bounds[level] = line.getBounds();
