@@ -1,3 +1,10 @@
+@import 'milligram/milligram.sass';
+
+$color-icon: #7c848a;
+$color-icon-light: #b2b2b2;
+$color-placeholder: #9da2a6;
+$color-sidebar-border: #dddddd;
+
 body {
     font-weight: normal;
     display: flex;
@@ -30,7 +37,7 @@ header #user {
 header #user small {
     display: block;
     margin-top: -3px;
-    color: #606c76;
+    color: $color-secondary;
 }
 header #user small:empty {
     display:none;
@@ -41,10 +48,10 @@ input {
     color: inherit;
 }
 ::-webkit-input-placeholder {
-    color: #9DA2A6;
+    color: $color-placeholder;
 }
 ::-moz-placeholder {
-    color: #9DA2A6;
+    color: $color-placeholder;
 }
 .material-icons {
     -webkit-user-select: none;
@@ -123,7 +130,7 @@ main.account form {
     margin-bottom: 10px;
 }
 #sidebar section > div {
-    border: 0 #dddddd solid;
+    border: 0 $color-sidebar-border solid;
     border-top-width: 1px;
     transition: margin-bottom 150ms, opacity 150ms;
     overflow: hidden;
@@ -162,7 +169,7 @@ main.account form {
     font-weight: 300;
     z-index: 2;
     position: absolute;
-    color: #606c76;
+    color: $color-secondary;
     top: 10px;
     left: 10px;
     opacity: 0.4;
@@ -353,7 +360,7 @@ main.show-options #resultswrapper #route-options {
 #route-options .details-head button {
     font-size: 30px;
     line-height: 1.0;
-    color: #b2b2b2;
+    color: $color-icon-light;
 }
 
 .location {
@@ -367,7 +374,7 @@ main.show-options #resultswrapper #route-options {
     top: 9px;
     left: 9px;
     cursor: default;
-    color: #7C848A;
+    color: $color-icon;
     transition: color 150ms, transform 150ms, top 150ms;
     pointer-events: none;
 }
@@ -379,7 +386,7 @@ main.show-options #resultswrapper #route-options {
     line-height: 1.1;
 }
 .location.focus {
-    background-color: #f4f4f4;
+    background-color: $color-tertiary;
 }
 #autocomplete .location {
     cursor: pointer;
@@ -421,7 +428,7 @@ main.show-options #resultswrapper #route-options {
     top: 0;
     left: 1px;
     content: "search";
-    color: #b2b2b2;
+    color: $color-icon-light;
     transition: color 150ms;
 }
 .locationinput.selected .icon::before {
@@ -440,10 +447,10 @@ main.show-options #resultswrapper #route-options {
     border-width: 0;
     transition: transform 150ms, opacity 150ms, top 150ms, right 150ms;
     font-size: 42px;
-    color: #b2b2b2;
+    color: $color-icon-light;
     line-height: 1;
 }
-#search button:hover {
+#search .locationinput button:hover {
     color: #a2a2a2;
 }
 #search button.locate {
@@ -462,7 +469,7 @@ main.show-options #resultswrapper #route-options {
     left: 25px;
     text-shadow: 2px 0 1px #fff, -2px 0 1px #fff;
     transition: top 150ms, opacity 150ms, color 150ms, transform 150ms;
-    color: #7C848A;
+    color: $color-icon;
     pointer-events: none;
 }
 main:not([data-view^=route]) #route-dots {
@@ -471,11 +478,11 @@ main:not([data-view^=route]) #route-dots {
     opacity: 0;
 }
 main:not([data-view=route-result]) #route-dots {
-    color: #b2b2b2;
+    color: $color-icon-light;
 }
 
 #route-details .details-body > div:not(:last-child) {
-    border: 0 #dddddd solid;
+    border: 0 $color-sidebar-border solid;
     border-bottom-width: 1px;
 }
 .routeitem {
@@ -491,7 +498,7 @@ main:not([data-view=route-result]) #route-dots {
     text-align: center;
 }
 .routeitem .icon .material-icons {
-    color: #7C848A;
+    color: $color-icon;
     font-size: 21px;
 }
 .routeitem .icon img {
@@ -504,7 +511,7 @@ main:not([data-view=route-result]) #route-dots {
 }
 .location-popup .leaflet-popup-content {
     font-size: 16px;
-    color: #606c76;
+    color: $color-secondary;
     overflow: hidden;
     line-height: 1.6;
 }
@@ -535,7 +542,7 @@ main:not([data-view=route-result]) #route-dots {
     width: 1px;
     flex-grow: 1;
     margin: 0;
-    border: 0 #dddddd solid;
+    border: 0 $color-sidebar-border solid;
     border-left-width: 1px;
     border-radius: 0;
     padding: 0;
@@ -572,7 +579,7 @@ button .material-icons, .button .material-icons {
     top: 10px;
     left: 9px;
     cursor: default;
-    color: #7C848A;
+    color: $color-icon;
 }
 #route-summary small {
     line-height: 1.1;
@@ -599,7 +606,7 @@ main:not([data-view=route-result]) #route-summary {
     height: 37px;
     border-width: 0;
     font-size: 36px;
-    color: #b2b2b2;
+    color: $color-icon-light;
     line-height: 1;
 }
 
@@ -696,7 +703,7 @@ main:not([data-view=route-result]) #route-summary {
     right: 8px;
     font-size: 30px;
     padding: 0;
-    color: #b2b2b2;
+    color: $color-icon-light;
 }
 #close-modal:hover {
     color: #a2a2a2;
