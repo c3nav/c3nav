@@ -227,6 +227,7 @@ section.details > .details-head > .button {
 #sidebar section.details > .details-body {
     border: 0;
     overflow: auto;
+    overscroll-behavior: contain;
     flex-grow: 1;
     flex-shrink: 1;
 }
@@ -273,6 +274,7 @@ section.details {
     }
     to {
         overflow: auto;
+        overscroll-behavior: contain;
     }
 }
 
@@ -680,6 +682,7 @@ main:not([data-view=route-result]) #route-summary {
     max-width: 95vw;
     padding: 20px;
     overflow: auto;
+    overscroll-behavior: contain;
     position: relative;
 }
 #modal.loading #modal-content {
