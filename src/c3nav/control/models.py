@@ -32,6 +32,8 @@ class UserPermissions(models.Model):
 
     @classmethod
     def get_for_user(cls, user, force=False) -> 'UserPermissions':
+        if not user.is_authenticated:
+            return cls()
         cache_key = cls.get_cache_key(user.pk)
         result = None
         if not force:
