@@ -257,6 +257,10 @@ class LeaveDescription(models.Model):
         verbose_name_plural = _('Leave descriptions')
         default_related_name = 'leave_descriptions'
 
+    @cached_property
+    def title(self):
+        return self.target_space.title
+
 
 class CrossDescription(models.Model):
     """
@@ -273,6 +277,10 @@ class CrossDescription(models.Model):
         verbose_name = _('Cross description')
         verbose_name_plural = _('Cross descriptions')
         default_related_name = 'cross_descriptions'
+
+    @cached_property
+    def title(self):
+        return '%s → %s' % (self.origin_space.title, self.target_space.title)
 
 
 class WifiMeasurement(SpaceGeometryMixin, models.Model):
