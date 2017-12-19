@@ -443,6 +443,12 @@ class BaseQueryWrapper(BaseWrapper):
         if field.many_to_one:
             rel_model = field.related_model
 
+            if field_name == field.attname:
+                # turn 'foreign_obj_id' into 'foreign_obj__pk' for later
+                segments.insert(0, 'pk')
+                filter_name = field.name + '__' + '__'.join(segments)
+                q = Q(**{filter_name: filter_value})
+
             if not segments:
                 # turn 'foreign_obj' into 'foreign_obj__pk' for later
                 filter_name = field_name + '__pk'
