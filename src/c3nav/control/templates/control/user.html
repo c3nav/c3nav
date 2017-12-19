@@ -23,6 +23,36 @@
         </p>
     {% endif %}
 
+    {% if request.user_permissions.grant_permissions or request.user == user %}
+        <h4>{% trans 'API secret' %}</h4>
+        <p>
+            {% if request.user_permissions.api_secret %}
+                {% if request.user == user %}
+                    {% trans 'This user has an API secret.' %}
+                {% else %}
+                    {% trans 'You have an API secret.' %}
+                {% endif %}
+                {% trans 'You can not see it, but generate a new one.' %}
+            {% else %}
+                {% trans 'This user has not an API secret.' %}
+                {% trans 'You can create one.' %}
+            {% endif %}
+        </p>
+        <form method="POST">
+            {% csrf_token %}
+            <select name="api_secret" style="width: auto;">
+                <option value="">---</option>
+                {% if request.user_permissions.api_secret %}
+                    <option value="regenerate">{% trans 'Regenerate API secret' %}</option>
+                    <option value="delete">{% trans 'Delete API secret' %}</option>
+                {% else %}
+                    <option value="generate">{% trans 'Generate API secret' %}</option>
+                {% endif %}
+            </select>
+            <button type="submit">{% trans 'Update API secret' %}</button>
+        </form>
+    {% endif %}
+
     <h4>{% trans 'Access Permissions' %}</h4>
     {% if user.accesspermissions.all %}
         <form method="post">

@@ -1,3 +1,4 @@
+import string
 from functools import wraps
 
 from django.contrib import messages
@@ -9,6 +10,7 @@ from django.db import transaction
 from django.db.models import Prefetch
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
+from django.utils.crypto import get_random_string
 from django.utils.translation import ugettext_lazy as _
 
 from c3nav.control.forms import AccessPermissionForm, AnnouncementForm, UserPermissionsForm
@@ -74,6 +76,37 @@ def user_detail(request, user):
                         messages.success(request, _('Access Permission successfully deleted.'))
                     else:
                         messages.error(request, _('You cannot delete this Access Permission.'))
+                return redirect(request.path_info)
+
+        api_secret_action = request.POST.get('api_secret')
+        if (api_secret_action and (request.user_permissions.grant_permissions or
+                                   request.user == user and user.permissions.api_secret)):
+
+            permissions = user.permissions
+
+            if api_secret_action == 'generate' and permissions.api_secret:
+                messages.error(request, _('This user already has an API secret.'))
+                return redirect(request.path_info)
+
+            if api_secret_action in ('delete', 'regenerate') and not permissions.api_secret:
+                messages.error(request, _('This user does not have an API secret.'))
+                return redirect(request.path_info)
+
+            with transaction.atomic():
+                if api_secret_action in ('generate', 'regenerate'):
+                    api_secret = get_random_string(64, string.ascii_letters+string.digits)
+                    permissions.api_secret = api_secret
+                    permissions.save()
+
+                    messages.success(request, _('The new API secret is: %s – '
+                                                'be sure to note it down now, it won\'t be shown again.') % api_secret)
+
+                elif api_secret_action == 'delete':
+                    permissions.api_secret = None
+                    permissions.save()
+
+                    messages.success(request, _('API secret successfully deleted!'))
+
                 return redirect(request.path_info)
 
     ctx = {
