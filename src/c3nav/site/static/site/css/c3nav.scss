@@ -768,7 +768,8 @@ main:not([data-view=route-result]) #route-summary {
     margin: 0;
 }
 .share-ui p button {
-    margin: 10px 0 0;
+    margin-top: 10px;
+    margin-bottom: 0;
 }
 body:not(.mobileclient) .share-ui p {
     display: none;
