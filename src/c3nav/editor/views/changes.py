@@ -58,7 +58,7 @@ def changeset_detail(request, pk):
 
         elif request.POST.get('activate') == '1':
             with changeset.lock_to_edit(request) as changeset:
-                if not changeset.closed:
+                if not changeset.closed and changeset.can_edit:
                     changeset.activate(request)
                     messages.success(request, _('You activated this change set.'))
                 else:
