@@ -1,5 +1,6 @@
 import string
 from functools import wraps
+from urllib.parse import urlencode
 
 from django.conf import settings
 from django.contrib import messages
@@ -165,7 +166,7 @@ def grant_access(request):
             token.save()
             if settings.DEBUG and request.user_permissions.api_secret:
                 signed_data = form.get_signed_data()
-                print(signed_data)
+                print('/?'+urlencode({'access': signed_data}))
             return redirect(reverse('control.access.qr', kwargs={'token': token.token}))
     else:
         form = AccessPermissionForm(request=request)

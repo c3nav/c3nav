@@ -69,7 +69,7 @@ def map_index(request, mode=None, slug=None, slug2=None, details=None, options=N
                 messages.info(request, _('You need to log in to unlock areas.'))
                 request.session['redeem_token_on_login'] = str(token.token)
                 token.redeem()
-                return redirect('site.login')
+                return redirect_to_login(request.path_info, 'site.login')
 
             token.redeem(request.user)
             token.save()
@@ -288,7 +288,7 @@ def access_redeem_view(request, token):
                 messages.info(request, _('You need to log in to unlock areas.'))
                 request.session['redeem_token_on_login'] = str(token.token)
                 token.redeem()
-                return redirect_to_login(request.path_info, 'site.login')
+                return redirect('site.login')
 
             token.redeem(request.user)
             token.save()
