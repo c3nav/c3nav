@@ -84,11 +84,26 @@ class Route:
                     item.descriptions.append((icon, item.waytype.description_up))
                 else:
                     item.descriptions.append((icon, item.waytype.description))
-            elif item.last_item and item.new_space:
-                item.descriptions.append(('more_vert', _('Go to %(space_title)s.') % {
-                    'space_title': item.space.title
-                }))
-            next_item = item
+
+        # add space transfer descriptions
+        last_space = None
+        current_space = None
+        for item in items:
+            if item.new_space:
+                next_space = item.space
+                if item.last_item:
+                    description = None
+                    if last_space:
+                        description = current_space.cross_descriptions.get((last_space.pk, next_space.pk), None)
+                    if description is None:
+                        description = current_space.leave_descriptions.get(next_space.pk, None)
+                    if description is None:
+                        description =  _('Go to %(space_title)s.') % {'space_title': item.space.title}
+
+                    item.descriptions.append(('more_vert', description))
+
+                last_space = current_space
+                current_space = next_space
 
         # add description for last space
         remaining_distance = destination_distance

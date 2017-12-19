@@ -184,9 +184,9 @@ def edit(request, pk=None, model=None, level=None, space=None, on_top_of=None, e
             'geometry_url': '/api/editor/geometries/?level='+str(level.primary_level_pk),
         })
     elif hasattr(model, 'space'):
-        space_id = space.pk
         if not new:
             space = obj.space
+        space_id = space.pk
         ctx.update({
             'level': space.level,
             'back_url': reverse('editor.'+related_name+'.list', kwargs={'space': space.pk}),

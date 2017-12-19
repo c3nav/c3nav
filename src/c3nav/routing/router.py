@@ -17,7 +17,7 @@ from shapely.geometry import LineString, Point
 from shapely.ops import unary_union
 
 from c3nav.mapdata.models import AltitudeArea, Area, GraphEdge, Level, LocationGroup, MapUpdate, Space, WayType
-from c3nav.mapdata.models.geometry.space import POI
+from c3nav.mapdata.models.geometry.space import POI, CrossDescription, LeaveDescription
 from c3nav.mapdata.utils.geometry import assert_multipolygon, get_rings, good_representative_point
 from c3nav.mapdata.utils.locations import CustomLocation
 from c3nav.routing.exceptions import LocationUnreachable, NoRouteFound, NotYetRoutable
@@ -173,6 +173,14 @@ class Router:
             level = RouterLevel(level, spaces=level_spaces)
             level.nodes = set(range(nodes_before_count, len(nodes)))
             levels[level.pk] = level
+
+        # add graph descriptions
+        for description in LeaveDescription.objects.all():
+            spaces[description.space_id].leave_descriptions[description.target_space_id] = description.description
+
+        for description in CrossDescription.objects.all():
+            spaces[description.space_id].cross_descriptions[(description.origin_space_id,
+                                                             description.target_space_id)] = description.description
 
         # waytypes
         waytypes = deque([RouterWayType(None)])
@@ -441,6 +449,8 @@ class RouterSpace(BaseRouterProxy):
     def __init__(self, space, altitudeareas=None):
         super().__init__(space)
         self.altitudeareas = altitudeareas if altitudeareas else []
+        self.leave_descriptions = {}
+        self.cross_descriptions = {}
 
     def altitudearea_for_point(self, point):
         point = Point(point.x, point.y)
