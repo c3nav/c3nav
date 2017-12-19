@@ -17,7 +17,6 @@ from django.utils.timezone import make_naive
 from django.utils.translation import ugettext_lazy as _
 from django.utils.translation import ungettext_lazy
 
-from c3nav.control.models import UserPermissions
 from c3nav.editor.models.changedobject import ApplyToInstanceError, ChangedObject
 from c3nav.editor.wrappers import ModelInstanceWrapper, ModelWrapper, is_created_pk
 from c3nav.mapdata.models import LocationSlug, MapUpdate
@@ -489,11 +488,11 @@ class ChangeSet(models.Model):
         return self.author_id == request.user.pk and self.state in ('proposed', 'reproposed')
 
     def can_review(self, request):
-        return UserPermissions.get_for_user(request.user).review_changesets
+        return request.user_permissions.review_changesets
 
     @classmethod
     def can_direct_edit(cls, request):
-        return UserPermissions.get_for_user(request.user).direct_edit
+        return request.user_permissions.direct_edit
 
     def can_start_review(self, request):
         return self.can_review(request) and self.state in ('proposed', 'reproposed')
