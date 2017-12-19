@@ -180,9 +180,11 @@ def changeset_detail(request, pk):
         'active': active,
     }
 
-    cache_key = changeset.cache_key_by_changes + ':view_data'
+    cache_key = '%s:%s:%s:view_data' % (changeset.cache_key_by_changes,
+                                        changeset.last_update.strftime('%s'),
+                                        int(can_edit))
     changed_objects_data = cache.get(cache_key)
-    if changed_objects_data or 0:  # disabled for now
+    if changed_objects_data:
         ctx['changed_objects'] = changed_objects_data
         return render(request, 'editor/changeset.html', ctx)
 
