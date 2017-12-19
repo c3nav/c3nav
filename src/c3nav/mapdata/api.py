@@ -1,10 +1,8 @@
 import mimetypes
 import os
 from collections import namedtuple
-from datetime import datetime
 from functools import wraps
 
-import pytz
 from django.core.cache import cache
 from django.db.models import Prefetch
 from django.http import HttpResponse
@@ -380,7 +378,7 @@ class SourceViewSet(MapdataViewSet):
 
     def _image(self, request, pk=None):
         source = self.get_object()
-        last_modified = datetime.utcfromtimestamp(os.path.getmtime(source.filepath)).replace(tzinfo=pytz.utc)
+        last_modified = os.path.getmtime(source.filepath)
         response = get_conditional_response(request, last_modified=last_modified)
         if response is None:
             response = HttpResponse(open(source.filepath, 'rb'), content_type=mimetypes.guess_type(source.name)[0])
