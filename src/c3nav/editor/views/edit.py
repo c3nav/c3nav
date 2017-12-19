@@ -2,6 +2,7 @@ import typing
 from contextlib import suppress
 
 from django.contrib import messages
+from django.core.cache import cache
 from django.core.exceptions import FieldDoesNotExist, ObjectDoesNotExist
 from django.db import models
 from django.db.models import Q
@@ -199,6 +200,8 @@ def edit(request, pk=None, model=None, level=None, space=None, on_top_of=None, e
         elif space is not None:
             kwargs.update({'space': space})
 
+        kwargs.update(get_visible_spaces_kwargs(model, request))
+
         ctx.update({
             'back_url': reverse('.'.join(request.resolver_match.url_name.split('.')[:-1]+['list']), kwargs=kwargs),
         })
@@ -278,6 +281,29 @@ def edit(request, pk=None, model=None, level=None, space=None, on_top_of=None, e
     return render(request, 'editor/edit.html', ctx)
 
 
+def get_visible_spaces(request):
+    cache_key = 'editor:visible_spaces:%s:%s' % (
+        request.changeset.raw_cache_key_by_changes,
+        AccessPermission.cache_key_for_request(request, with_update=False)
+    )
+    visible_spaces = cache.get(cache_key, None)
+    if visible_spaces is None:
+        Space = request.changeset.wrap_model('Space')
+        visible_spaces = tuple(Space.qs_for_request(request).values_list('pk', flat=True))
+        cache.set(cache_key, visible_spaces, 900)
+    return visible_spaces
+
+
+def get_visible_spaces_kwargs(model, request):
+    kwargs = {}
+    if hasattr(model, 'target_space'):
+        visible_spaces = get_visible_spaces(request)
+        kwargs['target_space_id__in'] = visible_spaces
+        if hasattr(model, 'origin_space'):
+            kwargs['origin_space_id__in'] = visible_spaces
+    return kwargs
+
+
 @sidebar_view
 @etag(etag_func)
 def list_objects(request, model=None, level=None, space=None, explicit_edit=False):
@@ -321,7 +347,7 @@ def list_objects(request, model=None, level=None, space=None, explicit_edit=Fals
         reverse_kwargs['space'] = space
         sub_qs = Space.objects.filter(Space.q_for_request(request)).select_related('level').defer('geometry')
         space = get_object_or_404(sub_qs, pk=space)
-        queryset = queryset.filter(space=space)
+        queryset = queryset.filter(space=space).filter(**get_visible_spaces_kwargs(model, request))
 
         try:
             model._meta.get_field('geometry')
