@@ -256,6 +256,9 @@ class LeaveDescription(models.Model):
         verbose_name = _('Leave description')
         verbose_name_plural = _('Leave descriptions')
         default_related_name = 'leave_descriptions'
+        unique_together = (
+            ('space', 'target_space')
+        )
 
     @cached_property
     def title(self):
@@ -277,6 +280,9 @@ class CrossDescription(models.Model):
         verbose_name = _('Cross description')
         verbose_name_plural = _('Cross descriptions')
         default_related_name = 'cross_descriptions'
+        unique_together = (
+            ('space', 'origin_space', 'target_space')
+        )
 
     @cached_property
     def title(self):
