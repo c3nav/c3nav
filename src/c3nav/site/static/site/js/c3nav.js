@@ -100,6 +100,8 @@ c3nav = {
         $('#modal').on('click', c3nav._modal_click)
             .on('click', 'a', c3nav._modal_link_click)
             .on('submit', 'form', c3nav._modal_submit);
+            .on('click', '.mobileclient-share', c3nav._mobileclient_share_click)
+            .on('click', '.mobileclient-shortcut', c3nav._mobileclient_shortcut_click)
         $('header #user').on('click', c3nav._modal_link_click);
 
         $('header h1 a').removeAttr('href');
@@ -628,7 +630,7 @@ c3nav = {
         c3nav._update_share_ui();
     },
     _update_share_ui: function(with_position) {
-        var $share = $('#modal .share-ui'),
+        var $share = $('#modal').find('.share-ui'),
             state = $.extend({}, c3nav.state),
             url;
         if (!with_position) {
@@ -638,6 +640,12 @@ c3nav = {
         $share.find('img').attr('src', '/qr' + url);
         $share.find('input').val(window.location.protocol + '//' + window.location.host + url);
         if (!window.mobileclient) $share.find('input')[0].select();
+    },
+    _mobileclient_share_click: function() {
+        mobileclient.shareUrl($('#modal').find('.share-ui input').val());
+    },
+    _mobileclient_shortcut_click: function() {
+        mobileclient.createShortcut($('#modal').find('.share-ui input').val(), c3nav.state.destination.title);
     },
 
     // location inputs
