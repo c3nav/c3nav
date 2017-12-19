@@ -46,7 +46,7 @@
                     </td>
                     <td>{% if access_permission.expire_date %}{{ access_permission.expire_date }}{% else %}{% trans 'never' %}{% endif %}</td>
                     <td>{% if access_permission.can_grant %}{% trans 'Yes' %}{% else %}{% trans 'No' %}{% endif %}</td>
-                    <td>{{ access_permission. }}{% if access_permission.can_grant %}{% trans 'Yes' %}{% else %}{% trans 'No' %}{% endif %}</td>
+                    <td>{% if access_permission.unique_key %}{{ access_permission.unique_key }}{% endif %}</td>
                     {% if request.user_permissions.grant_all_access or request.user == access_permission.author %}
                         <td class="button-cell"><button type="submit" name="delete_access_permission" value="{{ access_permission.pk }}">{% trans 'Delete' %}</button></td>
                     {% endif %}

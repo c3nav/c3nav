@@ -55,7 +55,13 @@ class AccessPermissionToken(models.Model):
     unlimited = models.BooleanField(default=False, db_index=True, verbose_name=_('unlimited'))
     redeemed = models.BooleanField(default=False, db_index=True, verbose_name=_('redeemed'))
     can_grant = models.BooleanField(default=False, db_index=True, verbose_name=_('can grant'))
+    unique_key = models.CharField(max_length=32, null=True, verbose_name=_('unique key'))
     data = models.BinaryField()
+
+    class Meta:
+        verbose_name = _('Access Permission Token')
+        verbose_name_plural = _('Access Permission Tokens')
+        default_related_name = 'accessrestriction_tokens'
 
     @property
     def restrictions(self) -> Sequence[AccessPermissionTokenItem]:
@@ -76,15 +82,19 @@ class AccessPermissionToken(models.Model):
             raise self.RedeemError('No longer valid.')
 
         if user:
-            for restriction in self.restrictions:
-                AccessPermission.objects.create(
-                    user=user,
-                    access_restriction_id=restriction.pk,
-                    author_id=self.author_id,
-                    expire_date=restriction.expire_date,
-                    can_grant=self.can_grant,
-                    token=self if self.pk else None,
-                )
+            with transaction.atomic():
+                if self.author_id and self.unique_key:
+                    AccessPermission.objects.filter(author_id=self.author_id, unique_key=self.unique_key).delete()
+                for restriction in self.restrictions:
+                    AccessPermission.objects.create(
+                        user=user,
+                        access_restriction_id=restriction.pk,
+                        author_id=self.author_id,
+                        expire_date=restriction.expire_date,
+                        can_grant=self.can_grant,
+                        unique_key=self.unique_key,
+                        token=self if self.pk else None,
+                    )
 
         if self.pk and not self.unlimited:
             self.redeemed = True
@@ -105,6 +115,7 @@ class AccessPermission(models.Model):
     can_grant = models.BooleanField(default=False, verbose_name=_('can grant'))
     author = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, on_delete=models.SET_NULL,
                                related_name='authored_access_permissions', verbose_name=_('Author'))
+    unique_key = models.CharField(max_length=32, null=True, verbose_name=_('unique key'))
     token = models.ForeignKey(AccessPermissionToken, null=True, on_delete=models.CASCADE,
                               verbose_name=_('Access permission token'))
 
@@ -112,6 +123,9 @@ class AccessPermission(models.Model):
         verbose_name = _('Access Permission')
         verbose_name_plural = _('Access Permissions')
         default_related_name = 'accesspermissions'
+        unique_together = (
+            ('author', 'unique_key')
+        )
 
     @staticmethod
     def user_access_permission_key(user_id):
