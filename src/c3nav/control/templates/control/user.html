@@ -23,7 +23,7 @@
         </p>
     {% endif %}
 
-    {% if request.user_permissions.grant_permissions or request.user == user %}
+    {% if request.user_permissions.grant_permissions or request.user == user and user.permissions.api_secret %}
         <h4>{% trans 'API secret' %}</h4>
         <p>
             {% if user.permissions.api_secret %}
