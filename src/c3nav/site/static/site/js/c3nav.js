@@ -51,7 +51,10 @@ c3nav = {
             );
         });
 
-        if (window.mobileclient) $('#attributions').find('a:not([href^="http"]):not([href^="//"])').removeAttr('target');
+        if (window.mobileclient) {
+            $('#attributions').find('a:not([href^="http"]):not([href^="//"])').removeAttr('target');
+            $('body').addClass('mobileclient');
+        }
     },
     continue_init: function() {
         c3nav.init_map();
@@ -142,6 +145,7 @@ c3nav = {
 
         c3nav._push_state(new_state, replace);
     },
+    _first_sidebar_state: true,
     _sidebar_state_updated: function (state, nofly) {
         var view;
         if (state.routing) {
@@ -181,10 +185,13 @@ c3nav = {
 
         var $selected_locationinputs = $('.locationinput.selected');
         $selected_locationinputs.filter(':focus').blur();
-        $('#destination-input, [data-view^=route] #origin-input').filter(':not(.selected)').find('input').first().focus();
+        if (!c3nav._first_sidebar_state || !window.mobileclient) {
+            $('#destination-input, [data-view^=route] #origin-input').filter(':not(.selected)').find('input').first().focus();
+        }
         if (!$selected_locationinputs.filter(':focus').length) {
             $search.removeClass('focused');
         }
+        c3nav._first_sidebar_state = false;
 
         c3nav.update_map_locations();
     },
@@ -628,8 +635,9 @@ c3nav = {
             state.center = null;
         }
         url = c3nav._build_state_url(state);
-        $share.find('img').attr('src', '/qr'+url);
-        $share.find('input').val(window.location.protocol+'//'+window.location.host+url)[0].select();
+        $share.find('img').attr('src', '/qr' + url);
+        $share.find('input').val(window.location.protocol + '//' + window.location.host + url);
+        if (!window.mobileclient) $share.find('input')[0].select();
     },
 
     // location inputs
