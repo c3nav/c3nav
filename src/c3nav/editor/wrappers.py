@@ -655,6 +655,8 @@ class BaseQueryWrapper(BaseWrapper):
         return result, created_pks
 
     def _filter_or_exclude(self, negate, *args, **kwargs):
+        if not args and not kwargs:
+            return self._wrap_queryset(self._obj.filter())
         filters, created_pks = zip(*tuple(chain(
             tuple(self._filter_q(q) for q in args),
             tuple(self._filter_kwarg(name, value) for name, value in kwargs.items())
