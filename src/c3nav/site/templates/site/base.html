@@ -7,6 +7,9 @@
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, user-scalable=no">
     <title>{% block title %}c3nav{% endblock %}</title>
+    {% if favicon %}
+        <link href="{% static favicon %}" rel="icon">
+    {% endif %}
     {% compress css %}
         <link href="{% static 'fonts/fonts.css' %}" rel="stylesheet">
         <link href="{% static 'normalize/normalize.css' %}" rel="stylesheet">

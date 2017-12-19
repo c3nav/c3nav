@@ -280,7 +280,7 @@ TEMPLATES = [
                 'django.template.context_processors.request',
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
-                'c3nav.site.context_processors.header_logo',
+                'c3nav.site.context_processors.logos',
             ],
             'loaders': template_loaders
         },
@@ -292,7 +292,7 @@ STATICFILES_FINDERS = (
     'django.contrib.staticfiles.finders.FileSystemFinder',
     'django.contrib.staticfiles.finders.AppDirectoriesFinder',
     'compressor.finders.CompressorFinder',
-    'c3nav.site.finders.HeaderLogoFinder',
+    'c3nav.site.finders.LogoFinder',
 )
 
 BOOTSTRAP3 = {
@@ -315,7 +315,8 @@ COMPRESS_CSS_FILTERS = (
 )
 
 HEADER_LOGO = config.get('c3nav', 'header_logo', fallback=None)
-HEADER_LOGO_NAME = ('logo/'+os.path.basename(HEADER_LOGO)) if HEADER_LOGO else None
+FAVICON = config.get('c3nav', 'favicon', fallback=None)
+
 PRIMARY_COLOR = config.get('c3nav', 'primary_color', fallback='')
 HEADER_BACKGROUND_COLOR = config.get('c3nav', 'header_background_color', fallback='')
 HEADER_TEXT_COLOR = config.get('c3nav', 'header_text_color', fallback='')

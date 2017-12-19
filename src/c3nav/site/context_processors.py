@@ -1,7 +1,12 @@
-from django.conf import settings
+import os
+
+from c3nav.site.finders import logo_paths
+
+logos_result = {
+    prefix: os.path.join(prefix, os.path.basename(path)) if path else None
+    for prefix, path in logo_paths.items()
+}
 
 
-def header_logo(request):
-    return {
-        'header_logo': settings.HEADER_LOGO_NAME
-    }
+def logos(request):
+    return logos_result

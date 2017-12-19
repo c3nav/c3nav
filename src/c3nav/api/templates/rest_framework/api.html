@@ -9,6 +9,9 @@
 {% block meta %}
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="NONE,NOARCHIVE" />
+{% if favicon %}
+    <link href="{% static favicon %}" rel="icon">
+{% endif %}
 {% endblock %}
 
 {% block style %}

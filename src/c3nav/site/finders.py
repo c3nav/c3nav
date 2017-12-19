@@ -4,17 +4,33 @@ from django.conf import settings
 from django.contrib.staticfiles.finders import BaseFinder
 from django.core.files.storage import FileSystemStorage
 
+logo_paths = {
+    'header_logo': settings.HEADER_LOGO,
+    'favicon': settings.FAVICON,
+}
 
-class HeaderLogoFinder(BaseFinder):
+logofinder_results = {
+    os.path.join(prefix, os.path.basename(path)): path
+    for prefix, path in logo_paths.items()
+}
+
+
+class LogoFinder(BaseFinder):
     def find(self, path, all=False):
-        if path == settings.HEADER_LOGO_NAME:
-            return [settings.HEADER_LOGO] if all else settings.HEADER_LOGO
-        return []
+        result = logofinder_results.get(path)
+        if not result:
+            return []
+        if all:
+            return [result]
+        return result
 
     def list(self, ignore_patterns):
-        if not settings.HEADER_LOGO:
-            return []
-        basedir, filename = os.path.split(settings.HEADER_LOGO)
-        storage = FileSystemStorage(location=basedir)
-        storage.prefix = 'logo'
-        return [(filename, storage)]
+        result = []
+        for prefix, path in logo_paths.items():
+            if not path:
+                continue
+            basedir, filename = os.path.split(path)
+            storage = FileSystemStorage(location=basedir)
+            storage.prefix = prefix
+            result.append((filename, storage))
+        return result
