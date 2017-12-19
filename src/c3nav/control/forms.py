@@ -16,7 +16,7 @@ from c3nav.site.models import Announcement
 class UserPermissionsForm(ModelForm):
     class Meta:
         model = UserPermissions
-        exclude = ('user', )
+        exclude = ('user', 'max_changeset_changes', 'api_secret')
 
 
 class AccessPermissionForm(Form):
