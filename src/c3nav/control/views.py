@@ -56,21 +56,25 @@ def user_detail(request, user):
     qs = User.objects.select_related(
         'permissions',
     ).prefetch_related(
-        Prefetch('accesspermissions', AccessPermission.objects.select_related('access_restriction'))
+        Prefetch('accesspermissions', AccessPermission.objects.select_related('access_restriction', 'author'))
     )
     user = get_object_or_404(qs, pk=user)
 
     if request.method == 'POST':
         delete_access_permission = request.POST.get('delete_access_permission')
         if delete_access_permission:
-            try:
-                permission = AccessPermission.objects.get(pk=delete_access_permission)
-            except AccessPermission.DoesNotExist:
-                messages.error(request, _('Unknown access permission.'))
-            else:
-                permission.delete()
-                messages.success(request, _('Access Permission successfully deleted.'))
-            return redirect(request.path_info)
+            with transaction.atomic():
+                try:
+                    permission = AccessPermission.objects.select_for_update().get(pk=delete_access_permission)
+                except AccessPermission.DoesNotExist:
+                    messages.error(request, _('Unknown access permission.'))
+                else:
+                    if request.user_permissions.can_grant or permission.author_id == request.user.pk:
+                        permission.delete()
+                        messages.success(request, _('Access Permission successfully deleted.'))
+                    else:
+                        messages.error(request, _('You cannot delete this Access Permission.'))
+                return redirect(request.path_info)
 
     ctx = {
         'user': user,

@@ -30,18 +30,24 @@
         <table>
             <tr>
                 <th>{% trans 'Access Restriction' %}</th>
+                <th>{% trans 'author' %}</th>
                 <th>{% trans 'expires' %}</th>
                 <th>{% trans 'can grant' %}</th>
-                {% if request.user_permissions.grant_all_access %}
-                    <th></th>
-                {% endif %}
+                <th>{% trans 'key' %}</th>
+                <th></th>
             </tr>
             {% for access_permission in user.accesspermissions.all %}
                 <tr>
                     <td>{{ access_permission.access_restriction.title }}</td>
+                    <td>
+                        {% if access_permission.author %}
+                            <a href="{% url 'control.users.detail' user=access_permission.author_id %}">{{ access_permission.author.username }}</a>
+                        {% endif %}
+                    </td>
                     <td>{% if access_permission.expire_date %}{{ access_permission.expire_date }}{% else %}{% trans 'never' %}{% endif %}</td>
                     <td>{% if access_permission.can_grant %}{% trans 'Yes' %}{% else %}{% trans 'No' %}{% endif %}</td>
-                    {% if request.user_permissions.grant_all_access %}
+                    <td>{{ access_permission. }}{% if access_permission.can_grant %}{% trans 'Yes' %}{% else %}{% trans 'No' %}{% endif %}</td>
+                    {% if request.user_permissions.grant_all_access or request.user == access_permission.author %}
                         <td class="button-cell"><button type="submit" name="delete_access_permission" value="{{ access_permission.pk }}">{% trans 'Delete' %}</button></td>
                     {% endif %}
                 </tr>
