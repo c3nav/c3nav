@@ -15,10 +15,11 @@
         <p>
             <a href="{% url 'control.index' %}">{% trans 'Overview' %}</a> &middot;
             <a href="{% url 'control.users' %}">{% trans 'Users' %}</a> &middot;
-            <a href="{% url 'control.access' %}">{% trans 'Access' %}</a>
+            <a href="{% url 'control.access' %}">{% trans 'Access' %}</a> &middot;
             {% if request.user_permissions.manage_announcements %}
-                &middot; <a href="{% url 'control.announcements' %}">{% trans 'Announcements' %}</a>
+                <a href="{% url 'control.announcements' %}">{% trans 'Announcements' %}</a> &middot;
             {% endif %}
+            <a href="{% url 'control.users.detail' user=request.user.pk %}">{{ request.user.username }}</a>
         </p>
     </nav>
     <hr>
