@@ -81,7 +81,7 @@ class ChangeSet(models.Model):
         """
         Returns a base QuerySet to get only changesets the current user is allowed to see
         """
-        if request.user.is_authenticated:
+        if request.user.is_authenticated and not request.user_permissions.review_changesets:
             return ChangeSet.objects.filter(author=request.user)
         elif 'changeset' in request.session:
             return ChangeSet.objects.filter(pk=request.session['changeset'])
