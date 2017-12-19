@@ -904,3 +904,6 @@ main .narrow form button {
         margin-top: 10px;
     }
 }
+button + button {
+    margin-left: 5px;
+}

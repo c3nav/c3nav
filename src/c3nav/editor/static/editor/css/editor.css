@@ -313,3 +313,7 @@ h4 {
     color:#000000;
     background-color:#ffffff;
 }
+
+.btn + .btn {
+    margin-left: 5px;
+}
