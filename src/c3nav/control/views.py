@@ -1,6 +1,7 @@
 import string
 from functools import wraps
 
+from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User
@@ -162,6 +163,8 @@ def grant_access(request):
         if form.is_valid():
             token = form.get_token()
             token.save()
+            if settings.DEBUG and request.user_permissions.api_secret:
+                print(form.get_signed_data())
             return redirect(reverse('control.access.qr', kwargs={'token': token.token}))
     else:
         form = AccessPermissionForm(request=request)

@@ -1,3 +1,8 @@
+import binascii
+import hashlib
+import hmac
+import json
+import time
 from datetime import timedelta
 from itertools import chain
 
@@ -117,6 +122,23 @@ class AccessPermissionForm(Form):
         return AccessPermissionToken(author=self.author,
                                      can_grant=self.cleaned_data.get('can_grant', '0') == '1',
                                      restrictions=tuple(restrictions))
+
+    def get_signed_data(self, key=None):
+        if not self.author.permissions.api_secret:
+            raise ValueError('Author has no api secret.')
+        data = {
+            'id': self.data['access_restrictions'],
+            'time': int(time.time()),
+            'valid_until': int(self.cleaned_data['expires'].strftime('%s')),
+            'author': self.author.pk,
+        }
+        if key is not None:
+            data['key'] = key
+        data = json.dumps(data, separators=(',', ':'))
+        signature = hmac.new(self.author.permissions.api_secret.encode(),
+                             msg=data.encode(),
+                             digestmod=hashlib.sha256).digest()
+        return '%s:%s' % (data, binascii.b2a_base64(signature).strip().decode())
 
 
 class AnnouncementForm(I18nModelFormMixin, ModelForm):
