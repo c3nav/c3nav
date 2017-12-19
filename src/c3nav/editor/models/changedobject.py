@@ -248,7 +248,7 @@ class ChangedObject(models.Model):
                     for lang, subvalue in value.items():
                         self.updated_fields['%s__i18n__%s' % (field.name, lang)] = subvalue
                 elif isinstance(field, DecimalField):
-                    self.updated_fields[field.name] = str(value)
+                    self.updated_fields[field.name] = None if value is None else str(value)
                 else:
                     self.updated_fields[field.name] = field.get_prep_value(value)
             elif field.many_to_one or field.one_to_one:
