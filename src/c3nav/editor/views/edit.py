@@ -225,7 +225,7 @@ def edit(request, pk=None, model=None, level=None, space=None, on_top_of=None, e
             nosave = True
 
     ctx.update({
-        'nosave': True
+        'nosave': nosave
     })
 
     if new:
