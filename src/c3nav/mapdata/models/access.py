@@ -29,7 +29,13 @@ class AccessRestriction(TitledMixin, models.Model):
 
     @classmethod
     def qs_for_request(cls, request):
-        return cls.objects.all()
+        return cls.objects.filter(cls.q_for_request(request))
+
+    @classmethod
+    def q_for_request(cls, request):
+        if request.user.is_authenticated and request.user.is_superuser:
+            return Q()
+        return Q(pk__in=AccessPermission.get_for_request(request))
 
 
 def default_valid_until():
