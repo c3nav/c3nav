@@ -81,6 +81,17 @@ SVG_RENDERER = config.get('c3nav', 'svg_renderer', fallback='rsvg-convert')
 CACHE_TILES = config.get('c3nav', 'cache_tiles', fallback=not DEBUG)
 CACHE_RESOLUTION = config.get('c3nav', 'cache_resolution', fallback=4)
 
+INITIAL_LEVEL = config.get('c3nav', 'initial_level', fallback=None)
+INITIAL_BOUNDS = config.get('c3nav', 'initial_bounds', fallback=None).split(' ')
+
+if len(INITIAL_BOUNDS) == 4:
+    try:
+        INITIAL_BOUNDS = tuple(float(i) for i in INITIAL_BOUNDS)
+    except ValueError:
+        INITIAL_BOUNDS = None
+else:
+    INITIAL_BOUNDS = None
+
 db_backend = config.get('database', 'backend', fallback='sqlite3')
 DATABASES = {
     'default': {

@@ -15,7 +15,12 @@
             <a href="https://twitter.com/c3nav/" rel="external" target="_blank">Twitter</a> //
             <a href="https://github.com/c3nav/c3nav/" rel="external" target="_blank">GitHub</a>
         </section>
-        <section id="map" data-bounds="{{ bounds }}" data-levels="{{ levels }}"{% if tile_cache_server %} data-tile-server="{{ tile_cache_server }}"{% endif %}></section>
+        <section id="map" data-bounds="{{ bounds }}"
+                 data-levels="{{ levels }}"
+                 {% if tile_cache_server %}data-tile-server="{{ tile_cache_server }}"{% endif %}
+                 {% if initial_level %}data-initial-level="{{ initial_level }}"{% endif %}
+                 {% if initial_bounds %}data-initial-bounds="{{ initial_bounds }}"{% endif %}>
+        </section>
         {% if not embed %}
             <section id="messages">{% include 'site/fragment_messages.html' %}</section>
             <section id="popup-buttons">

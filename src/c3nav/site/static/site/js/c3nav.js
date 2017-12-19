@@ -907,6 +907,20 @@ c3nav = {
         c3nav.levels = JSON.parse($map.attr('data-levels'));
         c3nav.tile_server = $map.attr('data-tile-server');
 
+        if ($map.is('[data-initial-bounds]')) {
+            var bounds = JSON.parse($map.attr('data-initial-bounds'));
+            bounds = [bounds.slice(0, 2), bounds.slice(2)];
+            c3nav.initial_bounds = bounds;
+        } else {
+            c3nav.initial_bounds = c3nav.bounds
+        }
+
+        if ($map.is('[data-initial-level]')) {
+            c3nav.initial_level = parseInt($map.attr('data-initial-level'));
+        } else {
+            c3nav.initial_level = c3nav.levels[0][0];
+        }
+
         c3nav.level_labels_by_id = {};
         for (i = 0; i < c3nav.levels.length; i ++) {
             c3nav.level_labels_by_id[c3nav.levels[i][0]] = c3nav.levels[i][1];
@@ -933,7 +947,7 @@ c3nav = {
             $('.leaflet-touch').removeClass('leaflet-touch');
         }
 
-        c3nav.map.fitBounds(L.GeoJSON.coordsToLatLngs(c3nav.bounds), c3nav._add_map_padding({}));
+        c3nav.map.fitBounds(L.GeoJSON.coordsToLatLngs(c3nav.initial_bounds), c3nav._add_map_padding({}));
 
         c3nav.map.on('moveend', c3nav._map_moved);
         c3nav.map.on('zoomend', c3nav._map_zoomed);
@@ -960,7 +974,7 @@ c3nav = {
             c3nav._routeLayers[level[0]] = L.layerGroup().addTo(layerGroup);
         }
         c3nav._levelControl.finalize();
-        c3nav._levelControl.setLevel(c3nav.levels[0][0]);
+        c3nav._levelControl.setLevel(c3nav.initial_level);
 
         c3nav.map.on('click', c3nav._click_anywhere);
 

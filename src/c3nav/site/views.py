@@ -118,6 +118,8 @@ def map_index(request, mode=None, slug=None, slug2=None, details=None, options=N
         'levels': json.dumps(tuple((level.pk, level.short_label) for level in levels.values()), separators=(',', ':')),
         'state': json.dumps(state, separators=(',', ':'), cls=DjangoJSONEncoder),
         'tile_cache_server': settings.TILE_CACHE_SERVER,
+        'initial_level': settings.INITIAL_LEVEL,
+        'initial_bounds': json.dumps(settings.INITIAL_BOUNDS, separators=(',', ':')),
         'embed': bool(embed),
     }
 
