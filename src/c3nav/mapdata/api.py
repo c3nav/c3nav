@@ -375,7 +375,6 @@ class SourceViewSet(MapdataViewSet):
     order_by = ('name',)
 
     @detail_route(methods=['get'])
-    @api_etag()
     def image(self, request, pk=None):
         return self._image(request, pk=pk)
 
