@@ -39,7 +39,12 @@ def user_detail(request, pk):
     if request.user_permissions.review_changesets:
         ctx.update({
             'can_review': True,
-            'review_changesets': ChangeSet.objects.filter(state='proposed').order_by('-last_update'),
+            'reviewing_changesets': ChangeSet.objects.filter(
+                assigned_to=user, state='review'
+            ).order_by('-last_update'),
+            'to_review_changesets': ChangeSet.objects.filter(
+                state__in=('proposed', 'reproposed'),
+            ).order_by('-last_update'),
             'all_recent_changesets': ChangeSet.objects.exclude(state='unproposed').order_by('-last_update')[:20],
         })
 

@@ -58,8 +58,11 @@
 {% include 'editor/fragment_changesets.html' with changesets=recent_changesets %}
 
 {% if can_review %}
+    <h4>{% trans 'Change sets you are reviewing' %}</h4>
+    {% include 'editor/fragment_changesets.html' with changesets=reviewing_changesets %}
+
     <h4>{% trans 'Change sets awaiting review' %}</h4>
-    {% include 'editor/fragment_changesets.html' with changesets=review_changesets %}
+    {% include 'editor/fragment_changesets.html' with changesets=to_review_changesets %}
 
     <h4>{% trans 'All recent change sets' %}</h4>
     {% include 'editor/fragment_changesets.html' with changesets=all_recent_changesets %}
