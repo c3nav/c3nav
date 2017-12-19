@@ -93,9 +93,18 @@ def space_detail(request, level, pk):
     })
 
 
+def get_changeset_exceeded(request):
+    return request.user_permissions.max_changeset_changes <= request.changeset.changed_objects_count
+
+
 @sidebar_view
 @etag(etag_func)
 def edit(request, pk=None, model=None, level=None, space=None, on_top_of=None, explicit_edit=False):
+    changeset_exceeded = get_changeset_exceeded(request)
+    model_changes = {}
+    if changeset_exceeded:
+        model_changes = request.changeset.get_changed_objects_by_model(model)
+
     model = request.changeset.wrap_model(model)
     related_name = model._meta.default_related_name
 
@@ -206,12 +215,29 @@ def edit(request, pk=None, model=None, level=None, space=None, on_top_of=None, e
             'back_url': reverse('.'.join(request.resolver_match.url_name.split('.')[:-1]+['list']), kwargs=kwargs),
         })
 
+    nosave = False
+    if changeset_exceeded:
+        if new:
+            messages.error(request, _('You can not create new objects because your changeset is full.'))
+            return redirect(ctx['back_url'])
+        elif obj.pk not in model_changes:
+            messages.warning(request, _('You can not edit this object because your changeset is full.'))
+            nosave = True
+
+    ctx.update({
+        'nosave': True
+    })
+
     if new:
         ctx.update({
             'nozoom': True
         })
 
     if request.method == 'POST':
+        if nosave:
+            messages.error(request, _('You can not edit this object because your changeset is full.'))
+            return redirect(request.path)
+
         if not new and request.POST.get('delete') == '1':
             # Delete this mapitem!
             try:
@@ -400,6 +426,11 @@ def list_objects(request, model=None, level=None, space=None, explicit_edit=Fals
 
 
 def connect_nodes(request, active_node, clicked_node, edge_settings_form):
+    changeset_exceeded = get_changeset_exceeded(request)
+    graphedge_changes = {}
+    if changeset_exceeded:
+        graphedge_changes = request.changeset.get_changed_objects_by_model('GraphEdge')
+
     new_connections = []
     new_connections.append((active_node, clicked_node, False))
     if not edge_settings_form.cleaned_data['oneway']:
@@ -408,6 +439,9 @@ def connect_nodes(request, active_node, clicked_node, edge_settings_form):
     instance = edge_settings_form.instance
     for from_node, to_node, is_reverse in new_connections:
         existing = from_node.edges_from_here.filter(to_node=to_node).first()
+        if changeset_exceeded and (not existing or existing.pk not in graphedge_changes):
+            messages.error(request, _('Could not edit edge because your changeset is full.'))
+            return
         if existing is None:
             instance.pk = None
             instance.from_node = from_node
@@ -467,9 +501,18 @@ def graph_edit(request, level=None, space=None):
         create_nodes = True
 
     if request.method == 'POST':
+        changeset_exceeded = get_changeset_exceeded(request)
+        graphnode_changes = {}
+        if changeset_exceeded:
+            graphnode_changes = request.changeset.get_changed_objects_by_model('GraphNode')
+
         if request.POST.get('delete') == '1':
             # Delete this graphnode!
             node = get_object_or_404(GraphNode, pk=request.POST.get('pk'))
+
+            if changeset_exceeded and node.pk not in graphnode_changes:
+                messages.error(request, _('You can not delete this graph node because your changeset is full.'))
+                return redirect(request.path)
 
             if request.POST.get('delete_confirm') == '1':
                 with request.changeset.lock_to_edit(request) as changeset:
@@ -519,6 +562,11 @@ def graph_edit(request, level=None, space=None):
 
             elif (clicked_node is None and clicked_position is not None and
                   active_node is None and space.geometry.contains(clicked_position)):
+
+                if changeset_exceeded:
+                    messages.error(request, _('You can not add graph nodes because your changeset is full.'))
+                    return redirect(request.path)
+
                 with request.changeset.lock_to_edit(request) as changeset:
                     if changeset.can_edit(request):
                         node = GraphNode(space=space, geometry=clicked_position)

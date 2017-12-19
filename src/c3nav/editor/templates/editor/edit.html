@@ -22,14 +22,16 @@
     {% buttons %}
     <button class="invisiblesubmit" type="submit"></button>
     {% if can_edit %}
-        {% if not new %}
+        {% if not new and not nosave %}
             <button type="submit" name="delete" value="1" class="btn btn-danger">
                 {% trans 'Delete' %}
             </button>
         {% endif %}
-        <button type="submit" accesskey="m" class="btn btn-primary pull-right">
-            {% trans 'Save' %}
-        </button>
+        {% if not nosave %}
+            <button type="submit" accesskey="m" class="btn btn-primary pull-right">
+                {% trans 'Save' %}
+            </button>
+        {% endif %}
     {% endif %}
     <a class="btn {% if new %}btn-danger{% else %}btn-default {% if can_edit %}pull-right{% endif %}{% endif %} cancel-btn" href="{{ back_url }}">
         {% if can_edit %}

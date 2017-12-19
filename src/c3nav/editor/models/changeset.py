@@ -666,6 +666,12 @@ class ChangeSet(models.Model):
                          for obj in self.changed_objects.get(LocationRedirect, {}).values()) - changed_locationslug_pks)
         return count
 
+    def get_changed_objects_by_model(self, model):
+        if isinstance(model, str):
+            model = apps.get_model('mapdata', model)
+        self.fill_changes_cache()
+        return self.changed_objects.get(model, {})
+
     @property
     def count_display(self):
         """
