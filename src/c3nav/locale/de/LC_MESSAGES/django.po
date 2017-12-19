@@ -7,8 +7,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2017-12-19 17:58+0100\n"
-"PO-Revision-Date: 2017-12-19 18:05+0100\n"
+"POT-Creation-Date: 2017-12-19 18:52+0100\n"
+"PO-Revision-Date: 2017-12-19 18:52+0100\n"
 "Last-Translator: Laura Klünder <laura@codingcatgirl.de>\n"
 "Language-Team: \n"
 "Language: de\n"
@@ -432,7 +432,7 @@ msgid "Change Set"
 msgstr "Änderungsset"
 
 #: c3nav/editor/models/changedobject.py:26 c3nav/editor/models/changeset.py:38
-#: c3nav/editor/views/changes.py:262 c3nav/site/models.py:12
+#: c3nav/editor/views/changes.py:264 c3nav/site/models.py:12
 msgid "created"
 msgstr "erstellt"
 
@@ -505,7 +505,7 @@ msgid "last state update"
 msgstr "letzte Statusänderung"
 
 #: c3nav/editor/models/changeset.py:47 c3nav/mapdata/models/base.py:50
-#: c3nav/mapdata/models/graph.py:34 c3nav/mapdata/models/locations.py:182
+#: c3nav/mapdata/models/graph.py:34 c3nav/mapdata/models/locations.py:183
 #: c3nav/mapdata/utils/locations.py:296
 msgid "Title"
 msgstr "Titel"
@@ -926,10 +926,16 @@ msgid "Recent change sets"
 msgstr "Aktuelle Änderungssets"
 
 #: c3nav/editor/templates/editor/user.html:61
-msgid "Change sets awaiting review"
+#, fuzzy
+#| msgid "Change sets awaiting review"
+msgid "Change sets you are reviewing"
 msgstr "Auf Überprüfung wartende Änderungssets "
 
 #: c3nav/editor/templates/editor/user.html:64
+msgid "Change sets awaiting review"
+msgstr "Auf Überprüfung wartende Änderungssets "
+
+#: c3nav/editor/templates/editor/user.html:67
 msgid "All recent change sets"
 msgstr "Alle kürzlichen Änderungssets"
 
@@ -993,8 +999,8 @@ msgid "You cannot unpropose this change set."
 msgstr "Du kannst diesen Änderungsvorschlag nicht zurücknehmen."
 
 #: c3nav/editor/views/changes.py:101
-msgid "You are not reviewing these changes."
-msgstr "Du überprüfst diese Änderungen aktuell nicht."
+msgid "You are now reviewing these changes."
+msgstr "Du überprüfst jetzt diese Änderungen."
 
 #: c3nav/editor/views/changes.py:103
 msgid "You cannot review these changes."
@@ -1032,34 +1038,34 @@ msgstr "Du kannst dieses Änderungsset nicht löschen."
 msgid "You deleted this change set."
 msgstr "Du hast dieses Änderungsset gelöscht."
 
-#: c3nav/editor/views/changes.py:219
+#: c3nav/editor/views/changes.py:221
 #, python-brace-format
 msgid "{model} #{id}"
 msgstr "{model} Nr. {id}"
 
-#: c3nav/editor/views/changes.py:276
+#: c3nav/editor/views/changes.py:278
 msgid "edited geometry"
 msgstr "Geometrie bearbeitet"
 
-#: c3nav/editor/views/changes.py:284 c3nav/mapdata/forms.py:38
+#: c3nav/editor/views/changes.py:286 c3nav/mapdata/forms.py:38
 #, python-brace-format
 msgid "{field_name} ({lang})"
 msgstr "{field_name} ({lang})"
 
-#: c3nav/editor/views/changes.py:319
+#: c3nav/editor/views/changes.py:321
 #, python-brace-format
 msgid "remove {field_title}"
 msgstr "{field_title} entfernt"
 
-#: c3nav/editor/views/changes.py:347 c3nav/editor/views/changes.py:354
+#: c3nav/editor/views/changes.py:349 c3nav/editor/views/changes.py:356
 msgid "Redirect slugs"
 msgstr "Umleitungs-Slugs"
 
-#: c3nav/editor/views/changes.py:362
+#: c3nav/editor/views/changes.py:364
 msgid "deleted"
 msgstr "gelöscht"
 
-#: c3nav/editor/views/changes.py:382
+#: c3nav/editor/views/changes.py:384
 msgid "You cannot edit this change set."
 msgstr "Du kannst dieses Änderungsset nicht bearbeiten."
 
@@ -1560,7 +1566,7 @@ msgstr "Graphknoten"
 msgid "Graph Nodes"
 msgstr "Graphknoten"
 
-#: c3nav/mapdata/models/graph.py:35 c3nav/mapdata/models/locations.py:183
+#: c3nav/mapdata/models/graph.py:35 c3nav/mapdata/models/locations.py:184
 msgid "Title (Plural)"
 msgstr "Titel (Plural)"
 
@@ -1673,87 +1679,87 @@ msgstr "beschreibend"
 msgid "searchable"
 msgstr "suchbar"
 
-#: c3nav/mapdata/models/locations.py:129 c3nav/mapdata/models/locations.py:242
+#: c3nav/mapdata/models/locations.py:129 c3nav/mapdata/models/locations.py:243
 msgid "Location Groups"
 msgstr "Ortgruppen"
 
-#: c3nav/mapdata/models/locations.py:180 c3nav/mapdata/models/source.py:15
+#: c3nav/mapdata/models/locations.py:181 c3nav/mapdata/models/source.py:15
 msgid "Name"
 msgstr "Name"
 
-#: c3nav/mapdata/models/locations.py:181
+#: c3nav/mapdata/models/locations.py:182
 msgid "single selection"
 msgstr "nur eine Auswahl möglich"
 
-#: c3nav/mapdata/models/locations.py:184
+#: c3nav/mapdata/models/locations.py:185
 msgid "allow levels"
 msgstr "bei Etagen erlauben"
 
-#: c3nav/mapdata/models/locations.py:185
+#: c3nav/mapdata/models/locations.py:186
 msgid "allow spaces"
 msgstr "bei Räumen erlauben"
 
-#: c3nav/mapdata/models/locations.py:186
+#: c3nav/mapdata/models/locations.py:187
 msgid "allow areas"
 msgstr "bei Bereichen erlauben"
 
-#: c3nav/mapdata/models/locations.py:187
+#: c3nav/mapdata/models/locations.py:188
 msgid "allow pois"
 msgstr "bei POI erlauben"
 
-#: c3nav/mapdata/models/locations.py:195
+#: c3nav/mapdata/models/locations.py:196
 msgid "Location Group Category"
 msgstr "Ortgruppenkategorie"
 
-#: c3nav/mapdata/models/locations.py:196
+#: c3nav/mapdata/models/locations.py:197
 msgid "Location Group Categories"
 msgstr "Ortgruppenkategorien"
 
-#: c3nav/mapdata/models/locations.py:234 c3nav/mapdata/models/locations.py:262
+#: c3nav/mapdata/models/locations.py:235 c3nav/mapdata/models/locations.py:263
 msgid "Category"
 msgstr "Kategorie"
 
-#: c3nav/mapdata/models/locations.py:236
+#: c3nav/mapdata/models/locations.py:237
 msgid "background color"
 msgstr "Hintergrundfarbe"
 
-#: c3nav/mapdata/models/locations.py:241
+#: c3nav/mapdata/models/locations.py:242
 msgid "Location Group"
 msgstr "Ortgruppe"
 
-#: c3nav/mapdata/models/locations.py:264 c3nav/mapdata/models/locations.py:278
+#: c3nav/mapdata/models/locations.py:265 c3nav/mapdata/models/locations.py:279
 msgid "color"
 msgstr "Farbe"
 
-#: c3nav/mapdata/models/locations.py:265
+#: c3nav/mapdata/models/locations.py:266
 msgid "priority"
 msgstr "Priorität"
 
-#: c3nav/mapdata/models/locations.py:274
+#: c3nav/mapdata/models/locations.py:275
 msgid "search"
 msgstr "suchen"
 
-#: c3nav/mapdata/models/locations.py:276
+#: c3nav/mapdata/models/locations.py:277
 msgid "describe"
 msgstr "beschreiben"
 
-#: c3nav/mapdata/models/locations.py:280
+#: c3nav/mapdata/models/locations.py:281
 msgid "internal"
 msgstr "intern"
 
-#: c3nav/mapdata/models/locations.py:297
+#: c3nav/mapdata/models/locations.py:298
 #, python-brace-format
 msgid "{category_title}, {num_locations}"
 msgstr "{category_title}, {num_locations}"
 
-#: c3nav/mapdata/models/locations.py:299
+#: c3nav/mapdata/models/locations.py:300
 #, python-format
 msgid "%(num)d location"
 msgid_plural "%(num)d locations"
 msgstr[0] "%(num)d Ort"
 msgstr[1] "%(num)d Orte"
 
-#: c3nav/mapdata/models/locations.py:317
+#: c3nav/mapdata/models/locations.py:318
 msgid "target"
 msgstr "Ziel"
 

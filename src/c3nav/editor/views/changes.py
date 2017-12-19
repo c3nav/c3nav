@@ -98,7 +98,7 @@ def changeset_detail(request, pk):
             with changeset.lock_to_edit(request) as changeset:
                 if changeset.can_start_review(request):
                     changeset.start_review(request.user)
-                    messages.success(request, _('You are not reviewing these changes.'))
+                    messages.success(request, _('You are now reviewing these changes.'))
                 else:
                     messages.error(request, _('You cannot review these changes.'))
 
