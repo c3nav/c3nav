@@ -181,7 +181,7 @@ def changeset_detail(request, pk):
     }
 
     cache_key = '%s:%s:%s:view_data' % (changeset.cache_key_by_changes,
-                                        changeset.last_update.strftime('%s'),
+                                        changeset.last_update_id,
                                         int(can_edit))
     changed_objects_data = cache.get(cache_key)
     if changed_objects_data:
