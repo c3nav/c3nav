@@ -27,7 +27,7 @@ class AccessPermissionForm(Form):
         self.author = request.user
 
         # determine which access permissions the author can grant
-        if not request.user_permissions.access_all:
+        if not request.user_permissions.grant_all_access:
             self.author_access_permissions = {
                 pk: expire_date for pk, expire_date in self.author.accesspermissions.filter(
                     Q(can_grant=True) & (Q(expire_date__isnull=True) | Q(expire_date__lt=timezone.now()))
@@ -86,7 +86,7 @@ class AccessPermissionForm(Form):
         self.fields['expires'] = ChoiceField(required=False, initial='60', choices=expire_choices)
 
         # if applicable, add field to grant pass on permissions
-        if request.user_permissions.access_all:
+        if request.user_permissions.grant_all_access:
             choices = [('0', '---')]*6 + [('1', _('can pass on'))] + [('0', '---')]*3
             self.fields['can_grant'] = ChoiceField(required=False, initial='60', choices=choices)
 

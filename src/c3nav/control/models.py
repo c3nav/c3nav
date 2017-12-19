@@ -10,12 +10,16 @@ class UserPermissions(models.Model):
     User Permissions
     """
     user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, primary_key=True)
+
     review_changesets = models.BooleanField(default=False, verbose_name=_('can review changesets'))
     direct_edit = models.BooleanField(default=False, verbose_name=_('can activate direct editing'))
+    max_changeset_changes = models.PositiveSmallIntegerField(default=10, verbose_name=_('max changes per changeset'))
+
     control_panel = models.BooleanField(default=False, verbose_name=_('can access control panel'))
     grant_permissions = models.BooleanField(default=False, verbose_name=_('can grant control permissions'))
     manage_announcements = models.BooleanField(default=False, verbose_name=_('manage announcements'))
-    access_all = models.BooleanField(default=False, verbose_name=_('can grant access to everything'))
+    grant_all_access = models.BooleanField(default=False, verbose_name=_('can grant access to everything'))
+    api_secret = models.CharField(null=True, blank=True, max_length=64, verbose_name=_('API secret'))
 
     class Meta:
         verbose_name = _('User Permissions')
