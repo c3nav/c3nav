@@ -80,7 +80,7 @@ def user_detail(request, user):
 
         api_secret_action = request.POST.get('api_secret')
         if (api_secret_action and (request.user_permissions.grant_permissions or
-                                   request.user == user and user.permissions.api_secret)):
+                                   (request.user == user and user.permissions.api_secret))):
 
             permissions = user.permissions
 

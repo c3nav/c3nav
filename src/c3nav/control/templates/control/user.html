@@ -26,7 +26,7 @@
     {% if request.user_permissions.grant_permissions or request.user == user %}
         <h4>{% trans 'API secret' %}</h4>
         <p>
-            {% if request.user_permissions.api_secret %}
+            {% if user.permissions.api_secret %}
                 {% if request.user == user %}
                     {% trans 'This user has an API secret.' %}
                 {% else %}
@@ -42,7 +42,7 @@
             {% csrf_token %}
             <select name="api_secret" style="width: auto;">
                 <option value="">---</option>
-                {% if request.user_permissions.api_secret %}
+                {% if user.permissions.api_secret %}
                     <option value="regenerate">{% trans 'Regenerate API secret' %}</option>
                     <option value="delete">{% trans 'Delete API secret' %}</option>
                 {% else %}
