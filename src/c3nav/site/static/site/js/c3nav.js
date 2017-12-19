@@ -99,9 +99,9 @@ c3nav = {
 
         $('#modal').on('click', c3nav._modal_click)
             .on('click', 'a', c3nav._modal_link_click)
-            .on('submit', 'form', c3nav._modal_submit);
+            .on('submit', 'form', c3nav._modal_submit)
             .on('click', '.mobileclient-share', c3nav._mobileclient_share_click)
-            .on('click', '.mobileclient-shortcut', c3nav._mobileclient_shortcut_click)
+            .on('click', '.mobileclient-shortcut', c3nav._mobileclient_shortcut_click);
         $('header #user').on('click', c3nav._modal_link_click);
 
         $('header h1 a').removeAttr('href');
