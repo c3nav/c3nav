@@ -1,8 +1,11 @@
 import json
 import operator
 from functools import reduce
+from itertools import chain
 
+from django.core.cache import cache
 from django.core.exceptions import FieldDoesNotExist
+from django.db.models import Q
 from django.forms import (BooleanField, CharField, ChoiceField, Form, ModelChoiceField, ModelForm, MultipleChoiceField,
                           ValidationError)
 from django.forms.widgets import HiddenInput
@@ -13,10 +16,11 @@ from c3nav.editor.models import ChangeSet, ChangeSetUpdate
 from c3nav.mapdata.fields import GeometryField
 from c3nav.mapdata.forms import I18nModelFormMixin
 from c3nav.mapdata.models import GraphEdge
+from c3nav.mapdata.models.access import AccessPermission
 
 
 class EditorFormBase(I18nModelFormMixin, ModelForm):
-    def __init__(self, *args, request=None, **kwargs):
+    def __init__(self, *args, space_id=None, request=None, **kwargs):
         self.request = request
         super().__init__(*args, **kwargs)
         creating = not self.instance.pk
@@ -71,9 +75,36 @@ class EditorFormBase(I18nModelFormMixin, ModelForm):
             self.fields['access_restriction'].label_from_instance = lambda obj: obj.title
             self.fields['access_restriction'].queryset = AccessRestriction.qs_for_request(self.request)
 
-        if 'target_space' in self.fields:
+        if space_id and 'target_space' in self.fields:
             Space = self.request.changeset.wrap_model('Space')
-            space_qs = Space.qs_for_request(self.request)
+
+            GraphNode = self.request.changeset.wrap_model('GraphNode')
+            GraphEdge = self.request.changeset.wrap_model('GraphEdge')
+
+            cache_key = 'editor:neighbor_spaces:%s:%s%d' % (
+                self.request.changeset.raw_cache_key_by_changes,
+                AccessPermission.cache_key_for_request(request, with_update=False),
+                space_id
+            )
+            other_spaces = cache.get(cache_key, None)
+            if other_spaces is None:
+                AccessPermission.cache_key_for_request(request, with_update=False) + ':' + str(request.user.pk or 0)
+                space_nodes = set(GraphNode.objects.filter(space_id=space_id).values_list('pk', flat=True))
+                space_edges = GraphEdge.objects.filter(
+                    Q(from_node_id__in=space_nodes) | Q(to_node_id__in=space_nodes)
+                ).values_list('from_node_id', 'to_node_id')
+                other_nodes = set(chain(*space_edges)) - space_nodes
+                other_spaces = set(GraphNode.objects.filter(pk__in=other_nodes).values_list('space_id', flat=True))
+                other_spaces.discard(space_id)
+                cache.set(cache_key, other_spaces, 900)
+
+            for space_field in ('origin_space', 'target_space'):
+                other_space_id = getattr(self.instance, space_field+'_id', None)
+                if other_space_id:
+                    other_spaces.add(other_space_id)
+
+            space_qs = Space.qs_for_request(self.request).filter(pk__in=other_spaces)
+
             for space_field in ('origin_space', 'target_space'):
                 if space_field in self.fields:
                     self.fields[space_field].label_from_instance = lambda obj: obj.title

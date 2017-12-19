@@ -142,6 +142,7 @@ def edit(request, pk=None, model=None, level=None, space=None, on_top_of=None, e
             'geomtype': model._meta.get_field('geometry').geomtype,
         })
 
+    space_id = None
     if model == Level:
         ctx.update({
             'level': obj,
@@ -183,6 +184,7 @@ def edit(request, pk=None, model=None, level=None, space=None, on_top_of=None, e
             'geometry_url': '/api/editor/geometries/?level='+str(level.primary_level_pk),
         })
     elif hasattr(model, 'space'):
+        space_id = space.pk
         if not new:
             space = obj.space
         ctx.update({
@@ -234,7 +236,8 @@ def edit(request, pk=None, model=None, level=None, space=None, on_top_of=None, e
             ctx['obj_title'] = obj.title
             return render(request, 'editor/delete.html', ctx)
 
-        form = model.EditorForm(instance=model() if new else obj, data=request.POST, request=request)
+        form = model.EditorForm(instance=model() if new else obj, data=request.POST,
+                                request=request, space_id=space_id)
         if form.is_valid():
             # Update/create objects
             obj = form.save(commit=False)
@@ -266,7 +269,7 @@ def edit(request, pk=None, model=None, level=None, space=None, on_top_of=None, e
                     messages.error(request, _('You can not edit changes on this changeset.'))
 
     else:
-        form = model.EditorForm(instance=obj, request=request)
+        form = model.EditorForm(instance=obj, request=request, space_id=space_id)
 
     ctx.update({
         'form': form,
@@ -319,12 +322,28 @@ def list_objects(request, model=None, level=None, space=None, explicit_edit=Fals
         sub_qs = Space.objects.filter(Space.q_for_request(request)).select_related('level').defer('geometry')
         space = get_object_or_404(sub_qs, pk=space)
         queryset = queryset.filter(space=space)
+
         try:
             model._meta.get_field('geometry')
         except FieldDoesNotExist:
             pass
         else:
             queryset = queryset.defer('geometry')
+
+        try:
+            model._meta.get_field('origin_space')
+        except FieldDoesNotExist:
+            pass
+        else:
+            queryset = queryset.select_related('origin_space')
+
+        try:
+            model._meta.get_field('target_space')
+        except FieldDoesNotExist:
+            pass
+        else:
+            queryset = queryset.select_related('target_space')
+
         ctx.update({
             'levels': Level.objects.filter(Level.q_for_request(request), on_top_of__isnull=True),
             'level': space.level,
