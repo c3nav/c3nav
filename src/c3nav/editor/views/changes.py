@@ -182,7 +182,7 @@ def changeset_detail(request, pk):
 
     cache_key = changeset.cache_key_by_changes + ':view_data'
     changed_objects_data = cache.get(cache_key)
-    if changed_objects_data:
+    if changed_objects_data or 0:  # disabled for now
         ctx['changed_objects'] = changed_objects_data
         return render(request, 'editor/changeset.html', ctx)
 
@@ -225,10 +225,10 @@ def changeset_detail(request, pk):
             edit_url = None
             if obj_still_exists and can_edit and not isinstance(obj, LocationRedirect):
                 reverse_kwargs = {'pk': obj.pk}
-                if hasattr(obj, 'level_id'):
-                    reverse_kwargs['level'] = obj.level_id
-                elif hasattr(obj, 'space_id'):
+                if hasattr(obj, 'space_id'):
                     reverse_kwargs['space'] = obj.space_id
+                elif hasattr(obj, 'level_id'):
+                    reverse_kwargs['level'] = obj.level_id
                 try:
                     edit_url = reverse('editor.' + obj.__class__._meta.default_related_name + '.edit',
                                        kwargs=reverse_kwargs)
