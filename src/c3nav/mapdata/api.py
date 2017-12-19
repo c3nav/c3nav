@@ -10,7 +10,7 @@ from django.db.models import Prefetch
 from django.http import HttpResponse
 from django.shortcuts import redirect
 from django.utils.cache import get_conditional_response
-from django.utils.http import quote_etag, urlsafe_base64_encode
+from django.utils.http import http_date, quote_etag, urlsafe_base64_encode
 from django.utils.translation import ugettext_lazy as _
 from django.utils.translation import get_language
 from rest_framework.decorators import detail_route, list_route
@@ -384,6 +384,7 @@ class SourceViewSet(MapdataViewSet):
         response = get_conditional_response(request, last_modified=last_modified)
         if response is None:
             response = HttpResponse(open(source.filepath, 'rb'), content_type=mimetypes.guess_type(source.name)[0])
+        response['Last-Modified'] = http_date(last_modified)
         return response
 
 
