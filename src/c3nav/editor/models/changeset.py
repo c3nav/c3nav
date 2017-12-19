@@ -417,7 +417,7 @@ class ChangeSet(models.Model):
                  request.session.get('changeset', None) == self.pk))
 
     def can_see(self, request):
-        return self.is_author(request)
+        return self.is_author(request) or self.can_review(request)
 
     object_changed_cache = {}
 
