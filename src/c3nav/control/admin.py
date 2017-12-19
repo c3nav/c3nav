@@ -20,6 +20,9 @@ class UserAdmin(BaseUserAdmin):
     readonly_fields = ('last_login', 'date_joined')
     inlines = (UserPermissionsInline, )
 
+    def get_view_on_site_url(self, obj=None):
+        return None if obj is None else reverse('control.users.detail', args=[obj.pk])
+
 
 admin.site.unregister(User)
 admin.site.register(User, UserAdmin)
