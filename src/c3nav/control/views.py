@@ -69,7 +69,7 @@ def user_detail(request, user):
                 except AccessPermission.DoesNotExist:
                     messages.error(request, _('Unknown access permission.'))
                 else:
-                    if request.user_permissions.can_grant or permission.author_id == request.user.pk:
+                    if request.user_permissions.grant_all_access or permission.author_id == request.user.pk:
                         permission.delete()
                         messages.success(request, _('Access Permission successfully deleted.'))
                     else:
