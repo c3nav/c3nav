@@ -33,7 +33,14 @@ def user_detail(request, pk):
     ctx = {
         'user': user,
         'can_direct_edit': ChangeSet.can_direct_edit(request),
-        'recent_changesets': ChangeSet.objects.filter(author=user).order_by('-last_update')[:10],
+        'recent_changesets': ChangeSet.objects.filter(author=user).order_by('-last_update')[:15],
     }
+
+    if request.user_permissions.review_changesets:
+        ctx.update({
+            'can_review': True,
+            'review_changesets': ChangeSet.objects.filter(state='proposed').order_by('-last_update'),
+            'all_recent_changesets': ChangeSet.objects.exclude(state='unproposed').order_by('-last_update')[:20],
+        })
 
     return render(request, 'editor/user.html', ctx)
