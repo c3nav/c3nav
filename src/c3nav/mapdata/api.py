@@ -378,7 +378,7 @@ class SourceViewSet(MapdataViewSet):
 
     def _image(self, request, pk=None):
         source = self.get_object()
-        last_modified = os.path.getmtime(source.filepath)
+        last_modified = int(os.path.getmtime(source.filepath))
         response = get_conditional_response(request, last_modified=last_modified)
         if response is None:
             response = HttpResponse(open(source.filepath, 'rb'), content_type=mimetypes.guess_type(source.name)[0])
