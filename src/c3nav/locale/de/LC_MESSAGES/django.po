@@ -7,8 +7,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2017-12-19 18:52+0100\n"
-"PO-Revision-Date: 2017-12-19 18:52+0100\n"
+"POT-Creation-Date: 2017-12-19 22:01+0100\n"
+"PO-Revision-Date: 2017-12-19 22:02+0100\n"
 "Last-Translator: Laura Klünder <laura@codingcatgirl.de>\n"
 "Language-Team: \n"
 "Language: de\n"
@@ -560,12 +560,12 @@ msgid "back"
 msgstr "zurück"
 
 #: c3nav/editor/templates/editor/base.html:9
-#: c3nav/editor/templates/editor/base.html:27
+#: c3nav/editor/templates/editor/base.html:30
 #: c3nav/editor/templates/editor/index.html:4
 msgid "c3nav map editor"
 msgstr "c3nav Karteneditor"
 
-#: c3nav/editor/templates/editor/base.html:22
+#: c3nav/editor/templates/editor/base.html:25
 msgid "Toggle navigation"
 msgstr "Navigation ein-/ausblenden"
 
@@ -763,8 +763,9 @@ msgstr "(kein Titel)"
 
 #: c3nav/editor/templates/editor/fragment_changesets.html:10
 #: c3nav/editor/templates/editor/list.html:26
-#: c3nav/site/templates/site/map.html:51 c3nav/site/templates/site/map.html:85
-#: c3nav/site/templates/site/map.html:97 c3nav/site/templates/site/map.html:103
+#: c3nav/site/templates/site/map.html:60 c3nav/site/templates/site/map.html:94
+#: c3nav/site/templates/site/map.html:106
+#: c3nav/site/templates/site/map.html:112
 msgid "Details"
 msgstr "Details"
 
@@ -783,7 +784,7 @@ msgid "Log out"
 msgstr "Abmelden"
 
 #: c3nav/editor/templates/editor/fragment_nav.html:23
-#: c3nav/editor/views/account.py:31 c3nav/site/views.py:206
+#: c3nav/editor/views/account.py:31 c3nav/site/views.py:208
 msgid "Log in"
 msgstr "Anmelden"
 
@@ -917,7 +918,7 @@ msgid "Activate direct editing"
 msgstr "Direktes Bearbeiten aktivieren"
 
 #: c3nav/editor/templates/editor/user.html:52 c3nav/editor/views/account.py:94
-#: c3nav/site/templates/site/account.html:29 c3nav/site/views.py:262
+#: c3nav/site/templates/site/account.html:29 c3nav/site/views.py:264
 msgid "Change password"
 msgstr "Passwort ändern"
 
@@ -926,10 +927,8 @@ msgid "Recent change sets"
 msgstr "Aktuelle Änderungssets"
 
 #: c3nav/editor/templates/editor/user.html:61
-#, fuzzy
-#| msgid "Change sets awaiting review"
 msgid "Change sets you are reviewing"
-msgstr "Auf Überprüfung wartende Änderungssets "
+msgstr "Änderungssets die du gerade überprüfts"
 
 #: c3nav/editor/templates/editor/user.html:64
 msgid "Change sets awaiting review"
@@ -940,11 +939,11 @@ msgid "All recent change sets"
 msgstr "Alle kürzlichen Änderungssets"
 
 #: c3nav/editor/views/account.py:34 c3nav/editor/views/account.py:70
-#: c3nav/site/views.py:209 c3nav/site/views.py:239
+#: c3nav/site/views.py:211 c3nav/site/views.py:241
 msgid "Create new account"
 msgstr "Neues Konto erstellen"
 
-#: c3nav/editor/views/account.py:84 c3nav/site/views.py:253
+#: c3nav/editor/views/account.py:84 c3nav/site/views.py:255
 msgid "Password successfully changed."
 msgstr "Passwort erfolgreich geändert."
 
@@ -1167,12 +1166,12 @@ msgstr "Du hast direktes Bearbeiten aktiviert."
 msgid "You deactivated direct editing."
 msgstr "Du hast direktes Bearbeiten deaktiviert."
 
-#: c3nav/mapdata/api.py:150
+#: c3nav/mapdata/api.py:151
 #, python-format
 msgid "%(field)s is not an integer."
 msgstr "%(field)s ist keine ganze Zahl."
 
-#: c3nav/mapdata/api.py:158
+#: c3nav/mapdata/api.py:159
 #, python-format
 msgid "%(model)s not found."
 msgstr "%(model)s nicht gefunden."
@@ -1298,7 +1297,7 @@ msgid "Access Permission Tokens"
 msgstr "Zugangserlaubnis-Token"
 
 #: c3nav/mapdata/models/access.py:108 c3nav/site/views.py:77
-#: c3nav/site/views.py:296
+#: c3nav/site/views.py:298
 msgid "Area successfully unlocked."
 msgid_plural "Areas successfully unlocked."
 msgstr[0] "Bereich erfolgreich freigeschaltet."
@@ -1856,7 +1855,7 @@ msgid "Unknown destination."
 msgstr "Unbekannter Zielort."
 
 #: c3nav/routing/models.py:20 c3nav/routing/models.py:21
-#: c3nav/site/templates/site/map.html:110
+#: c3nav/site/templates/site/map.html:119
 msgid "Route options"
 msgstr "Routenoptionen"
 
@@ -1948,11 +1947,11 @@ msgstr "einige Wegtypen vermieden"
 msgid "default options"
 msgstr "Standardoptionen"
 
-#: c3nav/settings.py:258
+#: c3nav/settings.py:269
 msgid "English"
 msgstr "Englisch"
 
-#: c3nav/settings.py:259
+#: c3nav/settings.py:270
 msgid "German"
 msgstr "Deutsch"
 
@@ -1997,70 +1996,78 @@ msgstr "Editor"
 msgid "API"
 msgstr "API"
 
-#: c3nav/site/templates/site/map.html:22
+#: c3nav/site/templates/site/map.html:27
 msgid "Show only this location"
 msgstr "Nur diesen Ort anzeigen"
 
-#: c3nav/site/templates/site/map.html:23
+#: c3nav/site/templates/site/map.html:28
 msgid "Route to here"
 msgstr "Route hierhin"
 
-#: c3nav/site/templates/site/map.html:24
+#: c3nav/site/templates/site/map.html:29
 msgid "Route from here"
 msgstr "Route von hier aus"
 
-#: c3nav/site/templates/site/map.html:35 c3nav/site/templates/site/map.html:42
+#: c3nav/site/templates/site/map.html:36
+msgid "share"
+msgstr "Teilen"
+
+#: c3nav/site/templates/site/map.html:37
+msgid "create shortcut"
+msgstr "Verknüpfung anlegen"
+
+#: c3nav/site/templates/site/map.html:44 c3nav/site/templates/site/map.html:51
 msgid "Search any location…"
 msgstr "Suche einen beliebigen Ort…"
 
-#: c3nav/site/templates/site/map.html:55
+#: c3nav/site/templates/site/map.html:64
 msgid "Share"
 msgstr "Teilen"
 
-#: c3nav/site/templates/site/map.html:59
+#: c3nav/site/templates/site/map.html:68
 msgid "Route"
 msgstr "Route"
 
-#: c3nav/site/templates/site/map.html:71 c3nav/site/templates/site/map.html:81
+#: c3nav/site/templates/site/map.html:80 c3nav/site/templates/site/map.html:90
 msgid "Swap"
 msgstr "Vertauschen"
 
-#: c3nav/site/templates/site/map.html:75
+#: c3nav/site/templates/site/map.html:84
 msgid "Close"
 msgstr "Schließen"
 
-#: c3nav/site/templates/site/map.html:95
+#: c3nav/site/templates/site/map.html:104
 msgid "Open in Editor"
 msgstr "Im Editor öffnen"
 
-#: c3nav/site/templates/site/map.html:115
+#: c3nav/site/templates/site/map.html:124
 msgid "Save and reroute"
 msgstr "Speichern und neu routen"
 
-#: c3nav/site/templates/site/map.html:116
+#: c3nav/site/templates/site/map.html:125
 msgid "Just reroute"
 msgstr "Nur neu routen"
 
-#: c3nav/site/views.py:69 c3nav/site/views.py:288
+#: c3nav/site/views.py:69 c3nav/site/views.py:290
 msgid "You need to log in to unlock areas."
 msgstr "Du musst dich anmelden um Bereiche freizuschalten."
 
-#: c3nav/site/views.py:185
+#: c3nav/site/views.py:187
 msgid "Areas could not be unlocked because the token has expired."
 msgstr ""
 "Zugangserlaubnis konnte nicht gewährt werden weil der Code abgelaufen ist."
 
-#: c3nav/site/views.py:281
+#: c3nav/site/views.py:283
 msgid "This token does not exist or was already redeemed."
 msgstr "Dieser Code existiert nicht oder wurde bereits eingelöst."
 
-#: c3nav/site/views.py:301
+#: c3nav/site/views.py:303
 msgid "Unlock area"
 msgid_plural "Unlock areas"
 msgstr[0] "Bereich freischalten"
 msgstr[1] "Bereiche freischalten"
 
-#: c3nav/site/views.py:302
+#: c3nav/site/views.py:304
 msgid "You have been invited to unlock the following area:"
 msgid_plural "You have been invited to unlock the following areas:"
 msgstr[0] "Du wurdest eingeladen, den folgenden Bereich freizuschalten:"
@@ -2218,6 +2225,3 @@ msgstr[1] "Du wurdest eingeladen, die folgenden Bereiche freizuschalten:"
 
 #~ msgid "Please try again in a few minutes."
 #~ msgstr "Bitte versuch es in wenigen Minuten erneut."
-
-#~ msgid "share"
-#~ msgstr "Teilen"
