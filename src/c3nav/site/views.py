@@ -7,6 +7,7 @@ from django.contrib import messages
 from django.contrib.auth import login, logout
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.forms import AuthenticationForm, PasswordChangeForm, UserCreationForm
+from django.contrib.auth.views import redirect_to_login
 from django.core.serializers.json import DjangoJSONEncoder
 from django.db import transaction
 from django.http import HttpResponse, HttpResponseBadRequest
@@ -20,6 +21,7 @@ from django.views.decorators.cache import cache_control, never_cache
 from django.views.decorators.clickjacking import xframe_options_exempt
 from django.views.decorators.http import etag
 
+from c3nav.control.forms import AccessPermissionForm, SignedPermissionDataError
 from c3nav.mapdata.models import Location, Source
 from c3nav.mapdata.models.access import AccessPermissionToken
 from c3nav.mapdata.models.locations import LocationRedirect, SpecificLocation
@@ -50,6 +52,32 @@ def check_location(location: Optional[str], request) -> Optional[SpecificLocatio
 
 def map_index(request, mode=None, slug=None, slug2=None, details=None, options=None,
               level=None, x=None, y=None, zoom=None, embed=None):
+
+    # check for access token
+    access_signed_data = request.GET.get('access')
+    if access_signed_data:
+        try:
+            token = AccessPermissionForm.load_signed_data(access_signed_data)
+        except SignedPermissionDataError as e:
+            return HttpResponse(str(e).encode(), content_type='text/plain', status=400)
+
+        num_restrictions = len(token.restrictions)
+        with transaction.atomic():
+            token.save()
+
+            if not request.user.is_authenticated:
+                messages.info(request, _('You need to log in to unlock areas.'))
+                request.session['redeem_token_on_login'] = str(token.token)
+                token.redeem()
+                return redirect('site.login')
+
+            token.redeem(request.user)
+            token.save()
+
+        messages.success(request, ungettext_lazy('Area successfully unlocked.',
+                                                 'Areas successfully unlocked.', num_restrictions))
+        return redirect('site.index')
+
     origin = None
     destination = None
     routing = False
@@ -260,7 +288,7 @@ def access_redeem_view(request, token):
                 messages.info(request, _('You need to log in to unlock areas.'))
                 request.session['redeem_token_on_login'] = str(token.token)
                 token.redeem()
-                return redirect('site.login')
+                return redirect_to_login(request.path_info, 'site.login')
 
             token.redeem(request.user)
             token.save()

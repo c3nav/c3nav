@@ -164,7 +164,8 @@ def grant_access(request):
             token = form.get_token()
             token.save()
             if settings.DEBUG and request.user_permissions.api_secret:
-                print(form.get_signed_data())
+                signed_data = form.get_signed_data()
+                print(signed_data)
             return redirect(reverse('control.access.qr', kwargs={'token': token.token}))
     else:
         form = AccessPermissionForm(request=request)
