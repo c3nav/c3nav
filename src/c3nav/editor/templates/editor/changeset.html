@@ -138,15 +138,15 @@
             {% if can_propose %}
                 <button type="submit" class="btn btn-primary" name="propose" value="1">{% trans 'Propose' %}</button>
             {% endif %}
-            {% if can_start_review %}
-                <button type="submit" class="btn btn-primary" name="review" value="1">{% trans 'Review' %}</button>
-            {% endif %}
             {% if can_end_review %}
                 <button type="submit" class="btn btn-danger" name="reject" value="1">{% trans 'Reject' %}</button>
                 <button type="submit" class="btn btn-success" name="apply" value="1">{% trans 'Accept' %}</button>
             {% endif %}
         {% endif %}
-        {% if not active and not changeset.closed %}
+        {% if can_start_review %}
+            <button type="submit" class="btn btn-primary" name="review" value="1">{% trans 'Review' %}</button>
+        {% endif %}
+        {% if not active and not changeset.closed and can_edit %}
             <button type="submit" class="btn btn-info" name="activate" value="1">{% trans 'Activate' %}</button>
         {% endif %}
     </div>
