@@ -4,6 +4,9 @@
 {% block heading %}{{ user.username }}{% endblock %}
 
 {% block subcontent %}
+    {% if request.user.is_staff %}
+        <a href="{% url 'admin:auth_user_change' user.id %}" class="float-right">{% trans 'show in django admin panel' %}</a>
+    {% endif %}
     <h4>{% trans 'General Permissions' %}</h4>
     {% if user_permissions_form %}
         <form method="POST" class="user-permissions-form">
