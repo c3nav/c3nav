@@ -63,7 +63,7 @@ def locations_for_request(request) -> Mapping[int, LocationSlug]:
     # add levels to spaces
     remove_pks = set()
     levels = {pk: obj for pk, obj in locations.items() if isinstance(obj, Level)}
-    for pk, obj in locations.keys():
+    for pk, obj in locations.items():
         if isinstance(obj, LevelGeometryMixin):
             level = levels.get(obj.level_id, None)
             if level is None:
@@ -78,7 +78,7 @@ def locations_for_request(request) -> Mapping[int, LocationSlug]:
     # add spaces to areas and POIs
     remove_pks = set()
     spaces = {pk: obj for pk, obj in locations.items() if isinstance(obj, Space)}
-    for obj in locations.values():
+    for pk, obj in locations.items():
         if isinstance(obj, SpaceGeometryMixin):
             space = spaces.get(obj.space_id, None)
             if space is None:
