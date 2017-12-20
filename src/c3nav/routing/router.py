@@ -318,7 +318,7 @@ class Router:
         restrictions = self.get_restrictions(location.permissions)
         space = self.space_for_point(level=location.level.pk, point=location, restrictions=restrictions)
         if not space:
-            return CustomLocationDescription(space=space, altitude=None, areas=None, near_area=None, near_poi=None)
+            return CustomLocationDescription(space=space, altitude=None, areas=(), near_area=None, near_poi=None)
         altitude = space.altitudearea_for_point(location).get_altitude(location)
         areas, near_area = space.areas_for_point(areas=self.areas, point=location, restrictions=restrictions)
         near_poi = space.poi_for_point(pois=self.pois, point=location, restrictions=restrictions)
