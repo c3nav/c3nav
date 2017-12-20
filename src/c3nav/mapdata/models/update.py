@@ -131,7 +131,7 @@ class MapUpdate(models.Model):
             Router.rebuild()
 
             transaction.on_commit(
-                lambda: cache.set('mapdata:last_processed_updatee', new_updates[-1].totuple, 300)
+                lambda: cache.set('mapdata:last_processed_updatee', new_updates[-1].to_tuple, 300)
             )
 
             return new_updates
