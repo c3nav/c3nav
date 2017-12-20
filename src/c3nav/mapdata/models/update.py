@@ -78,7 +78,7 @@ class MapUpdate(models.Model):
     @contextmanager
     def lock(cls):
         with transaction.atomic():
-            yield cls.objects.select_for_update().earliest()
+            yield cls.objects.select_for_update().get(pk=cls.objects.earliest().pk)
 
     def _changed_geometries_filename(self):
         return os.path.join(settings.CACHE_ROOT, 'changed_geometries', 'update_%d.pickle' % self.pk)
