@@ -256,6 +256,9 @@ class CustomLocation:
             ('subtitle', self.subtitle),
             ('level', self.level.pk),
             ('space', self.space.pk if self.space else None),
+            ('areas', tuple(area.pk for area in self.areas)),
+            ('near_area', self.near_area.pk if self.near_area else None),
+            ('near_poi', self.near_poi.pk if self.near_poi else None),
             ('altitude', None if self.altitude is None else round(self.altitude, 2))
         ))
         if include_type:
@@ -289,6 +292,24 @@ class CustomLocation:
                     'title': self.space.title,
                     'can_search': self.space.can_search,
                 } if self.space else None),
+                (_('Areas'), tuple({
+                    'id': area.pk,
+                    'slug': area.get_slug(),
+                    'title': area.title,
+                    'can_search': area.can_search,
+                } for area in self.areas)),
+                (_('Near Area'), {
+                    'id': self.near_area.pk,
+                    'slug': self.near_area.get_slug(),
+                    'title': self.near_area.title,
+                    'can_search': self.near_area.can_search,
+                } if self.near_area else None),
+                (_('Near POI'), {
+                    'id': self.near_poi.pk,
+                    'slug': self.near_poi.get_slug(),
+                    'title': self.near_poi.title,
+                    'can_search': self.near_poi.can_search,
+                } if self.near_poi else None),
                 (_('X Coordinate'), str(self.x)),
                 (_('Y Coordinate'), str(self.y)),
                 (_('Altitude'), None if self.altitude is None else str(round(self.altitude, 2))),
