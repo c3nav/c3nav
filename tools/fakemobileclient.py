@@ -15,8 +15,8 @@ def get_from_lines(lines, keyword):
 class FakeMobileClientHandler(http.server.BaseHTTPRequestHandler):
     def do_GET(self):
         """Serve a GET request."""
-        if self.path != '/scan/':
-            self.send_error(404, explain='Look at /scan/')
+        if self.path != '/scan':
+            self.send_error(404, explain='Look at /scan')
             return
 
         while True:

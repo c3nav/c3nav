@@ -1,0 +1,10 @@
+{% load static %}
+
+{% if request.GET.fakemobileclient != None %}
+    <script type="text/javascript" src="{% static 'site/js/fakemobileclient.js' %}"></script>
+    {% if request.GET.fakemobileclient and request.GET.fakemobileclient.isdigit %}
+        <script type="text/javascript">
+            mobileclient.port = {{ request.GET.fakemobileclient }};
+        </script>
+    {% endif %}
+{% endif %}

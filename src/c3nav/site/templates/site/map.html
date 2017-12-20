@@ -142,6 +142,7 @@
             <div id="modal-content"></div>
         </div>
     {% endif %}
+    {% include 'site/fragment_fakemobileclient.html' %}
     {% compress js %}
         <script type="text/javascript" src="{% static 'jquery/jquery.js' %}"></script>
         <script type="text/javascript" src="{% static 'leaflet/leaflet.js' %}"></script>
