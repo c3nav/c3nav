@@ -443,7 +443,7 @@ class LevelGeometries:
                                       upper=vertex_wall_heights,
                                       bottom=False)
         for key, geometry in self.restricted_spaces_outdoors.items():
-            geometry.faces = None
+            geometry.faces = ()
 
         self.walls_base.build_polyhedron(self._create_polyhedron,
                                          lower=self.min_altitude - int(0.7 * 1000),
