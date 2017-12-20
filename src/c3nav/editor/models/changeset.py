@@ -18,6 +18,7 @@ from django.utils.translation import ugettext_lazy as _
 from django.utils.translation import ungettext_lazy
 
 from c3nav.editor.models.changedobject import ApplyToInstanceError, ChangedObject
+from c3nav.editor.tasks import send_changeset_proposed_notification
 from c3nav.editor.wrappers import ModelInstanceWrapper, ModelWrapper, is_created_pk
 from c3nav.mapdata.models import LocationSlug, MapUpdate
 from c3nav.mapdata.models.locations import LocationRedirect
@@ -517,6 +518,7 @@ class ChangeSet(models.Model):
         self.last_update = update
         self.last_state_update = update
         self.save()
+        send_changeset_proposed_notification.delay(changeset=self)
 
     def unpropose(self, user):
         new_state = {'proposed': 'unproposed', 'reproposed': 'rejected'}[self.state]
