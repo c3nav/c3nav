@@ -8,6 +8,7 @@ from itertools import chain
 
 import pytz
 from django.contrib.auth.models import User
+from django.db.models import Prefetch
 from django.forms import ChoiceField, Form, ModelForm
 from django.utils import timezone
 from django.utils.translation import ugettext_lazy as _
@@ -47,11 +48,31 @@ class AccessPermissionForm(Form):
             access_restriction.pk: access_restriction
             for access_restriction in access_restrictions
         }
+        access_restrictions_ids = set(self.access_restrictions.keys())
 
         self.access_restriction_choices = {
             'all': self.access_restrictions.values(),
             **{str(pk): (access_restriction, ) for pk, access_restriction in self.access_restrictions.items()}
         }
+
+        # get access permission groups
+        groups = AccessRestrictionGroup.qs_for_request(request).prefetch_related(
+            Prefetch('accessrestrictions', AccessRestriction.objects.only('pk'))
+        )
+        group_contents = {
+            group.pk: set(r.pk for r in group.accessrestrictions.all())
+            for group in groups
+        }
+        group_contents = {
+            pk: restrictions for pk, restrictions in group_contents.items()
+            if not (restrictions - access_restrictions_ids)
+        }
+
+        self.access_restriction_choices.update({
+            ('g%d' % pk): tuple(
+                self.access_restrictions[restriction] for restriction in restrictions
+            ) for pk, restrictions in group_contents.items()
+        })
 
         # construct choice field for access permissions
         choices = [('', _('choose permissions…')),
@@ -59,6 +80,10 @@ class AccessPermissionForm(Form):
                                           'everything possible (%d permissions)',
                                           len(access_restrictions)) % len(access_restrictions))]
 
+        choices.append((_('Access Permission Groups'), tuple(
+            ('g%d' % group.pk, group.title)
+            for group in groups
+        )))
         choices.append((_('Access Permissions'), tuple(
             (str(pk), access_restriction.title)
             for pk, access_restriction in self.access_restrictions.items()
