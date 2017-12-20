@@ -551,7 +551,8 @@ main:not([data-view=route-result]) #route-dots {
     color: $color-secondary;
     overflow: hidden;
     line-height: 1.6;
-    padding: 10px;
+    margin: 15px 10px;
+    padding: 0;
 }
 .location-popup .leaflet-popup-content .location {
     padding: 0 0 0 42px;
@@ -568,6 +569,11 @@ main:not([data-view=route-result]) #route-dots {
     width: 100%;
     padding: 0;
     margin: 0;
+}
+.location-popup a.leaflet-popup-close-button {
+    font-size: 24px;
+    width: 22px;
+    top: 2px;
 }
 
 .buttons {
