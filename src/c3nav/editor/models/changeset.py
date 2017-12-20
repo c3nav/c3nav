@@ -189,6 +189,8 @@ class ChangeSet(models.Model):
         return chain(*(changed_objects.values() for changed_objects in self.changed_objects.values()))
 
     def _clean_changes(self):
+        if self.direct_editing:
+            return
         with self.lock_to_edit() as changeset:
             last_map_update_pk = MapUpdate.last_update()[0]
             if changeset.last_cleaned_with_id == last_map_update_pk:
