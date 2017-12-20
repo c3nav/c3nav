@@ -115,22 +115,6 @@ class Router:
                     areas[area.pk] = area
                     space.areas.add(area.pk)
 
-                for poi in space_obj.pois.all():
-                    for group in poi.groups.all():
-                        groups.setdefault(group.pk, {}).setdefault('pois', set()).add(poi.pk)
-                    poi._prefetched_objects_cache = {}
-
-                    poi = RouterPoint(poi)
-                    altitudearea = space.altitudearea_for_point(poi.geometry)
-                    poi.altitude = altitudearea.get_altitude(poi.geometry)
-                    poi_nodes = altitudearea.nodes_for_point(poi.geometry, all_nodes=nodes)
-                    poi.nodes = set(i for i in poi_nodes.keys())
-                    poi.nodes_addition = poi_nodes
-                    pois[poi.pk] = poi
-                    space.pois.add(poi.pk)
-
-                space_obj._prefetched_objects_cache = {}
-
                 for area in level.altitudeareas.all():
                     if not space.geometry_prep.intersects(area.geometry):
                         continue
@@ -167,6 +151,22 @@ class Router:
                                 fallback_node,
                                 RouterEdge(fallback_node, nearest_node, 0)
                             )
+
+                for poi in space_obj.pois.all():
+                    for group in poi.groups.all():
+                        groups.setdefault(group.pk, {}).setdefault('pois', set()).add(poi.pk)
+                    poi._prefetched_objects_cache = {}
+
+                    poi = RouterPoint(poi)
+                    altitudearea = space.altitudearea_for_point(poi.geometry)
+                    poi.altitude = altitudearea.get_altitude(poi.geometry)
+                    poi_nodes = altitudearea.nodes_for_point(poi.geometry, all_nodes=nodes)
+                    poi.nodes = set(i for i in poi_nodes.keys())
+                    poi.nodes_addition = poi_nodes
+                    pois[poi.pk] = poi
+                    space.pois.add(poi.pk)
+
+                space_obj._prefetched_objects_cache = {}
 
                 space.src.geometry = accessible_geom
 
