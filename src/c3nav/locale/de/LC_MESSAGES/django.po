@@ -7,8 +7,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2017-12-19 22:01+0100\n"
-"PO-Revision-Date: 2017-12-19 22:02+0100\n"
+"POT-Creation-Date: 2017-12-20 17:40+0100\n"
+"PO-Revision-Date: 2017-12-20 17:43+0100\n"
 "Last-Translator: Laura Klünder <laura@codingcatgirl.de>\n"
 "Language-Team: \n"
 "Language: de\n"
@@ -152,7 +152,7 @@ msgstr "Benutzer"
 
 #: c3nav/control/templates/control/announcements.html:9
 #: c3nav/control/templates/control/users.html:15
-#: c3nav/mapdata/models/base.py:40 c3nav/mapdata/utils/locations.py:279
+#: c3nav/mapdata/models/base.py:40 c3nav/mapdata/utils/locations.py:281
 msgid "ID"
 msgstr "ID"
 
@@ -162,7 +162,7 @@ msgid "Text"
 msgstr "Text"
 
 #: c3nav/control/templates/control/announcements.html:11
-#: c3nav/editor/models/changeset.py:46 c3nav/mapdata/models/access.py:117
+#: c3nav/editor/models/changeset.py:47 c3nav/mapdata/models/access.py:117
 msgid "Author"
 msgstr "Autor"
 
@@ -427,11 +427,11 @@ msgstr "Kante nur in eine Richtung erstellen"
 msgid "activate next node after connecting"
 msgstr "nächsten Knoten nach dem Verbinden aktivieren"
 
-#: c3nav/editor/models/changedobject.py:25 c3nav/editor/models/changeset.py:55
+#: c3nav/editor/models/changedobject.py:25 c3nav/editor/models/changeset.py:56
 msgid "Change Set"
 msgstr "Änderungsset"
 
-#: c3nav/editor/models/changedobject.py:26 c3nav/editor/models/changeset.py:38
+#: c3nav/editor/models/changedobject.py:26 c3nav/editor/models/changeset.py:39
 #: c3nav/editor/views/changes.py:264 c3nav/site/models.py:12
 msgid "created"
 msgstr "erstellt"
@@ -464,77 +464,77 @@ msgstr "Geändertes Objekt"
 msgid "Changed objects"
 msgstr "Geänderte Objekte"
 
-#: c3nav/editor/models/changeset.py:30
+#: c3nav/editor/models/changeset.py:31
 msgid "unproposed"
 msgstr "nicht vorgeschlagen"
 
-#: c3nav/editor/models/changeset.py:31
+#: c3nav/editor/models/changeset.py:32
 msgid "proposed"
 msgstr "vorgeschlagen"
 
-#: c3nav/editor/models/changeset.py:32
+#: c3nav/editor/models/changeset.py:33
 msgid "in review"
 msgstr "wird überprüft"
 
-#: c3nav/editor/models/changeset.py:33
+#: c3nav/editor/models/changeset.py:34
 msgid "rejected"
 msgstr "abgelehnt"
 
-#: c3nav/editor/models/changeset.py:34
+#: c3nav/editor/models/changeset.py:35
 msgid "proposed again"
 msgstr "erneut vorgeschlagen"
 
-#: c3nav/editor/models/changeset.py:35
+#: c3nav/editor/models/changeset.py:36
 msgid "finally rejected"
 msgstr "endgültig abgelehnt"
 
-#: c3nav/editor/models/changeset.py:36
+#: c3nav/editor/models/changeset.py:37
 msgid "accepted and applied"
 msgstr "akzeptiert und angewendet"
 
-#: c3nav/editor/models/changeset.py:40
+#: c3nav/editor/models/changeset.py:41
 msgid "last object change"
 msgstr "letzte Änderung eines Objects"
 
-#: c3nav/editor/models/changeset.py:42
+#: c3nav/editor/models/changeset.py:43
 msgid "last update"
 msgstr "letzte Anderung"
 
-#: c3nav/editor/models/changeset.py:44
+#: c3nav/editor/models/changeset.py:45
 msgid "last state update"
 msgstr "letzte Statusänderung"
 
-#: c3nav/editor/models/changeset.py:47 c3nav/mapdata/models/base.py:50
+#: c3nav/editor/models/changeset.py:48 c3nav/mapdata/models/base.py:50
 #: c3nav/mapdata/models/graph.py:34 c3nav/mapdata/models/locations.py:183
-#: c3nav/mapdata/utils/locations.py:296
+#: c3nav/mapdata/utils/locations.py:316
 msgid "Title"
 msgstr "Titel"
 
-#: c3nav/editor/models/changeset.py:48
+#: c3nav/editor/models/changeset.py:49
 msgid "Description"
 msgstr "Beschreibung"
 
-#: c3nav/editor/models/changeset.py:50
+#: c3nav/editor/models/changeset.py:51
 msgid "assigned to"
 msgstr "zugewiesen"
 
-#: c3nav/editor/models/changeset.py:51
+#: c3nav/editor/models/changeset.py:52
 msgid "map update"
 msgstr "Kartenupdate"
 
-#: c3nav/editor/models/changeset.py:56
+#: c3nav/editor/models/changeset.py:57
 msgid "Change Sets"
 msgstr "Änderungssets"
 
-#: c3nav/editor/models/changeset.py:684
+#: c3nav/editor/models/changeset.py:694
 msgid "Direct editing active"
 msgstr "Direktes Bearbeiten aktiv"
 
-#: c3nav/editor/models/changeset.py:685
+#: c3nav/editor/models/changeset.py:695
 msgid "No objects changed"
 msgstr "Keine Objekte geändert"
 
-#: c3nav/editor/models/changeset.py:686
+#: c3nav/editor/models/changeset.py:696
 #, python-format
 msgid "%(num)d object changed"
 msgid_plural "%(num)d objects changed"
@@ -827,7 +827,7 @@ msgstr "Einstellungen für neue Kanten"
 #: c3nav/editor/templates/editor/index.html:10
 #: c3nav/editor/templates/editor/level.html:16
 #: c3nav/mapdata/models/geometry/level.py:55 c3nav/mapdata/models/level.py:29
-#: c3nav/mapdata/utils/locations.py:281
+#: c3nav/mapdata/utils/locations.py:283
 msgid "Level"
 msgstr "Etage"
 
@@ -859,7 +859,7 @@ msgstr "Details anzeigen"
 #: c3nav/editor/templates/editor/space.html:9
 #: c3nav/mapdata/models/geometry/level.py:110
 #: c3nav/mapdata/models/geometry/space.py:66
-#: c3nav/mapdata/utils/locations.py:287
+#: c3nav/mapdata/utils/locations.py:289
 msgid "Space"
 msgstr "Raum"
 
@@ -932,7 +932,7 @@ msgstr "Änderungssets die du gerade überprüfts"
 
 #: c3nav/editor/templates/editor/user.html:64
 msgid "Change sets awaiting review"
-msgstr "Auf Überprüfung wartende Änderungssets "
+msgstr "Auf Überprüfung wartende Änderungssets"
 
 #: c3nav/editor/templates/editor/user.html:67
 msgid "All recent change sets"
@@ -1311,7 +1311,7 @@ msgstr "Zugangserlaubnis-Token"
 msgid "Access Permission"
 msgstr "Zugangserlaubnis"
 
-#: c3nav/mapdata/models/base.py:39 c3nav/mapdata/utils/locations.py:278
+#: c3nav/mapdata/models/base.py:39 c3nav/mapdata/utils/locations.py:280
 msgid "Type"
 msgstr "Typ"
 
@@ -1448,6 +1448,7 @@ msgid "Area"
 msgstr "Bereich"
 
 #: c3nav/mapdata/models/geometry/space.py:105
+#: c3nav/mapdata/utils/locations.py:295
 msgid "Areas"
 msgstr "Bereiche"
 
@@ -1658,7 +1659,7 @@ msgid "default height"
 msgstr "Standarddeckenhöhe"
 
 #: c3nav/mapdata/models/locations.py:45 c3nav/mapdata/models/locations.py:65
-#: c3nav/mapdata/utils/locations.py:280
+#: c3nav/mapdata/utils/locations.py:282
 msgid "Slug"
 msgstr "Slug"
 
@@ -1790,34 +1791,62 @@ msgstr[1] "%d Kartenupdates verarbeitet."
 msgid "Last processed update: %(date)s (#%(id)d)"
 msgstr "Letztes verarbeitetes Update: %(date)s (#%(id)d)"
 
-#: c3nav/mapdata/utils/locations.py:278
+#: c3nav/mapdata/utils/locations.py:280
 msgid "Coordinates"
 msgstr "Koordinaten"
 
-#: c3nav/mapdata/utils/locations.py:293
+#: c3nav/mapdata/utils/locations.py:301
+msgid "Near Area"
+msgstr "Naher Bereich"
+
+#: c3nav/mapdata/utils/locations.py:307
+msgid "Near POI"
+msgstr "Naher POI"
+
+#: c3nav/mapdata/utils/locations.py:313
 msgid "X Coordinate"
 msgstr "X-Koordinate"
 
-#: c3nav/mapdata/utils/locations.py:294
+#: c3nav/mapdata/utils/locations.py:314
 msgid "Y Coordinate"
 msgstr "Y-Koordinate"
 
-#: c3nav/mapdata/utils/locations.py:295
+#: c3nav/mapdata/utils/locations.py:315
 msgid "Altitude"
 msgstr "Höhe"
 
-#: c3nav/mapdata/utils/locations.py:297
+#: c3nav/mapdata/utils/locations.py:317
 msgid "Subtitle"
 msgstr "Untertitel"
 
-#: c3nav/mapdata/utils/locations.py:317
-msgid "Custom Location"
-msgstr "Benutzerdefinierter Ort"
+#: c3nav/mapdata/utils/locations.py:349
+msgid "Point"
+msgstr "Punkt"
 
-#: c3nav/mapdata/utils/locations.py:322
-#, python-brace-format
-msgid "{space}, {level}"
-msgstr "{space}, {level}"
+#: c3nav/mapdata/utils/locations.py:356
+#, python-format
+msgid "Point near %(poi)s"
+msgstr "Punkt nahe %(poi)s"
+
+#: c3nav/mapdata/utils/locations.py:360
+#, python-format
+msgid "near %(area)s"
+msgstr "nahe %(area)s"
+
+#: c3nav/mapdata/utils/locations.py:362
+#, python-format
+msgid "Point in %(area)s"
+msgstr "Punkt innerhalb %(area)s"
+
+#: c3nav/mapdata/utils/locations.py:366
+#, python-format
+msgid "Point near %(area)s"
+msgstr "Punkt nahe %(area)s"
+
+#: c3nav/mapdata/utils/locations.py:368
+#, python-format
+msgid "Point in %(space)s"
+msgstr "Punkt innerhalb %(space)s"
 
 #: c3nav/mapdata/utils/user.py:15
 msgid "not logged in"
@@ -1920,7 +1949,7 @@ msgstr "Invalider Wert für Routenoption %s."
 #: c3nav/routing/route.py:101
 #, python-format
 msgid "Go to %(space_title)s."
-msgstr "Betrete %(space_title)s"
+msgstr "Betrete %(space_title)s."
 
 #: c3nav/routing/route.py:116
 #, python-format
@@ -2072,6 +2101,12 @@ msgid "You have been invited to unlock the following area:"
 msgid_plural "You have been invited to unlock the following areas:"
 msgstr[0] "Du wurdest eingeladen, den folgenden Bereich freizuschalten:"
 msgstr[1] "Du wurdest eingeladen, die folgenden Bereiche freizuschalten:"
+
+#~ msgid "Custom Location"
+#~ msgstr "Benutzerdefinierter Ort"
+
+#~ msgid "{space}, {level}"
+#~ msgstr "{space}, {level}"
 
 #~ msgid "redeemed by"
 #~ msgstr "eingelöst von"
