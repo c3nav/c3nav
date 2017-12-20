@@ -258,10 +258,6 @@ class AccessRestrictionMixin(SerializableMixin, models.Model):
         return result
 
     @classmethod
-    def qs_for_request(cls, request, allow_none=False):
-        return cls.objects.filter(cls.q_for_request(request, allow_none=allow_none))
-
-    @classmethod
     def q_for_request(cls, request, prefix='', allow_none=False):
         if request is None and allow_none:
             return Q()

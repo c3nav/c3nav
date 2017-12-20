@@ -11,6 +11,7 @@ from django.utils.translation import ugettext_lazy as _
 from shapely.geometry import CAP_STYLE, JOIN_STYLE, mapping
 
 from c3nav.mapdata.fields import GeometryField, I18nField, JSONField
+from c3nav.mapdata.models import Space
 from c3nav.mapdata.models.base import SerializableMixin
 from c3nav.mapdata.models.geometry.base import GeometryMixin
 from c3nav.mapdata.models.locations import SpecificLocation
@@ -56,6 +57,13 @@ class SpaceGeometryMixin(GeometryMixin):
                                category=base_subtitle,
                                level=space.title)
         return base_subtitle
+
+    @classmethod
+    def q_for_request(cls, request, prefix='', allow_none=False):
+        return (
+            super().q_for_request(request, prefix=prefix, allow_none=allow_none) &
+            Space.q_for_request(request, prefix=prefix + 'space__', allow_none=allow_none)
+        )
 
     def register_change(self, force=True):
         space = self.space
@@ -277,6 +285,13 @@ class LeaveDescription(SerializableMixin):
     def title(self):
         return self.target_space.title
 
+    @classmethod
+    def q_for_request(cls, request, prefix='', allow_none=False):
+        return (
+            Space.q_for_request(request, prefix='space__', allow_none=allow_none) &
+            Space.q_for_request(request, prefix='target_space__', allow_none=allow_none)
+        )
+
 
 class CrossDescription(SerializableMixin):
     """
@@ -309,6 +324,14 @@ class CrossDescription(SerializableMixin):
     @cached_property
     def title(self):
         return '%s → %s' % (self.origin_space.title, self.target_space.title)
+
+    @classmethod
+    def q_for_request(cls, request, prefix='', allow_none=False):
+        return (
+            Space.q_for_request(request, prefix='space__', allow_none=allow_none) &
+            Space.q_for_request(request, prefix='origin_space__', allow_none=allow_none) &
+            Space.q_for_request(request, prefix='target_space__', allow_none=allow_none)
+        )
 
 
 class WifiMeasurement(SpaceGeometryMixin, models.Model):

@@ -80,6 +80,13 @@ class LevelGeometryMixin(GeometryMixin):
     def register_delete(self):
         changed_geometries.register(self.level_id, self.geometry)
 
+    @classmethod
+    def q_for_request(cls, request, prefix='', allow_none=False):
+        return (
+            super().q_for_request(request, prefix=prefix, allow_none=allow_none) &
+            Level.q_for_request(request, prefix=prefix+'level__', allow_none=allow_none)
+        )
+
     def save(self, *args, **kwargs):
         self.register_change()
         super().save(*args, **kwargs)
