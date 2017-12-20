@@ -114,8 +114,6 @@ class MapUpdate(models.Model):
                 else:
                     logger.info('%.3f m² affected by this update.' % new_changes.area)
                     changed_geometries.combine(new_changes)
-                new_update.processed = True
-                new_update.save()
 
             logger.info('%.3f m² of geometries affected in total.' % changed_geometries.area)
 
@@ -129,6 +127,10 @@ class MapUpdate(models.Model):
             logger.info('Rebuilding router...')
             from c3nav.routing.router import Router
             Router.rebuild()
+
+            for new_update in new_updates:
+                new_update.processed = True
+                new_update.save()
 
             transaction.on_commit(
                 lambda: cache.set('mapdata:last_processed_updatee', new_updates[-1].to_tuple, 300)
