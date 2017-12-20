@@ -42,6 +42,8 @@ class LevelRenderData:
     def __init__(self):
         self.levels = []
         self.base_altitude = None
+        self.lowest_important_level = None
+        self.darken_area = None
 
     @staticmethod
     def rebuild():
@@ -95,11 +97,24 @@ class LevelRenderData:
             # levels above them.
             crop_to = None
             primary_level_count = 0
+            main_level_passed = 0
+            lowest_important_level = None
             for sublevel in reversed(sublevels):
                 geoms = single_level_geoms[sublevel.pk]
 
                 if geoms.holes is not None:
                     primary_level_count += 1
+
+                # get lowest intermediate level directly below main level
+
+                if not main_level_passed:
+                    if geoms.pk == level.pk:
+                        main_level_passed = 1
+                else:
+                    if not sublevel.on_top_of_id:
+                        main_level_passed += 1
+                if main_level_passed < 2:
+                    lowest_important_level = sublevel
 
                 # set crop area if we area on the second primary layer from top or below
                 level_crop_to[sublevel.pk] = Cropper(crop_to if primary_level_count > 1 else None)
@@ -115,9 +130,11 @@ class LevelRenderData:
 
             render_data = LevelRenderData()
             render_data.base_altitude = level.base_altitude
+            render_data.lowest_important_level = lowest_important_level.pk
             access_restriction_affected = {}
 
             # go through sublevels, get their level geometries and crop them
+            lowest_important_level_passed = False
             for sublevel in sublevels:
                 try:
                     crop_to = level_crop_to[sublevel.pk]
@@ -125,6 +142,12 @@ class LevelRenderData:
                     break
 
                 old_geoms = single_level_geoms[sublevel.pk]
+
+                if render_data.lowest_important_level == sublevel.pk:
+                    lowest_important_level_passed = True
+
+                if old_geoms.holes and render_data.darken_area is None and lowest_important_level_passed:
+                    render_data.darken_area = old_geoms.holes
 
                 if crop_to.geometry is not None:
                     map_history.composite(MapHistory.open_level(sublevel.pk, 'base'), crop_to.geometry)

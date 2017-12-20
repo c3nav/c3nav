@@ -214,9 +214,13 @@ class SVGEngine(RenderEngine):
         else:
             self.altitudes[new_altitude] = new_geometry
 
+    def darken(self, area):
+        if area:
+            self.add_geometry(geometry=area, fill=FillAttribs('#000000', 0.1), category='darken')
+
     def _add_geometry(self, geometry, fill: Optional[FillAttribs], stroke: Optional[StrokeAttribs],
                       altitude=None, height=None, shape_cache_key=None, **kwargs):
-        geometry = self.buffered_bbox.intersection(geometry.geom)
+        geometry = self.buffered_bbox.intersection(geometry.geom if hasattr(geometry, 'geom') else geometry)
 
         if geometry.is_empty:
             return

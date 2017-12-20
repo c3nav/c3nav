@@ -70,6 +70,9 @@ class RenderEngine(ABC):
     def add_group(self, group):
         pass
 
+    def darken(self, area):
+        pass
+
     def add_geometry(self, geometry, fill: Optional[FillAttribs] = None, stroke: Optional[StrokeAttribs] = None,
                      altitude=None, height=None, shape_cache_key=None, category=None, item=None):
         # draw a shapely geometry with a given style
@@ -86,7 +89,7 @@ class RenderEngine(ABC):
 
     @abstractmethod
     def _add_geometry(self, geometry, fill: Optional[FillAttribs], stroke: Optional[StrokeAttribs],
-                      altitude=None, height=None, shape_cache_key=None, item=None):
+                      altitude=None, height=None, shape_cache_key=None, category=None, item=None):
         pass
 
     def set_mesh_lookup_data(self, data):
