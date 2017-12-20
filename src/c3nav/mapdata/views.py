@@ -79,7 +79,7 @@ def tile(request, level, zoom, x, y, access_permissions=None):
             access_permissions = set()
         else:
             access_permissions = parse_tile_access_cookie(cookie, settings.SECRET_TILE_KEY)
-            access_permissions &= set(level_data.restrictions[minx:miny, maxx:maxy])
+            access_permissions &= set(level_data.restrictions[minx:maxx, miny:maxy])
     else:
         access_permissions = set(int(i) for i in access_permissions.split('-')) - set([0])
 
