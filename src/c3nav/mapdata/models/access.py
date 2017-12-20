@@ -28,6 +28,11 @@ class AccessRestriction(TitledMixin, models.Model):
         verbose_name_plural = _('Access Restrictions')
         default_related_name = 'accessrestrictions'
 
+    def _serialize(self, **kwargs):
+        result = super()._serialize(**kwargs)
+        result['groups'] = tuple(group.pk for group in self.groups.all())
+        return result
+
     @classmethod
     def qs_for_request(cls, request):
         return cls.objects.filter(cls.q_for_request(request))

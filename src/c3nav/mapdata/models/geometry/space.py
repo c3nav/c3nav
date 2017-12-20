@@ -11,6 +11,7 @@ from django.utils.translation import ugettext_lazy as _
 from shapely.geometry import CAP_STYLE, JOIN_STYLE, mapping
 
 from c3nav.mapdata.fields import GeometryField, I18nField, JSONField
+from c3nav.mapdata.models.base import SerializableMixin
 from c3nav.mapdata.models.geometry.base import GeometryMixin
 from c3nav.mapdata.models.locations import SpecificLocation
 from c3nav.mapdata.utils.cache.changes import changed_geometries
@@ -247,7 +248,7 @@ class AltitudeMarker(SpaceGeometryMixin, models.Model):
         return '%s (%sm)' % (super().title, self.altitude)
 
 
-class LeaveDescription(models.Model):
+class LeaveDescription(SerializableMixin):
     """
     A description for leaving a space to another space
     """
@@ -264,12 +265,20 @@ class LeaveDescription(models.Model):
             ('space', 'target_space')
         )
 
+    def _serialize(self, **kwargs):
+        result = super()._serialize(**kwargs)
+        result['space'] = self.space_id
+        result['target_space'] = self.target_space_id
+        result['description_i18n'] = self.description_i18n
+        result['description'] = self.description
+        return result
+
     @cached_property
     def title(self):
         return self.target_space.title
 
 
-class CrossDescription(models.Model):
+class CrossDescription(SerializableMixin):
     """
     A description for crossing a space from one space to another space
     """
@@ -287,6 +296,15 @@ class CrossDescription(models.Model):
         unique_together = (
             ('space', 'origin_space', 'target_space')
         )
+
+    def _serialize(self, **kwargs):
+        result = super()._serialize(**kwargs)
+        result['space'] = self.space_id
+        result['origin_space'] = self.origin_space_id
+        result['target_space'] = self.target_space_id
+        result['description_i18n'] = self.description_i18n
+        result['description'] = self.description
+        return result
 
     @cached_property
     def title(self):

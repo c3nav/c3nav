@@ -18,10 +18,10 @@ from rest_framework.response import Response
 from rest_framework.viewsets import GenericViewSet, ReadOnlyModelViewSet, ViewSet
 
 from c3nav.mapdata.models import AccessRestriction, Building, Door, Hole, LocationGroup, MapUpdate, Source, Space
-from c3nav.mapdata.models.access import AccessPermission
+from c3nav.mapdata.models.access import AccessPermission, AccessRestrictionGroup
 from c3nav.mapdata.models.geometry.level import LevelGeometryMixin
-from c3nav.mapdata.models.geometry.space import (POI, Area, Column, LineObstacle, Obstacle, Ramp, SpaceGeometryMixin,
-                                                 Stair)
+from c3nav.mapdata.models.geometry.space import (POI, Area, Column, CrossDescription, LeaveDescription, LineObstacle,
+                                                 Obstacle, Ramp, SpaceGeometryMixin, Stair)
 from c3nav.mapdata.models.level import Level
 from c3nav.mapdata.models.locations import (Location, LocationGroupCategory, LocationRedirect, LocationSlug,
                                             SpecificLocation)
@@ -36,6 +36,8 @@ def optimize_query(qs):
     if issubclass(qs.model, SpecificLocation):
         base_qs = LocationGroup.objects.select_related('category')
         qs = qs.prefetch_related(Prefetch('groups', queryset=base_qs))
+    if issubclass(qs.model, AccessRestriction):
+        qs = qs.prefetch_related('groups')
     return qs
 
 
@@ -262,6 +264,14 @@ class POIViewSet(MapdataViewSet):
     queryset = POI.objects.all()
 
 
+class LeaveDescriptionViewSet(MapdataViewSet):
+    queryset = LeaveDescription.objects.all()
+
+
+class CrossDescriptionViewSet(MapdataViewSet):
+    queryset = CrossDescription.objects.all()
+
+
 class LocationGroupCategoryViewSet(MapdataViewSet):
     queryset = LocationGroupCategory.objects.all()
 
@@ -388,6 +398,10 @@ class SourceViewSet(MapdataViewSet):
 
 class AccessRestrictionViewSet(MapdataViewSet):
     queryset = AccessRestriction.objects.all()
+
+
+class AccessRestrictionGroupViewSet(MapdataViewSet):
+    queryset = AccessRestrictionGroup.objects.all()
 
 
 class UserViewSet(GenericViewSet):
