@@ -168,7 +168,7 @@ class TileServer:
             if cookie:
                 cookie = cookie.group(2)
                 access_permissions = (parse_tile_access_cookie(cookie, self.tile_secret) &
-                                      set(level_data.restrictions[minx:miny, maxx:maxy]))
+                                      set(level_data.restrictions[minx:maxx, miny:maxy]))
                 access_cache_key = build_access_cache_key(access_permissions)
 
         # check browser cache
