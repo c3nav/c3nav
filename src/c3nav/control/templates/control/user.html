@@ -75,7 +75,7 @@
                     <th>{% trans 'key' %}</th>
                     <th></th>
                 </tr>
-                {% for permission in user.accesspermissions.all %}
+                {% for permission in access_permissions %}
                     <tr>
                         <td>
                             {% if permission.author %}
