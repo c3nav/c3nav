@@ -12,12 +12,13 @@ from django.db import transaction
 from django.db.models import Prefetch
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
+from django.utils import timezone
 from django.utils.crypto import get_random_string
 from django.utils.translation import ugettext_lazy as _
 
 from c3nav.control.forms import AccessPermissionForm, AnnouncementForm, UserPermissionsForm
 from c3nav.control.models import UserPermissions
-from c3nav.mapdata.models.access import AccessPermission, AccessPermissionToken
+from c3nav.mapdata.models.access import AccessPermission, AccessPermissionToken, AccessRestriction
 from c3nav.site.models import Announcement
 
 
@@ -140,18 +141,52 @@ def user_detail(request, user):
         })
 
     # access permissions
-    if request.method == 'POST' and request.POST.get('submit_access_permissions'):
-        form = AccessPermissionForm(request=request, data=request.POST)
-        if form.is_valid():
-            form.get_token().redeem(user)
-            messages.success(request, _('Access permissions successfully granted.'))
-            return redirect(request.path_info)
+    now = timezone.now()
+    restriction = request.GET.get('restriction')
+    if restriction and restriction.isdigit():
+        restriction = get_object_or_404(AccessRestriction, pk=restriction)
+        permissions = user.accesspermissions.filter(access_restriction=restriction).order_by('expire_date')
+        for permission in permissions:
+            permission.expired = permission.expire_date and permission.expire_date >= now
+        ctx.update({
+            'access_restriction': restriction,
+            'access_permissions': user.accesspermissions.filter(
+                access_restriction=restriction
+            ).order_by('expire_date')
+        })
     else:
-        form = AccessPermissionForm(request=request)
+        if request.method == 'POST' and request.POST.get('submit_access_permissions'):
+            form = AccessPermissionForm(request=request, data=request.POST)
+            if form.is_valid():
+                form.get_token().redeem(user)
+                messages.success(request, _('Access permissions successfully granted.'))
+                return redirect(request.path_info)
+        else:
+            form = AccessPermissionForm(request=request)
 
-    ctx.update({
-        'access_permission_form': form
-    })
+        access_permissions = {}
+        for permission in user.accesspermissions.select_related('access_restriction'):
+            access_permissions.setdefault(permission.access_restriction_id, []).append(permission)
+        access_permissions = tuple(
+            {
+                'pk': pk,
+                'title': permissions[0].access_restriction.title,
+                'can_grant': any(item.can_grant for item in permissions),
+                'expire_date': set(item.expire_date for item in permissions),
+            } for pk, permissions in access_permissions.items()
+        )
+        for permission in access_permissions:
+            permission['expire_date'] = None if None in permission['expire_date'] else max(permission['expire_date'])
+            permission['expired'] = permission['expire_date'] and permission['expire_date'] >= now
+        access_permissions = tuple(sorted(
+            access_permissions,
+            key=lambda permission: (1, 0) if permission['expire_date'] is None else (0, permission['expire_date']),
+            reverse=True
+        ))
+        ctx.update({
+            'access_permissions': access_permissions,
+            'access_permission_form': form
+        })
 
     return render(request, 'control/user.html', ctx)
 

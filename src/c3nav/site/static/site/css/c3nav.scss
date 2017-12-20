@@ -865,7 +865,7 @@ main.control form tr > * {
     padding-bottom: 4px;
     text-align: right;
 }
-.button-cell button {
+.button-cell button, .button-cell .button {
     margin: 0;
 }
 
@@ -914,4 +914,11 @@ main .narrow form button {
 }
 button + button {
     margin-left: 5px;
+}
+
+.red {
+    color: #9c0900;
+}
+.green {
+    color: #28b62c;
 }

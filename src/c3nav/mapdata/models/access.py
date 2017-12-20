@@ -152,6 +152,14 @@ class AccessPermission(models.Model):
         return 'mapdata:user_access_permission:%d' % user_id
 
     @classmethod
+    def queryset_for_user(cls, user, can_grant=None):
+        return user.accesspermissions.filter(
+            Q(expire_date__isnull=True) | Q(expire_date__gt=timezone.now())
+        ).filter(
+            Q(can_grant=True) if can_grant is not None else Q()
+        )
+
+    @classmethod
     def get_for_request_with_expire_date(cls, request, can_grant=None):
         if not request.user.is_authenticated:
             return {}
@@ -159,11 +167,9 @@ class AccessPermission(models.Model):
         if request.user_permissions.grant_all_access:
             return {pk: None for pk in cls.get_all_access_restrictions()}
 
-        result = tuple(request.user.accesspermissions.filter(
-            Q(expire_date__isnull=True) | Q(expire_date__gt=timezone.now())
-        ).filter(
-            Q(can_grant=True) if can_grant is not None else Q()
-        ).values_list('access_restriction_id', 'expire_date'))
+        result = tuple(
+            cls.queryset_for_user(request.user, can_grant).values_list('access_restriction_id', 'expire_date')
+        )
 
         # collect permissions (can be multiple for one restriction)
         permissions = {}
