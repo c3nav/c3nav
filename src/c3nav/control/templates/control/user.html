@@ -57,6 +57,8 @@
     {% endif %}
 
     <h4>{% trans 'Access Permissions' %}</h4>
+    {% trans 'Add' as button_label %}
+    {% include 'control/fragment_access_permissions_form.html' with button_label=button_label %}
     {% if user.accesspermissions.all %}
         <form method="post">
         {% csrf_token %}
@@ -90,6 +92,4 @@
     {% else %}
         <p><em>{% trans 'none' %}</em></p>
     {% endif %}
-    {% trans 'Add' as button_label %}
-    {% include 'control/fragment_access_permissions_form.html' with button_label=button_label %}
 {% endblock %}
