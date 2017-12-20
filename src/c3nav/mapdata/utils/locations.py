@@ -61,16 +61,34 @@ def locations_for_request(request) -> Mapping[int, LocationSlug]:
                 group.locations.append(obj)
 
     # add levels to spaces
+    remove_pks = set()
     levels = {pk: obj for pk, obj in locations.items() if isinstance(obj, Level)}
-    for obj in locations.values():
+    for pk, obj in locations.keys():
         if isinstance(obj, LevelGeometryMixin):
-            obj._level_cache = levels.get(obj.level_id, None)
+            level = levels.get(obj.level_id, None)
+            if level is None:
+                remove_pks.add(pk)
+                continue
+            obj._level_cache = level
+
+    # hide spaces on hidden levels
+    for pk in remove_pks:
+        locations.pop(pk)
 
     # add spaces to areas and POIs
+    remove_pks = set()
     spaces = {pk: obj for pk, obj in locations.items() if isinstance(obj, Space)}
     for obj in locations.values():
         if isinstance(obj, SpaceGeometryMixin):
-            obj._space_cache = spaces.get(obj.space_id, None)
+            space = spaces.get(obj.space_id, None)
+            if space is None:
+                remove_pks.add(pk)
+                continue
+            obj._space_cache = space
+
+    # hide locations on hidden spaces
+    for pk in remove_pks:
+        locations.pop(pk)
 
     # add targets to LocationRedirects
     levels = {pk: obj for pk, obj in locations.items() if isinstance(obj, Level)}
