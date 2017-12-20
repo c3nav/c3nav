@@ -79,7 +79,7 @@ def user_detail(request, user):
                         messages.success(request, _('Access Permission successfully deleted.'))
                     else:
                         messages.error(request, _('You cannot delete this Access Permission.'))
-                return redirect(request.path_info)
+                return redirect(request.path_info+'?restriction='+str(permission.pk)+'#access')
 
         api_secret_action = request.POST.get('api_secret')
         if (api_secret_action and (request.user_permissions.grant_permissions or
