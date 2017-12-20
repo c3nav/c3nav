@@ -1,6 +1,7 @@
 from decimal import Decimal
 
 from django.conf import settings
+from django.core.exceptions import ObjectDoesNotExist
 from django.core.validators import MinValueValidator
 from django.db import models
 from django.urls import reverse
@@ -24,7 +25,10 @@ class SpaceGeometryMixin(GeometryMixin):
 
     @cached_property
     def level_id(self):
-        return self.space.level_id
+        try:
+            return self.space.level_id
+        except ObjectDoesNotExist:
+            return None
 
     def get_geojson_properties(self, *args, instance=None, **kwargs) -> dict:
         result = super().get_geojson_properties(*args, **kwargs)
