@@ -518,7 +518,13 @@ class ChangeSet(models.Model):
         self.last_update = update
         self.last_state_update = update
         self.save()
-        send_changeset_proposed_notification.delay(changeset=self)
+        self.notify_reviewers()
+
+    def notify_reviewers(self):
+        send_changeset_proposed_notification.delay(pk=self.pk,
+                                                   title=self.title,
+                                                   author=self.author.username,
+                                                   description=self.description)
 
     def unpropose(self, user):
         new_state = {'proposed': 'unproposed', 'reproposed': 'rejected'}[self.state]
