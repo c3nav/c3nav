@@ -152,35 +152,52 @@ class AccessPermission(models.Model):
         return 'mapdata:user_access_permission:%d' % user_id
 
     @classmethod
+    def get_for_request_with_expire_date(cls, request, can_grant=None):
+        if not request.user.is_authenticated:
+            return {}
+
+        if request.user_permissions.grant_all_access:
+            return {pk: None for pk in cls.get_all_access_restrictions()}
+
+        result = tuple(request.user.accesspermissions.filter(
+            Q(expire_date__isnull=True) | Q(expire_date__gt=timezone.now())
+        ).filter(
+            Q(can_grant=True) if can_grant is not None else Q()
+        ).values_list('access_restriction_id', 'expire_date'))
+
+        # collect permissions (can be multiple for one restriction)
+        permissions = {}
+        for access_restriction_id, expire_date in result:
+            permissions.setdefault(access_restriction_id, set()).add(expire_date)
+
+        # get latest expire date for each permission
+        permissions = {
+            access_restriction_id: None if None in expire_dates else max(expire_dates)
+            for access_restriction_id, expire_dates in permissions.items()
+        }
+        return permissions
+
+    @staticmethod
+    def get_all_access_restrictions():
+        cache_key = 'all_access_restrictions:%s' % MapUpdate.current_cache_key()
+        access_restriction_ids = cache.get(cache_key, None)
+        if access_restriction_ids is None:
+            access_restriction_ids = set(AccessRestriction.objects.values_list('pk', flat=True))
+            cache.set(cache_key, access_restriction_ids, 300)
+        return access_restriction_ids
+
+    @classmethod
     def get_for_request(cls, request):
         if not request.user.is_authenticated:
             return set()
 
         if request.user_permissions.grant_all_access:
-            cache_key = 'all_access_restrictions:%s' % MapUpdate.current_cache_key()
-            access_restriction_ids = cache.get(cache_key, None)
-            if access_restriction_ids is None:
-                access_restriction_ids = set(AccessRestriction.objects.values_list('pk', flat=True))
-                cache.set(cache_key, access_restriction_ids, 300)
-            return access_restriction_ids
+            return cls.get_all_access_restrictions()
 
         cache_key = cls.user_access_permission_key(request.user.pk)
         access_restriction_ids = cache.get(cache_key, None)
         if access_restriction_ids is None:
-            result = tuple(request.user.accesspermissions.filter(
-                Q(expire_date__isnull=True) | Q(expire_date__gt=timezone.now())
-            ).values_list('access_restriction_id', 'expire_date'))
-
-            # collect permissions (can be multiple for one restriction)
-            permissions = {}
-            for access_restriction_id, expire_date in result:
-                permissions.setdefault(access_restriction_id, set()).add(expire_date)
-
-            # get latest expire date for each permission
-            permissions = {
-                access_restriction_id: None if None in expire_dates else max(expire_dates)
-                for access_restriction_id, expire_dates in permissions.items()
-            }
+            permissions = cls.get_for_request_with_expire_date(request)
 
             access_restriction_ids = set(permissions.keys())
 

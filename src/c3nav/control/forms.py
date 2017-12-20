@@ -8,7 +8,6 @@ from itertools import chain
 
 import pytz
 from django.contrib.auth.models import User
-from django.db.models import Q
 from django.forms import ChoiceField, Form, ModelForm
 from django.utils import timezone
 from django.utils.translation import ugettext_lazy as _
@@ -16,7 +15,8 @@ from django.utils.translation import ungettext_lazy
 
 from c3nav.control.models import UserPermissions
 from c3nav.mapdata.forms import I18nModelFormMixin
-from c3nav.mapdata.models.access import AccessPermissionToken, AccessPermissionTokenItem, AccessRestriction
+from c3nav.mapdata.models.access import (AccessPermission, AccessPermissionToken, AccessPermissionTokenItem,
+                                         AccessRestriction, AccessRestrictionGroup)
 from c3nav.site.models import Announcement
 
 
@@ -37,18 +37,11 @@ class AccessPermissionForm(Form):
         self.expire_date = expire_date
 
         # determine which access permissions the author can grant
-        if not author_permissions.grant_all_access:
-            self.author_access_permissions = {
-                pk: expire_date for pk, expire_date in self.author.accesspermissions.filter(
-                    Q(can_grant=True) & (Q(expire_date__isnull=True) | Q(expire_date__lt=timezone.now()))
-                ).values_list('access_restriction_id', 'expire_date')
-            }
-            access_restrictions = AccessRestriction.objects.filter(
-                pk__in=self.author_access_permissions.keys()
-            )
-        else:
-            self.author_access_permissions = {}
-            access_restrictions = AccessRestriction.objects.all()
+        self.author_access_permissions = AccessPermission.get_for_request_with_expire_date(request, can_grant=True)
+
+        access_restrictions = AccessRestriction.objects.filter(
+            pk__in=self.author_access_permissions.keys()
+        )
 
         self.access_restrictions = {
             access_restriction.pk: access_restriction
