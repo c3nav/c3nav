@@ -21,6 +21,7 @@ class AccessRestriction(TitledMixin, models.Model):
     An access restriction
     """
     open = models.BooleanField(default=False, verbose_name=_('open'))
+    groups = models.ManyToManyField('mapdata.AccessRestrictionGroup', verbose_name=_('Groups'), blank=True)
 
     class Meta:
         verbose_name = _('Access Restriction')
@@ -36,6 +37,27 @@ class AccessRestriction(TitledMixin, models.Model):
         if request.user.is_authenticated and request.user.is_superuser:
             return Q()
         return Q(pk__in=AccessPermission.get_for_request(request))
+
+
+class AccessRestrictionGroup(TitledMixin, models.Model):
+    """
+    An access restriction group
+    """
+    class Meta:
+        verbose_name = _('Access Restriction Group')
+        verbose_name_plural = _('Access Restriction Groups')
+        default_related_name = 'accessrestrictiongroups'
+
+    @classmethod
+    def qs_for_request(cls, request):
+        return cls.objects.filter(cls.q_for_request(request))
+
+    @classmethod
+    def q_for_request(cls, request):
+        if request.user.is_authenticated and request.user.is_superuser:
+            return Q()
+        permissions = AccessPermission.get_for_request(request)
+        return Q(Q(accessrestrictions=None) | Q(accessrestrictions__pk__in=permissions))
 
 
 def default_valid_until():

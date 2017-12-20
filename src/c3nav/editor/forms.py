@@ -39,7 +39,13 @@ class EditorFormBase(I18nModelFormMixin, ModelForm):
             if not creating:
                 self.initial['geometry'] = json.dumps(mapping(self.instance.geometry), separators=(',', ':'))
 
-        if 'groups' in self.fields:
+        if self._meta.model.__name__ == 'AccessRestriction':
+            AccessRestrictionGroup = self.request.changeset.wrap_model('AccessRestrictionGroup')
+
+            self.fields['groups'].label_from_instance = lambda obj: obj.title
+            self.fields['groups'].queryset = AccessRestrictionGroup.qs_for_request(self.request)
+
+        elif 'groups' in self.fields:
             LocationGroupCategory = self.request.changeset.wrap_model('LocationGroupCategory')
 
             kwargs = {'allow_'+self._meta.model._meta.default_related_name: True}
