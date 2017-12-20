@@ -166,17 +166,19 @@ class EditorFormBase(I18nModelFormMixin, ModelForm):
 
     def _save_m2m(self):
         super()._save_m2m()
-        try:
-            field = self._meta.model._meta.get_field('groups')
-        except FieldDoesNotExist:
-            pass
-        else:
-            if field.many_to_many:
-                groups = reduce(operator.or_, (set(value) for name, value in self.cleaned_data.items()
-                                               if name.startswith('groups_')), set())
-                groups |= set(value for name, value in self.cleaned_data.items() if name.startswith('group_') and value)
-                groups = tuple((int(val) if val.isdigit() else val) for val in groups)
-                self.instance.groups.set(groups)
+        if self._meta.model.__name__ != 'AccessRestriction':
+            try:
+                field = self._meta.model._meta.get_field('groups')
+            except FieldDoesNotExist:
+                pass
+            else:
+                if field.many_to_many:
+                    groups = reduce(operator.or_, (set(value) for name, value in self.cleaned_data.items()
+                                                   if name.startswith('groups_')), set())
+                    groups |= set(value for name, value in self.cleaned_data.items()
+                                  if name.startswith('group_') and value)
+                    groups = tuple((int(val) if val.isdigit() else val) for val in groups)
+                    self.instance.groups.set(groups)
 
 
 def create_editor_form(editor_model):
