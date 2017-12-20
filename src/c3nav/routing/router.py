@@ -6,6 +6,7 @@ import threading
 from collections import deque, namedtuple
 from functools import reduce
 from itertools import chain
+from typing import Optional
 
 import numpy as np
 from django.conf import settings
@@ -297,7 +298,7 @@ class Router:
             raise LocationUnreachable
         return result
 
-    def space_for_point(self, level, point, restrictions=None):
+    def space_for_point(self, level, point, restrictions) -> Optional['RouterSpace']:
         point = Point(point.x, point.y)
         level = self.levels[level]
         excluded_spaces = restrictions.spaces if restrictions else ()
@@ -314,9 +315,15 @@ class Router:
         return min(spaces, key=operator.itemgetter(1))[0]
 
     def describe_custom_location(self, location):
-        space = self.space_for_point(location.level.pk, location, self.get_restrictions(location.permissions))
-        altitude = space.altitudearea_for_point(location).get_altitude(location) if space else None
-        return CustomLocationDescription(space=space, altitude=altitude)
+        restrictions = self.get_restrictions(location.permissions)
+        space = self.space_for_point(level=location.level.pk, point=location, restrictions=restrictions)
+        if not space:
+            return CustomLocationDescription(space=space, altitude=None, areas=None, near_area=None, near_poi=None)
+        altitude = space.altitudearea_for_point(location).get_altitude(location)
+        areas, near_area = space.areas_for_point(areas=self.areas, point=location, restrictions=restrictions)
+        near_poi = space.poi_for_point(pois=self.pois, point=location, restrictions=restrictions)
+        return CustomLocationDescription(space=space, altitude=altitude,
+                                         areas=areas, near_area=near_area, near_poi=near_poi)
 
     def shortest_path(self, restrictions, options):
         options_key = json.dumps(options.data, separators=(',', '='), sort_keys=True)[1:-1]
@@ -419,7 +426,8 @@ class Router:
                      origin_addition, destination_addition, origin_xyz, destination_xyz)
 
 
-CustomLocationDescription = namedtuple('CustomLocationDescription', ('space', 'altitude'))
+CustomLocationDescription = namedtuple('CustomLocationDescription', ('space', 'altitude',
+                                                                     'areas', 'near_area', 'near_poi'))
 
 
 class BaseRouterProxy:
@@ -465,22 +473,22 @@ class RouterSpace(BaseRouterProxy):
                 return area
         return min(self.altitudeareas, key=lambda area: area.geometry.distance(point))
 
-    def areas_for_point(self, areas, point, restrictions=None):
+    def areas_for_point(self, areas, point, restrictions):
         point = Point(point.x, point.y)
         areas = {pk: area for pk, area in areas.items()
                  if pk in self.areas and area.can_describe and area.access_restriction_id not in restrictions}
 
         contained = tuple(area for area in areas.values() if area.geometry_prep.contains(point))
         if contained:
-            return tuple((area, True) for area in sorted(contained, key=lambda area: area.geometry.area))
+            return tuple(sorted(contained, key=lambda area: area.geometry.area)), ()
 
         near = ((area, area.geometry.distance(point)) for area in areas.values())
         near = tuple((area, distance) for area, distance in near if distance < 5)
         if not near:
-            return ()
-        return ((min(near, key=operator.itemgetter(1))[0], False), )
+            return (), ()
+        return (), (min(near, key=operator.itemgetter(1))[0], )
 
-    def poi_for_point(self, pois, point, restrictions=None):
+    def poi_for_point(self, pois, point, restrictions):
         point = Point(point.x, point.y)
         pois = {pk: poi for pk, poi in pois.items()
                 if pk in self.pois and poi.can_describe and poi.access_restriction_id not in restrictions}

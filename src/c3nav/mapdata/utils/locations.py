@@ -10,7 +10,6 @@ from django.apps import apps
 from django.core.cache import cache
 from django.db.models import Prefetch, Q
 from django.utils.functional import cached_property
-from django.utils.text import format_lazy
 from django.utils.translation import ugettext_lazy as _
 from shapely.ops import cascaded_union
 
@@ -313,13 +312,47 @@ class CustomLocation:
         return self.description.altitude
 
     @cached_property
+    def areas(self):
+        return self.description.areas
+
+    @cached_property
+    def near_area(self):
+        return self.description.near_area
+
+    @cached_property
+    def near_poi(self):
+        return self.description.near_poi
+
+    @cached_property
+    def title_subtitle(self):
+        title = _('Point')
+        print(self.space)
+        if not self.space:
+            return title, self.level.title,
+
+        subtitle = ()
+        if self.near_poi:
+            title = _('Point near %(poi)s') % {'poi': self.near_poi.title}
+            if self.areas:
+                subtitle = (area.title for area in self.areas[:2])
+            elif self.near_area:
+                subtitle = (_('near %(area)s') % {'area': self.near_area.title}, )
+        elif self.areas:
+            title = _('Point in %(area)s') % {'area': self.areas[0].title}
+            if self.areas:
+                subtitle = (area.title for area in self.areas[1:2])
+        elif self.near_area:
+            title = _('Point near %(area)s') % {'area': self.near_area.title}
+        else:
+            return _('Point in %(space)s') % {'space': self.space.title}, self.level.title
+
+        subtitle = ', '.join(str(title) for title in chain(subtitle, (self.space.title, self.level.title)))
+        return title, subtitle
+
+    @cached_property
     def title(self):
-        return _('Custom Location')
+        return self.title_subtitle[0]
 
     @cached_property
     def subtitle(self):
-        if self.space and self.space.can_describe:
-            return format_lazy(_('{space}, {level}'),
-                               space=self.space.title,
-                               level=self.level.title)
-        return self.level.title
+        return self.title_subtitle[1]
