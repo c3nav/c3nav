@@ -97,7 +97,11 @@ class Router:
                     node.i = i
                 nodes.extend(space_nodes)
 
-                for area in space.areas.all():
+                space_obj = space
+                space = RouterSpace(space)
+                space.nodes = set(node.i for node in space_nodes)
+
+                for area in space_obj.areas.all():
                     for group in area.groups.all():
                         groups.setdefault(group.pk, {}).setdefault('areas', set()).add(area.pk)
                     area._prefetched_objects_cache = {}
@@ -108,10 +112,23 @@ class Router:
                     for node in area_nodes:
                         node.areas.add(area.pk)
                     areas[area.pk] = area
+                    space.areas.add(area.pk)
 
-                space._prefetched_objects_cache = {}
-                space = RouterSpace(space)
-                space.nodes = set(node.i for node in space_nodes)
+                for poi in space_obj.pois.all():
+                    for group in poi.groups.all():
+                        groups.setdefault(group.pk, {}).setdefault('pois', set()).add(poi.pk)
+                    poi._prefetched_objects_cache = {}
+
+                    poi = RouterPoint(poi)
+                    altitudearea = space.altitudearea_for_point(poi.geometry)
+                    poi.altitude = altitudearea.get_altitude(poi.geometry)
+                    poi_nodes = altitudearea.nodes_for_point(poi.geometry, all_nodes=nodes)
+                    poi.nodes = set(i for i in poi_nodes.keys())
+                    poi.nodes_addition = poi_nodes
+                    pois[poi.pk] = poi
+                    space.pois.add(poi.pk)
+
+                space_obj._prefetched_objects_cache = {}
 
                 for area in level.altitudeareas.all():
                     if not space.geometry_prep.intersects(area.geometry):
@@ -149,19 +166,6 @@ class Router:
                                 fallback_node,
                                 RouterEdge(fallback_node, nearest_node, 0)
                             )
-
-                for poi in space.pois.all():
-                    for group in poi.groups.all():
-                        groups.setdefault(group.pk, {}).setdefault('pois', set()).add(poi.pk)
-                    poi._prefetched_objects_cache = {}
-
-                    poi = RouterPoint(poi)
-                    altitudearea = space.altitudearea_for_point(poi.geometry)
-                    poi.altitude = altitudearea.get_altitude(poi.geometry)
-                    poi_nodes = altitudearea.nodes_for_point(poi.geometry, all_nodes=nodes)
-                    poi.nodes = set(i for i in poi_nodes.keys())
-                    poi.nodes_addition = poi_nodes
-                    pois[poi.pk] = poi
 
                 space.src.geometry = accessible_geom
 
@@ -448,6 +452,8 @@ class RouterLevel(BaseRouterProxy):
 class RouterSpace(BaseRouterProxy):
     def __init__(self, space, altitudeareas=None):
         super().__init__(space)
+        self.areas = set()
+        self.pois = set()
         self.altitudeareas = altitudeareas if altitudeareas else []
         self.leave_descriptions = {}
         self.cross_descriptions = {}
@@ -458,6 +464,32 @@ class RouterSpace(BaseRouterProxy):
             if area.geometry_prep.intersects(point):
                 return area
         return min(self.altitudeareas, key=lambda area: area.geometry.distance(point))
+
+    def areas_for_point(self, areas, point, restrictions=None):
+        point = Point(point.x, point.y)
+        areas = {pk: area for pk, area in areas.items()
+                 if pk in self.areas and area.can_describe and area.access_restriction_id not in restrictions}
+
+        contained = tuple(area for area in areas.values() if area.geometry_prep.contains(point))
+        if contained:
+            return tuple((area, True) for area in sorted(contained, key=lambda area: area.geometry.area))
+
+        near = ((area, area.geometry.distance(point)) for area in areas.values())
+        near = tuple((area, distance) for area, distance in near if distance < 5)
+        if not near:
+            return ()
+        return ((min(near, key=operator.itemgetter(1))[0], False), )
+
+    def poi_for_point(self, pois, point, restrictions=None):
+        point = Point(point.x, point.y)
+        pois = {pk: poi for pk, poi in pois.items()
+                if pk in self.pois and poi.can_describe and poi.access_restriction_id not in restrictions}
+
+        near = ((poi, poi.geometry.distance(point)) for poi in pois.values())
+        near = tuple((poi, distance) for poi, distance in near if distance < 5)
+        if not near:
+            return None
+        return min(near, key=operator.itemgetter(1))[0]
 
 
 class RouterArea(BaseRouterProxy):
