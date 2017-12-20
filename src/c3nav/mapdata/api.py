@@ -411,6 +411,11 @@ class UserViewSet(GenericViewSet):
     """
     @list_route(methods=['get'])
     def current(self, request, key=None):
+        try:
+            cache.incr('api_user_current_requests')
+        except ValueError:
+            cache.set('api_user_current_requests', 0, None)
+
         response = Response(get_user_data(request))
         set_tile_access_cookie(request, response)
         return response
