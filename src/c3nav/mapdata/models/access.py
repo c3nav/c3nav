@@ -34,8 +34,6 @@ class AccessRestriction(TitledMixin, models.Model):
 
     @classmethod
     def q_for_request(cls, request):
-        if request.user.is_authenticated and request.user.is_superuser:
-            return Q()
         return Q(pk__in=AccessPermission.get_for_request(request))
 
 
@@ -157,6 +155,14 @@ class AccessPermission(models.Model):
     def get_for_request(cls, request):
         if not request.user.is_authenticated:
             return set()
+
+        if request.user_permissions.grant_all_access:
+            cache_key = 'all_access_restrictions:%s' % MapUpdate.current_cache_key()
+            access_restriction_ids = cache.get(cache_key, None)
+            if access_restriction_ids is None:
+                access_restriction_ids = set(AccessRestriction.objects.values_list('pk', flat=True))
+                cache.set(cache_key, access_restriction_ids, 300)
+            return access_restriction_ids
 
         cache_key = cls.user_access_permission_key(request.user.pk)
         access_restriction_ids = cache.get(cache_key, None)
