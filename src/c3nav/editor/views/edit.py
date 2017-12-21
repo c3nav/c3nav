@@ -236,7 +236,7 @@ def edit(request, pk=None, model=None, level=None, space=None, on_top_of=None, e
             'nozoom': True
         })
 
-    if new and model.__name__ == 'WifiMeasurements' and not request.user.is_authenticated:
+    if new and model.__name__ == 'WifiMeasurement' and not request.user.is_authenticated:
         messages.info(request, _('You need to log in to create Wifi Measurements.'))
         return redirect_to_login(request.path_info, 'editor.login')
 
