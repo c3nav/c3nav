@@ -246,7 +246,7 @@ def changeset_detail(request, pk):
                 'model_title': obj.__class__._meta.verbose_name,
                 'pk': changed_object.pk,
                 'desc': obj_desc,
-                'title': obj.title if getattr(obj, 'title', None) else None,
+                'title': obj.title if getattr(obj, 'titles', None) else None,
                 'changes': changes,
                 'edit_url': edit_url,
                 'deleted': changed_object.deleted,
