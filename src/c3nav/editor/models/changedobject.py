@@ -4,7 +4,7 @@ from itertools import chain
 
 from django.contrib.contenttypes.models import ContentType
 from django.db import models
-from django.db.models import DecimalField, Field
+from django.db.models import CharField, DecimalField, Field, TextField
 from django.utils.translation import ugettext_lazy as _
 
 from c3nav.editor.wrappers import ModelInstanceWrapper, is_created_pk
@@ -249,6 +249,8 @@ class ChangedObject(models.Model):
                         self.updated_fields['%s__i18n__%s' % (field.name, lang)] = subvalue
                 elif isinstance(field, DecimalField):
                     self.updated_fields[field.name] = None if value is None else str(value)
+                elif isinstance(field, (CharField, TextField)):
+                    self.updated_fields[field.name] = None if field.null and not value else field.get_prep_value(value)
                 else:
                     self.updated_fields[field.name] = field.get_prep_value(value)
             elif field.many_to_one or field.one_to_one:
