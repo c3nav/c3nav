@@ -47,6 +47,8 @@
                 </p>
             </form>
         {% endif %}
+    {% endif %}
+    {% if request.user == user %}
         <p>
             {% csrf_token %}
             <a class="btn btn-xs btn-default" href="{% url 'editor.change_password' %}">{% trans 'Change password' %}</a>
