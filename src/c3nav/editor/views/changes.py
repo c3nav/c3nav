@@ -262,6 +262,7 @@ def changeset_detail(request, pk):
                 changes.append({
                     'icon': 'plus',
                     'class': 'success',
+                    'empty': True,
                     'title': _('created'),
                 })
 
@@ -276,6 +277,7 @@ def changeset_detail(request, pk):
                     change_data.update({
                         'icon': 'map-marker',
                         'class': 'info',
+                        'empty': True,
                         'title': _('created geometry') if changed_object.is_created else _('edited geometry'),
                         'order': (8,),
                     })
@@ -283,7 +285,8 @@ def changeset_detail(request, pk):
                     change_data.update({
                         'icon': 'signal',
                         'class': 'info',
-                        'title': _('scan data created') if changed_object.is_created else _('scan data edited'),
+                        'empty': True,
+                        'title': _('created scan data') if changed_object.is_created else _('edited scan data'),
                         'order': (9,),
                     })
                 else:
@@ -372,6 +375,7 @@ def changeset_detail(request, pk):
                 changes.append({
                     'icon': 'minus',
                     'class': 'danger',
+                    'empty': True,
                     'title': _('deleted'),
                     'order': (9,),
                 })
