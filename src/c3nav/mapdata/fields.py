@@ -121,7 +121,9 @@ class JSONField(models.TextField):
         return json.loads(value)
 
     def to_python(self, value):
-        return json.loads(value)
+        if isinstance(value, str):
+            return json.loads(value)
+        return value
 
     def get_prep_value(self, value):
         return json.dumps(value)
