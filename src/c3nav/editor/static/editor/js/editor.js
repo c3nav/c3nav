@@ -917,9 +917,12 @@ editor = {
         $collector.find('.count').text(editor._wificollector_data.length);
         $collector.siblings('[name=data]').val(JSON.stringify(editor._wificollector_data));
     },
+    _last_scan: 0,
     _wificollector_scan_perhaps: function() {
         if ($('#sidebar').find('.wificollector.running').length) {
-            mobileclient.scanNow();
+            var now = Date.now();
+            window.setTimeout(mobileclient.scanNow(), Math.max(0, 1000-(now-editor._last_scan)));
+            editor._last_scan = now;
         } else {
             window.setTimeout(editor._wificollector_scan_perhaps, 1000);
         }
