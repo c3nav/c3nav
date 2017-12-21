@@ -1027,7 +1027,7 @@ msgstr "Du musst dich anmelden um Änderungen vorzuschlagen."
 #: c3nav/editor/views/changes.py:77
 msgid "You need to add a title an a description to propose this change set."
 msgstr ""
-"Du musst einen Titel und eine Bescreibung hinzufügen, um dieses Änderungsset "
+"Du musst einen Titel und eine Beschreibung hinzufügen, um dieses Änderungsset "
 "vorzuschlagen."
 
 #: c3nav/editor/views/changes.py:82
