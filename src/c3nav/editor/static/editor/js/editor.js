@@ -882,7 +882,6 @@ editor = {
         var $collector = $('#sidebar').find('.wificollector.running'),
             $table = $collector.find('table'),
             item, i, line, apid, color, max_last = 0;
-        window.setTimeout(editor._wificollector_scan_perhaps, 500);
 
         if (!data.length) return;
 
@@ -893,7 +892,8 @@ editor = {
                 max_last = Math.max(max_last, item.last);
             }
         }
-        if (max_last && c3nav._last_max_last && max_last === c3nav._max_last_max) return;
+        if (max_last && editor._last_max_last && max_last === editor._max_last_max) return;
+        editor._last_max_last = max_last;
 
         $table.find('tr').addClass('old');
         for (i=0; i < data.length; i++) {
