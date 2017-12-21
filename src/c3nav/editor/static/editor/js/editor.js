@@ -886,7 +886,7 @@ editor = {
         editor._scan_waits = false;
 
         if (!data.length) return;
-        if (now-1000 < editor._last_result) return;
+        if (now-2000 < editor._last_result) return;
         editor._last_result = now;
 
         // ignore this scan?
@@ -905,7 +905,7 @@ editor = {
             apid = 'ap-'+item.bssid.replace(/:/g, '-');
             line = $table.find('tr.'+apid);
             console.log(line);
-            color = Math.max(0, Math.min(50, item.level+80))
+            color = Math.max(0, Math.min(50, item.level+80));
             color = 'rgb('+String(250-color*5)+', '+String(color*4)+', 0)';
             if (line.length) {
                 line.removeClass('old').find(':last-child').text(item.level).css('color', color);
