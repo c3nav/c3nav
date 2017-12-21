@@ -119,7 +119,11 @@ class Router:
                     if not space.geometry_prep.intersects(area.geometry):
                         continue
                     for subgeom in assert_multipolygon(accessible_geom.intersection(area.geometry)):
+                        if subgeom.is_empty:
+                            continue
                         area_clear_geom = unary_union(tuple(get_rings(subgeom.difference(obstacles_geom))))
+                        if area_clear_geom.is_empty:
+                            continue
                         area = RouterAltitudeArea(subgeom, area_clear_geom,
                                                   area.altitude, area.altitude2, area.point1, area.point2)
                         area_nodes = tuple(node for node in space_nodes if area.geometry_prep.intersects(node.point))
