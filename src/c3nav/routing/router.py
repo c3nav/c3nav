@@ -291,6 +291,8 @@ class Router:
             point = Point(location.x, location.y)
             location = RouterPoint(location)
             space = self.space_for_point(location.level.pk, point, restrictions)
+            if space is None:
+                raise LocationUnreachable
             altitudearea = space.altitudearea_for_point(point)
             location.altitude = altitudearea.get_altitude(point)
             location_nodes = altitudearea.nodes_for_point(point, all_nodes=self.nodes)
