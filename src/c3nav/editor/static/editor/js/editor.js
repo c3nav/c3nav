@@ -882,7 +882,7 @@ editor = {
         var $collector = $('#sidebar').find('.wificollector.running'),
             $table = $collector.find('table'),
             item, i, line, apid, color, max_last = 0;
-
+        editor._wificollector_scan_perhaps();
         if (!data.length) return;
 
         // ignore this scan?
