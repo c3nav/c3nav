@@ -504,7 +504,7 @@ class AltitudeArea(LevelGeometryMixin, models.Model):
                     else:
                         area = min(our_areas,
                                    key=lambda a: a.orig_geometry.distance(center)-(0 if a.altitude2 is None else 0.6))
-                    area.geometry = area.geometry.union(polygon)
+                    area.geometry = area.geometry.buffer(0).union(polygon)
 
         for level in levels:
             level_areas[level] = set(area.tmpid for area in level_areas.get(level, []))
