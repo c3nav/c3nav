@@ -42,8 +42,11 @@ class AltitudeAreaGeometries:
                                                                        faces_offset, vertices_offset)
 
         for key in tuple(self.obstacles.keys()):
-            faces_offset, vertices_offset = self._call_create_full(self.obstacles, key, faces, vertices,
-                                                                   faces_offset, vertices_offset)
+            height_obstacles = list(self.obstacles[key])
+            for i in range(len(height_obstacles)):
+                faces_offset, vertices_offset = self._call_create_full(height_obstacles, i, faces, vertices,
+                                                                       faces_offset, vertices_offset)
+            self.obstacles[key] = tuple(height_obstacles)
 
         if not vertices:
             return np.empty((0, 2), dtype=np.int32), np.empty((0, 3), dtype=np.uint32)
@@ -90,8 +93,9 @@ class AltitudeAreaGeometries:
                                       lower=altitudes,
                                       upper=altitudes + int(0.001 * 1000),
                                       crops=crops)
-        for height, geometry in self.obstacles.items():
-            geometry.build_polyhedron(create_polyhedron,
-                                      lower=altitudes,
-                                      upper=altitudes + height,
-                                      crops=crops)
+        for height, height_geometries in self.obstacles.items():
+            for geometry in height_geometries:
+                geometry.build_polyhedron(create_polyhedron,
+                                          lower=altitudes,
+                                          upper=altitudes + height,
+                                          crops=crops)

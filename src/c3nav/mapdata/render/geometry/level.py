@@ -148,9 +148,6 @@ class LevelGeometries:
             for access_restriction, areas in tuple(color_group.items()):
                 color_group[access_restriction] = unary_union(areas)
 
-        # merge obstacles
-        obstacles = {key: unary_union(polygons) for key, polygons in obstacles.items()}
-
         # add altitudegroup geometries and split ground colors into them
         for altitudearea in level.altitudeareas.all():
             altitudearea_prep = prepared.prep(altitudearea.geometry)
@@ -160,9 +157,13 @@ class LevelGeometries:
                                    for color, areas in colors.items()}
             altitudearea_colors = {color: areas for color, areas in altitudearea_colors.items() if areas}
 
-            altitudearea_obstacles = {height: area.intersection(altitudearea.geometry)
-                                      for height, area in obstacles.items()
-                                      if altitudearea_prep.intersects(area)}
+            altitudearea_obstacles = {height: tuple(obstacle.intersection(altitudearea.geometry)
+                                                    for obstacle in height_obstacles
+                                                    if altitudearea_prep.intersects(obstacle))
+                                      for height, height_obstacles in obstacles.items()}
+            altitudearea_obstacles = {height: height_obstacles
+                                      for height, height_obstacles in obstacles.items()
+                                      if height_obstacles}
             geoms.altitudeareas.append(AltitudeAreaGeometries(altitudearea,
                                                               altitudearea_colors,
                                                               altitudearea_obstacles))

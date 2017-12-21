@@ -189,9 +189,13 @@ class LevelRenderData:
                             new_colors[color] = new_areas
                     new_altitudearea.colors = new_colors
 
-                    new_altitudearea.obstacles = {key: new_geometry.intersection(areas)
-                                                  for key, areas in altitudearea.obstacles.items()
-                                                  if new_geometry_prep.intersects(areas)}
+                    new_altitudearea.obstacles = {key: tuple(new_geometry.intersection(obstacle)
+                                                             for obstacle in height_obstacles
+                                                             if new_geometry_prep.intersects(obstacle))
+                                                  for key, height_obstacles in altitudearea.obstacles.items()}
+                    new_altitudearea.obstacles = {height: height_obstacles
+                                                  for height, height_obstacles in new_altitudearea.obstacles.items()
+                                                  if height_obstacles}
 
                     new_geoms.altitudeareas.append(new_altitudearea)
 
