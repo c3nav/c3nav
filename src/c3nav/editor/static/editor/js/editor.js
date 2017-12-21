@@ -886,7 +886,7 @@ editor = {
         editor._scan_waits = false;
 
         if (!data.length) return;
-        if (now-2000 < editor._last_result) return;
+        if (now-1500 < editor._last_result) return;
         editor._last_result = now;
 
         // ignore this scan?
