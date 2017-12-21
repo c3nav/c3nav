@@ -44,6 +44,16 @@
     {% endblock %}
     </div>
 
+    <div class="wificollector form-control empty">
+        <p>
+            <a class="btn btn-xs btn-primary start">{% trans 'Start scanning' %}</a>
+            <a class="btn btn-xs btn-default stop">{% trans 'Stop scanning' %}</a>
+            <a class="btn btn-xs btn-danger reset">{% trans 'Reset scan results' %}</a>
+            <span class="count-line"><span class="count">0</span> scans</span>
+        </p>
+        <table></table>
+    </div>
+
     {% include 'site/fragment_fakemobileclient.html' %}
     {% compress js %}
         <script type="text/javascript" src="{% static 'jquery/jquery.js' %}"></script>

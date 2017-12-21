@@ -196,6 +196,7 @@ class EditorViewSet(ViewSet):
                 space.lineobstacles.all(),
                 space.columns.all(),
                 space.altitudemarkers.all(),
+                space.wifi_measurements.all(),
                 space.pois.filter(POI.q_for_request(request)).prefetch_related('groups'),
                 other_spaces_upper,
                 graphedges,
@@ -224,6 +225,7 @@ class EditorViewSet(ViewSet):
             'graphnode': '#009900',
             'graphedge': '#00CC00',
             'altitudemarker': '#0000FF',
+            'wifimeasurement': '#DDDD00',
         })
 
     @list_route(methods=['get'])

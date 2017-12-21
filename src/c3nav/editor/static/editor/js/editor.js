@@ -53,6 +53,7 @@ editor = {
         editor._sublevel_control_container = $(editor._sublevel_control._container);
 
         editor.init_geometries();
+        editor.init_wificollector();
     },
     _onbeforeunload: function(e) {
         if ($('#sidebar').find('[data-onbeforeunload]').length) {
@@ -229,6 +230,13 @@ editor = {
             editor._level_control.hide();
             editor._sublevel_control.hide();
         }
+
+        var data_field = $('form [name=data]');
+        if (data_field.length) {
+            data_field.hide();
+            data_field.after($('body .wificollector')[0].outerHTML);
+            data_field.closest('form').addClass('scan-lock');
+        }
     },
     _sidebar_error: function(data) {
         $('#sidebar').removeClass('loading').find('.content').html('<h3>Error '+data.status+'</h3>'+data.statusText);
@@ -256,7 +264,7 @@ editor = {
     _sidebar_submit: function(e) {
         // listener for form submits in the sidebar.
         e.preventDefault();
-        if (editor._loading_geometry || $(this).is('.creation-lock')) return;
+        if (editor._loading_geometry || $(this).is('.creation-lock') || $(this).is('.scan-lock')) return;
         var data = $(this).serialize();
         var btn = $(this).data('btn');
         if (btn !== undefined && btn !== null) {
@@ -829,8 +837,77 @@ editor = {
         if (editor._editing_layer !== null) {
             $('#id_geometry').val(JSON.stringify(editor._editing_layer.toGeoJSON().geometry));
         }
+    },
+
+    init_wificollector: function () {
+        // init geometries and edit listeners
+        editor._highlight_layer = L.layerGroup().addTo(editor.map);
+
+        $('#sidebar').on('click', '.wificollector .start', editor._wificollector_start)
+                     .on('click', '.wificollector .stop', editor._wificollector_stop)
+                     .on('click', '.wificollector .reset', editor._wificollector_reset);
+        editor._wificollector_scan_perhaps();
+    },
+    _wificollector_data: [],
+    _wificollector_start: function () {
+        var $collector = $('#sidebar').find('.wificollector');
+        $collector.removeClass('empty').addClass('running');
+        editor._wificollector_data = [];
+        $collector.find('.count').text(0);
+    },
+    _wificollector_stop: function () {
+        var $collector = $('#sidebar').find('.wificollector');
+        $collector.removeClass('running').delay(1000).queue(function(n) {
+            $(this).addClass('done');
+            n();
+        });
+        $collector.closest('form').removeClass('scan-lock');
+    },
+    _wificollector_reset: function () {
+        var $collector = $('#sidebar').find('.wificollector');
+        $collector.removeClass('done').addClass('empty').find('table').html('');
+        $collector.siblings('[name=data]').val('');
+        $collector.closest('form').addClass('scan-lock');
+    },
+    _wificollector_result: function(data) {
+        var $collector = $('#sidebar').find('.wificollector.running'),
+            $table = $collector.find('table'),
+            item, i, line, apid, color;
+        editor._wificollector_scan_perhaps();
+        $table.find('tr').addClass('old');
+        for (i=0; i < data.length; i++) {
+            item = data[i];
+            apid = 'ap-'+item.bssid.replace(/:/g, '-');
+            line = $table.find('tr.'+apid);
+            console.log(line);
+            color = Math.max(0, Math.min(50, item.level+80))
+            color = 'rgb('+String(250-color*5)+', '+String(color*4)+', 0)';
+            if (line.length) {
+                line.removeClass('old').find(':last-child').text(item.level).css('color', color);
+            } else {
+                line = $('<tr>').addClass(apid);
+                line.append($('<td>').text(item.bssid));
+                line.append($('<td>').text(item.ssid));
+                line.append($('<td>').text(item.level).css('color', color));
+                $table.append(line);
+            }
+        }
+        editor._wificollector_data.push(data);
+        $collector.find('.count').text(editor._wificollector_data.length);
+        $collector.siblings('[name=data]').val(JSON.stringify(editor._wificollector_data));
+    },
+    _wificollector_scan_perhaps: function() {
+        if ($('#sidebar').find('.wificollector.running').length) {
+            mobileclient.scanNow();
+        } else {
+            window.setTimeout(editor._wificollector_scan_perhaps, 1000);
+        }
     }
 };
+
+function nearby_stations_available() {
+    editor._wificollector_result(JSON.parse(mobileclient.getNearbyStations()));
+}
 
 
 LevelControl = L.Control.extend({

@@ -51,7 +51,7 @@ class BaseWrapper:
                 return instance
             instance = instance._obj
         assert isinstance(instance, models.Model)
-        return self._wrap_model(type(instance)).create_wrapped_model_class()(self._changeset, instance)
+        return self._wrap_model(instance.__class__).create_wrapped_model_class()(self._changeset, instance)
 
     def _wrap_manager(self, manager):
         """

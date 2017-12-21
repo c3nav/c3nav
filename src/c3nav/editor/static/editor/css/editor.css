@@ -74,7 +74,8 @@ nav.navbar .navbar-nav > li > a {
 }
 
 /* sidebar contents */
-#sidebar form.creation-lock .btn.btn-primary {
+#sidebar form.creation-lock [type=submit].btn.btn-primary,
+#sidebar form.scan-lock [type=submit].btn.btn-primary{
     display:none;
 }
 #sidebar h3 {
@@ -316,4 +317,43 @@ h4 {
 
 .btn + .btn {
     margin-left: 5px;
+}
+
+textarea.form-control {
+    resize: none;
+    height: 75px;
+}
+
+.wificollector {
+    padding: 10px;
+    height: auto;
+}
+body > .wificollector {
+    display: none;
+}
+.wificollector:not(.empty) .btn.start,
+.wificollector:not(.running) .btn.stop,
+.wificollector:not(.done) .btn.reset,
+.wificollector.empty .count-line {
+    display: none;
+}
+.wificollector .btn {
+    margin: 0 5px 0 0;
+}
+.wificollector p {
+    height: 26px;
+    margin: 0;
+}
+.wificollector table {
+    width: 100%;
+}
+.wificollector table td {
+    padding: 5px 5px 0 0;
+}
+.wificollector table td:last-child {
+    padding-right: 0;
+    text-align: right;
+}
+.wificollector table tr td {
+    color: #666666;
 }

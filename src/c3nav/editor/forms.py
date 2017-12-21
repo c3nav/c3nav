@@ -25,6 +25,10 @@ class EditorFormBase(I18nModelFormMixin, ModelForm):
         super().__init__(*args, **kwargs)
         creating = not self.instance.pk
 
+        if hasattr(self.instance, 'author_id'):
+            if self.instance.author_id is None:
+                self.instance.author = request.user
+
         if 'level' in self.fields:
             # hide level widget
             self.fields['level'].widget = HiddenInput()
@@ -186,7 +190,7 @@ def create_editor_form(editor_model):
                        'ordering', 'category', 'width', 'groups', 'color', 'priority', 'icon_name',
                        'base_altitude', 'waytype', 'access_restriction', 'height', 'default_height', 'door_height',
                        'outside', 'can_search', 'can_describe', 'geometry', 'single', 'altitude', 'short_label',
-                       'origin_space', 'target_space',
+                       'origin_space', 'target_space', 'data', 'comment',
                        'extra_seconds', 'speed', 'description', 'speed_up', 'description_up',
                        'allow_levels', 'allow_spaces', 'allow_areas', 'allow_pois', 'left', 'top', 'right', 'bottom']
     field_names = [field.name for field in editor_model._meta.get_fields() if not field.one_to_many]

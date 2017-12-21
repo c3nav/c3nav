@@ -89,7 +89,8 @@ def space_detail(request, level, pk):
 
         'child_models': [child_model(request, model_name, kwargs={'space': pk}, parent=space)
                          for model_name in ('POI', 'Area', 'Obstacle', 'LineObstacle', 'Stair', 'Ramp', 'Column',
-                                            'Hole', 'AltitudeMarker', 'LeaveDescription', 'CrossDescription')],
+                                            'Hole', 'AltitudeMarker', 'LeaveDescription', 'CrossDescription',
+                                            'WifiMeasurement')],
         'geometry_url': '/api/editor/geometries/?space='+pk,
     })
 
