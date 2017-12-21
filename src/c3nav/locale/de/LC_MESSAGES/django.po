@@ -7,8 +7,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2017-12-20 20:53+0100\n"
-"PO-Revision-Date: 2017-12-20 20:53+0100\n"
+"POT-Creation-Date: 2017-12-21 03:42+0100\n"
+"PO-Revision-Date: 2017-12-21 03:45+0100\n"
 "Last-Translator: Laura Klünder <laura@codingcatgirl.de>\n"
 "Language-Team: \n"
 "Language: de\n"
@@ -26,53 +26,58 @@ msgstr "Befugnisse"
 msgid "Important dates"
 msgstr "Wichtige Daten"
 
-#: c3nav/control/forms.py:64
+#: c3nav/control/forms.py:78
 msgid "choose permissions…"
 msgstr "Erlaubnsise auswählen…"
 
-#: c3nav/control/forms.py:65
+#: c3nav/control/forms.py:79
 #, python-format
 msgid "everything possible (%d permission)"
 msgid_plural "everything possible (%d permissions)"
 msgstr[0] "alles mögliche (%d Erlaubnis)"
 msgstr[1] "alles mögliche (%d Erlaubnisse)"
 
-#: c3nav/control/forms.py:69 c3nav/control/templates/control/access.html:4
-#: c3nav/control/templates/control/user.html:59
-#: c3nav/mapdata/models/access.py:146
+#: c3nav/control/forms.py:83
+msgid "Access Permission Groups"
+msgstr "Zugangserlaubnisgruppen"
+
+#: c3nav/control/forms.py:87 c3nav/control/templates/control/access.html:4
+#: c3nav/control/templates/control/user.html:60
+#: c3nav/mapdata/models/access.py:149
 msgid "Access Permissions"
 msgstr "Zugangserlaubnisse"
 
-#: c3nav/control/forms.py:78 c3nav/control/templates/control/user.html:82
+#: c3nav/control/forms.py:96 c3nav/control/templates/control/user.html:91
+#: c3nav/control/templates/control/user.html:134
 msgid "never"
 msgstr "nie"
 
-#: c3nav/control/forms.py:82
+#: c3nav/control/forms.py:100
 #, python-format
 msgid "in %d minute"
 msgid_plural "in %d minutes"
 msgstr[0] "in %d Minute"
 msgstr[1] "in %d Minuten"
 
-#: c3nav/control/forms.py:86
+#: c3nav/control/forms.py:104
 #, python-format
 msgid "in %d hour"
 msgid_plural "in %d hours"
 msgstr[0] "in %d Stunde"
 msgstr[1] "in %d Stunden"
 
-#: c3nav/control/forms.py:89
+#: c3nav/control/forms.py:107
 msgid "in 1½ hour"
 msgstr "in 1½ Stunden"
 
-#: c3nav/control/forms.py:93
+#: c3nav/control/forms.py:111
 #, python-format
 msgid "in %d day"
 msgid_plural "in %d days"
 msgstr[0] "in %d Tag"
 msgstr[1] "in %d Tagen"
 
-#: c3nav/control/forms.py:100
+#: c3nav/control/forms.py:118
 msgid "can pass on"
 msgstr "kann weitergeben"
 
@@ -120,16 +125,16 @@ msgstr "QR Code generieren"
 msgid "Access Permission QR Code"
 msgstr "Zugangserlaubnis QR-Code"
 
-#: c3nav/control/templates/control/access_qr.html:11
+#: c3nav/control/templates/control/access_qr.html:12
 msgid "Scan this QR code to get access permissions:"
 msgstr "Scan diesen QR-Code um Zugangserlaubnisse zu erhalten:"
 
-#: c3nav/control/templates/control/access_qr.html:20
+#: c3nav/control/templates/control/access_qr.html:21
 msgid "Please wait. You will be redirected back when the token is redeemed."
 msgstr ""
 "Bitte warten. Du wirst zurückgeleitet, sobald der Code eingelöst wurde."
 
-#: c3nav/control/templates/control/access_qr.html:25
+#: c3nav/control/templates/control/access_qr.html:26
 msgid "Revoke Token"
 msgstr "Code invalidieren"
 
@@ -152,7 +157,7 @@ msgstr "Benutzer"
 
 #: c3nav/control/templates/control/announcements.html:9
 #: c3nav/control/templates/control/users.html:15
-#: c3nav/mapdata/models/base.py:40 c3nav/mapdata/utils/locations.py:299
+#: c3nav/mapdata/models/base.py:41 c3nav/mapdata/utils/locations.py:299
 msgid "ID"
 msgstr "ID"
 
@@ -162,7 +167,7 @@ msgid "Text"
 msgstr "Text"
 
 #: c3nav/control/templates/control/announcements.html:11
-#: c3nav/editor/models/changeset.py:47 c3nav/mapdata/models/access.py:139
+#: c3nav/editor/models/changeset.py:47 c3nav/mapdata/models/access.py:142
 msgid "Author"
 msgstr "Autor"
 
@@ -247,7 +252,8 @@ msgid "General Permissions"
 msgstr "Generelle Befugnisse"
 
 #: c3nav/control/templates/control/user.html:24
-#: c3nav/control/templates/control/user.html:93
+#: c3nav/control/templates/control/user.html:111
+#: c3nav/control/templates/control/user.html:151
 msgid "none"
 msgstr "keine"
 
@@ -287,54 +293,79 @@ msgstr "API Secret generieren"
 msgid "Update API secret"
 msgstr "API Secret updaten"
 
-#: c3nav/control/templates/control/user.html:60
-msgid "Add"
-msgstr "Hinzufügen"
+#: c3nav/control/templates/control/user.html:64
+#, python-format
+msgid "for %(restriction_title)s"
+msgstr "für %(restriction_title)s"
 
-#: c3nav/control/templates/control/user.html:67
-#: c3nav/mapdata/models/access.py:27 c3nav/mapdata/models/access.py:209
-#: c3nav/mapdata/models/access.py:222
-msgid "Access Restriction"
-msgstr "Zugangs­beschränkung"
+#: c3nav/control/templates/control/user.html:66
+#: c3nav/editor/templates/editor/account_form.html:11
+#: c3nav/site/templates/site/account_form.html:12
+#: c3nav/site/templates/site/confirm.html:19
+msgid "back"
+msgstr "zurück"
 
-#: c3nav/control/templates/control/user.html:68
-#: c3nav/mapdata/models/access.py:74 c3nav/mapdata/models/geometry/space.py:301
+#: c3nav/control/templates/control/user.html:73
+#: c3nav/mapdata/models/access.py:77 c3nav/mapdata/models/geometry/space.py:342
 #: c3nav/site/models.py:15
 msgid "author"
 msgstr "Autor"
 
-#: c3nav/control/templates/control/user.html:69
-#: c3nav/mapdata/models/access.py:136
+#: c3nav/control/templates/control/user.html:74
+#: c3nav/control/templates/control/user.html:122
+#: c3nav/mapdata/models/access.py:139
 msgid "expires"
 msgstr "läuft ab"
 
-#: c3nav/control/templates/control/user.html:70
-#: c3nav/mapdata/models/access.py:79 c3nav/mapdata/models/access.py:137
+#: c3nav/control/templates/control/user.html:75
+#: c3nav/control/templates/control/user.html:123
+#: c3nav/mapdata/models/access.py:82 c3nav/mapdata/models/access.py:140
 msgid "can grant"
 msgstr "kann erteilen"
 
-#: c3nav/control/templates/control/user.html:71
+#: c3nav/control/templates/control/user.html:76
 msgid "key"
 msgstr "key"
 
-#: c3nav/control/templates/control/user.html:83
-#: c3nav/mapdata/models/geometry/level.py:124
+#: c3nav/control/templates/control/user.html:97
+#: c3nav/control/templates/control/user.html:140
+#: c3nav/mapdata/models/geometry/level.py:131
 #: c3nav/mapdata/models/locations.py:102 c3nav/mapdata/models/locations.py:103
 msgid "Yes"
 msgstr "Ja"
 
-#: c3nav/control/templates/control/user.html:83
-#: c3nav/mapdata/models/geometry/level.py:124
+#: c3nav/control/templates/control/user.html:99
+#: c3nav/control/templates/control/user.html:142
+#: c3nav/mapdata/models/geometry/level.py:131
 #: c3nav/mapdata/models/locations.py:102 c3nav/mapdata/models/locations.py:103
 msgid "No"
 msgstr "Nein"
 
-#: c3nav/control/templates/control/user.html:86
+#: c3nav/control/templates/control/user.html:104
 #: c3nav/editor/templates/editor/changeset.html:124
 #: c3nav/editor/templates/editor/delete.html:17
 #: c3nav/editor/templates/editor/edit.html:27
 msgid "Delete"
 msgstr "Löschen"
+
+#: c3nav/control/templates/control/user.html:114
+msgid "Add"
+msgstr "Hinzufügen"
+
+#: c3nav/control/templates/control/user.html:121
+#: c3nav/mapdata/models/access.py:27 c3nav/mapdata/models/access.py:243
+#: c3nav/mapdata/models/access.py:256
+msgid "Access Restriction"
+msgstr "Zugangs­beschränkung"
+
+#: c3nav/control/templates/control/user.html:145
+#: c3nav/editor/templates/editor/fragment_changesets.html:10
+#: c3nav/editor/templates/editor/list.html:26
+#: c3nav/site/templates/site/map.html:60 c3nav/site/templates/site/map.html:94
+#: c3nav/site/templates/site/map.html:106
+#: c3nav/site/templates/site/map.html:112
+msgid "Details"
+msgstr "Details"
 
 #: c3nav/control/templates/control/users.html:8
 msgid "Search"
@@ -344,27 +375,27 @@ msgstr "Suchen"
 msgid "Username"
 msgstr "Benutzername"
 
-#: c3nav/control/views.py:74
+#: c3nav/control/views.py:75
 msgid "Unknown access permission."
 msgstr "Unbekannte Zugangserlaubnis."
 
-#: c3nav/control/views.py:78
+#: c3nav/control/views.py:79
 msgid "Access Permission successfully deleted."
 msgstr "Zugangserlaubnis erfolgreich gelöscht."
 
-#: c3nav/control/views.py:80
+#: c3nav/control/views.py:81
 msgid "You cannot delete this Access Permission."
 msgstr "Du kannst diese Zugangsberechtigung nicht löschen."
 
-#: c3nav/control/views.py:90
+#: c3nav/control/views.py:91
 msgid "This user already has an API secret."
 msgstr "Dieser Benutzer hat bereis ein API Secret."
 
-#: c3nav/control/views.py:94
+#: c3nav/control/views.py:95
 msgid "This user does not have an API secret."
 msgstr "Dieser Benutzer hat kein API Secret."
 
-#: c3nav/control/views.py:103
+#: c3nav/control/views.py:104
 #, python-format
 msgid ""
 "The new API secret is: %s – be sure to note it down now, it won't be shown "
@@ -373,57 +404,69 @@ msgstr ""
 "Das neue API Secret ist: %s – notier es dir sofort, denn es wird nicht "
 "erneut angezeigt."
 
-#: c3nav/control/views.py:110
+#: c3nav/control/views.py:111
 msgid "API secret successfully deleted!"
 msgstr "API secret erfolgreich gelöscht!"
 
-#: c3nav/control/views.py:134
+#: c3nav/control/views.py:135
 msgid "General permissions successfully updated."
 msgstr "Generelle Befugnisse erfolgreich gespeichert."
 
-#: c3nav/control/views.py:147
+#: c3nav/control/views.py:162
 msgid "Access permissions successfully granted."
 msgstr "Zugangserlaubnis erfolgreich erteilt."
 
-#: c3nav/control/views.py:187
+#: c3nav/control/views.py:222
 msgid "Access successfully granted."
 msgstr "Zugangserlaubnis erfolgreich erteilt."
 
-#: c3nav/control/views.py:191
+#: c3nav/control/views.py:226
 msgid "Token successfully revoked."
 msgstr "Token erfolgreich invalidiert."
 
-#: c3nav/control/views.py:202
+#: c3nav/control/views.py:237
 msgid "You can only display your most recently created token."
 msgstr "Du kannst nur deinen zuletzt erstellten Code anzeigen."
 
-#: c3nav/editor/forms.py:124
+#: c3nav/editor/forms.py:129
 msgid "Redirecting Slugs (comma seperated)"
 msgstr "Umleitungs-Slugs (mit Komma getrennt)"
 
-#: c3nav/editor/forms.py:150
+#: c3nav/editor/forms.py:158
 #, python-format
 msgid "Can not add redirecting slug “%s”: it's the slug of this object."
 msgstr ""
 "Umleitungs-Slug „%s“ kann nicht hinzugefügt werden: Es ist der Slug dieses "
 "Objects."
 
-#: c3nav/editor/forms.py:157
+#: c3nav/editor/forms.py:165
 #, python-format
 msgid "Can not add redirecting slug “%s”: it is already used elsewhere."
 msgstr ""
 "Umleitungs-Slug „%s“ kann nicht hinzugefügt werden: Er wird bereits an "
 "anderer Stelle verwendet."
 
-#: c3nav/editor/forms.py:209
+#: c3nav/editor/forms.py:172
+msgid "Invalid JSON."
+msgstr "Invalides JSON."
+
+#: c3nav/editor/forms.py:173
+msgid "Invalid Scan."
+msgstr "Invalider Scan."
+
+#: c3nav/editor/forms.py:178
+msgid "Needs to be one scan at minimum."
+msgstr "Muss mindestens 1 sein."
+
+#: c3nav/editor/forms.py:251
 msgid "Final rejection"
 msgstr "Endgültige Ablehnung"
 
-#: c3nav/editor/forms.py:217
+#: c3nav/editor/forms.py:259
 msgid "create one way edges"
 msgstr "Kante nur in eine Richtung erstellen"
 
-#: c3nav/editor/forms.py:218
+#: c3nav/editor/forms.py:260
 msgid "activate next node after connecting"
 msgstr "nächsten Knoten nach dem Verbinden aktivieren"
 
@@ -432,7 +475,7 @@ msgid "Change Set"
 msgstr "Änderungsset"
 
 #: c3nav/editor/models/changedobject.py:26 c3nav/editor/models/changeset.py:39
-#: c3nav/editor/views/changes.py:264 c3nav/site/models.py:12
+#: c3nav/editor/views/changes.py:266 c3nav/site/models.py:12
 msgid "created"
 msgstr "erstellt"
 
@@ -504,7 +547,7 @@ msgstr "letzte Anderung"
 msgid "last state update"
 msgstr "letzte Statusänderung"
 
-#: c3nav/editor/models/changeset.py:48 c3nav/mapdata/models/base.py:50
+#: c3nav/editor/models/changeset.py:48 c3nav/mapdata/models/base.py:59
 #: c3nav/mapdata/models/graph.py:34 c3nav/mapdata/models/locations.py:183
 #: c3nav/mapdata/utils/locations.py:334
 msgid "Title"
@@ -553,12 +596,6 @@ msgstr "Änderungssetänderung"
 msgid "Change set updates"
 msgstr "Änderungssetänderungen"
 
-#: c3nav/editor/templates/editor/account_form.html:11
-#: c3nav/site/templates/site/account_form.html:12
-#: c3nav/site/templates/site/confirm.html:19
-msgid "back"
-msgstr "zurück"
-
 #: c3nav/editor/templates/editor/base.html:9
 #: c3nav/editor/templates/editor/base.html:30
 #: c3nav/editor/templates/editor/index.html:4
@@ -568,6 +605,26 @@ msgstr "c3nav Karteneditor"
 #: c3nav/editor/templates/editor/base.html:25
 msgid "Toggle navigation"
 msgstr "Navigation ein-/ausblenden"
+
+#: c3nav/editor/templates/editor/base.html:49
+msgid "Start scanning"
+msgstr "Scanning starten"
+
+#: c3nav/editor/templates/editor/base.html:50
+msgid "Stop scanning"
+msgstr "Scanning stoppen"
+
+#: c3nav/editor/templates/editor/base.html:51
+msgid "Reset scan results"
+msgstr "Scanergebnisse zurücksetzen"
+
+#: c3nav/editor/templates/editor/base.html:55
+msgid ""
+"mobileclient not found. Please install the c3nav app for wifi scanning "
+"support."
+msgstr ""
+"mobileclient nicht gefunden. Bitte installiere die c3nav App für WLAN "
+"scanning support."
 
 #: c3nav/editor/templates/editor/changeset.html:10
 #: c3nav/editor/templates/editor/changeset_edit.html:10
@@ -587,8 +644,8 @@ msgstr "erstellt am %(datetime)s"
 
 #: c3nav/editor/templates/editor/changeset.html:27
 #, python-format
-msgid "last update at %(datetime)s"
-msgstr "zuletzt geändert am %(datetime)s"
+msgid "last change at %(datetime)s"
+msgstr "letzte Änderung am %(datetime)s"
 
 #: c3nav/editor/templates/editor/changeset.html:41
 msgid "These changes are currently pending review."
@@ -761,14 +818,6 @@ msgstr "über %(on_top_of_level_title)s"
 msgid "(no title)"
 msgstr "(kein Titel)"
 
-#: c3nav/editor/templates/editor/fragment_changesets.html:10
-#: c3nav/editor/templates/editor/list.html:26
-#: c3nav/site/templates/site/map.html:60 c3nav/site/templates/site/map.html:94
-#: c3nav/site/templates/site/map.html:106
-#: c3nav/site/templates/site/map.html:112
-msgid "Details"
-msgstr "Details"
-
 #: c3nav/editor/templates/editor/fragment_child_models.html:12
 #: c3nav/editor/templates/editor/graph.html:6
 msgid "Graph"
@@ -832,7 +881,7 @@ msgid "Level"
 msgstr "Etage"
 
 #: c3nav/editor/templates/editor/level.html:22
-#: c3nav/editor/templates/editor/space.html:14 c3nav/editor/views/edit.py:412
+#: c3nav/editor/templates/editor/space.html:14 c3nav/editor/views/edit.py:413
 msgid "back to overview"
 msgstr "zurück zur Übersicht"
 
@@ -857,8 +906,8 @@ msgid "Show details"
 msgstr "Details anzeigen"
 
 #: c3nav/editor/templates/editor/space.html:9
-#: c3nav/mapdata/models/geometry/level.py:110
-#: c3nav/mapdata/models/geometry/space.py:70
+#: c3nav/mapdata/models/geometry/level.py:117
+#: c3nav/mapdata/models/geometry/space.py:79
 #: c3nav/mapdata/utils/locations.py:307
 msgid "Space"
 msgstr "Raum"
@@ -917,24 +966,24 @@ msgstr "Bearbeite etwas um eins zu erstellen."
 msgid "Activate direct editing"
 msgstr "Direktes Bearbeiten aktivieren"
 
-#: c3nav/editor/templates/editor/user.html:52 c3nav/editor/views/account.py:94
+#: c3nav/editor/templates/editor/user.html:54 c3nav/editor/views/account.py:94
 #: c3nav/site/templates/site/account.html:29 c3nav/site/views.py:264
 msgid "Change password"
 msgstr "Passwort ändern"
 
-#: c3nav/editor/templates/editor/user.html:57
+#: c3nav/editor/templates/editor/user.html:59
 msgid "Recent change sets"
 msgstr "Aktuelle Änderungssets"
 
-#: c3nav/editor/templates/editor/user.html:61
+#: c3nav/editor/templates/editor/user.html:63
 msgid "Change sets you are reviewing"
 msgstr "Änderungssets die du gerade überprüfts"
 
-#: c3nav/editor/templates/editor/user.html:64
+#: c3nav/editor/templates/editor/user.html:66
 msgid "Change sets awaiting review"
 msgstr "Auf Überprüfung wartende Änderungssets"
 
-#: c3nav/editor/templates/editor/user.html:67
+#: c3nav/editor/templates/editor/user.html:69
 msgid "All recent change sets"
 msgstr "Alle kürzlichen Änderungssets"
 
@@ -947,11 +996,11 @@ msgstr "Neues Konto erstellen"
 msgid "Password successfully changed."
 msgstr "Passwort erfolgreich geändert."
 
-#: c3nav/editor/views/changes.py:49
+#: c3nav/editor/views/changes.py:50
 msgid "Object has been successfully restored."
 msgstr "Objekt wurde erfolgreich wiederhergestellt."
 
-#: c3nav/editor/views/changes.py:51
+#: c3nav/editor/views/changes.py:52
 msgid ""
 "You cannot restore this object, because it depends on a deleted object or it "
 "would violate a unique contraint."
@@ -959,198 +1008,210 @@ msgstr ""
 "Du kannst dieses Objekt nicht wiederherstellen weil es ein anderes Objekt "
 "benötigt oder weil es einer Eindeutigen Beschränkung wiedersprechen würde."
 
-#: c3nav/editor/views/changes.py:55
+#: c3nav/editor/views/changes.py:56
 msgid "You can not edit changes on this change set."
 msgstr "Du kannst keine Änderungen dieses Änderungssets bearbeiten."
 
-#: c3nav/editor/views/changes.py:63
+#: c3nav/editor/views/changes.py:64
 msgid "You activated this change set."
 msgstr "Du hast dieses Änderungsset aktiviert."
 
-#: c3nav/editor/views/changes.py:65
+#: c3nav/editor/views/changes.py:66
 msgid "You can not activate this change set."
 msgstr "Du kannst dieses Änderungsset nicht aktivieren."
 
-#: c3nav/editor/views/changes.py:71
+#: c3nav/editor/views/changes.py:72
 msgid "You need to log in to propose changes."
 msgstr "Du musst dich anmelden um Änderungen vorzuschlagen."
 
-#: c3nav/editor/views/changes.py:76
+#: c3nav/editor/views/changes.py:77
 msgid "You need to add a title an a description to propose this change set."
 msgstr ""
 "Du musst einen Titel und eine Bescreibung hinzufügen, um dieses Änderungsset "
 "vorzuschlagen."
 
-#: c3nav/editor/views/changes.py:81
+#: c3nav/editor/views/changes.py:82
 msgid "You proposed your changes."
 msgstr "Du hast deine Änderungen vorgeschlagen."
 
-#: c3nav/editor/views/changes.py:83
+#: c3nav/editor/views/changes.py:84
 msgid "You cannot propose this change set."
 msgstr "Du kannst dieses Änderungsset nicht vorschlagen."
 
-#: c3nav/editor/views/changes.py:91
+#: c3nav/editor/views/changes.py:92
 msgid "You unproposed your changes."
 msgstr "Du hast deinen Änderungsvorschlag zurückgenommen."
 
-#: c3nav/editor/views/changes.py:93
+#: c3nav/editor/views/changes.py:94
 msgid "You cannot unpropose this change set."
 msgstr "Du kannst diesen Änderungsvorschlag nicht zurücknehmen."
 
-#: c3nav/editor/views/changes.py:101
+#: c3nav/editor/views/changes.py:102
 msgid "You are now reviewing these changes."
 msgstr "Du überprüfst jetzt diese Änderungen."
 
-#: c3nav/editor/views/changes.py:103
+#: c3nav/editor/views/changes.py:104
 msgid "You cannot review these changes."
 msgstr "Du kannst diese Änderungen nicht überprüfen."
 
-#: c3nav/editor/views/changes.py:110
+#: c3nav/editor/views/changes.py:111
 msgid "You cannot reject these changes."
 msgstr "Du kannst diese Änderungen nicht ablehnen."
 
-#: c3nav/editor/views/changes.py:117
+#: c3nav/editor/views/changes.py:118
 msgid "You rejected these changes."
 msgstr "Du hast diese Änderungen abgelehnt."
 
-#: c3nav/editor/views/changes.py:130
+#: c3nav/editor/views/changes.py:131
 msgid "You cannot unreject these changes."
 msgstr "Du kannst diese Änderungsablehnung nicht zurücknehmen."
 
-#: c3nav/editor/views/changes.py:134
+#: c3nav/editor/views/changes.py:135
 msgid "You unrejected these changes."
 msgstr "Du hast die Änderungsablehnung zurückgenommen."
 
-#: c3nav/editor/views/changes.py:141
+#: c3nav/editor/views/changes.py:142
 msgid "You cannot accept and apply these changes."
 msgstr "Du kannst diese Änderungen nicht akzeptieren und anwenden."
 
-#: c3nav/editor/views/changes.py:146
+#: c3nav/editor/views/changes.py:147
 msgid "You accepted and applied these changes."
 msgstr "Du hast diese Änderungen akzeptiert und angewendet."
 
-#: c3nav/editor/views/changes.py:154
+#: c3nav/editor/views/changes.py:155
 msgid "You cannot delete this change set."
 msgstr "Du kannst dieses Änderungsset nicht löschen."
 
-#: c3nav/editor/views/changes.py:158
+#: c3nav/editor/views/changes.py:159
 msgid "You deleted this change set."
 msgstr "Du hast dieses Änderungsset gelöscht."
 
-#: c3nav/editor/views/changes.py:221
+#: c3nav/editor/views/changes.py:222
 #, python-brace-format
 msgid "{model} #{id}"
 msgstr "{model} Nr. {id}"
 
-#: c3nav/editor/views/changes.py:278
+#: c3nav/editor/views/changes.py:281
+msgid "created geometry"
+msgstr "Geometrie erstellt"
+
+#: c3nav/editor/views/changes.py:281
 msgid "edited geometry"
 msgstr "Geometrie bearbeitet"
 
-#: c3nav/editor/views/changes.py:286 c3nav/mapdata/forms.py:38
+#: c3nav/editor/views/changes.py:289
+msgid "created scan data"
+msgstr "Scandaten erstellt"
+
+#: c3nav/editor/views/changes.py:289
+msgid "edited scan data"
+msgstr "Scandaten bearbeitet"
+
+#: c3nav/editor/views/changes.py:297 c3nav/mapdata/forms.py:38
 #, python-brace-format
 msgid "{field_name} ({lang})"
 msgstr "{field_name} ({lang})"
 
-#: c3nav/editor/views/changes.py:321
+#: c3nav/editor/views/changes.py:335
 #, python-brace-format
 msgid "remove {field_title}"
 msgstr "{field_title} entfernt"
 
-#: c3nav/editor/views/changes.py:349 c3nav/editor/views/changes.py:356
+#: c3nav/editor/views/changes.py:363 c3nav/editor/views/changes.py:370
 msgid "Redirect slugs"
 msgstr "Umleitungs-Slugs"
 
-#: c3nav/editor/views/changes.py:364
+#: c3nav/editor/views/changes.py:379
 msgid "deleted"
 msgstr "gelöscht"
 
-#: c3nav/editor/views/changes.py:384
+#: c3nav/editor/views/changes.py:399
 msgid "You cannot edit this change set."
 msgstr "Du kannst dieses Änderungsset nicht bearbeiten."
 
-#: c3nav/editor/views/edit.py:222
+#: c3nav/editor/views/edit.py:223
 msgid "You can not create new objects because your changeset is full."
 msgstr ""
 "Du kannst keine neuen Objekte erstellen weil dein Änderungsset voll ist."
 
-#: c3nav/editor/views/edit.py:225 c3nav/editor/views/edit.py:239
+#: c3nav/editor/views/edit.py:226 c3nav/editor/views/edit.py:240
 msgid "You can not edit this object because your changeset is full."
 msgstr "Du kannst diese Objekt nicht löschen weil dein Änderungsset voll ist."
 
-#: c3nav/editor/views/edit.py:248
+#: c3nav/editor/views/edit.py:249
 msgid ""
 "You can not delete this object because other objects still depend on it."
 msgstr ""
 "Du kannst dieses Objekt nicht löschen weil andere Objekte sich darauf "
 "beziehen."
 
-#: c3nav/editor/views/edit.py:256 c3nav/editor/views/edit.py:299
-#: c3nav/editor/views/edit.py:525 c3nav/editor/views/edit.py:562
-#: c3nav/editor/views/edit.py:580
+#: c3nav/editor/views/edit.py:257 c3nav/editor/views/edit.py:300
+#: c3nav/editor/views/edit.py:526 c3nav/editor/views/edit.py:563
+#: c3nav/editor/views/edit.py:581
 msgid "You can not edit changes on this changeset."
 msgstr "Du kannst keine Änderungen dieses Änderungssets bearbeiten."
 
-#: c3nav/editor/views/edit.py:258
+#: c3nav/editor/views/edit.py:259
 msgid "Object was successfully deleted."
 msgstr "Objekt wurde erfolgreich gelöscht."
 
-#: c3nav/editor/views/edit.py:296
+#: c3nav/editor/views/edit.py:297
 msgid "Object was successfully saved."
 msgstr "Objekt wurde erfolgreich gespeichert."
 
-#: c3nav/editor/views/edit.py:367 c3nav/editor/views/edit.py:483
+#: c3nav/editor/views/edit.py:368 c3nav/editor/views/edit.py:484
 msgid "back to level"
 msgstr "zurück zur Etage"
 
-#: c3nav/editor/views/edit.py:406 c3nav/editor/views/edit.py:497
+#: c3nav/editor/views/edit.py:407 c3nav/editor/views/edit.py:498
 msgid "back to space"
 msgstr "zurück zum Raum"
 
-#: c3nav/editor/views/edit.py:444
+#: c3nav/editor/views/edit.py:445
 msgid "Could not edit edge because your changeset is full."
 msgstr "Kante konnte nicht bearbeitet werden weil dein Änderungsset voll ist."
 
-#: c3nav/editor/views/edit.py:451
+#: c3nav/editor/views/edit.py:452
 msgid "Reverse edge created."
 msgstr "Umgekehrte Kante erstellt."
 
-#: c3nav/editor/views/edit.py:451
+#: c3nav/editor/views/edit.py:452
 msgid "Edge created."
 msgstr "Kante erstellt."
 
-#: c3nav/editor/views/edit.py:454
+#: c3nav/editor/views/edit.py:455
 msgid "Reverse edge deleted."
 msgstr "Umgekehrte Kante gelöscht."
 
-#: c3nav/editor/views/edit.py:454
+#: c3nav/editor/views/edit.py:455
 msgid "Edge deleted."
 msgstr "Kante gelöscht."
 
-#: c3nav/editor/views/edit.py:459
+#: c3nav/editor/views/edit.py:460
 msgid "Reverse edge overwritten."
 msgstr "Umgekehrte Kante überschrieben."
 
-#: c3nav/editor/views/edit.py:459
+#: c3nav/editor/views/edit.py:460
 msgid "Edge overwritten."
 msgstr "Kante überschrieben."
 
-#: c3nav/editor/views/edit.py:499
+#: c3nav/editor/views/edit.py:500
 msgid "to level graph"
 msgstr "zum Etagengraph"
 
-#: c3nav/editor/views/edit.py:515
+#: c3nav/editor/views/edit.py:516
 msgid "You can not delete this graph node because your changeset is full."
 msgstr "Du kannst diesen Knoten nicht löschen weil dein Änderungsset voll ist."
 
-#: c3nav/editor/views/edit.py:527
+#: c3nav/editor/views/edit.py:528
 msgid "Graph Node was successfully deleted."
 msgstr "Graphknoten wurde erfolgreich gelöscht."
 
-#: c3nav/editor/views/edit.py:568
+#: c3nav/editor/views/edit.py:569
 msgid "You can not add graph nodes because your changeset is full."
 msgstr "Du kannst keine Graphknoten erstellen weil dein Änderungsset voll ist."
 
-#: c3nav/editor/views/edit.py:575
+#: c3nav/editor/views/edit.py:576
 msgid "New graph node created."
 msgstr "Neuer Graphknoten erstellt."
 
@@ -1166,12 +1227,12 @@ msgstr "Du hast direktes Bearbeiten aktiviert."
 msgid "You deactivated direct editing."
 msgstr "Du hast direktes Bearbeiten deaktiviert."
 
-#: c3nav/mapdata/api.py:151
+#: c3nav/mapdata/api.py:153
 #, python-format
 msgid "%(field)s is not an integer."
 msgstr "%(field)s ist keine ganze Zahl."
 
-#: c3nav/mapdata/api.py:159
+#: c3nav/mapdata/api.py:161
 #, python-format
 msgid "%(model)s not found."
 msgstr "%(model)s nicht gefunden."
@@ -1276,75 +1337,75 @@ msgstr "Gruppen"
 msgid "Access Restrictions"
 msgstr "Zugangs­beschränkungen"
 
-#: c3nav/mapdata/models/access.py:47
+#: c3nav/mapdata/models/access.py:50
 msgid "Access Restriction Group"
 msgstr "Zugangsbeschränkungsgruppe"
 
-#: c3nav/mapdata/models/access.py:48
+#: c3nav/mapdata/models/access.py:51
 msgid "Access Restriction Groups"
 msgstr "Zugangsbeschränkungsgruppen"
 
-#: c3nav/mapdata/models/access.py:76
+#: c3nav/mapdata/models/access.py:79
 msgid "valid until"
 msgstr "gültig bis"
 
-#: c3nav/mapdata/models/access.py:77
+#: c3nav/mapdata/models/access.py:80
 msgid "unlimited"
 msgstr "unbeschränkt"
 
-#: c3nav/mapdata/models/access.py:78
+#: c3nav/mapdata/models/access.py:81
 msgid "redeemed"
 msgstr "eingelöst"
 
-#: c3nav/mapdata/models/access.py:80 c3nav/mapdata/models/access.py:140
+#: c3nav/mapdata/models/access.py:83 c3nav/mapdata/models/access.py:143
 msgid "unique key"
 msgstr "unique key"
 
-#: c3nav/mapdata/models/access.py:84
+#: c3nav/mapdata/models/access.py:87
 msgid "Access Permission Token"
 msgstr "Zugangserlaubnis-Token"
 
-#: c3nav/mapdata/models/access.py:85
+#: c3nav/mapdata/models/access.py:88
 msgid "Access Permission Tokens"
 msgstr "Zugangserlaubnis-Token"
 
-#: c3nav/mapdata/models/access.py:130 c3nav/site/views.py:77
+#: c3nav/mapdata/models/access.py:133 c3nav/site/views.py:77
 #: c3nav/site/views.py:298
 msgid "Area successfully unlocked."
 msgid_plural "Areas successfully unlocked."
 msgstr[0] "Bereich erfolgreich freigeschaltet."
 msgstr[1] "Bereiche erfolgreich freigeschaltet."
 
-#: c3nav/mapdata/models/access.py:142
+#: c3nav/mapdata/models/access.py:145
 msgid "Access permission token"
 msgstr "Zugangserlaubnis-Token"
 
-#: c3nav/mapdata/models/access.py:145
+#: c3nav/mapdata/models/access.py:148
 msgid "Access Permission"
 msgstr "Zugangserlaubnis"
 
-#: c3nav/mapdata/models/base.py:39 c3nav/mapdata/utils/locations.py:298
+#: c3nav/mapdata/models/base.py:40 c3nav/mapdata/utils/locations.py:298
 msgid "Type"
 msgstr "Typ"
 
-#: c3nav/mapdata/models/base.py:69
+#: c3nav/mapdata/models/base.py:78
 #, python-brace-format
 msgid "Title ({lang})"
 msgstr "Titel ({lang})"
 
-#: c3nav/mapdata/models/base.py:75
+#: c3nav/mapdata/models/base.py:84
 msgid "bottom coordinate"
 msgstr "untere koordinate"
 
-#: c3nav/mapdata/models/base.py:76
+#: c3nav/mapdata/models/base.py:85
 msgid "left coordinate"
 msgstr "linke koordinate"
 
-#: c3nav/mapdata/models/base.py:77
+#: c3nav/mapdata/models/base.py:86
 msgid "top coordinate"
 msgstr "obere koordinate"
 
-#: c3nav/mapdata/models/base.py:78
+#: c3nav/mapdata/models/base.py:87
 msgid "right coordinate"
 msgstr "rechte koordinate"
 
@@ -1357,59 +1418,59 @@ msgstr "Etage"
 msgid "{category}, {level}"
 msgstr "{category}, {level}"
 
-#: c3nav/mapdata/models/geometry/level.py:95
+#: c3nav/mapdata/models/geometry/level.py:102
 msgid "Building"
 msgstr "Gebäude"
 
-#: c3nav/mapdata/models/geometry/level.py:96
+#: c3nav/mapdata/models/geometry/level.py:103
 msgid "Buildings"
 msgstr "Gebäude"
 
-#: c3nav/mapdata/models/geometry/level.py:105
-#: c3nav/mapdata/models/geometry/level.py:123
-#: c3nav/mapdata/models/geometry/space.py:151
-#: c3nav/mapdata/models/geometry/space.py:171
+#: c3nav/mapdata/models/geometry/level.py:112
+#: c3nav/mapdata/models/geometry/level.py:130
+#: c3nav/mapdata/models/geometry/space.py:160
+#: c3nav/mapdata/models/geometry/space.py:180
 msgid "height"
 msgstr "Höhe"
 
-#: c3nav/mapdata/models/geometry/level.py:107
+#: c3nav/mapdata/models/geometry/level.py:114
 msgid "only outside of building"
 msgstr "nur außerhalb von Gebäuden"
 
-#: c3nav/mapdata/models/geometry/level.py:111
+#: c3nav/mapdata/models/geometry/level.py:118
 msgid "Spaces"
 msgstr "Räume"
 
-#: c3nav/mapdata/models/geometry/level.py:124 c3nav/mapdata/models/level.py:84
+#: c3nav/mapdata/models/geometry/level.py:131 c3nav/mapdata/models/level.py:84
 msgid "outside only"
 msgstr "Nur draußen"
 
-#: c3nav/mapdata/models/geometry/level.py:137
+#: c3nav/mapdata/models/geometry/level.py:144
 msgid "Door"
 msgstr "Tür"
 
-#: c3nav/mapdata/models/geometry/level.py:138
+#: c3nav/mapdata/models/geometry/level.py:145
 msgid "Doors"
 msgstr "Türen"
 
-#: c3nav/mapdata/models/geometry/level.py:147
-#: c3nav/mapdata/models/geometry/space.py:238
+#: c3nav/mapdata/models/geometry/level.py:154
+#: c3nav/mapdata/models/geometry/space.py:247
 msgid "altitude"
 msgstr "Bodenhöhe"
 
-#: c3nav/mapdata/models/geometry/level.py:148
+#: c3nav/mapdata/models/geometry/level.py:155
 msgid "second altitude"
 msgstr "zweite Bodenhöhe"
 
-#: c3nav/mapdata/models/geometry/level.py:153
+#: c3nav/mapdata/models/geometry/level.py:160
 msgid "Altitude Area"
 msgstr "Höhenbereich"
 
-#: c3nav/mapdata/models/geometry/level.py:154
+#: c3nav/mapdata/models/geometry/level.py:161
 msgid "Altitude Areas"
 msgstr "Höhenbereiche"
 
-#: c3nav/mapdata/models/geometry/level.py:249
+#: c3nav/mapdata/models/geometry/level.py:256
 #, python-format
 msgid ""
 "AltitudeMarker #%(marker_id)d in Space #%(space_id)d on Level "
@@ -1418,12 +1479,12 @@ msgstr ""
 "Höhenmarker #%(marker_id)d in Raum #%(space_id)d auf Etage %(level_label)s "
 "ist nicht in einem begehbaren Bereich platziert"
 
-#: c3nav/mapdata/models/geometry/level.py:562
+#: c3nav/mapdata/models/geometry/level.py:569
 #, python-format
 msgid "%d altitude areas built."
 msgstr "%d Höhenbereiche gebaut."
 
-#: c3nav/mapdata/models/geometry/level.py:563
+#: c3nav/mapdata/models/geometry/level.py:570
 #, python-format
 msgid ""
 "%(num_modified)d modified, %(num_deleted)d deleted, %(num_created)d created."
@@ -1431,142 +1492,142 @@ msgstr ""
 "%(num_modified)d geändert, %(num_deleted)d entfernt, %(num_created)d "
 "erstellt."
 
-#: c3nav/mapdata/models/geometry/space.py:21
-#: c3nav/mapdata/models/geometry/space.py:254
-#: c3nav/mapdata/models/geometry/space.py:276
+#: c3nav/mapdata/models/geometry/space.py:23
+#: c3nav/mapdata/models/geometry/space.py:263
+#: c3nav/mapdata/models/geometry/space.py:300
 msgid "space"
 msgstr "Raum"
 
-#: c3nav/mapdata/models/geometry/space.py:50
+#: c3nav/mapdata/models/geometry/space.py:52
 #, python-brace-format
 msgid "{category}, {space}, {level}"
 msgstr "{category}, {space}, {level}"
 
-#: c3nav/mapdata/models/geometry/space.py:54
+#: c3nav/mapdata/models/geometry/space.py:56
 #, python-brace-format
 msgid "{category}, {space}"
 msgstr "{category}, {space}"
 
-#: c3nav/mapdata/models/geometry/space.py:96
+#: c3nav/mapdata/models/geometry/space.py:105
 msgid "Column"
 msgstr "Säule"
 
-#: c3nav/mapdata/models/geometry/space.py:97
+#: c3nav/mapdata/models/geometry/space.py:106
 msgid "Columns"
 msgstr "Säulen"
 
-#: c3nav/mapdata/models/geometry/space.py:108
+#: c3nav/mapdata/models/geometry/space.py:117
 msgid "Area"
 msgstr "Bereich"
 
-#: c3nav/mapdata/models/geometry/space.py:109
+#: c3nav/mapdata/models/geometry/space.py:118
 #: c3nav/mapdata/utils/locations.py:313
 msgid "Areas"
 msgstr "Bereiche"
 
-#: c3nav/mapdata/models/geometry/space.py:129
+#: c3nav/mapdata/models/geometry/space.py:138
 msgid "Stair"
 msgstr "Stufe"
 
-#: c3nav/mapdata/models/geometry/space.py:130
+#: c3nav/mapdata/models/geometry/space.py:139
 msgid "Stairs"
 msgstr "Stufen"
 
-#: c3nav/mapdata/models/geometry/space.py:141
+#: c3nav/mapdata/models/geometry/space.py:150
 msgid "Ramp"
 msgstr "Rampe"
 
-#: c3nav/mapdata/models/geometry/space.py:142
+#: c3nav/mapdata/models/geometry/space.py:151
 msgid "Ramps"
 msgstr "Rampen"
 
-#: c3nav/mapdata/models/geometry/space.py:155
+#: c3nav/mapdata/models/geometry/space.py:164
 msgid "Obstacle"
 msgstr "Hindernis"
 
-#: c3nav/mapdata/models/geometry/space.py:156
+#: c3nav/mapdata/models/geometry/space.py:165
 msgid "Obstacles"
 msgstr "Hindernisse"
 
-#: c3nav/mapdata/models/geometry/space.py:170
+#: c3nav/mapdata/models/geometry/space.py:179
 msgid "width"
 msgstr "Breite"
 
-#: c3nav/mapdata/models/geometry/space.py:175
+#: c3nav/mapdata/models/geometry/space.py:184
 msgid "Line Obstacle"
 msgstr "Linienhindernis"
 
-#: c3nav/mapdata/models/geometry/space.py:176
+#: c3nav/mapdata/models/geometry/space.py:185
 msgid "Line Obstacles"
 msgstr "Linienhindernisse"
 
-#: c3nav/mapdata/models/geometry/space.py:211
+#: c3nav/mapdata/models/geometry/space.py:220
 msgid "Point of Interest"
 msgstr "Ort von Interesse"
 
-#: c3nav/mapdata/models/geometry/space.py:212
+#: c3nav/mapdata/models/geometry/space.py:221
 msgid "Points of Interest"
 msgstr "Orte von Interesse"
 
-#: c3nav/mapdata/models/geometry/space.py:228
+#: c3nav/mapdata/models/geometry/space.py:237
 msgid "Hole"
 msgstr "Loch"
 
-#: c3nav/mapdata/models/geometry/space.py:229
+#: c3nav/mapdata/models/geometry/space.py:238
 msgid "Holes"
 msgstr "Löcher"
 
-#: c3nav/mapdata/models/geometry/space.py:241
+#: c3nav/mapdata/models/geometry/space.py:250
 msgid "Altitude Marker"
 msgstr "Höhenmarker"
 
-#: c3nav/mapdata/models/geometry/space.py:242
+#: c3nav/mapdata/models/geometry/space.py:251
 msgid "Altitude Markers"
 msgstr "Höhenmarker"
 
-#: c3nav/mapdata/models/geometry/space.py:255
-#: c3nav/mapdata/models/geometry/space.py:279
+#: c3nav/mapdata/models/geometry/space.py:264
+#: c3nav/mapdata/models/geometry/space.py:303
 msgid "target space"
 msgstr "Zielraum"
 
-#: c3nav/mapdata/models/geometry/space.py:257
-#: c3nav/mapdata/models/geometry/space.py:281 c3nav/mapdata/models/graph.py:44
+#: c3nav/mapdata/models/geometry/space.py:266
+#: c3nav/mapdata/models/geometry/space.py:305 c3nav/mapdata/models/graph.py:44
 msgid "description"
 msgstr "Beschreibung"
 
-#: c3nav/mapdata/models/geometry/space.py:260
+#: c3nav/mapdata/models/geometry/space.py:269
 msgid "Leave description"
 msgstr "Verlassensbeschreibung"
 
-#: c3nav/mapdata/models/geometry/space.py:261
+#: c3nav/mapdata/models/geometry/space.py:270
 msgid "Leave descriptions"
 msgstr "Verlassensbeschreibungen"
 
-#: c3nav/mapdata/models/geometry/space.py:277
+#: c3nav/mapdata/models/geometry/space.py:301
 msgid "origin space"
 msgstr "Ursprungsraum"
 
-#: c3nav/mapdata/models/geometry/space.py:284
+#: c3nav/mapdata/models/geometry/space.py:308
 msgid "Cross description"
 msgstr "Durchschreitungsbeschreibung"
 
-#: c3nav/mapdata/models/geometry/space.py:285
+#: c3nav/mapdata/models/geometry/space.py:309
 msgid "Cross descriptions"
 msgstr "Durchschreitungsbeschreibungen"
 
-#: c3nav/mapdata/models/geometry/space.py:302
+#: c3nav/mapdata/models/geometry/space.py:343
 msgid "comment"
 msgstr "Kommentar"
 
-#: c3nav/mapdata/models/geometry/space.py:303
+#: c3nav/mapdata/models/geometry/space.py:344
 msgid "Measurement list"
 msgstr "Messungsliste"
 
-#: c3nav/mapdata/models/geometry/space.py:306
+#: c3nav/mapdata/models/geometry/space.py:347
 msgid "Wi-Fi Measurement"
 msgstr "WLAN Messung"
 
-#: c3nav/mapdata/models/geometry/space.py:307
+#: c3nav/mapdata/models/geometry/space.py:348
 msgid "Wi-Fi Measurements"
 msgstr "WLAN Messungen"
 
