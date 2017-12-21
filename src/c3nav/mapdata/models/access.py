@@ -220,7 +220,7 @@ class AccessPermission(models.Model):
     def cache_key_for_request(cls, request, with_update=True):
         return (
             ((MapUpdate.current_cache_key()+':') if with_update else '') +
-            ','.join(str(i) for i in sorted(AccessPermission.get_for_request(request)) or '0')
+            '-'.join(str(i) for i in sorted(AccessPermission.get_for_request(request)) or '0')
         )
 
     @classmethod
