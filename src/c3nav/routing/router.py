@@ -488,13 +488,13 @@ class RouterSpace(BaseRouterProxy):
 
         contained = tuple(area for area in areas.values() if area.geometry_prep.contains(point))
         if contained:
-            return tuple(sorted(contained, key=lambda area: area.geometry.area)), ()
+            return tuple(sorted(contained, key=lambda area: area.geometry.area)), None
 
         near = ((area, area.geometry.distance(point)) for area in areas.values())
         near = tuple((area, distance) for area, distance in near if distance < 5)
         if not near:
-            return (), ()
-        return (), (min(near, key=operator.itemgetter(1))[0], )
+            return (), None
+        return (), min(near, key=operator.itemgetter(1))[0]
 
     def poi_for_point(self, pois, point, restrictions):
         point = Point(point.x, point.y)
