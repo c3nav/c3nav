@@ -7,8 +7,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2017-12-21 03:50+0100\n"
-"PO-Revision-Date: 2017-12-21 03:50+0100\n"
+"POT-Creation-Date: 2017-12-21 20:48+0100\n"
+"PO-Revision-Date: 2017-12-21 20:49+0100\n"
 "Last-Translator: Laura Klünder <laura@codingcatgirl.de>\n"
 "Language-Team: \n"
 "Language: de\n"
@@ -1027,8 +1027,8 @@ msgstr "Du musst dich anmelden um Änderungen vorzuschlagen."
 #: c3nav/editor/views/changes.py:77
 msgid "You need to add a title an a description to propose this change set."
 msgstr ""
-"Du musst einen Titel und eine Beschreibung hinzufügen, um dieses Änderungsset "
-"vorzuschlagen."
+"Du musst einen Titel und eine Beschreibung hinzufügen, um dieses "
+"Änderungsset vorzuschlagen."
 
 #: c3nav/editor/views/changes.py:82
 msgid "You proposed your changes."
@@ -1897,30 +1897,31 @@ msgid "Subtitle"
 msgstr "Untertitel"
 
 #: c3nav/mapdata/utils/locations.py:367
-msgid "Point"
-msgstr "Punkt"
+#, python-format
+msgid "Point in %(level)s"
+msgstr "Punkt innerhalb %(level)s"
 
-#: c3nav/mapdata/utils/locations.py:374
+#: c3nav/mapdata/utils/locations.py:373
 #, python-format
 msgid "Point near %(poi)s"
 msgstr "Punkt nahe %(poi)s"
 
-#: c3nav/mapdata/utils/locations.py:378
+#: c3nav/mapdata/utils/locations.py:377
 #, python-format
 msgid "near %(area)s"
 msgstr "nahe %(area)s"
 
-#: c3nav/mapdata/utils/locations.py:380
+#: c3nav/mapdata/utils/locations.py:379
 #, python-format
 msgid "Point in %(area)s"
 msgstr "Punkt innerhalb %(area)s"
 
-#: c3nav/mapdata/utils/locations.py:384
+#: c3nav/mapdata/utils/locations.py:383
 #, python-format
 msgid "Point near %(area)s"
 msgstr "Punkt nahe %(area)s"
 
-#: c3nav/mapdata/utils/locations.py:386
+#: c3nav/mapdata/utils/locations.py:385
 #, python-format
 msgid "Point in %(space)s"
 msgstr "Punkt innerhalb %(space)s"
@@ -2178,6 +2179,9 @@ msgid "You have been invited to unlock the following area:"
 msgid_plural "You have been invited to unlock the following areas:"
 msgstr[0] "Du wurdest eingeladen, den folgenden Bereich freizuschalten:"
 msgstr[1] "Du wurdest eingeladen, die folgenden Bereiche freizuschalten:"
+
+#~ msgid "Point"
+#~ msgstr "Punkt"
 
 #~ msgid "Custom Location"
 #~ msgstr "Benutzerdefinierter Ort"

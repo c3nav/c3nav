@@ -364,8 +364,7 @@ class CustomLocation:
 
     @cached_property
     def title_subtitle(self):
-        title = _('Point')
-        print(self.space)
+        title = _('Point in %(level)s') % {'level': self.level.title}
         if not self.space:
             return title, self.level.title,
 
