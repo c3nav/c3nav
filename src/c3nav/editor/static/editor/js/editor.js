@@ -877,11 +877,24 @@ editor = {
         $collector.siblings('[name=data]').val('');
         $collector.closest('form').addClass('scan-lock');
     },
+    _last_max_last: 0,
     _wificollector_result: function(data) {
         var $collector = $('#sidebar').find('.wificollector.running'),
             $table = $collector.find('table'),
-            item, i, line, apid, color;
+            item, i, line, apid, color, max_last = 0;
         editor._wificollector_scan_perhaps();
+
+        if (!data.length) return;
+
+        // ignore this scan?
+        for (i=0; i < data.length; i++) {
+            item = data[i];
+            if (item.last) {
+                max_last = Math.max(max_last, item.last);
+            }
+        }
+        if (max_last && c3nav._last_max_last && max_last === c3nav._max_last_max) return;
+
         $table.find('tr').addClass('old');
         for (i=0; i < data.length; i++) {
             item = data[i];
