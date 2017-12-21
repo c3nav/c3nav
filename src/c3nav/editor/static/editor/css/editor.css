@@ -72,10 +72,13 @@ body:not(.map-enabled) #sidebar {
 nav.navbar .navbar-nav > li > a {
     color:#666666;
 }
+body.mobileclient .nomobileclient {
+    display:none;
+}
 
 /* sidebar contents */
 #sidebar form.creation-lock [type=submit].btn.btn-primary,
-#sidebar form.scan-lock [type=submit].btn.btn-primary{
+#sidebar form.scan-lock [type=submit].btn.btn-primary {
     display:none;
 }
 #sidebar h3 {
@@ -334,13 +337,14 @@ body > .wificollector {
 .wificollector:not(.empty) .btn.start,
 .wificollector:not(.running) .btn.stop,
 .wificollector:not(.done) .btn.reset,
-.wificollector.empty .count-line {
+.wificollector.empty .count-line,
+body:not(.mobileclient) .wificollector .btn {
     display: none;
 }
 .wificollector .btn {
     margin: 0 5px 0 0;
 }
-.wificollector p {
+.wificollector p:first-child {
     height: 26px;
     margin: 0;
 }

@@ -136,6 +136,9 @@ class EditorFormBase(I18nModelFormMixin, ModelForm):
         if 'to_node' in self.fields:
             self.fields['to_node'].widget = HiddenInput()
 
+        if 'data' in self.fields:
+            self.initial['data'] = json.dumps(self.initial['data'])
+
     def clean_redirect_slugs(self):
         old_redirect_slugs = set(self.redirect_slugs)
         new_redirect_slugs = set(s for s in (s.strip() for s in self.cleaned_data['redirect_slugs'].split(',')) if s)

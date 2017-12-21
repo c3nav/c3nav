@@ -22,6 +22,8 @@ editor = {
             editor.map.doubleClickZoom.enable();
         });
 
+        if (window.mobileclient) $('body').addClass('mobileclient');
+
         /*
          * Fix scroll wheel zoom on precise scrolling devices
          */
@@ -234,8 +236,13 @@ editor = {
         var data_field = $('form [name=data]');
         if (data_field.length) {
             data_field.hide();
-            data_field.after($('body .wificollector')[0].outerHTML);
-            data_field.closest('form').addClass('scan-lock');
+            var collector = $($('body .wificollector')[0].outerHTML);
+            if (data_field.val()) {
+                collector.removeClass('empty').addClass('done').find('.count').text(JSON.parse(data_field.val()).length);
+            } else {
+                data_field.closest('form').addClass('scan-lock');
+            }
+            data_field.after(collector);
         }
     },
     _sidebar_error: function(data) {
