@@ -591,7 +591,12 @@ class RouterEdge:
         self.to_node = to_node.i
         self.waytype = waytype
         self.access_restriction = access_restriction
-        self.rise = rise if rise is not None else (to_node.altitude - from_node.altitude)
+        if rise is not None:
+            self.rise = rise
+        elif to_node.altitude is None or from_node.altitude is None:
+            self.rise = None
+        else:
+            self.rise = (to_node.altitude - from_node.altitude)
         self.distance = distance if distance is not None else np.linalg.norm(to_node.xyz - from_node.xyz)
 
 
