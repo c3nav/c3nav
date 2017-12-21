@@ -72,7 +72,11 @@ def good_representative_point(geometry):
     if isinstance(geometry, Point):
         return geometry
     c = geometry.centroid
-    x1, y1, x2, y2 = geometry.bounds
+    try:
+        x1, y1, x2, y2 = geometry.bounds
+    except ValueError:
+        # jup, this can happen
+        return c
     lines = (tuple(assert_multilinestring(LineString(((x1, c.y), (x2, c.y))).intersection(geometry))) +
              tuple(assert_multilinestring(LineString(((c.x, y1), (c.x, y2))).intersection(geometry))))
     return min(lines, key=lambda line: (line.distance(c), line.length),
