@@ -3,6 +3,7 @@ from operator import itemgetter
 
 from django.conf import settings
 from django.contrib import messages
+from django.contrib.auth.models import User
 from django.core.cache import cache
 from django.http import Http404
 from django.shortcuts import get_object_or_404, redirect, render
@@ -275,8 +276,15 @@ def changeset_detail(request, pk):
                     change_data.update({
                         'icon': 'map-marker',
                         'class': 'info',
-                        'title': _('edited geometry'),
+                        'title': _('created geometry') if changed_object.is_created else _('edited geometry'),
                         'order': (8,),
+                    })
+                elif name == 'data':
+                    change_data.update({
+                        'icon': 'signal',
+                        'class': 'info',
+                        'title': _('scan data created') if changed_object.is_created else _('scan data edited'),
+                        'order': (9,),
                     })
                 else:
                     if '__i18n__' in name:
@@ -299,7 +307,10 @@ def changeset_detail(request, pk):
                         field_title = field.verbose_name
                         field_value = field.to_python(value)
                         if field.related_model is not None:
-                            field_value = objects[field.related_model][field_value].title
+                            if issubclass(field.related_model, User):
+                                field_value = objects[field.related_model][field_value].username
+                            else:
+                                field_value = objects[field.related_model][field_value].title
                             change_data.update({
                                 'missing_dependency': field.name in missing_dependencies,
                             })
