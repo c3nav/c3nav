@@ -474,6 +474,8 @@ class RouterSpace(BaseRouterProxy):
 
     def altitudearea_for_point(self, point):
         point = Point(point.x, point.y)
+        if not self.altitudeareas:
+            raise LocationUnreachable
         for area in self.altitudeareas:
             if area.geometry_prep.intersects(point):
                 return area
