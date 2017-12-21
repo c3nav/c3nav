@@ -863,6 +863,7 @@ editor = {
         $collector.find('.count').text(0);
     },
     _wificollector_stop: function () {
+        if (!editor._wificollector_data.length) return editor._wificollector_reset();
         var $collector = $('#sidebar').find('.wificollector');
         $collector.removeClass('running').delay(1000).queue(function(n) {
             $(this).addClass('done');
@@ -872,7 +873,7 @@ editor = {
     },
     _wificollector_reset: function () {
         var $collector = $('#sidebar').find('.wificollector');
-        $collector.removeClass('done').addClass('empty').find('table').html('');
+        $collector.removeClass('done').removeClass('running').addClass('empty').find('table').html('');
         $collector.siblings('[name=data]').val('');
         $collector.closest('form').addClass('scan-lock');
     },
