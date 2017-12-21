@@ -488,7 +488,7 @@ class AltitudeArea(LevelGeometryMixin, models.Model):
                 remaining_space = MultiPolygon(remaining_space)
 
                 for polygon in assert_multipolygon(remaining_space):
-                    polygon = clean_cut_polygon(polygon)
+                    polygon = clean_cut_polygon(polygon).buffer(0)
                     buffered = polygon.buffer(0.001)
 
                     center = polygon.centroid
