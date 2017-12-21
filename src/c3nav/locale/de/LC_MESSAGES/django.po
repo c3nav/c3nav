@@ -7,8 +7,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2017-12-21 03:42+0100\n"
-"PO-Revision-Date: 2017-12-21 03:45+0100\n"
+"POT-Creation-Date: 2017-12-21 03:50+0100\n"
+"PO-Revision-Date: 2017-12-21 03:50+0100\n"
 "Last-Translator: Laura Klünder <laura@codingcatgirl.de>\n"
 "Language-Team: \n"
 "Language: de\n"
@@ -881,7 +881,7 @@ msgid "Level"
 msgstr "Etage"
 
 #: c3nav/editor/templates/editor/level.html:22
-#: c3nav/editor/templates/editor/space.html:14 c3nav/editor/views/edit.py:413
+#: c3nav/editor/templates/editor/space.html:14 c3nav/editor/views/edit.py:418
 msgid "back to overview"
 msgstr "zurück zur Übersicht"
 
@@ -1129,89 +1129,93 @@ msgstr "gelöscht"
 msgid "You cannot edit this change set."
 msgstr "Du kannst dieses Änderungsset nicht bearbeiten."
 
-#: c3nav/editor/views/edit.py:223
+#: c3nav/editor/views/edit.py:224
 msgid "You can not create new objects because your changeset is full."
 msgstr ""
 "Du kannst keine neuen Objekte erstellen weil dein Änderungsset voll ist."
 
-#: c3nav/editor/views/edit.py:226 c3nav/editor/views/edit.py:240
+#: c3nav/editor/views/edit.py:227 c3nav/editor/views/edit.py:245
 msgid "You can not edit this object because your changeset is full."
 msgstr "Du kannst diese Objekt nicht löschen weil dein Änderungsset voll ist."
 
-#: c3nav/editor/views/edit.py:249
+#: c3nav/editor/views/edit.py:240
+msgid "You need to log in to create Wifi Measurements."
+msgstr "Du musst dich anmelden um WLAN Messungen zu erstellen."
+
+#: c3nav/editor/views/edit.py:254
 msgid ""
 "You can not delete this object because other objects still depend on it."
 msgstr ""
 "Du kannst dieses Objekt nicht löschen weil andere Objekte sich darauf "
 "beziehen."
 
-#: c3nav/editor/views/edit.py:257 c3nav/editor/views/edit.py:300
-#: c3nav/editor/views/edit.py:526 c3nav/editor/views/edit.py:563
-#: c3nav/editor/views/edit.py:581
+#: c3nav/editor/views/edit.py:262 c3nav/editor/views/edit.py:305
+#: c3nav/editor/views/edit.py:531 c3nav/editor/views/edit.py:568
+#: c3nav/editor/views/edit.py:586
 msgid "You can not edit changes on this changeset."
 msgstr "Du kannst keine Änderungen dieses Änderungssets bearbeiten."
 
-#: c3nav/editor/views/edit.py:259
+#: c3nav/editor/views/edit.py:264
 msgid "Object was successfully deleted."
 msgstr "Objekt wurde erfolgreich gelöscht."
 
-#: c3nav/editor/views/edit.py:297
+#: c3nav/editor/views/edit.py:302
 msgid "Object was successfully saved."
 msgstr "Objekt wurde erfolgreich gespeichert."
 
-#: c3nav/editor/views/edit.py:368 c3nav/editor/views/edit.py:484
+#: c3nav/editor/views/edit.py:373 c3nav/editor/views/edit.py:489
 msgid "back to level"
 msgstr "zurück zur Etage"
 
-#: c3nav/editor/views/edit.py:407 c3nav/editor/views/edit.py:498
+#: c3nav/editor/views/edit.py:412 c3nav/editor/views/edit.py:503
 msgid "back to space"
 msgstr "zurück zum Raum"
 
-#: c3nav/editor/views/edit.py:445
+#: c3nav/editor/views/edit.py:450
 msgid "Could not edit edge because your changeset is full."
 msgstr "Kante konnte nicht bearbeitet werden weil dein Änderungsset voll ist."
 
-#: c3nav/editor/views/edit.py:452
+#: c3nav/editor/views/edit.py:457
 msgid "Reverse edge created."
 msgstr "Umgekehrte Kante erstellt."
 
-#: c3nav/editor/views/edit.py:452
+#: c3nav/editor/views/edit.py:457
 msgid "Edge created."
 msgstr "Kante erstellt."
 
-#: c3nav/editor/views/edit.py:455
+#: c3nav/editor/views/edit.py:460
 msgid "Reverse edge deleted."
 msgstr "Umgekehrte Kante gelöscht."
 
-#: c3nav/editor/views/edit.py:455
+#: c3nav/editor/views/edit.py:460
 msgid "Edge deleted."
 msgstr "Kante gelöscht."
 
-#: c3nav/editor/views/edit.py:460
+#: c3nav/editor/views/edit.py:465
 msgid "Reverse edge overwritten."
 msgstr "Umgekehrte Kante überschrieben."
 
-#: c3nav/editor/views/edit.py:460
+#: c3nav/editor/views/edit.py:465
 msgid "Edge overwritten."
 msgstr "Kante überschrieben."
 
-#: c3nav/editor/views/edit.py:500
+#: c3nav/editor/views/edit.py:505
 msgid "to level graph"
 msgstr "zum Etagengraph"
 
-#: c3nav/editor/views/edit.py:516
+#: c3nav/editor/views/edit.py:521
 msgid "You can not delete this graph node because your changeset is full."
 msgstr "Du kannst diesen Knoten nicht löschen weil dein Änderungsset voll ist."
 
-#: c3nav/editor/views/edit.py:528
+#: c3nav/editor/views/edit.py:533
 msgid "Graph Node was successfully deleted."
 msgstr "Graphknoten wurde erfolgreich gelöscht."
 
-#: c3nav/editor/views/edit.py:569
+#: c3nav/editor/views/edit.py:574
 msgid "You can not add graph nodes because your changeset is full."
 msgstr "Du kannst keine Graphknoten erstellen weil dein Änderungsset voll ist."
 
-#: c3nav/editor/views/edit.py:576
+#: c3nav/editor/views/edit.py:581
 msgid "New graph node created."
 msgstr "Neuer Graphknoten erstellt."
 

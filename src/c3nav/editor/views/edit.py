@@ -2,6 +2,7 @@ import typing
 from contextlib import suppress
 
 from django.contrib import messages
+from django.contrib.auth.views import redirect_to_login
 from django.core.cache import cache
 from django.core.exceptions import FieldDoesNotExist, ObjectDoesNotExist
 from django.db import models
@@ -234,6 +235,10 @@ def edit(request, pk=None, model=None, level=None, space=None, on_top_of=None, e
         ctx.update({
             'nozoom': True
         })
+
+    if new and model.__name__ == 'WifiMeasurements' and not request.user.is_authenticated:
+        messages.info(request, _('You need to log in to create Wifi Measurements.'))
+        return redirect_to_login(request.path_info, 'editor.login')
 
     if request.method == 'POST':
         if nosave:
