@@ -853,7 +853,7 @@ editor = {
         $('#sidebar').on('click', '.wificollector .start', editor._wificollector_start)
                      .on('click', '.wificollector .stop', editor._wificollector_stop)
                      .on('click', '.wificollector .reset', editor._wificollector_reset);
-        editor._wificollector_scan_perhaps();
+        window.setInterval(editor._wificollector_scan_perhaps, 1000);
     },
     _wificollector_data: [],
     _wificollector_start: function () {
@@ -878,12 +878,16 @@ editor = {
         $collector.closest('form').addClass('scan-lock');
     },
     _last_max_last: 0,
+    _last_result: 0,
     _wificollector_result: function(data) {
         var $collector = $('#sidebar').find('.wificollector.running'),
             $table = $collector.find('table'),
-            item, i, line, apid, color, max_last = 0;
-        editor._wificollector_scan_perhaps();
+            item, i, line, apid, color, max_last = 0, now = Date.now();
+        editor._scan_waits = false;
+
         if (!data.length) return;
+        if (now-1000 < editor._last_result) return;
+        editor._last_result = now;
 
         // ignore this scan?
         for (i=0; i < data.length; i++) {
@@ -917,14 +921,11 @@ editor = {
         $collector.find('.count').text(editor._wificollector_data.length);
         $collector.siblings('[name=data]').val(JSON.stringify(editor._wificollector_data));
     },
-    _last_scan: 0,
+    _scan_waits: false,
     _wificollector_scan_perhaps: function() {
-        if ($('#sidebar').find('.wificollector.running').length) {
-            var now = Date.now();
-            window.setTimeout(mobileclient.scanNow(), Math.max(0, 1000-(now-editor._last_scan)));
-            editor._last_scan = now;
-        } else {
-            window.setTimeout(editor._wificollector_scan_perhaps, 1000);
+        if (!editor._scan_waits && $('#sidebar').find('.wificollector.running').length) {
+            editor._scan_waits = true;
+            mobileclient.scanNow();
         }
     }
 };
