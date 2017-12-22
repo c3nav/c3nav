@@ -35,7 +35,8 @@ c3nav = {
                 var location = data[i];
                 location.elem = c3nav._build_location_html(location);
                 location.title_words = location.title.toLowerCase().split(/\s+/);
-                location.match = ' ' + location.title_words.join(' ') + ' ';
+                location.subtitle_words = location.subtitle.toLowerCase().split(/\s+/);
+                location.match = ' ' + location.title_words.join(' ') + ' ' + location.subtitle_words.join(' ') + ' ';
                 c3nav.locations.push(location);
                 c3nav.locations_by_id[location.id] = location;
             }
