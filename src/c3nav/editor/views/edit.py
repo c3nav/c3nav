@@ -478,6 +478,8 @@ def graph_edit(request, level=None, space=None):
     ctx = {
         'path': request.path,
         'can_edit': can_edit,
+        'levels': Level.objects.filter(Level.q_for_request(request), on_top_of__isnull=True),
+        'level_url': 'editor.levels.graph',
     }
 
     create_nodes = False
@@ -487,9 +489,7 @@ def graph_edit(request, level=None, space=None):
         ctx.update({
             'back_url': reverse('editor.levels.detail', kwargs={'pk': level.pk}),
             'back_title': _('back to level'),
-            'levels': Level.objects.filter(Level.q_for_request(request), on_top_of__isnull=True),
             'level': level,
-            'level_url': request.resolver_match.url_name,
             'geometry_url': '/api/editor/geometries/?level='+str(level.primary_level_pk),
         })
     elif space is not None:
