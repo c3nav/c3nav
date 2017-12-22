@@ -516,7 +516,7 @@ class BaseQueryWrapper(BaseWrapper):
             if not segments:
                 # turn 'm2m' into 'm2m__pk' for later
                 filter_name = field_name + '__pk'
-                filter_value = filter_value.pk
+                filter_value = None if filter_value is None else filter_value.pk
                 segments = ['pk']
                 q = Q(**{filter_name: filter_value})
 
