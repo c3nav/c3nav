@@ -98,8 +98,8 @@ class Route:
                     if description is None:
                         description = current_space.leave_descriptions.get(next_space.pk, None)
                     if description is None:
-                        description = str(item.space.enter_description) or None
-                    if description is None:
+                        description = item.space.enter_description
+                    if description == None:  # could be a lazy None
                         description =  _('Go to %(space_title)s.') % {'space_title': item.space.title}
 
                     item.descriptions.append(('more_vert', description))
