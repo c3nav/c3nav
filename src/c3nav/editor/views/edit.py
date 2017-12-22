@@ -1,5 +1,6 @@
 import typing
 from contextlib import suppress
+from sqlite3 import IntegrityError
 
 from django.contrib import messages
 from django.contrib.auth.views import redirect_to_login
@@ -289,18 +290,21 @@ def edit(request, pk=None, model=None, level=None, space=None, on_top_of=None, e
 
             with request.changeset.lock_to_edit(request) as changeset:
                 if changeset.can_edit(request):
-                    obj.save()
+                    try:
+                        obj.save()
+                    except IntegrityError:
+                        messages.error(request, _('Duplicate entry.'))
+                    else:
+                        if form.redirect_slugs is not None:
+                            for slug in form.add_redirect_slugs:
+                                obj.redirects.create(slug=slug)
 
-                    if form.redirect_slugs is not None:
-                        for slug in form.add_redirect_slugs:
-                            obj.redirects.create(slug=slug)
+                            for slug in form.remove_redirect_slugs:
+                                obj.redirects.filter(slug=slug).delete()
 
-                        for slug in form.remove_redirect_slugs:
-                            obj.redirects.filter(slug=slug).delete()
-
-                    form.save_m2m()
-                    messages.success(request, _('Object was successfully saved.'))
-                    return redirect(ctx['back_url'])
+                        form.save_m2m()
+                        messages.success(request, _('Object was successfully saved.'))
+                        return redirect(ctx['back_url'])
                 else:
                     messages.error(request, _('You can not edit changes on this changeset.'))
 
