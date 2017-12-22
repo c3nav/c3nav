@@ -84,12 +84,12 @@ class EditorViewSet(ViewSet):
             levels, levels_on_top, levels_under = self._get_levels_pk(request, level)
             # don't prefetch groups for now as changesets do not yet work with m2m-prefetches
             levels = Level.objects.filter(pk__in=levels).filter(Level.q_for_request(request))
-            graphnodes_qs = request.changeset.wrap_model('GraphNode').objects.all()
+            # graphnodes_qs = request.changeset.wrap_model('GraphNode').objects.all()
             levels = levels.prefetch_related(
                 Prefetch('spaces', request.changeset.wrap_model('Space').objects.filter(Space.q_for_request(request))),
                 Prefetch('doors', request.changeset.wrap_model('Door').objects.filter(Door.q_for_request(request))),
                 'buildings', 'spaces__holes', 'spaces__groups', 'spaces__columns', 'spaces__altitudemarkers',
-                Prefetch('spaces__graphnodes', graphnodes_qs)
+                # Prefetch('spaces__graphnodes', graphnodes_qs)
             )
 
             levels = {s.pk: s for s in levels}
