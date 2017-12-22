@@ -152,7 +152,7 @@ class SpecificLocation(Location, models.Model):
 
         for category, groups in sorted(groupcategories.items(), key=lambda item: item[0].priority):
             result['display'].insert(3, (
-                category.title,
+                category.title if category.single else category.title_plural,
                 tuple({
                     'id': group.pk,
                     'slug': group.get_slug(),
