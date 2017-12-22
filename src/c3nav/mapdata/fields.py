@@ -142,7 +142,7 @@ def get_i18n_value(i18n_dict, fallback_language, fallback_any, fallback_value):
             return i18n_dict[fallback_language]
         if fallback_any:
             return next(iter(i18n_dict.values()))
-    return str(fallback_value)
+    return None if fallback_value is None else str(fallback_value)
 
 
 lazy_get_i18n_value = lazy(get_i18n_value, str)

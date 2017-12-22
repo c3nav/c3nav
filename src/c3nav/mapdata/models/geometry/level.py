@@ -16,7 +16,7 @@ from shapely.geometry import JOIN_STYLE, LineString, MultiPolygon
 from shapely.geometry.polygon import orient
 from shapely.ops import unary_union
 
-from c3nav.mapdata.fields import GeometryField
+from c3nav.mapdata.fields import GeometryField, I18nField
 from c3nav.mapdata.models import Level
 from c3nav.mapdata.models.access import AccessRestrictionMixin
 from c3nav.mapdata.models.geometry.base import GeometryMixin
@@ -112,6 +112,7 @@ class Space(LevelGeometryMixin, SpecificLocation, models.Model):
     height = models.DecimalField(_('height'), max_digits=6, decimal_places=2, null=True, blank=True,
                                  validators=[MinValueValidator(Decimal('0'))])
     outside = models.BooleanField(default=False, verbose_name=_('only outside of building'))
+    enter_description = I18nField(_('Enter description'), blank=True, fallback_language=None)
 
     class Meta:
         verbose_name = _('Space')
