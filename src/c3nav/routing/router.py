@@ -220,7 +220,7 @@ class Router:
             if edge.access_restriction:
                 restrictions.setdefault(edge.access_restriction, RouterRestriction()).edges.append(index)
 
-        for area in areas:
+        for area in areas.values():
             if area.slow_down_factor != 1:
                 area_nodes = np.array(area.nodes)
                 graph[area_nodes.reshape((-1, 1)), area_nodes] *= float(area.slow_down_factor)
