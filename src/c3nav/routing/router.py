@@ -220,6 +220,11 @@ class Router:
             if edge.access_restriction:
                 restrictions.setdefault(edge.access_restriction, RouterRestriction()).edges.append(index)
 
+        for area in areas:
+            if area.slow_down_factor != 1:
+                area_nodes = np.array(area.nodes)
+                graph[area_nodes.reshape((-1, 1)), area_nodes] *= float(area.slow_down_factor)
+
         # finalize waytype matrixes
         for waytype in waytypes:
             waytype.upwards_indices = np.array(waytype.upwards_indices, dtype=np.uint32).reshape((-1, 2))

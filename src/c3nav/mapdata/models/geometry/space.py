@@ -112,6 +112,8 @@ class Area(SpaceGeometryMixin, SpecificLocation, models.Model):
     An area in a space.
     """
     geometry = GeometryField('polygon')
+    slow_down_factor = models.DecimalField(_('slow down factor'), max_digits=6, decimal_places=2, default=1,
+                                           validators=[MinValueValidator(Decimal('0.01'))])
 
     class Meta:
         verbose_name = _('Area')
