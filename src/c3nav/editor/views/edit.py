@@ -1,12 +1,11 @@
 import typing
 from contextlib import suppress
-from sqlite3 import IntegrityError
 
 from django.contrib import messages
 from django.contrib.auth.views import redirect_to_login
 from django.core.cache import cache
 from django.core.exceptions import FieldDoesNotExist, ObjectDoesNotExist
-from django.db import models
+from django.db import IntegrityError, models
 from django.db.models import Q
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
