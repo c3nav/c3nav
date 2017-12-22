@@ -40,7 +40,7 @@ class MapUpdate(models.Model):
         with cls.lock():
             last_update = cls.objects.latest()
             result = last_update.to_tuple
-            cache.set('mapdata:last_update', result, 300)
+            cache.set('mapdata:last_update', result, None)
         return result
 
     @classmethod
@@ -51,7 +51,7 @@ class MapUpdate(models.Model):
         with cls.lock():
             last_processed_update = cls.objects.filter(processed=True).latest()
             result = last_processed_update.to_tuple
-            cache.set('mapdata:last_processed_update', result, 300)
+            cache.set('mapdata:last_processed_update', result, None)
         return result
 
     @property
