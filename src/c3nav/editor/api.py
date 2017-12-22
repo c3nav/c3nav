@@ -99,21 +99,21 @@ class EditorViewSet(ViewSet):
             levels_on_top = [levels[pk] for pk in levels_on_top]
 
             # todo: permissions
-            graphnodes = tuple(chain(*(space.graphnodes.all()
-                                       for space in chain(*(level.spaces.all() for level in levels.values())))))
-            graphnodes_lookup = {node.pk: node for node in graphnodes}
+            # graphnodes = tuple(chain(*(space.graphnodes.all()
+            #                            for space in chain(*(level.spaces.all() for level in levels.values())))))
+            # graphnodes_lookup = {node.pk: node for node in graphnodes}
 
-            graphedges = request.changeset.wrap_model('GraphEdge').objects.all()
-            graphedges = graphedges.filter(Q(from_node__in=graphnodes) | Q(to_node__in=graphnodes))
-            graphedges = graphedges.select_related('waytype')
+            # graphedges = request.changeset.wrap_model('GraphEdge').objects.all()
+            # graphedges = graphedges.filter(Q(from_node__in=graphnodes) | Q(to_node__in=graphnodes))
+            # graphedges = graphedges.select_related('waytype')
 
             # this is faster because we only deserialize graphnode geometries once
-            missing_graphnodes = graphnodes_qs.filter(pk__in=set(chain(*((edge.from_node_id, edge.to_node_id)
-                                                                         for edge in graphedges))))
-            graphnodes_lookup.update({node.pk: node for node in missing_graphnodes})
-            for edge in graphedges:
-                edge._from_node_cache = graphnodes_lookup[edge.from_node_id]
-                edge._to_node_cache = graphnodes_lookup[edge.to_node_id]
+            # missing_graphnodes = graphnodes_qs.filter(pk__in=set(chain(*((edge.from_node_id, edge.to_node_id)
+            #                                                              for edge in graphedges))))
+            # graphnodes_lookup.update({node.pk: node for node in missing_graphnodes})
+            # for edge in graphedges:
+            #     edge._from_node_cache = graphnodes_lookup[edge.from_node_id]
+            #     edge._to_node_cache = graphnodes_lookup[edge.to_node_id]
 
             # graphedges = [edge for edge in graphedges if edge.from_node.space_id != edge.to_node.space_id]
 
@@ -122,8 +122,8 @@ class EditorViewSet(ViewSet):
                 self._get_level_geometries(level),
                 *(self._get_level_geometries(l) for l in levels_on_top),
                 *(space.altitudemarkers.all() for space in level.spaces.all()),
-                graphedges,
-                graphnodes,
+                # graphedges,
+                # graphnodes,
             )
 
             return Response([obj.to_geojson(instance=obj) for obj in results])
