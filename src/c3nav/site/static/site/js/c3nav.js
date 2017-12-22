@@ -992,6 +992,10 @@ c3nav = {
         c3nav._levelControl.finalize();
         c3nav._levelControl.setLevel(c3nav.initial_level);
 
+        L.control.zoom({
+            position:'bottomright'
+        }).addTo(c3nav.map);
+
         c3nav.map.on('click', c3nav._click_anywhere);
 
         c3nav.schedule_refresh_tile_access();
