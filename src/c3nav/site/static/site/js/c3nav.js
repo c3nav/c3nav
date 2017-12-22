@@ -230,7 +230,7 @@ c3nav = {
             elem.append($('<dt>').text(line[0]));
             if (typeof line[1] === 'string') {
                 elem.append($('<dd>').text(line[1]));
-            } else if (line[1] === null) {
+            } else if (line[1] === null || line.length === 0) {
                 elem.append($('<dd>').text('-'));
             } else {
                 sublocations = (line[1].length === undefined) ? [line[1]] : line[1];
