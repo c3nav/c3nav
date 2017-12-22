@@ -7,8 +7,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2017-12-21 20:48+0100\n"
-"PO-Revision-Date: 2017-12-21 20:49+0100\n"
+"POT-Creation-Date: 2017-12-22 15:16+0100\n"
+"PO-Revision-Date: 2017-12-22 15:16+0100\n"
 "Last-Translator: Laura Klünder <laura@codingcatgirl.de>\n"
 "Language-Team: \n"
 "Language: de\n"
@@ -306,7 +306,7 @@ msgid "back"
 msgstr "zurück"
 
 #: c3nav/control/templates/control/user.html:73
-#: c3nav/mapdata/models/access.py:77 c3nav/mapdata/models/geometry/space.py:342
+#: c3nav/mapdata/models/access.py:77 c3nav/mapdata/models/geometry/space.py:344
 #: c3nav/site/models.py:15
 msgid "author"
 msgstr "Autor"
@@ -1163,7 +1163,7 @@ msgstr "Objekt wurde erfolgreich gelöscht."
 msgid "Object was successfully saved."
 msgstr "Objekt wurde erfolgreich gespeichert."
 
-#: c3nav/editor/views/edit.py:373 c3nav/editor/views/edit.py:489
+#: c3nav/editor/views/edit.py:373 c3nav/editor/views/edit.py:491
 msgid "back to level"
 msgstr "zurück zur Etage"
 
@@ -1432,8 +1432,8 @@ msgstr "Gebäude"
 
 #: c3nav/mapdata/models/geometry/level.py:112
 #: c3nav/mapdata/models/geometry/level.py:130
-#: c3nav/mapdata/models/geometry/space.py:160
-#: c3nav/mapdata/models/geometry/space.py:180
+#: c3nav/mapdata/models/geometry/space.py:162
+#: c3nav/mapdata/models/geometry/space.py:182
 msgid "height"
 msgstr "Höhe"
 
@@ -1458,7 +1458,7 @@ msgid "Doors"
 msgstr "Türen"
 
 #: c3nav/mapdata/models/geometry/level.py:154
-#: c3nav/mapdata/models/geometry/space.py:247
+#: c3nav/mapdata/models/geometry/space.py:249
 msgid "altitude"
 msgstr "Bodenhöhe"
 
@@ -1497,8 +1497,8 @@ msgstr ""
 "erstellt."
 
 #: c3nav/mapdata/models/geometry/space.py:23
-#: c3nav/mapdata/models/geometry/space.py:263
-#: c3nav/mapdata/models/geometry/space.py:300
+#: c3nav/mapdata/models/geometry/space.py:265
+#: c3nav/mapdata/models/geometry/space.py:302
 msgid "space"
 msgstr "Raum"
 
@@ -1520,118 +1520,122 @@ msgstr "Säule"
 msgid "Columns"
 msgstr "Säulen"
 
-#: c3nav/mapdata/models/geometry/space.py:117
+#: c3nav/mapdata/models/geometry/space.py:115
+msgid "slow down factor"
+msgstr "Verlangsamungsfaktor"
+
+#: c3nav/mapdata/models/geometry/space.py:119
 msgid "Area"
 msgstr "Bereich"
 
-#: c3nav/mapdata/models/geometry/space.py:118
+#: c3nav/mapdata/models/geometry/space.py:120
 #: c3nav/mapdata/utils/locations.py:313
 msgid "Areas"
 msgstr "Bereiche"
 
-#: c3nav/mapdata/models/geometry/space.py:138
+#: c3nav/mapdata/models/geometry/space.py:140
 msgid "Stair"
 msgstr "Stufe"
 
-#: c3nav/mapdata/models/geometry/space.py:139
+#: c3nav/mapdata/models/geometry/space.py:141
 msgid "Stairs"
 msgstr "Stufen"
 
-#: c3nav/mapdata/models/geometry/space.py:150
+#: c3nav/mapdata/models/geometry/space.py:152
 msgid "Ramp"
 msgstr "Rampe"
 
-#: c3nav/mapdata/models/geometry/space.py:151
+#: c3nav/mapdata/models/geometry/space.py:153
 msgid "Ramps"
 msgstr "Rampen"
 
-#: c3nav/mapdata/models/geometry/space.py:164
+#: c3nav/mapdata/models/geometry/space.py:166
 msgid "Obstacle"
 msgstr "Hindernis"
 
-#: c3nav/mapdata/models/geometry/space.py:165
+#: c3nav/mapdata/models/geometry/space.py:167
 msgid "Obstacles"
 msgstr "Hindernisse"
 
-#: c3nav/mapdata/models/geometry/space.py:179
+#: c3nav/mapdata/models/geometry/space.py:181
 msgid "width"
 msgstr "Breite"
 
-#: c3nav/mapdata/models/geometry/space.py:184
+#: c3nav/mapdata/models/geometry/space.py:186
 msgid "Line Obstacle"
 msgstr "Linienhindernis"
 
-#: c3nav/mapdata/models/geometry/space.py:185
+#: c3nav/mapdata/models/geometry/space.py:187
 msgid "Line Obstacles"
 msgstr "Linienhindernisse"
 
-#: c3nav/mapdata/models/geometry/space.py:220
+#: c3nav/mapdata/models/geometry/space.py:222
 msgid "Point of Interest"
 msgstr "Ort von Interesse"
 
-#: c3nav/mapdata/models/geometry/space.py:221
+#: c3nav/mapdata/models/geometry/space.py:223
 msgid "Points of Interest"
 msgstr "Orte von Interesse"
 
-#: c3nav/mapdata/models/geometry/space.py:237
+#: c3nav/mapdata/models/geometry/space.py:239
 msgid "Hole"
 msgstr "Loch"
 
-#: c3nav/mapdata/models/geometry/space.py:238
+#: c3nav/mapdata/models/geometry/space.py:240
 msgid "Holes"
 msgstr "Löcher"
 
-#: c3nav/mapdata/models/geometry/space.py:250
+#: c3nav/mapdata/models/geometry/space.py:252
 msgid "Altitude Marker"
 msgstr "Höhenmarker"
 
-#: c3nav/mapdata/models/geometry/space.py:251
+#: c3nav/mapdata/models/geometry/space.py:253
 msgid "Altitude Markers"
 msgstr "Höhenmarker"
 
-#: c3nav/mapdata/models/geometry/space.py:264
-#: c3nav/mapdata/models/geometry/space.py:303
+#: c3nav/mapdata/models/geometry/space.py:266
+#: c3nav/mapdata/models/geometry/space.py:305
 msgid "target space"
 msgstr "Zielraum"
 
-#: c3nav/mapdata/models/geometry/space.py:266
-#: c3nav/mapdata/models/geometry/space.py:305 c3nav/mapdata/models/graph.py:44
+#: c3nav/mapdata/models/geometry/space.py:268
+#: c3nav/mapdata/models/geometry/space.py:307 c3nav/mapdata/models/graph.py:44
 msgid "description"
 msgstr "Beschreibung"
 
-#: c3nav/mapdata/models/geometry/space.py:269
+#: c3nav/mapdata/models/geometry/space.py:271
 msgid "Leave description"
 msgstr "Verlassensbeschreibung"
 
-#: c3nav/mapdata/models/geometry/space.py:270
+#: c3nav/mapdata/models/geometry/space.py:272
 msgid "Leave descriptions"
 msgstr "Verlassensbeschreibungen"
 
-#: c3nav/mapdata/models/geometry/space.py:301
+#: c3nav/mapdata/models/geometry/space.py:303
 msgid "origin space"
 msgstr "Ursprungsraum"
 
-#: c3nav/mapdata/models/geometry/space.py:308
+#: c3nav/mapdata/models/geometry/space.py:310
 msgid "Cross description"
 msgstr "Durchschreitungsbeschreibung"
 
-#: c3nav/mapdata/models/geometry/space.py:309
+#: c3nav/mapdata/models/geometry/space.py:311
 msgid "Cross descriptions"
 msgstr "Durchschreitungsbeschreibungen"
 
-#: c3nav/mapdata/models/geometry/space.py:343
+#: c3nav/mapdata/models/geometry/space.py:345
 msgid "comment"
 msgstr "Kommentar"
 
-#: c3nav/mapdata/models/geometry/space.py:344
+#: c3nav/mapdata/models/geometry/space.py:346
 msgid "Measurement list"
 msgstr "Messungsliste"
 
-#: c3nav/mapdata/models/geometry/space.py:347
+#: c3nav/mapdata/models/geometry/space.py:349
 msgid "Wi-Fi Measurement"
 msgstr "WLAN Messung"
 
-#: c3nav/mapdata/models/geometry/space.py:348
+#: c3nav/mapdata/models/geometry/space.py:350
 msgid "Wi-Fi Measurements"
 msgstr "WLAN Messungen"
 
