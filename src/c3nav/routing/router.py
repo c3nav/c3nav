@@ -220,9 +220,10 @@ class Router:
             if edge.access_restriction:
                 restrictions.setdefault(edge.access_restriction, RouterRestriction()).edges.append(index)
 
+        # respect slow_down_factor
         for area in areas.values():
             if area.slow_down_factor != 1:
-                area_nodes = np.array(area.nodes)
+                area_nodes = np.array(area.nodes, dtype=np.uint32)
                 graph[area_nodes.reshape((-1, 1)), area_nodes] *= float(area.slow_down_factor)
 
         # finalize waytype matrixes
