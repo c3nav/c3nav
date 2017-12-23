@@ -60,6 +60,7 @@ class LevelGeometryMixin(GeometryMixin):
                 'can_search': self.level.can_search,
             },
         ))
+        result['level'] = self.level_id
         return result
 
     @property

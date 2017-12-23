@@ -84,6 +84,7 @@ class SpaceGeometryMixin(GeometryMixin):
                 'can_search': self.space.can_search,
             },
         ))
+        result['level'] = self.level_id
         return result
 
     def register_delete(self):

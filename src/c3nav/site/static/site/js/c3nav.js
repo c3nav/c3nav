@@ -60,7 +60,7 @@ c3nav = {
     continue_init: function() {
         c3nav.init_map();
 
-        c3nav._route_color = $('.leaflet-control-attribution a:not(:hover)').css('color');
+        c3nav._primary_color = $('.leaflet-control-attribution a:not(:hover)').css('color');
 
         $('.locationinput').data('location', null);
 
@@ -165,6 +165,7 @@ c3nav = {
             c3nav.load_location_details(state.destination);
         } else {
             $('#location-details').removeAttr('data-id');
+            c3nav._clear_detail_layers();
         }
 
         if (view === 'route-result') {
@@ -205,11 +206,17 @@ c3nav = {
             c3nav._routeLayers[id].clearLayers();
         }
     },
+    _clear_detail_layers: function() {
+        for (var id in c3nav._detailLayers) {
+            c3nav._detailLayers[id].clearLayers();
+        }
+    },
 
     load_location_details: function (location) {
         var $location_details = $('#location-details');
         if ($location_details.attr('data-id') !== String(location.id)) {
             $location_details.addClass('loading').attr('data-id', location.id);
+            c3nav._clear_route_layers();
             $.getJSON('/api/locations/'+location.id+'/details', c3nav._location_details_loaded).fail(function (data) {
                 var $location_details = $('#location-details');
                 $location_details.find('.details-body').text('Error '+String(data.status));
@@ -252,11 +259,21 @@ c3nav = {
             }
         }
         $location_details.find('.details-body').html('').append(elem);
+
         var $editor = $location_details.find('.editor');
         if (data.editor_url) {
             $editor.attr('href', data.editor_url).show();
         } else {
             $editor.hide();
+        }
+
+        if (data.geometry && data.level) {
+            L.geoJSON(data.geometry, {
+                style: {
+                    color: c3nav._primary_color,
+                    fillOpacity: 0.2,
+                }
+            }).addTo(c3nav._routeLayers[data.level]);
         }
         $location_details.removeClass('loading');
     },
@@ -415,17 +432,16 @@ c3nav = {
             point = [destination[0]+Math.cos(angle)*offset, destination[1]+Math.sin(angle)*offset];
         return [origin, point, destination];
     },
-    _route_color: null,
     _add_line_to_route: function(level, coords, gray, link_to_level) {
         if (coords.length < 2) return;
         var latlngs = L.GeoJSON.coordsToLatLngs(c3nav._smooth_line(coords)),
             routeLayer = c3nav._routeLayers[level];
             line = L.polyline(latlngs, {
-                color: gray ? '#888888': c3nav._route_color,
+                color: gray ? '#888888': c3nav._primary_color,
                 dashArray: (gray || link_to_level) ? '7' : null,
                 interactive: false,
                 smoothFactor: 0.5
-            }).addTo(routeLayer)
+            }).addTo(routeLayer);
             bounds = {};
         bounds[level] = line.getBounds();
 
@@ -982,12 +998,14 @@ c3nav = {
         c3nav._levelControl = new LevelControl().addTo(c3nav.map);
         c3nav._locationLayers = {};
         c3nav._locationLayerBounds = {};
+        c3nav._detailLayers = {};
         c3nav._routeLayers = {};
         c3nav._routeLayerBounds = {};
         c3nav._firstRouteLevel = null;
         for (i = c3nav.levels.length - 1; i >= 0; i--) {
             var level = c3nav.levels[i];
             var layerGroup = c3nav._levelControl.addLevel(level[0], level[1]);
+            c3nav._detailLayers[level[0]] = L.layerGroup().addTo(layerGroup);
             c3nav._locationLayers[level[0]] = L.layerGroup().addTo(layerGroup);
             c3nav._routeLayers[level[0]] = L.layerGroup().addTo(layerGroup);
         }
