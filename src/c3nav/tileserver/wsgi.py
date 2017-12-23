@@ -154,7 +154,7 @@ class TileServer:
         if self.cache_package_filename != cache_package_filename:
             logger.debug('Loading new cache package in worker.')
             self.cache_package_filename = cache_package_filename
-            with open(self.cache_package_filename, 'wb') as f:
+            with open(self.cache_package_filename, 'rb') as f:
                 self.cache_package = pickle.load(f)
         return self.cache_package
 
