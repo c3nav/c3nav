@@ -149,7 +149,7 @@ class TileServer:
         return [data]
 
     def get_cache_package(self):
-        cache_package_filename = self.cache.get('cache_package_filename', None)
+        cache_package_filename = self.cache.get('cache_package_filename')
         if cache_package_filename is None:
             logger.warning('cache_package_filename went missing.')
             return self.cache_package
