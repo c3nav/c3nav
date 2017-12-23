@@ -1,5 +1,6 @@
 import base64
 import logging
+import multiprocessing
 import os
 import pickle
 import re
@@ -60,11 +61,11 @@ class TileServer:
         self.cache_package_etag = None
         self.cache_package_filename = None
 
-        self.cache = pylibmc.Client(["127.0.0.1"], binary=True, behaviors={"tcp_nodelay": True, "ketama": True})
+        self.cache = self.get_cache_client()
 
         wait = 1
         while True:
-            success = self.load_cache_package()
+            success = self.load_cache_package(cache=self.cache)
             if success:
                 logger.info('Cache package successfully loaded.')
                 break
@@ -74,15 +75,20 @@ class TileServer:
 
         threading.Thread(target=self.update_cache_package_thread, daemon=True).start()
 
+    @staticmethod
+    def get_cache_client():
+        return pylibmc.Client(["127.0.0.1"], binary=True, behaviors={"tcp_nodelay": True, "ketama": True})
+
     def update_cache_package_thread(self):
+        cache = self.get_cache_client()  # different thread → different client!
         while True:
             time.sleep(self.reload_interval)
-            self.load_cache_package()
+            self.load_cache_package(cache=cache)
 
     def get_date_header(self):
         return 'Date', formatdate(timeval=time.time(), localtime=False, usegmt=True)
 
-    def load_cache_package(self):
+    def load_cache_package(self, cache):
         logger.debug('Downloading cache package from upstream...')
         try:
             headers = self.auth_headers.copy()
@@ -97,7 +103,7 @@ class TileServer:
             if r.status_code == 304:
                 if self.cache_package is not None:
                     logger.debug('Not modified.')
-                    self.cache['cache_package_filename'] = self.cache_package_filename
+                    cache['cache_package_filename'] = self.cache_package_filename
                     return True
                 logger.error('Unexpected not modified.')
                 return False
@@ -121,7 +127,7 @@ class TileServer:
             )
             with open(self.cache_package_filename, 'wb') as f:
                 pickle.dump(self.cache_package, f)
-            self.cache.set('cache_package_filename', self.cache_package_filename)
+            cache.set('cache_package_filename', self.cache_package_filename)
         except Exception as e:
             self.cache_package_etag = None
             logger.error('Saving pickled package failed: %s' % e)
@@ -153,6 +159,8 @@ class TileServer:
             with open(self.cache_package_filename, 'rb') as f:
                 self.cache_package = pickle.load(f)
         return self.cache_package
+
+    cache_lock = multiprocessing.Lock()
 
     def __call__(self, env, start_response):
         path_info = env['PATH_INFO']
@@ -217,7 +225,7 @@ class TileServer:
                          headers=self.auth_headers)
 
         if r.status_code == 200 and r.headers['Content-Type'] == 'image/png':
-            self.cache[cache_key] = r.content
+            self.cache.set(cache_key, r.content)
             return self.deliver_tile(start_response, tile_etag, r.content)
 
         start_response('%d %s' % (r.status_code, r.reason), [
