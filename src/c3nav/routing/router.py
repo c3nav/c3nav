@@ -112,7 +112,7 @@ class Router:
                     area.nodes = set(node.i for node in area_nodes)
                     for node in area_nodes:
                         node.areas.add(area.pk)
-                    if not area.nodes:
+                    if not area.nodes and space_nodes:
                         nearest_node = min(space_nodes, key=lambda node: area.geometry.distance(node.point))
                         area.nodes.add(nearest_node.i)
                     areas[area.pk] = area
