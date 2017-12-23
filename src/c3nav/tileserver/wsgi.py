@@ -24,12 +24,7 @@ class TileServer:
     def __init__(self):
         self.path_regex = re.compile(r'^/(\d+)/(\d+)/(-?\d+)/(-?\d+).png$')
 
-        try:
-            self.instance_name = os.environ['C3NAV_INSTANCE_NAME']
-        except KeyError:
-            raise Exception('C3NAV_INSTANCE_NAME needs to be set.')
-
-        self.cookie_regex = re.compile(r'(^| )c3nav_'+re.escape(self.instance_name)+r'_tile_access="?([^;" ]+)"?')
+        self.cookie_regex = re.compile(r'(^| )c3nav_tile_access="?([^;" ]+)"?')
 
         try:
             self.upstream_base = os.environ['C3NAV_UPSTREAM_BASE'].strip('/')
