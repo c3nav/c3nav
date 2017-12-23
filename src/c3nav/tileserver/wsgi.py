@@ -121,7 +121,7 @@ class TileServer:
             )
             with open(self.cache_package_filename, 'wb') as f:
                 pickle.dump(self.cache_package, f)
-            self.cache['cache_package_filename'] = self.cache_package_filename
+            self.cache.set('cache_package_filename', self.cache_package_filename)
         except Exception as e:
             self.cache_package_etag = None
             logger.error('Saving pickled package failed: %s' % e)
@@ -143,7 +143,10 @@ class TileServer:
         return [data]
 
     def get_cache_package(self):
-        cache_package_filename = self.cache['cache_package_filename']
+        cache_package_filename = self.cache.get('cache_package_filename', None)
+        if cache_package_filename is None:
+            logger.warning('cache_package_filename went missing.')
+            return self.cache_package
         if self.cache_package_filename != cache_package_filename:
             logger.debug('Loading new cache package in worker.')
             self.cache_package_filename = cache_package_filename
