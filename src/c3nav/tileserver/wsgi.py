@@ -1,9 +1,11 @@
 import base64
 import logging
 import os
+import pickle
 import re
 import threading
 import time
+from datetime import datetime
 from email.utils import formatdate
 from io import BytesIO
 
@@ -31,6 +33,14 @@ class TileServer:
         except KeyError:
             raise Exception('C3NAV_UPSTREAM_BASE needs to be set.')
 
+        try:
+            self.data_dir = os.environ.get('C3NAV_DATA_DIR', 'data')
+        except KeyError:
+            raise Exception('C3NAV_DATA_DIR needs to be set.')
+
+        if not os.path.exists(self.data_dir):
+            os.mkdir(self.data_dir)
+
         self.tile_secret = os.environ.get('C3NAV_TILE_SECRET', None)
         if not self.tile_secret:
             tile_secret_file = None
@@ -48,11 +58,12 @@ class TileServer:
 
         self.cache_package = None
         self.cache_package_etag = None
+        self.cache_package_filename = None
 
         self.date_header = ('Date', '0')
         threading.Thread(target=self.date_thread, daemon=True).start()
 
-        self.tile_cache = pylibmc.Client(["127.0.0.1"], binary=True, behaviors={"tcp_nodelay": True, "ketama": True})
+        self.cache = pylibmc.Client(["127.0.0.1"], binary=True, behaviors={"tcp_nodelay": True, "ketama": True})
 
         wait = 1
         while True:
@@ -93,6 +104,7 @@ class TileServer:
             if r.status_code == 304:
                 if self.cache_package is not None:
                     logger.debug('Not modified.')
+                    self.cache['cache_package_filename'] = self.cache_package_filename
                     return True
                 logger.error('Unexpected not modified.')
                 return False
@@ -107,6 +119,19 @@ class TileServer:
             self.cache_package_etag = r.headers.get('ETag', None)
         except Exception as e:
             logger.error('Cache package parsing failed: %s' % e)
+            return False
+
+        try:
+            self.cache_package_filename = os.path.join(
+                self.data_dir,
+                datetime.now().strftime('%Y-%m-%d_%H-%M-%S-%f')+'.pickle'
+            )
+            with open(self.cache_package_filename, 'wb') as f:
+                pickle.dump(self.cache_package, f)
+            self.cache['cache_package_filename'] = self.cache_package_filename
+        except Exception as e:
+            self.cache_package_etag = None
+            logger.error('Saving pickled package failed: %s' % e)
             return False
         return True
 
@@ -124,6 +149,15 @@ class TileServer:
                                   ('ETag', etag)])
         return [data]
 
+    def get_cache_package(self):
+        cache_package_filename = self.cache['cache_package_filename']
+        if self.cache_package_filename != cache_package_filename:
+            logger.debug('Loading new cache package in worker.')
+            self.cache_package_filename = cache_package_filename
+            with open(self.cache_package_filename, 'wb') as f:
+                self.cache_package = pickle.load(f)
+        return self.cache_package
+
     def __call__(self, env, start_response):
         match = self.path_regex.match(env['PATH_INFO'])
         if match is None:
@@ -136,7 +170,7 @@ class TileServer:
             return self.not_found(start_response, b'zoom out of bounds.')
 
         # do this to be thread safe
-        cache_package = self.cache_package
+        cache_package = self.get_cache_package()
 
         # check if bounds are valid
         x = int(x)
@@ -177,7 +211,7 @@ class TileServer:
                                                 ('ETag', tile_etag)])
             return [b'']
 
-        cached_result = self.tile_cache.get(tile_etag)
+        cached_result = self.cache.get(tile_etag)
         if cached_result is not None:
             return self.deliver_tile(start_response, tile_etag, cached_result)
 
@@ -185,7 +219,7 @@ class TileServer:
                          headers=self.auth_headers)
 
         if r.status_code == 200 and r.headers['Content-Type'] == 'image/png':
-            self.tile_cache[tile_etag] = r.content
+            self.cache[tile_etag] = r.content
             return self.deliver_tile(start_response, tile_etag, r.content)
 
         start_response('%d %s' % (r.status_code, r.reason), [
