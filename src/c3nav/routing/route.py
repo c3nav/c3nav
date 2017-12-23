@@ -85,10 +85,12 @@ class Route:
                     description = item.waytype.description_up
                 if (item.waytype.level_change_description != False and
                         item.last_item and item.level != item.last_item.level):  # != False because it's lazy
-                    description = (description % {
-                        'level_change_description': ' '+(item.waytype.level_change_description %
-                                                         {'level': item.level.title})+ ' '
-                    }).replace('  ', ' ').replace(' .', '.')
+                    level_change_description = (
+                        str(item.waytype.level_change_description).replace('{level}', str(item.level.title))
+                    )
+                    description = str(description).replace(
+                        '{level_change_description}', ' ' + level_change_description + ' '
+                    ).replace('  ', ' ').replace(' .', '.')
                     item.descriptions.append((icon, item.waytype.description_up))
                 else:
 
