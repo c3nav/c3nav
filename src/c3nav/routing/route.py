@@ -80,9 +80,16 @@ class Route:
                     if item.waytype.up_separate:
                         icon += '-up' if item.edge.rise > 0 else '-down'
                 icon += '.svg'
+                description = item.waytype.description
                 if item.waytype.up_separate and item.edge.rise > 0:
+                    description = item.waytype.description_up
+                if item.waytype.level_change_description:
+                    description = (description % {
+                        'level_change_description': ' '+item.waytype.level_change_description+' '
+                    }).replace('  ', ' ').replace(' .', '.')
                     item.descriptions.append((icon, item.waytype.description_up))
                 else:
+
                     item.descriptions.append((icon, item.waytype.description))
 
         # add space transfer descriptions
