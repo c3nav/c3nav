@@ -69,8 +69,11 @@ class Route:
 
         # descriptions for waytypes
         next_item = None
+        last_primary_level = None
         for item in reversed(items):
             icon = 'arrow'
+            if not item.level.on_top_of_id:
+                last_primary_level = item.level
             if item.waytype:
                 icon = item.waytype.icon_name or 'arrow'
                 if item.waytype.join_edges and next_item and next_item.waytype == item.waytype:
@@ -83,14 +86,16 @@ class Route:
                 description = item.waytype.description
                 if item.waytype.up_separate and item.edge.rise > 0:
                     description = item.waytype.description_up
-                if (item.waytype.level_change_description != False and
-                        item.last_item and item.level != item.last_item.level):  # != False because it's lazy
+                if (item.waytype.level_change_description != False and last_primary_level and
+                        ((item.last_item and item.level != item.last_item.level) or
+                         item.level.on_top_of_id)):  # != False because it's lazy
                     level_change_description = (
-                        str(item.waytype.level_change_description).replace('{level}', str(item.level.title))
+                        str(item.waytype.level_change_description).replace('{level}', str(last_primary_level.title))
                     )
                     description = str(description).replace(
                         '{level_change_description}', ' ' + level_change_description + ' '
                     ).replace('  ', ' ').replace(' .', '.')
+                    last_primary_level = None
                 else:
                     description = description.replace('{level_change_description}', '')
                 item.descriptions.append((icon, description))
