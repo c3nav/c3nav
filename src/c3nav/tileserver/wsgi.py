@@ -188,9 +188,11 @@ class TileServer:
             self.tile_cache[tile_etag] = r.content
             return self.deliver_tile(start_response, tile_etag, r.content)
 
-        start_response('%d %s' % (r.status_code, r.reason), [self.date_header,
-                                                             ('Content-Length', len(r.content)),
-                                                             ('Content-Type', r.headers['Content-Type'])])
+        start_response('%d %s' % (r.status_code, r.reason), [
+            self.date_header,
+            ('Content-Length', len(r.content)),
+            ('Content-Type', r.headers.get('Content-Type', 'text/plain'))
+        ])
         return [r.content]
 
 
