@@ -83,9 +83,10 @@ class Route:
                 description = item.waytype.description
                 if item.waytype.up_separate and item.edge.rise > 0:
                     description = item.waytype.description_up
-                if item.waytype.level_change_description:
+                if item.waytype.level_change_description and item.last_item and item.level != item.last_item.level:
                     description = (description % {
-                        'level_change_description': ' '+item.waytype.level_change_description+' '
+                        'level_change_description': ' '+(item.waytype.level_change_description %
+                                                         {'level': item.level.title})+ ' '
                     }).replace('  ', ' ').replace(' .', '.')
                     item.descriptions.append((icon, item.waytype.description_up))
                 else:
