@@ -99,6 +99,7 @@ class Route:
                 else:
                     description = description.replace('{level_change_description}', '')
                 item.descriptions.append((icon, description))
+            next_item = item
 
         # add space transfer descriptions
         last_space = None
