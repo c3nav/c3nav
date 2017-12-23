@@ -113,6 +113,8 @@ class TileServer:
             logger.error('Cache package download failed: %s' % e)
             return False
 
+        logger.debug('Recieving and loading new cache package...')
+
         try:
             self.cache_package = CachePackage.read(BytesIO(r.content))
             self.cache_package_etag = r.headers.get('ETag', None)
