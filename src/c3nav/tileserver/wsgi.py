@@ -42,6 +42,8 @@ class TileServer:
             except FileNotFoundError:
                 raise Exception('The C3NAV_TILE_SECRET_FILE (%s) does not exist.' % tile_secret_file)
 
+        self.reload_interval = int(os.environ.get('C3NAV_RELOAD_INTERVAL', 60))
+
         self.auth_headers = {'X-Tile-Secret': base64.b64encode(self.tile_secret.encode())}
 
         self.cache_package = None
@@ -66,7 +68,7 @@ class TileServer:
 
     def update_cache_package_thread(self):
         while True:
-            time.sleep(60)
+            time.sleep(self.reload_interval)
             self.load_cache_package()
 
     def date_thread(self):
