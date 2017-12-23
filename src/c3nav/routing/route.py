@@ -92,7 +92,7 @@ class Route:
                         '{level_change_description}', ' ' + level_change_description + ' '
                     ).replace('  ', ' ').replace(' .', '.')
                 else:
-                    description.replace('{level_change_description}', '')
+                    description = description.replace('{level_change_description}', '')
                 item.descriptions.append((icon, description))
 
         # add space transfer descriptions
