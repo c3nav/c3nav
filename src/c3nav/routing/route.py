@@ -106,7 +106,7 @@ class Route:
         for item in items:
             if item.new_space:
                 next_space = item.space
-                if item.last_item:
+                if item.last_item and not item.descriptions:
                     description = None
                     if last_space:
                         description = current_space.cross_descriptions.get((last_space.pk, next_space.pk), None)
