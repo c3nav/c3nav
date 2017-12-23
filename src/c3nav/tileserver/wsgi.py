@@ -22,7 +22,7 @@ logger = logging.getLogger('c3nav')
 
 class TileServer:
     def __init__(self):
-        self.path_regex = re.compile(r'^/(\d+)/(-\d+)/(-?\d+)/(-?\d+).png$')
+        self.path_regex = re.compile(r'^/(\d+)/(-?\d+)/(-?\d+)/(-?\d+).png$')
 
         self.cookie_regex = re.compile(r'(^| )c3nav_tile_access="?([^;" ]+)"?')
 
