@@ -45,7 +45,7 @@ class WayType(SerializableMixin, models.Model):
     speed_up = models.DecimalField(_('speed upwards (m/s)'), max_digits=3, decimal_places=1, default=1,
                                    validators=[MinValueValidator(Decimal('0.1'))])
     description_up = I18nField(_('description upwards'), fallback_any=True)
-    level_change_description = I18nField(_('level change description'), default='')
+    level_change_description = I18nField(_('level change description'))
 
     class Meta:
         verbose_name = _('Way Type')

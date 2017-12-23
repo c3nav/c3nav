@@ -83,7 +83,8 @@ class Route:
                 description = item.waytype.description
                 if item.waytype.up_separate and item.edge.rise > 0:
                     description = item.waytype.description_up
-                if item.waytype.level_change_description and item.last_item and item.level != item.last_item.level:
+                if (item.waytype.level_change_description != False and
+                        item.last_item and item.level != item.last_item.level):  # != False because it's lazy
                     description = (description % {
                         'level_change_description': ' '+(item.waytype.level_change_description %
                                                          {'level': item.level.title})+ ' '
