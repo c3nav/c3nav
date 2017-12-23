@@ -61,11 +61,11 @@ class TileServer:
         self.cache_package_etag = None
         self.cache_package_filename = None
 
-        self.cache = self.get_cache_client()
+        cache = self.get_cache_client()
 
         wait = 1
         while True:
-            success = self.load_cache_package(cache=self.cache)
+            success = self.load_cache_package(cache=cache)
             if success:
                 logger.info('Cache package successfully loaded.')
                 break
@@ -142,6 +142,12 @@ class TileServer:
                                          ('Content-Length', str(len(text)))])
         return [text]
 
+    def internal_server_error(self, start_response, text=b'internal server error'):
+        start_response('500 Internal Server Error', [self.get_date_header(),
+                                                     ('Content-Type', 'text/plain'),
+                                                     ('Content-Length', str(len(text)))])
+        return [text]
+
     def deliver_tile(self, start_response, etag, data):
         start_response('200 OK', [self.get_date_header(),
                                   ('Content-Type', 'image/png'),
@@ -151,7 +157,12 @@ class TileServer:
         return [data]
 
     def get_cache_package(self):
-        cache_package_filename = self.cache.get('cache_package_filename')
+        try:
+            cache_package_filename = self.cache.get('cache_package_filename')
+        except pylibmc.Error as e:
+            logger.warning('pylibmc error in get_cache_package(): %s' % e)
+            cache_package_filename = None
+
         if cache_package_filename is None:
             logger.warning('cache_package_filename went missing.')
             return self.cache_package
@@ -163,6 +174,12 @@ class TileServer:
         return self.cache_package
 
     cache_lock = multiprocessing.Lock()
+
+    @property
+    def cache(self):
+        cache = self.get_cache_client()
+        self.__dict__['cache'] = cache
+        return cache
 
     def __call__(self, env, start_response):
         path_info = env['PATH_INFO']
@@ -177,7 +194,11 @@ class TileServer:
             return self.not_found(start_response, b'zoom out of bounds.')
 
         # do this to be thread safe
-        cache_package = self.get_cache_package()
+        try:
+            cache_package = self.get_cache_package()
+        except Exception as e:
+            logger.error('get_cache_package() failed: %s' % e)
+            return self.internal_server_error(start_response)
 
         # check if bounds are valid
         x = int(x)
