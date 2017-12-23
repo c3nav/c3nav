@@ -159,7 +159,8 @@ class TileServer:
         return self.cache_package
 
     def __call__(self, env, start_response):
-        match = self.path_regex.match(env['PATH_INFO'])
+        path_info = env['PATH_INFO']
+        match = self.path_regex.match(path_info)
         if match is None:
             return self.not_found(start_response, b'invalid tile path.')
 
@@ -211,7 +212,8 @@ class TileServer:
                                                 ('ETag', tile_etag)])
             return [b'']
 
-        cached_result = self.cache.get(tile_etag)
+        cache_key = path_info+'_'+tile_etag
+        cached_result = self.cache.get(cache_key)
         if cached_result is not None:
             return self.deliver_tile(start_response, tile_etag, cached_result)
 
@@ -219,7 +221,7 @@ class TileServer:
                          headers=self.auth_headers)
 
         if r.status_code == 200 and r.headers['Content-Type'] == 'image/png':
-            self.cache[tile_etag] = r.content
+            self.cache[cache_key] = r.content
             return self.deliver_tile(start_response, tile_etag, r.content)
 
         start_response('%d %s' % (r.status_code, r.reason), [
