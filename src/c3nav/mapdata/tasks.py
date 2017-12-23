@@ -1,7 +1,6 @@
 import logging
 
 from celery.exceptions import MaxRetriesExceededError
-from django.db import DatabaseError
 from django.utils.formats import date_format
 from django.utils.translation import ugettext_lazy as _
 from django.utils.translation import ungettext_lazy
@@ -22,7 +21,7 @@ def process_map_updates(self):
     try:
         try:
             updates = MapUpdate.process_updates()
-        except DatabaseError:
+        except MapUpdate.ProcessUpdatesAlreadyRunning:
             if self.request.called_directly:
                 raise
             logger.info('Processing is already running, retrying in 30 seconds.')
