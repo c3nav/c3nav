@@ -623,6 +623,7 @@ c3nav = {
             }
             c3nav.update_state(true);
         }
+        c3nav._click_anywhere_popup.remove();
     },
 
     // share logic
