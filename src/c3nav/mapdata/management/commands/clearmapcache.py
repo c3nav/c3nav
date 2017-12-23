@@ -15,13 +15,15 @@ class Command(BaseCommand):
     def add_arguments(self, parser):
         parser.add_argument('--include-history', action='store_const', const=True, default=False,
                             help=_('incluce all history as well'))
+        parser.add_argument('--include-geometries', action='store_const', const=True, default=False,
+                            help=_('incluce all geometries as well'))
 
     def handle(self, *args, **options):
         from c3nav.mapdata.models import MapUpdate
 
         logger = logging.getLogger('c3nav')
 
-        MapUpdate.objects.create(type='management')
+        MapUpdate.objects.create(type='management', geometries_changed=options['include_geometries'])
         logger.info('New management update created.')
 
         if options['include_history']:

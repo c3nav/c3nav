@@ -34,6 +34,10 @@ class GeometryChangeTracker:
         return union
 
     @property
+    def is_empty(self):
+        return not self._geometries_by_level
+
+    @property
     def area(self):
         return sum((self._get_unary_union(level_id).area
                     for level_id in self._geometries_by_level.keys()

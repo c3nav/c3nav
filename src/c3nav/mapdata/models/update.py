@@ -21,6 +21,7 @@ class MapUpdate(models.Model):
     user = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, on_delete=models.PROTECT)
     type = models.CharField(max_length=32)
     processed = models.BooleanField(default=False)
+    geometries_changed = models.BooleanField()
 
     class Meta:
         verbose_name = _('Map update')
@@ -92,37 +93,40 @@ class MapUpdate(models.Model):
             if not new_updates:
                 return ()
 
-            from c3nav.mapdata.utils.cache.changes import changed_geometries
-            changed_geometries.reset()
+            if any(update.geometries_changed for update in new_updates):
+                from c3nav.mapdata.utils.cache.changes import changed_geometries
+                changed_geometries.reset()
 
-            logger.info('Recalculating altitude areas...')
+                logger.info('Recalculating altitude areas...')
 
-            from c3nav.mapdata.models import AltitudeArea
-            AltitudeArea.recalculate()
+                from c3nav.mapdata.models import AltitudeArea
+                AltitudeArea.recalculate()
 
-            logger.info('%.3f m² of altitude areas affected.' % changed_geometries.area)
+                logger.info('%.3f m² of altitude areas affected.' % changed_geometries.area)
 
-            last_processed_update = cls.objects.filter(processed=True).latest().to_tuple
+                last_processed_update = cls.objects.filter(processed=True).latest().to_tuple
 
-            for new_update in new_updates:
-                logger.info('Applying changed geometries from MapUpdate #%(id)s (%(type)s)...' %
-                            {'id': new_update.pk, 'type': new_update.type})
-                try:
-                    new_changes = pickle.load(open(new_update._changed_geometries_filename(), 'rb'))
-                except FileNotFoundError:
-                    logger.warning('changed_geometries pickle file not found.')
-                else:
-                    logger.info('%.3f m² affected by this update.' % new_changes.area)
-                    changed_geometries.combine(new_changes)
+                for new_update in new_updates:
+                    logger.info('Applying changed geometries from MapUpdate #%(id)s (%(type)s)...' %
+                                {'id': new_update.pk, 'type': new_update.type})
+                    try:
+                        new_changes = pickle.load(open(new_update._changed_geometries_filename(), 'rb'))
+                    except FileNotFoundError:
+                        logger.warning('changed_geometries pickle file not found.')
+                    else:
+                        logger.info('%.3f m² affected by this update.' % new_changes.area)
+                        changed_geometries.combine(new_changes)
 
-            logger.info('%.3f m² of geometries affected in total.' % changed_geometries.area)
+                logger.info('%.3f m² of geometries affected in total.' % changed_geometries.area)
 
-            changed_geometries.save(last_processed_update, new_updates[-1].to_tuple)
+                changed_geometries.save(last_processed_update, new_updates[-1].to_tuple)
 
-            logger.info('Rebuilding level render data...')
+                logger.info('Rebuilding level render data...')
 
-            from c3nav.mapdata.render.renderdata import LevelRenderData
-            LevelRenderData.rebuild()
+                from c3nav.mapdata.render.renderdata import LevelRenderData
+                LevelRenderData.rebuild()
+            else:
+                logger.info('No geometries affected.')
 
             logger.info('Rebuilding router...')
             from c3nav.routing.router import Router
@@ -143,13 +147,18 @@ class MapUpdate(models.Model):
         if not new and (self.was_processed or not self.processed):
             raise TypeError
 
+        from c3nav.mapdata.utils.cache.changes import changed_geometries
+
+        if self.geometries_changed is None:
+            self.geometries_changed = not changed_geometries.is_empty
+
         super().save(**kwargs)
 
         with suppress(FileExistsError):
             os.mkdir(os.path.dirname(self._changed_geometries_filename()))
 
-        from c3nav.mapdata.utils.cache.changes import changed_geometries
-        pickle.dump(changed_geometries, open(self._changed_geometries_filename(), 'wb'))
+        if self.geometries_changed:
+            pickle.dump(changed_geometries, open(self._changed_geometries_filename(), 'wb'))
 
         if new:
             transaction.on_commit(
