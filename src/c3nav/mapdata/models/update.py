@@ -98,7 +98,7 @@ class MapUpdate(models.Model):
                 lock_aquired = None
                 lock = redis.Redis().lock('mapupdate:process_updates_lock')
                 try:
-                    have_lock = lock.acquire(blocking=False, timeout=1800)
+                    have_lock = lock.acquire(blocking=False, blocking_timeout=1800)
                     if not have_lock:
                         raise cls.ProcessUpdatesAlreadyRunning
                     yield tuple(queryset)
