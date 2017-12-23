@@ -312,6 +312,10 @@ class LocationGroup(Location, models.Model):
             self.register_changed_geometries()
         super().save(*args, **kwargs)
 
+    def delete(self, *args, **kwargs):
+        self.register_changed_geometries()
+        super().delete(*args, **kwargs)
+
 
 class LocationRedirect(LocationSlug):
     target = models.ForeignKey(LocationSlug, related_name='redirects', on_delete=models.CASCADE,
