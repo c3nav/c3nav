@@ -45,6 +45,7 @@ c3nav = {
         if (window.mobileclient) {
             $('#attributions').find('a:not([href^="http"]):not([href^="//"])').removeAttr('target');
             $('body').addClass('mobileclient');
+            c3nav._set_user_location(null);
         }
     },
     load_searchable_locations: function() {
@@ -1247,7 +1248,11 @@ c3nav = {
         });
     },
     _set_user_location: function(location) {
-
+        if (location) {
+            $('.locationinput .locate').text('my_location');
+        } else {
+            $('.locationinput .locate').text('location_searching');
+        }
     }
 };
 $(document).ready(c3nav.init);
