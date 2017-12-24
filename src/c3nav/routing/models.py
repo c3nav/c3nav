@@ -89,9 +89,14 @@ class RouteOptions(models.Model):
     @classmethod
     def get_for_request(cls, request):
         session_options = request.session.get('route_options', None)
+        if session_options is not None:
+            session_options = cls(request=request)
+            session_options.update(session_options, ignore_errors=True)
+
         user_options = None
         if request.user.is_authenticated:
             user_options = cls.get_for_user(request.user)
+            user_options.clean_data()
 
         if session_options and not user_options:
             user_options = session_options
@@ -99,12 +104,9 @@ class RouteOptions(models.Model):
             user_options.save()
             request.session.pop('session_options')
 
-        options = cls(request=request)
-        options.update(user_options or session_options or {}, ignore_errors=True)
-        return options
+        return user_options or session_options or cls(request=request)
 
-    def __init__(self, *args, request=None, **kwargs):
-        super().__init__(*args, **kwargs)
+    def clean_data(self):
         new_data = OrderedDict()
         for name, field in self.get_fields().items():
             value = self.data.get(name)
@@ -112,6 +114,10 @@ class RouteOptions(models.Model):
                 value = field.initial
             new_data[name] = value
         self.data = new_data
+
+    def __init__(self, *args, request=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.clean_data()
 
         self.request = request
 
@@ -175,7 +181,7 @@ class RouteOptions(models.Model):
             self.user = self.request.user
             return super().save(*args, **kwargs)
 
-        self.request.session['route_options'] = self
+        self.request.session['route_options'] = self.data
 
     def items(self):
         yield from self.data.items()
