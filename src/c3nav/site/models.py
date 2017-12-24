@@ -51,7 +51,7 @@ class SiteUpdate(models.Model):
     """
     A site update that asks the user to reload the page.
     """
-    created = models.DateTimeField(auto_now_add=True, verbose_name=_('create'))
+    created = models.DateTimeField(auto_now_add=True, verbose_name=_('created'))
 
     class Meta:
         verbose_name = _('Site update')
