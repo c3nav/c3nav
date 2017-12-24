@@ -463,7 +463,7 @@ class BaseQueryWrapper(BaseWrapper):
                         set(pk for pk in filter_value if is_created_pk(pk)))
 
         # check if we are filtering by a foreign key field
-        if field.many_to_one:
+        if field.many_to_one or field.one_to_one:
             rel_model = field.related_model
 
             if field_name == field.attname:
