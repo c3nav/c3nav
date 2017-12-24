@@ -35,9 +35,7 @@ editor = {
             }
         });
 
-        if (!window.mobileclient) {
-            window.onbeforeunload = editor._onbeforeunload;
-        }
+        window.onbeforeunload = editor._onbeforeunload;
 
         L.control.scale({imperial: false}).addTo(editor.map);
 
