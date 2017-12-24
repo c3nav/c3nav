@@ -262,7 +262,7 @@ def announcement_list(request):
         form = AnnouncementForm(data=request.POST)
         if form.is_valid():
             announcement = form.instance
-            announcement = request.user
+            announcement.author = request.user
             announcement.save()
             return redirect('control.announcements')
     else:
