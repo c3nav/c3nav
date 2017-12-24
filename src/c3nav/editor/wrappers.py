@@ -4,6 +4,7 @@ from collections import OrderedDict
 from functools import reduce, wraps
 from itertools import chain
 
+from django.core.cache import cache
 from django.core.exceptions import ObjectDoesNotExist
 from django.db import models
 from django.db.models import FieldDoesNotExist, Manager, ManyToManyRel, Prefetch, Q
@@ -506,7 +507,18 @@ class BaseQueryWrapper(BaseWrapper):
             # multi-level-lookup
             # todo: cache here or avoid too much subqueries
             subkwargs = {'__'.join([filter_type] + segments): filter_value}
-            pk_values = self._changeset.wrap_model(rel_model).objects.filter(**subkwargs).values_list('pk', flat=True)
+            cache_key = '%s:multilevellookup:%s:%s:%s' % (
+                self._changeset.cache_key_by_changes,
+                rel_model.__name__,
+                next(iter(subkwargs.keys())),
+                repr(filter_value)
+            )
+            pk_values = cache.get(cache_key, None)
+            if pk_values is None:
+                pk_values = self._changeset.wrap_model(rel_model).objects.filter(
+                    **subkwargs
+                ).values_list('pk', flat=True)
+                cache.set(cache_key, pk_values, 300)
             q = Q(**{field_name + '__pk__in': tuple(pk for pk in pk_values if not is_created_pk(pk))})
             pk_values = set(str(pk) for pk in pk_values)
             return self._filter_values(q, field_name, lambda val: str(val) in pk_values)
