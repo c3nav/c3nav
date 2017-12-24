@@ -336,7 +336,11 @@ class ChangeSet(models.Model):
             objects.setdefault(obj.__class__, {})[pk] = obj
 
         for pk, obj in objects.get(LocationRedirect, {}).items():
-            target = obj.target.get_child(obj.target)
+            try:
+                target = obj.target.get_child(obj.target)
+            except FieldDoesNotExist:
+                # todo: fix this
+                continue
             objects.setdefault(LocationSlug, {})[target.pk] = target
             objects.setdefault(target.__class__, {})[target.pk] = target
 
