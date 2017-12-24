@@ -2,6 +2,7 @@ import mimetypes
 import os
 from collections import namedtuple
 from functools import wraps
+from urllib.parse import urlparse
 
 from django.core.cache import cache
 from django.db.models import Prefetch
@@ -418,12 +419,29 @@ class UpdatesViewSet(GenericViewSet):
         except ValueError:
             cache.set('api_updates_fetch_requests', 0, None)
 
+        cross_origin = False
+        if 'HTTP_ORIGIN' in request.META:
+            cross_origin = True
+            try:
+                if request.META['HTTP_HOST'] == urlparse(request.META['HTTP_ORIGIN']).hostname:
+                    cross_origin = False
+            except ValueError:
+                pass
+
         from c3nav.site.models import SiteUpdate
-        response = Response({
+
+        result = {
             'last_site_update': SiteUpdate.last_update(),
             'last_map_update': MapUpdate.current_processed_cache_key(),
-            'user': get_user_data(request),
-        })
+        }
+        if not cross_origin:
+            result.update({
+                'user': get_user_data(request),
+            })
 
+        response = Response(result)
+        if cross_origin:
+            response['Access-Control-Allow-Origin'] = '*'
         set_tile_access_cookie(request, response)
+
         return response
