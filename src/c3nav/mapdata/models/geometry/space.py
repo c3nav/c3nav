@@ -229,6 +229,14 @@ class POI(SpaceGeometryMixin, SpecificLocation, models.Model):
         result['editor_url'] = reverse('editor.pois.edit', kwargs={'space': self.space_id, 'pk': self.pk})
         return result
 
+    @property
+    def x(self):
+        return self.geometry.x
+
+    @property
+    def y(self):
+        return self.geometry.y
+
 
 class Hole(SpaceGeometryMixin, models.Model):
     """
