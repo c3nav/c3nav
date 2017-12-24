@@ -922,7 +922,7 @@ c3nav = {
     },
     _modal_loaded: function(data) {
         if (data.startsWith('{')) {
-            c3nav._fetch_updates_callback(JSON.parse(data));
+            c3nav._set_user_data(JSON.parse(data));
             history.back();
             return;
         }
