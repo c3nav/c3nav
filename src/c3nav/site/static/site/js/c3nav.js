@@ -29,19 +29,9 @@
 }());
 
 c3nav = {
+    init_completed: false,
     init: function () {
-        $.getJSON('/api/locations/?searchable', function (data) {
-            for (var i = 0; i < data.length; i++) {
-                var location = data[i];
-                location.elem = c3nav._build_location_html(location);
-                location.title_words = location.title.toLowerCase().split(/\s+/);
-                location.subtitle_words = location.subtitle.toLowerCase().split(/\s+/);
-                location.match = ' ' + location.title_words.join(' ') + ' ' + location.subtitle_words.join(' ') + ' ';
-                c3nav.locations.push(location);
-                c3nav.locations_by_id[location.id] = location;
-            }
-            c3nav.continue_init();
-        });
+        c3nav.load_searchable_locations();
 
         $('#messages').find('ul.messages li').each(function() {
             $(this).prepend(
@@ -55,6 +45,29 @@ c3nav = {
         if (window.mobileclient) {
             $('#attributions').find('a:not([href^="http"]):not([href^="//"])').removeAttr('target');
             $('body').addClass('mobileclient');
+        }
+    },
+    load_searchable_locations: function() {
+        $.getJSON('/api/locations/?searchable', c3nav._searchable_locations_loaded).fail(function() {
+            window.setTimeout(c3nav.load_searchable_locations, 5000);
+        });
+    },
+    _searchable_locations_loaded: function(data) {
+        var locations = [],
+            locations_by_id = {};
+        for (var i = 0; i < data.length; i++) {
+            var location = data[i];
+            location.elem = c3nav._build_location_html(location);
+            location.title_words = location.title.toLowerCase().split(/\s+/);
+            location.subtitle_words = location.subtitle.toLowerCase().split(/\s+/);
+            location.match = ' ' + location.title_words.join(' ') + ' ' + location.subtitle_words.join(' ') + ' ';
+            locations.push(location);
+            locations_by_id[location.id] = location;
+        }
+        c3nav.locations = locations;
+        c3nav.locations_by_id = locations_by_id;
+        if (!c3nav.init_completed) {
+            c3nav.continue_init();
         }
     },
     continue_init: function() {
@@ -111,6 +124,10 @@ c3nav = {
         $('header h1 a').removeAttr('href');
 
         window.onpopstate = c3nav._onpopstate;
+
+        window.setInterval(c3nav.load_searchable_locations, 42000);
+
+        c3nav.init_completed = true;
     },
     get_csrf_token: function() {
         return document.cookie.match(new RegExp('c3nav_csrftoken=([^;]+)'))[1];
