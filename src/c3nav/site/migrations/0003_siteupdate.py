@@ -16,7 +16,7 @@ class Migration(migrations.Migration):
             name='SiteUpdate',
             fields=[
                 ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('created', models.DateTimeField(auto_now_add=True, verbose_name='create')),
+                ('created', models.DateTimeField(auto_now_add=True, verbose_name='created')),
             ],
         ),
     ]
