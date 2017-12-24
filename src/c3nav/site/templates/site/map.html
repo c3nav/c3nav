@@ -29,12 +29,19 @@
                 <button class="button-clear as-origin">{% trans 'Route from here' %}</button>
             </section>
             <section class="share-ui">
-                <h3>Share</h3>
+                <h3>{% trans 'Share' %}</h3>
                 <img src="">
                 <input type="text" readonly>
                 <p>
                     <button class="mobileclient-share">{% trans 'share' %}</button>
                     <button class="mobileclient-shortcut">{% trans 'create shortcut' %}</button>
+                </p>
+            </section>
+            <section id="app-ad">
+                <h3>{% trans 'Wifi-based location' %}</h3>
+                <p>{% trans 'Get the c3nav app for Android to see your location on the map.' %}</p>
+                <p class="app-download-buttons">
+                    <a class="button" href="https://play.google.com/store/apps/details?id=de.c3nav.droid" target="_blank">Google Play</a>
                 </p>
             </section>
             <section class="reload-msg">

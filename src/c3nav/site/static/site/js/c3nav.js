@@ -705,6 +705,7 @@ c3nav = {
             .on('blur', c3nav._locationinput_blur)
             .on('keydown', c3nav._locationinput_keydown);
         $('.locationinput .clear').on('click', c3nav._locationinput_clear);
+        $('.locationinput .locate').on('click', c3nav._locationinput_locate);
         $('#autocomplete').on('mouseover', '.location', c3nav._locationinput_hover_suggestion)
             .on('click', '.location', c3nav._locationinput_click_suggestion);
         $('html').on('focus', '*', c3nav._locationinput_global_focuschange)
@@ -737,6 +738,11 @@ c3nav = {
         c3nav._locationinput_set($(this).parent(), null);
         c3nav.update_state();
         $(this).parent().find('input').focus();
+    },
+    _locationinput_locate: function () {
+        if (!window.mobileclient) {
+            c3nav.open_modal($('#app-ad').html());
+        }
     },
     _locationinput_reset_autocomplete: function () {
         // hide autocomplete
@@ -937,7 +943,7 @@ c3nav = {
     },
     _modal_link_click: function(e) {
         var location = $(this).attr('href');
-        if (location.startsWith('/control/')) {
+        if ($(this).is('[target]') || location.startsWith('/control/')) {
             $(this).attr('target', '_blank');
             return;
         }
