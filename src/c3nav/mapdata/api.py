@@ -334,6 +334,7 @@ class LocationViewSet(LocationViewSetBase):
     add ?detailed to show all attributes
     add ?geometry to show geometries
     /{id}/ add ?show_redirect=1 to suppress redirects and show them as JSON.
+    also possible: /by_slug/{slug}/
     """
     queryset = LocationSlug.objects.all()
     lookup_value_regex = r'[^/]+'
