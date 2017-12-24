@@ -46,10 +46,10 @@ class LocationSlug(SerializableMixin, models.Model):
 
     objects = LocationSlugManager()
 
-    def get_child(self):
+    def get_child(self, instance=None):
         for model in get_submodels(Location)+[LocationRedirect]:
             with suppress(AttributeError):
-                return getattr(self, model._meta.default_related_name)
+                return getattr(instance or self, model._meta.default_related_name)
         return None
 
     def get_slug(self):
