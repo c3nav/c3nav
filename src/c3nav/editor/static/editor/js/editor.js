@@ -879,8 +879,8 @@ editor = {
         $collector.siblings('[name=data]').val('');
         $collector.closest('form').addClass('scan-lock');
     },
-    _last_max_last: 0,
-    _last_result: 0,
+    _wificollector_last_max_last: 0,
+    _wificollector_last_result: 0,
     _wificollector_result: function(data) {
         var $collector = $('#sidebar').find('.wificollector.running'),
             $table = $collector.find('table'),
@@ -888,8 +888,8 @@ editor = {
         editor._scan_waits = false;
 
         if (!data.length) return;
-        if (now-2000 < editor._last_result) return;
-        editor._last_result = now;
+        if (now-2000 < editor._wificollector_last_result) return;
+        editor._wificollector_last_result = now;
 
         // ignore this scan?
         for (i=0; i < data.length; i++) {
@@ -898,8 +898,8 @@ editor = {
                 max_last = Math.max(max_last, item.last);
             }
         }
-        if (max_last && editor._last_max_last && max_last === editor._max_last_max) return;
-        editor._last_max_last = max_last;
+        if (max_last && editor._wificollector_last_max_last && max_last === editor._max_last_max) return;
+        editor._wificollector_last_max_last = max_last;
 
         $table.find('tr').addClass('old');
         for (i=0; i < data.length; i++) {
