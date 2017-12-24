@@ -807,6 +807,7 @@ ul.messages li {
     border-radius: .4rem;
     border: 0.1rem solid #666666;
     background-color:#EEEEEE;
+    pointer-events: auto;
 }
 
 ul.messages li.alert-info {
@@ -836,6 +837,7 @@ ul.messages li.alert-danger {
     top: -20px;
     width: 100vw;
     padding: 10px;
+    pointer-events: none;
 }
 #messages:empty {
     display:none;
