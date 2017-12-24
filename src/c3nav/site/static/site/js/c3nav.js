@@ -922,7 +922,7 @@ c3nav = {
     },
     _modal_loaded: function(data) {
         if (data.startsWith('{')) {
-            c3nav._set_user_data(JSON.parse(data));
+            c3nav._fetch_updates_callback(JSON.parse(data));
             history.back();
             return;
         }
@@ -1018,7 +1018,7 @@ c3nav = {
 
         c3nav.map.on('click', c3nav._click_anywhere);
 
-        c3nav.schedule_refresh_tile_access();
+        c3nav.schedule_fetch_updates();
 
     },
     _click_anywhere_popup: null,
@@ -1158,16 +1158,19 @@ c3nav = {
         }
     },
 
-    schedule_refresh_tile_access: function (timeout) {
-        window.setTimeout(c3nav.refresh_tile_access, timeout || 16000);
+    schedule_fetch_updates: function (timeout) {
+        window.setTimeout(c3nav.fetch_updates, timeout || 16000);
     },
-    refresh_tile_access: function () {
-        $.get('/api/users/current/', c3nav._set_user_data).fail(function() {
-            c3nav.schedule_refresh_tile_access(1000);
+    fetch_updates: function () {
+        $.get('/api/updates/fetch/', c3nav._fetch_updates_callback).fail(function() {
+            c3nav.schedule_fetch_updates(1000);
         });
     },
+    _fetch_updates_callback: function (data) {
+        c3nav.schedule_fetch_updates();
+        c3nav._set_user_data(data.user);
+    },
     _set_user_data: function (data) {
-        c3nav.schedule_refresh_tile_access();
         var $user = $('header #user');
         $user.find('span').text(data.title);
         $user.find('small').text(data.subtitle || '');

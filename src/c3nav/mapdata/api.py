@@ -404,18 +404,24 @@ class AccessRestrictionGroupViewSet(MapdataViewSet):
     queryset = AccessRestrictionGroup.objects.all()
 
 
-class UserViewSet(GenericViewSet):
+class UpdatesViewSet(GenericViewSet):
     """
-    Get display information about the current user. This endpoint also sets the tile access cookie.
+    Get information about recent updates.
+    Get display information about the current user.
+    Set the tile access cookie.
     The tile access cookie is only valid for 1 minute, so if you are displaying a map, call this endpoint repeatedly.
     """
     @list_route(methods=['get'])
-    def current(self, request, key=None):
+    def fetch(self, request, key=None):
         try:
-            cache.incr('api_user_current_requests')
+            cache.incr('api_updates_fetch_requests')
         except ValueError:
-            cache.set('api_user_current_requests', 0, None)
+            cache.set('api_updates_fetch_requests', 0, None)
 
-        response = Response(get_user_data(request))
+        response = Response({
+            'last_map_update': MapUpdate.current_processed_cache_key(),
+            'user': get_user_data(request),
+        })
+
         set_tile_access_cookie(request, response)
         return response
