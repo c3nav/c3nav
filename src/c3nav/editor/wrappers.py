@@ -8,6 +8,7 @@ from django.core.cache import cache
 from django.core.exceptions import ObjectDoesNotExist
 from django.db import models
 from django.db.models import FieldDoesNotExist, Manager, ManyToManyRel, Prefetch, Q
+from django.db.models.fields.related_descriptors import ReverseOneToOneDescriptor
 from django.utils.functional import cached_property
 
 from c3nav.mapdata.utils.models import get_submodels
@@ -200,6 +201,12 @@ class ModelInstanceWrapper(BaseWrapper):
         elif type(self._obj) is not type(other):
             return False
         return self.pk == other.pk
+
+    def __getattr__(self, name):
+        descriptor = getattr(self._obj.__class__, name, None)
+        if isinstance(descriptor, ReverseOneToOneDescriptor):
+            return descriptor.__get__(self, self.__class__)
+        return super().__getattr__(name)
 
     def __setattr__(self, name, value):
         """
