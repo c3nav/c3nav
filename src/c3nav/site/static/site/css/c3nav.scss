@@ -784,7 +784,7 @@ main:not([data-view=route-result]) #route-summary {
 body:not(.mobileclient) .share-ui p {
     display: none;
 }
-main > .share-ui {
+main > .share-ui, #reload-msg {
     display: none;
 }
 

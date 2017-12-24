@@ -1221,7 +1221,7 @@ c3nav = {
             width: 'auto',
             minHeight: 0
         });
-        c3nav.open_modal($('.reload-msg').html(), true);
+        c3nav.open_modal($('#reload-msg').html(), true);
         window.location.reload();
     },
     _set_user_data: function (data) {
