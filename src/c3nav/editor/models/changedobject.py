@@ -231,7 +231,7 @@ class ChangedObject(models.Model):
         old_updated_fields = self.updated_fields
         self.updated_fields = {}
 
-        if instance.pk is None and not is_created_pk(instance.target_id) and self.model_class == LocationRedirect:
+        if instance.pk is None and self.model_class == LocationRedirect and not is_created_pk(instance.target_id):
             obj = LocationRedirect.objects.filter(pk__in=self.changeset.deleted_existing.get(LocationRedirect, ()),
                                                   slug=instance.slug, target_id=instance.target_id).first()
             if obj is not None:
