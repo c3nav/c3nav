@@ -415,11 +415,6 @@ class UpdatesViewSet(GenericViewSet):
     """
     @list_route(methods=['get'])
     def fetch(self, request, key=None):
-        try:
-            cache.incr('api_updates_fetch_requests')
-        except ValueError:
-            cache.set('api_updates_fetch_requests', 0, None)
-
         cross_origin = request.META.get('HTTP_ORIGIN')
         if cross_origin is not None:
             try:
@@ -427,6 +422,12 @@ class UpdatesViewSet(GenericViewSet):
                     cross_origin = None
             except ValueError:
                 pass
+
+        counter_key = 'api_updates_fetch_requests%s' % ('_cross_origin' if cross_origin is not None else '')
+        try:
+            cache.incr(counter_key)
+        except ValueError:
+            cache.set(counter_key, 0, None)
 
         from c3nav.site.models import SiteUpdate
 
