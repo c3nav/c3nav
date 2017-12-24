@@ -419,12 +419,11 @@ class UpdatesViewSet(GenericViewSet):
         except ValueError:
             cache.set('api_updates_fetch_requests', 0, None)
 
-        cross_origin = False
-        if 'HTTP_ORIGIN' in request.META:
-            cross_origin = True
+        cross_origin = request.META.get('HTTP_ORIGIN')
+        if cross_origin is not None:
             try:
-                if request.META['HTTP_HOST'] == urlparse(request.META['HTTP_ORIGIN']).hostname:
-                    cross_origin = False
+                if request.META['HTTP_HOST'] == urlparse(cross_origin).hostname:
+                    cross_origin = None
             except ValueError:
                 pass
 
@@ -434,14 +433,14 @@ class UpdatesViewSet(GenericViewSet):
             'last_site_update': SiteUpdate.last_update(),
             'last_map_update': MapUpdate.current_processed_cache_key(),
         }
-        if not cross_origin:
+        if cross_origin is None:
             result.update({
                 'user': get_user_data(request),
             })
 
         response = Response(result)
-        if cross_origin:
-            response['Access-Control-Allow-Origin'] = '*'
+        if cross_origin is not None:
+            response['Access-Control-Allow-Origin'] = cross_origin
             response['Access-Control-Allow-Credentials'] = 'true'
         set_tile_access_cookie(request, response)
 
