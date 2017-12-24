@@ -1237,12 +1237,15 @@ LevelControl = L.Control.extend({
         return this._container;
     },
 
-    addLevel: function (id, title) {
-        this._tileLayers[id] = L.tileLayer((c3nav.tile_server || '/map/') + String(id) + '/{z}/{x}/{y}.png', {
+    createTileLayer: function(id) {
+        return L.tileLayer((c3nav.tile_server || '/map/') + String(id) + '/{z}/{x}/{y}.png', {
             minZoom: -2,
             maxZoom: 5,
             bounds: L.GeoJSON.coordsToLatLngs(c3nav.bounds)
         });
+    },
+    addLevel: function (id, title) {
+        this._tileLayers[id] = this.createTileLayer(id);
         var overlay = L.layerGroup();
         this._overlayLayers[id] = overlay;
 
@@ -1287,5 +1290,13 @@ LevelControl = L.Control.extend({
         buttons.addClass('current');
         buttons.width(buttons.width());
         buttons.removeClass('current');
+    },
+
+    reloadMap: function() {
+        var old_tile_layer = this._tileLayers[this.currentLevel],
+            new_tile_layer = this.createTileLayer(this.currentLevel);
+        this._tileLayers[this.currentLevel] = new_tile_layer;
+        new_tile_layer.addTo(c3nav.map);
+        window.setTimeout(function() { old_tile_layer.remove(); }, 2000);
     }
 });
