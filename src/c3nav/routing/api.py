@@ -16,6 +16,7 @@ class RoutingViewSet(ViewSet):
     """
     /route/ Get routes.
     /options/ Get or set route options.
+    /locate/ Wifi locate.
     """
     @list_route(methods=['get', 'post'])
     def route(self, request, *args, **kwargs):
@@ -76,3 +77,8 @@ class RoutingViewSet(ViewSet):
             options.save()
 
         return Response(options.serialize())
+
+    @list_route(methods=('POST', ))
+    def locate(self, request, *args, **kwargs):
+        # todo: implement wifi location
+        return Response({'location': None})

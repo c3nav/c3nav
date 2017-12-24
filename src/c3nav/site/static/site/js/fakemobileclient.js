@@ -8,12 +8,15 @@ mobileclient = {
         return JSON.stringify(this.nearbyStations);
     },
     port: 8042,
+    wait: false,
     scanNow: function() {
         console.log('mobileclient: scanNow');
+        if (mobileclient.wait) return;
+        mobileclient.wait = true;
         $.getJSON('http://localhost:'+String(mobileclient.port)+'/scan', function(data) {
             mobileclient.setNearbyStations(data.data);
-        }).fail(function() {
-            mobileclient.scanNow();
+        }).always(function() {
+            mobileclient.wait = false;
         });
     },
     shareUrl: function(url) {

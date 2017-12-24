@@ -127,6 +127,10 @@ c3nav = {
 
         window.setInterval(c3nav.load_searchable_locations, 42000);
 
+        if (window.mobileclient) {
+            window.setInterval(function() { mobileclient.scanNow(); }, 2000);
+        }
+
         c3nav.init_completed = true;
     },
     get_csrf_token: function() {
@@ -1217,9 +1221,40 @@ c3nav = {
         var $user = $('header #user');
         $user.find('span').text(data.title);
         $user.find('small').text(data.subtitle || '');
+    },
+
+    _last_wifi_scant: 0,
+    _wifi_scan_results: function(data) {
+        if (!JSON.parse(data).length) {
+            c3nav._set_user_location(null);
+        }
+        var now = Date.now();
+        if (now-2000 < c3nav._last_wifi_scan) return;
+
+        $.post({
+            url: '/api/routing/locate/',
+            data: data,
+            dataType: 'json',
+            contentType: 'application/json',
+            beforeSend: function(xhrObj){
+                xhrObj.setRequestHeader('X-CSRFToken', c3nav.get_csrf_token());
+            },
+            success: function(data) {
+                c3nav._set_user_location(data.location);
+            }
+        }).fail(function() {
+            c3nav._set_user_location(null);
+        });
+    },
+    _set_user_location: function(location) {
+
     }
 };
 $(document).ready(c3nav.init);
+
+function nearby_stations_available() {
+    c3nav._wifi_scan_results(mobileclient.getNearbyStations());
+}
 
 
 LevelControl = L.Control.extend({
