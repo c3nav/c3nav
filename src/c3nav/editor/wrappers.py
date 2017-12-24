@@ -507,7 +507,7 @@ class BaseQueryWrapper(BaseWrapper):
             # todo: cache here or avoid too much subqueries
             subkwargs = {'__'.join([filter_type] + segments): filter_value}
             pk_values = self._changeset.wrap_model(rel_model).objects.filter(**subkwargs).values_list('pk', flat=True)
-            q = Q(**{field_name+'__pk__in': pk_values})
+            q = Q(**{field_name + '__pk__in': tuple(pk for pk in pk_values if not is_created_pk(pk))})
             pk_values = set(str(pk) for pk in pk_values)
             return self._filter_values(q, field_name, lambda val: str(val) in pk_values)
 
