@@ -341,8 +341,8 @@ class ChangeSet(models.Model):
             except FieldDoesNotExist:
                 # todo: fix this
                 continue
-            objects.setdefault(LocationSlug, {})[target.pk] = target
-            objects.setdefault(target.__class__, {})[target.pk] = target
+            objects.setdefault(LocationSlug, {})[target.pk] = target._obj
+            objects.setdefault(target.__class__, {})[target.pk] = target._obj
 
         return objects
 
