@@ -1165,6 +1165,10 @@ c3nav = {
     },
     _location_point_overrides: {},
     _add_location_to_map: function(location, icon) {
+        if (!location) {
+            // if location is not in the searchable list...
+            return
+        }
         // add a location to the map as a marker
         if (location.locations) {
             var bounds = {};
