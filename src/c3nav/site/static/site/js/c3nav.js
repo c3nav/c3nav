@@ -68,6 +68,9 @@ c3nav = {
             state = JSON.parse($main.attr('data-state'));
         c3nav.embed = $main.is('[data-embed]');
 
+        c3nav.last_site_update = JSON.parse($main.attr('data-last-site-update'));
+        c3nav.new_site_update = false;
+
         history.replaceState(state, window.location.path);
         c3nav.load_state(state, true);
         c3nav.update_map_locations();
@@ -549,10 +552,13 @@ c3nav = {
             // console.log('state pushed');
             history.pushState(state, '', url);
         }
+
+        c3nav._maybe_load_site_update(state);
     },
     _onpopstate: function (e) {
         // console.log('state popped');
         c3nav.load_state(e.state);
+        c3nav._maybe_load_site_update(e.state);
     },
     load_state: function (state, nofly) {
         if (state.modal) {
@@ -886,22 +892,24 @@ c3nav = {
         }
     },
 
-    open_modal: function (content) {
+    modal_noclose: false,
+    open_modal: function (content, no_close) {
+        c3nav.modal_noclose = no_close;
         var $modal = $('#modal');
-        c3nav._set_modal_content(content);
+        c3nav._set_modal_content(content, no_close);
         if (!$modal.is('.show')) {
             c3nav._push_state({modal: true, sidebar: true});
             $modal.addClass('show');
         }
     },
-    _set_modal_content: function(content) {
+    _set_modal_content: function(content, no_close) {
         $('#modal').toggleClass('loading', !content)
             .find('#modal-content')
-            .html('<button class="button-clear material-icons" id="close-modal">clear</button>')
+            .html((!no_close) ? '<button class="button-clear material-icons" id="close-modal">clear</button>' :'')
             .append(content || '');
     },
     _modal_click: function(e) {
-        if (e.target.id === 'modal' || e.target.id === 'close-modal') {
+        if (!c3nav.modal_noclose && (e.target.id === 'modal' || e.target.id === 'close-modal')) {
             history.back();
         }
     },
@@ -1168,7 +1176,25 @@ c3nav = {
     },
     _fetch_updates_callback: function (data) {
         c3nav.schedule_fetch_updates();
+        if (c3nav.last_site_update !== data.last_site_update) {
+            c3nav.new_site_update = true;
+            c3nav.last_site_update = data.last_site_update;
+            c3nav._maybe_load_site_update(c3nav.state);
+        }
         c3nav._set_user_data(data.user);
+    },
+    _maybe_load_site_update: function(state) {
+        if (c3nav.new_site_update && !state.modal && (!state.routing || !state.origin || !state.destination)) {
+            c3nav._load_site_update();
+        }
+    },
+    _load_site_update: function() {
+        $('#modal-content').css({
+            width: 'auto',
+            minHeight: 0
+        });
+        c3nav.open_modal($('.reload-msg').html(), true);
+        window.location.reload();
     },
     _set_user_data: function (data) {
         var $user = $('header #user');

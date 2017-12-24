@@ -4,7 +4,7 @@
 {% load i18n %}
 
 {% block content %}
-    <main class="map" data-state="{{ state }}"{% if embed %} data-embed{% endif %}>
+    <main class="map" data-state="{{ state }}"{% if embed %} data-embed{% endif %} data-last-site-update="{{ last_site_update }}">
         <section id="attributions">
             {% if not embed %}
                 {% get_current_language as CURRENT_LANGUAGE %}
@@ -36,6 +36,9 @@
                     <button class="mobileclient-share">{% trans 'share' %}</button>
                     <button class="mobileclient-shortcut">{% trans 'create shortcut' %}</button>
                 </p>
+            </section>
+            <section class="reload-msg">
+                <img src="{% static 'img/loader.gif' %}">
             </section>
             <section id="sidebar">
                 <section id="search" class="loading">

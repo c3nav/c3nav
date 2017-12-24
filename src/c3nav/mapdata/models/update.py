@@ -163,7 +163,7 @@ class MapUpdate(models.Model):
                 new_update.save()
 
             transaction.on_commit(
-                lambda: cache.set('mapdata:last_processed_update', new_updates[-1].to_tuple, 300)
+                lambda: cache.set('mapdata:last_processed_update', new_updates[-1].to_tuple, None)
             )
 
             return new_updates
@@ -188,7 +188,7 @@ class MapUpdate(models.Model):
 
         if new:
             transaction.on_commit(
-                lambda: cache.set('mapdata:last_update', self.to_tuple, 300)
+                lambda: cache.set('mapdata:last_update', self.to_tuple, None)
             )
             if settings.HAS_CELERY:
                 transaction.on_commit(

@@ -28,7 +28,7 @@ from c3nav.mapdata.models.locations import LocationRedirect, SpecificLocation
 from c3nav.mapdata.utils.locations import get_location_by_slug_for_request, levels_by_short_label_for_request
 from c3nav.mapdata.utils.user import get_user_data
 from c3nav.mapdata.views import set_tile_access_cookie
-from c3nav.site.models import Announcement
+from c3nav.site.models import Announcement, SiteUpdate
 
 
 def check_location(location: Optional[str], request) -> Optional[SpecificLocation]:
@@ -120,6 +120,7 @@ def map_index(request, mode=None, slug=None, slug2=None, details=None, options=N
         'tile_cache_server': settings.TILE_CACHE_SERVER,
         'initial_level': settings.INITIAL_LEVEL,
         'initial_bounds': json.dumps(settings.INITIAL_BOUNDS, separators=(',', ':')),
+        'last_site_update': json.dumps(SiteUpdate.last_update()),
         'embed': bool(embed),
     }
 

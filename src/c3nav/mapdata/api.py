@@ -418,7 +418,9 @@ class UpdatesViewSet(GenericViewSet):
         except ValueError:
             cache.set('api_updates_fetch_requests', 0, None)
 
+        from c3nav.site.models import SiteUpdate
         response = Response({
+            'last_site_update': SiteUpdate.last_update(),
             'last_map_update': MapUpdate.current_processed_cache_key(),
             'user': get_user_data(request),
         })
