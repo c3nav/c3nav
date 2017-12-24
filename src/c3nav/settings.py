@@ -82,7 +82,7 @@ CACHE_TILES = config.get('c3nav', 'cache_tiles', fallback=not DEBUG)
 CACHE_RESOLUTION = config.get('c3nav', 'cache_resolution', fallback=4)
 
 INITIAL_LEVEL = config.get('c3nav', 'initial_level', fallback=None)
-INITIAL_BOUNDS = config.get('c3nav', 'initial_bounds', fallback=None).split(' ')
+INITIAL_BOUNDS = config.get('c3nav', 'initial_bounds', fallback='').split(' ')
 
 if len(INITIAL_BOUNDS) == 4:
     try:
