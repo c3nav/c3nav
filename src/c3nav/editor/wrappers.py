@@ -527,7 +527,6 @@ class BaseQueryWrapper(BaseWrapper):
                 raise NotImplementedError('Unsupported lookup or %s has no field "%s".' % (rel_model, filter_type))
 
             # multi-level-lookup
-            # todo: cache here or avoid too much subqueries
             subkwargs = {'__'.join([filter_type] + segments): filter_value}
             cache_key = '%s:multilevellookup:%s:%s:%s' % (
                 self._changeset.cache_key_by_changes,
