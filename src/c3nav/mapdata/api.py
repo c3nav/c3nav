@@ -442,6 +442,7 @@ class UpdatesViewSet(GenericViewSet):
         response = Response(result)
         if cross_origin:
             response['Access-Control-Allow-Origin'] = '*'
+            response['Access-Control-Allow-Credentials'] = 'true'
         set_tile_access_cookie(request, response)
 
         return response
