@@ -43,3 +43,10 @@ class Announcement(models.Model):
     def save(self, *args, **kwargs):
         super().save(*args, **kwargs)
         cache.delete('site:announcement')
+
+
+class SiteUpdate(models.Model):
+    """
+    A site update that asks the user to reload the page.
+    """
+    created = models.DateTimeField(auto_now_add=True, verbose_name=_('create'))
