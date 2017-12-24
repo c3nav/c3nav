@@ -784,6 +784,9 @@ main:not([data-view=route-result]) #route-summary {
 body:not(.mobileclient) .share-ui p {
     display: none;
 }
+body:not(.mobileclient) .locationinput.empty .locate {
+    opacity: 0.4;
+}
 main > .share-ui, #reload-msg, #app-ad {
     display: none;
 }
