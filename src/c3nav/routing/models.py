@@ -99,11 +99,11 @@ class RouteOptions(models.Model):
             if user_options is not None:
                 user_options.clean_data()
 
-        if session_options and not user_options:
-            user_options = session_options
-            user_options.user = request.user
-            user_options.save()
-            request.session.pop('session_options')
+            if session_options and not user_options:
+                user_options = session_options
+                user_options.user = request.user
+                user_options.save()
+                request.session.pop('session_options')
 
         return user_options or session_options or cls(request=request)
 
