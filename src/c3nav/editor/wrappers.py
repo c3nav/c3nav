@@ -205,7 +205,22 @@ class ModelInstanceWrapper(BaseWrapper):
     def __getattr__(self, name):
         descriptor = getattr(self._obj.__class__, name, None)
         if isinstance(descriptor, ReverseOneToOneDescriptor):
-            return descriptor.__get__(self, self.__class__)
+            try:
+                rel_obj = getattr(self._obj, descriptor.cache_name)
+            except AttributeError:
+                related_pk = self._obj._get_pk_val()
+                if related_pk is None:
+                    rel_obj = None
+                else:
+                    related_model = self._wrap_model(descriptor.related.related_model)
+                    filter_args = descriptor.related.field.get_forward_related_filter(self._obj)
+                    try:
+                        rel_obj = related_model.objects.get(**filter_args)
+                    except related_model.DoesNotExist:
+                        rel_obj = None
+                    else:
+                        setattr(rel_obj, descriptor.related.field.get_cache_name(), self._obj)
+                setattr(self._obj, descriptor.cache_name, rel_obj)
         return super().__getattr__(name)
 
     def __setattr__(self, name, value):
