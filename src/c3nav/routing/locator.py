@@ -83,9 +83,13 @@ class LocatorPoint(namedtuple('LocatorPoint', ('x', 'y', 'values'))):
 
         station_ids = reduce(operator.or_, (frozenset(values.keys()) for values in values_list), frozenset())
         return {
-            station_id: sum(values.get(station_id, -100) for values in values_list) / len(values_list)
+            station_id: cls.average(tuple(values[station_id] for values in values_list if station_id in values))
             for station_id in station_ids
         }
+
+    @staticmethod
+    def average(items):
+        return sum(items) / len(items)
 
     valid_frequencies = frozenset((
         2412, 2417, 2422, 2427, 2432, 2437, 2442, 2447, 2452, 2457, 2462, 2467, 2472, 2484,
