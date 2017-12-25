@@ -1,3 +1,5 @@
+import json
+
 from django.core.exceptions import ValidationError
 from django.utils.translation import ugettext_lazy as _
 from rest_framework.decorators import list_route
@@ -5,9 +7,10 @@ from rest_framework.response import Response
 from rest_framework.viewsets import ViewSet
 
 from c3nav.mapdata.models.access import AccessPermission
-from c3nav.mapdata.utils.locations import visible_locations_for_request
+from c3nav.mapdata.utils.locations import locations_for_request, visible_locations_for_request
 from c3nav.routing.exceptions import LocationUnreachable, NoRouteFound, NotYetRoutable
 from c3nav.routing.forms import RouteForm
+from c3nav.routing.locator import Locator
 from c3nav.routing.models import RouteOptions
 from c3nav.routing.router import Router
 
@@ -80,5 +83,18 @@ class RoutingViewSet(ViewSet):
 
     @list_route(methods=('POST', ))
     def locate(self, request, *args, **kwargs):
-        # todo: implement wifi location
-        return Response({'location': None})
+        try:
+            scan_data = json.loads(request.body)
+        except json.JSONDecodeError:
+            return Response({
+                'errors': (_('Invalid JSON'), ),
+            }, status=400)
+
+        try:
+            location = Locator.load().locate(scan_data, locations_for_request(request))
+        except ValidationError:
+            return Response({
+                'errors': (_('Invalid scan data.'),),
+            }, status=400)
+
+        return Response({'location': None if location is None else location.serialize()})

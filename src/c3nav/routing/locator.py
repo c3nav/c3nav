@@ -6,11 +6,14 @@ import threading
 from collections import deque, namedtuple
 from functools import reduce
 
+import numpy as np
 from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.utils.translation import ugettext_lazy as _
 
 from c3nav.mapdata.models import MapUpdate, Space
+from c3nav.mapdata.utils.locations import CustomLocation
+from c3nav.routing.router import Router
 
 
 class Locator:
@@ -25,10 +28,12 @@ class Locator:
         stations = LocatorStations()
         spaces = {}
         for space in Space.objects.prefetch_related('wifi_measurements'):
-            spaces[space.pk] = LocatorSpace(
+            new_space = LocatorSpace(
                 LocatorPoint.from_measurement(measurement, stations)
                 for measurement in space.wifi_measurements.all()
             )
+            if new_space.points:
+                spaces[space.pk] = new_space
 
         locator = cls(stations, spaces)
         pickle.dump(locator, open(cls.build_filename(update), 'wb'))
@@ -56,18 +61,52 @@ class Locator:
                 cls.cached = cls.load_nocache(update)
         return cls.cached
 
+    def locate(self, scan, permissions=None):
+        router = Router.load()
+        restrictions = router.get_restrictions(permissions)
+
+        scan = LocatorPoint.validate_scan(scan, ignore_invalid_stations=True)
+        scan_values = LocatorPoint.convert_scan(scan, self.stations, create=False)
+        station_ids = frozenset(scan_values.keys())
+
+        spaces = tuple((pk, space, station_ids & space.stations_set)
+                       for pk, space in self.spaces.items()
+                       if pk not in restrictions.spaces)
+        spaces = tuple((pk, space, station_ids) for pk, space, station_ids in spaces if station_ids)
+        if not spaces:
+            return None
+        good_spaces = tuple((pk, space, station_ids) for pk, space, station_ids in spaces if len(station_ids) >= 3)
+        if not good_spaces:
+            for station_id in station_ids:
+                scan_values[station_id] = 0
+            good_spaces = spaces
+
+        good_spaces = sorted(good_spaces, key=lambda item: len(item[2]), reverse=True)[:10]
+
+        best_location = None
+        best_score = float('inf')
+
+        for space, station_ids in good_spaces:
+            point, score = space.get_best_point(scan_values, station_ids)
+            if score < best_score:
+                location = CustomLocation(router.spaces[space.pk].level, point.x, point.y)
+                best_location = location
+                best_score = score
+
+        return best_location
+
 
 class LocatorStations:
     def __init__(self):
         self.stations = []
         self.stations_lookup = {}
 
-    def get_or_create(self, bssid, ssid, frequency):
+    def get(self, bssid, ssid, frequency, create=False):
         station_id = self.stations_lookup.get((bssid, ssid), None)
         if station_id is not None:
             station = self.stations[station_id]
             station.frequencies.add(frequency)
-        else:
+        elif create:
             station = LocatorStation(bssid, ssid, set((frequency, )))
             station_id = len(self.stations)
             self.stations_lookup[(bssid, ssid)] = station_id
@@ -78,31 +117,45 @@ class LocatorStations:
 class LocatorSpace:
     def __init__(self, points):
         self.points = tuple(points)
-        self.stations_set = reduce(operator.or_, (frozenset(point.values.keys()) for point in points), frozenset())
+        self.stations_set = reduce(operator.or_, (frozenset(point.values.keys()) for point in self.points), frozenset())
         self.stations = tuple(self.stations_set)
         self.stations_lookup = {station_id: i for i, station_id in enumerate(self.stations)}
+
+        self.levels = np.full((len(self.points), len(self.stations)), fill_value=-100, dtype=np.int8)
+        for i, point in enumerate(self.points):
+            for station_id, value in point.values.items():
+                self.levels[i][self.stations_lookup[station_id]] = value
+
+    def get_best_point(self, scan_values, station_ids):
+        stations = tuple(self.stations_lookup[station_id] for station_id in station_ids)
+        values = np.array(tuple(scan_values[station_id] for station_id in station_ids), dtype=np.int8)
+        scores = np.sum((self.levels[:, stations]-values)**2, axis=1)
+        best_point = np.argmin(scores).ravel()[0]
+        return self.points[best_point], scores[best_point]
 
 
 class LocatorPoint(namedtuple('LocatorPoint', ('x', 'y', 'values'))):
     @classmethod
     def from_measurement(cls, measurement, stations: LocatorStations):
         return cls(x=measurement.geometry.x, y=measurement.geometry.y,
-                   values=cls.convert_scans(measurement.data, stations))
+                   values=cls.convert_scans(measurement.data, stations, create=True))
 
     @classmethod
-    def convert_scan(cls, scan, stations: LocatorStations):
+    def convert_scan(cls, scan, stations: LocatorStations, create=False):
         values = {}
         for scan_value in scan:
-            station_id = stations.get_or_create(scan_value['bssid'], scan_value['ssid'], scan_value['frequency'])
-            # todo: convert to something more or less linear
-            values[station_id] = scan_value['level']
+            station_id = stations.get(bssid=scan_value['bssid'], ssid=scan_value['ssid'],
+                                      frequency=scan_value['frequency'], create=create)
+            if station_id is not None:
+                # todo: convert to something more or less linear
+                values[station_id] = scan_value['level']
         return values
 
     @classmethod
-    def convert_scans(cls, scans, stations: LocatorStations):
+    def convert_scans(cls, scans, stations: LocatorStations, create=False):
         values_list = deque()
         for scan in scans:
-            values_list.append(cls.convert_scan(scan, stations))
+            values_list.append(cls.convert_scan(scan, stations, create))
 
         station_ids = reduce(operator.or_, (frozenset(values.keys()) for values in values_list), frozenset())
         return {
@@ -125,18 +178,23 @@ class LocatorPoint(namedtuple('LocatorPoint', ('x', 'y', 'values'))):
     allowed_keys = needed_keys | frozenset(('last', ))
 
     @classmethod
-    def validate_scans(cls, data):
+    def validate_scans(cls, data, ignore_invalid_stations=False):
         if not isinstance(data, list):
             raise cls.invalid_scan
-        for scan in data:
-            cls.validate_scan(scan)
+        return tuple(cls.validate_scan(scan) for scan in data)
 
     @classmethod
-    def validate_scan(cls, data):
+    def validate_scan(cls, data, ignore_invalid_stations=False):
         if not isinstance(data, list):
             raise cls.invalid_scan
+        cleaned_scan = deque()
         for scan_value in data:
-            cls.validate_scan_value(scan_value)
+            try:
+                cleaned_scan.append(cls.validate_scan_value(scan_value))
+            except ValidationError:
+                if not ignore_invalid_stations:
+                    raise
+        return tuple(cleaned_scan)
 
     @classmethod
     def validate_scan_value(cls, data):

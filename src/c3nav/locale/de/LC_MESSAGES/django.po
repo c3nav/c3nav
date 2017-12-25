@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2017-12-24 05:03+0100\n"
+"POT-Creation-Date: 2017-12-25 22:23+0100\n"
 "PO-Revision-Date: 2017-12-24 05:02+0100\n"
 "Last-Translator: Laura Klünder <laura@codingcatgirl.de>\n"
 "Language-Team: \n"
@@ -306,7 +306,7 @@ msgid "back"
 msgstr "zurück"
 
 #: c3nav/control/templates/control/user.html:73
-#: c3nav/mapdata/models/access.py:77 c3nav/mapdata/models/geometry/space.py:345
+#: c3nav/mapdata/models/access.py:77 c3nav/mapdata/models/geometry/space.py:353
 #: c3nav/site/models.py:17
 msgid "author"
 msgstr "Autor"
@@ -428,45 +428,37 @@ msgstr "Token erfolgreich invalidiert."
 msgid "You can only display your most recently created token."
 msgstr "Du kannst nur deinen zuletzt erstellten Code anzeigen."
 
-#: c3nav/editor/forms.py:129
+#: c3nav/editor/forms.py:128
 msgid "Redirecting Slugs (comma seperated)"
 msgstr "Umleitungs-Slugs (mit Komma getrennt)"
 
-#: c3nav/editor/forms.py:158
+#: c3nav/editor/forms.py:157
 #, python-format
 msgid "Can not add redirecting slug “%s”: it's the slug of this object."
 msgstr ""
 "Umleitungs-Slug „%s“ kann nicht hinzugefügt werden: Es ist der Slug dieses "
 "Objects."
 
-#: c3nav/editor/forms.py:165
+#: c3nav/editor/forms.py:164
 #, python-format
 msgid "Can not add redirecting slug “%s”: it is already used elsewhere."
 msgstr ""
 "Umleitungs-Slug „%s“ kann nicht hinzugefügt werden: Er wird bereits an "
 "anderer Stelle verwendet."
 
-#: c3nav/editor/forms.py:172
+#: c3nav/editor/forms.py:171
 msgid "Invalid JSON."
 msgstr "Invalides JSON."
 
-#: c3nav/editor/forms.py:173
-msgid "Invalid Scan."
-msgstr "Invalider Scan."
-
-#: c3nav/editor/forms.py:178
-msgid "Needs to be one scan at minimum."
-msgstr "Muss mindestens 1 sein."
-
-#: c3nav/editor/forms.py:252
+#: c3nav/editor/forms.py:230
 msgid "Final rejection"
 msgstr "Endgültige Ablehnung"
 
-#: c3nav/editor/forms.py:260
+#: c3nav/editor/forms.py:238
 msgid "create one way edges"
 msgstr "Kante nur in eine Richtung erstellen"
 
-#: c3nav/editor/forms.py:261
+#: c3nav/editor/forms.py:239
 msgid "activate next node after connecting"
 msgstr "nächsten Knoten nach dem Verbinden aktivieren"
 
@@ -570,15 +562,15 @@ msgstr "Kartenupdate"
 msgid "Change Sets"
 msgstr "Änderungssets"
 
-#: c3nav/editor/models/changeset.py:694
+#: c3nav/editor/models/changeset.py:698
 msgid "Direct editing active"
 msgstr "Direktes Bearbeiten aktiv"
 
-#: c3nav/editor/models/changeset.py:695
+#: c3nav/editor/models/changeset.py:699
 msgid "No objects changed"
 msgstr "Keine Objekte geändert"
 
-#: c3nav/editor/models/changeset.py:696
+#: c3nav/editor/models/changeset.py:700
 #, python-format
 msgid "%(num)d object changed"
 msgid_plural "%(num)d objects changed"
@@ -1471,7 +1463,7 @@ msgid "Doors"
 msgstr "Türen"
 
 #: c3nav/mapdata/models/geometry/level.py:156
-#: c3nav/mapdata/models/geometry/space.py:250
+#: c3nav/mapdata/models/geometry/space.py:258
 msgid "altitude"
 msgstr "Bodenhöhe"
 
@@ -1510,8 +1502,8 @@ msgstr ""
 "erstellt."
 
 #: c3nav/mapdata/models/geometry/space.py:23
-#: c3nav/mapdata/models/geometry/space.py:266
-#: c3nav/mapdata/models/geometry/space.py:303
+#: c3nav/mapdata/models/geometry/space.py:274
+#: c3nav/mapdata/models/geometry/space.py:311
 msgid "space"
 msgstr "Raum"
 
@@ -1590,65 +1582,65 @@ msgstr "Ort von Interesse"
 msgid "Points of Interest"
 msgstr "Orte von Interesse"
 
-#: c3nav/mapdata/models/geometry/space.py:240
+#: c3nav/mapdata/models/geometry/space.py:248
 msgid "Hole"
 msgstr "Loch"
 
-#: c3nav/mapdata/models/geometry/space.py:241
+#: c3nav/mapdata/models/geometry/space.py:249
 msgid "Holes"
 msgstr "Löcher"
 
-#: c3nav/mapdata/models/geometry/space.py:253
+#: c3nav/mapdata/models/geometry/space.py:261
 msgid "Altitude Marker"
 msgstr "Höhenmarker"
 
-#: c3nav/mapdata/models/geometry/space.py:254
+#: c3nav/mapdata/models/geometry/space.py:262
 msgid "Altitude Markers"
 msgstr "Höhenmarker"
 
-#: c3nav/mapdata/models/geometry/space.py:267
-#: c3nav/mapdata/models/geometry/space.py:306
+#: c3nav/mapdata/models/geometry/space.py:275
+#: c3nav/mapdata/models/geometry/space.py:314
 msgid "target space"
 msgstr "Zielraum"
 
-#: c3nav/mapdata/models/geometry/space.py:269
-#: c3nav/mapdata/models/geometry/space.py:308 c3nav/mapdata/models/graph.py:44
+#: c3nav/mapdata/models/geometry/space.py:277
+#: c3nav/mapdata/models/geometry/space.py:316 c3nav/mapdata/models/graph.py:44
 msgid "description"
 msgstr "Beschreibung"
 
-#: c3nav/mapdata/models/geometry/space.py:272
+#: c3nav/mapdata/models/geometry/space.py:280
 msgid "Leave description"
 msgstr "Verlassensbeschreibung"
 
-#: c3nav/mapdata/models/geometry/space.py:273
+#: c3nav/mapdata/models/geometry/space.py:281
 msgid "Leave descriptions"
 msgstr "Verlassensbeschreibungen"
 
-#: c3nav/mapdata/models/geometry/space.py:304
+#: c3nav/mapdata/models/geometry/space.py:312
 msgid "origin space"
 msgstr "Ursprungsraum"
 
-#: c3nav/mapdata/models/geometry/space.py:311
+#: c3nav/mapdata/models/geometry/space.py:319
 msgid "Cross description"
 msgstr "Durchschreitungsbeschreibung"
 
-#: c3nav/mapdata/models/geometry/space.py:312
+#: c3nav/mapdata/models/geometry/space.py:320
 msgid "Cross descriptions"
 msgstr "Durchschreitungsbeschreibungen"
 
-#: c3nav/mapdata/models/geometry/space.py:346
+#: c3nav/mapdata/models/geometry/space.py:354
 msgid "comment"
 msgstr "Kommentar"
 
-#: c3nav/mapdata/models/geometry/space.py:347
+#: c3nav/mapdata/models/geometry/space.py:355
 msgid "Measurement list"
 msgstr "Messungsliste"
 
-#: c3nav/mapdata/models/geometry/space.py:350
+#: c3nav/mapdata/models/geometry/space.py:358
 msgid "Wi-Fi Measurement"
 msgstr "WLAN Messung"
 
-#: c3nav/mapdata/models/geometry/space.py:351
+#: c3nav/mapdata/models/geometry/space.py:359
 msgid "Wi-Fi Measurements"
 msgstr "WLAN Messungen"
 
@@ -1982,6 +1974,10 @@ msgstr "Unbekannter Startort."
 msgid "Unknown destination."
 msgstr "Unbekannter Zielort."
 
+#: c3nav/routing/locator.py:129
+msgid "Invalid Scan."
+msgstr "Invalider Scan."
+
 #: c3nav/routing/models.py:20 c3nav/routing/models.py:21
 #: c3nav/site/templates/site/map.html:129
 msgid "Route options"
@@ -2035,12 +2031,12 @@ msgstr "komplett vermeiden"
 msgid "avoid"
 msgstr "vermeiden"
 
-#: c3nav/routing/models.py:135
+#: c3nav/routing/models.py:142
 #, python-format
 msgid "Unknown route option: %s"
 msgstr "Unbekannte Routenoption: %s"
 
-#: c3nav/routing/models.py:139
+#: c3nav/routing/models.py:146
 #, python-format
 msgid "Invalid value for route option %s."
 msgstr "Invalider Wert für Routenoption %s."
