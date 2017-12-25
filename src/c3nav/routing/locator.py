@@ -39,16 +39,17 @@ class LocatorStations:
         self.stations = []
         self.stations_lookup = {}
 
-    def get_or_create(self, bssid, frequency):
-        station_id = self.stations_lookup.get(bssid, None)
+    def get_or_create(self, bssid, ssid, frequency):
+        station_id = self.stations_lookup.get((bssid, ssid), None)
         if station_id is not None:
             station = self.stations[station_id]
             station.frequencies.add(frequency)
         else:
-            station = LocatorStation(bssid, set((frequency, )))
-            self.stations_lookup[bssid] = len(self.stations)
-            self.stations.append(LocatorStation(bssid, set((frequency, ))))
-        return station
+            station = LocatorStation(bssid, ssid, set((frequency, )))
+            station_id = len(self.stations)
+            self.stations_lookup[(bssid, ssid)] = station_id
+            self.stations.append(station)
+        return station_id
 
 
 class LocatorSpace:
@@ -69,9 +70,10 @@ class LocatorPoint(namedtuple('LocatorPoint', ('x', 'y', 'values'))):
     def convert_scan(cls, scan, stations: LocatorStations):
         values = {}
         for scan_value in scan:
-            station_id = stations.get_or_create(scan_value['bssid'], scan_value['frequency'])
+            station_id = stations.get_or_create(scan_value['bssid'], scan_value['ssid'], scan_value['frequency'])
             # todo: convert to something more or less linear
             values[station_id] = scan_value['level']
+        return values
 
     @classmethod
     def convert_scans(cls, scans, stations: LocatorStations):
@@ -100,7 +102,7 @@ class LocatorPoint(namedtuple('LocatorPoint', ('x', 'y', 'values'))):
         if not isinstance(data, list):
             raise cls.invalid_scan
         for scan in data:
-            cls.validate_scan(data)
+            cls.validate_scan(scan)
 
     @classmethod
     def validate_scan(cls, data):
@@ -127,9 +129,10 @@ class LocatorPoint(namedtuple('LocatorPoint', ('x', 'y', 'values'))):
 
 
 class LocatorStation:
-    def __init__(self, bssid, frequencies=()):
+    def __init__(self, bssid, ssid, frequencies=()):
         self.bssid = bssid
+        self.ssid = ssid
         self.frequencies = set(frequencies)
 
     def __repr__(self):
-        return 'LocatorStation(%r, frequencies=%r)' % (self.bssid, self.frequencies)
+        return 'LocatorStation(%r, %r, frequencies=%r)' % (self.bssid, self.ssid, self.frequencies)
