@@ -211,6 +211,7 @@ class LocatorPoint(namedtuple('LocatorPoint', ('x', 'y', 'values'))):
             raise cls.invalid_scan
         if 'last' in keys and (not isinstance(data['last'], int) or data['last'] <= 0):
             raise cls.invalid_scan
+        return data
 
 
 class LocatorStation:

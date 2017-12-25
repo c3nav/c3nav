@@ -1,5 +1,3 @@
-import json
-
 from django.core.exceptions import ValidationError
 from django.utils.translation import ugettext_lazy as _
 from rest_framework.decorators import list_route
@@ -84,14 +82,7 @@ class RoutingViewSet(ViewSet):
     @list_route(methods=('POST', ))
     def locate(self, request, *args, **kwargs):
         try:
-            scan_data = json.loads(request.body)
-        except json.JSONDecodeError:
-            return Response({
-                'errors': (_('Invalid JSON'), ),
-            }, status=400)
-
-        try:
-            location = Locator.load().locate(scan_data, locations_for_request(request))
+            location = Locator.load().locate(request.data, locations_for_request(request))
         except ValidationError:
             return Response({
                 'errors': (_('Invalid scan data.'),),
