@@ -156,11 +156,11 @@ class MapUpdate(models.Model):
 
             logger.info('Rebuilding router...')
             from c3nav.routing.router import Router
-            Router.rebuild()
+            Router.rebuild(new_updates[-1].to_tuple)
 
             logger.info('Rebuilding locator...')
             from c3nav.routing.locator import Locator
-            Locator.rebuild()
+            Locator.rebuild(new_updates[-1].to_tuple)
 
             for new_update in new_updates:
                 new_update.processed = True

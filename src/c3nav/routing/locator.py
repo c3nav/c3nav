@@ -2,6 +2,7 @@ import operator
 import os
 import pickle
 import re
+import threading
 from collections import deque, namedtuple
 from functools import reduce
 
@@ -9,7 +10,7 @@ from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.utils.translation import ugettext_lazy as _
 
-from c3nav.mapdata.models import Space
+from c3nav.mapdata.models import MapUpdate, Space
 
 
 class Locator:
@@ -20,7 +21,7 @@ class Locator:
         self.spaces = spaces
 
     @classmethod
-    def rebuild(cls):
+    def rebuild(cls, update):
         stations = LocatorStations()
         spaces = {}
         for space in Space.objects.prefetch_related('wifi_measurements'):
@@ -30,8 +31,30 @@ class Locator:
             )
 
         locator = cls(stations, spaces)
-        pickle.dump(locator, open(cls.filename, 'wb'))
+        pickle.dump(locator, open(cls.build_filename(update), 'wb'))
         return locator
+
+    @classmethod
+    def build_filename(cls, update):
+        return os.path.join(settings.CACHE_ROOT, 'locator_%s.pickle' % MapUpdate.build_cache_key(*update))
+
+    @classmethod
+    def load_nocache(cls, update):
+        return pickle.load(open(cls.build_filename(update), 'rb'))
+
+    cached = None
+    cache_update = None
+    cache_lock = threading.Lock()
+
+    @classmethod
+    def load(cls):
+        from c3nav.mapdata.models import MapUpdate
+        update = MapUpdate.last_processed_update()
+        if cls.cache_update != update:
+            with cls.cache_lock:
+                cls.cache_update = update
+                cls.cached = cls.load_nocache(update)
+        return cls.cached
 
 
 class LocatorStations:

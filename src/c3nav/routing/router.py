@@ -45,7 +45,7 @@ class Router:
         return max(area.get_altitudes(point)[0] for area in areas if area.geometry_prep.intersects(point))
 
     @classmethod
-    def rebuild(cls):
+    def rebuild(cls, update):
         levels_query = Level.objects.prefetch_related('buildings', 'spaces', 'altitudeareas', 'groups',
                                                       'spaces__holes', 'spaces__columns', 'spaces__groups',
                                                       'spaces__obstacles', 'spaces__lineobstacles',
@@ -239,25 +239,29 @@ class Router:
             restriction.edges = np.array(restriction.edges, dtype=np.uint32).reshape((-1, 2))
 
         router = cls(levels, spaces, areas, pois, groups, restrictions, nodes, edges, waytypes, graph)
-        pickle.dump(router, open(cls.filename, 'wb'))
+        pickle.dump(router, open(cls.build_filename(update), 'wb'))
         return router
 
     @classmethod
-    def load_nocache(cls):
-        return pickle.load(open(cls.filename, 'rb'))
+    def build_filename(cls, update):
+        return os.path.join(settings.CACHE_ROOT, 'router_%s.pickle' % MapUpdate.build_cache_key(*update))
+
+    @classmethod
+    def load_nocache(cls, update):
+        return pickle.load(open(cls.build_filename(update), 'rb'))
 
     cached = None
-    cache_key = None
+    cache_update = None
     cache_lock = threading.Lock()
 
     @classmethod
     def load(cls):
         from c3nav.mapdata.models import MapUpdate
-        cache_key = MapUpdate.current_processed_cache_key()
-        if cls.cache_key != cache_key:
+        update = MapUpdate.last_processed_update()
+        if cls.cache_update != update:
             with cls.cache_lock:
-                cls.cache_key = cache_key
-                cls.cached = cls.load_nocache()
+                cls.cache_update = update
+                cls.cached = cls.load_nocache(update)
         return cls.cached
 
     def get_locations(self, location, restrictions):
