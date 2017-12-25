@@ -1037,6 +1037,7 @@ c3nav = {
         c3nav._detailLayers = {};
         c3nav._routeLayers = {};
         c3nav._routeLayerBounds = {};
+        c3nav._positionLayers = {};
         c3nav._firstRouteLevel = null;
         for (i = c3nav.levels.length - 1; i >= 0; i--) {
             var level = c3nav.levels[i];
@@ -1044,6 +1045,7 @@ c3nav = {
             c3nav._detailLayers[level[0]] = L.layerGroup().addTo(layerGroup);
             c3nav._locationLayers[level[0]] = L.layerGroup().addTo(layerGroup);
             c3nav._routeLayers[level[0]] = L.layerGroup().addTo(layerGroup);
+            c3nav._positionLayers[level[0]] = L.layerGroup().addTo(layerGroup);
         }
         c3nav._levelControl.finalize();
         c3nav._levelControl.setLevel(c3nav.initial_level);
@@ -1258,8 +1260,23 @@ c3nav = {
         });
     },
     _set_user_location: function(location) {
+        for (var id in c3nav._positionLayers) {
+            c3nav._positionLayers[id].clearLayers();
+        }
         if (location) {
             $('.locationinput .locate').text('my_location');
+            var latlng = L.GeoJSON.coordsToLatLng(location.geometry.coordinates),
+                layer = c3nav._positionLayers[location.level];
+            L.circleMarker(latlng, {
+                radius: 11,
+                stroke: 0,
+                fillOpacity: 0.2
+            }).addTo(layer);
+            L.circleMarker(latlng, {
+                radius: 5,
+                stroke: 0,
+                fillOpacity: 1
+            }).addTo(layer);
         } else {
             $('.locationinput .locate').text('location_searching');
         }
