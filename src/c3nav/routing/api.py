@@ -5,7 +5,7 @@ from rest_framework.response import Response
 from rest_framework.viewsets import ViewSet
 
 from c3nav.mapdata.models.access import AccessPermission
-from c3nav.mapdata.utils.locations import locations_for_request, visible_locations_for_request
+from c3nav.mapdata.utils.locations import visible_locations_for_request
 from c3nav.routing.exceptions import LocationUnreachable, NoRouteFound, NotYetRoutable
 from c3nav.routing.forms import RouteForm
 from c3nav.routing.locator import Locator
@@ -82,7 +82,7 @@ class RoutingViewSet(ViewSet):
     @list_route(methods=('POST', ))
     def locate(self, request, *args, **kwargs):
         try:
-            location = Locator.load().locate(request.data, locations_for_request(request))
+            location = Locator.load().locate(request.data, permissions=AccessPermission.get_for_request(request))
         except ValidationError:
             return Response({
                 'errors': (_('Invalid scan data.'),),
