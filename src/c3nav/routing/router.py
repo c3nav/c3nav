@@ -350,7 +350,9 @@ class Router:
                                                        options_key)
         result = cache.get(cache_key)
         if result:
-            return result
+            distances, predecessors = result
+            return (np.frombuffer(distances, dtype=np.float64).reshape(self.graph.shape),
+                    np.frombuffer(predecessors, dtype=np.int32).reshape(self.graph.shape))
 
         graph = self.graph.copy()
 
@@ -389,9 +391,11 @@ class Router:
         graph[:, tuple(restrictions.spaces)] = np.inf
         graph[restrictions.edges.transpose().tolist()] = np.inf
 
-        result = shortest_path(graph, directed=True, return_predecessors=True)
-        cache.set(cache_key, result, 600)
-        return result
+        distances, predecessors = shortest_path(graph, directed=True, return_predecessors=True)
+        print(distances.dtype, predecessors.dtype)
+        cache.set(cache_key, (distances.astype(np.float64).tobytes(),
+                              predecessors.astype(np.int32).tobytes()), 600)
+        return distances, predecessors
 
     def get_restrictions(self, permissions):
         return RouterRestrictionSet({
