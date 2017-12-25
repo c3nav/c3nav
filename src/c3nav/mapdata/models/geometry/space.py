@@ -65,7 +65,7 @@ class SpaceGeometryMixin(GeometryMixin):
             Space.q_for_request(request, prefix=prefix + 'space__', allow_none=allow_none)
         )
 
-    def register_change(self, force=True):
+    def register_change(self, force=False):
         space = self.space
         force = force or self.all_geometry_changed
         if force or self.geometry_changed:
