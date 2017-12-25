@@ -1,6 +1,5 @@
 import json
 import operator
-import re
 from functools import reduce
 from itertools import chain
 
@@ -170,31 +169,10 @@ class EditorFormBase(I18nModelFormMixin, ModelForm):
             data = json.loads(self.cleaned_data['data'])
         except json.JSONDecodeError:
             raise ValidationError(_('Invalid JSON.'))
-        invalid_scan = ValidationError(_('Invalid Scan.'))
 
-        if not isinstance(data, list):
-            raise invalid_scan
-        if not data:
-            raise ValidationError(_('Needs to be one scan at minimum.'))
-        needed_keys = set(('bssid', 'ssid', 'level', 'frequency'))
-        allowed_keys = needed_keys | set(('last', ))
-        for scan in data:
-            if not isinstance(data, list):
-                raise invalid_scan
-            for ap in scan:
-                if not isinstance(ap, dict):
-                    raise invalid_scan
-                keys = set(ap.keys())
-                if (keys - allowed_keys) or (needed_keys - keys):
-                    raise invalid_scan
-                if not re.match(r'^([0-9A-F]{2}:){5}[0-9A-F]{2}$', ap['bssid']):
-                    raise invalid_scan
-                if not isinstance(ap['level'], int) or not (-1 >= ap['level'] >= -100):
-                    raise invalid_scan
-                if not isinstance(ap['frequency'], int) or not (6000 > ap['frequency'] > 1000):
-                    raise invalid_scan
-                if 'last' in keys and (not isinstance(ap['last'], int) or ap['last'] <= 0):
-                    raise invalid_scan
+        from c3nav.routing.locator import LocatorPoint
+        LocatorPoint.validate_scans(data)
+
         return data
 
     def clean(self):
