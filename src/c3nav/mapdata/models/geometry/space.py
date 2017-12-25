@@ -358,3 +358,11 @@ class WifiMeasurement(SpaceGeometryMixin, models.Model):
         verbose_name = _('Wi-Fi Measurement')
         verbose_name_plural = _('Wi-Fi Measurements')
         default_related_name = 'wifi_measurements'
+
+    @property
+    def all_geometry_changed(self):
+        return False
+
+    @property
+    def geometry_changed(self):
+        return False
