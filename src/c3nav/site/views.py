@@ -127,9 +127,10 @@ def map_index(request, mode=None, slug=None, slug2=None, details=None, options=N
 
     csrf.get_token(request)
 
-    announcement = Announcement.get_current()
-    if announcement:
-        messages.info(request, announcement.text)
+    if not embed:
+        announcement = Announcement.get_current()
+        if announcement:
+            messages.info(request, announcement.text)
 
     response = render(request, 'site/map.html', ctx)
     set_tile_access_cookie(request, response)
