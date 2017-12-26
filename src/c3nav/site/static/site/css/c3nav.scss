@@ -717,6 +717,9 @@ main:not([data-view=route-result]) #route-summary {
 .leaflet-control-user-location a {
     font-size: 20px;
 }
+body:not(.mobileclient) .leaflet-control-user-location a {
+    color: #BBBBBB;
+}
 
 
 #modal {
