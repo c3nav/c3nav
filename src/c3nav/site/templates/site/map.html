@@ -4,7 +4,7 @@
 {% load i18n %}
 
 {% block content %}
-    <main class="map" data-state="{{ state }}"{% if embed %} data-embed{% endif %} data-last-site-update="{{ last_site_update }}">
+    <main class="map" data-state="{{ state }}"{% if embed %} data-embed{% endif %} data-last-site-update="{{ last_site_update }}"{% if ssids %} data-ssids="{{ ssids }}"{% endif %}>
         <section id="attributions">
             {% if not embed %}
                 {% get_current_language as CURRENT_LANGUAGE %}

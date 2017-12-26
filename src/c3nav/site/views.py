@@ -121,6 +121,7 @@ def map_index(request, mode=None, slug=None, slug2=None, details=None, options=N
         'initial_level': settings.INITIAL_LEVEL,
         'initial_bounds': json.dumps(settings.INITIAL_BOUNDS, separators=(',', ':')),
         'last_site_update': json.dumps(SiteUpdate.last_update()),
+        'ssids': json.dumps(settings.WIFI_SSIDS, separators=(',', ':')) if settings.WIFI_SSIDS else None,
         'embed': bool(embed),
     }
 

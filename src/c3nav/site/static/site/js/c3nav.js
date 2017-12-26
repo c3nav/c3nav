@@ -85,6 +85,8 @@ c3nav = {
         c3nav.last_site_update = JSON.parse($main.attr('data-last-site-update'));
         c3nav.new_site_update = false;
 
+        c3nav.ssids = $main.is('[data-ssids]') ? JSON.parse($main.attr('data-ssids')) : null;
+
         history.replaceState(state, window.location.path);
         c3nav.load_state(state, true);
         c3nav.update_map_locations();
@@ -1253,15 +1255,27 @@ c3nav = {
 
     _last_wifi_scant: 0,
     _wifi_scan_results: function(data) {
-        if (!JSON.parse(data).length) {
-            c3nav._set_user_location(null);
-        }
         var now = Date.now();
         if (now-2000 < c3nav._last_wifi_scan) return;
 
+        data = JSON.parse(data);
+        if (!data.length) {
+            c3nav._set_user_location(null);
+        }
+
+        if (c3nav.ssids) {
+            var newdata = [];
+            for (var i=0; i<data.length; i++) {
+                if (c3nav.ssids.indexOf(data[i]['ssid']) >= 0) {
+                    newdata.push(data[i]);
+                }
+            }
+            data = newdata;
+        }
+
         $.post({
             url: '/api/routing/locate/',
-            data: data,
+            data: JSON.stringify(data),
             dataType: 'json',
             contentType: 'application/json',
             beforeSend: function(xhrObj){
