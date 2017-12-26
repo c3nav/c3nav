@@ -81,8 +81,6 @@ class Locator:
                 scan_values[station_id] = 0
             good_spaces = spaces
 
-        good_spaces = sorted(good_spaces, key=lambda item: len(item[2]), reverse=True)[:10]
-
         best_location = None
         best_score = float('inf')
 
