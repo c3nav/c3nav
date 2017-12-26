@@ -140,12 +140,13 @@ class LocatorSpace:
     def get_best_point(self, scan_values, station_ids, needed_station_id=None):
         stations = tuple(self.stations_lookup[station_id] for station_id in station_ids)
         values = np.array(tuple(scan_values[station_id]**3 for station_id in station_ids), dtype=np.int64)
-        acceptable_point_ids = tuple(
+        acceptable_points = tuple(
             np.argwhere(self.levels[:, self.stations_lookup[needed_station_id]] > -90).ravel()
         )
-        scores = np.sum((self.levels[acceptable_point_ids, stations]-values)**2, axis=1) / len(stations)
+        scores = np.sum((self.levels[np.array(acceptable_points).reshape((-1, 1)),
+                                     stations]-values)**2, axis=1) / len(stations)
 
-        best_point = acceptable_point_ids[np.argmin(scores).ravel()[0]]
+        best_point = acceptable_points[np.argmin(scores).ravel()[0]]
         return self.points[best_point], scores[best_point]
 
 
