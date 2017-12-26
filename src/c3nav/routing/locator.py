@@ -145,6 +145,8 @@ class LocatorPoint(namedtuple('LocatorPoint', ('x', 'y', 'values'))):
     def convert_scan(cls, scan, stations: LocatorStations, create=False):
         values = {}
         for scan_value in scan:
+            if settings.WIFI_SSIDS and scan_value['ssid'] not in settings.WIFI_SSIDS:
+                continue
             station_id = stations.get(bssid=scan_value['bssid'], ssid=scan_value['ssid'],
                                       frequency=scan_value['frequency'], create=create)
             if station_id is not None:
