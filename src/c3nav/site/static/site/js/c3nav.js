@@ -131,7 +131,7 @@ c3nav = {
         window.setInterval(c3nav.load_searchable_locations, 42000);
 
         if (window.mobileclient) {
-            window.setInterval(function() { mobileclient.scanNow(); }, 2000);
+            window.setInterval(function() { mobileclient.scanNow(); }, 4000);
         }
 
         c3nav.init_completed = true;
@@ -1254,9 +1254,10 @@ c3nav = {
     },
 
     _last_wifi_scant: 0,
+
     _wifi_scan_results: function(data) {
         var now = Date.now();
-        if (now-2000 < c3nav._last_wifi_scan) return;
+        if (now-4000 < c3nav._last_wifi_scan) return;
 
         data = JSON.parse(data);
 
@@ -1287,6 +1288,7 @@ c3nav = {
             }
         }).fail(function() {
             c3nav._set_user_location(null);
+            c3nav._last_wifi_scan = Date.now() + 20000
         });
     },
     _current_user_location: null,
