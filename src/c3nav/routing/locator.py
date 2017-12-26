@@ -150,8 +150,9 @@ class LocatorSpace:
         scores = np.sum((self.levels[np.array(acceptable_points, dtype=np.uint32).reshape((-1, 1)),
                                      stations]-values)**2, axis=1) / len(stations)
 
-        best_point = acceptable_points[np.argmin(scores).ravel()[0]]
-        return self.points[best_point], scores[best_point]
+        best_acceptable_point = np.argmin(scores).ravel()[0]
+        best_point = acceptable_points[best_acceptable_point]
+        return self.points[best_point], scores[best_acceptable_point]
 
 
 class LocatorPoint(namedtuple('LocatorPoint', ('x', 'y', 'values'))):
