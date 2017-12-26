@@ -69,12 +69,24 @@ class Locator:
         scan_values = LocatorPoint.convert_scan(scan, self.stations, create=False)
         station_ids = frozenset(scan_values.keys())
 
+        if not scan_values:
+            return None
+
+        # get visible spaces
         spaces = tuple((pk, space, station_ids & space.stations_set)
                        for pk, space in self.spaces.items()
                        if pk not in restrictions.spaces)
-        spaces = tuple((pk, space, station_ids) for pk, space, station_ids in spaces if station_ids)
+
+        # get relevant spaces
+        best_station_id = min(scan_values.items(), key=operator.itemgetter(1))[0]
+        spaces = tuple((pk, space, station_ids)
+                       for pk, space, station_ids in spaces
+                       if station_ids and best_station_id in station_ids)
+
         if not spaces:
             return None
+
+        # get good spaces
         good_spaces = tuple((pk, space, station_ids) for pk, space, station_ids in spaces if len(station_ids) >= 3)
         if not good_spaces:
             for station_id in station_ids:
@@ -85,7 +97,7 @@ class Locator:
         best_score = float('inf')
 
         for pk, space, station_ids in good_spaces:
-            point, score = space.get_best_point(scan_values, station_ids)
+            point, score = space.get_best_point(scan_values, station_ids, needed_station_id=best_station_id)
             if score < best_score:
                 location = CustomLocation(router.spaces[pk].level, point.x, point.y,
                                           permissions=permissions, icon='my_location')
@@ -125,11 +137,15 @@ class LocatorSpace:
             for station_id, value in point.values.items():
                 self.levels[i][self.stations_lookup[station_id]] = value**3
 
-    def get_best_point(self, scan_values, station_ids):
+    def get_best_point(self, scan_values, station_ids, needed_station_id=None):
         stations = tuple(self.stations_lookup[station_id] for station_id in station_ids)
         values = np.array(tuple(scan_values[station_id]**3 for station_id in station_ids), dtype=np.int64)
-        scores = np.sum((self.levels[:, stations]-values)**2, axis=1) / len(stations)
-        best_point = np.argmin(scores).ravel()[0]
+        acceptable_point_ids = tuple(
+            np.argwhere(self.levels[:, self.stations_lookup[needed_station_id]] > -90).ravel()
+        )
+        scores = np.sum((self.levels[acceptable_point_ids, stations]-values)**2, axis=1) / len(stations)
+
+        best_point = acceptable_point_ids[np.argmin(scores).ravel()[0]]
         return self.points[best_point], scores[best_point]
 
 
