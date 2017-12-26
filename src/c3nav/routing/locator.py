@@ -98,6 +98,8 @@ class Locator:
 
         for pk, space, station_ids in good_spaces:
             point, score = space.get_best_point(scan_values, station_ids, needed_station_id=best_station_id)
+            if point is None:
+                continue
             if score < best_score:
                 location = CustomLocation(router.spaces[pk].level, point.x, point.y,
                                           permissions=permissions, icon='my_location')
@@ -143,6 +145,8 @@ class LocatorSpace:
         acceptable_points = tuple(
             np.argwhere(self.levels[:, self.stations_lookup[needed_station_id]] > -90).ravel()
         )
+        if not acceptable_points:
+            return None, None
         scores = np.sum((self.levels[np.array(acceptable_points).reshape((-1, 1)),
                                      stations]-values)**2, axis=1) / len(stations)
 
