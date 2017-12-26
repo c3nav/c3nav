@@ -128,7 +128,7 @@ class LocatorSpace:
     def get_best_point(self, scan_values, station_ids):
         stations = tuple(self.stations_lookup[station_id] for station_id in station_ids)
         values = np.array(tuple(scan_values[station_id]**2 for station_id in station_ids), dtype=np.int32)
-        scores = np.sum((self.levels[:, stations]-values)**2, axis=1)
+        scores = np.sum((self.levels[:, stations]-values)**2, axis=1)/len(stations)
         best_point = np.argmin(scores).ravel()[0]
         return self.points[best_point], scores[best_point]
 
