@@ -176,20 +176,19 @@ class LocatorPoint(namedtuple('LocatorPoint', ('x', 'y', 'values'))):
         5500, 5510, 5520, 5530, 5540, 5550, 5560, 5570, 5580, 5590, 5600, 5610, 5620, 5630, 5640,
         5660, 5670, 5680, 5690, 5700, 5710, 5720, 5745, 5755, 5765, 5775, 5785, 5795, 5805, 5825
     ))
-    invalid_scan = ValidationError(_('Invalid Scan.'))
     needed_keys = frozenset(('bssid', 'ssid', 'level', 'frequency'))
     allowed_keys = needed_keys | frozenset(('last', ))
 
     @classmethod
     def clean_scans(cls, data, ignore_invalid_stations=False):
         if not isinstance(data, list):
-            raise cls.invalid_scan
+            raise ValidationError(_('Invalid Scan. Scans list list not a list.'))
         return tuple(cls.clean_scan(scan) for scan in data)
 
     @classmethod
     def clean_scan(cls, data, ignore_invalid_stations=False):
         if not isinstance(data, list):
-            raise cls.invalid_scan
+            raise ValidationError(_('Invalid Scan. Scan not a list.'))
         cleaned_scan = deque()
         for scan_value in data:
             try:
@@ -202,18 +201,18 @@ class LocatorPoint(namedtuple('LocatorPoint', ('x', 'y', 'values'))):
     @classmethod
     def clean_scan_value(cls, data):
         if not isinstance(data, dict):
-            raise cls.invalid_scan
+            raise ValidationError(_('Invalid Scan. Scan value not a dictionary.'))
         keys = frozenset(data.keys())
         if (keys - cls.allowed_keys) or (cls.needed_keys - keys):
-            raise cls.invalid_scan
+            raise ValidationError(_('Invalid Scan. Missing or forbidden keys.'))
         if not re.match(r'^([0-9A-F]{2}:){5}[0-9A-F]{2}$', data['bssid']):
-            raise cls.invalid_scan
+            raise ValidationError(_('Invalid Scan. Invalid ESSID.'))
         if not isinstance(data['level'], int) or not (-1 >= data['level'] >= -100):
-            raise cls.invalid_scan
+            raise ValidationError(_('Invalid Scan. Invalid RSSI/Level.'))
         if data['frequency'] not in cls.valid_frequencies:
-            raise cls.invalid_scan
+            raise ValidationError(_('Invalid Scan. Not an allowed frequency.'))
         if 'last' in keys and (not isinstance(data['last'], int) or data['last'] <= 0):
-            raise cls.invalid_scan
+            raise ValidationError(_('Invalid Scan. Invalid last timestamp.'))
         return data
 
 
