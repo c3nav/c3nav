@@ -171,7 +171,7 @@ class EditorFormBase(I18nModelFormMixin, ModelForm):
             raise ValidationError(_('Invalid JSON.'))
 
         from c3nav.routing.locator import LocatorPoint
-        LocatorPoint.validate_scans(data)
+        LocatorPoint.clean_scans(data)
 
         return data
 

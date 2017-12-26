@@ -65,7 +65,7 @@ class Locator:
         router = Router.load()
         restrictions = router.get_restrictions(permissions)
 
-        scan = LocatorPoint.validate_scan(scan, ignore_invalid_stations=True)
+        scan = LocatorPoint.clean_scan(scan, ignore_invalid_stations=True)
         scan_values = LocatorPoint.convert_scan(scan, self.stations, create=False)
         station_ids = frozenset(scan_values.keys())
 
@@ -179,26 +179,26 @@ class LocatorPoint(namedtuple('LocatorPoint', ('x', 'y', 'values'))):
     allowed_keys = needed_keys | frozenset(('last', ))
 
     @classmethod
-    def validate_scans(cls, data, ignore_invalid_stations=False):
+    def clean_scans(cls, data, ignore_invalid_stations=False):
         if not isinstance(data, list):
             raise cls.invalid_scan
-        return tuple(cls.validate_scan(scan) for scan in data)
+        return tuple(cls.clean_scan(scan) for scan in data)
 
     @classmethod
-    def validate_scan(cls, data, ignore_invalid_stations=False):
+    def clean_scan(cls, data, ignore_invalid_stations=False):
         if not isinstance(data, list):
             raise cls.invalid_scan
         cleaned_scan = deque()
         for scan_value in data:
             try:
-                cleaned_scan.append(cls.validate_scan_value(scan_value))
+                cleaned_scan.append(cls.clean_scan_value(scan_value))
             except ValidationError:
                 if not ignore_invalid_stations:
                     raise
         return tuple(cleaned_scan)
 
     @classmethod
-    def validate_scan_value(cls, data):
+    def clean_scan_value(cls, data):
         if not isinstance(data, dict):
             raise cls.invalid_scan
         keys = frozenset(data.keys())
