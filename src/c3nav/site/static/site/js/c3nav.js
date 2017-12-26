@@ -706,6 +706,7 @@ c3nav = {
             .on('keydown', c3nav._locationinput_keydown);
         $('.locationinput .clear').on('click', c3nav._locationinput_clear);
         $('.locationinput .locate').on('click', c3nav._locationinput_locate);
+        $('.leaflet-control-user-location a').on('click', c3nav._goto_user_location_click);
         $('#autocomplete').on('mouseover', '.location', c3nav._locationinput_hover_suggestion)
             .on('click', '.location', c3nav._locationinput_click_suggestion);
         $('html').on('focus', '*', c3nav._locationinput_global_focuschange)
@@ -739,9 +740,14 @@ c3nav = {
         c3nav.update_state();
         $(this).parent().find('input').focus();
     },
-    _locationinput_locate: function () {
+    _locationinput_locate: function (e) {
+        e.preventDefault();
         if (!window.mobileclient) {
             c3nav.open_modal($('#app-ad').html());
+            return;
+        }
+        if (c3nav._current_user_location) {
+            c3nav._locationinput_set($(this).parent(), c3nav._current_user_location);
         }
     },
     _locationinput_reset_autocomplete: function () {
@@ -1037,7 +1043,7 @@ c3nav = {
         c3nav._detailLayers = {};
         c3nav._routeLayers = {};
         c3nav._routeLayerBounds = {};
-        c3nav._positionLayers = {};
+        c3nav._userLocationLayers = {};
         c3nav._firstRouteLevel = null;
         for (i = c3nav.levels.length - 1; i >= 0; i--) {
             var level = c3nav.levels[i];
@@ -1045,13 +1051,16 @@ c3nav = {
             c3nav._detailLayers[level[0]] = L.layerGroup().addTo(layerGroup);
             c3nav._locationLayers[level[0]] = L.layerGroup().addTo(layerGroup);
             c3nav._routeLayers[level[0]] = L.layerGroup().addTo(layerGroup);
-            c3nav._positionLayers[level[0]] = L.layerGroup().addTo(layerGroup);
+            c3nav._userLocationLayers[level[0]] = L.layerGroup().addTo(layerGroup);
         }
         c3nav._levelControl.finalize();
         c3nav._levelControl.setLevel(c3nav.initial_level);
 
+        // setup user location control
+        c3nav._userLocationControl = new UserLocationControl().addTo(c3nav.map);
+
         L.control.zoom({
-            position:'bottomright'
+            position: 'bottomright'
         }).addTo(c3nav.map);
 
         c3nav.map.on('click', c3nav._click_anywhere);
@@ -1259,14 +1268,16 @@ c3nav = {
             c3nav._set_user_location(null);
         });
     },
+    _current_user_location: null,
     _set_user_location: function(location) {
-        for (var id in c3nav._positionLayers) {
-            c3nav._positionLayers[id].clearLayers();
+        c3nav._current_user_location = location;
+        for (var id in c3nav._userLocationLayers) {
+            c3nav._userLocationLayers[id].clearLayers();
         }
         if (location) {
-            $('.locationinput .locate').text('my_location');
+            $('.locationinput .locate, .leaflet-control-user-location a').text('my_location');
             var latlng = L.GeoJSON.coordsToLatLng(location.geometry.coordinates),
-                layer = c3nav._positionLayers[location.level];
+                layer = c3nav._userLocationLayers[location.level];
             L.circleMarker(latlng, {
                 radius: 11,
                 stroke: 0,
@@ -1278,7 +1289,18 @@ c3nav = {
                 fillOpacity: 1
             }).addTo(layer);
         } else {
-            $('.locationinput .locate').text('location_searching');
+            $('.locationinput .locate, .leaflet-control-user-location a').text('location_searching');
+        }
+    },
+    _goto_user_location_click: function (e) {
+        e.preventDefault();
+        if (!window.mobileclient) {
+            c3nav.open_modal($('#app-ad').html());
+            return;
+        }
+        if (c3nav._current_user_location) {
+            c3nav._levelControl.setLevel(c3nav._current_user_location.level);
+            c3nav.map.flyTo(L.GeoJSON.coordsToLatLng(c3nav._current_user_location.geometry.coordinates), 4, { duration: 1 });
         }
     }
 };
@@ -1350,6 +1372,38 @@ LevelControl = L.Control.extend({
         e.stopPropagation();
         this.setLevel(e.target.level);
         c3nav.update_map_state();
+    },
+
+    finalize: function () {
+        var buttons = $(this._container).find('a');
+        buttons.addClass('current');
+        buttons.width(buttons.width());
+        buttons.removeClass('current');
+    },
+
+    reloadMap: function() {
+        var old_tile_layer = this._tileLayers[this.currentLevel],
+            new_tile_layer = this.createTileLayer(this.currentLevel);
+        this._tileLayers[this.currentLevel] = new_tile_layer;
+        new_tile_layer.addTo(c3nav.map);
+        window.setTimeout(function() { old_tile_layer.remove(); }, 2000);
+    }
+});
+
+
+UserLocationControl = L.Control.extend({
+    options: {
+        position: 'bottomright',
+        addClasses: ''
+    },
+
+    onAdd: function () {
+        this._container = L.DomUtil.create('div', 'leaflet-control-user-location leaflet-bar ' + this.options.addClasses);
+        this._button = L.DomUtil.create('a', 'material-icons', this._container);
+        this._button.innerHTML = window.mobileclient ? 'location_searching' : 'location_disabled';
+        this._button.href = '#';
+        this.currentLevel = null;
+        return this._container;
     },
 
     finalize: function () {

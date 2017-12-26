@@ -714,6 +714,10 @@ main:not([data-view=route-result]) #route-summary {
     text-decoration: none;
 }
 
+.leaflet-control-user-location a {
+    font-size: 20px;
+}
+
 
 #modal {
     position: fixed;
