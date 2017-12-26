@@ -1218,11 +1218,11 @@ c3nav = {
     },
 
     schedule_fetch_updates: function (timeout) {
-        window.setTimeout(c3nav.fetch_updates, timeout || 16000);
+        window.setTimeout(c3nav.fetch_updates, timeout || 20000);
     },
     fetch_updates: function () {
         $.get('/api/updates/fetch/', c3nav._fetch_updates_callback).fail(function() {
-            c3nav.schedule_fetch_updates(1000);
+            c3nav.schedule_fetch_updates(15000);
         });
     },
     _fetch_updates_callback: function (data) {
