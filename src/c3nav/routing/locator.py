@@ -115,14 +115,14 @@ class LocatorStations:
         self.stations_lookup = {}
 
     def get(self, bssid, ssid, frequency, create=False):
-        station_id = self.stations_lookup.get((bssid, ssid), None)
+        station_id = self.stations_lookup.get((bssid, None), None)
         if station_id is not None:
             station = self.stations[station_id]
             station.frequencies.add(frequency)
         elif create:
             station = LocatorStation(bssid, ssid, set((frequency, )))
             station_id = len(self.stations)
-            self.stations_lookup[(bssid, ssid)] = station_id
+            self.stations_lookup[(bssid, None)] = station_id
             self.stations.append(station)
         return station_id
 
