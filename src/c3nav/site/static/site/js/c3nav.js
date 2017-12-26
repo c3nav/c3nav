@@ -649,11 +649,15 @@ c3nav = {
         }
         c3nav.update_state(false);
     },
-    _popup_button_click: function () {
+    _popup_button_click: function (e) {
+        e.stopPropagation();
         var $location = $(this).siblings('.location'),
-            location = $location.is('[data-location]') ? JSON.parse($location.attr('data-location')) : c3nav.locations_by_id[parseInt($location.attr('data-id'))],
+            location = c3nav.locations_by_id[parseInt($location.attr('data-id'))],
             $origin = $('#origin-input'),
             $destination = $('#destination-input');
+        if (!location) {
+            location = JSON.parse($location.attr('data-location'));
+        }
         if ($(this).is('.as-location')) {
             c3nav._locationinput_set($destination, location);
             c3nav.update_state(false);
@@ -667,7 +671,7 @@ c3nav = {
             }
             c3nav.update_state(true);
         }
-        c3nav._click_anywhere_popup.remove();
+        if (c3nav._click_anywhere_popup) c3nav._click_anywhere_popup.remove();
     },
 
     // share logic
@@ -712,12 +716,12 @@ c3nav = {
         $('html').on('focus', '*', c3nav._locationinput_global_focuschange)
             .on('mousedown', '*', c3nav._locationinput_global_focuschange);
     },
-    _build_location_html: function(location, add_data) {
+    _build_location_html: function(location) {
         html = $('<div class="location">')
-            .append($('<i class="icon material-icons">').text(location.icon || 'map'))
+            .append($('<i class="icon material-icons">').text(location.icon || 'place'))
             .append($('<span>').text(location.title))
             .append($('<small>').text(location.subtitle)).attr('data-id', location.id);
-        if (add_data) html.attr('data-location', JSON.stringify(location));
+        html.attr('data-location', JSON.stringify(location));
         return html[0].outerHTML;
     },
     _locationinput_set: function (elem, location) {
@@ -1082,7 +1086,7 @@ c3nav = {
             if (c3nav._click_anywhere_popup !== popup || !popup.isOpen()) return;
             popup.remove();
             popup = L.popup(c3nav._add_map_padding({className: 'location-popup'}, 'autoPanPaddingTopLeft', 'autoPanPaddingBottomRight'));
-            popup.setLatLng(e.latlng).setContent(c3nav._build_location_html(data, true)+$('#popup-buttons').html());
+            popup.setLatLng(e.latlng).setContent(c3nav._build_location_html(data)+$('#popup-buttons').html());
             c3nav._click_anywhere_popup = popup;
             popup.on('remove', function() { c3nav._click_anywhere_popup = null }).openOn(c3nav.map);
         }).fail(function() {
