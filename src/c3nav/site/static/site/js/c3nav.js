@@ -50,7 +50,7 @@ c3nav = {
     },
     load_searchable_locations: function() {
         $.getJSON('/api/locations/?searchable', c3nav._searchable_locations_loaded).fail(function() {
-            window.setTimeout(c3nav.load_searchable_locations, 5000);
+            window.setTimeout(c3nav.load_searchable_locations, 120000);
         });
     },
     _searchable_locations_loaded: function(data) {
