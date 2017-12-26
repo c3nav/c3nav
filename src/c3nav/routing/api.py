@@ -88,4 +88,4 @@ class RoutingViewSet(ViewSet):
                 'errors': (_('Invalid scan data.'),),
             }, status=400)
 
-        return Response({'location': None if location is None else location.serialize()})
+        return Response({'location': None if location is None else location.serialize(simple_geometry=True)})

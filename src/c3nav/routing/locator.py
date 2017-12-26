@@ -89,7 +89,8 @@ class Locator:
         for pk, space, station_ids in good_spaces:
             point, score = space.get_best_point(scan_values, station_ids)
             if score < best_score:
-                location = CustomLocation(router.spaces[pk].level, point.x, point.y, permissions=permissions)
+                location = CustomLocation(router.spaces[pk].level, point.x, point.y,
+                                          permissions=permissions, icon='my_location')
                 best_location = location
                 best_score = score
 

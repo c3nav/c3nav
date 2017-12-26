@@ -250,7 +250,7 @@ class CustomLocation:
     can_describe = True
     access_restriction_id = None
 
-    def __init__(self, level, x, y, permissions):
+    def __init__(self, level, x, y, permissions, icon='pin_drop'):
         x = round(x, 2)
         y = round(y, 2)
         self.pk = 'c:%s:%s:%s' % (level.short_label, x, y)
@@ -258,6 +258,7 @@ class CustomLocation:
         self.level = level
         self.x = x
         self.y = y
+        self.icon = icon
 
     @property
     def serialized_geometry(self):
@@ -270,6 +271,7 @@ class CustomLocation:
         result = OrderedDict((
             ('id', self.pk),
             ('slug', self.pk),
+            ('icon', self.icon),
             ('title', self.title),
             ('subtitle', self.subtitle),
             ('level', self.level.pk),
@@ -289,6 +291,7 @@ class CustomLocation:
 
         if geometry:
             result['geometry'] = self.serialized_geometry
+
         return result
 
     def details_display(self):
@@ -364,25 +367,25 @@ class CustomLocation:
 
     @cached_property
     def title_subtitle(self):
-        title = _('Point in %(level)s') % {'level': self.level.title}
+        title = _('In %(level)s') % {'level': self.level.title}
         if not self.space:
             return title, self.level.title,
 
         subtitle = ()
         if self.near_poi:
-            title = _('Point near %(poi)s') % {'poi': self.near_poi.title}
+            title = _('Near %(poi)s') % {'poi': self.near_poi.title}
             if self.areas:
                 subtitle = (area.title for area in self.areas[:2])
             elif self.near_area:
                 subtitle = (_('near %(area)s') % {'area': self.near_area.title}, )
         elif self.areas:
-            title = _('Point in %(area)s') % {'area': self.areas[0].title}
+            title = _('In %(area)s') % {'area': self.areas[0].title}
             if self.areas:
                 subtitle = (area.title for area in self.areas[1:2])
         elif self.near_area:
-            title = _('Point near %(area)s') % {'area': self.near_area.title}
+            title = _('Near %(area)s') % {'area': self.near_area.title}
         else:
-            return _('Point in %(space)s') % {'space': self.space.title}, self.level.title
+            return _('In %(space)s') % {'space': self.space.title}, self.level.title
 
         subtitle = ', '.join(str(title) for title in chain(subtitle, (self.space.title, self.level.title)))
         return title, subtitle
