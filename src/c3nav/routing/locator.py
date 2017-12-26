@@ -205,8 +205,11 @@ class LocatorPoint(namedtuple('LocatorPoint', ('x', 'y', 'values'))):
         keys = frozenset(data.keys())
         if (keys - cls.allowed_keys) or (cls.needed_keys - keys):
             raise ValidationError(_('Invalid Scan. Missing or forbidden keys.'))
+        if not isinstance(data['bssid'], str):
+            raise ValidationError(_('Invalid Scan. BSSID not a String.'))
+        data['bssid'] = data['bssid'].upper()
         if not re.match(r'^([0-9A-F]{2}:){5}[0-9A-F]{2}$', data['bssid']):
-            raise ValidationError(_('Invalid Scan. Invalid ESSID.'))
+            raise ValidationError(_('Invalid Scan. Invalid BSSID.'))
         if not isinstance(data['level'], int) or not (-1 >= data['level'] >= -100):
             raise ValidationError(_('Invalid Scan. Invalid RSSI/Level.'))
         if data['frequency'] not in cls.valid_frequencies:
