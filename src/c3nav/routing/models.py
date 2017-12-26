@@ -96,11 +96,11 @@ class RouteOptions(models.Model):
         user_options = None
         if request.user.is_authenticated:
             user_options = cls.get_for_user(request.user)
-            user_options.request = request
-            if user_options is not None:
-                user_options.clean_data()
 
-            if session_options and not user_options:
+            if user_options is not None:
+                user_options.request = request
+                user_options.clean_data()
+            elif session_options:
                 user_options = session_options
                 user_options.user = request.user
                 user_options.save()
