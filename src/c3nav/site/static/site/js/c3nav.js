@@ -1259,9 +1259,6 @@ c3nav = {
         if (now-2000 < c3nav._last_wifi_scan) return;
 
         data = JSON.parse(data);
-        if (!data.length) {
-            c3nav._set_user_location(null);
-        }
 
         if (c3nav.ssids) {
             var newdata = [];
@@ -1271,6 +1268,10 @@ c3nav = {
                 }
             }
             data = newdata;
+        }
+
+        if (!data.length) {
+            c3nav._set_user_location(null);
         }
 
         $.post({
