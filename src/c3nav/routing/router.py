@@ -391,7 +391,7 @@ class Router:
                 graph[waytype.nonupwards_indices.transpose().tolist()] *= 100000
 
         # exclude spaces and edges
-        space_nodes = tuple(reduce(operator.or_, (self.spaces[space] for space in restrictions.spaces), set()))
+        space_nodes = tuple(reduce(operator.or_, (self.spaces[space].nodes for space in restrictions.spaces), set()))
         graph[space_nodes, :] = np.inf
         graph[:, space_nodes] = np.inf
         graph[restrictions.edges.transpose().tolist()] = np.inf
