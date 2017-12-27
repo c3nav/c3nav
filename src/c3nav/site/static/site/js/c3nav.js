@@ -50,7 +50,7 @@ c3nav = {
     },
     load_searchable_locations: function() {
         $.getJSON('/api/locations/?searchable', c3nav._searchable_locations_loaded).fail(function() {
-            window.setTimeout(c3nav.load_searchable_locations, c3nav.init_completed ? 120000 : 5000);
+            window.setTimeout(c3nav.load_searchable_locations, c3nav.init_completed ? 300000 : 15000);
         });
     },
     _searchable_locations_loaded: function(data) {
@@ -70,7 +70,7 @@ c3nav = {
         if (!c3nav.init_completed) {
             c3nav.continue_init();
         }
-        window.setTimeout(c3nav.load_searchable_locations, 42000);
+        window.setTimeout(c3nav.load_searchable_locations, 120000);
     },
     continue_init: function() {
         c3nav.init_map();
@@ -128,8 +128,6 @@ c3nav = {
         $('header h1 a').removeAttr('href');
 
         window.onpopstate = c3nav._onpopstate;
-
-        window.setTimeout(c3nav.load_searchable_locations, 42000);
 
         if (window.mobileclient) {
             window.setInterval(function() { mobileclient.scanNow(); }, 4000);
