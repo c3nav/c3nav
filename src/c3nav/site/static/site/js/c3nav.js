@@ -70,6 +70,7 @@ c3nav = {
         if (!c3nav.init_completed) {
             c3nav.continue_init();
         }
+        window.setTimeout(c3nav.load_searchable_locations, 42000);
     },
     continue_init: function() {
         c3nav.init_map();
@@ -128,7 +129,7 @@ c3nav = {
 
         window.onpopstate = c3nav._onpopstate;
 
-        window.setInterval(c3nav.load_searchable_locations, 42000);
+        window.setTimeout(c3nav.load_searchable_locations, 42000);
 
         if (window.mobileclient) {
             window.setInterval(function() { mobileclient.scanNow(); }, 4000);
