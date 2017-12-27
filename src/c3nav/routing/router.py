@@ -326,7 +326,7 @@ class Router:
                 continue
             if self.spaces[space].geometry_prep.contains(point):
                 return self.spaces[space]
-        spaces = (self.spaces[space] for space in level.spaces)
+        spaces = (self.spaces[space] for space in level.spaces if space not in excluded_spaces)
         spaces = ((space, space.geometry.distance(point)) for space in spaces)
         spaces = tuple((space, distance) for space, distance in spaces if distance < 0.5)
         if not spaces:
