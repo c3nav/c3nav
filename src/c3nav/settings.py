@@ -327,6 +327,7 @@ COMPRESS_CSS_FILTERS = (
 
 HEADER_LOGO = config.get('c3nav', 'header_logo', fallback=None)
 FAVICON = config.get('c3nav', 'favicon', fallback=None)
+APPICON = config.get('c3nav', 'appicon', fallback=None)
 
 PRIMARY_COLOR = config.get('c3nav', 'primary_color', fallback='')
 HEADER_BACKGROUND_COLOR = config.get('c3nav', 'header_background_color', fallback='')

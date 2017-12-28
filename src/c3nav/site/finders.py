@@ -7,6 +7,7 @@ from django.core.files.storage import FileSystemStorage
 logo_paths = {
     'header_logo': settings.HEADER_LOGO,
     'favicon': settings.FAVICON,
+    'appicon': settings.APPICON,
 }
 
 logofinder_results = {
