@@ -165,9 +165,12 @@ class Router:
                     poi._prefetched_objects_cache = {}
 
                     poi = RouterPoint(poi)
-                    altitudearea = space.altitudearea_for_point(poi.geometry)
-                    poi.altitude = altitudearea.get_altitude(poi.geometry)
-                    poi_nodes = altitudearea.nodes_for_point(poi.geometry, all_nodes=nodes)
+                    try:
+                        altitudearea = space.altitudearea_for_point(poi.geometry)
+                        poi.altitude = altitudearea.get_altitude(poi.geometry)
+                        poi_nodes = altitudearea.nodes_for_point(poi.geometry, all_nodes=nodes)
+                    except LocationUnreachable:
+                        poi_nodes = {}
                     poi.nodes = set(i for i in poi_nodes.keys())
                     poi.nodes_addition = poi_nodes
                     pois[poi.pk] = poi
