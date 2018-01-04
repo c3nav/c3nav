@@ -12,6 +12,7 @@ logo_paths = {
 logofinder_results = {
     os.path.join(prefix, os.path.basename(path)): path
     for prefix, path in logo_paths.items()
+    if path
 }
 
 
