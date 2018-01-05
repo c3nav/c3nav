@@ -113,13 +113,14 @@ def map_index(request, mode=None, slug=None, slug2=None, details=None, options=N
             'zoom': float(zoom),
         })
 
+    initial_bounds = settings.INITIAL_BOUNDS
     ctx = {
         'bounds': json.dumps(Source.max_bounds(), separators=(',', ':')),
         'levels': json.dumps(tuple((level.pk, level.short_label) for level in levels.values()), separators=(',', ':')),
         'state': json.dumps(state, separators=(',', ':'), cls=DjangoJSONEncoder),
         'tile_cache_server': settings.TILE_CACHE_SERVER,
         'initial_level': settings.INITIAL_LEVEL,
-        'initial_bounds': json.dumps(settings.INITIAL_BOUNDS, separators=(',', ':')),
+        'initial_bounds': json.dumps(initial_bounds, separators=(',', ':')) if initial_bounds else None,
         'last_site_update': json.dumps(SiteUpdate.last_update()),
         'ssids': json.dumps(settings.WIFI_SSIDS, separators=(',', ':')) if settings.WIFI_SSIDS else None,
         'embed': bool(embed),
