@@ -52,7 +52,8 @@ class MapRenderer:
                                    for geoms in levels)),
                            default=None)
         if min_altitude is None:
-            min_altitude = min(geoms.base_altitude for geoms in levels)
+            min_altitude = min(tuple(geoms.base_altitude for geoms in levels),
+                               default=level_render_data.base_altitude)
 
         not_full_levels = engine.is_3d  # always do non-full-levels until after the first primary level
         full_levels = self.full_levels and engine.is_3d
