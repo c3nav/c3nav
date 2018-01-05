@@ -79,7 +79,10 @@ class LevelRenderData:
                 coords.append(new_coords)
                 values.append(np.full((new_coords.shape[0], 1), fill_value=area.altitude))
 
-            last_interpolator = NearestNDInterpolator(np.vstack(coords), np.vstack(values))
+            if coords:
+                last_interpolator = NearestNDInterpolator(np.vstack(coords), np.vstack(values))
+            else:
+                last_interpolator = NearestNDInterpolator(np.zeros((8, 2)), np.zeros((0, 1)))
 
         for i, level in enumerate(levels):
             if level.on_top_of_id is not None:
