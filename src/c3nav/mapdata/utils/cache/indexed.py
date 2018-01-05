@@ -71,7 +71,7 @@ class GeometryIndexed:
             self.write(f)
 
     def write(self, f):
-        f.write(struct.pack('<BBHHHH', self.variant_id, self.resolution, self.x, self.y, *reversed(self.data.shape)))
+        f.write(struct.pack('<BBhhHH', self.variant_id, self.resolution, self.x, self.y, *reversed(self.data.shape)))
         self._write_metadata(f)
         f.write(self.data.tobytes('C'))
 
