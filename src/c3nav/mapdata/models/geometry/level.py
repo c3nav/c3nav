@@ -313,7 +313,8 @@ class AltitudeArea(LevelGeometryMixin, models.Model):
         while repeat:
             repeat = False
             distances, predecessors = dijkstra(csgraph, directed=False, return_predecessors=True, unweighted=True)
-            relevant_distances = distances[np.array(areas_with_altitude)[:, None], np.array(areas_with_altitude)]
+            np_areas_with_altitude = np.array(areas_with_altitude, dtype=np.uint32)
+            relevant_distances = distances[np_areas_with_altitude[:, None], np_areas_with_altitude]
             # noinspection PyTypeChecker
             for from_i, to_i in np.argwhere(np.logical_and(relevant_distances < np.inf, relevant_distances > 1)):
                 from_area = areas[areas_with_altitude[from_i]]
