@@ -10,8 +10,8 @@ class GeometryIndexed:
     # binary format (everything little-endian):
     # 1 byte (uint8): variant id
     # 1 byte (uint8): resolution
-    # 2 bytes (uint16): origin x
-    # 2 bytes (uint16): origin y
+    # 2 bytes (int16): origin x
+    # 2 bytes (int16): origin y
     # 2 bytes (uint16): origin width
     # 2 bytes (uint16): origin height
     # (optional meta data, depending on subclass)
@@ -42,7 +42,7 @@ class GeometryIndexed:
 
     @classmethod
     def read(cls, f):
-        variant_id, resolution, x, y, width, height = struct.unpack('<BBHHHH', f.read(10))
+        variant_id, resolution, x, y, width, height = struct.unpack('<BBhhHH', f.read(10))
         if variant_id != cls.variant_id:
             raise ValueError('variant id does not match')
 
