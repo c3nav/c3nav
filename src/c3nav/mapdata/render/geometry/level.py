@@ -253,6 +253,8 @@ class LevelGeometries:
         Interpolate vertice with known altitudes to get altitudes for the remaining ones.
         """
         vertex_values = np.empty(self.vertices.shape[:1], dtype=np.int32)
+        if not vertex_values.size:
+            return vertex_values
         vertex_value_mask = np.full(self.vertices.shape[:1], fill_value=False, dtype=np.bool)
 
         for item in items:
