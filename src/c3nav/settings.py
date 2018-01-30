@@ -16,7 +16,7 @@ config.read(['/etc/c3nav/c3nav.cfg', os.path.expanduser('~/.c3nav.cfg'), os.envi
 # Build paths inside the project like this: os.path.join(BASE_DIR, ...)
 BASE_DIR = os.path.dirname(os.path.dirname(__file__))
 DATA_DIR = config.get('c3nav', 'datadir', fallback=os.environ.get('DATA_DIR', 'data'))
-LOG_DIR = os.path.join(DATA_DIR, 'logs')
+LOG_DIR = config.get('c3nav', 'logdir', fallback=os.path.join(DATA_DIR, 'logs'))
 MEDIA_ROOT = os.path.join(DATA_DIR, 'media')
 SOURCES_ROOT = os.path.join(DATA_DIR, 'sources')
 MAP_ROOT = os.path.join(DATA_DIR, 'map')
