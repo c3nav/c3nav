@@ -17,7 +17,7 @@ from c3nav.mapdata.utils.cache import CachePackage
 from c3nav.mapdata.utils.tiles import (build_access_cache_key, build_base_cache_key, build_tile_etag, get_tile_bounds,
                                        parse_tile_access_cookie)
 
-loglevel = logging.DEBUG if os.environ.get('C3NAV_DEBUG') else os.environ.get("LOGLEVEL","INFO")
+loglevel = logging.DEBUG if os.environ.get('C3NAV_DEBUG') else os.environ.get('LOGLEVEL', 'INFO')
 
 logging.basicConfig(level=loglevel,
                     format='[%(asctime)s] [%(process)s] [%(levelname)s] %(name)s: %(message)s',
@@ -27,6 +27,7 @@ logger = logging.getLogger('c3nav')
 
 if os.environ.get('C3NAV_LOGFILE'):
     logging.basicConfig(filename=os.environ['C3NAV_LOGFILE'])
+
 
 class TileServer:
     def __init__(self):
