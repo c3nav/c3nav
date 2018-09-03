@@ -1,0 +1,26 @@
+FROM ubuntu
+
+RUN apt update && \
+  DEBIAN_FRONTEND=noninteractive apt install -y git libgeos-dev nginx uwsgi-plugin-python3 python3-requests python3-numpy python3-pip python3-pylibmc memcached && \
+  apt clean
+
+RUN useradd c3nav
+RUN mkdir -p /var/log/c3nav /etc/c3nav /var/run/c3nav
+COPY src /opt/c3nav/src
+VOLUME /opt/c3nav/data
+
+RUN pip3 install -r /opt/c3nav/src/requirements/production.txt \
+  -r /opt/c3nav/src/requirements-tileserver.txt \
+  -r /opt/c3nav/src/requirements/dev.txt \
+  -r /opt/c3nav/src/requirements/redis.txt \
+  -r /opt/c3nav/src/requirements/postgres.txt \
+  gunicorn
+
+COPY deployment/docker/c3nav-tiles.ini /etc/c3nav/c3nav-tiles.ini
+COPY deployment/docker/tileserver-nginx.conf /etc/nginx/sites-enabled/c3nav-tiles
+COPY deployment/docker/tileserver.bash /usr/local/bin/c3nav
+RUN chmod +x /usr/local/bin/c3nav
+
+RUN git clone https://github.com/FOSDEM/maps /opt/c3nav/data/map
+
+ENTRYPOINT ["c3nav"]

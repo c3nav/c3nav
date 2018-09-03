@@ -85,14 +85,16 @@ class LevelRenderData:
                 last_interpolator = NearestNDInterpolator(np.array([[0, 0]]), np.array([float(level.base_altitude)]))
 
         for i, level in enumerate(levels):
+            print("we are at level_id:" +  str(level.id) + " level slug: "+level.slug)
+            print("on top of:" +  str(level.on_top_of_id))
             if level.on_top_of_id is not None:
                 continue
-
+            print("we continue")
             map_history = MapHistory.open_level(level.pk, 'base')
 
             sublevels = tuple(sublevel for sublevel in levels
                               if sublevel.on_top_of_id == level.pk or sublevel.base_altitude <= level.base_altitude)
-
+            print("sublevels" + str([l.slug for l in sublevels]))
             level_crop_to = {}
 
             # choose a crop area for each level. non-intermediate levels (not on_top_of) below the one that we are
@@ -138,11 +140,12 @@ class LevelRenderData:
 
             # go through sublevels, get their level geometries and crop them
             lowest_important_level_passed = False
-            for sublevel in sublevels:
+            for sublevel in reversed(sublevels):
                 try:
                     crop_to = level_crop_to[sublevel.pk]
                 except KeyError:
-                    break
+                    print ("in except, sublevel_pk: " + str(sublevel.pk))
+                    break;
 
                 old_geoms = single_level_geoms[sublevel.pk]
 

@@ -629,7 +629,14 @@ class RouterEdge:
             self.rise = None
         else:
             self.rise = (to_node.altitude - from_node.altitude)
-        self.distance = distance if distance is not None else np.linalg.norm(to_node.xyz - from_node.xyz)
+        try:
+            self.distance = distance if distance is not None else np.linalg.norm(to_node.xyz - from_node.xyz)
+        except Exception as ex:
+            print("distance calculation failed - to_node: pk: %s; x: %s, y:%s z:%s, space:%s" %
+                  (to_node.pk,to_node.x, to_node.y, to_node.altitude, to_node.space))
+            print("                              from_node: pk: %s; x: %s, y:%s, z:%s, space:%s" %
+                  (from_node.pk, from_node.x, from_node.y, from_node.altitude, from_node.space))
+            raise(ex)
 
 
 class RouterWayType:
