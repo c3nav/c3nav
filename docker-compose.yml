@@ -1,0 +1,29 @@
+version: "3"
+services:
+  c3nav:
+    build:
+      context: .
+      dockerfile: deployment/docker/Dockerfile_c3nav
+    ports:
+      - "8001:80"
+    volumes:
+      - c3nav_data:/data
+  tileserver:
+    build:
+      context: .
+      dockerfile: deployment/docker/Dockerfile_tileserver
+    ports:
+      - "8002:80"
+    volumes:
+      - c3nav_data:/data
+  postgres:
+    image: mdillon/postgis
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+  redis:
+    image: redis
+  memcached:
+    image: memcached
+volumes:
+  postgres_data:
+  c3nav_data:
