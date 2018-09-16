@@ -1,8 +1,8 @@
 import re
 from collections import OrderedDict
 
-from compressor.utils.decorators import cached_property
 from django.conf.urls import include, url
+from django.utils.functional import cached_property
 from rest_framework.generics import GenericAPIView
 from rest_framework.response import Response
 from rest_framework.routers import SimpleRouter

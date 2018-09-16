@@ -5,7 +5,7 @@ from itertools import chain
 from queue import Queue
 from typing import Optional
 
-import ModernGL
+import moderngl
 import numpy as np
 from PIL import Image
 from shapely.geometry import CAP_STYLE, JOIN_STYLE, Polygon
@@ -25,14 +25,14 @@ class RenderContext(namedtuple('RenderContext', ('width', 'height', 'ctx', 'prog
 
     @classmethod
     def create(cls, width, height):
-        ctx = ModernGL.create_standalone_context()
+        ctx = moderngl.create_standalone_context()
 
         color_rbo = ctx.renderbuffer((width, height), samples=ctx.max_samples)
         fbo = ctx.framebuffer([color_rbo])
         fbo.use()
 
-        prog = ctx.program([
-            ctx.vertex_shader('''
+        prog = ctx.program(
+            vertex_shader='''
                 #version 330
                 in vec3 in_vert;
                 in vec4 in_color;
@@ -44,18 +44,18 @@ class RenderContext(namedtuple('RenderContext', ('width', 'height', 'ctx', 'prog
                     gl_Position = mvp * vec4(in_vert, 1.0);
                     v_color = in_color;
                 }
-            '''),
-            ctx.fragment_shader('''
+            ''',
+            fragment_shader='''
                 #version 330
                 in vec4 v_color;
                 out vec4 f_color;
                 void main() {
                     f_color = v_color;
                 }
-            '''),
-        ])
+            '''
+        )
 
-        ctx.enable(ModernGL.BLEND)
+        ctx.enable(moderngl.BLEND)
 
         return cls(width, height, ctx, prog, fbo)
 
@@ -115,15 +115,16 @@ class OpenGLWorker(threading.Thread):
             ctx = self._get_ctx(task.width, task.height)
             ctx.ctx.clear(*task.background_rgb)
 
-            ctx.prog.uniforms['mvp'].value = task.mvp
+            ctx.prog['mvp'].value = task.mvp
 
             if task.vertices:
                 vbo = ctx.ctx.buffer(task.vertices)
-                vao = ctx.ctx.simple_vertex_array(ctx.prog, vbo, ['in_vert', 'in_color'])
+                # noinspection PyTypeChecker
+                vao = ctx.ctx.simple_vertex_array(ctx.prog, vbo, 'in_vert', 'in_color')
                 vao.render()
 
             color_rbo2 = ctx.ctx.renderbuffer((task.width, task.height))
-            fbo2 = ctx.ctx.framebuffer(color_rbo2)
+            fbo2 = ctx.ctx.framebuffer([color_rbo2])
             ctx.ctx.copy_framebuffer(fbo2, ctx.fbo)
 
             img = Image.frombytes('RGB', (task.width, task.height), fbo2.read(components=3))

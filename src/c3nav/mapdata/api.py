@@ -10,8 +10,8 @@ from django.http import HttpResponse
 from django.shortcuts import redirect
 from django.utils.cache import get_conditional_response
 from django.utils.http import http_date, quote_etag, urlsafe_base64_encode
-from django.utils.translation import ugettext_lazy as _
 from django.utils.translation import get_language
+from django.utils.translation import ugettext_lazy as _
 from rest_framework.decorators import detail_route, list_route
 from rest_framework.exceptions import NotFound, ValidationError
 from rest_framework.mixins import RetrieveModelMixin

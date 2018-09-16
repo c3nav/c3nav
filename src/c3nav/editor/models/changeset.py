@@ -38,19 +38,21 @@ class ChangeSet(models.Model):
     )
     created = models.DateTimeField(auto_now_add=True, verbose_name=_('created'))
     last_change = models.ForeignKey('editor.ChangeSetUpdate', null=True, related_name='+',
-                                    verbose_name=_('last object change'))
+                                    verbose_name=_('last object change'), on_delete=models.PROTECT)
     last_update = models.ForeignKey('editor.ChangeSetUpdate', null=True, related_name='+',
-                                    verbose_name=_('last update'))
+                                    verbose_name=_('last update'), on_delete=models.PROTECT)
     last_state_update = models.ForeignKey('editor.ChangeSetUpdate', null=True, related_name='+',
-                                          verbose_name=_('last state update'))
+                                          verbose_name=_('last state update'), on_delete=models.PROTECT)
     state = models.CharField(max_length=20, db_index=True, choices=STATES, default='unproposed')
     author = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, on_delete=models.PROTECT, verbose_name=_('Author'))
     title = models.CharField(max_length=100, default='', verbose_name=_('Title'))
     description = models.TextField(max_length=1000, default='', verbose_name=_('Description'))
     assigned_to = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, on_delete=models.PROTECT,
                                     related_name='assigned_changesets', verbose_name=_('assigned to'))
-    map_update = models.OneToOneField(MapUpdate, null=True, related_name='changeset', verbose_name=_('map update'))
-    last_cleaned_with = models.ForeignKey(MapUpdate, null=True, related_name='checked_changesets')
+    map_update = models.OneToOneField(MapUpdate, null=True, related_name='changeset',
+                                      verbose_name=_('map update'), on_delete=models.PROTECT)
+    last_cleaned_with = models.ForeignKey(MapUpdate, null=True, related_name='checked_changesets',
+                                          on_delete=models.PROTECT)
 
     class Meta:
         verbose_name = _('Change Set')

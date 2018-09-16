@@ -12,7 +12,7 @@ import c3nav.site.urls
 
 urlpatterns = [
     url(r'^editor/', include(c3nav.editor.urls)),
-    url(r'^api/', include(c3nav.api.urls, namespace='api')),
+    url(r'^api/', include((c3nav.api.urls, 'api'), namespace='api')),
     url(r'^map/', include(c3nav.mapdata.urls)),
     url(r'^admin/', admin.site.urls),
     url(r'^control/', include(c3nav.control.urls)),

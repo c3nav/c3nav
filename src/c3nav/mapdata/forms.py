@@ -4,8 +4,8 @@ from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.forms import CharField, ModelForm
 from django.utils.text import capfirst, format_lazy
-from django.utils.translation import ugettext_lazy as _
 from django.utils.translation import get_language_info
+from django.utils.translation import ugettext_lazy as _
 
 from c3nav.mapdata.fields import I18nField
 

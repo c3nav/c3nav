@@ -1,1 +1,1 @@
-ModernGL>=4.2,<4.3
+ModernGL>=5.4,<5.5

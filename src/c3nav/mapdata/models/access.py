@@ -240,7 +240,7 @@ class AccessPermission(models.Model):
 
 class AccessRestrictionMixin(SerializableMixin, models.Model):
     access_restriction = models.ForeignKey(AccessRestriction, null=True, blank=True,
-                                           verbose_name=_('Access Restriction'))
+                                           verbose_name=_('Access Restriction'), on_delete=models.PROTECT)
 
     class Meta:
         abstract = True

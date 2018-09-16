@@ -1,2 +1,2 @@
-django-redis>=4.8,<4.9
+django-redis>=4.9,<4.10
 redis>=2.10,<2.11
