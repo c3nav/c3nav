@@ -35,7 +35,7 @@ def sidebar_view(func=None, select_related=None):
             return response
         if isinstance(response, HttpResponseRedirect):
             return response
-        response = render(request, 'editor/map.html', {'content': response.content})
+        response = render(request, 'editor/map.html', {'content': response.content.decode()})
         response['Cache-Control'] = 'no-cache'
         patch_vary_headers(response, ('X-Requested-With', ))
         return response
