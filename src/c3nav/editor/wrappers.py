@@ -206,8 +206,8 @@ class ModelInstanceWrapper(BaseWrapper):
         descriptor = getattr(self._obj.__class__, name, None)
         if isinstance(descriptor, ReverseOneToOneDescriptor):
             try:
-                rel_obj = getattr(self._obj, descriptor.cache_name)
-            except AttributeError:
+                rel_obj = descriptor.related.get_cached_value(self._obj)
+            except KeyError:
                 related_pk = self._obj._get_pk_val()
                 if related_pk is None:
                     rel_obj = None
@@ -219,8 +219,8 @@ class ModelInstanceWrapper(BaseWrapper):
                     except related_model.DoesNotExist:
                         rel_obj = None
                     else:
-                        setattr(rel_obj, descriptor.related.field.get_cache_name(), self._obj)
-                setattr(self._obj, descriptor.cache_name, rel_obj)
+                        descriptor.related.field.set_cached_value(rel_obj, self._obj)
+                descriptor.related.set_cached_value(self._obj, rel_obj)
         return super().__getattr__(name)
 
     def __setattr__(self, name, value):
@@ -241,7 +241,7 @@ class ModelInstanceWrapper(BaseWrapper):
                 if not isinstance(value, ModelInstanceWrapper):
                     raise ValueError('value has to be None or ModelInstanceWrapper')
                 setattr(self._obj, name, value._obj)
-                setattr(self._obj, field.get_cache_name(), value)
+                field.set_cached_value(self._obj, value)
                 return
         super().__setattr__(name, value)
 
@@ -367,6 +367,15 @@ class BaseQueryWrapper(BaseWrapper):
                 lower_qs._obj = lower_qs._obj.prefetch_related(prefetch)
 
         return lookup_querysets[()]
+
+    def _chain(self, **kwargs):
+        """
+        Return a copy of the current QuerySet that's ready for another
+        operation.
+        """
+        obj = self._clone()
+        obj._obj.__dict__.update(kwargs)
+        return obj
 
     def _clone(self, **kwargs):
         clone = self._wrap_queryset(self._obj)

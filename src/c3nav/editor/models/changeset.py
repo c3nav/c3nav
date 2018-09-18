@@ -38,11 +38,11 @@ class ChangeSet(models.Model):
     )
     created = models.DateTimeField(auto_now_add=True, verbose_name=_('created'))
     last_change = models.ForeignKey('editor.ChangeSetUpdate', null=True, related_name='+',
-                                    verbose_name=_('last object change'), on_delete=models.PROTECT)
+                                    verbose_name=_('last object change'), on_delete=models.CASCADE)
     last_update = models.ForeignKey('editor.ChangeSetUpdate', null=True, related_name='+',
-                                    verbose_name=_('last update'), on_delete=models.PROTECT)
+                                    verbose_name=_('last update'), on_delete=models.CASCADE)
     last_state_update = models.ForeignKey('editor.ChangeSetUpdate', null=True, related_name='+',
-                                          verbose_name=_('last state update'), on_delete=models.PROTECT)
+                                          verbose_name=_('last state update'), on_delete=models.CASCADE)
     state = models.CharField(max_length=20, db_index=True, choices=STATES, default='unproposed')
     author = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, on_delete=models.PROTECT, verbose_name=_('Author'))
     title = models.CharField(max_length=100, default='', verbose_name=_('Title'))
