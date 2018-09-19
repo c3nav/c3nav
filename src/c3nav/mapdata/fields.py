@@ -4,7 +4,6 @@ import typing
 
 from django.conf import settings
 from django.core.exceptions import ValidationError
-from django.core.validators import RegexValidator
 from django.db import models
 from django.utils.functional import cached_property, lazy
 from django.utils.text import format_lazy
@@ -16,9 +15,6 @@ from shapely.geometry.base import BaseGeometry
 
 from c3nav.mapdata.utils.geometry import clean_geometry
 from c3nav.mapdata.utils.json import format_geojson
-
-validate_bssid_lines = RegexValidator(regex=r'^([0-9a-f]{2}(:[0-9a-f]{2}){5}(\r?\n[0-9a-f]{2}(:[0-9a-f]{2}){5})*)?$',
-                                      message=_('please enter a newline seperated lowercase list of BSSIDs'))
 
 logger = logging.getLogger('c3nav')
 
