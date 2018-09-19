@@ -65,7 +65,7 @@ class APIRoot(GenericAPIView):
         urls = OrderedDict()
         for urlpattern in router.urls:
             name = urlpattern.name
-            url = self._format_pattern(urlpattern.regex.pattern).replace('{pk}', '{id}')
+            url = self._format_pattern(str(urlpattern.pattern)).replace('{pk}', '{id}')
             base = url.split('/', 1)[0]
             if '-' in name:
                 urls.setdefault(base, OrderedDict())[name.split('-', 1)[1]] = url
