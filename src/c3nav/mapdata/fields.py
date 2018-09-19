@@ -52,7 +52,7 @@ class GeometryField(models.TextField):
             kwargs['geomtype'] = self.geomtype
         return name, path, args, kwargs
 
-    def from_db_value(self, value, expression, connection, context):
+    def from_db_value(self, value, expression, connection):
         if value is None:
             return value
         return shape(json.loads(value))
@@ -115,7 +115,7 @@ class GeometryField(models.TextField):
 
 
 class JSONField(models.TextField):
-    def from_db_value(self, value, expression, connection, context):
+    def from_db_value(self, value, expression, connection):
         if value is None:
             return value
         return json.loads(value)
