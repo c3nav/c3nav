@@ -294,7 +294,7 @@ class CustomLocation:
 
         return result
 
-    def details_display(self):
+    def details_display(self, **kwargs):
         return {
             'id': self.pk,
             'display': [

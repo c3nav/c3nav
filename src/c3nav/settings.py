@@ -41,6 +41,9 @@ if not os.path.exists(TILES_ROOT):
 if not os.path.exists(CACHE_ROOT):
     os.mkdir(CACHE_ROOT)
 
+PUBLIC_EDITOR = config.get('c3nav', 'editor', fallback=True)
+PUBLIC_BASE_MAPDATA = config.get('c3nav', 'public_base_mapdata', fallback=False)
+
 if config.has_option('django', 'secret'):
     SECRET_KEY = config.get('django', 'secret')
 else:

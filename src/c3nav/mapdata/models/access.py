@@ -250,8 +250,8 @@ class AccessRestrictionMixin(SerializableMixin, models.Model):
         result['access_restriction'] = self.access_restriction_id
         return result
 
-    def details_display(self):
-        result = super().details_display()
+    def details_display(self, **kwargs):
+        result = super().details_display(**kwargs)
         result['display'].extend([
             (_('Access Restriction'), self.access_restriction_id and self.access_restriction.title),
         ])

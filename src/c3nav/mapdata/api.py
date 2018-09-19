@@ -29,7 +29,7 @@ from c3nav.mapdata.models.locations import (Location, LocationGroupCategory, Loc
 from c3nav.mapdata.utils.locations import (get_location_by_id_for_request, get_location_by_slug_for_request,
                                            searchable_locations_for_request, visible_locations_for_request)
 from c3nav.mapdata.utils.models import get_submodels
-from c3nav.mapdata.utils.user import get_user_data
+from c3nav.mapdata.utils.user import can_access_base_mapdata, can_access_editor, get_user_data
 from c3nav.mapdata.views import set_tile_access_cookie
 
 
@@ -42,7 +42,7 @@ def optimize_query(qs):
     return qs
 
 
-def api_etag(permissions=True, etag_func=AccessPermission.etag_func, cache_parameters=None):
+def api_etag(permissions=True, etag_func=AccessPermission.etag_func, cache_parameters=None, base_mapdata_check=False):
     def wrapper(func):
         @wraps(func)
         def wrapped_func(self, request, *args, **kwargs):
@@ -50,6 +50,8 @@ def api_etag(permissions=True, etag_func=AccessPermission.etag_func, cache_param
             etag_user = (':'+str(request.user.pk or 0)) if response_format == 'api' else ''
             raw_etag = '%s%s:%s:%s' % (response_format, etag_user, get_language(),
                                        (etag_func(request) if permissions else MapUpdate.current_cache_key()))
+            if base_mapdata_check and self.base_mapdata:
+                raw_etag += ':%d' % can_access_base_mapdata(request)
             etag = quote_etag(raw_etag)
 
             response = get_conditional_response(request, etag=etag)
@@ -68,8 +70,9 @@ def api_etag(permissions=True, etag_func=AccessPermission.etag_func, cache_param
                     if cache_parameters is not None and response.status_code == 200:
                         cache.set(cache_key, response.data, 300)
 
-            response['ETag'] = etag
-            response['Cache-Control'] = 'no-cache'
+            if response.status_code == 200:
+                response['ETag'] = etag
+                response['Cache-Control'] = 'no-cache'
             return response
         return wrapped_func
     return wrapper
@@ -90,6 +93,7 @@ class MapViewSet(ViewSet):
 
 
 class MapdataViewSet(ReadOnlyModelViewSet):
+    base_mapdata = False
     order_by = ('id', )
 
     def get_queryset(self):
@@ -97,6 +101,12 @@ class MapdataViewSet(ReadOnlyModelViewSet):
         if hasattr(qs.model, 'qs_for_request'):
             return qs.model.qs_for_request(self.request)
         return qs
+
+    @staticmethod
+    def can_access_geometry(request, obj):
+        if isinstance(obj, (Building, Space, Door)):
+            return can_access_base_mapdata(request)
+        return True
 
     qs_filter = namedtuple('qs_filter', ('field', 'model', 'key', 'value'))
 
@@ -165,16 +175,19 @@ class MapdataViewSet(ReadOnlyModelViewSet):
         cache.set(cache_key, results, 300)
         return results
 
-    @api_etag()
+    @api_etag(base_mapdata_check=True)
     def list(self, request, *args, **kwargs):
-        geometry = ('geometry' in request.GET)
+        geometry = 'geometry' in request.GET
         results = self._get_list(request)
+        if results:
+            geometry = geometry and self.can_access_geometry(request, results[0])
 
         return Response([obj.serialize(geometry=geometry) for obj in results])
 
-    @api_etag()
+    @api_etag(base_mapdata_check=True)
     def retrieve(self, request, *args, **kwargs):
-        return Response(self.get_object().serialize())
+        obj = self.get_object()
+        return Response(obj.serialize(geometry=self.can_access_geometry(request, obj)))
 
     @staticmethod
     def list_types(models_list, **kwargs):
@@ -197,16 +210,18 @@ class LevelViewSet(MapdataViewSet):
 
 
 class BuildingViewSet(MapdataViewSet):
-    """ Add ?geometry=1 to get geometries, add ?level=<id> to filter by level. """
+    """ Add ?geometry=1 to get geometries if available, add ?level=<id> to filter by level. """
     queryset = Building.objects.all()
+    base_mapdata = True
 
 
 class SpaceViewSet(MapdataViewSet):
     """
-    Add ?geometry=1 to get geometries, add ?level=<id> to filter by level, add ?group=<id> to filter by group.
+    Add ?geometry=1 to get geometries if available, ?level=<id> to filter by level, ?group=<id> to filter by group.
     A Space is a Location – so if it is visible, you can use its ID in the Location API as well.
     """
     queryset = Space.objects.all()
+    base_mapdata = True
 
     @list_route(methods=['get'])
     @api_etag(permissions=False, cache_parameters={})
@@ -215,8 +230,9 @@ class SpaceViewSet(MapdataViewSet):
 
 
 class DoorViewSet(MapdataViewSet):
-    """ Add ?geometry=1 to get geometries, add ?level=<id> to filter by level. """
+    """ Add ?geometry=1 to get geometries if available, add ?level=<id> to filter by level. """
     queryset = Door.objects.all()
+    base_mapdata = True
 
 
 class HoleViewSet(MapdataViewSet):
@@ -287,11 +303,12 @@ class LocationGroupViewSet(MapdataViewSet):
 
 class LocationViewSetBase(RetrieveModelMixin, GenericViewSet):
     queryset = LocationSlug.objects.all()
+    base_mapdata = True
 
     def get_object(self) -> LocationSlug:
         raise NotImplementedError
 
-    @api_etag(cache_parameters={'show_redirects': bool, 'detailed': bool, 'geometry': bool})
+    @api_etag(cache_parameters={'show_redirects': bool, 'detailed': bool, 'geometry': bool}, base_mapdata_check=True)
     def retrieve(self, request, key=None, *args, **kwargs):
         show_redirects = 'show_redirects' in request.GET
         detailed = 'detailed' in request.GET
@@ -307,10 +324,11 @@ class LocationViewSetBase(RetrieveModelMixin, GenericViewSet):
                 return redirect('../' + str(location.target.slug))  # todo: why does redirect/reverse not work here?
 
         return Response(location.serialize(include_type=True, detailed=detailed,
-                                           geometry=geometry, simple_geometry=True))
+                                           geometry=geometry and MapdataViewSet.can_access_geometry(request, location),
+                                           simple_geometry=True))
 
     @detail_route(methods=['get'])
-    @api_etag()
+    @api_etag(base_mapdata_check=True)
     def details(self, request, **kwargs):
         location = self.get_object()
 
@@ -320,7 +338,10 @@ class LocationViewSetBase(RetrieveModelMixin, GenericViewSet):
         if isinstance(location, LocationRedirect):
             return redirect('../' + str(location.target.pk) + '/details/')
 
-        return Response(location.details_display())
+        return Response(location.details_display(
+            detailed_geometry=MapdataViewSet.can_access_geometry(request, location),
+            editor_url=can_access_editor(request)
+        ))
 
 
 class LocationViewSet(LocationViewSetBase):
@@ -332,7 +353,7 @@ class LocationViewSet(LocationViewSetBase):
 
     add ?searchable to only show locations with can_search set to true ordered by relevance
     add ?detailed to show all attributes
-    add ?geometry to show geometries
+    add ?geometry to show geometries if available
     /{id}/ add ?show_redirect=1 to suppress redirects and show them as JSON.
     also possible: /by_slug/{slug}/
     """
@@ -342,24 +363,27 @@ class LocationViewSet(LocationViewSetBase):
     def get_object(self):
         return get_location_by_id_for_request(self.kwargs['pk'], self.request)
 
-    @api_etag(cache_parameters={'searchable': bool, 'detailed': bool, 'geometry': bool})
+    @api_etag(cache_parameters={'searchable': bool, 'detailed': bool, 'geometry': bool}, base_mapdata_check=True)
     def list(self, request, *args, **kwargs):
         searchable = 'searchable' in request.GET
         detailed = 'detailed' in request.GET
         geometry = 'geometry' in request.GET
 
-        cache_key = 'mapdata:api:location:list:%d:%s' % (
+        cache_key = 'mapdata:api:location:list:%d:%s:%d' % (
             searchable + detailed*2 + geometry*4,
-            AccessPermission.cache_key_for_request(self.request)
+            AccessPermission.cache_key_for_request(request),
+            can_access_base_mapdata(request)
         )
         result = cache.get(cache_key, None)
         if result is None:
             if searchable:
-                locations = searchable_locations_for_request(self.request)
+                locations = searchable_locations_for_request(request)
             else:
-                locations = visible_locations_for_request(self.request).values()
+                locations = visible_locations_for_request(request).values()
 
-            result = tuple(obj.serialize(include_type=True, detailed=detailed, geometry=geometry, simple_geometry=True)
+            result = tuple(obj.serialize(include_type=True, detailed=detailed,
+                                         geometry=geometry and MapdataViewSet.can_access_geometry(request, obj),
+                                         simple_geometry=True)
                            for obj in locations)
             cache.set(cache_key, result, 300)
 

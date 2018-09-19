@@ -2,7 +2,7 @@ import math
 from collections import OrderedDict
 
 from django.utils.functional import cached_property
-from shapely.geometry import Point, mapping
+from shapely.geometry import Point, box, mapping
 from shapely.ops import unary_union
 
 from c3nav.mapdata.models.base import SerializableMixin
@@ -78,9 +78,12 @@ class GeometryMixin(SerializableMixin):
                                     (int(math.ceil(maxx)), int(math.ceil(maxy))))
         return result
 
-    def details_display(self):
-        result = super().details_display()
-        result['geometry'] = format_geojson(mapping(self.geometry), round=False)
+    def details_display(self, detailed_geometry=True, **kwargs):
+        result = super().details_display(**kwargs)
+        if detailed_geometry:
+            result['geometry'] = format_geojson(mapping(self.geometry), round=False)
+        else:
+            result['geometry'] = format_geojson(mapping(box(*self.geometry.bounds)), round=False)
         return result
 
     def get_shadow_geojson(self):

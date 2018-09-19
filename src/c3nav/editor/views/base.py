@@ -1,5 +1,6 @@
 from functools import wraps
 
+from django.core.exceptions import PermissionDenied
 from django.http import HttpResponseNotModified, HttpResponseRedirect
 from django.shortcuts import render
 from django.utils.cache import patch_vary_headers
@@ -7,6 +8,7 @@ from django.utils.translation import get_language
 
 from c3nav.editor.models import ChangeSet
 from c3nav.mapdata.models.access import AccessPermission
+from c3nav.mapdata.utils.user import can_access_editor
 
 
 def sidebar_view(func=None, select_related=None):
@@ -17,6 +19,9 @@ def sidebar_view(func=None, select_related=None):
 
     @wraps(func)
     def with_ajax_check(request, *args, **kwargs):
+        if not can_access_editor(request):
+            raise PermissionDenied
+
         request.changeset = ChangeSet.get_for_request(request, select_related)
 
         ajax = request.is_ajax() or 'ajax' in request.GET

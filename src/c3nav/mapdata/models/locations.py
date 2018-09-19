@@ -60,8 +60,8 @@ class LocationSlug(SerializableMixin, models.Model):
         result['slug'] = self.get_slug()
         return result
 
-    def details_display(self):
-        result = super().details_display()
+    def details_display(self, **kwargs):
+        result = super().details_display(**kwargs)
         result['display'].insert(2, (_('Slug'), str(self.get_slug())))
         return result
 
@@ -96,8 +96,8 @@ class Location(LocationSlug, AccessRestrictionMixin, TitledMixin, models.Model):
         result['can_describe'] = self.can_search
         return result
 
-    def details_display(self):
-        result = super().details_display()
+    def details_display(self, **kwargs):
+        result = super().details_display(**kwargs)
         result['display'].extend([
             (_('searchable'), _('Yes') if self.can_search else _('No')),
             (_('can describe'), _('Yes') if self.can_describe else _('No'))
@@ -143,8 +143,8 @@ class SpecificLocation(Location, models.Model):
             result['groups'] = groups
         return result
 
-    def details_display(self):
-        result = super().details_display()
+    def details_display(self, **kwargs):
+        result = super().details_display(**kwargs)
 
         groupcategories = {}
         for group in self.groups.all():
@@ -258,14 +258,15 @@ class LocationGroup(Location, models.Model):
             result['locations'] = tuple(obj.pk for obj in getattr(self, 'locations', ()))
         return result
 
-    def details_display(self):
-        result = super().details_display()
+    def details_display(self, editor_url=True, **kwargs):
+        result = super().details_display(**kwargs)
         result['display'].insert(3, (_('Category'), self.category.title))
         result['display'].extend([
             (_('color'), self.color),
             (_('priority'), self.priority),
         ])
-        result['editor_url'] = reverse('editor.locationgroups.edit', kwargs={'pk': self.pk})
+        if editor_url:
+            result['editor_url'] = reverse('editor.locationgroups.edit', kwargs={'pk': self.pk})
         return result
 
     @property

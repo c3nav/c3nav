@@ -10,7 +10,9 @@
                 {% get_current_language as CURRENT_LANGUAGE %}
                 <a href="{% url 'site.language' %}" id="choose-language">{{ CURRENT_LANGUAGE | language_name_local }}</a> –
             {% endif %}
-            <a href="{% url 'editor.index' %}" target="_blank">{% trans 'Editor' %}</a> //
+            {% if editor %}
+                <a href="{% url 'editor.index' %}" target="_blank">{% trans 'Editor' %}</a> //
+            {% endif %}
             <a href="/api/" target="_blank">{% trans 'API' %}</a> //
             <a href="https://twitter.com/c3nav/" rel="external" target="_blank">Twitter</a> //
             <a href="https://github.com/c3nav/c3nav/" rel="external" target="_blank">GitHub</a>

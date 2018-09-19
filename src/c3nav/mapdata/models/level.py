@@ -77,14 +77,15 @@ class Level(SpecificLocation, models.Model):
         result['door_height'] = float(str(self.door_height))
         return result
 
-    def details_display(self):
-        result = super().details_display()
+    def details_display(self, editor_url=True, **kwargs):
+        result = super().details_display(**kwargs)
         result['display'].insert(3, (_('short label'), self.short_label))
         result['display'].extend([
             (_('outside only'), self.base_altitude),
             (_('default height'), self.default_height),
         ])
-        result['editor_url'] = reverse('editor.levels.detail', kwargs={'pk': self.pk})
+        if editor_url:
+            result['editor_url'] = reverse('editor.levels.detail', kwargs={'pk': self.pk})
         return result
 
     @cached_property

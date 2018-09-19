@@ -73,8 +73,8 @@ class SpaceGeometryMixin(GeometryMixin):
                 self.geometry if force else self.get_changed_geometry()
             ))
 
-    def details_display(self):
-        result = super().details_display()
+    def details_display(self, **kwargs):
+        result = super().details_display(**kwargs)
         result['display'].insert(3, (
             _('Space'),
             {
@@ -125,9 +125,10 @@ class Area(SpaceGeometryMixin, SpecificLocation, models.Model):
         result = super()._serialize(**kwargs)
         return result
 
-    def details_display(self):
-        result = super().details_display()
-        result['editor_url'] = reverse('editor.areas.edit', kwargs={'space': self.space_id, 'pk': self.pk})
+    def details_display(self, editor_url=True, **kwargs):
+        result = super().details_display(**kwargs)
+        if editor_url:
+            result['editor_url'] = reverse('editor.areas.edit', kwargs={'space': self.space_id, 'pk': self.pk})
         return result
 
 
@@ -224,9 +225,10 @@ class POI(SpaceGeometryMixin, SpecificLocation, models.Model):
         verbose_name_plural = _('Points of Interest')
         default_related_name = 'pois'
 
-    def details_display(self):
-        result = super().details_display()
-        result['editor_url'] = reverse('editor.pois.edit', kwargs={'space': self.space_id, 'pk': self.pk})
+    def details_display(self, editor_url=True, **kwargs):
+        result = super().details_display(**kwargs)
+        if editor_url:
+            result['editor_url'] = reverse('editor.pois.edit', kwargs={'space': self.space_id, 'pk': self.pk})
         return result
 
     @property

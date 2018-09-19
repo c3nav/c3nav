@@ -2,7 +2,7 @@ from itertools import chain
 
 from django.db.models import Prefetch, Q
 from rest_framework.decorators import detail_route, list_route
-from rest_framework.exceptions import ValidationError
+from rest_framework.exceptions import PermissionDenied, ValidationError
 from rest_framework.generics import get_object_or_404
 from rest_framework.response import Response
 from rest_framework.viewsets import ReadOnlyModelViewSet, ViewSet
@@ -13,6 +13,7 @@ from c3nav.editor.views.base import etag_func
 from c3nav.mapdata.api import api_etag
 from c3nav.mapdata.models import Area, Door, MapUpdate, Source
 from c3nav.mapdata.models.geometry.space import POI
+from c3nav.mapdata.utils.user import can_access_editor
 
 
 class EditorViewSet(ViewSet):
@@ -71,6 +72,9 @@ class EditorViewSet(ViewSet):
     @list_route(methods=['get'])
     @api_etag(etag_func=etag_func, cache_parameters={'level': str, 'space': str})
     def geometries(self, request, *args, **kwargs):
+        if not can_access_editor(request):
+            return PermissionDenied
+
         Level = request.changeset.wrap_model('Level')
         Space = request.changeset.wrap_model('Space')
 
@@ -209,6 +213,9 @@ class EditorViewSet(ViewSet):
     @list_route(methods=['get'])
     @api_etag(etag_func=MapUpdate.current_cache_key, cache_parameters={})
     def geometrystyles(self, request, *args, **kwargs):
+        if not can_access_editor(request):
+            return PermissionDenied
+
         return Response({
             'building': '#aaaaaa',
             'space': '#eeeeee',
@@ -231,6 +238,9 @@ class EditorViewSet(ViewSet):
     @list_route(methods=['get'])
     @api_etag(etag_func=etag_func, cache_parameters={})
     def bounds(self, request, *args, **kwargs):
+        if not can_access_editor(request):
+            return PermissionDenied
+
         return Response({
             'bounds': Source.max_bounds(),
         })
@@ -247,18 +257,26 @@ class ChangeSetViewSet(ReadOnlyModelViewSet):
         return ChangeSet.qs_for_request(self.request).select_related('last_update', 'last_state_update', 'last_change')
 
     def list(self, request, *args, **kwargs):
+        if not can_access_editor(request):
+            return PermissionDenied
         return Response([obj.serialize() for obj in self.get_queryset().order_by('id')])
 
     def retrieve(self, request, *args, **kwargs):
+        if not can_access_editor(request):
+            return PermissionDenied
         return Response(self.get_object().serialize())
 
     @list_route(methods=['get'])
     def current(self, request, *args, **kwargs):
+        if not can_access_editor(request):
+            return PermissionDenied
         changeset = ChangeSet.get_for_request(request)
         return Response(changeset.serialize())
 
     @detail_route(methods=['get'])
     def changes(self, request, *args, **kwargs):
+        if not can_access_editor(request):
+            return PermissionDenied
         changeset = self.get_object()
         changeset.fill_changes_cache()
         return Response([obj.serialize() for obj in changeset.iter_changed_objects()])

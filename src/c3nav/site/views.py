@@ -26,7 +26,7 @@ from c3nav.mapdata.models import Location, Source
 from c3nav.mapdata.models.access import AccessPermissionToken
 from c3nav.mapdata.models.locations import LocationRedirect, SpecificLocation
 from c3nav.mapdata.utils.locations import get_location_by_slug_for_request, levels_by_short_label_for_request
-from c3nav.mapdata.utils.user import get_user_data
+from c3nav.mapdata.utils.user import can_access_editor, get_user_data
 from c3nav.mapdata.views import set_tile_access_cookie
 from c3nav.site.models import Announcement, SiteUpdate
 
@@ -123,6 +123,7 @@ def map_index(request, mode=None, slug=None, slug2=None, details=None, options=N
         'initial_bounds': json.dumps(initial_bounds, separators=(',', ':')) if initial_bounds else None,
         'last_site_update': json.dumps(SiteUpdate.last_update()),
         'ssids': json.dumps(settings.WIFI_SSIDS, separators=(',', ':')) if settings.WIFI_SSIDS else None,
+        'editor': can_access_editor(request),
         'embed': bool(embed),
     }
 

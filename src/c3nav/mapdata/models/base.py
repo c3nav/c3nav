@@ -33,7 +33,7 @@ class SerializableMixin(models.Model):
         result['id'] = self.pk
         return result
 
-    def details_display(self):
+    def details_display(self, **kwargs):
         return {
             'id': self.pk,
             'display': [
@@ -72,8 +72,8 @@ class TitledMixin(SerializableMixin, models.Model):
         result['title'] = self.title
         return result
 
-    def details_display(self):
-        result = super().details_display()
+    def details_display(self, **kwargs):
+        result = super().details_display(**kwargs)
         for lang, title in sorted(self.titles.items(), key=lambda item: item[0] != get_language()):
             language = _('Title ({lang})').format(lang=get_language_info(lang)['name_translated'])
             result['display'].append((language, title))

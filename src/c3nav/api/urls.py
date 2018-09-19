@@ -1,3 +1,4 @@
+import inspect
 import re
 from collections import OrderedDict
 
@@ -14,6 +15,7 @@ from c3nav.mapdata.api import (AccessRestrictionGroupViewSet, AccessRestrictionV
                                LocationGroupCategoryViewSet, LocationGroupViewSet, LocationViewSet, MapViewSet,
                                ObstacleViewSet, POIViewSet, RampViewSet, SourceViewSet, SpaceViewSet, StairViewSet,
                                UpdatesViewSet)
+from c3nav.mapdata.utils.user import can_access_editor
 from c3nav.routing.api import RoutingViewSet
 
 router = SimpleRouter()
@@ -62,8 +64,11 @@ class APIRoot(GenericAPIView):
 
     @cached_property
     def urls(self):
+        include_editor = can_access_editor(self.request)
         urls = OrderedDict()
         for urlpattern in router.urls:
+            if not include_editor and inspect.getmodule(urlpattern.callback).__name__.startswith('c3nav.editor.'):
+                continue
             name = urlpattern.name
             url = self._format_pattern(str(urlpattern.pattern)).replace('{pk}', '{id}')
             base = url.split('/', 1)[0]
