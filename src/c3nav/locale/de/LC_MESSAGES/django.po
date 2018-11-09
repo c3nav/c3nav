@@ -7,8 +7,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2018-11-09 22:07+0100\n"
-"PO-Revision-Date: 2018-11-09 22:26+0100\n"
+"POT-Creation-Date: 2018-11-09 22:43+0100\n"
+"PO-Revision-Date: 2018-11-09 22:43+0100\n"
 "Last-Translator: Jenny Danzmayr <mail@masterbase.at>\n"
 "Language-Team: \n"
 "Language: de\n"
@@ -2199,8 +2199,10 @@ msgstr ""
 "Zugangserlaubnis konnte nicht gewährt werden weil der Code abgelaufen ist."
 
 #: c3nav/site/views.py:235
-msgid "user registration is currently disabled"
-msgstr "User Registrierung ist momentan deaktiviert"
+#, fuzzy
+#| msgid "account creation is currently disabled"
+msgid "account creation is currently disabled."
+msgstr "Benutzerregistrierung ist momentan deaktiviert."
 
 #: c3nav/site/views.py:297
 msgid "This token does not exist or was already redeemed."

@@ -214,7 +214,7 @@ def login_view(request):
         'form': form,
     }
 
-    if settings.SIGNUP_ENABLED:
+    if settings.USER_REGISTRATION:
         ctx.update({
             'bottom_link_url': reverse('site.register'),
             'bottom_link_text': _('Create new account')
@@ -231,8 +231,8 @@ def logout_view(request):
 
 @never_cache
 def register_view(request):
-    if not settings.SIGNUP_ENABLED:
-        return HttpResponse(_('user registration is currently disabled'), content_type='text/plain', status=403)
+    if not settings.USER_REGISTRATION:
+        return HttpResponse(_('account creation is currently disabled.'), content_type='text/plain', status=403)
 
     if request.user.is_authenticated:
         return close_response(request)
