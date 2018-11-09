@@ -338,6 +338,7 @@ HEADER_TEXT_HOVER_COLOR = config.get('c3nav', 'header_text_hover_color', fallbac
 
 WIFI_SSIDS = [n for n in config.get('c3nav', 'wifi_ssids', fallback='').split(',') if n]
 
+USER_REGISTRATION = config.getboolean('c3nav', 'user_registration', fallback=True)
 
 LIBSASS_CUSTOM_FUNCTIONS = {
     'primary_color': lambda: PRIMARY_COLOR,
