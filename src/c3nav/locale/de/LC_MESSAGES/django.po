@@ -93,7 +93,15 @@ msgstr "kann direktes Bearbeiten aktivieren"
 msgid "max changes per changeset"
 msgstr "maximale Anzahl änderungen pro Änderungsset"
 
+#: c3nav/control/models.py:17
+msgid "can always access editor"
+msgstr "kann immer auf den Editor zugreifen"
+
 #: c3nav/control/models.py:18
+msgid "can always access base map data"
+msgstr "kann immer auf die Basiskartendaten zugreifen"
+
+#: c3nav/control/models.py:20
 msgid "can access control panel"
 msgstr "kann auf das Control Panel zugreifen"
 
