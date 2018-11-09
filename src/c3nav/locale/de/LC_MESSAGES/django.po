@@ -1982,12 +1982,44 @@ msgstr "Unbekannter Startort."
 msgid "Unknown destination."
 msgstr "Unbekannter Zielort."
 
-#: c3nav/routing/locator.py:177
-msgid "Invalid Scan."
-msgstr "Invalider Scan."
+#: c3nav/routing/locator.py:205
+msgid "Invalid Scan. Scans list list not a list."
+msgstr "Invalider Scan. Scan List Liste ist keine Liste."
+
+#: c3nav/routing/locator.py:211
+msgid "Invalid Scan. Scan not a list."
+msgstr "Invalider Scan. Scan is keine Liste."
+
+#: c3nav/routing/locator.py:224
+msgid "Invalid Scan. Scan value not a dictionary."
+msgstr "Invalider Scan. Scan wert ist kein Dictonary."
+
+#: c3nav/routing/locator.py:227
+msgid "Invalid Scan. Missing or forbidden keys."
+msgstr "Invalider Scan. Fehlender oder Falscher Key."
+
+#: c3nav/routing/locator.py:229
+msgid "Invalid Scan. BSSID not a String."
+msgstr "Invalider Scan. BSSID ist kein String."
+
+#: c3nav/routing/locator.py:232
+msgid "Invalid Scan. Invalid BSSID."
+msgstr "Invalider Scan. Ungültige BSSID."
+
+#: c3nav/routing/locator.py:234
+msgid "Invalid Scan. Invalid RSSI/Level."
+msgstr "Invalider Scan. Ungültiger RSSI."
+
+#: c3nav/routing/locator.py:236
+msgid "Invalid Scan. Not an allowed frequency."
+msgstr "Invalider Scan. Unerlaubte Frequenz."
+
+#: c3nav/routing/locator.py:238
+msgid "Invalid Scan. Invalid last timestamp."
+msgstr "Invalider Scan. Letzter Zeitstempel ungültig."
 
 #: c3nav/routing/models.py:20 c3nav/routing/models.py:21
-#: c3nav/site/templates/site/map.html:129
+#: c3nav/site/templates/site/map.html:131
 msgid "Route options"
 msgstr "Routenoptionen"
 
