@@ -114,6 +114,9 @@ def map_index(request, mode=None, slug=None, slug2=None, details=None, options=N
         })
 
     initial_bounds = settings.INITIAL_BOUNDS
+    if not initial_bounds:
+        initial_bounds = (0, 0, 10, 10)
+
     ctx = {
         'bounds': json.dumps(Source.max_bounds(), separators=(',', ':')),
         'levels': json.dumps(tuple((level.pk, level.short_label) for level in levels.values()), separators=(',', ':')),

@@ -97,8 +97,8 @@ class BoundsMixin(SerializableMixin, models.Model):
             return result
         result = cls.objects.all().aggregate(models.Min('left'), models.Min('bottom'),
                                              models.Max('right'), models.Max('top'))
-        result = ((float(result['left__min']), float(result['bottom__min'])),
-                  (float(result['right__max']), float(result['top__max'])))
+        result = ((float(result['left__min'] or 0), float(result['bottom__min'] or 0)),
+                  (float(result['right__max'] or 10), float(result['top__max'] or 10)))
         cache.set(cache_key, result, 900)
         return result
 

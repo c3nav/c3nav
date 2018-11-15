@@ -1000,8 +1000,10 @@ c3nav = {
 
         if ($map.is('[data-initial-level]')) {
             c3nav.initial_level = parseInt($map.attr('data-initial-level'));
-        } else {
+        } else if (c3nav.levels.length) {
             c3nav.initial_level = c3nav.levels[0][0];
+        } else {
+            c3nav.initial_level = 0
         }
 
         c3nav.level_labels_by_id = {};
