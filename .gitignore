@@ -5,6 +5,8 @@ c3nav.cfg
 /src/data
 loadproduction.sh
 runtileserver.sh
+test.py
+test.svg
 
 .idea
 
