@@ -1,12 +1,16 @@
+import mimetypes
+import os
 import typing
 from contextlib import suppress
 
+from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth.views import redirect_to_login
 from django.core.cache import cache
-from django.core.exceptions import FieldDoesNotExist, ObjectDoesNotExist
+from django.core.exceptions import FieldDoesNotExist, ObjectDoesNotExist, PermissionDenied
 from django.db import IntegrityError, models
 from django.db.models import Q
+from django.http import Http404, HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.utils.translation import ugettext_lazy as _
@@ -15,6 +19,7 @@ from django.views.decorators.http import etag
 from c3nav.editor.forms import GraphEdgeSettingsForm, GraphEditorActionForm
 from c3nav.editor.views.base import etag_func, sidebar_view
 from c3nav.mapdata.models.access import AccessPermission
+from c3nav.mapdata.utils.user import can_access_editor
 
 
 def child_model(request, model: typing.Union[str, models.Model], kwargs=None, parent=None):
@@ -625,3 +630,17 @@ def graph_edit(request, level=None, space=None):
     })
 
     return render(request, 'editor/graph.html', ctx)
+
+
+def sourceimage(request, filename):
+    if not request.user.is_superuser:
+        raise PermissionDenied
+
+    if not can_access_editor(request):
+        return PermissionDenied
+
+    try:
+        return HttpResponse(open(os.path.join(settings.SOURCES_ROOT, filename), 'rb'),
+                            content_type=mimetypes.guess_type(filename)[0])
+    except FileNotFoundError:
+        raise Http404

@@ -3,7 +3,7 @@ from django.conf.urls import url
 
 from c3nav.editor.views.account import change_password_view, login_view, logout_view, register_view
 from c3nav.editor.views.changes import changeset_detail, changeset_edit
-from c3nav.editor.views.edit import edit, graph_edit, level_detail, list_objects, main_index, space_detail
+from c3nav.editor.views.edit import edit, graph_edit, level_detail, list_objects, main_index, sourceimage, space_detail
 from c3nav.editor.views.users import user_detail
 
 
@@ -41,6 +41,7 @@ urlpatterns = [
     url(r'^spaces/(?P<space>c?[0-9]+)/graph/$', graph_edit, name='editor.spaces.graph'),
     url(r'^changesets/(?P<pk>[0-9]+)/$', changeset_detail, name='editor.changesets.detail'),
     url(r'^changesets/(?P<pk>[0-9]+)/edit$', changeset_edit, name='editor.changesets.edit'),
+    url(r'^sourceimage/(?P<filename>[^/]+)$', sourceimage, name='editor.sourceimage'),
     url(r'^users/(?P<pk>[0-9]+)/$', user_detail, name='editor.users.detail'),
     url(r'^login$', login_view, name='editor.login'),
     url(r'^logout$', logout_view, name='editor.logout'),
