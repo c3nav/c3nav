@@ -1,13 +1,15 @@
 import json
 import operator
+import os
 from functools import reduce
 from itertools import chain
 
+from django.conf import settings
 from django.core.cache import cache
 from django.core.exceptions import FieldDoesNotExist
 from django.db.models import Q
 from django.forms import (BooleanField, CharField, ChoiceField, Form, ModelChoiceField, ModelForm, MultipleChoiceField,
-                          ValidationError)
+                          Select, ValidationError)
 from django.forms.widgets import HiddenInput
 from django.utils.translation import ugettext_lazy as _
 from shapely.geometry.geo import mapping
@@ -42,6 +44,14 @@ class EditorFormBase(I18nModelFormMixin, ModelForm):
             self.fields['geometry'].widget = HiddenInput()
             if not creating:
                 self.initial['geometry'] = json.dumps(mapping(self.instance.geometry), separators=(',', ':'))
+
+        if self._meta.model.__name__ == 'Source' and self.request.user.is_superuser:
+            Source = self.request.changeset.wrap_model('Source')
+
+            used_names = set(Source.objects.all().values_list('name', flat=True))
+            all_names = set(os.listdir(settings.SOURCES_ROOT))
+            print(all_names)
+            self.fields['name'].widget = Select(choices=tuple((s, s) for s in sorted(all_names-used_names)))
 
         if self._meta.model.__name__ == 'AccessRestriction':
             AccessRestrictionGroup = self.request.changeset.wrap_model('AccessRestrictionGroup')
