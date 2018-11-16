@@ -50,7 +50,6 @@ class EditorFormBase(I18nModelFormMixin, ModelForm):
 
             used_names = set(Source.objects.all().values_list('name', flat=True))
             all_names = set(os.listdir(settings.SOURCES_ROOT))
-            print(all_names)
             self.fields['name'].widget = Select(choices=tuple((s, s) for s in sorted(all_names-used_names)))
 
         if self._meta.model.__name__ == 'AccessRestriction':
