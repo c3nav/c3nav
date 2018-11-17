@@ -52,7 +52,7 @@ body:not(.map-enabled) #sidebar {
     padding:12px 12px 0;
     margin:auto;
 }
-#sidebar .content form .form-group:last-child {
+#sidebar .content form>.form-group:last-child {
     margin-bottom:0;
     padding:0 0 12px;
     position:sticky;
@@ -60,6 +60,18 @@ body:not(.map-enabled) #sidebar {
     bottom:0;
     background-color: #ffffff;
     box-shadow: 0 0 10px 10px #ffffff;
+}
+#sidebar .form-group-group {
+    display: flex;
+}
+#sidebar .form-group-group .form-group {
+    flex-grow: 1;
+}
+#sidebar .form-group-group .form-group:not(:last-child) {
+    margin-right: 15px;
+}
+#sidebar form:not(.show-source-wizard) .source-wizard {
+    display: none;
 }
 #noscript {
     font-weight:bold;

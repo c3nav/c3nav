@@ -8,8 +8,8 @@ from django.conf import settings
 from django.core.cache import cache
 from django.core.exceptions import FieldDoesNotExist
 from django.db.models import Q
-from django.forms import (BooleanField, CharField, ChoiceField, Form, ModelChoiceField, ModelForm, MultipleChoiceField,
-                          Select, ValidationError)
+from django.forms import (BooleanField, CharField, ChoiceField, DecimalField, Form, ModelChoiceField, ModelForm,
+                          MultipleChoiceField, Select, ValidationError)
 from django.forms.widgets import HiddenInput
 from django.utils.translation import ugettext_lazy as _
 from shapely.geometry.geo import mapping
@@ -51,6 +51,26 @@ class EditorFormBase(I18nModelFormMixin, ModelForm):
             used_names = set(Source.objects.all().values_list('name', flat=True))
             all_names = set(os.listdir(settings.SOURCES_ROOT))
             self.fields['name'].widget = Select(choices=tuple((s, s) for s in sorted(all_names-used_names)))
+
+            self.fields['fixed_x'] = DecimalField(label='fixed x', required=False,
+                                                  max_digits=7, decimal_places=3, initial=0)
+            self.fields['fixed_y'] = DecimalField(label='fixed y', required=False,
+                                                  max_digits=7, decimal_places=3, initial=0)
+            self.fields['scale_x'] = DecimalField(label='scale x (m/px)', required=False,
+                                                  max_digits=7, decimal_places=3, initial=1)
+            self.fields['scale_y'] = DecimalField(label='scale y (m/px)', required=False,
+                                                  max_digits=7, decimal_places=3, initial=1)
+            self.fields['lock_aspect'] = BooleanField(label='lock aspect ratio', required=False, initial=True)
+            self.fields['lock_scale'] = BooleanField(label='lock scale (for moving)', required=False, initial=True)
+
+            self.fields.move_to_end('lock_scale', last=False)
+            self.fields.move_to_end('lock_aspect', last=False)
+            self.fields.move_to_end('scale_y', last=False)
+            self.fields.move_to_end('scale_x', last=False)
+            self.fields.move_to_end('fixed_y', last=False)
+            self.fields.move_to_end('fixed_x', last=False)
+            self.fields.move_to_end('access_restriction', last=False)
+            self.fields.move_to_end('name', last=False)
 
         if self._meta.model.__name__ == 'AccessRestriction':
             AccessRestrictionGroup = self.request.changeset.wrap_model('AccessRestrictionGroup')
