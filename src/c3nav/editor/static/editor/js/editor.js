@@ -1098,7 +1098,6 @@ editor = {
             item = data[i];
             apid = 'ap-'+item.bssid.replace(/:/g, '-');
             line = $table.find('tr.'+apid);
-            console.log(line);
             color = Math.max(0, Math.min(50, item.level+80));
             color = 'rgb('+String(250-color*5)+', '+String(color*4)+', 0)';
             if (line.length) {
