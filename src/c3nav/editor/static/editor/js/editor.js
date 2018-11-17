@@ -110,6 +110,17 @@ editor = {
         // unload the sidebar. called on sidebar_get and form submit.
         editor._level_control.disable();
         editor._sublevel_control.disable();
+
+        if (editor._source_image_layer) {
+            editor._source_image_layer.remove();
+            editor._source_image_layer = null;
+        }
+
+        if (editor._fixed_point_layer) {
+            editor._fixed_point_layer.remove();
+            editor._fixed_point_layer = null;
+        }
+
         $('#sidebar').addClass('loading').find('.content').html('');
         editor._cancel_editing();
     },
@@ -150,11 +161,6 @@ editor = {
             $('#navbar-collapse').find('.nav').html(nav.html());
         }
 
-        if (editor._source_image_layer) {
-            editor._source_image_layer.remove();
-            editor._source_image_layer = null;
-        }
-
         var group;
         if (content.find('[name=fixed_x]')) {
             $('[name=name]').change(editor._source_name_selected).change();
@@ -168,6 +174,8 @@ editor = {
             group.insertBefore(content.find('[name=fixed_x]').closest('.form-group'));
             group.append(content.find('[name=fixed_x]').closest('.form-group'));
             group.append(content.find('[name=fixed_y]').closest('.form-group'));
+
+            content.find('[name=fixed_x], [name=fixed_y]').change(editor._fixed_point_changed).change();
 
             group = $('<div class="form-group-group source-wizard">');
             group.insertBefore(content.find('[name=scale_x]').closest('.form-group'));
@@ -477,6 +485,29 @@ editor = {
         content.find('[name=top]').val(top).data('oldval', top);
 
         editor._source_image_repositioned();
+    },
+    _fixed_point_changed: function() {
+        var content = $('#sidebar'),
+            fixed_x = parseFloat(content.find('[name=fixed_x]').val()),
+            fixed_y = parseFloat(content.find('[name=fixed_y]').val()),
+            valid = (!isNaN(fixed_x) && !isNaN(fixed_y)),
+            latlng = valid ? L.GeoJSON.coordsToLatLng([fixed_x, fixed_y]) : null;
+
+        if (editor._fixed_point_layer) {
+            if (valid) {
+                editor._fixed_point_layer.setLatLng(latlng);
+            } else {
+                editor._fixed_point_layer.remove();
+                editor._fixed_point_layer = null;
+            }
+        } else if (valid) {
+            editor._fixed_point_layer = L.marker(latlng, {draggable: true, autoPan: true}).on('dragend', function(e) {
+                var coords = L.GeoJSON.latLngToCoords(e.target.getLatLng());
+                content.find('[name=fixed_x]').val(coords[0].toFixed(3));
+                content.find('[name=fixed_y]').val(coords[1].toFixed(3));
+            });
+            editor._fixed_point_layer.addTo(editor.map);
+        }
     },
 
     // geometries
