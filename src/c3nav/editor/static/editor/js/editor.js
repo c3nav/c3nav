@@ -682,7 +682,7 @@ editor = {
             if (layer.feature.properties.type === 'graphedge') {
                 var start_pos = 0.1,
                     end_pos = layer.length-0.1,
-                    color_index = editor._arrow_colors.indexOf(layer._path.getAttribute('stroke'));
+                    color_index = editor._arrow_colors.indexOf(layer._path.getAttribute('stroke')),
                     other = (editor._graph_edges_to[layer.feature.properties.from_node] !== undefined) ? editor._graph_edges_to[layer.feature.properties.from_node][layer.feature.properties.to_node] : undefined;
                 if (color_index === -1) {
                     color_index = editor._arrow_colors.length;
