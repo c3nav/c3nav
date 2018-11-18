@@ -7,6 +7,7 @@ from itertools import chain
 from django.conf import settings
 from django.core.cache import cache
 from django.core.exceptions import FieldDoesNotExist
+from django.core.serializers.json import DjangoJSONEncoder
 from django.db.models import Q
 from django.forms import (BooleanField, CharField, ChoiceField, DecimalField, Form, ModelChoiceField, ModelForm,
                           MultipleChoiceField, Select, ValidationError)
@@ -48,9 +49,23 @@ class EditorFormBase(I18nModelFormMixin, ModelForm):
         if self._meta.model.__name__ == 'Source' and self.request.user.is_superuser:
             Source = self.request.changeset.wrap_model('Source')
 
-            used_names = set(Source.objects.all().values_list('name', flat=True))
+            sources = {s['name']: s for s in Source.objects.all().values('name', 'access_restriction_id',
+                                                                         'left', 'bottom', 'right', 'top')}
+            used_names = set(sources.keys())
             all_names = set(os.listdir(settings.SOURCES_ROOT))
             self.fields['name'].widget = Select(choices=tuple((s, s) for s in sorted(all_names-used_names)))
+
+            if creating:
+                for s in sources.values():
+                    s['access_restriction'] = s['access_restriction_id']
+                    del s['access_restriction_id']
+                self.fields['copy_from'] = ChoiceField(
+                    choices=tuple((('', '---------'), ))+tuple(
+                        (json.dumps(sources[name], separators=(',', ':'), cls=DjangoJSONEncoder), name)
+                        for name in sorted(used_names)
+                    ),
+                    required=False
+                )
 
             self.fields['fixed_x'] = DecimalField(label='fixed x', required=False,
                                                   max_digits=7, decimal_places=3, initial=0)
@@ -70,6 +85,8 @@ class EditorFormBase(I18nModelFormMixin, ModelForm):
             self.fields.move_to_end('fixed_y', last=False)
             self.fields.move_to_end('fixed_x', last=False)
             self.fields.move_to_end('access_restriction', last=False)
+            if creating:
+                self.fields.move_to_end('copy_from', last=False)
             self.fields.move_to_end('name', last=False)
 
         if self._meta.model.__name__ == 'AccessRestriction':

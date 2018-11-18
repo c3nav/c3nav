@@ -176,6 +176,7 @@ editor = {
             group.append(content.find('[name=fixed_y]').closest('.form-group'));
 
             content.find('[name=fixed_x], [name=fixed_y]').change(editor._fixed_point_changed).change();
+            content.find('[name=copy_from]').change(editor._copy_from_changed);
 
             group = $('<div class="form-group-group source-wizard">');
             group.insertBefore(content.find('[name=scale_x]').closest('.form-group'));
@@ -508,6 +509,18 @@ editor = {
             });
             editor._fixed_point_layer.addTo(editor.map);
         }
+    },
+    _copy_from_changed: function() {
+        var content = $('#sidebar'),
+            value = JSON.parse($(this).val());
+        $(this).val('');
+        if (!confirm('Are you sure you want to copy settings from '+value.name+'?')) return;
+        delete value.name;
+        for (key in value) {
+            content.find('[name='+key+']').val(value[key]);
+        }
+        editor._source_image_calculate_scale();
+        editor._source_image_repositioned();
     },
 
     // geometries
