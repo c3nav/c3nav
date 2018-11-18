@@ -103,7 +103,7 @@ hr {
 
 main {
     flex-grow: 1;
-    background-color: #CCCCCC;
+    background-color: #FFFFFF;
     border: 0 solid #CCCCCC;
     border-top-width: 1px;
     padding: 10px;
@@ -112,7 +112,7 @@ main {
 }
 main.map {
     /*noinspection CssUnknownTarget*/
-    background: url('../../img/loader.gif') no-repeat center;
+    background: #CCCCCC url('../../img/loader.gif') no-repeat center;
     position: relative;
     padding: 0;
     border-top-width: 0;
