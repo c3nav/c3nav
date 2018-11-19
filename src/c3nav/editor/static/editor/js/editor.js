@@ -162,7 +162,7 @@ editor = {
         }
 
         var group;
-        if (content.find('[name=fixed_x]')) {
+        if (content.find('[name=fixed_x]').length) {
             $('[name=name]').change(editor._source_name_selected).change();
             if (!content.find('[data-new]').length) {
                 var bounds = [[parseFloat(content.find('[name=left]').val()), parseFloat(content.find('[name=bottom]').val())], [parseFloat(content.find('[name=right]').val()), parseFloat(content.find('[name=top]').val())]];
@@ -193,7 +193,7 @@ editor = {
                 source_height = (parseFloat(content.find('[name=top]').val()) || 0) - (parseFloat(content.find('[name=bottom]').val()) || 0);
             editor._source_aspect_ratio = source_width/(source_height || 1);
         }
-        if (content.find('[name=left]')) {
+        if (content.find('[name=left]').length) {
             group = $('<div class="form-group-group">');
             group.insertBefore(content.find('[name=left]').closest('.form-group'));
             group.append(content.find('[name=left]').closest('.form-group'));
