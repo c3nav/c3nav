@@ -95,7 +95,9 @@ def space_detail(request, level, pk):
     qs = Space.objects.filter(Space.q_for_request(request))
     space = get_object_or_404(qs.select_related('level'), level__pk=level, pk=pk)
 
-    if request.user_permissions.can_access_base_mapdata:
+    can_edit = request.user_permissions.can_access_base_mapdata or space.base_mapdata_accessible
+
+    if can_edit:
         submodels = ('POI', 'Area', 'Obstacle', 'LineObstacle', 'Stair', 'Ramp', 'Column',
                      'Hole', 'AltitudeMarker', 'LeaveDescription', 'CrossDescription',
                      'WifiMeasurement')
@@ -107,12 +109,12 @@ def space_detail(request, level, pk):
         'level': space.level,
         'level_url': 'editor.spaces.list',
         'space': space,
-        'can_edit_graph': request.user_permissions.can_access_base_mapdata,
+        'can_edit_graph': can_edit,
 
         'child_models': [child_model(request, model_name, kwargs={'space': pk}, parent=space)
                          for model_name in submodels],
         'geometry_url': ('/api/editor/geometries/?space='+pk
-                         if request.user_permissions.can_access_base_mapdata else None),
+                         if can_edit else None),
     })
 
 
@@ -185,6 +187,7 @@ def edit(request, pk=None, model=None, level=None, space=None, on_top_of=None, e
         })
 
     space_id = None
+    force_geometry_editable = False
     if model == Level:
         ctx.update({
             'level': obj,
@@ -234,11 +237,12 @@ def edit(request, pk=None, model=None, level=None, space=None, on_top_of=None, e
         if not new:
             space = obj.space
         space_id = space.pk
+        force_geometry_editable = (request.user_permissions.can_access_base_mapdata or space.base_mapdata_accessible)
         ctx.update({
             'level': space.level,
             'back_url': reverse('editor.'+related_name+'.list', kwargs={'space': space.pk}),
             'geometry_url': ('/api/editor/geometries/?space='+str(space.pk)
-                             if request.user_permissions.can_access_base_mapdata else None),
+                             if force_geometry_editable else None),
         })
     else:
         kwargs = {}
@@ -280,6 +284,10 @@ def edit(request, pk=None, model=None, level=None, space=None, on_top_of=None, e
             messages.error(request, _('You can not edit this object because your changeset is full.'))
             return redirect(request.path)
 
+        if not can_edit:
+            messages.error(request, _('You can not edit this object.'))
+            return redirect(request.path)
+
         if not new and request.POST.get('delete') == '1':
             # Delete this mapitem!
             try:
@@ -308,7 +316,7 @@ def edit(request, pk=None, model=None, level=None, space=None, on_top_of=None, e
             return render(request, 'editor/delete.html', ctx)
 
         form = model.EditorForm(instance=model() if new else obj, data=request.POST,
-                                request=request, space_id=space_id)
+                                request=request, space_id=space_id, force_geometry_editable=force_geometry_editable)
         if form.is_valid():
             # Update/create objects
             obj = form.save(commit=False)
@@ -343,7 +351,8 @@ def edit(request, pk=None, model=None, level=None, space=None, on_top_of=None, e
                     messages.error(request, _('You can not edit changes on this changeset.'))
 
     else:
-        form = model.EditorForm(instance=obj, request=request, space_id=space_id)
+        form = model.EditorForm(instance=obj, request=request, space_id=space_id,
+                                force_geometry_editable=force_geometry_editable)
 
     ctx.update({
         'form': form,

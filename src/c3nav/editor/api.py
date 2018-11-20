@@ -75,9 +75,6 @@ class EditorViewSet(ViewSet):
         if not can_access_editor(request):
             raise PermissionDenied
 
-        if not request.user_permissions.can_access_base_mapdata:
-            raise PermissionDenied
-
         Level = request.changeset.wrap_model('Level')
         Space = request.changeset.wrap_model('Space')
 
@@ -86,6 +83,10 @@ class EditorViewSet(ViewSet):
         if level is not None:
             if space is not None:
                 raise ValidationError('Only level or space can be specified.')
+
+            if not request.user_permissions.can_access_base_mapdata:
+                raise PermissionDenied
+
             level = get_object_or_404(Level.objects.filter(Level.q_for_request(request)), pk=level)
 
             levels, levels_on_top, levels_under = self._get_levels_pk(request, level)
@@ -140,40 +141,52 @@ class EditorViewSet(ViewSet):
             space = get_object_or_404(qs.select_related('level', 'level__on_top_of'), pk=space)
             level = space.level
 
-            doors = [door for door in level.doors.filter(Door.q_for_request(request)).all()
-                     if door.geometry.intersects(space.geometry)]
-            doors_space_geom = cascaded_union([door.geometry for door in doors]+[space.geometry])
+            if not request.user_permissions.can_access_base_mapdata and not space.base_mapdata_accessible:
+                raise PermissionDenied
 
-            levels, levels_on_top, levels_under = self._get_levels_pk(request, level.primary_level)
-            if level.on_top_of_id is not None:
-                levels = chain([level.pk], levels_on_top)
-            other_spaces = Space.objects.filter(space_q_for_request, level__pk__in=levels).prefetch_related('groups')
+            if request.user_permissions.can_access_base_mapdata:
+                doors = [door for door in level.doors.filter(Door.q_for_request(request)).all()
+                         if door.geometry.intersects(space.geometry)]
+                doors_space_geom = cascaded_union([door.geometry for door in doors]+[space.geometry])
 
-            space = next(s for s in other_spaces if s.pk == space.pk)
-            other_spaces = [s for s in other_spaces
-                            if s.geometry.intersects(doors_space_geom) and s.pk != space.pk]
-            all_other_spaces = other_spaces
+                levels, levels_on_top, levels_under = self._get_levels_pk(request, level.primary_level)
+                if level.on_top_of_id is not None:
+                    levels = chain([level.pk], levels_on_top)
+                other_spaces = Space.objects.filter(space_q_for_request,
+                                                    level__pk__in=levels).prefetch_related('groups')
 
-            if level.on_top_of_id is None:
-                other_spaces_lower = [s for s in other_spaces if s.level_id in levels_under]
-                other_spaces_upper = [s for s in other_spaces if s.level_id in levels_on_top]
+                space = next(s for s in other_spaces if s.pk == space.pk)
+                other_spaces = [s for s in other_spaces
+                                if s.geometry.intersects(doors_space_geom) and s.pk != space.pk]
+                all_other_spaces = other_spaces
+
+                if level.on_top_of_id is None:
+                    other_spaces_lower = [s for s in other_spaces if s.level_id in levels_under]
+                    other_spaces_upper = [s for s in other_spaces if s.level_id in levels_on_top]
+                else:
+                    other_spaces_lower = [s for s in other_spaces if s.level_id == level.on_top_of_id]
+                    other_spaces_upper = []
+                other_spaces = [s for s in other_spaces if s.level_id == level.pk]
+
+                space.bounds = True
+
+                buildings = level.buildings.all()
+                buildings_geom = cascaded_union([building.geometry for building in buildings])
+                for other_space in other_spaces:
+                    if other_space.outside:
+                        other_space.geometry = other_space.geometry.difference(buildings_geom)
+                for other_space in chain(other_spaces, other_spaces_lower, other_spaces_upper):
+                    other_space.opacity = 0.4
+                    other_space.color = '#ffffff'
+                for building in buildings:
+                    building.opacity = 0.5
             else:
-                other_spaces_lower = [s for s in other_spaces if s.level_id == level.on_top_of_id]
+                buildings = []
+                doors = []
+                other_spaces = []
+                other_spaces_lower = []
                 other_spaces_upper = []
-            other_spaces = [s for s in other_spaces if s.level_id == level.pk]
-
-            space.bounds = True
-
-            buildings = level.buildings.all()
-            buildings_geom = cascaded_union([building.geometry for building in buildings])
-            for other_space in other_spaces:
-                if other_space.outside:
-                    other_space.geometry = other_space.geometry.difference(buildings_geom)
-            for other_space in chain(other_spaces, other_spaces_lower, other_spaces_upper):
-                other_space.opacity = 0.4
-                other_space.color = '#ffffff'
-            for building in buildings:
-                building.opacity = 0.5
+                all_other_spaces = []
 
             # todo: permissions
             graphnodes = request.changeset.wrap_model('GraphNode').objects.all()

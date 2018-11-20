@@ -23,7 +23,7 @@ from c3nav.mapdata.models.access import AccessPermission
 
 
 class EditorFormBase(I18nModelFormMixin, ModelForm):
-    def __init__(self, *args, space_id=None, request=None, **kwargs):
+    def __init__(self, *args, space_id=None, request=None, force_geometry_editable=False, **kwargs):
         self.request = request
         super().__init__(*args, **kwargs)
         creating = not self.instance.pk
@@ -41,7 +41,7 @@ class EditorFormBase(I18nModelFormMixin, ModelForm):
             self.fields['space'].widget = HiddenInput()
 
         if 'geometry' in self.fields:
-            if not request.user_permissions.can_access_base_mapdata:
+            if not request.user_permissions.can_access_base_mapdata and not force_geometry_editable:
                 # can't see this geometry in editor
                 self.fields.pop('geometry')
             else:
