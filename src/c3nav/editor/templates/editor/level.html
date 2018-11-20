@@ -32,7 +32,7 @@
 
 {% if level.on_top_of is None %}
     <h3>{% trans 'Levels on top' %}</h3>
-    {% if can_edit %}
+    {% if can_create_level %}
         <p>
             <a class="btn btn-default btn-xs" accesskey="n" href="{% url 'editor.levels_on_top.create' on_top_of=level.pk %}">
                 <i class="glyphicon glyphicon-plus"></i> {% blocktrans %}New {{ model_title }}{% endblocktrans %}

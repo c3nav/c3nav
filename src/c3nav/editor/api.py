@@ -73,7 +73,10 @@ class EditorViewSet(ViewSet):
     @api_etag(etag_func=etag_func, cache_parameters={'level': str, 'space': str})
     def geometries(self, request, *args, **kwargs):
         if not can_access_editor(request):
-            return PermissionDenied
+            raise PermissionDenied
+
+        if not request.user_permissions.can_access_base_mapdata:
+            raise PermissionDenied
 
         Level = request.changeset.wrap_model('Level')
         Space = request.changeset.wrap_model('Space')
@@ -214,7 +217,7 @@ class EditorViewSet(ViewSet):
     @api_etag(etag_func=MapUpdate.current_cache_key, cache_parameters={})
     def geometrystyles(self, request, *args, **kwargs):
         if not can_access_editor(request):
-            return PermissionDenied
+            raise PermissionDenied
 
         return Response({
             'building': '#aaaaaa',

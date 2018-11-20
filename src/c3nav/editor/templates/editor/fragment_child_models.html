@@ -7,7 +7,7 @@
             {{ model.title }}
         </a>
     {% endfor %}
-    {% if graph_url %}
+    {% if can_edit_graph and graph_url %}
         <a href="{{ graph_url }}" class="list-group-item">
             {% trans 'Graph' %}
         </a>

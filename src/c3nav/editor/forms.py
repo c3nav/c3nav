@@ -41,10 +41,14 @@ class EditorFormBase(I18nModelFormMixin, ModelForm):
             self.fields['space'].widget = HiddenInput()
 
         if 'geometry' in self.fields:
-            # hide geometry widget
-            self.fields['geometry'].widget = HiddenInput()
-            if not creating:
-                self.initial['geometry'] = json.dumps(mapping(self.instance.geometry), separators=(',', ':'))
+            if not request.user_permissions.can_access_base_mapdata:
+                # can't see this geometry in editor
+                self.fields.pop('geometry')
+            else:
+                # hide geometry widget
+                self.fields['geometry'].widget = HiddenInput()
+                if not creating:
+                    self.initial['geometry'] = json.dumps(mapping(self.instance.geometry), separators=(',', ':'))
 
         if self._meta.model.__name__ == 'Source' and self.request.user.is_superuser:
             Source = self.request.changeset.wrap_model('Source')

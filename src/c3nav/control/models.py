@@ -40,6 +40,15 @@ class UserPermissions(models.Model):
         return 'control:permissions:%d' % pk
 
     @classmethod
+    def cache_key_for_request(cls):
+        def __init__(self, *args, **kwargs):
+            super().__init__(*args, **kwargs)
+            if self.user_id and self.user.is_superuser:
+                for field in UserPermissions._meta.get_fields():
+                    if isinstance(field, models.BooleanField):
+                        setattr(self, field.name, True)
+
+    @classmethod
     def get_for_user(cls, user, force=False) -> 'UserPermissions':
         if not user.is_authenticated:
             return cls()
@@ -64,6 +73,11 @@ class UserPermissions(models.Model):
         super().save(*args, **kwargs)
         cache_key = self.get_cache_key(self.pk)
         cache.set(cache_key, self, 900)
+
+    @property
+    def can_access_base_mapdata(self):
+        return False
+        return settings.PUBLIC_BASE_MAPDATA or self.base_mapdata_access
 
 
 get_permissions_for_user_lazy = lazy(UserPermissions.get_for_user, UserPermissions)

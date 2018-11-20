@@ -4,7 +4,7 @@
 <h3>{% trans 'c3nav map editor' %}</h3>
 
 {% bootstrap_messages %}
-{% if can_edit %}
+{% if can_create_level %}
     <p>
         <a class="btn btn-default btn-xs" accesskey="n" href="{% url 'editor.levels.create' %}">
             {% trans 'Level' as model_title %}
