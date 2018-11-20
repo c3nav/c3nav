@@ -114,6 +114,8 @@ class Space(LevelGeometryMixin, SpecificLocation, models.Model):
                                  validators=[MinValueValidator(Decimal('0'))])
     outside = models.BooleanField(default=False, verbose_name=_('only outside of building'))
     enter_description = I18nField(_('Enter description'), blank=True, fallback_language=None)
+    base_mapdata_accessible = models.BooleanField(default=False,
+                                                  verbose_name=_('always accessible (overwrites base mapdata setting)'))
 
     class Meta:
         verbose_name = _('Space')

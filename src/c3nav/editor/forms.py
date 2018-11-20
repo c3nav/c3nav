@@ -135,6 +135,10 @@ class EditorFormBase(I18nModelFormMixin, ModelForm):
             self.fields['access_restriction'].label_from_instance = lambda obj: obj.title
             self.fields['access_restriction'].queryset = AccessRestriction.qs_for_request(self.request)
 
+        if 'base_mapdata_accessible' in self.fields:
+            if not request.user.is_superuser:
+                self.fields['base_mapdata_accessible'].disabled = True
+
         if space_id and 'target_space' in self.fields:
             Space = self.request.changeset.wrap_model('Space')
 
@@ -256,7 +260,7 @@ def create_editor_form(editor_model):
                        'outside', 'can_search', 'can_describe', 'geometry', 'single', 'altitude', 'short_label',
                        'origin_space', 'target_space', 'data', 'comment', 'slow_down_factor',
                        'extra_seconds', 'speed', 'description', 'speed_up', 'description_up', 'enter_description',
-                       'level_change_description',
+                       'level_change_description', 'base_mapdata_accessible',
                        'allow_levels', 'allow_spaces', 'allow_areas', 'allow_pois', 'left', 'top', 'right', 'bottom']
     field_names = [field.name for field in editor_model._meta.get_fields() if not field.one_to_many]
     existing_fields = [name for name in possible_fields if name in field_names]
