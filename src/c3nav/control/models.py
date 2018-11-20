@@ -76,7 +76,6 @@ class UserPermissions(models.Model):
 
     @property
     def can_access_base_mapdata(self):
-        return False
         return settings.PUBLIC_BASE_MAPDATA or self.base_mapdata_access
 
 
