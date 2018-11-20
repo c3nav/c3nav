@@ -31,9 +31,5 @@ def get_user_data(request):
 get_user_data_lazy = lazy(get_user_data, dict)
 
 
-def can_access_base_mapdata(request):
-    return settings.PUBLIC_BASE_MAPDATA or request.user_permissions.base_mapdata_access
-
-
 def can_access_editor(request):
     return settings.PUBLIC_EDITOR or request.user_permissions.editor_access

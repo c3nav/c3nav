@@ -29,7 +29,7 @@ from c3nav.mapdata.models.locations import (Location, LocationGroupCategory, Loc
 from c3nav.mapdata.utils.locations import (get_location_by_id_for_request, get_location_by_slug_for_request,
                                            searchable_locations_for_request, visible_locations_for_request)
 from c3nav.mapdata.utils.models import get_submodels
-from c3nav.mapdata.utils.user import can_access_base_mapdata, can_access_editor, get_user_data
+from c3nav.mapdata.utils.user import can_access_editor, get_user_data
 from c3nav.mapdata.views import set_tile_access_cookie
 
 
@@ -51,7 +51,7 @@ def api_etag(permissions=True, etag_func=AccessPermission.etag_func, cache_param
             raw_etag = '%s%s:%s:%s' % (response_format, etag_user, get_language(),
                                        (etag_func(request) if permissions else MapUpdate.current_cache_key()))
             if base_mapdata_check and self.base_mapdata:
-                raw_etag += ':%d' % can_access_base_mapdata(request)
+                raw_etag += ':%d' % request.user_permissions.can_access_base_mapdata
             etag = quote_etag(raw_etag)
 
             response = get_conditional_response(request, etag=etag)
@@ -104,8 +104,10 @@ class MapdataViewSet(ReadOnlyModelViewSet):
 
     @staticmethod
     def can_access_geometry(request, obj):
-        if isinstance(obj, (Building, Space, Door)):
-            return can_access_base_mapdata(request)
+        if isinstance(obj, Space):
+            return obj.base_mapdata_accessible or request.user_permissions.can_access_base_mapdata
+        elif isinstance(obj, (Building, Door)):
+            return request.user_permissions.can_access_base_mapdata
         return True
 
     qs_filter = namedtuple('qs_filter', ('field', 'model', 'key', 'value'))
@@ -372,7 +374,7 @@ class LocationViewSet(LocationViewSetBase):
         cache_key = 'mapdata:api:location:list:%d:%s:%d' % (
             searchable + detailed*2 + geometry*4,
             AccessPermission.cache_key_for_request(request),
-            can_access_base_mapdata(request)
+            request.user_permissions.can_access_base_mapdata
         )
         result = cache.get(cache_key, None)
         if result is None:
