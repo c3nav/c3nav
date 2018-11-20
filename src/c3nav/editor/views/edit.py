@@ -149,7 +149,8 @@ def edit(request, pk=None, model=None, level=None, space=None, on_top_of=None, e
         if level is not None:
             kwargs.update({'level__pk': level})
             qs = qs.select_related('level')
-            can_edit = False
+            if not request.user_permissions.can_access_base_mapdata:
+                can_edit = False
         elif space is not None:
             kwargs.update({'space__pk': space})
             qs = qs.select_related('space')
