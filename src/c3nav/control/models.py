@@ -28,6 +28,13 @@ class UserPermissions(models.Model):
         verbose_name_plural = _('User Permissions')
         default_related_name = 'permissions'
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if self.user_id and self.user.is_superuser:
+            for field in UserPermissions._meta.get_fields():
+                if isinstance(field, models.BooleanField):
+                    setattr(self, field.name, True)
+
     @staticmethod
     def get_cache_key(pk):
         return 'control:permissions:%d' % pk
