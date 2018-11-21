@@ -202,9 +202,9 @@ class APIHybridTemplateContextResponse(APIHybridResponse):
 
     def _maybe_serialize_value(self, value):
         if isinstance(value, SerializableMixin):
-            value = value.serialize(geometry=False)
+            value = value.serialize(geometry=False, detailed=False)
         elif isinstance(value, QuerySet) and issubclass(value.model, SerializableMixin):
-            value = [item.serialize(geometry=False) for item in value]
+            value = [item.serialize(geometry=False, detailed=False) for item in value]
         return value
 
     def get_api_response(self, request):

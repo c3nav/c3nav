@@ -294,6 +294,8 @@ class EditorViewSet(ViewSet):
             except Resolver404:
                 pass
 
+        self.request.sub_resolver_match = resolved
+
         return resolved
 
     def retrieve(self, request, *args, **kwargs):

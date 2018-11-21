@@ -406,10 +406,11 @@ def get_visible_spaces_kwargs(model, request):
     return kwargs
 
 
-@sidebar_view
+@sidebar_view(api_hybrid=True)
 @etag(etag_func)
 def list_objects(request, model=None, level=None, space=None, explicit_edit=False):
-    if not request.resolver_match.url_name.endswith('.list'):
+    resolver_match = getattr(request, 'sub_resolver_match', request.resolver_match)
+    if not resolver_match.url_name.endswith('.list'):
         raise ValueError('url_name does not end with .list')
 
     model = request.changeset.wrap_model(model)
@@ -443,7 +444,7 @@ def list_objects(request, model=None, level=None, space=None, explicit_edit=Fals
             'back_title': _('back to level'),
             'levels': Level.objects.filter(Level.q_for_request(request), on_top_of__isnull=True),
             'level': level,
-            'level_url': request.resolver_match.url_name,
+            'level_url': resolver_match.url_name,
             'geometry_url': ('/api/editor/geometries/?level='+str(level.primary_level_pk)
                              if request.user_permissions.can_access_base_mapdata else None),
         })
@@ -490,18 +491,19 @@ def list_objects(request, model=None, level=None, space=None, explicit_edit=Fals
             'back_title': _('back to overview'),
         })
 
-    edit_url_name = request.resolver_match.url_name[:-4]+('detail' if explicit_edit else 'edit')
+    edit_url_name = resolver_match.url_name[:-4]+('detail' if explicit_edit else 'edit')
     for obj in queryset:
         reverse_kwargs['pk'] = obj.pk
         obj.edit_url = reverse(edit_url_name, kwargs=reverse_kwargs)
     reverse_kwargs.pop('pk', None)
 
     ctx.update({
-        'create_url': reverse(request.resolver_match.url_name[:-4] + 'create', kwargs=reverse_kwargs),
+        'create_url': reverse(resolver_match.url_name[:-4] + 'create', kwargs=reverse_kwargs),
         'objects': queryset,
     })
 
-    return render(request, 'editor/list.html', ctx)
+    return APIHybridTemplateContextResponse('editor/list.html', ctx,
+                                            fields=('can_create', 'create_url', 'objects'))
 
 
 def connect_nodes(request, active_node, clicked_node, edge_settings_form):
