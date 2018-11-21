@@ -124,7 +124,7 @@ def get_changeset_exceeded(request):
 
 @sidebar_view(api_hybrid=True)
 @etag(etag_func)
-def edit(request, pk=None, model=None, level=None, space=None, on_top_of=None, explicit_edit=False):
+def edit(request, pk=None, model=None, level=None, space=None, on_top_of=None, explicit_edit=False, delete=True):
     changeset_exceeded = get_changeset_exceeded(request)
     model_changes = {}
     if changeset_exceeded:
@@ -281,7 +281,7 @@ def edit(request, pk=None, model=None, level=None, space=None, on_top_of=None, e
                                               message=_('You need to log in to create Wifi Measurements.'))
 
     error = None
-    if request.method == 'POST':
+    if request.method == 'POST' or (not new and delete):
         if nosave:
             return APIHybridMessageRedirectResponse(
                 level='error', message=_('You can not edit this object because your changeset is full.'),
@@ -294,7 +294,7 @@ def edit(request, pk=None, model=None, level=None, space=None, on_top_of=None, e
                 redirect_to=request.path
             )
 
-        if not new and request.POST.get('delete') == '1':
+        if not new and ((request.POST.get('delete') == '1' and delete is not False) or delete):
             # Delete this mapitem!
             try:
                 if not request.changeset.get_changed_object(obj).can_delete():
@@ -306,7 +306,7 @@ def edit(request, pk=None, model=None, level=None, space=None, on_top_of=None, e
                     redirect_to=request.path
                 )
 
-            if request.POST.get('delete_confirm') == '1':
+            if request.POST.get('delete_confirm') == '1' or delete:
                 with request.changeset.lock_to_edit(request) as changeset:
                     if changeset.can_edit(request):
                         obj.delete()

@@ -36,6 +36,9 @@ def sidebar_view(func=None, select_related=None, api_hybrid=False):
         if not can_access_editor(request):
             raise PermissionDenied
 
+        if api_hybrid and api and func.__name__ == 'edit':
+            kwargs['delete'] = request.method == 'DELETE'
+
         request.changeset = ChangeSet.get_for_request(request, select_related)
 
         if api:
@@ -110,7 +113,7 @@ class APIHybridMessageRedirectResponse(APIHybridResponse):
     def __init__(self, level, message, redirect_to):
         self.level = level
         self.message = message
-        self.redirect_to = self.redirect_to
+        self.redirect_to = redirect_to
 
     def get_api_response(self, request):
         return {self.level: self.message}
