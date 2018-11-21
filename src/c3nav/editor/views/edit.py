@@ -5,7 +5,6 @@ from contextlib import suppress
 
 from django.conf import settings
 from django.contrib import messages
-from django.contrib.auth.views import redirect_to_login
 from django.core.cache import cache
 from django.core.exceptions import FieldDoesNotExist, ObjectDoesNotExist, PermissionDenied
 from django.db import IntegrityError, models
@@ -17,7 +16,8 @@ from django.utils.translation import ugettext_lazy as _
 from django.views.decorators.http import etag
 
 from c3nav.editor.forms import GraphEdgeSettingsForm, GraphEditorActionForm
-from c3nav.editor.views.base import etag_func, sidebar_view
+from c3nav.editor.views.base import (APIHybridError, APIHybridFormTemplateResponse, APIHybridLoginRequiredResponse,
+                                     APIHybridMessageRedirectResponse, etag_func, sidebar_view)
 from c3nav.mapdata.models.access import AccessPermission
 from c3nav.mapdata.utils.user import can_access_editor
 
@@ -121,7 +121,7 @@ def get_changeset_exceeded(request):
     return request.user_permissions.max_changeset_changes <= request.changeset.changed_objects_count
 
 
-@sidebar_view
+@sidebar_view(api_hybrid=True, allow_post=True, allow_delete=True)
 @etag(etag_func)
 def edit(request, pk=None, model=None, level=None, space=None, on_top_of=None, explicit_edit=False):
     changeset_exceeded = get_changeset_exceeded(request)
@@ -258,8 +258,10 @@ def edit(request, pk=None, model=None, level=None, space=None, on_top_of=None, e
     nosave = False
     if changeset_exceeded:
         if new:
-            messages.error(request, _('You can not create new objects because your changeset is full.'))
-            return redirect(ctx['back_url'])
+            return APIHybridMessageRedirectResponse(
+                level='error', message=_('You can not create new objects because your changeset is full.'),
+                redirect_to=ctx['back_url']
+            )
         elif obj.pk not in model_changes:
             messages.warning(request, _('You can not edit this object because your changeset is full.'))
             nosave = True
@@ -274,17 +276,22 @@ def edit(request, pk=None, model=None, level=None, space=None, on_top_of=None, e
         })
 
     if new and model.__name__ == 'WifiMeasurement' and not request.user.is_authenticated:
-        messages.info(request, _('You need to log in to create Wifi Measurements.'))
-        return redirect_to_login(request.path_info, 'editor.login')
+        return APIHybridLoginRequiredResponse(next=request.path_info, login_url='editor.login', level='info',
+                                              message=_('You need to log in to create Wifi Measurements.'))
 
+    error = None
     if request.method == 'POST':
         if nosave:
-            messages.error(request, _('You can not edit this object because your changeset is full.'))
-            return redirect(request.path)
+            return APIHybridMessageRedirectResponse(
+                level='error', message=_('You can not edit this object because your changeset is full.'),
+                redirect_to=request.path
+            )
 
         if not can_edit:
-            messages.error(request, _('You can not edit this object.'))
-            return redirect(request.path)
+            return APIHybridMessageRedirectResponse(
+                level='error', message=_('You can not edit this object.'),
+                redirect_to=request.path
+            )
 
         if not new and request.POST.get('delete') == '1':
             # Delete this mapitem!
@@ -292,24 +299,37 @@ def edit(request, pk=None, model=None, level=None, space=None, on_top_of=None, e
                 if not request.changeset.get_changed_object(obj).can_delete():
                     raise PermissionError
             except (ObjectDoesNotExist, PermissionError):
-                messages.error(request, _('You can not delete this object because other objects still depend on it.'))
-                return redirect(request.path)
+                return APIHybridMessageRedirectResponse(
+                    level='error',
+                    message=_('You can not delete this object because other objects still depend on it.'),
+                    redirect_to=request.path
+                )
 
             if request.POST.get('delete_confirm') == '1':
                 with request.changeset.lock_to_edit(request) as changeset:
                     if changeset.can_edit(request):
                         obj.delete()
                     else:
-                        messages.error(request, _('You can not edit changes on this changeset.'))
-                        return redirect(request.path)
-                messages.success(request, _('Object was successfully deleted.'))
+                        return APIHybridMessageRedirectResponse(
+                            level='error',
+                            message=_('You can not edit changes on this changeset.'),
+                            redirect_to=request.path
+                        )
+                redirect_to = None
                 if model == Level:
                     if obj.on_top_of_id is not None:
-                        return redirect(reverse('editor.levels.detail', kwargs={'pk': obj.on_top_of_id}))
-                    return redirect(reverse('editor.index'))
+                        redirect_to = reverse('editor.levels.detail', kwargs={'pk': obj.on_top_of_id})
+                    else:
+                        redirect_to = reverse('editor.index')
                 elif model == Space:
-                    return redirect(reverse('editor.spaces.list', kwargs={'level': obj.level.pk}))
-                return redirect(ctx['back_url'])
+                    redirect_to = reverse('editor.spaces.list', kwargs={'level': obj.level.pk})
+                else:
+                    redirect_to = ctx['back_url']
+                return APIHybridMessageRedirectResponse(
+                    level='success',
+                    message=_('Object was successfully deleted.'),
+                    redirect_to=redirect_to
+                )
             ctx['obj_title'] = obj.title
             return render(request, 'editor/delete.html', ctx)
 
@@ -333,7 +353,7 @@ def edit(request, pk=None, model=None, level=None, space=None, on_top_of=None, e
                     try:
                         obj.save()
                     except IntegrityError:
-                        messages.error(request, _('Duplicate entry.'))
+                        error = APIHybridError(status_code=400, message=_('Duplicate entry.'))
                     else:
                         if form.redirect_slugs is not None:
                             for slug in form.add_redirect_slugs:
@@ -343,10 +363,13 @@ def edit(request, pk=None, model=None, level=None, space=None, on_top_of=None, e
                                 obj.redirects.filter(slug=slug).delete()
 
                         form.save_m2m()
-                        messages.success(request, _('Object was successfully saved.'))
-                        return redirect(ctx['back_url'])
+                        return APIHybridMessageRedirectResponse(
+                            level='success',
+                            message=_('Object was successfully saved.'),
+                            redirect_to=ctx['back_url']
+                        )
                 else:
-                    messages.error(request, _('You can not edit changes on this changeset.'))
+                    error = APIHybridError(status_code=403, message=_('You can not edit changes on this changeset.'))
 
     else:
         form = model.EditorForm(instance=obj, request=request, space_id=space_id,
@@ -356,7 +379,7 @@ def edit(request, pk=None, model=None, level=None, space=None, on_top_of=None, e
         'form': form,
     })
 
-    return render(request, 'editor/edit.html', ctx)
+    return APIHybridFormTemplateResponse('editor/edit.html', ctx, form=form, error=error)
 
 
 def get_visible_spaces(request):

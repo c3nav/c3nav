@@ -2,6 +2,7 @@ from itertools import chain
 
 from django.db.models import Prefetch, Q
 from django.urls import Resolver404, resolve
+from django.utils.functional import cached_property
 from django.utils.translation import ugettext_lazy as _
 from rest_framework.decorators import detail_route, list_route
 from rest_framework.exceptions import NotFound, PermissionDenied, ValidationError
@@ -266,13 +267,19 @@ class EditorViewSet(ViewSet):
             'bounds': Source.max_bounds(),
         })
 
+    def __getattr__(self, name):
+        # allow POST and DELETE methods for the editor API
+        if name in ('post', 'delete'):
+            if getattr(self.resolved.func, 'allow_'+name, False):
+                if getattr(self, 'get', None).__name__ in ('list', 'retrieve'):
+                    return self.retrieve
+        raise AttributeError
+
     def list(self, request, *args, **kwargs):
         return self.retrieve(request, *args, **kwargs)
 
-    def retrieve(self, request, *args, **kwargs):
-        if not can_access_editor(request):
-            return PermissionDenied
-
+    @cached_property
+    def resolved(self):
         resolved = None
         path = self.kwargs.get('path', '')
         if path:
@@ -285,13 +292,23 @@ class EditorViewSet(ViewSet):
             try:
                 resolved = resolve('/editor/'+path)
             except Resolver404:
-                raise NotFound(_('No matching editor view endpoint found.'))
+                pass
+
+        return resolved
+
+    def retrieve(self, request, *args, **kwargs):
+        if not can_access_editor(request):
+            return PermissionDenied
+
+        resolved = self.resolved
+        if not resolved:
+            raise NotFound(_('No matching editor view endpoint found.'))
 
         if not getattr(resolved.func, 'api_hybrid', False):
             raise NotFound(_('Matching editor view point does not provide an API.'))
 
-        response = resolved.func(request, *resolved.args, **resolved.kwargs)
-        return Response(str(response))
+        response = resolved.func(request, api=True, *resolved.args, **resolved.kwargs)
+        return response
 
 
 class ChangeSetViewSet(ReadOnlyModelViewSet):
