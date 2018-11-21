@@ -8,6 +8,7 @@ from django.contrib.auth.views import redirect_to_login
 from django.contrib.messages import DEFAULT_TAGS as DEFAULT_MESSAGE_TAGS
 from django.contrib.messages import get_messages
 from django.core.exceptions import PermissionDenied
+from django.db.models import QuerySet
 from django.http import HttpResponse, HttpResponseNotModified, HttpResponseRedirect
 from django.shortcuts import redirect, render
 from django.utils.cache import patch_vary_headers
@@ -17,6 +18,7 @@ from rest_framework.response import Response as APIResponse
 
 from c3nav.editor.models import ChangeSet
 from c3nav.mapdata.models.access import AccessPermission
+from c3nav.mapdata.models.base import SerializableMixin
 from c3nav.mapdata.utils.user import can_access_editor
 
 
@@ -198,10 +200,18 @@ class APIHybridTemplateContextResponse(APIHybridResponse):
         self.ctx = ctx
         self.fields = fields
 
+    def _maybe_serialize_value(self, value):
+        if isinstance(value, SerializableMixin):
+            value = value.serialize(geometry=False)
+        elif isinstance(value, QuerySet) and issubclass(value.model, SerializableMixin):
+            value = [item.serialize(geometry=False) for item in value]
+        return value
+
     def get_api_response(self, request):
         result = self.ctx
         if self.fields:
-            result = {name: value for name, value in result.items() if name in self.fields}
+            result = {name: self._maybe_serialize_value(value)
+                      for name, value in result.items() if name in self.fields}
         return result
 
     def get_html_response(self, request):

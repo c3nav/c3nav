@@ -59,7 +59,7 @@ def main_index(request):
     }, fields=('can_create_level', 'child_models'))
 
 
-@sidebar_view
+@sidebar_view(api_hybrid=True)
 @etag(etag_func)
 def level_detail(request, pk):
     Level = request.changeset.wrap_model('Level')
@@ -71,7 +71,7 @@ def level_detail(request, pk):
     else:
         submodels = ('Space', )
 
-    return render(request, 'editor/level.html', {
+    return APIHybridTemplateContextResponse('editor/level.html', {
         'levels': Level.objects.filter(Level.q_for_request(request), on_top_of__isnull=True),
         'level': level,
         'level_url': 'editor.levels.detail',
@@ -85,7 +85,7 @@ def level_detail(request, pk):
         'levels_on_top': level.levels_on_top.filter(Level.q_for_request(request)).all(),
         'geometry_url': ('/api/editor/geometries/?level='+str(level.primary_level_pk)
                          if request.user_permissions.can_access_base_mapdata else None),
-    })
+    }, fields=('level', 'can_edit_graph', 'can_create_level', 'child_models', 'levels_on_top'))
 
 
 @sidebar_view
