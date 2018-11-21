@@ -88,7 +88,7 @@ def level_detail(request, pk):
     }, fields=('level', 'can_edit_graph', 'can_create_level', 'child_models', 'levels_on_top'))
 
 
-@sidebar_view
+@sidebar_view(api_hybrid=True)
 @etag(etag_func)
 def space_detail(request, level, pk):
     Level = request.changeset.wrap_model('Level')
@@ -105,7 +105,7 @@ def space_detail(request, level, pk):
     else:
         submodels = ('POI', 'Area', 'AltitudeMarker', 'LeaveDescription', 'CrossDescription')
 
-    return render(request, 'editor/space.html', {
+    return APIHybridTemplateContextResponse('editor/space.html', {
         'levels': Level.objects.filter(Level.q_for_request(request), on_top_of__isnull=True),
         'level': space.level,
         'level_url': 'editor.spaces.list',
@@ -115,7 +115,7 @@ def space_detail(request, level, pk):
         'child_models': [child_model(request, model_name, kwargs={'space': pk}, parent=space)
                          for model_name in submodels],
         'geometry_url': '/api/editor/geometries/?space='+pk if can_edit else None,
-    })
+    }, fields=('level', 'space', 'can_edit_graph', 'child_models'))
 
 
 def get_changeset_exceeded(request):
