@@ -113,8 +113,7 @@ def space_detail(request, level, pk):
 
         'child_models': [child_model(request, model_name, kwargs={'space': pk}, parent=space)
                          for model_name in submodels],
-        'geometry_url': ('/api/editor/geometries/?space='+pk
-                         if can_edit else None),
+        'geometry_url': '/api/editor/geometries/?space='+pk if can_edit else None,
     })
 
 
@@ -241,8 +240,7 @@ def edit(request, pk=None, model=None, level=None, space=None, on_top_of=None, e
         ctx.update({
             'level': space.level,
             'back_url': reverse('editor.'+related_name+'.list', kwargs={'space': space.pk}),
-            'geometry_url': ('/api/editor/geometries/?space='+str(space.pk)
-                             if force_geometry_editable else None),
+            'geometry_url': '/api/editor/geometries/?space='+str(space.pk) if force_geometry_editable else None,
         })
     else:
         kwargs = {}
