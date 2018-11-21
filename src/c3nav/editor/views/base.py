@@ -192,6 +192,22 @@ class APIHybridFormTemplateResponse(APIHybridResponse):
         return render(request, self.template, self.ctx)
 
 
+class APIHybridTemplateContextResponse(APIHybridResponse):
+    def __init__(self, template: str, ctx: dict, fields=None):
+        self.template = template
+        self.ctx = ctx
+        self.fields = fields
+
+    def get_api_response(self, request):
+        result = self.ctx
+        if self.fields:
+            result = {name: value for name, value in result.items() if name in self.fields}
+        return result
+
+    def get_html_response(self, request):
+        return render(request, self.template, self.ctx)
+
+
 class NoAPIHybridResponse(Exception):
     pass
 

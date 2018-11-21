@@ -17,7 +17,8 @@ from django.views.decorators.http import etag
 
 from c3nav.editor.forms import GraphEdgeSettingsForm, GraphEditorActionForm
 from c3nav.editor.views.base import (APIHybridError, APIHybridFormTemplateResponse, APIHybridLoginRequiredResponse,
-                                     APIHybridMessageRedirectResponse, etag_func, sidebar_view)
+                                     APIHybridMessageRedirectResponse, APIHybridTemplateContextResponse, etag_func,
+                                     sidebar_view)
 from c3nav.mapdata.models.access import AccessPermission
 from c3nav.mapdata.utils.user import can_access_editor
 
@@ -39,11 +40,11 @@ def child_model(request, model: typing.Union[str, models.Model], kwargs=None, pa
     }
 
 
-@sidebar_view
+@sidebar_view(api_hybrid=True)
 @etag(etag_func)
 def main_index(request):
     Level = request.changeset.wrap_model('Level')
-    return render(request, 'editor/index.html', {
+    return APIHybridTemplateContextResponse('editor/index.html', {
         'levels': Level.objects.filter(Level.q_for_request(request), on_top_of__isnull=True),
         'can_create_level': (request.user_permissions.can_access_base_mapdata and
                              request.changeset.can_edit(request)),
@@ -55,7 +56,7 @@ def main_index(request):
             child_model(request, 'AccessRestrictionGroup'),
             child_model(request, 'Source'),
         ],
-    })
+    }, fields=('can_create_level', 'child_models'))
 
 
 @sidebar_view
