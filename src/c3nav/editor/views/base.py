@@ -11,25 +11,34 @@ from c3nav.mapdata.models.access import AccessPermission
 from c3nav.mapdata.utils.user import can_access_editor
 
 
-def sidebar_view(func=None, select_related=None):
+def sidebar_view(func=None, select_related=None, api_hybrid=False):
     if func is None:
         def wrapped(inner_func):
-            return sidebar_view(inner_func, select_related)
+            return sidebar_view(inner_func, select_related=select_related, api_hybrid=api_hybrid)
         return wrapped
 
     @wraps(func)
-    def with_ajax_check(request, *args, **kwargs):
+    def wrapped(request, *args, api=False, **kwargs):
+        if api and api_hybrid:
+            raise Exception('API call on a view without api_hybrid!')
+
         if not can_access_editor(request):
             raise PermissionDenied
 
         request.changeset = ChangeSet.get_for_request(request, select_related)
 
-        ajax = request.is_ajax() or 'ajax' in request.GET
+        if api:
+            return call_api_hybrid_view_for_api(func, request, *args, **kwargs)
 
+        ajax = request.is_ajax() or 'ajax' in request.GET
         if not ajax:
             request.META.pop('HTTP_IF_NONE_MATCH', None)
 
-        response = func(request, *args, **kwargs)
+        if api_hybrid:
+            response = call_api_hybrid_view_for_html(func, request, *args, **kwargs)
+        else:
+            response = func(request, *args, **kwargs)
+
         if ajax:
             if isinstance(response, HttpResponseRedirect):
                 return render(request, 'editor/redirect.html', {'target': response['location']})
@@ -44,8 +53,19 @@ def sidebar_view(func=None, select_related=None):
         response['Cache-Control'] = 'no-cache'
         patch_vary_headers(response, ('X-Requested-With', ))
         return response
+    wrapped.api_hybrid = api_hybrid
 
-    return with_ajax_check
+    return wrapped
+
+
+def call_api_hybrid_view_for_api(func, request, *args, **kwargs):
+    response = func(request, *args, **kwargs)
+    return response
+
+
+def call_api_hybrid_view_for_html(func, request, *args, **kwargs):
+    response = func(request, *args, **kwargs)
+    return response
 
 
 def etag_func(request, *args, **kwargs):

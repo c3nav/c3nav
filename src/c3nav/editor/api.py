@@ -1,8 +1,10 @@
 from itertools import chain
 
 from django.db.models import Prefetch, Q
+from django.urls import Resolver404, resolve
+from django.utils.translation import ugettext_lazy as _
 from rest_framework.decorators import detail_route, list_route
-from rest_framework.exceptions import PermissionDenied, ValidationError
+from rest_framework.exceptions import NotFound, PermissionDenied, ValidationError
 from rest_framework.generics import get_object_or_404
 from rest_framework.response import Response
 from rest_framework.viewsets import ReadOnlyModelViewSet, ViewSet
@@ -23,6 +25,9 @@ class EditorViewSet(ViewSet):
     /geometrystyles/ returns styling information for all geometry types
     /bounds/ returns the maximum bounds of the map
     """
+    lookup_field = 'path'
+    lookup_value_regex = r'.+'
+
     @staticmethod
     def _get_level_geometries(level):
         buildings = level.buildings.all()
@@ -260,6 +265,33 @@ class EditorViewSet(ViewSet):
         return Response({
             'bounds': Source.max_bounds(),
         })
+
+    def list(self, request, *args, **kwargs):
+        return self.retrieve(request, *args, **kwargs)
+
+    def retrieve(self, request, *args, **kwargs):
+        if not can_access_editor(request):
+            return PermissionDenied
+
+        resolved = None
+        path = self.kwargs.get('path', '')
+        if path:
+            try:
+                resolved = resolve('/editor/'+path+'/')
+            except Resolver404:
+                pass
+
+        if not resolved:
+            try:
+                resolved = resolve('/editor/'+path)
+            except Resolver404:
+                raise NotFound(_('No matching editor view endpoint found.'))
+
+        if not getattr(resolved.func, 'api_hybrid', False):
+            raise NotFound(_('Matching editor view point does not provide an API.'))
+
+        response = resolved.func(request, *resolved.args, **resolved.kwargs)
+        return Response(str(response))
 
 
 class ChangeSetViewSet(ReadOnlyModelViewSet):
