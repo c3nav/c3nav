@@ -20,11 +20,11 @@ from c3nav.mapdata.models.access import AccessPermission
 from c3nav.mapdata.utils.user import can_access_editor
 
 
-def sidebar_view(func=None, select_related=None, api_hybrid=False, allow_post=True, allow_delete=True):
+def sidebar_view(func=None, select_related=None, api_hybrid=False, allow_post=False, allow_delete=False):
     if func is None:
         def wrapped(inner_func):
             return sidebar_view(inner_func, select_related=select_related, api_hybrid=api_hybrid,
-                                allow_post=True, allow_delete=True)
+                                allow_post=allow_post, allow_delete=allow_delete)
         return wrapped
 
     @wraps(func)
