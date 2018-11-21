@@ -72,6 +72,11 @@ class APIRoot(GenericAPIView):
             name = urlpattern.name
             url = self._format_pattern(str(urlpattern.pattern)).replace('{pk}', '{id}')
             base = url.split('/', 1)[0]
+            if base == 'editor':
+                if name == 'editor-list':
+                    continue
+                if name == 'editor-detail':
+                    name = 'editor-api'
             if '-' in name:
                 urls.setdefault(base, OrderedDict())[name.split('-', 1)[1]] = url
             else:
