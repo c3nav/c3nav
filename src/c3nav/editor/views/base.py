@@ -5,6 +5,8 @@ from typing import Optional
 
 from django.contrib import messages
 from django.contrib.auth.views import redirect_to_login
+from django.contrib.messages import DEFAULT_TAGS as DEFAULT_MESSAGE_TAGS
+from django.contrib.messages import get_messages
 from django.core.exceptions import PermissionDenied
 from django.http import HttpResponse, HttpResponseNotModified, HttpResponseRedirect
 from django.shortcuts import redirect, render
@@ -197,7 +199,19 @@ class NoAPIHybridResponse(Exception):
 def call_api_hybrid_view_for_api(func, request, *args, **kwargs):
     response = func(request, *args, **kwargs)
     if isinstance(response, APIHybridResponse):
-        api_response = APIResponse(response.get_api_response(request), status=response.status_code)
+        result = OrderedDict(response.get_api_response(request))
+
+        messages = []
+        for message in get_messages(request):
+            messages.append({
+                'level': DEFAULT_MESSAGE_TAGS[message.level],
+                'message': message.message
+            })
+        if messages:
+            result['messages'] = messages
+            result.move_to_end('messages', last=False)
+
+        api_response = APIResponse(result, status=response.status_code)
         if response.etag:
             api_response['ETag'] = response.etag
         if response.last_modified:
