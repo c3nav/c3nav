@@ -145,6 +145,9 @@ class APIHybridError:
 
 
 class APIHybridFormTemplateResponse(APIHybridResponse):
+    name_to_type_mapping = {
+        'geometry': 'geojson'
+    }
     type_mapping = {
         'TextInput': 'text',
         'NumberInput': 'number',
@@ -152,6 +155,7 @@ class APIHybridFormTemplateResponse(APIHybridResponse):
         'CheckboxInput': 'boolean',
         'Select': 'single_choice',
         'SelectMultiple': 'multiple_choice',
+        'HiddenInput': 'hidden',
     }
 
     def __init__(self, template: str, ctx: dict, form, error: Optional[APIHybridError]):
@@ -175,7 +179,7 @@ class APIHybridFormTemplateResponse(APIHybridResponse):
             for name, field in self.form.fields.items():
                 widget = field.widget
                 field = {
-                    'type': self.type_mapping[type(widget).__name__],
+                    'type': self.name_to_type_mapping.get(name, None) or self.type_mapping[type(widget).__name__],
                     "required": field.required
                 }
                 if hasattr(widget, 'choices'):
