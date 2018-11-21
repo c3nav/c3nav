@@ -32,14 +32,6 @@ class EditorFormBase(I18nModelFormMixin, ModelForm):
             if self.instance.author_id is None:
                 self.instance.author = request.user
 
-        if 'level' in self.fields:
-            # hide level widget
-            self.fields['level'].widget = HiddenInput()
-
-        if 'space' in self.fields:
-            # hide space widget
-            self.fields['space'].widget = HiddenInput()
-
         if 'geometry' in self.fields:
             if not request.user_permissions.can_access_base_mapdata and not force_geometry_editable:
                 # can't see this geometry in editor
