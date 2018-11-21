@@ -269,10 +269,13 @@ class EditorViewSet(ViewSet):
 
     def __getattr__(self, name):
         # allow POST and DELETE methods for the editor API
-        if name in ('post', 'delete'):
-            if getattr(self.resolved.func, 'allow_'+name, False):
-                if getattr(self, 'get', None).__name__ in ('list', 'retrieve'):
-                    return self.retrieve
+
+        if getattr(self, 'get', None).__name__ in ('list', 'retrieve'):
+            if name == 'post' and (self.resolved.url_name.endswith('.create') or
+                                   self.resolved.url_name.endswith('.edit')):
+                return self.retrieve
+            if name == 'delete' and self.resolved.url_name.endswith('.edit'):
+                return self.retrieve
         raise AttributeError
 
     def list(self, request, *args, **kwargs):

@@ -122,7 +122,7 @@ def get_changeset_exceeded(request):
     return request.user_permissions.max_changeset_changes <= request.changeset.changed_objects_count
 
 
-@sidebar_view(api_hybrid=True, allow_post=True, allow_delete=True)
+@sidebar_view(api_hybrid=True)
 @etag(etag_func)
 def edit(request, pk=None, model=None, level=None, space=None, on_top_of=None, explicit_edit=False):
     changeset_exceeded = get_changeset_exceeded(request)

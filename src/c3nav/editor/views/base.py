@@ -22,11 +22,10 @@ from c3nav.mapdata.models.base import SerializableMixin
 from c3nav.mapdata.utils.user import can_access_editor
 
 
-def sidebar_view(func=None, select_related=None, api_hybrid=False, allow_post=False, allow_delete=False):
+def sidebar_view(func=None, select_related=None, api_hybrid=False):
     if func is None:
         def wrapped(inner_func):
-            return sidebar_view(inner_func, select_related=select_related, api_hybrid=api_hybrid,
-                                allow_post=allow_post, allow_delete=allow_delete)
+            return sidebar_view(inner_func, select_related=select_related, api_hybrid=api_hybrid)
         return wrapped
 
     @wraps(func)
@@ -67,8 +66,6 @@ def sidebar_view(func=None, select_related=None, api_hybrid=False, allow_post=Fa
         return response
 
     wrapped.api_hybrid = api_hybrid
-    wrapped.allow_post = allow_post
-    wrapped.allow_delete = allow_delete
 
     return wrapped
 
