@@ -225,6 +225,7 @@ MIDDLEWARE = [
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     'c3nav.mapdata.middleware.UserDataMiddleware',
     'c3nav.control.middleware.UserPermissionsMiddleware',
+    'c3nav.api.middleware.JsonRequestBodyMiddleware',
 ]
 
 with suppress(ImportError):

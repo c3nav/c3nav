@@ -124,7 +124,7 @@ def get_changeset_exceeded(request):
 
 @sidebar_view(api_hybrid=True)
 @etag(etag_func)
-def edit(request, pk=None, model=None, level=None, space=None, on_top_of=None, explicit_edit=False, delete=True):
+def edit(request, pk=None, model=None, level=None, space=None, on_top_of=None, explicit_edit=False):
     changeset_exceeded = get_changeset_exceeded(request)
     model_changes = {}
     if changeset_exceeded:
@@ -281,6 +281,7 @@ def edit(request, pk=None, model=None, level=None, space=None, on_top_of=None, e
                                               message=_('You need to log in to create Wifi Measurements.'))
 
     error = None
+    delete = getattr(request, 'is_delete', False)
     if request.method == 'POST' or (not new and delete):
         if nosave:
             return APIHybridMessageRedirectResponse(
@@ -334,7 +335,8 @@ def edit(request, pk=None, model=None, level=None, space=None, on_top_of=None, e
             ctx['obj_title'] = obj.title
             return render(request, 'editor/delete.html', ctx)
 
-        form = model.EditorForm(instance=model() if new else obj, data=request.POST,
+        data = getattr(request, 'json_body', request.POST)
+        form = model.EditorForm(instance=model() if new else obj, data=data,
                                 request=request, space_id=space_id, force_geometry_editable=force_geometry_editable)
         if form.is_valid():
             # Update/create objects

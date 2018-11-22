@@ -361,7 +361,7 @@ class ChangedObject(models.Model):
             pks = set(related_obj.pk for related_obj in getattr(obj, name).all())
         elif not self.is_created:
             field = self.model_class._meta.get_field(name)
-            rel_name = field.rel.related_name
+            rel_name = field.remote_field.related_name
             pks = set(field.related_model.objects.filter(**{rel_name+'__pk': self.obj_pk}).values_list('pk', flat=True))
         else:
             pks = set()

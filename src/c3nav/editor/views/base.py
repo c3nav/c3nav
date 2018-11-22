@@ -36,12 +36,10 @@ def sidebar_view(func=None, select_related=None, api_hybrid=False):
         if not can_access_editor(request):
             raise PermissionDenied
 
-        if api_hybrid and api and func.__name__ == 'edit':
-            kwargs['delete'] = request.method == 'DELETE'
-
         request.changeset = ChangeSet.get_for_request(request, select_related)
 
         if api:
+            request.is_delete = request.method == 'DELETE'
             return call_api_hybrid_view_for_api(func, request, *args, **kwargs)
 
         ajax = request.is_ajax() or 'ajax' in request.GET
