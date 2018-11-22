@@ -4,6 +4,7 @@ import typing
 
 from django.conf import settings
 from django.core.exceptions import ValidationError
+from django.core.serializers.json import DjangoJSONEncoder
 from django.db import models
 from django.utils.functional import cached_property, lazy
 from django.utils.text import format_lazy
@@ -122,7 +123,7 @@ class JSONField(models.TextField):
         return value
 
     def get_prep_value(self, value):
-        return json.dumps(value)
+        return json.dumps(value, cls=DjangoJSONEncoder)
 
     def value_to_string(self, obj):
         value = self.value_from_object(obj)

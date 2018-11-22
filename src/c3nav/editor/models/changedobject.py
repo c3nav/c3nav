@@ -1,5 +1,6 @@
 import typing
 from collections import OrderedDict
+from decimal import Decimal
 from itertools import chain
 
 from django.contrib.contenttypes.models import ContentType
@@ -49,6 +50,9 @@ class ChangedObject(models.Model):
         self._m2m_removed_cache = {name: set(values) for name, values in self.m2m_removed.items()}
         if model_class is not None:
             self.model_class = model_class
+        for field in self.model_class._meta.get_fields():
+            if field.name in self.updated_fields and isinstance(field, DecimalField):
+                self.updated_fields[field.name] = Decimal(self.updated_fields[field.name])
 
     @property
     def model_class(self) -> typing.Optional[typing.Type[models.Model]]:
@@ -247,8 +251,6 @@ class ChangedObject(models.Model):
                 if isinstance(field, I18nField):
                     for lang, subvalue in value.items():
                         self.updated_fields['%s__i18n__%s' % (field.name, lang)] = subvalue
-                elif isinstance(field, DecimalField):
-                    self.updated_fields[field.name] = None if value is None else str(value)
                 elif isinstance(field, (CharField, TextField)):
                     self.updated_fields[field.name] = None if field.null and not value else field.get_prep_value(value)
                 else:
