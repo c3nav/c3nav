@@ -273,10 +273,18 @@ class EditorViewSet(ViewSet):
         if getattr(self, 'get', None).__name__ in ('list', 'retrieve'):
             if name == 'post' and (self.resolved.url_name.endswith('.create') or
                                    self.resolved.url_name.endswith('.edit')):
-                return self.retrieve
+                return self.post_or_delete
             if name == 'delete' and self.resolved.url_name.endswith('.edit'):
-                return self.retrieve
+                return self.post_or_delete
         raise AttributeError
+
+    def post_or_delete(self, request, *args, **kwargs):
+        # Django REST Framework does only check csrf on logged in requests.
+        # So let's make the entire writable c3nav API require a login.
+        if not request.user.is_authenticated:
+            raise PermissionDenied(_('Login required.'))
+
+        return self.retrieve(request, *args, **kwargs)
 
     def list(self, request, *args, **kwargs):
         return self.retrieve(request, *args, **kwargs)
