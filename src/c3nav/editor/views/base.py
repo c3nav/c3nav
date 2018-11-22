@@ -182,6 +182,8 @@ class APIHybridFormTemplateResponse(APIHybridResponse):
                 }
                 if hasattr(widget, 'choices'):
                     field['choices'] = dict(widget.choices)
+                if hasattr(widget, 'disabled'):
+                    field['disabled'] = True
                 field.update(widget.attrs)
                 field.update({
                     'value': self.form[name].value(),
