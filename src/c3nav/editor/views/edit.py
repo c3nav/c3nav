@@ -261,7 +261,7 @@ def edit(request, pk=None, model=None, level=None, space=None, on_top_of=None, e
         if new:
             return APIHybridMessageRedirectResponse(
                 level='error', message=_('You can not create new objects because your changeset is full.'),
-                redirect_to=ctx['back_url'], status_code=403,
+                redirect_to=ctx['back_url'], status_code=409,
             )
         elif obj.pk not in model_changes:
             messages.warning(request, _('You can not edit this object because your changeset is full.'))
@@ -286,7 +286,7 @@ def edit(request, pk=None, model=None, level=None, space=None, on_top_of=None, e
         if nosave:
             return APIHybridMessageRedirectResponse(
                 level='error', message=_('You can not edit this object because your changeset is full.'),
-                redirect_to=request.path, status_code=403,
+                redirect_to=request.path, status_code=409,
             )
 
         if not can_edit:
@@ -304,7 +304,7 @@ def edit(request, pk=None, model=None, level=None, space=None, on_top_of=None, e
                 return APIHybridMessageRedirectResponse(
                     level='error',
                     message=_('You can not delete this object because other objects still depend on it.'),
-                    redirect_to=request.path, status_code=403,
+                    redirect_to=request.path, status_code=409,
                 )
 
             if request.POST.get('delete_confirm') == '1' or delete:

@@ -112,6 +112,8 @@ class APIHybridMessageRedirectResponse(APIHybridResponse):
         self.level = level
         self.message = message
         self.redirect_to = redirect_to
+        if self.level == 'error' and status_code is None:
+            raise Exception('Error with HTTP 200 makes no sense!')
         self.status_code = status_code
 
     def get_api_response(self, request):
