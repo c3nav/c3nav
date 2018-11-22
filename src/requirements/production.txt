@@ -2,7 +2,7 @@ Django>=2.1,<2.2
 django-bootstrap3>=11.0,<11.1
 django-compressor==2.2
 csscompressor
-djangorestframework>=3.8,<3.9
+djangorestframework>=3.9,<3.10
 django-filter>=2.0,<2.1
 shapely>=1.6,<1.7
 -e git://github.com/c3nav/meshpy#egg=MeshPy
