@@ -108,10 +108,11 @@ class APIHybridResponse(ABC):
 
 
 class APIHybridMessageRedirectResponse(APIHybridResponse):
-    def __init__(self, level, message, redirect_to):
+    def __init__(self, level, message, redirect_to, status_code=None):
         self.level = level
         self.message = message
         self.redirect_to = redirect_to
+        self.status_code = status_code
 
     def get_api_response(self, request):
         return {self.level: self.message}
