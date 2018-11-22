@@ -23,7 +23,7 @@ from c3nav.mapdata.models.access import AccessPermission
 
 
 class EditorFormBase(I18nModelFormMixin, ModelForm):
-    def __init__(self, *args, space_id=None, request=None, force_geometry_editable=False, **kwargs):
+    def __init__(self, *args, space_id=None, request=None, force_geometry_editable=False, is_json=False, **kwargs):
         self.request = request
         super().__init__(*args, **kwargs)
         creating = not self.instance.pk
@@ -185,6 +185,10 @@ class EditorFormBase(I18nModelFormMixin, ModelForm):
         if 'data' in self.fields and 'data' in self.initial:
             self.initial['data'] = json.dumps(self.initial['data'])
 
+        self.is_json = is_json
+        self.missing_fields = tuple((name, field) for name, field in self.fields.items()
+                                    if name not in self.data and not field.required)
+
     def clean_redirect_slugs(self):
         old_redirect_slugs = set(self.redirect_slugs)
         new_redirect_slugs = set(s for s in (s.strip() for s in self.cleaned_data['redirect_slugs'].split(',')) if s)
@@ -222,6 +226,10 @@ class EditorFormBase(I18nModelFormMixin, ModelForm):
         return data
 
     def clean(self):
+        if self.is_json:
+            for name, field in self.missing_fields:
+                self.add_error(name, field.error_messages['required'])
+
         if 'geometry' in self.fields:
             if not self.cleaned_data.get('geometry'):
                 raise ValidationError('Missing geometry.')

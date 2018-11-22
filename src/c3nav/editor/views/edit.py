@@ -335,8 +335,9 @@ def edit(request, pk=None, model=None, level=None, space=None, on_top_of=None, e
             ctx['obj_title'] = obj.title
             return render(request, 'editor/delete.html', ctx)
 
-        data = getattr(request, 'json_body', request.POST)
-        form = model.EditorForm(instance=model() if new else obj, data=data,
+        json_body = getattr(request, 'json_body', None)
+        data = json_body if json_body is not None else request.POST
+        form = model.EditorForm(instance=model() if new else obj, data=data, is_json=True,
                                 request=request, space_id=space_id, force_geometry_editable=force_geometry_editable)
         if form.is_valid():
             # Update/create objects
