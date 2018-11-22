@@ -155,6 +155,16 @@ class APIHybridFormTemplateResponse(APIHybridResponse):
         'SelectMultiple': 'multiple_choice',
         'HiddenInput': 'hidden',
     }
+    type_required_mapping = {
+        # name, inverted, only_required
+        'TextInput': ('allowed_empty', True, False),
+        'NumberInput': ('null_allowed', True, False),
+        'Textarea': ('allowed_empty', True, False),
+        'CheckboxInput': ('true_required', False, True),
+        'Select': ('choice_required', False, False),
+        'SelectMultiple': ('choice_required', False, False),
+        'HiddenInput': ('null_allowed', True, False),
+    }
 
     def __init__(self, template: str, ctx: dict, form, error: Optional[APIHybridError]):
         self.template = template
@@ -176,10 +186,13 @@ class APIHybridFormTemplateResponse(APIHybridResponse):
             form = OrderedDict()
             for name, field in self.form.fields.items():
                 widget = field.widget
+                required = field.required
                 field = {
                     'type': self.name_to_type_mapping.get(name, None) or self.type_mapping[type(widget).__name__],
-                    "required": field.required
                 }
+                required_name, required_invert, required_only_true = self.type_required_mapping[type(widget).__name__]
+                if not required_only_true or required:
+                    field[required_name] = not required if required_invert else required
                 if hasattr(widget, 'choices'):
                     field['choices'] = dict(widget.choices)
                 if hasattr(widget, 'disabled'):
