@@ -53,11 +53,6 @@ def register_view(request):
         if form.is_valid():
             user = form.save()
             login(request, user)
-
-            if request.changeset.pk is not None:
-                request.changeset.author = user
-                request.changeset.save()
-
             return redirect(redirect_path)
     else:
         form = UserCreationForm()

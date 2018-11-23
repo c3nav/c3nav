@@ -92,7 +92,7 @@ class ChangeSet(models.Model):
         return ChangeSet.objects.none()
 
     @classmethod
-    def get_for_request(cls, request, select_related=None):
+    def get_for_request(cls, request, select_related=None, as_logged_out=False):
         """
         Get the changeset for the current request.
         If a changeset is associated with the session id, it will be returned.
@@ -108,9 +108,9 @@ class ChangeSet(models.Model):
         changeset_pk = request.session.get('changeset')
         if changeset_pk is not None:
             qs = ChangeSet.objects.select_related(*select_related).exclude(state__in=('applied', 'finallyrejected'))
-            if request.user.is_authenticated:
+            if request.user.is_authenticated and not as_logged_out:
                 if not request.user_permissions.review_changesets:
-                    qs = qs.filter(Q(author=request.user) | Q(author__isnull=True))
+                    qs = qs.filter(author=request.user)
             else:
                 qs = qs.filter(author__isnull=True)
             try:
