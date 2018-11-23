@@ -8,6 +8,7 @@ from rest_framework.generics import GenericAPIView
 from rest_framework.response import Response
 from rest_framework.routers import SimpleRouter
 
+from c3nav.api.api import SessionViewSet
 from c3nav.editor.api import ChangeSetViewSet, EditorViewSet
 from c3nav.mapdata.api import (AccessRestrictionGroupViewSet, AccessRestrictionViewSet, AreaViewSet, BuildingViewSet,
                                ColumnViewSet, CrossDescriptionViewSet, DoorViewSet, HoleViewSet,
@@ -49,6 +50,7 @@ router.register(r'routing', RoutingViewSet, base_name='routing')
 
 router.register(r'editor', EditorViewSet, base_name='editor')
 router.register(r'changesets', ChangeSetViewSet)
+router.register(r'session', SessionViewSet, base_name='session')
 
 
 class APIRoot(GenericAPIView):
@@ -77,6 +79,9 @@ class APIRoot(GenericAPIView):
                     continue
                 if name == 'editor-detail':
                     name = 'editor-api'
+            elif base == 'session':
+                if name == 'session-list':
+                    name = 'session-info'
             if '-' in name:
                 urls.setdefault(base, OrderedDict())[name.split('-', 1)[1]] = url
             else:
