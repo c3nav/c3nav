@@ -110,7 +110,7 @@ class ChangeSet(models.Model):
             qs = ChangeSet.objects.select_related(*select_related).exclude(state__in=('applied', 'finallyrejected'))
             if request.user.is_authenticated:
                 if not request.user_permissions.review_changesets:
-                    qs = qs.filter(author=request.user)
+                    qs = qs.filter(Q(author=request.user) | Q(author__isnull=True))
             else:
                 qs = qs.filter(author__isnull=True)
             try:
