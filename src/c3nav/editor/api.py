@@ -4,6 +4,7 @@ from django.db.models import Prefetch, Q
 from django.urls import Resolver404, resolve
 from django.utils.functional import cached_property
 from django.utils.translation import ugettext_lazy as _
+from rest_framework.authentication import SessionAuthentication
 from rest_framework.decorators import action
 from rest_framework.exceptions import NotFound, PermissionDenied, ValidationError
 from rest_framework.generics import get_object_or_404
@@ -279,10 +280,8 @@ class EditorViewSet(ViewSet):
         raise AttributeError
 
     def post_or_delete(self, request, *args, **kwargs):
-        # Django REST Framework does only check csrf on logged in requests.
-        # So let's make the entire writable c3nav API require a login.
-        if not request.user.is_authenticated:
-            raise PermissionDenied(_('Login required.'))
+        # django-rest-framework doesn't automatically do this for logged out requests
+        SessionAuthentication().enforce_csrf(request)
 
         return self.retrieve(request, *args, **kwargs)
 
