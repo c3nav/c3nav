@@ -19,10 +19,6 @@ def login_view(request):
         form = AuthenticationForm(request, data=request.POST)
         if form.is_valid():
             login(request, form.user_cache)
-
-            if request.changeset.pk is not None:
-                request.changeset.author = form.user_cache
-                request.changeset.save()
             return redirect(redirect_path)
     else:
         form = AuthenticationForm(request)
