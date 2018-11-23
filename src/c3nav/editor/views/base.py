@@ -182,7 +182,7 @@ class APIHybridFormTemplateResponse(APIHybridResponse):
             self.status_code = self.error.status_code
         if request.method == 'POST':
             if not self.form.is_valid():
-                if not self.form.is_valid() and self.status_code is None:
+                if self.status_code is None:
                     self.status_code = 400
                 result['form_errors'] = self.form.errors
         else:
