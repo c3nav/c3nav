@@ -4,7 +4,7 @@ from django.db.models import Prefetch, Q
 from django.urls import Resolver404, resolve
 from django.utils.functional import cached_property
 from django.utils.translation import ugettext_lazy as _
-from rest_framework.decorators import detail_route, list_route
+from rest_framework.decorators import action
 from rest_framework.exceptions import NotFound, PermissionDenied, ValidationError
 from rest_framework.generics import get_object_or_404
 from rest_framework.response import Response
@@ -75,7 +75,7 @@ class EditorViewSet(ViewSet):
         return levels, levels_on_top, levels_under
 
     # noinspection PyPep8Naming
-    @list_route(methods=['get'])
+    @action(detail=False, methods=['get'])
     @api_etag(etag_func=etag_func, cache_parameters={'level': str, 'space': str})
     def geometries(self, request, *args, **kwargs):
         if not can_access_editor(request):
@@ -232,7 +232,7 @@ class EditorViewSet(ViewSet):
         else:
             raise ValidationError('No level or space specified.')
 
-    @list_route(methods=['get'])
+    @action(detail=False, methods=['get'])
     @api_etag(etag_func=MapUpdate.current_cache_key, cache_parameters={})
     def geometrystyles(self, request, *args, **kwargs):
         if not can_access_editor(request):
@@ -257,7 +257,7 @@ class EditorViewSet(ViewSet):
             'wifimeasurement': '#DDDD00',
         })
 
-    @list_route(methods=['get'])
+    @action(detail=False, methods=['get'])
     @api_etag(etag_func=etag_func, cache_parameters={})
     def bounds(self, request, *args, **kwargs):
         if not can_access_editor(request):
@@ -344,14 +344,14 @@ class ChangeSetViewSet(ReadOnlyModelViewSet):
             return PermissionDenied
         return Response(self.get_object().serialize())
 
-    @list_route(methods=['get'])
+    @action(detail=False, methods=['get'])
     def current(self, request, *args, **kwargs):
         if not can_access_editor(request):
             return PermissionDenied
         changeset = ChangeSet.get_for_request(request)
         return Response(changeset.serialize())
 
-    @detail_route(methods=['get'])
+    @action(detail=True, methods=['get'])
     def changes(self, request, *args, **kwargs):
         if not can_access_editor(request):
             return PermissionDenied

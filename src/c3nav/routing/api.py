@@ -1,6 +1,6 @@
 from django.core.exceptions import ValidationError
 from django.utils.translation import ugettext_lazy as _
-from rest_framework.decorators import list_route
+from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.viewsets import ViewSet
 
@@ -19,7 +19,7 @@ class RoutingViewSet(ViewSet):
     /options/ Get or set route options.
     /locate/ Wifi locate.
     """
-    @list_route(methods=['get', 'post'])
+    @action(detail=False, methods=['get', 'post'])
     def route(self, request, *args, **kwargs):
         params = request.POST if request.method == 'POST' else request.GET
         form = RouteForm(params, request=request)
@@ -64,7 +64,7 @@ class RoutingViewSet(ViewSet):
             'result': route.serialize(locations=visible_locations_for_request(request)),
         })
 
-    @list_route(methods=['get', 'post'])
+    @action(detail=False, methods=['get', 'post'])
     def options(self, request, *args, **kwargs):
         options = RouteOptions.get_for_request(request)
 
@@ -79,7 +79,7 @@ class RoutingViewSet(ViewSet):
 
         return Response(options.serialize())
 
-    @list_route(methods=('POST', ))
+    @action(detail=False, methods=('POST', ))
     def locate(self, request, *args, **kwargs):
         try:
             location = Locator.load().locate(request.data, permissions=AccessPermission.get_for_request(request))

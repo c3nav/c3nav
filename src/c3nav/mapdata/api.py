@@ -12,7 +12,7 @@ from django.utils.cache import get_conditional_response
 from django.utils.http import http_date, quote_etag, urlsafe_base64_encode
 from django.utils.translation import get_language
 from django.utils.translation import ugettext_lazy as _
-from rest_framework.decorators import detail_route, list_route
+from rest_framework.decorators import action
 from rest_framework.exceptions import NotFound, ValidationError
 from rest_framework.mixins import RetrieveModelMixin
 from rest_framework.response import Response
@@ -84,7 +84,7 @@ class MapViewSet(ViewSet):
     /bounds/ returns the maximum bounds of the map
     """
 
-    @list_route(methods=['get'])
+    @action(detail=False, methods=['get'])
     @api_etag(permissions=False, cache_parameters={})
     def bounds(self, request, *args, **kwargs):
         return Response({
@@ -205,7 +205,7 @@ class LevelViewSet(MapdataViewSet):
     """
     queryset = Level.objects.all()
 
-    @list_route(methods=['get'])
+    @action(detail=False, methods=['get'])
     @api_etag(permissions=False, cache_parameters={})
     def geometrytypes(self, request):
         return self.list_types(get_submodels(LevelGeometryMixin))
@@ -225,7 +225,7 @@ class SpaceViewSet(MapdataViewSet):
     queryset = Space.objects.all()
     base_mapdata = True
 
-    @list_route(methods=['get'])
+    @action(detail=False, methods=['get'])
     @api_etag(permissions=False, cache_parameters={})
     def geometrytypes(self, request):
         return self.list_types(get_submodels(SpaceGeometryMixin))
@@ -329,7 +329,7 @@ class LocationViewSetBase(RetrieveModelMixin, GenericViewSet):
                                            geometry=geometry and MapdataViewSet.can_access_geometry(request, location),
                                            simple_geometry=True))
 
-    @detail_route(methods=['get'])
+    @action(detail=True, methods=['get'])
     @api_etag(base_mapdata_check=True)
     def details(self, request, **kwargs):
         location = self.get_object()
@@ -391,7 +391,7 @@ class LocationViewSet(LocationViewSetBase):
 
         return Response(result)
 
-    @list_route(methods=['get'])
+    @action(detail=False, methods=['get'])
     @api_etag(permissions=False)
     def types(self, request):
         return MapdataViewSet.list_types(get_submodels(Location), geomtype=False)
@@ -410,7 +410,7 @@ class SourceViewSet(MapdataViewSet):
     queryset = Source.objects.all()
     order_by = ('name',)
 
-    @detail_route(methods=['get'])
+    @action(detail=True, methods=['get'])
     def image(self, request, pk=None):
         return self._image(request, pk=pk)
 
@@ -439,7 +439,7 @@ class UpdatesViewSet(GenericViewSet):
     Set the tile access cookie.
     The tile access cookie is only valid for 1 minute, so if you are displaying a map, call this endpoint repeatedly.
     """
-    @list_route(methods=['get'])
+    @action(detail=False, methods=['get'])
     def fetch(self, request, key=None):
         cross_origin = request.META.get('HTTP_ORIGIN')
         if cross_origin is not None:
