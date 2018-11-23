@@ -32,7 +32,7 @@ class SessionViewSet(ViewSet):
         SessionAuthentication().enforce_csrf(request)
 
         if request.user.is_authenticated:
-            return ParseError(_('Log out first.'))
+            raise ParseError(_('Log out first.'))
 
         try:
             data = request.json_body
