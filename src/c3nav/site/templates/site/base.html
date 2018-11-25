@@ -18,8 +18,8 @@
         <link href="{% static 'site/css/c3nav.scss' %}" rel="stylesheet" type="text/x-scss">
     {% endcompress %}
 </head>
-<body>
-    {% if not embed %}
+<body{% if mobileclient %} data-user-data="{{ user_data_json }}"{% endif %}>
+    {% if not embed and not mobileclient %}
         <header>
             <h1><a href="{% block header_title_url %}/{% endblock %}">
                 {% if header_logo %}<img src="{% static header_logo %}">{% else %}c3nav {% endif %}{% spaceless %}

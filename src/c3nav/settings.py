@@ -297,6 +297,8 @@ TEMPLATES = [
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
                 'c3nav.site.context_processors.logos',
+                'c3nav.site.context_processors.mobileclient',
+                'c3nav.site.context_processors.user_data_json',
             ],
             'loaders': template_loaders
         },

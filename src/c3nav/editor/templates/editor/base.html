@@ -17,8 +17,9 @@
         <link href="{% static 'editor/css/editor.scss' %}" rel="stylesheet" type="text/x-scss">
     {% endcompress %}
   </head>
-  <body>
+  <body{% if mobileclient %} data-user-data="{{ user_data_json }}" data-count-display="{{ request.changeset.count_display }}"{% if request.changeset.direct_editing%} data-direct-editing{% endif %}{% endif %}>
 
+    {% if not mobileclient %}
     <nav class="navbar navbar-static-top navbar-default">
         <div class="container-fluid">
             <div class="navbar-header">
@@ -30,7 +31,8 @@
                 </button>
                 <a class="navbar-brand" href="{% url 'editor.index' %}">
                     {% if header_logo %}<img src="{% static header_logo %}">{% else %}c3nav{% endif %}
-                    {% trans 'map editor' %}</a>
+                    {% trans 'map editor' %}
+                </a>
             </div>
             <div class="collapse navbar-collapse" id="navbar-collapse">
                 {% block addnav %}
@@ -38,11 +40,12 @@
             </div>
         </div>
     </nav>
+    {% endif %}
 
     {% block subheader %}
     {% endblock %}
 
-    <div class="container" id="main">
+    <div id="main">
     {% block content %}
     {% endblock %}
     </div>

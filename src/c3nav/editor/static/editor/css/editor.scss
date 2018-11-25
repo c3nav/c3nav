@@ -30,6 +30,14 @@ $color-test: $color-primary;
 /* bootstrap overrides so it looks like the rest of the site */
 body {
     font-size:16px;
+    display: flex;
+    flex-direction: column;
+    position: absolute;
+    overflow: hidden;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    right: 0;
 }
 .navbar {
     font-family: 'Roboto', 'Helvetica Neue', 'Helvetica', 'Arial', sans-serif;
@@ -111,13 +119,10 @@ nav.navbar .container {
 }
 #main {
     overflow:hidden;
-    position:absolute;
-    top:60px;
-    left:0;
-    width:100vw;
-    bottom:0;
+    position:relative;
     padding:0;
     margin:0;
+    flex-grow: 1;
 }
 #sidebar {
     position: absolute;
@@ -310,11 +315,6 @@ h4 {
 /* responsiveness */
 #responsive_switch {
     display:none;
-    width:100vw;
-    position:absolute;
-    top:54px;
-    left:0;
-    right:0;
     padding:4px;
     background-color:#f8f8f8;
     border-width:0 0 3px;
@@ -363,9 +363,6 @@ h4 {
     }
     body.map-enabled #responsive_switch {
         display:block;
-    }
-    body.map-enabled #main {
-        top:88px;
     }
 }
 
