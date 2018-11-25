@@ -11,9 +11,10 @@
         <link href="{% static favicon %}" rel="icon">
     {% endif %}
     {% compress css %}
+        <link href="{% static 'fonts/fonts.css' %}" rel="stylesheet">
         <link href="{% static 'bootstrap/css/bootstrap.css' %}" rel="stylesheet">
         <link href="{% static 'leaflet/leaflet.css' %}" rel="stylesheet">
-        <link href="{% static 'editor/css/editor.css' %}" rel="stylesheet">
+        <link href="{% static 'editor/css/editor.scss' %}" rel="stylesheet" type="text/x-scss">
     {% endcompress %}
   </head>
   <body>
@@ -27,7 +28,9 @@
                     <span class="icon-bar"></span>
                     <span class="icon-bar"></span>
                 </button>
-                <a class="navbar-brand" href="{% url 'editor.index' %}">{% trans 'c3nav map editor' %}</a>
+                <a class="navbar-brand" href="{% url 'editor.index' %}">
+                    {% if header_logo %}<img src="{% static header_logo %}">{% else %}c3nav{% endif %}
+                    {% trans 'map editor' %}</a>
             </div>
             <div class="collapse navbar-collapse" id="navbar-collapse">
                 {% block addnav %}
