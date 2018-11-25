@@ -22,12 +22,7 @@
     {% if not embed %}
         <header>
             <h1><a href="{% block header_title_url %}/{% endblock %}">
-                {% spaceless %}
-                    {% if header_logo %}
-                        <img src="{% static header_logo %}">
-                    {% else %}
-                        c3nav
-                    {% endif %}
+                {% if header_logo %}<img src="{% static header_logo %}">{% else %}c3nav {% endif %}{% spaceless %}
                 {% endspaceless %}{% block header_title %}{% endblock %}
             </a></h1>
             <a href="/account/" id="user">
