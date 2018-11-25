@@ -5,6 +5,7 @@ import string
 import sys
 from contextlib import suppress
 
+import sass
 from django.contrib.messages import constants as messages
 from django.utils.crypto import get_random_string
 from django.utils.translation import ugettext_lazy as _
@@ -341,11 +342,22 @@ WIFI_SSIDS = [n for n in config.get('c3nav', 'wifi_ssids', fallback='').split(',
 
 USER_REGISTRATION = config.getboolean('c3nav', 'user_registration', fallback=True)
 
+
+def return_sass_color(color):
+    if not color:
+        return lambda: color
+
+    if not color.startswith('#') or len(color) != 7 or any((i not in '0123456789abcdef') for i in color[1:]):
+        raise ValueError('custom color is not a hex color!')
+
+    return lambda: sass.SassColor(int(color[1:3], 16), int(color[3:5], 16), int(color[5:7], 16), 1)
+
+
 LIBSASS_CUSTOM_FUNCTIONS = {
-    'primary_color': lambda: PRIMARY_COLOR,
-    'header_background_color': lambda: HEADER_BACKGROUND_COLOR,
-    'header_text_color': lambda: HEADER_TEXT_COLOR,
-    'header_text_hover_color': lambda: HEADER_TEXT_HOVER_COLOR,
+    'primary_color': return_sass_color(PRIMARY_COLOR),
+    'header_background_color': return_sass_color(HEADER_BACKGROUND_COLOR),
+    'header_text_color': return_sass_color(HEADER_TEXT_COLOR),
+    'header_text_hover_color': return_sass_color(HEADER_TEXT_HOVER_COLOR),
 }
 
 INTERNAL_IPS = ('127.0.0.1', '::1')
