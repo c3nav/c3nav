@@ -2,7 +2,7 @@
 {% load i18n %}
 
 {% block title %}{% trans 'c3nav control panel' %}{% endblock %}
-{% block header_title %}<small>{% trans 'control panel' %}</small>{% endblock %}
+{% block header_title %}<span id="subheader">{% trans 'control panel' %}</span>{% endblock %}
 {% block header_title_url %}{% url 'control.index' %}{% endblock %}
 
 {% block content %}

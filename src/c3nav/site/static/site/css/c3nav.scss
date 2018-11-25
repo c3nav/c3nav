@@ -64,7 +64,7 @@ header h1 img {
     max-width: none;
 }
 @media (max-width: 500px) {
-    header h1 small {
+    header h1 span#subheader {
         display: none;
     }
 }
