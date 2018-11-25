@@ -59,7 +59,7 @@ body {
 .navbar-default .navbar-toggle {
     border-color: $color-header-text;
 }
-.navbar-default .navbar-brand, .navbar-default .navbar-brand:hover {
+.navbar-default .navbar-brand, .navbar-default .navbar-brand:hover, .navbar-default .navbar-brand:focus {
     color: $color-header-primary;
 }
 .navbar-default .navbar-nav > li > a {
