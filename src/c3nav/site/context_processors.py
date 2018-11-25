@@ -23,5 +23,5 @@ def mobileclient(request):
 
 def user_data_json(request):
     return {
-        'user_data_json': lambda: json.dumps(dict(request.user_data), cls=DjangoJSONEncoder),
+        'user_data_json': lambda: json.dumps(dict(request.user_data), separators=(',', ':'), cls=DjangoJSONEncoder),
     }
