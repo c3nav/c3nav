@@ -281,7 +281,7 @@ def edit(request, pk=None, model=None, level=None, space=None, on_top_of=None, e
                                               message=_('You need to log in to create Wifi Measurements.'))
 
     error = None
-    delete = getattr(request, 'is_delete', False)
+    delete = getattr(request, 'is_delete', None)
     if request.method == 'POST' or (not new and delete):
         if nosave:
             return APIHybridMessageRedirectResponse(
@@ -333,7 +333,7 @@ def edit(request, pk=None, model=None, level=None, space=None, on_top_of=None, e
                     redirect_to=redirect_to
                 )
             ctx['obj_title'] = obj.title
-            return render(request, 'editor/delete.html', ctx)
+            return APIHybridTemplateContextResponse('editor/delete.html', ctx, fields=())
 
         json_body = getattr(request, 'json_body', None)
         data = json_body if json_body is not None else request.POST
