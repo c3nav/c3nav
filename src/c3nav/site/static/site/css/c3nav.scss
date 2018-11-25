@@ -63,6 +63,11 @@ header h1 img {
     margin-left: -10px;
     max-width: none;
 }
+@media (max-width: 500px) {
+    header h1 small {
+        display: none;
+    }
+}
 header #user {
     text-align: right;
     padding: 0 0 3px 10px;
