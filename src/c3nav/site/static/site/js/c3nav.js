@@ -26,6 +26,13 @@
             originalPerformZoom.call(this);
         }
     });
+
+    /*
+     * Polyfill for Math.Log2 because Internet Explorer sucks
+     */
+    Math.log2 = Math.log2 || function(x) {
+        return Math.log(x) * Math.LOG2E;
+    };
 }());
 
 c3nav = {
