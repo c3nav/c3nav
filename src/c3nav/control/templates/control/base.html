@@ -1,5 +1,7 @@
 {% extends 'site/base.html' %}
 {% load i18n %}
+{% load compress %}
+{% load static %}
 
 {% block title %}{% trans 'c3nav control panel' %}{% endblock %}
 {% block header_title %}<span id="subheader">{% trans 'control panel' %}</span>{% endblock %}
@@ -27,4 +29,15 @@
     {% block subcontent %}
     {% endblock %}
 </main>
+    {% compress js %}
+        <script type="text/javascript" src="{% static 'jquery/jquery.js' %}"></script>
+        <script type="text/javascript">
+        if (window.mobileclient) {
+            var $body = $('body');
+            if ($body.is('[data-user-data]')) {
+                mobileclient.set_user_data(JSON.parse($body.attr('data-user-data')));
+            }
+        }
+        </script>
+    {% endcompress %}
 {% endblock %}

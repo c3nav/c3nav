@@ -15,12 +15,6 @@ def logos(request):
     return logos_result
 
 
-def mobileclient(request):
-    return {
-        'mobileclient': 'c3navclient' in request.META['HTTP_USER_AGENT'],
-    }
-
-
 def user_data_json(request):
     return {
         'user_data_json': lambda: json.dumps(dict(request.user_data), separators=(',', ':'), cls=DjangoJSONEncoder),

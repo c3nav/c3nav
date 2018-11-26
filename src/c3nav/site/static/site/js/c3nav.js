@@ -43,9 +43,13 @@ c3nav = {
         });
 
         if (window.mobileclient) {
+            var $body = $('body');
             $('#attributions').find('a:not([href^="http"]):not([href^="//"])').removeAttr('target');
-            $('body').addClass('mobileclient');
+            $body.addClass('mobileclient');
             c3nav._set_user_location(null);
+            if ($body.is('[data-user-data]')) {
+                mobileclient.set_user_data(JSON.parse($body.attr('data-user-data')));
+            }
         }
     },
     load_searchable_locations: function() {
@@ -1233,7 +1237,7 @@ c3nav = {
             c3nav.last_site_update = data.last_site_update;
             c3nav._maybe_load_site_update(c3nav.state);
         }
-        c3nav._set_user_data(data.user);
+        c3nav._set_user_data_set_user_data(data.user);
     },
     _maybe_load_site_update: function(state) {
         if (c3nav.new_site_update && !state.modal && (!state.routing || !state.origin || !state.destination)) {
@@ -1252,6 +1256,7 @@ c3nav = {
         var $user = $('header #user');
         $user.find('span').text(data.title);
         $user.find('small').text(data.subtitle || '');
+        if (window.mobileclient) mobileclient.set_user_data(data);
     },
 
     _last_wifi_scant: 0,

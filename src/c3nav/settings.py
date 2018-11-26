@@ -225,6 +225,7 @@ MIDDLEWARE = [
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     'c3nav.mapdata.middleware.UserDataMiddleware',
+    'c3nav.site.middleware.MobileclientMiddleware',
     'c3nav.control.middleware.UserPermissionsMiddleware',
     'c3nav.api.middleware.JsonRequestBodyMiddleware',
 ]
@@ -297,7 +298,6 @@ TEMPLATES = [
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
                 'c3nav.site.context_processors.logos',
-                'c3nav.site.context_processors.mobileclient',
                 'c3nav.site.context_processors.user_data_json',
             ],
             'loaders': template_loaders

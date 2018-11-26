@@ -56,6 +56,8 @@ def sidebar_view(func=None, select_related=None, api_hybrid=False):
                 return render(request, 'editor/redirect.html', {'target': response['location']})
             if not isinstance(response, HttpResponseNotModified):
                 response.write(render(request, 'editor/fragment_nav.html', {}).content)
+                if request.mobileclient:
+                    response.write(render(request, 'editor/fragment_mobileclientdata.html', {}).content)
             response['Cache-Control'] = 'no-cache'
             patch_vary_headers(response, ('X-Requested-With', ))
             return response

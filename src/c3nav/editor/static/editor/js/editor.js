@@ -22,7 +22,13 @@ editor = {
             editor.map.doubleClickZoom.enable();
         });
 
-        if (window.mobileclient) $('body').addClass('mobileclient');
+        if (window.mobileclient) {
+            var $body = $('body');
+            $body.addClass('mobileclient');
+            if ($body.is('[data-user-data]')) {
+                editor._inform_mobile_client($body);
+            }
+        }
 
         /*
          * Fix scroll wheel zoom on precise scrolling devices
@@ -56,6 +62,13 @@ editor = {
 
         editor.init_geometries();
         editor.init_wificollector();
+    },
+    _inform_mobile_client: function(elem) {
+        if (!window.mobileclient || !elem.length) return;
+        var data = JSON.parse(elem.attr('data-user-data'));
+        data.changes_count_display = elem.attr('data-count-display');
+        data.direct_editing = elem.is('[data-direct-editing]');
+        mobileclient.set_user_data(data);
     },
     _onbeforeunload: function(e) {
         if ($('#sidebar').find('[data-onbeforeunload]').length) {
@@ -160,6 +173,8 @@ editor = {
         if (nav.length) {
             $('#navbar-collapse').find('.nav').html(nav.html());
         }
+
+        editor._inform_mobile_client(content.find('[data-user-data]'));
 
         var group;
         if (content.find('[name=fixed_x]').length) {
