@@ -11,16 +11,15 @@
         <link href="{% static favicon %}" rel="icon">
     {% endif %}
     {% if favicon_package %}
-    <link rel="apple-touch-icon" sizes="180x180" href="{% static 'favicon_package/apple-touch-icon.png' %}">
-    <link rel="manifest" href="{% static 'favicon_package/site.webmanifest' %}">
-    <link rel="mask-icon" href="{% static 'favicon_package/safari-pinned-tab.svg' %}" color="{{ colors.safari_mask_icon_color }}">
-    <meta name="apple-mobile-web-app-title" content="c3nav">
-    <meta name="application-name" content="c3nav">
-    <meta name="msapplication-TileColor" content="{{ colors.msapplication_tile_color }}">
-    <meta name="msapplication-config" content="{% static 'favicon_package/browserconfig.xml' %}">
+        <link rel="apple-touch-icon" sizes="180x180" href="{% static 'favicon_package/apple-touch-icon.png' %}">
+        <link rel="manifest" href="{% static 'favicon_package/site.webmanifest' %}">
+        <link rel="mask-icon" href="{% static 'favicon_package/safari-pinned-tab.svg' %}" color="{{ colors.safari_mask_icon_color }}">
+        <meta name="apple-mobile-web-app-title" content="c3nav">
+        <meta name="application-name" content="c3nav">
+        <meta name="msapplication-TileColor" content="{{ colors.msapplication_tile_color }}">
+        <meta name="msapplication-config" content="{% static 'favicon_package/browserconfig.xml' %}">
     {% endif %}
     <meta name="theme-color" content="{{ colors.header_background_color }}">
-
     {% compress css %}
         <link href="{% static 'fonts/fonts.css' %}" rel="stylesheet">
         <link href="{% static 'normalize/normalize.css' %}" rel="stylesheet">
