@@ -348,7 +348,10 @@ class ChangeSetViewSet(ReadOnlyModelViewSet):
         if not can_access_editor(request):
             return PermissionDenied
         changeset = ChangeSet.get_for_request(request)
-        return Response(changeset.serialize())
+        return Response({
+            'direct_editing': changeset.direct_editing,
+            'changeset': changeset.serialize() if changeset.pk else None,
+        })
 
     @action(detail=True, methods=['get'])
     def changes(self, request, *args, **kwargs):
