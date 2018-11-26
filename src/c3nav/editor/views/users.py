@@ -1,6 +1,7 @@
 from django.contrib import messages
 from django.contrib.auth.models import User
 from django.shortcuts import get_object_or_404, redirect, render
+from django.urls import reverse
 from django.utils.translation import ugettext_lazy as _
 
 from c3nav.editor.models import ChangeSet
@@ -49,3 +50,11 @@ def user_detail(request, pk):
         })
 
     return render(request, 'editor/user.html', ctx)
+
+
+@sidebar_view
+def user_redirect(request):
+    user = request.user
+    if user.is_authenticated:
+        return redirect(reverse('editor.users.detail', kwargs={'pk': request.user.pk}))
+    return redirect(reverse('editor.login'))
