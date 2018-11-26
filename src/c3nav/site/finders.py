@@ -15,6 +15,23 @@ logofinder_results = {
     if path
 }
 
+favicon_package_files = {
+        'android-chrome-192x192.png',
+        'android-chrome-512x512.png',
+        'apple-touch-icon.png',
+        'browserconfig.xml',
+        'mstile-150x150.png',
+        'mstile-310x310.png',
+        'safari-pinned-tab.svg',
+        'site.webmanifest',
+    }
+
+if settings.FAVICON_PACKAGE and os.path.isdir(settings.FAVICON_PACKAGE):
+    logofinder_results.update({
+        os.path.join('favicon_package', file): os.path.join(settings.FAVICON_PACKAGE, file)
+        for file in favicon_package_files
+    })
+
 
 class LogoFinder(BaseFinder):
     def find(self, path, all=False):
@@ -34,4 +51,8 @@ class LogoFinder(BaseFinder):
             storage = FileSystemStorage(location=basedir)
             storage.prefix = prefix
             result.append((filename, storage))
+        if settings.FAVICON_PACKAGE and os.path.isdir(settings.FAVICON_PACKAGE):
+            storage = FileSystemStorage(location=settings.FAVICON_PACKAGE)
+            storage.prefix = 'favicon_package'
+            result += [(filename, storage) for filename in favicon_package_files]
         return result

@@ -298,6 +298,7 @@ TEMPLATES = [
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
                 'c3nav.site.context_processors.logos',
+                'c3nav.site.context_processors.colors',
                 'c3nav.site.context_processors.user_data_json',
             ],
             'loaders': template_loaders
@@ -334,11 +335,14 @@ COMPRESS_CSS_FILTERS = (
 
 HEADER_LOGO = config.get('c3nav', 'header_logo', fallback=None)
 FAVICON = config.get('c3nav', 'favicon', fallback=None)
+FAVICON_PACKAGE = config.get('c3nav', 'favicon_package', fallback=None)
 
 PRIMARY_COLOR = config.get('c3nav', 'primary_color', fallback='')
 HEADER_BACKGROUND_COLOR = config.get('c3nav', 'header_background_color', fallback='')
 HEADER_TEXT_COLOR = config.get('c3nav', 'header_text_color', fallback='')
 HEADER_TEXT_HOVER_COLOR = config.get('c3nav', 'header_text_hover_color', fallback='')
+SAFARI_MASK_ICON_COLOR = config.get('c3nav', 'safari_mask_icon_color', fallback=PRIMARY_COLOR)
+MSAPPLICATION_TILE_COLOR = config.get('c3nav', 'msapplication_tile_color', fallback='')
 
 WIFI_SSIDS = [n for n in config.get('c3nav', 'wifi_ssids', fallback='').split(',') if n]
 
