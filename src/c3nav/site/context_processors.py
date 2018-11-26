@@ -31,11 +31,13 @@ def user_data_json(request):
 
 
 def colors(request):
-    return {'colors': {
-        'primary_color': settings.PRIMARY_COLOR,
-        'header_background_color': settings.HEADER_BACKGROUND_COLOR,
-        'header_text_color': settings.HEADER_TEXT_COLOR,
-        'header_text_hover_color': settings.HEADER_TEXT_HOVER_COLOR,
-        'safari_mask_icon_color': settings.SAFARI_MASK_ICON_COLOR,
-        'msapplication_tile_color': settings.MSAPPLICATION_TILE_COLOR,
-    }}
+    return {
+        'colors': {
+            'primary_color': settings.PRIMARY_COLOR,
+            'header_background_color': settings.HEADER_BACKGROUND_COLOR,
+            'header_text_color': settings.HEADER_TEXT_COLOR,
+            'header_text_hover_color': settings.HEADER_TEXT_HOVER_COLOR,
+            'safari_mask_icon_color': settings.SAFARI_MASK_ICON_COLOR,
+            'msapplication_tile_color': settings.MSAPPLICATION_TILE_COLOR,
+        }
+    }
