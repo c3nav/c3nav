@@ -29,6 +29,7 @@
     {% block subcontent %}
     {% endblock %}
 </main>
+    {% include 'site/fragment_fakemobileclient.html' %}
     {% compress js %}
         <script type="text/javascript" src="{% static 'jquery/jquery.js' %}"></script>
         <script type="text/javascript">
