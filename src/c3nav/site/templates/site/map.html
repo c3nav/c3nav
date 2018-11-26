@@ -5,6 +5,7 @@
 
 {% block content %}
     <main class="map" data-state="{{ state }}"{% if embed %} data-embed{% endif %} data-last-site-update="{{ last_site_update }}"{% if ssids %} data-ssids="{{ ssids }}"{% endif %}>
+        {% if not request.mobileclient %}
         <section id="attributions">
             {% if not embed %}
                 {% get_current_language as CURRENT_LANGUAGE %}
@@ -17,6 +18,7 @@
             <a href="https://twitter.com/c3nav/" rel="external" target="_blank">Twitter</a> //
             <a href="https://github.com/c3nav/c3nav/" rel="external" target="_blank">GitHub</a>
         </section>
+        {% endif %}
         <section id="map" data-bounds="{{ bounds }}"
                  data-levels="{{ levels }}"
                  {% if tile_cache_server %}data-tile-server="{{ tile_cache_server }}"{% endif %}

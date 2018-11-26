@@ -10,7 +10,7 @@
 {% block content %}
 <main class="control"{% block addattributes %}{% endblock %}>
     {% include 'site/fragment_messages.html' %}
-    {% block back_link %}<a href="{% url 'site.index' %}" class="float-right">&laquo; {% trans 'back to c3nav' %}</a>{% endblock %}
+    {% block back_link %}{% if not request.mobileclient %}<a href="{% url 'site.index' %}" class="float-right">&laquo; {% trans 'back to c3nav' %}</a>{% endif %}{% endblock %}
     <h2>{% block heading %}{% endblock %}</h2>
     {% block menu %}
     <nav>

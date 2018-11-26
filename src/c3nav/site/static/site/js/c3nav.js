@@ -1029,9 +1029,10 @@ c3nav = {
             crs: L.CRS.Simple,
             maxBounds: L.GeoJSON.coordsToLatLngs(c3nav._get_padded_max_bounds(minZoom)),
             zoomSnap: 0,
-            zoomControl: false
+            zoomControl: false,
+            attributionControl: !window.mobileclient,
         });
-        c3nav.map.attributionControl.setPrefix($('#attributions').html());
+        if (!window.mobileclient) c3nav.map.attributionControl.setPrefix($('#attributions').html());
         if (L.Browser.chrome && !('ontouchstart' in window)) {
             $('.leaflet-touch').removeClass('leaflet-touch');
         }
