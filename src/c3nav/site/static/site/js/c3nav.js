@@ -44,7 +44,6 @@ c3nav = {
 
         if (window.mobileclient) {
             var $body = $('body');
-            $('#attributions').find('a:not([href^="http"]):not([href^="//"])').removeAttr('target');
             $body.addClass('mobileclient');
             c3nav._set_user_location(null);
             if ($body.is('[data-user-data]')) {
