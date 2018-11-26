@@ -1,4 +1,5 @@
 from functools import wraps
+from rest_framework.generics import GenericAPIView
 
 from rest_framework.renderers import JSONRenderer
 
@@ -31,3 +32,6 @@ def nicer_renderer(self, data, accepted_media_type=None, renderer_context=None):
 
 # Monkey patch for nicer indentation in the django rest framework
 JSONRenderer.render = nicer_renderer
+
+# Fuck serializers!
+del GenericAPIView.get_serializer
