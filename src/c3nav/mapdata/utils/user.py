@@ -10,6 +10,8 @@ def get_user_data(request):
     permissions = AccessPermission.get_for_request(request)
     result = {
         'logged_in': bool(request.user.is_authenticated),
+        'allow_editor': can_access_editor(request),
+        'allow_control_panel': request.user_permissions.control_panel,
     }
     if permissions:
         result.update({
