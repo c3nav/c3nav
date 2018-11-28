@@ -9,6 +9,7 @@ from rest_framework.response import Response
 from rest_framework.viewsets import ViewSet
 
 from c3nav.api.models import Token
+from c3nav.api.utils import get_api_post_data
 
 
 class SessionViewSet(ViewSet):
@@ -34,10 +35,7 @@ class SessionViewSet(ViewSet):
         if request.user.is_authenticated:
             raise ParseError(_('Log out first.'))
 
-        try:
-            data = request.json_body
-        except AttributeError:
-            data = request.POST
+        data = get_api_post_data(request)
 
         if 'token' in data:
             try:
@@ -65,10 +63,7 @@ class SessionViewSet(ViewSet):
         # django-rest-framework doesn't do this for logged out requests
         SessionAuthentication().enforce_csrf(request)
 
-        try:
-            data = request.json_body
-        except AttributeError:
-            data = request.POST
+        data = get_api_post_data(request)
 
         form = AuthenticationForm(request, data=data)
         if not form.is_valid():

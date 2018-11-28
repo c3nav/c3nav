@@ -12,6 +12,7 @@ from rest_framework.response import Response
 from rest_framework.viewsets import ReadOnlyModelViewSet, ViewSet
 from shapely.ops import cascaded_union
 
+from c3nav.api.utils import get_api_post_data
 from c3nav.editor.models import ChangeSet
 from c3nav.editor.views.base import etag_func
 from c3nav.mapdata.api import api_etag
@@ -262,7 +263,7 @@ class EditorViewSet(ViewSet):
     @api_etag(etag_func=etag_func, cache_parameters={})
     def bounds(self, request, *args, **kwargs):
         if not can_access_editor(request):
-            return PermissionDenied
+            raise PermissionDenied
 
         return Response({
             'bounds': Source.max_bounds(),
@@ -310,7 +311,7 @@ class EditorViewSet(ViewSet):
 
     def retrieve(self, request, *args, **kwargs):
         if not can_access_editor(request):
-            return PermissionDenied
+            raise PermissionDenied
 
         resolved = self.resolved
         if not resolved:
@@ -318,6 +319,8 @@ class EditorViewSet(ViewSet):
 
         if not getattr(resolved.func, 'api_hybrid', False):
             raise NotFound(_('Matching editor view point does not provide an API.'))
+
+        get_api_post_data(request)
 
         response = resolved.func(request, api=True, *resolved.args, **resolved.kwargs)
         return response
@@ -327,6 +330,9 @@ class ChangeSetViewSet(ReadOnlyModelViewSet):
     """
     List change sets
     /current/ returns the current changeset.
+    /direct_editing/ POST to activate direct editing (if available).
+    /deactive/ POST to deactivate current changeset or deactivate direct editing
+    /{id}/changes/ returns the changes of a given changeset.
     """
     queryset = ChangeSet.objects.all()
 
@@ -335,28 +341,63 @@ class ChangeSetViewSet(ReadOnlyModelViewSet):
 
     def list(self, request, *args, **kwargs):
         if not can_access_editor(request):
-            return PermissionDenied
+            raise PermissionDenied
         return Response([obj.serialize() for obj in self.get_queryset().order_by('id')])
 
     def retrieve(self, request, *args, **kwargs):
         if not can_access_editor(request):
-            return PermissionDenied
+            raise PermissionDenied
         return Response(self.get_object().serialize())
 
     @action(detail=False, methods=['get'])
     def current(self, request, *args, **kwargs):
         if not can_access_editor(request):
-            return PermissionDenied
+            raise PermissionDenied
+
         changeset = ChangeSet.get_for_request(request)
         return Response({
             'direct_editing': changeset.direct_editing,
             'changeset': changeset.serialize() if changeset.pk else None,
         })
 
+    @action(detail=False, methods=['post'])
+    def direct_editing(self, request, *args, **kwargs):
+        if not can_access_editor(request):
+            raise PermissionDenied
+        # django-rest-framework doesn't automatically do this for logged out requests
+        SessionAuthentication().enforce_csrf(request)
+
+        if not ChangeSet.can_direct_edit(request):
+            raise PermissionDenied(_('You don\'t have the permission to activate direct editing.'))
+
+        changeset = ChangeSet.get_for_request(request)
+        if changeset.pk is not None:
+            raise PermissionDenied(_('You cannot activate direct editing if you have an active changeset.'))
+
+        request.session['direct_editing'] = True
+
+        return Response({
+            'success': True,
+        })
+
+    @action(detail=False, methods=['post'])
+    def deactivate(self, request, *args, **kwargs):
+        if not can_access_editor(request):
+            raise PermissionDenied
+        # django-rest-framework doesn't automatically do this for logged out requests
+        SessionAuthentication().enforce_csrf(request)
+
+        request.session.pop('changeset', None)
+        request.session['direct_editing'] = False
+
+        return Response({
+            'success': True,
+        })
+
     @action(detail=True, methods=['get'])
     def changes(self, request, *args, **kwargs):
         if not can_access_editor(request):
-            return PermissionDenied
+            raise PermissionDenied
         changeset = self.get_object()
         changeset.fill_changes_cache()
         return Response([obj.serialize() for obj in changeset.iter_changed_objects()])
