@@ -24,7 +24,7 @@ from c3nav.mapdata.utils.user import can_access_editor
 
 class EditorViewSetMixin(ViewSet):
     def initial(self, request, *args, **kwargs):
-        if not can_access_editor(request) or 1:
+        if not can_access_editor(request):
             raise PermissionDenied
         return super().initial(request, *args, **kwargs)
 
