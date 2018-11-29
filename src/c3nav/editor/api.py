@@ -364,7 +364,7 @@ class ChangeSetViewSet(ReadOnlyModelViewSet):
         offset = 0
         if 'offset' in request.GET:
             if not request.GET['offset'].isdigit():
-                raise ParseError('Offset has to be a positive integer.')
+                raise ParseError('offset has to be a positive integer.')
             offset = int(request.GET['offset'])
         return Response([obj.serialize() for obj in qs.order_by('-last_update')[offset:offset+20]])
 
