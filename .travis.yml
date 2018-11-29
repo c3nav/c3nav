@@ -2,11 +2,12 @@ language: python
 
 cache: pip
 
-matrix:
-  include:
-    - python: "3.7"
-      dist: xenial
-      sudo: required
+dist: xenial
+sudo: required
+
+python:
+    - "3.6"
+    - "3.7"
 
 install:
     - pip install --upgrade setuptools pip
