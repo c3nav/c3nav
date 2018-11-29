@@ -344,6 +344,7 @@ class ChangeSetViewSet(ReadOnlyModelViewSet):
     /{id}/changes/ list all changes of a given changeset.
     /{id}/activate/ POST to activate given changeset.
     /{id}/edit/ POST to edit given changeset (provide title and description in POST data).
+    /{id}/restore_object/ POST to restore an object deleted by this changeset (provide change id as id in POST data).
     /{id}/delete/ POST to delete given changeset.
     /{id}/propose/ POST to propose given changeset.
     /{id}/unpropose/ POST to unpropose given changeset.
@@ -470,6 +471,37 @@ class ChangeSetViewSet(ReadOnlyModelViewSet):
                                               title=changeset.title, description=changeset.description)
             changeset.last_update = update
             changeset.save()
+            return Response({'success': True})
+
+    @action(detail=True, methods=['post'])
+    def restore_object(self, request, *args, **kwargs):
+        data = get_api_post_data(request)
+        if 'id' not in data:
+            raise ParseError('Missing id.')
+
+        restore_id = data['id']
+        if isinstance(restore_id, str) and restore_id.isdigit():
+            restore_id = int(restore_id)
+
+        if not isinstance(restore_id, int):
+            raise ParseError('id needs to be an integer.')
+
+        changeset = self.get_object()
+        with changeset.lock_to_edit(request) as changeset:
+            if not changeset.can_edit(request):
+                raise PermissionDenied(_('You can not edit changes on this change set.'))
+
+            try:
+                changed_object = changeset.changed_objects_set.get(pk=restore_id)
+            except Exception:
+                raise NotFound('could not find object.')
+
+            try:
+                changed_object.restore()
+            except PermissionError:
+                raise PermissionDenied(_('You cannot restore this object, because it depends on '
+                                         'a deleted object or it would violate a unique contraint.'))
+
             return Response({'success': True})
 
     @action(detail=True, methods=['post'])

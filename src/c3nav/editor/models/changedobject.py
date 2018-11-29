@@ -438,8 +438,9 @@ class ChangedObject(models.Model):
 
     def serialize(self):
         return OrderedDict((
+            ('pk', self.pk),
             ('type', self.model_class.__name__.lower()),
-            ('pk', self.obj_pk),
+            ('object_pk', self.obj_pk),
             ('is_created', self.is_created),
             ('deleted', self.deleted),
             ('updated_fields', self.updated_fields),
