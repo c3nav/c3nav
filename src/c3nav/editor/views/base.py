@@ -17,6 +17,7 @@ from django.utils.translation import ugettext_lazy as _
 from rest_framework.response import Response as APIResponse
 
 from c3nav.editor.models import ChangeSet
+from c3nav.editor.wrappers import QuerySetWrapper
 from c3nav.mapdata.models.access import AccessPermission
 from c3nav.mapdata.models.base import SerializableMixin
 from c3nav.mapdata.utils.user import can_access_editor
@@ -225,7 +226,7 @@ class APIHybridTemplateContextResponse(APIHybridResponse):
     def _maybe_serialize_value(self, value):
         if isinstance(value, SerializableMixin):
             value = value.serialize(geometry=False, detailed=False)
-        elif isinstance(value, QuerySet) and issubclass(value.model, SerializableMixin):
+        elif isinstance(value, (QuerySet, QuerySetWrapper)) and issubclass(value.model, SerializableMixin):
             value = [item.serialize(geometry=False, detailed=False) for item in value]
         return value
 
