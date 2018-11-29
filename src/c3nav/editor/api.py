@@ -22,7 +22,14 @@ from c3nav.mapdata.models.geometry.space import POI
 from c3nav.mapdata.utils.user import can_access_editor
 
 
-class EditorViewSet(ViewSet):
+class EditorViewSetMixin(ViewSet):
+    def initial(self, request, *args, **kwargs):
+        if not can_access_editor(request) or 1:
+            raise PermissionDenied
+        return super().initial(request, *args, **kwargs)
+
+
+class EditorViewSet(EditorViewSetMixin, ViewSet):
     """
     Editor API
     /geometries/ returns a list of geojson features, you have to specify ?level=<id> or ?space=<id>
@@ -81,9 +88,6 @@ class EditorViewSet(ViewSet):
     @action(detail=False, methods=['get'])
     @api_etag(etag_func=etag_func, cache_parameters={'level': str, 'space': str})
     def geometries(self, request, *args, **kwargs):
-        if not can_access_editor(request):
-            raise PermissionDenied
-
         Level = request.changeset.wrap_model('Level')
         Space = request.changeset.wrap_model('Space')
 
@@ -238,9 +242,6 @@ class EditorViewSet(ViewSet):
     @action(detail=False, methods=['get'])
     @api_etag(etag_func=MapUpdate.current_cache_key, cache_parameters={})
     def geometrystyles(self, request, *args, **kwargs):
-        if not can_access_editor(request):
-            raise PermissionDenied
-
         return Response({
             'building': '#aaaaaa',
             'space': '#eeeeee',
@@ -263,9 +264,6 @@ class EditorViewSet(ViewSet):
     @action(detail=False, methods=['get'])
     @api_etag(etag_func=etag_func, cache_parameters={})
     def bounds(self, request, *args, **kwargs):
-        if not can_access_editor(request):
-            raise PermissionDenied
-
         return Response({
             'bounds': Source.max_bounds(),
         })
@@ -311,9 +309,6 @@ class EditorViewSet(ViewSet):
         return resolved
 
     def retrieve(self, request, *args, **kwargs):
-        if not can_access_editor(request):
-            raise PermissionDenied
-
         resolved = self.resolved
         if not resolved:
             raise NotFound(_('No matching editor view endpoint found.'))
@@ -327,7 +322,7 @@ class EditorViewSet(ViewSet):
         return response
 
 
-class ChangeSetViewSet(ReadOnlyModelViewSet):
+class ChangeSetViewSet(EditorViewSetMixin, ReadOnlyModelViewSet):
     """
     List and manipulate changesets. All lists are ordered by last update descending. Use ?offset= to specify an offset.
     Don't forget to set X-Csrftoken for POST requests!
@@ -359,8 +354,6 @@ class ChangeSetViewSet(ReadOnlyModelViewSet):
         return ChangeSet.qs_for_request(self.request).select_related('last_update', 'last_state_update', 'last_change')
 
     def _list(self, request, qs):
-        if not can_access_editor(request):
-            raise PermissionDenied
         offset = 0
         if 'offset' in request.GET:
             if not request.GET['offset'].isdigit():
@@ -388,15 +381,10 @@ class ChangeSetViewSet(ReadOnlyModelViewSet):
         ))
 
     def retrieve(self, request, *args, **kwargs):
-        if not can_access_editor(request):
-            raise PermissionDenied
         return Response(self.get_object().serialize())
 
     @action(detail=False, methods=['get'])
     def current(self, request, *args, **kwargs):
-        if not can_access_editor(request):
-            raise PermissionDenied
-
         changeset = ChangeSet.get_for_request(request)
         return Response({
             'direct_editing': changeset.direct_editing,
@@ -405,8 +393,6 @@ class ChangeSetViewSet(ReadOnlyModelViewSet):
 
     @action(detail=False, methods=['post'])
     def direct_editing(self, request, *args, **kwargs):
-        if not can_access_editor(request):
-            raise PermissionDenied
         # django-rest-framework doesn't automatically do this for logged out requests
         SessionAuthentication().enforce_csrf(request)
 
@@ -425,8 +411,6 @@ class ChangeSetViewSet(ReadOnlyModelViewSet):
 
     @action(detail=False, methods=['post'])
     def deactivate(self, request, *args, **kwargs):
-        if not can_access_editor(request):
-            raise PermissionDenied
         # django-rest-framework doesn't automatically do this for logged out requests
         SessionAuthentication().enforce_csrf(request)
 
@@ -439,8 +423,6 @@ class ChangeSetViewSet(ReadOnlyModelViewSet):
 
     @action(detail=True, methods=['get'])
     def changes(self, request, *args, **kwargs):
-        if not can_access_editor(request):
-            raise PermissionDenied
         changeset = self.get_object()
         changeset.fill_changes_cache()
         return Response([obj.serialize() for obj in changeset.iter_changed_objects()])
