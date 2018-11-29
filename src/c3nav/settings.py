@@ -227,6 +227,7 @@ MIDDLEWARE = [
     'c3nav.mapdata.middleware.UserDataMiddleware',
     'c3nav.site.middleware.MobileclientMiddleware',
     'c3nav.control.middleware.UserPermissionsMiddleware',
+    'c3nav.api.middleware.JsonRequestBodyMiddleware',
 ]
 
 with suppress(ImportError):

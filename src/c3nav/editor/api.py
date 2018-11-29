@@ -6,13 +6,14 @@ from django.utils.functional import cached_property
 from django.utils.translation import ugettext_lazy as _
 from rest_framework.authentication import SessionAuthentication
 from rest_framework.decorators import action
-from rest_framework.exceptions import NotFound, PermissionDenied, ValidationError
+from rest_framework.exceptions import NotFound, ParseError, PermissionDenied, ValidationError
 from rest_framework.generics import get_object_or_404
 from rest_framework.response import Response
 from rest_framework.viewsets import ReadOnlyModelViewSet, ViewSet
 from shapely.ops import cascaded_union
 
 from c3nav.api.utils import get_api_post_data
+from c3nav.editor.forms import ChangeSetForm, RejectForm
 from c3nav.editor.models import ChangeSet
 from c3nav.editor.views.base import etag_func
 from c3nav.mapdata.api import api_etag
@@ -328,21 +329,62 @@ class EditorViewSet(ViewSet):
 
 class ChangeSetViewSet(ReadOnlyModelViewSet):
     """
-    List change sets
+    List and manipulate changesets. All lists are ordered by last update descending. Use ?offset= to specify an offset.
+    Don't forget to set X-Csrftoken for POST requests!
+
+    / lists all changesets this user can see.
+    /user/ lists changesets by this user
+    /reviewing/ lists changesets this user is currently reviewing.
+    /pending_review/ lists changesets this user can review.
+
     /current/ returns the current changeset.
     /direct_editing/ POST to activate direct editing (if available).
     /deactive/ POST to deactivate current changeset or deactivate direct editing
-    /{id}/changes/ returns the changes of a given changeset.
+
+    /{id}/changes/ list all changes of a given changeset.
+    /{id}/activate/ POST to activate given changeset.
+    /{id}/edit/ POST to edit given changeset (provide title and description in POST data).
+    /{id}/delete/ POST to delete given changeset.
+    /{id}/propose/ POST to propose given changeset.
+    /{id}/unpropose/ POST to unpropose given changeset.
+    /{id}/review/ POST to review given changeset.
+    /{id}/reject/ POST to reject given changeset (provide reject=1 in POST data for final rejection).
+    /{id}/unreject/ POST to unreject given changeset.
+    /{id}/apply/ POST to accept and apply given changeset.
     """
     queryset = ChangeSet.objects.all()
 
     def get_queryset(self):
         return ChangeSet.qs_for_request(self.request).select_related('last_update', 'last_state_update', 'last_change')
 
-    def list(self, request, *args, **kwargs):
+    def _list(self, request, qs):
         if not can_access_editor(request):
             raise PermissionDenied
-        return Response([obj.serialize() for obj in self.get_queryset().order_by('id')])
+        offset = 0
+        if 'offset' in request.GET:
+            if not request.GET['offset'].isdigit():
+                raise ParseError('Offset has to be a positive integer.')
+            offset = int(request.GET['offset'])
+        return Response([obj.serialize() for obj in qs.order_by('-last_update')[offset:offset+20]])
+
+    def list(self, request, *args, **kwargs):
+        return self._list(request, self.get_queryset())
+
+    @action(detail=False, methods=['get'])
+    def user(self, request, *args, **kwargs):
+        return self._list(request, self.get_queryset().filter(author=request.user))
+
+    @action(detail=False, methods=['get'])
+    def reviewing(self, request, *args, **kwargs):
+        return self._list(request, self.get_queryset().filter(
+            assigned_to=request.user, state='review'
+        ))
+
+    @action(detail=False, methods=['get'])
+    def pending_review(self, request, *args, **kwargs):
+        return self._list(request, self.get_queryset().filter(
+            state__in=('proposed', 'reproposed'),
+        ))
 
     def retrieve(self, request, *args, **kwargs):
         if not can_access_editor(request):
@@ -401,3 +443,111 @@ class ChangeSetViewSet(ReadOnlyModelViewSet):
         changeset = self.get_object()
         changeset.fill_changes_cache()
         return Response([obj.serialize() for obj in changeset.iter_changed_objects()])
+
+    @action(detail=True, methods=['post'])
+    def activate(self, request, *args, **kwargs):
+        changeset = self.get_object()
+        with changeset.lock_to_edit(request) as changeset:
+            if not changeset.can_activate(request):
+                raise PermissionDenied(_('You can not activate this change set.'))
+
+            changeset.activate(request)
+            return Response({'success': True})
+
+    @action(detail=True, methods=['post'])
+    def edit(self, request, *args, **kwargs):
+        changeset = self.get_object()
+        with changeset.lock_to_edit(request) as changeset:
+            if not changeset.can_edit(request):
+                raise PermissionDenied(_('You cannot edit this change set.'))
+
+            form = ChangeSetForm(instance=changeset, data=get_api_post_data(request))
+            if not form.is_valid():
+                raise ParseError(form.errors)
+
+            changeset = form.instance
+            update = changeset.updates.create(user=request.user,
+                                              title=changeset.title, description=changeset.description)
+            changeset.last_update = update
+            changeset.save()
+            return Response({'success': True})
+
+    @action(detail=True, methods=['post'])
+    def propose(self, request, *args, **kwargs):
+        if not request.user.is_authenticated:
+            raise PermissionDenied(_('You need to log in to propose changes.'))
+
+        changeset = self.get_object()
+        with changeset.lock_to_edit(request) as changeset:
+            if not changeset.title or not changeset.description:
+                raise PermissionDenied(_('You need to add a title an a description to propose this change set.'))
+
+            if not changeset.can_propose(request):
+                raise PermissionDenied(_('You cannot propose this change set.'))
+
+            changeset.propose(request.user)
+            return Response({'success': True})
+
+    @action(detail=True, methods=['post'])
+    def unpropose(self, request, *args, **kwargs):
+        changeset = self.get_object()
+        with changeset.lock_to_edit(request) as changeset:
+            if not changeset.can_unpropose(request):
+                raise PermissionDenied(_('You cannot unpropose this change set.'))
+
+            changeset.unpropose(request.user)
+            return Response({'success': True})
+
+    @action(detail=True, methods=['post'])
+    def review(self, request, *args, **kwargs):
+        changeset = self.get_object()
+        with changeset.lock_to_edit(request) as changeset:
+            if not changeset.can_start_review(request):
+                raise PermissionDenied(_('You cannot review these changes.'))
+
+            changeset.start_review(request.user)
+            return Response({'success': True})
+
+    @action(detail=True, methods=['post'])
+    def reject(self, request, *args, **kwargs):
+        changeset = self.get_object()
+        with changeset.lock_to_edit(request) as changeset:
+            if not not changeset.can_end_review(request):
+                raise PermissionDenied(_('You cannot reject these changes.'))
+
+            form = RejectForm(get_api_post_data(request))
+            if not form.is_valid():
+                raise ParseError(form.errors)
+
+            changeset.reject(request.user, form.cleaned_data['comment'], form.cleaned_data['final'])
+            return Response({'success': True})
+
+    @action(detail=True, methods=['post'])
+    def unreject(self, request, *args, **kwargs):
+        changeset = self.get_object()
+        with changeset.lock_to_edit(request) as changeset:
+            if not changeset.can_unreject(request):
+                raise PermissionDenied(_('You cannot unreject these changes.'))
+
+            changeset.unreject(request.user)
+            return Response({'success': True})
+
+    @action(detail=True, methods=['post'])
+    def apply(self, request, *args, **kwargs):
+        changeset = self.get_object()
+        with changeset.lock_to_edit(request) as changeset:
+            if not changeset.can_end_review(request):
+                raise PermissionDenied(_('You cannot accept and apply these changes.'))
+
+            changeset.apply(request.user)
+            return Response({'success': True})
+
+    @action(detail=True, methods=['post'])
+    def delete(self, request, *args, **kwargs):
+        changeset = self.get_object()
+        with changeset.lock_to_edit(request) as changeset:
+            if not changeset.can_delete(request):
+                raise PermissionDenied(_('You cannot delete this change set.'))
+
+            changeset.delete()
+            return Response({'success': True})

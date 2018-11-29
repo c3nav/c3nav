@@ -488,6 +488,9 @@ class ChangeSet(models.Model):
             return self.assigned_to == request.user
         return False
 
+    def can_activate(self, request):
+        return not self.closed and self.can_edit(request)
+
     def can_delete(self, request):
         return self.can_edit(request) and self.state == 'unproposed'
 
