@@ -35,6 +35,7 @@ class EditorViewSet(EditorViewSetMixin, ViewSet):
     /geometries/ returns a list of geojson features, you have to specify ?level=<id> or ?space=<id>
     /geometrystyles/ returns styling information for all geometry types
     /bounds/ returns the maximum bounds of the map
+    /{path}/ insert an editor path to get an API represantation of it. POST requests on forms are possible as well
     """
     lookup_field = 'path'
     lookup_value_regex = r'.+'
