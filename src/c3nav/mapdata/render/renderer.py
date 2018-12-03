@@ -1,5 +1,3 @@
-from itertools import chain
-
 from django.utils.functional import cached_property
 from shapely import prepared
 from shapely.geometry import box
@@ -8,6 +6,7 @@ from c3nav.mapdata.models import Level
 from c3nav.mapdata.render.engines.base import FillAttribs, StrokeAttribs
 from c3nav.mapdata.render.geometry import hybrid_union
 from c3nav.mapdata.render.renderdata import LevelRenderData
+from c3nav.mapdata.render.utils import get_full_levels, get_min_altitude
 
 
 class MapRenderer:
@@ -39,21 +38,16 @@ class MapRenderer:
         engine = engine_cls(self.width, self.height, self.minx, self.miny, float(level_render_data.base_altitude),
                             scale=self.scale, buffer=1, background='#DCDCDC', center=center)
 
+        if hasattr(engine, 'custom_render'):
+            engine.custom_render(level_render_data, bbox, access_permissions)
+            return engine
+
         if self.full_levels:
-            levels = tuple(chain(*(
-                tuple(sublevel for sublevel in LevelRenderData.get(level.pk).levels
-                      if sublevel.pk == level.pk or sublevel.on_top_of_id == level.pk)
-                for level in level_render_data.levels if level.on_top_of_id is None
-            )))
+            levels = get_full_levels(level_render_data)
         else:
             levels = level_render_data.levels
 
-        min_altitude = min(chain(*(tuple(area.altitude for area in geoms.altitudeareas)
-                                   for geoms in levels)),
-                           default=None)
-        if min_altitude is None:
-            min_altitude = min(tuple(geoms.base_altitude for geoms in levels),
-                               default=level_render_data.base_altitude)
+        min_altitude = get_min_altitude(levels, default=level_render_data.base_altitude)
 
         not_full_levels = engine.is_3d  # always do non-full-levels until after the first primary level
         full_levels = self.full_levels and engine.is_3d

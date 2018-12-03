@@ -53,6 +53,9 @@ class LevelGeometries:
         self.door_height = None
         self.min_altitude = None
 
+    def __repr__(self):
+        return '<LevelGeometries for Level %s (#%d)>' % (self.short_label, self.pk)
+
     @classmethod
     def build_for_level(cls, level, altitudeareas_above):
         geoms = LevelGeometries()
