@@ -189,7 +189,7 @@ class BlenderEngine(Base3DEngine):
                 if altitudearea.altitude2 is not None:
                     min_slope_altitude = min(altitudearea.altitude, altitudearea.altitude2)
                     max_slope_altitude = max(altitudearea.altitude, altitudearea.altitude2)
-                    self._add_polygon(name, altitudearea.geometry.geom, min_slope_altitude-200, max_slope_altitude)
+                    self._add_polygon(name, altitudearea.geometry.geom, min_slope_altitude, max_slope_altitude)
                     bounds = altitudearea.geometry.geom.bounds
                     self._add_slope(bounds, altitudearea.altitude, altitudearea.altitude2,
                                     altitudearea.point1, altitudearea.point2)
