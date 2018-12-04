@@ -46,6 +46,7 @@ class BlenderEngine(Base3DEngine):
                 )
                 triangulate_object(obj)
                 bpy.ops.mesh.select_all(action='SELECT')
+                bpy.ops.mesh.normals_make_consistent()
                 bpy.ops.object.mode_set(mode='OBJECT')
 
             def subtract_object(obj, other_obj, delete_after=False):
@@ -55,9 +56,11 @@ class BlenderEngine(Base3DEngine):
                 mod[0].name = 'Difference'
                 mod[0].operation = 'DIFFERENCE'
                 mod[0].object = other_obj
+                mod[0].solver = 'CARVE'
                 bpy.ops.object.modifier_apply(apply_as='DATA', modifier=mod[0].name)
                 bpy.ops.object.mode_set(mode='EDIT')
                 bpy.ops.mesh.normals_make_consistent()
+                bpy.ops.mesh.dissolve_limited()
                 triangulate_object(obj)
                 bpy.ops.object.mode_set(mode='OBJECT')
                 if delete_after:
@@ -70,11 +73,13 @@ class BlenderEngine(Base3DEngine):
                     select_object(obj)
                     bpy.ops.object.modifier_add(type='BOOLEAN')
                     mod = obj.modifiers
-                    mod[0].name = 'UNion'
+                    mod[0].name = 'Union'
                     mod[0].operation = 'UNION'
                     mod[0].object = other_obj
+                    mod[0].solver = 'CARVE'
                     bpy.ops.object.modifier_apply(apply_as='DATA', modifier=mod[0].name)
                     delete_object(other_obj)
+                return obj
 
             def delete_object(obj):
                 select_object(obj)
@@ -85,9 +90,13 @@ class BlenderEngine(Base3DEngine):
                     bpy.ops.object.mode_set(mode='OBJECT')
                 deselect_all()
                 exterior = add_ring(name, exterior, minz, maxz)
+                all_interiors = []
                 for i, interior_coords in enumerate(interiors):
                     interior = add_ring('%s interior %d' % (name, i), interior_coords, minz-1, maxz+1)
-                    subtract_object(exterior, interior, delete_after=True)
+                    all_interiors.append(interior)
+                if all_interiors:
+                    joined_interiors = join_objects(all_interiors)
+                    subtract_object(exterior, joined_interiors, delete_after=True)
                 return exterior
 
             def add_ring(name, coords, minz, maxz):
@@ -185,8 +194,10 @@ class BlenderEngine(Base3DEngine):
                     self._add_slope(bounds, altitudearea.altitude, altitudearea.altitude2,
                                     altitudearea.point1, altitudearea.point2)
                     self._subtract_slope()
-                    # replace this by limiting the slope instead
+                    self._collect_last_polygon_for_join()
                     self._add_polygon(name, altitudearea.geometry.geom, min_altitude-700, min_slope_altitude)
+                    self._collect_last_polygon_for_join()
+                    self._join_polygons()
                 else:
                     self._add_polygon(name, altitudearea.geometry.geom, min_altitude-700, altitudearea.altitude)
 
