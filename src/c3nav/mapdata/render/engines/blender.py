@@ -17,6 +17,7 @@ class BlenderEngine(Base3DEngine):
         self.result = ''
         self._add_python('''
             import bpy
+            import bmesh
 
             def deselect_all():
                 bpy.ops.object.select_all(action='DESELECT')
@@ -26,23 +27,49 @@ class BlenderEngine(Base3DEngine):
                 obj.select = True
                 bpy.context.scene.objects.active = obj
 
-            def add_polygon(exterior, interiors, minz, maxz):
-                bpy.ops.object.mode_set(mode='OBJECT')
-                deselect_all()
-                exterior = add_ring(exterior, minz, maxz)
-                for interior_coords in interiors:
-                    interior = add_ring(interior_coords, minz-1, maxz+1)
-                    select_object(exterior)
-                    bpy.ops.object.modifier_add(type='BOOLEAN')
-                    mod = exterior.modifiers
-                    mod[0].name = 'Difference'
-                    mod[0].operation = 'DIFFERENCE'
-                    mod[0].object = interior
-                    bpy.ops.object.modifier_apply(apply_as='DATA', modifier=mod[0].name)
-                    select_object(interior)
-                    bpy.ops.object.delete()
+            def triangulate_object(obj):
+                me = obj.data
+                bm = bmesh.from_edit_mesh(me)
+                bmesh.ops.triangulate(bm, faces=bm.faces[:], quad_method=0, ngon_method=0)
+                bmesh.update_edit_mesh(me, True)
 
-            def add_ring(coords, minz, maxz):
+            def extrude_object(obj, height):
+                select_object(obj)
+                bpy.ops.object.mode_set(mode='EDIT')
+                triangulate_object(obj)
+                bpy.ops.mesh.select_mode(type='FACE')
+                bpy.ops.mesh.select_all(action='SELECT')
+                bpy.ops.mesh.extrude_region_move(
+                    TRANSFORM_OT_translate={'value': (0, 0, height)}
+                )
+                triangulate_object(obj)
+                bpy.ops.mesh.select_all(action='SELECT')
+                bpy.ops.object.mode_set(mode='OBJECT')
+
+            def subtract_object(obj, other_obj):
+                select_object(obj)
+                bpy.ops.object.modifier_add(type='BOOLEAN')
+                mod = obj.modifiers
+                mod[0].name = 'Difference'
+                mod[0].operation = 'DIFFERENCE'
+                mod[0].object = other_obj
+                bpy.ops.object.modifier_apply(apply_as='DATA', modifier=mod[0].name)
+
+            def delete_object(obj):
+                select_object(obj)
+                bpy.ops.object.delete()
+
+            def add_polygon(name, exterior, interiors, minz, maxz):
+                if bpy.context.object:
+                    bpy.ops.object.mode_set(mode='OBJECT')
+                deselect_all()
+                exterior = add_ring(name, exterior, minz, maxz)
+                for i, interior_coords in enumerate(interiors):
+                    interior = add_ring('%s interior %d' % (name, i), interior_coords, minz-1, maxz+1)
+                    subtract_object(exterior, interior)
+                    delete_object(interior)
+
+            def add_ring(name, coords, minz, maxz):
                 if coords[0] == coords[-1]:
                     coords = coords[:-1]
                 if len(coords) < 3:
@@ -50,7 +77,7 @@ class BlenderEngine(Base3DEngine):
 
                 # create ring
                 indices = tuple(range(len(coords)))
-                mesh = bpy.data.meshes.new(name='Test')
+                mesh = bpy.data.meshes.new(name=name)
                 mesh.from_pydata(
                     tuple((x, y, minz) for x, y in coords),
                     tuple(zip(indices, indices[1:]+(0, ))),
@@ -58,20 +85,13 @@ class BlenderEngine(Base3DEngine):
                 )
 
                 # add ring to scene
-                obj = bpy.data.objects.new('Test', mesh)
+                obj = bpy.data.objects.new(name, mesh)
                 scene = bpy.context.scene
                 scene.objects.link(obj)
 
                 # extrude it
-                select_object(obj)
-                bpy.ops.object.mode_set(mode='EDIT')
-                bpy.ops.mesh.select_mode(type='FACE')
-                bpy.ops.mesh.select_all(action='SELECT')
-                bpy.ops.mesh.extrude_region_move(
-                    TRANSFORM_OT_translate={'value': (0, 0, maxz-minz)}
-                )
-                bpy.ops.object.mode_set(mode='OBJECT')
-                obj.select = False
+                extrude_object(obj, maxz-minz)
+
                 return obj
         ''')
 
@@ -91,9 +111,6 @@ class BlenderEngine(Base3DEngine):
     def custom_render(self, level_render_data, bbox, access_permissions):
         levels = get_full_levels(level_render_data)
         min_altitude = get_min_altitude(levels, default=level_render_data.base_altitude)
-        print(min_altitude)
-        for level in levels:
-            print(level)
 
         for geoms in levels:
             # hide indoor and outdoor rooms if their access restriction was not unlocked
@@ -108,14 +125,17 @@ class BlenderEngine(Base3DEngine):
             restricted_spaces = unary_union((restricted_spaces_indoors, restricted_spaces_outdoors))  # noqa
 
             for altitudearea in geoms.altitudeareas:
-                self._add_polygon(altitudearea.geometry.geom, min_altitude-1, altitudearea.altitude)
+                name = 'Level %s Altitudearea %s' % (geoms.short_label, altitudearea.altitude)
+                self._add_polygon(name, altitudearea.geometry.geom, min_altitude-1, altitudearea.altitude)
 
             break
 
-    def _add_polygon(self, geometry, minz, maxz):
+    def _add_polygon(self, name, geometry, minz, maxz):
         for polygon in assert_multipolygon(geometry):
             self._add_python(
-                'add_polygon(exterior=%(exterior)r, interiors=%(interiors)r, minz=%(minz)f, maxz=%(maxz)f)' % {
+                'add_polygon(name=%(name)r, exterior=%(exterior)r, interiors=%(interiors)r, '
+                'minz=%(minz)f, maxz=%(maxz)f)' % {
+                    'name': name,
                     'exterior': tuple(polygon.exterior.coords),
                     'interiors': tuple(tuple(interior.coords) for interior in polygon.interiors),
                     'minz': minz/1000,
