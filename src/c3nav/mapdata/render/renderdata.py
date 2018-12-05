@@ -158,6 +158,7 @@ class LevelRenderData:
                     map_history.composite(MapHistory.open_level(sublevel.pk, 'base'), None)
 
                 new_geoms = LevelGeometries()
+                new_geoms.buildings = crop_to.intersection(old_geoms.buildings)
                 new_geoms.doors = crop_to.intersection(old_geoms.doors)
                 new_geoms.walls = crop_to.intersection(old_geoms.walls)
                 new_geoms.all_walls = crop_to.intersection(old_geoms.all_walls)

@@ -43,12 +43,13 @@ class RenderEngine(ABC):
 
         self.maxx = self.minx + width / scale
         self.maxy = self.miny + height / scale
+        self.bbox = box(self.minx, self.miny, self.maxx, self.maxy)
 
         # how many pixels around the image should be added and later cropped (otherwise rsvg does not blur correctly)
         self.buffer = int(math.ceil(buffer*self.scale))
         self.buffered_width = self.width + 2 * self.buffer
         self.buffered_height = self.height + 2 * self.buffer
-        self.buffered_bbox = box(self.minx, self.miny, self.maxx, self.maxy).buffer(buffer, join_style=JOIN_STYLE.mitre)
+        self.buffered_bbox = self.bbox.buffer(buffer, join_style=JOIN_STYLE.mitre)
 
         self.background_rgb = tuple(int(background[i:i + 2], 16)/255 for i in range(1, 6, 2))
 

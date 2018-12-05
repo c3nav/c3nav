@@ -82,3 +82,12 @@ def triangulate_polygon(geometry: Union[Polygon, MultiPolygon], keep_holes=False
         offset += len(new_vertices)
 
     return np.vstack(vertices), np.vstack(faces)
+
+
+def triangulate_gapless_mesh_from_polygons(geometries):
+    rings = []
+    for polygon in geometries:
+        polygon = polygon.buffer(0)
+        rings.append(polygon.exterior)
+        rings.extend(polygon.interiors)
+    return triangulate_rings(rings)

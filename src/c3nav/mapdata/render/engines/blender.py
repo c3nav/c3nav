@@ -1,5 +1,8 @@
 import re
+from itertools import chain
 
+import numpy as np
+from shapely import prepared
 from shapely.affinity import scale
 from shapely.geometry import LineString, Point
 from shapely.ops import unary_union
@@ -8,6 +11,7 @@ from c3nav.mapdata.render.engines import register_engine
 from c3nav.mapdata.render.engines.base3d import Base3DEngine
 from c3nav.mapdata.render.utils import get_full_levels, get_min_altitude
 from c3nav.mapdata.utils.geometry import assert_multipolygon
+from c3nav.mapdata.utils.mesh import triangulate_gapless_mesh_from_polygons
 
 
 @register_engine
@@ -35,6 +39,13 @@ class BlenderEngine(Base3DEngine):
                 bmesh.ops.triangulate(bm, faces=bm.faces[:], quad_method=0, ngon_method=0)
                 bmesh.update_edit_mesh(me, True)
 
+            def clone_object(obj):
+                new_obj = obj.copy()
+                new_obj.data = obj.data.copy()
+                scene = bpy.context.scene
+                scene.objects.link(new_obj)
+                return new_obj
+
             def extrude_object(obj, height):
                 select_object(obj)
                 bpy.ops.object.mode_set(mode='EDIT')
@@ -46,7 +57,7 @@ class BlenderEngine(Base3DEngine):
                 )
                 triangulate_object(obj)
                 bpy.ops.mesh.select_all(action='SELECT')
-                bpy.ops.mesh.normals_make_consistent()
+                bpy.ops.mesh.normals_make_consistent(inside=False)
                 bpy.ops.object.mode_set(mode='OBJECT')
 
             def subtract_object(obj, other_obj, delete_after=False):
@@ -152,7 +163,37 @@ class BlenderEngine(Base3DEngine):
                 extrude_object(obj, extrude)
                 return obj
 
+            def add_mesh(name, vertices, faces):
+                edges = set()
+                for face in faces:
+                    for edge in ((face[0], face[1]), (face[1], face[2]), (face[2], face[0])):
+                        edges.add(tuple(sorted(edge)))
+
+                # create mesh
+                mesh = bpy.data.meshes.new(name=name)
+                mesh.from_pydata(
+                    vertices,
+                    tuple(edges),
+                    faces,
+                )
+
+                # add mesh to scene
+                obj = bpy.data.objects.new(name, mesh)
+                scene = bpy.context.scene
+                scene.objects.link(obj)
+                return obj
+
+            def cut_using_mesh_planes(obj, bottom_mesh_plane, top_mesh_plane, height):
+                height = abs(height)
+                bottom_obj = clone_object(bottom_mesh_plane)
+                extrude_object(bottom_obj, -height)
+                subtract_object(obj, bottom_obj, delete_after=False)
+                top_obj = clone_object(top_mesh_plane)
+                extrude_object(top_obj, height)
+                subtract_object(obj, top_obj, delete_after=False)
+
             polygons_for_join = []
+            current_mesh_plane = None
         ''')
 
     def _clean_python(self, code):
@@ -168,9 +209,15 @@ class BlenderEngine(Base3DEngine):
     def _add_python(self, code):
         self.result += self._clean_python(code)+'\n'
 
-    def custom_render(self, level_render_data, bbox, access_permissions):
+    def custom_render(self, level_render_data, access_permissions):
         levels = get_full_levels(level_render_data)
         min_altitude = get_min_altitude(levels, default=level_render_data.base_altitude)
+
+        vertices, faces = triangulate_gapless_mesh_from_polygons([self.buffered_bbox])
+        current_min_z = min_altitude-700
+        current_max_z = min_altitude-700
+        vertices = np.hstack((vertices, np.full((vertices.shape[0], 1), current_min_z)))
+        self._add_mesh_plane('Bottom mesh', vertices / 1000, faces)
 
         for geoms in levels:
             # hide indoor and outdoor rooms if their access restriction was not unlocked
@@ -184,22 +231,79 @@ class BlenderEngine(Base3DEngine):
             )
             restricted_spaces = unary_union((restricted_spaces_indoors, restricted_spaces_outdoors))  # noqa
 
+            # crop altitudeareas
             for altitudearea in geoms.altitudeareas:
+                altitudearea.geometry = altitudearea.geometry.geom.difference(restricted_spaces)
+                altitudearea.geometry_prep = prepared.prep(altitudearea.geometry)
+
+            # crop heightareas
+            new_heightareas = []
+            for geometry, height in geoms.heightareas:
+                geometry = geometry.geom.difference(restricted_spaces)
+                geometry_prep = prepared.prep(geometry)
+                new_heightareas.append((geometry, geometry_prep, height))
+            geoms.heightareas = new_heightareas
+
+            # create upper bounds for this level's walls (next mesh plane)
+            vertices, faces = triangulate_gapless_mesh_from_polygons(
+                [self.buffered_bbox] + assert_multipolygon(geoms.buildings) +
+                list(chain(*(assert_multipolygon(altitudearea.geometry) for altitudearea in geoms.altitudeareas)))
+            )
+            altitudes = []
+            for x, y in vertices:
+                point = Point(x/1000, y/1000)
+                xy = np.array((x, y))
+
+                matching_altitudeareas = [altitudearea for altitudearea in geoms.altitudeareas
+                                          if altitudearea.geometry_prep.intersects(point)]
+                if not matching_altitudeareas:
+                    altitudearea_distances = tuple((altitudearea.geometry.distance(point), altitudearea)
+                                                   for altitudearea in geoms.altitudeareas)
+                    min_distance = min(distance for distance, altitudearea in altitudearea_distances)
+                    matching_altitudeareas = [altitudearea for distance, altitudearea in altitudearea_distances
+                                              if distance == min_distance]
+                altitude = max(altitudearea.get_altitudes(xy)[0] for altitudearea in matching_altitudeareas)
+
+                matching_heights = [height for geom, geom_prep, height in geoms.heightareas
+                                    if geom_prep.intersects(point)]
+                if not matching_heights:
+                    heightarea_distances = tuple((geom.distance(point), i)
+                                                 for i, (geom, geom_prep, height) in enumerate(geoms.heightareas))
+                    min_distance = min(distance for distance, i in heightarea_distances)
+                    matching_heights = [geoms.heightareas[i][2] for distance, i in heightarea_distances
+                                        if distance == min_distance]
+                height = max(matching_heights)
+
+                altitudes.append(altitude+height)
+
+            last_min_z = current_min_z
+            last_max_z = current_max_z  # noqa
+            current_min_z = min(altitudes)  # noqa
+            current_max_z = max(altitudes)
+            vertices = np.hstack((vertices, np.array(altitudes).reshape((vertices.shape[0], 1))))
+            self._add_mesh_plane('Level %s top mesh plane' % geoms.short_label, vertices / 1000, faces)
+
+            self._add_polygon('Level %s buildings' % geoms.short_label, geoms.buildings,
+                              last_min_z-1, current_max_z+1)
+            self._cut_last_poly_with_mesh_planes(last_min_z-1, current_max_z+1)
+
+            for altitudearea in geoms.altitudeareas:
+                break
                 name = 'Level %s Altitudearea %s' % (geoms.short_label, altitudearea.altitude)
                 if altitudearea.altitude2 is not None:
                     min_slope_altitude = min(altitudearea.altitude, altitudearea.altitude2)
                     max_slope_altitude = max(altitudearea.altitude, altitudearea.altitude2)
-                    self._add_polygon(name, altitudearea.geometry.geom, min_slope_altitude, max_slope_altitude)
-                    bounds = altitudearea.geometry.geom.bounds
+                    self._add_polygon(name, altitudearea.geometry, min_slope_altitude, max_slope_altitude)
+                    bounds = altitudearea.geometry.bounds
                     self._add_slope(bounds, altitudearea.altitude, altitudearea.altitude2,
                                     altitudearea.point1, altitudearea.point2)
                     self._subtract_slope()
                     self._collect_last_polygon_for_join()
-                    self._add_polygon(name, altitudearea.geometry.geom, min_altitude-700, min_slope_altitude)
+                    self._add_polygon(name, altitudearea.geometry, min_altitude-700, min_slope_altitude)
                     self._collect_last_polygon_for_join()
                     self._join_polygons()
                 else:
-                    self._add_polygon(name, altitudearea.geometry.geom, min_altitude-700, altitudearea.altitude)
+                    self._add_polygon(name, altitudearea.geometry, min_altitude-700, altitudearea.altitude)
 
             break
 
@@ -216,6 +320,8 @@ class BlenderEngine(Base3DEngine):
                     'maxz': maxz/1000,
                 }
             )
+            self._collect_last_polygon_for_join()
+        self._join_polygons()
 
     def _add_slope(self, bounds, altitude1, altitude2, point1, point2):
         altitude_diff = altitude2-altitude1
@@ -246,6 +352,20 @@ class BlenderEngine(Base3DEngine):
                 'extrude': abs(altitude1-altitude2)/1000+1,
             }
         )
+
+    def _add_mesh_plane(self, name, vertices, faces):
+        self._add_python('last_mesh_plane = current_mesh_plane')
+        self._add_python(
+            'current_mesh_plane = add_mesh(name=%(name)r, vertices=%(vertices)r, faces=%(faces)r)' % {
+                'name': name,
+                'vertices': vertices.tolist(),
+                'faces': faces.tolist(),
+            }
+        )
+
+    def _cut_last_poly_with_mesh_planes(self, minz, maxz):
+        height = maxz-minz
+        self._add_python('cut_using_mesh_planes(last_polygon, last_mesh_plane, current_mesh_plane, %f)' % (height/1000))
 
     def _subtract_slope(self):
         self._add_python('subtract_object(last_polygon, last_slope, delete_after=True)')

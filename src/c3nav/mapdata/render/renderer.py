@@ -39,7 +39,7 @@ class MapRenderer:
                             scale=self.scale, buffer=1, background='#DCDCDC', center=center)
 
         if hasattr(engine, 'custom_render'):
-            engine.custom_render(level_render_data, bbox, access_permissions)
+            engine.custom_render(level_render_data, access_permissions)
             return engine
 
         if self.full_levels:

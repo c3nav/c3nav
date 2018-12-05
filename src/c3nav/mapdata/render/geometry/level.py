@@ -24,6 +24,7 @@ class LevelGeometries:
     Store geometries for a Level.
     """
     def __init__(self):
+        self.buildings = None
         self.altitudeareas = []
         self.heightareas = []
         self.walls = None
@@ -60,6 +61,7 @@ class LevelGeometries:
     def build_for_level(cls, level, altitudeareas_above):
         geoms = LevelGeometries()
         buildings_geom = unary_union([b.geometry for b in level.buildings.all()])
+        geoms.buildings = buildings_geom
         buildings_geom_prep = prepared.prep(buildings_geom)
 
         # remove columns and holes from space areas
@@ -460,6 +462,6 @@ class LevelGeometries:
         # unset heightareas, they are no loinger needed
         self.all_walls = None
         self.ramps = None
-        self.heightareas = None
+        # self.heightareas = None
         self.vertices = None
         self.faces = None
