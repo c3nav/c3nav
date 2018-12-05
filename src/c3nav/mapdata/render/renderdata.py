@@ -159,6 +159,8 @@ class LevelRenderData:
 
                 new_geoms = LevelGeometries()
                 new_geoms.buildings = crop_to.intersection(old_geoms.buildings)
+                if old_geoms.on_top_of_id is None:
+                    new_geoms.holes = crop_to.intersection(old_geoms.holes)
                 new_geoms.doors = crop_to.intersection(old_geoms.doors)
                 new_geoms.walls = crop_to.intersection(old_geoms.walls)
                 new_geoms.all_walls = crop_to.intersection(old_geoms.all_walls)
