@@ -1,7 +1,5 @@
 import re
-from itertools import chain
 
-import numpy as np
 from shapely import prepared
 from shapely.affinity import scale
 from shapely.geometry import JOIN_STYLE, LineString, Point
@@ -9,9 +7,8 @@ from shapely.ops import unary_union
 
 from c3nav.mapdata.render.engines import register_engine
 from c3nav.mapdata.render.engines.base3d import Base3DEngine
-from c3nav.mapdata.render.utils import get_full_levels, get_min_altitude
+from c3nav.mapdata.render.utils import get_full_levels
 from c3nav.mapdata.utils.geometry import assert_multipolygon
-from c3nav.mapdata.utils.mesh import triangulate_gapless_mesh_from_polygons
 
 
 @register_engine
@@ -208,15 +205,33 @@ class BlenderEngine(Base3DEngine):
 
     def custom_render(self, level_render_data, access_permissions):
         levels = get_full_levels(level_render_data)
-        min_altitude = get_min_altitude(levels, default=level_render_data.base_altitude)
 
-        vertices, faces = triangulate_gapless_mesh_from_polygons([self.buffered_bbox])
-        current_min_z = min_altitude-700
-        current_max_z = min_altitude-700
-        vertices = np.hstack((vertices, np.full((vertices.shape[0], 1), current_min_z)))
-        self._add_mesh_plane('Bottom mesh', vertices / 1000, faces)
+        buildings = None
+
+        last_lower_bound = None
+        for geoms in reversed(levels):
+            if geoms.on_top_of_id is not None:
+                continue
+
+            altitudes = [geoms.base_altitude]
+            for altitudearea in geoms.altitudeareas:
+                altitudes.append(altitudearea.altitude)
+                if altitudearea.altitude2 is not None:
+                    altitudes.append(altitudearea.altitude2)
+
+            if last_lower_bound is None:
+                altitude = max(altitudes)
+                height = max((height for (geometry, height) in geoms.heightareas), default=geoms.default_height)
+                last_lower_bound = altitude+height
+
+            geoms.upper_bound = last_lower_bound
+            geoms.lower_bound = min(altitudes)-700
+            last_lower_bound = geoms.lower_bound
 
         for geoms in levels:
+            if geoms.on_top_of_id is not None:
+                continue
+
             # hide indoor and outdoor rooms if their access restriction was not unlocked
             restricted_spaces_indoors = unary_union(
                 tuple(area.geom for access_restriction, area in geoms.restricted_spaces_indoors.items()
@@ -241,49 +256,12 @@ class BlenderEngine(Base3DEngine):
                 new_heightareas.append((geometry, geometry_prep, height))
             geoms.heightareas = new_heightareas
 
-            # create upper bounds for this level's walls (next mesh plane)
-            vertices, faces = triangulate_gapless_mesh_from_polygons(
-                [self.buffered_bbox] + assert_multipolygon(geoms.buildings) +
-                list(chain(*(assert_multipolygon(altitudearea.geometry) for altitudearea in geoms.altitudeareas)))
-            )
-            altitudes = []
-            for x, y in vertices:
-                point = Point(x/1000, y/1000)
-                xy = np.array((x, y))
+            if geoms.on_top_of_id is None:
+                buildings = geoms.buildings
 
-                matching_altitudeareas = [altitudearea for altitudearea in geoms.altitudeareas
-                                          if altitudearea.geometry_prep.intersects(point)]
-                if not matching_altitudeareas:
-                    altitudearea_distances = tuple((altitudearea.geometry.distance(point), altitudearea)
-                                                   for altitudearea in geoms.altitudeareas)
-                    min_distance = min(distance for distance, altitudearea in altitudearea_distances)
-                    matching_altitudeareas = [altitudearea for distance, altitudearea in altitudearea_distances
-                                              if distance == min_distance]
-                altitude = max(altitudearea.get_altitudes(xy)[0] for altitudearea in matching_altitudeareas)
-
-                matching_heights = [height for geom, geom_prep, height in geoms.heightareas
-                                    if geom_prep.intersects(point)]
-                if not matching_heights:
-                    heightarea_distances = tuple((geom.distance(point), i)
-                                                 for i, (geom, geom_prep, height) in enumerate(geoms.heightareas))
-                    min_distance = min(distance for distance, i in heightarea_distances)
-                    matching_heights = [geoms.heightareas[i][2] for distance, i in heightarea_distances
-                                        if distance == min_distance]
-                height = max(matching_heights)
-
-                altitudes.append(altitude+height)
-
-            last_min_z = current_min_z
-            last_max_z = current_max_z  # noqa
-            current_min_z = min(altitudes)  # noqa
-            current_max_z = max(altitudes)
-            vertices = np.hstack((vertices, np.array(altitudes).reshape((vertices.shape[0], 1))))
-            self._add_mesh_plane('Level %s top mesh plane' % geoms.short_label, vertices / 1000, faces)
-
-            self._add_polygon('Level %s' % geoms.short_label, geoms.buildings,
-                              last_min_z-1000, current_max_z+1000)
-            self._set_last_polygon_to_main()
-            self._cut_last_poly_with_mesh_planes(last_min_z-1000, current_max_z+1000)
+                self._add_polygon('Level %s' % geoms.short_label, buildings,
+                                  geoms.lower_bound, geoms.upper_bound)
+                self._set_last_polygon_to_main()
 
             for altitudearea in geoms.altitudeareas:
                 name = 'Level %s Altitudearea %s' % (geoms.short_label, altitudearea.altitude)
@@ -291,7 +269,7 @@ class BlenderEngine(Base3DEngine):
                 if altitudearea.altitude2 is not None:
                     self._debug('slope start')
                     min_slope_altitude = min(altitudearea.altitude, altitudearea.altitude2)
-                    self._add_polygon(name, buffered_geom, min_slope_altitude-10, current_max_z+1000)
+                    self._add_polygon(name, buffered_geom, min_slope_altitude-10, geoms.upper_bound+1000)
                     bounds = buffered_geom.bounds
                     self._add_slope(bounds, altitudearea.altitude-10, altitudearea.altitude2-10,
                                     altitudearea.point1, altitudearea.point2, bottom=True)
@@ -301,10 +279,8 @@ class BlenderEngine(Base3DEngine):
                     self._debug('slope end')
                 else:
                     self._add_polygon(name, buffered_geom,
-                                      altitudearea.altitude, current_max_z+1000)
+                                      altitudearea.altitude, geoms.upper_bound+1000)
                     self._subtract_last_polygon_from_main()
-
-            break
 
         self._add_python('''
             if last_mesh_plane:
