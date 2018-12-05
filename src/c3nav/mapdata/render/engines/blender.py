@@ -189,6 +189,7 @@ class BlenderEngine(Base3DEngine):
 
             main_object = None
             polygons_for_join = []
+            last_mesh_plane = None
             current_mesh_plane = None
         ''')
 
@@ -279,7 +280,7 @@ class BlenderEngine(Base3DEngine):
             vertices = np.hstack((vertices, np.array(altitudes).reshape((vertices.shape[0], 1))))
             self._add_mesh_plane('Level %s top mesh plane' % geoms.short_label, vertices / 1000, faces)
 
-            self._add_polygon('Level %s buildings' % geoms.short_label, geoms.buildings,
+            self._add_polygon('Level %s' % geoms.short_label, geoms.buildings,
                               last_min_z-1000, current_max_z+1000)
             self._set_last_polygon_to_main()
             self._cut_last_poly_with_mesh_planes(last_min_z-1000, current_max_z+1000)
@@ -304,6 +305,12 @@ class BlenderEngine(Base3DEngine):
                     self._subtract_last_polygon_from_main()
 
             break
+
+        self._add_python('''
+            if last_mesh_plane:
+                delete_object(last_mesh_plane)
+            if current_mesh_plane:
+                delete_object(current_mesh_plane)''')
 
     def _add_polygon(self, name, geometry, minz, maxz):
         geometry = geometry.buffer(0)
@@ -356,6 +363,9 @@ class BlenderEngine(Base3DEngine):
         )
 
     def _add_mesh_plane(self, name, vertices, faces):
+        self._add_python('''
+            if last_mesh_plane:
+                delete_object(last_mesh_plane)''')
         self._add_python('last_mesh_plane = current_mesh_plane')
         self._add_python(
             'current_mesh_plane = add_mesh(name=%(name)r, vertices=%(vertices)r, faces=%(faces)r)' % {
