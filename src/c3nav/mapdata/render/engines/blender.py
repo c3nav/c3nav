@@ -1,4 +1,5 @@
 import re
+from operator import attrgetter
 
 from shapely import prepared
 from shapely.affinity import scale
@@ -228,10 +229,8 @@ class BlenderEngine(Base3DEngine):
             geoms.lower_bound = min(altitudes)-700
             last_lower_bound = geoms.lower_bound
 
+        current_upper_bound = last_lower_bound
         for geoms in levels:
-            if geoms.on_top_of_id is not None:
-                continue
-
             # hide indoor and outdoor rooms if their access restriction was not unlocked
             restricted_spaces_indoors = unary_union(
                 tuple(area.geom for access_restriction, area in geoms.restricted_spaces_indoors.items()
@@ -258,6 +257,7 @@ class BlenderEngine(Base3DEngine):
 
             if geoms.on_top_of_id is None:
                 buildings = geoms.buildings
+                current_upper_bound = geoms.upper_bound
 
                 holes = geoms.holes.difference(restricted_spaces)
                 buildings = buildings.difference(holes)
@@ -266,24 +266,40 @@ class BlenderEngine(Base3DEngine):
                                   geoms.lower_bound, geoms.upper_bound)
                 self._set_last_polygon_to_main()
 
-            for altitudearea in geoms.altitudeareas:
+            for altitudearea in sorted(geoms.altitudeareas, key=attrgetter('altitude')):
                 name = 'Level %s Altitudearea %s' % (geoms.short_label, altitudearea.altitude)
-                buffered_geom = altitudearea.geometry.buffer(0).buffer(0.01, join_style=JOIN_STYLE.mitre)
-                if altitudearea.altitude2 is not None:
-                    self._debug('slope start')
-                    min_slope_altitude = min(altitudearea.altitude, altitudearea.altitude2)
-                    self._add_polygon(name, buffered_geom, min_slope_altitude-10, geoms.upper_bound+1000)
-                    bounds = buffered_geom.bounds
-                    self._add_slope(bounds, altitudearea.altitude-10, altitudearea.altitude2-10,
-                                    altitudearea.point1, altitudearea.point2, bottom=True)
-                    self._subtract_slope()
-                    self._debug('slope continue')
-                    self._subtract_last_polygon_from_main()
-                    self._debug('slope end')
-                else:
-                    self._add_polygon(name, buffered_geom,
-                                      altitudearea.altitude, geoms.upper_bound+1000)
-                    self._subtract_last_polygon_from_main()
+                geometry = altitudearea.geometry.buffer(0)
+                inside_geometry = geometry.intersection(buildings).buffer(0).buffer(0.01, join_style=JOIN_STYLE.mitre)
+                outside_geometry = geometry.difference(buildings).buffer(0).buffer(0.01, join_style=JOIN_STYLE.mitre)
+
+                if not inside_geometry.is_empty:
+                    if altitudearea.altitude2 is not None:
+                        self._debug('slope start')
+                        min_slope_altitude = min(altitudearea.altitude, altitudearea.altitude2)
+                        self._add_polygon(name, inside_geometry, min_slope_altitude-10, current_upper_bound+1000)
+                        bounds = inside_geometry.bounds
+                        self._add_slope(bounds, altitudearea.altitude-10, altitudearea.altitude2-10,
+                                        altitudearea.point1, altitudearea.point2, bottom=True)
+                        self._subtract_slope()
+                        self._debug('slope continue')
+                        self._subtract_last_polygon_from_main()
+                        self._debug('slope end')
+                    else:
+                        if altitudearea.altitude < current_upper_bound:
+                            self._add_polygon(name, inside_geometry,
+                                              altitudearea.altitude, current_upper_bound+1000)
+                            self._subtract_last_polygon_from_main()
+
+                if not outside_geometry.is_empty:
+                    if altitudearea.altitude2 is not None:
+                        pass  # todo
+                    else:
+                        if altitudearea.altitude > current_upper_bound:
+                            lower = altitudearea.altitude-700
+                            if lower == current_upper_bound:
+                                lower -= 10
+                            self._add_polygon(name, outside_geometry,
+                                              lower, altitudearea.altitude)
 
         self._add_python('''
             if last_mesh_plane:
