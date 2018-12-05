@@ -4,7 +4,7 @@ from itertools import chain
 import numpy as np
 from shapely import prepared
 from shapely.affinity import scale
-from shapely.geometry import LineString, Point
+from shapely.geometry import JOIN_STYLE, LineString, Point
 from shapely.ops import unary_union
 
 from c3nav.mapdata.render.engines import register_engine
@@ -187,6 +187,7 @@ class BlenderEngine(Base3DEngine):
                 extrude_object(top_obj, height)
                 subtract_object(obj, top_obj, delete_after=True)
 
+            main_object = None
             polygons_for_join = []
             current_mesh_plane = None
         ''')
@@ -280,34 +281,37 @@ class BlenderEngine(Base3DEngine):
 
             self._add_polygon('Level %s buildings' % geoms.short_label, geoms.buildings,
                               last_min_z-1000, current_max_z+1000)
+            self._set_last_polygon_to_main()
             self._cut_last_poly_with_mesh_planes(last_min_z-1000, current_max_z+1000)
 
             for altitudearea in geoms.altitudeareas:
-                break
                 name = 'Level %s Altitudearea %s' % (geoms.short_label, altitudearea.altitude)
+                buffered_geom = altitudearea.geometry.buffer(0).buffer(0.01, join_style=JOIN_STYLE.mitre)
                 if altitudearea.altitude2 is not None:
+                    self._debug('slope start')
                     min_slope_altitude = min(altitudearea.altitude, altitudearea.altitude2)
-                    max_slope_altitude = max(altitudearea.altitude, altitudearea.altitude2)
-                    self._add_polygon(name, altitudearea.geometry, min_slope_altitude, max_slope_altitude)
-                    bounds = altitudearea.geometry.bounds
-                    self._add_slope(bounds, altitudearea.altitude, altitudearea.altitude2,
-                                    altitudearea.point1, altitudearea.point2)
+                    self._add_polygon(name, buffered_geom, min_slope_altitude-10, current_max_z+1000)
+                    bounds = buffered_geom.bounds
+                    self._add_slope(bounds, altitudearea.altitude-10, altitudearea.altitude2-10,
+                                    altitudearea.point1, altitudearea.point2, bottom=True)
                     self._subtract_slope()
-                    self._collect_last_polygon_for_join()
-                    self._add_polygon(name, altitudearea.geometry, min_altitude-700, min_slope_altitude)
-                    self._collect_last_polygon_for_join()
-                    self._join_polygons()
+                    self._debug('slope continue')
+                    self._subtract_last_polygon_from_main()
+                    self._debug('slope end')
                 else:
-                    self._add_polygon(name, altitudearea.geometry, min_altitude-700, altitudearea.altitude)
+                    self._add_polygon(name, buffered_geom,
+                                      altitudearea.altitude, current_max_z+1000)
+                    self._subtract_last_polygon_from_main()
 
             break
 
     def _add_polygon(self, name, geometry, minz, maxz):
         geometry = geometry.buffer(0)
+        self._add_python('sub_polygons = []')
         for polygon in assert_multipolygon(geometry):
             self._add_python(
-                'last_polygon = add_polygon(name=%(name)r, exterior=%(exterior)r, interiors=%(interiors)r, '
-                'minz=%(minz)f, maxz=%(maxz)f)' % {
+                'sub_polygons.append(add_polygon(name=%(name)r, exterior=%(exterior)r, interiors=%(interiors)r, '
+                'minz=%(minz)f, maxz=%(maxz)f))' % {
                     'name': name,
                     'exterior': tuple(polygon.exterior.coords),
                     'interiors': tuple(tuple(interior.coords) for interior in polygon.interiors),
@@ -315,10 +319,10 @@ class BlenderEngine(Base3DEngine):
                     'maxz': maxz/1000,
                 }
             )
-            self._collect_last_polygon_for_join()
-        self._join_polygons()
+        self._add_python('last_polygon = sub_polygons[0]')
+        self._add_python('join_objects(sub_polygons)')
 
-    def _add_slope(self, bounds, altitude1, altitude2, point1, point2):
+    def _add_slope(self, bounds, altitude1, altitude2, point1, point2, bottom=False):
         altitude_diff = altitude2-altitude1
         altitude_middle = (altitude1+altitude2)/2
         altitude_halfdiff = altitude_diff/2
@@ -340,11 +344,14 @@ class BlenderEngine(Base3DEngine):
             z = ((pos/line.length)*altitude_diff)+altitude_base
             points_3d.append((x, y, z/1000))
 
+        extrude = abs(altitude1-altitude2)/1000+100
+        if bottom:
+            extrude = -extrude
         self._add_python(
             'last_slope = add_polygon_3d(name=%(name)r, coords=%(coords)r, extrude=%(extrude)f)' % {
                 'name': 'tmpslope',
                 'coords': tuple(points_3d),
-                'extrude': abs(altitude1-altitude2)/1000+1,
+                'extrude': extrude,
             }
         )
 
@@ -365,6 +372,13 @@ class BlenderEngine(Base3DEngine):
     def _subtract_slope(self):
         self._add_python('subtract_object(last_polygon, last_slope, delete_after=True)')
 
+    def _set_last_polygon_to_main(self):
+        self._add_python('main_object = last_polygon')
+
+    def _subtract_last_polygon_from_main(self):
+        self._add_python('subtract_object(main_object, last_polygon, delete_after=True)')
+        self._add_python('last_polygon = main_object')
+
     def _collect_last_polygon_for_join(self):
         self._add_python('polygons_for_join.append(last_polygon)')
 
@@ -375,6 +389,9 @@ class BlenderEngine(Base3DEngine):
         self._add_python('join_objects(polygons_for_join)')
         self._add_python('last_polygon = polygons_for_join[0]')
         self._clear_polygons_for_join()
+
+    def _debug(self, message):
+        self._add_python('print(%r)' % message)
 
     def render(self, filename=None):
         return self.result.encode()
