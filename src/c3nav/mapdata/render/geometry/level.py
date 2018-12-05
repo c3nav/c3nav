@@ -206,7 +206,7 @@ class LevelGeometries:
         geoms.pk = level.pk
         geoms.on_top_of_id = level.on_top_of_id
         geoms.short_label = level.short_label
-        geoms.base_altititude = int(level.base_altitude * 1000)
+        geoms.base_altitude = int(level.base_altitude * 1000)
         geoms.default_height = int(level.default_height * 1000)
         geoms.door_height = int(level.door_height * 1000)
         geoms.min_altitude = (min(area.altitude for area in geoms.altitudeareas)
