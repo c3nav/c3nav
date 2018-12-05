@@ -121,7 +121,7 @@ class BlenderEngine(Base3DEngine):
                 mesh = bpy.data.meshes.new(name=name)
                 mesh.from_pydata(
                     tuple((x, y, minz) for x, y in coords),
-                    tuple(zip(indices, indices[1:]+(0, ))),
+                    (),
                     (indices, ),
                 )
 
@@ -150,7 +150,7 @@ class BlenderEngine(Base3DEngine):
                 mesh = bpy.data.meshes.new(name=name)
                 mesh.from_pydata(
                     coords,
-                    tuple(zip(indices, indices[1:]+(0, ))),
+                    (),
                     (indices, ),
                 )
 
@@ -164,16 +164,11 @@ class BlenderEngine(Base3DEngine):
                 return obj
 
             def add_mesh(name, vertices, faces):
-                edges = set()
-                for face in faces:
-                    for edge in ((face[0], face[1]), (face[1], face[2]), (face[2], face[0])):
-                        edges.add(tuple(sorted(edge)))
-
                 # create mesh
                 mesh = bpy.data.meshes.new(name=name)
                 mesh.from_pydata(
                     vertices,
-                    tuple(edges),
+                    (),
                     faces,
                 )
 
@@ -187,10 +182,10 @@ class BlenderEngine(Base3DEngine):
                 height = abs(height)
                 bottom_obj = clone_object(bottom_mesh_plane)
                 extrude_object(bottom_obj, -height)
-                subtract_object(obj, bottom_obj, delete_after=False)
+                subtract_object(obj, bottom_obj, delete_after=True)
                 top_obj = clone_object(top_mesh_plane)
                 extrude_object(top_obj, height)
-                subtract_object(obj, top_obj, delete_after=False)
+                subtract_object(obj, top_obj, delete_after=True)
 
             polygons_for_join = []
             current_mesh_plane = None
@@ -284,8 +279,8 @@ class BlenderEngine(Base3DEngine):
             self._add_mesh_plane('Level %s top mesh plane' % geoms.short_label, vertices / 1000, faces)
 
             self._add_polygon('Level %s buildings' % geoms.short_label, geoms.buildings,
-                              last_min_z-1, current_max_z+1)
-            self._cut_last_poly_with_mesh_planes(last_min_z-1, current_max_z+1)
+                              last_min_z-1000, current_max_z+1000)
+            self._cut_last_poly_with_mesh_planes(last_min_z-1000, current_max_z+1000)
 
             for altitudearea in geoms.altitudeareas:
                 break
