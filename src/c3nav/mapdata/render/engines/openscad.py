@@ -71,27 +71,7 @@ class OpenSCADEngine(Base3DEngine):
         main_building_block = None
         main_building_block_diff = None
 
-        last_lower_bound = None
-        for geoms in reversed(levels):
-            if geoms.on_top_of_id is not None:
-                continue
-
-            altitudes = [geoms.base_altitude]
-            for altitudearea in geoms.altitudeareas:
-                altitudes.append(altitudearea.altitude)
-                if altitudearea.altitude2 is not None:
-                    altitudes.append(altitudearea.altitude2)
-
-            if last_lower_bound is None:
-                altitude = max(altitudes)
-                height = max((height for (geometry, height) in geoms.heightareas), default=geoms.default_height)
-                last_lower_bound = altitude+height
-
-            geoms.upper_bound = last_lower_bound
-            geoms.lower_bound = min(altitudes)-700
-            last_lower_bound = geoms.lower_bound
-
-        current_upper_bound = last_lower_bound
+        current_upper_bound = None
         for geoms in levels:
             # hide indoor and outdoor rooms if their access restriction was not unlocked
             restricted_spaces_indoors = unary_union(

@@ -53,6 +53,11 @@ class LevelGeometries:
         self.default_height = None
         self.door_height = None
         self.min_altitude = None
+        self.max_altitude = None
+        self.max_height = None
+
+        self.lower_bound = None
+        self.upper_bound = None
 
     def __repr__(self):
         return '<LevelGeometries for Level %s (#%d)>' % (self.short_label, self.pk)
@@ -211,6 +216,11 @@ class LevelGeometries:
         geoms.door_height = int(level.door_height * 1000)
         geoms.min_altitude = (min(area.altitude for area in geoms.altitudeareas)
                               if geoms.altitudeareas else geoms.base_altitude)
+        geoms.max_altitude = (max(area.altitude for area in geoms.altitudeareas)
+                              if geoms.altitudeareas else geoms.base_altitude)
+        geoms.max_height = (min(height for area, height in geoms.heightareas)
+                            if geoms.heightareas else geoms.default_height)
+        geoms.lower_bound = geoms.min_altitude-700
 
         return geoms
 

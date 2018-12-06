@@ -102,6 +102,7 @@ class LevelRenderData:
             primary_level_count = 0
             main_level_passed = 0
             lowest_important_level = None
+            last_lower_bound = None
             for sublevel in reversed(sublevels):
                 geoms = single_level_geoms[sublevel.pk]
 
@@ -118,6 +119,14 @@ class LevelRenderData:
                         main_level_passed += 1
                 if main_level_passed < 2:
                     lowest_important_level = sublevel
+
+                # make upper bounds
+                if geoms.on_top_of_id is None:
+                    if last_lower_bound is None:
+                        geoms.upper_bound = geoms.max_altitude+geoms.max_height
+                    else:
+                        geoms.upper_bound = last_lower_bound
+                    last_lower_bound = geoms.lower_bound
 
                 # set crop area if we area on the second primary layer from top or below
                 level_crop_to[sublevel.pk] = Cropper(crop_to if primary_level_count > 1 else None)
@@ -249,6 +258,12 @@ class LevelRenderData:
                 new_geoms.door_height = old_geoms.door_height
                 new_geoms.min_altitude = (min(area.altitude for area in new_geoms.altitudeareas)
                                           if new_geoms.altitudeareas else new_geoms.base_altitude)
+                new_geoms.max_altitude = (max(area.altitude for area in new_geoms.altitudeareas)
+                                          if new_geoms.altitudeareas else new_geoms.base_altitude)
+                new_geoms.max_height = (min(height for area, height in new_geoms.heightareas)
+                                        if new_geoms.heightareas else new_geoms.default_height)
+                new_geoms.lower_bound = old_geoms.lower_bound
+                new_geoms.upper_bound = old_geoms.upper_bound
 
                 new_geoms.build_mesh(interpolators.get(level.pk) if sublevel.pk == level.pk else None)
 
