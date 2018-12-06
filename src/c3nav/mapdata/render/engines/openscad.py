@@ -164,8 +164,8 @@ class OpenSCADEngine(Base3DEngine):
 
                         # actual thingy
                         if max_slope_altitude > current_upper_bound:
-                            polygon = self._add_polygon(None, outside_geometry,
-                                                        current_upper_bound - 10, max_slope_altitude + 10)
+                            polygon = self._add_polygon(None, inside_geometry,
+                                                        current_upper_bound-10, max_slope_altitude+10)
                             slope = self._add_slope(bounds, altitudearea.altitude, altitudearea.altitude2,
                                                     altitudearea.point1, altitudearea.point2, bottom=False)
                             main_building_block.append(
