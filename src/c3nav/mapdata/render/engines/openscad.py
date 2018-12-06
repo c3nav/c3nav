@@ -58,9 +58,16 @@ class OpenScadCommand(AbstractOpenScadElem):
 class OpenSCADEngine(Base3DEngine):
     filetype = 'scad'
 
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.root = OpenScadRoot()
+    def __init__(self, *args, center=True, **kwargs):
+        super().__init__(*args, center=center, **kwargs)
+
+        if center:
+            self.root = OpenScadBlock('translate([%f, %f, 0])' % (
+                -(self.maxx - self.minx) * self.scale / 2,
+                -(self.maxy - self.miny) * self.scale / 2
+            ))
+        else:
+            self.root = OpenScadRoot()
 
     def custom_render(self, level_render_data, access_permissions, full_levels):
         if full_levels:
