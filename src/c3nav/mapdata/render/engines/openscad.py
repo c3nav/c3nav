@@ -121,10 +121,13 @@ class OpenSCADEngine(Base3DEngine):
                 main_building_block_diff = OpenScadBlock('difference()')
                 main_building_block.append(main_building_block_diff)
                 main_building_block_diff.append(
-                    self._add_polygon(None, buildings, geoms.lower_bound, geoms.upper_bound)
+                    self._add_polygon(None, buildings.intersection(self.bbox), geoms.lower_bound, geoms.upper_bound)
                 )
 
             for altitudearea in sorted(geoms.altitudeareas, key=attrgetter('altitude')):
+                if not altitudearea.geometry.intersects(self.bbox):
+                    continue
+
                 if altitudearea.altitude2 is not None:
                     name = 'Altitudearea %s-%s' % (altitudearea.altitude/1000, altitudearea.altitude2/1000)
                 else:
@@ -142,7 +145,7 @@ class OpenSCADEngine(Base3DEngine):
                     areas = areas.union(geometry)
                     buildings = buildings.difference(geometry).buffer(0)
                     inside_geometry = inside_geometry.intersection(areas).buffer(0)
-                    outside_geometry = outside_geometry.intersection(areas).buffer(0)
+                    outside_geometry = outside_geometry.intersection(areas).buffer(0).intersection(self.bbox)
                     geometry_buffered = geometry_buffered.intersection(areas).buffer(0)
 
                 slopes = True
@@ -165,8 +168,8 @@ class OpenSCADEngine(Base3DEngine):
                             )
 
                         # actual thingy
-                        if max_slope_altitude > current_upper_bound:
-                            polygon = self._add_polygon(None, inside_geometry,
+                        if max_slope_altitude > current_upper_bound and inside_geometry.intersects(self.bbox):
+                            polygon = self._add_polygon(None, inside_geometry.intersection(self.bbox),
                                                         current_upper_bound-10, max_slope_altitude+10)
                             slope = self._add_slope(bounds, altitudearea.altitude, altitudearea.altitude2,
                                                     altitudearea.point1, altitudearea.point2, bottom=False)
@@ -182,7 +185,7 @@ class OpenSCADEngine(Base3DEngine):
                             )
                         else:
                             main_building_block.append(
-                                self._add_polygon(name+' inside', inside_geometry,
+                                self._add_polygon(name+' inside', inside_geometry.intersection(self.bbox),
                                                   min(altitudearea.altitude-700, current_upper_bound-10),
                                                   altitudearea.altitude)
                             )
@@ -237,13 +240,15 @@ class OpenSCADEngine(Base3DEngine):
                         height_diff.append(height_union)
 
                         for obstacle in obstacles:
+                            if not obstacle.geom.intersects(self.bbox):
+                                continue
                             obstacle = obstacle.geom.buffer(0).buffer(0.01, join_style=JOIN_STYLE.mitre)
                             obstacle = obstacle.intersection(geometry_buffered)
                             if not obstacle.is_empty:
                                 had_height_obstacles = True
                                 had_obstacles = True
                             height_union.append(
-                                self._add_polygon(None, obstacle,
+                                self._add_polygon(None, obstacle.intersection(self.bbox),
                                                   min_slope_altitude-20, max_slope_altitude+height+10)
                             )
 
@@ -265,8 +270,10 @@ class OpenSCADEngine(Base3DEngine):
                     had_obstacles = False
                     for height, obstacles in altitudearea.obstacles.items():
                         for obstacle in obstacles:
+                            if not obstacle.geom.intersects(self.bbox):
+                                continue
                             obstacle = obstacle.geom.buffer(0).buffer(0.01, join_style=JOIN_STYLE.mitre)
-                            obstacle = obstacle.intersection(geometry_buffered)
+                            obstacle = obstacle.intersection(geometry_buffered).intersection(self.bbox)
                             if not obstacle.is_empty:
                                 had_obstacles = True
                             obstacles_block.append(

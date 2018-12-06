@@ -2,7 +2,7 @@ import argparse
 import os
 
 from django.conf import settings
-from django.core.management.base import BaseCommand
+from django.core.management.base import BaseCommand, CommandError
 from django.utils.translation import ugettext_lazy as _
 from django.utils.translation import ungettext_lazy
 
@@ -74,9 +74,31 @@ class Command(BaseCommand):
                             help=_('do not center the output'))
         parser.add_argument('--scale', default=1, type=self.scale_value,
                             help=_('scale (from 1 to 32), only relevant for image renderers'))
+        parser.add_argument('--minx', default=None, type=float,
+                            help=_('minimum x coordinate, everthing left of it will be cropped'))
+        parser.add_argument('--miny', default=None, type=float,
+                            help=_('minimum y coordinate, everthing below it will be cropped'))
+        parser.add_argument('--maxx', default=None, type=float,
+                            help=_('maximum x coordinate, everthing right of it will be cropped'))
+        parser.add_argument('--maxy', default=None, type=float,
+                            help=_('maximum y coordinate, everthing above it will be cropped'))
 
     def handle(self, *args, **options):
         (minx, miny), (maxx, maxy) = Source.max_bounds()
+        if options['minx'] is not None:
+            minx = options['minx']
+        if options['miny'] is not None:
+            miny = options['miny']
+        if options['maxx'] is not None:
+            maxx = options['maxx']
+        if options['maxy'] is not None:
+            maxy = options['maxy']
+
+        if minx >= maxx:
+            raise CommandError(_('minx has to be lower than maxx'))
+        if miny >= maxy:
+            raise CommandError(_('miny has to be lower than maxy'))
+
         for level in options['levels']:
             renderer = MapRenderer(level.pk, minx, miny, maxx, maxy, access_permissions=options['permissions'],
                                    scale=options['scale'], full_levels=options['full_levels'])
