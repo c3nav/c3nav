@@ -287,6 +287,8 @@ class OpenSCADNewEngine(Base3DEngine):
                         i = len(points)
                         points.append(list(coords))
                     output_ring.append(i)
+                if output_ring[0] == output_ring[-1]:
+                    output_ring = output_ring[:-1]
                 output_rings.append(output_ring)
             polygons.append(OpenScadCommand('polygon(%(points)r, %(rings)r, 10);' % {
                 'points': points,
