@@ -4,7 +4,7 @@ from collections import UserList
 from operator import attrgetter
 
 from shapely import prepared
-from shapely.geometry import JOIN_STYLE
+from shapely.geometry import JOIN_STYLE, MultiPolygon
 from shapely.ops import unary_union
 
 from c3nav.mapdata.render.engines import register_engine
@@ -66,6 +66,7 @@ class OpenSCADEngine(Base3DEngine):
         levels = get_full_levels(level_render_data)
 
         buildings = None
+        areas = None
 
         main_building_block = None
         main_building_block_diff = None
@@ -118,6 +119,7 @@ class OpenSCADEngine(Base3DEngine):
 
             if geoms.on_top_of_id is None:
                 buildings = geoms.buildings
+                areas = MultiPolygon()
                 current_upper_bound = geoms.upper_bound
 
                 holes = geoms.holes.difference(restricted_spaces)
@@ -137,11 +139,20 @@ class OpenSCADEngine(Base3DEngine):
                 else:
                     name = 'Altitudearea %s' % (altitudearea.altitude / 1000)
 
+                # why all this buffering?
+                # buffer(0) ensures a valid geometry, this is sadly needed sometimes
+                # the rest of the buffering is meant to make polygons overlap a little so no glitches appear
+                # the intersections below will ensure that they they only overlap with each other and don't eat walls
                 geometry = altitudearea.geometry.buffer(0)
                 inside_geometry = geometry.intersection(buildings).buffer(0).buffer(0.01, join_style=JOIN_STYLE.mitre)
                 outside_geometry = geometry.difference(buildings).buffer(0).buffer(0.01, join_style=JOIN_STYLE.mitre)
+                geometry_buffered = geometry.buffer(0.01, join_style=JOIN_STYLE.mitre)
                 if geoms.on_top_of_id is None:
+                    areas = areas.union(geometry)
                     buildings = buildings.difference(geometry).buffer(0)
+                    inside_geometry = inside_geometry.intersection(areas).buffer(0)
+                    outside_geometry = outside_geometry.intersection(areas).buffer(0)
+                    geometry_buffered = geometry_buffered.intersection(areas).buffer(0)
 
                 slopes = True
 
@@ -235,8 +246,8 @@ class OpenSCADEngine(Base3DEngine):
                         height_diff.append(height_union)
 
                         for obstacle in obstacles:
-                            obstacle = obstacle.geom.buffer(0).intersection(geometry)
-                            obstacle = obstacle.buffer(0.01, join_style=JOIN_STYLE.mitre)
+                            obstacle = obstacle.geom.buffer(0).buffer(0.01, join_style=JOIN_STYLE.mitre)
+                            obstacle = obstacle.intersection(geometry_buffered)
                             if not obstacle.is_empty:
                                 had_height_obstacles = True
                                 had_obstacles = True
@@ -263,8 +274,8 @@ class OpenSCADEngine(Base3DEngine):
                     had_obstacles = False
                     for height, obstacles in altitudearea.obstacles.items():
                         for obstacle in obstacles:
-                            obstacle = obstacle.geom.buffer(0).intersection(geometry)
-                            obstacle = obstacle.buffer(0.01, join_style=JOIN_STYLE.mitre)
+                            obstacle = obstacle.geom.buffer(0).buffer(0.01, join_style=JOIN_STYLE.mitre)
+                            obstacle = obstacle.intersection(geometry_buffered)
                             if not obstacle.is_empty:
                                 had_obstacles = True
                             obstacles_block.append(
