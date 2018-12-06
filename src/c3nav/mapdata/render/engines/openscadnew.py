@@ -21,7 +21,7 @@ class AbstractOpenScadElem(ABC):
 
 class AbstractOpenScadBlock(AbstractOpenScadElem, UserList):
     def render_children(self):
-        return '\n'.join(child.render() for child in self.data)
+        return '\n'.join(child.render() for child in self.data if child is not None)
 
 
 class OpenScadRoot(AbstractOpenScadBlock):
@@ -138,8 +138,8 @@ class OpenSCADNewEngine(Base3DEngine):
                     name = 'Altitudearea %s' % (altitudearea.altitude / 1000)
 
                 geometry = altitudearea.geometry.buffer(0)
-                inside_geometry = geometry.intersection(buildings).buffer(0).buffer(0.07, join_style=JOIN_STYLE.mitre)
-                outside_geometry = geometry.difference(buildings).buffer(0).buffer(0.07, join_style=JOIN_STYLE.mitre)
+                inside_geometry = geometry.intersection(buildings).buffer(0).buffer(0.01, join_style=JOIN_STYLE.mitre)
+                outside_geometry = geometry.difference(buildings).buffer(0).buffer(0.01, join_style=JOIN_STYLE.mitre)
 
                 slopes = True
 
@@ -213,7 +213,7 @@ class OpenSCADNewEngine(Base3DEngine):
                 # obstacles
                 if altitudearea.altitude2 is not None:
                     obstacles_diff_block = OpenScadBlock('difference()', comment=name + ' obstacles')
-                    main_building_block.append(obstacles_diff_block)
+                    had_obstacles = False
 
                     obstacles_block = OpenScadBlock('union()')
                     obstacles_diff_block.append(obstacles_block)
@@ -224,36 +224,51 @@ class OpenSCADNewEngine(Base3DEngine):
 
                     for height, obstacles in altitudearea.obstacles.items():
                         height_diff = OpenScadBlock('difference()')
-                        obstacles_block.append(height_diff)
+                        had_height_obstacles = None
 
                         height_union = OpenScadBlock('union()')
                         height_diff.append(height_union)
 
                         for obstacle in obstacles:
-                            obstacle = obstacle.geom.buffer(0).intersection(geometry).buffer(0.01)
+                            obstacle = obstacle.geom.buffer(0).intersection(geometry)
+                            obstacle = obstacle.buffer(0.01, join_style=JOIN_STYLE.mitre)
+                            if not obstacle.is_empty:
+                                had_height_obstacles = True
+                                had_obstacles = True
                             height_union.append(
                                 self._add_polygon(None, obstacle,
                                                   min_slope_altitude-20, max_slope_altitude+height+10)
                             )
-                        height_diff.append(
-                            self._add_slope(bounds, altitudearea.altitude+height, altitudearea.altitude2+height,
-                                            altitudearea.point1, altitudearea.point2, bottom=False)
-                        )
 
-                    obstacles_diff_block.append(
-                        self._add_slope(bounds, altitudearea.altitude-10, altitudearea.altitude2-10,
-                                        altitudearea.point1, altitudearea.point2, bottom=True)
-                    )
+                        if had_height_obstacles:
+                            obstacles_block.append(height_diff)
+                            height_diff.append(
+                                self._add_slope(bounds, altitudearea.altitude+height, altitudearea.altitude2+height,
+                                                altitudearea.point1, altitudearea.point2, bottom=False)
+                            )
+
+                    if had_obstacles:
+                        main_building_block.append(obstacles_diff_block)
+                        obstacles_diff_block.append(
+                            self._add_slope(bounds, altitudearea.altitude-10, altitudearea.altitude2-10,
+                                            altitudearea.point1, altitudearea.point2, bottom=True)
+                        )
                 else:
                     obstacles_block = OpenScadBlock('union()', comment=name + ' obstacles')
-                    main_building_block.append(obstacles_block)
+                    had_obstacles = False
                     for height, obstacles in altitudearea.obstacles.items():
                         for obstacle in obstacles:
-                            obstacle = obstacle.geom.buffer(0).intersection(geometry).buffer(0.01)
+                            obstacle = obstacle.geom.buffer(0).intersection(geometry)
+                            obstacle = obstacle.buffer(0.01, join_style=JOIN_STYLE.mitre)
+                            if not obstacle.is_empty:
+                                had_obstacles = True
                             obstacles_block.append(
                                 self._add_polygon(None, obstacle,
                                                   altitudearea.altitude-10, altitudearea.altitude+height)
                             )
+
+                    if had_obstacles:
+                        main_building_block.append(obstacles_block)
 
     def _add_polygon(self, name, geometry, minz, maxz):
         geometry = geometry.buffer(0)
@@ -277,6 +292,9 @@ class OpenSCADNewEngine(Base3DEngine):
                 'points': points,
                 'rings': output_rings,
             }))
+
+        if not polygons:
+            return None
 
         extrude_cmd = 'linear_extrude(height=%f, convexity=10)' % (abs(maxz-minz)/1000)
         translate_cmd = 'translate([0, 0, %f])' % (min(maxz, minz)/1000)
