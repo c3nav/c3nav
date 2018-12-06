@@ -20,7 +20,7 @@ class MapRenderer:
         self.scale = scale
         self.access_permissions = set(access_permissions) if access_permissions else set()
         self.full_levels = full_levels
-        self.min_width = min_width/self.scale
+        self.min_width = min_width/self.scale if min_width else None
 
         self.width = int(round((maxx - minx) * scale))
         self.height = int(round((maxy - miny) * scale))
