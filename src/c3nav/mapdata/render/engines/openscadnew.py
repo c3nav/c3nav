@@ -230,10 +230,10 @@ class OpenSCADNewEngine(Base3DEngine):
                         height_diff.append(height_union)
 
                         for obstacle in obstacles:
-                            obstacle = obstacle.geom.buffer(0).intersection(geometry)
+                            obstacle = obstacle.geom.buffer(0).intersection(geometry).buffer(0.01)
                             height_union.append(
                                 self._add_polygon(None, obstacle,
-                                                  min_slope_altitude-10, max_slope_altitude+height+10)
+                                                  min_slope_altitude-20, max_slope_altitude+height+10)
                             )
                         height_diff.append(
                             self._add_slope(bounds, altitudearea.altitude+height, altitudearea.altitude2+height,
@@ -241,7 +241,7 @@ class OpenSCADNewEngine(Base3DEngine):
                         )
 
                     obstacles_diff_block.append(
-                        self._add_slope(bounds, altitudearea.altitude-1, altitudearea.altitude2-1,
+                        self._add_slope(bounds, altitudearea.altitude-10, altitudearea.altitude2-10,
                                         altitudearea.point1, altitudearea.point2, bottom=True)
                     )
                 else:
@@ -249,10 +249,10 @@ class OpenSCADNewEngine(Base3DEngine):
                     main_building_block.append(obstacles_block)
                     for height, obstacles in altitudearea.obstacles.items():
                         for obstacle in obstacles:
-                            obstacle = obstacle.geom.buffer(0).intersection(geometry)
+                            obstacle = obstacle.geom.buffer(0).intersection(geometry).buffer(0.01)
                             obstacles_block.append(
                                 self._add_polygon(None, obstacle,
-                                                  altitudearea.altitude-1, altitudearea.altitude+height)
+                                                  altitudearea.altitude-10, altitudearea.altitude+height)
                             )
 
     def _add_polygon(self, name, geometry, minz, maxz):
@@ -296,7 +296,7 @@ class OpenSCADNewEngine(Base3DEngine):
         size = ((maxx-minx)+(maxy-miny))*2
 
         cmd = OpenScadCommand('square([%f, %f], center=true);' % (size, size))
-        cmd = OpenScadBlock('linear_extrude(height=100, convexity=10)', children=[cmd])
+        cmd = OpenScadBlock('linear_extrude(height=16, convexity=10)', children=[cmd])
         cmd = OpenScadBlock('rotate([0, %f, %f])' % (rotate_y, rotate_z), children=[cmd])
         cmd = OpenScadBlock('translate([%f, %f, %f])' % (point1.x, point1.y, altitude1/1000), children=[cmd])
         return cmd
