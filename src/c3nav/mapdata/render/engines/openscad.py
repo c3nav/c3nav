@@ -63,8 +63,8 @@ class OpenSCADEngine(Base3DEngine):
 
         if center:
             self.root = OpenScadBlock('translate([%f, %f, 0])' % (
-                -(self.maxx - self.minx) * self.scale / 2,
-                -(self.maxy - self.miny) * self.scale / 2
+                -self.minx - (self.maxx - self.minx) * self.scale / 2,
+                -self.miny - (self.maxy - self.miny) * self.scale / 2
             ))
         else:
             self.root = OpenScadRoot()
