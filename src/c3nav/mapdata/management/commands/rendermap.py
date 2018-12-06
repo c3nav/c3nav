@@ -82,6 +82,8 @@ class Command(BaseCommand):
                             help=_('maximum x coordinate, everthing right of it will be cropped'))
         parser.add_argument('--maxy', default=None, type=float,
                             help=_('maximum y coordinate, everthing above it will be cropped'))
+        parser.add_argument('--min-width', default=None, type=float,
+                            help=_('ensure that all objects are at least this thick'))
 
     def handle(self, *args, **options):
         (minx, miny), (maxx, maxy) = Source.max_bounds()
@@ -101,7 +103,8 @@ class Command(BaseCommand):
 
         for level in options['levels']:
             renderer = MapRenderer(level.pk, minx, miny, maxx, maxy, access_permissions=options['permissions'],
-                                   scale=options['scale'], full_levels=options['full_levels'])
+                                   scale=options['scale'], full_levels=options['full_levels'],
+                                   min_width=options['min_width'])
 
             filename = os.path.join(settings.RENDER_ROOT,
                                     'level_%s.%s' % (level.short_label, options['filetype']))

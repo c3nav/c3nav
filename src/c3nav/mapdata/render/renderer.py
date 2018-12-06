@@ -10,7 +10,8 @@ from c3nav.mapdata.render.utils import get_full_levels, get_min_altitude
 
 
 class MapRenderer:
-    def __init__(self, level, minx, miny, maxx, maxy, scale=1, access_permissions=None, full_levels=False):
+    def __init__(self, level, minx, miny, maxx, maxy, scale=1, access_permissions=None, full_levels=False,
+                 min_width=None):
         self.level = level.pk if isinstance(level, Level) else level
         self.minx = minx
         self.miny = miny
@@ -19,6 +20,7 @@ class MapRenderer:
         self.scale = scale
         self.access_permissions = set(access_permissions) if access_permissions else set()
         self.full_levels = full_levels
+        self.min_width = min_width/self.scale
 
         self.width = int(round((maxx - minx) * scale))
         self.height = int(round((maxy - miny) * scale))
@@ -36,7 +38,7 @@ class MapRenderer:
         level_render_data = LevelRenderData.get(self.level)
 
         engine = engine_cls(self.width, self.height, self.minx, self.miny, float(level_render_data.base_altitude),
-                            scale=self.scale, buffer=1, background='#DCDCDC', center=center)
+                            scale=self.scale, buffer=1, background='#DCDCDC', center=center, min_width=self.min_width)
 
         if hasattr(engine, 'custom_render'):
             engine.custom_render(level_render_data, access_permissions, self.full_levels)

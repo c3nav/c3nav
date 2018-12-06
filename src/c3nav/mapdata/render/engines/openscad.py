@@ -248,6 +248,8 @@ class OpenSCADEngine(Base3DEngine):
                             if not obstacle.geom.intersects(self.bbox):
                                 continue
                             obstacle = obstacle.geom.buffer(0).buffer(0.01, join_style=JOIN_STYLE.mitre)
+                            if self.min_width:
+                                obstacle = obstacle.union(self._satisfy_min_width(obstacle)).buffer(0)
                             obstacle = obstacle.intersection(geometry_buffered)
                             if not obstacle.is_empty:
                                 had_height_obstacles = True
@@ -278,6 +280,8 @@ class OpenSCADEngine(Base3DEngine):
                             if not obstacle.geom.intersects(self.bbox):
                                 continue
                             obstacle = obstacle.geom.buffer(0).buffer(0.01, join_style=JOIN_STYLE.mitre)
+                            if self.min_width:
+                                obstacle = obstacle.union(self._satisfy_min_width(obstacle)).buffer(0)
                             obstacle = obstacle.intersection(geometry_buffered).intersection(self.bbox)
                             if not obstacle.is_empty:
                                 had_obstacles = True
@@ -288,6 +292,13 @@ class OpenSCADEngine(Base3DEngine):
 
                     if had_obstacles:
                         main_building_block.append(obstacles_block)
+
+            if self.min_width and geoms.on_top_of_id is None:
+                main_building_block.append(
+                    self._add_polygon('min width',
+                                      self._satisfy_min_width(buildings).intersection(self.bbox).buffer(0),
+                                      geoms.lower_bound, geoms.upper_bound)
+                )
 
     def _add_polygon(self, name, geometry, minz, maxz):
         geometry = geometry.buffer(0)
@@ -339,6 +350,9 @@ class OpenSCADEngine(Base3DEngine):
         cmd = OpenScadBlock('rotate([0, %f, %f])' % (rotate_y, rotate_z), children=[cmd])
         cmd = OpenScadBlock('translate([%f, %f, %f])' % (point1.x, point1.y, altitude1/1000), children=[cmd])
         return cmd
+
+    def _satisfy_min_width(self, geometry):
+        return geometry.buffer(self.min_width/2, join_style=JOIN_STYLE.mitre)
 
     def render(self, filename=None):
         return self.root.render().encode()

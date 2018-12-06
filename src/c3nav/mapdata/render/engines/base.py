@@ -30,7 +30,7 @@ class RenderEngine(ABC):
 
     # draw an svg image. supports pseudo-3D shadow-rendering
     def __init__(self, width: int, height: int, xoff=0, yoff=0, zoff=0,
-                 scale=1, buffer=0, background='#FFFFFF', center=True):
+                 scale=1, buffer=0, background='#FFFFFF', min_width=None, center=True):
         self.width = width
         self.height = height
         self.minx = xoff
@@ -40,6 +40,7 @@ class RenderEngine(ABC):
         self.orig_buffer = buffer
         self.buffer = int(math.ceil(buffer*self.scale))
         self.background = background
+        self.min_width = min_width
 
         self.maxx = self.minx + width / scale
         self.maxy = self.miny + height / scale
