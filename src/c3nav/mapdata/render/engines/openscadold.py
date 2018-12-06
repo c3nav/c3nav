@@ -6,7 +6,7 @@ from c3nav.mapdata.render.engines.base3d import Base3DEngine
 
 @register_engine
 class OpenSCADEngine(Base3DEngine):
-    filetype = 'scad'
+    filetype = 'old.scad'
 
     def _create_polyhedron(self, vertices):
         facets = np.vstack(vertices)
