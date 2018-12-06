@@ -173,7 +173,8 @@ class OpenSCADNewEngine(Base3DEngine):
                             )
                         else:
                             main_building_block.append(
-                                self._add_polygon(name, inside_geometry, current_upper_bound-1, altitudearea.altitude)
+                                self._add_polygon(name, inside_geometry,
+                                                  altitudearea.altitude-700, altitudearea.altitude)
                             )
 
                 if not outside_geometry.is_empty:
