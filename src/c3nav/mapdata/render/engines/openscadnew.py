@@ -132,10 +132,14 @@ class OpenSCADNewEngine(Base3DEngine):
                 )
 
             for altitudearea in sorted(geoms.altitudeareas, key=attrgetter('altitude')):
-                name = 'Level %s Altitudearea %s' % (geoms.short_label, altitudearea.altitude)
+                if altitudearea.altitude2 is not None:
+                    name = 'Altitudearea %s-%s' % (altitudearea.altitude/1000, altitudearea.altitude2/1000)
+                else:
+                    name = 'Altitudearea %s' % (altitudearea.altitude / 1000)
+
                 geometry = altitudearea.geometry.buffer(0)
-                inside_geometry = geometry.intersection(buildings).buffer(0).buffer(0.004, join_style=JOIN_STYLE.mitre)
-                outside_geometry = geometry.difference(buildings).buffer(0).buffer(0.004, join_style=JOIN_STYLE.mitre)
+                inside_geometry = geometry.intersection(buildings).buffer(0).buffer(0.07, join_style=JOIN_STYLE.mitre)
+                outside_geometry = geometry.difference(buildings).buffer(0).buffer(0.07, join_style=JOIN_STYLE.mitre)
 
                 slopes = True
 
@@ -153,7 +157,7 @@ class OpenSCADNewEngine(Base3DEngine):
                                                 altitudearea.point1, altitudearea.point2, bottom=True)
                         if slopes:
                             main_building_block_diff.append(
-                                OpenScadBlock('difference()', children=[polygon, slope], comment='slope')
+                                OpenScadBlock('difference()', children=[polygon, slope], comment=name+' inside cut')
                             )
 
                         # actual thingy
@@ -163,19 +167,19 @@ class OpenSCADNewEngine(Base3DEngine):
                                                 altitudearea.point1, altitudearea.point2)
                         if slopes:
                             main_building_block.append(
-                                OpenScadBlock('difference()', children=[polygon, slope], comment='slope')
+                                OpenScadBlock('difference()', children=[polygon, slope], comment=name+' inside')
                             )
                     else:
                         if altitudearea.altitude < current_upper_bound:
                             main_building_block_diff.append(
-                                self._add_polygon(name, inside_geometry,
+                                self._add_polygon(name+' inside cut', inside_geometry,
                                                   altitudearea.altitude, current_upper_bound+1000)
                             )
-                        else:
-                            main_building_block.append(
-                                self._add_polygon(name, inside_geometry,
-                                                  altitudearea.altitude-700, altitudearea.altitude)
-                            )
+                        main_building_block.append(
+                            self._add_polygon(name+' inside', inside_geometry,
+                                              min(altitudearea.altitude-700, current_upper_bound),
+                                              altitudearea.altitude)
+                        )
 
                 if not outside_geometry.is_empty:
                     if altitudearea.altitude2 is not None:
@@ -192,15 +196,64 @@ class OpenSCADNewEngine(Base3DEngine):
                                                  altitudearea.point1, altitudearea.point2, bottom=True)
                         if slopes:
                             main_building_block.append(
-                                OpenScadBlock('difference()', children=[polygon, slope1, slope2], comment='slope')
+                                OpenScadBlock('difference()',
+                                              children=[polygon, slope1, slope2], comment=name+'outside')
                             )
                     else:
-                        lower = altitudearea.altitude-700
-                        if lower == current_upper_bound:
-                            lower -= 10
+                        if geoms.on_top_of_id is None:
+                            lower = geoms.lower_bound
+                        else:
+                            lower = altitudearea.altitude-700
+                            if lower == current_upper_bound:
+                                lower -= 10
                         main_building_block.append(
-                            self._add_polygon(name, outside_geometry, lower, altitudearea.altitude)
+                            self._add_polygon(name+' outside', outside_geometry, lower, altitudearea.altitude)
                         )
+
+                # obstacles
+                if altitudearea.altitude2 is not None:
+                    obstacles_diff_block = OpenScadBlock('difference()', comment=name + ' obstacles')
+                    main_building_block.append(obstacles_diff_block)
+
+                    obstacles_block = OpenScadBlock('union()')
+                    obstacles_diff_block.append(obstacles_block)
+
+                    min_slope_altitude = min(altitudearea.altitude, altitudearea.altitude2)
+                    max_slope_altitude = max(altitudearea.altitude, altitudearea.altitude2)
+                    bounds = geometry.bounds
+
+                    for height, obstacles in altitudearea.obstacles.items():
+                        height_diff = OpenScadBlock('difference()')
+                        obstacles_block.append(height_diff)
+
+                        height_union = OpenScadBlock('union()')
+                        height_diff.append(height_union)
+
+                        for obstacle in obstacles:
+                            obstacle = obstacle.geom.buffer(0).intersection(geometry)
+                            height_union.append(
+                                self._add_polygon(None, obstacle,
+                                                  min_slope_altitude-10, max_slope_altitude+height+10)
+                            )
+                        height_diff.append(
+                            self._add_slope(bounds, altitudearea.altitude+height, altitudearea.altitude2+height,
+                                            altitudearea.point1, altitudearea.point2, bottom=False)
+                        )
+
+                    obstacles_diff_block.append(
+                        self._add_slope(bounds, altitudearea.altitude-1, altitudearea.altitude2-1,
+                                        altitudearea.point1, altitudearea.point2, bottom=True)
+                    )
+                else:
+                    obstacles_block = OpenScadBlock('union()', comment=name + ' obstacles')
+                    main_building_block.append(obstacles_block)
+                    for height, obstacles in altitudearea.obstacles.items():
+                        for obstacle in obstacles:
+                            obstacle = obstacle.geom.buffer(0).intersection(geometry)
+                            obstacles_block.append(
+                                self._add_polygon(None, obstacle,
+                                                  altitudearea.altitude-1, altitudearea.altitude+height)
+                            )
 
     def _add_polygon(self, name, geometry, minz, maxz):
         geometry = geometry.buffer(0)
