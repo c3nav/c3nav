@@ -20,3 +20,10 @@ def get_full_levels(level_render_data):
         for level in level_render_data.levels if level.on_top_of_id is None
     )))
     return levels
+
+
+def get_main_levels(level_render_data):
+    main_level_pk = [level for level in level_render_data.levels if level.on_top_of_id is None][-1].pk
+    levels = tuple(level for level in level_render_data.levels
+                   if level.pk == main_level_pk or level.on_top_of_id == main_level_pk)
+    return levels

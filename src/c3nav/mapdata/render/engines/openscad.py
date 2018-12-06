@@ -9,7 +9,7 @@ from shapely.ops import unary_union
 
 from c3nav.mapdata.render.engines import register_engine
 from c3nav.mapdata.render.engines.base3d import Base3DEngine
-from c3nav.mapdata.render.utils import get_full_levels
+from c3nav.mapdata.render.utils import get_full_levels, get_main_levels
 from c3nav.mapdata.utils.geometry import assert_multipolygon
 
 
@@ -62,8 +62,11 @@ class OpenSCADEngine(Base3DEngine):
         super().__init__(*args, **kwargs)
         self.root = OpenScadRoot()
 
-    def custom_render(self, level_render_data, access_permissions):
-        levels = get_full_levels(level_render_data)
+    def custom_render(self, level_render_data, access_permissions, full_levels):
+        if full_levels:
+            levels = get_full_levels(level_render_data)
+        else:
+            levels = get_main_levels(level_render_data)
 
         buildings = None
         areas = None
