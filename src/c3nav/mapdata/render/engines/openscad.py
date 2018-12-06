@@ -107,6 +107,7 @@ class OpenSCADEngine(Base3DEngine):
 
                 holes = geoms.holes.difference(restricted_spaces)
                 buildings = buildings.difference(holes)
+                areas = areas.union(holes.buffer(0).buffer(0.01, join_style=JOIN_STYLE.mitre))
 
                 main_building_block = OpenScadBlock('union()', comment='Level %s' % geoms.short_label)
                 self.root.append(main_building_block)
