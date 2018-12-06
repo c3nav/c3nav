@@ -62,12 +62,17 @@ class OpenSCADEngine(Base3DEngine):
         super().__init__(*args, center=center, **kwargs)
 
         if center:
-            self.root = OpenScadBlock('translate([%f, %f, 0])' % (
-                -self.minx - (self.maxx - self.minx) * self.scale / 2,
-                -self.miny - (self.maxy - self.miny) * self.scale / 2
-            ))
+            self.root = OpenScadBlock('scale([%(scale)f, %(scale)f, %(scale)f]) translate([%(x)f, %(y)f, 0])' % {
+                'scale': self.scale,
+                'x': -(self.minx + self.maxx) / 2,
+                'y': -(self.miny + self.maxy) / 2,
+            })
         else:
-            self.root = OpenScadRoot()
+            self.root = OpenScadBlock('scale([%(scale)f, %(scale)f, %(scale)f])' % {
+                'scale': self.scale,
+                'x': -(self.minx + self.maxx) / 2,
+                'y': -(self.miny + self.maxy) / 2,
+            })
 
     def custom_render(self, level_render_data, access_permissions, full_levels):
         if full_levels:
