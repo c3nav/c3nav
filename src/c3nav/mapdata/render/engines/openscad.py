@@ -55,8 +55,8 @@ class OpenScadCommand(AbstractOpenScadElem):
 
 
 @register_engine
-class OpenSCADNewEngine(Base3DEngine):
-    filetype = 'new.scad'
+class OpenSCADEngine(Base3DEngine):
+    filetype = 'scad'
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
