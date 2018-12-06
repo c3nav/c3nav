@@ -84,6 +84,8 @@ class Command(BaseCommand):
                             help=_('maximum y coordinate, everthing above it will be cropped'))
         parser.add_argument('--min-width', default=None, type=float,
                             help=_('ensure that all objects are at least this thick'))
+        parser.add_argument('--name', default=None, type=str,
+                            help=_('override filename'))
 
     def handle(self, *args, **options):
         (minx, miny), (maxx, maxy) = Source.max_bounds()
@@ -106,8 +108,9 @@ class Command(BaseCommand):
                                    scale=options['scale'], full_levels=options['full_levels'],
                                    min_width=options['min_width'])
 
+            name = options['name'] or ('level_%s' % level.short_label)
             filename = os.path.join(settings.RENDER_ROOT,
-                                    'level_%s.%s' % (level.short_label, options['filetype']))
+                                    '%s.%s' % (name, options['filetype']))
 
             render = renderer.render(get_engine(options['filetype']), center=not options['no_center'])
             data = render.render(filename)
