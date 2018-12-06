@@ -163,16 +163,14 @@ class OpenSCADEngine(Base3DEngine):
                             )
 
                         # actual thingy
-                        polygon = self._add_polygon(None, outside_geometry,
-                                                    min_slope_altitude - 710, max_slope_altitude + 10)
-                        slope1 = self._add_slope(bounds, altitudearea.altitude, altitudearea.altitude2,
-                                                 altitudearea.point1, altitudearea.point2, bottom=False)
-                        slope2 = self._add_slope(bounds, altitudearea.altitude - 700, altitudearea.altitude2 - 700,
-                                                 altitudearea.point1, altitudearea.point2, bottom=True)
-                        if slopes:
+                        if max_slope_altitude > current_upper_bound:
+                            polygon = self._add_polygon(None, outside_geometry,
+                                                        current_upper_bound - 10, max_slope_altitude + 10)
+                            slope = self._add_slope(bounds, altitudearea.altitude, altitudearea.altitude2,
+                                                    altitudearea.point1, altitudearea.point2, bottom=False)
                             main_building_block.append(
                                 OpenScadBlock('difference()',
-                                              children=[polygon, slope1, slope2], comment=name + 'outside')
+                                              children=[polygon, slope], comment=name + 'outside')
                             )
                     else:
                         if altitudearea.altitude < current_upper_bound:
