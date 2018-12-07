@@ -154,8 +154,6 @@ class OpenSCADEngine(Base3DEngine):
                     geometry_buffered = geometry_buffered.intersection(areas).buffer(0)
                 outside_geometry = outside_geometry.intersection(self.bbox)
 
-                slopes = True
-
                 if not inside_geometry.is_empty:
                     if altitudearea.altitude2 is not None:
                         min_slope_altitude = min(altitudearea.altitude, altitudearea.altitude2)
@@ -168,10 +166,9 @@ class OpenSCADEngine(Base3DEngine):
 
                         slope = self._add_slope(bounds, altitudearea.altitude, altitudearea.altitude2,
                                                 altitudearea.point1, altitudearea.point2, bottom=True)
-                        if slopes:
-                            main_building_block_diff.append(
-                                OpenScadBlock('difference()', children=[polygon, slope], comment=name+' inside cut')
-                            )
+                        main_building_block_diff.append(
+                            OpenScadBlock('difference()', children=[polygon, slope], comment=name+' inside cut')
+                        )
 
                         # actual thingy
                         if max_slope_altitude > current_upper_bound and inside_geometry.intersects(self.bbox):
@@ -208,12 +205,11 @@ class OpenSCADEngine(Base3DEngine):
                                                  altitudearea.point1, altitudearea.point2, bottom=False)
                         slope2 = self._add_slope(bounds, altitudearea.altitude-700, altitudearea.altitude2-700,
                                                  altitudearea.point1, altitudearea.point2, bottom=True)
-                        if slopes:
-                            union = OpenScadBlock('union()', children=[slope1, slope2], comment=name+'outside')
-                            main_building_block.append(
-                                OpenScadBlock('difference()',
-                                              children=[polygon, union], comment=name+'outside')
-                            )
+                        union = OpenScadBlock('union()', children=[slope1, slope2], comment=name+'outside')
+                        main_building_block.append(
+                            OpenScadBlock('difference()',
+                                          children=[polygon, union], comment=name+'outside')
+                        )
                     else:
                         if geoms.on_top_of_id is None:
                             lower = geoms.lower_bound
