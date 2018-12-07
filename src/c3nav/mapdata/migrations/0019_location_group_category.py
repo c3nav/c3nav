@@ -46,7 +46,7 @@ class Migration(migrations.Migration):
             name='category',
             field=models.ForeignKey(null=True, on_delete=django.db.models.deletion.PROTECT, related_name='groups', to='mapdata.LocationGroupCategory', verbose_name='Location Group Category'),
         ),
-        migrations.RunPython(create_location_group_category, lambda: None),
+        migrations.RunPython(create_location_group_category, migrations.RunPython.noop),
         migrations.AlterField(
             model_name='locationgroup',
             name='category',
