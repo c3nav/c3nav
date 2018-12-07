@@ -9,13 +9,14 @@ from itertools import chain
 import pytz
 from django.contrib.auth.models import User
 from django.db.models import Prefetch
-from django.forms import ChoiceField, Form, ModelForm
+from django.forms import ChoiceField, Form, ModelForm, Select
 from django.utils import timezone
 from django.utils.translation import ugettext_lazy as _
 from django.utils.translation import ungettext_lazy
 
-from c3nav.control.models import UserPermissions
+from c3nav.control.models import UserPermissions, UserSpaceAccess
 from c3nav.mapdata.forms import I18nModelFormMixin
+from c3nav.mapdata.models import Space
 from c3nav.mapdata.models.access import (AccessPermission, AccessPermissionToken, AccessPermissionTokenItem,
                                          AccessRestriction, AccessRestrictionGroup)
 from c3nav.site.models import Announcement
@@ -237,6 +238,19 @@ class AccessPermissionForm(Form):
         if not form.is_valid():
             raise SignedPermissionDataError(' '.join(form.errors))
         return form.get_token(unique_key=unique_key)
+
+
+class UserSpaceAccessForm(ModelForm):
+    class Meta:
+        model = UserSpaceAccess
+        fields = ('space', 'can_edit')
+
+    def __init__(self, *args, request=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields['space'].label_from_instance = lambda obj: obj.title
+        self.fields['space'].queryset = Space.qs_for_request(request)
+        choices = [('0', _('no'))] * 6 + [('1', _('yes'))] + [('0', _('no'))] * 3
+        self.fields['can_edit'].widget = Select(choices=choices)
 
 
 class SignedPermissionDataError(Exception):

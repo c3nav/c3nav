@@ -151,4 +151,50 @@
             <p><em>{% trans 'none' %}</em></p>
         {% endif %}
     {% endif %}
+
+    {% if space_accesses or space_accesses_form %}
+        <p></p>
+        <h4>{% trans 'Space Access' %}</h4>
+        {{ space_accesses_form.non_field_errors }}
+        {{ space_accesses_form.access_permissions.errors }}
+        {{ space_accesses_form.expires.errors }}
+        <table>
+            <tr>
+                <th>{% trans 'Space' %}</th>
+                <th>{% trans 'can edit' %}</th>
+                <th></th>
+            </tr>
+            {% for space_access in space_accesses %}
+                <tr>
+                    <td>{{ space_access.space.title }}</td>
+                    <td>
+                        {% if space_access.can_edit %}
+                            <strong class="green">{% trans 'Yes' %}</strong>
+                        {% else %}
+                            {% trans 'No' %}
+                        {% endif %}
+                    </td>
+                    <td class="button-cell"><form method="post">
+                        {% csrf_token %}<button type="submit" name="delete_space_access" value="{{ space_access.pk }}">{% trans 'Delete' %}</button>
+                    </form></td>
+                </tr>
+            {% endfor %}
+            <form method="post">
+            {% csrf_token %}
+            {% if space_accesses_form %}
+                <tr>
+                    <td class="input-cell">
+                        {{ space_accesses_form.space }}
+                    </td>
+                    <td class="input-cell">
+                        {{ space_accesses_form.can_edit }}
+                    </td>
+                    <td class="button-cell">
+                        <button type="submit" name="submit_space_access" value="1">{% trans 'Add' %}</button>
+                    </td>
+                </tr>
+            {% endif %}
+                    </form>
+        </table>
+    {% endif %}
 {% endblock %}

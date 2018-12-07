@@ -887,7 +887,14 @@ main.control form tr > * {
     padding-bottom: 4px;
     text-align: right;
 }
-.button-cell button, .button-cell .button {
+.button-cell button, .button-cell .button, .button-cell form {
+    margin: 0;
+}
+.input-cell {
+    padding-top: 6px;
+    padding-bottom: 6px;
+}
+.input-cell input, .input-cell select {
     margin: 0;
 }
 

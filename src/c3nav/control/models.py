@@ -1,8 +1,14 @@
+from contextlib import contextmanager
+from typing import Dict
+
 from django.conf import settings
+from django.contrib.auth.models import User
 from django.core.cache import cache
 from django.db import models, transaction
 from django.utils.functional import lazy
 from django.utils.translation import ugettext_lazy as _
+
+from c3nav.mapdata.models import Space
 
 
 class UserPermissions(models.Model):
@@ -21,6 +27,7 @@ class UserPermissions(models.Model):
     grant_permissions = models.BooleanField(default=False, verbose_name=_('can grant control permissions'))
     manage_announcements = models.BooleanField(default=False, verbose_name=_('manage announcements'))
     grant_all_access = models.BooleanField(default=False, verbose_name=_('can grant access to everything'))
+    grant_space_access = models.BooleanField(default=False, verbose_name=_('can grant space access'))
     api_secret = models.CharField(null=True, blank=True, max_length=64, verbose_name=_('API secret'))
 
     class Meta:
@@ -40,6 +47,13 @@ class UserPermissions(models.Model):
         return 'control:permissions:%d' % pk
 
     @classmethod
+    @contextmanager
+    def lock(cls, pk):
+        with transaction.atomic():
+            User.objects.filter(pk=pk).select_for_update()
+            yield
+
+    @classmethod
     def get_for_user(cls, user, force=False) -> 'UserPermissions':
         if not user.is_authenticated:
             return cls()
@@ -53,16 +67,15 @@ class UserPermissions(models.Model):
                     break
         if result:
             return result
-        with transaction.atomic():
-            result = cls.objects.filter(user=user).select_for_update().first()
+        with cls.lock(user.pk):
+            result = cls.objects.filter(pk=user.pk).first()
             if not result:
                 result = cls(user=user)
             cache.set(cache_key, result, 900)
         return result
 
     def save(self, *args, **kwargs):
-        with transaction.atomic():
-            UserPermissions.objects.filter(user_id=self.user_id).select_for_update()
+        with self.lock(self.user_id):
             super().save(*args, **kwargs)
             cache_key = self.get_cache_key(self.pk)
             cache.set(cache_key, self, 900)
@@ -73,3 +86,48 @@ class UserPermissions(models.Model):
 
 
 get_permissions_for_user_lazy = lazy(UserPermissions.get_for_user, UserPermissions)
+
+
+class UserSpaceAccess(models.Model):
+    """
+    User Authorities
+    """
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+    space = models.ForeignKey(Space, on_delete=models.CASCADE)
+    can_edit = models.BooleanField(_('can edit'), default=False)
+
+    class Meta:
+        verbose_name = _('user space access')
+        verbose_name_plural = _('user space accesses')
+        default_related_name = 'spaceaccesses'
+        unique_together = (('user', 'space'))
+
+    @staticmethod
+    def get_cache_key(pk):
+        return 'control:spaceaccesses:%d' % pk
+
+    @classmethod
+    def get_for_user(cls, user, force=False) -> Dict[int, bool]:
+        if not user.is_authenticated:
+            return {}
+        cache_key = cls.get_cache_key(user.pk)
+        result = None
+        if not force:
+            result = cache.get(cache_key, None)
+            for field in cls._meta.get_fields():
+                if not hasattr(result, field.attname):
+                    result = None
+                    break
+        if result:
+            return result
+        with UserPermissions.lock(user.pk):
+            result = dict(cls.objects.filter(user=user).values_list('space_id', 'can_edit'))
+            cache.set(cache_key, result, 900)
+        return result
+
+    def save(self, *args, **kwargs):
+        with UserPermissions.lock(self.user_id):
+            UserPermissions.objects.filter(user_id=self.user_id).select_for_update()
+            super().save(*args, **kwargs)
+            cache_key = self.get_cache_key(self.user_id)
+            cache.delete(cache_key)

@@ -8,7 +8,7 @@ from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User
 from django.core.exceptions import PermissionDenied
 from django.core.paginator import Paginator
-from django.db import transaction
+from django.db import IntegrityError, transaction
 from django.db.models import Prefetch
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
@@ -16,8 +16,8 @@ from django.utils import timezone
 from django.utils.crypto import get_random_string
 from django.utils.translation import ugettext_lazy as _
 
-from c3nav.control.forms import AccessPermissionForm, AnnouncementForm, UserPermissionsForm
-from c3nav.control.models import UserPermissions
+from c3nav.control.forms import AccessPermissionForm, AnnouncementForm, UserPermissionsForm, UserSpaceAccessForm
+from c3nav.control.models import UserPermissions, UserSpaceAccess
 from c3nav.mapdata.models.access import AccessPermission, AccessPermissionToken, AccessRestriction
 from c3nav.site.models import Announcement
 
@@ -61,6 +61,7 @@ def user_detail(request, user):
     qs = User.objects.select_related(
         'permissions',
     ).prefetch_related(
+        Prefetch('spaceaccesses', UserSpaceAccess.objects.select_related('space')),
         Prefetch('accesspermissions', AccessPermission.objects.select_related('access_restriction', 'author'))
     )
     user = get_object_or_404(qs, pk=user)
@@ -165,7 +166,7 @@ def user_detail(request, user):
             form = AccessPermissionForm(request=request)
 
         access_permissions = {}
-        for permission in user.accesspermissions.select_related('access_restriction'):
+        for permission in user.accesspermissions.all():
             access_permissions.setdefault(permission.access_restriction_id, []).append(permission)
         access_permissions = tuple(
             {
@@ -186,6 +187,48 @@ def user_detail(request, user):
         ctx.update({
             'access_permissions': access_permissions,
             'access_permission_form': form
+        })
+
+        # space access
+        form = None
+        if request.user_permissions.grant_space_access:
+            if request.method == 'POST' and request.POST.get('submit_space_access'):
+                form = UserSpaceAccessForm(request=request, data=request.POST)
+                if form.is_valid():
+                    instance = form.instance
+                    instance.user = user
+                    try:
+                        instance.save()
+                    except IntegrityError:
+                        messages.error(request, _('User space access could not be granted because it already exists.'))
+                    else:
+                        messages.success(request, _('User space access successfully granted.'))
+                    return redirect(request.path_info)
+            else:
+                form = UserSpaceAccessForm(request=request)
+
+        delete_space_access = request.POST.get('delete_space_access')
+        if delete_space_access:
+            with transaction.atomic():
+                try:
+                    access = user.spaceaccesses.filter(pk=delete_space_access)
+                except AccessPermission.DoesNotExist:
+                    messages.error(request, _('Unknown space access.'))
+                else:
+                    if request.user_permissions.grant_space_access or user.pk == request.user.pk:
+                        access.delete()
+                        messages.success(request, _('Space access successfully deleted.'))
+                    else:
+                        messages.error(request, _('You cannot delete this space access.'))
+                return redirect(request.path_info)
+
+        space_accesses = None
+        if request.user_permissions.grant_space_access or user.pk == request.user.pk:
+            space_accesses = user.spaceaccesses.all()
+
+        ctx.update({
+            'space_accesses': space_accesses,
+            'space_accesses_form': form
         })
 
     return render(request, 'control/user.html', ctx)
