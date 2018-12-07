@@ -8,7 +8,7 @@ msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2018-12-07 20:00+0100\n"
-"PO-Revision-Date: 2018-12-07 20:08+0100\n"
+"PO-Revision-Date: 2018-12-07 20:28+0100\n"
 "Last-Translator: Laura Klünder <laura@codingcatgirl.de>\n"
 "Language-Team: \n"
 "Language: de\n"
@@ -2340,8 +2340,6 @@ msgstr ""
 "Zugangserlaubnis konnte nicht gewährt werden weil der Code abgelaufen ist."
 
 #: c3nav/site/views.py:238
-#, fuzzy
-#| msgid "account creation is currently disabled"
 msgid "account creation is currently disabled."
 msgstr "Benutzerregistrierung ist momentan deaktiviert."
 
