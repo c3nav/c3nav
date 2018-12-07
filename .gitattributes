@@ -1,4 +1,9 @@
+bootstrap.css linguist-vendored
+bootstrap.js linguist-vendored
+fonts.css linguist-vendored
+jquery.js linguist-vendored
 leaflet.js linguist-vendored
 leaflet.editable.js linguist-vendored
 leaflet.css linguist-vendored
 material-icons.css linguist-vendored
+normalize.css linguist-vendored
