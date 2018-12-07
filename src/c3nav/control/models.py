@@ -1,6 +1,6 @@
 from django.conf import settings
 from django.core.cache import cache
-from django.db import models
+from django.db import models, transaction
 from django.utils.functional import lazy
 from django.utils.translation import ugettext_lazy as _
 
@@ -53,17 +53,19 @@ class UserPermissions(models.Model):
                     break
         if result:
             return result
-        try:
-            result = user.permissions
-        except AttributeError:
-            result = cls(user=user)
-        cache.set(cache_key, result, 900)
+        with transaction.atomic():
+            result = cls.objects.filter(user=user).select_for_update().first()
+            if not result:
+                result = cls(user=user)
+            cache.set(cache_key, result, 900)
         return result
 
     def save(self, *args, **kwargs):
-        super().save(*args, **kwargs)
-        cache_key = self.get_cache_key(self.pk)
-        cache.set(cache_key, self, 900)
+        with transaction.atomic():
+            UserPermissions.objects.filter(user_id=self.user_id).select_for_update()
+            super().save(*args, **kwargs)
+            cache_key = self.get_cache_key(self.pk)
+            cache.set(cache_key, self, 900)
 
     @property
     def can_access_base_mapdata(self):
