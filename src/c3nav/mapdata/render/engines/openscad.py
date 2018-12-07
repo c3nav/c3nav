@@ -150,8 +150,9 @@ class OpenSCADEngine(Base3DEngine):
                     areas = areas.union(geometry)
                     buildings = buildings.difference(geometry).buffer(0)
                     inside_geometry = inside_geometry.intersection(areas).buffer(0)
-                    outside_geometry = outside_geometry.intersection(areas).buffer(0).intersection(self.bbox)
+                    outside_geometry = outside_geometry.intersection(areas).buffer(0)
                     geometry_buffered = geometry_buffered.intersection(areas).buffer(0)
+                outside_geometry = outside_geometry.intersection(self.bbox)
 
                 slopes = True
 
