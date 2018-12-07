@@ -125,7 +125,9 @@ class OpenSCADEngine(Base3DEngine):
                 self.root.append(main_building_block)
                 main_building_block_diff = OpenScadBlock('difference()')
                 main_building_block.append(main_building_block_diff)
-                main_building_block_diff.append(
+                main_building_block_inner = OpenScadBlock('union()')
+                main_building_block_diff.append(main_building_block_inner)
+                main_building_block_inner.append(
                     self._add_polygon(None, buildings.intersection(self.bbox), geoms.lower_bound, geoms.upper_bound)
                 )
 
@@ -290,7 +292,7 @@ class OpenSCADEngine(Base3DEngine):
                         main_building_block.append(obstacles_block)
 
             if self.min_width and geoms.on_top_of_id is None:
-                main_building_block.append(
+                main_building_block_inner.append(
                     self._add_polygon('min width',
                                       self._satisfy_min_width(buildings).intersection(self.bbox).buffer(0),
                                       geoms.lower_bound, geoms.upper_bound)
