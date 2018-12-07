@@ -202,7 +202,6 @@ class OpenSCADEngine(Base3DEngine):
                         max_slope_altitude = max(altitudearea.altitude, altitudearea.altitude2)
                         bounds = outside_geometry.bounds
 
-                        # cut in
                         polygon = self._add_polygon(None, outside_geometry,
                                                     min_slope_altitude-710, max_slope_altitude+10)
                         slope1 = self._add_slope(bounds, altitudearea.altitude, altitudearea.altitude2,
