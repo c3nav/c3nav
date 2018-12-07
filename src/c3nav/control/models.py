@@ -40,15 +40,6 @@ class UserPermissions(models.Model):
         return 'control:permissions:%d' % pk
 
     @classmethod
-    def cache_key_for_request(cls):
-        def __init__(self, *args, **kwargs):
-            super().__init__(*args, **kwargs)
-            if self.user_id and self.user.is_superuser:
-                for field in UserPermissions._meta.get_fields():
-                    if isinstance(field, models.BooleanField):
-                        setattr(self, field.name, True)
-
-    @classmethod
     def get_for_user(cls, user, force=False) -> 'UserPermissions':
         if not user.is_authenticated:
             return cls()
