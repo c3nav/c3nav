@@ -12,9 +12,9 @@ from django.utils.translation import ugettext_lazy as _
 
 config = configparser.RawConfigParser()
 if 'C3NAV_CONFIG' in os.environ:
-    config.read_file(open(os.environ.get('C3NAV_CONFIG'), encoding='utf-8'))
-else:
-    config.read(['/etc/c3nav/c3nav.cfg', os.path.expanduser('~/.c3nav.cfg'), 'c3nav.cfg'], encoding='utf-8')
+    open(os.environ.get('C3NAV_CONFIG'), encoding='utf-8')
+config.read(['/etc/c3nav/c3nav.cfg', os.path.expanduser('~/.c3nav.cfg'), os.environ.get('C3NAV_CONFIG', 'c3nav.cfg')],
+            encoding='utf-8')
 
 # Build paths inside the project like this: os.path.join(BASE_DIR, ...)
 BASE_DIR = os.path.dirname(os.path.dirname(__file__))
