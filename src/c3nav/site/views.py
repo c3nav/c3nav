@@ -1,4 +1,5 @@
 import json
+from itertools import chain
 from typing import Optional
 
 import qrcode
@@ -115,7 +116,7 @@ def map_index(request, mode=None, slug=None, slug2=None, details=None, options=N
 
     initial_bounds = settings.INITIAL_BOUNDS
     if not initial_bounds:
-        initial_bounds = (0, 0, 10, 10)
+        initial_bounds = tuple(chain(*Source.max_bounds()))
 
     ctx = {
         'bounds': json.dumps(Source.max_bounds(), separators=(',', ':')),
