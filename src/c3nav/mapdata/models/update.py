@@ -35,26 +35,32 @@ class MapUpdate(models.Model):
         self.was_processed = self.processed
 
     @classmethod
-    def last_update(cls):
-        last_update = cache.get('mapdata:last_update', None)
-        if last_update is not None:
-            return last_update
-        with cls.lock():
-            last_update = cls.objects.latest()
-            result = last_update.to_tuple
-            cache.set('mapdata:last_update', result, None)
-        return result
+    def last_update(cls, force=False):
+        if not force:
+            last_update = cache.get('mapdata:last_update', None)
+            if last_update is not None:
+                return last_update
+        try:
+            with cls.lock():
+                last_update = cls.objects.latest().to_tuple
+        except cls.DoesNotExist:
+            last_update = (0, 0)
+        cache.set('mapdata:last_update', last_update, None)
+        return last_update
 
     @classmethod
-    def last_processed_update(cls):
-        last_processed_update = cache.get('mapdata:last_processed_update', None)
-        if last_processed_update is not None:
-            return last_processed_update
-        with cls.lock():
-            last_processed_update = cls.objects.filter(processed=True).latest()
-            result = last_processed_update.to_tuple
-            cache.set('mapdata:last_processed_update', result, None)
-        return result
+    def last_processed_update(cls, force=False):
+        if not force:
+            last_processed_update = cache.get('mapdata:last_processed_update', None)
+            if last_processed_update is not None:
+                return last_processed_update
+        try:
+            with cls.lock():
+                last_processed_update = cls.objects.filter(processed=True).latest().to_tuple
+        except cls.DoesNotExist:
+            last_processed_update = (0, 0)
+        cache.set('mapdata:last_processed_update', last_processed_update, None)
+        return last_processed_update
 
     @property
     def to_tuple(self):
@@ -130,11 +136,7 @@ class MapUpdate(models.Model):
 
                 logger.info('%.3f m² of altitude areas affected.' % changed_geometries.area)
 
-                try:
-                    last_processed_update = cls.objects.filter(processed=True).latest().to_tuple
-                except cls.DoesNotExist:
-                    last_processed_update = (0, 0)
-                    cache.set('mapdata:last_processed_update', last_processed_update, None)
+                last_processed_update = cls.last_processed_update(force=True)
 
                 for new_update in new_updates:
                     logger.info('Applying changed geometries from MapUpdate #%(id)s (%(type)s)...' %
