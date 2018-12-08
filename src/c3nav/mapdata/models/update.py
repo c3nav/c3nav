@@ -43,9 +43,10 @@ class MapUpdate(models.Model):
         try:
             with cls.lock():
                 last_update = cls.objects.latest().to_tuple
+                cache.set('mapdata:last_update', last_update, None)
         except cls.DoesNotExist:
             last_update = (0, 0)
-        cache.set('mapdata:last_update', last_update, None)
+            cache.set('mapdata:last_update', last_update, None)
         return last_update
 
     @classmethod
@@ -57,9 +58,10 @@ class MapUpdate(models.Model):
         try:
             with cls.lock():
                 last_processed_update = cls.objects.filter(processed=True).latest().to_tuple
+                cache.set('mapdata:last_processed_update', last_processed_update, None)
         except cls.DoesNotExist:
             last_processed_update = (0, 0)
-        cache.set('mapdata:last_processed_update', last_processed_update, None)
+            cache.set('mapdata:last_processed_update', last_processed_update, None)
         return last_processed_update
 
     @property
