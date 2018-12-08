@@ -121,7 +121,7 @@ def user_detail(request, user):
     try:
         permissions = user.permissions
     except AttributeError:
-        permissions = UserPermissions(user=user)
+        permissions = UserPermissions(user=user, initial=True)
     ctx.update({
         'user_permissions': tuple(
             field.verbose_name for field in UserPermissions._meta.get_fields()

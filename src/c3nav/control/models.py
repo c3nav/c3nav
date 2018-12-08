@@ -35,9 +35,9 @@ class UserPermissions(models.Model):
         verbose_name_plural = _('User Permissions')
         default_related_name = 'permissions'
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, initial=False, **kwargs):
         super().__init__(*args, **kwargs)
-        if self.user_id and self.user.is_superuser:
+        if initial and self.user_id and self.user.is_superuser:
             for field in UserPermissions._meta.get_fields():
                 if isinstance(field, models.BooleanField):
                     setattr(self, field.name, True)
@@ -70,7 +70,7 @@ class UserPermissions(models.Model):
         with cls.lock(user.pk):
             result = cls.objects.filter(pk=user.pk).first()
             if not result:
-                result = cls(user=user)
+                result = cls(user=user, initial=True)
             cache.set(cache_key, result, 900)
         return result
 
