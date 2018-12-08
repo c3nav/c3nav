@@ -1,6 +1,6 @@
-from django.utils.functional import SimpleLazyObject
+from django.utils.functional import SimpleLazyObject, lazy
 
-from c3nav.control.models import UserPermissions
+from c3nav.control.models import UserPermissions, UserSpaceAccess
 
 
 class UserPermissionsMiddleware:
@@ -19,6 +19,16 @@ class UserPermissionsMiddleware:
         self._user_permissions_cache = result
         return result
 
+    def get_user_space_accesses(self, request):
+        try:
+            return getattr(request, '_user_space_accesses_cache')
+        except AttributeError:
+            pass
+        result = UserSpaceAccess.get_for_user(request.user)
+        self._user_space_accesses_cache = result
+        return result
+
     def __call__(self, request):
         request.user_permissions = SimpleLazyObject(lambda: self.get_user_permissions(request))
+        request.user_space_accesses = lazy(self.get_user_space_accesses, dict)(request)
         return self.get_response(request)

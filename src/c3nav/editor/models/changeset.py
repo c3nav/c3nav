@@ -500,8 +500,86 @@ class ChangeSet(models.Model):
     def can_unpropose(self, request):
         return self.author_id == request.user.pk and self.state in ('proposed', 'reproposed')
 
+    def has_space_access_on_all_objects(self, request, force=False):
+        if not request.user.is_authenticated:
+            return False
+
+        try:
+            request._has_space_access_on_all_objects_cache
+        except AttributeError:
+            request._has_space_access_on_all_objects_cache = {}
+
+        can_edit_spaces = {space_id for space_id, can_edit in request.user_space_accesses.items() if can_edit}
+
+        if not can_edit_spaces:
+            return False
+
+        if not force:
+            try:
+                return request._has_space_access_on_all_objects_cache[self.pk]
+            except KeyError:
+                pass
+
+        self.fill_changes_cache()
+        for model in self.changed_objects.keys():
+            if issubclass(model, LocationRedirect):
+                continue
+            try:
+                model._meta.get_field('space')
+            except FieldDoesNotExist:
+                return False
+
+        result = True
+        for model, objects in self.get_objects(many=False).items():
+            if issubclass(model, (LocationRedirect, LocationSlug)):
+                continue
+
+            try:
+                model._meta.get_field('space')
+            except FieldDoesNotExist:
+                result = False
+                break
+
+            for obj in objects:
+                if obj.space_id not in can_edit_spaces:
+                    result = False
+                    break
+            if not result:
+                break
+
+            try:
+                model._meta.get_field('origin_space')
+            except FieldDoesNotExist:
+                pass
+            else:
+                for obj in objects:
+                    if obj.origin_space_id not in can_edit_spaces:
+                        result = False
+                        break
+                if not result:
+                    break
+
+            try:
+                model._meta.get_field('target_space')
+            except FieldDoesNotExist:
+                pass
+            else:
+                for obj in objects:
+                    if obj.target_space_id not in can_edit_spaces:
+                        result = False
+                        break
+                if not result:
+                    break
+
+        request._has_space_access_on_all_objects_cache[self.pk] = result
+        return result
+
     def can_review(self, request):
-        return request.user_permissions.review_changesets
+        if not request.user.is_authenticated:
+            return False
+        if request.user_permissions.review_changesets:
+            return True
+        return self.has_space_access_on_all_objects(request)
 
     @classmethod
     def can_direct_edit(cls, request):
