@@ -130,7 +130,11 @@ class MapUpdate(models.Model):
 
                 logger.info('%.3f m² of altitude areas affected.' % changed_geometries.area)
 
-                last_processed_update = cls.objects.filter(processed=True).latest().to_tuple
+                try:
+                    last_processed_update = cls.objects.filter(processed=True).latest().to_tuple
+                except cls.DoesNotExist:
+                    last_processed_update = (0, 0)
+                    cache.set('mapdata:last_processed_update', last_processed_update, None)
 
                 for new_update in new_updates:
                     logger.info('Applying changed geometries from MapUpdate #%(id)s (%(type)s)...' %
