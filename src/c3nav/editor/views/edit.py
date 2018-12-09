@@ -195,7 +195,6 @@ def edit(request, pk=None, model=None, level=None, space=None, on_top_of=None, e
         })
 
     space_id = None
-    force_geometry_editable = False
     if model == Level:
         ctx.update({
             'level': obj,
@@ -235,7 +234,6 @@ def edit(request, pk=None, model=None, level=None, space=None, on_top_of=None, e
         if not new:
             space = obj.space
         space_id = space.pk
-        force_geometry_editable = (request.user_permissions.can_access_base_mapdata or space.base_mapdata_accessible)
         ctx.update({
             'level': space.level,
             'back_url': reverse('editor.'+related_name+'.list', kwargs={'space': space.pk}),
@@ -335,7 +333,8 @@ def edit(request, pk=None, model=None, level=None, space=None, on_top_of=None, e
         json_body = getattr(request, 'json_body', None)
         data = json_body if json_body is not None else request.POST
         form = model.EditorForm(instance=model() if new else obj, data=data, is_json=json_body is not None,
-                                request=request, space_id=space_id, force_geometry_editable=force_geometry_editable)
+                                request=request, space_id=space_id,
+                                geometry_editable=edit_utils.can_access_child_base_mapdata)
         if form.is_valid():
             # Update/create objects
             obj = form.save(commit=False)
@@ -374,7 +373,7 @@ def edit(request, pk=None, model=None, level=None, space=None, on_top_of=None, e
 
     else:
         form = model.EditorForm(instance=obj, request=request, space_id=space_id,
-                                force_geometry_editable=force_geometry_editable)
+                                geometry_editable=edit_utils.can_access_child_base_mapdata)
 
     ctx.update({
         'form': form,
