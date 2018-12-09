@@ -16,6 +16,7 @@ from django.utils.translation import ugettext_lazy as _
 from django.views.decorators.http import etag
 
 from c3nav.editor.forms import GraphEdgeSettingsForm, GraphEditorActionForm
+from c3nav.editor.utils import DefaultEditUtils, LevelChildEditUtils, SpaceChildEditUtils
 from c3nav.editor.views.base import (APIHybridError, APIHybridFormTemplateResponse, APIHybridLoginRequiredResponse,
                                      APIHybridMessageRedirectResponse, APIHybridTemplateContextResponse, etag_func,
                                      sidebar_view)
@@ -422,7 +423,6 @@ def list_objects(request, model=None, level=None, space=None, explicit_edit=Fals
     Space = request.changeset.wrap_model('Space')
 
     can_edit = request.changeset.can_edit(request)
-    can_create = request.user_permissions.can_access_base_mapdata and can_edit
 
     ctx = {
         'path': request.path,
@@ -430,7 +430,6 @@ def list_objects(request, model=None, level=None, space=None, explicit_edit=Fals
         'model_title': model._meta.verbose_name,
         'model_title_plural': model._meta.verbose_name_plural,
         'explicit_edit': explicit_edit,
-        'can_create': can_create,
     }
 
     queryset = model.objects.all().order_by('id')
@@ -442,20 +441,20 @@ def list_objects(request, model=None, level=None, space=None, explicit_edit=Fals
         reverse_kwargs['level'] = level
         level = get_object_or_404(Level.objects.filter(Level.q_for_request(request)), pk=level)
         queryset = queryset.filter(level=level).defer('geometry')
+        edit_utils = LevelChildEditUtils(level, request)
         ctx.update({
             'back_url': reverse('editor.levels.detail', kwargs={'pk': level.pk}),
             'back_title': _('back to level'),
             'levels': Level.objects.filter(Level.q_for_request(request), on_top_of__isnull=True),
             'level': level,
             'level_url': resolver_match.url_name,
-            'geometry_url': ('/api/editor/geometries/?level='+str(level.primary_level_pk)
-                             if request.user_permissions.can_access_base_mapdata else None),
         })
     elif space is not None:
         reverse_kwargs['space'] = space
         sub_qs = Space.objects.filter(Space.q_for_request(request)).select_related('level').defer('geometry')
         space = get_object_or_404(sub_qs, pk=space)
         queryset = queryset.filter(space=space).filter(**get_visible_spaces_kwargs(model, request))
+        edit_utils = SpaceChildEditUtils(space, request)
 
         try:
             model._meta.get_field('geometry')
@@ -485,10 +484,9 @@ def list_objects(request, model=None, level=None, space=None, explicit_edit=Fals
             'space': space,
             'back_url': reverse('editor.spaces.detail', kwargs={'level': space.level.pk, 'pk': space.pk}),
             'back_title': _('back to space'),
-            'geometry_url': ('/api/editor/geometries/?space='+str(space.pk)
-                             if request.user_permissions.can_access_base_mapdata else None),
         })
     else:
+        edit_utils = DefaultEditUtils(request)
         ctx.update({
             'back_url': reverse('editor.index'),
             'back_title': _('back to overview'),
@@ -501,6 +499,8 @@ def list_objects(request, model=None, level=None, space=None, explicit_edit=Fals
     reverse_kwargs.pop('pk', None)
 
     ctx.update({
+        'can_create': edit_utils.can_create and can_edit,
+        'geometry_url': edit_utils.geometry_url,
         'create_url': reverse(resolver_match.url_name[:-4] + 'create', kwargs=reverse_kwargs),
         'objects': queryset,
     })
