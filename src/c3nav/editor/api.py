@@ -15,6 +15,7 @@ from shapely.ops import cascaded_union
 from c3nav.api.utils import get_api_post_data
 from c3nav.editor.forms import ChangeSetForm, RejectForm
 from c3nav.editor.models import ChangeSet
+from c3nav.editor.utils import LevelChildEditUtils, SpaceChildEditUtils
 from c3nav.editor.views.base import etag_func
 from c3nav.mapdata.api import api_etag
 from c3nav.mapdata.models import Area, Door, MapUpdate, Source
@@ -98,10 +99,11 @@ class EditorViewSet(EditorViewSetMixin, ViewSet):
             if space is not None:
                 raise ValidationError('Only level or space can be specified.')
 
-            if not request.user_permissions.can_access_base_mapdata:
-                raise PermissionDenied
-
             level = get_object_or_404(Level.objects.filter(Level.q_for_request(request)), pk=level)
+
+            edit_utils = LevelChildEditUtils(level, request)
+            if not edit_utils.can_access_child_base_mapdata:
+                raise PermissionDenied
 
             levels, levels_on_top, levels_under = self._get_levels_pk(request, level)
             # don't prefetch groups for now as changesets do not yet work with m2m-prefetches
@@ -155,7 +157,8 @@ class EditorViewSet(EditorViewSetMixin, ViewSet):
             space = get_object_or_404(qs.select_related('level', 'level__on_top_of'), pk=space)
             level = space.level
 
-            if not request.user_permissions.can_access_base_mapdata and not space.base_mapdata_accessible:
+            edit_utils = SpaceChildEditUtils(space, request)
+            if not edit_utils.can_access_child_base_mapdata:
                 raise PermissionDenied
 
             if request.user_permissions.can_access_base_mapdata:

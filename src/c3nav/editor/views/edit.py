@@ -97,9 +97,9 @@ def space_detail(request, level, pk):
     qs = Space.objects.filter(Space.q_for_request(request))
     space = get_object_or_404(qs.select_related('level'), level__pk=level, pk=pk)
 
-    can_edit = request.user_permissions.can_access_base_mapdata or space.base_mapdata_accessible
+    edit_utils = SpaceChildEditUtils(space, request)
 
-    if can_edit:
+    if edit_utils.can_access_child_base_mapdata:
         submodels = ('POI', 'Area', 'Obstacle', 'LineObstacle', 'Stair', 'Ramp', 'Column',
                      'Hole', 'AltitudeMarker', 'LeaveDescription', 'CrossDescription',
                      'WifiMeasurement')
@@ -111,11 +111,11 @@ def space_detail(request, level, pk):
         'level': space.level,
         'level_url': 'editor.spaces.list',
         'space': space,
-        'can_edit_graph': can_edit,
+        'can_edit_graph': edit_utils.can_access_child_base_mapdata,
 
         'child_models': [child_model(request, model_name, kwargs={'space': pk}, parent=space)
                          for model_name in submodels],
-        'geometry_url': '/api/editor/geometries/?space='+pk if can_edit else None,
+        'geometry_url': edit_utils.geometry_url,
     }, fields=('level', 'space', 'can_edit_graph', 'child_models'))
 
 

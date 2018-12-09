@@ -50,7 +50,7 @@ class SpaceChildEditUtils(DefaultEditUtils):
     def can_access_child_base_mapdata(self):
         return (self.request.user_permissions.can_access_base_mapdata or
                 self.space.base_mapdata_accessible or
-                self.space.pk in self.request.user_space_access)
+                self.space.pk in self.request.user_space_accesses)
 
     @property
     def _geometry_url(self):
