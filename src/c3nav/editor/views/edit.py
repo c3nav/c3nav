@@ -315,7 +315,7 @@ def edit(request, pk=None, model=None, level=None, space=None, on_top_of=None, e
                             message=_('You can not edit changes on this changeset.'),
                             redirect_to=request.path, status_code=403,
                         )
-                redirect_to = None
+
                 if model == Level:
                     if obj.on_top_of_id is not None:
                         redirect_to = reverse('editor.levels.detail', kwargs={'pk': obj.on_top_of_id})
