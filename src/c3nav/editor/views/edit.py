@@ -456,25 +456,16 @@ def list_objects(request, model=None, level=None, space=None, explicit_edit=Fals
         queryset = queryset.filter(space=space).filter(**get_visible_spaces_kwargs(model, request))
         edit_utils = SpaceChildEditUtils(space, request)
 
-        try:
+        with suppress(FieldDoesNotExist):
             model._meta.get_field('geometry')
-        except FieldDoesNotExist:
-            pass
-        else:
             queryset = queryset.defer('geometry')
 
-        try:
+        with suppress(FieldDoesNotExist):
             model._meta.get_field('origin_space')
-        except FieldDoesNotExist:
-            pass
-        else:
             queryset = queryset.select_related('origin_space')
 
-        try:
+        with suppress(FieldDoesNotExist):
             model._meta.get_field('target_space')
-        except FieldDoesNotExist:
-            pass
-        else:
             queryset = queryset.select_related('target_space')
 
         ctx.update({
