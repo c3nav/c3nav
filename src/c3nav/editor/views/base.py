@@ -292,4 +292,5 @@ def etag_func(request, *args, **kwargs):
     return (get_language() + ':' + changeset.raw_cache_key_by_changes + ':' +
             AccessPermission.cache_key_for_request(request, with_update=False) + ':' + str(request.user.pk or 0)
             + ':' + str(int(request.user_permissions.can_access_base_mapdata))
+            + ':' + ','.join(str(i) for i in request.user_space_accesses)
             + ':' + str(int(request.user.is_superuser)))
