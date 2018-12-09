@@ -177,13 +177,16 @@ def edit(request, pk=None, model=None, level=None, space=None, on_top_of=None, e
 
     new = obj is None
 
+    if new and not edit_utils.can_create:
+        raise PermissionDenied
+
     # noinspection PyProtectedMember
     ctx = {
         'path': request.path,
         'pk': pk,
         'model_name': model.__name__.lower(),
         'model_title': model._meta.verbose_name,
-        'can_edit': can_edit and (not new or edit_utils.can_create),
+        'can_edit': can_edit,
         'new': new,
         'title': obj.title if obj else None,
         'geometry_url': edit_utils.geometry_url,
