@@ -206,14 +206,18 @@ class EditorViewSet(EditorViewSetMixin, ViewSet):
                 all_other_spaces = []
 
             # todo: permissions
-            graphnodes = request.changeset.wrap_model('GraphNode').objects.all()
-            graphnodes = graphnodes.filter((Q(space__in=all_other_spaces)) | Q(space__pk=space.pk))
+            if request.user_permissions.can_access_base_mapdata:
+                graphnodes = request.changeset.wrap_model('GraphNode').objects.all()
+                graphnodes = graphnodes.filter((Q(space__in=all_other_spaces)) | Q(space__pk=space.pk))
 
-            space_graphnodes = tuple(node for node in graphnodes if node.space_id == space.pk)
+                space_graphnodes = tuple(node for node in graphnodes if node.space_id == space.pk)
 
-            graphedges = request.changeset.wrap_model('GraphEdge').objects.all()
-            graphedges = graphedges.filter(Q(from_node__in=space_graphnodes) | Q(to_node__in=space_graphnodes))
-            graphedges = graphedges.select_related('from_node', 'to_node', 'waytype')
+                graphedges = request.changeset.wrap_model('GraphEdge').objects.all()
+                graphedges = graphedges.filter(Q(from_node__in=space_graphnodes) | Q(to_node__in=space_graphnodes))
+                graphedges = graphedges.select_related('from_node', 'to_node', 'waytype')
+            else:
+                graphnodes = []
+                graphedges = []
 
             areas = space.areas.filter(Area.q_for_request(request)).prefetch_related('groups')
             for area in areas:

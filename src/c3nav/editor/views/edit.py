@@ -111,7 +111,7 @@ def space_detail(request, level, pk):
         'level': space.level,
         'level_url': 'editor.spaces.list',
         'space': space,
-        'can_edit_graph': edit_utils.can_access_child_base_mapdata,
+        'can_edit_graph': request.user_permissions.can_access_base_mapdata,
 
         'child_models': [child_model(request, model_name, kwargs={'space': pk}, parent=space)
                          for model_name in submodels],
