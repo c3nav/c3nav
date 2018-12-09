@@ -101,6 +101,13 @@ class APIHybridResponse(ABC):
         if not self.has_header(header):
             self[header] = value
 
+    def add_headers(self, response):
+        if self.etag is not None:
+            response['ETag'] = self.etag
+        if self.last_modified is not None:
+            response['Last-Modified'] = self.last_modified
+        return response
+
     @abstractmethod
     def get_api_response(self, request):
         pass
@@ -214,7 +221,7 @@ class APIHybridFormTemplateResponse(APIHybridResponse):
     def get_html_response(self, request):
         if self.error:
             messages.error(request, self.error.message)
-        return render(request, self.template, self.ctx)
+        return self.add_headers(render(request, self.template, self.ctx))
 
 
 class APIHybridTemplateContextResponse(APIHybridResponse):
@@ -238,7 +245,7 @@ class APIHybridTemplateContextResponse(APIHybridResponse):
         return result
 
     def get_html_response(self, request):
-        return render(request, self.template, self.ctx)
+        return self.add_headers(render(request, self.template, self.ctx))
 
 
 class NoAPIHybridResponse(Exception):
@@ -261,11 +268,7 @@ def call_api_hybrid_view_for_api(func, request, *args, **kwargs):
             result.move_to_end('messages', last=False)
 
         api_response = APIResponse(result, status=response.status_code)
-        if response.etag:
-            api_response['ETag'] = response.etag
-        if response.last_modified:
-            api_response['Last-Modified'] = response.last_modified
-        return api_response
+        return response.add_headers(api_response)
     elif isinstance(response, HttpResponse) and response.status_code in (304, 412):
         # 304 Not Modified, 412 Precondition Failed
         return response
