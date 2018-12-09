@@ -143,28 +143,34 @@ def edit(request, pk=None, model=None, level=None, space=None, on_top_of=None, e
         raise PermissionDenied
 
     obj = None
+    edit_utils = DefaultEditUtils(request)
     if pk is not None:
         # Edit existing map item
         kwargs = {'pk': pk}
         qs = model.objects.all()
         if hasattr(model, 'q_for_request'):
             qs = qs.filter(model.q_for_request(request))
+
+        utils_cls = DefaultEditUtils
         if level is not None:
+            # parent object is a level
             kwargs.update({'level__pk': level})
             qs = qs.select_related('level')
-            if not request.user_permissions.can_access_base_mapdata:
-                can_edit = False
+            utils_cls = LevelChildEditUtils
         elif space is not None:
+            # parent object is a space
             kwargs.update({'space__pk': space})
             qs = qs.select_related('space')
-        else:
-            if not request.user_permissions.can_access_base_mapdata:
-                can_edit = False
+            utils_cls = SpaceChildEditUtils
+
         obj = get_object_or_404(qs, **kwargs)
+        edit_utils = utils_cls.from_obj(obj, request)
     elif level is not None:
         level = get_object_or_404(Level.objects.filter(Level.q_for_request(request)), pk=level)
+        edit_utils = LevelChildEditUtils(level, request)
     elif space is not None:
         space = get_object_or_404(Space.objects.filter(Space.q_for_request(request)), pk=space)
+        edit_utils = SpaceChildEditUtils(space, request)
     elif on_top_of is not None:
         on_top_of = get_object_or_404(Level.objects.filter(Level.q_for_request(request), on_top_of__isnull=True),
                                       pk=on_top_of)
@@ -177,9 +183,10 @@ def edit(request, pk=None, model=None, level=None, space=None, on_top_of=None, e
         'pk': pk,
         'model_name': model.__name__.lower(),
         'model_title': model._meta.verbose_name,
-        'can_edit': can_edit,
+        'can_edit': can_edit and (not new or edit_utils.can_create),
         'new': new,
         'title': obj.title if obj else None,
+        'geometry_url': edit_utils.geometry_url,
     }
 
     with suppress(FieldDoesNotExist):
@@ -197,14 +204,10 @@ def edit(request, pk=None, model=None, level=None, space=None, on_top_of=None, e
         })
         if not new:
             ctx.update({
-                'geometry_url': ('/api/editor/geometries/?level='+str(obj.primary_level_pk)
-                                 if request.user_permissions.can_access_base_mapdata else None),
                 'on_top_of': obj.on_top_of,
             })
         elif on_top_of:
             ctx.update({
-                'geometry_url': ('/api/editor/geometries/?level=' + str(on_top_of.pk)
-                                 if request.user_permissions.can_access_base_mapdata else None),
                 'on_top_of': on_top_of,
                 'back_url': reverse('editor.levels.detail', kwargs={'pk': on_top_of.pk}),
             })
@@ -213,16 +216,12 @@ def edit(request, pk=None, model=None, level=None, space=None, on_top_of=None, e
         ctx.update({
             'level': obj.level,
             'back_url': reverse('editor.spaces.detail', kwargs={'level': obj.level.pk, 'pk': pk}),
-            'geometry_url': ('/api/editor/geometries/?space='+pk
-                             if request.user_permissions.can_access_base_mapdata else None),
             'nozoom': True,
         })
     elif model == Space and new:
         ctx.update({
             'level': level,
             'back_url': reverse('editor.spaces.list', kwargs={'level': level.pk}),
-            'geometry_url': ('/api/editor/geometries/?level='+str(level.primary_level_pk)
-                             if request.user_permissions.can_access_base_mapdata else None),
             'nozoom': True,
         })
     elif hasattr(model, 'level'):
@@ -231,8 +230,6 @@ def edit(request, pk=None, model=None, level=None, space=None, on_top_of=None, e
         ctx.update({
             'level': level,
             'back_url': reverse('editor.'+related_name+'.list', kwargs={'level': level.pk}),
-            'geometry_url': ('/api/editor/geometries/?level='+str(level.primary_level_pk)
-                             if request.user_permissions.can_access_base_mapdata else None),
         })
     elif hasattr(model, 'space'):
         if not new:
@@ -242,7 +239,6 @@ def edit(request, pk=None, model=None, level=None, space=None, on_top_of=None, e
         ctx.update({
             'level': space.level,
             'back_url': reverse('editor.'+related_name+'.list', kwargs={'space': space.pk}),
-            'geometry_url': '/api/editor/geometries/?space='+str(space.pk) if force_geometry_editable else None,
         })
     else:
         kwargs = {}

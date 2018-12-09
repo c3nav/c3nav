@@ -2,6 +2,10 @@ class DefaultEditUtils:
     def __init__(self, request):
         self.request = request
 
+    @classmethod
+    def from_obj(cls, obj, request):
+        return cls(request)
+
     @property
     def can_access_child_base_mapdata(self):
         return self.request.user_permissions.can_access_base_mapdata
@@ -24,6 +28,10 @@ class LevelChildEditUtils(DefaultEditUtils):
         super().__init__(request)
         self.level = level
 
+    @classmethod
+    def from_obj(cls, obj, request):
+        return cls(obj, request)
+
     @property
     def _geometry_url(self):
         return '/api/editor/geometries/?level=' + str(self.level.primary_level_pk)
@@ -33,6 +41,10 @@ class SpaceChildEditUtils(DefaultEditUtils):
     def __init__(self, space, request):
         super().__init__(request)
         self.space = space
+
+    @classmethod
+    def from_obj(cls, obj, request):
+        return cls(obj, request)
 
     @property
     def can_access_child_base_mapdata(self):
