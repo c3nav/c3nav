@@ -16,7 +16,7 @@
     {% endif %}
 </h3>
 {% bootstrap_messages %}
-{% if can_create_level %}
+{% if can_create %}
     <a class="btn btn-default btn-xs" accesskey="n" href="{{ create_url }}">
         <i class="glyphicon glyphicon-plus"></i> {% blocktrans %}New {{ model_title }}{% endblocktrans %}
     </a>
