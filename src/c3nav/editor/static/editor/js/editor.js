@@ -532,7 +532,7 @@ editor = {
         $(this).val('');
         if (!confirm('Are you sure you want to copy settings from '+value.name+'?')) return;
         delete value.name;
-        for (key in value) {
+        for (var key in value) {
             if (value.hasOwnProperty(key)) content.find('[name='+key+']').val(value[key]);
         }
         editor._source_image_calculate_scale();
