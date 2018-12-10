@@ -56,8 +56,8 @@ class Command(BaseCommand):
         except (ValueError, TypeError):
             raise argparse.ArgumentTypeError(_('Invalid zoom'))
 
-        if not (1 <= value <= 32):
-            raise argparse.ArgumentTypeError(_('Zoom has to be between 1 and 32'))
+        if not (0 < value <= 32):
+            raise argparse.ArgumentTypeError(_('Zoom has to be between 0 and 32'))
 
         return value
 
