@@ -278,10 +278,13 @@ class CustomLocation:
             ('level', self.level.pk),
             ('space', self.space.pk if self.space else None),
             ('areas', tuple(area.pk for area in self.areas)),
+            ('grid_square', self.grid_square),
             ('near_area', self.near_area.pk if self.near_area else None),
             ('near_poi', self.near_poi.pk if self.near_poi else None),
             ('altitude', None if self.altitude is None else round(self.altitude, 2))
         ))
+        if not grid.enabled:
+            result.pop('grid_square')
         if include_type:
             result['type'] = 'custom'
             result.move_to_end('type', last=False)
@@ -296,7 +299,7 @@ class CustomLocation:
         return result
 
     def details_display(self, **kwargs):
-        return {
+        result = {
             'id': self.pk,
             'display': [
                 (_('Type'), _('Coordinates')),
@@ -320,6 +323,7 @@ class CustomLocation:
                     'title': area.title,
                     'can_search': area.can_search,
                 } for area in self.areas)),
+                (_('Grid Square'), self.grid_square or None),
                 (_('Near Area'), {
                     'id': self.near_area.pk,
                     'slug': self.near_area.get_slug(),
@@ -340,6 +344,9 @@ class CustomLocation:
             ],
             'geometry': self.serialized_geometry,
         }
+        if not grid.enabled:
+            result['display'].pop(6)
+        return result
 
     @cached_property
     def description(self):
