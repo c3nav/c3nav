@@ -17,6 +17,7 @@ from shapely.geometry.polygon import orient
 from shapely.ops import unary_union
 
 from c3nav.mapdata.fields import GeometryField, I18nField
+from c3nav.mapdata.grid import grid
 from c3nav.mapdata.models import Level
 from c3nav.mapdata.models.access import AccessRestrictionMixin
 from c3nav.mapdata.models.geometry.base import GeometryMixin
@@ -127,6 +128,10 @@ class Space(LevelGeometryMixin, SpecificLocation, models.Model):
         result['outside'] = self.outside
         result['height'] = None if self.height is None else float(str(self.height))
         return result
+
+    @property
+    def grid_cell(self):
+        return grid.get_cells_for_bounds(self.geometry.bounds) or ''
 
     def details_display(self, editor_url=True, **kwargs):
         result = super().details_display(**kwargs)

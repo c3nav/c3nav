@@ -11,6 +11,10 @@ class AbstractGrid(ABC):
     def get_cell_for_point(self, x, y) -> Optional[str]:
         pass
 
+    @abstractmethod
+    def get_cells_for_bounds(self, bounds) -> Optional[str]:
+        pass
+
 
 class Grid(AbstractGrid):
     def __init__(self, rows, cols):
@@ -49,9 +53,30 @@ class Grid(AbstractGrid):
 
         return '%s%d' % (string.ascii_uppercase[x-1], y)
 
+    def get_cells_for_bounds(self, bounds):
+        minx, miny, maxx, maxy = bounds
+
+        if self.invert_x:
+            minx, maxx = maxx, minx
+        if self.invert_y:
+            miny, maxy = maxy, miny
+
+        min_cell = self.get_cell_for_point(minx, miny)
+        max_cell = self.get_cell_for_point(maxx, maxy)
+
+        if not min_cell or not max_cell:
+            return None
+
+        if min_cell == max_cell:
+            return min_cell
+        return '%s-%s' % (min_cell, max_cell)
+
 
 class DummyGrid(AbstractGrid):
     def get_cell_for_point(self, x, y):
+        return None
+
+    def get_cells_for_bounds(self, bounds):
         return None
 
 

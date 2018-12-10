@@ -126,6 +126,10 @@ class Area(SpaceGeometryMixin, SpecificLocation, models.Model):
         result = super()._serialize(**kwargs)
         return result
 
+    @property
+    def grid_cell(self):
+        return grid.get_cells_for_bounds(self.geometry.bounds) or ''
+
     def details_display(self, editor_url=True, **kwargs):
         result = super().details_display(**kwargs)
         if editor_url:
