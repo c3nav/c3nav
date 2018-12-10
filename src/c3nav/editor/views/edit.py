@@ -180,6 +180,10 @@ def edit(request, pk=None, model=None, level=None, space=None, on_top_of=None, e
     if new and not edit_utils.can_create:
         raise PermissionDenied
 
+    geometry_url = edit_utils.geometry_url
+    if model.__name__ == 'Space':
+        geometry_url = SpaceChildEditUtils(space, request).geometry_url
+
     # noinspection PyProtectedMember
     ctx = {
         'path': request.path,
@@ -189,7 +193,7 @@ def edit(request, pk=None, model=None, level=None, space=None, on_top_of=None, e
         'can_edit': can_edit,
         'new': new,
         'title': obj.title if obj else None,
-        'geometry_url': edit_utils.geometry_url,
+        'geometry_url': geometry_url,
     }
 
     with suppress(FieldDoesNotExist):
