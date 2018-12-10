@@ -86,7 +86,8 @@ class Location(LocationSlug, AccessRestrictionMixin, TitledMixin, models.Model):
     def serialize(self, detailed=True, describe_only=False, **kwargs):
         result = super().serialize(detailed=detailed, **kwargs)
         if not detailed:
-            fields = ('id', 'type', 'slug', 'title', 'subtitle', 'point', 'bounds', 'locations', 'cell', 'on_top_of')
+            fields = ('id', 'type', 'slug', 'title', 'subtitle', 'point', 'bounds', 'grid_square',
+                      'locations', 'on_top_of')
             result = OrderedDict(((name, result[name]) for name in fields if name in result))
         return result
 
@@ -141,7 +142,7 @@ class SpecificLocation(Location, models.Model):
         if grid.enabled:
             grid_square = self.grid_square
             if grid_square is not None:
-                result['cell'] = grid_square or None
+                result['grid_square'] = grid_square or None
         if detailed:
             groups = {}
             for group in self.groups.all():
