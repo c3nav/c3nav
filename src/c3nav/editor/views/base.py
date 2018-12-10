@@ -270,7 +270,9 @@ def call_api_hybrid_view_for_api(func, request, *args, **kwargs):
             result.move_to_end('messages', last=False)
 
         api_response = APIResponse(result, status=response.status_code)
-        return response.add_headers(api_response)
+        if request.method == 'GET':
+            response.add_headers(api_response)
+        return api_response
     elif isinstance(response, HttpResponse) and response.status_code in (304, 412):
         # 304 Not Modified, 412 Precondition Failed
         return response
