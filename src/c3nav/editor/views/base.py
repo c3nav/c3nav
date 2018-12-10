@@ -221,7 +221,8 @@ class APIHybridFormTemplateResponse(APIHybridResponse):
     def get_html_response(self, request):
         if self.error:
             messages.error(request, self.error.message)
-        return self.add_headers(render(request, self.template, self.ctx))
+        response = render(request, self.template, self.ctx)
+        return self.add_headers(response) if request.method == 'GET' else response
 
 
 class APIHybridTemplateContextResponse(APIHybridResponse):
@@ -245,7 +246,8 @@ class APIHybridTemplateContextResponse(APIHybridResponse):
         return result
 
     def get_html_response(self, request):
-        return self.add_headers(render(request, self.template, self.ctx))
+        response = render(request, self.template, self.ctx)
+        return self.add_headers(response) if request.method == 'GET' else response
 
 
 class NoAPIHybridResponse(Exception):
