@@ -157,6 +157,11 @@ class SpecificLocation(Location, models.Model):
         for group in self.groups.all():
             groupcategories.setdefault(group.category, []).append(group)
 
+        grid_cell = self.grid_cell
+        if grid_cell is not None:
+            grid_square_title = (_('Grid Squares') if grid_cell and '-' in grid_cell else _('Grid Square'))
+            result['display'].insert(3, (grid_square_title, grid_cell or None))
+
         for category, groups in sorted(groupcategories.items(), key=lambda item: item[0].priority):
             result['display'].insert(3, (
                 category.title if category.single else category.title_plural,
