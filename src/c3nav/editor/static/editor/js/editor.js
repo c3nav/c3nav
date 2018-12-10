@@ -371,6 +371,7 @@ editor = {
             editor._source_image_layer.remove();
             editor._source_image_layer = null;
         }
+        // noinspection HtmlRequiredAltAttribute
         $('<img src="/editor/sourceimage/'+$(this).val()+'">').on('load', editor._source_name_selected_ajax_callback);
         $('#sidebar form').removeClass('show-source-wizard');
         $('body').removeClass('map-enabled');
@@ -532,7 +533,7 @@ editor = {
         if (!confirm('Are you sure you want to copy settings from '+value.name+'?')) return;
         delete value.name;
         for (key in value) {
-            content.find('[name='+key+']').val(value[key]);
+            if (value.hasOwnProperty(key)) content.find('[name='+key+']').val(value[key]);
         }
         editor._source_image_calculate_scale();
         editor._source_image_repositioned();
