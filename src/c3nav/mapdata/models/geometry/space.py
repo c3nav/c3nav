@@ -11,6 +11,7 @@ from django.utils.translation import ugettext_lazy as _
 from shapely.geometry import CAP_STYLE, JOIN_STYLE, mapping
 
 from c3nav.mapdata.fields import GeometryField, I18nField, JSONField
+from c3nav.mapdata.grid import grid
 from c3nav.mapdata.models import Space
 from c3nav.mapdata.models.base import SerializableMixin
 from c3nav.mapdata.models.geometry.base import GeometryMixin
@@ -230,6 +231,10 @@ class POI(SpaceGeometryMixin, SpecificLocation, models.Model):
         if editor_url:
             result['editor_url'] = reverse('editor.pois.edit', kwargs={'space': self.space_id, 'pk': self.pk})
         return result
+
+    @property
+    def grid_cell(self):
+        return grid.get_cell_for_point(self.x, self.y) or ''
 
     @property
     def x(self):

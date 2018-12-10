@@ -115,6 +115,10 @@ class Location(LocationSlug, AccessRestrictionMixin, TitledMixin, models.Model):
     def subtitle(self):
         return ''
 
+    @property
+    def grid_cell(self):
+        return None
+
     def get_color(self, instance=None):
         # dont filter in the query here so prefetch_related works
         if instance is None:
@@ -167,7 +171,10 @@ class SpecificLocation(Location, models.Model):
     def subtitle(self):
         groups = tuple(self.groups.all() if 'groups' in getattr(self, '_prefetched_objects_cache', ()) else ())
         groups = tuple(group for group in groups if group.can_describe)
-        return groups[0].title if groups else self.__class__._meta.verbose_name
+        subtitle = groups[0].title if groups else self.__class__._meta.verbose_name
+        if self.grid_cell:
+            return '%s, %s' % (subtitle, self.grid_cell)
+        return subtitle
 
     @cached_property
     def order(self):
