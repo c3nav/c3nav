@@ -30,7 +30,7 @@ class LevelChildEditUtils(DefaultEditUtils):
 
     @classmethod
     def from_obj(cls, obj, request):
-        return cls(obj, request)
+        return cls(obj.level, request)
 
     @property
     def _geometry_url(self):
@@ -44,7 +44,7 @@ class SpaceChildEditUtils(DefaultEditUtils):
 
     @classmethod
     def from_obj(cls, obj, request):
-        return cls(obj, request)
+        return cls(obj.space, request)
 
     @property
     def can_access_child_base_mapdata(self):
