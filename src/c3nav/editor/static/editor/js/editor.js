@@ -484,11 +484,11 @@ editor = {
         var fixed_x_relative = (fixed_x-left)/(right-left),
             fixed_y_relative = (fixed_y-bottom)/(top-bottom),
             width = editor._source_image_orig_width*scale_x,
-            height = editor._source_image_orig_height*scale_y,
-            left = fixed_x-(width*fixed_x_relative),
-            bottom = fixed_y-(height*fixed_y_relative),
-            right = left+width,
-            top = bottom+height;
+            height = editor._source_image_orig_height*scale_y;
+        left = fixed_x-(width*fixed_x_relative);
+        bottom = fixed_y-(height*fixed_y_relative);
+        right = left+width;
+        top = bottom+height;
 
         left = left.toFixed(2);
         bottom = bottom.toFixed(2);
