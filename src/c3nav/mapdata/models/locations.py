@@ -11,6 +11,7 @@ from django.utils.translation import ugettext_lazy as _
 from django.utils.translation import ungettext_lazy
 
 from c3nav.mapdata.fields import I18nField
+from c3nav.mapdata.grid import grid
 from c3nav.mapdata.models.access import AccessRestrictionMixin
 from c3nav.mapdata.models.base import SerializableMixin, TitledMixin
 from c3nav.mapdata.utils.models import get_submodels
@@ -137,9 +138,10 @@ class SpecificLocation(Location, models.Model):
 
     def _serialize(self, detailed=True, **kwargs):
         result = super()._serialize(detailed=detailed, **kwargs)
-        grid_cell = self.grid_cell
-        if grid_cell is not None:
-            result['cell'] = grid_cell or None
+        if grid.enabled:
+            grid_cell = self.grid_cell
+            if grid_cell is not None:
+                result['cell'] = grid_cell or None
         if detailed:
             groups = {}
             for group in self.groups.all():
@@ -157,10 +159,11 @@ class SpecificLocation(Location, models.Model):
         for group in self.groups.all():
             groupcategories.setdefault(group.category, []).append(group)
 
-        grid_cell = self.grid_cell
-        if grid_cell is not None:
-            grid_square_title = (_('Grid Squares') if grid_cell and '-' in grid_cell else _('Grid Square'))
-            result['display'].insert(3, (grid_square_title, grid_cell or None))
+        if grid.enabled:
+            grid_cell = self.grid_cell
+            if grid_cell is not None:
+                grid_square_title = (_('Grid Squares') if grid_cell and '-' in grid_cell else _('Grid Square'))
+                result['display'].insert(3, (grid_square_title, grid_cell or None))
 
         for category, groups in sorted(groupcategories.items(), key=lambda item: item[0].priority):
             result['display'].insert(3, (

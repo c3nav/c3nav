@@ -7,6 +7,8 @@ from django.conf import settings
 
 
 class AbstractGrid(ABC):
+    enabled = False
+
     @abstractmethod
     def get_cell_for_point(self, x, y) -> Optional[str]:
         pass
@@ -17,6 +19,8 @@ class AbstractGrid(ABC):
 
 
 class Grid(AbstractGrid):
+    enabled = True
+
     def __init__(self, rows, cols):
         rows = tuple(float(y) for y in rows)
         cols = tuple(float(x) for x in cols)
