@@ -90,6 +90,9 @@ CACHE_RESOLUTION = config.get('c3nav', 'cache_resolution', fallback=4)
 INITIAL_LEVEL = config.get('c3nav', 'initial_level', fallback=None)
 INITIAL_BOUNDS = config.get('c3nav', 'initial_bounds', fallback='').split(' ')
 
+GRID_ROWS = config.get('c3nav', 'grid_rows', fallback=None)
+GRID_COLS = config.get('c3nav', 'grid_cols', fallback=None)
+
 if len(INITIAL_BOUNDS) == 4:
     try:
         INITIAL_BOUNDS = tuple(float(i) for i in INITIAL_BOUNDS)

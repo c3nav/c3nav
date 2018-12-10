@@ -13,6 +13,7 @@ from django.utils.functional import cached_property
 from django.utils.translation import ugettext_lazy as _
 from shapely.ops import cascaded_union
 
+from c3nav.mapdata.grid import grid
 from c3nav.mapdata.models import Level, Location, LocationGroup, MapUpdate
 from c3nav.mapdata.models.access import AccessPermission
 from c3nav.mapdata.models.geometry.base import GeometryMixin
@@ -367,9 +368,12 @@ class CustomLocation:
 
     @cached_property
     def title_subtitle(self):
+        grid_cell = grid.get_cell_for_point(self.x, self.y)
+        level_subtitle = self.level.title if grid_cell is None else ','.join((grid_cell, str(self.level.title)))
+
         title = _('In %(level)s') % {'level': self.level.title}
         if not self.space:
-            return title, self.level.title,
+            return title, level_subtitle
 
         subtitle = ()
         if self.near_poi:
@@ -385,9 +389,10 @@ class CustomLocation:
         elif self.near_area:
             title = _('Near %(area)s') % {'area': self.near_area.title}
         else:
-            return _('In %(space)s') % {'space': self.space.title}, self.level.title
+            return _('In %(space)s') % {'space': self.space.title}, level_subtitle
 
-        subtitle = ', '.join(str(title) for title in chain(subtitle, (self.space.title, self.level.title)))
+        subtitle_segments = chain((grid_cell, ), subtitle, (self.space.title, self.level.title))
+        subtitle = ', '.join(str(title) for title in subtitle_segments if title is not None)
         return title, subtitle
 
     @cached_property
