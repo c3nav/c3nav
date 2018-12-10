@@ -1043,7 +1043,10 @@ editor = {
             } else if (form.is('[data-new]')) {
                 // create new geometry
                 var mapitem_type = form.attr('data-new');
-                var options = editor._get_mapitem_type_style(mapitem_type);
+                options = editor._get_mapitem_type_style(mapitem_type);
+                if (mapitem_type === 'area') {
+                    options.fillOpacity = 0.5;
+                }
                 form.addClass('creation-lock');
                 var geomtype = form.attr('data-geomtype');
                 if (geomtype === 'polygon') {
