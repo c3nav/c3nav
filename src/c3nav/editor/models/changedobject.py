@@ -280,6 +280,8 @@ class ChangedObject(models.Model):
             related_model = field.related_model
             if related_model._meta.app_label != 'mapdata':
                 continue
+            if related_model.__name__ == 'AccessPermission':
+                continue
             kwargs = {field.field.name+'__pk': self.obj_pk}
             if self.changeset.wrap_model(related_model).objects.filter(**kwargs).exists():
                 return False
