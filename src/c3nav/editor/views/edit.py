@@ -182,7 +182,7 @@ def edit(request, pk=None, model=None, level=None, space=None, on_top_of=None, e
 
     geometry_url = edit_utils.geometry_url
     if model.__name__ == 'Space':
-        geometry_url = SpaceChildEditUtils(space, request).geometry_url
+        geometry_url = SpaceChildEditUtils(obj, request).geometry_url
 
     # noinspection PyProtectedMember
     ctx = {
