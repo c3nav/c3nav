@@ -127,8 +127,8 @@ class Area(SpaceGeometryMixin, SpecificLocation, models.Model):
         return result
 
     @property
-    def grid_cell(self):
-        return grid.get_cells_for_bounds(self.geometry.bounds) or ''
+    def grid_square(self):
+        return grid.get_squares_for_bounds(self.geometry.bounds) or ''
 
     def details_display(self, editor_url=True, **kwargs):
         result = super().details_display(**kwargs)
@@ -237,8 +237,8 @@ class POI(SpaceGeometryMixin, SpecificLocation, models.Model):
         return result
 
     @property
-    def grid_cell(self):
-        return grid.get_cell_for_point(self.x, self.y) or ''
+    def grid_square(self):
+        return grid.get_square_for_point(self.x, self.y) or ''
 
     @property
     def x(self):

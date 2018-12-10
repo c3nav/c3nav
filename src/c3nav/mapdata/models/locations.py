@@ -117,7 +117,7 @@ class Location(LocationSlug, AccessRestrictionMixin, TitledMixin, models.Model):
         return ''
 
     @property
-    def grid_cell(self):
+    def grid_square(self):
         return None
 
     def get_color(self, instance=None):
@@ -139,9 +139,9 @@ class SpecificLocation(Location, models.Model):
     def _serialize(self, detailed=True, **kwargs):
         result = super()._serialize(detailed=detailed, **kwargs)
         if grid.enabled:
-            grid_cell = self.grid_cell
-            if grid_cell is not None:
-                result['cell'] = grid_cell or None
+            grid_square = self.grid_square
+            if grid_square is not None:
+                result['cell'] = grid_square or None
         if detailed:
             groups = {}
             for group in self.groups.all():
@@ -160,10 +160,10 @@ class SpecificLocation(Location, models.Model):
             groupcategories.setdefault(group.category, []).append(group)
 
         if grid.enabled:
-            grid_cell = self.grid_cell
-            if grid_cell is not None:
-                grid_square_title = (_('Grid Squares') if grid_cell and '-' in grid_cell else _('Grid Square'))
-                result['display'].insert(3, (grid_square_title, grid_cell or None))
+            grid_square = self.grid_square
+            if grid_square is not None:
+                grid_square_title = (_('Grid Squares') if grid_square and '-' in grid_square else _('Grid Square'))
+                result['display'].insert(3, (grid_square_title, grid_square or None))
 
         for category, groups in sorted(groupcategories.items(), key=lambda item: item[0].priority):
             result['display'].insert(3, (
@@ -183,8 +183,8 @@ class SpecificLocation(Location, models.Model):
         groups = tuple(self.groups.all() if 'groups' in getattr(self, '_prefetched_objects_cache', ()) else ())
         groups = tuple(group for group in groups if group.can_describe)
         subtitle = groups[0].title if groups else self.__class__._meta.verbose_name
-        if self.grid_cell:
-            return '%s, %s' % (subtitle, self.grid_cell)
+        if self.grid_square:
+            return '%s, %s' % (subtitle, self.grid_square)
         return subtitle
 
     @cached_property

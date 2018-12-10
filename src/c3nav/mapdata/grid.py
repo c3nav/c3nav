@@ -10,11 +10,11 @@ class AbstractGrid(ABC):
     enabled = False
 
     @abstractmethod
-    def get_cell_for_point(self, x, y) -> Optional[str]:
+    def get_square_for_point(self, x, y) -> Optional[str]:
         pass
 
     @abstractmethod
-    def get_cells_for_bounds(self, bounds) -> Optional[str]:
+    def get_squares_for_bounds(self, bounds) -> Optional[str]:
         pass
 
 
@@ -41,7 +41,7 @@ class Grid(AbstractGrid):
         else:
             raise ValueError('column coordinates are not ordered')
 
-    def get_cell_for_point(self, x, y):
+    def get_square_for_point(self, x, y):
         x = bisect.bisect(self.cols, x)
         if x <= 0 or x >= len(self.cols):
             return None
@@ -57,7 +57,7 @@ class Grid(AbstractGrid):
 
         return '%s%d' % (string.ascii_uppercase[x-1], y)
 
-    def get_cells_for_bounds(self, bounds):
+    def get_squares_for_bounds(self, bounds):
         minx, miny, maxx, maxy = bounds
 
         if self.invert_x:
@@ -65,22 +65,22 @@ class Grid(AbstractGrid):
         if self.invert_y:
             miny, maxy = maxy, miny
 
-        min_cell = self.get_cell_for_point(minx, miny)
-        max_cell = self.get_cell_for_point(maxx, maxy)
+        min_square = self.get_square_for_point(minx, miny)
+        max_square = self.get_square_for_point(maxx, maxy)
 
-        if not min_cell or not max_cell:
+        if not min_square or not max_square:
             return None
 
-        if min_cell == max_cell:
-            return min_cell
-        return '%s-%s' % (min_cell, max_cell)
+        if min_square == max_square:
+            return min_square
+        return '%s-%s' % (min_square, max_square)
 
 
 class DummyGrid(AbstractGrid):
-    def get_cell_for_point(self, x, y):
+    def get_square_for_point(self, x, y):
         return None
 
-    def get_cells_for_bounds(self, bounds):
+    def get_squares_for_bounds(self, bounds):
         return None
 
 

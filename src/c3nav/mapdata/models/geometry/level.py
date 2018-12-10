@@ -130,8 +130,8 @@ class Space(LevelGeometryMixin, SpecificLocation, models.Model):
         return result
 
     @property
-    def grid_cell(self):
-        return grid.get_cells_for_bounds(self.geometry.bounds) or ''
+    def grid_square(self):
+        return grid.get_squares_for_bounds(self.geometry.bounds) or ''
 
     def details_display(self, editor_url=True, **kwargs):
         result = super().details_display(**kwargs)

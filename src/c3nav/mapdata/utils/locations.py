@@ -367,13 +367,13 @@ class CustomLocation:
         return self.description.near_poi
 
     @cached_property
-    def grid_cell(self):
-        return grid.get_cell_for_point(self.x, self.y) or ''
+    def grid_square(self):
+        return grid.get_square_for_point(self.x, self.y) or ''
 
     @cached_property
     def title_subtitle(self):
-        grid_cell = self.grid_cell
-        level_subtitle = self.level.title if not grid_cell else ','.join((grid_cell, str(self.level.title)))
+        grid_square = self.grid_square
+        level_subtitle = self.level.title if not grid_square else ','.join((grid_square, str(self.level.title)))
 
         title = _('In %(level)s') % {'level': self.level.title}
         if not self.space:
@@ -395,7 +395,7 @@ class CustomLocation:
         else:
             return _('In %(space)s') % {'space': self.space.title}, level_subtitle
 
-        subtitle_segments = chain((grid_cell, ), subtitle, (self.space.title, self.level.title))
+        subtitle_segments = chain((grid_square, ), subtitle, (self.space.title, self.level.title))
         subtitle = ', '.join(str(title) for title in subtitle_segments if title)
         return title, subtitle
 
