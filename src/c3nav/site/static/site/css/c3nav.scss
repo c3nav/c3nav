@@ -116,6 +116,11 @@ main {
     padding-top: 20px;
     position: relative;
 }
+body > *:not(header):not(main) {
+    /* against stupid browser extensions */
+    flex-basis: 0;
+    overflow: hidden;
+}
 main.map {
     /*noinspection CssUnknownTarget*/
     background: #FFFFFF url('../../img/loader.gif') no-repeat center;
