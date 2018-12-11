@@ -1027,23 +1027,33 @@ editor = {
         var sidebarcontent = $('#sidebar').find('.content');
 
         var geometry_field = sidebarcontent.find('input[name=geometry]');
-        var options;
         if (geometry_field.length) {
             var form = geometry_field.closest('form');
-            if (editor._editing_layer !== null) {
-                options = editor._editing_layer.options;
-                editor._editing_layer.remove();
-                editor._editing_layer = L.geoJSON(JSON.parse(geometry_field.val()), {
-                    style: function() { return options; },
-                    pointToLayer: editor._point_to_layer,
-                }).getLayers()[0].addTo(editor._geometries_layer);
-                editor._editing_layer.enableEdit();
-                if (editor._editing_layer.editor._resizeLatLng !== undefined) {
-                    editor._editing_layer.editor._resizeLatLng.__vertex._icon.style.display = 'none';
+            var options, mapitem_type = form.attr('data-new');
+            var geometry_value = geometry_field.val();
+            if (geometry_value) {
+                if (editor._editing_layer !== null) {
+                    options = editor._editing_layer.options;
+                    editor._editing_layer.remove();
+                } else if (mapitem_type) {
+                    // creating a new geometry, already drawn but form was rejected
+                    options = editor._get_mapitem_type_style(mapitem_type);
+                    if (mapitem_type === 'area') {
+                        options.fillOpacity = 0.5;
+                    }
+                }
+                if (options) {
+                    editor._editing_layer = L.geoJSON(JSON.parse(geometry_field.val()), {
+                        style: function() { return options; },
+                        pointToLayer: editor._point_to_layer,
+                    }).getLayers()[0].addTo(editor._geometries_layer);
+                    editor._editing_layer.enableEdit();
+                    if (editor._editing_layer.editor._resizeLatLng !== undefined) {
+                        editor._editing_layer.editor._resizeLatLng.__vertex._icon.style.display = 'none';
+                    }
                 }
             } else if (form.is('[data-new]')) {
                 // create new geometry
-                var mapitem_type = form.attr('data-new');
                 options = editor._get_mapitem_type_style(mapitem_type);
                 if (mapitem_type === 'area') {
                     options.fillOpacity = 0.5;
