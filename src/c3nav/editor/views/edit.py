@@ -181,7 +181,7 @@ def edit(request, pk=None, model=None, level=None, space=None, on_top_of=None, e
         raise PermissionDenied
 
     geometry_url = edit_utils.geometry_url
-    if model.__name__ == 'Space':
+    if model.__name__ == 'Space' and not new:
         geometry_url = SpaceChildEditUtils(obj, request).geometry_url
 
     # noinspection PyProtectedMember
