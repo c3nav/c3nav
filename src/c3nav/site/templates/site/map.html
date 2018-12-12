@@ -24,7 +24,7 @@
                  {% if tile_cache_server %}data-tile-server="{{ tile_cache_server }}"{% endif %}
                  {% if initial_level %}data-initial-level="{{ initial_level }}"{% endif %}
                  {% if initial_bounds %}data-initial-bounds="{{ initial_bounds }}"{% endif %}
-                 {% if grid %} data-grid="{{ grid }}"{% endif %}>
+                 {% if grid %}data-grid="{{ grid }}"{% endif %}>
         </section>
         {% if not embed %}
             <section id="messages">{% include 'site/fragment_messages.html' %}</section>
