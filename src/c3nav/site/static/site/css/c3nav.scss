@@ -762,6 +762,11 @@ body:not(.mobileclient) .leaflet-control-user-location a {
 .c3nav-grid-row span {
     padding: 0 5px;
 }
+@media (max-width: 500px) {
+    .c3nav-grid span:last-child {
+        display: none;
+    }
+}
 .c3nav-grid-column {
     top: 0;
     bottom: 0;
