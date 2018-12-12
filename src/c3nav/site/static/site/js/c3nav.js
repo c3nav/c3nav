@@ -1551,7 +1551,6 @@ L.SquareGridLayer = L.Layer.extend({
             attributionStart = mapSize.x - $('.leaflet-control-attribution').outerWidth() - 16,
             bottomRightStart = mapSize.y - $('.leaflet-bottom.leaflet-right').outerHeight() - 24,
             coord = null, lastCoord = null, size, center;
-        console.log(bottomRightStart);
         for(i=0;i<this.config.cols.length;i++) {
             coord = map.latLngToContainerPoint([0, this.config.cols[i]], map.getZoom()).x;
             coord = Math.min(mapSize.x, Math.max(-1, coord));
