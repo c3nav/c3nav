@@ -1487,7 +1487,10 @@ SquareGridControl = L.Control.extend({
     },
 
     toggleGrid: function(e) {
-        if(e) e.preventDefault();
+        if(e) {
+            e.preventDefault();
+            e.stopPropagation();
+        }
         if (c3nav._gridControl.gridActive) {
             c3nav._gridControl.hideGrid();
         } else {
@@ -1562,7 +1565,6 @@ L.SquareGridLayer = L.Layer.extend({
     },
 
     _updateGrid: function(map) {
-
         var mapSize = map.getSize(), coord = null, lastCoord = null, size;
         for(i=0;i<this.config.cols.length;i++) {
             coord = map.latLngToContainerPoint([0, this.config.cols[i]], map.getZoom()).x;
