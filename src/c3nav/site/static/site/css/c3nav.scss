@@ -743,7 +743,7 @@ body:not(.mobileclient) .leaflet-control-user-location a {
     line-height: 1;
     font-size: 18px;
     pointer-events: none;
-    color: rgba(0, 0, 0, 0.5);
+    color: rgba(0, 0, 0, 0.6);
 }
 .c3nav-grid-row, .c3nav-grid-column {
     position: absolute;
@@ -751,7 +751,7 @@ body:not(.mobileclient) .leaflet-control-user-location a {
     justify-content: space-between;
     align-items: center;
     border-style: solid;
-    border-color: rgba(0, 0, 0, 0.18);
+    border-color: rgba(0, 0, 0, 0.25);
     overflow:hidden;
 }
 .c3nav-grid-row {
