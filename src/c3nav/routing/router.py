@@ -1,4 +1,5 @@
 import json
+import logging
 import operator
 import os
 import pickle
@@ -23,6 +24,8 @@ from c3nav.mapdata.utils.geometry import assert_multipolygon, get_rings, good_re
 from c3nav.mapdata.utils.locations import CustomLocation
 from c3nav.routing.exceptions import LocationUnreachable, NoRouteFound, NotYetRoutable
 from c3nav.routing.route import Route
+
+logger = logging.getLogger('c3nav')
 
 
 class Router:
@@ -137,6 +140,17 @@ class Router:
                                 node.altitude = altitude
 
                         space.altitudeareas.append(area)
+
+                for node in space_nodes:
+                    if node.altitude is not None:
+                        continue
+                    logger.warning('Node %d in space %d is not inside an altitude area' % (node.pk, space.pk))
+                    node_altitudearea = min(space.altitudeareas, key=lambda a: a.distance(node.point), default=None)
+                    if node_altitudearea:
+                        node.altitude = node_altitudearea.get_altitude(node)
+                    else:
+                        node.altitude = float(level.base_altitude)
+                        logger.info('Space %d has no altitude areas' % space.pk)
 
                 for area in space.altitudeareas:
                     # create fallback nodes
