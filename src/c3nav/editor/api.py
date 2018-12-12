@@ -260,7 +260,7 @@ class EditorViewSet(EditorViewSetMixin, ViewSet):
             'ramp': 'rgba(160, 0, 160, 0.2)',
             'obstacle': '#999999',
             'lineobstacle': '#999999',
-            'column': '#888888',
+            'column': 'rgba(0, 0, 50, 0.3)',
             'poi': '#4488cc',
             'shadow': '#000000',
             'graphnode': '#009900',
