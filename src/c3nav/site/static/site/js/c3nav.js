@@ -1578,7 +1578,7 @@ L.SquareGridLayer = L.Layer.extend({
                 center = (lastCoord+coord)/2;
                 if (size > 0) {
                     this.rows[i].style.display = '';
-                    this.rows[i].style.height = (lastCoord-coord)+'px';
+                    this.rows[i].style.height = size+'px';
                     this.rows[i].style.paddingRight = Math.max(0, Math.min(36, (center-bottomRightStart)*2)) + 'px';
                 } else {
                     this.rows[i].style.display = 'none';
