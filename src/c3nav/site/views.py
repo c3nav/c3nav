@@ -23,6 +23,7 @@ from django.views.decorators.clickjacking import xframe_options_exempt
 from django.views.decorators.http import etag
 
 from c3nav.control.forms import AccessPermissionForm, SignedPermissionDataError
+from c3nav.mapdata.grid import grid
 from c3nav.mapdata.models import Location, Source
 from c3nav.mapdata.models.access import AccessPermissionToken
 from c3nav.mapdata.models.locations import LocationRedirect, SpecificLocation
@@ -130,6 +131,14 @@ def map_index(request, mode=None, slug=None, slug2=None, details=None, options=N
         'editor': can_access_editor(request),
         'embed': bool(embed),
     }
+
+    if grid.enabled:
+        ctx['grid'] = json.dumps({
+            'rows': grid.rows,
+            'cols': grid.cols,
+            'invert_x': grid.invert_x,
+            'invert_y': grid.invert_y,
+        }, separators=(',', ':'), cls=DjangoJSONEncoder)
 
     csrf.get_token(request)
 

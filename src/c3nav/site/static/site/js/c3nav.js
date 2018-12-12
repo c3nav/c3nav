@@ -1017,13 +1017,13 @@ c3nav = {
         }
 
         c3nav.level_labels_by_id = {};
-        for (i = 0; i < c3nav.levels.length; i ++) {
+        for (i = 0; i < c3nav.levels.length; i++) {
             c3nav.level_labels_by_id[c3nav.levels[i][0]] = c3nav.levels[i][1];
         }
 
         minZoom = Math.log2(Math.max(0.25, Math.min(
-            ($main.width()-40)/(c3nav.bounds[1][0]-c3nav.bounds[0][0]),
-            ($main.height()-250)/(c3nav.bounds[1][1]-c3nav.bounds[0][1])
+            ($main.width() - 40) / (c3nav.bounds[1][0] - c3nav.bounds[0][0]),
+            ($main.height() - 250) / (c3nav.bounds[1][1] - c3nav.bounds[0][1])
         )));
 
         // create leaflet map
@@ -1075,6 +1075,13 @@ c3nav = {
         }
         c3nav._levelControl.finalize();
         c3nav._levelControl.setLevel(c3nav.initial_level);
+
+        // setup grid control
+        console.log($map);
+        if ($map.is('[data-grid]')) {
+            c3nav._gridLayer = new L.SquareGridLayer(JSON.parse($map.attr('data-grid')));
+            c3nav._gridControl = new SquareGridControl().addTo(c3nav.map);
+        }
 
         // setup user location control
         c3nav._userLocationControl = new UserLocationControl().addTo(c3nav.map);
@@ -1455,5 +1462,137 @@ UserLocationControl = L.Control.extend({
         this._tileLayers[this.currentLevel] = new_tile_layer;
         new_tile_layer.addTo(c3nav.map);
         window.setTimeout(function() { old_tile_layer.remove(); }, 2000);
+    }
+});
+
+
+SquareGridControl = L.Control.extend({
+    options: {
+        position: 'bottomright',
+        addClasses: ''
+    },
+
+    onAdd: function () {
+        this._container = L.DomUtil.create('div', 'leaflet-control-grid-layer leaflet-bar ' + this.options.addClasses);
+        this._button = L.DomUtil.create('a', 'material-icons', this._container);
+        $(this._button).click(this.toggleGrid);
+        this._button.innerHTML = 'grid_off';
+        this._button.href = '#';
+        this._button.style.color = '#BBBBBB';
+        this.gridActive = false;
+        if (localStorage.getItem('showGrid')) {
+            this.showGrid()
+        }
+        return this._container;
+    },
+
+    toggleGrid: function(e) {
+        if(e) e.preventDefault();
+        if (c3nav._gridControl.gridActive) {
+            c3nav._gridControl.hideGrid();
+        } else {
+            c3nav._gridControl.showGrid();
+        }
+    },
+
+    showGrid: function() {
+        if (this.gridActive) return;
+        c3nav._gridLayer.addTo(c3nav.map);
+        this._button.innerHTML = 'grid_on';
+        this._button.style.color = '';
+        this.gridActive = true;
+        localStorage.setItem('showGrid', true);
+    },
+
+    hideGrid: function() {
+        if (!this.gridActive) return;
+        c3nav._gridLayer.remove();
+        this._button.innerHTML = 'grid_off';
+        this._button.style.color = '#BBBBBB';
+        this.gridActive = false;
+        localStorage.removeItem('showGrid');
+    }
+});
+
+
+L.SquareGridLayer = L.Layer.extend({
+    initialize: function (config) {
+        this.config = config;
+	},
+
+    onAdd: function(map) {
+        this._container = L.DomUtil.create('div', 'leaflet-pane c3nav-grid');
+        document.getElementById('map').appendChild(this._container);
+
+        this.cols = [];
+        this.rows = [];
+        var i, elem, label;
+        for(i=0;i<this.config.cols.length;i++) {
+            elem = L.DomUtil.create('div', 'c3nav-grid-column');
+            label = String.fromCharCode(65+(this.config.invert_x ? (this.config.cols.length-i-2) : i));
+            if (i<this.config.cols.length-1) {
+                elem.innerHTML = '<span>'+label+'</span><span>'+label+'</span>';
+            }
+            this._container.appendChild(elem);
+            this.cols.push(elem);
+        }
+        for(i=0;i<this.config.rows.length;i++) {
+            elem = L.DomUtil.create('div', 'c3nav-grid-row');
+            label = (this.config.invert_y ? (this.config.rows.length-i) : i);
+            if (i>0) {
+                elem.innerHTML = '<span>'+label+'</span><span>'+label+'</span>';
+            }
+            this._container.appendChild(elem);
+            this.rows.push(elem);
+        }
+
+        this._updateGrid(map);
+
+        map.on('viewreset zoom move toomend moveend', this._update, this);
+    },
+
+    onRemove: function(map) {
+        L.DomUtil.remove(this._container);
+        map.off('viewreset zoom move toomend moveend', this._update, this);
+    },
+
+    _update: function(e) {
+        console.log(e);
+        this._updateGrid(e.target);
+    },
+
+    _updateGrid: function(map) {
+
+        var mapSize = map.getSize(), coord = null, lastCoord = null, size;
+        for(i=0;i<this.config.cols.length;i++) {
+            coord = map.latLngToContainerPoint([0, this.config.cols[i]], map.getZoom()).x;
+            coord = Math.min(mapSize.x, Math.max(-1, coord));
+            this.cols[i].style.left = coord+'px';
+            if (i>0) {
+                size = coord-lastCoord;
+                if (size > 0) {
+                    this.cols[i - 1].style.display = '';
+                    this.cols[i - 1].style.width = size+'px';
+                } else {
+                    this.cols[i - 1].style.display = 'none';
+                }
+            }
+            lastCoord = coord;
+        }
+        for(i=0;i<this.config.rows.length;i++) {
+            coord = map.latLngToContainerPoint([this.config.rows[i], 0], map.getZoom()).y;
+            coord = Math.min(mapSize.y, Math.max(-1, coord));
+            this.rows[i].style.top = coord+'px';
+            if (i>0) {
+                size = lastCoord-coord;
+                if (size > 0) {
+                    this.rows[i].style.display = '';
+                    this.rows[i].style.height = (lastCoord-coord)+'px';
+                } else {
+                    this.rows[i].style.display = 'none';
+                }
+            }
+            lastCoord = coord;
+        }
     }
 });
