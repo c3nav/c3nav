@@ -13,6 +13,7 @@ from shapely.geometry import CAP_STYLE, JOIN_STYLE, mapping
 from c3nav.mapdata.fields import GeometryField, I18nField, JSONField
 from c3nav.mapdata.grid import grid
 from c3nav.mapdata.models import Space
+from c3nav.mapdata.models.access import AccessRestrictionMixin
 from c3nav.mapdata.models.base import SerializableMixin
 from c3nav.mapdata.models.geometry.base import GeometryMixin
 from c3nav.mapdata.models.locations import SpecificLocation
@@ -97,7 +98,7 @@ class SpaceGeometryMixin(GeometryMixin):
         super().save(*args, **kwargs)
 
 
-class Column(SpaceGeometryMixin, models.Model):
+class Column(SpaceGeometryMixin, AccessRestrictionMixin, models.Model):
     """
     An column in a space, also used to be able to create rooms within rooms.
     """

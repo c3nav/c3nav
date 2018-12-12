@@ -176,6 +176,15 @@ class Router:
                     pois[poi.pk] = poi
                     space.pois.add(poi.pk)
 
+                for column in space_obj.columns.all():
+                    if column.access_restriction_id is None:
+                        continue
+                    column.geometry_prep = prepared.prep(column.geometry)
+                    column_nodes = tuple(node for node in space_nodes if column.geometry_prep.intersects(node.point))
+                    column_nodes = set(node.i for node in column_nodes)
+                    restrictions.setdefault(column.access_restriction_id,
+                                            RouterRestriction()).additional_nodes.update(column_nodes)
+
                 space_obj._prefetched_objects_cache = {}
 
                 space.src.geometry = accessible_geom
@@ -397,6 +406,9 @@ class Router:
         space_nodes = tuple(reduce(operator.or_, (self.spaces[space].nodes for space in restrictions.spaces), set()))
         graph[space_nodes, :] = np.inf
         graph[:, space_nodes] = np.inf
+        if restrictions.additional_nodes:
+            graph[restrictions.additional_nodes, :] = np.inf
+            graph[:, restrictions.additional_nodes] = np.inf
         graph[restrictions.edges.transpose().tolist()] = np.inf
 
         distances, predecessors = shortest_path(graph, directed=True, return_predecessors=True)
@@ -670,6 +682,7 @@ class RouterLocation:
 class RouterRestriction:
     def __init__(self, spaces=None):
         self.spaces = spaces if spaces else set()
+        self.additional_nodes = set()
         self.edges = deque()
 
 
@@ -680,6 +693,11 @@ class RouterRestrictionSet:
     @cached_property
     def spaces(self):
         return reduce(operator.or_, (restriction.spaces for restriction in self.restrictions.values()), frozenset())
+
+    @cached_property
+    def additional_nodes(self):
+        return reduce(operator.or_, (restriction.additional_nodes
+                                     for restriction in self.restrictions.values()), frozenset())
 
     @cached_property
     def edges(self):

@@ -74,7 +74,7 @@ class LevelGeometries:
             subtract = []
             if space.outside:
                 subtract.append(buildings_geom)
-            columns = [c.geometry for c in space.columns.all()]
+            columns = [c.geometry for c in space.columns.all() if c.access_restriction_id is None]
             if columns:
                 subtract.extend(columns)
             if subtract:
@@ -108,14 +108,15 @@ class LevelGeometries:
         obstacles = {}
         heightareas = {}
         for space in level.spaces.all():
+            buffered = space.geometry.buffer(0.01).union(unary_union(
+                tuple(door.geometry for door in level.doors.all() if door.geometry.intersects(space.geometry))
+            ).difference(walkable_spaces_geom))
+            intersects = buildings_geom_prep.intersects(buffered)
+
             access_restriction = space.access_restriction_id
             if access_restriction is not None:
                 access_restriction_affected.setdefault(access_restriction, []).append(space.geometry)
-                buffered = space.geometry.buffer(0.01).union(unary_union(
-                    tuple(door.geometry for door in level.doors.all() if door.geometry.intersects(space.geometry))
-                ).difference(walkable_spaces_geom))
 
-                intersects = buildings_geom_prep.intersects(buffered)
                 if intersects:
                     restricted_spaces_indoors.setdefault(access_restriction, []).append(
                         buffered.intersection(buildings_geom)
@@ -133,6 +134,18 @@ class LevelGeometries:
                 if access_restriction is not None:
                     access_restriction_affected.setdefault(access_restriction, []).append(area.geometry)
                 colors.setdefault(area.get_color(), {}).setdefault(access_restriction, []).append(area.geometry)
+
+            for column in space.columns.all():
+                access_restriction = column.access_restriction_id
+                if access_restriction is None:
+                    continue
+                column.geometry = column.geometry.intersection(space.walkable_geom)
+                buffered_column = column.geometry.buffer(0.01)
+                if intersects:
+                    restricted_spaces_indoors.setdefault(access_restriction, []).append(buffered_column)
+                if not intersects or not buildings_geom_prep.contains(buffered):
+                    restricted_spaces_outdoors.setdefault(access_restriction, []).append(buffered_column)
+                access_restriction_affected.setdefault(access_restriction, []).append(column.geometry)
 
             for obstacle in space.obstacles.all():
                 if not obstacle.height:
