@@ -1533,30 +1533,37 @@ L.SquareGridLayer = L.Layer.extend({
 
         this._updateGrid(map);
 
-        map.on('viewreset zoom move toomend moveend', this._update, this);
+        map.on('viewreset zoom move zoomend moveend', this._update, this);
     },
 
     onRemove: function(map) {
         L.DomUtil.remove(this._container);
-        map.off('viewreset zoom move toomend moveend', this._update, this);
+        map.off('viewreset zoom move zoomend moveend', this._update, this);
     },
 
     _update: function(e) {
-        console.log(e);
         this._updateGrid(e.target);
     },
 
     _updateGrid: function(map) {
-        var mapSize = map.getSize(), coord = null, lastCoord = null, size;
+        var mapSize = map.getSize(),
+            sidebarStart = $('#sidebar').outerWidth() + 15,
+            attributionStart = mapSize.x - $('.leaflet-control-attribution').outerWidth() - 16,
+            bottomRightStart = mapSize.y - $('.leaflet-bottom.leaflet-right').outerHeight() - 24,
+            coord = null, lastCoord = null, size, center;
+        console.log(bottomRightStart);
         for(i=0;i<this.config.cols.length;i++) {
             coord = map.latLngToContainerPoint([0, this.config.cols[i]], map.getZoom()).x;
             coord = Math.min(mapSize.x, Math.max(-1, coord));
             this.cols[i].style.left = coord+'px';
             if (i>0) {
                 size = coord-lastCoord;
+                center = (lastCoord+coord)/2;
                 if (size > 0) {
                     this.cols[i - 1].style.display = '';
-                    this.cols[i - 1].style.width = size+'px';
+                    this.cols[i - 1].style.width = size + 'px';
+                    this.cols[i - 1].style.paddingTop = Math.max(0, Math.min(65, (sidebarStart-center)/15*65)) + 'px';
+                    this.cols[i - 1].style.paddingBottom = Math.max(0, Math.min(16, (center-attributionStart))) + 'px';
                 } else {
                     this.cols[i - 1].style.display = 'none';
                 }
@@ -1569,9 +1576,11 @@ L.SquareGridLayer = L.Layer.extend({
             this.rows[i].style.top = coord+'px';
             if (i>0) {
                 size = lastCoord-coord;
+                center = (lastCoord+coord)/2;
                 if (size > 0) {
                     this.rows[i].style.display = '';
                     this.rows[i].style.height = (lastCoord-coord)+'px';
+                    this.rows[i].style.paddingRight = Math.max(0, Math.min(36, (center-bottomRightStart)*2)) + 'px';
                 } else {
                     this.rows[i].style.display = 'none';
                 }

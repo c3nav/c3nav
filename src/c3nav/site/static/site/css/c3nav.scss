@@ -760,7 +760,7 @@ body:not(.mobileclient) .leaflet-control-user-location a {
     border-width: 1px 0 0;
 }
 .c3nav-grid-row span {
-    padding: 2px 0;
+    padding: 0 5px;
 }
 .c3nav-grid-column {
     top: 0;
@@ -768,8 +768,11 @@ body:not(.mobileclient) .leaflet-control-user-location a {
     flex-direction: column;
     border-width: 0 0 0 1px;
 }
-.c3nav-grid-row span {
-    padding: 0 2px;
+.c3nav-grid-column span {
+    padding: 5px 0;
+}
+.c3nav-grid-column.avoid-top {
+    padding-top: 65px;
 }
 
 
