@@ -1460,7 +1460,7 @@ SquareGridControl = L.Control.extend({
     onAdd: function () {
         this._container = L.DomUtil.create('div', 'leaflet-control-grid-layer leaflet-bar ' + this.options.addClasses);
         this._button = L.DomUtil.create('a', 'material-icons', this._container);
-        $(this._button).click(this.toggleGrid);
+        $(this._button).click(this.toggleGrid).dblclick(function(e) { e.stopPropagation(); });
         this._button.innerHTML = 'grid_off';
         this._button.href = '#';
         this._button.style.color = '#BBBBBB';
@@ -1472,10 +1472,7 @@ SquareGridControl = L.Control.extend({
     },
 
     toggleGrid: function(e) {
-        if(e) {
-            e.preventDefault();
-            e.stopPropagation();
-        }
+        if(e) e.preventDefault();
         if (c3nav._gridControl.gridActive) {
             c3nav._gridControl.hideGrid();
         } else {
