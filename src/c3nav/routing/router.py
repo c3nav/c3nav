@@ -75,7 +75,7 @@ class Router:
             for space in level.spaces.all():
                 # create space geometries
                 accessible_geom = space.geometry.difference(unary_union(
-                    tuple(column.geometry for column in space.columns.all()) +
+                    tuple(column.geometry for column in space.columns.all() if column.access_restriction_id is None) +
                     tuple(hole.geometry for hole in space.holes.all()) +
                     ((buildings_geom, ) if space.outside else ())
                 ))
