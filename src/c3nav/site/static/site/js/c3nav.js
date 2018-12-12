@@ -1447,21 +1447,6 @@ UserLocationControl = L.Control.extend({
         this._button.href = '#';
         this.currentLevel = null;
         return this._container;
-    },
-
-    finalize: function () {
-        var buttons = $(this._container).find('a');
-        buttons.addClass('current');
-        buttons.width(buttons.width());
-        buttons.removeClass('current');
-    },
-
-    reloadMap: function() {
-        var old_tile_layer = this._tileLayers[this.currentLevel],
-            new_tile_layer = this.createTileLayer(this.currentLevel);
-        this._tileLayers[this.currentLevel] = new_tile_layer;
-        new_tile_layer.addTo(c3nav.map);
-        window.setTimeout(function() { old_tile_layer.remove(); }, 2000);
     }
 });
 
