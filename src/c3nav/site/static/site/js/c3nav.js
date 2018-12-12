@@ -220,7 +220,7 @@ c3nav = {
             .toggleClass('show-details', !!state.details)
             .toggleClass('show-options', !!state.options);
 
-        if (c3nav._gridControl) {
+        if (c3nav._gridLayer) {
             window.setTimeout(function () {
                 c3nav._gridLayer._updateGrid(c3nav.map);
             }, 300);
