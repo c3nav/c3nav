@@ -1045,7 +1045,7 @@ c3nav = {
             attributionControl: !window.mobileclient,
         });
         if (!window.mobileclient) c3nav.map.attributionControl.setPrefix($('#attributions').html());
-        if (L.Browser.chrome && !('ontouchstart' in window)) {
+        if (!('ontouchstart' in window || navigator.maxTouchPoints)) {
             $('.leaflet-touch').removeClass('leaflet-touch');
         }
 
