@@ -1555,6 +1555,7 @@ L.SquareGridLayer = L.Layer.extend({
         var mapSize = map.getSize(),
             sidebarStart = $('#sidebar').outerWidth() + 15,
             searchHeight = $('#search').outerHeight() + 10,
+            controlsWidth = $('.leaflet-control-zoom').outerWidth() + 10,
             attributionStart = mapSize.x - $('.leaflet-control-attribution').outerWidth() - 16,
             bottomRightStart = mapSize.y - $('.leaflet-bottom.leaflet-right').outerHeight() - 24,
             coord = null, lastCoord = null, size, center;
@@ -1586,7 +1587,7 @@ L.SquareGridLayer = L.Layer.extend({
                 if (size > 0) {
                     this.rows[i].style.display = '';
                     this.rows[i].style.height = size+'px';
-                    this.rows[i].style.paddingRight = Math.max(0, Math.min(36, (center-bottomRightStart)*2)) + 'px';
+                    this.rows[i].style.paddingRight = Math.max(0, Math.min(controlsWidth, (center-bottomRightStart)/16*controlsWidth)) + 'px';
                 } else {
                     this.rows[i].style.display = 'none';
                 }
