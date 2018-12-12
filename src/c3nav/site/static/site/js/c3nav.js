@@ -220,6 +220,12 @@ c3nav = {
             .toggleClass('show-details', !!state.details)
             .toggleClass('show-options', !!state.options);
 
+        if (c3nav._gridControl) {
+            window.setTimeout(function () {
+                c3nav._gridLayer._updateGrid(c3nav.map);
+            }, 300);
+        }
+
         var $search = $('#search');
         $search.removeClass('loading');
 
@@ -1548,6 +1554,7 @@ L.SquareGridLayer = L.Layer.extend({
     _updateGrid: function(map) {
         var mapSize = map.getSize(),
             sidebarStart = $('#sidebar').outerWidth() + 15,
+            searchHeight = $('#search').outerHeight() + 10,
             attributionStart = mapSize.x - $('.leaflet-control-attribution').outerWidth() - 16,
             bottomRightStart = mapSize.y - $('.leaflet-bottom.leaflet-right').outerHeight() - 24,
             coord = null, lastCoord = null, size, center;
@@ -1561,7 +1568,7 @@ L.SquareGridLayer = L.Layer.extend({
                 if (size > 0) {
                     this.cols[i - 1].style.display = '';
                     this.cols[i - 1].style.width = size + 'px';
-                    this.cols[i - 1].style.paddingTop = Math.max(0, Math.min(65, (sidebarStart-center)/15*65)) + 'px';
+                    this.cols[i - 1].style.paddingTop = Math.max(0, Math.min(searchHeight, (sidebarStart-center)/15*searchHeight)) + 'px';
                     this.cols[i - 1].style.paddingBottom = Math.max(0, Math.min(16, (center-attributionStart))) + 'px';
                 } else {
                     this.cols[i - 1].style.display = 'none';
