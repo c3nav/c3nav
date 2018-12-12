@@ -741,7 +741,8 @@ body:not(.mobileclient) .leaflet-control-user-location a {
     bottom: 0;
     right: 0;
     line-height: 1;
-    font-size: 18px;
+    font-size: 16px;
+    font-weight: bold;
     pointer-events: none;
     color: rgba(0, 0, 0, 0.6);
 }
