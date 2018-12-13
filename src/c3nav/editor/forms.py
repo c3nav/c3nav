@@ -48,10 +48,10 @@ class EditorFormBase(I18nModelFormMixin, ModelForm):
             sources = {s['name']: s for s in Source.objects.all().values('name', 'access_restriction_id',
                                                                          'left', 'bottom', 'right', 'top')}
             used_names = set(sources.keys())
+            all_names = set(os.listdir(settings.SOURCES_ROOT))
             if not creating:
                 used_names.remove(self.instance.name)
-            all_names = set(os.listdir(settings.SOURCES_ROOT))
-            all_names.add(self.instance.name)
+                all_names.add(self.instance.name)
             self.fields['name'].widget = Select(choices=tuple((s, s) for s in sorted(all_names-used_names)))
 
             if creating:
