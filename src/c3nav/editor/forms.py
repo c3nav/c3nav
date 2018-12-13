@@ -51,6 +51,7 @@ class EditorFormBase(I18nModelFormMixin, ModelForm):
             if not creating:
                 used_names.remove(self.instance.name)
             all_names = set(os.listdir(settings.SOURCES_ROOT))
+            all_names.add(self.instance.name)
             self.fields['name'].widget = Select(choices=tuple((s, s) for s in sorted(all_names-used_names)))
 
             if creating:
