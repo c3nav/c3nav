@@ -18,7 +18,7 @@ from c3nav.editor.models import ChangeSet
 from c3nav.editor.utils import LevelChildEditUtils, SpaceChildEditUtils
 from c3nav.editor.views.base import etag_func
 from c3nav.mapdata.api import api_etag
-from c3nav.mapdata.models import Area, Door, MapUpdate, Source
+from c3nav.mapdata.models import Area, MapUpdate, Source
 from c3nav.mapdata.models.geometry.space import POI
 from c3nav.mapdata.utils.user import can_access_editor
 
@@ -92,6 +92,8 @@ class EditorViewSet(EditorViewSetMixin, ViewSet):
     def geometries(self, request, *args, **kwargs):
         Level = request.changeset.wrap_model('Level')
         Space = request.changeset.wrap_model('Space')
+        Column = request.changeset.wrap_model('Column')
+        Door = request.changeset.wrap_model('Door')
 
         level = request.GET.get('level')
         space = request.GET.get('space')
@@ -110,9 +112,11 @@ class EditorViewSet(EditorViewSetMixin, ViewSet):
             levels = Level.objects.filter(pk__in=levels).filter(Level.q_for_request(request))
             # graphnodes_qs = request.changeset.wrap_model('GraphNode').objects.all()
             levels = levels.prefetch_related(
-                Prefetch('spaces', request.changeset.wrap_model('Space').objects.filter(Space.q_for_request(request))),
-                Prefetch('doors', request.changeset.wrap_model('Door').objects.filter(Door.q_for_request(request))),
-                'buildings', 'spaces__holes', 'spaces__groups', 'spaces__columns', 'spaces__altitudemarkers',
+                Prefetch('spaces', Space.objects.filter(Space.q_for_request(request))),
+                Prefetch('doors', Door.objects.filter(Door.q_for_request(request))),
+                Prefetch('spaces__columns', Column.objects.filter(Q(access_restriction__isnull=True) |
+                                                                  ~Column.q_for_request(request))),
+                'buildings', 'spaces__holes', 'spaces__groups', 'spaces__altitudemarkers',
                 # Prefetch('spaces__graphnodes', graphnodes_qs)
             )
 
