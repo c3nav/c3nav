@@ -1112,7 +1112,7 @@ c3nav = {
         $.getJSON('/api/locations/'+name+'/', function(data) {
             if (c3nav._click_anywhere_popup !== popup || !popup.isOpen()) return;
             popup.remove();
-            popup = L.popup(c3nav._add_map_padding({className: 'location-popup'}, 'autoPanPaddingTopLeft', 'autoPanPaddingBottomRight'));
+            popup = L.popup(c3nav._add_map_padding({className: 'location-popup', maxWidth: 500}, 'autoPanPaddingTopLeft', 'autoPanPaddingBottomRight'));
             popup.setLatLng(e.latlng).setContent(c3nav._build_location_html(data)+$('#popup-buttons').html());
             c3nav._click_anywhere_popup = popup;
             popup.on('remove', function() { c3nav._click_anywhere_popup = null }).openOn(c3nav.map);
@@ -1227,7 +1227,8 @@ c3nav = {
         L.marker(latlng, {
             icon: icon
         }).bindPopup(location.elem+$('#popup-buttons').html(), c3nav._add_map_padding({
-            className: 'location-popup'
+            className: 'location-popup',
+            maxWidth: 500
         }, 'autoPanPaddingTopLeft', 'autoPanPaddingBottomRight')).addTo(c3nav._locationLayers[location.point[0]]);
 
         var result = {};
