@@ -30,7 +30,7 @@ class CachePackage:
             filemode += ':' + compression
 
         with TarFile.open(filename, filemode) as f:
-            self._add_bytesio(f, 'bounds', BytesIO(struct.pack('<IIII', *(int(i*100) for i in self.bounds))))
+            self._add_bytesio(f, 'bounds', BytesIO(struct.pack('<iiii', *(int(i*100) for i in self.bounds))))
 
             for level_id, level_data in self.levels.items():
                 self._add_geometryindexed(f, 'history_%d' % level_id, level_data.history)
@@ -57,7 +57,7 @@ class CachePackage:
         f = TarFile.open(fileobj=f)
         files = {info.name: info for info in f.getmembers()}
 
-        bounds = tuple(i/100 for i in struct.unpack('<IIII', f.extractfile(files['bounds']).read()))
+        bounds = tuple(i/100 for i in struct.unpack('<iiii', f.extractfile(files['bounds']).read()))
 
         levels = {}
         for filename in files:
