@@ -560,8 +560,11 @@ editor = {
     _graph_edges_to: {},
     _arrow_colors: [],
     _last_vertex: null,
+    _num_vertices: 0,
     _orig_vertex_pos: null,
     _max_bounds: null,
+    _creating_type: null,
+    _shift_pressed: false,
     init_geometries: function () {
         // init geometries and edit listeners
         editor._highlight_layer = L.layerGroup().addTo(editor.map);
@@ -578,9 +581,32 @@ editor = {
         });
         editor.map.on('editable:drawing:start editable:drawing:end', function() {
             editor._last_vertex = null;
+            editor._num_vertices = 0;
         });
         editor.map.on('editable:vertex:new', function(e) {
+            if (editor._shift_pressed && editor._creating && editor._creating_type === 'polygon' && editor._num_vertices === 1) {
+                var firstPoint = new L.Point(editor._last_vertex.latlng.lng, editor._last_vertex.latlng.lat),
+                    secondPoint = new L.Point(e.vertex.latlng.lng, e.vertex.latlng.lat),
+                    center = new L.Point((firstPoint.x+secondPoint.x)/2, (firstPoint.y+secondPoint.y)/2),
+                    radius = firstPoint.distanceTo(secondPoint)/2,
+                    options = e.layer.options,
+                    points = Math.min(32, 8+Math.floor(radius*5)*2),
+                    vertices = [];
+                for (var i=0;i<points;i++) {
+                    vertices.push([
+                        center.x+Math.sin(Math.PI*2/points*i)*radius,
+                        center.y+Math.cos(Math.PI*2/points*i)*radius
+                    ])
+                }
+                var polygon = L.polygon(L.GeoJSON.coordsToLatLngs(vertices), options).addTo(editor.map);
+                window.setTimeout(function() {
+                    editor.map.editTools.stopDrawing();
+                    polygon.enableEdit();
+                    editor._done_creating({layer: polygon});
+                }, 100);
+            }
             editor._last_vertex = e.vertex;
+            editor._num_vertices++;
         });
         editor.map.on('editable:vertex:dragstart', function (e) {
             editor._orig_vertex_pos = [e.vertex.latlng.lat, e.vertex.latlng.lng];
@@ -612,6 +638,9 @@ editor = {
             }
             e.latlng.lat = Math.round(e.latlng.lat*100)/100;
             e.latlng.lng = Math.round(e.latlng.lng*100)/100;
+        });
+        editor.map.on('editable:drawing:click', function (e) {
+            editor._shift_pressed = e.originalEvent.altKey;
         });
         editor.map.on('editable:vertex:ctrlclick editable:vertex:metakeyclick', function (e) {
             e.vertex.continue();
@@ -1032,6 +1061,7 @@ editor = {
             var options, mapitem_type = form.attr('data-new');
             var geometry_value = geometry_field.val();
             if (geometry_value) {
+                editor._creating_type = null;
                 if (editor._editing_layer !== null) {
                     options = editor._editing_layer.options;
                     editor._editing_layer.remove();
@@ -1060,6 +1090,7 @@ editor = {
                 }
                 form.addClass('creation-lock');
                 var geomtype = form.attr('data-geomtype');
+                editor._creating_type = geomtype;
                 if (geomtype === 'polygon') {
                     editor.map.editTools.startPolygon(null, options);
                 } else if (geomtype === 'linestring') {
@@ -1088,7 +1119,7 @@ editor = {
     _canceled_creating: function (e) {
         // called after we canceled creating so we can remove the temporary layer.
         if (!editor._creating) {
-            e.layer.remove();
+            //e.layer.remove();
         }
     },
     _done_creating: function(e) {
