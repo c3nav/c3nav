@@ -286,11 +286,14 @@ class LevelGeometries:
         vertex_value_mask = np.full(self.vertices.shape[:1], fill_value=False, dtype=np.bool)
 
         for item in items:
-            i_vertices = np.unique(self.faces[np.array(tuple(chain(*area_func(item).faces)))].flatten())
+            faces = area_func(item).faces
+            if not faces:
+                continue
+            i_vertices = np.unique(self.faces[np.array(tuple(chain(*faces)))].flatten())
             vertex_values[i_vertices] = value_func(item, i_vertices)
             vertex_value_mask[i_vertices] = True
 
-        if not np.all(vertex_value_mask):
+        if np.any(vertex_value_mask) and not np.all(vertex_value_mask):
             interpolate = NearestNDInterpolator(self.vertices[vertex_value_mask],
                                                 vertex_values[vertex_value_mask])
             vertex_values[np.logical_not(vertex_value_mask)] = interpolate(
