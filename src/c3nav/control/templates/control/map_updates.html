@@ -19,7 +19,7 @@
             <h4>{% trans 'Process updates' %}</h4>
             <form method="post">
                 {% csrf_token %}
-                <p class="green">
+                <p>
                     {% if auto_process_updates %}
                         <span class="green">{% trans 'Map updates are currently processed automatically.' %}</span>
                     {% else %}
