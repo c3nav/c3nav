@@ -1472,7 +1472,7 @@ SquareGridControl = L.Control.extend({
         this._button.href = '#';
         this._button.style.color = '#BBBBBB';
         this.gridActive = false;
-        if (localStorage.getItem('showGrid')) {
+        if (localStorage && localStorage.getItem('showGrid')) {
             this.showGrid()
         }
         return this._container;
@@ -1493,7 +1493,7 @@ SquareGridControl = L.Control.extend({
         this._button.innerHTML = 'grid_on';
         this._button.style.color = '';
         this.gridActive = true;
-        localStorage.setItem('showGrid', true);
+        if (localStorage) localStorage.setItem('showGrid', true);
     },
 
     hideGrid: function() {
@@ -1502,7 +1502,7 @@ SquareGridControl = L.Control.extend({
         this._button.innerHTML = 'grid_off';
         this._button.style.color = '#BBBBBB';
         this.gridActive = false;
-        localStorage.removeItem('showGrid');
+        if (localStorage) localStorage.removeItem('showGrid');
     }
 });
 
