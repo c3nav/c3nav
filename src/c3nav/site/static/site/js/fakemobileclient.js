@@ -25,8 +25,8 @@ mobileclient = {
     createShortcut: function(url, title) {
         console.log('mobileclient: shortcut url: '+url+' title: '+title);
     },
-    set_user_data: function(user_data) {
-        console.log('set_user_data');
+    setUserData: function(user_data) {
+        console.log('setUserData');
         console.log(JSON.parse(user_data));
     },
 };
