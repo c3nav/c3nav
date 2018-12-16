@@ -56,20 +56,14 @@
                         manage.py clearmapcache
                     {% elif update.type == 'control_panel' %}
                         {% url 'control.users.detail' user=update.user.pk as user_url %}
-                        {% blocktrans with user_name=update.user.username %}
-                        via control panel by <a href="{{ user_url }}">{{ user_name }}</a>
-                        {% endblocktrans %}
+                        {% blocktrans with user_name=update.user.username %}via control panel by <a href="{{ user_url }}">{{ user_name }}</a>{% endblocktrans %}
                     {% elif update.type == 'direct_edit' %}
                         {% url 'control.users.detail' user=update.user.pk as user_url %}
-                        {% blocktrans with user_name=update.user.username %}
-                        direct edit by <a href="{{ user_url }}">{{ user_name }}</a>
-                        {% endblocktrans %}
+                        {% blocktrans with user_name=update.user.username %}direct edit by <a href="{{ user_url }}">{{ user_name }}</a>{% endblocktrans %}
                     {% elif update.type == 'changeset' %}
                         {% url 'control.users.detail' user=update.user.pk as user_url %}
                         {% url 'control.users.detail' user=update.changeset.author.pk as author_url %}
-                        {% blocktrans with changeset_id=update.changeset.pk user_name=update.user.username author_name=update.changeset.author.username %}
-                        Changeset #{{ changeset_id }} by <a href="{{ author_url }}">{{ author_name }}</a> applied by <a href="{{ user_url }}">{{ user_name }}</a>
-                        {% endblocktrans %}
+                        {% blocktrans with changeset_id=update.changeset.pk user_name=update.user.username author_name=update.changeset.author.username %}Changeset #{{ changeset_id }} by <a href="{{ author_url }}">{{ author_name }}</a> applied by <a href="{{ user_url }}">{{ user_name }}</a>{% endblocktrans %}
                     {% else %}
                         {{ update.type }}
                     {% endif %}

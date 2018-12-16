@@ -22,7 +22,7 @@ class MapUpdate(models.Model):
         ('changeset', _('changeset applied')),
         ('direct_edit', _('direct edit')),
         ('control_panel', _('via control panel')),
-        ('management', _('manage.py clearmapcache')),
+        ('management', 'manage.py clearmapcache'),
     )
     datetime = models.DateTimeField(auto_now_add=True, db_index=True)
     user = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, on_delete=models.PROTECT)
