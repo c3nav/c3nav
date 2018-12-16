@@ -46,6 +46,7 @@ if not os.path.exists(CACHE_ROOT):
 
 PUBLIC_EDITOR = config.getboolean('c3nav', 'editor', fallback=True)
 PUBLIC_BASE_MAPDATA = config.getboolean('c3nav', 'public_base_mapdata', fallback=False)
+AUTO_PROCESS_UPDATES = config.getboolean('c3nav', 'auto_process_updates', fallback=True)
 
 if config.has_option('django', 'secret'):
     SECRET_KEY = config.get('django', 'secret')

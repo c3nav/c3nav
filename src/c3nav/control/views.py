@@ -16,9 +16,12 @@ from django.utils import timezone
 from django.utils.crypto import get_random_string
 from django.utils.translation import ugettext_lazy as _
 
-from c3nav.control.forms import AccessPermissionForm, AnnouncementForm, UserPermissionsForm, UserSpaceAccessForm
+from c3nav.control.forms import (AccessPermissionForm, AnnouncementForm, MapUpdateFilterForm, MapUpdateForm,
+                                 UserPermissionsForm, UserSpaceAccessForm)
 from c3nav.control.models import UserPermissions, UserSpaceAccess
+from c3nav.mapdata.models import MapUpdate
 from c3nav.mapdata.models.access import AccessPermission, AccessPermissionToken, AccessRestriction
+from c3nav.mapdata.tasks import process_map_updates
 from c3nav.site.models import Announcement
 
 
@@ -336,4 +339,57 @@ def announcement_detail(request, announcement):
     return render(request, 'control/announcement.html', {
         'form': form,
         'announcement': announcement,
+    })
+
+
+@login_required(login_url='site.login')
+@control_panel_view
+def map_updates(request):
+    if not request.user_permissions.manage_map_updates:
+        raise PermissionDenied
+
+    page = request.GET.get('page', 1)
+
+    if request.method == 'POST':
+        if 'create_map_update' in request.POST:
+            map_update_form = MapUpdateForm(data=request.POST)
+            if map_update_form.is_valid():
+                map_update = map_update_form.instance
+                map_update.type = 'control_panel'
+                map_update.user = request.user
+                map_update.save()
+                messages.success(request, _('Map update successfully created.'))
+                return redirect(request.path_info)
+        elif 'process_updates' in request.POST:
+            if settings.HAS_CELERY:
+                process_map_updates.delay()
+                messages.success(request, _('Map update processing successfully queued.'))
+            else:
+                messages.error(request, _('Map update processing was not be queued because celery is not configured.'))
+            return redirect(request.path_info)
+
+    filter_form = MapUpdateFilterForm(request.GET)
+    map_update_form = MapUpdateForm()
+
+    queryset = MapUpdate.objects.order_by('-datetime').select_related('user', 'changeset__author')
+    if request.GET.get('type', None):
+        queryset = queryset.filter(type=request.GET['type'])
+    if request.GET.get('geometries_changed', None):
+        if request.GET['geometries_changed'] in ('1', '0'):
+            queryset = queryset.filter(geometries_changed=request.GET['geometries_changed'] == '1')
+    if request.GET.get('processed', None):
+        if request.GET['processed'] in ('1', '0'):
+            queryset = queryset.filter(processed=request.GET['processed'] == '1')
+    if request.GET.get('user_id', None):
+        if request.GET['user_id'].isdigit():
+            queryset = queryset.filter(user_id=request.GET['user_id'])
+
+    paginator = Paginator(queryset, 20)
+    users = paginator.page(page)
+
+    return render(request, 'control/map_updates.html', {
+        'auto_process_updates': settings.AUTO_PROCESS_UPDATES,
+        'map_update_form': map_update_form,
+        'filter_form': filter_form,
+        'updates': users,
     })

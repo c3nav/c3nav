@@ -21,6 +21,9 @@
             {% if request.user_permissions.manage_announcements %}
                 <a href="{% url 'control.announcements' %}">{% trans 'Announcements' %}</a> &middot;
             {% endif %}
+            {% if request.user_permissions.manage_map_updates %}
+                <a href="{% url 'control.map_updates' %}">{% trans 'Map Updates' %}</a> &middot;
+            {% endif %}
             <a href="{% url 'control.users.detail' user=request.user.pk %}">{{ request.user.username }}</a>
         </p>
     </nav>

@@ -9,14 +9,14 @@ from itertools import chain
 import pytz
 from django.contrib.auth.models import User
 from django.db.models import Prefetch
-from django.forms import ChoiceField, Form, ModelForm, Select
+from django.forms import ChoiceField, Form, IntegerField, ModelForm, Select
 from django.utils import timezone
 from django.utils.translation import ugettext_lazy as _
 from django.utils.translation import ungettext_lazy
 
 from c3nav.control.models import UserPermissions, UserSpaceAccess
 from c3nav.mapdata.forms import I18nModelFormMixin
-from c3nav.mapdata.models import Space
+from c3nav.mapdata.models import MapUpdate, Space
 from c3nav.mapdata.models.access import (AccessPermission, AccessPermissionToken, AccessPermissionTokenItem,
                                          AccessRestriction, AccessRestrictionGroup)
 from c3nav.site.models import Announcement
@@ -265,3 +265,29 @@ class AnnouncementForm(I18nModelFormMixin, ModelForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.fields['active_until'].initial = timezone.now()
+
+
+class MapUpdateFilterForm(Form):
+    type = ChoiceField(
+        choices=(('', _('any type')), ) + MapUpdate.TYPES,
+        required=False
+    )
+    geometries_changed = ChoiceField(
+        choices=(('', _('any')), ('1', _('geometries changed')), ('0', _('no geometries changed'))),
+        required=False
+    )
+    processed = ChoiceField(
+        choices=(('', _('any')), ('1', _('processed')), ('0', _('not processed'))),
+        required=False
+    )
+    user_id = IntegerField(min_value=1, required=False)
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields['user_id'].widget.attrs['placeholder'] = _('user id')
+
+
+class MapUpdateForm(ModelForm):
+    class Meta:
+        model = MapUpdate
+        fields = ('geometries_changed', )

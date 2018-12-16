@@ -1,0 +1,96 @@
+{% extends 'control/base.html' %}
+{% load i18n %}
+
+{% block heading %}{% trans 'Map updates' %}{% endblock %}
+
+{% block subcontent %}
+    <div class="columns">
+        <div>
+            <h4>{% trans 'Create map update' %}</h4>
+            <form method="post">
+                {% csrf_token %}
+                <label style="font-weight:normal;">
+                    {{ map_update_form.geometries_changed }} {{ map_update_form.geometries_changed.label }}
+                </label>
+                <button type="submit" name="create_map_update" value="1">{% trans 'Create map update' %}</button>
+            </form>
+        </div>
+        <div>
+            <h4>{% trans 'Process updates' %}</h4>
+            <form method="post">
+                {% csrf_token %}
+                {% if auto_process_updates %}
+                    <p class="green">{% trans 'Map updates are currently processed automatically.' %}</p>
+                {% else %}
+                    <p>{% trans 'Map updates are currently not processed automatically.' %}</p>
+                {% endif %}
+                <button type="submit" name="process_updates" value="1">{% trans 'Process map updates now' %}</button>
+            </form>
+        </div>
+    </div>
+    <hr>
+    <h4>{% trans 'List of map updates' %}</h4>
+    <form class="filter-form">
+        {% for field in filter_form %}
+            {{ field }}
+        {% endfor %}
+        <button type="submit">{% trans 'Filter' %}</button>
+    </form>
+
+    {% include 'control/fragment_pagination.html' with objects=updates %}
+
+    <table>
+        <tr>
+            <th>{% trans 'ID' %}</th>
+            <th>{% trans 'Date' %}</th>
+            <th>{% trans 'Reason' %}</th>
+            <th>{% trans 'Geometries' %}</th>
+            <th>{% trans 'Processed' %}</th>
+        </tr>
+        {% for update in updates %}
+            <tr>
+                <td>{{ update.id }}</td>
+                <td>{{ update.datetime|date:"SHORT_DATETIME_FORMAT" }}</td>{% comment %}<td><a href="{% url 'control.users.detail' user=user.pk %}">{{ user.username }}</a></td>{% endcomment %}
+                <td>
+                    {% if update.type == 'management' %}
+                        manage.py clearmapcache
+                    {% elif update.type == 'control_panel' %}
+                        {% url 'control.users.detail' user=update.user.pk as user_url %}
+                        {% blocktrans with user_name=update.user.username %}
+                        via control panel by <a href="{{ user_url }}">{{ user_name }}</a>
+                        {% endblocktrans %}
+                    {% elif update.type == 'direct_edit' %}
+                        {% url 'control.users.detail' user=update.user.pk as user_url %}
+                        {% blocktrans with user_name=update.user.username %}
+                        direct edit by <a href="{{ user_url }}">{{ user_name }}</a>
+                        {% endblocktrans %}
+                    {% elif update.type == 'changeset' %}
+                        {% url 'control.users.detail' user=update.user.pk as user_url %}
+                        {% url 'control.users.detail' user=update.changeset.author.pk as author_url %}
+                        {% blocktrans with changeset_id=update.changeset.pk user_name=update.user.username author_name=update.changeset.author.username %}
+                        Changeset #{{ changeset_id }} by <a href="{{ author_url }}">{{ author_name }}</a> applied by <a href="{{ user_url }}">{{ user_name }}</a>
+                        {% endblocktrans %}
+                    {% else %}
+                        {{ update.type }}
+                    {% endif %}
+                </td>
+                <td>
+                    {% if update.geometries_changed %}
+                        <strong class="green">{% trans 'Yes' %}</strong>
+                    {% else %}
+                        {% trans 'No' %}
+                    {% endif %}
+                </td>
+                <td>
+                    {% if update.processed %}
+                        {% trans 'Yes' %}
+                    {% else %}
+                        <strong class="red">{% trans 'No' %}</strong>
+                    {% endif %}
+                </td>
+            </tr>
+        {% endfor %}
+    </table>
+
+    {% include 'control/fragment_pagination.html' with objects=updates %}
+{% endblock %}

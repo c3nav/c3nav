@@ -22,6 +22,7 @@ class UserPermissions(models.Model):
     max_changeset_changes = models.PositiveSmallIntegerField(default=10, verbose_name=_('max changes per changeset'))
     editor_access = models.BooleanField(default=False, verbose_name=_('can always access editor'))
     base_mapdata_access = models.BooleanField(default=False, verbose_name=_('can always access base map data'))
+    manage_map_updates = models.BooleanField(default=False, verbose_name=_('manage map updates'))
 
     control_panel = models.BooleanField(default=False, verbose_name=_('can access control panel'))
     grant_permissions = models.BooleanField(default=False, verbose_name=_('can grant control permissions'))

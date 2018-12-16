@@ -18,9 +18,15 @@ class MapUpdate(models.Model):
     """
     A map update. created whenever mapdata is changed.
     """
+    TYPES = (
+        ('changeset', _('changeset applied')),
+        ('direct_edit', _('direct edit')),
+        ('control_panel', _('via control panel')),
+        ('management', _('manage.py clearmapcache')),
+    )
     datetime = models.DateTimeField(auto_now_add=True, db_index=True)
     user = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, on_delete=models.PROTECT)
-    type = models.CharField(max_length=32)
+    type = models.CharField(max_length=32, choices=TYPES)
     processed = models.BooleanField(default=False)
     geometries_changed = models.BooleanField()
 
@@ -202,7 +208,7 @@ class MapUpdate(models.Model):
             transaction.on_commit(
                 lambda: cache.set('mapdata:last_update', self.to_tuple, None)
             )
-            if settings.HAS_CELERY:
+            if settings.HAS_CELERY and settings.AUTO_PROCESS_UPDATES:
                 transaction.on_commit(
                     lambda: process_map_updates.delay()
                 )

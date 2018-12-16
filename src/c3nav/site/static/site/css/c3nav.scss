@@ -920,6 +920,32 @@ ul.messages li.alert-danger {
     vertical-align: top;
 }
 
+.filter-form {
+    margin-bottom: 0;
+}
+.filter-form input, .filter-form select {
+    width: auto;
+    vertical-align: top;
+}
+.filter-form input[type=number] {
+    width: 100px;
+}
+
+.columns {
+    display:flex;
+    width: 100%;
+}
+.columns > div {
+    padding-right: 10px;
+    flex-grow: 1;
+}
+.columns > div > h4:first-child {
+    margin-top: 0;
+}
+.columns form {
+    margin-bottom: 0;
+}
+
 main.control p {
     margin-bottom: 1.0rem;
 }
