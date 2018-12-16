@@ -25,11 +25,13 @@
                     <p>{% trans 'Map updates are currently not processed automatically.' %}</p>
                 {% endif %}
                 {% if last_processed %}
-                    {% trans 'Last run:' %}
-                    {% if not last_processed_success %}
-                        <strong class="red">{% trans '(failed)' %}</strong>
-                    {% endif %}
-                    {{ last_processed|date:"SHORT_DATETIME_FORMAT" }}
+                    <p>
+                        {% trans 'Last run:' %}
+                        {% if not last_processed_success %}
+                            <strong class="red">{% trans '(failed)' %}</strong>
+                        {% endif %}
+                        {{ last_processed|date:"SHORT_DATETIME_FORMAT" }}
+                    </p>
                 {% endif %}
                 <button type="submit" name="process_updates" value="1">{% trans 'Process map updates now' %}</button>
             </form>

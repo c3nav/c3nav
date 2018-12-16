@@ -392,7 +392,7 @@ def map_updates(request):
 
     last_processed, last_processed_success = cache.get('mapdata:last_process_updates_run', (None, None))
     if last_processed:
-        make_aware(datetime.fromtimestamp(last_processed))
+        last_processed = make_aware(datetime.fromtimestamp(last_processed))
 
     return render(request, 'control/map_updates.html', {
         'last_processed': last_processed,
