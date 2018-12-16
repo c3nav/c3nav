@@ -918,6 +918,7 @@ ul.messages li.alert-danger {
 .search-form input {
     max-width: 400px;
     vertical-align: top;
+    margin-right: 10px;
 }
 
 .filter-form {
@@ -926,6 +927,7 @@ ul.messages li.alert-danger {
 .filter-form input, .filter-form select {
     width: auto;
     vertical-align: top;
+    margin-right: 10px;
 }
 .filter-form input[type=number] {
     width: 100px;
