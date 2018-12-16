@@ -4,7 +4,7 @@ from functools import reduce
 from itertools import chain
 
 import numpy as np
-from shapely.geometry import GeometryCollection, LineString, MultiLineString
+from shapely.geometry import GeometryCollection, LineString, MultiLineString, Point
 from shapely.ops import unary_union
 
 from c3nav.mapdata.utils.geometry import assert_multipolygon
@@ -62,7 +62,7 @@ class HybridGeometry:
         """
         Create by triangulating a polygon and adding the resulting facets to the total list.
         """
-        if isinstance(geom, (LineString, MultiLineString)):
+        if isinstance(geom, (LineString, MultiLineString, Point)):
             return HybridGeometry(geom, set()), np.empty((0, 2), dtype=np.int32), np.empty((0, 3), dtype=np.uint32)
 
         vertices = deque()
