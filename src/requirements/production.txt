@@ -5,7 +5,8 @@ csscompressor
 djangorestframework>=3.9,<3.10
 django-filter>=2.0,<2.1
 shapely>=1.6,<1.7
--e git://github.com/c3nav/meshpy#egg=MeshPy
+pybind11>=2.2,<2.3
+MeshPy>=2018.2,<2018.3
 rtree>=0.8,<0.9
 celery>=4.2,<4.3
 requests>=2.19,<2.20
