@@ -1,6 +1,8 @@
 import logging
+import time
 
 from celery.exceptions import MaxRetriesExceededError
+from django.core.cache import cache
 from django.utils.formats import date_format
 from django.utils.translation import ugettext_lazy as _
 from django.utils.translation import ungettext_lazy
@@ -26,6 +28,11 @@ def process_map_updates(self):
                 raise
             logger.info('Processing is already running, retrying in 30 seconds.')
             raise self.retry(countdown=30)
+        except Exception:
+            cache.set('mapdata:last_process_updates_run', (int(time.time()), False))
+            raise
+        else:
+            cache.set('mapdata:last_process_updates_run', (int(time.time()), True))
     except MaxRetriesExceededError:
         logger.info('Cannot retry, retries exceeded. Exiting.')
         return

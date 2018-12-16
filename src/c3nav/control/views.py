@@ -1,4 +1,5 @@
 import string
+from datetime import datetime
 from functools import wraps
 from urllib.parse import urlencode
 
@@ -6,6 +7,7 @@ from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User
+from django.core.cache import cache
 from django.core.exceptions import PermissionDenied
 from django.core.paginator import Paginator
 from django.db import IntegrityError, transaction
@@ -14,6 +16,7 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.utils import timezone
 from django.utils.crypto import get_random_string
+from django.utils.timezone import make_aware
 from django.utils.translation import ugettext_lazy as _
 
 from c3nav.control.forms import (AccessPermissionForm, AnnouncementForm, MapUpdateFilterForm, MapUpdateForm,
@@ -387,7 +390,13 @@ def map_updates(request):
     paginator = Paginator(queryset, 20)
     users = paginator.page(page)
 
+    last_processed, last_processed_success = cache.get('mapdata:last_process_updates_run', (None, None))
+    if last_processed:
+        make_aware(datetime.fromtimestamp(last_processed))
+
     return render(request, 'control/map_updates.html', {
+        'last_processed': last_processed,
+        'last_processed_success': last_processed_success,
         'auto_process_updates': settings.AUTO_PROCESS_UPDATES,
         'map_update_form': map_update_form,
         'filter_form': filter_form,
