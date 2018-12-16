@@ -91,6 +91,7 @@ class LevelGeometries:
 
         spaces_geom = unary_union([s.geometry for s in level.spaces.all()])
         doors_geom = unary_union([d.geometry for d in level.doors.all()])
+        doors_geom = doors_geom.intersection(buildings_geom)
         walkable_spaces_geom = unary_union([s.walkable_geom for s in level.spaces.all()])
         geoms.doors = doors_geom.difference(walkable_spaces_geom)
         if level.on_top_of_id is None:
