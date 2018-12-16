@@ -39,7 +39,7 @@
         if (window.mobileclient) {
             var $body = $('body');
             if ($body.is('[data-user-data]')) {
-                mobileclient.set_user_data(JSON.parse($body.attr('data-user-data')));
+                mobileclient.set_user_data($body.attr('data-user-data'));
             }
         }
         </script>

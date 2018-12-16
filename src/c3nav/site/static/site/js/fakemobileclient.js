@@ -27,6 +27,6 @@ mobileclient = {
     },
     set_user_data: function(user_data) {
         console.log('set_user_data');
-        console.log(user_data);
+        console.log(JSON.parse(user_data));
     },
 };

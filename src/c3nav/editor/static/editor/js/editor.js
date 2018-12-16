@@ -68,7 +68,7 @@ editor = {
         var data = JSON.parse(elem.attr('data-user-data'));
         data.changes_count_display = elem.attr('data-count-display');
         data.direct_editing = elem.is('[data-direct-editing]');
-        mobileclient.set_user_data(data);
+        mobileclient.set_user_data(JSON.stringify(data));
     },
     _onbeforeunload: function(e) {
         if ($('#sidebar').find('[data-onbeforeunload]').length) {

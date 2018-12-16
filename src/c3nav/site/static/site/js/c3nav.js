@@ -54,7 +54,7 @@ c3nav = {
             $body.addClass('mobileclient');
             c3nav._set_user_location(null);
             if ($body.is('[data-user-data]')) {
-                mobileclient.set_user_data(JSON.parse($body.attr('data-user-data')));
+                mobileclient.set_user_data($body.attr('data-user-data'));
             }
         }
     },
@@ -1277,7 +1277,7 @@ c3nav = {
         var $user = $('header #user');
         $user.find('span').text(data.title);
         $user.find('small').text(data.subtitle || '');
-        if (window.mobileclient) mobileclient.set_user_data(data);
+        if (window.mobileclient) mobileclient.set_user_data(JSON.stringify(data));
     },
 
     _last_wifi_scant: 0,
