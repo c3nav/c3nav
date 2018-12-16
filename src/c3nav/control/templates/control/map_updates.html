@@ -19,20 +19,20 @@
             <h4>{% trans 'Process updates' %}</h4>
             <form method="post">
                 {% csrf_token %}
-                {% if auto_process_updates %}
-                    <p class="green">{% trans 'Map updates are currently processed automatically.' %}</p>
-                {% else %}
-                    <p>{% trans 'Map updates are currently not processed automatically.' %}</p>
-                {% endif %}
-                {% if last_processed %}
-                    <p>
+                <p class="green">
+                    {% if auto_process_updates %}
+                        <span class="green">{% trans 'Map updates are currently processed automatically.' %}</span>
+                    {% else %}
+                        {% trans 'Map updates are currently not processed automatically.' %}
+                    {% endif %}
+                    {% if last_processed %}
                         {% trans 'Last run:' %}
                         {% if not last_processed_success %}
                             <strong class="red">{% trans '(failed)' %}</strong>
                         {% endif %}
                         {{ last_processed|date:"SHORT_DATETIME_FORMAT" }}
-                    </p>
-                {% endif %}
+                    {% endif %}
+                </p>
                 <button type="submit" name="process_updates" value="1">{% trans 'Process map updates now' %}</button>
             </form>
         </div>
