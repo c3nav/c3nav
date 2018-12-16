@@ -85,8 +85,8 @@ RENDER_SCALE = float(config.get('c3nav', 'render_scale', fallback=20.0))
 IMAGE_RENDERER = config.get('c3nav', 'image_renderer', fallback='svg')
 SVG_RENDERER = config.get('c3nav', 'svg_renderer', fallback='rsvg-convert')
 
-CACHE_TILES = config.get('c3nav', 'cache_tiles', fallback=not DEBUG)
-CACHE_RESOLUTION = config.get('c3nav', 'cache_resolution', fallback=4)
+CACHE_TILES = config.getboolean('c3nav', 'cache_tiles', fallback=not DEBUG)
+CACHE_RESOLUTION = config.getint('c3nav', 'cache_resolution', fallback=4)
 
 INITIAL_LEVEL = config.get('c3nav', 'initial_level', fallback=None)
 INITIAL_BOUNDS = config.get('c3nav', 'initial_bounds', fallback='').split(' ')
