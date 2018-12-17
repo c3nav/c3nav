@@ -1555,7 +1555,7 @@ L.SquareGridLayer = L.Layer.extend({
     },
 
     _updateGrid: function(map) {
-        if (!this.cols.length) return;
+        if (!this.cols || this.cols.length) return;
         var mapSize = map.getSize(),
             sidebarStart = $('#sidebar').outerWidth() + 15,
             searchHeight = $('#search').outerHeight() + 10,
