@@ -415,3 +415,9 @@ def changeset_edit(request, pk):
         'changeset': changeset,
         'form': form,
     })
+
+
+@sidebar_view
+def changeset_redirect(request):
+    changeset = request.changeset
+    return redirect(changeset.get_absolute_url())
