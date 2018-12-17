@@ -344,4 +344,6 @@ def about_view(request):
     return render(request, 'site/about.html', {
         'address': settings.IMPRINT_ADDRESS,
         'patrons': settings.IMPRINT_PATRONS,
+        'team': settings.IMPRINT_TEAM,
+        'hosting': settings.IMPRINT_HOSTING,
     })

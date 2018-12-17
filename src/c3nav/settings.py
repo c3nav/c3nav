@@ -92,6 +92,8 @@ CACHE_RESOLUTION = config.getint('c3nav', 'cache_resolution', fallback=4)
 
 IMPRINT_ADDRESS = config.get('c3nav', 'imprint_address', fallback=None)
 IMPRINT_PATRONS = config.get('c3nav', 'imprint_patrons', fallback=None)
+IMPRINT_TEAM = config.get('c3nav', 'imprint_team', fallback=None)
+IMPRINT_HOSTING = config.get('c3nav', 'imprint_hosting', fallback=None)
 
 INITIAL_LEVEL = config.get('c3nav', 'initial_level', fallback=None)
 INITIAL_BOUNDS = config.get('c3nav', 'initial_bounds', fallback='').split(' ')

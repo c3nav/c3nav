@@ -7,8 +7,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2018-12-17 19:53+0100\n"
-"PO-Revision-Date: 2018-12-17 19:53+0100\n"
+"POT-Creation-Date: 2018-12-17 20:30+0100\n"
+"PO-Revision-Date: 2018-12-17 20:31+0100\n"
 "Last-Translator: Laura Klünder <laura@codingcatgirl.de>\n"
 "Language-Team: \n"
 "Language: de\n"
@@ -2417,11 +2417,11 @@ msgstr "einige Wegtypen vermieden"
 msgid "default options"
 msgstr "Standardoptionen"
 
-#: c3nav/settings.py:286
+#: c3nav/settings.py:288
 msgid "English"
 msgstr "Englisch"
 
-#: c3nav/settings.py:287
+#: c3nav/settings.py:289
 msgid "German"
 msgstr "Deutsch"
 
@@ -2466,6 +2466,15 @@ msgstr ""
 "rel=\"external\" target=\"_blank\">Twitter</a>."
 
 #: c3nav/site/templates/site/about.html:14
+msgid "The c3nav team at this event:"
+msgstr "Das c3nav-Team auf diesem Event:"
+
+#: c3nav/site/templates/site/about.html:17
+msgid "Hosting for this event was kindly provided by:"
+msgstr ""
+"Hosting für dieses Event wurde freundlicherweise zur Verfügung gestellt von:"
+
+#: c3nav/site/templates/site/about.html:20
 msgid ""
 "Development of the software was supported by the following patrons on <a "
 "href=\"https://patreon.com/c3nav\" rel=\"external\" target=\"_blank"
@@ -2475,19 +2484,19 @@ msgstr ""
 "auf <a href=\"https://patreon.com/c3nav\" rel=\"external\" target=\"_blank"
 "\">Patreon</a>:"
 
-#: c3nav/site/templates/site/about.html:18
+#: c3nav/site/templates/site/about.html:24
 msgid "Responsible for this website:"
 msgstr "Verantwortlich für diese Webseite:"
 
-#: c3nav/site/templates/site/about.html:22
+#: c3nav/site/templates/site/about.html:28
 msgid "Data privacy"
 msgstr "Datenschutz"
 
-#: c3nav/site/templates/site/about.html:24
+#: c3nav/site/templates/site/about.html:30
 msgid "We do not collect any personal data."
 msgstr "Wir sammeln keine persönlichen Daten."
 
-#: c3nav/site/templates/site/about.html:25
+#: c3nav/site/templates/site/about.html:31
 msgid ""
 "Any data that your device sends to c3nav that might be used to track you "
 "will either be discarded after processing it or saved in a way that does not "
@@ -2498,7 +2507,7 @@ msgstr ""
 "verworfen oder auf eine Art und Weise gespeichert, die es uns unmöglich "
 "macht, sie mit dir in Verbindung zu bringen."
 
-#: c3nav/site/templates/site/about.html:26
+#: c3nav/site/templates/site/about.html:32
 msgid "If you register an account, we do not ask for personal data either."
 msgstr ""
 "Auch wenn du einen Account erstellst, fragen wir dich nach keinen "
