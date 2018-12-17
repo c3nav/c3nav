@@ -16,6 +16,8 @@ if 'C3NAV_CONFIG' in os.environ:
 config.read(['/etc/c3nav/c3nav.cfg', os.path.expanduser('~/.c3nav.cfg'), os.environ.get('C3NAV_CONFIG', 'c3nav.cfg')],
             encoding='utf-8')
 
+INSTANCE_NAME = config.get('c3nav', 'name', fallback='')
+
 # Build paths inside the project like this: os.path.join(BASE_DIR, ...)
 BASE_DIR = os.path.dirname(os.path.dirname(__file__))
 DATA_DIR = config.get('c3nav', 'datadir', fallback=os.environ.get('DATA_DIR', 'data'))
@@ -129,7 +131,7 @@ EMAIL_HOST_USER = config.get('mail', 'user', fallback='')
 EMAIL_HOST_PASSWORD = config.get('mail', 'password', fallback='')
 EMAIL_USE_TLS = config.getboolean('mail', 'tls', fallback=False)
 EMAIL_USE_SSL = config.getboolean('mail', 'ssl', fallback=False)
-EMAIL_SUBJECT_PREFIX = '[c3nav] '
+EMAIL_SUBJECT_PREFIX = ('[c3nav-%s] ' % INSTANCE_NAME) if INSTANCE_NAME else 'c3nav-s] '
 
 ADMINS = [('Admin', n) for n in config.get('mail', 'admins', fallback='').split(",") if n]
 
