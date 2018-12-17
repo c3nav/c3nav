@@ -1545,6 +1545,8 @@ L.SquareGridLayer = L.Layer.extend({
 
     onRemove: function(map) {
         L.DomUtil.remove(this._container);
+        this.cols = [];
+        this.rows = [];
         map.off('viewreset zoom move zoomend moveend', this._update, this);
     },
 
@@ -1553,6 +1555,7 @@ L.SquareGridLayer = L.Layer.extend({
     },
 
     _updateGrid: function(map) {
+        if (!this.cols.length) return;
         var mapSize = map.getSize(),
             sidebarStart = $('#sidebar').outerWidth() + 15,
             searchHeight = $('#search').outerHeight() + 10,
