@@ -34,6 +34,7 @@ class MapUpdate(models.Model):
         verbose_name = _('Map update')
         verbose_name_plural = _('Map updates')
         default_related_name = 'mapupdates'
+        ordering = ('datetime', )
         get_latest_by = 'datetime'
 
     def __init__(self, *args, **kwargs):
