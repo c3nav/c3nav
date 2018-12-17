@@ -8,10 +8,10 @@
     {% endif %}
     <h2>{% trans 'About c3nav' %}</h2>
 
-    <p>{% blocktrans %}c3nav is open source software, find out more about it on <a href="https://github.com/c3nav">c3nav</a>.{% endblocktrans %}</p>
-    <p>{% blocktrans %}Keep yourself up to date on c3nav by following us on <a href="https://twitter.com/c3nav">Twitter</a>.{% endblocktrans %}</p>
+    <p>{% blocktrans %}c3nav is open source software, find out more about it on <a href="https://github.com/c3nav" rel="external" target="_blank">c3nav</a>.{% endblocktrans %}</p>
+    <p>{% blocktrans %}Keep yourself up to date on c3nav by following us on <a href="https://twitter.com/c3nav" rel="external" target="_blank">Twitter</a>.{% endblocktrans %}</p>
     {% if patrons %}
-        <p>{% blocktrans %}Development of the software was supported by the following patrons on <a href="https://patreon.com/c3nav">Patreon</a>:{% endblocktrans %} {{ patrons }}</p>
+        <p>{% blocktrans %}Development of the software was supported by the following patrons on <a href="https://patreon.com/c3nav" rel="external" target="_blank">Patreon</a>:{% endblocktrans %} {{ patrons }}</p>
     {% endif %}
 
     {% if address %}

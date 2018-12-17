@@ -7,8 +7,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2018-12-16 02:44+0100\n"
-"PO-Revision-Date: 2018-12-16 02:44+0100\n"
+"POT-Creation-Date: 2018-12-17 19:53+0100\n"
+"PO-Revision-Date: 2018-12-17 19:53+0100\n"
 "Last-Translator: Laura Klünder <laura@codingcatgirl.de>\n"
 "Language-Team: \n"
 "Language: de\n"
@@ -256,7 +256,7 @@ msgid "Users"
 msgstr "Benutzer"
 
 #: c3nav/control/templates/control/announcements.html:9
-#: c3nav/control/templates/control/map_updates.html:44
+#: c3nav/control/templates/control/map_updates.html:53
 #: c3nav/control/templates/control/users.html:15
 #: c3nav/mapdata/models/base.py:41 c3nav/mapdata/utils/locations.py:306
 msgid "ID"
@@ -303,6 +303,7 @@ msgstr "control panel"
 
 #: c3nav/control/templates/control/base.html:13
 #: c3nav/editor/templates/editor/fragment_nav.html:5
+#: c3nav/site/templates/site/about.html:7
 msgid "back to c3nav"
 msgstr "zurück zu c3nav"
 
@@ -362,53 +363,61 @@ msgstr "Kartenängerung erstellen"
 msgid "Process updates"
 msgstr "Kartenänderungen verarbeiten"
 
-#: c3nav/control/templates/control/map_updates.html:23
+#: c3nav/control/templates/control/map_updates.html:24
 msgid "Map updates are currently processed automatically."
 msgstr "Kartenänderungen werden aktuell automatisch verarbeitet."
 
-#: c3nav/control/templates/control/map_updates.html:25
+#: c3nav/control/templates/control/map_updates.html:26
 msgid "Map updates are currently not processed automatically."
 msgstr "Kartenänderungen werden aktuell nicht automatisch verarbeitet."
 
-#: c3nav/control/templates/control/map_updates.html:27
+#: c3nav/control/templates/control/map_updates.html:29
+msgid "Last run:"
+msgstr "Letzter Lauf:"
+
+#: c3nav/control/templates/control/map_updates.html:31
+msgid "(failed)"
+msgstr "(fehlgeschlagen)"
+
+#: c3nav/control/templates/control/map_updates.html:36
 msgid "Process map updates now"
 msgstr "Kartenänderungen jetzt verarbeiten"
 
-#: c3nav/control/templates/control/map_updates.html:32
+#: c3nav/control/templates/control/map_updates.html:41
 msgid "List of map updates"
 msgstr "Liste von Kartenänderungen"
 
-#: c3nav/control/templates/control/map_updates.html:37
+#: c3nav/control/templates/control/map_updates.html:46
 msgid "Filter"
 msgstr "Filtern"
 
-#: c3nav/control/templates/control/map_updates.html:45
+#: c3nav/control/templates/control/map_updates.html:54
 msgid "Date"
 msgstr "Datum"
 
-#: c3nav/control/templates/control/map_updates.html:46
+#: c3nav/control/templates/control/map_updates.html:55
 msgid "Reason"
 msgstr "Grund"
 
-#: c3nav/control/templates/control/map_updates.html:47
+#: c3nav/control/templates/control/map_updates.html:56
 msgid "Geometries"
 msgstr "Geometrien"
 
-#: c3nav/control/templates/control/map_updates.html:48
+#: c3nav/control/templates/control/map_updates.html:57
 msgid "Processed"
 msgstr "Verarbeitet"
 
-#: c3nav/control/templates/control/map_updates.html:60
+#: c3nav/control/templates/control/map_updates.html:69
 #, python-format
 msgid "via control panel by <a href=\"%(user_url)s\">%(user_name)s</a>"
 msgstr "via Control Panel von <a href=\"%(user_url)s\">%(user_name)s</a>"
 
-#: c3nav/control/templates/control/map_updates.html:63
+#: c3nav/control/templates/control/map_updates.html:72
 #, python-format
 msgid "direct edit by <a href=\"%(user_url)s\">%(user_name)s</a>"
 msgstr "direktes Bearbeiten von <a href=\"%(user_url)s\">%(user_name)s</a>"
 
-#: c3nav/control/templates/control/map_updates.html:67
+#: c3nav/control/templates/control/map_updates.html:76
 #, python-format
 msgid ""
 "Changeset #%(changeset_id)s by <a href=\"%(author_url)s\">%(author_name)s</"
@@ -417,8 +426,8 @@ msgstr ""
 "Änderungsset #%(changeset_id)s von <a href=\"%(author_url)s\">"
 "%(author_name)s</a> angewendet von <a href=\"%(user_url)s\">%(user_name)s</a>"
 
-#: c3nav/control/templates/control/map_updates.html:74
-#: c3nav/control/templates/control/map_updates.html:81
+#: c3nav/control/templates/control/map_updates.html:83
+#: c3nav/control/templates/control/map_updates.html:90
 #: c3nav/control/templates/control/user.html:97
 #: c3nav/control/templates/control/user.html:140
 #: c3nav/control/templates/control/user.html:172
@@ -427,8 +436,8 @@ msgstr ""
 msgid "Yes"
 msgstr "Ja"
 
-#: c3nav/control/templates/control/map_updates.html:76
-#: c3nav/control/templates/control/map_updates.html:83
+#: c3nav/control/templates/control/map_updates.html:85
+#: c3nav/control/templates/control/map_updates.html:92
 #: c3nav/control/templates/control/user.html:99
 #: c3nav/control/templates/control/user.html:142
 #: c3nav/control/templates/control/user.html:174
@@ -543,9 +552,9 @@ msgstr "Zugangs­beschränkung"
 #: c3nav/control/templates/control/user.html:145
 #: c3nav/editor/templates/editor/fragment_changesets.html:10
 #: c3nav/editor/templates/editor/list.html:26
-#: c3nav/site/templates/site/map.html:75 c3nav/site/templates/site/map.html:109
-#: c3nav/site/templates/site/map.html:121
-#: c3nav/site/templates/site/map.html:127
+#: c3nav/site/templates/site/map.html:76 c3nav/site/templates/site/map.html:110
+#: c3nav/site/templates/site/map.html:122
+#: c3nav/site/templates/site/map.html:128
 msgid "Details"
 msgstr "Details"
 
@@ -569,27 +578,27 @@ msgstr "Suchen"
 msgid "Username"
 msgstr "Benutzername"
 
-#: c3nav/control/views.py:79
+#: c3nav/control/views.py:82
 msgid "Unknown access permission."
 msgstr "Unbekannte Zugangserlaubnis."
 
-#: c3nav/control/views.py:83
+#: c3nav/control/views.py:86
 msgid "Access Permission successfully deleted."
 msgstr "Zugangserlaubnis erfolgreich gelöscht."
 
-#: c3nav/control/views.py:85
+#: c3nav/control/views.py:88
 msgid "You cannot delete this Access Permission."
 msgstr "Du kannst diese Zugangsberechtigung nicht löschen."
 
-#: c3nav/control/views.py:95
+#: c3nav/control/views.py:98
 msgid "This user already has an API secret."
 msgstr "Dieser Benutzer hat bereis ein API Secret."
 
-#: c3nav/control/views.py:99
+#: c3nav/control/views.py:102
 msgid "This user does not have an API secret."
 msgstr "Dieser Benutzer hat kein API Secret."
 
-#: c3nav/control/views.py:108
+#: c3nav/control/views.py:111
 #, python-format
 msgid ""
 "The new API secret is: %s – be sure to note it down now, it won't be shown "
@@ -598,61 +607,61 @@ msgstr ""
 "Das neue API Secret ist: %s – notier es dir sofort, denn es wird nicht "
 "erneut angezeigt."
 
-#: c3nav/control/views.py:115
+#: c3nav/control/views.py:118
 msgid "API secret successfully deleted!"
 msgstr "API secret erfolgreich gelöscht!"
 
-#: c3nav/control/views.py:139
+#: c3nav/control/views.py:142
 msgid "General permissions successfully updated."
 msgstr "Generelle Befugnisse erfolgreich gespeichert."
 
-#: c3nav/control/views.py:166
+#: c3nav/control/views.py:169
 msgid "Access permissions successfully granted."
 msgstr "Zugangserlaubnis erfolgreich erteilt."
 
-#: c3nav/control/views.py:206
+#: c3nav/control/views.py:209
 msgid "User space access could not be granted because it already exists."
 msgstr ""
 "Benutzer-Raumzugriffserlaubnis konnte nicht gewährt werden weil sie bereits "
 "existiert."
 
-#: c3nav/control/views.py:208
+#: c3nav/control/views.py:211
 msgid "User space access successfully granted."
 msgstr "Benutzer-Raumzugriffserlaubnis erfolgreich gewährt."
 
-#: c3nav/control/views.py:219
+#: c3nav/control/views.py:222
 msgid "Unknown space access."
 msgstr "Unbekannte Raumzugriffserlaubnis."
 
-#: c3nav/control/views.py:223
+#: c3nav/control/views.py:226
 msgid "Space access successfully deleted."
 msgstr "Raumzugriffserlaubnis erfolgreich gelöscht."
 
-#: c3nav/control/views.py:225
+#: c3nav/control/views.py:228
 msgid "You cannot delete this space access."
 msgstr "Du kannst diese Raumzugriffserlaubnis nicht löschen."
 
-#: c3nav/control/views.py:268
+#: c3nav/control/views.py:271
 msgid "Access successfully granted."
 msgstr "Zugangserlaubnis erfolgreich erteilt."
 
-#: c3nav/control/views.py:272
+#: c3nav/control/views.py:275
 msgid "Token successfully revoked."
 msgstr "Token erfolgreich invalidiert."
 
-#: c3nav/control/views.py:283
+#: c3nav/control/views.py:286
 msgid "You can only display your most recently created token."
 msgstr "Du kannst nur deinen zuletzt erstellten Code anzeigen."
 
-#: c3nav/control/views.py:361
+#: c3nav/control/views.py:364
 msgid "Map update successfully created."
 msgstr "Kartenänderung erfolgreich erstellt."
 
-#: c3nav/control/views.py:366
+#: c3nav/control/views.py:369
 msgid "Map update processing successfully queued."
 msgstr "Kartenänderungsverarbeitung erfolgreich veranlasst."
 
-#: c3nav/control/views.py:368
+#: c3nav/control/views.py:371
 msgid ""
 "Map update processing was not be queued because celery is not configured."
 msgstr ""
@@ -2170,14 +2179,14 @@ msgstr "via Control Panel"
 msgid "Map update"
 msgstr "Kartenänderung"
 
-#: c3nav/mapdata/tasks.py:36
+#: c3nav/mapdata/tasks.py:43
 #, python-format
 msgid "%d map update processed."
 msgid_plural "%d map updates processed."
 msgstr[0] "%d Kartenänderung verarbeitet."
 msgstr[1] "%d Kartenänderungen verarbeitet."
 
-#: c3nav/mapdata/tasks.py:39
+#: c3nav/mapdata/tasks.py:46
 #, python-format
 msgid "Last processed update: %(date)s (#%(id)d)"
 msgstr "Letztes verarbeitetes Update: %(date)s (#%(id)d)"
@@ -2316,7 +2325,7 @@ msgid "Invalid Scan. Invalid last timestamp."
 msgstr "Invalider Scan. Letzter Zeitstempel ungültig."
 
 #: c3nav/routing/models.py:20 c3nav/routing/models.py:21
-#: c3nav/site/templates/site/map.html:134
+#: c3nav/site/templates/site/map.html:135
 msgid "Route options"
 msgstr "Routenoptionen"
 
@@ -2408,11 +2417,11 @@ msgstr "einige Wegtypen vermieden"
 msgid "default options"
 msgstr "Standardoptionen"
 
-#: c3nav/settings.py:281
+#: c3nav/settings.py:286
 msgid "English"
 msgstr "Englisch"
 
-#: c3nav/settings.py:282
+#: c3nav/settings.py:287
 msgid "German"
 msgstr "Deutsch"
 
@@ -2435,6 +2444,65 @@ msgstr "Seitenupdate"
 #: c3nav/site/models.py:58
 msgid "Site updates"
 msgstr "Seitenupdates"
+
+#: c3nav/site/templates/site/about.html:9
+msgid "About c3nav"
+msgstr "Über c3nav"
+
+#: c3nav/site/templates/site/about.html:11
+msgid ""
+"c3nav is open source software, find out more about it on <a href=\"https://"
+"github.com/c3nav\" rel=\"external\" target=\"_blank\">c3nav</a>."
+msgstr ""
+"c3nav ist Open Source Software, erfahre mehr dazu auf <a href=\"https://"
+"github.com/c3nav\" rel=\"external\" target=\"_blank\">c3nav</a>."
+
+#: c3nav/site/templates/site/about.html:12
+msgid ""
+"Keep yourself up to date on c3nav by following us on <a href=\"https://"
+"twitter.com/c3nav\" rel=\"external\" target=\"_blank\">Twitter</a>."
+msgstr ""
+"Bleib auf dem Laufenden zu c3nav via <a href=\"https://twitter.com/c3nav\" "
+"rel=\"external\" target=\"_blank\">Twitter</a>."
+
+#: c3nav/site/templates/site/about.html:14
+msgid ""
+"Development of the software was supported by the following patrons on <a "
+"href=\"https://patreon.com/c3nav\" rel=\"external\" target=\"_blank"
+"\">Patreon</a>:"
+msgstr ""
+"Die Entwicklung dieser Software urde unterstützt von den folgenden Patrons "
+"auf <a href=\"https://patreon.com/c3nav\" rel=\"external\" target=\"_blank"
+"\">Patreon</a>:"
+
+#: c3nav/site/templates/site/about.html:18
+msgid "Responsible for this website:"
+msgstr "Verantwortlich für diese Webseite:"
+
+#: c3nav/site/templates/site/about.html:22
+msgid "Data privacy"
+msgstr "Datenschutz"
+
+#: c3nav/site/templates/site/about.html:24
+msgid "We do not collect any personal data."
+msgstr "Wir sammeln keine persönlichen Daten."
+
+#: c3nav/site/templates/site/about.html:25
+msgid ""
+"Any data that your device sends to c3nav that might be used to track you "
+"will either be discarded after processing it or saved in a way that does not "
+"allow us to connect it to you."
+msgstr ""
+"Jegliche persönliche Daten, die dein Gerät an c3nav und die dafür genutzt "
+"werden könnten dich zu tracken werden entweder nach der Verarbeitung "
+"verworfen oder auf eine Art und Weise gespeichert, die es uns unmöglich "
+"macht, sie mit dir in Verbindung zu bringen."
+
+#: c3nav/site/templates/site/about.html:26
+msgid "If you register an account, we do not ask for personal data either."
+msgstr ""
+"Auch wenn du einen Account erstellst, fragen wir dich nach keinen "
+"persönlichen Daten."
 
 #: c3nav/site/templates/site/account.html:6
 msgid "Your Account"
@@ -2465,64 +2533,68 @@ msgstr "Editor"
 msgid "API"
 msgstr "API"
 
-#: c3nav/site/templates/site/map.html:32
+#: c3nav/site/templates/site/map.html:20
+msgid "about c3nav"
+msgstr "über c3nav"
+
+#: c3nav/site/templates/site/map.html:33
 msgid "Show only this location"
 msgstr "Nur diesen Ort anzeigen"
 
-#: c3nav/site/templates/site/map.html:33
+#: c3nav/site/templates/site/map.html:34
 msgid "Route to here"
 msgstr "Route hierhin"
 
-#: c3nav/site/templates/site/map.html:34
+#: c3nav/site/templates/site/map.html:35
 msgid "Route from here"
 msgstr "Route von hier aus"
 
-#: c3nav/site/templates/site/map.html:37 c3nav/site/templates/site/map.html:79
+#: c3nav/site/templates/site/map.html:38 c3nav/site/templates/site/map.html:80
 msgid "Share"
 msgstr "Teilen"
 
-#: c3nav/site/templates/site/map.html:41
+#: c3nav/site/templates/site/map.html:42
 msgid "share"
 msgstr "Teilen"
 
-#: c3nav/site/templates/site/map.html:42
+#: c3nav/site/templates/site/map.html:43
 msgid "create shortcut"
 msgstr "Verknüpfung anlegen"
 
-#: c3nav/site/templates/site/map.html:46
+#: c3nav/site/templates/site/map.html:47
 msgid "Wifi-based location"
 msgstr "WLAN-basierte Ortung"
 
-#: c3nav/site/templates/site/map.html:47
+#: c3nav/site/templates/site/map.html:48
 msgid "Get the c3nav app for Android to see your location on the map."
 msgstr ""
 "Hole dir die c3nav-App für Android um deine Position auf der Karte zu sehen."
 
-#: c3nav/site/templates/site/map.html:59 c3nav/site/templates/site/map.html:66
+#: c3nav/site/templates/site/map.html:60 c3nav/site/templates/site/map.html:67
 msgid "Search any location…"
 msgstr "Suche einen beliebigen Ort…"
 
-#: c3nav/site/templates/site/map.html:83
+#: c3nav/site/templates/site/map.html:84
 msgid "Route"
 msgstr "Route"
 
-#: c3nav/site/templates/site/map.html:95 c3nav/site/templates/site/map.html:105
+#: c3nav/site/templates/site/map.html:96 c3nav/site/templates/site/map.html:106
 msgid "Swap"
 msgstr "Vertauschen"
 
-#: c3nav/site/templates/site/map.html:99
+#: c3nav/site/templates/site/map.html:100
 msgid "Close"
 msgstr "Schließen"
 
-#: c3nav/site/templates/site/map.html:119
+#: c3nav/site/templates/site/map.html:120
 msgid "Open in Editor"
 msgstr "Im Editor öffnen"
 
-#: c3nav/site/templates/site/map.html:139
+#: c3nav/site/templates/site/map.html:140
 msgid "Save and reroute"
 msgstr "Speichern und neu routen"
 
-#: c3nav/site/templates/site/map.html:140
+#: c3nav/site/templates/site/map.html:141
 msgid "Just reroute"
 msgstr "Nur neu routen"
 
