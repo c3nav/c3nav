@@ -337,3 +337,11 @@ def access_redeem_view(request, token):
 
 def choose_language(request):
     return render(request, 'site/language.html', {})
+
+
+@never_cache
+def about_view(request):
+    return render(request, 'site/about.html', {
+        'address': settings.IMPRINT_ADDRESS,
+        'patrons': settings.IMPRINT_PATRONS,
+    })

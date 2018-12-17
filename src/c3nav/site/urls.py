@@ -1,7 +1,7 @@
 from django.conf.urls import url
 
-from c3nav.site.views import (access_redeem_view, account_view, change_password_view, choose_language, login_view,
-                              logout_view, map_index, qr_code, register_view)
+from c3nav.site.views import (about_view, access_redeem_view, account_view, change_password_view, choose_language,
+                              login_view, logout_view, map_index, qr_code, register_view)
 
 slug = r'(?P<slug>[a-z0-9-_.:]+)'
 slug2 = r'(?P<slug2>[a-z0-9-_.:]+)'
@@ -24,4 +24,5 @@ urlpatterns = [
     url(r'^account/change_password$', change_password_view, name='site.account.change_password'),
     url(r'^access/(?P<token>[^/]+)$', access_redeem_view, name='site.access.redeem'),
     url(r'^lang/$', choose_language, name='site.language'),
+    url(r'^about/$', about_view, name='site.about'),
 ]

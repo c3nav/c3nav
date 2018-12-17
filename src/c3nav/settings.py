@@ -90,6 +90,9 @@ SVG_RENDERER = config.get('c3nav', 'svg_renderer', fallback='rsvg-convert')
 CACHE_TILES = config.getboolean('c3nav', 'cache_tiles', fallback=not DEBUG)
 CACHE_RESOLUTION = config.getint('c3nav', 'cache_resolution', fallback=4)
 
+IMPRINT_ADDRESS = config.get('c3nav', 'imprint_address', fallback=None)
+IMPRINT_PATRONS = config.get('c3nav', 'imprint_patrons', fallback=None)
+
 INITIAL_LEVEL = config.get('c3nav', 'initial_level', fallback=None)
 INITIAL_BOUNDS = config.get('c3nav', 'initial_bounds', fallback='').split(' ')
 

@@ -1,0 +1,28 @@
+{% extends 'site/base.html' %}
+{% load i18n %}
+
+{% block content %}
+<main class="account">
+    {% if not request.mobileclient %}
+        <a href="{% url 'site.index' %}" class="float-right">&laquo; {% trans 'back to c3nav' %}</a>
+    {% endif %}
+    <h2>{% trans 'About c3nav' %}</h2>
+
+    <p>{% blocktrans %}c3nav is open source software, find out more about it on <a href="https://github.com/c3nav">c3nav</a>.{% endblocktrans %}</p>
+    <p>{% blocktrans %}Keep yourself up to date on c3nav by following us on <a href="https://github.com/twitter">Twitter</a>.{% endblocktrans %}</p>
+    {% if patrons %}
+        <p>{% blocktrans %}Development of the software was supported by the following patrons on <a href="https://c3nav.de/patreon">Patreon</a>:{% endblocktrans %} {{ patrons }}</p>
+    {% endif %}
+
+    {% if address %}
+        <h4>{% trans 'Responsible for this website:' %}</h4>
+        <p>{{ address }}</p>
+    {% endif %}
+
+    <h4>{% trans 'Data privacy' %}</h4>
+
+    <p>{% trans 'We do not collect any personal data.' %}</p>
+    <p>{% trans 'Any data that your device sends to c3nav that might be used to track you will either be discarded after processing it or saved in a way that does not allow us to connect it to you.' %}</p>
+    <p>{% trans 'If you register an account, we do not ask for personal data either.' %}</p>
+</main>
+{% endblock %}
