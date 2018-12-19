@@ -1249,12 +1249,17 @@ c3nav = {
     schedule_fetch_updates: function (timeout) {
         window.setTimeout(c3nav.fetch_updates, timeout || 20000);
     },
+    _fetch_updates_failure_count: 0,
     fetch_updates: function () {
         $.get('/api/updates/fetch/', c3nav._fetch_updates_callback).fail(function() {
-            c3nav.schedule_fetch_updates(15000);
+            c3nav._fetch_updates_failure_count++;
+            waittime = Math.min(5 + c3nav._fetch_updates_failure_count * 5, 120);
+            console.log('fetch updates failed, retying in ' + waittime + 'sec');
+            c3nav.schedule_fetch_updates(waittime*1000);
         });
     },
     _fetch_updates_callback: function (data) {
+        c3nav._fetch_updates_failure_count = 0;
         c3nav.schedule_fetch_updates();
         if (c3nav.last_site_update !== data.last_site_update) {
             c3nav.new_site_update = true;
