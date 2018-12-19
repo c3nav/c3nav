@@ -1382,6 +1382,11 @@ function nearby_stations_available() {
     c3nav._wifi_scan_results(mobileclient.getNearbyStations());
 }
 
+function openInModal(location) {
+    c3nav.open_modal();
+    $.get(location, c3nav._modal_loaded).fail(c3nav._modal_error);
+}
+
 
 LevelControl = L.Control.extend({
     options: {
