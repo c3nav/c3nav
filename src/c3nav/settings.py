@@ -18,6 +18,19 @@ config.read(['/etc/c3nav/c3nav.cfg', os.path.expanduser('~/.c3nav.cfg'), os.envi
 
 INSTANCE_NAME = config.get('c3nav', 'name', fallback='')
 
+SENTRY_DSN = config.get('sentry', 'dsn', fallback=None)
+
+with suppress(ImportError):
+    if (SENTRY_DSN):
+        import sentry_sdk
+        from sentry_sdk.integrations.celery import CeleryIntegration
+        from sentry_sdk.integrations.django import DjangoIntegration
+
+        sentry_sdk.init(
+            dsn=SENTRY_DSN,
+            integrations=[CeleryIntegration(), DjangoIntegration()]
+        )
+
 # Build paths inside the project like this: os.path.join(BASE_DIR, ...)
 BASE_DIR = os.path.dirname(os.path.dirname(__file__))
 DATA_DIR = config.get('c3nav', 'datadir', fallback=os.environ.get('DATA_DIR', 'data'))
