@@ -768,6 +768,9 @@ c3nav = {
             c3nav.open_modal($('#app-ad').html());
             return;
         }
+        if (typeof window.mobileclient.checkLocationPermission === 'function') {
+            window.mobileclient.checkLocationPermission(true);
+        }
         if (c3nav._current_user_location) {
             c3nav._locationinput_set($(this).parent(), c3nav._current_user_location);
             c3nav.update_state();
@@ -1280,9 +1283,18 @@ c3nav = {
         if (window.mobileclient) mobileclient.setUserData(JSON.stringify(data));
     },
 
+    _hasLocationPermission: undefined,
+    hasLocationPermission: function() {
+        if (c3nav._hasLocationPermission === undefined) {
+            c3nav._hasLocationPermission = window.mobileclient && (typeof window.mobileclient.hasLocationPermission !== 'function' || window.mobileclient.hasLocationPermission())
+        }
+        return c3nav._hasLocationPermission;
+    },
+
     _last_wifi_scant: 0,
 
     _wifi_scan_results: function(data) {
+        c3nav._hasLocationPermission = true;
         var now = Date.now();
         if (now-4000 < c3nav._last_wifi_scan) return;
 
@@ -1338,8 +1350,10 @@ c3nav = {
                 stroke: 0,
                 fillOpacity: 1
             }).addTo(layer);
-        } else {
+        } else if (c3nav.hasLocationPermission()) {
             $('.locationinput .locate, .leaflet-control-user-location a').text('location_searching');
+        } else {
+            $('.locationinput .locate, .leaflet-control-user-location a').text('location_disabled');
         }
     },
     _goto_user_location_click: function (e) {
@@ -1347,6 +1361,9 @@ c3nav = {
         if (!window.mobileclient) {
             c3nav.open_modal($('#app-ad').html());
             return;
+        }
+        if (typeof window.mobileclient.checkLocationPermission === 'function') {
+            window.mobileclient.checkLocationPermission(true);
         }
         if (c3nav._current_user_location) {
             c3nav._levelControl.setLevel(c3nav._current_user_location.level);
@@ -1450,7 +1467,7 @@ UserLocationControl = L.Control.extend({
     onAdd: function () {
         this._container = L.DomUtil.create('div', 'leaflet-control-user-location leaflet-bar ' + this.options.addClasses);
         this._button = L.DomUtil.create('a', 'material-icons', this._container);
-        this._button.innerHTML = window.mobileclient ? 'location_searching' : 'location_disabled';
+        this._button.innerHTML = c3nav.hasLocationPermission() ? 'location_searching' : 'location_disabled';
         this._button.href = '#';
         this.currentLevel = null;
         return this._container;
