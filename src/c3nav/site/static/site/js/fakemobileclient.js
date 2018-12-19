@@ -19,6 +19,17 @@ mobileclient = {
             mobileclient.wait = false;
         });
     },
+    _locationPermission: false,
+    hasLocationPermission: function() {
+        console.log('mobileclient hasLocationPermission: ' + window.mobileclient._locationPermission);
+        return window.mobileclient._locationPermission;
+    },
+    checkLocationPermission: function(requestPermission) {
+        requestPermission = requestPermission ? true : false;
+        console.log('mobileclient checkLocationPermission(' + requestPermission + ')');
+        window.mobileclient._locationPermission = true;
+        return true
+    },
     shareUrl: function(url) {
         console.log('mobileclient: sharing url: '+url);
     },
