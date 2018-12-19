@@ -665,7 +665,7 @@ class RouterWayType:
         self.nonupwards_indices = deque()
 
     def __getattr__(self, name):
-        if name == '__setstate__':
+        if name in ('__getstate__', '__setstate__'):
             raise AttributeError
         return getattr(self.src, name)
 
