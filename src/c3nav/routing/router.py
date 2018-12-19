@@ -421,8 +421,8 @@ class Router:
         graph[space_nodes, :] = np.inf
         graph[:, space_nodes] = np.inf
         if restrictions.additional_nodes:
-            graph[restrictions.additional_nodes, :] = np.inf
-            graph[:, restrictions.additional_nodes] = np.inf
+            graph[tuple(restrictions.additional_nodes), :] = np.inf
+            graph[:, tuple(restrictions.additional_nodes)] = np.inf
         graph[restrictions.edges.transpose().tolist()] = np.inf
 
         distances, predecessors = shortest_path(graph, directed=True, return_predecessors=True)
