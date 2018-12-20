@@ -1,7 +1,9 @@
 import math
 from collections import OrderedDict
 
+from django.db import models
 from django.utils.functional import cached_property
+from django.utils.translation import ugettext_lazy as _
 from shapely.geometry import Point, box, mapping
 from shapely.ops import unary_union
 
@@ -17,6 +19,7 @@ class GeometryMixin(SerializableMixin):
     A map feature with a geometry
     """
     geometry = None
+    import_tag = models.CharField(_('import tag'), null=True, blank=True, max_length=32)
 
     class Meta:
         abstract = True
