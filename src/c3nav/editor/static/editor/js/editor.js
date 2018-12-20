@@ -68,6 +68,7 @@ editor = {
         var data = JSON.parse(elem.attr('data-user-data'));
         data.changes_count_display = elem.attr('data-count-display');
         data.direct_editing = elem.is('[data-direct-editing]');
+        data.changeset = elem.is('[data-changeset]');
         mobileclient.setUserData(JSON.stringify(data));
     },
     _onbeforeunload: function(e) {
