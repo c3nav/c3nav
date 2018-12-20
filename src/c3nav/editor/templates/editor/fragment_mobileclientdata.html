@@ -1,1 +1,1 @@
-<div data-user-data="{{ user_data_json }}" data-count-display="{{ request.changeset.count_display }}"{% if request.changeset.direct_editing%} data-direct-editing{% endif %}></div>
+<div data-user-data="{{ user_data_json }}" data-count-display="{{ request.changeset.count_display }}"{% if request.changeset.pk%} data-has-changeset{% endif %}{% if request.changeset.direct_editing%} data-direct-editing{% endif %}></div>
