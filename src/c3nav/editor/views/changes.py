@@ -420,4 +420,7 @@ def changeset_edit(request, pk):
 @sidebar_view
 def changeset_redirect(request):
     changeset = request.changeset
-    return redirect(changeset.get_absolute_url())
+    changeset_url = changeset.get_absolute_url()
+    if not changeset_url:
+        raise Http404
+    return redirect(changeset_url)
