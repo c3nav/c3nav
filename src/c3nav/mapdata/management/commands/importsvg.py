@@ -162,7 +162,10 @@ class Command(BaseCommand):
                 element.remove(clippath)
 
         if svg.findall('.//*[@transform]'):
-            raise CommandError(_('svg contains transform attributes. Use inkscape apply transforms!'))
+            raise CommandError(_('svg contains transform attributes. Use inkscape apply transforms.'))
+
+        if model.objects.filter(space=options['space'], import_tag=options['name']).exists():
+            raise CommandError(_('objects with this import tag already exist in this space.'))
 
         with MapUpdate.lock():
             changed_geometries.reset()
