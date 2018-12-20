@@ -172,6 +172,7 @@ class Command(BaseCommand):
             for path in svg.findall('.//svg:path', namespaces):
                 for polygon in self.parse_svg_data(path.attrib['d']):
                     polygon = Polygon(polygon)
+                    polygon = scale(polygon, xfact=1, yfact=-1, origin=(0, svg_height/2))
                     polygon = scale(polygon, xfact=width / svg_width, yfact=height / svg_height, origin=(0, 0))
                     polygon = translate(polygon, xoff=minx, yoff=miny)
                     obj = model(geometry=polygon, space=options['space'], import_tag=options['name'])
