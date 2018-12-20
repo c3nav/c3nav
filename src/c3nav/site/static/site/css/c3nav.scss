@@ -29,10 +29,17 @@ $color-sidebar-border: #dddddd;
 
 body {
     font-weight: normal;
+    display: -webkit-box;
+    display: -ms-flexbox;
     display: flex;
-    flex-direction: column;
+    -webkit-box-orient: vertical;
+    -webkit-box-direction: normal;
+        -ms-flex-direction: column;
+            flex-direction: column;
     position: absolute;
-    align-items: stretch;
+    -webkit-box-align: stretch;
+        -ms-flex-align: stretch;
+            align-items: stretch;
     top: 0;
     left: 0;
     bottom: 0;
@@ -42,11 +49,18 @@ body {
 header {
     padding: 10px;
     height: 60px;
+    display: -webkit-box;
+    display: -ms-flexbox;
     display: flex;
-    align-items: center;
-    justify-content: space-between;
+    -webkit-box-align: center;
+        -ms-flex-align: center;
+            align-items: center;
+    -webkit-box-pack: justify;
+        -ms-flex-pack: justify;
+            justify-content: space-between;
     background-color: $color-header-background;
-    flex-shrink: 0;
+    -ms-flex-negative: 0;
+        flex-shrink: 0;
 }
 header h1 {
     font-size: 3rem;
@@ -108,7 +122,9 @@ hr {
 }
 
 main {
-    flex-grow: 1;
+    -webkit-box-flex: 1;
+        -ms-flex-positive: 1;
+            flex-grow: 1;
     background-color: #FFFFFF;
     border: 0 solid #CCCCCC;
     border-top-width: 1px;
@@ -118,7 +134,8 @@ main {
 }
 body > *:not(header):not(main) {
     /* against stupid browser extensions */
-    flex-basis: 0;
+    -ms-flex-preferred-size: 0;
+        flex-basis: 0;
     overflow: hidden;
 }
 main.map {
@@ -127,7 +144,8 @@ main.map {
     position: relative;
     padding: 0;
     border-top-width: 0;
-    overscroll-behavior: contain;
+    -ms-scroll-chaining: none;
+        overscroll-behavior: contain;
 }
 
 main.account form {
@@ -164,8 +182,13 @@ main.account form {
     bottom: 0;
     max-width: 420px;
     pointer-events: none;
+    display: -webkit-box;
+    display: -ms-flexbox;
     display: flex;
-    flex-direction: column;
+    -webkit-box-orient: vertical;
+    -webkit-box-direction: normal;
+        -ms-flex-direction: column;
+            flex-direction: column;
     overflow: hidden;
 }
 @media (max-width: 500px) {
@@ -176,7 +199,8 @@ main.account form {
 #sidebar section {
     pointer-events: auto;
     background-color: #ffffff;
-    box-shadow: 1px 1px 3px rgba(0, 0, 0, 0.2);
+    -webkit-box-shadow: 1px 1px 3px rgba(0, 0, 0, 0.2);
+            box-shadow: 1px 1px 3px rgba(0, 0, 0, 0.2);
     border-radius: 2px;
     overflow: hidden;
     margin-bottom: 10px;
@@ -184,6 +208,8 @@ main.account form {
 #sidebar section > div {
     border: 0 $color-sidebar-border solid;
     border-top-width: 1px;
+    -webkit-transition: margin-bottom 150ms, opacity 150ms;
+    -o-transition: margin-bottom 150ms, opacity 150ms;
     transition: margin-bottom 150ms, opacity 150ms;
     overflow: hidden;
 }
@@ -199,8 +225,11 @@ main.account form {
     min-height: 54px;
     min-width: 54px;
     width: 100%;
+    -webkit-transition: width 150ms;
+    -o-transition: width 150ms;
     transition: width 150ms;
-    flex-shrink: 0;
+    -ms-flex-negative: 0;
+        flex-shrink: 0;
 }
 #sidebar #search.loading {
     /*noinspection CssUnknownTarget*/
@@ -249,10 +278,18 @@ main:not([data-view=route-result]) #route-result-buttons {
     opacity: 0;
 }
 #resultswrapper {
-    flex-grow: 1;
-    flex-shrink: 1;
+    -webkit-box-flex: 1;
+        -ms-flex-positive: 1;
+            flex-grow: 1;
+    -ms-flex-negative: 1;
+        flex-shrink: 1;
+    display: -webkit-box;
+    display: -ms-flexbox;
     display: flex;
-    flex-direction: column;
+    -webkit-box-orient: vertical;
+    -webkit-box-direction: normal;
+        -ms-flex-direction: column;
+            flex-direction: column;
 }
 #resultswrapper section {
     max-height: 100%;
@@ -272,28 +309,42 @@ h4 {
 }
 
 section.details {
+    display: -webkit-box;
+    display: -ms-flexbox;
     display: flex;
-    flex-direction: column;
+    -webkit-box-orient: vertical;
+    -webkit-box-direction: normal;
+        -ms-flex-direction: column;
+            flex-direction: column;
     position: relative;
 }
 section.details > * {
-    flex-shrink: 0;
-    flex-grow: 0;
+    -ms-flex-negative: 0;
+        flex-shrink: 0;
+    -webkit-box-flex: 0;
+        -ms-flex-positive: 0;
+            flex-grow: 0;
 }
 section.details > .details-head {
     padding: 11px 10px 8px;
 }
 section.details > .details-head > .button {
     margin: -2px 0 0;
+    -webkit-transition: none;
+    -o-transition: none;
     transition: none;
     line-height: 2.5;
 }
 #sidebar section.details > .details-body {
     border: 0;
     overflow: auto;
-    overscroll-behavior: contain;
-    flex-grow: 1;
-    flex-shrink: 1;
+    -ms-scroll-chaining: none;
+        overscroll-behavior: contain;
+    -webkit-box-flex: 1;
+        -ms-flex-positive: 1;
+            flex-grow: 1;
+    -ms-flex-negative: 1;
+        flex-shrink: 1;
 }
 
 section.details {
@@ -313,23 +364,33 @@ section.details {
     opacity: 0;
 }
 #sidebar section.details:not(.loading) > .details-head {
+    -webkit-transition: background-color 50ms;
+    -o-transition: background-color 50ms;
     transition: background-color 50ms;
     background-color: rgba(255, 255, 255, 1);
 }
 #sidebar section.details:not(.loading) > .details-head .button {
+    -webkit-transition: opacity 150ms;
+    -o-transition: opacity 150ms;
     transition: opacity 150ms;
     pointer-events: auto;
     opacity: 1;
 }
 #sidebar section.details:not(.loading) > div.details-body {
     max-height: 100vh;
+    -webkit-transition: max-height 150ms, opacity 50ms;
+    -o-transition: max-height 150ms, opacity 50ms;
     transition: max-height 150ms, opacity 50ms;
-    transition-timing-function: ease-in;
-    animation: show-details-body;
-    animation-duration: 160ms;
+    -webkit-transition-timing-function: ease-in;
+         -o-transition-timing-function: ease-in;
+            transition-timing-function: ease-in;
+    -webkit-animation: show-details-body;
+            animation: show-details-body;
+    -webkit-animation-duration: 160ms;
+            animation-duration: 160ms;
     opacity: 1;
 }
-@keyframes show-details-body {
+@-webkit-keyframes show-details-body {
     from {
         overflow: hidden;
     }
@@ -341,15 +402,35 @@ section.details {
         overscroll-behavior: contain;
     }
 }
+@keyframes show-details-body {
+    from {
+        overflow: hidden;
+    }
+    99% {
+        overflow: hidden;
+    }
+    to {
+        overflow: auto;
+        -ms-scroll-chaining: none;
+            overscroll-behavior: contain;
+    }
+}
 
 #location-details .details-body {
     padding: 0 10px;
 }
 #location-details dl {
+    display: -webkit-box;
+    display: -ms-flexbox;
     display: flex;
-    flex-wrap: wrap;
-    justify-content: space-between;
-    align-items: flex-start;
+    -ms-flex-wrap: wrap;
+        flex-wrap: wrap;
+    -webkit-box-pack: justify;
+        -ms-flex-pack: justify;
+            justify-content: space-between;
+    -webkit-box-align: start;
+        -ms-flex-align: start;
+            align-items: flex-start;
     margin: 0;
     font-size:90%;
 }
@@ -376,16 +457,35 @@ main:not(.show-options) #resultswrapper #route-options {
     display:none;
 }
 main .buttons .details .material-icons {
+    transition: -webkit-transform 250ms;
+    -webkit-transition: -webkit-transform 250ms;
+    -o-transition: transform 250ms;
     transition: transform 250ms;
+    transition: transform 250ms, -webkit-transform 250ms;
 }
 main.show-details .buttons .details .material-icons {
-    transform: scale(1, -1);
+    -webkit-transform: scale(1, -1);
+            -ms-transform: scale(1, -1);
+        transform: scale(1, -1);
 }
 main.show-details #resultswrapper .details,
 main.show-options #resultswrapper #route-options {
-    animation: show-details;
-    animation-duration: 150ms;
-    animation-timing-function: ease-out;
+    -webkit-animation: show-details;
+            animation: show-details;
+    -webkit-animation-duration: 150ms;
+            animation-duration: 150ms;
+    -webkit-animation-timing-function: ease-out;
+            animation-timing-function: ease-out;
+}
+@-webkit-keyframes show-details {
+    from {
+        opacity: 0;
+        top: 10px;
+    }
+    to {
+        opacity: 1;
+        top: 0;
+    }
 }
 @keyframes show-details {
     from {
@@ -404,14 +504,19 @@ main.show-options #resultswrapper #route-options {
     margin-bottom: 1rem;
 }
 .route-options-buttons {
+    display: -webkit-box;
+    display: -ms-flexbox;
     display: flex;
-    flex-wrap: wrap;
+    -ms-flex-wrap: wrap;
+        flex-wrap: wrap;
     padding: 0 0 15px 10px;
 }
 .route-options-buttons button {
     padding: 0 1rem;
     margin: 0 10px 0 0;
-    flex-grow: 1;
+    -webkit-box-flex: 1;
+        -ms-flex-positive: 1;
+            flex-grow: 1;
 }
 #route-options .details-head button {
     font-size: 30px;
@@ -431,7 +536,11 @@ main.show-options #resultswrapper #route-options {
     left: 9px;
     cursor: default;
     color: $color-icon;
+    transition: color 150ms, top 150ms, -webkit-transform 150ms;
+    -webkit-transition: color 150ms, top 150ms, -webkit-transform 150ms;
+    -o-transition: color 150ms, transform 150ms, top 150ms;
     transition: color 150ms, transform 150ms, top 150ms;
+    transition: color 150ms, transform 150ms, top 150ms, -webkit-transform 150ms;
     pointer-events: none;
 }
 .location > * {
@@ -453,9 +562,12 @@ main.show-options #resultswrapper #route-options {
     padding: 0;
 }
 .locationinput input {
-    box-sizing: border-box;
+    -webkit-box-sizing: border-box;
+            box-sizing: border-box;
     border-width:0;
     height: 54px;
+    -webkit-transition: padding-bottom 150ms;
+    -o-transition: padding-bottom 150ms;
     transition: padding-bottom 150ms;
     line-height: 1.0;
     padding-left: 52px;
@@ -466,6 +578,8 @@ main.show-options #resultswrapper #route-options {
     top: 30px;
     line-height: 1.1;
     opacity: 1;
+    -webkit-transition: opacity 150ms;
+    -o-transition: opacity 150ms;
     transition: opacity 150ms;
 }
 .locationinput:not(.selected) small {
@@ -485,6 +599,8 @@ main.show-options #resultswrapper #route-options {
     left: 1px;
     content: "search";
     color: $color-icon-light;
+    -webkit-transition: color 150ms;
+    -o-transition: color 150ms;
     transition: color 150ms;
 }
 .locationinput.selected .icon::before {
@@ -501,7 +617,11 @@ main.show-options #resultswrapper #route-options {
     width: 42px;
     height: 42px;
     border-width: 0;
+    transition: opacity 150ms, top 150ms, right 150ms, -webkit-transform 150ms;
+    -webkit-transition: opacity 150ms, top 150ms, right 150ms, -webkit-transform 150ms;
+    -o-transition: transform 150ms, opacity 150ms, top 150ms, right 150ms;
     transition: transform 150ms, opacity 150ms, top 150ms, right 150ms;
+    transition: transform 150ms, opacity 150ms, top 150ms, right 150ms, -webkit-transform 150ms;
     font-size: 42px;
     color: $color-icon-light;
     line-height: 1;
@@ -514,7 +634,9 @@ main.show-options #resultswrapper #route-options {
     top: 5px;
 }
 .locationinput:not(.empty) button.locate, .locationinput.empty button.clear {
-    transform: scale(0.7);
+    -webkit-transform: scale(0.7);
+            -ms-transform: scale(0.7);
+        transform: scale(0.7);
     opacity: 0;
     pointer-events:none;
 }
@@ -524,7 +646,11 @@ main.show-options #resultswrapper #route-options {
     top: 53px;
     left: 25px;
     text-shadow: 2px 0 1px #fff, -2px 0 1px #fff;
+    transition: top 150ms, opacity 150ms, color 150ms, -webkit-transform 150ms;
+    -webkit-transition: top 150ms, opacity 150ms, color 150ms, -webkit-transform 150ms;
+    -o-transition: top 150ms, opacity 150ms, color 150ms, transform 150ms;
     transition: top 150ms, opacity 150ms, color 150ms, transform 150ms;
+    transition: top 150ms, opacity 150ms, color 150ms, transform 150ms, -webkit-transform 150ms;
     color: $color-icon;
     pointer-events: none;
 }
@@ -596,14 +722,21 @@ main:not([data-view=route-result]) #route-dots {
 }
 
 .buttons {
+    display: -webkit-box;
+    display: -ms-flexbox;
     display: flex;
-    flex-direction: row;
+    -webkit-box-orient: horizontal;
+    -webkit-box-direction: normal;
+        -ms-flex-direction: row;
+            flex-direction: row;
     margin-left: -1px;
     height: 3.3rem;
 }
 .buttons > button.button-clear {
     width: 1px;
-    flex-grow: 1;
+    -webkit-box-flex: 1;
+        -ms-flex-positive: 1;
+            flex-grow: 1;
     margin: 0;
     border: 0 $color-sidebar-border solid;
     border-left-width: 1px;
@@ -689,16 +822,22 @@ main:not([data-view=route-result]) #route-summary {
         pointer-events: none;
     }
     main[data-view=route-result] #sidebar #search:not(.focused) .locationinput .icon {
-        transform: scale(0.6);
+        -webkit-transform: scale(0.6);
+                -ms-transform: scale(0.6);
+            transform: scale(0.6);
         top: -1px;
     }
     main[data-view=route-result] #sidebar #search:not(.focused) .locationinput button {
-        transform: scale(0.6);
+        -webkit-transform: scale(0.6);
+                -ms-transform: scale(0.6);
+            transform: scale(0.6);
         top: -5px;
         right: -5px;
     }
     main[data-view=route-result] #sidebar #search:not(.focused) #route-dots {
-        transform: scale(0.7);
+        -webkit-transform: scale(0.7);
+                -ms-transform: scale(0.7);
+            transform: scale(0.7);
         top: 32px;
     }
 }
@@ -752,9 +891,15 @@ body:not(.mobileclient) .leaflet-control-user-location a {
 }
 .c3nav-grid-row, .c3nav-grid-column {
     position: absolute;
+    display: -webkit-box;
+    display: -ms-flexbox;
     display: flex;
-    justify-content: space-between;
-    align-items: center;
+    -webkit-box-pack: justify;
+        -ms-flex-pack: justify;
+            justify-content: space-between;
+    -webkit-box-align: center;
+        -ms-flex-align: center;
+            align-items: center;
     border-style: solid;
     border-color: rgba(0, 0, 0, 0.25);
     overflow:hidden;
@@ -775,7 +920,10 @@ body:not(.mobileclient) .leaflet-control-user-location a {
 .c3nav-grid-column {
     top: 0;
     bottom: 0;
-    flex-direction: column;
+    -webkit-box-orient: vertical;
+    -webkit-box-direction: normal;
+        -ms-flex-direction: column;
+            flex-direction: column;
     border-width: 0 0 0 1px;
 }
 .c3nav-grid-column span {
@@ -791,10 +939,18 @@ body:not(.mobileclient) .leaflet-control-user-location a {
     right: 0;
     background-color: rgba(0, 0, 0, 0.3);
     z-index: 2;
+    display: -webkit-box;
+    display: -ms-flexbox;
     display: flex;
-    align-items: center;
-    justify-content: center;
+    -webkit-box-align: center;
+        -ms-flex-align: center;
+            align-items: center;
+    -webkit-box-pack: center;
+        -ms-flex-pack: center;
+            justify-content: center;
     opacity: 0;
+    -webkit-transition: opacity 300ms;
+    -o-transition: opacity 300ms;
     transition: opacity 300ms;
     pointer-events: none;
 }
@@ -803,7 +959,8 @@ body:not(.mobileclient) .leaflet-control-user-location a {
     pointer-events: auto;
 }
 #modal-content {
-    box-shadow: 1px 1px 3px rgba(0, 0, 0, 0.2);
+    -webkit-box-shadow: 1px 1px 3px rgba(0, 0, 0, 0.2);
+            box-shadow: 1px 1px 3px rgba(0, 0, 0, 0.2);
     border-radius: 2px;
     background-color: #ffffff;
     width: 380px;
@@ -812,7 +969,8 @@ body:not(.mobileclient) .leaflet-control-user-location a {
     max-width: 95vw;
     padding: 20px;
     overflow: auto;
-    overscroll-behavior: contain;
+    -ms-scroll-chaining: none;
+        overscroll-behavior: contain;
     position: relative;
 }
 #modal.loading #modal-content {
@@ -938,12 +1096,16 @@ ul.messages li.alert-danger {
 }
 
 .columns {
+    display:-webkit-box;
+    display:-ms-flexbox;
     display:flex;
     width: 100%;
 }
 .columns > div {
     padding-right: 10px;
-    flex-grow: 1;
+    -webkit-box-flex: 1;
+        -ms-flex-positive: 1;
+            flex-grow: 1;
 }
 .columns > div > h4:first-child {
     margin-top: 0;
@@ -997,11 +1159,17 @@ main .narrow form button {
     display: inline;
 }
 .fields {
+    display: -webkit-box;
+    display: -ms-flexbox;
     display: flex;
-    align-items: center;
+    -webkit-box-align: center;
+        -ms-flex-align: center;
+            align-items: center;
 }
 .fields .field {
-    flex-grow: 1;
+    -webkit-box-flex: 1;
+        -ms-flex-positive: 1;
+            flex-grow: 1;
 }
 .fields .field > * {
     width: 100%;
@@ -1015,8 +1183,13 @@ main .narrow form button {
 }
 @media (max-width: 500px) {
     .fields {
-        flex-direction: column;
-        align-items: stretch;
+        -webkit-box-orient: vertical;
+        -webkit-box-direction: normal;
+            -ms-flex-direction: column;
+                flex-direction: column;
+        -webkit-box-align: stretch;
+            -ms-flex-align: stretch;
+                align-items: stretch;
     }
     .fields .field:not(:first-child) {
         margin-left: 0;
