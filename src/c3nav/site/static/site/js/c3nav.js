@@ -924,7 +924,7 @@ c3nav = {
 
             // how many words from the beginning are in the title
             for (j = 0; j < val_words.length; j++) {
-                val_word = val_words[0];
+                val_word = val_words[j];
                 if (location.title_words[j] !== val_word &&
                     (j !== val_words.length - 1 || location.title_words[j].indexOf(val_word) !== 0)) break;
                 leading_words_count++;
@@ -932,7 +932,7 @@ c3nav = {
 
             // how many words in total can be found
             for (j = 0; j < val_words.length; j++) {
-                val_word = val_words[0];
+                val_word = val_words[j];
                 if (location.match.indexOf(' ' + val_word + ' ') !== -1) {
                     words_total_count++;
                 } else if (location.match.indexOf(' ' + val_word) !== -1) {
