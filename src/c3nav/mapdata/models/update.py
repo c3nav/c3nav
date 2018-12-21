@@ -1,6 +1,7 @@
 import logging
 import os
 import pickle
+import time
 from contextlib import contextmanager, suppress
 from sqlite3 import DatabaseError
 
@@ -121,6 +122,7 @@ class MapUpdate(models.Model):
                     lock_aquired = lock.acquire(blocking=False, blocking_timeout=1800)
                     if not lock_aquired:
                         raise cls.ProcessUpdatesAlreadyRunning
+                    cache.set('mapdata:last_process_updates_start', int(time.time()), None)
                     yield tuple(queryset)
                 finally:
                     if lock_aquired:

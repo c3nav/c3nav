@@ -394,8 +394,13 @@ def map_updates(request):
     if last_processed:
         last_processed = make_aware(datetime.fromtimestamp(last_processed))
 
+    last_processed_start = cache.get('mapdata:last_process_updates_start', None)
+    if last_processed_start:
+        last_processed_start = make_aware(datetime.fromtimestamp(last_processed_start))
+
     return render(request, 'control/map_updates.html', {
         'last_processed': last_processed,
+        'last_processed_start': last_processed_start,
         'last_processed_success': last_processed_success,
         'auto_process_updates': settings.AUTO_PROCESS_UPDATES,
         'map_update_form': map_update_form,

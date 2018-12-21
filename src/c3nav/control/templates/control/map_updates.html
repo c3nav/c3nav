@@ -32,6 +32,12 @@
                         {% endif %}
                         {{ last_processed|date:"SHORT_DATETIME_FORMAT" }}
                     {% endif %}
+                    {% if last_processed_start %}
+                        {% if not last_processed or last_processed < last_processed_start %}
+                            {% trans 'Currently running since:' %}
+                            {{ last_processed_start|date:"SHORT_DATETIME_FORMAT" }}
+                        {% endif %}
+                    {% endif %}
                 </p>
                 <button type="submit" name="process_updates" value="1">{% trans 'Process map updates now' %}</button>
             </form>
