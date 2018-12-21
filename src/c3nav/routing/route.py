@@ -37,12 +37,18 @@ class Route:
             nodes.append(self.destination_addition)
 
         if self.origin_xyz is not None:
-            origin_distance = np.linalg.norm(self.router.nodes[nodes[0][0]].xyz - self.origin_xyz)
+            node = nodes[0][0]
+            if isinstance(node, int):
+                node = self.router.nodes[node]
+            origin_distance = np.linalg.norm(node.xyz - self.origin_xyz)
         else:
             origin_distance = 0
 
         if self.destination_xyz is not None:
-            destination_distance = np.linalg.norm(self.router.nodes[nodes[-1][0]].xyz - self.destination_xyz)
+            node = nodes[-1][0]
+            if isinstance(node, int):
+                node = self.router.nodes[node]
+            destination_distance = np.linalg.norm(node.xyz - self.destination_xyz)
         else:
             destination_distance = 0
 
