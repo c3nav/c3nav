@@ -1167,8 +1167,10 @@ editor = {
         $collector.removeClass('empty').addClass('running');
         editor._wificollector_data = [];
         $collector.find('.count').text(0);
+        if (mobileclient.wificollector_start) mobileclient.wificollector_start();
     },
     _wificollector_stop: function () {
+        if (mobileclient.wificollector_stop) mobileclient.wificollector_stop();
         if (!editor._wificollector_data.length) return editor._wificollector_reset();
         var $collector = $('#sidebar').find('.wificollector');
         $collector.removeClass('running').delay(1000).queue(function(n) {

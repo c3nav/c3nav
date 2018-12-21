@@ -40,4 +40,10 @@ mobileclient = {
         console.log('setUserData');
         console.log(JSON.parse(user_data));
     },
+    wificollector_start: function () {
+        console.log('wificollector_start')
+    },
+    wificollector_stop: function () {
+        console.log('wificollector_stop')
+    },
 };
