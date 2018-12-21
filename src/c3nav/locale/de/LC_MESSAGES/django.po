@@ -2237,7 +2237,7 @@ msgstr "nahe %(area)s"
 #: c3nav/mapdata/utils/locations.py:397
 #, python-format
 msgid "In %(area)s"
-msgstr "Nahe %(area)s"
+msgstr "In %(area)s"
 
 #: c3nav/mapdata/utils/locations.py:401
 #, python-format
