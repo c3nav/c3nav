@@ -26,6 +26,7 @@ from c3nav.mapdata.models.geometry.space import (POI, Area, Column, CrossDescrip
 from c3nav.mapdata.models.level import Level
 from c3nav.mapdata.models.locations import (Location, LocationGroupCategory, LocationRedirect, LocationSlug,
                                             SpecificLocation)
+from c3nav.mapdata.utils.cache import increment_cache_key
 from c3nav.mapdata.utils.locations import (get_location_by_id_for_request, get_location_by_slug_for_request,
                                            searchable_locations_for_request, visible_locations_for_request)
 from c3nav.mapdata.utils.models import get_submodels
@@ -449,11 +450,7 @@ class UpdatesViewSet(GenericViewSet):
             except ValueError:
                 pass
 
-        counter_key = 'api_updates_fetch_requests%s' % ('_cross_origin' if cross_origin is not None else '')
-        try:
-            cache.incr(counter_key)
-        except ValueError:
-            cache.set(counter_key, 0, None)
+        increment_cache_key('api_updates_fetch_requests%s' % ('_cross_origin' if cross_origin is not None else ''))
 
         from c3nav.site.models import SiteUpdate
 
