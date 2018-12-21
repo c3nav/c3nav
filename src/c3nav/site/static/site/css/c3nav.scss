@@ -597,7 +597,7 @@ main.show-options #resultswrapper #route-options {
     position: absolute;
     top: 0;
     left: 1px;
-    content: "search";
+    content: "\e8b6"; /* unicode code point for the "seach" ligature, so android 4.3.3 gets it */
     color: $color-icon-light;
     -webkit-transition: color 150ms;
     -o-transition: color 150ms;

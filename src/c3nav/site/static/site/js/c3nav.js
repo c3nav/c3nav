@@ -38,6 +38,7 @@
 c3nav = {
     init_completed: false,
     init: function () {
+        c3nav.load_material_icons_if_needed();
         c3nav.load_searchable_locations();
 
         $('#messages').find('ul.messages li').each(function() {
@@ -735,7 +736,7 @@ c3nav = {
     },
     _build_location_html: function(location) {
         html = $('<div class="location">')
-            .append($('<i class="icon material-icons">').text(location.icon || 'place'))
+            .append($('<i class="icon material-icons">').text(c3nav._map_material_icon(location.icon || 'place')))
             .append($('<span>').text(location.title))
             .append($('<small>').text(location.subtitle)).attr('data-id', location.id);
         html.attr('data-location', JSON.stringify(location));
@@ -747,7 +748,7 @@ c3nav = {
         c3nav._locationinput_reset_autocomplete();
         elem.toggleClass('selected', !!location).toggleClass('empty', !location)
             .data('location', location).data('lastlocation', location).removeData('suggestion');
-        elem.find('.icon').text(location ? (location.icon || 'place') : '');
+        elem.find('.icon').text(location ? c3nav._map_material_icon(location.icon || 'place') : '');
         elem.find('input').val(location ? location.title : '').removeData('origval');
         elem.find('small').text(location ? location.subtitle : '');
     },
@@ -1343,7 +1344,7 @@ c3nav = {
             c3nav._userLocationLayers[id].clearLayers();
         }
         if (location) {
-            $('.locationinput .locate, .leaflet-control-user-location a').text('my_location');
+            $('.locationinput .locate, .leaflet-control-user-location a').text(c3nav._map_material_icon('my_location'));
             var latlng = L.GeoJSON.coordsToLatLng(location.geometry.coordinates),
                 layer = c3nav._userLocationLayers[location.level];
             L.circleMarker(latlng, {
@@ -1357,9 +1358,9 @@ c3nav = {
                 fillOpacity: 1
             }).addTo(layer);
         } else if (c3nav.hasLocationPermission()) {
-            $('.locationinput .locate, .leaflet-control-user-location a').text('location_searching');
+            $('.locationinput .locate, .leaflet-control-user-location a').text(c3nav._map_material_icon('location_searching'));
         } else {
-            $('.locationinput .locate, .leaflet-control-user-location a').text('location_disabled');
+            $('.locationinput .locate, .leaflet-control-user-location a').text(c3nav._map_material_icon('location_disabled'));
         }
     },
     _goto_user_location_click: function (e) {
@@ -1375,6 +1376,36 @@ c3nav = {
             c3nav._levelControl.setLevel(c3nav._current_user_location.level);
             c3nav.map.flyTo(L.GeoJSON.coordsToLatLng(c3nav._current_user_location.geometry.coordinates), 4, { duration: 1 });
         }
+    },
+
+    _material_icons_codepoints: null,
+    load_material_icons_if_needed: function() {
+        // load material icons codepoint for android 4.3.3 and other heccing old browsers
+        var elem = document.createElement('span');
+        elem.style.fontFeatureSettings = '"liga" 1';
+        if (!elem.style.fontFeatureSettings) {
+            $.get('/static/material-icons/codepoints', c3nav._material_icons_loaded);
+        }
+    },
+    _material_icons_loaded: function(data) {
+        var lines = data.split("\n"),
+            line, result = {};
+
+        for (var i=0;i<lines.length;i++) {
+            line = lines[i].split(' ');
+            if (line.length === 2) {
+                result[line[0]] = String.fromCharCode(parseInt(line[1], 16));
+            }
+        }
+        c3nav._material_icons_codepoints = result;
+        $('.material-icons').each(function() {
+            console.log('a');
+            $(this).text(c3nav._map_material_icon($(this).text()));
+        });
+    },
+    _map_material_icon: function(name) {
+        if (c3nav._material_icons_codepoints === null) return name;
+        return c3nav._material_icons_codepoints[name] || '';
     }
 };
 $(document).ready(c3nav.init);
@@ -1496,7 +1527,7 @@ SquareGridControl = L.Control.extend({
         this._container = L.DomUtil.create('div', 'leaflet-control-grid-layer leaflet-bar ' + this.options.addClasses);
         this._button = L.DomUtil.create('a', 'material-icons', this._container);
         $(this._button).click(this.toggleGrid).dblclick(function(e) { e.stopPropagation(); });
-        this._button.innerHTML = 'grid_off';
+        this._button.innerText = c3nav._map_material_icon('grid_off');
         this._button.href = '#';
         this._button.style.color = '#BBBBBB';
         this.gridActive = false;
@@ -1518,7 +1549,7 @@ SquareGridControl = L.Control.extend({
     showGrid: function() {
         if (this.gridActive) return;
         c3nav._gridLayer.addTo(c3nav.map);
-        this._button.innerHTML = 'grid_on';
+        this._button.innerText = c3nav._map_material_icon('grid_on');
         this._button.style.color = '';
         this.gridActive = true;
         if (localStorage) localStorage.setItem('showGrid', true);
@@ -1527,7 +1558,7 @@ SquareGridControl = L.Control.extend({
     hideGrid: function() {
         if (!this.gridActive) return;
         c3nav._gridLayer.remove();
-        this._button.innerHTML = 'grid_off';
+        this._button.innerText = c3nav._map_material_icon('grid_off');
         this._button.style.color = '#BBBBBB';
         this.gridActive = false;
         if (localStorage) localStorage.removeItem('showGrid');
