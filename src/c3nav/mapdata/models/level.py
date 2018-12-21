@@ -96,3 +96,6 @@ class Level(SpecificLocation, models.Model):
     def bounds(self):
         return cascaded_union(tuple(item.geometry.buffer(0)
                                     for item in chain(self.altitudeareas.all(), self.buildings.all()))).bounds
+
+    def get_icon(self):
+        return super().get_icon() or 'layers'
