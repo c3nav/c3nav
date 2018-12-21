@@ -1551,7 +1551,7 @@ UserLocationControl = L.Control.extend({
     onAdd: function () {
         this._container = L.DomUtil.create('div', 'leaflet-control-user-location leaflet-bar ' + this.options.addClasses);
         this._button = L.DomUtil.create('a', 'material-icons', this._container);
-        this._button.innerHTML = c3nav.hasLocationPermission() ? 'location_searching' : 'location_disabled';
+        this._button.innerHTML = c3nav._map_material_icon(c3nav.hasLocationPermission() ? 'location_searching' : 'location_disabled');
         this._button.href = '#';
         this.currentLevel = null;
         return this._container;
