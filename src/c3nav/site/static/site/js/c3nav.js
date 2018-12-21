@@ -61,8 +61,11 @@ c3nav = {
     },
     _searchable_locations_timer: null,
     load_searchable_locations: function() {
+        c3nav._searchable_locations_timer = null;
         $.getJSON('/api/locations/?searchable', c3nav._searchable_locations_loaded).fail(function() {
-            c3nav._searchable_locations_timer = window.setTimeout(c3nav.load_searchable_locations, c3nav.init_completed ? 300000 : 15000);
+            if(c3nav._searchable_locations_timer === null) {
+                c3nav._searchable_locations_timer = window.setTimeout(c3nav.load_searchable_locations, c3nav.init_completed ? 300000 : 15000);
+            }
         });
     },
     _last_time_searchable_locations_loaded: null,
@@ -85,7 +88,9 @@ c3nav = {
         if (!c3nav.init_completed) {
             c3nav.continue_init();
         }
-        c3nav._searchable_locations_timer = window.setTimeout(c3nav.load_searchable_locations, c3nav._searchable_locations_interval);
+        if (c3nav._searchable_locations_timer === null) {
+            c3nav._searchable_locations_timer = window.setTimeout(c3nav.load_searchable_locations, c3nav._searchable_locations_interval);
+        }
     },
     continue_init: function() {
         c3nav.init_map();
@@ -1254,10 +1259,13 @@ c3nav = {
 
     _fetch_updates_timer: null,
     schedule_fetch_updates: function (timeout) {
-        c3nav._fetch_updates_timer = window.setTimeout(c3nav.fetch_updates, timeout || 20000);
+        if (c3nav._fetch_updates_timer === null) {
+            c3nav._fetch_updates_timer = window.setTimeout(c3nav.fetch_updates, timeout || 20000);
+        }
     },
     _fetch_updates_failure_count: 0,
     fetch_updates: function () {
+        c3nav._fetch_updates_timer = null;
         $.get('/api/updates/fetch/', c3nav._fetch_updates_callback).fail(function() {
             c3nav._fetch_updates_failure_count++;
             waittime = Math.min(5 + c3nav._fetch_updates_failure_count * 5, 120);
@@ -1305,10 +1313,15 @@ c3nav = {
 
     _wifiScanningTimer: null,
     startWifiScanning: function() {
-        c3nav._wifiScanningTimer = window.setInterval(function() { mobileclient.scanNow(); }, 4000);
+        if (c3nav._wifiScanningTimer == null) {
+            c3nav._wifiScanningTimer = window.setInterval(function() { mobileclient.scanNow(); }, 4000);
+        }
     },
     stopWifiScanning: function() {
-        window.clearInterval(c3nav._wifiScanningTimer);
+        if (c3nav._wifiScanningTimer !== null) {
+            window.clearInterval(c3nav._wifiScanningTimer);
+            c3nav._wifiScanningTimer = null;
+        }
     },
 
     _last_wifi_scant: 0,
@@ -1450,7 +1463,9 @@ function mobileclientOnPause() {
 }
 
 function mobileclientOnResume() {
-    c3nav.fetch_updates();
+    if (c3nav._fetch_updates_timer === null) {
+        c3nav.fetch_updates();
+    }
     c3nav.startWifiScanning();
     if (c3nav._last_time_searchable_locations_loaded === null) {
         scheduled_load_in = c3nav._last_time_searchable_locations_loaded + c3nav._searchable_locations_interval - Date.now();
