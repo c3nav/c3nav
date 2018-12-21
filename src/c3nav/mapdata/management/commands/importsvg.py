@@ -161,6 +161,10 @@ class Command(BaseCommand):
             for clippath in element.findall('./svg:clipPath', namespaces):
                 element.remove(clippath)
 
+        for element in svg.findall('.//svg:symbol/..', namespaces):
+            for clippath in element.findall('./svg:symbol', namespaces):
+                element.remove(clippath)
+
         if svg.findall('.//*[@transform]'):
             raise CommandError(_('svg contains transform attributes. Use inkscape apply transforms.'))
 
