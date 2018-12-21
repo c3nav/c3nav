@@ -172,7 +172,7 @@ class LevelGeometries:
             for access_restriction, areas in tuple(color_group.items()):
                 color_group[access_restriction] = unary_union(areas)
 
-        colors = {color: geometry for color, geometry in sorted(colors.items(), key=lambda v: v[0][0], reverse=True)}
+        colors = {color: geometry for color, geometry in sorted(colors.items(), key=lambda v: v[0][0])}
 
         # add altitudegroup geometries and split ground colors into them
         for altitudearea in level.altitudeareas.all():
