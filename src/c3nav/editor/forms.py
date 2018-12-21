@@ -98,7 +98,7 @@ class EditorFormBase(I18nModelFormMixin, ModelForm):
             LocationGroupCategory = self.request.changeset.wrap_model('LocationGroupCategory')
 
             kwargs = {'allow_'+self._meta.model._meta.default_related_name: True}
-            categories = LocationGroupCategory.objects.filter(**kwargs).prefetch_related('groups').order_by('priority')
+            categories = LocationGroupCategory.objects.filter(**kwargs).prefetch_related('groups')
             if self.instance.pk:
                 instance_groups = tuple(self.instance.groups.values_list('pk', flat=True))
             else:
