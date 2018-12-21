@@ -95,7 +95,7 @@ class Location(LocationSlug, AccessRestrictionMixin, TitledMixin, models.Model):
     def _serialize(self, **kwargs):
         result = super()._serialize(**kwargs)
         result['subtitle'] = str(self.subtitle)
-        result['icon'] = self.icon
+        result['icon'] = self.get_icon()
         result['can_search'] = self.can_search
         result['can_describe'] = self.can_search
         return result
@@ -203,11 +203,12 @@ class SpecificLocation(Location, models.Model):
 
     def get_icon(self):
         icon = super().get_icon()
-        if not icon:
-            for group in self.groups.all():
-                if group.icon and getattr(group.category, 'allow_' + self.__class__._meta.default_related_name):
-                    return group.icon
-        return icon
+        if icon:
+            return icon
+        for group in self.groups.all():
+            if group.icon and getattr(group.category, 'allow_' + self.__class__._meta.default_related_name):
+                return group.icon
+        return None
 
 
 class LocationGroupCategory(SerializableMixin, models.Model):
