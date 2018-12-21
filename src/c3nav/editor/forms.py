@@ -107,7 +107,8 @@ class EditorFormBase(I18nModelFormMixin, ModelForm):
             self.fields.pop('groups')
 
             for category in categories:
-                choices = tuple((str(group.pk), group.title) for group in category.groups.all())
+                choices = tuple((str(group.pk), group.title)
+                                for group in sorted(category.groups.all(), key=self.sort_group))
                 category_groups = set(group.pk for group in category.groups.all())
                 initial = tuple(str(pk) for pk in instance_groups if pk in category_groups)
                 if category.single:
@@ -191,6 +192,10 @@ class EditorFormBase(I18nModelFormMixin, ModelForm):
         self.is_json = is_json
         self.missing_fields = tuple((name, field) for name, field in self.fields.items()
                                     if name not in self.data and not field.required)
+
+    @staticmethod
+    def sort_group(group):
+        return (-group.priority, group.title)
 
     def clean_redirect_slugs(self):
         old_redirect_slugs = set(self.redirect_slugs)
