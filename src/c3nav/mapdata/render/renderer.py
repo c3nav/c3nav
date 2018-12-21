@@ -93,7 +93,7 @@ class MapRenderer:
                                     category='ground', item=i)
 
                 j = 0
-                for color, areas in altitudearea.colors.items():
+                for (order, color), areas in altitudearea.colors.items():
                     # only select ground colors if their access restriction is unlocked
                     areas = tuple(area for access_restriction, area in areas.items()
                                   if access_restriction in access_permissions)

@@ -126,11 +126,16 @@ class Location(LocationSlug, AccessRestrictionMixin, TitledMixin, models.Model):
 
     def get_color(self, instance=None):
         # dont filter in the query here so prefetch_related works
+        result = self.get_color_sorted(instance)
+        return None if result is None else result[1]
+
+    def get_color_sorted(self, instance=None):
+        # dont filter in the query here so prefetch_related works
         if instance is None:
             instance = self
         for group in instance.groups.all():
             if group.color and getattr(group.category, 'allow_'+self.__class__._meta.default_related_name):
-                return group.color
+                return (0, group.category.priority, group.priority), group.color
         return None
 
     def get_icon(self):

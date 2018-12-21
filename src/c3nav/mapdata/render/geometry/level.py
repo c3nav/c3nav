@@ -127,14 +127,14 @@ class LevelGeometries:
                         buffered.difference(buildings_geom)
                     )
 
-            colors.setdefault(space.get_color(), {}).setdefault(access_restriction, []).append(space.geometry)
+            colors.setdefault(space.get_color_sorted(), {}).setdefault(access_restriction, []).append(space.geometry)
 
             for area in space.areas.all():
                 access_restriction = area.access_restriction_id or space.access_restriction_id
                 area.geometry = area.geometry.intersection(space.walkable_geom)
                 if access_restriction is not None:
                     access_restriction_affected.setdefault(access_restriction, []).append(area.geometry)
-                colors.setdefault(area.get_color(), {}).setdefault(access_restriction, []).append(area.geometry)
+                colors.setdefault(area.get_color_sorted(), {}).setdefault(access_restriction, []).append(area.geometry)
 
             for column in space.columns.all():
                 access_restriction = column.access_restriction_id
@@ -171,6 +171,8 @@ class LevelGeometries:
         for color, color_group in colors.items():
             for access_restriction, areas in tuple(color_group.items()):
                 color_group[access_restriction] = unary_union(areas)
+
+        colors = {color: geometry for color, geometry in sorted(colors.items(), key=lambda v: v[0][0], reverse=True)}
 
         # add altitudegroup geometries and split ground colors into them
         for altitudearea in level.altitudeareas.all():
