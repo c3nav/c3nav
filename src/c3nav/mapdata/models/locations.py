@@ -79,6 +79,7 @@ class LocationSlug(SerializableMixin, models.Model):
 class Location(LocationSlug, AccessRestrictionMixin, TitledMixin, models.Model):
     can_search = models.BooleanField(default=True, verbose_name=_('can be searched'))
     can_describe = models.BooleanField(default=True, verbose_name=_('can describe'))
+    icon = models.CharField(_('icon'), max_length=32, null=True, blank=True, help_text=_('any material icons name'))
 
     class Meta:
         abstract = True
@@ -86,7 +87,7 @@ class Location(LocationSlug, AccessRestrictionMixin, TitledMixin, models.Model):
     def serialize(self, detailed=True, describe_only=False, **kwargs):
         result = super().serialize(detailed=detailed, **kwargs)
         if not detailed:
-            fields = ('id', 'type', 'slug', 'title', 'subtitle', 'point', 'bounds', 'grid_square',
+            fields = ('id', 'type', 'slug', 'title', 'subtitle', 'icon', 'point', 'bounds', 'grid_square',
                       'locations', 'on_top_of')
             result = OrderedDict(((name, result[name]) for name in fields if name in result))
         return result
@@ -94,6 +95,7 @@ class Location(LocationSlug, AccessRestrictionMixin, TitledMixin, models.Model):
     def _serialize(self, **kwargs):
         result = super()._serialize(**kwargs)
         result['subtitle'] = str(self.subtitle)
+        result['icon'] = self.icon
         result['can_search'] = self.can_search
         result['can_describe'] = self.can_search
         return result
@@ -102,7 +104,8 @@ class Location(LocationSlug, AccessRestrictionMixin, TitledMixin, models.Model):
         result = super().details_display(**kwargs)
         result['display'].extend([
             (_('searchable'), _('Yes') if self.can_search else _('No')),
-            (_('can describe'), _('Yes') if self.can_describe else _('No'))
+            (_('can describe'), _('Yes') if self.can_describe else _('No')),
+            (_('icon'), self.get_icon()),
         ])
         return result
 
@@ -129,6 +132,9 @@ class Location(LocationSlug, AccessRestrictionMixin, TitledMixin, models.Model):
             if group.color and getattr(group.category, 'allow_'+self.__class__._meta.default_related_name):
                 return group.color
         return None
+
+    def get_icon(self):
+        return self.icon or None
 
 
 class SpecificLocation(Location, models.Model):
@@ -194,6 +200,13 @@ class SpecificLocation(Location, models.Model):
         if not groups:
             return (0, 0, 0)
         return (0, groups[0].category.priority, groups[0].priority)
+
+    def get_icon(self):
+        icon = super().get_icon()
+        if not icon:
+            for group in self.groups.all():
+                if group.icon and getattr(group.category, 'allow_' + self.__class__._meta.default_related_name):
+                    return group.icon
 
 
 class LocationGroupCategory(SerializableMixin, models.Model):
