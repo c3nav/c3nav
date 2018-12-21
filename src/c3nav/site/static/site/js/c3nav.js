@@ -1394,9 +1394,14 @@ c3nav = {
     _material_icons_codepoints: null,
     load_material_icons_if_needed: function() {
         // load material icons codepoint for android 4.3.3 and other heccing old browsers
-        var elem = document.createElement('span');
-        elem.style.fontFeatureSettings = '"liga" 1';
-        if (!elem.style.fontFeatureSettings) {
+        var elem = document.createElement('span'),
+            before = elem.style.fontFeatureSettings,
+            ligaturesSupported = false;
+        if (before !== undefined) {
+            elem.style.fontFeatureSettings = '"liga" 1';
+            ligaturesSupported = (elem.style.fontFeatureSettings !== before);
+        }
+        if (!ligaturesSupported) {
             $.get('/static/material-icons/codepoints', c3nav._material_icons_loaded);
         }
     },
