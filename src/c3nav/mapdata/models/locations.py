@@ -207,6 +207,7 @@ class SpecificLocation(Location, models.Model):
             for group in self.groups.all():
                 if group.icon and getattr(group.category, 'allow_' + self.__class__._meta.default_related_name):
                     return group.icon
+        return icon
 
 
 class LocationGroupCategory(SerializableMixin, models.Model):
