@@ -86,6 +86,12 @@ class EditorViewSet(EditorViewSetMixin, ViewSet):
         levels = chain([level.pk], levels_under, levels_on_top)
         return levels, levels_on_top, levels_under
 
+    @staticmethod
+    def area_sorting_func(area):
+        for group in area.groups.all():
+            return (1, group.priority, group.category.priority)
+        return (0, 0, 0)
+
     # noinspection PyPep8Naming
     @action(detail=False, methods=['get'])
     @api_etag(etag_func=etag_func, cache_parameters={'level': str, 'space': str})
@@ -226,6 +232,7 @@ class EditorViewSet(EditorViewSetMixin, ViewSet):
             areas = space.areas.filter(Area.q_for_request(request)).prefetch_related('groups')
             for area in areas:
                 area.opacity = 0.5
+            areas = sorted(areas, key=self.area_sorting_func)
 
             results = chain(
                 buildings,
