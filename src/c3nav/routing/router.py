@@ -603,7 +603,7 @@ class RouterAltitudeArea:
             for node in self.nodes:
                 node = all_nodes[node]
                 line = LineString([(node.x, node.y), (point.x, point.y)])
-                if line.length < 5 and not self.clear_geometry_prep.intersects(line):
+                if line.length < 10 and not self.clear_geometry_prep.intersects(line):
                     nodes[node.i] = (None, None)
             if not nodes:
                 nearest_node = min(tuple(all_nodes[node] for node in self.nodes),
