@@ -29,10 +29,10 @@ def process_map_updates(self):
             logger.info('Processing is already running, retrying in 30 seconds.')
             raise self.retry(countdown=30)
         except Exception:
-            cache.set('mapdata:last_process_updates_run', (int(time.time()), False))
+            cache.set('mapdata:last_process_updates_run', (int(time.time()), False), None)
             raise
         else:
-            cache.set('mapdata:last_process_updates_run', (int(time.time()), True))
+            cache.set('mapdata:last_process_updates_run', (int(time.time()), True), None)
     except MaxRetriesExceededError:
         logger.info('Cannot retry, retries exceeded. Exiting.')
         return
