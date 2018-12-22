@@ -33,10 +33,10 @@ class GeometryMixin(SerializableMixin):
                       if field.name in geometry_affecting_fields}
 
     def get_geojson_properties(self, *args, **kwargs) -> dict:
-        result = OrderedDict((
-            ('type', self.__class__.__name__.lower()),
-            ('id', self.pk),
-        ))
+        result = {
+            'type': self.__class__.__name__.lower(),
+            'id': self.id
+        }
         if getattr(self, 'bounds', False):
             result['bounds'] = True
         return result
