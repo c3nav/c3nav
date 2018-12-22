@@ -16,6 +16,11 @@ def get_face_indizes(start, length):
 
 
 def triangulate_rings(rings, holes=None):
+    return (
+        np.zeros((0, 2), dtype=np.uint32),
+        np.zeros((0, 3), dtype=np.uint32),
+    )
+
     rings = tuple(
         tuple(tuple(vertex) for vertex in np.rint(np.array(ring.coords)*1000).astype(np.int32))
         for ring in rings
