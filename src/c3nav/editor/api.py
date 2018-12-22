@@ -100,6 +100,7 @@ class EditorViewSet(EditorViewSetMixin, ViewSet):
         Space = request.changeset.wrap_model('Space')
         Column = request.changeset.wrap_model('Column')
         Door = request.changeset.wrap_model('Door')
+        LocationGroup = request.changeset.wrap_model('LocationGroup')
 
         level = request.GET.get('level')
         space = request.GET.get('space')
@@ -179,8 +180,13 @@ class EditorViewSet(EditorViewSetMixin, ViewSet):
                 levels, levels_on_top, levels_under = self._get_levels_pk(request, level.primary_level)
                 if level.on_top_of_id is not None:
                     levels = chain([level.pk], levels_on_top)
-                other_spaces = Space.objects.filter(space_q_for_request,
-                                                    level__pk__in=levels).prefetch_related('groups')
+                other_spaces = Space.objects.filter(space_q_for_request, level__pk__in=levels).only(
+                    'geometry', 'level'
+                ).prefetch_related(
+                    Prefetch('groups', LocationGroup.objects.only(
+                        'color', 'category', 'priority', 'category__priority', 'category__allow_spaces'
+                    ))
+                )
 
                 space = next(s for s in other_spaces if s.pk == space.pk)
                 other_spaces = [s for s in other_spaces
@@ -224,13 +230,23 @@ class EditorViewSet(EditorViewSetMixin, ViewSet):
                 space_graphnodes = tuple(node for node in graphnodes if node.space_id == space.pk)
 
                 graphedges = request.changeset.wrap_model('GraphEdge').objects.all()
-                graphedges = graphedges.filter(Q(from_node__in=space_graphnodes) | Q(to_node__in=space_graphnodes))
-                graphedges = graphedges.select_related('from_node', 'to_node', 'waytype')
+                space_graphnodes_ids = tuple(node.pk for node in space_graphnodes)
+                graphedges = graphedges.filter(Q(from_node__pk__in=space_graphnodes_ids) |
+                                               Q(to_node__pk__in=space_graphnodes_ids))
+                graphedges = graphedges.select_related('from_node', 'to_node', 'waytype').only(
+                    'from_node__geometry', 'to_node__geometry', 'waytype__color'
+                )
             else:
                 graphnodes = []
                 graphedges = []
 
-            areas = space.areas.filter(Area.q_for_request(request)).prefetch_related('groups')
+            areas = space.areas.filter(Area.q_for_request(request)).only(
+                'geometry', 'space'
+            ).prefetch_related(
+                Prefetch('groups', LocationGroup.objects.only(
+                    'color', 'category', 'priority', 'category__priority', 'category__allow_areas'
+                ))
+            )
             for area in areas:
                 area.opacity = 0.5
             areas = sorted(areas, key=self.area_sorting_func)
@@ -249,8 +265,12 @@ class EditorViewSet(EditorViewSetMixin, ViewSet):
                 space.lineobstacles.all(),
                 space.columns.all(),
                 space.altitudemarkers.all(),
-                space.wifi_measurements.all(),
-                space.pois.filter(POI.q_for_request(request)).prefetch_related('groups'),
+                space.wifi_measurements.all().only('geometry'),
+                space.pois.filter(POI.q_for_request(request)).only('geometry', 'space').prefetch_related(
+                    Prefetch('groups', LocationGroup.objects.only(
+                        'color', 'category', 'priority', 'category__priority', 'category__allow_pois'
+                    ))
+                ),
                 other_spaces_upper,
                 graphedges,
                 graphnodes
