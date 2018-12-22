@@ -85,6 +85,8 @@ class GeometryField(models.TextField):
 
     def get_final_value(self, value, as_json=False):
         json_value = format_geojson(mapping(value))
+        if value.is_empty:
+            return json_value
         rounded_value = shape(json_value)
 
         shapely_logger.setLevel('ERROR')
