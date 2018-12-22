@@ -69,7 +69,6 @@ def unwrap_geometry(geometry):
 
 def smart_mapping(geometry):
     if hasattr(geometry, 'wrapped_geojson'):
-        print('being smart!')
         return geometry.wrapped_geojson
     return shapely_mapping(geometry)
 
