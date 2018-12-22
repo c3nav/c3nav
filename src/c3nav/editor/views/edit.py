@@ -139,9 +139,6 @@ def edit(request, pk=None, model=None, level=None, space=None, on_top_of=None, e
 
     can_edit = request.changeset.can_edit(request)
 
-    if pk is None and not request.user_permissions.can_access_base_mapdata:
-        raise PermissionDenied
-
     obj = None
     edit_utils = DefaultEditUtils(request)
     if pk is not None:
