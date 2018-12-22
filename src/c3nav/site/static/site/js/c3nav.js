@@ -1350,6 +1350,7 @@ c3nav = {
 
         if (!data.length) {
             c3nav._set_user_location(null);
+            return;
         }
 
         $.post({
