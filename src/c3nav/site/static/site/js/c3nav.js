@@ -1304,8 +1304,8 @@ c3nav = {
     },
 
     _hasLocationPermission: undefined,
-    hasLocationPermission: function() {
-        if (c3nav._hasLocationPermission === undefined) {
+    hasLocationPermission: function(nocache) {
+        if (c3nav._hasLocationPermission === undefined || (nocache !== undefined && nocache === true)) {
             c3nav._hasLocationPermission = window.mobileclient && (typeof window.mobileclient.hasLocationPermission !== 'function' || window.mobileclient.hasLocationPermission())
         }
         return c3nav._hasLocationPermission;
@@ -1327,11 +1327,16 @@ c3nav = {
     _last_wifi_scant: 0,
 
     _wifi_scan_results: function(data) {
-        c3nav._hasLocationPermission = true;
+        data = JSON.parse(data);
+
+        if (data.length) {
+            c3nav._hasLocationPermission = true;
+        } else {
+            c3nav.hasLocationPermission(true);
+        }
+
         var now = Date.now();
         if (now-4000 < c3nav._last_wifi_scan) return;
-
-        data = JSON.parse(data);
 
         if (c3nav.ssids) {
             var newdata = [];
