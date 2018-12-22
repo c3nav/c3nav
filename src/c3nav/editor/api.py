@@ -229,7 +229,7 @@ class EditorViewSet(EditorViewSetMixin, ViewSet):
                 graphnodes = []
                 graphedges = []
 
-            areas = space.areas.filter(Area.q_for_request(request)).prefetch_related('groups')
+            areas = space.areas.filter(Area.q_for_request(request)).prefetch_related('groups', 'groups__category')
             for area in areas:
                 area.opacity = 0.5
             areas = sorted(areas, key=self.area_sorting_func)
