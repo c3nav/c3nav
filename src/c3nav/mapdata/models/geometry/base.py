@@ -4,11 +4,11 @@ from collections import OrderedDict
 from django.db import models
 from django.utils.functional import cached_property
 from django.utils.translation import ugettext_lazy as _
-from shapely.geometry import Point, box, mapping
+from shapely.geometry import Point, box
 from shapely.ops import unary_union
 
 from c3nav.mapdata.models.base import SerializableMixin
-from c3nav.mapdata.utils.geometry import assert_multipolygon, good_representative_point
+from c3nav.mapdata.utils.geometry import assert_multipolygon, good_representative_point, smart_mapping
 from c3nav.mapdata.utils.json import format_geojson
 
 geometry_affecting_fields = ('height', 'width', 'access_restriction')
@@ -45,11 +45,11 @@ class GeometryMixin(SerializableMixin):
         result = OrderedDict((
             ('type', 'Feature'),
             ('properties', self.get_geojson_properties(instance=instance)),
-            ('geometry', format_geojson(mapping(self.geometry), round=False)),
+            ('geometry', format_geojson(smart_mapping(self.geometry), round=False)),
         ))
         original_geometry = getattr(self, 'original_geometry', None)
         if original_geometry:
-            result['original_geometry'] = format_geojson(mapping(original_geometry), round=False)
+            result['original_geometry'] = format_geojson(smart_mapping(original_geometry), round=False)
         return result
 
     @classmethod
@@ -72,7 +72,7 @@ class GeometryMixin(SerializableMixin):
     def _serialize(self, geometry=True, simple_geometry=False, **kwargs):
         result = super()._serialize(simple_geometry=simple_geometry, **kwargs)
         if geometry:
-            result['geometry'] = format_geojson(mapping(self.geometry), round=False)
+            result['geometry'] = format_geojson(smart_mapping(self.geometry), round=False)
         if simple_geometry:
             result['point'] = (self.level_id, ) + tuple(round(i, 2) for i in self.point.coords[0])
             if not isinstance(self.geometry, Point):
@@ -84,9 +84,9 @@ class GeometryMixin(SerializableMixin):
     def details_display(self, detailed_geometry=True, **kwargs):
         result = super().details_display(**kwargs)
         if detailed_geometry:
-            result['geometry'] = format_geojson(mapping(self.geometry), round=False)
+            result['geometry'] = format_geojson(smart_mapping(self.geometry), round=False)
         else:
-            result['geometry'] = format_geojson(mapping(box(*self.geometry.bounds)), round=False)
+            result['geometry'] = format_geojson(smart_mapping(box(*self.geometry.bounds)), round=False)
         return result
 
     def get_shadow_geojson(self):

@@ -14,7 +14,7 @@ from shapely import validation
 from shapely.geometry import LineString, MultiPolygon, Point, Polygon, mapping, shape
 from shapely.geometry.base import BaseGeometry
 
-from c3nav.mapdata.utils.geometry import clean_geometry
+from c3nav.mapdata.utils.geometry import WrappedGeometry, clean_geometry
 from c3nav.mapdata.utils.json import format_geojson
 
 logger = logging.getLogger('c3nav')
@@ -52,7 +52,7 @@ class GeometryField(models.TextField):
     def from_db_value(self, value, expression, connection):
         if value is None:
             return value
-        return shape(json.loads(value))
+        return WrappedGeometry(json.loads(value))
 
     def to_python(self, value):
         if value is None or value == '':

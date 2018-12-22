@@ -6,10 +6,13 @@ from typing import List, Sequence, Union
 
 import matplotlib.pyplot as plt
 from django.core import checks
+from django.utils.functional import cached_property
 from matplotlib.patches import PathPatch
 from matplotlib.path import Path
 from shapely import prepared, speedups
 from shapely.geometry import GeometryCollection, LinearRing, LineString, MultiLineString, MultiPolygon, Point, Polygon
+from shapely.geometry import mapping as shapely_mapping
+from shapely.geometry import shape as shapely_shape
 
 if speedups.available:
     speedups.enable()
@@ -27,6 +30,48 @@ def check_speedups(app_configs, **kwargs):
             )
         )
     return errors
+
+
+class WrappedGeometry():
+    picklable = False
+    wrapped_geojson = None
+
+    def __init__(self, geojson):
+        self.wrapped_geojson = geojson
+
+    @cached_property
+    def wrapped_geom(self):
+        return shapely_shape(self.wrapped_geojson)
+
+    def __getattr__(self, name):
+        if name in ('__getstate__'):
+            self.picklable = True
+            # make sure geometry is cached
+            if self.wrapped_geojson:
+                # noinspection PyStatementEffect
+                self.wrapped_geom
+            raise AttributeError
+        if name in ('__reduce__', '__getstate__', '__setstate__', '__reduce_ex__',
+                    '__getnewargs__', '__getnewargs_ex__'):
+            raise AttributeError
+        return getattr(self.wrapped_geom, name)
+
+    @property
+    def __class__(self):
+        result = WrappedGeometry if self.picklable else self.wrapped_geom.__class__
+        self.__dict__.pop('picklable', None)
+        return result
+
+
+def unwrap_geometry(geometry):
+    return getattr(geometry, 'geom', geometry)
+
+
+def smart_mapping(geometry):
+    if hasattr(geometry, 'wrapped_geojson'):
+        print('being smart!')
+        return geometry.wrapped_geojson
+    return shapely_mapping(geometry)
 
 
 def clean_geometry(geometry):
