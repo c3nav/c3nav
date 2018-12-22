@@ -137,7 +137,7 @@ editor = {
 
         $('#sidebar').addClass('loading').find('.content').html('');
         editor._cancel_editing();
-        if (mobileclient && mobileclient.wificollectorStop && $('#sidebar').find('.wificollector.running').length) {
+        if (window.mobileclient && mobileclient.wificollectorStop && $('#sidebar').find('.wificollector.running').length) {
             mobileclient.wificollectorStop();
         }
     },
