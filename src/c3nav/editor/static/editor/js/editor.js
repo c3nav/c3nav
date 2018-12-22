@@ -137,6 +137,9 @@ editor = {
 
         $('#sidebar').addClass('loading').find('.content').html('');
         editor._cancel_editing();
+        if (mobileclient.wificollectorStop && $('#sidebar').find('.wificollector.running').length) {
+            mobileclient.wificollectorStop();
+        }
     },
     _fill_level_control: function (level_control, level_list) {
         var levels = level_list.find('a');
