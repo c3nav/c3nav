@@ -135,11 +135,12 @@ editor = {
             editor._fixed_point_layer = null;
         }
 
-        $('#sidebar').addClass('loading').find('.content').html('');
-        editor._cancel_editing();
         if (window.mobileclient && mobileclient.wificollectorStop && $('#sidebar').find('.wificollector.running').length) {
             mobileclient.wificollectorStop();
         }
+        
+        $('#sidebar').addClass('loading').find('.content').html('');
+        editor._cancel_editing();
     },
     _fill_level_control: function (level_control, level_list) {
         var levels = level_list.find('a');
