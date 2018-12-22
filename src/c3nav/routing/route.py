@@ -38,7 +38,7 @@ class Route:
 
         if self.origin_xyz is not None:
             node = nodes[0][0]
-            if isinstance(node, int):
+            if not hasattr(node, 'xyz'):
                 node = self.router.nodes[node]
             origin_distance = np.linalg.norm(node.xyz - self.origin_xyz)
         else:
@@ -46,7 +46,7 @@ class Route:
 
         if self.destination_xyz is not None:
             node = nodes[-1][0]
-            if isinstance(node, int):
+            if not hasattr(node, 'xyz'):
                 node = self.router.nodes[node]
             destination_distance = np.linalg.norm(node.xyz - self.destination_xyz)
         else:
