@@ -1,4 +1,3 @@
-from collections import OrderedDict
 from decimal import Decimal
 
 from django.core.validators import MinValueValidator
@@ -25,6 +24,10 @@ class GraphNode(SpaceGeometryMixin, models.Model):
     def get_geojson_properties(self, *args, **kwargs) -> dict:
         result = super().get_geojson_properties(*args, **kwargs)
         return result
+
+    @property
+    def coords(self):
+        return self.geometry.wrapped_geojson['coordinates']
 
 
 class WayType(SerializableMixin, models.Model):
@@ -70,19 +73,19 @@ class GraphEdge(AccessRestrictionMixin, models.Model):
         unique_together = (('from_node', 'to_node'), )
 
     def to_geojson(self, instance=None) -> dict:
-        result = OrderedDict((
-            ('type', 'Feature'),
-            ('properties', OrderedDict((
-                ('id', self.pk),
-                ('type', 'graphedge'),
-                ('from_node', self.from_node_id),
-                ('to_node', self.to_node_id),
-            ))),
-            ('geometry', {
+        result = {
+            'type': 'Feature',
+            'properties': {
+                'id': self.pk,
+                'type': 'graphedge',
+                'from_node': self.from_node_id,
+                'to_node': self.to_node_id,
+            },
+            'geometry': {
                 'type': 'LineString',
-                'coordinates': (self.from_node.geometry.coords[0], self.to_node.geometry.coords[0]),
-            }),
-        ))
+                'coordinates': (self.from_node.coords, self.to_node.coords),
+            },
+        }
         if self.waytype_id is not None:
             result['properties']['color'] = self.waytype.color
         return result

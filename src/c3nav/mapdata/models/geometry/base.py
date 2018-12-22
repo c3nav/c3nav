@@ -1,5 +1,4 @@
 import math
-from collections import OrderedDict
 
 from django.db import models
 from django.utils.functional import cached_property
@@ -42,11 +41,11 @@ class GeometryMixin(SerializableMixin):
         return result
 
     def to_geojson(self, instance=None) -> dict:
-        result = OrderedDict((
-            ('type', 'Feature'),
-            ('properties', self.get_geojson_properties(instance=instance)),
-            ('geometry', format_geojson(smart_mapping(self.geometry), round=False)),
-        ))
+        result = {
+            'type': 'Feature',
+            'properties': self.get_geojson_properties(instance=instance),
+            'geometry': format_geojson(smart_mapping(self.geometry), round=False),
+        }
         original_geometry = getattr(self, 'original_geometry', None)
         if original_geometry:
             result['original_geometry'] = format_geojson(smart_mapping(original_geometry), round=False)
@@ -62,12 +61,6 @@ class GeometryMixin(SerializableMixin):
     @cached_property
     def point(self):
         return good_representative_point(self.geometry)
-
-    def serialize(self, **kwargs):
-        result = super().serialize(**kwargs)
-        if 'geometry' in result:
-            result.move_to_end('geometry')
-        return result
 
     def _serialize(self, geometry=True, simple_geometry=False, **kwargs):
         result = super()._serialize(simple_geometry=simple_geometry, **kwargs)

@@ -195,12 +195,6 @@ class LineObstacle(SpaceGeometryMixin, models.Model):
         verbose_name_plural = _('Line Obstacles')
         default_related_name = 'lineobstacles'
 
-    def serialize(self, geometry=True, **kwargs):
-        result = super().serialize(geometry=geometry, **kwargs)
-        if geometry:
-            result.move_to_end('buffered_geometry')
-        return result
-
     def _serialize(self, geometry=True, **kwargs):
         result = super()._serialize(geometry=geometry, **kwargs)
         result['width'] = float(str(self.width))
