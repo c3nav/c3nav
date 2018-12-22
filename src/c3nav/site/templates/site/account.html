@@ -13,7 +13,7 @@
         {% endwith %}
     </p>
 
-    {% if request.user_permissions.control_panel %}
+    {% if request.user_permissions.control_panel and not request.mobileclient %}
         <hr>
         <p>
             {% trans 'You can access the control panel.' %}
