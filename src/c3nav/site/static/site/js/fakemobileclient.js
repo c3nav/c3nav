@@ -46,4 +46,17 @@ mobileclient = {
     wificollectorStop: function () {
         console.log('wificollectorStop')
     },
+    _currentLocationRequested: false,
+    isCurrentLocationRequested: function () {
+        if(mobileclient._currentLocationRequested) {
+            mobileclient._currentLocationRequested = false;
+            console.log('isCurrentLocationRequested→true');
+            return true;
+        }
+        console.log('isCurrentLocationRequested→false');
+        return false;
+    },
+    currentLocationRequesteFailed: function () {
+        console.log('currentLocationRequesteFailed');
+    },
 };

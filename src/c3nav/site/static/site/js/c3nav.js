@@ -1394,6 +1394,13 @@ c3nav = {
         } else {
             $('.locationinput .locate, .leaflet-control-user-location a').text(c3nav._map_material_icon('location_disabled'));
         }
+        if (mobileclient.isCurrentLocationRequested && mobileclient.isCurrentLocationRequested()) {
+            if (location) {
+                c3nav._goto_user_location_click();
+            } else {
+                mobileclient.currentLocationRequesteFailed()
+            }
+        }
     },
     _goto_user_location_click: function (e) {
         e.preventDefault();
