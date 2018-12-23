@@ -50,7 +50,7 @@ c3nav = {
             );
         });
 
-        if ((!localStorage || !localStorage.getItem('hideAppAds')) && navigator.userAgent.toLowerCase().indexOf("android") > -1) {
+        if (!window.mobileclient && (!localStorage || !localStorage.getItem('hideAppAds')) && navigator.userAgent.toLowerCase().indexOf("android") > -1) {
             $('.app-ads').show();
             $('.app-ads .close').click(function() {
                 localStorage.setItem('hideAppAds', true);
