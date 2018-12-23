@@ -10,6 +10,7 @@ from rest_framework.exceptions import NotFound, ParseError, PermissionDenied, Va
 from rest_framework.generics import get_object_or_404
 from rest_framework.response import Response
 from rest_framework.viewsets import ReadOnlyModelViewSet, ViewSet
+from shapely import prepared
 from shapely.ops import cascaded_union
 
 from c3nav.api.utils import get_api_post_data
@@ -60,11 +61,13 @@ class EditorViewSet(EditorViewSetMixin, ViewSet):
                 holes_geom.append(space_holes_geom.intersection(space.geometry))
                 space.geometry = space.geometry.difference(space_holes_geom)
         holes_geom = cascaded_union(holes_geom)
+        holes_geom_prep = prepared.prep(holes_geom)
 
         for building in buildings:
             building.original_geometry = building.geometry
         for obj in buildings:
-            obj.geometry = obj.geometry.difference(holes_geom)
+            if holes_geom_prep.intersects(obj.geometry):
+                obj.geometry = obj.geometry.difference(holes_geom)
 
         results = []
         results.extend(buildings)
