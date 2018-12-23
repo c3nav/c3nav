@@ -95,8 +95,6 @@ c3nav = {
     continue_init: function() {
         c3nav.init_map();
 
-        c3nav._primary_color = $('.leaflet-control-attribution a:not(:hover)').css('color');
-
         $('.locationinput').data('location', null);
 
         var $main = $('main'),
@@ -105,6 +103,8 @@ c3nav = {
 
         c3nav.last_site_update = JSON.parse($main.attr('data-last-site-update'));
         c3nav.new_site_update = false;
+
+        c3nav._primary_color = $main.attr('data-primary-color') || L.polyline([0, 0]).options.color;
 
         c3nav.ssids = $main.is('[data-ssids]') ? JSON.parse($main.attr('data-ssids')) : null;
 
