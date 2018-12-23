@@ -267,7 +267,7 @@ class TileServer:
 
         start_response('%d %s' % (r.status_code, r.reason), [
             self.get_date_header(),
-            ('Content-Length', len(r.content)),
+            ('Content-Length', str(len(r.content))),
             ('Content-Type', r.headers.get('Content-Type', 'text/plain'))
         ])
         return [r.content]
