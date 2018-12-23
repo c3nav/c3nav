@@ -61,7 +61,7 @@ class TileServer:
 
         self.reload_interval = int(os.environ.get('C3NAV_RELOAD_INTERVAL', 60))
 
-        self.auth_headers = {'X-Tile-Secret': base64.b64encode(self.tile_secret.encode())}
+        self.auth_headers = {'X-Tile-Secret': base64.b64encode(self.tile_secret.encode()).decode()}
 
         self.cache_package = None
         self.cache_package_etag = None
