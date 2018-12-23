@@ -1389,10 +1389,13 @@ c3nav = {
                 stroke: 0,
                 fillOpacity: 1
             }).addTo(layer);
+            this._button.classList.toggle('control-disabled', false);
         } else if (c3nav.hasLocationPermission()) {
             $('.locationinput .locate, .leaflet-control-user-location a').text(c3nav._map_material_icon('location_searching'));
+            this._button.classList.toggle('control-disabled', false);
         } else {
             $('.locationinput .locate, .leaflet-control-user-location a').text(c3nav._map_material_icon('location_disabled'));
+            this._button.classList.toggle('control-disabled', true);
         }
         if (mobileclient.isCurrentLocationRequested && mobileclient.isCurrentLocationRequested()) {
             if (location) {
@@ -1580,6 +1583,7 @@ UserLocationControl = L.Control.extend({
         this._container = L.DomUtil.create('div', 'leaflet-control-user-location leaflet-bar ' + this.options.addClasses);
         this._button = L.DomUtil.create('a', 'material-icons', this._container);
         this._button.innerHTML = c3nav._map_material_icon(c3nav.hasLocationPermission() ? 'location_searching' : 'location_disabled');
+        this._button.classList.toggle('control-disabled', !c3nav.hasLocationPermission());
         this._button.href = '#';
         this.currentLevel = null;
         return this._container;
@@ -1599,7 +1603,7 @@ SquareGridControl = L.Control.extend({
         $(this._button).click(this.toggleGrid).dblclick(function(e) { e.stopPropagation(); });
         this._button.innerText = c3nav._map_material_icon('grid_off');
         this._button.href = '#';
-        this._button.style.color = '#BBBBBB';
+        this._button.classList.toggle('control-disabled', true);
         this.gridActive = false;
         if (localStorage && localStorage.getItem('showGrid')) {
             this.showGrid()
@@ -1620,7 +1624,7 @@ SquareGridControl = L.Control.extend({
         if (this.gridActive) return;
         c3nav._gridLayer.addTo(c3nav.map);
         this._button.innerText = c3nav._map_material_icon('grid_on');
-        this._button.style.color = '';
+        this._button.classList.toggle('control-disabled', false);
         this.gridActive = true;
         if (localStorage) localStorage.setItem('showGrid', true);
     },
@@ -1629,7 +1633,7 @@ SquareGridControl = L.Control.extend({
         if (!this.gridActive) return;
         c3nav._gridLayer.remove();
         this._button.innerText = c3nav._map_material_icon('grid_off');
-        this._button.style.color = '#BBBBBB';
+        this._button.classList.toggle('control-disabled', true);
         this.gridActive = false;
         if (localStorage) localStorage.removeItem('showGrid');
     }
