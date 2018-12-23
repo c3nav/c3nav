@@ -145,7 +145,8 @@
                 </div>
             </section>
         {% else %}
-            <a id="embed-logo" target="_blank">c3nav</a>
+            <a id="embed-logo" class="embed-link" target="_blank">{% if header_logo %}<img src="{% static header_logo %}">{% else %}<span>c3nav</span>{% endif %}</a>
+            <a id="embed-open" class="embed-link" target="_blank">{% trans 'open in c3nav' %}</a>
             <section id="popup-buttons"></section>
             <section id="search">
                 <input type="hidden" id="origin-input">

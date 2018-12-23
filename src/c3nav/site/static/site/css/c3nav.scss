@@ -244,24 +244,38 @@ main.account form {
     background: url('../../img/loader.gif');
 }
 
+.embed-link {
+    z-index: 2;
+    background-color: $color-header-background;
+    color: $color-header-primary;
+}
 #embed-logo {
     font-size: 3rem;
     line-height: 100%;
     font-weight: 300;
-    z-index: 2;
     position: absolute;
-    color: $color-secondary;
-    top: 10px;
-    left: 10px;
-    opacity: 0.4;
+    top: 0;
+    left: 0;
+    padding: 0 10px 0 0;
     letter-spacing: -.1rem;
+    color: $color-header-primary;
+}
+#embed-logo span {
+    display:inline-block;
+    padding: 10px 0 10px 10px;
 }
 #embed-logo:hover {
-    opacity: 1;
-    text-shadow: 1px 1px 1px rgba(255, 255, 255, 0.3),
-                 1px -1px 1px rgba(255, 255, 255, 0.3),
-                 -1px 1px 1px rgba(255, 255, 255, 0.3),
-                 -1px -1px 1px rgba(255, 255, 255, 0.3);
+    display:inline-block;
+}
+#embed-open {
+    position: absolute;
+    top: 0;
+    right: 0;
+    padding: 10px;
+    color: $color-header-text;
+}
+#embed-open:hover {
+    color: $color-header-text-hover;
 }
 
 main:not([data-view^=route]) #origin-input,

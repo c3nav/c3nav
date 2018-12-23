@@ -587,10 +587,10 @@ c3nav = {
         if (!replace && c3nav._equal_states(old_state, state)) return;
 
         var url = c3nav._build_state_url(state, c3nav.embed),
-            embed_logo = $('#embed-logo');
+            embed_link = $('.embed-link');
 
-        if (embed_logo.length) {
-            embed_logo.attr('href', c3nav._build_state_url(state));
+        if (embed_link.length) {
+            embed_link.attr('href', c3nav._build_state_url(state));
         }
 
         c3nav.state = state;
