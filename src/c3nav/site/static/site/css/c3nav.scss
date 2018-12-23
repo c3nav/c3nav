@@ -1083,6 +1083,9 @@ ul.messages li.alert-danger {
     padding: 10px;
     pointer-events: none;
 }
+.mobileclient #messages {
+    top: 0;
+}
 #messages:empty {
     display:none;
 }
