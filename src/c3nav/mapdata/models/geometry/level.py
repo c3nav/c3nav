@@ -297,11 +297,11 @@ class AltitudeArea(LevelGeometryMixin, models.Model):
                         ramp.connected_to.append((area, intersection))
                 if len(ramp.connected_to) != 2:
                     if len(ramp.connected_to) == 0:
-                        logger.warning('Ramp with no connections!')
+                        logger.warning('A ramp in space #%d has no connections!' % ramp.space)
                     elif len(ramp.connected_to) == 1:
-                        logger.warning('Ramp with only one connection!')
+                        logger.warning('A ramp in space #%d has only one connection!' % ramp.space)
                     else:
-                        logger.warning('Ramp with more than one connections!')
+                        logger.warning('A ramp in space #%d has more than two connections!' % ramp.space)
 
             # add areas to global areas
             all_areas.extend(areas)
