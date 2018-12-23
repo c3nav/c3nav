@@ -61,6 +61,10 @@ class TileServer:
 
         self.reload_interval = int(os.environ.get('C3NAV_RELOAD_INTERVAL', 60))
 
+        self.http_auth = os.environ.get('C3NAV_HTTP_AUTH', None)
+        if self.http_auth:
+            self.http_auth = self.http_auth.split(':', 1)
+
         self.auth_headers = {'X-Tile-Secret': base64.b64encode(self.tile_secret.encode()).decode()}
 
         self.cache_package = None
@@ -100,7 +104,7 @@ class TileServer:
             headers = self.auth_headers.copy()
             if self.cache_package_etag is not None:
                 headers['If-None-Match'] = self.cache_package_etag
-            r = requests.get(self.upstream_base+'/map/cache/package.tar.xz', headers=headers)
+            r = requests.get(self.upstream_base+'/map/cache/package.tar.xz', headers=headers, auth=self.http_auth)
 
             if r.status_code == 403:
                 logger.error('Rejected cache package download with Error 403. Tile secret is probably incorrect.')
@@ -255,7 +259,7 @@ class TileServer:
             return self.deliver_tile(start_response, tile_etag, cached_result)
 
         r = requests.get('%s/map/%d/%d/%d/%d/%s.png' % (self.upstream_base, level, zoom, x, y, access_cache_key),
-                         headers=self.auth_headers)
+                         headers=self.auth_headers, auth=self.http_auth)
 
         if r.status_code == 200 and r.headers['Content-Type'] == 'image/png':
             self.cache.set(cache_key, r.content)
