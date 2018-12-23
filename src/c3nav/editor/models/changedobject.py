@@ -81,7 +81,11 @@ class ChangedObject(models.Model):
 
         if not self.is_created:
             if self._set_object is None:
-                self._set_object = self.changeset.wrap_instance(model.objects.get(pk=self.existing_object_pk))
+                try:
+                    obj = model.objects.get(pk=self.existing_object_pk)
+                except model.DoesNotExist:
+                    obj = model(pk=self.existing_object_pk)
+                self._set_object = self.changeset.wrap_instance(obj)
 
             # noinspection PyTypeChecker
             return self._set_object
