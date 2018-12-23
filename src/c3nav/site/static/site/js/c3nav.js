@@ -1097,7 +1097,6 @@ c3nav = {
         c3nav._levelControl.setLevel(c3nav.initial_level);
 
         // setup grid control
-        console.log($map);
         if ($map.is('[data-grid]')) {
             c3nav._gridLayer = new L.SquareGridLayer(JSON.parse($map.attr('data-grid')));
             c3nav._gridControl = new SquareGridControl().addTo(c3nav.map);
@@ -1269,7 +1268,7 @@ c3nav = {
         $.get('/api/updates/fetch/', c3nav._fetch_updates_callback).fail(function() {
             c3nav._fetch_updates_failure_count++;
             waittime = Math.min(5 + c3nav._fetch_updates_failure_count * 5, 120);
-            console.log('fetch updates failed, retying in ' + waittime + 'sec');
+            // console.log('fetch updates failed, retying in ' + waittime + 'sec');
             c3nav.schedule_fetch_updates(waittime*1000);
         });
     },
@@ -1446,7 +1445,6 @@ c3nav = {
         }
         c3nav._material_icons_codepoints = result;
         $('.material-icons').each(function() {
-            console.log('a');
             $(this).text(c3nav._map_material_icon($(this).text()));
         });
     },
