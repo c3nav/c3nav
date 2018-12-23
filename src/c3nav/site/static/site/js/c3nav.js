@@ -737,7 +737,7 @@ c3nav = {
             .on('keydown', c3nav._locationinput_keydown);
         $('.locationinput .clear').on('click', c3nav._locationinput_clear);
         $('.locationinput .locate').on('click', c3nav._locationinput_locate);
-        $('.leaflet-control-user-location a').on('click', c3nav._goto_user_location_click);
+        $('.leaflet-control-user-location a').on('click', c3nav._goto_user_location_click).dblclick(function(e) { e.stopPropagation(); });
         $('#autocomplete').on('mouseover', '.location', c3nav._locationinput_hover_suggestion)
             .on('click', '.location', c3nav._locationinput_click_suggestion);
         $('html').on('focus', '*', c3nav._locationinput_global_focuschange)
