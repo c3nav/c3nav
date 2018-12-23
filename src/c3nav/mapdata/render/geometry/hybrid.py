@@ -123,6 +123,7 @@ class HybridGeometry:
 
     @property
     def is_empty(self):
+        return self.geom.is_empty
         return not self.faces and not any(self.add_faces.values())
 
     def build_polyhedron(self, create_polyhedron, crops=None, **kwargs):
