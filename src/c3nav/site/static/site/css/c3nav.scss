@@ -1075,6 +1075,34 @@ ul.messages li.alert-danger {
     background-color:#FFEEEE;
 }
 
+.app-ads {
+    position:absolute;
+    z-index: 10;
+    bottom:0;
+    right:0;
+    left:0;
+    padding:0;
+    text-align: center;
+    display:none;
+}
+.app-ads div {
+    background-color: #ffffff;
+    -webkit-box-shadow: 1px 1px 3px rgba(0, 0, 0, 0.2);
+            box-shadow: 1px 1px 3px rgba(0, 0, 0, 0.2);
+    border-radius: 2px;
+    overflow: hidden;
+    display: inline-block;
+    margin: 0 10px 25px;
+    padding: 10px;
+    vertical-align: middle;
+}
+.app-ads .close {
+    float: right;
+    color: inherit;
+    line-height: 16px;
+    margin-left: 10px;
+}
+
 #messages {
     z-index: 5;
     position: absolute;

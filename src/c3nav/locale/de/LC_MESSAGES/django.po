@@ -7,8 +7,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2018-12-23 18:13+0100\n"
-"PO-Revision-Date: 2018-12-23 18:14+0100\n"
+"POT-Creation-Date: 2018-12-24 00:27+0100\n"
+"PO-Revision-Date: 2018-12-24 00:27+0100\n"
 "Last-Translator: Laura Klünder <laura@codingcatgirl.de>\n"
 "Language-Team: \n"
 "Language: de\n"
@@ -1149,7 +1149,7 @@ msgid "Log out"
 msgstr "Abmelden"
 
 #: c3nav/editor/templates/editor/fragment_nav.html:23
-#: c3nav/editor/views/account.py:27 c3nav/site/views.py:226
+#: c3nav/editor/views/account.py:27 c3nav/site/views.py:227
 msgid "Log in"
 msgstr "Anmelden"
 
@@ -1276,7 +1276,7 @@ msgid "Activate direct editing"
 msgstr "Direktes Bearbeiten aktivieren"
 
 #: c3nav/editor/templates/editor/user.html:54 c3nav/editor/views/account.py:85
-#: c3nav/site/templates/site/account.html:29 c3nav/site/views.py:291
+#: c3nav/site/templates/site/account.html:29 c3nav/site/views.py:292
 msgid "Change password"
 msgstr "Passwort ändern"
 
@@ -1297,11 +1297,11 @@ msgid "All recent change sets"
 msgstr "Alle kürzlichen Änderungssets"
 
 #: c3nav/editor/views/account.py:30 c3nav/editor/views/account.py:61
-#: c3nav/site/views.py:233 c3nav/site/views.py:268
+#: c3nav/site/views.py:234 c3nav/site/views.py:269
 msgid "Create new account"
 msgstr "Neues Konto erstellen"
 
-#: c3nav/editor/views/account.py:75 c3nav/site/views.py:282
+#: c3nav/editor/views/account.py:75 c3nav/site/views.py:283
 msgid "Password successfully changed."
 msgstr "Passwort erfolgreich geändert."
 
@@ -1703,7 +1703,7 @@ msgid "Access Permission Tokens"
 msgstr "Zugangserlaubnis-Token"
 
 #: c3nav/mapdata/models/access.py:133 c3nav/site/views.py:79
-#: c3nav/site/views.py:325
+#: c3nav/site/views.py:326
 msgid "Area successfully unlocked."
 msgid_plural "Areas successfully unlocked."
 msgstr[0] "Bereich erfolgreich freigeschaltet."
@@ -2676,34 +2676,38 @@ msgstr "Speichern und neu routen"
 msgid "Just reroute"
 msgstr "Nur neu routen"
 
-#: c3nav/site/templates/site/map.html:149
+#: c3nav/site/templates/site/map.html:150
+msgid "Get the c3nav Android app!"
+msgstr "Hol' dir die c3nav Android-App!"
+
+#: c3nav/site/templates/site/map.html:155
 msgid "open in c3nav"
 msgstr "in c3nav öffnen"
 
-#: c3nav/site/views.py:71 c3nav/site/views.py:317
+#: c3nav/site/views.py:71 c3nav/site/views.py:318
 msgid "You need to log in to unlock areas."
 msgstr "Du musst dich anmelden um Bereiche freizuschalten."
 
-#: c3nav/site/views.py:205
+#: c3nav/site/views.py:206
 msgid "Areas could not be unlocked because the token has expired."
 msgstr ""
 "Zugangserlaubnis konnte nicht gewährt werden weil der Code abgelaufen ist."
 
-#: c3nav/site/views.py:248
+#: c3nav/site/views.py:249
 msgid "account creation is currently disabled."
 msgstr "Benutzerregistrierung ist momentan deaktiviert."
 
-#: c3nav/site/views.py:310
+#: c3nav/site/views.py:311
 msgid "This token does not exist or was already redeemed."
 msgstr "Dieser Code existiert nicht oder wurde bereits eingelöst."
 
-#: c3nav/site/views.py:330
+#: c3nav/site/views.py:331
 msgid "Unlock area"
 msgid_plural "Unlock areas"
 msgstr[0] "Bereich freischalten"
 msgstr[1] "Bereiche freischalten"
 
-#: c3nav/site/views.py:331
+#: c3nav/site/views.py:332
 msgid "You have been invited to unlock the following area:"
 msgid_plural "You have been invited to unlock the following areas:"
 msgstr[0] "Du wurdest eingeladen, den folgenden Bereich freizuschalten:"
