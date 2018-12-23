@@ -1684,7 +1684,7 @@ L.SquareGridLayer = L.Layer.extend({
     },
 
     _updateGrid: function(map) {
-        if (!this.cols || this.cols.length == 0) return;
+        if (!this.cols || this.cols.length === 0) return;
         var mapSize = map.getSize(),
             sidebarStart = $('#sidebar').outerWidth() + 15,
             searchHeight = $('#search').outerHeight() + 10,
