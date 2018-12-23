@@ -1389,13 +1389,13 @@ c3nav = {
                 stroke: 0,
                 fillOpacity: 1
             }).addTo(layer);
-            this._button.classList.toggle('control-disabled', false);
+            $('.leaflet-control-user-location a').toggleClass('control-disabled', false);
         } else if (c3nav.hasLocationPermission()) {
             $('.locationinput .locate, .leaflet-control-user-location a').text(c3nav._map_material_icon('location_searching'));
-            this._button.classList.toggle('control-disabled', false);
+            $('.leaflet-control-user-location a').toggleClass('control-disabled', false);
         } else {
             $('.locationinput .locate, .leaflet-control-user-location a').text(c3nav._map_material_icon('location_disabled'));
-            this._button.classList.toggle('control-disabled', true);
+            $('.leaflet-control-user-location a').toggleClass('control-disabled', true);
         }
         if (mobileclient.isCurrentLocationRequested && mobileclient.isCurrentLocationRequested()) {
             if (location) {
