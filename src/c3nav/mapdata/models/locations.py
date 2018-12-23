@@ -2,6 +2,7 @@ from collections import OrderedDict
 from contextlib import suppress
 from operator import attrgetter
 
+from django.core.validators import RegexValidator
 from django.db import models
 from django.db.models import Prefetch
 from django.urls import reverse
@@ -34,6 +35,15 @@ class LocationSlugManager(models.Manager):
         return qs
 
 
+validate_slug = RegexValidator(
+    r'^[a-z0-9]+(-[a-z0-9]+)*\Z',
+    # Translators: "letters" means latin letters: a-z and A-Z.
+    _('Enter a valid location slug consisting of lowercase letters, numbers or hyphens, '
+      'not starting or ending with hyphens or containing consecutive hyphens.'),
+    'invalid'
+)
+
+
 class LocationSlug(SerializableMixin, models.Model):
     LOCATION_TYPE_CODES = {
         'Level': 'l',
@@ -43,7 +53,7 @@ class LocationSlug(SerializableMixin, models.Model):
         'LocationGroup': 'g'
     }
     LOCATION_TYPE_BY_CODE = {code: model_name for model_name, code in LOCATION_TYPE_CODES.items()}
-    slug = models.SlugField(_('Slug'), unique=True, null=True, blank=True, max_length=50)
+    slug = models.SlugField(_('Slug'), unique=True, null=True, blank=True, max_length=50, validators=[validate_slug])
 
     objects = LocationSlugManager()
 
