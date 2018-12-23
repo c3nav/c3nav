@@ -50,11 +50,15 @@ class EditorViewSet(EditorViewSetMixin, ViewSet):
         for space in spaces.values():
             if space.outside:
                 space.geometry = space.geometry.difference(buildings_geom)
-            columns_geom = cascaded_union([column.geometry for column in space.columns.all()])
-            space.geometry = space.geometry.difference(columns_geom)
-            space_holes_geom = cascaded_union([hole.geometry for hole in space.holes.all()])
-            holes_geom.append(space_holes_geom.intersection(space.geometry))
-            space.geometry = space.geometry.difference(space_holes_geom)
+            columns = [column.geometry for column in space.columns.all()]
+            if columns:
+                columns_geom = cascaded_union([column.geometry for column in space.columns.all()])
+                space.geometry = space.geometry.difference(columns_geom)
+            holes = [hole.geometry for hole in space.holes.all()]
+            if holes:
+                space_holes_geom = cascaded_union(holes)
+                holes_geom.append(space_holes_geom.intersection(space.geometry))
+                space.geometry = space.geometry.difference(space_holes_geom)
         holes_geom = cascaded_union(holes_geom)
 
         for building in buildings:
@@ -119,11 +123,16 @@ class EditorViewSet(EditorViewSetMixin, ViewSet):
             levels = Level.objects.filter(pk__in=levels).filter(Level.q_for_request(request))
             # graphnodes_qs = request.changeset.wrap_model('GraphNode').objects.all()
             levels = levels.prefetch_related(
-                Prefetch('spaces', Space.objects.filter(Space.q_for_request(request))),
+                Prefetch('spaces', Space.objects.filter(Space.q_for_request(request)).only(
+                    'geometry', 'level', 'outside'
+                )),
                 Prefetch('doors', Door.objects.filter(Door.q_for_request(request))),
                 Prefetch('spaces__columns', Column.objects.filter(Q(access_restriction__isnull=True) |
                                                                   ~Column.q_for_request(request))),
-                'buildings', 'spaces__holes', 'spaces__groups', 'spaces__altitudemarkers',
+                Prefetch('spaces__groups', LocationGroup.objects.only(
+                    'color', 'category', 'priority', 'category__priority', 'category__allow_spaces'
+                )),
+                'buildings', 'spaces__holes', 'spaces__altitudemarkers',
                 # Prefetch('spaces__graphnodes', graphnodes_qs)
             )
 
