@@ -3,7 +3,7 @@
 
 {% block content %}
 <main class="account">
-    {% if not request.mobileclient %}
+    {% if not request.mobileclient and not request.is_ajax %}
         <a href="{% url 'site.index' %}" class="float-right">&laquo; {% trans 'back to c3nav' %}</a>
     {% endif %}
     <h2>{% trans 'About c3nav' %}</h2>

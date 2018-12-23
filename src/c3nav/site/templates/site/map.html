@@ -17,7 +17,7 @@
             <a href="/api/" target="_blank">{% trans 'API' %}</a> //
             <a href="https://twitter.com/c3nav/" rel="external" target="_blank">Twitter</a> //
             <a href="https://github.com/c3nav/c3nav/" rel="external" target="_blank">GitHub</a> //
-            <a href="{% url 'site.about' %}">{% trans 'about c3nav' %}</a>
+            <a href="{% url 'site.about' %}" id="about-link">{% trans 'about c3nav' %}</a>
         </section>
         {% endif %}
         <section id="map" data-bounds="{{ bounds }}"
