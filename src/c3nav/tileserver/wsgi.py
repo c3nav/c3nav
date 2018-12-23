@@ -106,6 +106,10 @@ class TileServer:
                 logger.error('Rejected cache package download with Error 403. Tile secret is probably incorrect.')
                 return False
 
+            if r.status_code == 401:
+                logger.error('Rejected cache package download with Error 401. You have HTTP Auth active.')
+                return False
+
             if r.status_code == 304:
                 if self.cache_package is not None:
                     logger.debug('Not modified.')
