@@ -221,6 +221,7 @@ class LocationGroupCategory(SerializableMixin, models.Model):
     single = models.BooleanField(_('single selection'), default=False)
     title = I18nField(_('Title'), plural_name='titles', fallback_any=True)
     title_plural = I18nField(_('Title (Plural)'), plural_name='titles_plural', fallback_any=True)
+    help_text = I18nField(_('Help text'), plural_name='help_texts', fallback_any=True, fallback_value='')
     allow_levels = models.BooleanField(_('allow levels'), db_index=True, default=True)
     allow_spaces = models.BooleanField(_('allow spaces'), db_index=True, default=True)
     allow_areas = models.BooleanField(_('allow areas'), db_index=True, default=True)

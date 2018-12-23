@@ -115,11 +115,13 @@ class EditorFormBase(I18nModelFormMixin, ModelForm):
                     name = 'group_'+category.name
                     initial = initial[0] if initial else ''
                     choices = (('', '---'), )+choices
-                    field = ChoiceField(label=category.title, required=False, initial=initial, choices=choices)
+                    field = ChoiceField(label=category.title, required=False, initial=initial, choices=choices,
+                                        help_text=category.help_text)
                 else:
                     name = 'groups_'+category.name
                     field = MultipleChoiceField(label=category.title_plural, required=False,
-                                                initial=initial, choices=choices)
+                                                initial=initial, choices=choices,
+                                                help_text=category.help_text)
                 self.fields[name] = field
 
         if 'category' in self.fields:
@@ -262,8 +264,8 @@ class EditorFormBase(I18nModelFormMixin, ModelForm):
 
 
 def create_editor_form(editor_model):
-    possible_fields = ['slug', 'name', 'title', 'title_plural', 'icon', 'join_edges', 'up_separate', 'walk',
-                       'ordering', 'category', 'width', 'groups', 'color', 'priority', 'icon_name',
+    possible_fields = ['slug', 'name', 'title', 'title_plural', 'help_text', 'icon', 'join_edges', 'up_separate',
+                       'walk', 'ordering', 'category', 'width', 'groups', 'color', 'priority', 'icon_name',
                        'base_altitude', 'waytype', 'access_restriction', 'height', 'default_height', 'door_height',
                        'outside', 'can_search', 'can_describe', 'geometry', 'single', 'altitude', 'short_label',
                        'origin_space', 'target_space', 'data', 'comment', 'slow_down_factor',
