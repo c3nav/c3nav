@@ -41,6 +41,8 @@ class WrappedGeometry():
 
     @cached_property
     def wrapped_geom(self):
+        if not self.wrapped_geojson['coordinates']:
+            return GeometryCollection()
         return shapely_shape(self.wrapped_geojson)
 
     def __getattr__(self, name):

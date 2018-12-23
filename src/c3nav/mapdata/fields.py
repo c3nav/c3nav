@@ -106,6 +106,8 @@ class GeometryField(models.TextField):
         if value is None:
             return None
         self._validate_geomtype(value, exception=TypeError)
+        if value.is_empty:
+            raise Exception('Cannot save empty geometry.')
         return json.dumps(self.get_final_value(value, as_json=True))
 
     def value_to_string(self, obj):
