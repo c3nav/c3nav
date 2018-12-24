@@ -642,6 +642,7 @@ class ChangeSet(models.Model):
 
     def reject(self, user, comment: str, final: bool):
         state = 'finallyrejected' if final else 'rejected'
+        self.assigned_to = None
         update = self.updates.create(user=user, state=state, comment=comment)
         self.state = state
         self.last_state_update = update
