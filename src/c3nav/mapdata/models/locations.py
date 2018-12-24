@@ -36,7 +36,7 @@ class LocationSlugManager(models.Manager):
 
 
 validate_slug = RegexValidator(
-    r'^[a-z0-9]+(-[a-z0-9]+)*\Z',
+    r'^[a-z0-9]+(--?[a-z0-9]+)*\Z',
     # Translators: "letters" means latin letters: a-z and A-Z.
     _('Enter a valid location slug consisting of lowercase letters, numbers or hyphens, '
       'not starting or ending with hyphens or containing consecutive hyphens.'),
