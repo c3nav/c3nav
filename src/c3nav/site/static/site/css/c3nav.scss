@@ -894,6 +894,11 @@ main:not([data-view=route-result]) #route-summary {
     color: #BBBBBB;
 }
 
+.leaflet-bottom .leaflet-control-scale {
+    margin-bottom: 10px;
+    margin-left: 10px;
+}
+
 
 .c3nav-grid {
     position: absolute;
