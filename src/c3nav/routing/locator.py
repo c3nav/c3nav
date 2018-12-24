@@ -77,8 +77,8 @@ class Locator:
                        for pk, space in self.spaces.items()
                        if pk not in restrictions.spaces)
 
-        # get relevant spaces
-        best_station_id = min(scan_values.items(), key=operator.itemgetter(1))[0]
+        # get relevant spaces (they should contain the best station at least once)
+        best_station_id = max(scan_values.items(), key=operator.itemgetter(1))[0]
         spaces = tuple((pk, space, station_ids)
                        for pk, space, station_ids in spaces
                        if station_ids and best_station_id in station_ids)
