@@ -149,13 +149,13 @@ class LocatorSpace:
         if not points:
             return None, None
 
-        scores = np.sum(
+        scores = (np.sum(
             (self.levels[np.array(points, dtype=np.uint32).reshape((-1, 1)), stations] - values)**2,
             axis=1
-        ) / len(stations)
+        )+penalty) / len(scan_values)
         best_point_i = np.argmin(scores).ravel()[0]
         best_point = points[best_point_i]
-        return self.points[best_point], scores[best_point_i]+penalty
+        return self.points[best_point], scores[best_point_i]
 
 
 class LocatorPoint(namedtuple('LocatorPoint', ('x', 'y', 'values'))):
