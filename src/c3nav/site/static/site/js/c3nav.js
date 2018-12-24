@@ -1655,7 +1655,7 @@ L.SquareGridLayer = L.Layer.extend({
 
     onAdd: function(map) {
         this._container = L.DomUtil.create('div', 'leaflet-pane c3nav-grid');
-        document.getElementById('map').appendChild(this._container);
+        this.getPane().appendChild(this._container);
 
         this.cols = [];
         this.rows = [];
@@ -1698,12 +1698,17 @@ L.SquareGridLayer = L.Layer.extend({
     _updateGrid: function(map) {
         if (!this.cols || this.cols.length === 0) return;
         var mapSize = map.getSize(),
+            panePos = map._getMapPanePos(),
             sidebarStart = $('#sidebar').outerWidth() + 15,
             searchHeight = $('#search').outerHeight() + 10,
             controlsWidth = $('.leaflet-control-zoom').outerWidth() + 10,
             attributionStart = mapSize.x - $('.leaflet-control-attribution').outerWidth() - 16,
             bottomRightStart = mapSize.y - $('.leaflet-bottom.leaflet-right').outerHeight() - 24,
             coord = null, lastCoord = null, size, center;
+        this._container.style.width = mapSize.x+'px';
+        this._container.style.height = mapSize.y+'px';
+        this._container.style.left = (-panePos.x)+'px';
+        this._container.style.top = (-panePos.y)+'px';
         for(i=0;i<this.config.cols.length;i++) {
             coord = map.latLngToContainerPoint([0, this.config.cols[i]], map.getZoom()).x;
             coord = Math.min(mapSize.x, Math.max(-1, coord));
