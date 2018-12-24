@@ -15,13 +15,13 @@ class MobileclientMiddleware:
             return False
 
         user_agent = user_agent[12:].split('/')
-        if len(user_agent) != 2:
+        if len(user_agent) < 2:
             return False
 
-        app_platform, app_version = user_agent
+        app_platform, app_version = user_agent[0:2]
         if app_platform == 'Android':
             # activate new mobileclient features for the c3nav android app 4.0.0 or higher
-            # yep, iphone app can do this stuff yet
+            # yep, iphone app can't do this stuff yet
             if not app_version.isdigit():
                 return False
             app_version = int(app_version)
