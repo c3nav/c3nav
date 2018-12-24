@@ -72,7 +72,7 @@ class Locator:
             return None
 
         # convert scan values
-        scan_values = {station_id: value**3 for station_id, value in scan_values.items()}
+        scan_values = {station_id: value**2 for station_id, value in scan_values.items()}
 
         # get visible spaces
         spaces = tuple(space for pk, space in self.spaces.items() if pk not in restrictions.spaces)
@@ -113,7 +113,7 @@ class LocatorStations:
 
 
 class LocatorSpace:
-    no_signal = int(-90)**3
+    no_signal = int(-90)**2
 
     def __init__(self, pk, points):
         self.pk = pk
@@ -122,10 +122,10 @@ class LocatorSpace:
         self.stations = tuple(self.stations_set)
         self.stations_lookup = {station_id: i for i, station_id in enumerate(self.stations)}
 
-        self.levels = np.full((len(self.points), len(self.stations)), fill_value=int(-90)**3, dtype=np.int64)
+        self.levels = np.full((len(self.points), len(self.stations)), fill_value=self.no_signal, dtype=np.int64)
         for i, point in enumerate(self.points):
             for station_id, value in point.values.items():
-                self.levels[i][self.stations_lookup[station_id]] = int(value)**3
+                self.levels[i][self.stations_lookup[station_id]] = int(value)**2
 
     def get_best_point(self, scan_values, needed_station_id=None):
         # check if this space knows the needed station id, otherwise no results here
