@@ -1,4 +1,5 @@
 import math
+from contextlib import contextmanager
 
 from django.db import models
 from django.utils.functional import cached_property
@@ -14,6 +15,8 @@ geometry_affecting_fields = ('height', 'width', 'access_restriction')
 
 
 class GeometryMixin(SerializableMixin):
+    no_orig = False
+
     """
     A map feature with a geometry
     """
@@ -25,11 +28,20 @@ class GeometryMixin(SerializableMixin):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.orig_geometry = None if 'geometry' in self.get_deferred_fields() else self.geometry
-        self._orig = {field.attname: (None if field.attname in self.get_deferred_fields()
-                                      else getattr(self, field.attname))
-                      for field in self._meta.get_fields()
-                      if field.name in geometry_affecting_fields}
+        if not self.no_orig:
+            self.orig_geometry = None if 'geometry' in self.get_deferred_fields() else self.geometry
+            self._orig = {field.attname: (None if field.attname in self.get_deferred_fields()
+                                          else getattr(self, field.attname))
+                          for field in self._meta.get_fields()
+                          if field.name in geometry_affecting_fields}
+
+    @classmethod
+    @contextmanager
+    def dont_keep_originals(cls):
+        # to do: invert this and to no_orig being True by default
+        cls.no_orig = True
+        yield
+        cls.no_orig = False
 
     def get_geojson_properties(self, *args, **kwargs) -> dict:
         result = {

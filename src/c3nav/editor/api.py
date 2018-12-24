@@ -60,14 +60,16 @@ class EditorViewSet(EditorViewSetMixin, ViewSet):
                 space_holes_geom = cascaded_union(holes)
                 holes_geom.append(space_holes_geom.intersection(space.geometry))
                 space.geometry = space.geometry.difference(space_holes_geom)
-        holes_geom = cascaded_union(holes_geom)
-        holes_geom_prep = prepared.prep(holes_geom)
 
         for building in buildings:
             building.original_geometry = building.geometry
-        for obj in buildings:
-            if holes_geom_prep.intersects(obj.geometry):
-                obj.geometry = obj.geometry.difference(holes_geom)
+
+        if holes_geom:
+            holes_geom = cascaded_union(holes_geom)
+            holes_geom_prep = prepared.prep(holes_geom)
+            for obj in buildings:
+                if holes_geom_prep.intersects(obj.geometry):
+                    obj.geometry = obj.geometry.difference(holes_geom)
 
         results = []
         results.extend(buildings)
@@ -106,6 +108,9 @@ class EditorViewSet(EditorViewSetMixin, ViewSet):
         Level = request.changeset.wrap_model('Level')
         Space = request.changeset.wrap_model('Space')
         Column = request.changeset.wrap_model('Column')
+        Hole = request.changeset.wrap_model('Hole')
+        AltitudeMarker = request.changeset.wrap_model('AltitudeMarker')
+        Building = request.changeset.wrap_model('Building')
         Door = request.changeset.wrap_model('Door')
         LocationGroup = request.changeset.wrap_model('LocationGroup')
 
@@ -129,13 +134,16 @@ class EditorViewSet(EditorViewSetMixin, ViewSet):
                 Prefetch('spaces', Space.objects.filter(Space.q_for_request(request)).only(
                     'geometry', 'level', 'outside'
                 )),
-                Prefetch('doors', Door.objects.filter(Door.q_for_request(request))),
-                Prefetch('spaces__columns', Column.objects.filter(Q(access_restriction__isnull=True) |
-                                                                  ~Column.q_for_request(request))),
+                Prefetch('doors', Door.objects.filter(Door.q_for_request(request)).only('geometry', 'level')),
+                Prefetch('spaces__columns', Column.objects.filter(
+                    Q(access_restriction__isnull=True) | ~Column.q_for_request(request)
+                ).only('geometry', 'space')),
                 Prefetch('spaces__groups', LocationGroup.objects.only(
                     'color', 'category', 'priority', 'category__priority', 'category__allow_spaces'
                 )),
-                'buildings', 'spaces__holes', 'spaces__altitudemarkers',
+                Prefetch('buildings', Building.objects.only('geometry', 'level')),
+                Prefetch('spaces__holes', Hole.objects.only('geometry', 'space')),
+                Prefetch('spaces__altitudemarkers', AltitudeMarker.objects.only('geometry', 'space')),
                 # Prefetch('spaces__graphnodes', graphnodes_qs)
             )
 
@@ -270,14 +278,14 @@ class EditorViewSet(EditorViewSetMixin, ViewSet):
                 other_spaces,
                 [space],
                 areas,
-                space.holes.all(),
-                space.stairs.all(),
-                space.ramps.all(),
-                space.obstacles.all(),
-                space.lineobstacles.all(),
-                space.columns.all(),
-                space.altitudemarkers.all(),
-                space.wifi_measurements.all().only('geometry'),
+                space.holes.all().only('geometry', 'space'),
+                space.stairs.all().only('geometry', 'space'),
+                space.ramps.all().only('geometry', 'space'),
+                space.obstacles.all().only('geometry', 'space'),
+                space.lineobstacles.all().only('geometry', 'width', 'space'),
+                space.columns.all().only('geometry', 'space'),
+                space.altitudemarkers.all().only('geometry', 'space'),
+                space.wifi_measurements.all().only('geometry', 'space'),
                 space.pois.filter(POI.q_for_request(request)).only('geometry', 'space').prefetch_related(
                     Prefetch('groups', LocationGroup.objects.only(
                         'color', 'category', 'priority', 'category__priority', 'category__allow_pois'

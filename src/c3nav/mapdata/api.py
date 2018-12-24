@@ -20,6 +20,7 @@ from rest_framework.viewsets import GenericViewSet, ReadOnlyModelViewSet, ViewSe
 
 from c3nav.mapdata.models import AccessRestriction, Building, Door, Hole, LocationGroup, MapUpdate, Source, Space
 from c3nav.mapdata.models.access import AccessPermission, AccessRestrictionGroup
+from c3nav.mapdata.models.geometry.base import GeometryMixin
 from c3nav.mapdata.models.geometry.level import LevelGeometryMixin
 from c3nav.mapdata.models.geometry.space import (POI, Area, Column, CrossDescription, LeaveDescription, LineObstacle,
                                                  Obstacle, Ramp, SpaceGeometryMixin, Stair)
@@ -67,7 +68,8 @@ def api_etag(permissions=True, etag_func=AccessPermission.etag_func, cache_param
                         response = Response(data)
 
                 if response is None:
-                    response = func(self, request, *args, **kwargs)
+                    with GeometryMixin.dont_keep_originals():
+                        response = func(self, request, *args, **kwargs)
                     if cache_parameters is not None and response.status_code == 200:
                         cache.set(cache_key, response.data, 300)
 
