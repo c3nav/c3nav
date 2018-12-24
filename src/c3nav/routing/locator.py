@@ -87,7 +87,9 @@ class Locator:
             return None
 
         # get good spaces
-        good_spaces = tuple((pk, space, station_ids) for pk, space, station_ids in spaces if len(station_ids) >= 3)
+        good_spaces = tuple((pk, space, space_station_ids)
+                            for pk, space, space_station_ids in spaces
+                            if len(space_station_ids) >= 3)
         if not good_spaces:
             for station_id in station_ids:
                 scan_values[station_id] = 0
