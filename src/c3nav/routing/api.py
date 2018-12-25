@@ -96,6 +96,7 @@ class RoutingViewSet(ViewSet):
     def locate(self, request, *args, **kwargs):
         try:
             location = Locator.load().locate(request.data, permissions=AccessPermission.get_for_request(request))
+            increment_cache_key('apistats__locate__%s' % location.pk)
         except ValidationError:
             return Response({
                 'errors': (_('Invalid scan data.'),),
