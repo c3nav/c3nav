@@ -44,6 +44,13 @@ def optimize_query(qs):
     return qs
 
 
+def api_stats_clean_location_value(value):
+    if isinstance(value, str) and value.startswith('c:'):
+        value = value.split(':')
+        value = 'c:%s:%d:%d' % (value[1], int(float(value[2]) / 3) * 3, int(float(value[3]) / 3) * 3)
+    return value
+
+
 def api_stats(view_name):
     def wrapper(func):
         @wraps(func)
@@ -51,10 +58,7 @@ def api_stats(view_name):
             response = func(self, request, *args, **kwargs)
             if response.status_code < 400 and kwargs:
                 name, value = next(iter(kwargs.items()))
-                if isinstance(value, str) and value.startswith('c:'):
-                    value = value.split(':')
-                    value = 'c:%s:%d:%d' % (value[1], int(float(value[2])/3)*3, int(float(value[3])/3)*3)
-                increment_cache_key('apistats__%s__%s__%s' % (view_name, name, value))
+                increment_cache_key('apistats__%s__%s__%s' % (view_name, name, api_stats_clean_location_value(value)))
             return response
         return wrapped_func
     return wrapper

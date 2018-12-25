@@ -4,7 +4,9 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.viewsets import ViewSet
 
+from c3nav.mapdata.api import api_stats_clean_location_value
 from c3nav.mapdata.models.access import AccessPermission
+from c3nav.mapdata.utils.cache.stats import increment_cache_key
 from c3nav.mapdata.utils.locations import visible_locations_for_request
 from c3nav.routing.exceptions import LocationUnreachable, NoRouteFound, NotYetRoutable
 from c3nav.routing.forms import RouteForm
@@ -54,6 +56,17 @@ class RoutingViewSet(ViewSet):
             return Response({
                 'error': _('No route found.'),
             })
+
+        increment_cache_key('apistats__route_tuple_%s_%s' % (
+            api_stats_clean_location_value(form.cleaned_data['origin'].pk),
+            api_stats_clean_location_value(form.cleaned_data['destination'].pk),
+        ))
+        increment_cache_key('apistats__route_origin_%s' % (
+            api_stats_clean_location_value(form.cleaned_data['origin'].pk),
+        ))
+        increment_cache_key('apistats__route_destination_%s' % (
+            api_stats_clean_location_value(form.cleaned_data['destination'].pk),
+        ))
 
         return Response({
             'request': {
