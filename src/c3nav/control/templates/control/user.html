@@ -158,6 +158,7 @@
         {{ space_accesses_form.non_field_errors }}
         {{ space_accesses_form.access_permissions.errors }}
         {{ space_accesses_form.expires.errors }}
+        <form method="post">
         <table>
             <tr>
                 <th>{% trans 'Space' %}</th>
@@ -174,12 +175,15 @@
                             {% trans 'No' %}
                         {% endif %}
                     </td>
-                    <td class="button-cell"><form method="post">
+                    <td class="button-cell">
                         {% csrf_token %}<button type="submit" name="delete_space_access" value="{{ space_access.pk }}">{% trans 'Delete' %}</button>
-                    </form></td>
+                    </td>
                 </tr>
             {% endfor %}
-            <form method="post">
+        </table>
+        </form>
+        <form method="post">
+        <table>
             {% csrf_token %}
             {% if space_accesses_form %}
                 <tr>
