@@ -1,6 +1,7 @@
 import json
 import operator
 import os
+from django.core.validators import validate_slug
 from functools import reduce
 from itertools import chain
 
@@ -176,6 +177,7 @@ class EditorFormBase(I18nModelFormMixin, ModelForm):
         self.add_redirect_slugs = None
         self.remove_redirect_slugs = None
         if 'slug' in self.fields:
+            self.fields['slug'].validators.append(validate_slug)
             self.redirect_slugs = sorted(self.instance.redirects.values_list('slug', flat=True))
             self.fields['redirect_slugs'] = CharField(label=_('Redirecting Slugs (comma seperated)'), required=False,
                                                       initial=','.join(self.redirect_slugs))
