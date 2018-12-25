@@ -42,6 +42,9 @@ class SerializableMixin(models.Model):
             ]
         }
 
+    def get_geometry(self, detailed_geometry=True):
+        return None
+
     @property
     def title(self):
         return self._meta.verbose_name + ' ' + str(self.id)

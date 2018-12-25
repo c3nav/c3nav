@@ -88,11 +88,13 @@ class GeometryMixin(SerializableMixin):
 
     def details_display(self, detailed_geometry=True, **kwargs):
         result = super().details_display(**kwargs)
-        if detailed_geometry:
-            result['geometry'] = format_geojson(smart_mapping(self.geometry), round=False)
-        else:
-            result['geometry'] = format_geojson(smart_mapping(box(*self.geometry.bounds)), round=False)
+        result['geometry'] = self.get_geometry(detailed_geometry=detailed_geometry)
         return result
+
+    def get_geometry(self, detailed_geometry=True):
+        if detailed_geometry:
+            return format_geojson(smart_mapping(self.geometry), round=False)
+        return format_geojson(smart_mapping(box(*self.geometry.bounds)), round=False)
 
     def get_shadow_geojson(self):
         pass

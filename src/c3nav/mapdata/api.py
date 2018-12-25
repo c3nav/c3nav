@@ -348,6 +348,21 @@ class LocationViewSetBase(RetrieveModelMixin, GenericViewSet):
             editor_url=can_access_editor(request)
         ))
 
+    @action(detail=True, methods=['get'])
+    @api_etag(base_mapdata_check=True)
+    def geometry(self, request, **kwargs):
+        location = self.get_object()
+
+        if location is None:
+            raise NotFound
+
+        if isinstance(location, LocationRedirect):
+            return redirect('../' + str(location.target.pk) + '/geometry/')
+
+        return Response(location.get_geometry(
+            detailed_geometry=MapdataViewSet.can_access_geometry(request, location),
+        ))
+
 
 class LocationViewSet(LocationViewSetBase):
     """
