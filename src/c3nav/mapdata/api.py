@@ -51,8 +51,10 @@ def api_stats(view_name):
             response = func(self, request, *args, **kwargs)
             if response.status_code < 400 and kwargs:
                 name, value = next(iter(kwargs.items()))
-                if not isinstance(value, str) or not value.startswith('c:'):
-                    increment_cache_key('apistats__%s__%s__%s' % (view_name, name, value))
+                if isinstance(value, str) and value.startswith('c:'):
+                    value = value.split(':')
+                    value = 'c:%s:%d:%d' % (value[1], int(float(value[2])/3)*3, int(float(value[3])/3)*3)
+                increment_cache_key('apistats__%s__%s__%s' % (view_name, name, value))
             return response
         return wrapped_func
     return wrapper
@@ -327,6 +329,7 @@ class LocationViewSetBase(RetrieveModelMixin, GenericViewSet):
     def get_object(self) -> LocationSlug:
         raise NotImplementedError
 
+    @api_stats('location_retrieve')
     @api_etag(cache_parameters={'show_redirects': bool, 'detailed': bool, 'geometry': bool}, base_mapdata_check=True)
     def retrieve(self, request, key=None, *args, **kwargs):
         show_redirects = 'show_redirects' in request.GET
