@@ -41,6 +41,7 @@ MAP_ROOT = os.path.join(DATA_DIR, 'map')
 RENDER_ROOT = os.path.join(DATA_DIR, 'render')
 TILES_ROOT = os.path.join(DATA_DIR, 'tiles')
 CACHE_ROOT = os.path.join(DATA_DIR, 'cache')
+STATS_ROOT = os.path.join(DATA_DIR, 'stats')
 
 if not os.path.exists(DATA_DIR):
     os.mkdir(DATA_DIR)
@@ -58,6 +59,8 @@ if not os.path.exists(TILES_ROOT):
     os.mkdir(TILES_ROOT)
 if not os.path.exists(CACHE_ROOT):
     os.mkdir(CACHE_ROOT)
+if not os.path.exists(STATS_ROOT):
+    os.mkdir(STATS_ROOT)
 
 PUBLIC_EDITOR = config.getboolean('c3nav', 'editor', fallback=True)
 PUBLIC_BASE_MAPDATA = config.getboolean('c3nav', 'public_base_mapdata', fallback=False)
