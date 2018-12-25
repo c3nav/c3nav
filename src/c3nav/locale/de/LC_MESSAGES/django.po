@@ -7,8 +7,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2018-12-24 00:27+0100\n"
-"PO-Revision-Date: 2018-12-24 00:27+0100\n"
+"POT-Creation-Date: 2018-12-25 20:04+0100\n"
+"PO-Revision-Date: 2018-12-25 20:05+0100\n"
 "Last-Translator: Laura Klünder <laura@codingcatgirl.de>\n"
 "Language-Team: \n"
 "Language: de\n"
@@ -62,94 +62,94 @@ msgstr "Befugnisse"
 msgid "Important dates"
 msgstr "Wichtige Daten"
 
-#: c3nav/control/forms.py:79
+#: c3nav/control/forms.py:80
 msgid "choose permissions…"
 msgstr "Erlaubnsise auswählen…"
 
-#: c3nav/control/forms.py:80
+#: c3nav/control/forms.py:81
 #, python-format
 msgid "everything possible (%d permission)"
 msgid_plural "everything possible (%d permissions)"
 msgstr[0] "alles mögliche (%d Erlaubnis)"
 msgstr[1] "alles mögliche (%d Erlaubnisse)"
 
-#: c3nav/control/forms.py:84
+#: c3nav/control/forms.py:85
 msgid "Access Permission Groups"
 msgstr "Zugangserlaubnisgruppen"
 
-#: c3nav/control/forms.py:88 c3nav/control/templates/control/access.html:4
+#: c3nav/control/forms.py:89 c3nav/control/templates/control/access.html:4
 #: c3nav/control/templates/control/user.html:60
 #: c3nav/mapdata/models/access.py:149
 msgid "Access Permissions"
 msgstr "Zugangserlaubnisse"
 
-#: c3nav/control/forms.py:97 c3nav/control/templates/control/user.html:91
+#: c3nav/control/forms.py:98 c3nav/control/templates/control/user.html:91
 #: c3nav/control/templates/control/user.html:134
 msgid "never"
 msgstr "nie"
 
-#: c3nav/control/forms.py:101
+#: c3nav/control/forms.py:102
 #, python-format
 msgid "in %d minute"
 msgid_plural "in %d minutes"
 msgstr[0] "in %d Minute"
 msgstr[1] "in %d Minuten"
 
-#: c3nav/control/forms.py:105
+#: c3nav/control/forms.py:106
 #, python-format
 msgid "in %d hour"
 msgid_plural "in %d hours"
 msgstr[0] "in %d Stunde"
 msgstr[1] "in %d Stunden"
 
-#: c3nav/control/forms.py:108
+#: c3nav/control/forms.py:109
 msgid "in 1½ hour"
 msgstr "in 1½ Stunden"
 
-#: c3nav/control/forms.py:112
+#: c3nav/control/forms.py:113
 #, python-format
 msgid "in %d day"
 msgid_plural "in %d days"
 msgstr[0] "in %d Tag"
 msgstr[1] "in %d Tagen"
 
-#: c3nav/control/forms.py:119
+#: c3nav/control/forms.py:120
 msgid "can pass on"
 msgstr "kann weitergeben"
 
-#: c3nav/control/forms.py:252
+#: c3nav/control/forms.py:253
 msgid "no"
 msgstr "nein"
 
-#: c3nav/control/forms.py:252
+#: c3nav/control/forms.py:253
 msgid "yes"
 msgstr "ja"
 
-#: c3nav/control/forms.py:272
+#: c3nav/control/forms.py:273
 msgid "any type"
 msgstr "beliebiger Typ"
 
-#: c3nav/control/forms.py:276 c3nav/control/forms.py:280
+#: c3nav/control/forms.py:277 c3nav/control/forms.py:281
 msgid "any"
 msgstr "beliebig"
 
-#: c3nav/control/forms.py:276
+#: c3nav/control/forms.py:277
 msgid "geometries changed"
 msgstr "geometrien geändert"
 
-#: c3nav/control/forms.py:276
+#: c3nav/control/forms.py:277
 msgid "no geometries changed"
 msgstr "keine geometrien geändert"
 
-#: c3nav/control/forms.py:280
+#: c3nav/control/forms.py:281
 msgid "processed"
 msgstr "verarbeitet"
 
-#: c3nav/control/forms.py:280
+#: c3nav/control/forms.py:281
 msgid "not processed"
 msgstr "nicht verarbeitet"
 
-#: c3nav/control/forms.py:287
+#: c3nav/control/forms.py:288
 msgid "user id"
 msgstr "User ID"
 
@@ -205,15 +205,15 @@ msgstr "API secret"
 msgid "User Permissions"
 msgstr "Benutzerbefugnisse"
 
-#: c3nav/control/models.py:99 c3nav/control/templates/control/user.html:164
+#: c3nav/control/models.py:98 c3nav/control/templates/control/user.html:165
 msgid "can edit"
 msgstr "kann bearbeiten"
 
-#: c3nav/control/models.py:102
+#: c3nav/control/models.py:101
 msgid "user space access"
 msgstr "Benutzer-Raumzugrifsberechtigung"
 
-#: c3nav/control/models.py:103
+#: c3nav/control/models.py:102
 msgid "user space accesses"
 msgstr "Benutzer-Raumzugrifsberechtigungen"
 
@@ -434,7 +434,7 @@ msgstr ""
 #: c3nav/control/templates/control/map_updates.html:96
 #: c3nav/control/templates/control/user.html:97
 #: c3nav/control/templates/control/user.html:140
-#: c3nav/control/templates/control/user.html:172
+#: c3nav/control/templates/control/user.html:173
 #: c3nav/mapdata/models/geometry/level.py:140
 #: c3nav/mapdata/models/locations.py:116 c3nav/mapdata/models/locations.py:117
 msgid "Yes"
@@ -444,7 +444,7 @@ msgstr "Ja"
 #: c3nav/control/templates/control/map_updates.html:98
 #: c3nav/control/templates/control/user.html:99
 #: c3nav/control/templates/control/user.html:142
-#: c3nav/control/templates/control/user.html:174
+#: c3nav/control/templates/control/user.html:175
 #: c3nav/mapdata/models/geometry/level.py:140
 #: c3nav/mapdata/models/locations.py:116 c3nav/mapdata/models/locations.py:117
 msgid "No"
@@ -535,7 +535,7 @@ msgid "key"
 msgstr "key"
 
 #: c3nav/control/templates/control/user.html:104
-#: c3nav/control/templates/control/user.html:178
+#: c3nav/control/templates/control/user.html:179
 #: c3nav/editor/templates/editor/changeset.html:124
 #: c3nav/editor/templates/editor/delete.html:17
 #: c3nav/editor/templates/editor/edit.html:27
@@ -543,7 +543,7 @@ msgid "Delete"
 msgstr "Löschen"
 
 #: c3nav/control/templates/control/user.html:114
-#: c3nav/control/templates/control/user.html:193
+#: c3nav/control/templates/control/user.html:197
 msgid "Add"
 msgstr "Hinzufügen"
 
@@ -566,7 +566,7 @@ msgstr "Details"
 msgid "Space Access"
 msgstr "Raumzugriffserlaubnis"
 
-#: c3nav/control/templates/control/user.html:163
+#: c3nav/control/templates/control/user.html:164
 #: c3nav/editor/templates/editor/space.html:9
 #: c3nav/mapdata/models/geometry/level.py:122
 #: c3nav/mapdata/models/geometry/space.py:81
@@ -672,37 +672,37 @@ msgstr ""
 "Kartenänderungsverarbeitung konnte nicht veranlasst werden da Celery nicht "
 "konfiguriert ist."
 
-#: c3nav/editor/api.py:391
+#: c3nav/editor/api.py:374
 msgid "No matching editor view endpoint found."
 msgstr "Es wurde keine passende Editor-Endpunkt gefunden."
 
-#: c3nav/editor/api.py:394
+#: c3nav/editor/api.py:377
 msgid "Matching editor view point does not provide an API."
 msgstr "Der entsprechende Editor-Endpunkt bietet diese API nicht an."
 
-#: c3nav/editor/api.py:477
+#: c3nav/editor/api.py:460
 msgid "You don't have the permission to activate direct editing."
 msgstr "Du darfst direktes Bearbeiten nicht aktivieren."
 
-#: c3nav/editor/api.py:481
+#: c3nav/editor/api.py:464
 msgid "You cannot activate direct editing if you have an active changeset."
 msgstr ""
 "Du kannst direktes Bearbeiten nicht aktivieren, wenn du ein aktives "
 "Änderungsset hast."
 
-#: c3nav/editor/api.py:512 c3nav/editor/views/changes.py:66
+#: c3nav/editor/api.py:495 c3nav/editor/views/changes.py:66
 msgid "You can not activate this change set."
 msgstr "Du kannst dieses Änderungsset nicht aktivieren."
 
-#: c3nav/editor/api.py:522 c3nav/editor/views/changes.py:399
+#: c3nav/editor/api.py:505 c3nav/editor/views/changes.py:399
 msgid "You cannot edit this change set."
 msgstr "Du kannst dieses Änderungsset nicht bearbeiten."
 
-#: c3nav/editor/api.py:551 c3nav/editor/views/changes.py:56
+#: c3nav/editor/api.py:534 c3nav/editor/views/changes.py:56
 msgid "You can not edit changes on this change set."
 msgstr "Du kannst keine Änderungen dieses Änderungssets bearbeiten."
 
-#: c3nav/editor/api.py:561 c3nav/editor/views/changes.py:52
+#: c3nav/editor/api.py:544 c3nav/editor/views/changes.py:52
 msgid ""
 "You cannot restore this object, because it depends on a deleted object or it "
 "would violate a unique contraint."
@@ -710,41 +710,41 @@ msgstr ""
 "Du kannst dieses Objekt nicht wiederherstellen weil es ein anderes Objekt "
 "benötigt oder weil es einer Eindeutigen Beschränkung wiedersprechen würde."
 
-#: c3nav/editor/api.py:569 c3nav/editor/views/changes.py:72
+#: c3nav/editor/api.py:552 c3nav/editor/views/changes.py:72
 msgid "You need to log in to propose changes."
 msgstr "Du musst dich anmelden um Änderungen vorzuschlagen."
 
-#: c3nav/editor/api.py:574 c3nav/editor/views/changes.py:77
+#: c3nav/editor/api.py:557 c3nav/editor/views/changes.py:77
 msgid "You need to add a title an a description to propose this change set."
 msgstr ""
 "Du musst einen Titel und eine Beschreibung hinzufügen, um dieses "
 "Änderungsset vorzuschlagen."
 
-#: c3nav/editor/api.py:577 c3nav/editor/views/changes.py:84
+#: c3nav/editor/api.py:560 c3nav/editor/views/changes.py:84
 msgid "You cannot propose this change set."
 msgstr "Du kannst dieses Änderungsset nicht vorschlagen."
 
-#: c3nav/editor/api.py:587 c3nav/editor/views/changes.py:94
+#: c3nav/editor/api.py:570 c3nav/editor/views/changes.py:94
 msgid "You cannot unpropose this change set."
 msgstr "Du kannst diesen Änderungsvorschlag nicht zurücknehmen."
 
-#: c3nav/editor/api.py:597 c3nav/editor/views/changes.py:104
+#: c3nav/editor/api.py:580 c3nav/editor/views/changes.py:104
 msgid "You cannot review these changes."
 msgstr "Du kannst diese Änderungen nicht überprüfen."
 
-#: c3nav/editor/api.py:607 c3nav/editor/views/changes.py:111
+#: c3nav/editor/api.py:590 c3nav/editor/views/changes.py:111
 msgid "You cannot reject these changes."
 msgstr "Du kannst diese Änderungen nicht ablehnen."
 
-#: c3nav/editor/api.py:621 c3nav/editor/views/changes.py:131
+#: c3nav/editor/api.py:604 c3nav/editor/views/changes.py:131
 msgid "You cannot unreject these changes."
 msgstr "Du kannst diese Änderungsablehnung nicht zurücknehmen."
 
-#: c3nav/editor/api.py:631 c3nav/editor/views/changes.py:142
+#: c3nav/editor/api.py:614 c3nav/editor/views/changes.py:142
 msgid "You cannot accept and apply these changes."
 msgstr "Du kannst diese Änderungen nicht akzeptieren und anwenden."
 
-#: c3nav/editor/api.py:641 c3nav/editor/views/changes.py:155
+#: c3nav/editor/api.py:624 c3nav/editor/views/changes.py:155
 msgid "You cannot delete this change set."
 msgstr "Du kannst dieses Änderungsset nicht löschen."
 
@@ -860,7 +860,7 @@ msgstr "letzte Anderung"
 msgid "last state update"
 msgstr "letzte Statusänderung"
 
-#: c3nav/editor/models/changeset.py:48 c3nav/mapdata/models/base.py:59
+#: c3nav/editor/models/changeset.py:48 c3nav/mapdata/models/base.py:62
 #: c3nav/mapdata/models/graph.py:37 c3nav/mapdata/models/locations.py:232
 #: c3nav/mapdata/utils/locations.py:342
 msgid "Title"
@@ -882,15 +882,15 @@ msgstr "Kartenänderung"
 msgid "Change Sets"
 msgstr "Änderungssets"
 
-#: c3nav/editor/models/changeset.py:781
+#: c3nav/editor/models/changeset.py:782
 msgid "Direct editing active"
 msgstr "Direktes Bearbeiten aktiv"
 
-#: c3nav/editor/models/changeset.py:782
+#: c3nav/editor/models/changeset.py:783
 msgid "No objects changed"
 msgstr "Keine Objekte geändert"
 
-#: c3nav/editor/models/changeset.py:783
+#: c3nav/editor/models/changeset.py:784
 #, python-format
 msgid "%(num)d object changed"
 msgid_plural "%(num)d objects changed"
@@ -1494,12 +1494,12 @@ msgstr "Du hast direktes Bearbeiten aktiviert."
 msgid "You deactivated direct editing."
 msgstr "Du hast direktes Bearbeiten deaktiviert."
 
-#: c3nav/mapdata/api.py:167
+#: c3nav/mapdata/api.py:191
 #, python-format
 msgid "%(field)s is not an integer."
 msgstr "%(field)s ist keine ganze Zahl."
 
-#: c3nav/mapdata/api.py:175
+#: c3nav/mapdata/api.py:199
 #, python-format
 msgid "%(model)s not found."
 msgstr "%(model)s nicht gefunden."
@@ -1721,28 +1721,28 @@ msgstr "Zugangserlaubnis"
 msgid "Type"
 msgstr "Typ"
 
-#: c3nav/mapdata/models/base.py:78
+#: c3nav/mapdata/models/base.py:81
 #, python-brace-format
 msgid "Title ({lang})"
 msgstr "Titel ({lang})"
 
-#: c3nav/mapdata/models/base.py:84
+#: c3nav/mapdata/models/base.py:87
 msgid "bottom coordinate"
 msgstr "untere koordinate"
 
-#: c3nav/mapdata/models/base.py:85
+#: c3nav/mapdata/models/base.py:88
 msgid "left coordinate"
 msgstr "linke koordinate"
 
-#: c3nav/mapdata/models/base.py:86
+#: c3nav/mapdata/models/base.py:89
 msgid "top coordinate"
 msgstr "obere koordinate"
 
-#: c3nav/mapdata/models/base.py:87
+#: c3nav/mapdata/models/base.py:90
 msgid "right coordinate"
 msgstr "rechte koordinate"
 
-#: c3nav/mapdata/models/geometry/base.py:21
+#: c3nav/mapdata/models/geometry/base.py:24
 msgid "import tag"
 msgstr "import tag"
 
@@ -2288,32 +2288,32 @@ msgstr "Höhe"
 msgid "Subtitle"
 msgstr "Untertitel"
 
-#: c3nav/mapdata/utils/locations.py:385
+#: c3nav/mapdata/utils/locations.py:388
 #, python-format
 msgid "In %(level)s"
 msgstr "In %(level)s"
 
-#: c3nav/mapdata/utils/locations.py:391
+#: c3nav/mapdata/utils/locations.py:394
 #, python-format
 msgid "Near %(poi)s"
 msgstr "Nahe %(poi)s"
 
-#: c3nav/mapdata/utils/locations.py:395
+#: c3nav/mapdata/utils/locations.py:398
 #, python-format
 msgid "near %(area)s"
 msgstr "nahe %(area)s"
 
-#: c3nav/mapdata/utils/locations.py:397
+#: c3nav/mapdata/utils/locations.py:400
 #, python-format
 msgid "In %(area)s"
 msgstr "In %(area)s"
 
-#: c3nav/mapdata/utils/locations.py:401
+#: c3nav/mapdata/utils/locations.py:404
 #, python-format
 msgid "Near %(area)s"
 msgstr "Nahe %(area)s"
 
-#: c3nav/mapdata/utils/locations.py:403
+#: c3nav/mapdata/utils/locations.py:406
 #, python-format
 msgid "In %(space)s"
 msgstr "In %(space)s"
@@ -2333,19 +2333,19 @@ msgstr[1] "%d freigeschaltete Bereiche"
 msgid "Login"
 msgstr "Anmelden"
 
-#: c3nav/routing/api.py:47
+#: c3nav/routing/api.py:49
 msgid "Not yet routable, try again shortly."
 msgstr "Noch nicht routebar, bitte einige Minuten warten."
 
-#: c3nav/routing/api.py:51
+#: c3nav/routing/api.py:53
 msgid "Unreachable location."
 msgstr "Unerreichbarer Ort."
 
-#: c3nav/routing/api.py:55
+#: c3nav/routing/api.py:57
 msgid "No route found."
 msgstr "Keine Route gefunden."
 
-#: c3nav/routing/api.py:88
+#: c3nav/routing/api.py:102
 msgid "Invalid scan data."
 msgstr "Invalide Scandaten."
 
@@ -2357,39 +2357,39 @@ msgstr "Unbekannter Startort."
 msgid "Unknown destination."
 msgstr "Unbekannter Zielort."
 
-#: c3nav/routing/locator.py:205
+#: c3nav/routing/locator.py:208
 msgid "Invalid Scan. Scans list list not a list."
 msgstr "Invalider Scan. Scan List Liste ist keine Liste."
 
-#: c3nav/routing/locator.py:211
+#: c3nav/routing/locator.py:214
 msgid "Invalid Scan. Scan not a list."
 msgstr "Invalider Scan. Scan is keine Liste."
 
-#: c3nav/routing/locator.py:224
+#: c3nav/routing/locator.py:227
 msgid "Invalid Scan. Scan value not a dictionary."
 msgstr "Invalider Scan. Scan wert ist kein Dictonary."
 
-#: c3nav/routing/locator.py:227
+#: c3nav/routing/locator.py:230
 msgid "Invalid Scan. Missing or forbidden keys."
 msgstr "Invalider Scan. Fehlender oder Falscher Key."
 
-#: c3nav/routing/locator.py:229
+#: c3nav/routing/locator.py:232
 msgid "Invalid Scan. BSSID not a String."
 msgstr "Invalider Scan. BSSID ist kein String."
 
-#: c3nav/routing/locator.py:232
+#: c3nav/routing/locator.py:235
 msgid "Invalid Scan. Invalid BSSID."
 msgstr "Invalider Scan. Ungültige BSSID."
 
-#: c3nav/routing/locator.py:234
+#: c3nav/routing/locator.py:237
 msgid "Invalid Scan. Invalid RSSI/Level."
 msgstr "Invalider Scan. Ungültiger RSSI."
 
-#: c3nav/routing/locator.py:236
+#: c3nav/routing/locator.py:239
 msgid "Invalid Scan. Not an allowed frequency."
 msgstr "Invalider Scan. Unerlaubte Frequenz."
 
-#: c3nav/routing/locator.py:238
+#: c3nav/routing/locator.py:241
 msgid "Invalid Scan. Invalid last timestamp."
 msgstr "Invalider Scan. Letzter Zeitstempel ungültig."
 
@@ -2616,8 +2616,8 @@ msgid "about c3nav"
 msgstr "über c3nav"
 
 #: c3nav/site/templates/site/map.html:33
-msgid "Show only this location"
-msgstr "Nur diesen Ort anzeigen"
+msgid "Select this location"
+msgstr "Diesen Ort auswählen"
 
 #: c3nav/site/templates/site/map.html:34
 msgid "Route to here"
