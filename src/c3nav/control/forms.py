@@ -13,6 +13,7 @@ from django.forms import ChoiceField, Form, IntegerField, ModelForm, Select
 from django.utils import timezone
 from django.utils.translation import ugettext_lazy as _
 from django.utils.translation import ungettext_lazy
+from operator import attrgetter
 
 from c3nav.control.models import UserPermissions, UserSpaceAccess
 from c3nav.mapdata.forms import I18nModelFormMixin
@@ -248,7 +249,7 @@ class UserSpaceAccessForm(ModelForm):
     def __init__(self, *args, request=None, **kwargs):
         super().__init__(*args, **kwargs)
         self.fields['space'].label_from_instance = lambda obj: obj.title
-        self.fields['space'].queryset = Space.qs_for_request(request)
+        self.fields['space'].queryset = sorted(Space.qs_for_request(request), key=attrgetter('title'))
         choices = [('0', _('no'))] * 6 + [('1', _('yes'))] + [('0', _('no'))] * 3
         self.fields['can_edit'].widget = Select(choices=choices)
 
