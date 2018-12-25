@@ -48,7 +48,8 @@ def api_stats_clean_location_value(value):
     if isinstance(value, str) and value.startswith('c:'):
         value = value.split(':')
         value = 'c:%s:%d:%d' % (value[1], int(float(value[2]) / 3) * 3, int(float(value[3]) / 3) * 3)
-    return value
+        return (value, 'c:anywhere')
+    return (value, )
 
 
 def api_stats(view_name):
@@ -58,7 +59,8 @@ def api_stats(view_name):
             response = func(self, request, *args, **kwargs)
             if response.status_code < 400 and kwargs:
                 name, value = next(iter(kwargs.items()))
-                increment_cache_key('apistats__%s__%s__%s' % (view_name, name, api_stats_clean_location_value(value)))
+                for value in api_stats_clean_location_value(value):
+                    increment_cache_key('apistats__%s__%s__%s' % (view_name, name, value))
             return response
         return wrapped_func
     return wrapper

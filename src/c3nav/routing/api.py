@@ -57,16 +57,16 @@ class RoutingViewSet(ViewSet):
                 'error': _('No route found.'),
             })
 
-        increment_cache_key('apistats__route_tuple_%s_%s' % (
-            api_stats_clean_location_value(form.cleaned_data['origin'].pk),
-            api_stats_clean_location_value(form.cleaned_data['destination'].pk),
-        ))
-        increment_cache_key('apistats__route_origin_%s' % (
-            api_stats_clean_location_value(form.cleaned_data['origin'].pk),
-        ))
-        increment_cache_key('apistats__route_destination_%s' % (
-            api_stats_clean_location_value(form.cleaned_data['destination'].pk),
-        ))
+        origin_values = api_stats_clean_location_value(form.cleaned_data['origin'].pk)
+        destination_values = api_stats_clean_location_value(form.cleaned_data['destination'].pk)
+        increment_cache_key('apistats__route')
+        for origin_value in origin_values:
+            for destination_value in destination_values:
+                increment_cache_key('apistats__route_tuple_%s_%s' % (origin_value, destination_value))
+        for value in origin_values:
+            increment_cache_key('apistats__route_origin_%s' % value)
+        for value in destination_values:
+            increment_cache_key('apistats__route_destination_%s' % value)
 
         return Response({
             'request': {
