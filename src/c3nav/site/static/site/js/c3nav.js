@@ -1161,6 +1161,7 @@ c3nav = {
             shadowSize: [41, 41]
         });
     },
+    visible_map_locations: [],
     update_map_locations: function () {
         // update locations markers on the map
         var origin = $('#origin-input').data('location'),
@@ -1170,6 +1171,7 @@ c3nav = {
         for (var level_id in c3nav._locationLayers) {
             c3nav._locationLayers[level_id].clearLayers()
         }
+        c3nav._visible_map_locations = [];
         if (origin) c3nav._merge_bounds(bounds, c3nav._add_location_to_map(origin, single ? new L.Icon.Default() : c3nav.originIcon));
         if (destination) c3nav._merge_bounds(bounds, c3nav._add_location_to_map(destination, single ? new L.Icon.Default() : c3nav.destinationIcon));
         c3nav._locationLayerBounds = bounds;
@@ -1231,7 +1233,7 @@ c3nav = {
         ];
     },
     _location_point_overrides: {},
-    _add_location_to_map: function(location, icon) {
+    _add_location_to_map: function(location, icon, no_geometry) {
         if (!location) {
             // if location is not in the searchable list...
             return
@@ -1239,10 +1241,15 @@ c3nav = {
         // add a location to the map as a marker
         if (location.locations) {
             var bounds = {};
-            for (var i=0; i<location.locations.length; i++) {
-                c3nav._merge_bounds(bounds, c3nav._add_location_to_map(c3nav.locations_by_id[location.locations[i]], icon));
+            for (var i = 0; i < location.locations.length; i++) {
+                c3nav._merge_bounds(bounds, c3nav._add_location_to_map(c3nav.locations_by_id[location.locations[i]], icon, true));
             }
             return bounds;
+        }
+
+        if (!no_geometry && c3nav._visible_map_locations.indexOf(location.id) === -1) {
+            c3nav._visible_map_locations.push(location.id);
+            $.getJSON('/api/locations/' + location.id + '/geometry/', c3nav._location_geometry_loaded);
         }
 
         var point = c3nav._location_point_overrides[location.id] || location.point.slice(1),
@@ -1264,6 +1271,17 @@ c3nav = {
         for (var level_id in new_bounds) {
             bounds[level_id] = bounds[level_id] ? bounds[level_id].extend(new_bounds[level_id]) : new_bounds[level_id];
         }
+    },
+
+    _location_geometry_loaded: function(data) {
+        if (c3nav._visible_map_locations.indexOf(data.id) === -1 || data.geometry === null || data.level === null) return;
+
+        L.geoJSON(data.geometry, {
+            style: {
+                color: c3nav._primary_color,
+                fillOpacity: 0.2,
+            }
+        }).addTo(c3nav._locationLayers[data.level]);
     },
 
     _fetch_updates_timer: null,

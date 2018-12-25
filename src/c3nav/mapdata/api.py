@@ -359,9 +359,13 @@ class LocationViewSetBase(RetrieveModelMixin, GenericViewSet):
         if isinstance(location, LocationRedirect):
             return redirect('../' + str(location.target.pk) + '/geometry/')
 
-        return Response(location.get_geometry(
-            detailed_geometry=MapdataViewSet.can_access_geometry(request, location),
-        ))
+        return Response({
+            'id': location.id,
+            'level': getattr(location, 'level_id', None),
+            'geometry': location.get_geometry(
+                detailed_geometry=MapdataViewSet.can_access_geometry(request, location)
+            )
+        })
 
 
 class LocationViewSet(LocationViewSetBase):

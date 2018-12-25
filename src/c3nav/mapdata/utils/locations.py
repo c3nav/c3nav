@@ -348,6 +348,9 @@ class CustomLocation:
             result['display'].pop(6)
         return result
 
+    def get_geometry(self, detailed_geometry=True):
+        return None
+
     @cached_property
     def description(self):
         from c3nav.routing.router import Router
