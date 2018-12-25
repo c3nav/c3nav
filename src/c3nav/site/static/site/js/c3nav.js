@@ -333,7 +333,7 @@ c3nav = {
             L.geoJSON(data.geometry, {
                 style: {
                     color: c3nav._primary_color,
-                    fillOpacity: 0.2,
+                    fillOpacity: 0.1,
                 }
             }).addTo(c3nav._routeLayers[data.level]);
         }
@@ -1409,7 +1409,7 @@ c3nav = {
             L.circleMarker(latlng, {
                 radius: 11,
                 stroke: 0,
-                fillOpacity: 0.2
+                fillOpacity: 0.1
             }).addTo(layer);
             L.circleMarker(latlng, {
                 radius: 5,
