@@ -21,7 +21,7 @@ def stats_snapshot(reset=True):
         cache.set('apistats_last_reset', now, None)
     results = dict(sorted(results.items()))
     return {
-        'start_time': str(last_now),
-        'end_time': str(now),
+        'start_date': str(last_now),
+        'end_date': str(now),
         'data': results
     }
