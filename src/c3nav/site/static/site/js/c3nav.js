@@ -89,7 +89,7 @@ c3nav = {
             location.elem = c3nav._build_location_html(location);
             location.title_words = location.title.toLowerCase().split(/\s+/);
             location.subtitle_words = location.subtitle.toLowerCase().split(/\s+/);
-            location.match = ' ' + location.title_words.join(' ') + ' ' + location.subtitle_words.join(' ') + ' ';
+            location.match = ' ' + location.title_words.join(' ') + ' ' + location.subtitle_words.join(' ') + '  ' + location.slug;
             locations.push(location);
             locations_by_id[location.id] = location;
         }
