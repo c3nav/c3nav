@@ -344,7 +344,7 @@ class ChangeSet(models.Model):
                 # todo: fix this
                 continue
             objects.setdefault(LocationSlug, {})[target.pk] = target
-            objects.setdefault(target.__class__, {})[target.pk] = target
+            objects.setdefault(target._obj.__class__, {})[target.pk] = target
 
         return objects
 
