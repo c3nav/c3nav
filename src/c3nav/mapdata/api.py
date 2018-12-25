@@ -44,6 +44,20 @@ def optimize_query(qs):
     return qs
 
 
+def api_stats(view_name):
+    def wrapper(func):
+        @wraps(func)
+        def wrapped_func(self, request, *args, **kwargs):
+            response = func(self, request, *args, **kwargs)
+            if response.status_code < 400 and kwargs:
+                name, value = next(iter(kwargs.items()))
+                if not isinstance(value, str) or not value.startswith('c:'):
+                    increment_cache_key('apistats__%s__%s__%s' % (view_name, name, value))
+            return response
+        return wrapped_func
+    return wrapper
+
+
 def api_etag(permissions=True, etag_func=AccessPermission.etag_func, cache_parameters=None, base_mapdata_check=False):
     def wrapper(func):
         @wraps(func)
@@ -333,6 +347,7 @@ class LocationViewSetBase(RetrieveModelMixin, GenericViewSet):
                                            simple_geometry=True))
 
     @action(detail=True, methods=['get'])
+    @api_stats('location_details')
     @api_etag(base_mapdata_check=True)
     def details(self, request, **kwargs):
         location = self.get_object()
@@ -349,6 +364,7 @@ class LocationViewSetBase(RetrieveModelMixin, GenericViewSet):
         ))
 
     @action(detail=True, methods=['get'])
+    @api_stats('location_geometry')
     @api_etag(base_mapdata_check=True)
     def geometry(self, request, **kwargs):
         location = self.get_object()
