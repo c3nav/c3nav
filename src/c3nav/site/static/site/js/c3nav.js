@@ -166,6 +166,9 @@ c3nav = {
         }
 
         c3nav.init_completed = true;
+        if (document.visibilityState && document.visibilityState === "hidden") {
+            c3nav.on_visibility_change();
+        }
     },
     get_csrf_token: function() {
         return document.cookie.match(new RegExp('c3nav_csrftoken=([^;]+)'))[1];
