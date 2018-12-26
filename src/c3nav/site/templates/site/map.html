@@ -48,6 +48,7 @@
                 <p>{% trans 'Get the c3nav app for Android to see your location on the map.' %}</p>
                 <p class="app-download-buttons">
                     <a class="button" href="https://play.google.com/store/apps/details?id=de.c3nav.droid" target="_blank">Google Play</a>
+                    <a class="button" href="https://github.com/c3nav/c3nav-android/releases" target="_blank">{% trans 'Download APK' %}</a>
                 </p>
             </section>
             <section id="reload-msg">
@@ -147,7 +148,7 @@
             <div class="app-ads">
                 <div id="android-app-ad">
                     <a href="#" class="close"><i class="material-icons">close</i></a>
-                    <a href="https://play.google.com/store/apps/details?id=de.c3nav.droid">{% trans 'Get the c3nav Android app!' %}</a>
+                    {% blocktrans with play_url="https://play.google.com/store/apps/details?id=de.c3nav.droid" apk_url="https://github.com/c3nav/c3nav-android/releases" %}Get the c3nav Android app on <a href="{{ play_url }}" target="_blank">Google Play</a> or <a href="{{ apk_url }}" target="_blank">download the APK!</a>{% endblocktrans %}
                 </div>
             </div>
         {% else %}

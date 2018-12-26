@@ -7,8 +7,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2018-12-25 20:04+0100\n"
-"PO-Revision-Date: 2018-12-25 20:05+0100\n"
+"POT-Creation-Date: 2018-12-26 18:12+0100\n"
+"PO-Revision-Date: 2018-12-26 18:13+0100\n"
 "Last-Translator: Laura Klünder <laura@codingcatgirl.de>\n"
 "Language-Team: \n"
 "Language: de\n"
@@ -556,9 +556,9 @@ msgstr "Zugangs­beschränkung"
 #: c3nav/control/templates/control/user.html:145
 #: c3nav/editor/templates/editor/fragment_changesets.html:10
 #: c3nav/editor/templates/editor/list.html:26
-#: c3nav/site/templates/site/map.html:76 c3nav/site/templates/site/map.html:110
-#: c3nav/site/templates/site/map.html:122
-#: c3nav/site/templates/site/map.html:128
+#: c3nav/site/templates/site/map.html:77 c3nav/site/templates/site/map.html:111
+#: c3nav/site/templates/site/map.html:123
+#: c3nav/site/templates/site/map.html:129
 msgid "Details"
 msgstr "Details"
 
@@ -752,33 +752,33 @@ msgstr "Du kannst dieses Änderungsset nicht löschen."
 msgid "Redirecting Slugs (comma seperated)"
 msgstr "Umleitungs-Slugs (mit Komma getrennt)"
 
-#: c3nav/editor/forms.py:217
+#: c3nav/editor/forms.py:219
 #, python-format
 msgid "Can not add redirecting slug “%s”: it's the slug of this object."
 msgstr ""
 "Umleitungs-Slug „%s“ kann nicht hinzugefügt werden: Es ist der Slug dieses "
 "Objects."
 
-#: c3nav/editor/forms.py:224
+#: c3nav/editor/forms.py:226
 #, python-format
 msgid "Can not add redirecting slug “%s”: it is already used elsewhere."
 msgstr ""
 "Umleitungs-Slug „%s“ kann nicht hinzugefügt werden: Er wird bereits an "
 "anderer Stelle verwendet."
 
-#: c3nav/editor/forms.py:231
+#: c3nav/editor/forms.py:233
 msgid "Invalid JSON."
 msgstr "Invalides JSON."
 
-#: c3nav/editor/forms.py:294
+#: c3nav/editor/forms.py:296
 msgid "Final rejection"
 msgstr "Endgültige Ablehnung"
 
-#: c3nav/editor/forms.py:302
+#: c3nav/editor/forms.py:304
 msgid "create one way edges"
 msgstr "Kante nur in eine Richtung erstellen"
 
-#: c3nav/editor/forms.py:303
+#: c3nav/editor/forms.py:305
 msgid "activate next node after connecting"
 msgstr "nächsten Knoten nach dem Verbinden aktivieren"
 
@@ -882,15 +882,15 @@ msgstr "Kartenänderung"
 msgid "Change Sets"
 msgstr "Änderungssets"
 
-#: c3nav/editor/models/changeset.py:782
+#: c3nav/editor/models/changeset.py:783
 msgid "Direct editing active"
 msgstr "Direktes Bearbeiten aktiv"
 
-#: c3nav/editor/models/changeset.py:783
+#: c3nav/editor/models/changeset.py:784
 msgid "No objects changed"
 msgstr "Keine Objekte geändert"
 
-#: c3nav/editor/models/changeset.py:784
+#: c3nav/editor/models/changeset.py:785
 #, python-format
 msgid "%(num)d object changed"
 msgid_plural "%(num)d objects changed"
@@ -1658,6 +1658,14 @@ msgstr "stelle sicher, dass alle Objekte mindestens diese Dicke haben"
 msgid "override filename"
 msgstr "Dateinamen überschreiben"
 
+#: c3nav/mapdata/management/commands/statssnapshot.py:15
+msgid "reset the values"
+msgstr "Werte zurücksetzen"
+
+#: c3nav/mapdata/management/commands/statssnapshot.py:17
+msgid "save result to the stats directory"
+msgstr "Ergebnis im stats-Ordner speichern"
+
 #: c3nav/mapdata/models/access.py:23
 msgid "open"
 msgstr "öffnen"
@@ -2345,7 +2353,7 @@ msgstr "Unerreichbarer Ort."
 msgid "No route found."
 msgstr "Keine Route gefunden."
 
-#: c3nav/routing/api.py:102
+#: c3nav/routing/api.py:103
 msgid "Invalid scan data."
 msgstr "Invalide Scandaten."
 
@@ -2394,7 +2402,7 @@ msgid "Invalid Scan. Invalid last timestamp."
 msgstr "Invalider Scan. Letzter Zeitstempel ungültig."
 
 #: c3nav/routing/models.py:20 c3nav/routing/models.py:21
-#: c3nav/site/templates/site/map.html:135
+#: c3nav/site/templates/site/map.html:136
 msgid "Route options"
 msgstr "Routenoptionen"
 
@@ -2486,11 +2494,11 @@ msgstr "einige Wegtypen vermieden"
 msgid "default options"
 msgstr "Standardoptionen"
 
-#: c3nav/settings.py:301
+#: c3nav/settings.py:304
 msgid "English"
 msgstr "Englisch"
 
-#: c3nav/settings.py:302
+#: c3nav/settings.py:305
 msgid "German"
 msgstr "Deutsch"
 
@@ -2627,7 +2635,7 @@ msgstr "Route hierhin"
 msgid "Route from here"
 msgstr "Route von hier aus"
 
-#: c3nav/site/templates/site/map.html:38 c3nav/site/templates/site/map.html:80
+#: c3nav/site/templates/site/map.html:38 c3nav/site/templates/site/map.html:81
 msgid "Share"
 msgstr "Teilen"
 
@@ -2648,39 +2656,50 @@ msgid "Get the c3nav app for Android to see your location on the map."
 msgstr ""
 "Hole dir die c3nav-App für Android um deine Position auf der Karte zu sehen."
 
-#: c3nav/site/templates/site/map.html:60 c3nav/site/templates/site/map.html:67
+#: c3nav/site/templates/site/map.html:51
+msgid "Download APK"
+msgstr "APK herunterladen"
+
+#: c3nav/site/templates/site/map.html:61 c3nav/site/templates/site/map.html:68
 msgid "Search any location…"
 msgstr "Suche einen beliebigen Ort…"
 
-#: c3nav/site/templates/site/map.html:84
+#: c3nav/site/templates/site/map.html:85
 msgid "Route"
 msgstr "Route"
 
-#: c3nav/site/templates/site/map.html:96 c3nav/site/templates/site/map.html:106
+#: c3nav/site/templates/site/map.html:97 c3nav/site/templates/site/map.html:107
 msgid "Swap"
 msgstr "Vertauschen"
 
-#: c3nav/site/templates/site/map.html:100
+#: c3nav/site/templates/site/map.html:101
 msgid "Close"
 msgstr "Schließen"
 
-#: c3nav/site/templates/site/map.html:120
+#: c3nav/site/templates/site/map.html:121
 msgid "Open in Editor"
 msgstr "Im Editor öffnen"
 
-#: c3nav/site/templates/site/map.html:140
+#: c3nav/site/templates/site/map.html:141
 msgid "Save and reroute"
 msgstr "Speichern und neu routen"
 
-#: c3nav/site/templates/site/map.html:141
+#: c3nav/site/templates/site/map.html:142
 msgid "Just reroute"
 msgstr "Nur neu routen"
 
-#: c3nav/site/templates/site/map.html:150
-msgid "Get the c3nav Android app!"
-msgstr "Hol' dir die c3nav Android-App!"
+#: c3nav/site/templates/site/map.html:151
+#, python-format
+msgid ""
+"Get the c3nav Android app on <a href=\"%(play_url)s\" target=\"_blank"
+"\">Google Play</a> or <a href=\"%(apk_url)s\" target=\"_blank\">download the "
+"APK!</a>"
+msgstr ""
+"Hol' dir die c3nav Android-App bei <a href=\"%(play_url)s\" target=\"_blank"
+"\">Google Play</a> oder <a href=\"%(apk_url)s\" target=\"_blank\">downloade "
+"die APK!</a>"
 
-#: c3nav/site/templates/site/map.html:155
+#: c3nav/site/templates/site/map.html:156
 msgid "open in c3nav"
 msgstr "in c3nav öffnen"
 
@@ -2712,6 +2731,9 @@ msgid "You have been invited to unlock the following area:"
 msgid_plural "You have been invited to unlock the following areas:"
 msgstr[0] "Du wurdest eingeladen, den folgenden Bereich freizuschalten:"
 msgstr[1] "Du wurdest eingeladen, die folgenden Bereiche freizuschalten:"
+
+#~ msgid "Get the c3nav Android app!"
+#~ msgstr "Hol' dir die c3nav Android-App!"
 
 #~ msgid "please enter a newline seperated lowercase list of BSSIDs"
 #~ msgstr "bitte gib Zeile für Zeile klein geschriebene BSSIDs ein"
