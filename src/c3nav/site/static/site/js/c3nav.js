@@ -67,6 +67,8 @@ c3nav = {
             if ($body.is('[data-user-data]')) {
                 mobileclient.setUserData($body.attr('data-user-data'));
             }
+        } else {
+            document.addEventListener('visibilitychange', c3nav.on_visibility_change, false);
         }
     },
     _searchable_locations_timer: null,
@@ -1484,6 +1486,51 @@ c3nav = {
     _map_material_icon: function(name) {
         if (c3nav._material_icons_codepoints === null) return name;
         return c3nav._material_icons_codepoints[name] || '';
+    },
+    _pause: function() {
+        if (c3nav._fetch_updates_timer !== null) {
+            window.clearTimeout(c3nav._fetch_updates_timer);
+            c3nav._fetch_updates_timer = null;
+        }
+        if (c3nav._searchable_locations_timer !== null) {
+            window.clearTimeout(c3nav._searchable_locations_timer)
+            c3nav._searchable_locations_timer = null;
+        }
+    },
+    _resume: function() {
+        if (c3nav._fetch_updates_timer === null) {
+            console.log("c3nav._resume() -> fetch_updates");
+            c3nav.fetch_updates();
+        }
+        if (c3nav._searchable_locations_timer === null) {
+            scheduled_load_in = null
+            if (c3nav._last_time_searchable_locations_loaded !== null) {
+                scheduled_load_in = c3nav._last_time_searchable_locations_loaded + c3nav._searchable_locations_interval - Date.now();
+            }
+            if (scheduled_load_in === null || scheduled_load_in <= 5000) {
+                c3nav.load_searchable_locations();
+                console.log("c3nav._resume() -> loading searchable locations");
+            } else {
+                c3nav._searchable_locations_timer = window.setTimeout(c3nav.load_searchable_locations, scheduled_load_in);
+                console.log("c3nav._resume() -> scheduling searchable locations timeout: " + scheduled_load_in);
+            }
+        }
+    },
+    _visibility_hidden_timer: null,
+    on_visibility_change: function() {
+        if (document.visibilityState === "hidden") {
+            c3nav._visibility_hidden_timer = window.setTimeout( function () {
+                c3nav._visibility_hidden_timer = null;
+                if (document.visibilityState === "hidden") {
+                    c3nav._pause();
+                }
+            }, 30000);
+        } else {
+            if (c3nav._visibility_hidden_timer !== null) {
+                window.clearTimeout(c3nav._visibility_hidden_timer);
+            }
+            c3nav._resume();
+        }
     }
 };
 $(document).ready(c3nav.init);
@@ -1499,29 +1546,12 @@ function openInModal(location) {
 
 function mobileclientOnPause() {
     c3nav.stopWifiScanning();
-    if (c3nav._fetch_updates_timer !== null) {
-        window.clearTimeout(c3nav._fetch_updates_timer);
-        c3nav._fetch_updates_timer = null;
-    }
-    if (c3nav._searchable_locations_timer !== null) {
-        window.clearTimeout(c3nav._searchable_locations_timer)
-        c3nav._searchable_locations_timer = null;
-    }
+    c3nav._pause();
 }
 
 function mobileclientOnResume() {
-    if (c3nav._fetch_updates_timer === null) {
-        c3nav.fetch_updates();
-    }
     c3nav.startWifiScanning();
-    if (c3nav._last_time_searchable_locations_loaded === null) {
-        scheduled_load_in = c3nav._last_time_searchable_locations_loaded + c3nav._searchable_locations_interval - Date.now();
-        if (scheduled_load_in <= 0) {
-            c3nav.load_searchable_locations();
-        } else {
-            c3nav._searchable_locations_timer = window.setTimeout(c3nav.load_searchable_locations, scheduled_load_in);
-        }
-    }
+    c3nav._resume();
 }
 
 LevelControl = L.Control.extend({
