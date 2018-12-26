@@ -1425,6 +1425,7 @@ c3nav = {
                     stroke: 0,
                     fillOpacity: 1 * factor
                 }).addTo(layer);
+                break;
             }
             $('.leaflet-control-user-location a').toggleClass('control-disabled', false);
         } else if (c3nav.hasLocationPermission()) {
