@@ -144,7 +144,7 @@ class LocatorSpace:
 
         # acceptable points need to have a value for the needed_station_id
         points = tuple(
-            np.argwhere(self.levels[:, self.stations_lookup[needed_station_id]] > self.no_signal).ravel()
+            np.argwhere(self.levels[:, self.stations_lookup[needed_station_id]] < self.no_signal).ravel()
         )
         if not points:
             return None, None
