@@ -354,7 +354,7 @@ class Router:
                 return self.spaces[space]
         spaces = (self.spaces[space] for space in level.spaces if space not in excluded_spaces)
         spaces = ((space, space.geometry.distance(point)) for space in spaces)
-        spaces = tuple((space, distance) for space, distance in spaces if distance < 0.5)
+        spaces = tuple((space, distance) for space, distance in spaces if distance < 20)
         if not spaces:
             return None
         return min(spaces, key=operator.itemgetter(1))[0]
