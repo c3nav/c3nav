@@ -343,8 +343,9 @@ class ChangeSet(models.Model):
             except FieldDoesNotExist:
                 # todo: fix this
                 continue
-            objects.setdefault(LocationSlug, {})[target.pk] = target._obj
-            objects.setdefault(target.__class__, {})[target.pk] = target._obj
+            # todo: why is it sometimes wrapped and sometimes not?
+            objects.setdefault(LocationSlug, {})[target.pk] = getattr(target, '_obj', target)
+            objects.setdefault(target.__class__, {})[target.pk] = getattr(target, '_obj', target)
 
         return objects
 
