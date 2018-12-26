@@ -1413,8 +1413,8 @@ c3nav = {
                 layer = c3nav._userLocationLayers[location.level];
             for (level in c3nav._userLocationLayers) {
                 if (!c3nav._userLocationLayers.hasOwnProperty(level)) continue;
-                //layer = c3nav._userLocationLayers[level];
-                factor = (level === location.level) ? 1 : 0.3;
+                layer = c3nav._userLocationLayers[level];
+                factor = (parseInt(level) === parseInt(location.level)) ? 1 : 0.3;
                 L.circleMarker(latlng, {
                     radius: 11,
                     stroke: 0,
@@ -1425,7 +1425,6 @@ c3nav = {
                     stroke: 0,
                     fillOpacity: 1 * factor
                 }).addTo(layer);
-                break;
             }
             $('.leaflet-control-user-location a').toggleClass('control-disabled', false);
         } else if (c3nav.hasLocationPermission()) {
