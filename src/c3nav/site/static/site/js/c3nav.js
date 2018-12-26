@@ -1406,16 +1406,21 @@ c3nav = {
             $('.locationinput .locate, .leaflet-control-user-location a').text(c3nav._map_material_icon('my_location'));
             var latlng = L.GeoJSON.coordsToLatLng(location.geometry.coordinates),
                 layer = c3nav._userLocationLayers[location.level];
-            L.circleMarker(latlng, {
-                radius: 11,
-                stroke: 0,
-                fillOpacity: 0.1
-            }).addTo(layer);
-            L.circleMarker(latlng, {
-                radius: 5,
-                stroke: 0,
-                fillOpacity: 1
-            }).addTo(layer);
+            for (level in c3nav._userLocationLayers) {
+                if (!c3nav._userLocationLayers.hasOwnProperty(level)) continue;
+                layer = c3nav._userLocationLayers[level];
+                factor = (level === location.level) ? 1 : 0.5;
+                L.circleMarker(latlng, {
+                    radius: 11,
+                    stroke: 0,
+                    fillOpacity: 0.1 * factor
+                }).addTo(layer);
+                L.circleMarker(latlng, {
+                    radius: 5,
+                    stroke: 0,
+                    fillOpacity: 1 * factor
+                }).addTo(layer);
+            }
             $('.leaflet-control-user-location a').toggleClass('control-disabled', false);
         } else if (c3nav.hasLocationPermission()) {
             $('.locationinput .locate, .leaflet-control-user-location a').text(c3nav._map_material_icon('location_searching'));
