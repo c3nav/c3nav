@@ -1409,11 +1409,11 @@ c3nav = {
             for (level in c3nav._userLocationLayers) {
                 if (!c3nav._userLocationLayers.hasOwnProperty(level)) continue;
                 layer = c3nav._userLocationLayers[level];
-                factor = (level === location.level) ? 1 : 0.5;
+                factor = (level === location.level) ? 1 : 0.3;
                 L.circleMarker(latlng, {
                     radius: 11,
                     stroke: 0,
-                    fillOpacity: 0.1 * factor
+                    fillOpacity: 0.1
                 }).addTo(layer);
                 L.circleMarker(latlng, {
                     radius: 5,
