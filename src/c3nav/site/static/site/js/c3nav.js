@@ -1413,7 +1413,7 @@ c3nav = {
                 layer = c3nav._userLocationLayers[location.level];
             for (level in c3nav._userLocationLayers) {
                 if (!c3nav._userLocationLayers.hasOwnProperty(level)) continue;
-                layer = c3nav._userLocationLayers[level];
+                //layer = c3nav._userLocationLayers[level];
                 factor = (level === location.level) ? 1 : 0.3;
                 L.circleMarker(latlng, {
                     radius: 11,
