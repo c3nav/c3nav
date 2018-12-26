@@ -1448,7 +1448,7 @@ c3nav = {
         }
         if (c3nav._current_user_location) {
             c3nav._levelControl.setLevel(c3nav._current_user_location.level);
-            c3nav.map.flyTo(L.GeoJSON.coordsToLatLng(c3nav._current_user_location.geometry.coordinates), 4, { duration: 1 });
+            c3nav.map.flyTo(L.GeoJSON.coordsToLatLng(c3nav._current_user_location.geometry.coordinates), 3, { duration: 1 });
         }
     },
 
