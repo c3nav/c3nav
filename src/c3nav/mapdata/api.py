@@ -27,12 +27,15 @@ from c3nav.mapdata.models.geometry.space import (POI, Area, Column, CrossDescrip
 from c3nav.mapdata.models.level import Level
 from c3nav.mapdata.models.locations import (Location, LocationGroupCategory, LocationRedirect, LocationSlug,
                                             SpecificLocation)
+from c3nav.mapdata.utils.cache.local import LocalCacheProxy
 from c3nav.mapdata.utils.cache.stats import increment_cache_key
 from c3nav.mapdata.utils.locations import (get_location_by_id_for_request, get_location_by_slug_for_request,
                                            searchable_locations_for_request, visible_locations_for_request)
 from c3nav.mapdata.utils.models import get_submodels
 from c3nav.mapdata.utils.user import can_access_editor, get_user_data
 from c3nav.mapdata.views import set_tile_access_cookie
+
+request_cache = LocalCacheProxy(maxsize=64)
 
 
 def optimize_query(qs):
@@ -85,15 +88,18 @@ def api_etag(permissions=True, etag_func=AccessPermission.etag_func, cache_param
                     for param, type_ in cache_parameters.items():
                         value = int(param in request.GET) if type_ == bool else type_(request.GET.get(param))
                         cache_key += ':'+urlsafe_base64_encode(str(value).encode()).decode()
-                    data = cache.get(cache_key)
-                    if data is not None:
-                        response = Response(data)
+                print(cache_key)
+                data = request_cache.get(cache_key)
+                print(data)
+                if data is not None:
+                    print('HA CACHE')
+                    response = Response(data)
 
                 if response is None:
                     with GeometryMixin.dont_keep_originals():
                         response = func(self, request, *args, **kwargs)
                     if cache_parameters is not None and response.status_code == 200:
-                        cache.set(cache_key, response.data, 900)
+                        request_cache.set(cache_key, response.data, 900)
 
             if response.status_code == 200:
                 response['ETag'] = etag

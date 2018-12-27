@@ -7,7 +7,6 @@ from itertools import chain
 from typing import List, Mapping, Optional
 
 from django.apps import apps
-from django.core.cache import cache
 from django.db.models import Prefetch, Q
 from django.utils.functional import cached_property
 from django.utils.translation import ugettext_lazy as _
@@ -20,12 +19,15 @@ from c3nav.mapdata.models.geometry.base import GeometryMixin
 from c3nav.mapdata.models.geometry.level import LevelGeometryMixin, Space
 from c3nav.mapdata.models.geometry.space import SpaceGeometryMixin
 from c3nav.mapdata.models.locations import LocationRedirect, LocationSlug, SpecificLocation
+from c3nav.mapdata.utils.cache.local import LocalCacheProxy
 from c3nav.mapdata.utils.models import get_submodels
+
+proxied_cache = LocalCacheProxy(maxsize=128)
 
 
 def locations_for_request(request) -> Mapping[int, LocationSlug]:
     cache_key = 'mapdata:locations:%s' % AccessPermission.cache_key_for_request(request)
-    locations = cache.get(cache_key, None)
+    locations = proxied_cache.get(cache_key, None)
     if locations is not None:
         return locations
 
@@ -110,7 +112,7 @@ def locations_for_request(request) -> Mapping[int, LocationSlug]:
             # noinspection PyStatementEffect
             obj.point
 
-    cache.set(cache_key, locations, 1800)
+    proxied_cache.set(cache_key, locations, 1800)
 
     return locations
 
@@ -118,7 +120,7 @@ def locations_for_request(request) -> Mapping[int, LocationSlug]:
 def get_better_space_geometries():
     # change space geometries for better representative points
     cache_key = 'mapdata:better_space_geometries:%s' % MapUpdate.current_cache_key()
-    result = cache.get(cache_key, None)
+    result = proxied_cache.get(cache_key, None)
     if result is not None:
         return result
 
@@ -130,28 +132,28 @@ def get_better_space_geometries():
         if not geometry.is_empty:
             result[space.pk] = geometry
 
-    cache.set(cache_key, result, 1800)
+    proxied_cache.set(cache_key, result, 1800)
 
     return result
 
 
 def visible_locations_for_request(request) -> Mapping[int, Location]:
     cache_key = 'mapdata:locations:real:%s' % AccessPermission.cache_key_for_request(request)
-    locations = cache.get(cache_key, None)
+    locations = proxied_cache.get(cache_key, None)
     if locations is not None:
         return locations
 
     locations = {pk: location for pk, location in locations_for_request(request).items()
                  if not isinstance(location, LocationRedirect) and (location.can_search or location.can_describe)}
 
-    cache.set(cache_key, locations, 1800)
+    proxied_cache.set(cache_key, locations, 1800)
 
     return locations
 
 
 def searchable_locations_for_request(request) -> List[Location]:
     cache_key = 'mapdata:locations:searchable:%s' % AccessPermission.cache_key_for_request(request)
-    locations = cache.get(cache_key, None)
+    locations = proxied_cache.get(cache_key, None)
     if locations is not None:
         return locations
 
@@ -160,27 +162,27 @@ def searchable_locations_for_request(request) -> List[Location]:
 
     locations = sorted(locations, key=operator.attrgetter('order'), reverse=True)
 
-    cache.set(cache_key, locations, 1800)
+    proxied_cache.set(cache_key, locations, 1800)
 
     return locations
 
 
 def locations_by_slug_for_request(request) -> Mapping[str, LocationSlug]:
     cache_key = 'mapdata:locations:by_slug:%s' % AccessPermission.cache_key_for_request(request)
-    locations = cache.get(cache_key, None)
+    locations = proxied_cache.get(cache_key, None)
     if locations is not None:
         return locations
 
     locations = {location.slug: location for location in locations_for_request(request).values() if location.slug}
 
-    cache.set(cache_key, locations, 1800)
+    proxied_cache.set(cache_key, locations, 1800)
 
     return locations
 
 
 def levels_by_short_label_for_request(request) -> Mapping[str, Level]:
     cache_key = 'mapdata:levels:by_short_label:%s' % AccessPermission.cache_key_for_request(request)
-    levels = cache.get(cache_key, None)
+    levels = proxied_cache.get(cache_key, None)
     if levels is not None:
         return levels
 
@@ -189,7 +191,7 @@ def levels_by_short_label_for_request(request) -> Mapping[str, Level]:
         for level in Level.qs_for_request(request).filter(on_top_of_id__isnull=True).order_by('base_altitude')
     )
 
-    cache.set(cache_key, levels, 1800)
+    proxied_cache.set(cache_key, levels, 1800)
 
     return levels
 
@@ -205,7 +207,7 @@ def get_location_by_id_for_request(pk, request):
 
 def get_location_by_slug_for_request(slug: str, request) -> Optional[LocationSlug]:
     cache_key = 'mapdata:location:by_slug:%s:%s' % (AccessPermission.cache_key_for_request(request), slug)
-    location = cache.get(cache_key, None)
+    location = proxied_cache.get(cache_key, None)
     if location is not None:
         return location
 
@@ -230,7 +232,7 @@ def get_location_by_slug_for_request(slug: str, request) -> Optional[LocationSlu
     else:
         location = locations_by_slug_for_request(request).get(slug, None)
 
-    cache.set(cache_key, location, 1800)
+    proxied_cache.set(cache_key, location, 1800)
 
     return location
 
