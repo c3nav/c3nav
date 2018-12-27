@@ -13,7 +13,6 @@ from django.forms import ChoiceField, Form, IntegerField, ModelForm, Select
 from django.utils import timezone
 from django.utils.translation import ugettext_lazy as _
 from django.utils.translation import ungettext_lazy
-from operator import attrgetter
 
 from c3nav.control.models import UserPermissions, UserSpaceAccess
 from c3nav.mapdata.forms import I18nModelFormMixin

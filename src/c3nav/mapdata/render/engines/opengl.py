@@ -5,12 +5,12 @@ from itertools import chain
 from queue import Queue
 from typing import Optional
 
-import moderngl
 import numpy as np
 from PIL import Image
 from shapely.geometry import CAP_STYLE, JOIN_STYLE, Polygon
 from shapely.ops import unary_union
 
+import moderngl
 from c3nav.mapdata.render.engines.base import FillAttribs, StrokeAttribs
 from c3nav.mapdata.render.engines.base3d import Base3DEngine
 from c3nav.mapdata.render.geometry import HybridGeometry
