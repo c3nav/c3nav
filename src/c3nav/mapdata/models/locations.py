@@ -4,7 +4,7 @@ from operator import attrgetter
 
 from django.core.validators import RegexValidator
 from django.db import models
-from django.db.models import Prefetch
+from django.db.models import FieldDoesNotExist, Prefetch
 from django.urls import reverse
 from django.utils.functional import cached_property
 from django.utils.text import format_lazy
@@ -22,8 +22,14 @@ class LocationSlugManager(models.Manager):
     def get_queryset(self):
         result = super().get_queryset()
         if self.model == LocationSlug:
-            result = result.select_related(*(model._meta.default_related_name
-                                             for model in get_submodels(Location)+[LocationRedirect]))
+            for model in get_submodels(Location) + [LocationRedirect]:
+                result = result.select_related(model._meta.default_related_name)
+                try:
+                    model._meta.get_field('space')
+                except FieldDoesNotExist:
+                    pass
+                else:
+                    result = result.select_related(model._meta.default_related_name+'__space')
         return result
 
     def select_related_target(self):
