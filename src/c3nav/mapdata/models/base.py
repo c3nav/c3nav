@@ -27,7 +27,7 @@ class SerializableMixin(models.Model):
         ))
 
     def _serialize(self, include_type=False, **kwargs):
-        result = OrderedDict()
+        result = {}
         if include_type:
             result['type'] = self.__class__.__name__.lower()
         result['id'] = self.pk

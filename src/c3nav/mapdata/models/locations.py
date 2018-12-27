@@ -1,4 +1,3 @@
-from collections import OrderedDict
 from contextlib import suppress
 from operator import attrgetter
 
@@ -105,7 +104,7 @@ class Location(LocationSlug, AccessRestrictionMixin, TitledMixin, models.Model):
         if not detailed:
             fields = ('id', 'type', 'slug', 'title', 'subtitle', 'icon', 'point', 'bounds', 'grid_square',
                       'locations', 'on_top_of')
-            result = OrderedDict(((name, result[name]) for name in fields if name in result))
+            result = {name: result[name] for name in fields if name in result}
         return result
 
     def _serialize(self, **kwargs):
