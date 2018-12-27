@@ -43,7 +43,7 @@ class LocalCacheProxy:
     def _check_mapupdate(self):
         mapupdate = MapUpdate.current_cache_key()
         if self._mapupdate != mapupdate:
-            self._items = []
+            self._items = OrderedDict()
             self._mapupdate = mapupdate
 
     def set(self, key, value, expire):
