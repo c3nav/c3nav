@@ -93,7 +93,7 @@ def api_etag(permissions=True, etag_func=AccessPermission.etag_func, cache_param
                     with GeometryMixin.dont_keep_originals():
                         response = func(self, request, *args, **kwargs)
                     if cache_parameters is not None and response.status_code == 200:
-                        cache.set(cache_key, response.data, 300)
+                        cache.set(cache_key, response.data, 900)
 
             if response.status_code == 200:
                 response['ETag'] = etag

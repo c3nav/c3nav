@@ -110,7 +110,7 @@ def locations_for_request(request) -> Mapping[int, LocationSlug]:
             # noinspection PyStatementEffect
             obj.point
 
-    cache.set(cache_key, locations, 300)
+    cache.set(cache_key, locations, 1800)
 
     return locations
 
@@ -130,7 +130,7 @@ def get_better_space_geometries():
         if not geometry.is_empty:
             result[space.pk] = geometry
 
-    cache.set(cache_key, result, 300)
+    cache.set(cache_key, result, 1800)
 
     return result
 
@@ -144,7 +144,7 @@ def visible_locations_for_request(request) -> Mapping[int, Location]:
     locations = {pk: location for pk, location in locations_for_request(request).items()
                  if not isinstance(location, LocationRedirect) and (location.can_search or location.can_describe)}
 
-    cache.set(cache_key, locations, 300)
+    cache.set(cache_key, locations, 1800)
 
     return locations
 
@@ -160,7 +160,7 @@ def searchable_locations_for_request(request) -> List[Location]:
 
     locations = sorted(locations, key=operator.attrgetter('order'), reverse=True)
 
-    cache.set(cache_key, locations, 300)
+    cache.set(cache_key, locations, 1800)
 
     return locations
 
@@ -173,7 +173,7 @@ def locations_by_slug_for_request(request) -> Mapping[str, LocationSlug]:
 
     locations = {location.slug: location for location in locations_for_request(request).values() if location.slug}
 
-    cache.set(cache_key, locations, 300)
+    cache.set(cache_key, locations, 1800)
 
     return locations
 
@@ -189,7 +189,7 @@ def levels_by_short_label_for_request(request) -> Mapping[str, Level]:
         for level in Level.qs_for_request(request).filter(on_top_of_id__isnull=True).order_by('base_altitude')
     )
 
-    cache.set(cache_key, levels, 300)
+    cache.set(cache_key, levels, 1800)
 
     return levels
 
@@ -230,7 +230,7 @@ def get_location_by_slug_for_request(slug: str, request) -> Optional[LocationSlu
     else:
         location = locations_by_slug_for_request(request).get(slug, None)
 
-    cache.set(cache_key, location, 300)
+    cache.set(cache_key, location, 1800)
 
     return location
 
