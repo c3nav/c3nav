@@ -19,7 +19,7 @@ mobileclient = {
             mobileclient.wait = false;
         });
     },
-    _locationPermission: false,
+    _locationPermission: true,
     hasLocationPermission: function() {
         console.log('mobileclient hasLocationPermission: ' + window.mobileclient._locationPermission);
         return window.mobileclient._locationPermission;
