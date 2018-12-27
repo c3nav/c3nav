@@ -1409,12 +1409,11 @@ c3nav = {
         }
         if (location) {
             $('.locationinput .locate, .leaflet-control-user-location a').text(c3nav._map_material_icon('my_location'));
-            var latlng = L.GeoJSON.coordsToLatLng(location.geometry.coordinates),
-                layer = c3nav._userLocationLayers[location.level];
+            var latlng = L.GeoJSON.coordsToLatLng(location.geometry.coordinates);
             for (level in c3nav._userLocationLayers) {
                 if (!c3nav._userLocationLayers.hasOwnProperty(level)) continue;
                 layer = c3nav._userLocationLayers[level];
-                factor = (parseInt(level) === parseInt(location.level)) ? 1 : 0.3;
+                factor = (parseInt(level) === location.level) ? 1 : 0.3;
                 L.circleMarker(latlng, {
                     radius: 11,
                     stroke: 0,
