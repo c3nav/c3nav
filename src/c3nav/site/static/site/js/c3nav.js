@@ -1356,8 +1356,7 @@ c3nav = {
         }
     },
 
-    _last_wifi_scant: 0,
-
+    _no_wifi_count: 0,
     _wifi_scan_results: function(data) {
         data = JSON.parse(data);
 
@@ -1381,9 +1380,19 @@ c3nav = {
         }
 
         if (!data.length) {
-            c3nav._set_user_location(null);
+            if (!c3nav._hasLocationPermission) {
+                c3nav._set_user_location(null);
+            } else {
+                if (c3nav._no_wifi_count > 5) {
+                    c3nav._no_wifi_count = 0;
+                    c3nav._set_user_location(null);
+                } else {
+                    c3nav._no_wifi_count++;
+                }
+            }
             return;
         }
+        c3nav._no_wifi_count = 0;
 
         $.post({
             url: '/api/routing/locate/',
