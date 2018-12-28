@@ -37,7 +37,7 @@ class Command(BaseCommand):
                 s.connect((options['graphite'], options['graphite_port']))
                 message = '\n'.join(lines) + '\n'  # all lines must end in a newline
                 print(message)
-                sock.sendall(message)
+                s.sendall(message.encode())
             finally:
                 s.close()
         else:
