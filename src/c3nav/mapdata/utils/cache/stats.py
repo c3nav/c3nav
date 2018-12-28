@@ -6,6 +6,7 @@ from django.utils import timezone
 from kombu.utils import cached_property
 
 from c3nav.control.models import UserPermissions
+from c3nav.mapdata.grid import grid
 from c3nav.mapdata.models import Level, LocationGroup, LocationSlug, Space
 from c3nav.mapdata.models.geometry.space import POI, Area, WifiMeasurement
 from c3nav.mapdata.models.locations import LocationRedirect
@@ -79,6 +80,7 @@ def convert_locate(data):
     result = {
         'total': 0,
         'by_measurement_id': {},
+        'by_grid_square': {},
         'by_space': {},
         'by_level': {},
     }
@@ -88,8 +90,11 @@ def convert_locate(data):
                              permissions=set()).pk
         space_slug = measurement.space.get_slug()
         level_label = measurement.space.level.short_label
-        measurement_lookup[pos] = (measurement.pk, space_slug, level_label)
+        grid_square = pos.grid_square if grid.enabled else None
+        measurement_lookup[pos] = (measurement.pk, grid_square, space_slug, level_label)
         result['by_measurement_id'][measurement.pk] = 0
+        if grid_square:
+            result['by_grid_square'][grid_square] = 0
         result['by_space'][space_slug] = 0
         result['by_level'][level_label] = 0
 
@@ -98,8 +103,10 @@ def convert_locate(data):
         measurement = measurement_lookup.get(name[0], None)
         if measurement:
             result['by_measurement_id'][measurement[0]] += value
-            result['by_space'][measurement[1]] += value
-            result['by_level'][measurement[2]] += value
+            if measurement[1]:
+                result['by_grid_square'][measurement[1]] += value
+            result['by_space'][measurement[2]] += value
+            result['by_level'][measurement[3]] += value
 
     _sort_count(result, 'by_measurement_id')
     _sort_count(result, 'by_space')
