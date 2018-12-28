@@ -23,7 +23,7 @@ class Command(BaseCommand):
             if isinstance(value, dict):
                 self._output_graphite(lines, prefix+name+'.', value, timestamp)
                 continue
-            lines.append('%s%s %s %s\n' % (prefix, name, value, timestamp))
+            lines.append('%s%s %s %s' % (prefix, name, value, timestamp))
 
     def handle(self, *args, **options):
         data = json.load(options['statsfile'])
