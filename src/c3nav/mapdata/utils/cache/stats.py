@@ -87,11 +87,11 @@ def convert_locate(data):
     measurement_lookup = {}
     for measurement in WifiMeasurement.objects.all().select_related('space', 'space__level'):
         pos = CustomLocation(measurement.space.level, measurement.geometry.x, measurement.geometry.y,
-                             permissions=set()).pk
+                             permissions=set())
         space_slug = measurement.space.get_slug()
         level_label = measurement.space.level.short_label
         grid_square = pos.grid_square if grid.enabled else None
-        measurement_lookup[pos] = (measurement.pk, grid_square, space_slug, level_label)
+        measurement_lookup[pos.pk] = (measurement.pk, grid_square, space_slug, level_label)
         result['by_measurement_id'][measurement.pk] = 0
         if grid_square:
             result['by_grid_square'][grid_square] = 0
