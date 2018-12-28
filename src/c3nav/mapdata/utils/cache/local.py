@@ -16,10 +16,10 @@ class LocalCacheProxy:
         self._maxsize = maxsize
         self._mapupdate = None
         self._items = OrderedDict()
-        self._check_mapupdate()
 
     def get(self, key, default=None):
-        print('get')
+        if self._mapupdate is None:
+            self._check_mapupdate()
         try:
             # first check out cache
             result = self._items[key]
