@@ -72,3 +72,7 @@ target/
 
 #Ipython Notebook
 .ipynb_checkpoints
+
+# Ignore all contents of the data directory, but ensure it exists
+data/*
+!data/.gitkeep

@@ -1,0 +1,12 @@
+version: '3'
+services:
+  c3nav:
+    build: .
+    volumes:
+      - './data:/c3nav/data'
+    ports:
+      - "8000:8000"
+    depends_on:
+      - redis
+  redis:
+    image: redis:5
