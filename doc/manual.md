@@ -76,35 +76,9 @@ You can skip this step if English is enough for you.
 python3 manage.py compilemessages
 ```
 
-### Clone the map packages
+### Build the map
 
-For the 33c3, this would be c3nav-cch and c3nav-33c3:
-
-```
-cd data/maps/
-git clone https://github.com/c3nav/c3nav-cch.git
-git clone https://github.com/c3nav/c3nav-33c3.git
-```
-
-### Load the map packages
-
-```
-cd ../../
-python3 manage.py loadmap
-```
-
-Confirm loading the map packages. You can always execute this command to update the map data in the database. This will also overwrite unexported mapdata in the database.
-
-### Render the map and build the routing graph
-
-Always do this after updating the mapdata. You can skip this step if you only want to use the Editor.
-
-```
-python3 manage.py rendermap
-python3 manage.py buildgraph
-```
-
-FYI: You can find the renderings in the following folder: `data/render/`
+**No documentation is available for this. We're working on it. Please stop mistaking documentation from years ago for something that is still up to date.**
 
 ### Run a development server
 
