@@ -88,32 +88,3 @@ python3 manage.py runserver
 
 You can now reach your c3nav instance at [localhost:8000/](http://localhost:8000/). The editor can be found at [localhost:8000/editor/](http://localhost:8000/editor/). **Never use this server for production purposes!**
 
-## Other things you can do now:
-
-### Export map data
-
-After changing stuff with the editor, you may want to export the changes into the map package folders to submit a pull request. You can do so by running.
-
-```
-python3 manage.py dumpmap
-```
-
-### Check map data
-
-After manually editing map package files, you may want to check if the identation follows the style guide. Please to so if you manually edited files and want to submit a pull request.
-
-```
-python3 manage.py checkmap
-```
-
-### Draw the routing graph
-
-Want to look at the routing graph? You can! Just run the following command, and graph renderings will appear in the render folder.
-
-```
-python3 manage.py drawgraph
-```
-
-## Production setup.
-
-More information coming soon. If you already know Django, you will have no problems setting up for production yourself. Running c3nav any other way than with `runserver` (DEBUG=False) will automatically deactivate directly editing mapdata with the editor.
