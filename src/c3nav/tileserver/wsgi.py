@@ -10,9 +10,9 @@ from datetime import datetime
 from email.utils import formatdate
 from io import BytesIO
 
+import pylibmc
 import requests
 
-import pylibmc
 from c3nav.mapdata.utils.cache import CachePackage
 from c3nav.mapdata.utils.tiles import (build_access_cache_key, build_base_cache_key, build_tile_etag, get_tile_bounds,
                                        parse_tile_access_cookie)
