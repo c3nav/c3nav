@@ -11,13 +11,14 @@ class Command(BaseCommand):
     help = 'Wipes users, changesets and mapupdates to reset a instance'
 
     def add_arguments(self, parser):
-        parser.add_argument('--yes', action='store_const', const=True, default=False,
-                            help='really delete it')
+        parser.add_argument('--yes', action='store_true', help='really delete it')
+        parser.add_argument('--wifi-measurements', action='store_true', help='delete wifi measurements')
 
     def handle(self, *args, **options):
         from c3nav.control.models import UserPermissions
         from c3nav.mapdata.models import MapUpdate
         from c3nav.mapdata.models.access import AccessPermissionToken
+        from c3nav.mapdata.models.geometry.space import WifiMeasurement
         from c3nav.editor.models import ChangeSet
         from c3nav.site.models import Announcement
         from django.contrib.auth import get_user_model
@@ -43,6 +44,10 @@ class Command(BaseCommand):
 
             UserPermissions.objects.filter(user__is_superuser=False).delete()
             logger.info('Deleted all UserPermissions not attached to a super user')
+
+            if options['wifi_measurements']:
+                WifiMeasurement.objects.all().delete()
+                logger.info('Deleted all WifiMeasurements')
 
             get_user_model().objects.filter(is_superuser=False).delete()
             logger.info('Deleted all Users who are not a super user')

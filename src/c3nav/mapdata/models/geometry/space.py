@@ -357,7 +357,8 @@ class WifiMeasurement(SpaceGeometryMixin, models.Model):
     A Wi-Fi measurement
     """
     geometry = GeometryField('point')
-    author = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT, verbose_name=_('author'))
+    author = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True,
+                               verbose_name=_('author'))
     comment = models.TextField(null=True, blank=True, verbose_name=_('comment'))
     data = JSONField(_('Measurement list'))
 
