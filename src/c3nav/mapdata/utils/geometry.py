@@ -25,7 +25,7 @@ def check_speedups(app_configs, **kwargs):
         errors.append(
             checks.Warning(
                 'Your shapely version does not have speedups enabled. This will significantly slow down c3nav!',
-                obj='rtree.index.Index',
+                obj='shapely.speedups',
                 id='c3nav.mapdata.W001',
             )
         )
