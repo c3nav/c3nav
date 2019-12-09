@@ -89,3 +89,6 @@ class GraphEdge(AccessRestrictionMixin, models.Model):
         if self.waytype_id is not None:
             result['properties']['color'] = self.waytype.color
         return result
+
+    def get_geojson_key(self):
+        return (self.__class__.__name__.lower(), self.pk)

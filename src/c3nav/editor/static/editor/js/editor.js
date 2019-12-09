@@ -671,8 +671,11 @@ editor = {
         editor.map.setMaxBounds(bounds);
     },
     _last_geometry_url: null,
+    _last_geometry_update_cache_key: null,
+    _last_geometry_cache: {},
     load_geometries: function (geometry_url, highlight_type, editing_id) {
         // load geometries from url
+        var same_url = (editor._last_geometry_url == geometry_url);
         editor._last_geometry_url = geometry_url;
         editor._loading_geometry = true;
         editor._highlight_type = highlight_type;
@@ -688,15 +691,34 @@ editor = {
         editor._graph_edges_to = {};
 
         editor._set_max_bounds();
-        $.getJSON(geometry_url, function(geometries) {
+
+        if (same_url && editor._last_geometry_update_cache_key) {
+            geometry_url += '&update_cache_key='+editor._last_geometry_update_cache_key;
+        }
+        $.getJSON(geometry_url, function(result) {
+            var geometries = [], feature, new_cache = {}, feature_type, feature_id;
+            // geometries cache logic
+            for (var i=0;i<result.geometries.length;i++) {
+                feature = result.geometries[i];
+                if (Array.isArray(feature)) {
+                    // load from cache
+                    feature = editor._last_geometry_cache[feature[0]][feature[1]];
+                }
+                if (!new_cache[feature.properties.type]) {
+                    new_cache[feature.properties.type] = {};
+                }
+                new_cache[feature.properties.type][feature.properties.id] = feature;
+                geometries.push(feature);
+            }
+            editor._last_geometry_cache = new_cache;
+            editor._last_geometry_update_cache_key = result.update_cache_key;
+
             editor.map.removeLayer(editor._highlight_layer);
             editor._highlight_layer.clearLayers();
             if (editor._geometries_layer !== null) {
                 editor.map.removeLayer(editor._geometries_layer);
             }
-            var feature = null,
-                remove_feature = null,
-                i;
+            var remove_feature = null;
             if (editor._editing_id !== null) {
                 for (i=0;i<geometries.length;i++) {
                     feature = geometries[i];

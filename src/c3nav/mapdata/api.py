@@ -69,7 +69,8 @@ def api_stats(view_name):
     return wrapper
 
 
-def api_etag(permissions=True, etag_func=AccessPermission.etag_func, cache_parameters=None, base_mapdata_check=False):
+def api_etag(permissions=True, etag_func=AccessPermission.etag_func,
+             cache_parameters=None, cache_kwargs=None, base_mapdata_check=False):
     def wrapper(func):
         @wraps(func)
         def wrapped_func(self, request, *args, **kwargs):
@@ -87,6 +88,12 @@ def api_etag(permissions=True, etag_func=AccessPermission.etag_func, cache_param
                 if cache_parameters is not None:
                     for param, type_ in cache_parameters.items():
                         value = int(param in request.GET) if type_ == bool else type_(request.GET.get(param))
+                        cache_key += ':'+urlsafe_base64_encode(str(value).encode())
+                if cache_kwargs is not None:
+                    for name, type_ in cache_kwargs.items():
+                        value = type_(kwargs[name])
+                        if type_ == bool:
+                            value = int(value)
                         cache_key += ':'+urlsafe_base64_encode(str(value).encode())
                 data = request_cache.get(cache_key)
                 if data is not None:

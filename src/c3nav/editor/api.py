@@ -1,3 +1,4 @@
+from functools import wraps
 from itertools import chain
 
 from django.db.models import Prefetch, Q
@@ -29,6 +30,29 @@ class EditorViewSetMixin(ViewSet):
         if not can_access_editor(request):
             raise PermissionDenied
         return super().initial(request, *args, **kwargs)
+
+
+def api_etag_with_update_cache_key(**outkwargs):
+    outkwargs.setdefault('cache_kwargs', {})['update_cache_key_match'] = bool
+
+    def wrapper(func):
+        func = api_etag(**outkwargs)(func)
+
+        @wraps(func)
+        def wrapped_func(self, request, *args, **kwargs):
+            try:
+                changeset = request.changeset
+            except AttributeError:
+                changeset = ChangeSet.get_for_request(request)
+                request.changeset = changeset
+
+            update_cache_key = request.changeset.raw_cache_key_without_changes
+            update_cache_key_match = request.GET.get('update_cache_key') == update_cache_key
+            return func(self, request, *args,
+                        update_cache_key=update_cache_key, update_cache_key_match=update_cache_key_match,
+                        **kwargs)
+        return wrapped_func
+    return wrapper
 
 
 class EditorViewSet(EditorViewSetMixin, ViewSet):
@@ -103,8 +127,8 @@ class EditorViewSet(EditorViewSetMixin, ViewSet):
 
     # noinspection PyPep8Naming
     @action(detail=False, methods=['get'])
-    @api_etag(etag_func=etag_func, cache_parameters={'level': str, 'space': str})
-    def geometries(self, request, *args, **kwargs):
+    @api_etag_with_update_cache_key(etag_func=etag_func, cache_parameters={'level': str, 'space': str})
+    def geometries(self, request, update_cache_key, update_cache_key_match, *args, **kwargs):
         Level = request.changeset.wrap_model('Level')
         Space = request.changeset.wrap_model('Space')
         Column = request.changeset.wrap_model('Column')
@@ -180,8 +204,6 @@ class EditorViewSet(EditorViewSetMixin, ViewSet):
                 # graphedges,
                 # graphnodes,
             )
-
-            return Response([obj.to_geojson(instance=obj) for obj in results])
         elif space is not None:
             space_q_for_request = Space.q_for_request(request)
             qs = Space.objects.filter(space_q_for_request)
@@ -295,9 +317,20 @@ class EditorViewSet(EditorViewSetMixin, ViewSet):
                 graphedges,
                 graphnodes
             )
-            return Response([obj.to_geojson(instance=obj) for obj in results])
         else:
             raise ValidationError('No level or space specified.')
+
+        return Response({
+            'update_cache_key': update_cache_key,
+            'geometries': [
+                (
+                    obj.get_geojson_key()
+                    if update_cache_key_match and not obj._affected_by_changeset
+                    else obj.to_geojson(instance=obj)
+                )
+                for obj in results
+            ],
+        })
 
     @action(detail=False, methods=['get'])
     @api_etag(etag_func=MapUpdate.current_cache_key, cache_parameters={})
