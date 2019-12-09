@@ -1,6 +1,6 @@
 from functools import wraps
-from rest_framework.generics import GenericAPIView
 
+from rest_framework.generics import GenericAPIView
 from rest_framework.renderers import JSONRenderer
 
 from c3nav.mapdata.utils.json import json_encoder_reindent

@@ -87,7 +87,7 @@ def api_etag(permissions=True, etag_func=AccessPermission.etag_func, cache_param
                 if cache_parameters is not None:
                     for param, type_ in cache_parameters.items():
                         value = int(param in request.GET) if type_ == bool else type_(request.GET.get(param))
-                        cache_key += ':'+urlsafe_base64_encode(str(value).encode()).decode()
+                        cache_key += ':'+urlsafe_base64_encode(str(value).encode())
                 data = request_cache.get(cache_key)
                 if data is not None:
                     response = Response(data)

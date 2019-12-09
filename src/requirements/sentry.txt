@@ -1,1 +1,1 @@
-sentry-sdk>=0.6.2,<0.7
+sentry-sdk==0.13.5

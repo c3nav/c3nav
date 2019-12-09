@@ -78,7 +78,7 @@ class GeometryField(models.TextField):
             'point': (Point, )
         }[self.geomtype]
 
-    def _validate_geomtype(self, value, exception: typing.Type[Exception]=ValidationError):
+    def _validate_geomtype(self, value, exception: typing.Type[Exception] = ValidationError):
         if not isinstance(value, self.classes):
             raise exception('Expected %s instance, got %s instead.' % (' or '.join(c.__name__ for c in self.classes),
                                                                        repr(value)))
