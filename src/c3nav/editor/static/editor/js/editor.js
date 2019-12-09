@@ -675,7 +675,7 @@ editor = {
     _last_geometry_cache: {},
     load_geometries: function (geometry_url, highlight_type, editing_id) {
         // load geometries from url
-        var same_url = (editor._last_geometry_url == geometry_url);
+        var same_url = (editor._last_geometry_url === geometry_url);
         editor._last_geometry_url = geometry_url;
         editor._loading_geometry = true;
         editor._highlight_type = highlight_type;
@@ -702,12 +702,23 @@ editor = {
                 feature = result.geometries[i];
                 if (Array.isArray(feature)) {
                     // load from cache
-                    feature = editor._last_geometry_cache[feature[0]][feature[1]];
+                    if (feature[0] in editor._last_geometry_cache) {
+                        feature = editor._last_geometry_cache[feature[0]][feature[1]];
+                    } else {
+                        feature = null;
+                    }
+                    if (!feature) {
+                        editor._last_geometry_update_cache_key = null;
+                        editor.load_geometries(editor._last_geometry_url, editor._highlight_type, editor._editing_id);
+                        return;
+                    }
                 }
-                if (!new_cache[feature.properties.type]) {
-                    new_cache[feature.properties.type] = {};
+                if (!feature.properties.changed) {
+                    if (!new_cache[feature.properties.type]) {
+                        new_cache[feature.properties.type] = {};
+                    }
+                    new_cache[feature.properties.type][feature.properties.id] = feature;
                 }
-                new_cache[feature.properties.type][feature.properties.id] = feature;
                 geometries.push(feature);
             }
             editor._last_geometry_cache = new_cache;

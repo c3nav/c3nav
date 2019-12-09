@@ -322,15 +322,16 @@ class EditorViewSet(EditorViewSetMixin, ViewSet):
 
         return Response({
             'update_cache_key': update_cache_key,
-            'geometries': [
-                (
-                    obj.get_geojson_key()
-                    if update_cache_key_match and not obj._affected_by_changeset
-                    else obj.to_geojson(instance=obj)
-                )
-                for obj in results
-            ],
+            'geometries': [self.conditional_geojson(obj, update_cache_key_match) for obj in results],
         })
+
+    def conditional_geojson(self, obj, update_cache_key_match):
+        if update_cache_key_match and not obj._affected_by_changeset:
+            return obj.get_geojson_key()
+
+        result = obj.to_geojson(instance=obj)
+        result['properties']['changed'] = obj._affected_by_changeset
+        return result
 
     @action(detail=False, methods=['get'])
     @api_etag(etag_func=MapUpdate.current_cache_key, cache_parameters={})
