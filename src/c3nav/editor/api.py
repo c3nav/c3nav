@@ -320,10 +320,10 @@ class EditorViewSet(EditorViewSetMixin, ViewSet):
         else:
             raise ValidationError('No level or space specified.')
 
-        return Response({
-            'update_cache_key': update_cache_key,
-            'geometries': [self.conditional_geojson(obj, update_cache_key_match) for obj in results],
-        })
+        return Response(list(chain(
+            [('update_cache_key', update_cache_key)],
+            (self.conditional_geojson(obj, update_cache_key_match) for obj in results)
+        )))
 
     def conditional_geojson(self, obj, update_cache_key_match):
         if update_cache_key_match and not obj._affected_by_changeset:

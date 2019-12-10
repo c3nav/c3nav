@@ -698,9 +698,13 @@ editor = {
         $.getJSON(geometry_url, function(result) {
             var geometries = [], feature, new_cache = {}, feature_type, feature_id;
             // geometries cache logic
-            for (var i=0;i<result.geometries.length;i++) {
-                feature = result.geometries[i];
+            for (var i=0;i<result.length;i++) {
+                feature = result[i];
                 if (Array.isArray(feature)) {
+                    if (feature[0] === 'update_cache_key') {
+                        editor._last_geometry_update_cache_key = feature[1];
+                        continue;
+                    }
                     // load from cache
                     if (feature[0] in editor._last_geometry_cache) {
                         feature = editor._last_geometry_cache[feature[0]][feature[1]];
@@ -722,7 +726,6 @@ editor = {
                 geometries.push(feature);
             }
             editor._last_geometry_cache = new_cache;
-            editor._last_geometry_update_cache_key = result.update_cache_key;
 
             editor.map.removeLayer(editor._highlight_layer);
             editor._highlight_layer.clearLayers();
