@@ -22,9 +22,10 @@ class BaseWrapper:
     Callables will only be returned be getattr when they are inside _allowed_callables.
     Callables in _wrapped_callables will be returned wrapped, so that their self if the wrapping instance.
     """
-    _not_wrapped = ('_changeset', '_obj', '_created_pks', '_result', '_extra', '_result_cache')
-    _allowed_callables = ()
-    _wrapped_callables = ()
+    _not_wrapped = frozenset(('_changeset', '_obj', '_created_pks', '_result', '_extra', '_result_cache',
+                              '_affected_by_changeset'))
+    _allowed_callables = frozenset()
+    _wrapped_callables = frozenset()
 
     def __init__(self, changeset, obj):
         self._changeset = changeset
@@ -194,8 +195,8 @@ class ModelInstanceWrapper(BaseWrapper):
     Updates updated values on existing objects on init.
     Can be compared to other wrapped or non-wrapped model instances.
     """
-    _allowed_callables = ('full_clean', '_perform_unique_checks', '_perform_date_checks')
-    _wrapped_callables = ('validate_unique', '_get_pk_val')
+    _allowed_callables = frozenset(('full_clean', '_perform_unique_checks', '_perform_date_checks'))
+    _wrapped_callables = frozenset(('validate_unique', '_get_pk_val'))
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -299,7 +300,7 @@ class BaseQueryWrapper(BaseWrapper):
     Keeps track of which created objects the current filtering still applies to.
     When evaluated, just does everything as if the queryset was applied to the databse.
     """
-    _allowed_callables = ('_add_hints', 'get_prefetch_queryset', '_apply_rel_filters')
+    _allowed_callables = frozenset(('_add_hints', 'get_prefetch_queryset', '_apply_rel_filters'))
 
     def __init__(self, changeset, obj, created_pks=None, extra=()):
         super().__init__(changeset, obj)
