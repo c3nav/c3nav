@@ -22,6 +22,13 @@ class ApplyToInstanceError(Exception):
     pass
 
 
+class NoopChangedObject:
+    pk = None
+    @classmethod
+    def apply_to_instance(cls, *args, **kwargs):
+        pass
+
+
 class ChangedObject(models.Model):
     changeset = models.ForeignKey('editor.ChangeSet', on_delete=models.CASCADE, verbose_name=_('Change Set'))
     created = models.DateTimeField(auto_now_add=True, verbose_name=_('created'))

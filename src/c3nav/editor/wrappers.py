@@ -201,7 +201,7 @@ class ModelInstanceWrapper(BaseWrapper):
         super().__init__(*args, **kwargs)
         self._affected_by_changeset = False
         if self._obj.pk is not None:
-            changed_object = self._changeset.get_changed_object(self._obj)
+            changed_object = self._changeset.get_changed_object(self._obj, allow_noop=True)
             self._affected_by_changeset = changed_object.pk is not None
             changed_object.apply_to_instance(self)
 

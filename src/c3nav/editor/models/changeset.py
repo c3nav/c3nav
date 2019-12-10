@@ -17,7 +17,7 @@ from django.utils.timezone import make_naive
 from django.utils.translation import ugettext_lazy as _
 from django.utils.translation import ungettext_lazy
 
-from c3nav.editor.models.changedobject import ApplyToInstanceError, ChangedObject
+from c3nav.editor.models.changedobject import ApplyToInstanceError, ChangedObject, NoopChangedObject
 from c3nav.editor.tasks import send_changeset_proposed_notification
 from c3nav.editor.wrappers import ModelInstanceWrapper, ModelWrapper, is_created_pk
 from c3nav.mapdata.models import LocationSlug, MapUpdate
@@ -374,7 +374,7 @@ class ChangeSet(models.Model):
         r = tuple((pk, values[name]) for pk, values in self.updated_existing.get(model, {}).items() if name in values)
         return r
 
-    def get_changed_object(self, obj) -> ChangedObject:
+    def get_changed_object(self, obj, allow_noop=False) -> typing.Union[ChangedObject, typing.Type[NoopChangedObject]]:
         if isinstance(obj, ModelInstanceWrapper):
             obj = obj._obj
         model = obj.__class__
@@ -393,6 +393,9 @@ class ChangeSet(models.Model):
 
         if is_created_pk(pk):
             raise model.DoesNotExist
+
+        if allow_noop:
+            return NoopChangedObject
 
         return ChangedObject(changeset=self, model_class=model, existing_object_pk=pk)
 
