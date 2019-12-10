@@ -19,13 +19,10 @@ class BaseWrapper:
     Base Class for all wrappers. Saves wrapped objects along with the changeset.
     getattr, setattr and delattr will be forwarded to the object, exceptions are specified in _not_wrapped.
     If the value of an attribute is a model, model instance, manager or queryset, it will be wrapped, to.
-    Callables will only be returned be getattr when they are inside _allowed_callables.
-    Callables in _wrapped_callables will be returned wrapped, so that their self if the wrapping instance.
+    Callables will only be passed through for models. Implement other passthroughs yourself.
     """
     _not_wrapped = frozenset(('_changeset', '_obj', '_created_pks', '_result', '_extra', '_result_cache',
                               '_affected_by_changeset'))
-    _allowed_callables = frozenset()
-    _wrapped_callables = frozenset()
 
     def __init__(self, changeset, obj):
         self._changeset = changeset
@@ -84,14 +81,7 @@ class BaseWrapper:
             value = self._wrap_instance(value)
         elif isinstance(value, type) and issubclass(value, Exception):
             pass
-        elif callable(value) and name not in self._allowed_callables:
-            if name in self._wrapped_callables:
-                func = getattr(self._obj.__class__, name)
-
-                @wraps(func)
-                def wrapper(*args, **kwargs):
-                    return func(self, *args, **kwargs)
-                return wrapper
+        elif callable(value):
             if isinstance(self, (ModelInstanceWrapper, ModelWrapper)) and not hasattr(models.Model, name):
                 return value
             raise TypeError('Can not call %s.%s wrapped!' % (type(self), name))
@@ -195,9 +185,6 @@ class ModelInstanceWrapper(BaseWrapper):
     Updates updated values on existing objects on init.
     Can be compared to other wrapped or non-wrapped model instances.
     """
-    _allowed_callables = frozenset(('full_clean', '_perform_unique_checks', '_perform_date_checks'))
-    _wrapped_callables = frozenset(('validate_unique', '_get_pk_val'))
-
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self._affected_by_changeset = False
@@ -269,6 +256,21 @@ class ModelInstanceWrapper(BaseWrapper):
         unique_checks, date_checks = self._obj.__class__._get_unique_checks(self, exclude=exclude)
         return [(self._wrap_model(model), unique) for model, unique in unique_checks], date_checks
 
+    def full_clean(self, *args, **kwargs):
+        return self._obj.full_clean(*args, **kwargs)
+
+    def _perform_unique_checks(self, *args, **kwargs):
+        return self._obj._perform_unique_checks(*args, **kwargs)
+
+    def _perform_date_checks(self, *args, **kwargs):
+        return self._obj._perform_date_checks(*args, **kwargs)
+
+    def validate_unique(self, *args, **kwargs):
+        return self._obj.__class__.validate_unique(self, *args, **kwargs)
+
+    def _get_pk_val(self, *args, **kwargs):
+        return self._obj.__class__._get_pk_val(self, *args, **kwargs)
+
     def save(self):
         """
         Create changes in changeset instead of saving.
@@ -300,8 +302,6 @@ class BaseQueryWrapper(BaseWrapper):
     Keeps track of which created objects the current filtering still applies to.
     When evaluated, just does everything as if the queryset was applied to the databse.
     """
-    _allowed_callables = frozenset(('_add_hints', 'get_prefetch_queryset', '_apply_rel_filters'))
-
     def __init__(self, changeset, obj, created_pks=None, extra=()):
         super().__init__(changeset, obj)
         if created_pks is None:
@@ -774,6 +774,15 @@ class BaseQueryWrapper(BaseWrapper):
         Needed by prefetch_related.
         """
         return self._wrap_queryset(self._obj._next_is_sticky())
+
+    def _add_hints(self, *args, **kwargs):
+        return self._obj._add_hints(*args, **kwargs)
+
+    def get_prefetch_queryset(self, *args, **kwargs):
+        return self._obj.get_prefetch_queryset(*args, **kwargs)
+
+    def _apply_rel_filters(self, *args, **kwargs):
+        return self._obj._apply_rel_filters(*args, **kwargs)
 
     def create(self, *args, **kwargs):
         obj = self.model(*args, **kwargs)
