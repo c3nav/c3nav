@@ -250,7 +250,7 @@ editor = {
                     editor._active_graph_node_html = null;
                     active_graph_node.remove();
                 } else {
-                    editor._active_graph_node = parseInt(active_graph_node_id);
+                    editor._active_graph_node = parseInt(active_graph_node_id) || active_graph_node_id;
                     editor._active_graph_node_html = active_graph_node.html();
                 }
             } else if (editor._active_graph_node_html !== null) {
