@@ -686,6 +686,10 @@ class BaseQueryWrapper(BaseWrapper):
                 # field__lt
                 return self._filter_values(q, field_name, lambda val: val < filter_value)
 
+            if filter_type == 'isnull':
+                # field__isnull
+                return self._filter_values(q, field_name, lambda val: (val is None) is filter_value)
+
             raise NotImplementedError
 
         raise NotImplementedError('cannot filter %s by %s (%s)' % (model, filter_name, field))

@@ -227,7 +227,7 @@ class EditorViewSet(EditorViewSetMixin, ViewSet):
                 ).prefetch_related(
                     Prefetch('groups', LocationGroup.objects.only(
                         'color', 'category', 'priority', 'category__priority', 'category__allow_spaces'
-                    ))
+                    ).filter(color__isnull=False))
                 )
 
                 space = next(s for s in other_spaces if s.pk == space.pk)
@@ -287,7 +287,7 @@ class EditorViewSet(EditorViewSetMixin, ViewSet):
             ).prefetch_related(
                 Prefetch('groups', LocationGroup.objects.only(
                     'color', 'category', 'priority', 'category__priority', 'category__allow_areas'
-                ))
+                ).filter(color__isnull=False))
             )
             for area in areas:
                 area.opacity = 0.5
@@ -311,7 +311,7 @@ class EditorViewSet(EditorViewSetMixin, ViewSet):
                 space.pois.filter(POI.q_for_request(request)).only('geometry', 'space').prefetch_related(
                     Prefetch('groups', LocationGroup.objects.only(
                         'color', 'category', 'priority', 'category__priority', 'category__allow_pois'
-                    ))
+                    ).filter(color__isnull=False))
                 ),
                 other_spaces_upper,
                 graphedges,
