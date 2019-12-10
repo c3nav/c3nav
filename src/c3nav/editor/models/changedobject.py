@@ -42,8 +42,7 @@ class ChangedObject(models.Model):
         unique_together = ('changeset', 'content_type', 'existing_object_pk')
         ordering = ['created', 'pk']
 
-    def __init__(self, *args, **kwargs):
-        model_class = kwargs.pop('model_class', None)
+    def __init__(self, *args, model_class=None, **kwargs):
         super().__init__(*args, **kwargs)
         self._set_object = None
         self._m2m_added_cache = {name: set(values) for name, values in self.m2m_added.items()}

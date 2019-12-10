@@ -42,7 +42,7 @@ class BaseWrapper:
                 return model
             model = model._obj
         assert issubclass(model, models.Model)
-        return ModelWrapper(self._changeset, model)
+        return self._changeset._get_wrapped_model(model)
 
     def _wrap_instance(self, instance):
         """
@@ -53,7 +53,7 @@ class BaseWrapper:
                 return instance
             instance = instance._obj
         assert isinstance(instance, models.Model)
-        return self._wrap_model(instance.__class__).create_wrapped_model_class()(self._changeset, instance)
+        return self._wrap_model(instance.__class__).wrapped_model_class(self._changeset, instance)
 
     def _wrap_manager(self, manager):
         """
@@ -133,12 +133,16 @@ class ModelWrapper(BaseWrapper):
         """
         return get_submodels(self._obj)
 
+    @cached_property
+    def wrapped_model_class(self) -> typing.Type['ModelInstanceWrapper']:
+        return self.create_wrapped_model_class()
+
     def create_wrapped_model_class(self) -> typing.Type['ModelInstanceWrapper']:
         """
         Return a ModelInstanceWrapper that has a proxy to this instance as its type / metaclass. #voodoo
         """
         # noinspection PyTypeChecker
-        return self.create_metaclass()(self._obj.__name__ + 'InstanceWrapper', (ModelInstanceWrapper,), {})
+        return self.metaclass(self._obj.__name__ + 'InstanceWrapper', (ModelInstanceWrapper,), {})
 
     def __call__(self, **kwargs):
         """
@@ -148,6 +152,10 @@ class ModelWrapper(BaseWrapper):
         for name, value in kwargs.items():
             setattr(instance, name, value)
         return instance
+
+    @cached_property
+    def metaclass(self):
+        return self.create_metaclass()
 
     def create_metaclass(self):
         """

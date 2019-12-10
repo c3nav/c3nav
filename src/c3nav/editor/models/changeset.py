@@ -75,6 +75,14 @@ class ChangeSet(models.Model):
 
         self.direct_editing = False
 
+        self._wrapped_model_cache = {}
+
+    def __getstate__(self):
+        return {
+            **self.__dict__,
+            '_wrapped_model_cache': {}
+        }
+
     """
     Get Changesets for Request/Session/User
     """
@@ -138,13 +146,20 @@ class ChangeSet(models.Model):
         if self.direct_editing:
             model.EditorForm = ModelWrapper(self, model).EditorForm
             return model
-        return ModelWrapper(self, model)
+        return self._get_wrapped_model(model)
+
+    def _get_wrapped_model(self, model):
+        wrapped = self._wrapped_model_cache.get(model, None)
+        if wrapped is None:
+            wrapped = ModelWrapper(self, model)
+            self._wrapped_model_cache[model] = wrapped
+        return wrapped
 
     def wrap_instance(self, instance):
         assert isinstance(instance, models.Model)
         if self.direct_editing:
             return instance
-        return self.wrap_model(instance.__class__).create_wrapped_model_class()(self, instance)
+        return self.wrap_model(instance.__class__).wrapped_model_class(self, instance)
 
     def relevant_changed_objects(self) -> typing.Iterable[ChangedObject]:
         return self.changed_objects_set.exclude(existing_object_pk__isnull=True, deleted=True)
