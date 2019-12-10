@@ -11,6 +11,8 @@ from c3nav.mapdata.models import MapUpdate
 
 
 class SerializableMixin(models.Model):
+    _affected_by_changeset = None
+
     class Meta:
         abstract = True
 
