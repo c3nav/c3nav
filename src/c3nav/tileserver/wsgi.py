@@ -12,6 +12,7 @@ from io import BytesIO
 
 import pylibmc
 import requests
+from requests.auth import HTTPBasicAuth
 
 from c3nav.mapdata.utils.cache import CachePackage
 from c3nav.mapdata.utils.tiles import (build_access_cache_key, build_base_cache_key, build_tile_etag, get_tile_bounds,
@@ -63,7 +64,7 @@ class TileServer:
 
         self.http_auth = os.environ.get('C3NAV_HTTP_AUTH', None)
         if self.http_auth:
-            self.http_auth = self.http_auth.split(':', 1)
+            self.http_auth = HTTPBasicAuth(*self.http_auth.split(':', 1))
 
         self.auth_headers = {'X-Tile-Secret': base64.b64encode(self.tile_secret.encode()).decode()}
 
