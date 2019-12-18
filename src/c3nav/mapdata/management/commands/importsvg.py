@@ -156,6 +156,12 @@ class Command(BaseCommand):
         svg = ElementTree.fromstring(options['svgfile'].read())
         svg_width = float(svg.attrib['width'])
         svg_height = float(svg.attrib['height'])
+        svg_viewbox = svg.attrib.get('viewBox')
+
+        if svg_viewbox:
+            offset_x, offset_y, svg_width, svg_height = [float(i) for i in svg_viewbox.split(' ')]
+        else:
+            offset_x, offset_y = 0, 0
 
         for element in svg.findall('.//svg:clipPath/..', namespaces):
             for clippath in element.findall('./svg:clipPath', namespaces):
@@ -178,6 +184,7 @@ class Command(BaseCommand):
                     if len(polygon) < 3:
                         continue
                     polygon = Polygon(polygon)
+                    polygon = translate(polygon, xoff=-offset_x, yoff=-offset_y)
                     polygon = scale(polygon, xfact=1, yfact=-1, origin=(0, svg_height/2))
                     polygon = scale(polygon, xfact=width / svg_width, yfact=height / svg_height, origin=(0, 0))
                     polygon = translate(polygon, xoff=minx, yoff=miny)
