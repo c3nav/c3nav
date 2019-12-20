@@ -17,6 +17,8 @@ class Command(BaseCommand):
                             help=_('incluce all history as well'))
         parser.add_argument('--include-geometries', action='store_const', const=True, default=False,
                             help=_('incluce all geometries as well'))
+        parser.add_argument('--no-process', action='store_const', const=True, default=False,
+                            help=_('don\'t run processupdates if celery is not setup'))
 
     def handle(self, *args, **options):
         from c3nav.mapdata.models import MapUpdate
@@ -34,7 +36,7 @@ class Command(BaseCommand):
                     os.remove(os.path.join(settings.CACHE_ROOT, filename))
             logger.info('Base history deleted.')
 
-        if not settings.HAS_CELERY:
+        if not settings.HAS_CELERY and not options['no_process']:
             print(_('You don\'t have celery installed, so we will run processupdates now...'))
             try:
                 process_map_updates()
