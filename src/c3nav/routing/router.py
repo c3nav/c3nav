@@ -145,7 +145,8 @@ class Router:
                     if node.altitude is not None:
                         continue
                     logger.warning('Node %d in space %d is not inside an altitude area' % (node.pk, space.pk))
-                    node_altitudearea = min(space.altitudeareas, key=lambda a: a.distance(node.point), default=None)
+                    node_altitudearea = min(space.altitudeareas,
+                                            key=lambda a: a.geometry.distance(node.point), default=None)
                     if node_altitudearea:
                         node.altitude = node_altitudearea.get_altitude(node)
                     else:
