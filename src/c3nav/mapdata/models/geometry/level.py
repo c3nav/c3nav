@@ -1,4 +1,5 @@
 import logging
+from collections import deque
 from decimal import Decimal
 from itertools import chain, combinations
 from operator import attrgetter, itemgetter
@@ -319,6 +320,8 @@ class AltitudeArea(LevelGeometryMixin, models.Model):
         areas_without_altitude = set(area.tmpid for area in areas if area.altitude is None)
 
         # interpolate altitudes
+        logger.info('Interpolating altitudes...')
+
         areas_with_altitude = [i for i in range(len(areas)) if i not in areas_without_altitude]
         for i, tmpid in enumerate(areas_with_altitude):
             areas[tmpid].i = i
@@ -445,9 +448,12 @@ class AltitudeArea(LevelGeometryMixin, models.Model):
             level_areas[ramp.level].append(ramp)
 
         #
-        # now fill in the obstacles and so on
+        # we have altitude areas, but they only cover accessible space for now
+        # however, we need obstacles to be part of altitude areas too.
+        # this is where we do that.
         #
         for level in levels:
+            logger.info('Assign remaining space (%s)...' % level.title)
             for space in level.spaces.all():
                 space.geometry = space.orig_geometry
 
@@ -455,16 +461,20 @@ class AltitudeArea(LevelGeometryMixin, models.Model):
             doors_geom = unary_union(tuple(d.geometry for d in level.doors.all()))
             space_geom = unary_union(tuple((s.geometry if not s.outside else s.geometry.difference(buildings_geom))
                                            for s in level.spaces.all()))
+
+            # accessible area on this level is doors + spaces - holes
             accessible_area = unary_union((doors_geom, space_geom))
             for space in level.spaces.all():
                 accessible_area = accessible_area.difference(space.geometry.intersection(
                     unary_union(tuple(h.geometry for h in space.holes.all()))
                 ))
 
+            # areas mean altitude areas (including ramps) here
             our_areas = level_areas.get(level, [])
             for area in our_areas:
                 area.orig_geometry = area.geometry
                 area.orig_geometry_prep = prepared.prep(area.geometry)
+                area.polygons_to_add = deque()
 
             stairs = []
             for space in level.spaces.all():
@@ -473,17 +483,22 @@ class AltitudeArea(LevelGeometryMixin, models.Model):
                     space_geom = space_geom.difference(buildings_geom)
                 space_geom_prep = prepared.prep(space_geom)
                 holes_geom = unary_union(tuple(h.geometry for h in space.holes.all()))
+
+                # remaining_space means remaining space (=obstacles) that still needs to be added to altitude areas
                 remaining_space = (
                     tuple(o.geometry for o in space.obstacles.all()) +
                     tuple(o.buffered_geometry for o in space.lineobstacles.all())
                 )
+                # make sure to remove everything outside the space the obstacles are in as well as holes
                 remaining_space = tuple(g.intersection(space_geom).difference(holes_geom)
                                         for g in remaining_space
                                         if space_geom_prep.intersects(g))
+                # we need this to be a list of simple normal polygons
                 remaining_space = tuple(chain(*(
                     assert_multipolygon(g) for g in remaining_space if not g.is_empty
                 )))
                 if not remaining_space:
+                    # if there are no remaining spaces? great, we're done here.
                     continue
 
                 cuts = []
@@ -526,7 +541,12 @@ class AltitudeArea(LevelGeometryMixin, models.Model):
                     else:
                         area = min(our_areas,
                                    key=lambda a: a.orig_geometry.distance(center)-(0 if a.altitude2 is None else 0.6))
-                    area.geometry = area.geometry.buffer(0).union(polygon)
+                    area.polygons_to_add.append(polygon)
+
+            for i_area, area in enumerate(our_areas):
+                if area.polygons_to_add:
+                    area.geometry = unary_union((area.geometry.buffer(0), *area.polygons_to_add))
+                del area.polygons_to_add
 
         for level in levels:
             level_areas[level] = set(area.tmpid for area in level_areas.get(level, []))
