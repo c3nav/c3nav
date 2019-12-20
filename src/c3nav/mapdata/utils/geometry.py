@@ -361,16 +361,23 @@ def clean_cut_polygon(polygon: Polygon) -> Polygon:
 
 
 def cut_ring(ring: LinearRing) -> List[LinearRing]:
+    """
+    Cuts a Linearring into multiple linearrings. Useful if the ring intersects with itself.
+    An 8-ring would be split into it's two circles for example.
+    """
     rings = []
     new_ring = []
     # noinspection PyPropertyAccess
     for point in ring.coords:
         try:
+            # check if this point is already part of the ring
             index = new_ring.index(point)
         except ValueError:
+            # if not, append it
             new_ring.append(point)
             continue
 
+        # if yes, we got a loop, add it to the result and remove it from new_ring.
         if len(new_ring) > 2+index:
             rings.append(LinearRing(new_ring[index:]+[point]))
         new_ring = new_ring[:index+1]

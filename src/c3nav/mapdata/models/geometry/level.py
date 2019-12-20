@@ -8,6 +8,7 @@ import numpy as np
 from django.core.validators import MinValueValidator
 from django.db import models
 from django.urls import reverse
+from django.utils.functional import cached_property
 from django.utils.text import format_lazy
 from django.utils.translation import ugettext_lazy as _
 from scipy.sparse.csgraph._shortest_path import dijkstra
@@ -155,6 +156,16 @@ class Door(LevelGeometryMixin, AccessRestrictionMixin, models.Model):
         verbose_name = _('Door')
         verbose_name_plural = _('Doors')
         default_related_name = 'doors'
+
+
+class ItemWithValue:
+    def __init__(self, obj, func):
+        self.obj = obj
+        self._func = func
+
+    @cached_property
+    def value(self):
+        return self._func()
 
 
 class AltitudeArea(LevelGeometryMixin, models.Model):
@@ -529,15 +540,17 @@ class AltitudeArea(LevelGeometryMixin, models.Model):
                     buffered = polygon.buffer(0.001)
 
                     center = polygon.centroid
-                    touches = tuple((area, buffered.intersection(area.orig_geometry).area)
+                    touches = tuple(ItemWithValue(area, lambda: buffered.intersection(area.orig_geometry).area)
                                     for area in our_areas
                                     if area.orig_geometry_prep.intersects(buffered))
-                    if touches:
-                        min_touches = sum((t[1] for t in touches), 0)/4
-                        area = max(touches, key=lambda item: (item[1] > min_touches,
-                                                              item[0].altitude2 is not None,
-                                                              item[0].altitude,
-                                                              item[1]))[0]
+                    if len(touches) == 1:
+                        area = touches[0].obj
+                    elif touches:
+                        min_touches = sum((t.value for t in touches), 0)/4
+                        area = max(touches, key=lambda item: (item.value > min_touches,
+                                                              item.obj.altitude2 is not None,
+                                                              item.obj.altitude,
+                                                              item.value)).obj
                     else:
                         area = min(our_areas,
                                    key=lambda a: a.orig_geometry.distance(center)-(0 if a.altitude2 is None else 0.6))
