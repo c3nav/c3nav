@@ -24,6 +24,7 @@ class ApplyToInstanceError(Exception):
 
 class NoopChangedObject:
     pk = None
+
     @classmethod
     def apply_to_instance(cls, *args, **kwargs):
         pass
