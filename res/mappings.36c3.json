@@ -5,11 +5,11 @@
   "Dijkstra": "hall-d",
   "Eliza": "hall-e",
   "Art-and-Play Stage": "ap-stage",
-  "Assembly:C3blind": null,
+  "Assembly:C3blind": "c3blind",
   "Assembly:ChaosZone": "chaoszone",
-  "Assembly:Haecksen": null,
+  "Assembly:Haecksen": "haecksen",
   "Assembly:Hardware Hacking Area": "hardwarehackingarea",
-  "Assembly:Milliways": null,
+  "Assembly:Milliways": "milliways",
   "C-base": "c-base",
   "CCL Saal 3": "ccl-hall-3",
   "CCL Terrace": "ccl-terrace",
@@ -26,6 +26,6 @@
   "OIO Workshop": "oio-workshop-dome",
   "Seminar room 13": "self-organized-sessions-13",
   "Seminar room 14-15": "self-organized-sessions-14-15",
-  "WikiPaka WG: Bibliothek": null,
-  "WikiPaka WG: Esszimmer": "wikipaka-dining",
+  "WikiPaka WG: Bibliothek": "wikipaka-library",
+  "WikiPaka WG: Esszimmer": "wikipaka-dining"
 }
