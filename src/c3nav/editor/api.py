@@ -121,9 +121,11 @@ class EditorViewSet(EditorViewSetMixin, ViewSet):
 
     @staticmethod
     def area_sorting_func(area):
-        for group in area.groups.all():
-            return (1, group.priority, group.category.priority)
-        return (0, 0, 0)
+        groups = tuple(area.groups.all())
+        print(groups)
+        if not groups:
+            return (0, 0, 0)
+        return (1, groups[0].category.priority, groups[0].priority)
 
     # noinspection PyPep8Naming
     @action(detail=False, methods=['get'])
@@ -287,7 +289,7 @@ class EditorViewSet(EditorViewSetMixin, ViewSet):
             ).prefetch_related(
                 Prefetch('groups', LocationGroup.objects.only(
                     'color', 'category', 'priority', 'category__priority', 'category__allow_areas'
-                ).filter(color__isnull=False))
+                ))
             )
             for area in areas:
                 area.opacity = 0.5
