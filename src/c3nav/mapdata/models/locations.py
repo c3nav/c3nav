@@ -103,7 +103,7 @@ class Location(LocationSlug, AccessRestrictionMixin, TitledMixin, models.Model):
         result = super().serialize(detailed=detailed, **kwargs)
         if not detailed:
             fields = ('id', 'type', 'slug', 'title', 'subtitle', 'icon', 'point', 'bounds', 'grid_square',
-                      'locations', 'on_top_of')
+                      'locations', 'on_top_of', 'show_label')
             result = {name: result[name] for name in fields if name in result}
         return result
 
@@ -158,7 +158,14 @@ class Location(LocationSlug, AccessRestrictionMixin, TitledMixin, models.Model):
 
 
 class SpecificLocation(Location, models.Model):
+    SHOW_LABEL_OPTIONS = (
+        ('inherit', _('inherit from groups (default)')),
+        ('show_text', _('yes, show the title')),
+        ('no', _('don\'t show')),
+    )
+
     groups = models.ManyToManyField('mapdata.LocationGroup', verbose_name=_('Location Groups'), blank=True)
+    show_label = models.CharField(_('show label'), max_length=16, default='inherit', choices=SHOW_LABEL_OPTIONS)
 
     class Meta:
         abstract = True
@@ -177,7 +184,18 @@ class SpecificLocation(Location, models.Model):
                       for category, items in groups.items()
                       if getattr(category, 'allow_'+self.__class__._meta.default_related_name)}
             result['groups'] = groups
+        result['show_label'] = self.get_show_label()
         return result
+
+    def get_show_label(self):
+        if self.show_label == 'inherit':
+            for group in self.groups.all():
+                if group.show_labels != 'no':
+                    return group.show_labels
+            return None
+        if self.show_label == 'no':
+            return None
+        return self.show_label
 
     def details_display(self, **kwargs):
         result = super().details_display(**kwargs)
@@ -286,10 +304,17 @@ class LocationGroupManager(models.Manager):
 
 
 class LocationGroup(Location, models.Model):
+    SHOW_LABELS_OPTIONS = (
+        ('no', _('no (default)')),
+        ('show_text', _('yes, show the title')),
+    )
+
     category = models.ForeignKey(LocationGroupCategory, related_name='groups', on_delete=models.PROTECT,
                                  verbose_name=_('Category'))
     priority = models.IntegerField(default=0, db_index=True)
     hierarchy = models.IntegerField(default=0, db_index=True, verbose_name=_('hierarchy'))
+    show_labels = models.CharField(_('show labels'), max_length=16, default='no', choices=SHOW_LABELS_OPTIONS,
+                                   help_text=_('unless location specifies otherwise'))
     color = models.CharField(null=True, blank=True, max_length=32, verbose_name=_('background color'))
 
     objects = LocationGroupManager()

@@ -108,7 +108,7 @@ c3nav = {
             location.match = ' ' + location.title_words.join(' ') + ' ' + location.subtitle_words.join(' ') + '  ' + location.slug;
             locations.push(location);
             locations_by_id[location.id] = location;
-            if (location.point ) {
+            if (location.point && location.show_label) {
                 location.label = c3nav._build_location_label(location);
                 if (!(location.point[0] in labels)) labels[location.point[0]] = [];
                 labels[location.point[0]].push(location);
@@ -302,10 +302,14 @@ c3nav = {
 
     update_location_labels: function() {
         c3nav._labelLayer.clearLayers();
-        var labels = c3nav.labels[c3nav._levelControl.currentLevel];
+        var labels = c3nav.labels[c3nav._levelControl.currentLevel],
+            bounds = c3nav.map.getBounds();
         if (!labels) return;
+
         for (var location of labels) {
-            c3nav._labelLayer._maybeAddLayerToRBush(location.label);
+            if (bounds.contains(location.label.getLatLng())) {
+                c3nav._labelLayer._maybeAddLayerToRBush(location.label);
+            }
         }
     },
 
