@@ -903,13 +903,14 @@ class QuerySetWrapper(BaseQueryWrapper):
                 field = field.lstrip('-')
                 val = getattr(obj, field.lstrip('-'))
                 if field in ('id', 'pk'):
-                    if isinstance(field, int):
+                    if isinstance(val, int):
                         result.extend((1*fact, val*fact))
                     else:
                         result.extend((2*fact, int(val[1:])*fact))
                 else:
                     result.append(val * fact)
             return tuple(result)
+        return key_func
 
     def _get_cached_result(self):
         """
