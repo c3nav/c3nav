@@ -118,8 +118,11 @@ def good_representative_point(geometry):
     if isinstance(geometry, Point):
         return geometry
     c = geometry.centroid
-    if geometry.contains(c):
-        return c
+    if not isinstance(geometry, (Polygon, MultiPolygon)):
+        raise ValueError
+    for polygon in assert_multipolygon(geometry):
+        if Polygon(polygon.exterior.coords).contains(c):
+            return c
     x1, y1, x2, y2 = geometry.bounds
     lines = (tuple(assert_multilinestring(LineString(((x1, c.y), (x2, c.y))).intersection(geometry))) +
              tuple(assert_multilinestring(LineString(((c.x, y1), (c.x, y2))).intersection(geometry))))
