@@ -390,3 +390,24 @@ class LocationRedirect(LocationSlug):
 
     class Meta:
         default_related_name = 'redirect'
+
+
+class CustomLocationField(SerializableMixin, models.Model):
+    DATA_TYPES = (
+        ('str', _('string')),
+        ('int', _('integer')),
+    )
+    name = models.SlugField(_('Name'), unique=True, max_length=50)
+    title = I18nField(_('Title'), plural_name='titles', fallback_any=True)
+    help_text = I18nField(_('Help text'), plural_name='help_texts', fallback_any=True, fallback_value='')
+    groups = models.ManyToManyField('mapdata.LocationGroup', verbose_name=_('Location Groups'), blank=False)
+    priority = models.IntegerField(default=0, db_index=True)
+    data_type = models.CharField(_('Data Type'), max_length=20, choices=DATA_TYPES)
+    required = models.BooleanField(_('required'), default=False)
+    default = models.TextField(_('default value'), null=True, blank=True)
+
+    class Meta:
+        verbose_name = _('Custom Location Field')
+        verbose_name_plural = _('Custom Location Fields')
+        default_related_name = 'customlocationfields'
+        ordering = ('-priority', )
