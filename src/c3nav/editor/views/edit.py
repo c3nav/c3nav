@@ -505,7 +505,7 @@ def list_objects(request, model=None, level=None, space=None, explicit_edit=Fals
         LocationGroupCategory = request.changeset.wrap_model('LocationGroupCategory')
         grouped_objects = tuple(
             {
-                'title': category.title,
+                'title': category.title_plural,
                 'objects': tuple(obj for obj in queryset if obj.category_id == category.pk)
             }
             for category in LocationGroupCategory.objects.order_by('-priority')
