@@ -418,7 +418,7 @@ class BaseQueryWrapper(BaseWrapper):
     @get_queryset
     def order_by(self, *args):
         """
-        Order by is not yet supported on created instances because this is not needed so far.
+        Order only supported for numeric fields for now
         """
         return self._wrap_queryset(self._obj.order_by(*args))
 
@@ -909,6 +909,12 @@ class QuerySetWrapper(BaseQueryWrapper):
         obj._fetch_all()
 
         result += list(self._get_created_objects())
+
+        ordering = self._obj.query.order_by
+        if ordering:
+            result = sorted(result, key=lambda obj: tuple(
+                getattr(obj, field.lstrip('-'))*(-1 if field[0] == '-' else 1) for field in ordering
+            ))
 
         for extra in self._extra:
             # implementing the extra() call for prefetch_related

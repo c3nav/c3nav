@@ -30,20 +30,32 @@
 
 <table class="table table-condensed itemtable" data-nozoom data-list="{{ model_name }}">
     <tbody>
-        {% for item in objects %}
-            {% if forloop.counter0|divisibleby:10 %}
-                <tr>
-                    <td><a href="{{ back_url }}" data-no-next-zoom>&laquo; {{ back_title }}</a></td>
+        {% for objects in grouped_objects %}
+            {% if objects.title %}
+                <tr class="item-group-header">
+                    <td>{{ objects.title }}</td>
+                    {% for col in add_cols %}<td></td>{% endfor %}
                     <td></td>
                 </tr>
             {% endif %}
-            <tr data-pk="{{ item.pk }}">
-                <td>{{ item.title }}</td>
-                <td><a href="{{ item.edit_url }}">{{ edit_caption }}</a></td>
-            </tr>
+            {% for item in objects.objects %}
+                {% if forloop.counter0|divisibleby:10 %}
+                    <tr>
+                        <td><a href="{{ back_url }}" data-no-next-zoom>&laquo; {{ back_title }}</a></td>
+                        {% for col in add_cols %}<td></td>{% endfor %}
+                        <td></td>
+                    </tr>
+                {% endif %}
+                <tr data-pk="{{ item.pk }}">
+                    <td>{{ item.title }}</td>
+                    {% for col in item.add_cols %}<td>{{ col }}</td>{% endfor %}
+                    <td><a href="{{ item.edit_url }}">{{ edit_caption }}</a></td>
+                </tr>
+            {% endfor %}
         {% endfor %}
         <tr>
             <td><a href="{{ back_url }}" data-no-next-zoom>&laquo; {{ back_title }}</a></td>
+            {% for col in add_cols %}<td></td>{% endfor %}
             <td></td>
         </tr>
     </tbody>

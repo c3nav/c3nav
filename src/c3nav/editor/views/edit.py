@@ -436,6 +436,8 @@ def list_objects(request, model=None, level=None, space=None, explicit_edit=Fals
         queryset = queryset.filter(model.q_for_request(request))
     reverse_kwargs = {}
 
+    add_cols = []
+
     if level is not None:
         reverse_kwargs['level'] = level
         level = get_object_or_404(Level.objects.filter(Level.q_for_request(request)), pk=level)
@@ -477,6 +479,16 @@ def list_objects(request, model=None, level=None, space=None, explicit_edit=Fals
         })
     else:
         edit_utils = DefaultEditUtils(request)
+
+        with suppress(FieldDoesNotExist):
+            model._meta.get_field('category')
+            queryset = queryset.select_related('category')
+
+        with suppress(FieldDoesNotExist):
+            model._meta.get_field('priority')
+            add_cols.append('priority')
+            queryset = queryset.order_by('-priority')
+
         ctx.update({
             'back_url': reverse('editor.index'),
             'back_title': _('back to overview'),
@@ -486,13 +498,31 @@ def list_objects(request, model=None, level=None, space=None, explicit_edit=Fals
     for obj in queryset:
         reverse_kwargs['pk'] = obj.pk
         obj.edit_url = reverse(edit_url_name, kwargs=reverse_kwargs)
+        obj.add_cols = tuple(getattr(obj, col) for col in add_cols)
     reverse_kwargs.pop('pk', None)
+
+    if model.__name__ == 'LocationGroup':
+        LocationGroupCategory = request.changeset.wrap_model('LocationGroupCategory')
+        grouped_objects = tuple(
+            {
+                'title': category.title,
+                'objects': tuple(obj for obj in queryset if obj.category_id == category.pk)
+            }
+            for category in LocationGroupCategory.objects.order_by('-priority')
+        )
+    else:
+        grouped_objects = (
+            {
+                'objects': queryset,
+            },
+        )
 
     ctx.update({
         'can_create': edit_utils.can_create and can_edit,
         'geometry_url': edit_utils.geometry_url,
+        'add_cols': add_cols,
         'create_url': reverse(resolver_match.url_name[:-4] + 'create', kwargs=reverse_kwargs),
-        'objects': queryset,
+        'grouped_objects': grouped_objects,
     })
 
     return APIHybridTemplateContextResponse('editor/list.html', ctx,
