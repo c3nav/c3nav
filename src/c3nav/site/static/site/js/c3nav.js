@@ -145,6 +145,7 @@ c3nav = {
             } else {
                 c3nav.update_map_state(true);
             }
+            c3nav.update_location_labels();
         }
 
         c3nav.init_locationinputs();
@@ -173,25 +174,6 @@ c3nav = {
         $('header h1 a').removeAttr('href');
 
         window.onpopstate = c3nav._onpopstate;
-
-        var layer, count= 0;
-        for (var location of c3nav.locations) {
-            if (location.point) {
-                layer = c3nav._labelLayers[location.point[0]];
-                if (layer) {
-                    L.marker(L.GeoJSON.coordsToLatLng(location.point.slice(1)), {
-                        icon: L.divIcon({
-                            html: $('<div>').append($('<div class="location-label-text">').text(location.title)).html(),
-                            iconSize: null,
-                            className: 'location-label'
-                        }),
-                        interactive: false,	// Post-0.7.3
-                        clickable: false	//      0.7.3
-                    }).addTo(c3nav._labelLayers[location.point[0]]);
-                }
-                //if (count++ > 1) break;
-            }
-        }
 
         if (window.mobileclient) {
             c3nav.startWifiScanning();
@@ -308,6 +290,25 @@ c3nav = {
     _clear_detail_layers: function() {
         for (var id in c3nav._detailLayers) {
             c3nav._detailLayers[id].clearLayers();
+        }
+    },
+
+    update_location_labels: function() {
+        c3nav._labelLayer.clearLayers();
+        for (var location of c3nav.locations) {
+            if (location.point && c3nav._levelControl.currentLevel === location.point[0]) {
+                c3nav._labelLayer._maybeAddLayerToRBush(
+                    L.marker(L.GeoJSON.coordsToLatLng(location.point.slice(1)), {
+                        icon: L.divIcon({
+                            html: $('<div>').append($('<div class="location-label-text">').text(location.title)).html(),
+                            iconSize: null,
+                            className: 'location-label'
+                        }),
+                        interactive: false,	// Post-0.7.3
+                        clickable: false	//      0.7.3
+                    })
+                );
+            }
         }
     },
 
@@ -1126,19 +1127,18 @@ c3nav = {
         // setup level control
         c3nav._levelControl = new LevelControl().addTo(c3nav.map);
         c3nav._locationLayers = {};
-        c3nav._labelLayers = {};
         c3nav._locationLayerBounds = {};
         c3nav._detailLayers = {};
         c3nav._routeLayers = {};
         c3nav._routeLayerBounds = {};
         c3nav._userLocationLayers = {};
         c3nav._firstRouteLevel = null;
+        c3nav._labelLayer = L.LayerGroup.collision({margin: 10}).addTo(c3nav.map);
         for (i = c3nav.levels.length - 1; i >= 0; i--) {
             var level = c3nav.levels[i];
             var layerGroup = c3nav._levelControl.addLevel(level[0], level[1]);
             c3nav._detailLayers[level[0]] = L.layerGroup().addTo(layerGroup);
             c3nav._locationLayers[level[0]] = L.layerGroup().addTo(layerGroup);
-            c3nav._labelLayers[level[0]] = L.LayerGroup.collision({margin: 10}).addTo(layerGroup);
             c3nav._routeLayers[level[0]] = L.layerGroup().addTo(layerGroup);
             c3nav._userLocationLayers[level[0]] = L.layerGroup().addTo(layerGroup);
         }
@@ -1184,9 +1184,11 @@ c3nav = {
     },
     _map_moved: function () {
         c3nav.update_map_state();
+        c3nav.update_location_labels();
     },
     _map_zoomed: function () {
         c3nav.update_map_state();
+        c3nav.update_location_labels();
     },
     _add_icon: function (name) {
         c3nav[name+'Icon'] = new L.Icon({
@@ -1660,6 +1662,7 @@ LevelControl = L.Control.extend({
         e.stopPropagation();
         this.setLevel(e.target.level);
         c3nav.update_map_state();
+        c3nav.update_location_labels();
     },
 
     finalize: function () {
