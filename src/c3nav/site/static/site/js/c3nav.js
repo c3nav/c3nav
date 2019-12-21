@@ -33,6 +33,18 @@
     Math.log2 = Math.log2 || function(x) {
         return Math.log(x) * Math.LOG2E;
     };
+
+    var originalGetIconBox = L.LayerGroup.Collision.prototype._getIconBox;
+    L.LayerGroup.Collision.prototype._getIconBox = function(el) {
+        var result = originalGetIconBox(el);
+        var offsetX = (result[2]-result[0]/2),
+            offsetY = (result[3]-result[1]/2);
+        result[0] -= offsetX;
+        result[1] -= offsetY;
+        result[2] -= offsetX;
+        result[3] -= offsetY;
+        return result
+    };
 }());
 
 c3nav = {
@@ -83,6 +95,7 @@ c3nav = {
     _last_time_searchable_locations_loaded: null,
     _searchable_locations_interval: 120000,
     _searchable_locations_loaded: function(data) {
+        // todo, do nothing on 304 not modified
         c3nav._last_time_searchable_locations_loaded = Date.now();
         var locations = [],
             locations_by_id = {};
@@ -160,6 +173,25 @@ c3nav = {
         $('header h1 a').removeAttr('href');
 
         window.onpopstate = c3nav._onpopstate;
+
+        var layer, count= 0;
+        for (var location of c3nav.locations) {
+            if (location.point) {
+                layer = c3nav._labelLayers[location.point[0]];
+                if (layer) {
+                    L.marker(L.GeoJSON.coordsToLatLng(location.point.slice(1)), {
+                        icon: L.divIcon({
+                            html: $('<div>').append($('<div class="location-label-text">').text(location.title)).html(),
+                            iconSize: null,
+                            className: 'location-label'
+                        }),
+                        interactive: false,	// Post-0.7.3
+                        clickable: false	//      0.7.3
+                    }).addTo(c3nav._labelLayers[location.point[0]]);
+                }
+                //if (count++ > 1) break;
+            }
+        }
 
         if (window.mobileclient) {
             c3nav.startWifiScanning();
@@ -1094,6 +1126,7 @@ c3nav = {
         // setup level control
         c3nav._levelControl = new LevelControl().addTo(c3nav.map);
         c3nav._locationLayers = {};
+        c3nav._labelLayers = {};
         c3nav._locationLayerBounds = {};
         c3nav._detailLayers = {};
         c3nav._routeLayers = {};
@@ -1105,6 +1138,7 @@ c3nav = {
             var layerGroup = c3nav._levelControl.addLevel(level[0], level[1]);
             c3nav._detailLayers[level[0]] = L.layerGroup().addTo(layerGroup);
             c3nav._locationLayers[level[0]] = L.layerGroup().addTo(layerGroup);
+            c3nav._labelLayers[level[0]] = L.LayerGroup.collision({margin: 10}).addTo(layerGroup);
             c3nav._routeLayers[level[0]] = L.layerGroup().addTo(layerGroup);
             c3nav._userLocationLayers[level[0]] = L.layerGroup().addTo(layerGroup);
         }
