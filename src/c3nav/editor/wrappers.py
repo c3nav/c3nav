@@ -895,6 +895,21 @@ class QuerySetWrapper(BaseQueryWrapper):
         return (self._changeset.get_created_object(self._obj.model, pk, get_foreign_objects=get_foreign_objects)
                 for pk in sorted(self._created_pks))
 
+    def _ordering_key_func(self, ordering):
+        def key_func(obj):
+            result = []
+            for field in ordering:
+                fact = -1 if field[0] == '-' else 1
+                field = field.lstrip('-')
+                val = getattr(obj, field.lstrip('-'))
+                if field in ('id', 'pk'):
+                    if isinstance(field, int):
+                        result.extend((1*fact, val*fact))
+                    else:
+                        result.extend((2*fact, int(val[1:])*fact))
+                else:
+                    result.append(val * fact)
+
     def _get_cached_result(self):
         """
         Get results, make sure prefetch is prefetching and so on.
@@ -912,9 +927,7 @@ class QuerySetWrapper(BaseQueryWrapper):
 
         ordering = self._obj.query.order_by
         if ordering:
-            result = sorted(result, key=lambda obj: tuple(
-                getattr(obj, field.lstrip('-'))*(-1 if field[0] == '-' else 1) for field in ordering
-            ))
+            result = sorted(result, key=self._ordering_key_func(ordering))
 
         for extra in self._extra:
             # implementing the extra() call for prefetch_related
