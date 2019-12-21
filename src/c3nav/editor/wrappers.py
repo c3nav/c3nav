@@ -909,6 +909,7 @@ class QuerySetWrapper(BaseQueryWrapper):
                         result.extend((2*fact, int(val[1:])*fact))
                 else:
                     result.append(val * fact)
+            return tuple(result)
 
     def _get_cached_result(self):
         """
