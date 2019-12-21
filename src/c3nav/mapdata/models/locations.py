@@ -1,7 +1,8 @@
 from contextlib import suppress
+from decimal import Decimal
 from operator import attrgetter
 
-from django.core.validators import RegexValidator
+from django.core.validators import RegexValidator, MinValueValidator, MaxValueValidator
 from django.db import models
 from django.db.models import FieldDoesNotExist, Prefetch
 from django.urls import reverse
@@ -103,7 +104,7 @@ class Location(LocationSlug, AccessRestrictionMixin, TitledMixin, models.Model):
         result = super().serialize(detailed=detailed, **kwargs)
         if not detailed:
             fields = ('id', 'type', 'slug', 'title', 'subtitle', 'icon', 'point', 'bounds', 'grid_square',
-                      'locations', 'on_top_of', 'show_label')
+                      'locations', 'on_top_of', 'label_settings', 'label_override')
             result = {name: result[name] for name in fields if name in result}
         return result
 
@@ -158,14 +159,10 @@ class Location(LocationSlug, AccessRestrictionMixin, TitledMixin, models.Model):
 
 
 class SpecificLocation(Location, models.Model):
-    SHOW_LABEL_OPTIONS = (
-        ('inherit', _('inherit from groups (default)')),
-        ('show_text', _('yes, show the title')),
-        ('no', _('don\'t show')),
-    )
-
     groups = models.ManyToManyField('mapdata.LocationGroup', verbose_name=_('Location Groups'), blank=True)
-    show_label = models.CharField(_('show label'), max_length=16, default='inherit', choices=SHOW_LABEL_OPTIONS)
+    label_settings = models.ForeignKey('mapdata.LabelSettings', null=True, on_delete=models.PROTECT,
+                                       verbose_name=_('label settings'))
+    label_override = I18nField(_('Label override'), plural_name='label_overrides', blank=True, fallback_any=True)
 
     class Meta:
         abstract = True
@@ -184,18 +181,22 @@ class SpecificLocation(Location, models.Model):
                       for category, items in groups.items()
                       if getattr(category, 'allow_'+self.__class__._meta.default_related_name)}
             result['groups'] = groups
-        result['show_label'] = self.get_show_label()
+
+        label_settings = self.get_label_settings()
+        if label_settings:
+            result['label_settings'] = label_settings.serialize(detailed=False)
+        if self.label_overrides:
+            # todo: what if only one language is set?
+            result['label_override'] = self.label_override
         return result
 
-    def get_show_label(self):
-        if self.show_label == 'inherit':
-            for group in self.groups.all():
-                if group.show_labels != 'no':
-                    return group.show_labels
-            return None
-        if self.show_label == 'no':
-            return None
-        return self.show_label
+    def get_label_settings(self):
+        if self.label_settings:
+            return self.label_settings
+        for group in self.groups.all():
+            if group.label_settings:
+                return group.label_settings
+        return None
 
     def details_display(self, **kwargs):
         result = super().details_display(**kwargs)
@@ -304,17 +305,13 @@ class LocationGroupManager(models.Manager):
 
 
 class LocationGroup(Location, models.Model):
-    SHOW_LABELS_OPTIONS = (
-        ('no', _('no (default)')),
-        ('show_text', _('yes, show the title')),
-    )
-
     category = models.ForeignKey(LocationGroupCategory, related_name='groups', on_delete=models.PROTECT,
                                  verbose_name=_('Category'))
     priority = models.IntegerField(default=0, db_index=True)
     hierarchy = models.IntegerField(default=0, db_index=True, verbose_name=_('hierarchy'))
-    show_labels = models.CharField(_('show labels'), max_length=16, default='no', choices=SHOW_LABELS_OPTIONS,
-                                   help_text=_('unless location specifies otherwise'))
+    label_settings = models.ForeignKey('mapdata.LabelSettings', null=True, on_delete=models.PROTECT,
+                                       verbose_name=_('label settings'),
+                                       help_text=_('unless location specifies otherwise'))
     color = models.CharField(null=True, blank=True, max_length=32, verbose_name=_('background color'))
 
     objects = LocationGroupManager()
@@ -418,3 +415,32 @@ class LocationRedirect(LocationSlug):
 
     class Meta:
         default_related_name = 'redirect'
+
+
+class LabelSettings(SerializableMixin, models.Model):
+    title = I18nField(_('Title'), plural_name='titles', fallback_any=True)
+    min_zoom = models.DecimalField(_('min zoom'), max_digits=3, decimal_places=1, default=-10,
+                                   validators=[MinValueValidator(Decimal('-10')),
+                                               MaxValueValidator(Decimal('10'))])
+    max_zoom = models.DecimalField(_('max zoom'), max_digits=3, decimal_places=1, default=10,
+                                   validators=[MinValueValidator(Decimal('-10')),
+                                               MaxValueValidator(Decimal('10'))])
+    font_size = models.IntegerField(_('font size'), default=12,
+                                    validators=[MinValueValidator(12),
+                                                MaxValueValidator(30)])
+
+    def _serialize(self, detailed=True, **kwargs):
+        result = super()._serialize(detailed=detailed, **kwargs)
+        if detailed:
+            result['titles'] = self.titles
+        if self.min_zoom > -10:
+            result['min_zoom'] = self.min_zoom
+        if self.max_zoom < 10:
+            result['max_zoom'] = self.max_zoom
+        result['font_size'] = self.font_size
+        return result
+
+    class Meta:
+        verbose_name = _('Label Settings')
+        verbose_name_plural = _('Label Settings')
+        default_related_name = 'labelsettings'

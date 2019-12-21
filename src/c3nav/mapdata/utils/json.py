@@ -78,6 +78,8 @@ def round_polygon(coordinates):
     # round each ring on it's own and remove rings that are invalid
     # if the exterior ring is invalid, return and empty polygon
     coordinates = tuple(round_coordinates(ring) for ring in coordinates)
+    if not coordinates:
+        return coordinates
     exterior, *interiors = coordinates
     if not check_ring(exterior):
         return ()

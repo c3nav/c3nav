@@ -108,7 +108,7 @@ c3nav = {
             location.match = ' ' + location.title_words.join(' ') + ' ' + location.subtitle_words.join(' ') + '  ' + location.slug;
             locations.push(location);
             locations_by_id[location.id] = location;
-            if (location.point && location.show_label) {
+            if (location.point && location.label_settings) {
                 location.label = c3nav._build_location_label(location);
                 if (!(location.point[0] in labels)) labels[location.point[0]] = [];
                 labels[location.point[0]].push(location);
@@ -303,12 +303,15 @@ c3nav = {
     update_location_labels: function() {
         c3nav._labelLayer.clearLayers();
         var labels = c3nav.labels[c3nav._levelControl.currentLevel],
-            bounds = c3nav.map.getBounds();
+            bounds = c3nav.map.getBounds(),
+            zoom = c3nav.map.getZoom();
         if (!labels) return;
 
         for (var location of labels) {
-            if (bounds.contains(location.label.getLatLng())) {
-                c3nav._labelLayer._maybeAddLayerToRBush(location.label);
+            if (bounds.contains(location.label.getLatLng()) &&
+                (location.label_settings.min_zoom || -10) < zoom &&
+                (location.label_settings.max_zoom || 10) > zoom) {
+                    c3nav._labelLayer._maybeAddLayerToRBush(location.label);
             }
         }
     },
@@ -801,9 +804,11 @@ c3nav = {
         return html[0].outerHTML;
     },
     _build_location_label: function(location) {
+        var html = $('<div class="location-label-text">').text(location.label_override || location.title);
+        html.css('font-size', location.label_settings.font_size+'px');
         return L.marker(L.GeoJSON.coordsToLatLng(location.point.slice(1)), {
             icon: L.divIcon({
-                html: $('<div class="location-label-text">').text(location.title)[0].outerHTML,
+                html: html[0].outerHTML,
                 iconSize: null,
                 className: 'location-label'
             }),

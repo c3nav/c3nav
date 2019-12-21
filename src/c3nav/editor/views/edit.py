@@ -55,6 +55,7 @@ def main_index(request):
             child_model(request, 'WayType'),
             child_model(request, 'AccessRestriction'),
             child_model(request, 'AccessRestrictionGroup'),
+            child_model(request, 'LabelSettings'),
             child_model(request, 'Source'),
         ],
     }, fields=('can_create_level', 'child_models'))

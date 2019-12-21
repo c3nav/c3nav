@@ -3,6 +3,7 @@ import operator
 import os
 from functools import reduce
 from itertools import chain
+from operator import attrgetter
 
 from django.conf import settings
 from django.core.cache import cache
@@ -124,8 +125,18 @@ class EditorFormBase(I18nModelFormMixin, ModelForm):
                                                 help_text=category.help_text)
                 self.fields[name] = field
 
+            if 'label_settings' in self.fields:
+                self.fields.move_to_end('label_settings')
+
+            for field in tuple(self.fields.keys()):
+                if field.startswith('label_override'):
+                    self.fields.move_to_end(field)
+
         if 'category' in self.fields:
-            self.fields['category'].label_from_instance = lambda obj: obj.title
+            self.fields['category'].label_from_instance = attrgetter('title')
+
+        if 'label_settings' in self.fields:
+            self.fields['label_settings'].label_from_instance = attrgetter('title')
 
         if 'access_restriction' in self.fields:
             AccessRestriction = self.request.changeset.wrap_model('AccessRestriction')
@@ -268,12 +279,12 @@ class EditorFormBase(I18nModelFormMixin, ModelForm):
 def create_editor_form(editor_model):
     possible_fields = ['slug', 'name', 'title', 'title_plural', 'help_text', 'icon', 'join_edges', 'up_separate',
                        'walk', 'ordering', 'category', 'width', 'groups', 'color', 'priority', 'hierarchy', 'icon_name',
-                       'show_labels', 'show_label',
                        'base_altitude', 'waytype', 'access_restriction', 'height', 'default_height', 'door_height',
                        'outside', 'can_search', 'can_describe', 'geometry', 'single', 'altitude', 'short_label',
                        'origin_space', 'target_space', 'data', 'comment', 'slow_down_factor',
                        'extra_seconds', 'speed', 'description', 'speed_up', 'description_up', 'enter_description',
                        'level_change_description', 'base_mapdata_accessible',
+                       'label_settings', 'label_override', 'min_zoom', 'max_zoom', 'font_size',
                        'allow_levels', 'allow_spaces', 'allow_areas', 'allow_pois', 'left', 'top', 'right', 'bottom']
     field_names = [field.name for field in editor_model._meta.get_fields() if not field.one_to_many]
     existing_fields = [name for name in possible_fields if name in field_names]
