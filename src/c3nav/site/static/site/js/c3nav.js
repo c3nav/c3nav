@@ -124,9 +124,6 @@ c3nav = {
             c3nav._searchable_locations_timer = window.setTimeout(c3nav.load_searchable_locations, c3nav._searchable_locations_interval);
         }
     },
-    createLabel: function(location) {
-        return
-    },
     continue_init: function() {
         c3nav.init_map();
 
