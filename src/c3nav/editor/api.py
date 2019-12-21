@@ -313,7 +313,7 @@ class EditorViewSet(EditorViewSetMixin, ViewSet):
                 space.wifi_measurements.all().only('geometry', 'space'),
                 space.pois.filter(POI.q_for_request(request)).only('geometry', 'space').prefetch_related(
                     Prefetch('groups', LocationGroup.objects.only(
-                        'color', 'category', 'priority', 'category__priority', 'category__allow_pois'
+                        'color', 'category', 'priority', 'hierarchy', 'category__priority', 'category__allow_pois'
                     ).filter(color__isnull=False))
                 ),
                 other_spaces_upper,
