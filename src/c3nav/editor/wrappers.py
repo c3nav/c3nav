@@ -901,7 +901,14 @@ class QuerySetWrapper(BaseQueryWrapper):
             for field in ordering:
                 fact = -1 if field[0] == '-' else 1
                 field = field.lstrip('-')
-                val = getattr(obj, field.lstrip('-'))
+
+                field_split = field.split('__')
+                field = field_split.pop()
+                final_obj = obj
+                for subfield in field_split:
+                    final_obj = getattr(final_obj, subfield)
+
+                val = getattr(obj, field)
                 if field in ('id', 'pk'):
                     if isinstance(val, int):
                         result.extend((1*fact, val*fact))
