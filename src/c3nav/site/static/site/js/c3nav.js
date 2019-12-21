@@ -98,7 +98,8 @@ c3nav = {
         // todo, do nothing on 304 not modified
         c3nav._last_time_searchable_locations_loaded = Date.now();
         var locations = [],
-            locations_by_id = {};
+            locations_by_id = {},
+            labels = {};
         for (var i = 0; i < data.length; i++) {
             var location = data[i];
             location.elem = c3nav._build_location_html(location);
@@ -107,15 +108,24 @@ c3nav = {
             location.match = ' ' + location.title_words.join(' ') + ' ' + location.subtitle_words.join(' ') + '  ' + location.slug;
             locations.push(location);
             locations_by_id[location.id] = location;
+            if (location.point ) {
+                location.label = c3nav._build_location_label(location);
+                if (!(location.point[0] in labels)) labels[location.point[0]] = [];
+                labels[location.point[0]].push(location);
+            }
         }
         c3nav.locations = locations;
         c3nav.locations_by_id = locations_by_id;
+        c3nav.labels = labels;
         if (!c3nav.init_completed) {
             c3nav.continue_init();
         }
         if (c3nav._searchable_locations_timer === null) {
             c3nav._searchable_locations_timer = window.setTimeout(c3nav.load_searchable_locations, c3nav._searchable_locations_interval);
         }
+    },
+    createLabel: function(location) {
+        return
     },
     continue_init: function() {
         c3nav.init_map();
@@ -295,20 +305,10 @@ c3nav = {
 
     update_location_labels: function() {
         c3nav._labelLayer.clearLayers();
-        for (var location of c3nav.locations) {
-            if (location.point && c3nav._levelControl.currentLevel === location.point[0]) {
-                c3nav._labelLayer._maybeAddLayerToRBush(
-                    L.marker(L.GeoJSON.coordsToLatLng(location.point.slice(1)), {
-                        icon: L.divIcon({
-                            html: $('<div>').append($('<div class="location-label-text">').text(location.title)).html(),
-                            iconSize: null,
-                            className: 'location-label'
-                        }),
-                        interactive: false,	// Post-0.7.3
-                        clickable: false	//      0.7.3
-                    })
-                );
-            }
+        var labels = c3nav.labels[c3nav._levelControl.currentLevel];
+        if (!labels) return;
+        for (var location of labels) {
+            c3nav._labelLayer._maybeAddLayerToRBush(location.label);
         }
     },
 
@@ -792,12 +792,23 @@ c3nav = {
             .on('mousedown', '*', c3nav._locationinput_global_focuschange);
     },
     _build_location_html: function(location) {
-        html = $('<div class="location">')
+        var html = $('<div class="location">')
             .append($('<i class="icon material-icons">').text(c3nav._map_material_icon(location.icon || 'place')))
             .append($('<span>').text(location.title))
             .append($('<small>').text(location.subtitle)).attr('data-id', location.id);
         html.attr('data-location', JSON.stringify(location));
         return html[0].outerHTML;
+    },
+    _build_location_label: function(location) {
+        return L.marker(L.GeoJSON.coordsToLatLng(location.point.slice(1)), {
+            icon: L.divIcon({
+                html: $('<div class="location-label-text">').text(location.title)[0].outerHTML,
+                iconSize: null,
+                className: 'location-label'
+            }),
+            interactive: false,	// Post-0.7.3
+            clickable: false	//      0.7.3
+        });
     },
     _locationinput_set: function (elem, location) {
         // set a location input
