@@ -122,10 +122,9 @@ class EditorViewSet(EditorViewSetMixin, ViewSet):
     @staticmethod
     def area_sorting_func(area):
         groups = tuple(area.groups.all())
-        print(groups)
         if not groups:
             return (0, 0, 0)
-        return (1, groups[0].category.priority, groups[0].priority)
+        return (1, groups[0].category.priority, groups[0].hierarchy, groups[0].priority)
 
     # noinspection PyPep8Naming
     @action(detail=False, methods=['get'])
@@ -165,7 +164,7 @@ class EditorViewSet(EditorViewSetMixin, ViewSet):
                     Q(access_restriction__isnull=True) | ~Column.q_for_request(request)
                 ).only('geometry', 'space')),
                 Prefetch('spaces__groups', LocationGroup.objects.only(
-                    'color', 'category', 'priority', 'category__priority', 'category__allow_spaces'
+                    'color', 'category', 'priority', 'hierarchy', 'category__priority', 'category__allow_spaces'
                 )),
                 Prefetch('buildings', Building.objects.only('geometry', 'level')),
                 Prefetch('spaces__holes', Hole.objects.only('geometry', 'space')),
@@ -228,7 +227,7 @@ class EditorViewSet(EditorViewSetMixin, ViewSet):
                     'geometry', 'level'
                 ).prefetch_related(
                     Prefetch('groups', LocationGroup.objects.only(
-                        'color', 'category', 'priority', 'category__priority', 'category__allow_spaces'
+                        'color', 'category', 'priority', 'hierarchy', 'category__priority', 'category__allow_spaces'
                     ).filter(color__isnull=False))
                 )
 
@@ -287,8 +286,10 @@ class EditorViewSet(EditorViewSetMixin, ViewSet):
             areas = space.areas.filter(Area.q_for_request(request)).only(
                 'geometry', 'space'
             ).prefetch_related(
-                Prefetch('groups', LocationGroup.objects.only(
-                    'color', 'category', 'priority', 'category__priority', 'category__allow_areas'
+                Prefetch('groups', LocationGroup.objects.order_by(
+                    '-category__priority', '-hierarchy', '-priority'
+                ).only(
+                    'color', 'category', 'priority', 'hierarchy', 'category__priority', 'category__allow_areas'
                 ))
             )
             for area in areas:

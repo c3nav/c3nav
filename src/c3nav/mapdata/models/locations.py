@@ -150,7 +150,7 @@ class Location(LocationSlug, AccessRestrictionMixin, TitledMixin, models.Model):
             instance = self
         for group in instance.groups.all():
             if group.color and getattr(group.category, 'allow_'+self.__class__._meta.default_related_name):
-                return (0, group.category.priority, group.priority), group.color
+                return (0, group.category.priority, group.hierarchy, group.priority), group.color
         return None
 
     def get_icon(self):
@@ -289,6 +289,7 @@ class LocationGroup(Location, models.Model):
     category = models.ForeignKey(LocationGroupCategory, related_name='groups', on_delete=models.PROTECT,
                                  verbose_name=_('Category'))
     priority = models.IntegerField(default=0, db_index=True)
+    hierarchy = models.IntegerField(default=0, db_index=True, verbose_name=_('hierarchy'))
     color = models.CharField(null=True, blank=True, max_length=32, verbose_name=_('background color'))
 
     objects = LocationGroupManager()
@@ -302,6 +303,7 @@ class LocationGroup(Location, models.Model):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.orig_priority = self.priority
+        self.orig_hierarchy = self.hierarchy
         self.orig_category_id = self.category_id
         self.orig_color = self.color
 
@@ -364,6 +366,7 @@ class LocationGroup(Location, models.Model):
     def save(self, *args, **kwargs):
         if self.pk and (self.orig_color != self.color or
                         self.priority != self.orig_priority or
+                        self.hierarchy != self.orig_hierarchy or
                         self.category_id != self.orig_category_id):
             self.register_changed_geometries()
         super().save(*args, **kwargs)
