@@ -100,7 +100,7 @@ class GeometryField(models.TextField):
         else:
             logging.debug('Fixing rounded geometry failed, saving it to the database without rounding.')
 
-        return format_geojson(mapping(value), round=False) if as_json else value
+        return format_geojson(mapping(value), rounded=False) if as_json else value
 
     def get_prep_value(self, value):
         if value is None:

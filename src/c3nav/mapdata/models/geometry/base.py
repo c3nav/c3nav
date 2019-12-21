@@ -59,11 +59,11 @@ class GeometryMixin(SerializableMixin):
         result = {
             'type': 'Feature',
             'properties': self.get_geojson_properties(instance=instance),
-            'geometry': format_geojson(smart_mapping(self.geometry), round=False),
+            'geometry': format_geojson(smart_mapping(self.geometry), rounded=False),
         }
         original_geometry = getattr(self, 'original_geometry', None)
         if original_geometry:
-            result['original_geometry'] = format_geojson(smart_mapping(original_geometry), round=False)
+            result['original_geometry'] = format_geojson(smart_mapping(original_geometry), rounded=False)
         return result
 
     @classmethod
@@ -80,7 +80,7 @@ class GeometryMixin(SerializableMixin):
     def _serialize(self, geometry=True, simple_geometry=False, **kwargs):
         result = super()._serialize(simple_geometry=simple_geometry, **kwargs)
         if geometry:
-            result['geometry'] = format_geojson(smart_mapping(self.geometry), round=False)
+            result['geometry'] = format_geojson(smart_mapping(self.geometry), rounded=False)
         if simple_geometry:
             result['point'] = (self.level_id, ) + tuple(round(i, 2) for i in self.point.coords[0])
             if not isinstance(self.geometry, Point):
@@ -96,8 +96,8 @@ class GeometryMixin(SerializableMixin):
 
     def get_geometry(self, detailed_geometry=True):
         if detailed_geometry:
-            return format_geojson(smart_mapping(self.geometry), round=False)
-        return format_geojson(smart_mapping(box(*self.geometry.bounds)), round=False)
+            return format_geojson(smart_mapping(self.geometry), rounded=False)
+        return format_geojson(smart_mapping(box(*self.geometry.bounds)), rounded=False)
 
     def get_shadow_geojson(self):
         pass

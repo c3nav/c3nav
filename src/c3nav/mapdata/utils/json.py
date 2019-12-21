@@ -35,21 +35,64 @@ def json_encoder_reindent(method, data, *args, **kwargs):
         return result.replace(b'"'+magic_marker, b'').replace(magic_marker+b'"', b'')
 
 
-def format_geojson(data, round=True):
+def format_geojson(data, rounded=True):
     coordinates = data.get('coordinates', None)
     if coordinates is not None:
+        if data['type'] == 'Point':
+            coordinates = tuple(round(i, 2) for i in coordinates)
+        elif data['type'] == 'LineString':
+            coordinates = round_coordinates(coordinates)
+        elif data['type'] == 'MultiLineString':
+            coordinates = tuple(round_coordinates(linestring) for linestring in coordinates)
+        elif data['type'] == 'Polygon':
+            coordinates = round_polygon(coordinates)
+            if not coordinates:
+                data['type'] = 'MultiPolygon'
+        elif data['type'] == 'MultiPolygon':
+            coordinates = round_multipolygon(coordinates)
+        else:
+            raise ValueError('Unknown geojson type: %s' % data['type'])
         return {
             'type': data['type'],
-            'coordinates': round_coordinates(data['coordinates']) if round else data['coordinates'],
+            'coordinates': coordinates,
         }
     return {
         'type': data['type'],
-        'geometries': [format_geojson(geometry, round=round) for geometry in data['geometries']],
+        'geometries': [format_geojson(geometry, rounded=rounded) for geometry in data['geometries']],
     }
 
 
-def round_coordinates(data):
-    if isinstance(data, (list, tuple)):
-        return tuple(round_coordinates(item) for item in data)
-    else:
-        return round(data, 2)
+def round_multipolygon(coordinates):
+    # round every polygon on its own, then remove empty polygons
+    coordinates = tuple(round_polygon(polygon) for polygon in coordinates)
+    return tuple(polygon for polygon in coordinates if polygon)
+
+
+def check_ring(coordinates):
+    # check if this is a valid ring
+    # that measn it has at least 3 points (or 4 if the first and last one are identical)
+    return len(coordinates) >= (4 if coordinates[0] == coordinates[-1] else 3)
+
+
+def round_polygon(coordinates):
+    # round each ring on it's own and remove rings that are invalid
+    # if the exterior ring is invalid, return and empty polygon
+    coordinates = tuple(round_coordinates(ring) for ring in coordinates)
+    exterior, *interiors = coordinates
+    if not check_ring(exterior):
+        return ()
+    return (exterior, *(interior for interior in interiors if check_ring(interior)))
+
+
+def round_coordinates(coordinates):
+    # round coordinates, as in a list of x,y tuples
+    # filter out consecutive identical points
+    result = []
+    last_point = None
+    for x, y in coordinates:
+        point = (round(x, 2), round(y, 2))
+        if point == last_point:
+            continue
+        result.append(point)
+        last_point = point
+    return result
