@@ -98,8 +98,8 @@ c3nav = {
         });
     },
     _sort_labels: function(a, b) {
-        var result = (b.label_settings.min_zoom || -10) - (a.label_settings.min_zoom || -10)
-        if (result === 0) result = a.label_settings.font_size - b.label_settings.font_size;
+        var result = (a.label_settings.min_zoom || -10) - (b.label_settings.min_zoom || -10);
+        if (result === 0) result = b.label_settings.font_size - a.label_settings.font_size;
         return result;
     },
     _last_time_searchable_locations_loaded: null,
