@@ -826,7 +826,7 @@ c3nav = {
         var text = location.label_override || location.title, new_text = [''], len=0;
         for (segment of text.split(' ')) {
             if (len === 0 || len+segment.length < 12) {
-                new_text[new_text.length-1] = (len?' ':'')+$('<div>').text(segment).html();
+                new_text[new_text.length-1] += (len?' ':'')+$('<div>').text(segment).html();
                 len += segment.length;
             } else {
                 new_text.push(segment);
