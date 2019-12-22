@@ -444,3 +444,4 @@ class LabelSettings(SerializableMixin, models.Model):
         verbose_name = _('Label Settings')
         verbose_name_plural = _('Label Settings')
         default_related_name = 'labelsettings'
+        ordering = ('min_zoom', '-font_size')

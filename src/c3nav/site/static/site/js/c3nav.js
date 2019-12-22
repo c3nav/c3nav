@@ -97,6 +97,11 @@ c3nav = {
             }
         });
     },
+    _sort_labels: function(a, b) {
+        var result = (b.label_settings.min_zoom || -10) - (a.label_settings.min_zoom || -10)
+        if (result === 0) result = a.label_settings.font_size - b.label_settings.font_size;
+        return result;
+    },
     _last_time_searchable_locations_loaded: null,
     _searchable_locations_interval: 120000,
     _searchable_locations_loaded: function(data) {
@@ -118,6 +123,9 @@ c3nav = {
                     if (!(location.point[0] in labels)) labels[location.point[0]] = [];
                     labels[location.point[0]].push(location);
                 }
+            }
+            for (level_id in labels) {
+                labels[level_id].sort(c3nav._sort_labels);
             }
             c3nav.locations = locations;
             c3nav.locations_by_id = locations_by_id;
@@ -316,8 +324,11 @@ c3nav = {
         if (!labels) return;
 
         for (var location of labels) {
+            if (zoom < (location.label_settings.min_zoom || -10)) {
+                // since the labels are sorted by min_zoom, we can just leave here
+                break;
+            }
             if (bounds.contains(location.label.getLatLng()) &&
-                (location.label_settings.min_zoom || -10) < zoom &&
                 (location.label_settings.max_zoom || 10) > zoom) {
                     c3nav._labelLayer._maybeAddLayerToRBush(location.label);
             }
