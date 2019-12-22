@@ -579,12 +579,16 @@ main.show-options #resultswrapper #route-options {
     white-space: nowrap;
 }
 .location-label-text {
-    background-color: rgba(255, 255, 255, 0.6);
-    line-height: 100%;
-    padding: 2px 3px;
+    line-height: 110%;
     border-radius: 2px;
     white-space: nowrap;
     transform: translateX(-50%) translateY(-50%);
+    text-align: center;
+
+    span {
+        line-height: 110%;
+        background-color: rgba(255, 255, 255, 0.6);
+    }
 }
 
 .locationinput {

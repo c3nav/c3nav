@@ -823,7 +823,17 @@ c3nav = {
         return html[0].outerHTML;
     },
     _build_location_label: function(location) {
-        var html = $('<div class="location-label-text">').text(location.label_override || location.title);
+        var text = location.label_override || location.title, new_text = [''], len=0;
+        for (segment of text.split(' ')) {
+            if (len === 0 || len+segment.length < 12) {
+                new_text[new_text.length-1] = (len?' ':'')+$('<div>').text(segment).html();
+                len += segment.length;
+            } else {
+                new_text.push(segment);
+                len = segment.length;
+            }
+        }
+        var html = $('<div class="location-label-text">').append($('<span>').html((' '+new_text.join(' <br> ')+' ').replace(/ /g, '&#8239;')));
         html.css('font-size', location.label_settings.font_size+'px');
         return L.marker(L.GeoJSON.coordsToLatLng(location.point.slice(1)), {
             icon: L.divIcon({
