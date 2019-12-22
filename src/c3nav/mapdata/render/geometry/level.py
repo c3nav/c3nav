@@ -151,14 +151,14 @@ class LevelGeometries:
             for obstacle in space.obstacles.all():
                 if not obstacle.height:
                     continue
-                obstacles.setdefault(int(obstacle.height*1000), []).append(
+                obstacles.setdefault(int(obstacle.height*1000), {}).setdefault(obstacle.color, []).append(
                     obstacle.geometry.intersection(space.walkable_geom)
                 )
 
             for lineobstacle in space.lineobstacles.all():
                 if not lineobstacle.height:
                     continue
-                obstacles.setdefault(int(lineobstacle.height*1000), []).append(
+                obstacles.setdefault(int(lineobstacle.height*1000), {}).setdefault(lineobstacle.color, []).append(
                     lineobstacle.buffered_geometry.intersection(space.walkable_geom)
                 )
 
@@ -183,13 +183,19 @@ class LevelGeometries:
                                    for color, areas in colors.items()}
             altitudearea_colors = {color: areas for color, areas in altitudearea_colors.items() if areas}
 
-            altitudearea_obstacles = {height: tuple(obstacle.intersection(altitudearea.geometry)
-                                                    for obstacle in height_obstacles
-                                                    if altitudearea_prep.intersects(obstacle))
-                                      for height, height_obstacles in obstacles.items()}
-            altitudearea_obstacles = {height: height_obstacles
-                                      for height, height_obstacles in obstacles.items()
-                                      if height_obstacles}
+            altitudearea_obstacles = {}
+            for height, height_obstacles in obstacles.items():
+                new_height_obstacles = {}
+                for color, color_obstacles in height_obstacles.items():
+                    new_color_obstacles = []
+                    for obstacle in color_obstacles:
+                        if altitudearea_prep.intersects(obstacle):
+                            new_color_obstacles.append(obstacle.intersection(altitudearea.geometry))
+                    if new_color_obstacles:
+                        new_height_obstacles[color] = new_color_obstacles
+                if new_height_obstacles:
+                    altitudearea_obstacles[height] = new_height_obstacles
+
             geoms.altitudeareas.append(AltitudeAreaGeometries(altitudearea,
                                                               altitudearea_colors,
                                                               altitudearea_obstacles))

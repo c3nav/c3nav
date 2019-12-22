@@ -37,16 +37,15 @@ class AltitudeAreaGeometries:
         faces = deque()
 
         for color, areas in self.colors.items():
-            for key in tuple(areas.keys()):
-                faces_offset, vertices_offset = self._call_create_full(areas, key, faces, vertices,
+            for height in tuple(areas.keys()):
+                faces_offset, vertices_offset = self._call_create_full(areas, height, faces, vertices,
                                                                        faces_offset, vertices_offset)
 
-        for key in tuple(self.obstacles.keys()):
-            height_obstacles = list(self.obstacles[key])
-            for i in range(len(height_obstacles)):
-                faces_offset, vertices_offset = self._call_create_full(height_obstacles, i, faces, vertices,
-                                                                       faces_offset, vertices_offset)
-            self.obstacles[key] = tuple(height_obstacles)
+        for height_obstacles in self.obstacles.values():
+            for color_obstacles in height_obstacles.values():
+                for i in range(len(color_obstacles)):
+                    faces_offset, vertices_offset = self._call_create_full(color_obstacles, i, faces, vertices,
+                                                                           faces_offset, vertices_offset)
 
         if not vertices:
             return np.empty((0, 2), dtype=np.int32), np.empty((0, 3), dtype=np.uint32)
@@ -94,8 +93,9 @@ class AltitudeAreaGeometries:
                                       upper=altitudes + int(0.001 * 1000),
                                       crops=crops)
         for height, height_geometries in self.obstacles.items():
-            for geometry in height_geometries:
-                geometry.build_polyhedron(create_polyhedron,
-                                          lower=altitudes,
-                                          upper=altitudes + height,
-                                          crops=crops)
+            for color, color_geometries in height_geometries.items():
+                for geometry in color_geometries:
+                    geometry.build_polyhedron(create_polyhedron,
+                                              lower=altitudes,
+                                              upper=altitudes + height,
+                                              crops=crops)
