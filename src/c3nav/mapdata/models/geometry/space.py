@@ -170,6 +170,8 @@ class Obstacle(SpaceGeometryMixin, models.Model):
     geometry = GeometryField('polygon')
     height = models.DecimalField(_('height'), max_digits=6, decimal_places=2, default=0.8,
                                  validators=[MinValueValidator(Decimal('0'))])
+    altitude = models.DecimalField(_('altitude above ground'), max_digits=6, decimal_places=2, default=0,
+                                   validators=[MinValueValidator(Decimal('0'))])
     color = models.CharField(null=True, blank=True, max_length=32, verbose_name=_('color (optional)'))
 
     class Meta:
@@ -186,6 +188,7 @@ class Obstacle(SpaceGeometryMixin, models.Model):
     def _serialize(self, geometry=True, **kwargs):
         result = super()._serialize(geometry=geometry, **kwargs)
         result['height'] = float(str(self.height))
+        result['altitude'] = float(str(self.altitude))
         result['color'] = self.color
         return result
 
@@ -198,6 +201,8 @@ class LineObstacle(SpaceGeometryMixin, models.Model):
     width = models.DecimalField(_('width'), max_digits=4, decimal_places=2, default=0.15)
     height = models.DecimalField(_('height'), max_digits=6, decimal_places=2, default=0.8,
                                  validators=[MinValueValidator(Decimal('0'))])
+    altitude = models.DecimalField(_('altitude above ground'), max_digits=6, decimal_places=2, default=0,
+                                   validators=[MinValueValidator(Decimal('0'))])
     color = models.CharField(null=True, blank=True, max_length=32, verbose_name=_('color (optional)'))
 
     class Meta:
@@ -215,6 +220,7 @@ class LineObstacle(SpaceGeometryMixin, models.Model):
         result = super()._serialize(geometry=geometry, **kwargs)
         result['width'] = float(str(self.width))
         result['height'] = float(str(self.height))
+        result['altitude'] = float(str(self.altitude))
         result['color'] = self.color
         if geometry:
             result['buffered_geometry'] = format_geojson(mapping(self.buffered_geometry))

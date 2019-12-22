@@ -92,6 +92,7 @@ class AltitudeAreaGeometries:
                                       lower=altitudes,
                                       upper=altitudes + int(0.001 * 1000),
                                       crops=crops)
+        # todo: treat altitude properly
         for height, height_geometries in self.obstacles.items():
             for color, color_geometries in height_geometries.items():
                 for geometry in color_geometries:

@@ -151,7 +151,9 @@ class LevelGeometries:
             for obstacle in space.obstacles.all():
                 if not obstacle.height:
                     continue
-                obstacles.setdefault(int(obstacle.height*1000), {}).setdefault(obstacle.color, []).append(
+                obstacles.setdefault(
+                    int((obstacle.height+obstacle.altitude)*1000), {}
+                ).setdefault(obstacle.color, []).append(
                     obstacle.geometry.intersection(space.walkable_geom)
                 )
 
