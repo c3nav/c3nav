@@ -1169,7 +1169,7 @@ c3nav = {
         c3nav._routeLayerBounds = {};
         c3nav._userLocationLayers = {};
         c3nav._firstRouteLevel = null;
-        c3nav._labelLayer = L.LayerGroup.collision({margin: 10}).addTo(c3nav.map);
+        c3nav._labelLayer = L.LayerGroup.collision({margin: 5}).addTo(c3nav.map);
         for (i = c3nav.levels.length - 1; i >= 0; i--) {
             var level = c3nav.levels[i];
             var layerGroup = c3nav._levelControl.addLevel(level[0], level[1]);
