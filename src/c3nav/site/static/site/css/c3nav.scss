@@ -907,7 +907,10 @@ main:not([data-view=route-result]) #route-summary {
 .leaflet-control-user-location a {
     font-size: 20px;
 }
-.leaflet-bar .control-disabled, .leaflet-bar .control-disabled:hover {
+.leaflet-bar a:focus {
+    color: black;
+}
+.leaflet-bar .control-disabled, .leaflet-bar .control-disabled:hover, .leaflet-bar .control-disabled:focus {
     color: #BBBBBB;
 }
 
