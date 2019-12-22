@@ -324,16 +324,24 @@ c3nav = {
             zoom = c3nav.map.getZoom();
         if (!labels) return;
 
+        var valid_upper = [];
         for (var location of labels) {
             if (zoom < (location.label_settings.min_zoom || -10)) {
                 // since the labels are sorted by min_zoom, we can just leave here
                 break;
             }
-            if (bounds.contains(location.label.getLatLng()) &&
-                (location.label_settings.max_zoom || 10) > zoom) {
+            if (bounds.contains(location.label.getLatLng())) {
+                if ((location.label_settings.max_zoom || 10) > zoom) {
                     c3nav._labelLayer._maybeAddLayerToRBush(location.label);
+                } else {
+                    valid_upper.unshift(location);
+                }
             }
         }
+        for (location of valid_upper) {
+            c3nav._labelLayer._maybeAddLayerToRBush(location.label);
+        }
+
     },
 
     load_location_details: function (location) {
