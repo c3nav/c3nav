@@ -119,7 +119,7 @@ def good_representative_point(geometry):
         return geometry
     c = geometry.centroid
     if not isinstance(geometry, (Polygon, MultiPolygon)):
-        raise ValueError
+        return geometry.representative_point()
     for polygon in assert_multipolygon(geometry):
         if Polygon(polygon.exterior.coords).contains(c):
             return c
