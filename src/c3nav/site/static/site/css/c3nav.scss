@@ -919,6 +919,8 @@ main:not([data-view=route-result]) #route-summary {
     margin-left: 10px;
 }
 
+/* fix for firefox */
+.leaflet-fade-anim .leaflet-tile,.leaflet-zoom-anim .leaflet-zoom-animated { will-change:auto !important; }
 
 .c3nav-grid {
     position: absolute;
