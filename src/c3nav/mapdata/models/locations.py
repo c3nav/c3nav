@@ -160,7 +160,7 @@ class Location(LocationSlug, AccessRestrictionMixin, TitledMixin, models.Model):
 
 class SpecificLocation(Location, models.Model):
     groups = models.ManyToManyField('mapdata.LocationGroup', verbose_name=_('Location Groups'), blank=True)
-    label_settings = models.ForeignKey('mapdata.LabelSettings', null=True, on_delete=models.PROTECT,
+    label_settings = models.ForeignKey('mapdata.LabelSettings', null=True, blank=True, on_delete=models.PROTECT,
                                        verbose_name=_('label settings'))
     label_override = I18nField(_('Label override'), plural_name='label_overrides', blank=True, fallback_any=True)
 
@@ -309,7 +309,7 @@ class LocationGroup(Location, models.Model):
                                  verbose_name=_('Category'))
     priority = models.IntegerField(default=0, db_index=True)
     hierarchy = models.IntegerField(default=0, db_index=True, verbose_name=_('hierarchy'))
-    label_settings = models.ForeignKey('mapdata.LabelSettings', null=True, on_delete=models.PROTECT,
+    label_settings = models.ForeignKey('mapdata.LabelSettings', null=True, blank=True, on_delete=models.PROTECT,
                                        verbose_name=_('label settings'),
                                        help_text=_('unless location specifies otherwise'))
     color = models.CharField(null=True, blank=True, max_length=32, verbose_name=_('background color'))
