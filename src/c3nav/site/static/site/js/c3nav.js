@@ -98,8 +98,8 @@ c3nav = {
         });
     },
     _sort_labels: function(a, b) {
-        var result = (a.label_settings.min_zoom || -10) - (b.label_settings.min_zoom || -10);
-        if (result === 0) result = b.label_settings.font_size - a.label_settings.font_size;
+        var result = (a[0].label_settings.min_zoom || -10) - (b[0].label_settings.min_zoom || -10);
+        if (result === 0) result = b[0].label_settings.font_size - a[0].label_settings.font_size;
         return result;
     },
     _last_time_searchable_locations_loaded: null,
@@ -119,9 +119,8 @@ c3nav = {
                 locations.push(location);
                 locations_by_id[location.id] = location;
                 if (location.point && location.label_settings) {
-                    location.label = c3nav._build_location_label(location);
                     if (!(location.point[0] in labels)) labels[location.point[0]] = [];
-                    labels[location.point[0]].push(location);
+                    labels[location.point[0]].push([location, c3nav._build_location_label(location)]);
                 }
             }
             for (level_id in labels) {
@@ -324,22 +323,24 @@ c3nav = {
             zoom = c3nav.map.getZoom();
         if (!labels) return;
 
-        var valid_upper = [];
-        for (var location of labels) {
+        var valid_upper = [], location, label;
+        for (var item of labels) {
+            location = item[0];
+            label = item[1];
             if (zoom < (location.label_settings.min_zoom || -10)) {
                 // since the labels are sorted by min_zoom, we can just leave here
                 break;
             }
-            if (bounds.contains(location.label.getLatLng())) {
+            if (bounds.contains(label.getLatLng())) {
                 if ((location.label_settings.max_zoom || 10) > zoom) {
-                    c3nav._labelLayer._maybeAddLayerToRBush(location.label);
+                    c3nav._labelLayer._maybeAddLayerToRBush(label);
                 } else {
-                    valid_upper.unshift(location);
+                    valid_upper.unshift(label);
                 }
             }
         }
-        for (location of valid_upper) {
-            c3nav._labelLayer._maybeAddLayerToRBush(location.label);
+        for (label of valid_upper) {
+            c3nav._labelLayer._maybeAddLayerToRBush(label);
         }
 
     },
