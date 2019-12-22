@@ -1,9 +1,10 @@
 import math
 from abc import ABC, abstractmethod
-from functools import lru_cache
 from typing import Optional
 
 from shapely.geometry import JOIN_STYLE, box
+
+from c3nav.mapdata.utils.color import color_to_rgb
 
 
 class FillAttribs:
@@ -60,14 +61,8 @@ class RenderEngine(ABC):
         pass
 
     @staticmethod
-    @lru_cache()
     def color_to_rgb(color, alpha=None):
-        if color.startswith('#'):
-            return (*(int(color[i:i + 2], 16) / 255 for i in range(1, 6, 2)), 1 if alpha is None else alpha)
-        if color.startswith('rgba('):
-            color = tuple(float(i.strip()) for i in color.strip()[5:-1].split(','))
-            return (*(i/255 for i in color[:3]), color[3] if alpha is None else alpha)
-        raise ValueError('invalid color string!')
+        return color_to_rgb(color, alpha=None)
 
     def add_group(self, group):
         pass

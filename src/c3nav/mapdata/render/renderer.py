@@ -7,6 +7,7 @@ from c3nav.mapdata.render.engines.base import FillAttribs, StrokeAttribs
 from c3nav.mapdata.render.geometry import hybrid_union
 from c3nav.mapdata.render.renderdata import LevelRenderData
 from c3nav.mapdata.render.utils import get_full_levels, get_min_altitude
+from c3nav.mapdata.utils.color import color_to_rgb, rgb_to_color
 
 
 class MapRenderer:
@@ -109,12 +110,22 @@ class MapRenderer:
                     for color, color_obstacles in height_obstacles.items():
                         print(height, color)
                         for obstacle in color_obstacles:
-                            engine.add_geometry(
-                                obstacle,
-                                fill=FillAttribs(color or '#B7B7B7'),
-                                stroke=None if color else StrokeAttribs('#888888', 0.05, min_px=0.2),
-                                category='obstacles'
-                            )
+                            if color:
+                                fill_rgb = color_to_rgb(color)
+                                stroke_color = rgb_to_color((*((0.75*i) for i in fill_rgb[:3]), fill_rgb[3]))
+                                engine.add_geometry(
+                                    obstacle,
+                                    fill=FillAttribs(color),
+                                    stroke=StrokeAttribs(stroke_color, 0.05, min_px=0.2),
+                                    category='obstacles'
+                                )
+                            else:
+                                engine.add_geometry(
+                                    obstacle,
+                                    fill=FillAttribs('#B7B7B7'),
+                                    stroke=StrokeAttribs('#888888', 0.05, min_px=0.2),
+                                    category='obstacles'
+                                )
 
             # add walls, stroke_px makes sure that all walls are at least 1px thick on all zoom levels,
             walls = None
