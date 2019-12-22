@@ -84,9 +84,14 @@ c3nav = {
         }
     },
     _searchable_locations_timer: null,
-    load_searchable_locations: function() {
+    load_searchable_locations: function(firstTime) {
         c3nav._searchable_locations_timer = null;
-        $.getJSON('/api/locations/?searchable', c3nav._searchable_locations_loaded).fail(function() {
+        $.ajax({
+            dataType: "json",
+            url: '/api/locations/?searchable',
+            success: c3nav._searchable_locations_loaded,
+            ifModified: true,
+        }).fail(function() {
             if(c3nav._searchable_locations_timer === null) {
                 c3nav._searchable_locations_timer = window.setTimeout(c3nav.load_searchable_locations, c3nav.init_completed ? 300000 : 15000);
             }
@@ -95,28 +100,31 @@ c3nav = {
     _last_time_searchable_locations_loaded: null,
     _searchable_locations_interval: 120000,
     _searchable_locations_loaded: function(data) {
-        // todo, do nothing on 304 not modified
         c3nav._last_time_searchable_locations_loaded = Date.now();
-        var locations = [],
-            locations_by_id = {},
-            labels = {};
-        for (var i = 0; i < data.length; i++) {
-            var location = data[i];
-            location.elem = c3nav._build_location_html(location);
-            location.title_words = location.title.toLowerCase().split(/\s+/);
-            location.subtitle_words = location.subtitle.toLowerCase().split(/\s+/);
-            location.match = ' ' + location.title_words.join(' ') + ' ' + location.subtitle_words.join(' ') + '  ' + location.slug;
-            locations.push(location);
-            locations_by_id[location.id] = location;
-            if (location.point && location.label_settings) {
-                location.label = c3nav._build_location_label(location);
-                if (!(location.point[0] in labels)) labels[location.point[0]] = [];
-                labels[location.point[0]].push(location);
+        if (data !== undefined) {
+            var locations = [],
+                locations_by_id = {},
+                labels = {};
+            for (var i = 0; i < data.length; i++) {
+                var location = data[i];
+                location.elem = c3nav._build_location_html(location);
+                location.title_words = location.title.toLowerCase().split(/\s+/);
+                location.subtitle_words = location.subtitle.toLowerCase().split(/\s+/);
+                location.match = ' ' + location.title_words.join(' ') + ' ' + location.subtitle_words.join(' ') + '  ' + location.slug;
+                locations.push(location);
+                locations_by_id[location.id] = location;
+                if (location.point && location.label_settings) {
+                    location.label = c3nav._build_location_label(location);
+                    if (!(location.point[0] in labels)) labels[location.point[0]] = [];
+                    labels[location.point[0]].push(location);
+                }
             }
+            c3nav.locations = locations;
+            c3nav.locations_by_id = locations_by_id;
+            c3nav.labels = labels;
+        } else {
+            // 304, nothing to do!
         }
-        c3nav.locations = locations;
-        c3nav.locations_by_id = locations_by_id;
-        c3nav.labels = labels;
         if (!c3nav.init_completed) {
             c3nav.continue_init();
         }
