@@ -138,7 +138,7 @@ def edit(request, pk=None, model=None, level=None, space=None, on_top_of=None, e
     Level = request.changeset.wrap_model('Level')
     Space = request.changeset.wrap_model('Space')
 
-    can_edit = request.changeset.can_edit(request)
+    can_edit_changeset = request.changeset.can_edit(request)
 
     obj = None
     edit_utils = DefaultEditUtils(request)
@@ -188,7 +188,7 @@ def edit(request, pk=None, model=None, level=None, space=None, on_top_of=None, e
         'pk': pk,
         'model_name': model.__name__.lower(),
         'model_title': model._meta.verbose_name,
-        'can_edit': can_edit,
+        'can_edit': can_edit_changeset,
         'new': new,
         'title': obj.title if obj else None,
         'geometry_url': geometry_url,
@@ -289,9 +289,9 @@ def edit(request, pk=None, model=None, level=None, space=None, on_top_of=None, e
                 redirect_to=request.path, status_code=409,
             )
 
-        if not can_edit:
+        if not can_edit_changeset:
             return APIHybridMessageRedirectResponse(
-                level='error', message=_('You can not edit this object.'),
+                level='error', message=_('You can not edit changes on this changeset.'),
                 redirect_to=request.path, status_code=403,
             )
 
