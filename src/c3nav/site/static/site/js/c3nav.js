@@ -317,6 +317,7 @@ c3nav = {
     },
 
     update_location_labels: function() {
+        if (!c3nav._labelControl.labelsActive) return;
         c3nav._labelLayer.clearLayers();
         var labels = c3nav.labels[c3nav._levelControl.currentLevel],
             bounds = c3nav.map.getBounds(),
@@ -1191,6 +1192,8 @@ c3nav = {
         c3nav._levelControl.finalize();
         c3nav._levelControl.setLevel(c3nav.initial_level);
 
+        c3nav._labelControl = new LabelControl().addTo(c3nav.map);
+
         // setup grid control
         if ($map.is('[data-grid]')) {
             c3nav._gridLayer = new L.SquareGridLayer(JSON.parse($map.attr('data-grid')));
@@ -1746,6 +1749,57 @@ UserLocationControl = L.Control.extend({
 });
 
 
+LabelControl = L.Control.extend({
+    options: {
+        position: 'bottomright',
+        addClasses: ''
+    },
+
+    onAdd: function () {
+        this._container = L.DomUtil.create('div', 'leaflet-control-labels leaflet-bar ' + this.options.addClasses);
+        this._button = L.DomUtil.create('a', 'material-icons', this._container);
+        $(this._button).click(this.toggleLabels).dblclick(function(e) { e.stopPropagation(); });
+        this._button.innerText = c3nav._map_material_icon('label');
+        this._button.href = '#';
+        this._button.classList.toggle('control-disabled', false);
+        this.labelsActive = true;
+        if (localStorage && localStorage.getItem('hideLabels')) {
+            this.hideLabels();
+        }
+        return this._container;
+    },
+
+    toggleLabels: function(e) {
+        if(e) e.preventDefault();
+        if (c3nav._labelControl.labelsActive) {
+            c3nav._labelControl.hideLabels();
+        } else {
+            c3nav._labelControl.showLabels();
+        }
+    },
+
+    showLabels: function() {
+        if (this.labelsActive) return;
+        c3nav._labelLayer.addTo(c3nav.map);
+        this._button.innerText = c3nav._map_material_icon('label');
+        this._button.classList.toggle('control-disabled', false);
+        this.labelsActive = true;
+        if (localStorage) localStorage.removeItem('hideLabels');
+        c3nav.update_location_labels();
+    },
+
+    hideLabels: function() {
+        if (!this.labelsActive) return;
+        c3nav._labelLayer.clearLayers();
+        c3nav._labelLayer.remove();
+        this._button.innerText = c3nav._map_material_icon('label_outline');
+        this._button.classList.toggle('control-disabled', true);
+        this.labelsActive = false;
+        if (localStorage) localStorage.setItem('hideLabels', true);
+    }
+});
+
+
 SquareGridControl = L.Control.extend({
     options: {
         position: 'bottomright',
@@ -1761,7 +1815,7 @@ SquareGridControl = L.Control.extend({
         this._button.classList.toggle('control-disabled', true);
         this.gridActive = false;
         if (localStorage && localStorage.getItem('showGrid')) {
-            this.showGrid()
+            this.showGrid();
         }
         return this._container;
     },
