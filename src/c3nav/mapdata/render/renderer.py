@@ -108,7 +108,6 @@ class MapRenderer:
             for i, altitudearea in enumerate(geoms.altitudeareas):
                 for height, height_obstacles in altitudearea.obstacles.items():
                     for color, color_obstacles in height_obstacles.items():
-                        print(height, color)
                         for obstacle in color_obstacles:
                             if color:
                                 fill_rgb = color_to_rgb(color)
