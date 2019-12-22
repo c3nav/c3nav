@@ -833,7 +833,7 @@ c3nav = {
                 len = segment.length;
             }
         }
-        var html = $('<div class="location-label-text">').append($('<span>').html((' '+new_text.join(' <br> ')+' ').replace(/ /g, '&#8239;')));
+        var html = $('<div class="location-label-text">').append($('<span>').html('&#8239;'+new_text.join('&#8239;<br>&#8239;')+'&#8239;'));
         html.css('font-size', location.label_settings.font_size+'px');
         return L.marker(L.GeoJSON.coordsToLatLng(location.point.slice(1)), {
             icon: L.divIcon({
