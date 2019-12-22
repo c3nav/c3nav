@@ -170,15 +170,23 @@ class Obstacle(SpaceGeometryMixin, models.Model):
     geometry = GeometryField('polygon')
     height = models.DecimalField(_('height'), max_digits=6, decimal_places=2, default=0.8,
                                  validators=[MinValueValidator(Decimal('0'))])
+    color = models.CharField(null=True, blank=True, max_length=32, verbose_name=_('color (optional)'))
 
     class Meta:
         verbose_name = _('Obstacle')
         verbose_name_plural = _('Obstacles')
         default_related_name = 'obstacles'
 
+    def get_geojson_properties(self, *args, instance=None, **kwargs) -> dict:
+        result = super().get_geojson_properties(*args, **kwargs)
+        if self.color:
+            result['color'] = self.color
+        return result
+
     def _serialize(self, geometry=True, **kwargs):
         result = super()._serialize(geometry=geometry, **kwargs)
         result['height'] = float(str(self.height))
+        result['color'] = self.color
         return result
 
 
@@ -190,16 +198,24 @@ class LineObstacle(SpaceGeometryMixin, models.Model):
     width = models.DecimalField(_('width'), max_digits=4, decimal_places=2, default=0.15)
     height = models.DecimalField(_('height'), max_digits=6, decimal_places=2, default=0.8,
                                  validators=[MinValueValidator(Decimal('0'))])
+    color = models.CharField(null=True, blank=True, max_length=32, verbose_name=_('color (optional)'))
 
     class Meta:
         verbose_name = _('Line Obstacle')
         verbose_name_plural = _('Line Obstacles')
         default_related_name = 'lineobstacles'
 
+    def get_geojson_properties(self, *args, instance=None, **kwargs) -> dict:
+        result = super().get_geojson_properties(*args, **kwargs)
+        if self.color:
+            result['color'] = self.color
+        return result
+
     def _serialize(self, geometry=True, **kwargs):
         result = super()._serialize(geometry=geometry, **kwargs)
         result['width'] = float(str(self.width))
         result['height'] = float(str(self.height))
+        result['color'] = self.color
         if geometry:
             result['buffered_geometry'] = format_geojson(mapping(self.buffered_geometry))
         return result
