@@ -148,7 +148,7 @@ class LevelGeometries:
                     restricted_spaces_outdoors.setdefault(access_restriction, []).append(buffered_column)
                 access_restriction_affected.setdefault(access_restriction, []).append(column.geometry)
 
-            for obstacle in space.obstacles.all():
+            for obstacle in sorted(space.obstacles.all(), key=lambda o: o.height+o.altitude):
                 if not obstacle.height:
                     continue
                 obstacles.setdefault(

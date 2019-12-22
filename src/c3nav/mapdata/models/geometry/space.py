@@ -178,6 +178,7 @@ class Obstacle(SpaceGeometryMixin, models.Model):
         verbose_name = _('Obstacle')
         verbose_name_plural = _('Obstacles')
         default_related_name = 'obstacles'
+        ordering = ('altitude', 'height')
 
     def get_geojson_properties(self, *args, instance=None, **kwargs) -> dict:
         result = super().get_geojson_properties(*args, **kwargs)
@@ -209,6 +210,7 @@ class LineObstacle(SpaceGeometryMixin, models.Model):
         verbose_name = _('Line Obstacle')
         verbose_name_plural = _('Line Obstacles')
         default_related_name = 'lineobstacles'
+        ordering = ('altitude', 'height')
 
     def get_geojson_properties(self, *args, instance=None, **kwargs) -> dict:
         result = super().get_geojson_properties(*args, **kwargs)
