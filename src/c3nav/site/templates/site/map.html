@@ -129,16 +129,20 @@
                     <section id="autocomplete"></section>
                     <section id="location-details" class="details">
                         <div class="details-head">
-                            <a class="button button-clear editor float-right" target="_blank">
+                            <button class="button close button-clear material-icons float-right">close</button>
+                            <h2>{% trans 'Details' %}</h2>
+                        </div>
+                        <div class="details-buttons buttons">
+                            <a class="button button-clear editor" target="_blank">
                                 <i class="material-icons">edit</i>
                                 {% trans 'Open in Editor' %}
                             </a>
-                            <h2>{% trans 'Details' %}</h2>
                         </div>
                         <div class="details-body"></div>
                     </section>
                     <section id="route-details" class="details">
                         <div class="details-head">
+                            <button class="button close button-clear material-icons float-right">close</button>
                             <h2>{% trans 'Details' %}</h2>
                         </div>
                         <div class="details-body"></div>

@@ -186,6 +186,8 @@ c3nav = {
         $route_options.find('button').on('click', c3nav._route_options_submit);
         $('#map').on('click', '.location-popup .button-clear', c3nav._popup_button_click);
 
+        $('.details .close').on('click', c3nav._buttons_details_close_click);
+
         $('#modal').on('click', c3nav._modal_click)
             .on('click', 'a', c3nav._modal_link_click)
             .on('submit', 'form', c3nav._modal_submit)
@@ -349,6 +351,7 @@ c3nav = {
         var $location_details = $('#location-details');
         if ($location_details.attr('data-id') !== String(location.id)) {
             $location_details.addClass('loading').attr('data-id', location.id);
+            $location_details.find('.details-buttons').hide();
             c3nav._clear_route_layers();
             $.getJSON('/api/locations/'+location.id+'/details', c3nav._location_details_loaded).fail(function (data) {
                 var $location_details = $('#location-details');
@@ -391,6 +394,7 @@ c3nav = {
                 elem.append(loclist);
             }
         }
+        $location_details.find('.details-buttons').show();
         $location_details.find('.details-body').html('').append(elem);
 
         var $editor = $location_details.find('.editor');
@@ -715,6 +719,9 @@ c3nav = {
     // button handlers
     _buttons_details_click: function () {
         c3nav.update_state(null, null, !c3nav.state.details);
+    },
+    _buttons_details_close_click: function () {
+        c3nav.update_state(null, null, false);
     },
     _buttons_options_click: function () {
         c3nav.update_state(null, null, null, !c3nav.state.options);
