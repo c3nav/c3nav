@@ -38,7 +38,7 @@ class GeometryMixin(SerializableMixin):
     @classmethod
     @contextmanager
     def dont_keep_originals(cls):
-        # to do: invert this and to no_orig being True by default
+        # todo: invert this and to no_orig being True by default
         cls.no_orig = True
         yield
         cls.no_orig = False
