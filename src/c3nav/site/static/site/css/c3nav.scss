@@ -734,26 +734,51 @@ main:not([data-view=route-result]) #route-dots {
     margin: 15px 10px 10px;
     padding: 0;
 }
-.location-popup .leaflet-popup-content .location {
-    padding: 0 0 0 42px;
-    height: auto;
-    margin-bottom: 10px;
-    position: relative;
+.leaflet-popup-content-wrapper, .leaflet-popup-tip {
+    box-shadow: 1px 1px 3px rgba(0, 0, 0, 0.2);
+    border-radius: 2px;
 }
-.location-popup .leaflet-popup-content .icon {
-    top: 3px;
-    left: 0;
-}
-.location-popup .leaflet-popup-content .button-clear {
-    display:block;
-    width: 100%;
-    padding: 0;
-    margin: 0;
-}
-.location-popup a.leaflet-popup-close-button {
-    font-size: 24px;
-    width: 22px;
-    top: 2px;
+.location-popup {
+    .leaflet-popup-content-wrapper {
+        padding: 0;
+    }
+    .leaflet-popup-content {
+        margin: 0;
+
+        .buttons {
+            border: 0 #dddddd solid;
+            border-top-width: 1px;
+        }
+        .location {
+            margin-right: 12px;
+        }
+        .button-clear {
+            display:block;
+            width: 100%;
+            padding: 0;
+            margin: 0;
+        }
+        .as-location .material-icons {
+            transform: rotate(-45deg);
+        }
+    }
+    a.leaflet-popup-close-button {
+        font-size: 24px;
+        width: 22px;
+        top: 2px;
+    }
+    .leaflet-popup-tip-container::after {
+        content: "";
+        border: 0 #dddddd solid;
+        border-top-width: 1px;
+        display: block;
+        width: 28px;
+        height: 20px;
+        top: 0;
+        left: 11px;
+        margin: auto;
+        position: absolute;
+    }
 }
 
 .buttons {

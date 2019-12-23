@@ -732,7 +732,7 @@ c3nav = {
         if ($(this).is('.save')) {
             $.post('/api/routing/options/', options);
         }
-        c3nav.next_route_options = options
+        c3nav.next_route_options = options;
         c3nav.update_state(null, null, null, false);
     },
     _location_buttons_route_click: function () {
@@ -759,7 +759,7 @@ c3nav = {
     },
     _popup_button_click: function (e) {
         e.stopPropagation();
-        var $location = $(this).siblings('.location'),
+        var $location = $(this).parent().siblings('.location'),
             location = c3nav.locations_by_id[parseInt($location.attr('data-id'))],
             $origin = $('#origin-input'),
             $destination = $('#destination-input');
@@ -769,6 +769,8 @@ c3nav = {
         if ($(this).is('.as-location')) {
             c3nav._locationinput_set($destination, location);
             c3nav.update_state(false);
+        } else if ($(this).is('.share')) {
+            c3nav._buttons_share_click(location);
         } else {
             var $locationinput = $(this).is('.as-origin') ? $origin : $destination,
                 $other_locationinput = $(this).is('.as-origin') ? $destination : $origin,
@@ -783,18 +785,22 @@ c3nav = {
     },
 
     // share logic
-    _buttons_share_click: function () {
+    _buttons_share_click: function (location) {
         c3nav.open_modal($('main > .share-ui')[0].outerHTML);
-        c3nav._update_share_ui();
+        c3nav._update_share_ui(false, location);
     },
-    _update_share_ui: function(with_position) {
+    _update_share_ui: function(with_position, location) {
         var $share = $('#modal').find('.share-ui'),
             state = $.extend({}, c3nav.state),
             url;
-        if (!with_position) {
-            state.center = null;
+        if (location) {
+            url = '/' + location.slug + '/';
+        } else {
+            if (!with_position) {
+                state.center = null;
+            }
+            url = c3nav._build_state_url(state);
         }
-        url = c3nav._build_state_url(state);
         $share.find('img').attr('src', '/qr' + url);
         $share.find('input').val(window.location.protocol + '//' + window.location.host + url);
         if (!window.mobileclient) $share.find('input')[0].select();

@@ -30,9 +30,22 @@
         {% if not embed %}
             <section id="messages">{% include 'site/fragment_messages.html' %}</section>
             <section id="popup-buttons">
-                <button class="button-clear as-location">{% trans 'Select this location' %}</button>
-                <button class="button-clear as-destination">{% trans 'Route to here' %}</button>
-                <button class="button-clear as-origin">{% trans 'Route from here' %}</button>
+                <div class="buttons">
+                    <button class="button-clear as-location">
+                        <i class="material-icons">arrow_upward</i>
+                        {% trans 'Select' %}
+                    </button>
+                    <button class="button-clear share">
+                        <i class="material-icons">share</i>
+                        {% trans 'Share' %}
+                    </button>
+                </div>
+                <div class="buttons">
+                    <button class="button-clear as-destination"><i class="material-icons">directions</i> {% trans 'Route to here' %}</button>
+                </div>
+                <div class="buttons">
+                    <button class="button-clear as-origin"><i class="material-icons">directions</i> {% trans 'Route from here' %}</button>
+                </div>
             </section>
             <section class="share-ui">
                 <h3>{% trans 'Share' %}</h3>
