@@ -1386,6 +1386,7 @@ c3nav = {
             style: {
                 color: c3nav._primary_color,
                 fillOpacity: 0.2,
+                interactive: false,
             }
         }).addTo(c3nav._locationLayers[data.level]);
     },
