@@ -116,8 +116,10 @@ class Router:
                     for node in area_nodes:
                         node.areas.add(area.pk)
                     if not area.nodes and space_nodes:
-                        nearest_node = min(space_nodes, key=lambda node: area.geometry.distance(node.point))
-                        area.nodes.add(nearest_node.i)
+                        area.nodes = [node.i for node in space_nodes if area.geometry.distance(node.point) < 3]
+                        if not area.nodes:
+                            nearest_node = min(space_nodes, key=lambda node: area.geometry.distance(node.point))
+                            area.nodes.add(nearest_node.i)
                     areas[area.pk] = area
                     space.areas.add(area.pk)
 
@@ -427,7 +429,6 @@ class Router:
         graph[restrictions.edges.transpose().tolist()] = np.inf
 
         distances, predecessors = shortest_path(graph, directed=True, return_predecessors=True)
-        print(distances.dtype, predecessors.dtype)
         cache.set(cache_key, (distances.astype(np.float64).tobytes(),
                               predecessors.astype(np.int32).tobytes()), 600)
         return distances, predecessors
