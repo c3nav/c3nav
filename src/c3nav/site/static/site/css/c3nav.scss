@@ -750,7 +750,9 @@ main:not([data-view=route-result]) #route-dots {
             border-top-width: 1px;
         }
         .location {
-            margin-right: 12px;
+            margin-right: 24px;
+            padding-right: 0;
+            overflow: hidden;
         }
         .button-clear {
             display:block;

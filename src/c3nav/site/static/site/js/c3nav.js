@@ -1315,7 +1315,7 @@ c3nav = {
         }
     },
     _add_map_padding: function(options, topleft, bottomright) {
-        // add padding information for the current ui layout to fitBoudns options
+        // add padding information for the current ui layout to fitBounds options
         var $search = $('#search'),
             $main = $('main'),
             padBesideSidebar = (
@@ -1324,6 +1324,9 @@ c3nav = {
             ),
             left = padBesideSidebar ? ($search.width() || 0)+10 : 0,
             top = padBesideSidebar ? 10 : ($search.height() || 0)+10;
+        if ('maxWidth' in options) {
+            options.maxWidth = Math.min(options.maxWidth, $main.width()-left-13-50)
+        }
         options[topleft || 'paddingTopLeft'] = L.point(left+13, top+41);
         options[bottomright || 'paddingBottomRight'] = L.point(50, 20);
         return options;
