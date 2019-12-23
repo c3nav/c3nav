@@ -13,6 +13,10 @@ class Command(BaseCommand):
             for model in get_submodels(GeometryMixin):
                 for instance in model.objects.all():
                     old_geom = instance.geometry.wrapped_geojson
+                    if instance.geometry.is_empty:
+                        print('Deleted %s' % instance)
+                        instance.delete()
+                        continue
                     instance.save()
                     instance.refresh_from_db()
                     if instance.geometry.wrapped_geojson != old_geom:
