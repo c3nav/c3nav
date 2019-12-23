@@ -61,7 +61,7 @@ body {
     max-width: none;
     display: inline-block;
 }
-.navbar-default, .navbar-default .navbar-toggle:hover, .navbar-default .navbar-toggle:focus {
+.navbar-default, .navbar-default .navbar-toggle:hover, .navbar-default .navbar-toggle:focus, .navbar-default .navbar-collapse {
     background-color: $color-header-background;
 }
 .navbar-default .navbar-toggle {
