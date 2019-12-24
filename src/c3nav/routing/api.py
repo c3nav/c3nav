@@ -1,4 +1,5 @@
 from django.core.exceptions import ValidationError
+from django.urls import reverse
 from django.utils.translation import ugettext_lazy as _
 from rest_framework.decorators import action
 from rest_framework.response import Response
@@ -74,6 +75,11 @@ class RoutingViewSet(ViewSet):
                 'destination': form.cleaned_data['destination'].pk,
             },
             'options': options.serialize(),
+            'report_issue_url': reverse('site.report', kwargs={
+                'origin': request.POST['origin'],
+                'destination': request.POST['destination'],
+                'options': options.serialize_string()
+            }),
             'result': route.serialize(locations=visible_locations_for_request(request)),
         })
 

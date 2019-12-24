@@ -379,10 +379,12 @@ section.details {
     opacity: 0;
     line-height: 2;
 }
-#sidebar section.details.loading > .details-body {
+#sidebar section.details.loading > .details-body,
+#sidebar section.details.loading > .details-buttons {
     max-height: 0;
     opacity: 0;
 }
+
 #sidebar section.details:not(.loading) > .details-head {
     -webkit-transition: background-color 50ms;
     -o-transition: background-color 50ms;
@@ -396,7 +398,8 @@ section.details {
     pointer-events: auto;
     opacity: 1;
 }
-#sidebar section.details:not(.loading) > div.details-body {
+#sidebar section.details:not(.loading) > div.details-body,
+#sidebar section.details:not(.loading) > div.details-buttons {
     max-height: 100vh;
     -webkit-transition: max-height 150ms, opacity 50ms;
     -o-transition: max-height 150ms, opacity 50ms;
@@ -745,17 +748,18 @@ main:not([data-view=route-result]) #route-dots {
         .buttons {
             border: 0 #dddddd solid;
             border-top-width: 1px;
+            .button-clear {
+                display:block;
+                width: 100%;
+                padding: 0 7px;
+                margin: 0;
+                line-height: 3.3rem;
+            }
         }
         .location {
             margin-right: 24px;
             padding-right: 0;
             overflow: hidden;
-        }
-        .button-clear {
-            display:block;
-            width: 100%;
-            padding: 0 7px;
-            margin: 0;
         }
         .as-location .material-icons {
             transform: rotate(-45deg);

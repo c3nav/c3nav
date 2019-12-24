@@ -348,3 +348,8 @@ def about_view(request):
         'team': settings.IMPRINT_TEAM,
         'hosting': settings.IMPRINT_HOSTING,
     })
+
+
+@never_cache
+def report_view(request, coordinates=None, location=None, origin=None, destination=None, options=None):
+    return render(request, 'site/report.html', {})

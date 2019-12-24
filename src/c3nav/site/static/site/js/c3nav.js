@@ -193,7 +193,7 @@ c3nav = {
             .on('submit', 'form', c3nav._modal_submit)
             .on('click', '.mobileclient-share', c3nav._mobileclient_share_click)
             .on('click', '.mobileclient-shortcut', c3nav._mobileclient_shortcut_click);
-        $('header #user, #about-link').on('click', c3nav._modal_link_click);
+        $('header #user, #about-link, .buttons a').on('click', c3nav._modal_link_click);
 
         $('header h1 a').removeAttr('href');
 
@@ -351,13 +351,13 @@ c3nav = {
         var $location_details = $('#location-details');
         if ($location_details.attr('data-id') !== String(location.id)) {
             $location_details.addClass('loading').attr('data-id', location.id);
-            $location_details.find('.details-buttons').hide();
             c3nav._clear_route_layers();
             $.getJSON('/api/locations/'+location.id+'/details', c3nav._location_details_loaded).fail(function (data) {
                 var $location_details = $('#location-details');
                 $location_details.find('.details-body').text('Error '+String(data.status));
                 $location_details.find('.details-body').html('').append(elem);
                 $location_details.find('.editor').hide();
+                $location_details.find('.report').hide();
                 $location_details.removeClass('loading');
             });
         }
@@ -394,7 +394,6 @@ c3nav = {
                 elem.append(loclist);
             }
         }
-        $location_details.find('.details-buttons').show();
         $location_details.find('.details-body').html('').append(elem);
 
         var $editor = $location_details.find('.editor');
@@ -403,6 +402,12 @@ c3nav = {
         } else {
             $editor.hide();
         }
+
+        var custom_location = typeof data.id !== 'number',
+            report_url = '/report/l/'+String(data.id)+'/';
+        $location_details.find('.report').attr('href', report_url);
+        $location_details.find('.report-issue').toggle(!custom_location);
+        $location_details.find('.report-missing').toggle(custom_location);
 
         if (data.geometry && data.level) {
             L.geoJSON(data.geometry, {
@@ -449,6 +454,7 @@ c3nav = {
             // loaded too late, information no longer needed
             return;
         }
+        $('#route-details .report').attr('href', data.report_issue_url);
         c3nav._push_state({route_result: data.result, route_options: data.options}, true);
         c3nav._display_route_result(data.result, nofly);
         c3nav._display_route_options(data.options);
@@ -464,6 +470,8 @@ c3nav = {
             in_intermediate_level = true,
             item, coords, description;
         c3nav._clear_route_layers();
+
+        $details_wrapper.find('.report')
 
         $details.html('');
         $details.append(c3nav._build_location_html(result.origin));
@@ -778,6 +786,8 @@ c3nav = {
             c3nav.update_state(false);
         } else if ($(this).is('.share')) {
             c3nav._buttons_share_click(location);
+        } else if ($(this).is('a')) {
+            c3nav._modal_link_click.call(this, e);
         } else {
             var $locationinput = $(this).is('.as-origin') ? $origin : $destination,
                 $other_locationinput = $(this).is('.as-origin') ? $destination : $origin,
@@ -1246,7 +1256,10 @@ c3nav = {
             if (c3nav._click_anywhere_popup !== popup || !popup.isOpen()) return;
             popup.remove();
             popup = L.popup(c3nav._add_map_padding({className: 'location-popup', maxWidth: 500}, 'autoPanPaddingTopLeft', 'autoPanPaddingBottomRight'));
-            popup.setLatLng(e.latlng).setContent(c3nav._build_location_html(data)+$('#popup-buttons').html());
+            var buttons = $('#popup-buttons').clone();
+            buttons.find('.report-issue').remove();
+            buttons.find('.report').attr('href', '/report/l/'+String(data.id)+'/');
+            popup.setLatLng(e.latlng).setContent(c3nav._build_location_html(data)+buttons.html());
             c3nav._click_anywhere_popup = popup;
             popup.on('remove', function() { c3nav._click_anywhere_popup = null }).openOn(c3nav.map);
         }).fail(function() {
@@ -1368,10 +1381,18 @@ c3nav = {
         }
 
         var point = c3nav._location_point_overrides[location.id] || location.point.slice(1),
-            latlng = L.GeoJSON.coordsToLatLng(point);
+            latlng = L.GeoJSON.coordsToLatLng(point),
+            buttons = $('#popup-buttons').clone();
+        if (typeof location.id == 'number') {
+            buttons.find('.report-missing').remove();
+        } else {
+            buttons.find('.report-issue').remove();
+        }
+        buttons.find('.report').attr('href', '/report/l/'+String(location.id)+'/');
+
         L.marker(latlng, {
             icon: icon
-        }).bindPopup(location.elem+$('#popup-buttons').html(), c3nav._add_map_padding({
+        }).bindPopup(location.elem+buttons.html(), c3nav._add_map_padding({
             className: 'location-popup',
             maxWidth: 500
         }, 'autoPanPaddingTopLeft', 'autoPanPaddingBottomRight')).addTo(c3nav._locationLayers[location.point[0]]);

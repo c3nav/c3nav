@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2019-12-23 17:06+0100\n"
+"POT-Creation-Date: 2019-12-24 03:50+0100\n"
 "PO-Revision-Date: 2019-12-22 00:44+0100\n"
 "Last-Translator: Jenny Danzmayr <mail@evilscientress.at>\n"
 "Language-Team: \n"
@@ -556,9 +556,10 @@ msgstr "Zugangs­beschränkung"
 #: c3nav/control/templates/control/user.html:145
 #: c3nav/editor/templates/editor/fragment_changesets.html:10
 #: c3nav/editor/templates/editor/list.html:26
-#: c3nav/site/templates/site/map.html:90 c3nav/site/templates/site/map.html:124
-#: c3nav/site/templates/site/map.html:136
-#: c3nav/site/templates/site/map.html:142
+#: c3nav/site/templates/site/map.html:100
+#: c3nav/site/templates/site/map.html:134
+#: c3nav/site/templates/site/map.html:143
+#: c3nav/site/templates/site/map.html:164
 msgid "Details"
 msgstr "Details"
 
@@ -1490,12 +1491,12 @@ msgstr "Du hast direktes Bearbeiten aktiviert."
 msgid "You deactivated direct editing."
 msgstr "Du hast direktes Bearbeiten deaktiviert."
 
-#: c3nav/mapdata/api.py:201
+#: c3nav/mapdata/api.py:202
 #, python-format
 msgid "%(field)s is not an integer."
 msgstr "%(field)s ist keine ganze Zahl."
 
-#: c3nav/mapdata/api.py:209
+#: c3nav/mapdata/api.py:210
 #, python-format
 msgid "%(model)s not found."
 msgstr "%(model)s nicht gefunden."
@@ -1844,12 +1845,12 @@ msgstr ""
 "Höhenmarker #%(marker_id)d in Raum #%(space_id)d auf Etage %(level_label)s "
 "ist nicht in einem begehbaren Bereich platziert"
 
-#: c3nav/mapdata/models/geometry/level.py:639
+#: c3nav/mapdata/models/geometry/level.py:624
 #, python-format
 msgid "%d altitude areas built."
 msgstr "%d Höhenbereiche gebaut."
 
-#: c3nav/mapdata/models/geometry/level.py:640
+#: c3nav/mapdata/models/geometry/level.py:625
 #, python-format
 msgid ""
 "%(num_modified)d modified, %(num_deleted)d deleted, %(num_created)d created."
@@ -1916,7 +1917,6 @@ msgstr "Rampen"
 
 #: c3nav/mapdata/models/geometry/space.py:173
 #: c3nav/mapdata/models/geometry/space.py:205
-#, fuzzy
 msgid "altitude above ground"
 msgstr "Höhe über Grund"
 
@@ -2396,19 +2396,19 @@ msgstr[1] "%d freigeschaltete Bereiche"
 msgid "Login"
 msgstr "Anmelden"
 
-#: c3nav/routing/api.py:49
+#: c3nav/routing/api.py:50
 msgid "Not yet routable, try again shortly."
 msgstr "Noch nicht routebar, bitte einige Minuten warten."
 
-#: c3nav/routing/api.py:53
+#: c3nav/routing/api.py:54
 msgid "Unreachable location."
 msgstr "Unerreichbarer Ort."
 
-#: c3nav/routing/api.py:57
+#: c3nav/routing/api.py:58
 msgid "No route found."
 msgstr "Keine Route gefunden."
 
-#: c3nav/routing/api.py:103
+#: c3nav/routing/api.py:110
 msgid "Invalid scan data."
 msgstr "Invalide Scandaten."
 
@@ -2456,65 +2456,65 @@ msgstr "Invalider Scan. Unerlaubte Frequenz."
 msgid "Invalid Scan. Invalid last timestamp."
 msgstr "Invalider Scan. Letzter Zeitstempel ungültig."
 
-#: c3nav/routing/models.py:20 c3nav/routing/models.py:21
-#: c3nav/site/templates/site/map.html:149
+#: c3nav/routing/models.py:21 c3nav/routing/models.py:22
+#: c3nav/site/templates/site/map.html:177
 msgid "Route options"
 msgstr "Routenoptionen"
 
-#: c3nav/routing/models.py:32
+#: c3nav/routing/models.py:33
 msgid "Routing mode"
 msgstr "Routemodus"
 
-#: c3nav/routing/models.py:33
+#: c3nav/routing/models.py:34
 msgid "fastest"
 msgstr "schnellste"
 
-#: c3nav/routing/models.py:33
+#: c3nav/routing/models.py:34
 msgid "shortest"
 msgstr "kürzeste"
 
-#: c3nav/routing/models.py:37
+#: c3nav/routing/models.py:38
 msgid "Walk speed"
 msgstr "Gehgeschwindigkeit"
 
-#: c3nav/routing/models.py:38
+#: c3nav/routing/models.py:39
 msgid "slow"
 msgstr "langsam"
 
-#: c3nav/routing/models.py:38
+#: c3nav/routing/models.py:39
 msgid "default"
 msgstr "standard"
 
-#: c3nav/routing/models.py:38
+#: c3nav/routing/models.py:39
 msgid "fast"
 msgstr "schnell"
 
-#: c3nav/routing/models.py:44
+#: c3nav/routing/models.py:45
 msgid "allow"
 msgstr "erlaubt"
 
-#: c3nav/routing/models.py:46
+#: c3nav/routing/models.py:47
 msgid "avoid upwards"
 msgstr "aufwärts vermeiden"
 
-#: c3nav/routing/models.py:47
+#: c3nav/routing/models.py:48
 msgid "avoid downwards"
 msgstr "abwärts vermeiden"
 
-#: c3nav/routing/models.py:48
+#: c3nav/routing/models.py:49
 msgid "avoid completely"
 msgstr "komplett vermeiden"
 
-#: c3nav/routing/models.py:50
+#: c3nav/routing/models.py:51
 msgid "avoid"
 msgstr "vermeiden"
 
-#: c3nav/routing/models.py:143
+#: c3nav/routing/models.py:144
 #, python-format
 msgid "Unknown route option: %s"
 msgstr "Unbekannte Routenoption: %s"
 
-#: c3nav/routing/models.py:147
+#: c3nav/routing/models.py:148
 #, python-format
 msgid "Invalid value for route option %s."
 msgstr "Invalider Wert für Routenoption %s."
@@ -2549,11 +2549,11 @@ msgstr "einige Wegtypen vermieden"
 msgid "default options"
 msgstr "Standardoptionen"
 
-#: c3nav/settings.py:305
+#: c3nav/settings.py:304
 msgid "English"
 msgstr "Englisch"
 
-#: c3nav/settings.py:306
+#: c3nav/settings.py:305
 msgid "German"
 msgstr "Deutsch"
 
@@ -2682,8 +2682,8 @@ msgstr "über c3nav"
 msgid "Select"
 msgstr "Auswählen"
 
-#: c3nav/site/templates/site/map.html:40 c3nav/site/templates/site/map.html:51
-#: c3nav/site/templates/site/map.html:94
+#: c3nav/site/templates/site/map.html:40 c3nav/site/templates/site/map.html:61
+#: c3nav/site/templates/site/map.html:104
 msgid "Share"
 msgstr "Teilen"
 
@@ -2695,57 +2695,67 @@ msgstr "Route hierhin"
 msgid "Route from here"
 msgstr "Route von hier aus"
 
-#: c3nav/site/templates/site/map.html:55
+#: c3nav/site/templates/site/map.html:52 c3nav/site/templates/site/map.html:149
+#: c3nav/site/templates/site/map.html:170
+msgid "Report issue"
+msgstr "Fehler melden"
+
+#: c3nav/site/templates/site/map.html:56 c3nav/site/templates/site/map.html:153
+#| msgid "Select this location"
+msgid "Report missing location"
+msgstr "Fehlenden Ort melden"
+
+#: c3nav/site/templates/site/map.html:65
 msgid "share"
 msgstr "Teilen"
 
-#: c3nav/site/templates/site/map.html:56
+#: c3nav/site/templates/site/map.html:66
 msgid "create shortcut"
 msgstr "Verknüpfung anlegen"
 
-#: c3nav/site/templates/site/map.html:60
+#: c3nav/site/templates/site/map.html:70
 msgid "Wifi-based location"
 msgstr "WLAN-basierte Ortung"
 
-#: c3nav/site/templates/site/map.html:61
+#: c3nav/site/templates/site/map.html:71
 msgid "Get the c3nav app for Android to see your location on the map."
 msgstr ""
 "Hole dir die c3nav-App für Android um deine Position auf der Karte zu sehen."
 
-#: c3nav/site/templates/site/map.html:64
+#: c3nav/site/templates/site/map.html:74
 msgid "Download APK"
 msgstr "APK herunterladen"
 
-#: c3nav/site/templates/site/map.html:74 c3nav/site/templates/site/map.html:81
+#: c3nav/site/templates/site/map.html:84 c3nav/site/templates/site/map.html:91
 msgid "Search any location…"
 msgstr "Suche einen beliebigen Ort…"
 
-#: c3nav/site/templates/site/map.html:98
+#: c3nav/site/templates/site/map.html:108
 msgid "Route"
 msgstr "Route"
 
-#: c3nav/site/templates/site/map.html:110
 #: c3nav/site/templates/site/map.html:120
+#: c3nav/site/templates/site/map.html:130
 msgid "Swap"
 msgstr "Vertauschen"
 
-#: c3nav/site/templates/site/map.html:114
+#: c3nav/site/templates/site/map.html:124
 msgid "Close"
 msgstr "Schließen"
 
-#: c3nav/site/templates/site/map.html:134
+#: c3nav/site/templates/site/map.html:157
 msgid "Open in Editor"
 msgstr "Im Editor öffnen"
 
-#: c3nav/site/templates/site/map.html:154
+#: c3nav/site/templates/site/map.html:182
 msgid "Save and reroute"
 msgstr "Speichern und neu routen"
 
-#: c3nav/site/templates/site/map.html:155
+#: c3nav/site/templates/site/map.html:183
 msgid "Just reroute"
 msgstr "Nur neu routen"
 
-#: c3nav/site/templates/site/map.html:164
+#: c3nav/site/templates/site/map.html:192
 #, python-format
 msgid ""
 "Get the c3nav Android app on <a href=\"%(play_url)s\" target=\"_blank"
@@ -2756,9 +2766,13 @@ msgstr ""
 "\">Google Play</a> oder <a href=\"%(apk_url)s\" target=\"_blank\">downloade "
 "die APK!</a>"
 
-#: c3nav/site/templates/site/map.html:169
+#: c3nav/site/templates/site/map.html:197
 msgid "open in c3nav"
 msgstr "in c3nav öffnen"
+
+#: c3nav/site/templates/site/report.html:6
+msgid "Coming soon"
+msgstr "Coming soon"
 
 #: c3nav/site/views.py:71 c3nav/site/views.py:318
 msgid "You need to log in to unlock areas."
@@ -2791,9 +2805,6 @@ msgstr[1] "Du wurdest eingeladen, die folgenden Bereiche freizuschalten:"
 
 #~ msgid "You can not edit this object."
 #~ msgstr "Du kannst dieses Objekt nicht bearbeiten."
-
-#~ msgid "Select this location"
-#~ msgstr "Diesen Ort auswählen"
 
 #~ msgid "Get the c3nav Android app!"
 #~ msgstr "Hol' dir die c3nav Android-App!"

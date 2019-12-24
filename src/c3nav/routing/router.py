@@ -1,4 +1,3 @@
-import json
 import logging
 import operator
 import os
@@ -375,7 +374,7 @@ class Router:
                                          areas=areas, near_area=near_area, near_poi=near_poi)
 
     def shortest_path(self, restrictions, options):
-        options_key = json.dumps(options.data, separators=(',', '='), sort_keys=True)[1:-1]
+        options_key = options.serialize_string()
         cache_key = 'router:shortest_path:%s:%s:%s' % (MapUpdate.current_processed_cache_key(),
                                                        restrictions.cache_key,
                                                        options_key)

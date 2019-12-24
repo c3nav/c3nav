@@ -178,6 +178,9 @@ class RouteOptions(models.Model):
             for name, field in self.get_fields().items()
         ]
 
+    def serialize_string(self):
+        return ','.join('%s=%s' % (key, val) for key, val in self.data.items())
+
     def save(self, *args, **kwargs):
         if self.request is None or self.request.user.is_authenticated:
             self.user = self.request.user
