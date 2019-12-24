@@ -403,11 +403,15 @@ c3nav = {
             $editor.hide();
         }
 
-        var custom_location = typeof data.id !== 'number',
-            report_url = '/report/l/'+String(data.id)+'/';
-        $location_details.find('.report').attr('href', report_url);
-        $location_details.find('.report-issue').toggle(!custom_location);
-        $location_details.find('.report-missing').toggle(custom_location);
+        if (data.geometry) {
+            var custom_location = typeof data.id !== 'number',
+                report_url = '/report/l/'+String(data.id)+'/';
+            $location_details.find('.report').attr('href', report_url);
+            $location_details.find('.report-issue').toggle(!custom_location);
+            $location_details.find('.report-missing').toggle(custom_location);
+        } else {
+            $location_details.find('.report').hide();
+        }
 
         if (data.geometry && data.level) {
             L.geoJSON(data.geometry, {
