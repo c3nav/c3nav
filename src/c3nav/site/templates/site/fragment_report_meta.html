@@ -1,0 +1,22 @@
+{% load i18n %}
+{% if report.category == 'location-issue' %}
+    <p><strong>{% trans 'You are reporting an issue with the following location:' %}</strong></p>
+    {% include 'site/fragment_location.html' with form_value=1 location=report.location %}
+{% elif report.category == 'missing-location' %}
+    <p><strong>{% trans 'You are reporting an missing location at the following position:' %}</strong></p>
+    {% include 'site/fragment_location.html' with form_value=1 location=report.coordinates add_subtitle=report.coordinates_id %}
+{% elif report.category == 'route-issue' %}
+    <p><strong>{% trans 'You are reporting an issue with the following route:' %}</strong></p>
+
+    <label>{% trans 'Origin' %}:</label>
+    {% include 'site/fragment_location.html' with form_value=1 location=report.origin %}
+
+    <label>{% trans 'Destination' %}:</label>
+    {% include 'site/fragment_location.html' with form_value=1 location=report.destination %}
+
+    <label>{% trans 'Route options' %}:</label>
+        {% for option in options.serialize %}
+            {{ option.label }}: {{ option.value_display }}<br>
+        {% endfor %}
+    </p>
+{% endif %}

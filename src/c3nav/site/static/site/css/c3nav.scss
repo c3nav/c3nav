@@ -547,6 +547,9 @@ main.show-options #resultswrapper #route-options {
     padding: 5px 10px 5px 53px;
     height: 55px;
 }
+.location.location-form-value {
+    margin: -10px -10px 5px -10px;
+}
 .location .icon {
     font-size: 36px;
     position: absolute;
@@ -1255,6 +1258,25 @@ main .narrow p, main .narrow form, main .narrow button {
 }
 main .narrow form button {
     width: 100%;
+}
+main form > p, #modal form > p {
+    margin-bottom: 15px;
+    > :last-child {
+        margin-bottom: 0;
+    }
+    .helptext {
+        display: block;
+        margin-top: -15px;
+        font-style: italic;
+        color: #999999;
+    }
+    textarea {
+        resize: none;
+        height: 100px;
+    }
+    select {
+        height: 100px;
+    }
 }
 
 .user-permissions-form label {

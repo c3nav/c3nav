@@ -41,7 +41,8 @@ class I18nModelFormMixin(ModelForm):
                 new_fields[sub_field_name] = CharField(label=field_title,
                                                        required=False,
                                                        initial=values[language].strip(),
-                                                       max_length=model_field.i18n_max_length)
+                                                       max_length=model_field.i18n_max_length,
+                                                       help_text=form_field.help_text)
 
             if has_values:
                 self.i18n_fields.append((model_field, values))

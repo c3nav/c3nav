@@ -14,7 +14,7 @@
 
     <form method="post" action="{{ request.path_info }}?{{ request.META.QUERY_STRING }}">
         {% csrf_token %}
-        {{ form }}
+        {{ form.as_p }}
         <button type="submit">{{ title }}</button>
         {% if bottom_link_url %}
             <a href="{{ bottom_link_url }}?{{ request.META.QUERY_STRING }}">{{ bottom_link_text }}</a>

@@ -312,6 +312,8 @@ class LocationGroup(Location, models.Model):
     label_settings = models.ForeignKey('mapdata.LabelSettings', null=True, blank=True, on_delete=models.PROTECT,
                                        verbose_name=_('label settings'),
                                        help_text=_('unless location specifies otherwise'))
+    can_report_missing = models.BooleanField(default=False, verbose_name=_('for missing locations'),
+                                             help_text=_('can be used when reporting a missing location'))
     color = models.CharField(null=True, blank=True, max_length=32, verbose_name=_('background color'))
 
     objects = LocationGroupManager()

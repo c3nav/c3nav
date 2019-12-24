@@ -174,12 +174,19 @@ class RouteOptions(models.Model):
                     for choice_name, choice_title in field.choices
                 ],
                 'value': self[name],
+                'value_display': dict(field.choices)[self[name]],
             }
             for name, field in self.get_fields().items()
         ]
 
     def serialize_string(self):
         return ','.join('%s=%s' % (key, val) for key, val in self.data.items())
+
+    @classmethod
+    def unserialize_string(cls, data):
+        return RouteOptions(
+            data=dict(item.split('=') for item in data.split(','))
+        )
 
     def save(self, *args, **kwargs):
         if self.request is None or self.request.user.is_authenticated:

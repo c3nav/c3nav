@@ -9,11 +9,12 @@ from django.contrib.auth import login, logout
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.forms import AuthenticationForm, PasswordChangeForm, UserCreationForm
 from django.contrib.auth.views import redirect_to_login
+from django.core.exceptions import ObjectDoesNotExist, SuspiciousOperation
 from django.core.serializers.json import DjangoJSONEncoder
 from django.db import transaction
-from django.http import HttpResponse, HttpResponseBadRequest
+from django.http import Http404, HttpResponse, HttpResponseBadRequest
 from django.middleware import csrf
-from django.shortcuts import redirect, render
+from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.utils import timezone
 from django.utils.translation import ugettext_lazy as _
@@ -27,9 +28,12 @@ from c3nav.mapdata.grid import grid
 from c3nav.mapdata.models import Location, Source
 from c3nav.mapdata.models.access import AccessPermissionToken
 from c3nav.mapdata.models.locations import LocationRedirect, SpecificLocation
-from c3nav.mapdata.utils.locations import get_location_by_slug_for_request, levels_by_short_label_for_request
+from c3nav.mapdata.models.report import Report
+from c3nav.mapdata.utils.locations import (get_location_by_id_for_request, get_location_by_slug_for_request,
+                                           levels_by_short_label_for_request)
 from c3nav.mapdata.utils.user import can_access_editor, get_user_data
 from c3nav.mapdata.views import set_tile_access_cookie
+from c3nav.routing.models import RouteOptions
 from c3nav.site.models import Announcement, SiteUpdate
 
 
@@ -350,6 +354,86 @@ def about_view(request):
     })
 
 
+def get_report_location_for_request(pk, request):
+    location = get_location_by_id_for_request(pk, request)
+    if location is None:
+        raise Http404
+    return location
+
+
 @never_cache
-def report_view(request, coordinates=None, location=None, origin=None, destination=None, options=None):
-    return render(request, 'site/report.html', {})
+def report_create(request, coordinates=None, location=None, origin=None, destination=None, options=None):
+    report = Report()
+    report.request = request
+
+    if coordinates:
+        report.category = 'missing-location'
+        report.coordinates_id = coordinates
+        try:
+            report.coordinates
+        except ObjectDoesNotExist:
+            raise Http404
+    elif location:
+        report.category = 'location-issue'
+        report.location = get_report_location_for_request(location, request)
+        if report.location is None:
+            raise Http404
+        report.location = location
+    elif origin:
+        report.category = 'route-issue'
+        report.origin_id = origin
+        report.destination_id = destination
+        try:
+            # noinspection PyStatementEffect
+            report.origin
+            # noinspection PyStatementEffect
+            report.destination
+        except ObjectDoesNotExist:
+            raise Http404
+        try:
+            options = RouteOptions.unserialize_string(options)
+        except Exception:
+            raise SuspiciousOperation
+        report.options = options.serialize_string()
+
+    if request.method == 'POST':
+        form = report.form_cls(instance=report, data=request.POST)
+        if form.is_valid():
+            report = form.instance
+            if request.user.is_authenticated:
+                report.author = request.user
+            report.save()
+
+            success_messages = [_('Your report was submitted.')]
+            success_kwargs = {'pk': report.pk}
+            if request.user.is_authenticated:
+                success_messages.append(_('You can keep track of it from your user dashboard.'))
+            else:
+                success_messages.append(_('You can keep track of it by revisiting the public URL mentioned below.'))
+                success_kwargs = {'secret': report.secret}
+            messages.success(request, ' '.join(str(s) for s in success_messages))
+            return redirect(reverse('site.report_detail', kwargs=success_kwargs))
+    else:
+        form = report.form_cls(instance=report)
+
+    return render(request, 'site/report_create.html', {
+        'report': report,
+        'options': options,
+        'form': form,
+    })
+
+
+def report_detail(request, pk, secret=None):
+    if secret:
+        qs = Report.objects.filter(secret=secret)
+    else:
+        qs = Report.qs_for_request(request)
+    report = get_object_or_404(qs, pk=pk)
+    report.request = request
+
+    form = report.form_cls(instance=report)
+
+    return render(request, 'site/report_detail.html', {
+        'report': report,
+        'form': form,
+    })

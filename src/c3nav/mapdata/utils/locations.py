@@ -418,3 +418,6 @@ class CustomLocation:
     @cached_property
     def subtitle(self):
         return self.title_subtitle[1]
+
+    def get_icon(self):
+        return self.icon

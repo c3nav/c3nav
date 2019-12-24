@@ -1,0 +1,44 @@
+{% extends 'site/base.html' %}
+{% load i18n %}
+
+{% block content %}
+<main class="account">
+    <h2>{% trans 'Report' %}: {{ report.title }}</h2>
+    <p><em>
+        {% if report.open %}
+            <strong class="green">{% trans 'open' %}</strong>
+        {% else %}
+            <strong class="red">{% trans 'closed' %}</strong>
+        {% endif %}
+        –
+        {% if report.author %}
+            {% trans 'anonymous submission' %}
+        {% else %}
+            {% trans 'by' %} {{ request.author.username }}
+        {% endif %}
+        –
+        {{ report.created }}
+    </em></p>
+    {% include 'site/fragment_messages.html' %}
+    {% include 'site/fragment_report_meta.html' %}
+
+    {% for field in form %}
+        {% if field.name != 'title' %}
+        <p>
+            <strong>{{ field.label }}:</strong><br>
+            {% if field.name == 'description' %}
+                {{ report.description | linebreaksbr }}
+            {% elif field.name == 'created_groups' %}
+                {% for group in report.created_groups.all %}
+                    {{ group.title }}<br>
+                {% empty %}
+                    <em>{% trans '(none)' %}</em>
+                {% endfor %}
+            {% else %}
+                {{ field.value }}
+            {% endif %}
+        </p>
+        {% endif %}
+    {% endfor %}
+</main>
+{% endblock %}

@@ -1,0 +1,16 @@
+{% extends 'site/base.html' %}
+{% load i18n %}
+
+{% block content %}
+<main class="account">
+    <h2>{% trans 'Report issue' %}</h2>
+    {% include 'site/fragment_messages.html' %}
+
+    <form method="post" action="{{ request.path_info }}?{{ request.META.QUERY_STRING }}">
+        {% csrf_token %}
+        {% include 'site/fragment_report_meta.html' %}
+        {{ form.as_p }}
+        <button type="submit">{% trans 'Submit' %}</button>
+    </form>
+</main>
+{% endblock %}
