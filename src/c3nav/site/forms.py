@@ -11,6 +11,10 @@ class ReportIssueForm(I18nModelFormMixin, ModelForm):
 
 
 class ReportMissingLocationForm(I18nModelFormMixin, ModelForm):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields['created_groups'].label_from_instance = lambda obj: obj.title
+
     class Meta:
         model = Report
         fields = ['title', 'description', 'created_title', 'created_groups']
