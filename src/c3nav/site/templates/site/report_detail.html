@@ -3,6 +3,7 @@
 
 {% block content %}
 <main class="account">
+    {% include 'site/fragment_messages.html' %}
     <h2>{% trans 'Report' %}: {{ report.title }}</h2>
     <p><em>
         {% if report.open %}
@@ -19,7 +20,6 @@
         –
         {{ report.created }}
     </em></p>
-    {% include 'site/fragment_messages.html' %}
     {% include 'site/fragment_report_meta.html' %}
 
     {% for field in form %}

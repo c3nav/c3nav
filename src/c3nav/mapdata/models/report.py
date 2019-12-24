@@ -1,6 +1,7 @@
 import string
 
 from django.conf import settings
+from django.contrib.auth import get_user_model
 from django.core.exceptions import ObjectDoesNotExist
 from django.db import models
 from django.db.models import Q
@@ -11,6 +12,7 @@ from c3nav.mapdata.fields import I18nField
 from c3nav.mapdata.models.locations import SpecificLocation
 from c3nav.mapdata.utils.locations import get_location_by_id_for_request
 from c3nav.mapdata.utils.models import get_submodels
+from c3nav.site.tasks import send_report_notification
 
 
 def get_report_secret():
@@ -113,6 +115,33 @@ class Report(models.Model):
             )
         else:
             return cls.objects.none()
+
+    def get_affected_group_ids(self):
+        if self.category == 'missing-location':
+            return tuple(self.created_groups.values_list('pk', flat=True))
+        elif self.category == 'location-issue':
+            return tuple(self.location.get_child().groups.values_list('pk', flat=True))
+        return ()
+
+    def get_reviewers_qs(self):
+        return get_user_model().objects.filter(
+            Q(permissions__review_all_reports=True) |
+            Q(permissions__review_group_reports__in=self.get_affected_group_ids())
+        )
+
+    def notify_reviewers(self):
+        reviewers = tuple(self.get_reviewers_qs().values_list('pk', flat=True))
+        send_report_notification.delay(pk=self.pk,
+                                       title=self.title,
+                                       author=self.author.username,
+                                       description=self.description,
+                                       reviewers=reviewers)
+
+    def save(self, *args, **kwargs):
+        created = self.pk is None
+        super().save(*args, **kwargs)
+        if created:
+            self.notify_reviewers()
 
 
 class ReportUpdate(models.Model):

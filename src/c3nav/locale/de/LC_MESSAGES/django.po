@@ -2359,7 +2359,7 @@ msgstr "Neuer Ortstitel"
 
 #: c3nav/mapdata/models/report.py:75
 msgid "you have to supply a title in at least one language"
-msgstr "Du must das Feld {field} in mindestens einer Sprache ausfüllen."
+msgstr "Du musst einen Titel in mindestens einer Sprache angeben"
 
 #: c3nav/mapdata/models/report.py:76
 msgid "location groups"
@@ -2768,7 +2768,7 @@ msgstr "Du meldest einen Fehler beim folgenden Ort:"
 
 #: c3nav/site/templates/site/fragment_report_meta.html:6
 msgid "You are reporting an missing location at the following position:"
-msgstr "Du meldest einen fehlenden Ort an der folgenden Stelle."
+msgstr "Du meldest einen fehlenden Ort an der folgenden Stelle:"
 
 #: c3nav/site/templates/site/fragment_report_meta.html:9
 msgid "You are reporting an issue with the following route:"
