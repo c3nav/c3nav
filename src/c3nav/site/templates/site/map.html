@@ -29,7 +29,21 @@
         </section>
         {% if not embed %}
             <section id="messages">{% include 'site/fragment_messages.html' %}</section>
-            <section id="popup-buttons">
+            <section id="anywhere-popup-buttons">
+                <div class="buttons">
+                    <button class="button-clear select-point">
+                        <i class="material-icons">pin_drop</i>
+                        {% trans 'Select this point' %}
+                    </button>
+                </div>
+                <div class="buttons">
+                    <button class="button-clear show-nearby">
+                        <i class="material-icons">search</i>
+                        {% trans 'Show nearby locations' %}
+                    </button>
+                </div>
+            </section>
+            <section id="location-popup-buttons">
                 <div class="buttons">
                     <button class="button-clear as-location">
                         <i class="material-icons">arrow_upward</i>

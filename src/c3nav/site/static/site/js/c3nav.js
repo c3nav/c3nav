@@ -763,7 +763,7 @@ c3nav = {
             tmp = $origin.data('location');
         c3nav._locationinput_set($origin, $destination.data('location'));
         c3nav._locationinput_set($destination, tmp);
-        var offset = $destination.position().top-$origin.position().top;
+        var offset = $destination.position().top - $origin.position().top;
         $origin.stop().css('top', offset).animate({top: 0}, 150);
         $destination.stop().css('top', -offset).animate({top: 0}, 150);
         c3nav.update_state();
@@ -778,31 +778,37 @@ c3nav = {
     },
     _popup_button_click: function (e) {
         e.stopPropagation();
-        var $location = $(this).parent().siblings('.location'),
-            location = c3nav.locations_by_id[parseInt($location.attr('data-id'))],
-            $origin = $('#origin-input'),
-            $destination = $('#destination-input');
-        if (!location) {
-            location = JSON.parse($location.attr('data-location'));
-        }
-        if ($(this).is('.as-location')) {
-            c3nav._locationinput_set($destination, location);
-            c3nav.update_state(false);
-        } else if ($(this).is('.share')) {
-            c3nav._buttons_share_click(location);
-        } else if ($(this).is('a')) {
-            c3nav._modal_link_click.call(this, e);
-        } else {
-            var $locationinput = $(this).is('.as-origin') ? $origin : $destination,
-                $other_locationinput = $(this).is('.as-origin') ? $destination : $origin,
-                other_location = $other_locationinput.data('location');
-            c3nav._locationinput_set($locationinput, location);
-            if (other_location && (other_location.id === location.id || (other_location.locations && other_location.locations.includes(location.id)))) {
-                c3nav._locationinput_set($other_locationinput, null);
+        var $location = $(this).parent().siblings('.location');
+        if ($location.length) {
+            var location = c3nav.locations_by_id[parseInt($location.attr('data-id'))],
+                $origin = $('#origin-input'),
+                $destination = $('#destination-input');
+            if (!location) {
+                location = JSON.parse($location.attr('data-location'));
             }
-            c3nav.update_state(true);
+            if ($(this).is('.as-location')) {
+                c3nav._locationinput_set($destination, location);
+                c3nav.update_state(false);
+            } else if ($(this).is('.share')) {
+                c3nav._buttons_share_click(location);
+            } else if ($(this).is('a')) {
+                c3nav._modal_link_click.call(this, e);
+            } else {
+                var $locationinput = $(this).is('.as-origin') ? $origin : $destination,
+                    $other_locationinput = $(this).is('.as-origin') ? $destination : $origin,
+                    other_location = $other_locationinput.data('location');
+                c3nav._locationinput_set($locationinput, location);
+                if (other_location && (other_location.id === location.id || (other_location.locations && other_location.locations.includes(location.id)))) {
+                    c3nav._locationinput_set($other_locationinput, null);
+                }
+                c3nav.update_state(true);
+            }
+            if (c3nav._click_anywhere_popup) c3nav._click_anywhere_popup.remove();
+        } else {
+            if ($(this).is('.select-point')) {
+                c3nav._click_anywhere_load();
+            }
         }
-        if (c3nav._click_anywhere_popup) c3nav._click_anywhere_popup.remove();
     },
 
     // share logic
@@ -1252,21 +1258,31 @@ c3nav = {
     _click_anywhere_popup: null,
     _click_anywhere: function(e) {
         if (e.originalEvent.target.id !== 'map') return;
-        var popup = L.popup().setLatLng(e.latlng).setContent('<div class="loader"></div>'),
+        var popup = L.popup(c3nav._add_map_padding({className: 'location-popup', maxWidth: 500}, 'autoPanPaddingTopLeft', 'autoPanPaddingBottomRight'));
+        popup.setLatLng(e.latlng).setContent($('#anywhere-popup-buttons').html());
+        c3nav._click_anywhere_popup = popup;
+        popup.on('remove', function() { c3nav._click_anywhere_popup = null }).openOn(c3nav.map);
+    },
+    _click_anywhere_load: function() {
+        if (!c3nav._click_anywhere_popup) return;
+        var latlng = c3nav._click_anywhere_popup.getLatLng();
+        console.log(latlng);
+        c3nav._click_anywhere_popup.remove();
+        var popup = L.popup().setLatLng(latlng).setContent('<div class="loader"></div>'),
             level = c3nav._levelControl.currentLevel,
-            name = 'c:'+String(c3nav.level_labels_by_id[level])+':'+Math.round(e.latlng.lng*100)/100+':'+Math.round(e.latlng.lat*100)/100;
+            name = 'c:'+String(c3nav.level_labels_by_id[level])+':'+Math.round(latlng.lng*100)/100+':'+Math.round(latlng.lat*100)/100;
         c3nav._click_anywhere_popup = popup;
         popup.on('remove', function() { c3nav._click_anywhere_popup = null }).openOn(c3nav.map);
         $.getJSON('/api/locations/'+name+'/', function(data) {
             if (c3nav._click_anywhere_popup !== popup || !popup.isOpen()) return;
             popup.remove();
-            popup = L.popup(c3nav._add_map_padding({className: 'location-popup', maxWidth: 500}, 'autoPanPaddingTopLeft', 'autoPanPaddingBottomRight'));
-            var buttons = $('#popup-buttons').clone();
+            newpopup = L.popup(c3nav._add_map_padding({className: 'location-popup', maxWidth: 500}, 'autoPanPaddingTopLeft', 'autoPanPaddingBottomRight'));
+            var buttons = $('#location-popup-buttons').clone();
             buttons.find('.report-issue').remove();
             buttons.find('.report').attr('href', '/report/l/'+String(data.id)+'/');
-            popup.setLatLng(e.latlng).setContent(c3nav._build_location_html(data)+buttons.html());
-            c3nav._click_anywhere_popup = popup;
-            popup.on('remove', function() { c3nav._click_anywhere_popup = null }).openOn(c3nav.map);
+            newpopup.setLatLng(latlng).setContent(c3nav._build_location_html(data)+buttons.html());
+            c3nav._click_anywhere_popup = newpopup;
+            newpopup.on('remove', function() { c3nav._click_anywhere_popup = null }).openOn(c3nav.map);
         }).fail(function() {
             popup.remove();
         });
@@ -1387,7 +1403,7 @@ c3nav = {
 
         var point = c3nav._location_point_overrides[location.id] || location.point.slice(1),
             latlng = L.GeoJSON.coordsToLatLng(point),
-            buttons = $('#popup-buttons').clone();
+            buttons = $('#location-popup-buttons').clone();
         if (typeof location.id == 'number') {
             buttons.find('.report-missing').remove();
         } else {

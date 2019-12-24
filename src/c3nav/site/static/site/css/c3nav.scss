@@ -726,7 +726,7 @@ main:not([data-view=route-result]) #route-dots {
     height: 21px;
 }
 
-#popup-buttons, #attributions {
+#location-popup-buttons, #anywhere-popup-buttons, #attributions {
     display: none;
 }
 .location-popup .leaflet-popup-content {
