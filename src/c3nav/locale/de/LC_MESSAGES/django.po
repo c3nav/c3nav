@@ -2251,7 +2251,7 @@ msgstr "kann von Orten überschrieben werden"
 
 #: c3nav/mapdata/models/locations.py:315
 msgid "for missing locations"
-msgstr "for fehlende Orte"
+msgstr "für fehlende Orte"
 
 #: c3nav/mapdata/models/locations.py:316
 msgid "can be used when reporting a missing location"
