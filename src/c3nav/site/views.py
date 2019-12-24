@@ -403,7 +403,7 @@ def report_create(request, coordinates=None, location=None, origin=None, destina
             report = form.instance
             if request.user.is_authenticated:
                 report.author = request.user
-            report.save()
+            form.save()
 
             success_messages = [_('Your report was submitted.')]
             success_kwargs = {'pk': report.pk}
