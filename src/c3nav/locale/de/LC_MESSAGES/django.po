@@ -7,8 +7,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2019-12-24 19:12+0100\n"
-"PO-Revision-Date: 2019-12-24 19:13+0100\n"
+"POT-Creation-Date: 2019-12-24 19:15+0100\n"
+"PO-Revision-Date: 2019-12-24 19:15+0100\n"
 "Last-Translator: Jenny Danzmayr <mail@evilscientress.at>\n"
 "Language-Team: \n"
 "Language: de\n"
@@ -571,10 +571,9 @@ msgstr "Zugangs­beschränkung"
 #: c3nav/control/templates/control/user.html:149
 #: c3nav/editor/templates/editor/fragment_changesets.html:10
 #: c3nav/editor/templates/editor/list.html:26
-#: c3nav/site/templates/site/map.html:100
-#: c3nav/site/templates/site/map.html:134
-#: c3nav/site/templates/site/map.html:143
-#: c3nav/site/templates/site/map.html:164
+#: c3nav/site/templates/site/map.html:98 c3nav/site/templates/site/map.html:132
+#: c3nav/site/templates/site/map.html:141
+#: c3nav/site/templates/site/map.html:162
 msgid "Details"
 msgstr "Details"
 
@@ -2577,7 +2576,7 @@ msgstr "Invalider Scan. Letzter Zeitstempel ungültig."
 
 #: c3nav/routing/models.py:20 c3nav/routing/models.py:21
 #: c3nav/site/templates/site/fragment_report_meta.html:17
-#: c3nav/site/templates/site/map.html:177
+#: c3nav/site/templates/site/map.html:175
 msgid "Route options"
 msgstr "Routenoptionen"
 
@@ -2838,80 +2837,80 @@ msgstr "über c3nav"
 msgid "Select"
 msgstr "Auswählen"
 
-#: c3nav/site/templates/site/map.html:40 c3nav/site/templates/site/map.html:61
-#: c3nav/site/templates/site/map.html:104
+#: c3nav/site/templates/site/map.html:40 c3nav/site/templates/site/map.html:59
+#: c3nav/site/templates/site/map.html:102
 msgid "Share"
 msgstr "Teilen"
 
 #: c3nav/site/templates/site/map.html:44
-msgid "Route to here"
-msgstr "Route hierhin"
+msgid "from here"
+msgstr "von hier"
 
-#: c3nav/site/templates/site/map.html:47
-msgid "Route from here"
-msgstr "Route von hier aus"
+#: c3nav/site/templates/site/map.html:45
+msgid "to here"
+msgstr "hierhin"
 
-#: c3nav/site/templates/site/map.html:52 c3nav/site/templates/site/map.html:149
-#: c3nav/site/templates/site/map.html:170
+#: c3nav/site/templates/site/map.html:50 c3nav/site/templates/site/map.html:147
+#: c3nav/site/templates/site/map.html:168
 #: c3nav/site/templates/site/report_create.html:6
 msgid "Report issue"
 msgstr "Fehler melden"
 
-#: c3nav/site/templates/site/map.html:56 c3nav/site/templates/site/map.html:153
+#: c3nav/site/templates/site/map.html:54 c3nav/site/templates/site/map.html:151
 msgid "Report missing location"
 msgstr "Fehlenden Ort melden"
 
-#: c3nav/site/templates/site/map.html:65
+#: c3nav/site/templates/site/map.html:63
 msgid "share"
 msgstr "Teilen"
 
-#: c3nav/site/templates/site/map.html:66
+#: c3nav/site/templates/site/map.html:64
 msgid "create shortcut"
 msgstr "Verknüpfung anlegen"
 
-#: c3nav/site/templates/site/map.html:70
+#: c3nav/site/templates/site/map.html:68
 msgid "Wifi-based location"
 msgstr "WLAN-basierte Ortung"
 
-#: c3nav/site/templates/site/map.html:71
+#: c3nav/site/templates/site/map.html:69
 msgid "Get the c3nav app for Android to see your location on the map."
 msgstr ""
 "Hole dir die c3nav-App für Android um deine Position auf der Karte zu sehen."
 
-#: c3nav/site/templates/site/map.html:74
+#: c3nav/site/templates/site/map.html:72
 msgid "Download APK"
 msgstr "APK herunterladen"
 
-#: c3nav/site/templates/site/map.html:84 c3nav/site/templates/site/map.html:91
+#: c3nav/site/templates/site/map.html:82 c3nav/site/templates/site/map.html:89
 msgid "Search any location…"
 msgstr "Suche einen beliebigen Ort…"
 
-#: c3nav/site/templates/site/map.html:108
+#: c3nav/site/templates/site/map.html:106
 msgid "Route"
 msgstr "Route"
 
-#: c3nav/site/templates/site/map.html:120
-#: c3nav/site/templates/site/map.html:130
+#: c3nav/site/templates/site/map.html:118
+#: c3nav/site/templates/site/map.html:128
 msgid "Swap"
 msgstr "Vertauschen"
 
-#: c3nav/site/templates/site/map.html:124
+#: c3nav/site/templates/site/map.html:122
 msgid "Close"
 msgstr "Schließen"
 
-#: c3nav/site/templates/site/map.html:157
+#: c3nav/site/templates/site/map.html:155
 msgid "Open in Editor"
 msgstr "Im Editor öffnen"
 
-#: c3nav/site/templates/site/map.html:182
+#: c3nav/site/templates/site/map.html:180
 msgid "Save and reroute"
 msgstr "Speichern und neu routen"
 
-#: c3nav/site/templates/site/map.html:183
+#: c3nav/site/templates/site/map.html:181
 msgid "Just reroute"
 msgstr "Nur neu routen"
 
-#: c3nav/site/templates/site/map.html:192
+#: c3nav/site/templates/site/map.html:190
 #, python-format
 msgid ""
 "Get the c3nav Android app on <a href=\"%(play_url)s\" target=\"_blank"
@@ -2922,7 +2921,7 @@ msgstr ""
 "\">Google Play</a> oder <a href=\"%(apk_url)s\" target=\"_blank\">downloade "
 "die APK!</a>"
 
-#: c3nav/site/templates/site/map.html:197
+#: c3nav/site/templates/site/map.html:195
 msgid "open in c3nav"
 msgstr "in c3nav öffnen"
 
