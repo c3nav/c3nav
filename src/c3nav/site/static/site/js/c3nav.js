@@ -806,7 +806,10 @@ c3nav = {
             if (c3nav._click_anywhere_popup) c3nav._click_anywhere_popup.remove();
         } else {
             if ($(this).is('.select-point')) {
-                c3nav._click_anywhere_load();
+                c3nav._click_anywhere_load(false);
+            } else if ($(this).is('.show-nearby')) {
+                c3nav._click_anywhere_load(true);
+                c3nav.update_state(false);
             }
         }
     },
@@ -1263,7 +1266,7 @@ c3nav = {
         c3nav._click_anywhere_popup = popup;
         popup.on('remove', function() { c3nav._click_anywhere_popup = null }).openOn(c3nav.map);
     },
-    _click_anywhere_load: function() {
+    _click_anywhere_load: function(nearby) {
         if (!c3nav._click_anywhere_popup) return;
         var latlng = c3nav._click_anywhere_popup.getLatLng();
         console.log(latlng);
@@ -1276,13 +1279,23 @@ c3nav = {
         $.getJSON('/api/locations/'+name+'/', function(data) {
             if (c3nav._click_anywhere_popup !== popup || !popup.isOpen()) return;
             popup.remove();
-            newpopup = L.popup(c3nav._add_map_padding({className: 'location-popup', maxWidth: 500}, 'autoPanPaddingTopLeft', 'autoPanPaddingBottomRight'));
-            var buttons = $('#location-popup-buttons').clone();
-            buttons.find('.report-issue').remove();
-            buttons.find('.report').attr('href', '/report/l/'+String(data.id)+'/');
-            newpopup.setLatLng(latlng).setContent(c3nav._build_location_html(data)+buttons.html());
-            c3nav._click_anywhere_popup = newpopup;
-            newpopup.on('remove', function() { c3nav._click_anywhere_popup = null }).openOn(c3nav.map);
+            if (nearby) {
+                var $destination = $('#destination-input');
+                c3nav._locationinput_set($destination, data);
+            } else {
+                newpopup = L.popup(c3nav._add_map_padding({
+                    className: 'location-popup',
+                    maxWidth: 500
+                }, 'autoPanPaddingTopLeft', 'autoPanPaddingBottomRight'));
+                var buttons = $('#location-popup-buttons').clone();
+                buttons.find('.report-issue').remove();
+                buttons.find('.report').attr('href', '/report/l/' + String(data.id) + '/');
+                newpopup.setLatLng(latlng).setContent(c3nav._build_location_html(data) + buttons.html());
+                c3nav._click_anywhere_popup = newpopup;
+                newpopup.on('remove', function () {
+                    c3nav._click_anywhere_popup = null
+                }).openOn(c3nav.map);
+            }
         }).fail(function() {
             popup.remove();
         });
