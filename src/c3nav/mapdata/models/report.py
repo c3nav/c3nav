@@ -98,7 +98,6 @@ class Report(models.Model):
     @classmethod
     def qs_for_request(cls, request):
         if request.user_permissions.review_all_reports:
-            print('ha!')
             return cls.objects.all()
         elif request.user.is_authenticated:
             location_ids = set()
