@@ -5,21 +5,25 @@
 <main class="account">
     {% include 'site/fragment_messages.html' %}
     <h2>{% trans 'Report' %}: {{ report.title }}</h2>
-    <p><em>
-        {% if report.open %}
-            <strong class="green">{% trans 'open' %}</strong>
-        {% else %}
-            <strong class="red">{% trans 'closed' %}</strong>
-        {% endif %}
-        –
-        {% if report.author %}
-            {% trans 'by' %} {{ report.author.username }}
-        {% else %}
-            {% trans 'anonymous submission' %}
-        {% endif %}
-        –
-        {{ report.created }}
-    </em></p>
+    <p>
+        <em>
+            {% if report.open %}
+                <strong class="green">{% trans 'open' %}</strong>
+            {% else %}
+                <strong class="red">{% trans 'closed' %}</strong>
+            {% endif %}
+            –
+            {% if report.author %}
+                {% trans 'by' %} {{ report.author.username }}
+            {% else %}
+                {% trans 'anonymous submission' %}
+            {% endif %}
+            –
+            {{ report.created }}
+        </em>
+        <br>
+        <a href="{% url 'site.report_detail' pk=report.pk secret=report.secret %}">{% trans 'public URL to this report' %}</a>
+    </p>
     {% include 'site/fragment_report_meta.html' %}
 
     {% for field in form %}
