@@ -818,6 +818,8 @@ c3nav = {
                 c3nav._click_anywhere_load(false);
             } else if ($(this).is('.show-nearby')) {
                 c3nav._click_anywhere_load(true);
+            } else if ($(this).is('a')) {
+                c3nav._modal_link_click.call(this, e);
             }
         }
     },
@@ -1270,8 +1272,12 @@ c3nav = {
     _click_anywhere_popup: null,
     _click_anywhere: function(e) {
         if (e.originalEvent.target.id !== 'map') return;
-        var popup = L.popup(c3nav._add_map_padding({className: 'location-popup', maxWidth: 500}, 'autoPanPaddingTopLeft', 'autoPanPaddingBottomRight'));
-        popup.setLatLng(e.latlng).setContent($('#anywhere-popup-buttons').html());
+        var popup = L.popup(c3nav._add_map_padding({className: 'location-popup', maxWidth: 500}, 'autoPanPaddingTopLeft', 'autoPanPaddingBottomRight')),
+            level = c3nav._levelControl.currentLevel,
+            name = 'c:'+String(c3nav.level_labels_by_id[level])+':'+Math.round(e.latlng.lng*100)/100+':'+Math.round(e.latlng.lat*100)/100;
+        var buttons = $('#anywhere-popup-buttons').clone();
+            buttons.find('.report').attr('href', '/report/l/' + name + '/');
+        popup.setLatLng(e.latlng).setContent(buttons.html());
         c3nav._click_anywhere_popup = popup;
         popup.on('remove', function() { c3nav._click_anywhere_popup = null }).openOn(c3nav.map);
     },
