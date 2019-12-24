@@ -1233,6 +1233,11 @@ main.control h4 {
 main.control form tr > * {
     white-space: nowrap;
 }
+main.control select {
+    display: block;
+    width: 300px;
+    height: 100px;
+}
 .button-cell {
     padding-top: 4px;
     padding-bottom: 4px;

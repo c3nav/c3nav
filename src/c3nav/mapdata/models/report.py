@@ -3,6 +3,7 @@ import string
 from django.conf import settings
 from django.core.exceptions import ObjectDoesNotExist
 from django.db import models
+from django.db.models import Q
 from django.utils.crypto import get_random_string
 from django.utils.translation import ugettext_lazy as _
 
@@ -94,11 +95,14 @@ class Report(models.Model):
 
     @classmethod
     def qs_for_request(cls, request):
-        if request.user.is_superuser:
-            # todo: permissions!
+        if request.user_permissions.review_all_reports:
             return cls.objects.all()
         elif request.user.is_authenticated:
-            return cls.objects.filter(author=request.user)
+            return cls.objects.filter(
+                Q(author=request.user) |
+                Q(location__group__in=request.user_permissions.review_group_ids) |
+                Q(created_groups__in=request.user_permissions.review_group_ids)
+            )
         else:
             return cls.objects.none()
 

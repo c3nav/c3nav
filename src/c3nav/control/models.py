@@ -5,7 +5,7 @@ from django.conf import settings
 from django.contrib.auth.models import User
 from django.core.cache import cache
 from django.db import models, transaction
-from django.utils.functional import lazy
+from django.utils.functional import cached_property, lazy
 from django.utils.translation import ugettext_lazy as _
 
 from c3nav.mapdata.models import Space
@@ -29,6 +29,12 @@ class UserPermissions(models.Model):
     manage_announcements = models.BooleanField(default=False, verbose_name=_('manage announcements'))
     grant_all_access = models.BooleanField(default=False, verbose_name=_('can grant access to everything'))
     grant_space_access = models.BooleanField(default=False, verbose_name=_('can grant space access'))
+
+    review_all_reports = models.BooleanField(default=False, verbose_name=_('can review reports'))
+    review_group_reports = models.ManyToManyField('mapdata.LocationGroup',
+                                                  limit_choices_to={'access_restriction': None},
+                                                  verbose_name=_('can review reports belonging to'))
+
     api_secret = models.CharField(null=True, blank=True, max_length=64, verbose_name=_('API secret'))
 
     class Meta:
@@ -46,6 +52,12 @@ class UserPermissions(models.Model):
     @staticmethod
     def get_cache_key(pk):
         return 'control:permissions:%d' % pk
+
+    @cached_property
+    def review_group_ids(self):
+        if self.pk is None:
+            return ()
+        return tuple(self.review_group_reports.values_list('pk', flat=True))
 
     @classmethod
     @contextmanager

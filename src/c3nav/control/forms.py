@@ -23,6 +23,10 @@ from c3nav.site.models import Announcement
 
 
 class UserPermissionsForm(ModelForm):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields['review_group_reports'].label_from_instance = lambda obj: obj.title
+
     class Meta:
         model = UserPermissions
         exclude = ('user', 'max_changeset_changes', 'api_secret')
