@@ -809,7 +809,6 @@ c3nav = {
                 c3nav._click_anywhere_load(false);
             } else if ($(this).is('.show-nearby')) {
                 c3nav._click_anywhere_load(true);
-                c3nav.update_state(false);
             }
         }
     },
@@ -1282,6 +1281,7 @@ c3nav = {
             if (nearby) {
                 var $destination = $('#destination-input');
                 c3nav._locationinput_set($destination, data);
+                c3nav.update_state(false);
             } else {
                 newpopup = L.popup(c3nav._add_map_padding({
                     className: 'location-popup',
