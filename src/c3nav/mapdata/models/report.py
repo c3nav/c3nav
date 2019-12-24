@@ -2,6 +2,7 @@ import string
 
 from django.conf import settings
 from django.contrib.auth import get_user_model
+from django.core.cache import cache
 from django.core.exceptions import ObjectDoesNotExist
 from django.db import models
 from django.db.models import Q
@@ -90,7 +91,7 @@ class Report(models.Model):
     class Meta:
         verbose_name = _('Report')
         verbose_name_plural = _('Reports')
-        default_related_name = 'report'
+        default_related_name = 'reports'
 
     @property
     def form_cls(self):
@@ -137,8 +138,20 @@ class Report(models.Model):
                                        description=self.description,
                                        reviewers=reviewers)
 
+    @classmethod
+    def user_has_reports(cls, user):
+        if not user.is_authenticated:
+            return False
+        result = cache.get('user:has-reports:%d' % user.pk, None)
+        if result is None:
+            result = user.reports.exists()
+            cache.set('user:has-reports:%d' % user.pk, result, 900)
+        return result
+
     def save(self, *args, **kwargs):
         created = self.pk is None
+        if self.author:
+            cache.delete('user:has-reports:%d' % self.author.pk)
         super().save(*args, **kwargs)
         if created:
             self.notify_reviewers()

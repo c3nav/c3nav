@@ -29,7 +29,15 @@
             {% trans 'You can review reports' %}
         </p>
         <p>
-            <a class="button" href="{% url 'site.report_list' %}">{% trans 'Show reports' %}</a>
+            <a class="button" href="{% url 'site.report_list' filter='open' %}">{% trans 'Show reports' %}</a>
+        </p>
+    {% elif user_has_reports %}
+        <hr>
+        <p>
+            {% trans 'You have submitted reports.' %}
+        </p>
+        <p>
+            <a class="button" href="{% url 'site.report_list' filter='all' %}">{% trans 'Show your reports' %}</a>
         </p>
     {% endif %}
 

@@ -303,7 +303,9 @@ def change_password_view(request):
 @never_cache
 @login_required(login_url='site.login')
 def account_view(request):
-    return render(request, 'site/account.html', {})
+    return render(request, 'site/account.html', {
+        'user_has_reports': Report.user_has_reports(request.user),
+    })
 
 
 @never_cache
