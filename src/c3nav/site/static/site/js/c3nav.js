@@ -810,7 +810,8 @@ c3nav = {
         var $share = $('#modal').find('.share-ui'),
             state = $.extend({}, c3nav.state),
             url;
-        if (location) {
+        if (location.slug) {
+            console.log('bla');
             url = '/' + location.slug + '/';
         } else {
             if (!with_position) {
