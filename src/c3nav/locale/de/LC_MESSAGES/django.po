@@ -7,8 +7,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2019-12-24 18:42+0100\n"
-"PO-Revision-Date: 2019-12-22 00:44+0100\n"
+"POT-Creation-Date: 2019-12-24 19:12+0100\n"
+"PO-Revision-Date: 2019-12-24 19:13+0100\n"
 "Last-Translator: Jenny Danzmayr <mail@evilscientress.at>\n"
 "Language-Team: \n"
 "Language: de\n"
@@ -42,7 +42,7 @@ msgstr "Nich angemeldet."
 msgid "Logout successful."
 msgstr "Login erfolgreich."
 
-#: c3nav/api/models.py:14 c3nav/mapdata/models/report.py:84
+#: c3nav/api/models.py:14 c3nav/mapdata/models/report.py:85
 msgid "secret"
 msgstr "secret"
 
@@ -528,7 +528,7 @@ msgstr "zurück"
 
 #: c3nav/control/templates/control/user.html:77
 #: c3nav/mapdata/models/access.py:77 c3nav/mapdata/models/geometry/space.py:385
-#: c3nav/mapdata/models/report.py:63 c3nav/mapdata/models/report.py:150
+#: c3nav/mapdata/models/report.py:64 c3nav/mapdata/models/report.py:163
 #: c3nav/site/models.py:17
 msgid "author"
 msgstr "Autor"
@@ -803,7 +803,7 @@ msgid "Change Set"
 msgstr "Änderungsset"
 
 #: c3nav/editor/models/changedobject.py:35 c3nav/editor/models/changeset.py:39
-#: c3nav/editor/views/changes.py:266 c3nav/mapdata/models/report.py:61
+#: c3nav/editor/views/changes.py:266 c3nav/mapdata/models/report.py:62
 #: c3nav/site/models.py:14 c3nav/site/models.py:54
 msgid "created"
 msgstr "erstellt"
@@ -887,8 +887,8 @@ msgstr "Titel"
 msgid "Description"
 msgstr "Beschreibung"
 
-#: c3nav/editor/models/changeset.py:51 c3nav/mapdata/models/report.py:71
-#: c3nav/mapdata/models/report.py:154
+#: c3nav/editor/models/changeset.py:51 c3nav/mapdata/models/report.py:72
+#: c3nav/mapdata/models/report.py:167
 msgid "assigned to"
 msgstr "zugewiesen"
 
@@ -915,7 +915,7 @@ msgid_plural "%(num)d objects changed"
 msgstr[0] "%(num)d Objekt geändert"
 msgstr[1] "%(num)d Objekte geändert"
 
-#: c3nav/editor/models/changesetupdate.py:12 c3nav/mapdata/models/report.py:149
+#: c3nav/editor/models/changesetupdate.py:12 c3nav/mapdata/models/report.py:162
 msgid "datetime"
 msgstr "Zeitpunkt"
 
@@ -1162,7 +1162,7 @@ msgid "close dialog"
 msgstr "Dialog schließen"
 
 #: c3nav/editor/templates/editor/fragment_nav.html:21
-#: c3nav/site/templates/site/account.html:38
+#: c3nav/site/templates/site/account.html:46
 msgid "Log out"
 msgstr "Abmelden"
 
@@ -1294,7 +1294,7 @@ msgid "Activate direct editing"
 msgstr "Direktes Bearbeiten aktivieren"
 
 #: c3nav/editor/templates/editor/user.html:54 c3nav/editor/views/account.py:85
-#: c3nav/site/templates/site/account.html:39 c3nav/site/views.py:297
+#: c3nav/site/templates/site/account.html:47 c3nav/site/views.py:297
 msgid "Change password"
 msgstr "Passwort ändern"
 
@@ -1696,9 +1696,9 @@ msgstr "Werte zurücksetzen"
 msgid "save result to the stats directory"
 msgstr "Ergebnis im stats-Ordner speichern"
 
-#: c3nav/mapdata/models/access.py:23 c3nav/mapdata/models/report.py:64
-#: c3nav/mapdata/models/report.py:151
-#: c3nav/site/templates/site/report_detail.html:10
+#: c3nav/mapdata/models/access.py:23 c3nav/mapdata/models/report.py:65
+#: c3nav/mapdata/models/report.py:164
+#: c3nav/site/templates/site/report_detail.html:11
 #: c3nav/site/templates/site/report_list.html:28
 msgid "open"
 msgstr "offen"
@@ -1744,7 +1744,7 @@ msgid "Access Permission Tokens"
 msgstr "Zugangserlaubnis-Token"
 
 #: c3nav/mapdata/models/access.py:133 c3nav/site/views.py:84
-#: c3nav/site/views.py:331
+#: c3nav/site/views.py:333
 msgid "Area successfully unlocked."
 msgid_plural "Areas successfully unlocked."
 msgstr[0] "Bereich erfolgreich freigeschaltet."
@@ -1996,7 +1996,7 @@ msgstr "Zielraum"
 
 #: c3nav/mapdata/models/geometry/space.py:308
 #: c3nav/mapdata/models/geometry/space.py:347 c3nav/mapdata/models/graph.py:48
-#: c3nav/mapdata/models/report.py:68
+#: c3nav/mapdata/models/report.py:69
 msgid "description"
 msgstr "Beschreibung"
 
@@ -2021,7 +2021,7 @@ msgid "Cross descriptions"
 msgstr "Durchschreitungsbeschreibungen"
 
 #: c3nav/mapdata/models/geometry/space.py:386
-#: c3nav/mapdata/models/report.py:152
+#: c3nav/mapdata/models/report.py:165
 msgid "comment"
 msgstr "Kommentar"
 
@@ -2317,92 +2317,92 @@ msgstr "Schriftgröße"
 msgid "Label Settings"
 msgstr "Labeleinstellungen"
 
-#: c3nav/mapdata/models/report.py:57
+#: c3nav/mapdata/models/report.py:58
 msgid "location issue"
 msgstr "Ortfehler"
 
-#: c3nav/mapdata/models/report.py:58
+#: c3nav/mapdata/models/report.py:59
 msgid "missing location"
 msgstr "fehlender Ort"
 
-#: c3nav/mapdata/models/report.py:59
+#: c3nav/mapdata/models/report.py:60
 msgid "route issue"
 msgstr "Routenfehler"
 
-#: c3nav/mapdata/models/report.py:62
+#: c3nav/mapdata/models/report.py:63
 msgid "category"
 msgstr "Kategorie"
 
-#: c3nav/mapdata/models/report.py:65
+#: c3nav/mapdata/models/report.py:66
 msgid "last_update"
 msgstr "letzte Anderung"
 
-#: c3nav/mapdata/models/report.py:66
+#: c3nav/mapdata/models/report.py:67
 msgid "title"
 msgstr "Titel"
 
-#: c3nav/mapdata/models/report.py:67
+#: c3nav/mapdata/models/report.py:68
 msgid "a short title for your report"
 msgstr "ein kurzer Titel für deine Meldung"
 
-#: c3nav/mapdata/models/report.py:69
+#: c3nav/mapdata/models/report.py:70
 msgid "tell us precisely what's wrong"
 msgstr "Sag uns im Detail was falsch ist"
 
-#: c3nav/mapdata/models/report.py:73
+#: c3nav/mapdata/models/report.py:74
 msgid "location"
 msgstr "Ort"
 
-#: c3nav/mapdata/models/report.py:74
+#: c3nav/mapdata/models/report.py:75
 msgid "coordinates"
 msgstr "Koordinaten"
 
-#: c3nav/mapdata/models/report.py:75
+#: c3nav/mapdata/models/report.py:76
 msgid "origin"
 msgstr "Start"
 
-#: c3nav/mapdata/models/report.py:76
+#: c3nav/mapdata/models/report.py:77
 msgid "destination"
 msgstr "Ziel"
 
-#: c3nav/mapdata/models/report.py:77
+#: c3nav/mapdata/models/report.py:78
 msgid "route options"
 msgstr "Routenoptionen"
 
-#: c3nav/mapdata/models/report.py:79
+#: c3nav/mapdata/models/report.py:80
 msgid "new location title"
 msgstr "Neuer Ortstitel"
 
-#: c3nav/mapdata/models/report.py:80
+#: c3nav/mapdata/models/report.py:81
 msgid "you have to supply a title in at least one language"
 msgstr "Du musst einen Titel in mindestens einer Sprache angeben"
 
-#: c3nav/mapdata/models/report.py:81
+#: c3nav/mapdata/models/report.py:82
 msgid "location groups"
 msgstr "Ortgruppen"
 
-#: c3nav/mapdata/models/report.py:83
+#: c3nav/mapdata/models/report.py:84
 msgid "select all groups that apply, if any"
 msgstr "wähle zutreffende Gruppen aus"
 
-#: c3nav/mapdata/models/report.py:91
+#: c3nav/mapdata/models/report.py:92
 #: c3nav/site/templates/site/report_detail.html:7
 msgid "Report"
 msgstr "Meldung"
 
-#: c3nav/mapdata/models/report.py:92
+#: c3nav/mapdata/models/report.py:93
 msgid "Reports"
 msgstr "Meldungen"
 
-#: c3nav/mapdata/models/report.py:155
+#: c3nav/mapdata/models/report.py:168
 msgid "public"
 msgstr "öffentlich"
 
-#: c3nav/mapdata/models/report.py:158
+#: c3nav/mapdata/models/report.py:171
 msgid "Report update"
 msgstr "Meldungsupdate"
 
-#: c3nav/mapdata/models/report.py:159
+#: c3nav/mapdata/models/report.py:172
 msgid "Report updates"
 msgstr "Meldungsupdates"
 
@@ -2786,6 +2786,14 @@ msgstr "Du kannst Meldungen überprüfen"
 msgid "Show reports"
 msgstr "Meldungen anzeigen"
 
+#: c3nav/site/templates/site/account.html:37
+msgid "You have submitted reports."
+msgstr "Du hast Meldungen eingereicht."
+
+#: c3nav/site/templates/site/account.html:40
+msgid "Show your reports"
+msgstr "Deine Meldungen anzeigen"
+
 #: c3nav/site/templates/site/fragment_report_meta.html:3
 msgid "You are reporting an issue with the following location:"
 msgstr "Du meldest einen Fehler beim folgenden Ort:"
@@ -2922,20 +2930,24 @@ msgstr "in c3nav öffnen"
 msgid "Submit"
 msgstr "Absenden"
 
-#: c3nav/site/templates/site/report_detail.html:12
+#: c3nav/site/templates/site/report_detail.html:13
 #: c3nav/site/templates/site/report_list.html:30
 msgid "closed"
 msgstr "geschlossen"
 
-#: c3nav/site/templates/site/report_detail.html:16
+#: c3nav/site/templates/site/report_detail.html:17
 msgid "by"
 msgstr "von"
 
-#: c3nav/site/templates/site/report_detail.html:18
+#: c3nav/site/templates/site/report_detail.html:19
 msgid "anonymous submission"
 msgstr "anonyme Meldung"
 
-#: c3nav/site/templates/site/report_detail.html:35
+#: c3nav/site/templates/site/report_detail.html:25
+msgid "public URL to this report"
+msgstr "öffentliche URL zu dieser Meldung"
+
+#: c3nav/site/templates/site/report_detail.html:39
 msgid "(none)"
 msgstr "(keine)"
 
@@ -2959,7 +2971,7 @@ msgstr "offene Meldungen anzeigen"
 msgid "State"
 msgstr "Status"
 
-#: c3nav/site/views.py:76 c3nav/site/views.py:323
+#: c3nav/site/views.py:76 c3nav/site/views.py:325
 msgid "You need to log in to unlock areas."
 msgstr "Du musst dich anmelden um Bereiche freizuschalten."
 
@@ -2972,31 +2984,31 @@ msgstr ""
 msgid "account creation is currently disabled."
 msgstr "Benutzerregistrierung ist momentan deaktiviert."
 
-#: c3nav/site/views.py:316
+#: c3nav/site/views.py:318
 msgid "This token does not exist or was already redeemed."
 msgstr "Dieser Code existiert nicht oder wurde bereits eingelöst."
 
-#: c3nav/site/views.py:336
+#: c3nav/site/views.py:338
 msgid "Unlock area"
 msgid_plural "Unlock areas"
 msgstr[0] "Bereich freischalten"
 msgstr[1] "Bereiche freischalten"
 
-#: c3nav/site/views.py:337
+#: c3nav/site/views.py:339
 msgid "You have been invited to unlock the following area:"
 msgid_plural "You have been invited to unlock the following areas:"
 msgstr[0] "Du wurdest eingeladen, den folgenden Bereich freizuschalten:"
 msgstr[1] "Du wurdest eingeladen, die folgenden Bereiche freizuschalten:"
 
-#: c3nav/site/views.py:408
+#: c3nav/site/views.py:410
 msgid "Your report was submitted."
 msgstr "Deine Meldung wurde abgesendet."
 
-#: c3nav/site/views.py:411
+#: c3nav/site/views.py:413
 msgid "You can keep track of it from your user dashboard."
 msgstr "Du kannst sie in deinerm Benutzerdashboard verfolgen."
 
-#: c3nav/site/views.py:413
+#: c3nav/site/views.py:415
 msgid "You can keep track of it by revisiting the public URL mentioned below."
 msgstr "Du kannst sie mit dem unten angegebenen öffentlichen link verfolgen."
 
