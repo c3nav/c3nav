@@ -2383,7 +2383,7 @@ msgstr "Ortgruppen"
 
 #: c3nav/mapdata/models/report.py:83
 msgid "select all groups that apply, if any"
-msgstr ""
+msgstr "wähle zutreffende Gruppen aus"
 
 #: c3nav/mapdata/models/report.py:91
 #: c3nav/site/templates/site/report_detail.html:7
