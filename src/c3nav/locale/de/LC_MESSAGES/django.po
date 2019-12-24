@@ -7,8 +7,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2019-12-24 19:15+0100\n"
-"PO-Revision-Date: 2019-12-24 19:15+0100\n"
+"POT-Creation-Date: 2019-12-25 00:40+0100\n"
+"PO-Revision-Date: 2019-12-25 00:41+0100\n"
 "Last-Translator: Jenny Danzmayr <mail@evilscientress.at>\n"
 "Language-Team: \n"
 "Language: de\n"
@@ -266,7 +266,7 @@ msgstr "Benutzer"
 #: c3nav/control/templates/control/announcements.html:9
 #: c3nav/control/templates/control/map_updates.html:59
 #: c3nav/control/templates/control/users.html:15
-#: c3nav/mapdata/models/base.py:43 c3nav/mapdata/utils/locations.py:308
+#: c3nav/mapdata/models/base.py:43 c3nav/mapdata/utils/locations.py:309
 #: c3nav/site/templates/site/report_list.html:18
 msgid "ID"
 msgstr "ID"
@@ -571,9 +571,10 @@ msgstr "Zugangs­beschränkung"
 #: c3nav/control/templates/control/user.html:149
 #: c3nav/editor/templates/editor/fragment_changesets.html:10
 #: c3nav/editor/templates/editor/list.html:26
-#: c3nav/site/templates/site/map.html:98 c3nav/site/templates/site/map.html:132
-#: c3nav/site/templates/site/map.html:141
-#: c3nav/site/templates/site/map.html:162
+#: c3nav/site/templates/site/map.html:112
+#: c3nav/site/templates/site/map.html:146
+#: c3nav/site/templates/site/map.html:155
+#: c3nav/site/templates/site/map.html:176
 msgid "Details"
 msgstr "Details"
 
@@ -585,7 +586,7 @@ msgstr "Raumzugriffserlaubnis"
 #: c3nav/editor/templates/editor/space.html:9
 #: c3nav/mapdata/models/geometry/level.py:124
 #: c3nav/mapdata/models/geometry/space.py:81
-#: c3nav/mapdata/utils/locations.py:316
+#: c3nav/mapdata/utils/locations.py:317
 msgid "Space"
 msgstr "Raum"
 
@@ -877,7 +878,7 @@ msgstr "letzte Statusänderung"
 
 #: c3nav/editor/models/changeset.py:48 c3nav/mapdata/models/base.py:64
 #: c3nav/mapdata/models/graph.py:38 c3nav/mapdata/models/locations.py:256
-#: c3nav/mapdata/models/locations.py:423 c3nav/mapdata/utils/locations.py:344
+#: c3nav/mapdata/models/locations.py:423 c3nav/mapdata/utils/locations.py:345
 #: c3nav/site/templates/site/report_list.html:19
 msgid "Title"
 msgstr "Titel"
@@ -1166,7 +1167,7 @@ msgid "Log out"
 msgstr "Abmelden"
 
 #: c3nav/editor/templates/editor/fragment_nav.html:23
-#: c3nav/editor/views/account.py:27 c3nav/site/views.py:232
+#: c3nav/editor/views/account.py:27 c3nav/site/views.py:233
 msgid "Log in"
 msgstr "Anmelden"
 
@@ -1209,7 +1210,7 @@ msgstr "Einstellungen für neue Kanten"
 #: c3nav/editor/templates/editor/index.html:10
 #: c3nav/editor/templates/editor/level.html:16
 #: c3nav/mapdata/models/geometry/level.py:58 c3nav/mapdata/models/level.py:29
-#: c3nav/mapdata/utils/locations.py:310
+#: c3nav/mapdata/utils/locations.py:311
 msgid "Level"
 msgstr "Etage"
 
@@ -1293,7 +1294,7 @@ msgid "Activate direct editing"
 msgstr "Direktes Bearbeiten aktivieren"
 
 #: c3nav/editor/templates/editor/user.html:54 c3nav/editor/views/account.py:85
-#: c3nav/site/templates/site/account.html:47 c3nav/site/views.py:297
+#: c3nav/site/templates/site/account.html:47 c3nav/site/views.py:298
 msgid "Change password"
 msgstr "Passwort ändern"
 
@@ -1314,11 +1315,11 @@ msgid "All recent change sets"
 msgstr "Alle kürzlichen Änderungssets"
 
 #: c3nav/editor/views/account.py:30 c3nav/editor/views/account.py:61
-#: c3nav/site/views.py:239 c3nav/site/views.py:274
+#: c3nav/site/views.py:240 c3nav/site/views.py:275
 msgid "Create new account"
 msgstr "Neues Konto erstellen"
 
-#: c3nav/editor/views/account.py:75 c3nav/site/views.py:288
+#: c3nav/editor/views/account.py:75 c3nav/site/views.py:289
 msgid "Password successfully changed."
 msgstr "Passwort erfolgreich geändert."
 
@@ -1743,7 +1744,7 @@ msgid "Access Permission Tokens"
 msgstr "Zugangserlaubnis-Token"
 
 #: c3nav/mapdata/models/access.py:133 c3nav/site/views.py:84
-#: c3nav/site/views.py:333
+#: c3nav/site/views.py:334
 msgid "Area successfully unlocked."
 msgid_plural "Areas successfully unlocked."
 msgstr[0] "Bereich erfolgreich freigeschaltet."
@@ -1757,7 +1758,7 @@ msgstr "Zugangserlaubnis-Token"
 msgid "Access Permission"
 msgstr "Zugangserlaubnis"
 
-#: c3nav/mapdata/models/base.py:42 c3nav/mapdata/utils/locations.py:307
+#: c3nav/mapdata/models/base.py:42 c3nav/mapdata/utils/locations.py:308
 msgid "Type"
 msgstr "Typ"
 
@@ -1914,7 +1915,7 @@ msgid "Area"
 msgstr "Bereich"
 
 #: c3nav/mapdata/models/geometry/space.py:124
-#: c3nav/mapdata/utils/locations.py:322
+#: c3nav/mapdata/utils/locations.py:323
 msgid "Areas"
 msgstr "Bereiche"
 
@@ -2152,7 +2153,7 @@ msgstr ""
 "oder aufeinanderfolgende Bindestriche enthält."
 
 #: c3nav/mapdata/models/locations.py:62 c3nav/mapdata/models/locations.py:82
-#: c3nav/mapdata/utils/locations.py:309
+#: c3nav/mapdata/utils/locations.py:310
 msgid "Slug"
 msgstr "Slug"
 
@@ -2196,7 +2197,7 @@ msgstr "Label überschreiben"
 msgid "Grid Squares"
 msgstr "Planquadrate"
 
-#: c3nav/mapdata/models/locations.py:211 c3nav/mapdata/utils/locations.py:328
+#: c3nav/mapdata/models/locations.py:211 c3nav/mapdata/utils/locations.py:329
 msgid "Grid Square"
 msgstr "Planquadrat"
 
@@ -2441,60 +2442,60 @@ msgstr[1] "%d Kartenänderungen verarbeitet."
 msgid "Last processed update: %(date)s (#%(id)d)"
 msgstr "Letztes verarbeitetes Update: %(date)s (#%(id)d)"
 
-#: c3nav/mapdata/utils/locations.py:307
+#: c3nav/mapdata/utils/locations.py:308
 msgid "Coordinates"
 msgstr "Koordinaten"
 
-#: c3nav/mapdata/utils/locations.py:329
+#: c3nav/mapdata/utils/locations.py:330
 msgid "Near Area"
 msgstr "Naher Bereich"
 
-#: c3nav/mapdata/utils/locations.py:335
+#: c3nav/mapdata/utils/locations.py:336
 msgid "Near POI"
 msgstr "Naher POI"
 
-#: c3nav/mapdata/utils/locations.py:341
+#: c3nav/mapdata/utils/locations.py:342
 msgid "X Coordinate"
 msgstr "X-Koordinate"
 
-#: c3nav/mapdata/utils/locations.py:342
+#: c3nav/mapdata/utils/locations.py:343
 msgid "Y Coordinate"
 msgstr "Y-Koordinate"
 
-#: c3nav/mapdata/utils/locations.py:343
+#: c3nav/mapdata/utils/locations.py:344
 msgid "Altitude"
 msgstr "Höhe"
 
-#: c3nav/mapdata/utils/locations.py:345
+#: c3nav/mapdata/utils/locations.py:346
 msgid "Subtitle"
 msgstr "Untertitel"
 
-#: c3nav/mapdata/utils/locations.py:390
+#: c3nav/mapdata/utils/locations.py:395
 #, python-format
 msgid "In %(level)s"
 msgstr "In %(level)s"
 
-#: c3nav/mapdata/utils/locations.py:396
+#: c3nav/mapdata/utils/locations.py:401
 #, python-format
 msgid "Near %(poi)s"
 msgstr "Nahe %(poi)s"
 
-#: c3nav/mapdata/utils/locations.py:400
+#: c3nav/mapdata/utils/locations.py:405
 #, python-format
 msgid "near %(area)s"
 msgstr "nahe %(area)s"
 
-#: c3nav/mapdata/utils/locations.py:402
+#: c3nav/mapdata/utils/locations.py:407
 #, python-format
 msgid "In %(area)s"
 msgstr "In %(area)s"
 
-#: c3nav/mapdata/utils/locations.py:406
+#: c3nav/mapdata/utils/locations.py:411
 #, python-format
 msgid "Near %(area)s"
 msgstr "Nahe %(area)s"
 
-#: c3nav/mapdata/utils/locations.py:408
+#: c3nav/mapdata/utils/locations.py:413
 #, python-format
 msgid "In %(space)s"
 msgstr "In %(space)s"
@@ -2576,7 +2577,7 @@ msgstr "Invalider Scan. Letzter Zeitstempel ungültig."
 
 #: c3nav/routing/models.py:20 c3nav/routing/models.py:21
 #: c3nav/site/templates/site/fragment_report_meta.html:17
-#: c3nav/site/templates/site/map.html:175
+#: c3nav/site/templates/site/map.html:189
 msgid "Route options"
 msgstr "Routenoptionen"
 
@@ -2834,83 +2835,91 @@ msgid "about c3nav"
 msgstr "über c3nav"
 
 #: c3nav/site/templates/site/map.html:36
+msgid "Show this point"
+msgstr "Diesen Punkt zeigen"
+
+#: c3nav/site/templates/site/map.html:42
+msgid "Show nearby locations"
+msgstr "Nahegelegene Orte zeigen"
+
+#: c3nav/site/templates/site/map.html:50
 msgid "Select"
 msgstr "Auswählen"
 
-#: c3nav/site/templates/site/map.html:40 c3nav/site/templates/site/map.html:59
-#: c3nav/site/templates/site/map.html:102
+#: c3nav/site/templates/site/map.html:54 c3nav/site/templates/site/map.html:73
+#: c3nav/site/templates/site/map.html:116
 msgid "Share"
 msgstr "Teilen"
 
-#: c3nav/site/templates/site/map.html:44
+#: c3nav/site/templates/site/map.html:58
 msgid "from here"
 msgstr "von hier"
 
-#: c3nav/site/templates/site/map.html:45
+#: c3nav/site/templates/site/map.html:59
 msgid "to here"
 msgstr "hierhin"
 
-#: c3nav/site/templates/site/map.html:50 c3nav/site/templates/site/map.html:147
-#: c3nav/site/templates/site/map.html:168
+#: c3nav/site/templates/site/map.html:64 c3nav/site/templates/site/map.html:161
+#: c3nav/site/templates/site/map.html:182
 #: c3nav/site/templates/site/report_create.html:6
 msgid "Report issue"
 msgstr "Fehler melden"
 
-#: c3nav/site/templates/site/map.html:54 c3nav/site/templates/site/map.html:151
+#: c3nav/site/templates/site/map.html:68 c3nav/site/templates/site/map.html:165
 msgid "Report missing location"
 msgstr "Fehlenden Ort melden"
 
-#: c3nav/site/templates/site/map.html:63
+#: c3nav/site/templates/site/map.html:77
 msgid "share"
 msgstr "Teilen"
 
-#: c3nav/site/templates/site/map.html:64
+#: c3nav/site/templates/site/map.html:78
 msgid "create shortcut"
 msgstr "Verknüpfung anlegen"
 
-#: c3nav/site/templates/site/map.html:68
+#: c3nav/site/templates/site/map.html:82
 msgid "Wifi-based location"
 msgstr "WLAN-basierte Ortung"
 
-#: c3nav/site/templates/site/map.html:69
+#: c3nav/site/templates/site/map.html:83
 msgid "Get the c3nav app for Android to see your location on the map."
 msgstr ""
 "Hole dir die c3nav-App für Android um deine Position auf der Karte zu sehen."
 
-#: c3nav/site/templates/site/map.html:72
+#: c3nav/site/templates/site/map.html:86
 msgid "Download APK"
 msgstr "APK herunterladen"
 
-#: c3nav/site/templates/site/map.html:82 c3nav/site/templates/site/map.html:89
+#: c3nav/site/templates/site/map.html:96 c3nav/site/templates/site/map.html:103
 msgid "Search any location…"
 msgstr "Suche einen beliebigen Ort…"
 
-#: c3nav/site/templates/site/map.html:106
+#: c3nav/site/templates/site/map.html:120
 msgid "Route"
 msgstr "Route"
 
-#: c3nav/site/templates/site/map.html:118
-#: c3nav/site/templates/site/map.html:128
+#: c3nav/site/templates/site/map.html:132
+#: c3nav/site/templates/site/map.html:142
 msgid "Swap"
 msgstr "Vertauschen"
 
-#: c3nav/site/templates/site/map.html:122
+#: c3nav/site/templates/site/map.html:136
 msgid "Close"
 msgstr "Schließen"
 
-#: c3nav/site/templates/site/map.html:155
+#: c3nav/site/templates/site/map.html:169
 msgid "Open in Editor"
 msgstr "Im Editor öffnen"
 
-#: c3nav/site/templates/site/map.html:180
+#: c3nav/site/templates/site/map.html:194
 msgid "Save and reroute"
 msgstr "Speichern und neu routen"
 
-#: c3nav/site/templates/site/map.html:181
+#: c3nav/site/templates/site/map.html:195
 msgid "Just reroute"
 msgstr "Nur neu routen"
 
-#: c3nav/site/templates/site/map.html:190
+#: c3nav/site/templates/site/map.html:204
 #, python-format
 msgid ""
 "Get the c3nav Android app on <a href=\"%(play_url)s\" target=\"_blank"
@@ -2921,7 +2930,7 @@ msgstr ""
 "\">Google Play</a> oder <a href=\"%(apk_url)s\" target=\"_blank\">downloade "
 "die APK!</a>"
 
-#: c3nav/site/templates/site/map.html:195
+#: c3nav/site/templates/site/map.html:209
 msgid "open in c3nav"
 msgstr "in c3nav öffnen"
 
@@ -2970,44 +2979,44 @@ msgstr "offene Meldungen anzeigen"
 msgid "State"
 msgstr "Status"
 
-#: c3nav/site/views.py:76 c3nav/site/views.py:325
+#: c3nav/site/views.py:76 c3nav/site/views.py:326
 msgid "You need to log in to unlock areas."
 msgstr "Du musst dich anmelden um Bereiche freizuschalten."
 
-#: c3nav/site/views.py:211
+#: c3nav/site/views.py:212
 msgid "Areas could not be unlocked because the token has expired."
 msgstr ""
 "Zugangserlaubnis konnte nicht gewährt werden weil der Code abgelaufen ist."
 
-#: c3nav/site/views.py:254
+#: c3nav/site/views.py:255
 msgid "account creation is currently disabled."
 msgstr "Benutzerregistrierung ist momentan deaktiviert."
 
-#: c3nav/site/views.py:318
+#: c3nav/site/views.py:319
 msgid "This token does not exist or was already redeemed."
 msgstr "Dieser Code existiert nicht oder wurde bereits eingelöst."
 
-#: c3nav/site/views.py:338
+#: c3nav/site/views.py:339
 msgid "Unlock area"
 msgid_plural "Unlock areas"
 msgstr[0] "Bereich freischalten"
 msgstr[1] "Bereiche freischalten"
 
-#: c3nav/site/views.py:339
+#: c3nav/site/views.py:340
 msgid "You have been invited to unlock the following area:"
 msgid_plural "You have been invited to unlock the following areas:"
 msgstr[0] "Du wurdest eingeladen, den folgenden Bereich freizuschalten:"
 msgstr[1] "Du wurdest eingeladen, die folgenden Bereiche freizuschalten:"
 
-#: c3nav/site/views.py:410
+#: c3nav/site/views.py:412
 msgid "Your report was submitted."
 msgstr "Deine Meldung wurde abgesendet."
 
-#: c3nav/site/views.py:413
+#: c3nav/site/views.py:415
 msgid "You can keep track of it from your user dashboard."
 msgstr "Du kannst sie in deinerm Benutzerdashboard verfolgen."
 
-#: c3nav/site/views.py:415
+#: c3nav/site/views.py:417
 msgid "You can keep track of it by revisiting the public URL mentioned below."
 msgstr "Du kannst sie mit dem unten angegebenen öffentlichen link verfolgen."
 
