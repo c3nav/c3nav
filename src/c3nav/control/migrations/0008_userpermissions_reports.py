@@ -14,11 +14,11 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name='userpermissions',
             name='review_all_reports',
-            field=models.BooleanField(default=False, verbose_name='can review reports'),
+            field=models.BooleanField(default=False, verbose_name='can review all reports'),
         ),
         migrations.AddField(
             model_name='userpermissions',
             name='review_group_reports',
-            field=models.ManyToManyField(limit_choices_to={'access_restriction': None}, related_name='permissions', to='mapdata.LocationGroup', verbose_name='can review reports belonging to'),
+            field=models.ManyToManyField(blank=True, limit_choices_to={'access_restriction': None}, related_name='permissions', to='mapdata.LocationGroup', verbose_name='can review reports belonging to'),
         ),
     ]

@@ -1,7 +1,8 @@
 from django.conf.urls import url
 
 from c3nav.site.views import (about_view, access_redeem_view, account_view, change_password_view, choose_language,
-                              login_view, logout_view, map_index, qr_code, register_view, report_create, report_detail)
+                              login_view, logout_view, map_index, qr_code, register_view, report_create, report_detail,
+                              report_list)
 
 slug = r'(?P<slug>[a-z0-9-_.:]+)'
 coordinates = r'(?P<coordinates>[a-z0-9-_:]+:-?\d+(\.\d+)?:-?\d+(\.\d+)?)'
@@ -26,9 +27,9 @@ urlpatterns = [
     url(r'^access/(?P<token>[^/]+)$', access_redeem_view, name='site.access.redeem'),
     url(r'^lang/$', choose_language, name='site.language'),
     url(r'^about/$', about_view, name='site.about'),
-    url(r'^report/$', about_view, name='site.about'),
-    url(r'^report/(?P<pk>\d+)/$', report_detail, name='site.report_detail'),
-    url(r'^report/(?P<pk>\d+)/(?P<secret>[^/]+)/$', report_detail, name='site.report_detail'),
+    url(r'^reports/(?P<filter>(open|all))/$', report_list, name='site.report_list'),
+    url(r'^reports/(?P<pk>\d+)/$', report_detail, name='site.report_detail'),
+    url(r'^reports/(?P<pk>\d+)/(?P<secret>[^/]+)/$', report_detail, name='site.report_detail'),
     url(r'^report/l/%s/$' % coordinates, report_create, name='site.report_create'),
     url(r'^report/l/(?P<location>\d+)/$', report_create, name='site.report_create'),
     url(r'^report/r/(?P<origin>[^/]+)/(?P<destination>[^/]+)/(?P<options>[^/]+)/$',

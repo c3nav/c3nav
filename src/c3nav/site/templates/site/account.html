@@ -23,6 +23,16 @@
         </p>
     {% endif %}
 
+    {% if request.user_permissions.can_review_reports %}
+        <hr>
+        <p>
+            {% trans 'You can review reports' %}
+        </p>
+        <p>
+            <a class="button" href="{% url 'site.report_list' %}">{% trans 'Show reports' %}</a>
+        </p>
+    {% endif %}
+
     <hr>
     <p>
         <a class="button" href="{% url 'site.logout' %}">{% trans 'Log out' %}</a>

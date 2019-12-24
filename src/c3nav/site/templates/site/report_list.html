@@ -1,0 +1,38 @@
+{% extends 'site/base.html' %}
+{% load i18n %}
+
+{% block content %}
+<main class="account">
+    {% include 'site/fragment_messages.html' %}
+    {% if filter == 'open' %}
+        <h2>{% trans 'Open reports' %}</h2>
+        <p><a href="{% url 'site.report_list' filter='all' %}">{% trans 'show all reports' %}</a></p>
+    {% else %}
+        <h2>{% trans 'All reports' %}</h2>
+        <p><a href="{% url 'site.report_list' filter='all' %}">{% trans 'show open reports' %}</a></p>
+    {% endif %}
+
+    {% include 'site/fragment_pagination.html' with objects=reports %}
+    <table>
+        <tr>
+            <th>{% trans 'ID' %}</th>
+            <th>{% trans 'Title' %}</th>
+            <th>{% trans 'State' %}</th>
+        </tr>
+        {% for report in reports %}
+            <tr>
+                <td>{{ report.pk }}</td>
+                <td><a href="{% url 'site.report_detail' pk=report.pk %}">{{ report.title }}</a></td>
+                <td>
+                    {% if report.open %}
+                        <strong class="green">{% trans 'open' %}</strong>
+                    {% else %}
+                        <strong class="red">{% trans 'closed' %}</strong>
+                    {% endif %}
+                </td>
+            </tr>
+        {% endfor %}
+    </table>
+    {% include 'site/fragment_pagination.html' with objects=reports %}
+</main>
+{% endblock %}

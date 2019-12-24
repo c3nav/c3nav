@@ -10,6 +10,7 @@ from django.contrib.auth.decorators import login_required
 from django.contrib.auth.forms import AuthenticationForm, PasswordChangeForm, UserCreationForm
 from django.contrib.auth.views import redirect_to_login
 from django.core.exceptions import ObjectDoesNotExist, SuspiciousOperation
+from django.core.paginator import Paginator
 from django.core.serializers.json import DjangoJSONEncoder
 from django.db import transaction
 from django.http import Http404, HttpResponse, HttpResponseBadRequest
@@ -420,6 +421,22 @@ def report_create(request, coordinates=None, location=None, origin=None, destina
         'report': report,
         'options': options,
         'form': form,
+    })
+
+
+def report_list(request, filter):
+    page = request.GET.get('page', 1)
+
+    queryset = Report.qs_for_request(request).order_by('-created').select_related('author')
+    if filter == 'open':
+        queryset.filter(open=True)
+
+    paginator = Paginator(queryset, 20)
+    reports = paginator.page(page)
+
+    return render(request, 'site/report_list.html', {
+        'filter': filter,
+        'reports': reports,
     })
 
 

@@ -30,8 +30,8 @@ class UserPermissions(models.Model):
     grant_all_access = models.BooleanField(default=False, verbose_name=_('can grant access to everything'))
     grant_space_access = models.BooleanField(default=False, verbose_name=_('can grant space access'))
 
-    review_all_reports = models.BooleanField(default=False, verbose_name=_('can review reports'))
-    review_group_reports = models.ManyToManyField('mapdata.LocationGroup',
+    review_all_reports = models.BooleanField(default=False, verbose_name=_('can review all reports'))
+    review_group_reports = models.ManyToManyField('mapdata.LocationGroup', blank=True,
                                                   limit_choices_to={'access_restriction': None},
                                                   verbose_name=_('can review reports belonging to'))
 
@@ -59,6 +59,10 @@ class UserPermissions(models.Model):
             return ()
         return tuple(self.review_group_reports.values_list('pk', flat=True))
 
+    @cached_property
+    def can_review_reports(self):
+        return self.review_all_reports or self.review_group_ids
+
     @classmethod
     @contextmanager
     def lock(cls, pk):
@@ -84,6 +88,8 @@ class UserPermissions(models.Model):
             result = cls.objects.filter(pk=user.pk).first()
             if not result:
                 result = cls(user=user, initial=True)
+            # noinspection PyStatementEffect
+            result.review_group_ids
             cache.set(cache_key, result, 900)
         return result
 
