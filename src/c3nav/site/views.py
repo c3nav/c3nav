@@ -381,7 +381,8 @@ def report_create(request, coordinates=None, location=None, origin=None, destina
         report.location = get_report_location_for_request(location, request)
         if report.location is None:
             raise Http404
-        report.location = location
+        if not isinstance(report.location, SpecificLocation):
+            raise Http404
     elif origin:
         report.category = 'route-issue'
         report.origin_id = origin
