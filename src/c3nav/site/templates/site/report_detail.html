@@ -12,9 +12,9 @@
         {% endif %}
         –
         {% if report.author %}
-            {% trans 'anonymous submission' %}
+            {% trans 'by' %} {{ report.author.username }}
         {% else %}
-            {% trans 'by' %} {{ request.author.username }}
+            {% trans 'anonymous submission' %}
         {% endif %}
         –
         {{ report.created }}

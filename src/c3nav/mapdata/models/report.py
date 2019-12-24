@@ -8,7 +8,9 @@ from django.utils.crypto import get_random_string
 from django.utils.translation import ugettext_lazy as _
 
 from c3nav.mapdata.fields import I18nField
+from c3nav.mapdata.models.locations import SpecificLocation
 from c3nav.mapdata.utils.locations import get_location_by_id_for_request
+from c3nav.mapdata.utils.models import get_submodels
 
 
 def get_report_secret():
@@ -96,12 +98,19 @@ class Report(models.Model):
     @classmethod
     def qs_for_request(cls, request):
         if request.user_permissions.review_all_reports:
+            print('ha!')
             return cls.objects.all()
         elif request.user.is_authenticated:
+            location_ids = set()
+            review_group_ids = request.user_permissions.review_group_ids
+            for model in get_submodels(SpecificLocation):
+                location_ids.update(set(
+                    model.objects.filter(groups__in=review_group_ids).values_list('pk', flat=True)
+                ))
             return cls.objects.filter(
                 Q(author=request.user) |
-                Q(location__group__in=request.user_permissions.review_group_ids) |
-                Q(created_groups__in=request.user_permissions.review_group_ids)
+                Q(location_id__in=location_ids) |
+                Q(created_groups__in=review_group_ids)
             )
         else:
             return cls.objects.none()
