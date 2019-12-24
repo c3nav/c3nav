@@ -57,7 +57,7 @@ def check_location(location: Optional[str], request) -> Optional[SpecificLocatio
     return location
 
 
-def map_index(request, mode=None, slug=None, slug2=None, details=None, options=None,
+def map_index(request, mode=None, slug=None, slug2=None, details=None, options=None, nearby=None,
               level=None, x=None, y=None, zoom=None, embed=None):
 
     # check for access token
@@ -108,6 +108,7 @@ def map_index(request, mode=None, slug=None, slug2=None, details=None, options=N
         'sidebar': routing or destination is not None,
         'details': True if details else False,
         'options': True if options else False,
+        'nearby': True if nearby else False,
     }
 
     levels = levels_by_short_label_for_request(request)

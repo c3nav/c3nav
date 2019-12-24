@@ -363,15 +363,25 @@ class Router:
         restrictions = self.get_restrictions(location.permissions)
         space = self.space_for_point(level=location.level.pk, point=location, restrictions=restrictions)
         if not space:
-            return CustomLocationDescription(space=space, altitude=None, areas=(), near_area=None, near_poi=None)
+            return CustomLocationDescription(space=space, altitude=None, areas=(), near_area=None, near_poi=None,
+                                             nearby=())
         try:
             altitude = space.altitudearea_for_point(location).get_altitude(location)
         except LocationUnreachable:
             altitude = None
-        areas, near_area = space.areas_for_point(areas=self.areas, point=location, restrictions=restrictions)
-        near_poi = space.poi_for_point(pois=self.pois, point=location, restrictions=restrictions)
+        areas, near_area, nearby_areas = space.areas_for_point(
+            areas=self.areas, point=location, restrictions=restrictions
+        )
+        near_poi, nearby_pois = space.poi_for_point(
+            pois=self.pois, point=location, restrictions=restrictions
+        )
+        nearby = tuple(sorted(
+            tuple(l for l in nearby_areas+nearby_pois if l[0].can_search),
+            key=operator.itemgetter(1)
+        ))[:20]
+        nearby = tuple(location for location, distance in nearby)
         return CustomLocationDescription(space=space, altitude=altitude,
-                                         areas=areas, near_area=near_area, near_poi=near_poi)
+                                         areas=areas, near_area=near_area, near_poi=near_poi, nearby=nearby)
 
     def shortest_path(self, restrictions, options):
         options_key = options.serialize_string()
@@ -482,7 +492,7 @@ class Router:
 
 
 CustomLocationDescription = namedtuple('CustomLocationDescription', ('space', 'altitude',
-                                                                     'areas', 'near_area', 'near_poi'))
+                                                                     'areas', 'near_area', 'near_poi', 'nearby'))
 
 
 class BaseRouterProxy:
@@ -535,26 +545,30 @@ class RouterSpace(BaseRouterProxy):
         areas = {pk: area for pk, area in areas.items()
                  if pk in self.areas and area.can_describe and area.access_restriction_id not in restrictions}
 
+        nearby = ((area, area.geometry.distance(point)) for area in areas.values())
+        nearby = tuple((area, distance) for area, distance in nearby if distance < 20)
+
         contained = tuple(area for area in areas.values() if area.geometry_prep.contains(point))
         if contained:
-            return tuple(sorted(contained, key=lambda area: area.geometry.area)), None
+            return tuple(sorted(contained, key=lambda area: area.geometry.area)), None, nearby
 
-        near = ((area, area.geometry.distance(point)) for area in areas.values())
-        near = tuple((area, distance) for area, distance in near if distance < 5)
+        near = tuple((area, distance) for area, distance in nearby if distance < 5)
         if not near:
-            return (), None
-        return (), min(near, key=operator.itemgetter(1))[0]
+            return (), None, nearby
+        return (), min(near, key=operator.itemgetter(1))[0], nearby
 
     def poi_for_point(self, pois, point, restrictions):
         point = Point(point.x, point.y)
         pois = {pk: poi for pk, poi in pois.items()
                 if pk in self.pois and poi.can_describe and poi.access_restriction_id not in restrictions}
 
-        near = ((poi, poi.geometry.distance(point)) for poi in pois.values())
-        near = tuple((poi, distance) for poi, distance in near if distance < 5)
+        nearby = ((poi, poi.geometry.distance(point)) for poi in pois.values())
+        nearby = tuple((poi, distance) for poi, distance in nearby if distance < 20)
+
+        near = tuple((poi, distance) for poi, distance in nearby if distance < 5)
         if not near:
-            return None
-        return min(near, key=operator.itemgetter(1))[0]
+            return None, nearby
+        return min(near, key=operator.itemgetter(1))[0], nearby
 
 
 class RouterArea(BaseRouterProxy):

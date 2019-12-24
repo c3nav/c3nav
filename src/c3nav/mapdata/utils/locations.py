@@ -283,6 +283,7 @@ class CustomLocation:
             ('grid_square', self.grid_square),
             ('near_area', self.near_area.pk if self.near_area else None),
             ('near_poi', self.near_poi.pk if self.near_poi else None),
+            ('nearby', tuple(location.pk for location in self.nearby)),
             ('altitude', None if self.altitude is None else round(self.altitude, 2))
         ))
         if not grid.enabled:
@@ -377,6 +378,10 @@ class CustomLocation:
     @cached_property
     def near_poi(self):
         return self.description.near_poi
+
+    @cached_property
+    def nearby(self):
+        return self.description.nearby
 
     @cached_property
     def grid_square(self):

@@ -213,13 +213,18 @@ c3nav = {
     },
 
     state: {},
-    update_state: function(routing, replace, details, options) {
+    update_state: function(routing, replace, details, options, nearby) {
         if (typeof routing !== "boolean") routing = c3nav.state.routing;
 
         if (details) {
             options = false;
+            nearby = false;
         } else if (options) {
             details = false;
+            nearby = false;
+        } else if (nearby) {
+            details = false;
+            options = false;
         }
 
         var destination = $('#destination-input').data('location'),
@@ -230,7 +235,8 @@ c3nav = {
                 destination: destination,
                 sidebar: true,
                 details: !!details,
-                options: !!options
+                options: !!options,
+                nearby: !!nearby,
             };
 
         c3nav._push_state(new_state, replace);
@@ -668,6 +674,9 @@ c3nav = {
         }
         if (state.details && (url.startsWith('/l/') || url.startsWith('/r/'))) {
             url += 'details/'
+        }
+        if (state.nearby && url.startsWith('/l/')) {
+            url += 'nearby/'
         }
         if (state.options && url.startsWith('/r/')) {
             url += 'options/'
@@ -1212,6 +1221,7 @@ c3nav = {
         L.Icon.Default.imagePath = '/static/leaflet/images/';
         c3nav._add_icon('origin');
         c3nav._add_icon('destination');
+        c3nav._add_icon('nearby');
 
         // setup scale control
         L.control.scale({imperial: false}).addTo(c3nav.map);
@@ -1281,7 +1291,7 @@ c3nav = {
             if (nearby) {
                 var $destination = $('#destination-input');
                 c3nav._locationinput_set($destination, data);
-                c3nav.update_state(false);
+                c3nav.update_state(false, false, false, false, true);
             } else {
                 newpopup = L.popup(c3nav._add_map_padding({
                     className: 'location-popup',
@@ -1333,6 +1343,24 @@ c3nav = {
         c3nav._visible_map_locations = [];
         if (origin) c3nav._merge_bounds(bounds, c3nav._add_location_to_map(origin, single ? new L.Icon.Default() : c3nav.originIcon));
         if (destination) c3nav._merge_bounds(bounds, c3nav._add_location_to_map(destination, single ? new L.Icon.Default() : c3nav.destinationIcon));
+        var done = [];
+        if (c3nav.state.nearby && destination && 'areas' in destination) {
+            if (destination.space) {
+                c3nav._merge_bounds(bounds, c3nav._add_location_to_map(c3nav.locations_by_id[destination.space], c3nav.nearbyIcon, true));
+            }
+            if (destination.near_area) {
+                done.push(destination.near_area);
+                c3nav._merge_bounds(bounds, c3nav._add_location_to_map(c3nav.locations_by_id[destination.near_area], c3nav.nearbyIcon, true));
+            }
+            for (var area of destination.areas) {
+                done.push(area);
+                c3nav._merge_bounds(bounds, c3nav._add_location_to_map(c3nav.locations_by_id[area], c3nav.nearbyIcon, true));
+            }
+            for (var location of destination.nearby) {
+                if (location in done) continue;
+                c3nav._merge_bounds(bounds, c3nav._add_location_to_map(c3nav.locations_by_id[location], c3nav.nearbyIcon, true));
+            }
+        }
         c3nav._locationLayerBounds = bounds;
     },
     fly_to_bounds: function(replace_state, nofly) {
