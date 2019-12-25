@@ -29,12 +29,13 @@ from c3nav.mapdata.grid import grid
 from c3nav.mapdata.models import Location, Source
 from c3nav.mapdata.models.access import AccessPermissionToken
 from c3nav.mapdata.models.locations import LocationRedirect, SpecificLocation
-from c3nav.mapdata.models.report import Report
+from c3nav.mapdata.models.report import Report, ReportUpdate
 from c3nav.mapdata.utils.locations import (get_location_by_id_for_request, get_location_by_slug_for_request,
                                            levels_by_short_label_for_request)
 from c3nav.mapdata.utils.user import can_access_editor, get_user_data
 from c3nav.mapdata.views import set_tile_access_cookie
 from c3nav.routing.models import RouteOptions
+from c3nav.site.forms import ReportUpdateForm
 from c3nav.site.models import Announcement, SiteUpdate
 
 
@@ -455,7 +456,25 @@ def report_detail(request, pk, secret=None):
 
     form = report.form_cls(instance=report)
 
+    can_review = report.request_can_review(request)
+    if can_review:
+        new_update = ReportUpdate(
+            report=report,
+            author=request.user,
+        )
+        if request.method == 'POST':
+            update_form = ReportUpdateForm(request, instance=new_update, data=request.POST)
+            if update_form.is_valid():
+                update_form.save()
+                messages.success(request, _('Report updated.'))
+                return redirect(request.path_info)
+        else:
+            update_form = ReportUpdateForm(request, instance=new_update)
+    else:
+        update_form = None
+
     return render(request, 'site/report_detail.html', {
         'report': report,
         'form': form,
+        'update_form': update_form,
     })

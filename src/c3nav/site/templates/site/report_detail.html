@@ -44,5 +44,36 @@
         </p>
         {% endif %}
     {% endfor %}
+
+    {% for update in report.updates.all %}
+        {% if update_form or update.public or update.open != None %}
+            <hr>
+            <p><em>{{ update.datetime }}</em> – {{ update.author.username }}</p>
+            {% if update.open == True %}
+                <p>{% trans 'Issue was opened.' %}</p>
+            {% elif update.open == False %}
+                <p>{% trans 'Issue was closed.' %}</p>
+            {% endif %}
+            {% if update.comment %}
+                {% if update.public or update_form %}
+                    <blockquote>{{ update.comment|linebreaksbr }}</blockquote>
+                {% endif %}
+                {% if update.public and update_form %}
+                    {% trans '(public)' %}
+                {% endif %}
+            {% endif %}
+        {% endif %}
+
+    {% endfor %}
+
+    {% if update_form %}
+        <hr>
+        <form method="post">
+            {% csrf_token %}
+            <h3>{% trans 'Update issue' %}</h3>
+            {{ update_form }}
+            <p><button type="submit">{% trans 'Submit' %}</button></p>
+        </form>
+    {% endif %}
 </main>
 {% endblock %}

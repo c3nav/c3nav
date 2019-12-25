@@ -130,6 +130,12 @@ class Report(models.Model):
             Q(permissions__review_group_reports__in=self.get_affected_group_ids())
         )
 
+    def request_can_review(self, request):
+        return (
+            request.user_permissions.review_all_reports or
+            set(request.user_permissions.review_group_ids) & set(self.get_affected_group_ids())
+        )
+
     def notify_reviewers(self):
         reviewers = tuple(self.get_reviewers_qs().values_list('pk', flat=True))
         send_report_notification.delay(pk=self.pk,
@@ -158,16 +164,17 @@ class Report(models.Model):
 
 
 class ReportUpdate(models.Model):
-    report = models.ForeignKey(Report, on_delete=models.CASCADE)
+    report = models.ForeignKey(Report, on_delete=models.CASCADE, related_name='updates')
     datetime = models.DateTimeField(auto_now_add=True, verbose_name=_('datetime'))
     author = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, on_delete=models.PROTECT, verbose_name=_('author'))
     open = models.NullBooleanField(verbose_name=_('open'))
-    comment = models.TextField(verbose_name=_('comment'))
+    comment = models.TextField(verbose_name=_('comment'), blank=True)
     assigned_to = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, on_delete=models.PROTECT,
                                     related_name='report_update_assigns', verbose_name=_('assigned to'))
-    public = models.BooleanField(verbose_name=_('public'))
+    public = models.BooleanField(verbose_name=_('comment is public'))
 
     class Meta:
         verbose_name = _('Report update')
         verbose_name_plural = _('Report updates')
-        default_related_name = 'reportupdate'
+        default_related_name = 'reportupdates'
+        ordering = ('datetime', )
