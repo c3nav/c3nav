@@ -1167,17 +1167,13 @@ c3nav = {
             left: 5,
         }, 300, 'swing').queue(function(d) {
             d();
-            var possible_locations = [];
+            var possible_locations = new Set();
             for (var id of c3nav.random_location_groups) {
                 var group = c3nav.locations_by_id[id];
                 if (!group) continue;
-                // todo set und so
-                for (var subid of group.locations) {
-                    if (!(subid in possible_locations) && subid in c3nav.locations_by_id) {
-                        possible_locations.push(subid);
-                    }
-                }
+                group.locations.forEach(subid => {if (subid in c3nav.locations_by_id) possible_locations.add(subid)});
             }
+            possible_locations = Array.from(possible_locations);
             var location = c3nav.locations_by_id[possible_locations[Math.floor(Math.random()*possible_locations.length)]];
             c3nav._locationinput_set($('#destination-input'), location);
             c3nav.update_state(false);
