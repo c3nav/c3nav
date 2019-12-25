@@ -75,7 +75,7 @@ class RoutingViewSet(ViewSet):
                 'destination': form.cleaned_data['destination'].pk,
             },
             'options': options.serialize(),
-            'report_issue_url': reverse('site.report', kwargs={
+            'report_issue_url': reverse('site.report_create', kwargs={
                 'origin': request.POST['origin'],
                 'destination': request.POST['destination'],
                 'options': options.serialize_string()
