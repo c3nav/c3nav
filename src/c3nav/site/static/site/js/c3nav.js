@@ -834,8 +834,7 @@ c3nav = {
             state = $.extend({}, c3nav.state),
             url;
         if (location.slug) {
-            console.log('bla');
-            url = '/' + location.slug + '/';
+            url = '/l/' + location.slug + '/';
         } else {
             if (!with_position) {
                 state.center = null;
