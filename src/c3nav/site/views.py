@@ -435,7 +435,7 @@ def report_list(request, filter):
 
     queryset = Report.qs_for_request(request).order_by('-created').select_related('author')
     if filter == 'open':
-        queryset.filter(open=True)
+        queryset = queryset.filter(open=True)
 
     paginator = Paginator(queryset, 20)
     reports = paginator.page(page)
