@@ -155,7 +155,7 @@ c3nav = {
 
         c3nav.ssids = $main.is('[data-ssids]') ? JSON.parse($main.attr('data-ssids')) : null;
 
-        c3nav.random_location_groups = $main.is('[data-random-location-groups]') ? $main.attr('data-random-location-groups').split(',') : null;
+        c3nav.random_location_groups = $main.is('[data-random-location-groups]') ? $main.attr('data-random-location-groups').split(',').map(id => parseInt(id)) : null;
 
         history.replaceState(state, window.location.path);
         c3nav.load_state(state, true);
@@ -867,7 +867,7 @@ c3nav = {
             .on('keydown', c3nav._locationinput_keydown);
         $('.locationinput .clear').on('click', c3nav._locationinput_clear);
         $('.locationinput .locate').on('click', c3nav._locationinput_locate);
-        $('.locationinput .random').on('click', c3nav._modal_link_click);
+        $('.locationinput .random').on('click', c3nav._random_location_click);
         $('.leaflet-control-user-location a').on('click', c3nav._goto_user_location_click).dblclick(function(e) { e.stopPropagation(); });
         $('#autocomplete').on('mouseover', '.location', c3nav._locationinput_hover_suggestion)
             .on('click', '.location', c3nav._locationinput_click_suggestion);
@@ -1115,6 +1115,66 @@ c3nav = {
         for (i = 0; i < max_items; i++) {
             $autocomplete.append(matches[i][0]);
         }
+    },
+
+    _random_location_click: function() {
+        var $button = $('button.random'),
+            parent = $button.parent(),
+            width = parent.width(),
+            height = parent.height();
+
+        $cover = $('<div>').css({
+            'width': width+'px',
+            'height': height+'px',
+            'background-color': '#ffffff',
+            'position': 'absolute',
+            'top': 0,
+            'left': $button.position().left+$button.width()/2+'px',
+            'z-index': 200,
+        }).appendTo(parent);
+
+        $cover.animate({
+            left: 5+$button.width()/2+'px'
+        }, 300, 'swing');
+        $button.css({
+            'left': $button.position().left,
+            'background-color': '#ffffff',
+            'right': null,
+            'z-index': 201,
+            'opacity': 1,
+            'transform': 'scale(1)',
+            'color': c3nav._primary_color,
+            'pointer-events': 'none'
+        }).animate({
+            left: 5,
+        }, 300, 'swing').queue(function(d) {
+            d();
+            var possible_locations = [];
+            for (var id of c3nav.random_location_groups) {
+                var group = c3nav.locations_by_id[id];
+                if (!group) continue;
+                // todo set und so
+                for (var subid of group.locations) {
+                    if (!(subid in possible_locations) && subid in c3nav.locations_by_id) {
+                        possible_locations.push(subid);
+                    }
+                }
+            }
+            var location = c3nav.locations_by_id[possible_locations[Math.floor(Math.random()*possible_locations.length)]];
+            c3nav._locationinput_set($('#destination-input'), location);
+            c3nav.update_state(false);
+            c3nav.fly_to_bounds(true);
+            $cover.animate({
+                left: width+$button.width()/2+'px'
+            }, 300, 'swing');
+            $button.animate({
+                left: width,
+            }, 300, 'swing').queue(function(d) {
+                d();
+                $button.attr('style', '');
+                $cover.remove();
+            });
+        });
     },
 
     modal_noclose: false,
