@@ -6,10 +6,14 @@ from django.core.cache import cache
 from django.core.exceptions import ObjectDoesNotExist
 from django.db import models
 from django.db.models import Q
+from django.urls import reverse
 from django.utils.crypto import get_random_string
+from django.utils.functional import cached_property
 from django.utils.translation import ugettext_lazy as _
 
 from c3nav.mapdata.fields import I18nField
+from c3nav.mapdata.models.geometry.level import LevelGeometryMixin
+from c3nav.mapdata.models.geometry.space import SpaceGeometryMixin
 from c3nav.mapdata.models.locations import SpecificLocation
 from c3nav.mapdata.utils.locations import get_location_by_id_for_request
 from c3nav.mapdata.utils.models import get_submodels
@@ -98,6 +102,10 @@ class Report(models.Model):
         from c3nav.site.forms import ReportMissingLocationForm, ReportIssueForm
         return ReportMissingLocationForm if self.category == 'missing-location' else ReportIssueForm
 
+    @cached_property
+    def location_specific(self):
+        return self.location.get_child()
+
     @classmethod
     def qs_for_request(cls, request):
         if request.user_permissions.review_all_reports:
@@ -153,6 +161,27 @@ class Report(models.Model):
             result = user.reports.exists()
             cache.set('user:has-reports:%d' % user.pk, result, 900)
         return result
+
+    @cached_property
+    def editor_url(self):
+        if self.category == 'missing-location':
+            return None
+        elif self.category == 'location-issue':
+            location = self.location_specific
+            url_name = 'editor.%s.edit' % location.__class__._meta.default_related_name
+            if isinstance(location, SpaceGeometryMixin):
+                return reverse(url_name, kwargs={
+                    'pk': location.pk,
+                    'space': location.space.pk
+                })
+            if isinstance(location, LevelGeometryMixin):
+                return reverse(url_name, kwargs={
+                    'pk': location.pk,
+                    'space': location.level.pk
+                })
+            return reverse(url_name, kwargs={
+                'pk': location.pk,
+            })
 
     def save(self, *args, **kwargs):
         created = self.pk is None
