@@ -17,7 +17,7 @@
 {% endblock %}
 
 {% block content %}
-<div id="map"></div>
+<div id="map"{% if request.GET.x %} data-x="{{ request.GET.x }}"{% endif %}{% if request.GET.y %} data-y="{{ request.GET.y }}"{% endif %}></div>
 <div id="sidebar">
     <div class="content">{{ content | safe }}</div>
 </div>

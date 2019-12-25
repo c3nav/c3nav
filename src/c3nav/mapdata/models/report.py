@@ -165,6 +165,12 @@ class Report(models.Model):
     @cached_property
     def editor_url(self):
         if self.category == 'missing-location':
+            space = self.coordinates.space
+            if space is not None:
+                return reverse('editor.spaces.detail', kwargs={
+                    'pk': space.pk,
+                    'level': space.level_id,
+                })+'?x=%.2f&y=%.2f' % (self.coordinates.x, self.coordinates.y)
             return None
         elif self.category == 'location-issue':
             location = self.location_specific

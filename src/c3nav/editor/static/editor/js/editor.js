@@ -22,6 +22,16 @@ editor = {
             editor.map.doubleClickZoom.enable();
         });
 
+        let $map = $('#map');
+        if ($map.is('[data-x][data-y]')) {
+            L.marker(
+                L.GeoJSON.coordsToLatLng([
+                    parseFloat($map.attr('data-x')),
+                    parseFloat($map.attr('data-y'))
+                ]),
+            ).addTo(editor.map);
+        }
+
         if (window.mobileclient) {
             var $body = $('body');
             $body.addClass('mobileclient');

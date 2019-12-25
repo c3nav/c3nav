@@ -5,16 +5,16 @@
     <p>
         <a href="/l/{{ report.location_specific.slug }}/">{% trans 'open in c3nav' %}</a>
         {% if report.editor_url %}
-            – <a href="{{ editor_url }}">{% trans 'open in editor' %}</a>
+            – <a href="{{ report.editor_url }}">{% trans 'open in editor' %}</a>
         {% endif %}
     </p>
 {% elif report.category == 'missing-location' %}
     <p><strong>{% trans 'You are reporting an missing location at the following position:' %}</strong></p>
     {% include 'site/fragment_location.html' with form_value=1 location=report.coordinates add_subtitle=report.coordinates_id %}
     <p>
-        <a href="/l/{{ report.coordinates.pk }}/">{% trans 'open in c3nav' %}</a> –
+        <a href="/l/{{ report.coordinates.pk }}/">{% trans 'open in c3nav' %}</a>
         {% if report.editor_url %}
-            – <a href="{{ editor_url }}">{% trans 'open in editor' %}</a>
+            – <a href="{{ report.editor_url }}">{% trans 'open in editor' %}</a>
         {% endif %}
     </p>
 {% elif report.category == 'route-issue' %}
