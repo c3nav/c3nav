@@ -9,7 +9,7 @@
         <p><a href="{% url 'site.report_list' filter='all' %}">{% trans 'show all reports' %}</a></p>
     {% else %}
         <h2>{% trans 'All reports' %}</h2>
-        <p><a href="{% url 'site.report_list' filter='all' %}">{% trans 'show open reports' %}</a></p>
+        <p><a href="{% url 'site.report_list' filter='open' %}">{% trans 'show open reports' %}</a></p>
     {% endif %}
 
     {% include 'site/fragment_pagination.html' with objects=reports %}

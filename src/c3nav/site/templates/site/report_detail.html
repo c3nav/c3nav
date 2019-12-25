@@ -6,6 +6,10 @@
     {% include 'site/fragment_messages.html' %}
     <h2>{% trans 'Report' %}: {{ report.title }}</h2>
     <p>
+        <a href="{% url 'site.report_list' filter='all' %}">{% trans 'show all reports' %}</a> –
+        <a href="{% url 'site.report_list' filter='open' %}">{% trans 'show open reports' %}</a>
+    </p>
+    <p>
         <em>
             {% if report.open %}
                 <strong class="green">{% trans 'open' %}</strong>
