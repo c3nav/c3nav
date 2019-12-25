@@ -990,7 +990,7 @@ msgid ""
 "As long as the review is pending you can unpropose them to edit them again."
 msgstr ""
 "Solange die Überprüfung aussteht kannst du deinen Vorschlag zurücknehmen um "
-"sie weiter zu bearbeiten."
+"ihn weiter zu bearbeiten."
 
 #: c3nav/editor/templates/editor/changeset.html:48
 #, python-format
