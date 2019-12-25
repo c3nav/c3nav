@@ -366,6 +366,7 @@ def get_report_location_for_request(pk, request):
 
 
 @never_cache
+@login_required(login_url='site.login')
 def report_create(request, coordinates=None, location=None, origin=None, destination=None, options=None):
     report = Report()
     report.request = request
