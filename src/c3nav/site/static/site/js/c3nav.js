@@ -880,15 +880,33 @@ c3nav = {
         return html[0].outerHTML;
     },
     _build_location_label: function(location) {
-        var text = location.label_override || location.title, new_text = [''], len=0;
-        for (segment of text.split(' ')) {
+        var text = location.label_override || location.title, segments = [''], new_segments=[''], new_text = [''], len=0, since_last=0;
+        segments = text.split(' ');
+        for (var segment of segments) {
+            if (segment.length > 12) {
+                for (char of text) {
+                    new_segments[new_segments.length - 1] += char;
+                    since_last++;
+                    if ('.,-:;!?'.indexOf(char) >= 0) {
+                        new_segments.push('');
+                    }
+                }
+            } else {
+                new_segments.push(segment);
+            }
+        }
+        for (var segment of new_segments) {
+            segment += ' ';
             if (len === 0 || len+segment.length < 12) {
-                new_text[new_text.length-1] += (len?' ':'')+$('<div>').text(segment).html();
+                new_text[new_text.length-1] += $('<div>').text(segment).html();
                 len += segment.length;
             } else {
                 new_text.push(segment);
                 len = segment.length;
             }
+        }
+        for (var i=0;i<new_text.length;i++) {
+            new_text[i] = new_text[i].trim();
         }
         var html = $('<div class="location-label-text">').append($('<span>').html('&#8239;'+new_text.join('&#8239;<br>&#8239;')+'&#8239;'));
         html.css('font-size', location.label_settings.font_size+'px');
