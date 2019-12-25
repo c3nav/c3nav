@@ -66,6 +66,10 @@ PUBLIC_EDITOR = config.getboolean('c3nav', 'editor', fallback=True)
 PUBLIC_BASE_MAPDATA = config.getboolean('c3nav', 'public_base_mapdata', fallback=False)
 AUTO_PROCESS_UPDATES = config.getboolean('c3nav', 'auto_process_updates', fallback=True)
 
+RANDOM_LOCATION_GROUPS = config.get('c3nav', 'random_location_groups', fallback=None)
+if RANDOM_LOCATION_GROUPS:
+    RANDOM_LOCATION_GROUPS = tuple(int(i) for i in RANDOM_LOCATION_GROUPS.split(','))
+
 if config.has_option('django', 'secret'):
     SECRET_KEY = config.get('django', 'secret')
 else:
