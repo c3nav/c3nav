@@ -1564,7 +1564,7 @@ c3nav = {
     _wifiScanningTimer: null,
     startWifiScanning: function() {
         if (c3nav._wifiScanningTimer == null) {
-            c3nav._wifiScanningTimer = window.setInterval(function() { mobileclient.scanNow(); }, 4000);
+            c3nav._wifiScanningTimer = window.setInterval(function() { mobileclient.scanNow(); }, 30000);
         }
     },
     stopWifiScanning: function() {
