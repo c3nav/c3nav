@@ -155,6 +155,8 @@ c3nav = {
 
         c3nav.ssids = $main.is('[data-ssids]') ? JSON.parse($main.attr('data-ssids')) : null;
 
+        c3nav.random_location_groups = $main.is('[data-random-location-groups]') ? $main.attr('data-random-location-groups').split(',') : null;
+
         history.replaceState(state, window.location.path);
         c3nav.load_state(state, true);
         c3nav.update_map_locations();
@@ -865,6 +867,7 @@ c3nav = {
             .on('keydown', c3nav._locationinput_keydown);
         $('.locationinput .clear').on('click', c3nav._locationinput_clear);
         $('.locationinput .locate').on('click', c3nav._locationinput_locate);
+        $('.locationinput .random').on('click', c3nav._modal_link_click);
         $('.leaflet-control-user-location a').on('click', c3nav._goto_user_location_click).dblclick(function(e) { e.stopPropagation(); });
         $('#autocomplete').on('mouseover', '.location', c3nav._locationinput_hover_suggestion)
             .on('click', '.location', c3nav._locationinput_click_suggestion);

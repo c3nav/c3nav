@@ -671,7 +671,18 @@ main.show-options #resultswrapper #route-options {
     font-size: 35px;
     top: 5px;
 }
-.locationinput:not(.empty) button.locate, .locationinput.empty button.clear {
+main:not([data-random-location-groups]) button.random {
+    display: none;
+}
+#search button.random {
+    right: 45px;
+    color: lighten($color-icon-light, 18%);
+    &:hover {
+        color: lighten($color-icon-light, 8%);
+    }
+}
+.locationinput:not(.empty) button.locate, .locationinput.empty button.clear,
+main[data-view^=route] button.random, .locationinput:not(.empty) button.random {
     -webkit-transform: scale(0.7);
             -ms-transform: scale(0.7);
         transform: scale(0.7);

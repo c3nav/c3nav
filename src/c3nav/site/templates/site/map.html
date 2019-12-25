@@ -4,7 +4,7 @@
 {% load i18n %}
 
 {% block content %}
-    <main class="map" data-state="{{ state }}"{% if embed %} data-embed{% endif %} data-last-site-update="{{ last_site_update }}"{% if ssids %} data-ssids="{{ ssids }}"{% endif %} data-primary-color="{{ primary_color }}">
+    <main class="map" data-state="{{ state }}"{% if embed %} data-embed{% endif %} data-last-site-update="{{ last_site_update }}"{% if ssids %} data-ssids="{{ ssids }}"{% endif %} data-primary-color="{{ primary_color }}"{% if random_location_groups %} data-random-location-groups="{{ random_location_groups }}"{% endif %}>
         {% if not request.mobileclient %}
         <section id="attributions">
             {% if not embed %}
@@ -108,6 +108,7 @@
                         <i class="icon material-icons">place</i>
                         <input type="text" autocomplete="off" spellcheck="false" placeholder="{% trans 'Search any location…' %}">
                         <small></small>
+                        <button class="button-clear random material-icons" href="/random/">casino</button>
                         <button class="button-clear locate material-icons">location_disabled</button>
                         <button class="button-clear clear material-icons">clear</button>
                     </div>
