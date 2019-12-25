@@ -1625,10 +1625,19 @@ c3nav = {
         return c3nav._hasLocationPermission;
     },
 
+    getWifiScanRate: function() {
+        if (mobileclient.getWifiScanRate) {
+            return mobileclient.getWifiScanRate() * 1000;
+        }
+        // stay compatible to older app versions
+        return 30000;
+
+    },
     _wifiScanningTimer: null,
     startWifiScanning: function() {
         if (c3nav._wifiScanningTimer == null) {
-            c3nav._wifiScanningTimer = window.setInterval(function() { mobileclient.scanNow(); }, 30000);
+            console.log("started wifi scanning with interval of " + c3nav.getWifiScanRate());
+            c3nav._wifiScanningTimer = window.setInterval(function() { mobileclient.scanNow(); }, c3nav.getWifiScanRate());
         }
     },
     stopWifiScanning: function() {
