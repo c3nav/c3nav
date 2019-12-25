@@ -183,7 +183,7 @@ class Report(models.Model):
             if isinstance(location, LevelGeometryMixin):
                 return reverse(url_name, kwargs={
                     'pk': location.pk,
-                    'space': location.level.pk
+                    'level': location.level.pk
                 })
             return reverse(url_name, kwargs={
                 'pk': location.pk,
