@@ -886,7 +886,7 @@ c3nav = {
                 for (char of text) {
                     new_segments[new_segments.length - 1] += char;
                     since_last++;
-                    if ('.,-:;!?'.indexOf(char) >= 0) {
+                    if ('.,-:;!?/&'.indexOf(char) >= 0) {
                         new_segments.push('');
                     }
                 }
