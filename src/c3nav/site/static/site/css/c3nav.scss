@@ -1233,7 +1233,7 @@ main.control h4 {
 main.control form tr > * {
     white-space: nowrap;
 }
-main.control select {
+main.control select[multiple] {
     display: block;
     width: 300px;
     height: 100px;
