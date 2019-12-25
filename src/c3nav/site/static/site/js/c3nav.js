@@ -879,23 +879,24 @@ c3nav = {
         return html[0].outerHTML;
     },
     _build_location_label: function(location) {
-        var text = location.label_override || location.title, segments = [''], new_segments=[''], new_text = [''], len=0, since_last=0;
+        var text = location.label_override || location.title, segments = [''], new_segments=[], new_text = [''], len=0, since_last=0;
         segments = text.split(' ');
         for (var segment of segments) {
             if (segment.length > 12) {
-                for (char of text) {
+                new_segments.push('');
+                for (char of segment) {
                     new_segments[new_segments.length - 1] += char;
                     since_last++;
                     if ('.,-:;!?/&'.indexOf(char) >= 0) {
                         new_segments.push('');
                     }
                 }
+                new_segments[new_segments.length - 1] += ' ';
             } else {
-                new_segments.push(segment);
+                new_segments.push(segment+' ');
             }
         }
         for (var segment of new_segments) {
-            segment += ' ';
             if (len === 0 || len+segment.length < 12) {
                 new_text[new_text.length-1] += $('<div>').text(segment).html();
                 len += segment.length;
