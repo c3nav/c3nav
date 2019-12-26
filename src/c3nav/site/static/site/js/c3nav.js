@@ -329,7 +329,7 @@ c3nav = {
         if (!c3nav._labelControl.labelsActive) return;
         c3nav._labelLayer.clearLayers();
         var labels = c3nav.labels[c3nav._levelControl.currentLevel],
-            bounds = c3nav.map.getBounds().pad(0.25),
+            bounds = c3nav.map.getBounds().pad(0.15),
             zoom = c3nav.map.getZoom();
         if (!labels) return;
 
