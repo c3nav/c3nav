@@ -380,7 +380,7 @@ class Router:
             key=operator.itemgetter(1)
         ))
         # show all location within 5 meters, but at least 20
-        min_i = None
+        min_i = len(nearby)+1
         for i, (location, distance) in enumerate(nearby):
             if distance > 5:
                 min_i = i
