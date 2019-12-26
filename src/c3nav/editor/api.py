@@ -138,6 +138,7 @@ class EditorViewSet(EditorViewSetMixin, ViewSet):
         Building = request.changeset.wrap_model('Building')
         Door = request.changeset.wrap_model('Door')
         LocationGroup = request.changeset.wrap_model('LocationGroup')
+        WifiMeasurement = request.changeset.wrap_model('WifiMeasurement')
 
         level = request.GET.get('level')
         space = request.GET.get('space')
@@ -169,6 +170,7 @@ class EditorViewSet(EditorViewSetMixin, ViewSet):
                 Prefetch('buildings', Building.objects.only('geometry', 'level')),
                 Prefetch('spaces__holes', Hole.objects.only('geometry', 'space')),
                 Prefetch('spaces__altitudemarkers', AltitudeMarker.objects.only('geometry', 'space')),
+                Prefetch('spaces__wifi_measurements', WifiMeasurement.objects.only('geometry', 'space')),
                 # Prefetch('spaces__graphnodes', graphnodes_qs)
             )
 
@@ -202,6 +204,7 @@ class EditorViewSet(EditorViewSetMixin, ViewSet):
                 self._get_level_geometries(level),
                 *(self._get_level_geometries(l) for l in levels_on_top),
                 *(space.altitudemarkers.all() for space in level.spaces.all()),
+                *(space.wifi_measurements.all() for space in level.spaces.all())
                 # graphedges,
                 # graphnodes,
             )
