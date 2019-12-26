@@ -144,8 +144,12 @@ class LocatorSpace:
         values = np.array(tuple(scan_values[station_id] for station_id in station_ids), dtype=np.int64)
 
         # acceptable points need to have a value for the needed_station_id
+        # points = tuple(
+        #     np.argwhere(self.levels[:, self.stations_lookup[needed_station_id]] < self.no_signal).ravel()
+        # )
+        # temporary: don't filter these points by needed station id! the noc is still having fun deploying new stationg
         points = tuple(
-            np.argwhere(self.levels[:, self.stations_lookup[needed_station_id]] < self.no_signal).ravel()
+            np.argwhere(self.levels[:, self.stations_lookup[needed_station_id]] > 0).ravel()
         )
         if not points:
             return None, None
