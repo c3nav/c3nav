@@ -378,8 +378,13 @@ class Router:
         nearby = tuple(sorted(
             tuple(l for l in nearby_areas+nearby_pois if l[0].can_search),
             key=operator.itemgetter(1)
-        ))[:20]
-        nearby = tuple(location for location, distance in nearby)
+        ))
+        # show all location within 5 meters, but at least 20
+        min_i = None
+        for i, (location, distance) in enumerate(nearby):
+            if distance > 5:
+                min_i = i
+        nearby = tuple(location for location, distance in nearby[:max(20, min_i)])
         return CustomLocationDescription(space=space, altitude=altitude,
                                          areas=areas, near_area=near_area, near_poi=near_poi, nearby=nearby)
 
