@@ -59,4 +59,7 @@ mobileclient = {
     currentLocationRequesteFailed: function () {
         console.log('currentLocationRequesteFailed');
     },
+    getWifiScanRate: function () {
+        return 5;
+    }
 };
