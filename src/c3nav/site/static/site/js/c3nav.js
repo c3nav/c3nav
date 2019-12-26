@@ -1185,8 +1185,12 @@ c3nav = {
                 left: width,
             }, 300, 'swing').queue(function(d) {
                 d();
-                $button.attr('style', '');
+                $button.attr('style', 'display: none;');
                 $cover.remove();
+                // give the css transition some time
+            }).delay(300).queue(function(d) {
+                d();
+                $button.attr('style', '');
             });
         });
     },
