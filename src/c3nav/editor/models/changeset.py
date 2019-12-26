@@ -719,6 +719,10 @@ class ChangeSet(models.Model):
                     created_in_last_run.add(created_object)
                     created_pks.setdefault(model, {})[pk] = obj.pk
                     objects.setdefault(model, {})[pk] = obj
+                    if issubclass(model, LocationSlug):
+                        # todo: make this generic
+                        created_pks.setdefault(LocationSlug, {})[pk] = obj.pk
+                        objects.setdefault(LocationSlug, {})[pk] = obj
 
                 objects_to_create -= created_in_last_run
 
