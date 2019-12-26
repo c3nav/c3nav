@@ -100,6 +100,7 @@ class LocatorStations:
         self.stations_lookup = {}
 
     def get(self, bssid, ssid, frequency, create=False):
+        # yes, we're not looking up frequencies, because they can change… yep…
         station_id = self.stations_lookup.get((bssid, None), None)
         if station_id is not None:
             station = self.stations[station_id]
