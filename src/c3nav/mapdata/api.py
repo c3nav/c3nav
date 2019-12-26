@@ -440,7 +440,7 @@ class LocationViewSet(LocationViewSetBase):
             else:
                 locations = visible_locations_for_request(request).values()
 
-            result = tuple(obj.serialize(include_type=True, detailed=detailed,
+            result = tuple(obj.serialize(include_type=True, detailed=detailed, search=searchable,
                                          geometry=geometry and MapdataViewSet.can_access_geometry(request, obj),
                                          simple_geometry=True)
                            for obj in locations)

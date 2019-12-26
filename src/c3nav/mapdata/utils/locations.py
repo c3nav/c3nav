@@ -40,11 +40,16 @@ def locations_for_request(request) -> Mapping[int, LocationSlug]:
         # noinspection PyUnresolvedReferences
         condition &= model.q_for_request(request, prefix=related_name + '__')
         conditions.append(condition)
+        locations = locations.select_related(
+            related_name + '__label_settings'
+        ).prefetch_related(
+            related_name + '__redirects'
+        )
     locations = locations.filter(reduce(operator.or_, conditions))
-    locations.select_related('redirect', 'locationgroups__category')
+    locations = locations.select_related('redirect', 'locationgroups__category')
 
     # prefetch locationgroups
-    base_qs = LocationGroup.qs_for_request(request).select_related('category')
+    base_qs = LocationGroup.qs_for_request(request).select_related('category', 'label_settings')
     for model in get_submodels(SpecificLocation):
         locations = locations.prefetch_related(Prefetch(model._meta.default_related_name + '__groups',
                                                         queryset=base_qs))

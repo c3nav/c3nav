@@ -104,16 +104,21 @@ class Location(LocationSlug, AccessRestrictionMixin, TitledMixin, models.Model):
         result = super().serialize(detailed=detailed, **kwargs)
         if not detailed:
             fields = ('id', 'type', 'slug', 'title', 'subtitle', 'icon', 'point', 'bounds', 'grid_square',
-                      'locations', 'on_top_of', 'label_settings', 'label_override')
+                      'locations', 'on_top_of', 'label_settings', 'label_override', 'add_search')
             result = {name: result[name] for name in fields if name in result}
         return result
 
-    def _serialize(self, **kwargs):
+    def _serialize(self, search=False, **kwargs):
         result = super()._serialize(**kwargs)
         result['subtitle'] = str(self.subtitle)
         result['icon'] = self.get_icon()
         result['can_search'] = self.can_search
         result['can_describe'] = self.can_search
+        if search:
+            result['add_search'] = ' '.join((
+                *(redirect.slug for redirect in self.redirects.all()),
+                *self.other_titles,
+            ))
         return result
 
     def details_display(self, **kwargs):

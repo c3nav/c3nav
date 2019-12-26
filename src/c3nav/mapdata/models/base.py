@@ -77,6 +77,10 @@ class TitledMixin(SerializableMixin, models.Model):
         result['title'] = self.title
         return result
 
+    @property
+    def other_titles(self):
+        return tuple(title for lang, title in self.titles.items() if lang != get_language())
+
     def details_display(self, **kwargs):
         result = super().details_display(**kwargs)
         for lang, title in sorted(self.titles.items(), key=lambda item: item[0] != get_language()):
