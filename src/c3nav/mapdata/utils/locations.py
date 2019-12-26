@@ -26,6 +26,7 @@ proxied_cache = LocalCacheProxy(maxsize=128)
 
 
 def locations_for_request(request) -> Mapping[int, LocationSlug]:
+    # todo this takes a long time because it's a lot of data, we might want to change that
     cache_key = 'mapdata:locations:%s' % AccessPermission.cache_key_for_request(request)
     locations = proxied_cache.get(cache_key, None)
     if locations is not None:
