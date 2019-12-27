@@ -70,6 +70,8 @@ class Report(models.Model):
 
     @cached_property
     def location_specific(self):
+        if self.location is None:
+            return None
         return self.location.get_child()
 
     @classmethod
