@@ -1,5 +1,6 @@
 import string
 from contextlib import suppress
+from datetime import timedelta
 from decimal import Decimal
 from operator import attrgetter
 
@@ -9,6 +10,7 @@ from django.core.validators import MaxValueValidator, MinValueValidator, RegexVa
 from django.db import models, transaction
 from django.db.models import FieldDoesNotExist, Prefetch
 from django.urls import reverse
+from django.utils import timezone
 from django.utils.crypto import get_random_string
 from django.utils.functional import cached_property
 from django.utils.text import format_lazy
@@ -497,6 +499,7 @@ class Position(models.Model):
     name = models.CharField(_('name'), max_length=32)
     secret = models.CharField(_('secret'), unique=True, max_length=32, default=get_position_secret)
     last_coordinates_update = models.DateTimeField(_('last coordinates update'), null=True)
+    timeout = models.PositiveSmallIntegerField(_('timeout (in seconds)'), default=0, help_text=_('0 for no timeout'))
     coordinates_id = models.CharField(_('coordinates'), null=True, max_length=48)
     api_secret = models.CharField(_('api secret'), max_length=64, default=get_position_api_secret)
 
@@ -506,6 +509,14 @@ class Position(models.Model):
         verbose_name = _('Dynamic position')
         verbose_name_plural = _('Dynamic position')
         default_related_name = 'dynamic_positions'
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if self.timeout and self.last_coordinates_update:
+            end_time = self.last_coordinates_update + timedelta(seconds=self.timeout)
+            if timezone.now() >= end_time:
+                self.cordinates = None
+                self.last_coordinates_update = end_time
 
     @classmethod
     def user_has_positions(cls, user):

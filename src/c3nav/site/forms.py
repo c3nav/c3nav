@@ -54,7 +54,7 @@ class ReportUpdateForm(ModelForm):
 class PositionForm(ModelForm):
     class Meta:
         model = Position
-        fields = ['name']
+        fields = ['name', 'timeout']
 
 
 class PositionSetForm(Form):
