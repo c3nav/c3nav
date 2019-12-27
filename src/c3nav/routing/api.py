@@ -7,6 +7,7 @@ from rest_framework.viewsets import ViewSet
 
 from c3nav.mapdata.api import api_stats_clean_location_value
 from c3nav.mapdata.models.access import AccessPermission
+from c3nav.mapdata.models.locations import Position
 from c3nav.mapdata.utils.cache.stats import increment_cache_key
 from c3nav.mapdata.utils.locations import visible_locations_for_request
 from c3nav.routing.exceptions import LocationUnreachable, NoRouteFound, NotYetRoutable
@@ -71,8 +72,8 @@ class RoutingViewSet(ViewSet):
 
         return Response({
             'request': {
-                'origin': form.cleaned_data['origin'].pk,
-                'destination': form.cleaned_data['destination'].pk,
+                'origin': self.get_request_pk(form.cleaned_data['origin']),
+                'destination': self.get_request_pk(form.cleaned_data['destination']),
             },
             'options': options.serialize(),
             'report_issue_url': reverse('site.report_create', kwargs={
@@ -82,6 +83,9 @@ class RoutingViewSet(ViewSet):
             }),
             'result': route.serialize(locations=visible_locations_for_request(request)),
         })
+
+    def get_request_pk(self, location):
+        return location.slug if isinstance(location, Position) else location.pk
 
     @action(detail=False, methods=['get', 'post'])
     def options(self, request, *args, **kwargs):

@@ -328,8 +328,8 @@ class Router:
                  if poi.space_id not in restrictions.spaces and poi.access_restriction_id not in restrictions),
             ))
         elif isinstance(location, (CustomLocation, CustomLocationProxyMixin)):
-            if isinstance(location, CustomLocationProxyMixin):
-                location = location.get_custom_location()
+            if isinstance(location, CustomLocationProxyMixin) and not location.available:
+                raise LocationUnreachable
             point = Point(location.x, location.y)
             location = RouterPoint(location)
             space = self.space_for_point(location.level.pk, point, restrictions)

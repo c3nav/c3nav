@@ -1547,6 +1547,7 @@ c3nav = {
             $.getJSON('/api/locations/' + location.id + '/geometry/', c3nav._location_geometry_loaded);
         }
 
+        if (!location.point) return;
         var point = c3nav._location_point_overrides[location.id] || location.point.slice(1),
             latlng = L.GeoJSON.coordsToLatLng(point),
             buttons = $('#location-popup-buttons').clone();

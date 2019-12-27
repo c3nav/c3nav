@@ -470,6 +470,22 @@ class CustomLocationProxyMixin:
     def get_custom_location(self):
         raise NotImplementedError
 
+    @property
+    def available(self):
+        return self.get_custom_location() is not None
+
+    @property
+    def x(self):
+        return self.get_custom_location().x
+
+    @property
+    def y(self):
+        return self.get_custom_location().y
+
+    @property
+    def level(self):
+        return self.get_custom_location().level
+
     def serialize_position(self):
         raise NotImplementedError
 
@@ -550,6 +566,9 @@ class Position(CustomLocationProxyMixin, models.Model):
     coordinates_id = models.CharField(_('coordinates'), null=True, max_length=48)
     api_secret = models.CharField(_('api secret'), max_length=64, default=get_position_api_secret)
 
+    can_search = True
+    can_describe = False
+
     coordinates = LocationById()
 
     class Meta:
@@ -583,8 +602,8 @@ class Position(CustomLocationProxyMixin, models.Model):
         custom_location = self.get_custom_location()
         if custom_location is None:
             return {
-                'id': self.secret,
-                'slug': self.secret,
+                'id': 'p:%s' % self.secret,
+                'slug': 'p:%s' % self.secret,
                 'available': False,
                 'icon': 'my_location',
                 'title': self.name,
@@ -605,6 +624,18 @@ class Position(CustomLocationProxyMixin, models.Model):
             ),
         })
         return result
+
+    @property
+    def slug(self):
+        return 'p:%s' % self.secret
+
+    def serialize(self, *args, **kwargs):
+        return self.serialize_position()
+
+    def get_geometry(self, *args, **kwargs):
+        return None
+
+    level_id = None
 
     def save(self, *args, **kwargs):
         with transaction.atomic():

@@ -12,7 +12,10 @@ def describe_location(location, locations):
         final_location = locations.get(location.pk)
         if final_location is not None:
             location = final_location
-    return location.serialize(include_type=True, detailed=False, simple_geometry=True)
+    result = location.serialize(include_type=True, detailed=False, simple_geometry=True)
+    if hasattr(location, 'serialize_position'):
+        result.update(location.serialize_position())
+    return result
 
 
 class Route:
@@ -169,7 +172,6 @@ class Route:
             options_summary.append(_('default options'))
 
         options_summary = ', '.join(str(s) for s in options_summary)
-
 
         return OrderedDict((
             ('origin', describe_location(self.origin, locations)),

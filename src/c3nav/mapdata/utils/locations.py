@@ -4,7 +4,7 @@ import re
 from collections import OrderedDict
 from functools import reduce
 from itertools import chain
-from typing import List, Mapping, Optional
+from typing import List, Mapping, Optional, Union
 
 from django.apps import apps
 from django.db.models import Prefetch, Q
@@ -18,7 +18,7 @@ from c3nav.mapdata.models.access import AccessPermission
 from c3nav.mapdata.models.geometry.base import GeometryMixin
 from c3nav.mapdata.models.geometry.level import LevelGeometryMixin, Space
 from c3nav.mapdata.models.geometry.space import SpaceGeometryMixin
-from c3nav.mapdata.models.locations import LocationRedirect, LocationSlug, SpecificLocation
+from c3nav.mapdata.models.locations import LocationRedirect, LocationSlug, Position, SpecificLocation
 from c3nav.mapdata.utils.cache.local import LocalCacheProxy
 from c3nav.mapdata.utils.models import get_submodels
 
@@ -206,12 +206,18 @@ def get_location_by_id_for_request(pk, request):
     if isinstance(pk, str):
         if pk.isdigit():
             pk = int(pk)
+        elif pk.startswith('p:'):
+            try:
+                # return immediately, don't cache for obvious reasons
+                return Position.objects.get(secret=pk[2:])
+            except Position.DoesNotExist:
+                return None
         else:
             return get_custom_location_for_request(pk, request)
     return locations_for_request(request).get(pk)
 
 
-def get_location_by_slug_for_request(slug: str, request) -> Optional[LocationSlug]:
+def get_location_by_slug_for_request(slug: str, request) -> Optional[Union[LocationSlug, Position]]:
     cache_key = 'mapdata:location:by_slug:%s:%s' % (AccessPermission.cache_key_for_request(request), slug)
     location = proxied_cache.get(cache_key, None)
     if location is not None:
@@ -220,6 +226,12 @@ def get_location_by_slug_for_request(slug: str, request) -> Optional[LocationSlu
     if slug.startswith('c:'):
         location = get_custom_location_for_request(slug, request)
         if location is None:
+            return None
+    elif slug.startswith('p:'):
+        try:
+            # return immediately, don't cache for obvious reasons
+            return Position.objects.get(secret=slug[2:])
+        except Position.DoesNotExist:
             return None
     elif ':' in slug:
         code, pk = slug.split(':', 1)

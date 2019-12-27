@@ -4,9 +4,9 @@ from c3nav.site.views import (about_view, access_redeem_view, account_view, chan
                               login_view, logout_view, map_index, position_create, position_detail, position_list,
                               position_set, qr_code, register_view, report_create, report_detail, report_list)
 
-slug = r'(?P<slug>[a-z0-9-_.:]+)'
+slug = r'(?P<slug>[a-zA-Z0-9-_.:]+)'
 coordinates = r'(?P<coordinates>[a-z0-9-_:]+:-?\d+(\.\d+)?:-?\d+(\.\d+)?)'
-slug2 = r'(?P<slug2>[a-z0-9-_.:]+)'
+slug2 = r'(?P<slug2>[a-zA-Z0-9-_.:]+)'
 details = r'(?P<details>details/)?'
 nearby = r'(?P<nearby>nearby/)?'
 options = r'(?P<options>options/)?'
