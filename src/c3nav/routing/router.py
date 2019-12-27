@@ -19,6 +19,7 @@ from shapely.ops import unary_union
 
 from c3nav.mapdata.models import AltitudeArea, Area, GraphEdge, Level, LocationGroup, MapUpdate, Space, WayType
 from c3nav.mapdata.models.geometry.space import POI, CrossDescription, LeaveDescription
+from c3nav.mapdata.models.locations import CustomLocationProxyMixin
 from c3nav.mapdata.utils.geometry import assert_multipolygon, get_rings, good_representative_point
 from c3nav.mapdata.utils.locations import CustomLocation
 from c3nav.routing.exceptions import LocationUnreachable, NoRouteFound, NotYetRoutable
@@ -326,7 +327,9 @@ class Router:
                 (poi for poi in (self.pois[pk] for pk in group.get('pois', ()))
                  if poi.space_id not in restrictions.spaces and poi.access_restriction_id not in restrictions),
             ))
-        elif isinstance(location, CustomLocation):
+        elif isinstance(location, (CustomLocation, CustomLocationProxyMixin)):
+            if isinstance(location, CustomLocationProxyMixin):
+                location = location.get_custom_location()
             point = Point(location.x, location.y)
             location = RouterPoint(location)
             space = self.space_for_point(location.level.pk, point, restrictions)
