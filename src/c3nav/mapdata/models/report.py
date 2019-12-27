@@ -142,6 +142,8 @@ class Report(models.Model):
             return None
         elif self.category == 'location-issue':
             location = self.location_specific
+            if location is None:
+                return None
             url_name = 'editor.%s.edit' % location.__class__._meta.default_related_name
             if isinstance(location, SpaceGeometryMixin):
                 return reverse(url_name, kwargs={
