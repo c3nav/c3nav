@@ -1524,7 +1524,6 @@ c3nav = {
             // if location is not in the searchable list...
             return
         }
-        console.log(location);
         if (location.dynamic) {
             if (!('available' in location)) {
                 $.getJSON('/api/locations/dynamic/' + location.id + '/', c3nav._dynamic_location_loaded);
