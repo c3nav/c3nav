@@ -1578,7 +1578,7 @@ c3nav = {
     _dynamic_location_loaded: function(data) {
         if (c3nav._maybe_update_dynamic_location($('#origin-input'), data) || c3nav._maybe_update_dynamic_location($('#destination-input'), data)) {
             c3nav.update_state();
-            // todo: fly to bounds
+            c3nav.fly_to_bounds(true);
         }
     },
     _maybe_update_dynamic_location: function(elem, location) {
