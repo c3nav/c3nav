@@ -1,0 +1,16 @@
+{% extends 'site/base.html' %}
+{% load i18n %}
+
+{% block content %}
+<main class="account">
+    {% include 'site/fragment_messages.html' %}
+    <h2>{% trans 'Set position coordinates' %}</h2>
+    <p>{% trans 'Please select the position to set to these coordinates:' %}</p>
+    {% include 'site/fragment_location.html' with location=coordinates %}
+    <form method="post" action="{{ request.path_info }}">
+        {% csrf_token %}
+        {{ form.as_p }}
+        <button type="submit">{% trans 'Set coordinates' %}</button>
+    </form>
+</main>
+{% endblock %}

@@ -496,8 +496,8 @@ class Position(models.Model):
     owner = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
     name = models.CharField(_('name'), max_length=32)
     secret = models.CharField(_('secret'), unique=True, max_length=32, default=get_position_secret)
-    last_location_update = models.DateTimeField(_('last location update'), null=True)
-    location_id = models.CharField(_('location'), null=True, max_length=48)
+    last_coordinates_update = models.DateTimeField(_('last coordinates update'), null=True)
+    coordinates_id = models.CharField(_('coordinates'), null=True, max_length=48)
     api_secret = models.CharField(_('api secret'), max_length=64, default=get_position_api_secret)
 
     coordinates = LocationById()

@@ -7,6 +7,13 @@
     <h2>{% trans 'Position:' %} {{ position.name }}</h2>
     <p><a href="{% url 'site.position_list' %}">&laquo; {% trans 'back to overview' %}</a></p>
 
+    {% if position.coordinates %}
+        {% include 'site/fragment_location.html' with location=position.coordinates %}
+    {% else %}
+        <p><em>{% trans 'currently no coordinates' %}</em></p>
+    {% endif %}
+    <p><em>{% trans 'last coordinates update:' %} {{ position.last_coordinates_update }}</em></p>
+
     <p>
         <strong>{% trans 'Secret' %}:</strong>
         <code>{{ position.secret }}</code>
@@ -21,9 +28,10 @@
     <form method="post" action="{{ request.path_info }}">
         {% csrf_token %}
         {{ form.as_p }}
+        <label><input type="checkbox" name="set_null" value="1"> {% trans 'unset coordinates' %}</label>
         <label><input type="checkbox" name="reset_secret" value="1"> {% trans 'reset secret' %}</label>
         <label><input type="checkbox" name="reset_api_secret" value="1"> {% trans 'reset API secret' %}</label>
-            <label><input type="checkbox" name="delete" value="1"> {% trans 'delete this position' %}</label>
+        <label><input type="checkbox" name="delete" value="1"> {% trans 'delete this position' %}</label>
         <button type="submit">{% trans 'Update position' %}</button>
     </form>
 </main>

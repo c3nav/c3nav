@@ -1361,21 +1361,24 @@ c3nav = {
     _click_anywhere: function(e) {
         if (e.originalEvent.target.id !== 'map') return;
         var popup = L.popup(c3nav._add_map_padding({className: 'location-popup', maxWidth: 500}, 'autoPanPaddingTopLeft', 'autoPanPaddingBottomRight')),
-            level = c3nav._levelControl.currentLevel,
-            name = 'c:'+String(c3nav.level_labels_by_id[level])+':'+Math.round(e.latlng.lng*100)/100+':'+Math.round(e.latlng.lat*100)/100;
+            name = c3nav._latlng_to_name(e.latlng);
         var buttons = $('#anywhere-popup-buttons').clone();
-            buttons.find('.report').attr('href', '/report/l/' + name + '/');
+        buttons.find('.report').attr('href', '/report/l/' + name + '/');
+        buttons.find('.set-position').attr('href', '/positions/set/' + name + '/');
         popup.setLatLng(e.latlng).setContent(buttons.html());
         c3nav._click_anywhere_popup = popup;
         popup.on('remove', function() { c3nav._click_anywhere_popup = null }).openOn(c3nav.map);
+    },
+    _latlng_to_name: function(latlng) {
+        var level = c3nav._levelControl.currentLevel;
+        return 'c:'+String(c3nav.level_labels_by_id[level])+':'+Math.round(latlng.lng*100)/100+':'+Math.round(latlng.lat*100)/100;
     },
     _click_anywhere_load: function(nearby) {
         if (!c3nav._click_anywhere_popup) return;
         var latlng = c3nav._click_anywhere_popup.getLatLng();
         c3nav._click_anywhere_popup.remove();
         var popup = L.popup().setLatLng(latlng).setContent('<div class="loader"></div>'),
-            level = c3nav._levelControl.currentLevel,
-            name = 'c:'+String(c3nav.level_labels_by_id[level])+':'+Math.round(latlng.lng*100)/100+':'+Math.round(latlng.lat*100)/100;
+            name = c3nav._latlng_to_name(latlng);
         c3nav._click_anywhere_popup = popup;
         popup.on('remove', function() { c3nav._click_anywhere_popup = null }).openOn(c3nav.map);
         $.getJSON('/api/locations/'+name+'/', function(data) {
@@ -1621,6 +1624,7 @@ c3nav = {
         var $user = $('header #user');
         $user.find('span').text(data.title);
         $user.find('small').text(data.subtitle || '');
+        $('.position-buttons').toggle(data.has_positions);
         if (window.mobileclient) mobileclient.setUserData(JSON.stringify(data));
     },
 

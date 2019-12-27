@@ -1290,7 +1290,7 @@ main form > p, #modal form > p {
         resize: none;
         height: 100px;
     }
-    select {
+    select[multiple] {
         height: 100px;
     }
 }

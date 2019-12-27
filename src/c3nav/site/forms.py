@@ -1,5 +1,7 @@
+from operator import attrgetter
+
 from django.db import transaction
-from django.forms import ModelForm
+from django.forms import Form, ModelChoiceField, ModelForm
 from django.utils.translation import ugettext_lazy as _
 
 from c3nav.mapdata.forms import I18nModelFormMixin
@@ -53,3 +55,12 @@ class PositionForm(ModelForm):
     class Meta:
         model = Position
         fields = ['name']
+
+
+class PositionSetForm(Form):
+    position = ModelChoiceField(Position.objects.none())
+
+    def __init__(self, request, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields['position'].queryset = Position.objects.filter(owner=request.user)
+        self.fields['position'].label_from_instance = attrgetter('name')

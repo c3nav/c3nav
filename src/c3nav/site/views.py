@@ -36,7 +36,7 @@ from c3nav.mapdata.utils.locations import (get_location_by_id_for_request, get_l
 from c3nav.mapdata.utils.user import can_access_editor, get_user_data
 from c3nav.mapdata.views import set_tile_access_cookie
 from c3nav.routing.models import RouteOptions
-from c3nav.site.forms import PositionForm, ReportUpdateForm
+from c3nav.site.forms import PositionForm, PositionSetForm, ReportUpdateForm
 from c3nav.site.models import Announcement, SiteUpdate
 
 
@@ -514,12 +514,11 @@ def position_create(request):
         'form': form,
     })
 
-    pass
-
 
 @login_required(login_url='site.login')
 def position_detail(request, pk):
     position = get_object_or_404(Position.objects.filter(owner=request.user), pk=pk)
+    position.request = request
 
     if request.method == 'POST':
         with transaction.atomic():
@@ -527,6 +526,10 @@ def position_detail(request, pk):
                 position.delete()
                 messages.success(request, _('Position deleted.'))
                 return redirect(reverse('site.position_list'))
+
+            if request.POST.get('set_null', None):
+                position.last_coordinates_update = timezone.now()
+                position.coordinates = None
 
             if request.POST.get('reset_secret', None):
                 position.secret = get_position_secret()
@@ -546,4 +549,27 @@ def position_detail(request, pk):
         'position': position,
         'form': form,
     })
-    pass
+
+
+@login_required(login_url='site.login')
+def position_set(request, coordinates):
+    coordinates = get_location_by_id_for_request(coordinates, request)
+    if coordinates is None:
+        raise Http404
+
+    if request.method == 'POST':
+        form = PositionSetForm(request, data=request.POST)
+        if form.is_valid():
+            position = form.cleaned_data['position']
+            position.last_coordinates_update = timezone.now()
+            position.coordinates = coordinates
+            position.save()
+            messages.success(request, _('Position set.'))
+            return redirect(reverse('site.position_detail', kwargs={'pk': position.pk}))
+    else:
+        form = PositionSetForm(request)
+
+    return render(request, 'site/position_set.html', {
+        'coordinates': coordinates,
+        'form': form,
+    })
