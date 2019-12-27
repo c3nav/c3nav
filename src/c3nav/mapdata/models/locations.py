@@ -517,6 +517,7 @@ class DynamicLocation(CustomLocationProxyMixin, SpecificLocation, models.Model):
         if custom_location is None:
             return {
                 'available': False,
+                'id': self.pk,
                 'title': self.title,
                 'subtitle': '%s %s, %s' % (_('currently unavailable'), _('(moving)'), self.subtitle)
             }
