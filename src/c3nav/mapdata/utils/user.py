@@ -4,6 +4,7 @@ from django.utils.translation import ugettext_lazy as _
 from django.utils.translation import ungettext_lazy
 
 from c3nav.mapdata.models.access import AccessPermission
+from c3nav.mapdata.models.locations import Position
 
 
 def get_user_data(request):
@@ -12,6 +13,7 @@ def get_user_data(request):
         'logged_in': bool(request.user.is_authenticated),
         'allow_editor': can_access_editor(request),
         'allow_control_panel': request.user_permissions.control_panel,
+        'has_positions': Position.user_has_positions(request.user)
     }
     if permissions:
         result.update({

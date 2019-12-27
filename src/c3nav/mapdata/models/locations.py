@@ -4,8 +4,9 @@ from decimal import Decimal
 from operator import attrgetter
 
 from django.conf import settings
+from django.core.cache import cache
 from django.core.validators import MaxValueValidator, MinValueValidator, RegexValidator
-from django.db import models
+from django.db import models, transaction
 from django.db.models import FieldDoesNotExist, Prefetch
 from django.urls import reverse
 from django.utils.crypto import get_random_string
@@ -505,3 +506,24 @@ class Position(models.Model):
         verbose_name = _('Dynamic position')
         verbose_name_plural = _('Dynamic position')
         default_related_name = 'dynamic_positions'
+
+    @classmethod
+    def user_has_positions(cls, user):
+        if not user.is_authenticated:
+            return False
+        cache_key = 'user_has_positions:%d' % user.pk
+        result = cache.get(cache_key, None)
+        if result is None:
+            result = cls.objects.filter(owner=user).exists()
+            cache.set(cache_key, result, 600)
+        return result
+
+    def save(self, *args, **kwargs):
+        with transaction.atomic():
+            super().save(*args, **kwargs)
+            transaction.on_commit(lambda: cache.delete('user_has_positions:%d' % self.owner_id))
+
+    def delete(self, *args, **kwargs):
+        with transaction.atomic():
+            super().delete(*args, **kwargs)
+            transaction.on_commit(lambda: cache.delete('user_has_positions:%d' % self.owner_id))
