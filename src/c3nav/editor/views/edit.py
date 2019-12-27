@@ -229,7 +229,7 @@ def edit(request, pk=None, model=None, level=None, space=None, on_top_of=None, e
             'back_url': reverse('editor.spaces.list', kwargs={'level': level.pk}),
             'nozoom': True,
         })
-    elif hasattr(model, 'level'):
+    elif hasattr(model, 'level') and 'Dynamic' not in model.__name__:
         if not new:
             level = obj.level
         ctx.update({
