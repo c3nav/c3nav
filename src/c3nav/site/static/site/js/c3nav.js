@@ -49,6 +49,7 @@
 
 c3nav = {
     init_completed: false,
+    user_data: null,
     init: function () {
         c3nav.load_material_icons_if_needed();
         c3nav.load_searchable_locations();
@@ -72,15 +73,16 @@ c3nav = {
             $('.app-ads').remove();
         }
 
+        var $body = $('body');
         if (window.mobileclient) {
-            var $body = $('body');
             $body.addClass('mobileclient');
             c3nav._set_user_location(null);
-            if ($body.is('[data-user-data]')) {
-                mobileclient.setUserData($body.attr('data-user-data'));
-            }
         } else {
             document.addEventListener('visibilitychange', c3nav.on_visibility_change, false);
+        }
+
+        if ($body.is('[data-user-data]')) {
+            c3nav._set_user_data(JSON.parse($body.attr('data-user-data')));
         }
     },
     _searchable_locations_timer: null,
@@ -1237,7 +1239,12 @@ c3nav = {
             history.back();
             return;
         }
-        c3nav._set_modal_content($('<div>'+data+'</div>').find('main').html());
+        var html = $('<div>'+data.replace('<body', '<div')+'</div>');
+        var user_data = html.find('[data-user-data]');
+        if (user_data.length) {
+            c3nav._set_user_data(JSON.parse(user_data.attr('data-user-data')));
+        }
+        c3nav._set_modal_content(html.find('main').html());
     },
     _modal_error: function(data) {
         $('#modal').removeClass('loading').find('#modal-content').html('<h3>Error '+data.status+'</h3>');
@@ -1365,7 +1372,6 @@ c3nav = {
     _click_anywhere_load: function(nearby) {
         if (!c3nav._click_anywhere_popup) return;
         var latlng = c3nav._click_anywhere_popup.getLatLng();
-        console.log(latlng);
         c3nav._click_anywhere_popup.remove();
         var popup = L.popup().setLatLng(latlng).setContent('<div class="loader"></div>'),
             level = c3nav._levelControl.currentLevel,
@@ -1611,6 +1617,7 @@ c3nav = {
         window.location.reload();
     },
     _set_user_data: function (data) {
+        c3nav.user_data = data;
         var $user = $('header #user');
         $user.find('span').text(data.title);
         $user.find('small').text(data.subtitle || '');

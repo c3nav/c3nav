@@ -489,6 +489,7 @@ def report_detail(request, pk, secret=None):
 def position_list(request):
     return render(request, 'site/position_list.html', {
         'positions': Position.objects.filter(owner=request.user),
+        'user_data_json': json.dumps(get_user_data(request), cls=DjangoJSONEncoder),
     })
 
 

@@ -28,7 +28,7 @@
         <link href="{% static 'site/css/c3nav.scss' %}" rel="stylesheet" type="text/x-scss">
     {% endcompress %}
 </head>
-<body{% if request.mobileclient %} data-user-data="{{ user_data_json }}"{% endif %}>
+<body data-user-data="{{ user_data_json }}">
     {% if not embed and not request.mobileclient %}
         <header>
             <h1><a href="{% block header_title_url %}/{% endblock %}">
