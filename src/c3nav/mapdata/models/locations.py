@@ -630,7 +630,14 @@ class Position(CustomLocationProxyMixin, models.Model):
         return 'p:%s' % self.secret
 
     def serialize(self, *args, **kwargs):
-        return self.serialize_position()
+        return {
+            'dynamic': True,
+            'id': 'p:%s' % self.secret,
+            'slug': 'p:%s' % self.secret,
+            'icon': 'my_location',
+            'title': self.name,
+            'subtitle': _('Position'),
+        }
 
     def get_geometry(self, *args, **kwargs):
         return None
