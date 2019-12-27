@@ -3033,7 +3033,7 @@ msgstr "Position speichern"
 
 #: c3nav/site/templates/site/position_list.html:7
 msgid "Your positions"
-msgstr "Deine Positionsn"
+msgstr "Deine Positionen"
 
 #: c3nav/site/templates/site/report_detail.html:9
 #: c3nav/site/templates/site/report_list.html:9
