@@ -42,6 +42,15 @@
     {% endif %}
 
     <hr>
+
+    <p>
+        {% trans 'You can create custom positions.' %}
+    </p>
+    <p>
+        <a class="button" href="{% url 'site.position_list' %}">{% trans 'Manage your positions' %}</a>
+    </p>
+
+    <hr>
     <p>
         <a class="button" href="{% url 'site.logout' %}">{% trans 'Log out' %}</a>
         <a class="button" href="{% url 'site.account.change_password' %}">{% trans 'Change password' %}</a>

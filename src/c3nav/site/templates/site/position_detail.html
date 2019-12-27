@@ -1,0 +1,30 @@
+{% extends 'site/base.html' %}
+{% load i18n %}
+
+{% block content %}
+<main class="account">
+    {% include 'site/fragment_messages.html' %}
+    <h2>{% trans 'Position:' %} {{ position.name }}</h2>
+    <p><a href="{% url 'site.position_list' %}">&laquo; {% trans 'back to overview' %}</a></p>
+
+    <p>
+        <strong>{% trans 'Secret' %}:</strong>
+        <code>{{ position.secret }}</code>
+    </p>
+    <p>
+        <strong>{% trans 'API secret' %}:</strong>
+        <code>{{ position.api_secret }}</code>
+    </p>
+
+    <hr>
+
+    <form method="post" action="{{ request.path_info }}">
+        {% csrf_token %}
+        {{ form.as_p }}
+        <label><input type="checkbox" name="reset_secret" value="1"> {% trans 'reset secret' %}</label>
+        <label><input type="checkbox" name="reset_api_secret" value="1"> {% trans 'reset API secret' %}</label>
+            <label><input type="checkbox" name="delete" value="1"> {% trans 'delete this position' %}</label>
+        <button type="submit">{% trans 'Update position' %}</button>
+    </form>
+</main>
+{% endblock %}

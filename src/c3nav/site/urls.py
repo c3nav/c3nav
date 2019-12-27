@@ -1,8 +1,8 @@
 from django.conf.urls import url
 
 from c3nav.site.views import (about_view, access_redeem_view, account_view, change_password_view, choose_language,
-                              login_view, logout_view, map_index, qr_code, register_view, report_create, report_detail,
-                              report_list)
+                              login_view, logout_view, map_index, position_create, position_detail, position_list,
+                              qr_code, register_view, report_create, report_detail, report_list)
 
 slug = r'(?P<slug>[a-z0-9-_.:]+)'
 coordinates = r'(?P<coordinates>[a-z0-9-_:]+:-?\d+(\.\d+)?:-?\d+(\.\d+)?)'
@@ -35,4 +35,7 @@ urlpatterns = [
     url(r'^report/l/(?P<location>\d+)/$', report_create, name='site.report_create'),
     url(r'^report/r/(?P<origin>[^/]+)/(?P<destination>[^/]+)/(?P<options>[^/]+)/$',
         report_create, name='site.report_create'),
+    url(r'^positions/$', position_list, name='site.position_list'),
+    url(r'^positions/create/$', position_create, name='site.position_create'),
+    url(r'^positions/(?P<pk>\d+)/$', position_detail, name='site.position_detail'),
 ]

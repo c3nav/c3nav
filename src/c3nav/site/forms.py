@@ -3,6 +3,7 @@ from django.forms import ModelForm
 from django.utils.translation import ugettext_lazy as _
 
 from c3nav.mapdata.forms import I18nModelFormMixin
+from c3nav.mapdata.models.locations import Position
 from c3nav.mapdata.models.report import Report, ReportUpdate
 
 
@@ -46,3 +47,9 @@ class ReportUpdateForm(ModelForm):
     class Meta:
         model = ReportUpdate
         fields = ['open', 'comment', 'public']
+
+
+class PositionForm(ModelForm):
+    class Meta:
+        model = Position
+        fields = ['name']

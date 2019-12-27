@@ -28,14 +28,15 @@ from c3nav.control.forms import AccessPermissionForm, SignedPermissionDataError
 from c3nav.mapdata.grid import grid
 from c3nav.mapdata.models import Location, Source
 from c3nav.mapdata.models.access import AccessPermissionToken
-from c3nav.mapdata.models.locations import LocationRedirect, SpecificLocation
+from c3nav.mapdata.models.locations import (LocationRedirect, Position, SpecificLocation, get_position_api_secret,
+                                            get_position_secret)
 from c3nav.mapdata.models.report import Report, ReportUpdate
 from c3nav.mapdata.utils.locations import (get_location_by_id_for_request, get_location_by_slug_for_request,
                                            levels_by_short_label_for_request)
 from c3nav.mapdata.utils.user import can_access_editor, get_user_data
 from c3nav.mapdata.views import set_tile_access_cookie
 from c3nav.routing.models import RouteOptions
-from c3nav.site.forms import ReportUpdateForm
+from c3nav.site.forms import PositionForm, ReportUpdateForm
 from c3nav.site.models import Announcement, SiteUpdate
 
 
@@ -433,6 +434,7 @@ def report_create(request, coordinates=None, location=None, origin=None, destina
     })
 
 
+@login_required(login_url='site.login')
 def report_list(request, filter):
     page = request.GET.get('page', 1)
 
@@ -481,3 +483,66 @@ def report_detail(request, pk, secret=None):
         'form': form,
         'update_form': update_form,
     })
+
+
+@login_required(login_url='site.login')
+def position_list(request):
+    return render(request, 'site/position_list.html', {
+        'positions': Position.objects.filter(owner=request.user),
+    })
+
+
+@login_required(login_url='site.login')
+def position_create(request):
+    if Position.objects.filter(owner=request.user).count() >= 20:
+        messages.error(request, _('You can\'t create more than 20 positions.'))
+
+    position = Position()
+    position.owner = request.user
+
+    if request.method == 'POST':
+        form = PositionForm(instance=position, data=request.POST)
+        if form.is_valid():
+            form.save()
+            messages.success(request, _('Position created.'))
+            return redirect(reverse('site.position_detail', kwargs={'pk': position.pk}))
+    else:
+        form = PositionForm(instance=position)
+
+    return render(request, 'site/position_create.html', {
+        'form': form,
+    })
+
+    pass
+
+
+@login_required(login_url='site.login')
+def position_detail(request, pk):
+    position = get_object_or_404(Position.objects.filter(owner=request.user), pk=pk)
+
+    if request.method == 'POST':
+        with transaction.atomic():
+            if request.POST.get('delete', None):
+                position.delete()
+                messages.success(request, _('Position deleted.'))
+                return redirect(reverse('site.position_list'))
+
+            if request.POST.get('reset_secret', None):
+                position.secret = get_position_secret()
+
+            if request.POST.get('reset_api_secret', None):
+                position.api_secret = get_position_api_secret()
+
+            form = PositionForm(instance=position, data=request.POST)
+            if form.is_valid():
+                form.save()
+                messages.success(request, _('Position updated.'))
+                return redirect(reverse('site.position_detail', kwargs={'pk': position.pk}))
+    else:
+        form = PositionForm(instance=position)
+
+    return render(request, 'site/position_detail.html', {
+        'position': position,
+        'form': form,
+    })
+    pass

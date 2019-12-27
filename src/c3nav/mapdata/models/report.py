@@ -3,7 +3,6 @@ import string
 from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.core.cache import cache
-from django.core.exceptions import ObjectDoesNotExist
 from django.db import models
 from django.db.models import Q
 from django.urls import reverse
@@ -15,46 +14,13 @@ from c3nav.mapdata.fields import I18nField
 from c3nav.mapdata.models.geometry.level import LevelGeometryMixin
 from c3nav.mapdata.models.geometry.space import SpaceGeometryMixin
 from c3nav.mapdata.models.locations import SpecificLocation
-from c3nav.mapdata.utils.locations import get_location_by_id_for_request
+from c3nav.mapdata.utils.fields import LocationById
 from c3nav.mapdata.utils.models import get_submodels
 from c3nav.site.tasks import send_report_notification
 
 
 def get_report_secret():
     return get_random_string(32, string.ascii_letters)
-
-
-class LocationById():
-    def __init__(self):
-        super().__init__()
-        self.name = None
-        self.cached_id = None
-        self.cached_value = None
-
-    def __set_name__(self, owner, name):
-        self.name = name
-
-    def __get__(self, instance, owner=None):
-        value_id = getattr(instance, self.name+'_id')
-        if value_id is None:
-            self.cached_pk = None
-            self.cached_value = None
-            return None
-
-        if value_id == self.cached_id:
-            return self.cached_value
-
-        value = get_location_by_id_for_request(value_id, getattr(instance, 'request', None))
-        if value is None:
-            raise ObjectDoesNotExist
-        self.cached_id = value_id
-        self.cached_value = value
-        return value
-
-    def __set__(self, instance, value):
-        self.cached_id = value.pk
-        self.cached_value = value
-        setattr(instance, self.name+'_id', value.pk)
 
 
 class Report(models.Model):

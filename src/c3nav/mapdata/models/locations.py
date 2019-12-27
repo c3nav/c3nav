@@ -1,11 +1,14 @@
+import string
 from contextlib import suppress
 from decimal import Decimal
 from operator import attrgetter
 
+from django.conf import settings
 from django.core.validators import MaxValueValidator, MinValueValidator, RegexValidator
 from django.db import models
 from django.db.models import FieldDoesNotExist, Prefetch
 from django.urls import reverse
+from django.utils.crypto import get_random_string
 from django.utils.functional import cached_property
 from django.utils.text import format_lazy
 from django.utils.translation import ugettext_lazy as _
@@ -15,6 +18,7 @@ from c3nav.mapdata.fields import I18nField
 from c3nav.mapdata.grid import grid
 from c3nav.mapdata.models.access import AccessRestrictionMixin
 from c3nav.mapdata.models.base import SerializableMixin, TitledMixin
+from c3nav.mapdata.utils.fields import LocationById
 from c3nav.mapdata.utils.models import get_submodels
 
 
@@ -452,3 +456,52 @@ class LabelSettings(SerializableMixin, models.Model):
         verbose_name_plural = _('Label Settings')
         default_related_name = 'labelsettings'
         ordering = ('min_zoom', '-font_size')
+
+
+class DynamicLocation(SpecificLocation, models.Model):
+    position_secret = models.CharField(_('position secret'), max_length=32, null=True, blank=True)
+
+    class Meta:
+        verbose_name = _('Dynamic location')
+        verbose_name_plural = _('Dynamic locations')
+        default_related_name = 'dynamic_locations'
+
+    """
+    def _serialize(self, **kwargs):
+        result = super()._serialize(**kwargs)
+        return result
+
+    @property
+    def grid_square(self):
+        return grid.get_squares_for_bounds(self.geometry.bounds) or ''
+
+    def details_display(self, editor_url=True, **kwargs):
+        result = super().details_display(**kwargs)
+        if editor_url:
+            result['editor_url'] = reverse('editor.areas.edit', kwargs={'space': self.space_id, 'pk': self.pk})
+        return result
+    """
+
+
+def get_position_secret():
+    return get_random_string(32, string.ascii_letters+string.digits)
+
+
+def get_position_api_secret():
+    return get_random_string(64, string.ascii_letters+string.digits)
+
+
+class Position(models.Model):
+    owner = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+    name = models.CharField(_('name'), max_length=32)
+    secret = models.CharField(_('secret'), unique=True, max_length=32, default=get_position_secret)
+    last_location_update = models.DateTimeField(_('last location update'), null=True)
+    location_id = models.CharField(_('location'), null=True, max_length=48)
+    api_secret = models.CharField(_('api secret'), max_length=64, default=get_position_api_secret)
+
+    coordinates = LocationById()
+
+    class Meta:
+        verbose_name = _('Dynamic position')
+        verbose_name_plural = _('Dynamic position')
+        default_related_name = 'dynamic_positions'

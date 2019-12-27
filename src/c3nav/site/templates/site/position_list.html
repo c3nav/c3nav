@@ -1,0 +1,18 @@
+{% extends 'site/base.html' %}
+{% load i18n %}
+
+{% block content %}
+<main class="account">
+    {% include 'site/fragment_messages.html' %}
+    <h2>{% trans 'Your positions' %}</h2>
+    <p>(still work in progress, stay tuned for more information)</p>
+
+    <ul>
+        {% for position in positions %}
+            <li><a href="{% url 'site.position_detail' pk=position.pk %}">{{ position.name }}</a></li>
+        {% endfor %}
+    </ul>
+
+    <a class="button" href="{% url 'site.position_create' %}">{% trans 'Create position' %}</a>
+</main>
+{% endblock %}
