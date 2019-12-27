@@ -272,6 +272,7 @@ class LocationGroupCategory(SerializableMixin, models.Model):
     allow_spaces = models.BooleanField(_('allow spaces'), db_index=True, default=True)
     allow_areas = models.BooleanField(_('allow areas'), db_index=True, default=True)
     allow_pois = models.BooleanField(_('allow pois'), db_index=True, default=True)
+    allow_dynamic_locations = models.BooleanField(_('allow dynamic locations'), db_index=True, default=True)
     priority = models.IntegerField(default=0, db_index=True)
 
     def __init__(self, *args, **kwargs):

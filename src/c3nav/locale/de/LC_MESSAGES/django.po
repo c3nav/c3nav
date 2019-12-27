@@ -2327,11 +2327,11 @@ msgstr "position secret"
 
 #: c3nav/mapdata/models/locations.py:465
 msgid "Dynamic location"
-msgstr "Dynamischer Ort."
+msgstr "Dynamischer Ort"
 
 #: c3nav/mapdata/models/locations.py:466
 msgid "Dynamic locations"
-msgstr "Dynamische Orte."
+msgstr "Dynamische Orte"
 
 #: c3nav/mapdata/models/locations.py:496
 msgid "name"
