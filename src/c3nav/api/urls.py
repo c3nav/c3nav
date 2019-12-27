@@ -11,11 +11,11 @@ from rest_framework.routers import SimpleRouter
 from c3nav.api.api import SessionViewSet
 from c3nav.editor.api import ChangeSetViewSet, EditorViewSet
 from c3nav.mapdata.api import (AccessRestrictionGroupViewSet, AccessRestrictionViewSet, AreaViewSet, BuildingViewSet,
-                               ColumnViewSet, CrossDescriptionViewSet, DoorViewSet, HoleViewSet,
-                               LeaveDescriptionViewSet, LevelViewSet, LineObstacleViewSet, LocationBySlugViewSet,
-                               LocationGroupCategoryViewSet, LocationGroupViewSet, LocationViewSet, MapViewSet,
-                               ObstacleViewSet, POIViewSet, RampViewSet, SourceViewSet, SpaceViewSet, StairViewSet,
-                               UpdatesViewSet)
+                               ColumnViewSet, CrossDescriptionViewSet, DoorViewSet, DynamicLocationPositionViewSet,
+                               HoleViewSet, LeaveDescriptionViewSet, LevelViewSet, LineObstacleViewSet,
+                               LocationBySlugViewSet, LocationGroupCategoryViewSet, LocationGroupViewSet,
+                               LocationViewSet, MapViewSet, ObstacleViewSet, POIViewSet, RampViewSet, SourceViewSet,
+                               SpaceViewSet, StairViewSet, UpdatesViewSet)
 from c3nav.mapdata.utils.user import can_access_editor
 from c3nav.routing.api import RoutingViewSet
 
@@ -41,6 +41,7 @@ router.register(r'accessrestrictiongroups', AccessRestrictionGroupViewSet)
 
 router.register(r'locations', LocationViewSet)
 router.register(r'locations/by_slug', LocationBySlugViewSet, base_name='location-by-slug')
+router.register(r'locations/dynamic', DynamicLocationPositionViewSet, base_name='dynamic-location')
 router.register(r'locationgroupcategories', LocationGroupCategoryViewSet)
 router.register(r'locationgroups', LocationGroupViewSet)
 

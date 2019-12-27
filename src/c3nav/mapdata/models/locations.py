@@ -111,7 +111,7 @@ class Location(LocationSlug, AccessRestrictionMixin, TitledMixin, models.Model):
         result = super().serialize(detailed=detailed, **kwargs)
         if not detailed:
             fields = ('id', 'type', 'slug', 'title', 'subtitle', 'icon', 'point', 'bounds', 'grid_square',
-                      'locations', 'on_top_of', 'label_settings', 'label_override', 'add_search')
+                      'locations', 'on_top_of', 'label_settings', 'label_override', 'add_search', 'dynamic')
             result = {name: result[name] for name in fields if name in result}
         return result
 
@@ -236,11 +236,15 @@ class SpecificLocation(Location, models.Model):
 
         return result
 
-    @property
-    def subtitle(self):
+    @cached_property
+    def describing_groups(self):
         groups = tuple(self.groups.all() if 'groups' in getattr(self, '_prefetched_objects_cache', ()) else ())
         groups = tuple(group for group in groups if group.can_describe)
-        subtitle = groups[0].title if groups else self.__class__._meta.verbose_name
+        return groups
+
+    @property
+    def subtitle(self):
+        subtitle = self.describing_groups[0].title if self.describing_groups else self.__class__._meta.verbose_name
         if self.grid_square:
             return '%s, %s' % (subtitle, self.grid_square)
         return subtitle
@@ -462,7 +466,15 @@ class LabelSettings(SerializableMixin, models.Model):
         ordering = ('min_zoom', '-font_size')
 
 
-class DynamicLocation(SpecificLocation, models.Model):
+class CustomLocationProxyMixin:
+    def get_custom_location(self):
+        raise NotImplementedError
+
+    def serialize_position(self):
+        raise NotImplementedError
+
+
+class DynamicLocation(CustomLocationProxyMixin, SpecificLocation, models.Model):
     position_secret = models.CharField(_('position secret'), max_length=32, null=True, blank=True)
 
     class Meta:
@@ -470,21 +482,55 @@ class DynamicLocation(SpecificLocation, models.Model):
         verbose_name_plural = _('Dynamic locations')
         default_related_name = 'dynamic_locations'
 
-    """
     def _serialize(self, **kwargs):
+        """custom_location = self.get_custom_location()
+        print(custom_location)
+        result = {} if custom_location is None else custom_location.serialize(**kwargs)
+        super_result = super()._serialize(**kwargs)
+        super_result['subtitle'] = '%s %s, %s' % (_('(moving)'), result['title'], result['subtitle'])
+        result.update(super_result)"""
         result = super()._serialize(**kwargs)
+        result['dynamic'] = True
         return result
 
-    @property
-    def grid_square(self):
-        return grid.get_squares_for_bounds(self.geometry.bounds) or ''
+    def serialize_position(self):
+        custom_location = self.get_custom_location()
+        if custom_location is None:
+            return {
+                'available': False,
+                'title': self.title,
+                'subtitle': '%s %s, %s' % (_('currently unavailable'), _('(moving)'), self.subtitle)
+            }
+        result = custom_location.serialize()
+        result.update({
+            'available': True,
+            'id': self.pk,
+            'slug': self.slug,
+            'coordinates': custom_location.pk,
+            'icon': self.get_icon(),
+            'title': self.title,
+            'subtitle': '%s %s%s, %s' % (
+                _('(moving)'),
+                ('%s, ' % self.subtitle) if self.describing_groups else '',
+                result['title'],
+                result['subtitle']
+            ),
+        })
+        return result
+
+    def get_custom_location(self):
+        if not self.position_secret:
+            return None
+        try:
+            return Position.objects.get(secret=self.position_secret).get_custom_location()
+        except Position.DoesNotExist:
+            return None
 
     def details_display(self, editor_url=True, **kwargs):
         result = super().details_display(**kwargs)
         if editor_url:
-            result['editor_url'] = reverse('editor.areas.edit', kwargs={'space': self.space_id, 'pk': self.pk})
+            result['editor_url'] = reverse('editor.dynamic_locations.edit', kwargs={'pk': self.pk})
         return result
-    """
 
 
 def get_position_secret():
@@ -495,7 +541,7 @@ def get_position_api_secret():
     return get_random_string(64, string.ascii_letters+string.digits)
 
 
-class Position(models.Model):
+class Position(CustomLocationProxyMixin, models.Model):
     owner = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
     name = models.CharField(_('name'), max_length=32)
     secret = models.CharField(_('secret'), unique=True, max_length=32, default=get_position_secret)
@@ -519,6 +565,9 @@ class Position(models.Model):
                 self.cordinates = None
                 self.last_coordinates_update = end_time
 
+    def get_custom_location(self):
+        return self.coordinates
+
     @classmethod
     def user_has_positions(cls, user):
         if not user.is_authenticated:
@@ -528,6 +577,33 @@ class Position(models.Model):
         if result is None:
             result = cls.objects.filter(owner=user).exists()
             cache.set(cache_key, result, 600)
+        return result
+
+    def serialize_position(self):
+        custom_location = self.get_custom_location()
+        if custom_location is None:
+            return {
+                'id': self.secret,
+                'slug': self.secret,
+                'available': False,
+                'icon': 'my_location',
+                'title': self.name,
+                'subtitle': _('currently unavailable'),
+            }
+        result = custom_location.serialize()
+        result.update({
+            'available': True,
+            'id': 'p:%s' % self.secret,
+            'slug': 'p:%s' % self.secret,
+            'coordinates': custom_location.pk,
+            'icon': 'my_location',
+            'title': self.name,
+            'subtitle': '%s, %s, %s' % (
+                _('Position'),
+                result['title'],
+                result['subtitle']
+            ),
+        })
         return result
 
     def save(self, *args, **kwargs):

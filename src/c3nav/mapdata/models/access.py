@@ -199,7 +199,7 @@ class AccessPermission(models.Model):
 
     @classmethod
     def get_for_request(cls, request):
-        if not request.user.is_authenticated:
+        if not request or not request.user.is_authenticated:
             return set()
 
         if request.user_permissions.grant_all_access:

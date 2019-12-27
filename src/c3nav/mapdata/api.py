@@ -6,7 +6,7 @@ from urllib.parse import urlparse
 
 from django.core.cache import cache
 from django.db.models import Prefetch
-from django.http import HttpResponse
+from django.http import Http404, HttpResponse
 from django.shortcuts import redirect
 from django.utils.cache import get_conditional_response
 from django.utils.http import http_date, quote_etag, urlsafe_base64_encode
@@ -14,6 +14,7 @@ from django.utils.translation import get_language
 from django.utils.translation import ugettext_lazy as _
 from rest_framework.decorators import action
 from rest_framework.exceptions import NotFound, ValidationError
+from rest_framework.generics import get_object_or_404
 from rest_framework.mixins import RetrieveModelMixin
 from rest_framework.response import Response
 from rest_framework.viewsets import GenericViewSet, ReadOnlyModelViewSet, ViewSet
@@ -25,8 +26,8 @@ from c3nav.mapdata.models.geometry.level import LevelGeometryMixin
 from c3nav.mapdata.models.geometry.space import (POI, Area, Column, CrossDescription, LeaveDescription, LineObstacle,
                                                  Obstacle, Ramp, SpaceGeometryMixin, Stair)
 from c3nav.mapdata.models.level import Level
-from c3nav.mapdata.models.locations import (Location, LocationGroupCategory, LocationRedirect, LocationSlug,
-                                            SpecificLocation)
+from c3nav.mapdata.models.locations import (DynamicLocation, Location, LocationGroupCategory, LocationRedirect,
+                                            LocationSlug, Position, SpecificLocation)
 from c3nav.mapdata.utils.cache.local import LocalCacheProxy
 from c3nav.mapdata.utils.cache.stats import increment_cache_key
 from c3nav.mapdata.utils.locations import (get_location_by_id_for_request, get_location_by_slug_for_request,
@@ -461,6 +462,25 @@ class LocationBySlugViewSet(LocationViewSetBase):
 
     def get_object(self):
         return get_location_by_slug_for_request(self.kwargs['slug'], self.request)
+
+
+class DynamicLocationPositionViewSet(RetrieveModelMixin, GenericViewSet):
+    queryset = LocationSlug.objects.all()
+    lookup_field = 'slug'
+    lookup_value_regex = r'[^/]+'
+
+    def get_object(self):
+        slug = self.kwargs['slug']
+        if slug.startswith('p:'):
+            return get_object_or_404(Position, secret=slug[2:])
+        if slug.isdigit():
+            return get_object_or_404(DynamicLocation, pk=slug)
+        raise Http404
+
+    @api_stats('dynamic_location_retrieve')
+    def retrieve(self, request, key=None, *args, **kwargs):
+        obj = self.get_object()
+        return Response(obj.serialize_position())
 
 
 class SourceViewSet(MapdataViewSet):
