@@ -1524,6 +1524,15 @@ c3nav = {
             // if location is not in the searchable list...
             return
         }
+        console.log(location);
+        if (location.dynamic) {
+            if (!('available' in location)) {
+                $.getJSON('/api/locations/dynamic/' + location.id + '/', c3nav._dynamic_location_loaded);
+                return;
+            } else if (!location.available) {
+                return;
+            }
+        }
         // add a location to the map as a marker
         if (location.locations) {
             var bounds = {};
@@ -1565,6 +1574,21 @@ c3nav = {
         for (var level_id in new_bounds) {
             bounds[level_id] = bounds[level_id] ? bounds[level_id].extend(new_bounds[level_id]) : new_bounds[level_id];
         }
+    },
+    _dynamic_location_loaded: function(data) {
+        if (c3nav._maybe_update_dynamic_location($('#origin-input'), data) || c3nav._maybe_update_dynamic_location($('#destination-input'), data)) {
+            c3nav.update_state();
+            // todo: fly to bounds
+        }
+    },
+    _maybe_update_dynamic_location: function(elem, location) {
+        if (elem.is('.empty')) return false;
+        var orig_location = elem.data('location');
+        if (orig_location.id !== location.id) return false;
+
+        new_location = $.extend({}, orig_location, location);
+        c3nav._locationinput_set(elem, new_location);
+        return true;
     },
 
     _location_geometry_loaded: function(data) {

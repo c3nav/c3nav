@@ -501,7 +501,7 @@ class DynamicLocation(CustomLocationProxyMixin, SpecificLocation, models.Model):
                 'title': self.title,
                 'subtitle': '%s %s, %s' % (_('currently unavailable'), _('(moving)'), self.subtitle)
             }
-        result = custom_location.serialize()
+        result = custom_location.serialize(simple_geometry=True)
         result.update({
             'available': True,
             'id': self.pk,
@@ -590,7 +590,7 @@ class Position(CustomLocationProxyMixin, models.Model):
                 'title': self.name,
                 'subtitle': _('currently unavailable'),
             }
-        result = custom_location.serialize()
+        result = custom_location.serialize(simple_geometry=True)
         result.update({
             'available': True,
             'id': 'p:%s' % self.secret,
