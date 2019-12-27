@@ -30,6 +30,7 @@ class LocationById():
         return value
 
     def __set__(self, instance, value):
-        self.cached_id = value.pk
+        value_id = None if value is None else value.pk
+        self.cached_id = value_id
         self.cached_value = value
-        setattr(instance, self.name+'_id', value.pk)
+        setattr(instance, self.name+'_id', value_id)
