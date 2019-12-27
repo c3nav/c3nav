@@ -509,6 +509,9 @@ class DynamicLocation(CustomLocationProxyMixin, SpecificLocation, models.Model):
         result['dynamic'] = True
         return result
 
+    def register_change(self, force=False):
+        pass
+
     def serialize_position(self):
         custom_location = self.get_custom_location()
         if custom_location is None:
