@@ -81,7 +81,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(
         description='locate yourself via the c3nav api and optionally update the coordinates of a custom position '
                     'in c3nav')
-    parser.add_argument('--instance', '-i', metavar='https://event.c3nave.de',
+    parser.add_argument('--instance', '-i', metavar='https://${event}.c3nav.de',
                         required=not bool(os.environ.get('C3NAV_INSTANCE', False)),
                         default=os.environ.get('C3NAV_INSTANCE'),
                         help='The base url of the c3nav instance to use, for example https://36c3.c3nav.de.')
