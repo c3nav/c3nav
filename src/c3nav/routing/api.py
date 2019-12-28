@@ -139,14 +139,14 @@ class RoutingViewSet(ViewSet):
             set_position = data['set_position']
             if not set_position.startswith('p:'):
                 return Response({
-                    'errors': (_('Invalid set_location.'),),
+                    'errors': (_('Invalid set_position.'),),
                 }, status=400)
 
             try:
                 position = Position.objects.get(secret=set_position[2:])
             except Position.DoesNotExist:
                 return Response({
-                    'errors': (_('Invalid set_location.'),),
+                    'errors': (_('Invalid set_position.'),),
                 }, status=400)
 
             form_data = {
