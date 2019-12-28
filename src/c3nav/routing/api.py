@@ -135,7 +135,7 @@ class RoutingViewSet(ViewSet):
                 'errors': (_('Invalid scan data.'),),
             }, status=400)
 
-        if 'set_position' in data:
+        if 'set_position' in data and location:
             set_position = data['set_position']
             if not set_position.startswith('p:'):
                 return Response({
