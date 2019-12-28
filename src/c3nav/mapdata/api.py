@@ -15,10 +15,11 @@ from django.utils.translation import ugettext_lazy as _
 from rest_framework.decorators import action
 from rest_framework.exceptions import NotFound, ValidationError
 from rest_framework.generics import get_object_or_404
-from rest_framework.mixins import RetrieveModelMixin
+from rest_framework.mixins import RetrieveModelMixin, UpdateModelMixin
 from rest_framework.response import Response
 from rest_framework.viewsets import GenericViewSet, ReadOnlyModelViewSet, ViewSet
 
+from c3nav.mapdata.forms import PositionAPIUpdateForm
 from c3nav.mapdata.models import AccessRestriction, Building, Door, Hole, LocationGroup, MapUpdate, Source, Space
 from c3nav.mapdata.models.access import AccessPermission, AccessRestrictionGroup
 from c3nav.mapdata.models.geometry.base import GeometryMixin
@@ -464,7 +465,7 @@ class LocationBySlugViewSet(LocationViewSetBase):
         return get_location_by_slug_for_request(self.kwargs['slug'], self.request)
 
 
-class DynamicLocationPositionViewSet(RetrieveModelMixin, GenericViewSet):
+class DynamicLocationPositionViewSet(UpdateModelMixin, RetrieveModelMixin, GenericViewSet):
     queryset = LocationSlug.objects.all()
     lookup_field = 'slug'
     lookup_value_regex = r'[^/]+'
@@ -481,6 +482,20 @@ class DynamicLocationPositionViewSet(RetrieveModelMixin, GenericViewSet):
     def retrieve(self, request, key=None, *args, **kwargs):
         obj = self.get_object()
         return Response(obj.serialize_position())
+
+    def update(self, request, *args, **kwargs):
+        instance = self.get_object()
+        params = request.data
+        form = PositionAPIUpdateForm(instance=instance, data=params, request=request)
+
+        if not form.is_valid():
+            return Response({
+                'errors': form.errors,
+            }, status=400)
+
+        form.save()
+
+        return Response(form.instance.serialize_position())
 
 
 class SourceViewSet(MapdataViewSet):

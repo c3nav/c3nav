@@ -8,6 +8,8 @@ from django.utils.translation import get_language_info
 from django.utils.translation import ugettext_lazy as _
 
 from c3nav.mapdata.fields import I18nField
+from c3nav.mapdata.models.locations import Position
+from c3nav.mapdata.utils.locations import get_location_by_id_for_request
 
 
 class I18nModelFormMixin(ModelForm):
@@ -62,3 +64,36 @@ class I18nModelFormMixin(ModelForm):
         super().full_clean()
         for field, values in self.i18n_fields:
             setattr(self.instance, field.attname, {lang: value for lang, value in values.items() if value})
+
+
+class PositionAPIUpdateForm(ModelForm):
+    secret = CharField()
+
+    def __init__(self, *args, request=None, **kwargs):
+        self.request = request
+        super().__init__(*args, **kwargs)
+
+    class Meta:
+        model = Position
+        fields = ['coordinates_id', 'timeout']
+
+    def clean_secret(self):
+        # not called api_secret so we don't overwrite it
+        api_secret = self.cleaned_data['secret']
+        if api_secret != self.instance.api_secret:
+            raise ValidationError(_('Wrong API secret.'))
+        return api_secret
+
+    def clean_coordinates_id(self):
+        coordinates_id = self.cleaned_data['coordinates_id']
+        if coordinates_id is None:
+            return coordinates_id
+
+        if not coordinates_id.startswith('c:'):
+            raise ValidationError(_('Invalid coordinates.'))
+
+        coordinates = get_location_by_id_for_request(self.cleaned_data['coordinates_id'], self.request)
+        if coordinates is None:
+            raise ValidationError(_('Invalid coordinates.'))
+
+        return coordinates_id

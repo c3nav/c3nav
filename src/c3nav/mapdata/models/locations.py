@@ -566,7 +566,8 @@ class Position(CustomLocationProxyMixin, models.Model):
     name = models.CharField(_('name'), max_length=32)
     secret = models.CharField(_('secret'), unique=True, max_length=32, default=get_position_secret)
     last_coordinates_update = models.DateTimeField(_('last coordinates update'), null=True)
-    timeout = models.PositiveSmallIntegerField(_('timeout (in seconds)'), default=0, help_text=_('0 for no timeout'))
+    timeout = models.PositiveSmallIntegerField(_('timeout (in seconds)'), default=0, blank=True,
+                                               help_text=_('0 for no timeout'))
     coordinates_id = models.CharField(_('coordinates'), null=True, max_length=48)
     api_secret = models.CharField(_('api secret'), max_length=64, default=get_position_api_secret)
 
