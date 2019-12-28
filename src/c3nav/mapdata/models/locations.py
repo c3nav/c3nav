@@ -526,7 +526,6 @@ class DynamicLocation(CustomLocationProxyMixin, SpecificLocation, models.Model):
             'available': True,
             'id': self.pk,
             'slug': self.slug,
-            'coordinates': custom_location.pk,
             'icon': self.get_icon(),
             'title': self.title,
             'subtitle': '%s %s%s, %s' % (
@@ -619,7 +618,6 @@ class Position(CustomLocationProxyMixin, models.Model):
             'available': True,
             'id': 'p:%s' % self.secret,
             'slug': 'p:%s' % self.secret,
-            'coordinates': custom_location.pk,
             'icon': 'my_location',
             'title': self.name,
             'subtitle': '%s, %s, %s' % (

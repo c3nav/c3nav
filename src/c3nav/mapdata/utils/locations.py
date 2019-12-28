@@ -292,6 +292,7 @@ class CustomLocation:
         result = OrderedDict((
             ('id', self.pk),
             ('slug', self.pk),
+            ('coordinates', self.pk),
             ('icon', self.icon),
             ('title', self.title),
             ('subtitle', self.subtitle),
