@@ -6,6 +6,7 @@ from rest_framework.response import Response
 from rest_framework.viewsets import ViewSet
 
 from c3nav.mapdata.api import api_stats_clean_location_value
+from c3nav.mapdata.forms import PositionAPIUpdateForm
 from c3nav.mapdata.models.access import AccessPermission
 from c3nav.mapdata.models.locations import Position
 from c3nav.mapdata.utils.cache.stats import increment_cache_key
@@ -112,5 +113,33 @@ class RoutingViewSet(ViewSet):
             return Response({
                 'errors': (_('Invalid scan data.'),),
             }, status=400)
+
+        if 'set_position' in request.data:
+            set_position = request.data['set_position']
+            if not set_position.startswith('p:'):
+                return Response({
+                    'errors': (_('Invalid set_location.'),),
+                }, status=400)
+
+            try:
+                position = Position.objects.get(secret=set_position[2:])
+            except Position.DoesNotExist:
+                return Response({
+                    'errors': (_('Invalid set_location.'),),
+                }, status=400)
+
+            data = {
+                **request.data,
+                'coordinates_id': None if location is None else location.pk,
+            }
+
+            form = PositionAPIUpdateForm(instance=position, data=data, request=request)
+
+            if not form.is_valid():
+                return Response({
+                    'errors': form.errors,
+                }, status=400)
+
+            form.save()
 
         return Response({'location': None if location is None else location.serialize(simple_geometry=True)})
