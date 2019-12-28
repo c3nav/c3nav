@@ -585,7 +585,7 @@ class Position(CustomLocationProxyMixin, models.Model):
         if self.timeout and self.last_coordinates_update:
             end_time = self.last_coordinates_update + timedelta(seconds=self.timeout)
             if timezone.now() >= end_time:
-                self.cordinates = None
+                self.coordinates = None
                 self.last_coordinates_update = end_time
 
     def get_custom_location(self):
