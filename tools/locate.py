@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 import argparse
 import json
 import os
@@ -114,7 +115,7 @@ if __name__ == '__main__':
     location = locate(args.instance, interface=args.interface, sudo=args.sudo, secret=args.secret,
                       api_secret=args.apisecret, location_timeout=args.timeout)
 
-    if location['location'] is None:
+    if location is None:
         # no location found
         if not args.quiet:
             print('no location found')
