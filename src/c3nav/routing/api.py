@@ -105,8 +105,15 @@ class RoutingViewSet(ViewSet):
 
     @action(detail=False, methods=('POST', ))
     def locate(self, request, *args, **kwargs):
+        if isinstance(request.data, list):
+            stations_data = request.data
+            data = {}
+        else:
+            data = request.data
+            stations_data = data['stations']
+
         try:
-            location = Locator.load().locate(request.data, permissions=AccessPermission.get_for_request(request))
+            location = Locator.load().locate(stations_data, permissions=AccessPermission.get_for_request(request))
             if location is not None:
                 increment_cache_key('apistats__locate__%s' % location.pk)
         except ValidationError:
@@ -114,8 +121,8 @@ class RoutingViewSet(ViewSet):
                 'errors': (_('Invalid scan data.'),),
             }, status=400)
 
-        if 'set_position' in request.data:
-            set_position = request.data['set_position']
+        if 'set_position' in data:
+            set_position = data['set_position']
             if not set_position.startswith('p:'):
                 return Response({
                     'errors': (_('Invalid set_location.'),),
@@ -128,12 +135,12 @@ class RoutingViewSet(ViewSet):
                     'errors': (_('Invalid set_location.'),),
                 }, status=400)
 
-            data = {
-                **request.data,
+            form_data = {
+                **data,
                 'coordinates_id': None if location is None else location.pk,
             }
 
-            form = PositionAPIUpdateForm(instance=position, data=data, request=request)
+            form = PositionAPIUpdateForm(instance=position, data=form_data, request=request)
 
             if not form.is_valid():
                 return Response({
