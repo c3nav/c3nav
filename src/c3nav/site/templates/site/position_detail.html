@@ -24,6 +24,33 @@
     </p>
 
     <hr>
+    <h4>{% trans 'How to manage' %}</h4>
+    <p>
+        {% trans 'To set this position, click on any point in the c3nav UI and click "set my position".' %}
+        {% trans 'To unset your position, just come here or set the timeout appropriately.' %}
+    </p>
+    <p>
+        {% trans 'We only keep your last position, we do not save any position history.' %}
+    </p>
+    <p>
+        {% trans 'To set it via the API, send a JSON PUT request to:' %}<br>
+        <code><a href="/api/locations/dynamic/p:{{ position.secret }}/">/api/locations/dynamic/p:{{ position.secret }}/</a></code><br>
+    </p>
+    <pre>
+    {
+        "coordinates_id": "c:z:xx.x:yy.y",
+        "secret": "your API secret",
+        "timeout": (in seconds, only if you want to change it)
+    }</pre>
+    <p>
+        {% trans 'To get it via the API, just send a GET request to that URL.' %}
+    </p>
+    <p>
+        {% trans 'To access this position on the map, visit:' %}<br>
+        <code><a href="/l/p:{{ position.secret }}/">/l/p:{{ position.secret }}/</a></code>
+    </p>
+
+    <hr>
 
     <form method="post" action="{{ request.path_info }}">
         {% csrf_token %}

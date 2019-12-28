@@ -7,8 +7,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2019-12-27 23:34+0100\n"
-"PO-Revision-Date: 2019-12-27 23:36+0100\n"
+"POT-Creation-Date: 2019-12-28 17:16+0100\n"
+"PO-Revision-Date: 2019-12-28 17:16+0100\n"
 "Last-Translator: Jenny Danzmayr <mail@evilscientress.at>\n"
 "Language-Team: \n"
 "Language: de\n"
@@ -42,7 +42,7 @@ msgstr "Nich angemeldet."
 msgid "Logout successful."
 msgstr "Login erfolgreich."
 
-#: c3nav/api/models.py:14 c3nav/mapdata/models/locations.py:563
+#: c3nav/api/models.py:14 c3nav/mapdata/models/locations.py:567
 #: c3nav/mapdata/models/report.py:55
 msgid "secret"
 msgstr "secret"
@@ -1388,7 +1388,7 @@ msgstr "Scandaten erstellt"
 msgid "edited scan data"
 msgstr "Scandaten bearbeitet"
 
-#: c3nav/editor/views/changes.py:297 c3nav/mapdata/forms.py:38
+#: c3nav/editor/views/changes.py:297 c3nav/mapdata/forms.py:40
 #, python-brace-format
 msgid "{field_name} ({lang})"
 msgstr "{field_name} ({lang})"
@@ -1512,12 +1512,12 @@ msgstr "Du hast direktes Bearbeiten aktiviert."
 msgid "You deactivated direct editing."
 msgstr "Du hast direktes Bearbeiten deaktiviert."
 
-#: c3nav/mapdata/api.py:202
+#: c3nav/mapdata/api.py:203
 #, python-format
 msgid "%(field)s is not an integer."
 msgstr "%(field)s ist keine ganze Zahl."
 
-#: c3nav/mapdata/api.py:210
+#: c3nav/mapdata/api.py:211
 #, python-format
 msgid "%(model)s not found."
 msgstr "%(model)s nicht gefunden."
@@ -1530,10 +1530,18 @@ msgstr "Invalides GeoJSON."
 msgid "Could not clean geometry."
 msgstr "Konnte Geometrie nicht bereinigen."
 
-#: c3nav/mapdata/forms.py:55
+#: c3nav/mapdata/forms.py:57
 #, python-brace-format
 msgid "You have to choose a value for {field} in at least one language."
 msgstr "Du must das Feld {field} in mindestens einer Sprache ausfüllen."
+
+#: c3nav/mapdata/forms.py:84
+msgid "Wrong API secret."
+msgstr "Falsches API secret."
+
+#: c3nav/mapdata/forms.py:93 c3nav/mapdata/forms.py:97
+msgid "Invalid coordinates."
+msgstr "Invalide Koordinaten."
 
 #: c3nav/mapdata/management/commands/clearmapcache.py:17
 msgid "incluce all history as well"
@@ -2337,43 +2345,43 @@ msgstr "Dynamischer Ort"
 msgid "Dynamic locations"
 msgstr "Dynamische Orte"
 
-#: c3nav/mapdata/models/locations.py:518 c3nav/mapdata/models/locations.py:610
+#: c3nav/mapdata/models/locations.py:522 c3nav/mapdata/models/locations.py:615
 msgid "currently unavailable"
 msgstr "z. Zt. nicht verfügbar"
 
-#: c3nav/mapdata/models/locations.py:518 c3nav/mapdata/models/locations.py:529
+#: c3nav/mapdata/models/locations.py:522 c3nav/mapdata/models/locations.py:533
 msgid "(moving)"
 msgstr "(beweglich)"
 
-#: c3nav/mapdata/models/locations.py:562
+#: c3nav/mapdata/models/locations.py:566
 msgid "name"
 msgstr "Name"
 
-#: c3nav/mapdata/models/locations.py:564
+#: c3nav/mapdata/models/locations.py:568
 msgid "last coordinates update"
 msgstr "Letztes Koordinatenupdate"
 
-#: c3nav/mapdata/models/locations.py:565
+#: c3nav/mapdata/models/locations.py:569
 msgid "timeout (in seconds)"
 msgstr "Timeout (in Sekunden)"
 
-#: c3nav/mapdata/models/locations.py:565
+#: c3nav/mapdata/models/locations.py:570
 msgid "0 for no timeout"
 msgstr "0 für kein Timeout"
 
-#: c3nav/mapdata/models/locations.py:566 c3nav/mapdata/models/report.py:45
+#: c3nav/mapdata/models/locations.py:571 c3nav/mapdata/models/report.py:45
 msgid "coordinates"
 msgstr "Koordinaten"
 
-#: c3nav/mapdata/models/locations.py:567
+#: c3nav/mapdata/models/locations.py:572
 msgid "api secret"
 msgstr "API secret"
 
-#: c3nav/mapdata/models/locations.py:575 c3nav/mapdata/models/locations.py:576
+#: c3nav/mapdata/models/locations.py:580 c3nav/mapdata/models/locations.py:581
 msgid "Dynamic position"
 msgstr "Dynamische Position"
 
-#: c3nav/mapdata/models/locations.py:621 c3nav/mapdata/models/locations.py:639
+#: c3nav/mapdata/models/locations.py:626 c3nav/mapdata/models/locations.py:644
 msgid "Position"
 msgstr "Position"
 
@@ -3045,29 +3053,67 @@ msgstr "aktuell keine Koordinaten"
 
 #: c3nav/site/templates/site/position_detail.html:15
 msgid "last coordinates update:"
-msgstr "Letztes Koordinatenupdate"
+msgstr "Letztes Koordinatenupdate:"
 
 #: c3nav/site/templates/site/position_detail.html:18
 msgid "Secret"
 msgstr "Secret"
 
-#: c3nav/site/templates/site/position_detail.html:31
+#: c3nav/site/templates/site/position_detail.html:27
+msgid "How to manage"
+msgstr "Manageanleitung"
+
+#: c3nav/site/templates/site/position_detail.html:29
+msgid ""
+"To set this position, click on any point in the c3nav UI and click \"set my "
+"position\"."
+msgstr ""
+"Um die Position zu setzen, klicke auf einen beliebigen Punkt in der c3nav-"
+"Oberfläche und klick auf „Meine Position setzen“."
+
+#: c3nav/site/templates/site/position_detail.html:30
+msgid ""
+"To unset your position, just come here or set the timeout appropriately."
+msgstr ""
+"Um die Position zurückzusetzen, komme hierhin zurück oder setze den Timeout "
+"entsprechend."
+
+#: c3nav/site/templates/site/position_detail.html:33
+msgid "We only keep your last position, we do not save any position history."
+msgstr ""
+"Wir speichern nur die letzte Position, wir speichern keine "
+"Positionsgeschichte."
+
+#: c3nav/site/templates/site/position_detail.html:36
+msgid "To set it via the API, send a JSON PUT request to:"
+msgstr "Um sie über die API zu setzen, sende einen JSON PUT request an:"
+
+#: c3nav/site/templates/site/position_detail.html:46
+msgid "To get it via the API, just send a GET request to that URL."
+msgstr ""
+"Um sie über die API abzufragen, sende einfach einen GET request an die URL."
+
+#: c3nav/site/templates/site/position_detail.html:49
+msgid "To access this position on the map, visit:"
+msgstr "Um diese Position auf der Karte zu sehen, nutze folgenden Link:"
+
+#: c3nav/site/templates/site/position_detail.html:58
 msgid "unset coordinates"
 msgstr "Koordinaten löschen"
 
-#: c3nav/site/templates/site/position_detail.html:32
+#: c3nav/site/templates/site/position_detail.html:59
 msgid "reset secret"
 msgstr "Secret zurücksetzen"
 
-#: c3nav/site/templates/site/position_detail.html:33
+#: c3nav/site/templates/site/position_detail.html:60
 msgid "reset API secret"
 msgstr "API Secret zurücksetzen"
 
-#: c3nav/site/templates/site/position_detail.html:34
+#: c3nav/site/templates/site/position_detail.html:61
 msgid "delete this position"
 msgstr "diese Position löschen"
 
-#: c3nav/site/templates/site/position_detail.html:35
+#: c3nav/site/templates/site/position_detail.html:62
 msgid "Update position"
 msgstr "Position speichern"
 
