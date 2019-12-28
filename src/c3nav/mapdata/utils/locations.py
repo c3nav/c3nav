@@ -304,6 +304,8 @@ class CustomLocation:
             ('nearby', tuple(location.pk for location in self.nearby)),
             ('altitude', None if self.altitude is None else round(self.altitude, 2))
         ))
+        if hasattr(self, 'score'):
+            result['score'] = self.score
         if not grid.enabled:
             result.pop('grid_square')
         if include_type:
