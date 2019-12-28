@@ -3,6 +3,7 @@ from collections import OrderedDict
 from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.forms import CharField, ModelForm
+from django.utils import timezone
 from django.utils.text import capfirst, format_lazy
 from django.utils.translation import get_language_info
 from django.utils.translation import ugettext_lazy as _
@@ -76,6 +77,10 @@ class PositionAPIUpdateForm(ModelForm):
     class Meta:
         model = Position
         fields = ['coordinates_id', 'timeout']
+
+    def save(self, commit=True):
+        self.instance.last_coordinates_update = timezone.now()
+        super().save(commit)
 
     def clean_secret(self):
         # not called api_secret so we don't overwrite it
