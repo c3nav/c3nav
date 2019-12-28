@@ -475,7 +475,9 @@ class DynamicLocationPositionViewSet(UpdateModelMixin, RetrieveModelMixin, Gener
         if slug.startswith('p:'):
             return get_object_or_404(Position, secret=slug[2:])
         if slug.isdigit():
-            return get_object_or_404(DynamicLocation, pk=slug)
+            location = get_location_by_id_for_request(slug, self.request)
+            if isinstance(location, DynamicLocation):
+                return location
         raise Http404
 
     @api_stats('dynamic_location_retrieve')
