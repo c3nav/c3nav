@@ -23,6 +23,20 @@ class RoutingViewSet(ViewSet):
     /route/ Get routes.
     /options/ Get or set route options.
     /locate/ Wifi locate.
+
+    How to use the /locate/ endpoint:
+    POST visible wifi stations as JSON data like this:
+    {
+        "stations": [
+            {
+                "bssid": "11:22:33:44:55:66",
+                "ssid": "36C3",
+                "level": -55,
+                "frequency": 5500
+            },
+            ...
+        ]
+    }
     """
     @action(detail=False, methods=['get', 'post'])
     def route(self, request, *args, **kwargs):
