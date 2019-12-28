@@ -124,6 +124,10 @@ class RoutingViewSet(ViewSet):
             data = {}
         else:
             data = request.data
+            if 'stations' not in data:
+                return Response({
+                    'errors': (_('stations is missing.'),),
+                }, status=400)
             stations_data = data['stations']
 
         try:
