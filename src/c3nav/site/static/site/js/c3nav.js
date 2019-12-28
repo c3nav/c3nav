@@ -662,7 +662,7 @@ c3nav = {
         if ((a.origin && a.origin.id) !== (b.origin && b.origin.id)) return false;
         if ((a.destination && a.destination.id) !== (b.destination && b.destination.id)) return false;
         if (a.level !== b.level || a.zoom !== b.zoom) return false;
-        if (!!a.center !== !!b.center || a.center[0] !== b.center[0] || a.center[1] !== b.center[1]) return false;
+        if (!!a.center !== !!b.center || (a.center && (a.center[0] !== b.center[0] || a.center[1] !== b.center[1]))) return false;
         return true;
     },
     _build_state_url: function (state, embed) {
