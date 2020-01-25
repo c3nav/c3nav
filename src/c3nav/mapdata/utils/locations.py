@@ -37,15 +37,17 @@ def locations_for_request(request) -> Mapping[int, LocationSlug]:
     conditions = []
     for model in get_submodels(Location):
         related_name = model._meta.default_related_name
-        condition = Q(**{related_name + '__isnull': False})
-        # noinspection PyUnresolvedReferences
-        condition &= model.q_for_request(request, prefix=related_name + '__')
-        conditions.append(condition)
+        for prefix in ('', 'redirect__target__'):
+            condition = Q(**{prefix + related_name + '__isnull': False})
+            # noinspection PyUnresolvedReferences
+            condition &= model.q_for_request(request, prefix=prefix + related_name + '__')
+            conditions.append(condition)
         locations = locations.select_related(
             related_name + '__label_settings'
         ).prefetch_related(
             related_name + '__redirects'
         )
+
     locations = locations.filter(reduce(operator.or_, conditions))
     locations = locations.select_related('redirect', 'locationgroups__category')
 
@@ -103,7 +105,7 @@ def locations_for_request(request) -> Mapping[int, LocationSlug]:
     levels = {pk: obj for pk, obj in locations.items() if isinstance(obj, Level)}
     for obj in locations.values():
         if isinstance(obj, LocationRedirect):
-            obj._target_cache = locations.get(obj.target_id, None)
+            obj.target = locations.get(obj.target_id, None)
 
     # apply better space geometries
     for pk, geometry in get_better_space_geometries().items():
@@ -112,6 +114,8 @@ def locations_for_request(request) -> Mapping[int, LocationSlug]:
 
     # precache cached properties
     for obj in locations.values():
+        if isinstance(obj, LocationRedirect):
+            continue
         # noinspection PyStatementEffect
         obj.subtitle, obj.order
         if isinstance(obj, GeometryMixin):
