@@ -767,7 +767,7 @@ msgid "You cannot delete this change set."
 msgstr "Du kannst dieses Änderungsset nicht löschen."
 
 #: c3nav/editor/forms.py:191
-msgid "Redirecting Slugs (comma seperated)"
+msgid "Redirecting Slugs (comma separated)"
 msgstr "Umleitungs-Slugs (mit Komma getrennt)"
 
 #: c3nav/editor/forms.py:230

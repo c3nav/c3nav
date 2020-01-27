@@ -188,7 +188,7 @@ class EditorFormBase(I18nModelFormMixin, ModelForm):
         self.remove_redirect_slugs = None
         if 'slug' in self.fields:
             self.redirect_slugs = sorted(self.instance.redirects.values_list('slug', flat=True))
-            self.fields['redirect_slugs'] = CharField(label=_('Redirecting Slugs (comma seperated)'), required=False,
+            self.fields['redirect_slugs'] = CharField(label=_('Redirecting Slugs (comma separated)'), required=False,
                                                       initial=','.join(self.redirect_slugs))
             self.fields.move_to_end('redirect_slugs', last=False)
             self.fields.move_to_end('slug', last=False)
