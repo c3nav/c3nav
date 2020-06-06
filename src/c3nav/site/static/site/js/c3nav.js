@@ -47,6 +47,55 @@
     };
 }());
 
+/**
+ * a wrapper for localStorage, catching possible exception when accessing or setting data.
+ * working silently if there are errors apart from a console log message when setting an item.
+ * does NOT have a in memory storage if localStorage is not available.
+ * @type Storage
+ */
+localStorageWrapper = {
+    get length() {
+        try {
+            return localStorage.length;
+        } catch(e) {
+            return 0;
+        }
+    },
+    key: function(key) {
+        try {
+            return localStorage.key(key);
+        } catch(e) {
+            return null;
+        }
+    },
+    getItem: function(keyName) {
+        try {
+            return localStorage.getItem(keyName)
+        } catch(e) {
+            return null;
+        }
+    },
+    setItem: function(keyName, keyValue) {
+        try {
+            localStorage.setItem(keyName, keyValue)
+        } catch(e) {
+            console.log("can't set localstorage preference for "+ keyName);
+        }
+    },
+    removeItem: function(keyName) {
+        try {
+            localStorage.removeItem(keyName)
+        } catch(e) {
+        }
+    },
+    clear: function() {
+        try {
+            localStorage.clear()
+        } catch(e) {
+        }
+    },
+};
+
 c3nav = {
     init_completed: false,
     user_data: null,
@@ -63,10 +112,10 @@ c3nav = {
             );
         });
 
-        if (!window.mobileclient && (!localStorage || !localStorage.getItem('hideAppAds')) && navigator.userAgent.toLowerCase().indexOf("android") > -1) {
+        if (!window.mobileclient && !localStorageWrapper.getItem('hideAppAds') && navigator.userAgent.toLowerCase().indexOf("android") > -1) {
             $('.app-ads').show();
             $('.app-ads .close').click(function() {
-                localStorage.setItem('hideAppAds', true);
+                localStorageWrapper.setItem('hideAppAds', true);
                 $('.app-ads').remove();
             });
         } else {
@@ -2004,7 +2053,7 @@ LabelControl = L.Control.extend({
         this._button.href = '#';
         this._button.classList.toggle('control-disabled', false);
         this.labelsActive = true;
-        if (localStorage && localStorage.getItem('hideLabels')) {
+        if (localStorageWrapper.getItem('hideLabels')) {
             this.hideLabels();
         }
         return this._container;
@@ -2025,7 +2074,7 @@ LabelControl = L.Control.extend({
         this._button.innerText = c3nav._map_material_icon('label');
         this._button.classList.toggle('control-disabled', false);
         this.labelsActive = true;
-        if (localStorage) localStorage.removeItem('hideLabels');
+        localStorageWrapper.removeItem('hideLabels');
         c3nav.update_location_labels();
     },
 
@@ -2036,7 +2085,7 @@ LabelControl = L.Control.extend({
         this._button.innerText = c3nav._map_material_icon('label_outline');
         this._button.classList.toggle('control-disabled', true);
         this.labelsActive = false;
-        if (localStorage) localStorage.setItem('hideLabels', true);
+        localStorageWrapper.setItem('hideLabels', true);
     }
 });
 
@@ -2055,7 +2104,7 @@ SquareGridControl = L.Control.extend({
         this._button.href = '#';
         this._button.classList.toggle('control-disabled', true);
         this.gridActive = false;
-        if (localStorage && localStorage.getItem('showGrid')) {
+        if (localStorageWrapper.getItem('showGrid')) {
             this.showGrid();
         }
         return this._container;
@@ -2076,7 +2125,7 @@ SquareGridControl = L.Control.extend({
         this._button.innerText = c3nav._map_material_icon('grid_on');
         this._button.classList.toggle('control-disabled', false);
         this.gridActive = true;
-        if (localStorage) localStorage.setItem('showGrid', true);
+        localStorageWrapper.setItem('showGrid', true);
     },
 
     hideGrid: function() {
@@ -2085,7 +2134,7 @@ SquareGridControl = L.Control.extend({
         this._button.innerText = c3nav._map_material_icon('grid_off');
         this._button.classList.toggle('control-disabled', true);
         this.gridActive = false;
-        if (localStorage) localStorage.removeItem('showGrid');
+        localStorageWrapper.removeItem('showGrid');
     }
 });
 
