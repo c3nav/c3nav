@@ -8,6 +8,9 @@ name: "CodeQL"
 on:
   push:
     branches: [master]
+    paths-ignore: 
+      - src/c3nav/static/jquery/
+      - src/c3nav/static/bootstrap/
   pull_request:
     # The branches below must be a subset of the branches above
     branches: [master]
@@ -69,3 +72,4 @@ jobs:
 
     - name: Perform CodeQL Analysis
       uses: github/codeql-action/analyze@v1
+      
