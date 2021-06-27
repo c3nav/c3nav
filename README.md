@@ -22,12 +22,18 @@ docker build -t local/c3nav .
 
 You can now run your image with 
 ```
-docker run -p 8000:8000 local/c3nav
+docker run --rm -it  -p 8000:8000 -v .:/usr/share/c3nav --name c3nav local/c3nav
 ```
 
 This creates a ubuntu container with all dependencies running on a sqlite database.
 You can now reach your c3nav instance at [localhost:8000/](http://localhost:8000/). 
 The editor can be found at [localhost:8000/editor/](http://localhost:8000/editor/).
+
+To login in the webfrontend you have to create a superuser first with
+```
+docker run -p 8000:8000 local/c3nav
+```
+
 
 Login with the superuser credentials "admin"/"password" and start editing your map.
 

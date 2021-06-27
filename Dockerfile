@@ -3,6 +3,7 @@
 
 # syntax=docker/dockerfile:1
 FROM ubuntu:20.04
+EXPOSE 8000
 
 # if not set tzdata hangs
 ENV TZ=Europe/Berlin
@@ -38,21 +39,22 @@ RUN apt-get update && apt-get install -qy \
 # install the default python build tools
 RUN pip3 install -U pip wheel setuptools
 
-# create the default work dir for the app and copy the source code
-RUN mkdir /app
-COPY src /app/
+RUN ln -s /usr/share/c3nav/src /app
+WORKDIR /app
 
-# install all python requirements
-RUN cd /app \
-    && pip3 install -r requirements.txt
-
-# copy the default configuration into the container
-COPY docker/c3nav-docker-dev.cfg /etc/c3nav/c3nav.cfg
-
-# Create the database and add the default user
-RUN cd /app/ \
-  && python3 manage.py makemigrations \
-  && python3 manage.py migrate \
-  && (echo "from django.contrib.auth import get_user_model; User = get_user_model(); User.objects.create_superuser('${DEFAULT_SUPERUSER_NAME}', 'noreply@example.com', '${DEFAULT_SUPERUSER_PASSWORD}')" | python3 manage.py shell)
-
-CMD cd /app/ && python3 manage.py runserver 0.0.0.0:8000
+## install all python requirements
+#RUN pip3 install -r requirements.txt
+#
+## link the docker configuration into the container
+#RUN ln -s /usr/share/c3nav/docker/c3nav-docker-dev.cfg /etc/c3nav/c3nav.cfg
+#
+## Create the database and add the default user
+##RUN cd /app/ \
+##  && python3 manage.py makemigrations \
+##  && python3 manage.py migrate \
+##  && (echo "from django.contrib.auth import get_user_model; User = get_user_model(); User.objects.create_superuser('${DEFAULT_SUPERUSER_NAME}', 'noreply@example.com', '${DEFAULT_SUPERUSER_PASSWORD}')" | python3 manage.py shell)
+#
+#VOLUME /usr/share/c3nav
+#
+#CMD python3 manage.py runserver 0.0.0.0:8000
+CMD bash
