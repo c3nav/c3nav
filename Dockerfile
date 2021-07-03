@@ -54,11 +54,11 @@ RUN pip3 install -r requirements.txt
 
 WORKDIR /app
 VOLUME /usr/share/c3nav
+
+# on first run create a database and add a super user
+# then run the django app
 CMD ([ -d "/usr/share/c3nav/src/data" ] || \
         (mkdir /usr/share/c3nav/src/data \
          && python3 manage.py migrate \
          && python3 manage.py createsuperuser)) \
-    && python3 manage.py migrate \
     && python3 manage.py runserver 0.0.0.0:8000
-#USER root
-#CMD mkdir /usr/share/c3nav/src/data && chmod 777 /usr/share/c3nav/src/data && bash
