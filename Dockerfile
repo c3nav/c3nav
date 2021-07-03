@@ -10,12 +10,17 @@ ENV TZ=Europe/Berlin
 # if not set manage.py runserver hangs
 ENV PYTHONUNBUFFERED=1
 
-# default admin user
-ENV DEFAULT_SUPERUSER_NAME="admin"
-ENV DEFAULT_SUPERUSER_PASSWORD="password"
+# Adding application user
+# To avoid problems while accessing the sqlite database from the host the user id and group id should equal your host systems user
+RUN groupadd -g 1000 c3nav \
+    && useradd -r -u 1000 -g c3nav c3nav \
+    && mkdir -p /home/c3nav/ \
+    && chown -R c3nav:c3nav /home/c3nav/
 
 # make tzdata shut up. Without this build hangs indefinitely.
 RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
+RUN mkdir /etc/c3nav/ && ln -s /usr/share/c3nav/docker/c3nav-docker-dev.cfg /etc/c3nav/c3nav.cfg
+RUN ln -s /usr/share/c3nav/src /app
 
 RUN apt-get update && apt-get install -qy \
     build-essential \
@@ -36,11 +41,11 @@ RUN apt-get update && apt-get install -qy \
     python3-pip \
     python3-venv
 
+# drop privileges to application user
+USER c3nav
+
 # install the default python build tools
 RUN pip3 install -U pip wheel setuptools
-
-RUN ln -s /usr/share/c3nav/src /app
-
 COPY src/requirements.txt /tmp/req_temp/requirements.txt
 COPY src/requirements/ /tmp/req_temp/requirements/
 WORKDIR /tmp/req_temp/
@@ -48,21 +53,12 @@ RUN pip3 install -r requirements.txt
 
 
 WORKDIR /app
-## install all python requirements
-
-#
-## link the docker configuration into the container
-RUN mkdir /etc/c3nav/ && ln -s /usr/share/c3nav/docker/c3nav-docker-dev.cfg /etc/c3nav/c3nav.cfg
-#
-## Create the database and add the default user
-##RUN cd /app/ \
-##  && python3 manage.py makemigrations \
-##  && python3 manage.py createsuperuser \
-##  && python3 manage.py migrate \
-##  && (echo "from django.contrib.auth import get_user_model; User = get_user_model(); User.objects.create_superuser('${DEFAULT_SUPERUSER_NAME}', 'noreply@example.com', '${DEFAULT_SUPERUSER_PASSWORD}')" | python3 manage.py shell)
-#
-#
-#
-#CMD bash
 VOLUME /usr/share/c3nav
-CMD python3 manage.py runserver 0.0.0.0:8000
+CMD ([ -d "/usr/share/c3nav/src/data" ] || \
+        (mkdir /usr/share/c3nav/src/data \
+         && python3 manage.py migrate \
+         && python3 manage.py createsuperuser)) \
+    && python3 manage.py migrate \
+    && python3 manage.py runserver 0.0.0.0:8000
+#USER root
+#CMD mkdir /usr/share/c3nav/src/data && chmod 777 /usr/share/c3nav/src/data && bash
