@@ -21,21 +21,43 @@ docker build -t local/c3nav .
 ```
 
 You can now run your image with 
+
 ```
-docker run --rm -it  -p 8000:8000 -v .:/usr/share/c3nav --name c3nav local/c3nav
+docker run --rm -it  -p 8000:8000 -v $(pwd):/usr/share/c3nav --name c3nav local/c3nav
 ```
 
 This creates a ubuntu container with all dependencies running on a sqlite database.
 You can now reach your c3nav instance at [localhost:8000/](http://localhost:8000/). 
 The editor can be found at [localhost:8000/editor/](http://localhost:8000/editor/).
 
+You can enter the container console with:
+
+```
+docker exec -ti c3nav bash
+```
+
 To login in the webfrontend you have to create a superuser first with
-```
-docker run -p 8000:8000 local/c3nav
-```
 
+```
+root@4d4fcf24c986:/usr/share/c3nav/src# python3 manage.py createsuperuser
+Username: admin
+Email address: 
+Password: 
+Password (again): 
+This password is too short. It must contain at least 8 characters.
+This password is too common.
+This password is entirely numeric.
+Bypass password validation and create user anyway? [y/N]: y
+Superuser created successfully.
+```
+Login with the superuser credentials and start editing your map.
 
-Login with the superuser credentials "admin"/"password" and start editing your map.
+When inside the container you can also run the usual django manage.py commands like
+
+```
+root@4d4fcf24c986:/usr/share/c3nav/src# python3 manage.py makemigrations
+root@4d4fcf24c986:/usr/share/c3nav/src# python3 manage.py migrate
+```
 
 # Creating your first level
 There is currently a bug in the code that throws an FOREIGN KEY error when creating a new level in changeset mode.
