@@ -192,7 +192,8 @@ def qr_code(request, path):
 
 
 def close_response(request):
-    ajax = request.is_ajax() or 'ajax' in request.GET
+    # todo: use a better way to recognize this
+    ajax = request.headers.get('x-requested-with') == 'XMLHttpRequest' or 'ajax' in request.GET
     if ajax:
         return HttpResponse(json.dumps(get_user_data(request), cls=DjangoJSONEncoder).encode(),
                             content_type='text/plain')
@@ -355,6 +356,7 @@ def choose_language(request):
 @never_cache
 def about_view(request):
     return render(request, 'site/about.html', {
+        'ajax': request.headers.get('x-requested-with') == 'XMLHttpRequest' or 'ajax' in request.GET,
         'address': settings.IMPRINT_ADDRESS,
         'patrons': settings.IMPRINT_PATRONS,
         'team': settings.IMPRINT_TEAM,

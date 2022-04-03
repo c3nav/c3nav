@@ -43,7 +43,7 @@ def sidebar_view(func=None, select_related=None, api_hybrid=False):
             request.is_delete = request.method == 'DELETE'
             return call_api_hybrid_view_for_api(func, request, *args, **kwargs)
 
-        ajax = request.is_ajax() or 'ajax' in request.GET
+        ajax = request.headers.get('x-requested-with') == 'XMLHttpRequest' or 'ajax' in request.GET
         if not ajax:
             request.META.pop('HTTP_IF_NONE_MATCH', None)
 
