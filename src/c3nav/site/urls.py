@@ -1,3 +1,5 @@
+from itertools import chain
+
 from django.urls import path, register_converter
 
 from c3nav.site.converters import AtPositionConverter, CoordinatesConverter, IsEmbedConverter, LocationConverter
@@ -13,18 +15,28 @@ register_converter(IsEmbedConverter, 'is_embed')
 embed = '<is_embed:embed>'
 pos = '<at_pos:pos>'
 
+
+def index_paths(pre, suf):
+    return [
+        path(f'{pre}l/<loc:slug>/{suf}', map_index, {'mode': 'l'}, name='site.index', ),
+        path(f'{pre}l/<loc:slug>/details/{suf}', map_index, {'mode': 'l', 'details': True}, name='site.index'),
+        path(f'{pre}l/<loc:slug>/nearby/{suf}', map_index, {'mode': 'l', 'nearby': True}, name='site.index'),
+        path(f'{pre}o/<loc:slug>/{suf}', map_index, {'mode': 'o'}, name='site.index'),
+        path(f'{pre}d/<loc:slug>/{suf}', map_index, {'mode': 'd'}, name='site.index'),
+        path(f'{pre}r/{suf}', map_index, {'mode': 'r'}, name='site.index'),
+        path(f'{pre}r/<loc:slug>/<loc:slug2>/{suf}', map_index, {'mode': 'r'}, name='site.index'),
+        path(f'{pre}r/<loc:slug>/<loc:slug2>/details{suf}', map_index, {'mode': 'r', 'details': True},
+             name='site.index'),
+        path(f'{pre}r/<loc:slug>/<loc:slug2>/options{suf}', map_index, {'mode': 'r', 'options': True},
+             name='site.index'),
+        path(f'{pre}r/<loc:slug>/<loc:slug2>/options{suf}', map_index, {'mode': 'r', 'options': True},
+             name='site.index'),
+        path(f'{pre}{suf}', map_index, name='site.index'),
+    ]
+
+
 urlpatterns = [
-    path(f'{embed}l/<loc:slug>/{pos}', map_index, {'mode': 'l'}, name='site.index', ),
-    path(f'{embed}l/<loc:slug>/details/{pos}', map_index, {'mode': 'l', 'details': True}, name='site.index'),
-    path(f'{embed}l/<loc:slug>/nearby/{pos}', map_index, {'mode': 'l', 'nearby': True}, name='site.index'),
-    path(f'{embed}o/<loc:slug>/{pos}', map_index, {'mode': 'o'}, name='site.index'),
-    path(f'{embed}d/<loc:slug>/{pos}', map_index, {'mode': 'd'}, name='site.index'),
-    path(f'{embed}r/{pos}', map_index, {'mode': 'r'}, name='site.index'),
-    path(f'{embed}r/<loc:slug>/<loc:slug2>/{pos}', map_index, {'mode': 'r'}, name='site.index'),
-    path(f'{embed}r/<loc:slug>/<loc:slug2>/details{pos}', map_index, {'mode': 'r', 'details': True}, name='site.index'),
-    path(f'{embed}r/<loc:slug>/<loc:slug2>/options{pos}', map_index, {'mode': 'r', 'options': True}, name='site.index'),
-    path(f'{embed}r/<loc:slug>/<loc:slug2>/options{pos}', map_index, {'mode': 'r', 'options': True}, name='site.index'),
-    path(f'{embed}{pos}', map_index, name='site.index'),
+    *chain(*(index_paths(pre, suf) for pre in ('', embed) for suf in ('', pos))),
     path('qr/<path:path>', qr_code, name='site.qr'),
     path('login', login_view, name='site.login'),
     path('logout', logout_view, name='site.logout'),

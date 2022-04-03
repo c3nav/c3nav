@@ -41,8 +41,8 @@ def child_model(request, model: typing.Union[str, models.Model], kwargs=None, pa
     }
 
 
-@sidebar_view(api_hybrid=True)
 @etag(etag_func)
+@sidebar_view(api_hybrid=True)
 def main_index(request):
     Level = request.changeset.wrap_model('Level')
     return APIHybridTemplateContextResponse('editor/index.html', {
@@ -62,8 +62,8 @@ def main_index(request):
     }, fields=('can_create_level', 'child_models'))
 
 
-@sidebar_view(api_hybrid=True)
 @etag(etag_func)
+@sidebar_view(api_hybrid=True)
 def level_detail(request, pk):
     Level = request.changeset.wrap_model('Level')
     qs = Level.objects.filter(Level.q_for_request(request))
@@ -91,8 +91,8 @@ def level_detail(request, pk):
     }, fields=('level', 'can_edit_graph', 'can_create_level', 'child_models', 'levels_on_top'))
 
 
-@sidebar_view(api_hybrid=True)
 @etag(etag_func)
+@sidebar_view(api_hybrid=True)
 def space_detail(request, level, pk):
     Level = request.changeset.wrap_model('Level')
     Space = request.changeset.wrap_model('Space')
@@ -125,8 +125,8 @@ def get_changeset_exceeded(request):
     return request.user_permissions.max_changeset_changes <= request.changeset.changed_objects_count
 
 
-@sidebar_view(api_hybrid=True)
 @etag(etag_func)
+@sidebar_view(api_hybrid=True)
 def edit(request, pk=None, model=None, level=None, space=None, on_top_of=None, explicit_edit=False):
     changeset_exceeded = get_changeset_exceeded(request)
     model_changes = {}
@@ -411,8 +411,8 @@ def get_visible_spaces_kwargs(model, request):
     return kwargs
 
 
-@sidebar_view(api_hybrid=True)
 @etag(etag_func)
+@sidebar_view(api_hybrid=True)
 def list_objects(request, model=None, level=None, space=None, explicit_edit=False):
     resolver_match = getattr(request, 'sub_resolver_match', request.resolver_match)
     if not resolver_match.url_name.endswith('.list'):
@@ -567,8 +567,8 @@ def connect_nodes(request, active_node, clicked_node, edge_settings_form):
             messages.success(request, _('Reverse edge overwritten.') if is_reverse else _('Edge overwritten.'))
 
 
-@sidebar_view
 @etag(etag_func)
+@sidebar_view
 def graph_edit(request, level=None, space=None):
     if not request.user_permissions.can_access_base_mapdata:
         raise PermissionDenied
