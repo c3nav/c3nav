@@ -59,16 +59,17 @@ fake_request = FakeRequest()
 
 def convert_stats(stats):
     stats = [(name.split('__')[1:], value) for name, value in stats['data'].items()]
-    result = {}
-    result['locate'] = convert_locate(_filter_stats('locate', stats))
-    result['location_retrieve'] = convert_location(_filter_stats('location_retrieve', stats))
-    result['location_geometry'] = convert_location(_filter_stats('location_geometry', stats))
-    result['route_origin'] = convert_location(
-        (['pk']+name, value) for name, value in _filter_stats('route_origin_', stats, startswith=True)
-    )
-    result['route_destination'] = convert_location(
-        (['pk'] + name, value) for name, value in _filter_stats('route_destination_', stats, startswith=True)
-    )
+    result = {
+        'locate': convert_locate(_filter_stats('locate', stats)),
+        'location_retrieve': convert_location(_filter_stats('location_retrieve', stats)),
+        'location_geometry': convert_location(_filter_stats('location_geometry', stats)),
+        'route_origin': convert_location(
+            (['pk'] + name, value) for name, value in _filter_stats('route_origin_', stats, startswith=True)
+        ),
+        'route_destination': convert_location(
+            (['pk'] + name, value) for name, value in _filter_stats('route_destination_', stats, startswith=True)
+        ),
+    }
     return result
 
 

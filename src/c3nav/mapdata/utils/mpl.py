@@ -98,7 +98,7 @@ class MplPolygonPath(MplPathProxy):
 def shapely_to_mpl(geometry):
     """
     convert a shapely Polygon or Multipolygon to a matplotlib Path
-    :param polygon: shapely Polygon or Multipolygon
+    :param geometry: shapely Polygon or Multipolygon
     :return: MplPathProxy
     """
     if isinstance(geometry, Polygon):

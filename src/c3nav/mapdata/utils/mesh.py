@@ -55,6 +55,7 @@ def triangulate_rings(rings, holes=None):
 
     # remove triangles with no area
     facets = np.dstack((np.zeros(mesh_elements.shape), mesh_points[mesh_elements]))
+    # noinspection PyArgumentList
     ok_index = np.cross(facets[:, 1] - facets[:, 0], facets[:, 2] - facets[:, 1]).max(axis=1) != 0
     mesh_elements = mesh_elements[ok_index]
 

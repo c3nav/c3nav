@@ -68,7 +68,7 @@ class APIRoot(GenericAPIView):
     @cached_property
     def urls(self):
         include_editor = can_access_editor(self.request)
-        urls = OrderedDict()
+        urls: dict[str, dict[str, str] | str] = OrderedDict()
         for urlpattern in router.urls:
             if not include_editor and inspect.getmodule(urlpattern.callback).__name__.startswith('c3nav.editor.'):
                 continue

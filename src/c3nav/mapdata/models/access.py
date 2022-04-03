@@ -213,7 +213,7 @@ class AccessPermission(models.Model):
             access_restriction_ids = set(permissions.keys())
 
             expire_date = min((e for e in permissions.values() if e), default=timezone.now()+timedelta(seconds=120))
-            cache.set(cache_key, access_restriction_ids, max(0, (expire_date-timezone.now()).total_seconds()))
+            cache.set(cache_key, access_restriction_ids, max(0.0, (expire_date-timezone.now()).total_seconds()))
         return set(access_restriction_ids)
 
     @classmethod

@@ -36,15 +36,16 @@ class ReportUpdateForm(ModelForm):
             ('false', _('closed')),
         )
 
-    def save(self):
+    def save(self, commit=True):
         with transaction.atomic():
-            super().save()
+            super().save(commit=commit)
             report = self.instance.report
             if self.instance.open is not None:
                 report.open = self.instance.open
             if self.instance.assigned_to:
                 report.assigned_to = self.instance.assigned_to
-            report.save()
+            if commit:
+                report.save()
 
     class Meta:
         model = ReportUpdate

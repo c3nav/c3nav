@@ -81,7 +81,7 @@ def tile(request, level, zoom, x, y, access_permissions=None):
             access_permissions = parse_tile_access_cookie(cookie, settings.SECRET_TILE_KEY)
             access_permissions &= set(level_data.restrictions[minx:maxx, miny:maxy])
     else:
-        access_permissions = set(int(i) for i in access_permissions.split('-')) - set([0])
+        access_permissions = set(int(i) for i in access_permissions.split('-')) - {0}
 
     # build cache keys
     last_update = level_data.history.last_update(minx, miny, maxx, maxy)

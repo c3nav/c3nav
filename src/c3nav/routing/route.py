@@ -95,6 +95,7 @@ class Route:
                 description = item.waytype.description
                 if item.waytype.up_separate and item.edge.rise > 0:
                     description = item.waytype.description_up
+                # noinspection PyComparisonWithNone
                 if (item.waytype.level_change_description != False and last_primary_level and
                         ((item.last_item and item.level != item.last_item.level) or
                          item.level.on_top_of_id)):  # != False because it's lazy
@@ -124,8 +125,9 @@ class Route:
                         description = current_space.leave_descriptions.get(next_space.pk, None)
                     if description is None:
                         description = item.space.enter_description
+                    # noinspection PyComparisonWithNone
                     if description == None:  # could be a lazy None
-                        description =  _('Go to %(space_title)s.') % {'space_title': item.space.title}
+                        description = _('Go to %(space_title)s.') % {'space_title': item.space.title}
 
                     item.descriptions.append(('more_vert', description))
 
@@ -140,7 +142,9 @@ class Route:
             if item.edge:
                 remaining_distance += item.edge.distance
         if remaining_distance:
-            item.descriptions.append(('more_vert', _('%d m remaining to your destination.') % max(remaining_distance, 1)))
+            item.descriptions.append(
+                ('more_vert', _('%d m remaining to your destination.') % max(remaining_distance, 1))
+            )
 
         items[-1].descriptions.append(('done', _('You have reached your destination.')))
 
@@ -238,7 +242,6 @@ class RouteItem:
 
         result['descriptions'] = self.descriptions
         return result
-
 
 
 class NoRoute:

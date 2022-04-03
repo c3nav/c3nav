@@ -38,6 +38,7 @@ class AtPositionConverter:
 
 
 class ConditionalConverter:
+    # noinspection PyMethodOverriding
     def __init_subclass__(cls, /, name):
         cls.path = '%s/' % name
         cls.regex = '(%s/)?' % name

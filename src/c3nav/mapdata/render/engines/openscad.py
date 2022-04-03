@@ -19,7 +19,7 @@ class AbstractOpenScadElem(ABC):
         raise NotADirectoryError
 
 
-class AbstractOpenScadBlock(AbstractOpenScadElem, UserList):
+class AbstractOpenScadBlock(AbstractOpenScadElem, UserList, ABC):
     def render_children(self):
         return '\n'.join(child.render() for child in self.data if child is not None)
 
@@ -290,6 +290,7 @@ class OpenSCADEngine(Base3DEngine):
                         main_building_block.append(obstacles_block)
 
             if self.min_width and geoms.on_top_of_id is None:
+                # noinspection PyUnboundLocalVariable
                 main_building_block_inner.append(
                     self._add_polygon('min width',
                                       self._satisfy_min_width(buildings).intersection(self.bbox).buffer(0),

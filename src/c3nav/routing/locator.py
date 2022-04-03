@@ -108,7 +108,7 @@ class LocatorStations:
             station = self.stations[station_id]
             station.frequencies.add(frequency)
         elif create:
-            station = LocatorStation(bssid, ssid, set((frequency, )))
+            station = LocatorStation(bssid, ssid, {frequency})
             station_id = len(self.stations)
             self.stations_lookup[(bssid, None)] = station_id
             self.stations.append(station)

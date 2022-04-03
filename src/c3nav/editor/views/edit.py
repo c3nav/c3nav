@@ -643,7 +643,7 @@ def graph_edit(request, level=None, space=None):
                 'obj_title': node.title
             })
 
-        permissions = AccessPermission.get_for_request(request) | set([None])
+        permissions = AccessPermission.get_for_request(request) | {None}
         edge_settings_form = GraphEdgeSettingsForm(instance=GraphEdge(), request=request, data=request.POST)
         graph_action_form = GraphEditorActionForm(request=request, allow_clicked_position=create_nodes,
                                                   data=request.POST)

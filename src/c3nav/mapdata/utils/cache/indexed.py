@@ -75,7 +75,7 @@ class GeometryIndexed:
         self._write_metadata(f)
         f.write(self.data.tobytes('C'))
 
-    def _write_metadata(cls, f):
+    def _write_metadata(self, f):
         pass
 
     def _get_geometry_bounds(self, geometry):
@@ -180,7 +180,9 @@ class GeometryIndexed:
                                int(math.ceil((maxx-minx)/self.resolution))), dtype=np.uint8)
 
         if self.data.size:
+            # noinspection PyArgumentList
             minval = min(self.data.min(), 0)
+            # noinspection PyArgumentList
             maxval = max(self.data.max(), minval+0.01)
             visible_data = ((self.data.astype(float)-minval)*255/(maxval-minval)).clip(0, 255).astype(np.uint8)
             image_data[self.y:self.y+height, self.x:self.x+width] = visible_data

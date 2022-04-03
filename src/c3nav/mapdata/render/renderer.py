@@ -32,7 +32,7 @@ class MapRenderer:
 
     def render(self, engine_cls, center=True):
         # add no access restriction to “unlocked“ access restrictions so lookup gets easier
-        access_permissions = self.access_permissions | set([None])
+        access_permissions = self.access_permissions | {None}
 
         bbox = prepared.prep(self.bbox)
 

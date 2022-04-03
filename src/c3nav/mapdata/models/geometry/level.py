@@ -343,8 +343,10 @@ class AltitudeArea(LevelGeometryMixin, models.Model):
                 csgraph[area.tmpid, connected_tmpid] = True
 
         repeat = True
+
         while repeat:
             repeat = False
+            # noinspection PyTupleAssignmentBalance
             distances, predecessors = dijkstra(csgraph, directed=False, return_predecessors=True, unweighted=True)
             np_areas_with_altitude = np.array(areas_with_altitude, dtype=np.uint32)
             relevant_distances = distances[np_areas_with_altitude[:, None], np_areas_with_altitude]
