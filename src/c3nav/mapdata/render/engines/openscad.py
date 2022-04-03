@@ -70,8 +70,6 @@ class OpenSCADEngine(Base3DEngine):
         else:
             self.root = OpenScadBlock('scale([%(scale)f, %(scale)f, %(scale)f])' % {
                 'scale': self.scale,
-                'x': -(self.minx + self.maxx) / 2,
-                'y': -(self.miny + self.maxy) / 2,
             })
 
     def custom_render(self, level_render_data, access_permissions, full_levels):

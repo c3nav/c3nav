@@ -1,6 +1,6 @@
 from django.urls import path, register_converter
 
-from c3nav.site.converters import LocationConverter, CoordinatesConverter, AtPositionConverter, IsEmbedConverter
+from c3nav.site.converters import AtPositionConverter, CoordinatesConverter, IsEmbedConverter, LocationConverter
 from c3nav.site.views import (about_view, access_redeem_view, account_view, change_password_view, choose_language,
                               login_view, logout_view, map_index, position_create, position_detail, position_list,
                               position_set, qr_code, register_view, report_create, report_detail, report_list)

@@ -65,7 +65,7 @@ class Report(models.Model):
 
     @property
     def form_cls(self):
-        from c3nav.site.forms import ReportMissingLocationForm, ReportIssueForm
+        from c3nav.site.forms import ReportIssueForm, ReportMissingLocationForm
         return ReportMissingLocationForm if self.category == 'missing-location' else ReportIssueForm
 
     @cached_property

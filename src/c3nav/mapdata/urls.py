@@ -1,7 +1,7 @@
 from django.urls import path, register_converter
 
-from c3nav.mapdata.converters import SignedIntConverter, AccessPermissionsConverter, HistoryModeConverter, \
-    HistoryFileExtConverter, ArchiveFileExtConverter
+from c3nav.mapdata.converters import (AccessPermissionsConverter, ArchiveFileExtConverter, HistoryFileExtConverter,
+                                      HistoryModeConverter, SignedIntConverter)
 from c3nav.mapdata.views import get_cache_package, map_history, tile
 
 register_converter(SignedIntConverter, 'sint')

@@ -200,9 +200,9 @@ class EditorViewSet(EditorViewSetMixin, ViewSet):
             # graphedges = [edge for edge in graphedges if edge.from_node.space_id != edge.to_node.space_id]
 
             results = chain(
-                *(self._get_level_geometries(l) for l in levels_under),
+                *(self._get_level_geometries(level) for level in levels_under),
                 self._get_level_geometries(level),
-                *(self._get_level_geometries(l) for l in levels_on_top),
+                *(self._get_level_geometries(level) for level in levels_on_top),
                 *(space.altitudemarkers.all() for space in level.spaces.all()),
                 *(space.wifi_measurements.all() for space in level.spaces.all())
                 # graphedges,

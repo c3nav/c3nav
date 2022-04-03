@@ -379,7 +379,7 @@ class Router:
             pois=self.pois, point=location, restrictions=restrictions
         )
         nearby = tuple(sorted(
-            tuple(l for l in nearby_areas+nearby_pois if l[0].can_search),
+            tuple(location for location in nearby_areas+nearby_pois if location[0].can_search),
             key=operator.itemgetter(1)
         ))
         # show all location within 5 meters, but at least 20

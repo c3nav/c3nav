@@ -1,8 +1,8 @@
 from contextlib import suppress
 
 from django.conf import settings
-from django.urls import include, path
 from django.contrib import admin
+from django.urls import include, path
 
 import c3nav.api.urls
 import c3nav.control.urls
