@@ -10,7 +10,7 @@ from django.apps import apps
 from django.db.models import Prefetch, Q
 from django.utils.functional import cached_property
 from django.utils.translation import gettext_lazy as _
-from shapely.ops import cascaded_union
+from shapely.ops import unary_union
 
 from c3nav.mapdata.grid import grid
 from c3nav.mapdata.models import Level, Location, LocationGroup, MapUpdate
@@ -137,7 +137,7 @@ def get_better_space_geometries():
     result = {}
     for space in Space.objects.prefetch_related('columns', 'holes'):
         geometry = space.geometry.difference(
-            cascaded_union(tuple(obj.geometry for obj in chain(space.columns.all(), space.holes.all())))
+            unary_union(tuple(obj.geometry for obj in chain(space.columns.all(), space.holes.all())))
         )
         if not geometry.is_empty:
             result[space.pk] = geometry

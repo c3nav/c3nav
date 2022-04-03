@@ -7,7 +7,7 @@ from django.db import models
 from django.urls import reverse
 from django.utils.functional import cached_property
 from django.utils.translation import gettext_lazy as _
-from shapely.ops import cascaded_union
+from shapely.ops import unary_union
 
 from c3nav.mapdata.models.locations import SpecificLocation
 
@@ -94,8 +94,8 @@ class Level(SpecificLocation, models.Model):
 
     @cached_property
     def bounds(self):
-        return cascaded_union(tuple(item.geometry.buffer(0)
-                                    for item in chain(self.altitudeareas.all(), self.buildings.all()))).bounds
+        return unary_union(tuple(item.geometry.buffer(0)
+                                 for item in chain(self.altitudeareas.all(), self.buildings.all()))).bounds
 
     def get_icon(self):
         return super().get_icon() or 'layers'

@@ -12,7 +12,7 @@ from rest_framework.generics import get_object_or_404
 from rest_framework.response import Response
 from rest_framework.viewsets import ReadOnlyModelViewSet, ViewSet
 from shapely import prepared
-from shapely.ops import cascaded_union
+from shapely.ops import unary_union
 
 from c3nav.api.utils import get_api_post_data
 from c3nav.editor.forms import ChangeSetForm, RejectForm
@@ -69,7 +69,7 @@ class EditorViewSet(EditorViewSetMixin, ViewSet):
     @staticmethod
     def _get_level_geometries(level):
         buildings = level.buildings.all()
-        buildings_geom = cascaded_union([building.geometry for building in buildings])
+        buildings_geom = unary_union([building.geometry for building in buildings])
         spaces = {space.pk: space for space in level.spaces.all()}
         holes_geom = []
         for space in spaces.values():
@@ -77,11 +77,11 @@ class EditorViewSet(EditorViewSetMixin, ViewSet):
                 space.geometry = space.geometry.difference(buildings_geom)
             columns = [column.geometry for column in space.columns.all()]
             if columns:
-                columns_geom = cascaded_union([column.geometry for column in space.columns.all()])
+                columns_geom = unary_union([column.geometry for column in space.columns.all()])
                 space.geometry = space.geometry.difference(columns_geom)
             holes = [hole.geometry for hole in space.holes.all()]
             if holes:
-                space_holes_geom = cascaded_union(holes)
+                space_holes_geom = unary_union(holes)
                 holes_geom.append(space_holes_geom.intersection(space.geometry))
                 space.geometry = space.geometry.difference(space_holes_geom)
 
@@ -89,7 +89,7 @@ class EditorViewSet(EditorViewSetMixin, ViewSet):
             building.original_geometry = building.geometry
 
         if holes_geom:
-            holes_geom = cascaded_union(holes_geom)
+            holes_geom = unary_union(holes_geom)
             holes_geom_prep = prepared.prep(holes_geom)
             for obj in buildings:
                 if holes_geom_prep.intersects(obj.geometry):
@@ -221,7 +221,7 @@ class EditorViewSet(EditorViewSetMixin, ViewSet):
             if request.user_permissions.can_access_base_mapdata:
                 doors = [door for door in level.doors.filter(Door.q_for_request(request)).all()
                          if door.geometry.intersects(space.geometry)]
-                doors_space_geom = cascaded_union([door.geometry for door in doors]+[space.geometry])
+                doors_space_geom = unary_union([door.geometry for door in doors]+[space.geometry])
 
                 levels, levels_on_top, levels_under = self._get_levels_pk(request, level.primary_level)
                 if level.on_top_of_id is not None:
@@ -251,7 +251,7 @@ class EditorViewSet(EditorViewSetMixin, ViewSet):
 
                 # deactivated for performance reasons
                 buildings = level.buildings.all()
-                # buildings_geom = cascaded_union([building.geometry for building in buildings])
+                # buildings_geom = unary_union([building.geometry for building in buildings])
                 # for other_space in other_spaces:
                 #     if other_space.outside:
                 #         other_space.geometry = other_space.geometry.difference(buildings_geom)

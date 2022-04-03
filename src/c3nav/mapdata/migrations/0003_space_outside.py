@@ -3,13 +3,13 @@
 from __future__ import unicode_literals
 
 from django.db import migrations, models
-from shapely.ops import cascaded_union
+from shapely.ops import unary_union
 
 
 def set_space_outside(apps, schema_editor):
     Section = apps.get_model('mapdata', 'Section')
     for section in Section.objects.all():
-        building_geometries = cascaded_union(tuple(building.geometry for building in section.buildings.all()))
+        building_geometries = unary_union(tuple(building.geometry for building in section.buildings.all()))
         for space in section.spaces.all():
             if space.geometry.intersection(building_geometries).area / space.geometry.area < 0.5:
                 space.outside = True
