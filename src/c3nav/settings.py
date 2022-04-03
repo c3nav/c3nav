@@ -237,6 +237,7 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'channels',
     'compressor',
     'bootstrap3',
     'c3nav.api',
@@ -245,6 +246,7 @@ INSTALLED_APPS = [
     'c3nav.routing',
     'c3nav.site',
     'c3nav.control',
+    'c3nav.mesh',
     'c3nav.editor',
 ]
 
@@ -287,6 +289,7 @@ X_FRAME_OPTIONS = 'DENY'
 ROOT_URLCONF = 'c3nav.urls'
 
 WSGI_APPLICATION = 'c3nav.wsgi.application'
+ASGI_APPLICATION = 'c3nav.asgi.application'
 
 USE_I18N = True
 USE_L10N = True
