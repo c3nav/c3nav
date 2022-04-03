@@ -1,3 +1,4 @@
+import base64
 import operator
 import typing
 from collections import OrderedDict
@@ -553,7 +554,7 @@ class BaseQueryWrapper(BaseWrapper):
                 self._changeset.cache_key_by_changes,
                 rel_model.__name__,
                 next(iter(subkwargs.keys())),
-                repr(filter_value)
+                base64.b64encode(repr(filter_value).encode()).decode()
             )
             pk_values = cache.get(cache_key, None)
             if pk_values is None:
