@@ -31,7 +31,7 @@ def validate_geometry(geometry: BaseGeometry):
 shapely_logger = logging.getLogger('shapely.geos')
 
 
-class GeometryField(models.TextField):
+class GeometryField(models.JSONField):
     default_validators = [validate_geometry]
 
     def __init__(self, geomtype=None, default=None, null=False):
@@ -50,9 +50,7 @@ class GeometryField(models.TextField):
         return name, path, args, kwargs
 
     def from_db_value(self, value, expression, connection):
-        if value is None:
-            return value
-        return WrappedGeometry(json.loads(value))
+        return WrappedGeometry(super().from_db_value(value, expression, connection))
 
     def to_python(self, value):
         if value is None or value == '':
@@ -117,6 +115,7 @@ class GeometryField(models.TextField):
 
 
 class JSONField(models.TextField):
+    # Deprecated
     def from_db_value(self, value, expression, connection):
         if value is None:
             return value
@@ -173,7 +172,7 @@ class I18nDescriptor:
         setattr(instance, self.field.attname, value)
 
 
-class I18nField(JSONField):
+class I18nField(models.JSONField):
     def __init__(self, verbose_name=None, plural_name=None, max_length=None, default=None,
                  fallback_language=settings.LANGUAGE_CODE, fallback_any=False, fallback_value=None, **kwargs):
         self.i18n_max_length = max_length
@@ -182,7 +181,7 @@ class I18nField(JSONField):
         self.fallback_any = fallback_any
         self.fallback_value = fallback_value
         kwargs.pop('null', None)
-        super().__init__(verbose_name=verbose_name, default=(dict(default) if default else {}), null=False, **kwargs)
+        super().__init__(verbose_name=verbose_name, default=(dict(default) if default else dict), null=False, **kwargs)
 
     def get_default(self):
         return self.default.copy()

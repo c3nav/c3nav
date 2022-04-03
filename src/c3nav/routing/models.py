@@ -8,13 +8,12 @@ from django.core.exceptions import ValidationError
 from django.db import models
 from django.utils.translation import gettext_lazy as _
 
-from c3nav.mapdata.fields import JSONField
 from c3nav.mapdata.models import MapUpdate, WayType
 
 
 class RouteOptions(models.Model):
     user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, primary_key=True)
-    data = JSONField(default={})
+    data = models.JSONField(default=dict)
 
     class Meta:
         verbose_name = _('Route options')

@@ -10,7 +10,7 @@ from django.utils.text import format_lazy
 from django.utils.translation import gettext_lazy as _
 from shapely.geometry import CAP_STYLE, JOIN_STYLE, mapping
 
-from c3nav.mapdata.fields import GeometryField, I18nField, JSONField
+from c3nav.mapdata.fields import GeometryField, I18nField
 from c3nav.mapdata.grid import grid
 from c3nav.mapdata.models import Space
 from c3nav.mapdata.models.access import AccessRestrictionMixin
@@ -384,7 +384,7 @@ class WifiMeasurement(SpaceGeometryMixin, models.Model):
     author = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True,
                                verbose_name=_('author'))
     comment = models.TextField(null=True, blank=True, verbose_name=_('comment'))
-    data = JSONField(_('Measurement list'))
+    data = models.JSONField(_('Measurement list'))
 
     class Meta:
         verbose_name = _('Wi-Fi Measurement')

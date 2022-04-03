@@ -9,7 +9,7 @@ from django.db.models import CharField, DecimalField, Field, TextField
 from django.utils.translation import gettext_lazy as _
 
 from c3nav.editor.wrappers import ModelInstanceWrapper, is_created_pk
-from c3nav.mapdata.fields import I18nField, JSONField
+from c3nav.mapdata.fields import I18nField
 from c3nav.mapdata.models.locations import LocationRedirect
 
 
@@ -35,9 +35,9 @@ class ChangedObject(models.Model):
     created = models.DateTimeField(auto_now_add=True, verbose_name=_('created'))
     content_type = models.ForeignKey(ContentType, on_delete=models.CASCADE)
     existing_object_pk = models.PositiveIntegerField(null=True, verbose_name=_('id of existing object'))
-    updated_fields = JSONField(default={}, verbose_name=_('updated fields'))
-    m2m_added = JSONField(default={}, verbose_name=_('added m2m values'))
-    m2m_removed = JSONField(default={}, verbose_name=_('removed m2m values'))
+    updated_fields = models.JSONField(default=dict, verbose_name=_('updated fields'))
+    m2m_added = models.JSONField(default=dict, verbose_name=_('added m2m values'))
+    m2m_removed = models.JSONField(default=dict, verbose_name=_('removed m2m values'))
     deleted = models.BooleanField(default=False, verbose_name=_('object was deleted'))
 
     objects = ChangedObjectManager()
