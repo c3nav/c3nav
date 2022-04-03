@@ -189,8 +189,8 @@ class AltitudeArea(LevelGeometryMixin, models.Model):
         if self.altitude2 is None:
             return np.full((points.shape[0], ), fill_value=float(self.altitude))
 
-        slope = np.array(self.point2) - np.array(self.point1)
-        distances = (np.sum(((points - np.array(self.point1)) * slope), axis=1) / (slope ** 2).sum()).clip(0, 1)
+        slope = np.array(self.point2.coords) - np.array(self.point1.coords)
+        distances = (np.sum(((points - np.array(self.point1.coords)) * slope), axis=1) / (slope ** 2).sum()).clip(0, 1)
 
         if self.altitude2 < self.altitude:
             min_altitude = float(self.altitude2)
@@ -604,7 +604,7 @@ class AltitudeArea(LevelGeometryMixin, models.Model):
                 num_deleted += 1
                 continue
 
-            if not field.get_final_value(new_area.geometry).almost_equals(candidate.geometry):
+            if not field.get_final_value(new_area.geometry).equals_exact(candidate.geometry, 0.00001):
                 num_modified += 1
 
             candidate.geometry = new_area.geometry

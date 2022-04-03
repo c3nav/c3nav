@@ -149,12 +149,12 @@ class SVGEngine(RenderEngine):
         if isinstance(geom, Polygon):
             return ('<path d="' +
                     ' '.join((('M %.1f %.1f L'+(' %.1f %.1f'*(len(ring.coords)-1))+' z') %
-                              tuple((np.array(ring)*self.np_scale+self.np_offset).flatten()))
+                              tuple((np.array(ring.coords)*self.np_scale+self.np_offset).flatten()))
                              for ring in chain((geom.exterior,), geom.interiors))
                     + '"/>').replace('.0 ', ' ')
         if isinstance(geom, LineString):
             return (('<path d="M %.1f %.1f L'+(' %.1f %.1f'*(len(geom.coords)-1))+'"/>') %
-                    tuple((np.array(geom)*self.np_scale+self.np_offset).flatten())).replace('.0 ', ' ')
+                    tuple((np.array(geom.coords)*self.np_scale+self.np_offset).flatten())).replace('.0 ', ' ')
         try:
             geoms = geom.geoms
         except AttributeError:

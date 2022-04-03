@@ -115,11 +115,11 @@ class GeometryMixin(SerializableMixin):
             return True
         if self.geometry is self.orig_geometry:
             return False
-        if not self.geometry.almost_equals(self.orig_geometry, 1):
+        if not self.geometry.equals_exact(self.orig_geometry, 0.05):
             return True
         field = self._meta.get_field('geometry')
         rounded = field.to_python(field.get_prep_value(self.geometry))
-        if not rounded.almost_equals(self.orig_geometry, 2):
+        if not rounded.equals_exact(self.orig_geometry, 0.005):
             return True
         return False
 

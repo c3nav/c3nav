@@ -109,5 +109,5 @@ def shapely_to_mpl(geometry):
 
 
 def linearring_to_mpl_path(linearring):
-    return Path(np.array(linearring),
+    return Path(np.array(linearring.coords),
                 (Path.MOVETO, *([Path.LINETO] * (len(linearring.coords)-2)), Path.CLOSEPOLY), readonly=True)

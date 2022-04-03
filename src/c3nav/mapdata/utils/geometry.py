@@ -1,6 +1,5 @@
 import math
 from collections import deque, namedtuple
-from contextlib import suppress
 from itertools import chain
 from typing import List, Sequence, Union
 
@@ -199,11 +198,7 @@ def cut_polygon_with_line(polygon: Union[Polygon, MultiPolygon, Sequence[Polygon
     polygons: List[List[LinearRing]] = []
     # noinspection PyTypeChecker
     for polygon in orig_polygon:
-        rings = getattr(polygon, 'c3nav_cache', None)
-        if not rings:
-            rings = [polygon.exterior, *polygon.interiors]
-            polygon.c3nav_cache = rings
-        polygons.append(rings)
+        polygons.append([polygon.exterior, *polygon.interiors])
 
     # find intersection points between the line and polygon rings
     points = deque()
@@ -339,7 +334,6 @@ def cut_polygon_with_line(polygon: Union[Polygon, MultiPolygon, Sequence[Polygon
     for polygon in polygons:
         polygon = [ring for ring in polygon if ring is not None]
         new_polygon = Polygon(polygon[0], tuple(polygon[1:]))
-        new_polygon.c3nav_cache = polygon
         result.append(new_polygon)
     return list(result)
 
@@ -348,9 +342,6 @@ def clean_cut_polygon(polygon: Polygon) -> Polygon:
     interiors = []
     interiors.extend(cut_ring(polygon.exterior))
     exteriors = [(i, ring) for (i, ring) in enumerate(interiors) if ring.is_ccw]
-
-    with suppress(AttributeError):
-        delattr(polygon, 'c3nav_cache')
 
     if len(exteriors) != 1:
         raise ValueError('Invalid cut polygon!')
