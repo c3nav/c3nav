@@ -419,7 +419,7 @@ class Router:
                     speed_up *= options.walk_factor
 
                 for indices, dir_speed in ((waytype.nonupwards_indices, speed), (waytype.upwards_indices, speed_up)):
-                    indices = indices.transpose().tolist()
+                    indices = tuple(indices.transpose().tolist())
                     values = graph[indices]
                     values /= dir_speed
                     if waytype.extra_seconds:
@@ -430,9 +430,9 @@ class Router:
         for waytype in self.waytypes[1:]:
             value = options.get('waytype_%s' % waytype.pk, 'allow')
             if value in ('avoid', 'avoid_up'):
-                graph[waytype.upwards_indices.transpose().tolist()] *= 100000
+                graph[tuple(waytype.upwards_indices.transpose().tolist())] *= 100000
             if value in ('avoid', 'avoid_down'):
-                graph[waytype.nonupwards_indices.transpose().tolist()] *= 100000
+                graph[tuple(waytype.nonupwards_indices.transpose().tolist())] *= 100000
 
         # exclude spaces and edges
         space_nodes = tuple(reduce(operator.or_, (self.spaces[space].nodes for space in restrictions.spaces), set()))
@@ -441,7 +441,7 @@ class Router:
         if restrictions.additional_nodes:
             graph[tuple(restrictions.additional_nodes), :] = np.inf
             graph[:, tuple(restrictions.additional_nodes)] = np.inf
-        graph[restrictions.edges.transpose().tolist()] = np.inf
+        graph[tuple(restrictions.edges.transpose().tolist())] = np.inf
 
         distances, predecessors = shortest_path(graph, directed=True, return_predecessors=True)
         cache.set(cache_key, (distances.astype(np.float64).tobytes(),
