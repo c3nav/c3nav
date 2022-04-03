@@ -18,8 +18,8 @@ from c3nav.mapdata.render.engines.base import FillAttribs, RenderEngine, StrokeA
 
 if settings.SVG_RENDERER == 'rsvg':
     import pgi
-    import cairocffi
     pgi.require_version('Rsvg', '2.0')
+    import cairocffi
     from pgi.repository import Rsvg
 
 

@@ -15,13 +15,14 @@ class Command(BaseCommand):
         parser.add_argument('--wifi-measurements', action='store_true', help='delete wifi measurements')
 
     def handle(self, *args, **options):
+        from django.contrib.auth import get_user_model
+
         from c3nav.control.models import UserPermissions
+        from c3nav.editor.models import ChangeSet
         from c3nav.mapdata.models import MapUpdate
         from c3nav.mapdata.models.access import AccessPermissionToken
         from c3nav.mapdata.models.geometry.space import WifiMeasurement
-        from c3nav.editor.models import ChangeSet
         from c3nav.site.models import Announcement
-        from django.contrib.auth import get_user_model
 
         logger = logging.getLogger('c3nav')
 
