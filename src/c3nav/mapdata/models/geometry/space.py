@@ -7,7 +7,7 @@ from django.db import models
 from django.urls import reverse
 from django.utils.functional import cached_property
 from django.utils.text import format_lazy
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 from shapely.geometry import CAP_STYLE, JOIN_STYLE, mapping
 
 from c3nav.mapdata.fields import GeometryField, I18nField, JSONField

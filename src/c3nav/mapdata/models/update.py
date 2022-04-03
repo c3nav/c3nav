@@ -10,7 +10,7 @@ from django.core.cache import cache
 from django.db import models, transaction
 from django.utils.http import int_to_base36
 from django.utils.timezone import make_naive
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 
 from c3nav.mapdata.tasks import process_map_updates
 

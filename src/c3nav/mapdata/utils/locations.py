@@ -9,7 +9,7 @@ from typing import List, Mapping, Optional, Union
 from django.apps import apps
 from django.db.models import Prefetch, Q
 from django.utils.functional import cached_property
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 from shapely.ops import cascaded_union
 
 from c3nav.mapdata.grid import grid

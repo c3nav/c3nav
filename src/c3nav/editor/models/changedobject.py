@@ -6,7 +6,7 @@ from itertools import chain
 from django.contrib.contenttypes.models import ContentType
 from django.db import models
 from django.db.models import CharField, DecimalField, Field, TextField
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 
 from c3nav.editor.wrappers import ModelInstanceWrapper, is_created_pk
 from c3nav.mapdata.fields import I18nField, JSONField

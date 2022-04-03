@@ -4,8 +4,8 @@ import time
 from celery.exceptions import MaxRetriesExceededError
 from django.core.cache import cache
 from django.utils.formats import date_format
-from django.utils.translation import ugettext_lazy as _
-from django.utils.translation import ungettext_lazy
+from django.utils.translation import gettext_lazy as _
+from django.utils.translation import ngettext_lazy
 
 from c3nav.celery import app
 
@@ -40,7 +40,7 @@ def process_map_updates(self):
     if updates:
         print()
 
-    logger.info(ungettext_lazy('%d map update processed.', '%d map updates processed.', len(updates)) % len(updates))
+    logger.info(ngettext_lazy('%d map update processed.', '%d map updates processed.', len(updates)) % len(updates))
 
     if updates:
         logger.info(_('Last processed update: %(date)s (#%(id)d)') % {

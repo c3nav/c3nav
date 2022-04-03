@@ -13,7 +13,7 @@ from django.http import HttpResponse, HttpResponseNotModified, HttpResponseRedir
 from django.shortcuts import redirect, render
 from django.utils.cache import patch_vary_headers
 from django.utils.translation import get_language
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 from rest_framework.response import Response as APIResponse
 
 from c3nav.editor.models import ChangeSet

@@ -6,7 +6,7 @@ from django.forms import CharField, ModelForm
 from django.utils import timezone
 from django.utils.text import capfirst, format_lazy
 from django.utils.translation import get_language_info
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 
 from c3nav.mapdata.fields import I18nField
 from c3nav.mapdata.models.locations import Position

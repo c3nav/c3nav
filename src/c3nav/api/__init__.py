@@ -5,8 +5,6 @@ from rest_framework.renderers import JSONRenderer
 
 from c3nav.mapdata.utils.json import json_encoder_reindent
 
-default_app_config = 'c3nav.api.apps.APIConfig'
-
 
 orig_render = JSONRenderer.render
 

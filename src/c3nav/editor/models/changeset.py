@@ -14,8 +14,8 @@ from django.db.models import Q
 from django.urls import reverse
 from django.utils.http import int_to_base36
 from django.utils.timezone import make_naive
-from django.utils.translation import ugettext_lazy as _
-from django.utils.translation import ungettext_lazy
+from django.utils.translation import gettext_lazy as _
+from django.utils.translation import ngettext_lazy
 
 from c3nav.editor.models.changedobject import ApplyToInstanceError, ChangedObject, NoopChangedObject
 from c3nav.editor.tasks import send_changeset_proposed_notification
@@ -804,7 +804,7 @@ class ChangeSet(models.Model):
             if self.direct_editing:
                 return _('Direct editing active')
             return _('No objects changed')
-        return (ungettext_lazy('%(num)d object changed', '%(num)d objects changed', 'num') %
+        return (ngettext_lazy('%(num)d object changed', '%(num)d objects changed', 'num') %
                 {'num': self.changed_objects_count})
 
     @property

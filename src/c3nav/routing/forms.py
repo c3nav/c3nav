@@ -1,5 +1,5 @@
 from django import forms
-from django.utils.translation import ugettext_lazy
+from django.utils.translation import gettext_lazy
 
 from c3nav.mapdata.utils.locations import get_location_by_id_for_request
 
@@ -15,11 +15,11 @@ class RouteForm(forms.Form):
     def clean_origin(self):
         location = get_location_by_id_for_request(self.cleaned_data['origin'], self.request)
         if location is None:
-            raise forms.ValidationError(ugettext_lazy('Unknown origin.'))
+            raise forms.ValidationError(gettext_lazy('Unknown origin.'))
         return location
 
     def clean_destination(self):
         location = get_location_by_id_for_request(self.cleaned_data['destination'], self.request)
         if location is None:
-            raise forms.ValidationError(ugettext_lazy('Unknown destination.'))
+            raise forms.ValidationError(gettext_lazy('Unknown destination.'))
         return location

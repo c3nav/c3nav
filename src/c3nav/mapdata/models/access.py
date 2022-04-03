@@ -9,8 +9,8 @@ from django.core.cache import cache
 from django.db import models, transaction
 from django.db.models import Q
 from django.utils import timezone
-from django.utils.translation import ugettext_lazy as _
-from django.utils.translation import ungettext_lazy
+from django.utils.translation import gettext_lazy as _
+from django.utils.translation import ngettext_lazy
 
 from c3nav.mapdata.models import MapUpdate
 from c3nav.mapdata.models.base import SerializableMixin, TitledMixin
@@ -130,7 +130,7 @@ class AccessPermissionToken(models.Model):
 
     @property
     def redeem_success_message(self):
-        return ungettext_lazy('Area successfully unlocked.', 'Areas successfully unlocked.', len(self.restrictions))
+        return ngettext_lazy('Area successfully unlocked.', 'Areas successfully unlocked.', len(self.restrictions))
 
 
 class AccessPermission(models.Model):

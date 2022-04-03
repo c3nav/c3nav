@@ -4,7 +4,7 @@ from django.core.cache import cache
 from django.db import models
 from django.db.models import Q
 from django.utils.translation import get_language, get_language_info
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 
 from c3nav.mapdata.fields import I18nField
 from c3nav.mapdata.models import MapUpdate

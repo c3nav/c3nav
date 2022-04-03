@@ -3,7 +3,7 @@ import os
 
 from django.conf import settings
 from django.core.management.base import BaseCommand
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 
 from c3nav.mapdata.utils.cache.stats import stats_snapshot
 

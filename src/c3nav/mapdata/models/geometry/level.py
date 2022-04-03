@@ -10,7 +10,7 @@ from django.db import models
 from django.urls import reverse
 from django.utils.functional import cached_property
 from django.utils.text import format_lazy
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 from scipy.sparse.csgraph._shortest_path import dijkstra
 from shapely import prepared
 from shapely.affinity import scale

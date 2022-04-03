@@ -8,7 +8,7 @@ from django.db.models import Q
 from django.urls import reverse
 from django.utils.crypto import get_random_string
 from django.utils.functional import cached_property
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 
 from c3nav.mapdata.fields import I18nField
 from c3nav.mapdata.models.geometry.level import LevelGeometryMixin
@@ -172,7 +172,7 @@ class ReportUpdate(models.Model):
     report = models.ForeignKey(Report, on_delete=models.CASCADE, related_name='updates')
     datetime = models.DateTimeField(auto_now_add=True, verbose_name=_('datetime'))
     author = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, on_delete=models.PROTECT, verbose_name=_('author'))
-    open = models.NullBooleanField(verbose_name=_('open'))
+    open = models.BooleanField(null=True, verbose_name=_('open'))
     comment = models.TextField(verbose_name=_('comment'), blank=True)
     assigned_to = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, on_delete=models.PROTECT,
                                     related_name='report_update_assigns', verbose_name=_('assigned to'))

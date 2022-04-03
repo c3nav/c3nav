@@ -3,7 +3,7 @@ import logging
 from django.conf import settings
 from django.core.management.base import BaseCommand
 from django.db import DatabaseError
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 
 from c3nav.mapdata.tasks import process_map_updates
 

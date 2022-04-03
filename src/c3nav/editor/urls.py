@@ -1,10 +1,13 @@
 from django.apps import apps
-from django.conf.urls import url
+from django.urls import path, register_converter
 
+from c3nav.editor.converters import EditPkConverter
 from c3nav.editor.views.account import change_password_view, login_view, logout_view, register_view
 from c3nav.editor.views.changes import changeset_detail, changeset_edit, changeset_redirect
 from c3nav.editor.views.edit import edit, graph_edit, level_detail, list_objects, main_index, sourceimage, space_detail
 from c3nav.editor.views.users import user_detail, user_redirect
+
+register_converter(EditPkConverter, 'editpk')
 
 
 def add_editor_urls(model_name, parent_model_name=None, with_list=True, explicit_edit=False):
@@ -13,42 +16,43 @@ def add_editor_urls(model_name, parent_model_name=None, with_list=True, explicit
     if parent_model_name:
         parent_model = apps.get_model('mapdata', parent_model_name)
         parent_model_name_plural = parent_model._meta.default_related_name
-        prefix = (parent_model_name_plural+r'/(?P<'+parent_model_name.lower()+'>c?[0-9]+)/')+model_name_plural
+        prefix = (parent_model_name_plural+r'/<editpk:'+parent_model_name.lower()+'>/')+model_name_plural
     else:
         prefix = model_name_plural
 
     name_prefix = 'editor.'+model_name_plural+'.'
     kwargs = {'model': model_name, 'explicit_edit': explicit_edit}
-    explicit_edit = r'edit' if explicit_edit else ''
+    explicit_edit = 'edit' if explicit_edit else ''
 
     result = []
     if with_list:
-        result.append(url(r'^'+prefix+r'/$', list_objects, name=name_prefix+'list', kwargs=kwargs))
+        result.append(path(prefix+'/', list_objects, name=name_prefix+'list', kwargs=kwargs))
     result.extend([
-        url(r'^'+prefix+r'/(?P<pk>c?\d+)/'+explicit_edit+'$', edit, name=name_prefix+'edit', kwargs=kwargs),
-        url(r'^'+prefix+r'/create$', edit, name=name_prefix+'create', kwargs=kwargs),
+        path(prefix+'/<editpk:pk>/'+explicit_edit, edit, name=name_prefix+'edit', kwargs=kwargs),
+        path(prefix+'/create', edit, name=name_prefix+'create', kwargs=kwargs),
     ])
     return result
 
 
+# todo: custom path converters
 urlpatterns = [
-    url(r'^$', main_index, name='editor.index'),
-    url(r'^levels/(?P<pk>c?[0-9]+)/$', level_detail, name='editor.levels.detail'),
-    url(r'^levels/(?P<level>c?[0-9]+)/spaces/(?P<pk>c?[0-9]+)/$', space_detail, name='editor.spaces.detail'),
-    url(r'^levels/(?P<on_top_of>c?[0-9]+)/levels_on_top/create$', edit, name='editor.levels_on_top.create',
-        kwargs={'model': 'Level'}),
-    url(r'^levels/(?P<level>c?[0-9]+)/graph/$', graph_edit, name='editor.levels.graph'),
-    url(r'^spaces/(?P<space>c?[0-9]+)/graph/$', graph_edit, name='editor.spaces.graph'),
-    url(r'^changeset/$', changeset_redirect, name='editor.changesets.current'),
-    url(r'^changesets/(?P<pk>[0-9]+)/$', changeset_detail, name='editor.changesets.detail'),
-    url(r'^changesets/(?P<pk>[0-9]+)/edit$', changeset_edit, name='editor.changesets.edit'),
-    url(r'^sourceimage/(?P<filename>[^/]+)$', sourceimage, name='editor.sourceimage'),
-    url(r'^user/$', user_redirect, name='editor.users.redirect'),
-    url(r'^users/(?P<pk>[0-9]+)/$', user_detail, name='editor.users.detail'),
-    url(r'^login$', login_view, name='editor.login'),
-    url(r'^logout$', logout_view, name='editor.logout'),
-    url(r'^register$', register_view, name='editor.register'),
-    url(r'^change_password$', change_password_view, name='editor.change_password'),
+    path('levels/<editpk:pk>/', level_detail, name='editor.levels.detail'),
+    path('levels/<editpk:level>/spaces/<editpk:pk>/', space_detail, name='editor.spaces.detail'),
+    path('levels/<editpk:on_top_of>/levels_on_top/create', edit, {'model': 'Level'},
+         name='editor.levels_on_top.create'),
+    path('levels/<editpk:level>/graph/', graph_edit, name='editor.levels.graph'),
+    path('spaces/<editpk:space>/graph/', graph_edit, name='editor.spaces.graph'),
+    path('changeset/', changeset_redirect, name='editor.changesets.current'),
+    path('changesets/<editpk:pk>/', changeset_detail, name='editor.changesets.detail'),
+    path('changesets/<editpk:pk>/edit', changeset_edit, name='editor.changesets.edit'),
+    path('sourceimage/<str:filename>', sourceimage, name='editor.sourceimage'),
+    path('user/', user_redirect, name='editor.users.redirect'),
+    path('users/<int:pk>/', user_detail, name='editor.users.detail'),
+    path('login', login_view, name='editor.login'),
+    path('logout', logout_view, name='editor.logout'),
+    path('register', register_view, name='editor.register'),
+    path('change_password', change_password_view, name='editor.change_password'),
+    path('', main_index, name='editor.index'),
 ]
 urlpatterns.extend(add_editor_urls('Level', with_list=False, explicit_edit=True))
 urlpatterns.extend(add_editor_urls('LocationGroupCategory'))

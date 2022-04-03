@@ -18,8 +18,8 @@ from django.middleware import csrf
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.utils import timezone
-from django.utils.translation import ugettext_lazy as _
-from django.utils.translation import ungettext_lazy
+from django.utils.translation import gettext_lazy as _
+from django.utils.translation import ngettext_lazy
 from django.views.decorators.cache import cache_control, never_cache
 from django.views.decorators.clickjacking import xframe_options_exempt
 from django.views.decorators.http import etag
@@ -59,8 +59,7 @@ def check_location(location: Optional[str], request) -> Optional[SpecificLocatio
     return location
 
 
-def map_index(request, mode=None, slug=None, slug2=None, details=None, options=None, nearby=None,
-              level=None, x=None, y=None, zoom=None, embed=None):
+def map_index(request, mode=None, slug=None, slug2=None, details=None, options=None, nearby=None, pos=None, embed=None):
 
     # check for access token
     access_signed_data = request.GET.get('access')
@@ -83,8 +82,8 @@ def map_index(request, mode=None, slug=None, slug2=None, details=None, options=N
             token.redeem(request.user)
             token.save()
 
-        messages.success(request, ungettext_lazy('Area successfully unlocked.',
-                                                 'Areas successfully unlocked.', num_restrictions))
+        messages.success(request, ngettext_lazy('Area successfully unlocked.',
+                                                'Areas successfully unlocked.', num_restrictions))
         return redirect('site.index')
 
     origin = None
@@ -115,12 +114,12 @@ def map_index(request, mode=None, slug=None, slug2=None, details=None, options=N
 
     levels = levels_by_short_label_for_request(request)
 
-    level = levels.get(level, None) if level else None
+    level = levels.get(pos.level, None) if pos else None
     if level is not None:
         state.update({
             'level': level.pk,
-            'center': (float(x), float(y)),
-            'zoom': float(zoom),
+            'center': (pos.x, pos.y),
+            'zoom': pos.zoom,
         })
 
     initial_bounds = settings.INITIAL_BOUNDS
@@ -336,15 +335,15 @@ def access_redeem_view(request, token):
             token.redeem(request.user)
             token.save()
 
-            messages.success(request, ungettext_lazy('Area successfully unlocked.',
-                                                     'Areas successfully unlocked.', num_restrictions))
+            messages.success(request, ngettext_lazy('Area successfully unlocked.',
+                                                    'Areas successfully unlocked.', num_restrictions))
             return redirect('site.index')
 
     return render(request, 'site/confirm.html', {
-        'title': ungettext_lazy('Unlock area', 'Unlock areas', num_restrictions),
-        'texts': (ungettext_lazy('You have been invited to unlock the following area:',
-                                 'You have been invited to unlock the following areas:',
-                                 num_restrictions),
+        'title': ngettext_lazy('Unlock area', 'Unlock areas', num_restrictions),
+        'texts': (ngettext_lazy('You have been invited to unlock the following area:',
+                                'You have been invited to unlock the following areas:',
+                                num_restrictions),
                   ', '.join(str(restriction.title) for restriction in token.restrictions)),
     })
 

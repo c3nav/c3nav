@@ -4,7 +4,7 @@ from itertools import chain
 from django.db.models import Prefetch, Q
 from django.urls import Resolver404, resolve
 from django.utils.functional import cached_property
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 from rest_framework.authentication import SessionAuthentication
 from rest_framework.decorators import action
 from rest_framework.exceptions import NotFound, ParseError, PermissionDenied, ValidationError

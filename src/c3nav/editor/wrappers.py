@@ -5,9 +5,9 @@ from functools import reduce, wraps
 from itertools import chain
 
 from django.core.cache import cache
-from django.core.exceptions import ObjectDoesNotExist
+from django.core.exceptions import ObjectDoesNotExist, FieldDoesNotExist
 from django.db import models
-from django.db.models import FieldDoesNotExist, Manager, ManyToManyRel, Prefetch, Q
+from django.db.models import Manager, ManyToManyRel, Prefetch, Q
 from django.db.models.fields.related_descriptors import ReverseOneToOneDescriptor
 from django.utils.functional import cached_property
 

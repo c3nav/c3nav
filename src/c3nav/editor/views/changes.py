@@ -10,7 +10,7 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import NoReverseMatch, reverse
 from django.utils.text import format_lazy
 from django.utils.translation import get_language_info
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 
 from c3nav.editor.forms import ChangeSetForm, RejectForm
 from c3nav.editor.models import ChangeSet

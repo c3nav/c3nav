@@ -2,7 +2,7 @@ from operator import attrgetter
 
 from django.db import transaction
 from django.forms import Form, ModelChoiceField, ModelForm
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 
 from c3nav.mapdata.forms import I18nModelFormMixin
 from c3nav.mapdata.models.locations import Position

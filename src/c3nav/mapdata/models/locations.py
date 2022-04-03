@@ -6,16 +6,16 @@ from operator import attrgetter
 
 from django.conf import settings
 from django.core.cache import cache
+from django.core.exceptions import FieldDoesNotExist
 from django.core.validators import MaxValueValidator, MinValueValidator, RegexValidator
 from django.db import models, transaction
-from django.db.models import FieldDoesNotExist, Prefetch
+from django.db.models import Prefetch
 from django.urls import reverse
 from django.utils import timezone
 from django.utils.crypto import get_random_string
 from django.utils.functional import cached_property
 from django.utils.text import format_lazy
-from django.utils.translation import ugettext_lazy as _
-from django.utils.translation import ungettext_lazy
+from django.utils.translation import gettext_lazy as _, ngettext_lazy
 
 from c3nav.mapdata.fields import I18nField
 from c3nav.mapdata.grid import grid
@@ -396,7 +396,7 @@ class LocationGroup(Location, models.Model):
         if hasattr(self, 'locations'):
             return format_lazy(_('{category_title}, {num_locations}'),
                                category_title=result,
-                               num_locations=(ungettext_lazy('%(num)d location', '%(num)d locations', 'num') %
+                               num_locations=(ngettext_lazy('%(num)d location', '%(num)d locations', 'num') %
                                               {'num': len(self.locations)}))
         return result
 

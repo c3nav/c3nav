@@ -4,7 +4,7 @@ import re
 from xml.etree import ElementTree
 
 from django.core.management.base import BaseCommand, CommandError
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 from shapely.affinity import scale, translate
 from shapely.geometry import Polygon
 

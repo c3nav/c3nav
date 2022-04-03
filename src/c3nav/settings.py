@@ -8,7 +8,7 @@ from contextlib import suppress
 import sass
 from django.contrib.messages import constants as messages
 from django.utils.crypto import get_random_string
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 
 config = configparser.RawConfigParser()
 if 'C3NAV_CONFIG' in os.environ:
@@ -141,6 +141,7 @@ DATABASES = {
         'CONN_MAX_AGE': 0 if db_backend == 'sqlite3' else 120
     }
 }
+DEFAULT_AUTO_FIELD = 'django.db.models.AutoField'
 
 STATIC_URL = config.get('urls', 'static', fallback='/static/')
 
@@ -406,6 +407,8 @@ MESSAGE_TAGS = {
     messages.SUCCESS: 'alert-success',
 }
 MESSAGE_STORAGE = 'django.contrib.messages.storage.session.SessionStorage'
+
+SILENCED_SYSTEM_CHECKS = ['debug_toolbar.W006']
 
 loglevel = 'DEBUG' if DEBUG else 'INFO'
 

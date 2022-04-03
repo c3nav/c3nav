@@ -12,7 +12,7 @@ from django.db.models import Q
 from django.http import Http404, HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 from django.views.decorators.http import etag
 
 from c3nav.editor.forms import GraphEdgeSettingsForm, GraphEditorActionForm

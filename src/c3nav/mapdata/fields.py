@@ -9,7 +9,7 @@ from django.db import models
 from django.utils.functional import cached_property, lazy
 from django.utils.text import format_lazy
 from django.utils.translation import get_language
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 from shapely import validation
 from shapely.geometry import LineString, MultiPolygon, Point, Polygon, mapping, shape
 from shapely.geometry.base import BaseGeometry

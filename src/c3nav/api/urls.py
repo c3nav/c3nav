@@ -2,7 +2,7 @@ import inspect
 import re
 from collections import OrderedDict
 
-from django.conf.urls import include, url
+from django.urls import include, path, re_path
 from django.utils.functional import cached_property
 from rest_framework.generics import GenericAPIView
 from rest_framework.response import Response
@@ -20,7 +20,7 @@ from c3nav.mapdata.utils.user import can_access_editor
 from c3nav.routing.api import RoutingViewSet
 
 router = SimpleRouter()
-router.register(r'map', MapViewSet, base_name='map')
+router.register(r'map', MapViewSet, basename='map')
 router.register(r'levels', LevelViewSet)
 router.register(r'buildings', BuildingViewSet)
 router.register(r'spaces', SpaceViewSet)
@@ -40,18 +40,18 @@ router.register(r'accessrestrictions', AccessRestrictionViewSet)
 router.register(r'accessrestrictiongroups', AccessRestrictionGroupViewSet)
 
 router.register(r'locations', LocationViewSet)
-router.register(r'locations/by_slug', LocationBySlugViewSet, base_name='location-by-slug')
-router.register(r'locations/dynamic', DynamicLocationPositionViewSet, base_name='dynamic-location')
+router.register(r'locations/by_slug', LocationBySlugViewSet, basename='location-by-slug')
+router.register(r'locations/dynamic', DynamicLocationPositionViewSet, basename='dynamic-location')
 router.register(r'locationgroupcategories', LocationGroupCategoryViewSet)
 router.register(r'locationgroups', LocationGroupViewSet)
 
-router.register(r'updates', UpdatesViewSet, base_name='updates')
+router.register(r'updates', UpdatesViewSet, basename='updates')
 
-router.register(r'routing', RoutingViewSet, base_name='routing')
+router.register(r'routing', RoutingViewSet, basename='routing')
 
-router.register(r'editor', EditorViewSet, base_name='editor')
+router.register(r'editor', EditorViewSet, basename='editor')
 router.register(r'changesets', ChangeSetViewSet)
-router.register(r'session', SessionViewSet, base_name='session')
+router.register(r'session', SessionViewSet, basename='session')
 
 
 class APIRoot(GenericAPIView):
@@ -94,6 +94,7 @@ class APIRoot(GenericAPIView):
 
 
 urlpatterns = [
-    url(r'^$', APIRoot.as_view()),
-    url(r'', include(router.urls)),
+    # todo: does this work? can it be better?
+    re_path(r'^$', APIRoot.as_view()),
+    path('', include(router.urls)),
 ]

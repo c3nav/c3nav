@@ -11,8 +11,8 @@ from django.contrib.auth.models import User
 from django.db.models import Prefetch
 from django.forms import ChoiceField, Form, IntegerField, ModelForm, Select
 from django.utils import timezone
-from django.utils.translation import ugettext_lazy as _
-from django.utils.translation import ungettext_lazy
+from django.utils.translation import gettext_lazy as _
+from django.utils.translation import ngettext_lazy
 
 from c3nav.control.models import UserPermissions, UserSpaceAccess
 from c3nav.mapdata.forms import I18nModelFormMixin
@@ -81,9 +81,9 @@ class AccessPermissionForm(Form):
 
         # construct choice field for access permissions
         choices = [('', _('choose permissions…')),
-                   ('all', ungettext_lazy('everything possible (%d permission)',
-                                          'everything possible (%d permissions)',
-                                          len(access_restrictions)) % len(access_restrictions))]
+                   ('all', ngettext_lazy('everything possible (%d permission)',
+                                         'everything possible (%d permissions)',
+                                         len(access_restrictions)) % len(access_restrictions))]
 
         choices.append((_('Access Permission Groups'), tuple(
             ('g%d' % group.pk, group.title)
@@ -102,18 +102,18 @@ class AccessPermissionForm(Form):
         ]
         for minutes in range(15, 60, 15):
             expire_choices.append(
-                (str(minutes), ungettext_lazy('in %d minute', 'in %d minutes', minutes) % minutes))
+                (str(minutes), ngettext_lazy('in %d minute', 'in %d minutes', minutes) % minutes))
 
         for hours in chain(range(1, 6), range(6, 24, 6)):
             expire_choices.append(
-                (str(hours*60), ungettext_lazy('in %d hour', 'in %d hours', hours) % hours)
+                (str(hours*60), ngettext_lazy('in %d hour', 'in %d hours', hours) % hours)
             )
         expire_choices.insert(
             5, (str(90), _('in 1½ hour'))
         )
         for days in range(1, 14):
             expire_choices.append(
-                (str(days*24*60), ungettext_lazy('in %d day', 'in %d days', days) % days)
+                (str(days*24*60), ngettext_lazy('in %d day', 'in %d days', days) % days)
             )
 
         self.fields['expires'] = ChoiceField(required=False, initial='60', choices=expire_choices)

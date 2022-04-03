@@ -1,7 +1,7 @@
 from django.conf import settings
 from django.utils.functional import lazy
-from django.utils.translation import ugettext_lazy as _
-from django.utils.translation import ungettext_lazy
+from django.utils.translation import gettext_lazy as _
+from django.utils.translation import ngettext_lazy
 
 from c3nav.mapdata.models.access import AccessPermission
 from c3nav.mapdata.models.locations import Position
@@ -18,7 +18,7 @@ def get_user_data(request):
     if permissions:
         result.update({
             'title': _('not logged in'),
-            'subtitle': ungettext_lazy('%d area unlocked', '%d areas unlocked', len(permissions)) % len(permissions),
+            'subtitle': ngettext_lazy('%d area unlocked', '%d areas unlocked', len(permissions)) % len(permissions),
             'permissions': tuple(permissions),
         })
     else:

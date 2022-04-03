@@ -3,8 +3,8 @@ import os
 
 from django.conf import settings
 from django.core.management.base import BaseCommand, CommandError
-from django.utils.translation import ugettext_lazy as _
-from django.utils.translation import ungettext_lazy
+from django.utils.translation import gettext_lazy as _
+from django.utils.translation import ngettext_lazy
 
 from c3nav.mapdata.models import AccessRestriction, Level, Source
 from c3nav.mapdata.render.engines import get_engine, get_engine_filetypes
@@ -25,7 +25,7 @@ class Command(BaseCommand):
         not_found = values - set(level.short_label for level in levels)
         if not_found:
             raise argparse.ArgumentTypeError(
-                ungettext_lazy('Unknown level: %s', 'Unknown levels: %s', len(not_found)) % ', '.join(not_found)
+                ngettext_lazy('Unknown level: %s', 'Unknown levels: %s', len(not_found)) % ', '.join(not_found)
             )
 
         return levels
@@ -43,8 +43,8 @@ class Command(BaseCommand):
         not_found = values - set(str(permission.pk) for permission in permissions)
         if not_found:
             raise argparse.ArgumentTypeError(
-                ungettext_lazy('Unknown access restriction: %s',
-                               'Unknown access restrictions: %s', len(not_found)) % ', '.join(not_found)
+                ngettext_lazy('Unknown access restriction: %s',
+                              'Unknown access restrictions: %s', len(not_found)) % ', '.join(not_found)
             )
 
         return permissions
