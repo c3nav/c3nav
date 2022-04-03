@@ -5,6 +5,7 @@ from django.db import models
 from django.utils.functional import cached_property
 from django.utils.translation import gettext_lazy as _
 from shapely.geometry import Point, box
+from shapely.geometry.base import BaseGeometry
 from shapely.ops import unary_union
 
 from c3nav.mapdata.models.base import SerializableMixin
@@ -20,7 +21,9 @@ class GeometryMixin(SerializableMixin):
     """
     A map feature with a geometry
     """
-    geometry = None
+    geometry: BaseGeometry
+    level_id: int
+    subtitle: str
     import_tag = models.CharField(_('import tag'), null=True, blank=True, max_length=32)
 
     class Meta:
@@ -84,6 +87,7 @@ class GeometryMixin(SerializableMixin):
         if simple_geometry:
             result['point'] = (self.level_id, ) + tuple(round(i, 2) for i in self.point.coords[0])
             if not isinstance(self.geometry, Point):
+                self.geometry: BaseGeometry
                 minx, miny, maxx, maxy = self.geometry.bounds
                 result['bounds'] = ((int(math.floor(minx)), int(math.floor(miny))),
                                     (int(math.ceil(maxx)), int(math.ceil(maxy))))
