@@ -1,12 +1,19 @@
-from channels.generic.websocket import WebsocketConsumer
+from channels.generic.websocket import AsyncWebsocketConsumer
+
+from c3nav.mesh import messages
 
 
-class EchoConsumer(WebsocketConsumer):
-    def connect(self):
-        self.accept()
+class MeshConsumer(AsyncWebsocketConsumer):
+    async def connect(self):
+        await self.accept()
 
-    def disconnect(self, close_code):
+    async def disconnect(self, close_code):
         pass
 
-    def receive(self, text_data):
-        self.send(text_data=text_data)
+    async def receive(self, text_data=None, bytes_data=None):
+        if bytes_data is None:
+            return
+        msg = messages.Message.decode(bytes_data)
+        print('Received message:', msg)
+        if isinstance(msg, messages.MeshSigninMessage):
+            await self.send(messages.MeshLayerAnnounceMessage(messages.NO_LAYER).encode())

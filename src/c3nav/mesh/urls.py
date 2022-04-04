@@ -1,7 +1,7 @@
 from django.urls import path
 
-from c3nav.mesh.consumers import EchoConsumer
+from c3nav.mesh.consumers import MeshConsumer
 
 websocket_urlpatterns = [
-    path('ws', EchoConsumer.as_asgi()),
+    path('ws', MeshConsumer.as_asgi()),
 ]
