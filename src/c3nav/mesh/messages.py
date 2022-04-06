@@ -46,6 +46,9 @@ class MacAddressesListFormat:
 
 @dataclass
 class Message:
+    dst: str = field(metadata={'format': MacAddressFormat()})
+    src: str = field(metadata={'format': MacAddressFormat()})
+    msg_id: int = field(metadata={'format': SimpleFormat('B')}, init=False)
     msg_types = {}
 
     # noinspection PyMethodOverriding
@@ -56,18 +59,19 @@ class Message:
             Message.msg_types[msg_id] = cls
 
     def encode(self):
-        data = bytes((self.msg_id, ))
+        data = bytes()
         for field_ in fields(self):
             data += field_.metadata['format'].encode(getattr(self, field_.name))
         return data
 
     @classmethod
     def decode(cls, data: bytes):
-        klass = cls.msg_types[data[0]]
-        data = data[1:]
+        print('decode', ' '.join(('%02x' % i) for i in data))
+        klass = cls.msg_types[data[12]]
         values = {}
         for field_ in fields(klass):
             values[field_.name], data = field_.metadata['format'].decode(data)
+        values.pop('msg_id')
         return klass(**values)
 
 
