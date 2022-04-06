@@ -48,7 +48,7 @@ class MacAddressesListFormat:
 class Message:
     dst: str = field(metadata={'format': MacAddressFormat()})
     src: str = field(metadata={'format': MacAddressFormat()})
-    msg_id: int = field(metadata={'format': SimpleFormat('B')}, init=False)
+    msg_id: int = field(metadata={'format': SimpleFormat('B')}, init=False, repr=True)
     msg_types = {}
 
     # noinspection PyMethodOverriding
@@ -76,30 +76,30 @@ class Message:
 
 
 @dataclass
-class EchoMessage(Message, msg_id=0x01):
+class EchoRequestMessage(Message, msg_id=0x01):
     content: str = field(default='', metadata={'format': VarStrFormat()})
 
 
 @dataclass
-class MeshSigninMessage(Message, msg_id=0x02):
-    mac_address: str = field(metadata={'format': MacAddressFormat()})
+class EchoResponseMessage(Message, msg_id=0x02):
+    content: str = field(default='', metadata={'format': VarStrFormat()})
 
 
 @dataclass
-class MeshLayerAnnounceMessage(Message, msg_id=0x03):
+class MeshSigninMessage(Message, msg_id=0x03):
+    pass
+
+
+@dataclass
+class MeshLayerAnnounceMessage(Message, msg_id=0x04):
     layer: int = field(metadata={'format': SimpleFormat('B')})
 
 
 @dataclass
-class BaseMeshDestinationsMessage(Message):
+class MeshAddDestinationsMessage(Message, msg_id=0x05):
     mac_addresses: list[str] = field(default_factory=list, metadata={'format': MacAddressesListFormat()})
 
 
 @dataclass
-class MeshAddDestinationsMessage(BaseMeshDestinationsMessage, msg_id=0x04):
-    pass
-
-
-@dataclass
-class MeshRemoveDestinationsMessage(BaseMeshDestinationsMessage, msg_id=0x05):
-    pass
+class MeshRemoveDestinationsMessage(Message, msg_id=0x06):
+    mac_addresses: list[str] = field(default_factory=list, metadata={'format': MacAddressesListFormat()})
