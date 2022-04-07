@@ -1,12 +1,17 @@
 import operator
 from collections import deque
+from dataclasses import dataclass, field
 from functools import reduce
 from itertools import chain
+from typing import Literal, TypeVar
 
 import numpy as np
-from shapely.geometry import GeometryCollection, LineString, MultiLineString, Point
+from matplotlib.patches import Polygon
+from shapely.geometry import GeometryCollection, LineString, MultiLineString, MultiPolygon, Point
+from shapely.geometry.base import BaseGeometry
 from shapely.ops import unary_union
 
+from c3nav.mapdata.render.geometry.mesh import Mesh
 from c3nav.mapdata.utils.geometry import assert_multipolygon
 from c3nav.mapdata.utils.mesh import triangulate_polygon
 from c3nav.mapdata.utils.mpl import shapely_to_mpl
@@ -27,6 +32,10 @@ def hybrid_union(geoms):
                           crop_ids=reduce(operator.or_, (other.crop_ids for other in geoms), set()))
 
 
+THybridGeometry = TypeVar("THybridGeometry", bound="HybridGeometry")
+
+
+@dataclass(slots=True)
 class HybridGeometry:
     """
     A geometry containing a mesh as well as a shapely geometry,
@@ -36,38 +45,40 @@ class HybridGeometry:
     - 2d mesh state where faces refers to indizes of faces from an external list
     - 3d mesh state where faces refers to Mesh instances
     """
-    __slots__ = ('geom', 'faces', 'crop_ids', 'add_faces')
-
-    def __init__(self, geom, faces, crop_ids=frozenset(), add_faces=None):
-        self.geom = geom
-        self.faces = faces
-        self.add_faces = add_faces or {}
-        self.crop_ids = crop_ids
+    geom: BaseGeometry
+    faces: tuple[int, ...] | tuple[Mesh, ...]
+    crop_ids: frozenset = field(default_factory=frozenset)  # todo: specify type more precisely
+    add_faces: dict = field(default_factory=dict)  # todo: specify type more precisely
 
     @classmethod
-    def create(cls, geom, face_centers):
+    def create(cls, geom, face_centers) -> THybridGeometry:
         """
         Create from existing facets and just select the ones that lie inside this polygon.
         """
         if isinstance(geom, (LineString, MultiLineString)):
-            return HybridGeometry(geom, set())
+            return HybridGeometry(geom, ())
         faces = tuple(
             set(np.argwhere(shapely_to_mpl(subgeom).contains_points(face_centers)).flatten())
             for subgeom in assert_multipolygon(geom)
         )
-        return HybridGeometry(geom, tuple(f for f in faces if f))
+        return HybridGeometry(geom, tuple(f for f in faces if f))  # todo: wtf? that is the wrong typing
 
     @classmethod
-    def create_full(cls, geom, vertices_offset, faces_offset):
+    def create_full(cls, geom: BaseGeometry,
+                    vertices_offset: int, faces_offset: int) -> tuple[THybridGeometry,
+                                                                      np.ndarray[tuple[int, Literal[2]], np.uint32],
+                                                                      np.ndarray[tuple[int, Literal[3]], np.uint32]]:
         """
         Create by triangulating a polygon and adding the resulting facets to the total list.
         """
         if isinstance(geom, (LineString, MultiLineString, Point)):
-            return HybridGeometry(geom, set()), np.empty((0, 2), dtype=np.int32), np.empty((0, 3), dtype=np.uint32)
+            return HybridGeometry(geom, tuple()), np.empty((0, 2), dtype=np.int32), np.empty((0, 3), dtype=np.uint32)
 
-        vertices = deque()
-        faces = deque()
-        faces_i = deque()
+        geom: Polygon | MultiPolygon | GeometryCollection
+
+        vertices: deque = deque()
+        faces: deque = deque()
+        faces_i: deque = deque()
         for subgeom in assert_multipolygon(geom):
             new_vertices, new_faces = triangulate_polygon(subgeom)
             new_faces += vertices_offset
@@ -78,10 +89,10 @@ class HybridGeometry:
             faces_offset += new_faces.shape[0]
 
         if not vertices:
-            return HybridGeometry(geom, set()), np.empty((0, 2), dtype=np.int32), np.empty((0, 3), dtype=np.uint32)
+            return HybridGeometry(geom, tuple()), np.empty((0, 2), dtype=np.int32), np.empty((0, 3), dtype=np.uint32)
 
-        vertices = np.vstack(vertices)
-        faces = np.vstack(faces)
+        vertices: np.ndarray[tuple[int, Literal[2]], np.uint32] = np.vstack(vertices)
+        faces: np.ndarray[tuple[int, Literal[3]], np.uint32] = np.vstack(faces)
 
         return HybridGeometry(geom, tuple(faces_i)), vertices, faces
 

@@ -1,7 +1,7 @@
 from collections import deque
 from functools import lru_cache
 from itertools import chain
-from typing import Union
+from typing import Literal, Union
 
 import numpy as np
 from meshpy import triangle
@@ -15,7 +15,8 @@ def get_face_indizes(start, length):
     return np.vstack((indices, (indices[-1][-1], indices[0][0])))
 
 
-def triangulate_rings(rings, holes=None):
+def triangulate_rings(rings, holes=None) -> tuple[np.ndarray[tuple[int, Literal[2]], np.uint32],
+                                                  np.ndarray[tuple[int, Literal[3]], np.uint32]]:
     return (
         np.zeros((0, 2), dtype=np.uint32),
         np.zeros((0, 3), dtype=np.uint32),
@@ -62,7 +63,8 @@ def triangulate_rings(rings, holes=None):
     return mesh_points, mesh_elements
 
 
-def _triangulate_polygon(polygon: Polygon, keep_holes=False):
+def _triangulate_polygon(polygon: Polygon, keep_holes=False) -> tuple[np.ndarray[tuple[int, Literal[2]], np.uint32],
+                                                                      np.ndarray[tuple[int, Literal[3]], np.uint32]]:
     holes = None
     if not keep_holes:
         holes = np.array(tuple(
@@ -73,7 +75,9 @@ def _triangulate_polygon(polygon: Polygon, keep_holes=False):
     return triangulate_rings((polygon.exterior, *polygon.interiors), holes)
 
 
-def triangulate_polygon(geometry: Union[Polygon, MultiPolygon], keep_holes=False):
+def triangulate_polygon(geometry: Union[Polygon, MultiPolygon],
+                        keep_holes=False) -> tuple[np.ndarray[tuple[int, Literal[2]], np.uint32],
+                                                   np.ndarray[tuple[int, Literal[3]], np.uint32]]:
     if isinstance(geometry, Polygon):
         return _triangulate_polygon(geometry, keep_holes=keep_holes)
 

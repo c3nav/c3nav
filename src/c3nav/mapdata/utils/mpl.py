@@ -1,8 +1,10 @@
 from abc import ABC, abstractmethod
+from dataclasses import InitVar, dataclass, field
 
 import numpy as np
 from matplotlib.path import Path
-from shapely.geometry import GeometryCollection, MultiPolygon, Polygon
+from shapely.geometry import GeometryCollection, LinearRing, MultiPolygon, Polygon
+from shapely.geometry.base import BaseGeometry
 
 from c3nav.mapdata.utils.geometry import assert_multipolygon
 
@@ -17,40 +19,13 @@ class MplPathProxy(ABC):
         pass
 
 
-class MplMultipolygonPath(MplPathProxy):
-    __slots__ = ('polygons')
-
-    def __init__(self, polygon):
-        self.polygons = tuple(MplPolygonPath(polygon) for polygon in assert_multipolygon(polygon))
-
-    @property
-    def exteriors(self):
-        return tuple(polygon.exterior for polygon in self.polygons)
-
-    def intersects_path(self, path, filled=False):
-        for polygon in self.polygons:
-            if polygon.intersects_path(path, filled=filled):
-                return True
-        return False
-
-    def contains_point(self, point):
-        for polygon in self.polygons:
-            if polygon.contains_point(point):
-                return True
-        return False
-
-    def contains_points(self, points):
-        result = np.full((len(points),), fill_value=False, dtype=np.bool)
-        for polygon in self.polygons:
-            ix = np.argwhere(np.logical_not(result)).flatten()
-            result[ix] = polygon.contains_points(points[ix])
-        return result
-
-
+@dataclass(slots=True)
 class MplPolygonPath(MplPathProxy):
-    __slots__ = ('exterior', 'interiors')
+    polygon: InitVar[Polygon]
+    exterior: Path = field(init=False)
+    interiors: list[Path] = field(init=False)
 
-    def __init__(self, polygon):
+    def __post_init__(self, polygon):
         self.exterior = linearring_to_mpl_path(polygon.exterior)
         self.interiors = [linearring_to_mpl_path(interior) for interior in polygon.interiors]
 
@@ -95,7 +70,39 @@ class MplPolygonPath(MplPathProxy):
         return True
 
 
-def shapely_to_mpl(geometry):
+@dataclass(slots=True)
+class MplMultipolygonPath(MplPathProxy):
+    polygons: list[MplPolygonPath] = field(init=False)
+    polygons_: InitVar[Polygon | MultiPolygon | GeometryCollection]
+
+    def __post_init__(self, polygons_):
+        self.polygons = [MplPolygonPath(polygon) for polygon in assert_multipolygon(polygons_)]
+
+    @property
+    def exteriors(self):
+        return tuple(polygon.exterior for polygon in self.polygons)
+
+    def intersects_path(self, path, filled=False):
+        for polygon in self.polygons:
+            if polygon.intersects_path(path, filled=filled):
+                return True
+        return False
+
+    def contains_point(self, point):
+        for polygon in self.polygons:
+            if polygon.contains_point(point):
+                return True
+        return False
+
+    def contains_points(self, points):
+        result = np.full((len(points),), fill_value=False, dtype=np.bool)
+        for polygon in self.polygons:
+            ix = np.argwhere(np.logical_not(result)).flatten()
+            result[ix] = polygon.contains_points(points[ix])
+        return result
+
+
+def shapely_to_mpl(geometry: BaseGeometry) -> MplPathProxy:
     """
     convert a shapely Polygon or Multipolygon to a matplotlib Path
     :param geometry: shapely Polygon or Multipolygon
@@ -108,6 +115,6 @@ def shapely_to_mpl(geometry):
     raise TypeError
 
 
-def linearring_to_mpl_path(linearring):
+def linearring_to_mpl_path(linearring: LinearRing) -> Path:
     return Path(np.array(linearring.coords),
                 (Path.MOVETO, *([Path.LINETO] * (len(linearring.coords)-2)), Path.CLOSEPOLY), readonly=True)

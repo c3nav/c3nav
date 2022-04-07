@@ -87,7 +87,7 @@ def clean_geometry(geometry):
     return geometry
 
 
-def assert_multipolygon(geometry: Union[Polygon, MultiPolygon, GeometryCollection]) -> List[Polygon]:
+def assert_multipolygon(geometry: Polygon | MultiPolygon | GeometryCollection) -> list[Polygon]:
     """
     given a Polygon or a MultiPolygon, return a list of Polygons
     :param geometry: a Polygon or a MultiPolygon
@@ -100,7 +100,7 @@ def assert_multipolygon(geometry: Union[Polygon, MultiPolygon, GeometryCollectio
     return [geom for geom in geometry.geoms if isinstance(geom, Polygon)]
 
 
-def assert_multilinestring(geometry: Union[LineString, MultiLineString, GeometryCollection]) -> List[LineString]:
+def assert_multilinestring(geometry: LineString | MultiLineString | GeometryCollection) -> list[LineString]:
     """
     given a LineString or MultiLineString, return a list of LineStrings
     :param geometry: a LineString or a MultiLineString
