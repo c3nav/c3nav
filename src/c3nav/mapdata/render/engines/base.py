@@ -1,5 +1,6 @@
 import math
 from abc import ABC, abstractmethod
+from dataclasses import dataclass
 from typing import Optional
 
 from shapely.geometry import JOIN_STYLE, box
@@ -7,22 +8,18 @@ from shapely.geometry import JOIN_STYLE, box
 from c3nav.mapdata.utils.color import color_to_rgb
 
 
+@dataclass(slots=True)
 class FillAttribs:
-    __slots__ = ('color', 'opacity')
-
-    def __init__(self, color, opacity=None):
-        self.color = color
-        self.opacity = opacity
+    color: str
+    opacity: float | None = None
 
 
+@dataclass(slots=True)
 class StrokeAttribs:
-    __slots__ = ('color', 'width', 'min_px', 'opacity')
-
-    def __init__(self, color, width, min_px=None, opacity=None):
-        self.color = color
-        self.width = width
-        self.min_px = min_px
-        self.opacity = opacity
+    color: str
+    width: float
+    min_px: float | None = None
+    opacity: float | None = None
 
 
 class RenderEngine(ABC):
