@@ -1,5 +1,6 @@
 from abc import ABC, abstractmethod
 from dataclasses import InitVar, dataclass, field
+from typing import Literal
 
 import numpy as np
 from matplotlib.path import Path
@@ -11,11 +12,15 @@ from c3nav.mapdata.utils.geometry import assert_multipolygon
 
 class MplPathProxy(ABC):
     @abstractmethod
-    def intersects_path(self, path):
+    def intersects_path(self, path: Path) -> bool:
         pass
 
     @abstractmethod
-    def contains_point(self, point):
+    def contains_point(self, point: tuple[int, int]) -> bool:
+        pass
+
+    @abstractmethod
+    def contains_points(self, points: np.ndarray[tuple[int, Literal[2]], np.uint32]) -> bool:
         pass
 
 
@@ -23,11 +28,11 @@ class MplPathProxy(ABC):
 class MplPolygonPath(MplPathProxy):
     polygon: InitVar[Polygon]
     exterior: Path = field(init=False)
-    interiors: list[Path] = field(init=False)
+    interiors: tuple[Path, ...] = field(init=False)
 
     def __post_init__(self, polygon):
         self.exterior = linearring_to_mpl_path(polygon.exterior)
-        self.interiors = [linearring_to_mpl_path(interior) for interior in polygon.interiors]
+        self.interiors = tuple(linearring_to_mpl_path(interior) for interior in polygon.interiors)
 
     @property
     def exteriors(self):
@@ -52,6 +57,7 @@ class MplPolygonPath(MplPathProxy):
             return False
 
     def contains_points(self, points):
+        # noinspection PyTypeChecker
         result = self.exterior.contains_points(points)
         for interior in self.interiors:
             if not result.any():
@@ -72,11 +78,11 @@ class MplPolygonPath(MplPathProxy):
 
 @dataclass(slots=True)
 class MplMultipolygonPath(MplPathProxy):
-    polygons: list[MplPolygonPath] = field(init=False)
+    polygons: tuple[MplPolygonPath, ...] = field(init=False)
     polygons_: InitVar[Polygon | MultiPolygon | GeometryCollection]
 
     def __post_init__(self, polygons_):
-        self.polygons = [MplPolygonPath(polygon) for polygon in assert_multipolygon(polygons_)]
+        self.polygons = tuple(MplPolygonPath(polygon) for polygon in assert_multipolygon(polygons_))
 
     @property
     def exteriors(self):

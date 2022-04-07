@@ -29,7 +29,7 @@ def hybrid_union(geoms):
     return HybridGeometry(geom=unary_union(tuple(geom.geom for geom in geoms)),
                           faces=tuple(chain(*(geom.faces for geom in geoms))),
                           add_faces=add_faces,
-                          crop_ids=reduce(operator.or_, (other.crop_ids for other in geoms), set()))
+                          crop_ids=reduce(operator.or_, (other.crop_ids for other in geoms), frozenset()))
 
 
 THybridGeometry = TypeVar("THybridGeometry", bound="HybridGeometry")
@@ -51,7 +51,7 @@ class HybridGeometry:
     add_faces: dict = field(default_factory=dict)  # todo: specify type more precisely
 
     @classmethod
-    def create(cls, geom, face_centers) -> THybridGeometry:
+    def create(cls, geom, face_centers: np.ndarray[tuple[int, Literal[2]], np.uint32]) -> THybridGeometry:
         """
         Create from existing facets and just select the ones that lie inside this polygon.
         """
@@ -61,7 +61,10 @@ class HybridGeometry:
             set(np.argwhere(shapely_to_mpl(subgeom).contains_points(face_centers)).flatten())
             for subgeom in assert_multipolygon(geom)
         )
-        return HybridGeometry(geom, tuple(f for f in faces if f))  # todo: wtf? that is the wrong typing
+
+        faces = tuple(reduce(operator.or_, faces, set()))
+        return HybridGeometry(geom, faces)  # old code had wrong typing
+        # return HybridGeometry(geom, tuple(f for f in faces if f))  # old code had wrong typing
 
     @classmethod
     def create_full(cls, geom: BaseGeometry,
