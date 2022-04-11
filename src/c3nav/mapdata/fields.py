@@ -188,7 +188,7 @@ class I18nField(models.JSONField):
 
     def deconstruct(self):
         name, path, args, kwargs = super().deconstruct()
-        if self.default == {}:
+        if self.default == {} or self.default == dict:
             kwargs.pop('default')
         if self.plural_name is not None:
             kwargs['plural_name'] = self.plural_name
