@@ -10,7 +10,7 @@ class ChipID(models.IntegerChoices):
 
 
 class MeshNode(models.Model):
-    address = models.CharField(_('mac address'), max_length=17, unique=True)
+    address = models.CharField(_('mac address'), max_length=17, primary_key=True)
     first_seen = models.DateTimeField(_('first seen'), auto_now_add=True)
     parent_node = models.ForeignKey('MeshNode', models.PROTECT, null=True,
                                     related_name='child_nodes', verbose_name=_('parent node'))

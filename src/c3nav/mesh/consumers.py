@@ -10,11 +10,15 @@ from c3nav.mesh.models import MeshNode, NodeMessage
 class MeshConsumer(AsyncWebsocketConsumer):
     async def connect(self):
         print('connected!')
+        # todo: auth
+        self.node = None
         await self.accept()
 
     async def disconnect(self, close_code):
         print('disconnected!')
-        pass
+        if self.node is not None:
+            await self.channel_layer.group_discard('route_%s' % self.node.address.replace(':', ''), self.channel_name)
+        await self.channel_layer.group_discard('route_broadcast', self.channel_name)
 
     async def send_msg(self, msg):
         print('Sending message:', msg)
@@ -35,8 +39,13 @@ class MeshConsumer(AsyncWebsocketConsumer):
             return
 
         print('Received message:', msg)
-        node = await self.log_received_message(msg)  # noqa
+
         if isinstance(msg, messages.MeshSigninMessage):
+            self.node, created = await self.get_node(msg.src)
+            if created:
+                print('New node signing in!')
+                print(self.node)
+            await self.log_received_message(msg)
             await self.send_msg(messages.MeshLayerAnnounceMessage(
                 src=messages.ROOT_ADDRESS,
                 dst=msg.src,
@@ -46,12 +55,39 @@ class MeshConsumer(AsyncWebsocketConsumer):
                 src=messages.ROOT_ADDRESS,
                 dst=msg.src,
             ))
+            await self.channel_layer.group_add('route_%s' % self.node.address.replace(':', ''), self.channel_name)
+            await self.channel_layer.group_add('route_broadcast', self.channel_name)
+            await self.set_parent_of_nodes(None, (self.node, ))
+            await self.set_route_of_nodes(self.node, (self.node,))
+            return
+
+        if self.node is None:
+            print('Expected sign-in message, but got a different one!')
+            await self.close()
+            return
+
+        await self.log_received_message(msg)
 
     @database_sync_to_async
-    def log_received_message(self, msg: messages.Message) -> MeshNode:
-        node, created = MeshNode.objects.get_or_create(address=msg.src)
-        return NodeMessage.objects.create(
-            node=node,
+    def get_node(self, address):
+        return MeshNode.objects.get_or_create(address=address)
+
+    @database_sync_to_async
+    def log_received_message(self, msg: messages.Message):
+        NodeMessage.objects.create(
+            node=self.node,
             message_type=msg.msg_id,
             data=msg.tojson()
         )
+
+    @database_sync_to_async
+    def create_nodes(self, addresses):
+        MeshNode.objects.bulk_create(MeshNode(address=address) for address in addresses)
+
+    @database_sync_to_async
+    def set_parent_of_nodes(self, parent_address, node_addresses):
+        MeshNode.objects.filter(address__in=node_addresses).update(parent_node_id=parent_address)
+
+    @database_sync_to_async
+    def set_route_of_nodes(self, route_address, node_addresses):
+        MeshNode.objects.filter(address__in=node_addresses).update(route_id=route_address)

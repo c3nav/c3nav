@@ -291,6 +291,22 @@ ROOT_URLCONF = 'c3nav.urls'
 WSGI_APPLICATION = 'c3nav.wsgi.application'
 ASGI_APPLICATION = 'c3nav.asgi.application'
 
+if HAS_REDIS:
+    CHANNEL_LAYERS = {
+        'default': {
+            'BACKEND': 'channels_redis.core.RedisChannelLayer',
+            'CONFIG': {
+                "hosts": [config.get('redis', 'location')],
+            },
+        },
+    }
+else:
+    CHANNEL_LAYERS = {
+        "default": {
+            "BACKEND": "channels.layers.InMemoryChannelLayer"
+        }
+    }
+
 USE_I18N = True
 USE_L10N = True
 USE_TZ = True
