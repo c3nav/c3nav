@@ -17,6 +17,7 @@ class MeshConsumer(AsyncWebsocketConsumer):
     async def disconnect(self, close_code):
         print('disconnected!')
         if self.node is not None:
+            await self.remove_route(self.node.address)
             await self.channel_layer.group_discard('route_%s' % self.node.address.replace(':', ''), self.channel_name)
         await self.channel_layer.group_discard('route_broadcast', self.channel_name)
 
@@ -57,8 +58,8 @@ class MeshConsumer(AsyncWebsocketConsumer):
             ))
             await self.channel_layer.group_add('route_%s' % self.node.address.replace(':', ''), self.channel_name)
             await self.channel_layer.group_add('route_broadcast', self.channel_name)
-            await self.set_parent_of_nodes(None, (self.node, ))
-            await self.set_route_of_nodes(self.node, (self.node,))
+            await self.set_parent_of_nodes(None, (self.node.address, ))
+            await self.add_route_to_nodes(self.node.address, (self.node.address,))
             return
 
         if self.node is None:
@@ -89,5 +90,13 @@ class MeshConsumer(AsyncWebsocketConsumer):
         MeshNode.objects.filter(address__in=node_addresses).update(parent_node_id=parent_address)
 
     @database_sync_to_async
-    def set_route_of_nodes(self, route_address, node_addresses):
+    def add_route_to_nodes(self, route_address, node_addresses):
         MeshNode.objects.filter(address__in=node_addresses).update(route_id=route_address)
+
+    @database_sync_to_async
+    def remove_route(self, route_address):
+        MeshNode.objects.filter(route_id=route_address).update(route_id=None)
+
+    @database_sync_to_async
+    def remove_route_to_nodes(self, route_address, node_addresses):
+        MeshNode.objects.filter(address__in=node_addresses, route_id=route_address).update(route_id=None)
