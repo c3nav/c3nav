@@ -1,6 +1,10 @@
+import traceback
+
+from channels.db import database_sync_to_async
 from channels.generic.websocket import AsyncWebsocketConsumer
 
 from c3nav.mesh import messages
+from c3nav.mesh.models import MeshNode, NodeMessage
 
 
 class MeshConsumer(AsyncWebsocketConsumer):
@@ -19,15 +23,35 @@ class MeshConsumer(AsyncWebsocketConsumer):
     async def receive(self, text_data=None, bytes_data=None):
         if bytes_data is None:
             return
-        msg = messages.Message.decode(bytes_data)
+        try:
+            msg = messages.Message.decode(bytes_data)
+        except Exception:
+            traceback.print_exc()
+            return
+
+        if msg.dst != messages.ROOT_ADDRESS and msg.dst != messages.PARENT_ADDRESS:
+            print('Received message for forwarding:', msg)
+            # todo: this message isn't for us, forward it
+            return
+
         print('Received message:', msg)
+        node = await self.log_received_message(msg)  # noqa
         if isinstance(msg, messages.MeshSigninMessage):
             await self.send_msg(messages.MeshLayerAnnounceMessage(
-                src='00:00:00:00:00:00',
+                src=messages.ROOT_ADDRESS,
                 dst=msg.src,
                 layer=messages.NO_LAYER
             ))
             await self.send_msg(messages.ConfigDumpMessage(
-                src='00:00:00:00:00:00',
+                src=messages.ROOT_ADDRESS,
                 dst=msg.src,
             ))
+
+    @database_sync_to_async
+    def log_received_message(self, msg: messages.Message) -> MeshNode:
+        node, created = MeshNode.objects.get_or_create(address=msg.src)
+        return NodeMessage.objects.create(
+            node=node,
+            message_type=msg.msg_id,
+            data=msg.tojson()
+        )
