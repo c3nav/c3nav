@@ -834,7 +834,7 @@ class RelatedManagerWrapper(ManagerWrapper):
         """
         try:
             return self.instance._prefetched_objects_cache[self._get_cache_name()]
-        except(AttributeError, KeyError):
+        except (AttributeError, KeyError):
             pass
         return super().all()
 
@@ -877,7 +877,7 @@ class ManyRelatedManagerWrapper(RelatedManagerWrapper):
     def all(self):
         try:
             return self.instance._prefetched_objects_cache[self._get_cache_name()]
-        except(AttributeError, KeyError):
+        except (AttributeError, KeyError):
             pass
         return super().all()
 

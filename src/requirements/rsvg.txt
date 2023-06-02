@@ -1,2 +1,2 @@
 pgi==0.0.11.2
-cairocffi==1.3.0
+cairocffi==1.5.1

@@ -525,7 +525,7 @@ class AltitudeArea(LevelGeometryMixin, models.Model):
                         line = scale(line, xfact=factor, yfact=factor)
                         centroid = line.centroid
                         line = min(assert_multilinestring(space_geom.intersection(line)),
-                                   key=lambda l: l.centroid.distance(centroid), default=None)
+                                   key=lambda line_: line_.centroid.distance(centroid), default=None)
                         cuts.append(scale(line, xfact=1.01, yfact=1.01))
 
                 remaining_space = tuple(

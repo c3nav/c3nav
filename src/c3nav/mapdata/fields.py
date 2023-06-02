@@ -184,6 +184,8 @@ class I18nField(models.JSONField):
         super().__init__(verbose_name=verbose_name, default=(dict(default) if default else dict), null=False, **kwargs)
 
     def get_default(self):
+        if callable(self.default):
+            return self.default()
         return self.default.copy()
 
     def deconstruct(self):
