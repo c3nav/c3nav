@@ -1111,6 +1111,7 @@ editor = {
             var form = geometry_field.closest('form');
             var options, mapitem_type = form.attr('data-new');
             var geometry_value = geometry_field.val();
+            if (geometry_value === 'null') geometry_value = '';
             if (geometry_value) {
                 editor._creating_type = null;
                 if (editor._editing_layer !== null) {

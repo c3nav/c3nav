@@ -56,7 +56,7 @@ class GeometryField(models.JSONField):
         if value is None or value == '':
             return None
         try:
-            geometry = shape(json.loads(value))
+            geometry = shape(value)
         except Exception:
             raise ValidationError(_('Invalid GeoJSON.'))
         self._validate_geomtype(geometry)
@@ -66,6 +66,9 @@ class GeometryField(models.JSONField):
             raise ValidationError(_('Could not clean geometry.'))
         self._validate_geomtype(geometry)
         return geometry
+
+    def validate(self, value, model_instance):
+        super().validate(mapping(value), model_instance)
 
     @cached_property
     def classes(self):
@@ -100,6 +103,9 @@ class GeometryField(models.JSONField):
             logging.debug('Fixing rounded geometry failed, saving it to the database without rounding.')
 
         return format_geojson(mapping(value), rounded=False) if as_json else value
+
+    def get_db_prep_value(self, value, connection, prepared=False):
+        return super().get_db_prep_value(mapping(value), connection, prepared=prepared)
 
     def get_prep_value(self, value):
         if value is None:

@@ -69,7 +69,7 @@ class EditorViewSet(EditorViewSetMixin, ViewSet):
     @staticmethod
     def _get_level_geometries(level):
         buildings = level.buildings.all()
-        buildings_geom = unary_union([building.geometry for building in buildings])
+        buildings_geom = unary_union([building.geometry.wrapped_geom for building in buildings])
         spaces = {space.pk: space for space in level.spaces.all()}
         holes_geom = []
         for space in spaces.values():
@@ -77,9 +77,9 @@ class EditorViewSet(EditorViewSetMixin, ViewSet):
                 space.geometry = space.geometry.difference(buildings_geom)
             columns = [column.geometry for column in space.columns.all()]
             if columns:
-                columns_geom = unary_union([column.geometry for column in space.columns.all()])
+                columns_geom = unary_union([column.geometry.wrapped_geom for column in space.columns.all()])
                 space.geometry = space.geometry.difference(columns_geom)
-            holes = [hole.geometry for hole in space.holes.all()]
+            holes = [hole.geometry.wrapped_geom for hole in space.holes.all()]
             if holes:
                 space_holes_geom = unary_union(holes)
                 holes_geom.append(space_holes_geom.intersection(space.geometry))
