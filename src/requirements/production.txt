@@ -1,4 +1,4 @@
-Django==4.2.1
+Django==4.2.3
 django-bootstrap3==23.1
 django-compressor==4.3.1
 csscompressor==0.9.5
