@@ -172,6 +172,14 @@ class TileServer:
                                   ('ETag', etag)])
         return [data]
 
+    def check_response(self, start_response):
+        self.get_cache_package()
+        text = b'OK'
+        start_response('200 OK', [self.get_date_header(),
+                                  ('Content-Type', 'text/plain'),
+                                  ('Content-Length', str(len(text)))])
+        return [text]
+
     def get_cache_package(self):
         try:
             cache_package_filename = self.cache.get('cache_package_filename')
@@ -199,6 +207,10 @@ class TileServer:
 
     def __call__(self, env, start_response):
         path_info = env['PATH_INFO']
+
+        if path_info == '/check':
+            return self.check_response(start_response)
+
         match = self.path_regex.match(path_info)
         if match is None:
             return self.not_found(start_response, b'invalid tile path.')
