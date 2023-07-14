@@ -33,7 +33,7 @@ with suppress(ImportError):
 
 # Build paths inside the project like this: os.path.join(BASE_DIR, ...)
 BASE_DIR = os.path.dirname(os.path.dirname(__file__))
-DATA_DIR = config.get('c3nav', 'datadir', fallback=os.environ.get('DATA_DIR', os.path.join(BASE_DIR, 'data')))
+DATA_DIR = config.get('c3nav', 'datadir', fallback=os.environ.get('C3NAV_DATA_DIR', os.path.join(BASE_DIR, 'data')))
 LOG_DIR = config.get('c3nav', 'logdir', fallback=os.path.join(DATA_DIR, 'logs'))
 MEDIA_ROOT = os.path.join(DATA_DIR, 'media')
 SOURCES_ROOT = os.path.join(DATA_DIR, 'sources')
