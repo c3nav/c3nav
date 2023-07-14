@@ -1,39 +1,44 @@
 import mimetypes
 import os
-import typing
 from contextlib import suppress
 
 from django.conf import settings
 from django.contrib import messages
 from django.core.cache import cache
 from django.core.exceptions import FieldDoesNotExist, ObjectDoesNotExist, PermissionDenied
-from django.db import IntegrityError, models
-from django.db.models import Q
+from django.db import IntegrityError
+from django.db.models import Manager, Model, Q
 from django.http import Http404, HttpResponse
-from django.shortcuts import get_object_or_404, redirect, render
+from django.shortcuts import redirect, render
 from django.urls import reverse
 from django.utils.translation import gettext_lazy as _
 from django.views.decorators.http import etag
 
-from c3nav.editor.forms import GraphEdgeSettingsForm, GraphEditorActionForm
+from c3nav.editor.forms import GraphEdgeSettingsForm, GraphEditorActionForm, get_editor_form
 from c3nav.editor.utils import DefaultEditUtils, LevelChildEditUtils, SpaceChildEditUtils
 from c3nav.editor.views.base import (APIHybridError, APIHybridFormTemplateResponse, APIHybridLoginRequiredResponse,
                                      APIHybridMessageRedirectResponse, APIHybridTemplateContextResponse, etag_func,
                                      sidebar_view)
-from c3nav.mapdata.models.access import AccessPermission
+from c3nav.editor.wrap_utils import EditorQuerySet
+from c3nav.mapdata.models import Level, LocationGroup, LocationGroupCategory, Source, Space, WayType
+from c3nav.mapdata.models.access import AccessPermission, AccessRestriction, AccessRestrictionGroup
+from c3nav.mapdata.models.locations import DynamicLocation, LabelSettings
 from c3nav.mapdata.utils.user import can_access_editor
 
 
-def child_model(request, model: typing.Union[str, models.Model], kwargs=None, parent=None):
-    model = request.changeset.wrap_model(model)
-    related_name = model._meta.default_related_name
-    if parent is not None:
-        qs = getattr(parent, related_name)
-        if hasattr(model, 'q_for_request'):
-            qs = qs.filter(model.q_for_request(request))
-        count = qs.count()
+def child_model(request, child, kwargs=None):
+    if isinstance(child, Manager) and hasattr(child, 'instance'):
+        model = child.model
+        qs = EditorQuerySet(model).filter(**{child.field.name: child.instance})
+    elif issubclass(child, Model):
+        model = child
+        qs = EditorQuerySet(model)
     else:
-        count = None
+        raise TypeError
+    if hasattr(model, 'q_for_request'):
+        qs = qs.filter(model.q_for_request(request))
+    related_name = model._meta.default_related_name
+    count = qs.count()
     return {
         'title': model._meta.verbose_name_plural,
         'url': reverse('editor.'+related_name+'.list', kwargs=kwargs),
@@ -44,20 +49,19 @@ def child_model(request, model: typing.Union[str, models.Model], kwargs=None, pa
 @etag(etag_func)
 @sidebar_view(api_hybrid=True)
 def main_index(request):
-    Level = request.changeset.wrap_model('Level')
     return APIHybridTemplateContextResponse('editor/index.html', {
-        'levels': Level.objects.filter(Level.q_for_request(request), on_top_of__isnull=True),
+        'levels': EditorQuerySet(Level).filter(Level.q_for_request(request), on_top_of__isnull=True),
         'can_create_level': (request.user_permissions.can_access_base_mapdata and
                              request.changeset.can_edit(request)),
         'child_models': [
-            child_model(request, 'LocationGroupCategory'),
-            child_model(request, 'LocationGroup'),
-            child_model(request, 'DynamicLocation'),
-            child_model(request, 'WayType'),
-            child_model(request, 'AccessRestriction'),
-            child_model(request, 'AccessRestrictionGroup'),
-            child_model(request, 'LabelSettings'),
-            child_model(request, 'Source'),
+            child_model(request, LocationGroupCategory),
+            child_model(request, LocationGroup),
+            child_model(request, DynamicLocation),
+            child_model(request, WayType),
+            child_model(request, AccessRestriction),
+            child_model(request, AccessRestrictionGroup),
+            child_model(request, LabelSettings),
+            child_model(request, Source),
         ],
     }, fields=('can_create_level', 'child_models'))
 
@@ -65,17 +69,16 @@ def main_index(request):
 @etag(etag_func)
 @sidebar_view(api_hybrid=True)
 def level_detail(request, pk):
-    Level = request.changeset.wrap_model('Level')
-    qs = Level.objects.filter(Level.q_for_request(request))
-    level = get_object_or_404(qs.select_related('on_top_of').prefetch_related('levels_on_top'), pk=pk)
+    qs = EditorQuerySet(Level).filter(Level.q_for_request(request))
+    level = qs.select_related('on_top_of').prefetch_related('levels_on_top').get_or_404(pk=pk)
 
     if request.user_permissions.can_access_base_mapdata:
-        submodels = ('Building', 'Space', 'Door')
+        submodels = (level.buildings, level.spaces, level.doors)
     else:
-        submodels = ('Space', )
+        submodels = (level.spaces, )
 
     return APIHybridTemplateContextResponse('editor/level.html', {
-        'levels': Level.objects.filter(Level.q_for_request(request), on_top_of__isnull=True),
+        'levels': EditorQuerySet(Level).filter(Level.q_for_request(request), on_top_of__isnull=True),
         'level': level,
         'level_url': 'editor.levels.detail',
         'level_as_pk': True,
@@ -83,8 +86,7 @@ def level_detail(request, pk):
         'can_create_level': (request.user_permissions.can_access_base_mapdata and
                              request.changeset.can_edit(request)),
 
-        'child_models': [child_model(request, model_name, kwargs={'level': pk}, parent=level)
-                         for model_name in submodels],
+        'child_models': [child_model(request, submodel, kwargs={'level': pk}) for submodel in submodels],
         'levels_on_top': level.levels_on_top.filter(Level.q_for_request(request)).all(),
         'geometry_url': ('/api/editor/geometries/?level='+str(level.primary_level_pk)
                          if request.user_permissions.can_access_base_mapdata else None),
@@ -94,29 +96,27 @@ def level_detail(request, pk):
 @etag(etag_func)
 @sidebar_view(api_hybrid=True)
 def space_detail(request, level, pk):
-    Level = request.changeset.wrap_model('Level')
-    Space = request.changeset.wrap_model('Space')
-    qs = Space.objects.filter(Space.q_for_request(request))
-    space = get_object_or_404(qs.select_related('level'), level__pk=level, pk=pk)
+    qs = EditorQuerySet(Space).filter(Space.q_for_request(request))
+    space = qs.select_related('level').get_or_404(level__pk=level, pk=pk)
 
     edit_utils = SpaceChildEditUtils(space, request)
 
     if edit_utils.can_access_child_base_mapdata:
-        submodels = ('POI', 'Area', 'Obstacle', 'LineObstacle', 'Stair', 'Ramp', 'Column',
-                     'Hole', 'AltitudeMarker', 'LeaveDescription', 'CrossDescription',
-                     'WifiMeasurement')
+        submodels = (space.pois, space.areas, space.obstacles, space.lineobstacles, space.stairs, space.ramps,
+                     space.columns, space.holes, space.altitudemarkers, space.wifi_measurements,
+                     space.leave_descriptions, space.cross_descriptions, )
     else:
-        submodels = ('POI', 'Area', 'AltitudeMarker', 'LeaveDescription', 'CrossDescription')
+        submodels = (space.pois, space.areas, space.altitudemarkers,
+                     space.leave_descriptions, space.cross_descriptions, )
 
     return APIHybridTemplateContextResponse('editor/space.html', {
-        'levels': Level.objects.filter(Level.q_for_request(request), on_top_of__isnull=True),
+        'levels': EditorQuerySet(Level).filter(Level.q_for_request(request), on_top_of__isnull=True),
         'level': space.level,
         'level_url': 'editor.spaces.list',
         'space': space,
         'can_edit_graph': request.user_permissions.can_access_base_mapdata,
 
-        'child_models': [child_model(request, model_name, kwargs={'space': pk}, parent=space)
-                         for model_name in submodels],
+        'child_models': [child_model(request, submodel, kwargs={'space': pk}) for submodel in submodels],
         'geometry_url': edit_utils.geometry_url,
     }, fields=('level', 'space', 'can_edit_graph', 'child_models'))
 
@@ -133,11 +133,7 @@ def edit(request, pk=None, model=None, level=None, space=None, on_top_of=None, e
     if changeset_exceeded:
         model_changes = request.changeset.get_changed_objects_by_model(model)
 
-    model = request.changeset.wrap_model(model)
     related_name = model._meta.default_related_name
-
-    Level = request.changeset.wrap_model('Level')
-    Space = request.changeset.wrap_model('Space')
 
     can_edit_changeset = request.changeset.can_edit(request)
 
@@ -146,7 +142,7 @@ def edit(request, pk=None, model=None, level=None, space=None, on_top_of=None, e
     if pk is not None:
         # Edit existing map item
         kwargs = {'pk': pk}
-        qs = model.objects.all()
+        qs = EditorQuerySet(model)
         if hasattr(model, 'q_for_request'):
             qs = qs.filter(model.q_for_request(request))
 
@@ -162,17 +158,18 @@ def edit(request, pk=None, model=None, level=None, space=None, on_top_of=None, e
             qs = qs.select_related('space')
             utils_cls = SpaceChildEditUtils
 
-        obj = get_object_or_404(qs, **kwargs)
+        obj = qs.get_or_404(**kwargs)
         edit_utils = utils_cls.from_obj(obj, request)
     elif level is not None:
-        level = get_object_or_404(Level.objects.filter(Level.q_for_request(request)), pk=level)
+        level = EditorQuerySet(Level).filter(Level.q_for_request(request)).get_or_404(pk=level)
         edit_utils = LevelChildEditUtils(level, request)
     elif space is not None:
-        space = get_object_or_404(Space.objects.filter(Space.q_for_request(request)), pk=space)
+        space = EditorQuerySet(Space).filter(Space.q_for_request(request)).get_or_404(pk=space)
         edit_utils = SpaceChildEditUtils(space, request)
     elif on_top_of is not None:
-        on_top_of = get_object_or_404(Level.objects.filter(Level.q_for_request(request), on_top_of__isnull=True),
-                                      pk=on_top_of)
+        on_top_of = EditorQuerySet(Level).filter(
+            Level.q_for_request(request), on_top_of__isnull=True
+        ).get_or_404(pk=on_top_of)
 
     new = obj is None
 
@@ -338,9 +335,9 @@ def edit(request, pk=None, model=None, level=None, space=None, on_top_of=None, e
 
         json_body = getattr(request, 'json_body', None)
         data = json_body if json_body is not None else request.POST
-        form = model.EditorForm(instance=model() if new else obj, data=data, is_json=json_body is not None,
-                                request=request, space_id=space_id,
-                                geometry_editable=edit_utils.can_access_child_base_mapdata)
+        form = get_editor_form(model)(instance=model() if new else obj, data=data, is_json=json_body is not None,
+                                      request=request, space_id=space_id,
+                                      geometry_editable=edit_utils.can_access_child_base_mapdata)
         if form.is_valid():
             # Update/create objects
             obj = form.save(commit=False)
@@ -378,8 +375,8 @@ def edit(request, pk=None, model=None, level=None, space=None, on_top_of=None, e
                     error = APIHybridError(status_code=403, message=_('You can not edit changes on this changeset.'))
 
     else:
-        form = model.EditorForm(instance=obj, request=request, space_id=space_id,
-                                geometry_editable=edit_utils.can_access_child_base_mapdata)
+        form = get_editor_form(model)(instance=obj, request=request, space_id=space_id,
+                                      geometry_editable=edit_utils.can_access_child_base_mapdata)
 
     ctx.update({
         'form': form,
@@ -395,8 +392,7 @@ def get_visible_spaces(request):
     )
     visible_spaces = cache.get(cache_key, None)
     if visible_spaces is None:
-        Space = request.changeset.wrap_model('Space')
-        visible_spaces = tuple(Space.qs_for_request(request).values_list('pk', flat=True))
+        visible_spaces = tuple(EditorQuerySet(Space).filter(Space.q_for_request(request)).values_list('pk', flat=True))
         cache.set(cache_key, visible_spaces, 900)
     return visible_spaces
 
@@ -418,11 +414,6 @@ def list_objects(request, model=None, level=None, space=None, explicit_edit=Fals
     if not resolver_match.url_name.endswith('.list'):
         raise ValueError('url_name does not end with .list')
 
-    model = request.changeset.wrap_model(model)
-
-    Level = request.changeset.wrap_model('Level')
-    Space = request.changeset.wrap_model('Space')
-
     can_edit = request.changeset.can_edit(request)
 
     ctx = {
@@ -433,7 +424,7 @@ def list_objects(request, model=None, level=None, space=None, explicit_edit=Fals
         'explicit_edit': explicit_edit,
     }
 
-    queryset = model.objects.all().order_by('id')
+    queryset = EditorQuerySet(model).order_by('id')
     if hasattr(model, 'q_for_request'):
         queryset = queryset.filter(model.q_for_request(request))
     reverse_kwargs = {}
@@ -442,20 +433,20 @@ def list_objects(request, model=None, level=None, space=None, explicit_edit=Fals
 
     if level is not None:
         reverse_kwargs['level'] = level
-        level = get_object_or_404(Level.objects.filter(Level.q_for_request(request)), pk=level)
+        level = EditorQuerySet(Level).filter(Level.q_for_request(request)).get_or_404(pk=level)
         queryset = queryset.filter(level=level).defer('geometry')
         edit_utils = LevelChildEditUtils(level, request)
         ctx.update({
             'back_url': reverse('editor.levels.detail', kwargs={'pk': level.pk}),
             'back_title': _('back to level'),
-            'levels': Level.objects.filter(Level.q_for_request(request), on_top_of__isnull=True),
+            'levels': EditorQuerySet(Level).filter(Level.q_for_request(request), on_top_of__isnull=True),
             'level': level,
             'level_url': resolver_match.url_name,
         })
     elif space is not None:
         reverse_kwargs['space'] = space
-        sub_qs = Space.objects.filter(Space.q_for_request(request)).select_related('level').defer('geometry')
-        space = get_object_or_404(sub_qs, pk=space)
+        sub_qs = EditorQuerySet(Space).filter(Space.q_for_request(request)).select_related('level').defer('geometry')
+        space = sub_qs.get_or_404(pk=space)
         queryset = queryset.filter(space=space).filter(**get_visible_spaces_kwargs(model, request))
         edit_utils = SpaceChildEditUtils(space, request)
 
@@ -472,7 +463,7 @@ def list_objects(request, model=None, level=None, space=None, explicit_edit=Fals
             queryset = queryset.select_related('target_space')
 
         ctx.update({
-            'levels': Level.objects.filter(Level.q_for_request(request), on_top_of__isnull=True),
+            'levels': EditorQuerySet(Level).filter(Level.q_for_request(request), on_top_of__isnull=True),
             'level': space.level,
             'level_url': 'editor.spaces.list',
             'space': space,
@@ -504,13 +495,12 @@ def list_objects(request, model=None, level=None, space=None, explicit_edit=Fals
     reverse_kwargs.pop('pk', None)
 
     if model.__name__ == 'LocationGroup':
-        LocationGroupCategory = request.changeset.wrap_model('LocationGroupCategory')
         grouped_objects = tuple(
             {
                 'title': category.title_plural,
                 'objects': tuple(obj for obj in queryset if obj.category_id == category.pk)
             }
-            for category in LocationGroupCategory.objects.order_by('-priority')
+            for category in EditorQuerySet(LocationGroupCategory).order_by('-priority')
         )
     else:
         grouped_objects = (
@@ -583,14 +573,14 @@ def graph_edit(request, level=None, space=None):
     ctx = {
         'path': request.path,
         'can_edit': can_edit,
-        'levels': Level.objects.filter(Level.q_for_request(request), on_top_of__isnull=True),
+        'levels': EditorQuerySet(Level).filter(Level.q_for_request(request), on_top_of__isnull=True),
         'level_url': 'editor.levels.graph',
     }
 
     create_nodes = False
 
     if level is not None:
-        level = get_object_or_404(Level.objects.filter(Level.q_for_request(request)), pk=level)
+        level = EditorQuerySet(Level).filter(Level.q_for_request(request)).get_or_404(pk=level)
         ctx.update({
             'back_url': reverse('editor.levels.detail', kwargs={'pk': level.pk}),
             'back_title': _('back to level'),
@@ -598,8 +588,8 @@ def graph_edit(request, level=None, space=None):
             'geometry_url': '/api/editor/geometries/?level='+str(level.primary_level_pk),
         })
     elif space is not None:
-        queryset = Space.objects.filter(Space.q_for_request(request)).select_related('level').defer('geometry')
-        space = get_object_or_404(queryset, pk=space)
+        queryset = EditorQuerySet(Space).filter(Space.q_for_request(request)).select_related('level').defer('geometry')
+        space = queryset.get_or_404(pk=space)
         level = space.level
         ctx.update({
             'space': space,
@@ -620,7 +610,7 @@ def graph_edit(request, level=None, space=None):
 
         if request.POST.get('delete') == '1':
             # Delete this graphnode!
-            node = get_object_or_404(GraphNode, pk=request.POST.get('pk'))
+            node = EditorQuerySet(GraphNode).get_or_404(pk=request.POST.get('pk'))
 
             if changeset_exceeded and node.pk not in graphnode_changes:
                 messages.error(request, _('You can not delete this graph node because your changeset is full.'))
@@ -694,7 +684,7 @@ def graph_edit(request, level=None, space=None):
                 connections = {}
                 if active_node:
                     for self_node, other_node in (('from_node', 'to_node'), ('to_node', 'from_node')):
-                        conn_qs = GraphEdge.objects.filter(Q(**{self_node+'__pk': active_node.pk}))
+                        conn_qs = EditorQuerySet(GraphEdge).filter(Q(**{self_node+'__pk': active_node.pk}))
                         conn_qs = conn_qs.select_related(other_node+'__space', other_node+'__space__level',
                                                          'waytype', 'access_restriction')
 

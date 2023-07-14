@@ -21,7 +21,7 @@ def add_editor_urls(model_name, parent_model_name=None, with_list=True, explicit
         prefix = model_name_plural
 
     name_prefix = 'editor.'+model_name_plural+'.'
-    kwargs = {'model': model_name, 'explicit_edit': explicit_edit}
+    kwargs = {'model': apps.get_model('mapdata', model_name), 'explicit_edit': explicit_edit}
     explicit_edit = 'edit' if explicit_edit else ''
 
     result = []

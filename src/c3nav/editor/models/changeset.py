@@ -140,6 +140,7 @@ class ChangeSet(models.Model):
     Wrap Objects
     """
     def wrap_model(self, model):
+        raise ValueError('deprecated wrap_model() call')
         if isinstance(model, str):
             model = apps.get_model('mapdata', model)
         assert isinstance(model, type) and issubclass(model, models.Model)

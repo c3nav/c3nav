@@ -8,7 +8,6 @@ from django.utils.translation import gettext_lazy as _
 from rest_framework.authentication import SessionAuthentication
 from rest_framework.decorators import action
 from rest_framework.exceptions import NotFound, ParseError, PermissionDenied, ValidationError
-from rest_framework.generics import get_object_or_404
 from rest_framework.response import Response
 from rest_framework.viewsets import ReadOnlyModelViewSet, ViewSet
 from shapely import prepared
@@ -19,9 +18,11 @@ from c3nav.editor.forms import ChangeSetForm, RejectForm
 from c3nav.editor.models import ChangeSet
 from c3nav.editor.utils import LevelChildEditUtils, SpaceChildEditUtils
 from c3nav.editor.views.base import etag_func
+from c3nav.editor.wrap_utils import EditorQuerySet
 from c3nav.mapdata.api import api_etag
-from c3nav.mapdata.models import Area, MapUpdate, Source
-from c3nav.mapdata.models.geometry.space import POI
+from c3nav.mapdata.models import (Area, Building, Door, GraphEdge, GraphNode, Level, LocationGroup, MapUpdate, Source,
+                                  Space)
+from c3nav.mapdata.models.geometry.space import POI, AltitudeMarker, Column, Hole, WifiMeasurement
 from c3nav.mapdata.utils.user import can_access_editor
 
 
@@ -106,12 +107,12 @@ class EditorViewSet(EditorViewSetMixin, ViewSet):
     @staticmethod
     def _get_levels_pk(request, level):
         # noinspection PyPep8Naming
-        Level = request.changeset.wrap_model('Level')
         levels_under = ()
         levels_on_top = ()
+        # todo: this needs to be fixed to work with editor
         lower_level = level.lower(Level).first()
         primary_levels = (level,) + ((lower_level,) if lower_level else ())
-        secondary_levels = Level.objects.filter(on_top_of__in=primary_levels).values_list('pk', 'on_top_of')
+        secondary_levels = EditorQuerySet(Level).filter(on_top_of__in=primary_levels).values_list('pk', 'on_top_of')
         if lower_level:
             levels_under = tuple(pk for pk, on_top_of in secondary_levels if on_top_of == lower_level.pk)
         if True:
@@ -130,23 +131,13 @@ class EditorViewSet(EditorViewSetMixin, ViewSet):
     @action(detail=False, methods=['get'])
     @api_etag_with_update_cache_key(etag_func=etag_func, cache_parameters={'level': str, 'space': str})
     def geometries(self, request, update_cache_key, update_cache_key_match, *args, **kwargs):
-        Level = request.changeset.wrap_model('Level')
-        Space = request.changeset.wrap_model('Space')
-        Column = request.changeset.wrap_model('Column')
-        Hole = request.changeset.wrap_model('Hole')
-        AltitudeMarker = request.changeset.wrap_model('AltitudeMarker')
-        Building = request.changeset.wrap_model('Building')
-        Door = request.changeset.wrap_model('Door')
-        LocationGroup = request.changeset.wrap_model('LocationGroup')
-        WifiMeasurement = request.changeset.wrap_model('WifiMeasurement')
-
         level = request.GET.get('level')
         space = request.GET.get('space')
         if level is not None:
             if space is not None:
                 raise ValidationError('Only level or space can be specified.')
 
-            level = get_object_or_404(Level.objects.filter(Level.q_for_request(request)), pk=level)
+            level = EditorQuerySet(Level).filter(Level.q_for_request(request)).get_or_404(pk=level)
 
             edit_utils = LevelChildEditUtils(level, request)
             if not edit_utils.can_access_child_base_mapdata:
@@ -154,23 +145,23 @@ class EditorViewSet(EditorViewSetMixin, ViewSet):
 
             levels, levels_on_top, levels_under = self._get_levels_pk(request, level)
             # don't prefetch groups for now as changesets do not yet work with m2m-prefetches
-            levels = Level.objects.filter(pk__in=levels).filter(Level.q_for_request(request))
+            levels = EditorQuerySet(Level).filter(pk__in=levels).filter(Level.q_for_request(request))
             # graphnodes_qs = request.changeset.wrap_model('GraphNode').objects.all()
             levels = levels.prefetch_related(
-                Prefetch('spaces', Space.objects.filter(Space.q_for_request(request)).only(
+                Prefetch('spaces', EditorQuerySet(Space).filter(Space.q_for_request(request)).only(
                     'geometry', 'level', 'outside'
                 )),
-                Prefetch('doors', Door.objects.filter(Door.q_for_request(request)).only('geometry', 'level')),
-                Prefetch('spaces__columns', Column.objects.filter(
+                Prefetch('doors', EditorQuerySet(Door).filter(Door.q_for_request(request)).only('geometry', 'level')),
+                Prefetch('spaces__columns', EditorQuerySet(Column).filter(
                     Q(access_restriction__isnull=True) | ~Column.q_for_request(request)
                 ).only('geometry', 'space')),
-                Prefetch('spaces__groups', LocationGroup.objects.only(
+                Prefetch('spaces__groups', EditorQuerySet(LocationGroup).only(
                     'color', 'category', 'priority', 'hierarchy', 'category__priority', 'category__allow_spaces'
                 )),
-                Prefetch('buildings', Building.objects.only('geometry', 'level')),
-                Prefetch('spaces__holes', Hole.objects.only('geometry', 'space')),
-                Prefetch('spaces__altitudemarkers', AltitudeMarker.objects.only('geometry', 'space')),
-                Prefetch('spaces__wifi_measurements', WifiMeasurement.objects.only('geometry', 'space')),
+                Prefetch('buildings', EditorQuerySet(Building).only('geometry', 'level')),
+                Prefetch('spaces__holes', EditorQuerySet(Hole).only('geometry', 'space')),
+                Prefetch('spaces__altitudemarkers', EditorQuerySet(AltitudeMarker).only('geometry', 'space')),
+                Prefetch('spaces__wifi_measurements', EditorQuerySet(WifiMeasurement).only('geometry', 'space')),
                 # Prefetch('spaces__graphnodes', graphnodes_qs)
             )
 
@@ -210,8 +201,8 @@ class EditorViewSet(EditorViewSetMixin, ViewSet):
             )
         elif space is not None:
             space_q_for_request = Space.q_for_request(request)
-            qs = Space.objects.filter(space_q_for_request)
-            space = get_object_or_404(qs.select_related('level', 'level__on_top_of'), pk=space)
+            qs = EditorQuerySet(Space).filter(space_q_for_request)
+            space = qs.select_related('level', 'level__on_top_of').get_or_404(pk=space)
             level = space.level
 
             edit_utils = SpaceChildEditUtils(space, request)
@@ -221,15 +212,16 @@ class EditorViewSet(EditorViewSetMixin, ViewSet):
             if request.user_permissions.can_access_base_mapdata:
                 doors = [door for door in level.doors.filter(Door.q_for_request(request)).all()
                          if door.geometry.intersects(space.geometry)]
-                doors_space_geom = unary_union([door.geometry for door in doors]+[space.geometry])
+                doors_space_geom = unary_union([door.geometry.wrapped_geom for door in doors] +
+                                               [space.geometry.wrapped_geom])
 
                 levels, levels_on_top, levels_under = self._get_levels_pk(request, level.primary_level)
                 if level.on_top_of_id is not None:
                     levels = chain([level.pk], levels_on_top)
-                other_spaces = Space.objects.filter(space_q_for_request, level__pk__in=levels).only(
+                other_spaces = EditorQuerySet(Space).filter(space_q_for_request, level__pk__in=levels).only(
                     'geometry', 'level'
                 ).prefetch_related(
-                    Prefetch('groups', LocationGroup.objects.only(
+                    Prefetch('groups', EditorQuerySet(LocationGroup).only(
                         'color', 'category', 'priority', 'hierarchy', 'category__priority', 'category__allow_spaces'
                     ).filter(color__isnull=False))
                 )
@@ -270,12 +262,11 @@ class EditorViewSet(EditorViewSetMixin, ViewSet):
 
             # todo: permissions
             if request.user_permissions.can_access_base_mapdata:
-                graphnodes = request.changeset.wrap_model('GraphNode').objects.all()
-                graphnodes = graphnodes.filter((Q(space__in=all_other_spaces)) | Q(space__pk=space.pk))
+                graphnodes = EditorQuerySet(GraphNode).filter((Q(space__in=all_other_spaces)) | Q(space__pk=space.pk))
 
                 space_graphnodes = tuple(node for node in graphnodes if node.space_id == space.pk)
 
-                graphedges = request.changeset.wrap_model('GraphEdge').objects.all()
+                graphedges = EditorQuerySet(GraphEdge)
                 space_graphnodes_ids = tuple(node.pk for node in space_graphnodes)
                 graphedges = graphedges.filter(Q(from_node__pk__in=space_graphnodes_ids) |
                                                Q(to_node__pk__in=space_graphnodes_ids))
@@ -289,7 +280,7 @@ class EditorViewSet(EditorViewSetMixin, ViewSet):
             areas = space.areas.filter(Area.q_for_request(request)).only(
                 'geometry', 'space'
             ).prefetch_related(
-                Prefetch('groups', LocationGroup.objects.order_by(
+                Prefetch('groups', EditorQuerySet(LocationGroup).order_by(
                     '-category__priority', '-hierarchy', '-priority'
                 ).only(
                     'color', 'category', 'priority', 'hierarchy', 'category__priority', 'category__allow_areas'
@@ -315,7 +306,7 @@ class EditorViewSet(EditorViewSetMixin, ViewSet):
                 space.altitudemarkers.all().only('geometry', 'space'),
                 space.wifi_measurements.all().only('geometry', 'space'),
                 space.pois.filter(POI.q_for_request(request)).only('geometry', 'space').prefetch_related(
-                    Prefetch('groups', LocationGroup.objects.only(
+                    Prefetch('groups', EditorQuerySet(LocationGroup).only(
                         'color', 'category', 'priority', 'hierarchy', 'category__priority', 'category__allow_pois'
                     ).filter(color__isnull=False))
                 ),
