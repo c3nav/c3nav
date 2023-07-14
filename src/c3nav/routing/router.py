@@ -63,7 +63,7 @@ class Router:
         restrictions = {}
         nodes = deque()
         for level in levels_query:
-            buildings_geom = unary_union(tuple(building.geometry for building in level.buildings.all()))
+            buildings_geom = unary_union(tuple(building.geometry.wrapped_geom for building in level.buildings.all()))
 
             nodes_before_count = len(nodes)
 

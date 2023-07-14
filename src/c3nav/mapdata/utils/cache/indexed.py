@@ -121,7 +121,7 @@ class GeometryIndexed:
         from shapely import prepared
         from shapely.geometry import box
 
-        cells = np.zeros_like(self.data, dtype=np.bool)
+        cells = np.zeros_like(self.data, dtype=bool)
         prep = prepared.prep(geometry)
         res = self.resolution
         for iy, y in enumerate(range(miny * res, maxy * res, res), start=miny - self.y):

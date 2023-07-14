@@ -65,7 +65,7 @@ class LevelGeometries:
     @classmethod
     def build_for_level(cls, level, altitudeareas_above):
         geoms = LevelGeometries()
-        buildings_geom = unary_union([b.geometry for b in level.buildings.all()])
+        buildings_geom = unary_union([b.geometry.wrapped_geom for b in level.buildings.all()])
         geoms.buildings = buildings_geom
         buildings_geom_prep = prepared.prep(buildings_geom)
 
