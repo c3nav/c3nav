@@ -18,7 +18,7 @@ from c3nav.mapdata.utils.cache import CachePackage
 from c3nav.mapdata.utils.tiles import (build_access_cache_key, build_base_cache_key, build_tile_etag, get_tile_bounds,
                                        parse_tile_access_cookie)
 
-loglevel = logging.DEBUG if os.environ.get('C3NAV_DEBUG') else os.environ.get('LOGLEVEL', 'INFO')
+loglevel = logging.DEBUG if os.environ.get('C3NAV_DEBUG', False) else os.environ.get('C3NAV_LOGLEVEL', 'INFO').upper()
 
 logging.basicConfig(level=loglevel,
                     format='[%(asctime)s] [%(process)s] [%(levelname)s] %(name)s: %(message)s',
@@ -88,7 +88,8 @@ class TileServer:
 
     @staticmethod
     def get_cache_client():
-        return pylibmc.Client(["127.0.0.1"], binary=True, behaviors={"tcp_nodelay": True, "ketama": True})
+        servers = os.environ.get('C3NAV_MEMCACHED_SERVER', '127.0.0.1').split(',')
+        return pylibmc.Client(servers, binary=True, behaviors={"tcp_nodelay": True, "ketama": True})
 
     def update_cache_package_thread(self):
         cache = self.get_cache_client()  # different thread → different client!
