@@ -34,27 +34,30 @@ class Level(SpecificLocation, models.Model):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
-    def lower(self, level_model=None):
+    def lower(self, qs=None):
         if self.on_top_of_id is not None:
             raise TypeError
-        if level_model is None:
-            level_model = Level
-        return level_model.objects.filter(base_altitude__lt=self.base_altitude,
-                                          on_top_of__isnull=True).order_by('-base_altitude')
+        if qs is None:
+            qs = Level.objects.all()
+        return qs.filter(base_altitude__lt=self.base_altitude, on_top_of__isnull=True).order_by('-base_altitude')
 
-    def higher(self, level_model=None):
+    def higher(self, qs=None):
         if self.on_top_of_id is not None:
             raise TypeError
-        if level_model is None:
-            level_model = Level
-        return level_model.objects.filter(base_altitude__gt=self.base_altitude,
-                                          on_top_of__isnull=True).order_by('base_altitude')
+        if qs is None:
+            qs = Level.objects.all()
+        return qs.filter(base_altitude__gt=self.base_altitude, on_top_of__isnull=True).order_by('base_altitude')
 
     @property
     def sublevels(self):
+        return self.get_sublevels()
+
+    def get_sublevels(self, levels_on_top=None):
         if self.on_top_of is not None:
             raise TypeError
-        return chain((self, ), self.levels_on_top.all())
+        if levels_on_top is None:
+            levels_on_top = self.levels_on_top.all()
+        return chain((self,), levels_on_top)
 
     @property
     def sublevel_title(self):

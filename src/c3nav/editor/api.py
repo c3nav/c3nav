@@ -18,7 +18,7 @@ from c3nav.editor.forms import ChangeSetForm, RejectForm
 from c3nav.editor.models import ChangeSet
 from c3nav.editor.utils import LevelChildEditUtils, SpaceChildEditUtils
 from c3nav.editor.views.base import etag_func
-from c3nav.editor.wrap_utils import EditorQuerySet
+from c3nav.editor.wrap_utils import EditorQuerySet, EditWrapper
 from c3nav.mapdata.api import api_etag
 from c3nav.mapdata.models import (Area, Building, Door, GraphEdge, GraphNode, Level, LocationGroup, MapUpdate, Source,
                                   Space)
@@ -45,6 +45,7 @@ def api_etag_with_update_cache_key(**outkwargs):
                 changeset = request.changeset
             except AttributeError:
                 changeset = ChangeSet.get_for_request(request)
+            finally:
                 request.changeset = changeset
 
             update_cache_key = request.changeset.raw_cache_key_without_changes
@@ -69,18 +70,20 @@ class EditorViewSet(EditorViewSetMixin, ViewSet):
 
     @staticmethod
     def _get_level_geometries(level):
-        buildings = level.buildings.all()
+        buildings = EditWrapper.queryset(level.buildings).all()
         buildings_geom = unary_union([building.geometry.wrapped_geom for building in buildings])
-        spaces = {space.pk: space for space in level.spaces.all()}
+        spaces = {space.pk: space for space in EditWrapper.queryset(level.spaces).all()}
         holes_geom = []
         for space in spaces.values():
             if space.outside:
                 space.geometry = space.geometry.difference(buildings_geom)
-            columns = [column.geometry for column in space.columns.all()]
+            columns = [column.geometry for column in EditWrapper.queryset(space.columns).all()]
             if columns:
-                columns_geom = unary_union([column.geometry.wrapped_geom for column in space.columns.all()])
+                columns_geom = unary_union([
+                    column.geometry.wrapped_geom for column in EditWrapper.queryset(space.columns).all()
+                ])
                 space.geometry = space.geometry.difference(columns_geom)
-            holes = [hole.geometry.wrapped_geom for hole in space.holes.all()]
+            holes = [hole.geometry.wrapped_geom for hole in EditWrapper.queryset(space.holes).all()]
             if holes:
                 space_holes_geom = unary_union(holes)
                 holes_geom.append(space_holes_geom.intersection(space.geometry))
@@ -98,7 +101,7 @@ class EditorViewSet(EditorViewSetMixin, ViewSet):
 
         results = []
         results.extend(buildings)
-        for door in level.doors.all():
+        for door in EditWrapper.queryset(level.doors).all():
             results.append(door)
 
         results.extend(spaces.values())
@@ -109,10 +112,11 @@ class EditorViewSet(EditorViewSetMixin, ViewSet):
         # noinspection PyPep8Naming
         levels_under = ()
         levels_on_top = ()
-        # todo: this needs to be fixed to work with editor
-        lower_level = level.lower(Level).first()
+        lower_level = level.lower(EditWrapper.queryset(Level)).first()
         primary_levels = (level,) + ((lower_level,) if lower_level else ())
-        secondary_levels = EditorQuerySet(Level).filter(on_top_of__in=primary_levels).values_list('pk', 'on_top_of')
+        secondary_levels = list(
+            EditWrapper.queryset(Level).filter(on_top_of__in=primary_levels).values_list('pk', 'on_top_of')
+        )
         if lower_level:
             levels_under = tuple(pk for pk, on_top_of in secondary_levels if on_top_of == lower_level.pk)
         if True:
@@ -130,6 +134,7 @@ class EditorViewSet(EditorViewSetMixin, ViewSet):
     # noinspection PyPep8Naming
     @action(detail=False, methods=['get'])
     @api_etag_with_update_cache_key(etag_func=etag_func, cache_parameters={'level': str, 'space': str})
+    @EditWrapper.enable()
     def geometries(self, request, update_cache_key, update_cache_key_match, *args, **kwargs):
         level = request.GET.get('level')
         space = request.GET.get('space')
@@ -137,7 +142,7 @@ class EditorViewSet(EditorViewSetMixin, ViewSet):
             if space is not None:
                 raise ValidationError('Only level or space can be specified.')
 
-            level = EditorQuerySet(Level).filter(Level.q_for_request(request)).get_or_404(pk=level)
+            level = EditWrapper.queryset(Level).filter(Level.q_for_request(request)).get_or_404(pk=level)
 
             edit_utils = LevelChildEditUtils(level, request)
             if not edit_utils.can_access_child_base_mapdata:
@@ -145,23 +150,25 @@ class EditorViewSet(EditorViewSetMixin, ViewSet):
 
             levels, levels_on_top, levels_under = self._get_levels_pk(request, level)
             # don't prefetch groups for now as changesets do not yet work with m2m-prefetches
-            levels = EditorQuerySet(Level).filter(pk__in=levels).filter(Level.q_for_request(request))
+            levels = EditWrapper.queryset(Level).filter(pk__in=levels).filter(Level.q_for_request(request))
             # graphnodes_qs = request.changeset.wrap_model('GraphNode').objects.all()
             levels = levels.prefetch_related(
-                Prefetch('spaces', EditorQuerySet(Space).filter(Space.q_for_request(request)).only(
+                Prefetch('spaces', EditWrapper.queryset(Space).filter(Space.q_for_request(request)).only(
                     'geometry', 'level', 'outside'
                 )),
-                Prefetch('doors', EditorQuerySet(Door).filter(Door.q_for_request(request)).only('geometry', 'level')),
-                Prefetch('spaces__columns', EditorQuerySet(Column).filter(
+                Prefetch('doors', EditWrapper.queryset(Door).filter(
+                    Door.q_for_request(request)
+                ).only('geometry', 'level')),
+                Prefetch('spaces__columns', EditWrapper.queryset(Column).filter(
                     Q(access_restriction__isnull=True) | ~Column.q_for_request(request)
                 ).only('geometry', 'space')),
-                Prefetch('spaces__groups', EditorQuerySet(LocationGroup).only(
+                Prefetch('spaces__groups', EditWrapper.queryset(LocationGroup).only(
                     'color', 'category', 'priority', 'hierarchy', 'category__priority', 'category__allow_spaces'
                 )),
-                Prefetch('buildings', EditorQuerySet(Building).only('geometry', 'level')),
-                Prefetch('spaces__holes', EditorQuerySet(Hole).only('geometry', 'space')),
-                Prefetch('spaces__altitudemarkers', EditorQuerySet(AltitudeMarker).only('geometry', 'space')),
-                Prefetch('spaces__wifi_measurements', EditorQuerySet(WifiMeasurement).only('geometry', 'space')),
+                Prefetch('buildings', EditWrapper.queryset(Building).only('geometry', 'level')),
+                Prefetch('spaces__holes', EditWrapper.queryset(Hole).only('geometry', 'space')),
+                Prefetch('spaces__altitudemarkers', EditWrapper.queryset(AltitudeMarker).only('geometry', 'space')),
+                Prefetch('spaces__wifi_measurements', EditWrapper.queryset(WifiMeasurement).only('geometry', 'space')),
                 # Prefetch('spaces__graphnodes', graphnodes_qs)
             )
 
@@ -201,7 +208,7 @@ class EditorViewSet(EditorViewSetMixin, ViewSet):
             )
         elif space is not None:
             space_q_for_request = Space.q_for_request(request)
-            qs = EditorQuerySet(Space).filter(space_q_for_request)
+            qs = EditWrapper.queryset(Space).filter(space_q_for_request)
             space = qs.select_related('level', 'level__on_top_of').get_or_404(pk=space)
             level = space.level
 
@@ -210,7 +217,7 @@ class EditorViewSet(EditorViewSetMixin, ViewSet):
                 raise PermissionDenied
 
             if request.user_permissions.can_access_base_mapdata:
-                doors = [door for door in level.doors.filter(Door.q_for_request(request)).all()
+                doors = [door for door in EditWrapper.queryset(level.doors).filter(Door.q_for_request(request)).all()
                          if door.geometry.intersects(space.geometry)]
                 doors_space_geom = unary_union([door.geometry.wrapped_geom for door in doors] +
                                                [space.geometry.wrapped_geom])
@@ -218,9 +225,7 @@ class EditorViewSet(EditorViewSetMixin, ViewSet):
                 levels, levels_on_top, levels_under = self._get_levels_pk(request, level.primary_level)
                 if level.on_top_of_id is not None:
                     levels = chain([level.pk], levels_on_top)
-                other_spaces = EditorQuerySet(Space).filter(space_q_for_request, level__pk__in=levels).only(
-                    'geometry', 'level'
-                ).prefetch_related(
+                other_spaces = EditorQuerySet(Space).filter(space_q_for_request, level__pk__in=levels).prefetch_related(
                     Prefetch('groups', EditorQuerySet(LocationGroup).only(
                         'color', 'category', 'priority', 'hierarchy', 'category__priority', 'category__allow_spaces'
                     ).filter(color__isnull=False))
@@ -242,7 +247,7 @@ class EditorViewSet(EditorViewSetMixin, ViewSet):
                 space.bounds = True
 
                 # deactivated for performance reasons
-                buildings = level.buildings.all()
+                buildings = EditWrapper.queryset(level.buildings).all()
                 # buildings_geom = unary_union([building.geometry for building in buildings])
                 # for other_space in other_spaces:
                 #     if other_space.outside:
@@ -262,11 +267,13 @@ class EditorViewSet(EditorViewSetMixin, ViewSet):
 
             # todo: permissions
             if request.user_permissions.can_access_base_mapdata:
-                graphnodes = EditorQuerySet(GraphNode).filter((Q(space__in=all_other_spaces)) | Q(space__pk=space.pk))
+                graphnodes = EditWrapper.queryset(GraphNode).filter(
+                    (Q(space__in=all_other_spaces)) | Q(space__pk=space.pk)
+                )
 
                 space_graphnodes = tuple(node for node in graphnodes if node.space_id == space.pk)
 
-                graphedges = EditorQuerySet(GraphEdge)
+                graphedges = EditWrapper.queryset(GraphEdge)
                 space_graphnodes_ids = tuple(node.pk for node in space_graphnodes)
                 graphedges = graphedges.filter(Q(from_node__pk__in=space_graphnodes_ids) |
                                                Q(to_node__pk__in=space_graphnodes_ids))
@@ -277,10 +284,10 @@ class EditorViewSet(EditorViewSetMixin, ViewSet):
                 graphnodes = []
                 graphedges = []
 
-            areas = space.areas.filter(Area.q_for_request(request)).only(
+            areas = EditWrapper.queryset(space.areas).filter(Area.q_for_request(request)).only(
                 'geometry', 'space'
             ).prefetch_related(
-                Prefetch('groups', EditorQuerySet(LocationGroup).order_by(
+                Prefetch('groups', EditWrapper.queryset(LocationGroup).order_by(
                     '-category__priority', '-hierarchy', '-priority'
                 ).only(
                     'color', 'category', 'priority', 'hierarchy', 'category__priority', 'category__allow_areas'
@@ -297,16 +304,18 @@ class EditorViewSet(EditorViewSetMixin, ViewSet):
                 other_spaces,
                 [space],
                 areas,
-                space.holes.all().only('geometry', 'space'),
-                space.stairs.all().only('geometry', 'space'),
-                space.ramps.all().only('geometry', 'space'),
-                space.obstacles.all().only('geometry', 'space', 'color'),
-                space.lineobstacles.all().only('geometry', 'width', 'space', 'color'),
-                space.columns.all().only('geometry', 'space'),
-                space.altitudemarkers.all().only('geometry', 'space'),
-                space.wifi_measurements.all().only('geometry', 'space'),
-                space.pois.filter(POI.q_for_request(request)).only('geometry', 'space').prefetch_related(
-                    Prefetch('groups', EditorQuerySet(LocationGroup).only(
+                EditWrapper.queryset(space.holes).all().only('geometry', 'space'),
+                EditWrapper.queryset(space.stairs).all().only('geometry', 'space'),
+                EditWrapper.queryset(space.ramps).all().only('geometry', 'space'),
+                EditWrapper.queryset(space.obstacles).all().only('geometry', 'space', 'color'),
+                EditWrapper.queryset(space.lineobstacles).all().only('geometry', 'width', 'space', 'color'),
+                EditWrapper.queryset(space.columns).all().only('geometry', 'space'),
+                EditWrapper.queryset(space.altitudemarkers).all().only('geometry', 'space'),
+                EditWrapper.queryset(space.wifi_measurements).all().only('geometry', 'space'),
+                EditWrapper.queryset(space.pois).filter(
+                    POI.q_for_request(request)
+                ).only('geometry', 'space').prefetch_related(
+                    Prefetch('groups', EditWrapper.queryset(LocationGroup).only(
                         'color', 'category', 'priority', 'hierarchy', 'category__priority', 'category__allow_pois'
                     ).filter(color__isnull=False))
                 ),
@@ -326,7 +335,7 @@ class EditorViewSet(EditorViewSetMixin, ViewSet):
         if update_cache_key_match and not obj._affected_by_changeset:
             return obj.get_geojson_key()
 
-        result = obj.to_geojson(instance=obj)
+        result = obj.to_geojson(groups=EditWrapper.queryset(obj.groups).all() if hasattr(obj, 'groups') else ())
         result['properties']['changed'] = obj._affected_by_changeset
         return result
 

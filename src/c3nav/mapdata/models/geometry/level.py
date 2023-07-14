@@ -35,11 +35,11 @@ class LevelGeometryMixin(GeometryMixin):
     class Meta:
         abstract = True
 
-    def get_geojson_properties(self, *args, instance=None, **kwargs) -> dict:
+    def get_geojson_properties(self, *args, groups=None, **kwargs) -> dict:
         result = super().get_geojson_properties(*args, **kwargs)
         result['level'] = self.level_id
         if hasattr(self, 'get_color'):
-            color = self.get_color(instance=instance)
+            color = self.get_color(groups=groups)
             if color:
                 result['color'] = color
         if hasattr(self, 'opacity'):

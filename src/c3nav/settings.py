@@ -141,6 +141,7 @@ DATABASES = {
         'CONN_MAX_AGE': 0 if db_backend == 'sqlite3' else 120
     }
 }
+DATABASE_ROUTERS = ['c3nav.editor.wrap_utils.EditorDatabaseRouter']
 DEFAULT_AUTO_FIELD = 'django.db.models.AutoField'
 
 STATIC_URL = config.get('urls', 'static', fallback='/static/')
