@@ -49,5 +49,5 @@ celery)
   exec celery -A c3nav ${*:2}
   ;;
 **)
-  exec bash -c "$@"
+  exec bash -ec "$@"
 esac
