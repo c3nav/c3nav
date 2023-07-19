@@ -4,6 +4,7 @@ import os
 import string
 import sys
 from contextlib import suppress
+from pathlib import Path
 
 import sass
 from django.contrib.messages import constants as messages
@@ -21,7 +22,7 @@ INSTANCE_NAME = config.get('c3nav', 'name', fallback='')
 SENTRY_DSN = config.get('sentry', 'dsn', fallback=None)
 
 with suppress(ImportError):
-    if (SENTRY_DSN):
+    if SENTRY_DSN:
         import sentry_sdk
         from sentry_sdk.integrations.celery import CeleryIntegration
         from sentry_sdk.integrations.django import DjangoIntegration
@@ -31,38 +32,28 @@ with suppress(ImportError):
             integrations=[CeleryIntegration(), DjangoIntegration()]
         )
 
-# Build paths inside the project like this: os.path.join(BASE_DIR, ...)
-BASE_DIR = os.path.dirname(os.path.dirname(__file__))
-DATA_DIR = config.get('c3nav', 'datadir', fallback=os.environ.get('C3NAV_DATA_DIR', os.path.join(BASE_DIR, 'data')))
-LOG_DIR = config.get('c3nav', 'logdir', fallback=os.path.join(DATA_DIR, 'logs'))
-MEDIA_ROOT = os.path.join(DATA_DIR, 'media')
-SOURCES_ROOT = os.path.join(DATA_DIR, 'sources')
-MAP_ROOT = os.path.join(DATA_DIR, 'map')
-RENDER_ROOT = os.path.join(DATA_DIR, 'render')
-TILES_ROOT = os.path.join(DATA_DIR, 'tiles')
-CACHE_ROOT = os.path.join(DATA_DIR, 'cache')
-STATS_ROOT = os.path.join(DATA_DIR, 'stats')
+# Build paths inside the project like this: BASE_DIR / 'something'
+PROJECT_DIR = Path(__file__).resolve().parent
+BASE_DIR = PROJECT_DIR.parent
+DATA_DIR = config.get('c3nav', 'datadir', fallback=os.environ.get('C3NAV_DATA_DIR', None))
+DATA_DIR = Path(DATA_DIR).resolve() if DATA_DIR else BASE_DIR / 'data'
+LOG_DIR = config.get('c3nav', 'logdir', fallback=None)
+LOG_DIR = Path(LOG_DIR).resolve() if LOG_DIR else DATA_DIR / 'logs'
+MEDIA_ROOT = DATA_DIR / 'media'
+SOURCES_ROOT = DATA_DIR / 'sources'
+MAP_ROOT = DATA_DIR / 'map'
+RENDER_ROOT = DATA_DIR / 'render'
+TILES_ROOT = DATA_DIR / 'tiles'
+CACHE_ROOT = DATA_DIR / 'cache'
+STATS_ROOT = DATA_DIR / 'stats'
+
+if not DATA_DIR.exists():
+    DATA_DIR.mkdir(parents=True)
+for subdir in (LOG_DIR, MEDIA_ROOT, SOURCES_ROOT, MAP_ROOT, RENDER_ROOT, TILES_ROOT, CACHE_ROOT, STATS_ROOT):
+    if not subdir.exists():
+        subdir.mkdir()
 
 MEDIA_URL = '/media/'
-
-if not os.path.exists(DATA_DIR):
-    os.mkdir(DATA_DIR)
-if not os.path.exists(LOG_DIR):
-    os.mkdir(LOG_DIR)
-if not os.path.exists(MEDIA_ROOT):
-    os.mkdir(MEDIA_ROOT)
-if not os.path.exists(SOURCES_ROOT):
-    os.mkdir(SOURCES_ROOT)
-if not os.path.exists(MAP_ROOT):
-    os.mkdir(MAP_ROOT)
-if not os.path.exists(RENDER_ROOT):
-    os.mkdir(RENDER_ROOT)
-if not os.path.exists(TILES_ROOT):
-    os.mkdir(TILES_ROOT)
-if not os.path.exists(CACHE_ROOT):
-    os.mkdir(CACHE_ROOT)
-if not os.path.exists(STATS_ROOT):
-    os.mkdir(STATS_ROOT)
 
 PUBLIC_EDITOR = config.getboolean('c3nav', 'editor', fallback=True)
 PUBLIC_BASE_MAPDATA = config.getboolean('c3nav', 'public_base_mapdata', fallback=False)
@@ -75,8 +66,8 @@ if RANDOM_LOCATION_GROUPS:
 if config.has_option('django', 'secret'):
     SECRET_KEY = config.get('django', 'secret')
 else:
-    SECRET_FILE = os.path.join(DATA_DIR, '.secret')
-    if os.path.exists(SECRET_FILE):
+    SECRET_FILE = DATA_DIR / '.secret'
+    if SECRET_FILE.exists():
         with open(SECRET_FILE, 'r') as f:
             SECRET_KEY = f.read().strip()
     else:
@@ -89,8 +80,8 @@ else:
 if config.has_option('c3nav', 'tile_secret'):
     SECRET_TILE_KEY = config.get('c3nav', 'tile_secret')
 else:
-    SECRET_TILE_FILE = os.path.join(DATA_DIR, '.tile_secret')
-    if os.path.exists(SECRET_TILE_FILE):
+    SECRET_TILE_FILE = DATA_DIR / '.tile_secret'
+    if SECRET_TILE_FILE.exists():
         with open(SECRET_TILE_FILE, 'r') as f:
             SECRET_TILE_KEY = f.read().strip()
     else:
@@ -135,7 +126,7 @@ db_backend = config.get('database', 'backend', fallback='sqlite3')
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.' + db_backend,
-        'NAME': config.get('database', 'name', fallback=os.path.join(DATA_DIR, 'db.sqlite3')),
+        'NAME': config.get('database', 'name', fallback=DATA_DIR / 'db.sqlite3'),
         'USER': config.get('database', 'user', fallback=''),
         'PASSWORD': config.get('database', 'password', fallback=''),
         'HOST': config.get('database', 'host', fallback=''),
@@ -212,7 +203,7 @@ CELERY_RESULT_SERIALIZER = 'json'
 TILE_CACHE_SERVER = config.get('c3nav', 'tile_cache_server', fallback=None)
 
 # Internal settings
-STATIC_ROOT = os.path.join(os.path.dirname(__file__), 'static.dist')
+STATIC_ROOT = PROJECT_DIR / 'static.dist'
 
 SESSION_COOKIE_NAME = 'c3nav_session'
 SESSION_COOKIE_DOMAIN = config.get('c3nav', 'session_cookie_domain', fallback=None)
@@ -325,7 +316,7 @@ REST_FRAMEWORK = {
 }
 
 LOCALE_PATHS = (
-    os.path.join(os.path.dirname(__file__), 'locale'),
+    PROJECT_DIR / 'locale',
 )
 
 LANGUAGES = [
@@ -374,7 +365,7 @@ BOOTSTRAP3 = {
 }
 
 STATICFILES_DIRS = [
-    os.path.join(BASE_DIR, 'c3nav/static'),
+    BASE_DIR / 'c3nav' / 'static',
 ]
 
 COMPRESS_PRECOMPILERS = (
@@ -452,7 +443,7 @@ LOGGING = {
         'file': {
             'level': loglevel,
             'class': 'logging.FileHandler',
-            'filename': os.path.join(LOG_DIR, 'c3nav.log'),
+            'filename': LOG_DIR / 'c3nav.log',
             'formatter': 'default'
         }
     },
