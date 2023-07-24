@@ -16,7 +16,7 @@ from c3nav.mapdata.models import Level, MapUpdate, Source
 from c3nav.mapdata.render.geometry import AltitudeAreaGeometries, LevelGeometries
 from c3nav.mapdata.utils.cache import AccessRestrictionAffected, MapHistory
 from c3nav.mapdata.utils.cache.package import CachePackage
-from c3nav.mapdata.utils.geometry import get_rings
+from c3nav.mapdata.utils.geometry import get_rings, unwrap_geom
 
 empty_geometry_collection = GeometryCollection()
 
@@ -24,7 +24,7 @@ empty_geometry_collection = GeometryCollection()
 class Cropper:
     def __init__(self, geometry=None):
         self.geometry = geometry
-        self.geometry_prep = None if geometry is None else prepared.prep(geometry)
+        self.geometry_prep = None if geometry is None else prepared.prep(unwrap_geom(geometry))
 
     def intersection(self, other):
         if self.geometry is None:
@@ -179,7 +179,7 @@ class LevelRenderData:
                 ) if not geom.is_empty)
 
                 for altitudearea in old_geoms.altitudeareas:
-                    new_geometry = crop_to.intersection(altitudearea.geometry)
+                    new_geometry = crop_to.intersection(unwrap_geom(altitudearea.geometry))
                     if new_geometry.is_empty:
                         continue
                     new_geometry_prep = prepared.prep(new_geometry)

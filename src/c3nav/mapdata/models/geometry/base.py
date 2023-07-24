@@ -9,7 +9,7 @@ from shapely.geometry.base import BaseGeometry
 from shapely.ops import unary_union
 
 from c3nav.mapdata.models.base import SerializableMixin
-from c3nav.mapdata.utils.geometry import assert_multipolygon, good_representative_point, smart_mapping
+from c3nav.mapdata.utils.geometry import assert_multipolygon, good_representative_point, smart_mapping, unwrap_geom
 from c3nav.mapdata.utils.json import format_geojson
 
 geometry_affecting_fields = ('height', 'width', 'access_restriction')
@@ -119,11 +119,11 @@ class GeometryMixin(SerializableMixin):
             return True
         if self.geometry is self.orig_geometry:
             return False
-        if not self.geometry.equals_exact(self.orig_geometry, 0.05):
+        if not self.geometry.equals_exact(unwrap_geom(self.orig_geometry), 0.05):
             return True
         field = self._meta.get_field('geometry')
         rounded = field.to_python(field.get_prep_value(self.geometry))
-        if not rounded.equals_exact(self.orig_geometry, 0.005):
+        if not rounded.equals_exact(unwrap_geom(self.orig_geometry), 0.005):
             return True
         return False
 
@@ -132,7 +132,7 @@ class GeometryMixin(SerializableMixin):
         new_geometry = field.get_final_value(self.geometry)
         if self.orig_geometry is None:
             return new_geometry
-        difference = new_geometry.symmetric_difference(self.orig_geometry)
+        difference = new_geometry.symmetric_difference(unwrap_geom(self.orig_geometry))
         if self._meta.get_field('geometry').geomtype in ('polygon', 'multipolygon'):
             difference = unary_union(assert_multipolygon(difference))
         return difference

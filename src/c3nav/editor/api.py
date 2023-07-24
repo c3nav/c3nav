@@ -22,6 +22,7 @@ from c3nav.editor.views.base import etag_func
 from c3nav.mapdata.api import api_etag
 from c3nav.mapdata.models import Area, MapUpdate, Source
 from c3nav.mapdata.models.geometry.space import POI
+from c3nav.mapdata.utils.geometry import unwrap_geom
 from c3nav.mapdata.utils.user import can_access_editor
 
 
@@ -69,7 +70,7 @@ class EditorViewSet(EditorViewSetMixin, ViewSet):
     @staticmethod
     def _get_level_geometries(level):
         buildings = level.buildings.all()
-        buildings_geom = unary_union([building.geometry.wrapped_geom for building in buildings])
+        buildings_geom = unary_union([unwrap_geom(building.geometry) for building in buildings])
         spaces = {space.pk: space for space in level.spaces.all()}
         holes_geom = []
         for space in spaces.values():
@@ -77,9 +78,9 @@ class EditorViewSet(EditorViewSetMixin, ViewSet):
                 space.geometry = space.geometry.difference(buildings_geom)
             columns = [column.geometry for column in space.columns.all()]
             if columns:
-                columns_geom = unary_union([column.geometry.wrapped_geom for column in space.columns.all()])
+                columns_geom = unary_union([unwrap_geom(column.geometry) for column in space.columns.all()])
                 space.geometry = space.geometry.difference(columns_geom)
-            holes = [hole.geometry.wrapped_geom for hole in space.holes.all()]
+            holes = [unwrap_geom(hole.geometry) for hole in space.holes.all()]
             if holes:
                 space_holes_geom = unary_union(holes)
                 holes_geom.append(space_holes_geom.intersection(space.geometry))
@@ -221,7 +222,10 @@ class EditorViewSet(EditorViewSetMixin, ViewSet):
             if request.user_permissions.can_access_base_mapdata:
                 doors = [door for door in level.doors.filter(Door.q_for_request(request)).all()
                          if door.geometry.intersects(space.geometry)]
-                doors_space_geom = unary_union([door.geometry for door in doors]+[space.geometry])
+                doors_space_geom = unary_union(
+                    [unwrap_geom(door.geometry) for door in doors] +
+                    [unwrap_geom(space.geometry)]
+                )
 
                 levels, levels_on_top, levels_under = self._get_levels_pk(request, level.primary_level)
                 if level.on_top_of_id is not None:

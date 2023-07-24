@@ -55,6 +55,9 @@ class GeometryField(models.JSONField):
     def to_python(self, value):
         if value is None or value == '':
             return None
+        if isinstance(value, str):
+            # todo: this is all too complex, why do we need this?
+            value = json.loads(value)
         try:
             geometry = shape(value)
         except Exception:

@@ -26,7 +26,7 @@ from c3nav.mapdata.models.geometry.base import GeometryMixin
 from c3nav.mapdata.models.locations import SpecificLocation
 from c3nav.mapdata.utils.cache.changes import changed_geometries
 from c3nav.mapdata.utils.geometry import (assert_multilinestring, assert_multipolygon, clean_cut_polygon,
-                                          cut_polygon_with_line)
+                                          cut_polygon_with_line, unwrap_geom)
 
 
 class LevelGeometryMixin(GeometryMixin):
@@ -222,7 +222,7 @@ class AltitudeArea(LevelGeometryMixin, models.Model):
             stairs = []
 
             # collect all accessible areas on this level
-            buildings_geom = unary_union(tuple(building.geometry.wrapped_geom for building in level.buildings.all()))
+            buildings_geom = unary_union(tuple(unwrap_geom(building.geometry) for building in level.buildings.all()))
             for space in level.spaces.all():
                 spaces[space.pk] = space
                 space.orig_geometry = space.geometry
@@ -271,9 +271,9 @@ class AltitudeArea(LevelGeometryMixin, models.Model):
             space_areas.update({space.pk: [] for space in level.spaces.all()})
             for area in areas:
                 area.spaces = set()
-                area.geometry_prep = prepared.prep(area.geometry)
+                area.geometry_prep = prepared.prep(unwrap_geom(area.geometry))
                 for space in level.spaces.all():
-                    if area.geometry_prep.intersects(space.geometry):
+                    if area.geometry_prep.intersects(unwrap_geom(space.geometry)):
                         area.spaces.add(space.pk)
                         space_areas[space.pk].append(area)
 
@@ -470,9 +470,11 @@ class AltitudeArea(LevelGeometryMixin, models.Model):
             for space in level.spaces.all():
                 space.geometry = space.orig_geometry
 
-            buildings_geom = unary_union(tuple(b.geometry.wrapped_geom for b in level.buildings.all()))
+            buildings_geom = unary_union(tuple(unwrap_geom(b.geometry) for b in level.buildings.all()))
             doors_geom = unary_union(tuple(d.geometry for d in level.doors.all()))
-            space_geom = unary_union(tuple((s.geometry if not s.outside else s.geometry.difference(buildings_geom))
+            space_geom = unary_union(tuple((unwrap_geom(s.geometry)
+                                            if not s.outside
+                                            else s.geometry.difference(buildings_geom))
                                            for s in level.spaces.all()))
 
             # accessible area on this level is doors + spaces - holes
@@ -494,7 +496,7 @@ class AltitudeArea(LevelGeometryMixin, models.Model):
                 space_geom = space.geometry
                 if space.outside:
                     space_geom = space_geom.difference(buildings_geom)
-                space_geom_prep = prepared.prep(space_geom)
+                space_geom_prep = prepared.prep(unwrap_geom(space_geom))
                 holes_geom = unary_union(tuple(h.geometry for h in space.holes.all()))
 
                 # remaining_space means remaining space (=obstacles) that still needs to be added to altitude areas
@@ -572,7 +574,7 @@ class AltitudeArea(LevelGeometryMixin, models.Model):
         all_candidates = AltitudeArea.objects.select_related('level')
         for candidate in all_candidates:
             candidate.area = candidate.geometry.area
-            candidate.geometry_prep = prepared.prep(candidate.geometry)
+            candidate.geometry_prep = prepared.prep(unwrap_geom(candidate.geometry))
         all_candidates = sorted(all_candidates, key=attrgetter('area'), reverse=True)
 
         num_modified = 0
@@ -606,7 +608,7 @@ class AltitudeArea(LevelGeometryMixin, models.Model):
                 num_deleted += 1
                 continue
 
-            if not field.get_final_value(new_area.geometry).equals_exact(candidate.geometry, 0.00001):
+            if not field.get_final_value(new_area.geometry).equals_exact(unwrap_geom(candidate.geometry), 0.00001):
                 num_modified += 1
 
             candidate.geometry = new_area.geometry

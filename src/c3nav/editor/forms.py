@@ -41,7 +41,7 @@ class EditorFormBase(I18nModelFormMixin, ModelForm):
                 # hide geometry widget
                 self.fields['geometry'].widget = HiddenInput()
                 if not creating:
-                    self.initial['geometry'] = json.dumps(mapping(self.instance.geometry), separators=(',', ':'))
+                    self.initial['geometry'] = mapping(self.instance.geometry)
 
         if self._meta.model.__name__ == 'Source' and self.request.user.is_superuser:
             Source = self.request.changeset.wrap_model('Source')

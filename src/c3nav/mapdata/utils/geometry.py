@@ -40,9 +40,17 @@ class WrappedGeometry():
 
     @cached_property
     def wrapped_geom(self):
-        if not self.wrapped_geojson['coordinates']:
+        if not self.wrapped_geojson or not self.wrapped_geojson['coordinates']:
             return GeometryCollection()
         return shapely_shape(self.wrapped_geojson)
+
+    def __getstate__(self):
+        self.picklable = True
+        # make sure geometry is cached
+        if self.wrapped_geojson:
+            # noinspection PyStatementEffect
+            self.wrapped_geom
+        super().__getstate__()
 
     def __getattr__(self, name):
         if name in ('__getstate__'):
@@ -64,8 +72,8 @@ class WrappedGeometry():
         return result
 
 
-def unwrap_geometry(geometry):
-    return getattr(geometry, 'geom', geometry)
+def unwrap_geom(geometry):
+    return geometry.wrapped_geom if isinstance(geometry, WrappedGeometry) else geometry
 
 
 def smart_mapping(geometry):

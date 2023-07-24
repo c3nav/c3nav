@@ -13,7 +13,7 @@ from c3nav.mapdata.render.geometry.altitudearea import AltitudeAreaGeometries
 from c3nav.mapdata.render.geometry.hybrid import HybridGeometry
 from c3nav.mapdata.render.geometry.mesh import Mesh
 from c3nav.mapdata.utils.cache import AccessRestrictionAffected
-from c3nav.mapdata.utils.geometry import get_rings
+from c3nav.mapdata.utils.geometry import get_rings, unwrap_geom
 from c3nav.mapdata.utils.mesh import triangulate_rings
 
 empty_geometry_collection = GeometryCollection()
@@ -65,7 +65,7 @@ class LevelGeometries:
     @classmethod
     def build_for_level(cls, level, altitudeareas_above):
         geoms = LevelGeometries()
-        buildings_geom = unary_union([b.geometry.wrapped_geom for b in level.buildings.all()])
+        buildings_geom = unary_union([unwrap_geom(b.geometry) for b in level.buildings.all()])
         geoms.buildings = buildings_geom
         buildings_geom_prep = prepared.prep(buildings_geom)
 
@@ -89,10 +89,10 @@ class LevelGeometries:
                 space.holes_geom = empty_geometry_collection
                 space.walkable_geom = space.geometry
 
-        spaces_geom = unary_union([s.geometry for s in level.spaces.all()])
-        doors_geom = unary_union([d.geometry for d in level.doors.all()])
+        spaces_geom = unary_union([unwrap_geom(s.geometry) for s in level.spaces.all()])
+        doors_geom = unary_union([unwrap_geom(d.geometry) for d in level.doors.all()])
         doors_geom = doors_geom.intersection(buildings_geom)
-        walkable_spaces_geom = unary_union([s.walkable_geom for s in level.spaces.all()])
+        walkable_spaces_geom = unary_union([unwrap_geom(s.walkable_geom) for s in level.spaces.all()])
         geoms.doors = doors_geom.difference(walkable_spaces_geom)
         if level.on_top_of_id is None:
             geoms.holes = unary_union([s.holes_geom for s in level.spaces.all()])
@@ -127,7 +127,9 @@ class LevelGeometries:
                         buffered.difference(buildings_geom)
                     )
 
-            colors.setdefault(space.get_color_sorted(), {}).setdefault(access_restriction, []).append(space.geometry)
+            colors.setdefault(space.get_color_sorted(), {}).setdefault(access_restriction, []).append(
+                unwrap_geom(space.geometry)
+            )
 
             for area in space.areas.all():
                 access_restriction = area.access_restriction_id or space.access_restriction_id
@@ -166,7 +168,9 @@ class LevelGeometries:
 
             geoms.ramps.extend(ramp.geometry for ramp in space.ramps.all())
 
-            heightareas.setdefault(int((space.height or level.default_height)*1000), []).append(space.geometry)
+            heightareas.setdefault(int((space.height or level.default_height)*1000), []).append(
+                unwrap_geom(space.geometry)
+            )
         colors.pop(None, None)
 
         # merge ground colors
@@ -178,8 +182,8 @@ class LevelGeometries:
 
         # add altitudegroup geometries and split ground colors into them
         for altitudearea in level.altitudeareas.all():
-            altitudearea_prep = prepared.prep(altitudearea.geometry)
-            altitudearea_colors = {color: {access_restriction: area.intersection(altitudearea.geometry)
+            altitudearea_prep = prepared.prep(unwrap_geom(altitudearea.geometry))
+            altitudearea_colors = {color: {access_restriction: area.intersection(unwrap_geom(altitudearea.geometry))
                                            for access_restriction, area in areas.items()
                                            if altitudearea_prep.intersects(area)}
                                    for color, areas in colors.items()}

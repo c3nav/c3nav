@@ -20,7 +20,7 @@ from shapely.ops import unary_union
 from c3nav.mapdata.models import AltitudeArea, Area, GraphEdge, Level, LocationGroup, MapUpdate, Space, WayType
 from c3nav.mapdata.models.geometry.space import POI, CrossDescription, LeaveDescription
 from c3nav.mapdata.models.locations import CustomLocationProxyMixin
-from c3nav.mapdata.utils.geometry import assert_multipolygon, get_rings, good_representative_point
+from c3nav.mapdata.utils.geometry import assert_multipolygon, get_rings, good_representative_point, unwrap_geom
 from c3nav.mapdata.utils.locations import CustomLocation
 from c3nav.routing.exceptions import LocationUnreachable, NoRouteFound, NotYetRoutable
 from c3nav.routing.route import Route
@@ -63,7 +63,7 @@ class Router:
         restrictions = {}
         nodes = deque()
         for level in levels_query:
-            buildings_geom = unary_union(tuple(building.geometry.wrapped_geom for building in level.buildings.all()))
+            buildings_geom = unary_union(tuple(unwrap_geom(building.geometry) for building in level.buildings.all()))
 
             nodes_before_count = len(nodes)
 
@@ -122,9 +122,9 @@ class Router:
                     space.areas.add(area.pk)
 
                 for area in level.altitudeareas.all():
-                    if not space.geometry_prep.intersects(area.geometry):
+                    if not space.geometry_prep.intersects(unwrap_geom(area.geometry)):
                         continue
-                    for subgeom in assert_multipolygon(accessible_geom.intersection(area.geometry)):
+                    for subgeom in assert_multipolygon(accessible_geom.intersection(unwrap_geom(area.geometry))):
                         if subgeom.is_empty:
                             continue
                         area_clear_geom = unary_union(tuple(get_rings(subgeom.difference(obstacles_geom))))
@@ -511,7 +511,7 @@ class BaseRouterProxy:
 
     @cached_property
     def geometry_prep(self):
-        return prepared.prep(self.src.geometry)
+        return prepared.prep(unwrap_geom(self.src.geometry))
 
     def __getstate__(self):
         result = self.__dict__.copy()
