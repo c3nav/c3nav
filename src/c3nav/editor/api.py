@@ -68,6 +68,13 @@ class EditorViewSet(EditorViewSetMixin, ViewSet):
     lookup_value_regex = r'.+'
 
     @staticmethod
+    def space_sorting_func(space):
+        groups = tuple(space.groups.all())
+        if not groups:
+            return (0, 0, 0)
+        return (1, groups[0].category.priority, groups[0].hierarchy, groups[0].priority)
+
+    @staticmethod
     def _get_level_geometries(level):
         buildings = level.buildings.all()
         buildings_geom = unary_union([unwrap_geom(building.geometry) for building in buildings])
@@ -101,7 +108,7 @@ class EditorViewSet(EditorViewSetMixin, ViewSet):
         for door in level.doors.all():
             results.append(door)
 
-        results.extend(spaces.values())
+        results.extend(sorted(spaces.values(), key=EditorViewSet.space_sorting_func))
         return results
 
     @staticmethod
