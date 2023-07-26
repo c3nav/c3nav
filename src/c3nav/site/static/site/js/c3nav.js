@@ -887,13 +887,31 @@ c3nav = {
 
     // share logic
     _buttons_share_click: function (location) {
-        c3nav.open_modal($('main > .share-ui')[0].outerHTML);
-        c3nav._update_share_ui(false, location);
+        var url = c3nav._get_share_url(false, location);
+        if (navigator.share) {
+            var title
+                , subtitle;
+            if (location.slug) {
+                title = location.title;
+                subtitle = location.subtitle;
+            } else {
+                title = c3nav.state.destination.title;
+                subtitle = c3nav.state.destination.subtitle;
+            }
+            var text = title + '\n' + subtitle;
+            url = window.location.protocol + '//' + window.location.host + url;
+            navigator.share({
+                url: url,
+                title: title,
+                text: text,
+            });
+        } else {
+            c3nav.open_modal($('main > .share-ui')[0].outerHTML);
+            c3nav._update_share_ui(url);
+        }
     },
-    _update_share_ui: function(with_position, location) {
-        var $share = $('#modal').find('.share-ui'),
-            state = $.extend({}, c3nav.state),
-            url;
+    _get_share_url: function (with_position, location) {
+        var url, state = $.extend({}, c3nav.state);
         if (location.slug) {
             url = '/l/' + location.slug + '/';
         } else {
@@ -902,14 +920,18 @@ c3nav = {
             }
             url = c3nav._build_state_url(state);
         }
+        return url;
+    },
+    _update_share_ui: function (url) {
+        var $share = $('#modal').find('.share-ui');
         $share.find('img').attr('src', '/qr' + url);
         $share.find('input').val(window.location.protocol + '//' + window.location.host + url);
         if (!window.mobileclient) $share.find('input')[0].select();
     },
-    _mobileclient_share_click: function() {
+    _mobileclient_share_click: function () {
         mobileclient.shareUrl($('#modal').find('.share-ui input').val());
     },
-    _mobileclient_shortcut_click: function() {
+    _mobileclient_shortcut_click: function () {
         mobileclient.createShortcut($('#modal').find('.share-ui input').val(), c3nav.state.destination.title);
     },
 
