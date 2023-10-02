@@ -1,57 +1,22 @@
 import string
-from datetime import datetime
-from functools import wraps
-from urllib.parse import urlencode
 
-from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
-from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.contrib.auth.models import User
-from django.core.cache import cache
-from django.core.exceptions import PermissionDenied
-from django.core.paginator import Paginator
-from django.db import IntegrityError, transaction
+from django.db import transaction, IntegrityError
 from django.db.models import Prefetch
 from django.shortcuts import get_object_or_404, redirect, render
-from django.urls import reverse
 from django.utils import timezone
 from django.utils.crypto import get_random_string
-from django.utils.timezone import make_aware
 from django.utils.translation import gettext_lazy as _
-from django.views.generic import TemplateView, ListView
+from django.views.generic import ListView
 
-from c3nav.control.forms import (AccessPermissionForm, AnnouncementForm, MapUpdateFilterForm, MapUpdateForm,
-                                 UserPermissionsForm, UserSpaceAccessForm)
-from c3nav.control.models import UserPermissions, UserSpaceAccess
-from c3nav.mapdata.models import MapUpdate
-from c3nav.mapdata.models.access import AccessPermission, AccessPermissionToken, AccessRestriction
-from c3nav.mapdata.tasks import process_map_updates
-from c3nav.mesh.models import MeshNode
-from c3nav.site.models import Announcement
+from c3nav.control.forms import UserPermissionsForm, AccessPermissionForm, UserSpaceAccessForm
+from c3nav.control.models import UserSpaceAccess, UserPermissions
 
-
-class ControlPanelMixin(UserPassesTestMixin, LoginRequiredMixin):
-    login_url = 'site.login'
-    user_permission = None
-
-    def test_func(self):
-        if not self.user_permission:
-            return True
-        return getattr(self.request.user_permissions, self.user_permission)
-
-
-def control_panel_view(func):
-    @wraps(func)
-    def wrapped_func(request, *args, **kwargs):
-        if not request.user_permissions.control_panel:
-            raise PermissionDenied
-        return func(request, *args, **kwargs)
-    return login_required(login_url='site.login')(wrapped_func)
-
-
-class ControlPanelIndexView(ControlPanelMixin, TemplateView):
-    template_name = "control/index.html"
+from c3nav.control.views import ControlPanelMixin, control_panel_view
+from c3nav.mapdata.models import AccessRestriction
+from c3nav.mapdata.models.access import AccessPermission
 
 
 class UserListView(ControlPanelMixin, ListView):
@@ -246,179 +211,3 @@ def user_detail(request, user):
         })
 
     return render(request, 'control/user.html', ctx)
-
-
-@login_required(login_url='site.login')
-@control_panel_view
-def grant_access(request):
-    if request.method == 'POST' and request.POST.get('submit_access_permissions'):
-        form = AccessPermissionForm(request=request, data=request.POST)
-        if form.is_valid():
-            token = form.get_token()
-            token.save()
-            if settings.DEBUG and request.user_permissions.api_secret:
-                signed_data = form.get_signed_data()
-                print('/?'+urlencode({'access': signed_data}))
-            return redirect(reverse('control.access.qr', kwargs={'token': token.token}))
-    else:
-        form = AccessPermissionForm(request=request)
-
-    ctx = {
-        'access_permission_form': form
-    }
-
-    return render(request, 'control/access.html', ctx)
-
-
-@login_required(login_url='site.login')
-@control_panel_view
-def grant_access_qr(request, token):
-    with transaction.atomic():
-        token = AccessPermissionToken.objects.select_for_update().get(token=token, author=request.user)
-        if token.redeemed:
-            messages.success(request, _('Access successfully granted.'))
-            token = None
-        elif request.method == 'POST' and request.POST.get('revoke'):
-            token.delete()
-            messages.success(request, _('Token successfully revoked.'))
-            return redirect('control.access')
-        elif not token.unlimited:
-            try:
-                latest = AccessPermissionToken.objects.filter(author=request.user).latest('valid_until')
-            except AccessPermissionToken.DoesNotExist:
-                token = None
-            else:
-                if latest.id != token.id:
-                    token = None
-            if token is None:
-                messages.error(request, _('You can only display your most recently created token.'))
-
-        if token is None:
-            return redirect('control.access')
-
-        token.bump()
-        token.save()
-
-    url = reverse('site.access.redeem', kwargs={'token': str(token.token)})
-    return render(request, 'control/access_qr.html', {
-        'url': url,
-        'url_qr': reverse('site.qr', kwargs={'path': url}),
-        'url_absolute': request.build_absolute_uri(url),
-    })
-
-
-@login_required(login_url='site.login')
-@control_panel_view
-def announcement_list(request):
-    if not request.user_permissions.manage_announcements:
-        raise PermissionDenied
-
-    announcements = Announcement.objects.order_by('-created')
-
-    if request.method == 'POST':
-        form = AnnouncementForm(data=request.POST)
-        if form.is_valid():
-            announcement = form.instance
-            announcement.author = request.user
-            announcement.save()
-            return redirect('control.announcements')
-    else:
-        form = AnnouncementForm()
-
-    return render(request, 'control/announcements.html', {
-        'form': form,
-        'announcements': announcements,
-    })
-
-
-@login_required(login_url='site.login')
-@control_panel_view
-def announcement_detail(request, announcement):
-    if not request.user_permissions.manage_announcements:
-        raise PermissionDenied
-
-    announcement = get_object_or_404(Announcement, pk=announcement)
-
-    if request.method == 'POST':
-        form = AnnouncementForm(instance=announcement, data=request.POST)
-        if form.is_valid():
-            form.save()
-            return redirect('control.announcements')
-    else:
-        form = AnnouncementForm(instance=announcement)
-
-    return render(request, 'control/announcement.html', {
-        'form': form,
-        'announcement': announcement,
-    })
-
-
-@login_required(login_url='site.login')
-@control_panel_view
-def map_updates(request):
-    if not request.user_permissions.manage_map_updates:
-        raise PermissionDenied
-
-    page = request.GET.get('page', 1)
-
-    if request.method == 'POST':
-        if 'create_map_update' in request.POST:
-            map_update_form = MapUpdateForm(data=request.POST)
-            if map_update_form.is_valid():
-                map_update = map_update_form.instance
-                map_update.type = 'control_panel'
-                map_update.user = request.user
-                map_update.save()
-                messages.success(request, _('Map update successfully created.'))
-                return redirect(request.path_info)
-        elif 'process_updates' in request.POST:
-            if settings.HAS_CELERY:
-                process_map_updates.delay()
-                messages.success(request, _('Map update processing successfully queued.'))
-            else:
-                messages.error(request, _('Map update processing was not be queued because celery is not configured.'))
-            return redirect(request.path_info)
-
-    filter_form = MapUpdateFilterForm(request.GET)
-    map_update_form = MapUpdateForm()
-
-    queryset = MapUpdate.objects.order_by('-datetime').select_related('user', 'changeset__author')
-    if request.GET.get('type', None):
-        queryset = queryset.filter(type=request.GET['type'])
-    if request.GET.get('geometries_changed', None):
-        if request.GET['geometries_changed'] in ('1', '0'):
-            queryset = queryset.filter(geometries_changed=request.GET['geometries_changed'] == '1')
-    if request.GET.get('processed', None):
-        if request.GET['processed'] in ('1', '0'):
-            queryset = queryset.filter(processed=request.GET['processed'] == '1')
-    if request.GET.get('user_id', None):
-        if request.GET['user_id'].isdigit():
-            queryset = queryset.filter(user_id=request.GET['user_id'])
-
-    paginator = Paginator(queryset, 20)
-    users = paginator.page(page)
-
-    last_processed, last_processed_success = cache.get('mapdata:last_process_updates_run', (None, None))
-    if last_processed:
-        last_processed = make_aware(datetime.fromtimestamp(last_processed))
-
-    last_processed_start = cache.get('mapdata:last_process_updates_start', None)
-    if last_processed_start:
-        last_processed_start = make_aware(datetime.fromtimestamp(last_processed_start))
-
-    return render(request, 'control/map_updates.html', {
-        'last_processed': last_processed,
-        'last_processed_start': last_processed_start,
-        'last_processed_success': last_processed_success,
-        'auto_process_updates': settings.AUTO_PROCESS_UPDATES,
-        'map_update_form': map_update_form,
-        'filter_form': filter_form,
-        'updates': users,
-    })
-
-
-class MeshNodeListView(ControlPanelMixin, ListView):
-    model = MeshNode
-    template_name = "control/mesh_nodes.html"
-    ordering = "address"
-    context_object_name = "nodes"

@@ -1,8 +1,11 @@
 from django.urls import path
 
-from c3nav.control.views import (announcement_detail, announcement_list, grant_access, grant_access_qr, map_updates,
-                                 user_detail, MeshNodeListView, ControlPanelIndexView,
-                                 UserListView)
+from c3nav.control.views.mesh import MeshNodeListView
+from c3nav.control.views.mapupdates import map_updates
+from c3nav.control.views.announcements import announcement_list, announcement_detail
+from c3nav.control.views.access import grant_access, grant_access_qr
+from c3nav.control.views.users import UserListView, user_detail
+from c3nav.control.views.base import ControlPanelIndexView
 
 urlpatterns = [
     path('users/', UserListView.as_view(), name='control.users'),
