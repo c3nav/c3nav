@@ -6,6 +6,7 @@ from urllib.parse import urlencode
 from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
+from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.contrib.auth.models import User
 from django.core.cache import cache
 from django.core.exceptions import PermissionDenied
@@ -18,6 +19,7 @@ from django.utils import timezone
 from django.utils.crypto import get_random_string
 from django.utils.timezone import make_aware
 from django.utils.translation import gettext_lazy as _
+from django.views.generic import TemplateView, ListView
 
 from c3nav.control.forms import (AccessPermissionForm, AnnouncementForm, MapUpdateFilterForm, MapUpdateForm,
                                  UserPermissionsForm, UserSpaceAccessForm)
@@ -29,6 +31,16 @@ from c3nav.mesh.models import MeshNode
 from c3nav.site.models import Announcement
 
 
+class ControlPanelMixin(UserPassesTestMixin, LoginRequiredMixin):
+    login_url = 'site.login'
+    user_permission = None
+
+    def test_func(self):
+        if not self.user_permission:
+            return True
+        return getattr(self.request.user_permissions, self.user_permission)
+
+
 def control_panel_view(func):
     @wraps(func)
     def wrapped_func(request, *args, **kwargs):
@@ -38,28 +50,23 @@ def control_panel_view(func):
     return login_required(login_url='site.login')(wrapped_func)
 
 
-@login_required(login_url='site.login')
-@control_panel_view
-def main_index(request):
-    return render(request, 'control/index.html', {})
+class ControlPanelIndexView(ControlPanelMixin, TemplateView):
+    template_name = "control/index.html"
 
 
-@login_required(login_url='site.login')
-@control_panel_view
-def user_list(request):
-    search = request.GET.get('s')
-    page = request.GET.get('page', 1)
+class UserListView(ControlPanelMixin, ListView):
+    model = User
+    paginate_by = 20
+    template_name = "control/users.html"
+    ordering = "id"
+    context_object_name = "users"
 
-    queryset = User.objects.order_by('id')
-    if search:
-        queryset = queryset.filter(username__icontains=search.strip())
-
-    paginator = Paginator(queryset, 20)
-    users = paginator.page(page)
-
-    return render(request, 'control/users.html', {
-        'users': users,
-    })
+    def get_queryset(self):
+        qs = super().get_queryset()
+        search = self.request.GET.get('s')
+        if search:
+            qs = qs.filter(username__icontains=search.strip())
+        return qs
 
 
 @login_required(login_url='site.login')
@@ -410,16 +417,8 @@ def map_updates(request):
     })
 
 
-@login_required(login_url='site.login')
-@control_panel_view
-def mesh_node_list(request):
-    page = request.GET.get('page', 1)
-
-    queryset = MeshNode.objects.order_by('address')
-
-    paginator = Paginator(queryset, 20)
-    nodes = paginator.page(page)
-
-    return render(request, 'control/mesh_nodes.html', {
-        'nodes': nodes,
-    })
+class MeshNodeListView(ControlPanelMixin, ListView):
+    model = MeshNode
+    template_name = "control/mesh_nodes.html"
+    ordering = "address"
+    context_object_name = "nodes"

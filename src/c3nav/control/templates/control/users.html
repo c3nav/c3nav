@@ -8,7 +8,7 @@
         <input type="text" name="s" value="{{ request.GET.s }}"> <button type="submit">{% trans 'Search' %}</button>
     </form>
 
-    {% include 'control/fragment_pagination.html' with objects=users %}
+    {% include 'control/fragment_pagination.html' %}
 
     <table>
         <tr>
@@ -23,5 +23,5 @@
         {% endfor %}
     </table>
 
-    {% include 'control/fragment_pagination.html' with objects=users %}
+    {% include 'control/fragment_pagination.html' %}
 {% endblock %}

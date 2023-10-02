@@ -4,8 +4,6 @@
 {% block heading %}{% trans 'Mesh' %}{% endblock %}
 
 {% block subcontent %}
-    {% include 'control/fragment_pagination.html' with objects=nodes %}
-
     <table>
         <tr>
             <th>{% trans 'Address' %}</th>
@@ -24,6 +22,4 @@
             </tr>
         {% endfor %}
     </table>
-
-    {% include 'control/fragment_pagination.html' with objects=nodes %}
 {% endblock %}
