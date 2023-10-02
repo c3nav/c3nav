@@ -3,13 +3,13 @@ from django.core.exceptions import PermissionDenied
 from django.shortcuts import redirect, render, get_object_or_404
 
 from c3nav.control.forms import AnnouncementForm
-from c3nav.control.views import control_panel_view
+from c3nav.control.views.base import control_panel_view
 from c3nav.site.models import Announcement
 
 
 @login_required(login_url='site.login')
 @control_panel_view
-def announcement_list(request):
+def announcement_list(request):  # todo: make class based view
     if not request.user_permissions.manage_announcements:
         raise PermissionDenied
 
@@ -33,7 +33,7 @@ def announcement_list(request):
 
 @login_required(login_url='site.login')
 @control_panel_view
-def announcement_detail(request, announcement):
+def announcement_detail(request, announcement):  # todo: make class based view
     if not request.user_permissions.manage_announcements:
         raise PermissionDenied
 

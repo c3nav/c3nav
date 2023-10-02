@@ -1,6 +1,6 @@
 from django.views.generic import ListView
 
-from c3nav.control.views import ControlPanelMixin
+from c3nav.control.views.base import ControlPanelMixin
 from c3nav.mesh.models import MeshNode
 
 

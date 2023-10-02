@@ -9,13 +9,13 @@ from django.urls import reverse
 from django.utils.translation import gettext_lazy as _
 
 from c3nav.control.forms import AccessPermissionForm
-from c3nav.control.views import control_panel_view
+from c3nav.control.views.base import control_panel_view
 from c3nav.mapdata.models.access import AccessPermissionToken
 
 
 @login_required(login_url='site.login')
 @control_panel_view
-def grant_access(request):
+def grant_access(request):  # todo: make class based view
     if request.method == 'POST' and request.POST.get('submit_access_permissions'):
         form = AccessPermissionForm(request=request, data=request.POST)
         if form.is_valid():
@@ -37,7 +37,7 @@ def grant_access(request):
 
 @login_required(login_url='site.login')
 @control_panel_view
-def grant_access_qr(request, token):
+def grant_access_qr(request, token):  # todo: make class based view
     with transaction.atomic():
         token = AccessPermissionToken.objects.select_for_update().get(token=token, author=request.user)
         if token.redeemed:

@@ -11,14 +11,14 @@ from django.utils.timezone import make_aware
 from django.utils.translation import gettext_lazy as _
 
 from c3nav.control.forms import MapUpdateForm, MapUpdateFilterForm
-from c3nav.control.views import control_panel_view
+from c3nav.control.views.base import control_panel_view
 from c3nav.mapdata.models import MapUpdate
 from c3nav.mapdata.tasks import process_map_updates
 
 
 @login_required(login_url='site.login')
 @control_panel_view
-def map_updates(request):
+def map_updates(request):  # todo: make class based view
     if not request.user_permissions.manage_map_updates:
         raise PermissionDenied
 

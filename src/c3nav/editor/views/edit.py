@@ -96,6 +96,8 @@ def level_detail(request, pk):
 def space_detail(request, level, pk):
     Level = request.changeset.wrap_model('Level')
     Space = request.changeset.wrap_model('Space')
+
+    # todo: HOW TO GET DATA
     qs = Space.objects.filter(Space.q_for_request(request))
     space = get_object_or_404(qs.select_related('level'), level__pk=level, pk=pk)
 

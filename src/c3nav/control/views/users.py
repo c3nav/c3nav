@@ -13,8 +13,7 @@ from django.views.generic import ListView
 
 from c3nav.control.forms import UserPermissionsForm, AccessPermissionForm, UserSpaceAccessForm
 from c3nav.control.models import UserSpaceAccess, UserPermissions
-
-from c3nav.control.views import ControlPanelMixin, control_panel_view
+from c3nav.control.views.base import ControlPanelMixin, control_panel_view
 from c3nav.mapdata.models import AccessRestriction
 from c3nav.mapdata.models.access import AccessPermission
 
@@ -36,7 +35,7 @@ class UserListView(ControlPanelMixin, ListView):
 
 @login_required(login_url='site.login')
 @control_panel_view
-def user_detail(request, user):
+def user_detail(request, user):  # todo: make class based view 
     qs = User.objects.select_related(
         'permissions',
     ).prefetch_related(
