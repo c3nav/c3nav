@@ -25,6 +25,7 @@ from c3nav.control.models import UserPermissions, UserSpaceAccess
 from c3nav.mapdata.models import MapUpdate
 from c3nav.mapdata.models.access import AccessPermission, AccessPermissionToken, AccessRestriction
 from c3nav.mapdata.tasks import process_map_updates
+from c3nav.mesh.models import MeshNode
 from c3nav.site.models import Announcement
 
 
@@ -406,4 +407,19 @@ def map_updates(request):
         'map_update_form': map_update_form,
         'filter_form': filter_form,
         'updates': users,
+    })
+
+
+@login_required(login_url='site.login')
+@control_panel_view
+def mesh_node_list(request):
+    page = request.GET.get('page', 1)
+
+    queryset = MeshNode.objects.order_by('address')
+
+    paginator = Paginator(queryset, 20)
+    nodes = paginator.page(page)
+
+    return render(request, 'control/mesh_nodes.html', {
+        'nodes': nodes,
     })
