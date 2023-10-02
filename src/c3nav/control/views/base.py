@@ -11,6 +11,8 @@ class ControlPanelMixin(UserPassesTestMixin, LoginRequiredMixin):
     user_permission = None
 
     def test_func(self):
+        if not self.request.user_permissions.control_panel:
+            return False
         if not self.user_permission:
             return True
         return getattr(self.request.user_permissions, self.user_permission)
