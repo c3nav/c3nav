@@ -1,0 +1,50 @@
+{% extends 'control/base.html' %}
+{% load i18n %}
+
+{% block heading %}{% trans 'Mesh messages' %}{% endblock %}
+
+{% block subcontent %}
+    <form>
+        <div class="fields">
+            <div class="field">
+                {{ form.message_types }}
+            </div>
+            <div class="field">
+                {{ form.nodes }}
+            </div>
+            <div class="field">
+                <button type="submit">Filer</button>
+            </div>
+        </div>
+    </form>
+
+    {% include 'control/fragment_pagination.html' %}
+
+    <table>
+        <tr>
+            <th>{% trans 'Time' %}</th>
+            <th>{% trans 'Node' %}</th>
+            <th>{% trans 'Type' %}</th>
+            <th>{% trans 'Data' %}</th>
+        </tr>
+        {% for msg in mesh_messages %}
+            <tr>
+                <td>{{ msg.datetime }}</td>
+                <td>{{ msg.node }}</td>
+                <td>{{ msg.get_message_type_display }}</td>
+                <td>
+
+                    {% for key, value in msg.data.items %}
+                        {% if key != "src" and key != "dst" and key != "msg_id" %}
+                        <div class="mesh-msg-data mesh-msg-type-{{ key }}">
+                            <strong>{{ key }}</strong>: {{ value }}
+                        </div>
+                        {% endif %}
+                    {% endfor %}
+                </td>
+            </tr>
+        {% endfor %}
+    </table>
+
+    {% include 'control/fragment_pagination.html' %}
+{% endblock %}

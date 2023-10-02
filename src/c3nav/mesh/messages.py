@@ -112,6 +112,8 @@ class ConfigDumpMessage(Message, msg_id=MessageType.CONFIG_DUMP):
 
 @dataclass
 class ConfigFirmwareMessage(Message, msg_id=MessageType.CONFIG_FIRMWARE):
+    chip: int = field(metadata={'format': SimpleFormat('H')})
+    revision: int = field(metadata={'format': SimpleFormat('2B')})
     magic_word: int = field(metadata={'format': SimpleFormat('I')}, repr=False)
     secure_version: int = field(metadata={'format': SimpleFormat('I')})
     reserv1: list[int] = field(metadata={'format': SimpleFormat('2I')}, repr=False)
@@ -122,6 +124,15 @@ class ConfigFirmwareMessage(Message, msg_id=MessageType.CONFIG_FIRMWARE):
     idf_version: str = field(metadata={'format': FixedStrFormat(32)})
     app_elf_sha256: str = field(metadata={'format': HexFormat(32)})
     reserv2: list[int] = field(metadata={'format': SimpleFormat('20I')}, repr=False)
+
+    def to_model_data(self):
+        return {
+            'chip': self.chip,
+            'project_name': self.project_name,
+            'version': self.version,
+            'idf_version': self.idf_version,
+            'sha256_hash': self.app_elf_sha256,
+        }
 
 
 @dataclass

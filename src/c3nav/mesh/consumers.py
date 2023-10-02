@@ -4,7 +4,7 @@ from channels.db import database_sync_to_async
 from channels.generic.websocket import AsyncWebsocketConsumer
 
 from c3nav.mesh import messages
-from c3nav.mesh.models import MeshNode, NodeMessage
+from c3nav.mesh.models import MeshNode, NodeMessage, Firmware
 
 
 class MeshConsumer(AsyncWebsocketConsumer):
@@ -69,6 +69,16 @@ class MeshConsumer(AsyncWebsocketConsumer):
 
         await self.log_received_message(msg)
 
+        if isinstance(msg, messages.ConfigFirmwareMessage):
+            await self._handle_config_firmware_msg(msg)
+            return
+
+    @database_sync_to_async
+    def _handle_config_firmware_msg(self, msg):
+        self.firmware, created = Firmware.objects.get_or_create(**msg.to_model_data())
+        self.node.firmware = self.firmware
+        self.node.save()
+
     @database_sync_to_async
     def get_node(self, address):
         return MeshNode.objects.get_or_create(address=address)
@@ -100,3 +110,8 @@ class MeshConsumer(AsyncWebsocketConsumer):
     @database_sync_to_async
     def remove_route_to_nodes(self, route_address, node_addresses):
         MeshNode.objects.filter(address__in=node_addresses, route_id=route_address).update(route_id=None)
+
+    @database_sync_to_async
+    def set_node_firmware(self, firmware):
+        self.node.firmware = firmware
+        self.node.save()

@@ -9,7 +9,8 @@ from itertools import chain
 import pytz
 from django.contrib.auth.models import User
 from django.db.models import Prefetch
-from django.forms import ChoiceField, Form, IntegerField, ModelForm, Select
+from django.forms import ChoiceField, Form, IntegerField, ModelForm, Select, MultipleChoiceField, \
+    ModelMultipleChoiceField
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 from django.utils.translation import ngettext_lazy
@@ -19,6 +20,8 @@ from c3nav.mapdata.forms import I18nModelFormMixin
 from c3nav.mapdata.models import MapUpdate, Space
 from c3nav.mapdata.models.access import (AccessPermission, AccessPermissionToken, AccessPermissionTokenItem,
                                          AccessRestriction, AccessRestrictionGroup)
+from c3nav.mesh.messages import MessageType
+from c3nav.mesh.models import MeshNode
 from c3nav.site.models import Announcement
 
 
@@ -295,3 +298,16 @@ class MapUpdateForm(ModelForm):
     class Meta:
         model = MapUpdate
         fields = ('geometries_changed', )
+
+
+class MeshMessageFilerForm(Form):
+    message_types = MultipleChoiceField(
+        choices=[(msgtype.value, msgtype.name) for msgtype in MessageType],
+        required=False,
+        label=_('message types'),
+    )
+    nodes = ModelMultipleChoiceField(
+        queryset=MeshNode.objects.all(),
+        required=False,
+        label=_('nodes'),
+    )

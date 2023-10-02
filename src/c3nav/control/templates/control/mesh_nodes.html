@@ -8,7 +8,9 @@
         <tr>
             <th>{% trans 'Address' %}</th>
             <th>{% trans 'Name' %}</th>
-            <th>{% trans 'Last seen' %}</th>
+            <th>{% trans 'Chip' %}</th>
+            <th>{% trans 'Firmware' %}</th>
+            <th>{% trans 'Last msg' %}</th>
             <th>{% trans 'Parent' %}</th>
             <th>{% trans 'Route' %}</th>
         </tr>
@@ -16,7 +18,13 @@
             <tr>
                 <td>{{ node.address }}</td>
                 <td>{{ node.name }}</td>
-                <td>{{ node.last_seen }}</td>
+                <td>
+                    {{ node.firmware.get_chip_display }}
+                </td>
+                <td>
+                    {{ node.firmware.version }} (IDF {{ node.firmware.idf_version }})
+                </td>
+                <td>{{ node.last_msg }}</td>
                 <td>{{ node.parent }}</td>
                 <td>{{ node.route }}</td>
             </tr>

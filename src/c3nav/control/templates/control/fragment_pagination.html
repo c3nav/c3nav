@@ -1,10 +1,10 @@
 {% load i18n %}
 <p>
     {% if page_obj.has_previous %}
-        <a href="?{% if request.GET.s %}s={{ request.GET.s | urlencode }}&{% endif %}page=1">
+        <a href="?{% if request.GET.s %}s={{ request.GET.s | urlencode }}&{% endif %}page=1{% if form_data %}&{{ form_data }}{% endif %}">
             « {% trans 'first' %}
         </a> &middot;
-        <a href="?{% if request.GET.s %}s={{ request.GET.s | urlencode }}&{% endif %}page={{ page_obj.previous_page_number }}">
+        <a href="?{% if request.GET.s %}s={{ request.GET.s | urlencode }}&{% endif %}page={{ page_obj.previous_page_number }}{% if form_data %}&{{ form_data }}{% endif %}">
             ‹ {% trans 'previous' %}
         </a> &middot;
     {% endif %}
@@ -12,10 +12,10 @@
         {% blocktrans %}Page {{ page_number }} of {{ num_pages }}{% endblocktrans %}
     {% endwith %}
     {% if page_obj.has_next %}
-        &middot; <a href="?{% if request.GET.s %}s={{ request.GET.s | urlencode }}&{% endif %}page={{ page_obj.next_page_number }}">
+        &middot; <a href="?{% if request.GET.s %}s={{ request.GET.s | urlencode }}&{% endif %}page={{ page_obj.next_page_number }}{% if form_data %}&{{ form_data }}{% endif %}">
             {% trans 'next' %} ›
         </a>
-        &middot; <a href="?{% if request.GET.s %}s={{ request.GET.s | urlencode }}&{% endif %}page={{ page_obj.paginator.num_pages }}">
+        &middot; <a href="?{% if request.GET.s %}s={{ request.GET.s | urlencode }}&{% endif %}page={{ page_obj.paginator.num_pages }}{% if form_data %}&{{ form_data }}{% endif %}">
             {% trans 'last' %} »
         </a>
     {% endif %}

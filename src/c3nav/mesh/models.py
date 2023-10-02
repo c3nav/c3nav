@@ -11,13 +11,18 @@ class ChipID(models.IntegerChoices):
 
 class MeshNode(models.Model):
     address = models.CharField(_('mac address'), max_length=17, primary_key=True)
+    name = models.CharField(_('name'), max_length=32, null=True, blank=True)
     first_seen = models.DateTimeField(_('first seen'), auto_now_add=True)
     parent_node = models.ForeignKey('MeshNode', models.PROTECT, null=True,
                                     related_name='child_nodes', verbose_name=_('parent node'))
     route = models.ForeignKey('MeshNode', models.PROTECT, null=True,
                               related_name='routed_nodes', verbose_name=_('route'))
+    firmware = models.ForeignKey('Firmware', models.PROTECT, null=True,
+                                 related_name='installed_on', verbose_name=_('firmware'))
 
     def __str__(self):
+        if self.name:
+            return '%s (%s)' % (self.address, self.name)
         return self.address
 
 
@@ -38,11 +43,10 @@ class Firmware(models.Model):
     project_name = models.CharField(_('project name'), max_length=32)
     version = models.CharField(_('firmware version'), max_length=32)
     idf_version = models.CharField(_('IDF version'), max_length=32)
-    compile_time = models.DateTimeField(_('compile time'))
     sha256_hash = models.CharField(_('SHA256 hash'), unique=True, max_length=64)
     binary = models.FileField(_('firmware file'), null=True)
 
     class Meta:
         unique_together = [
-            ('chip', 'project_name', 'version', 'idf_version', 'compile_time', 'sha256_hash'),
+            ('chip', 'project_name', 'version', 'idf_version', 'sha256_hash'),
         ]
