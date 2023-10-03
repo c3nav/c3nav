@@ -1,5 +1,5 @@
 from django.db.models import Max
-from django.views.generic import ListView
+from django.views.generic import ListView, DetailView
 
 from c3nav.control.forms import MeshMessageFilerForm
 from c3nav.control.views.base import ControlPanelMixin
@@ -14,6 +14,13 @@ class MeshNodeListView(ControlPanelMixin, ListView):
 
     def get_queryset(self):
         return super().get_queryset().annotate(last_msg=Max('received_messages__datetime')).prefetch_last_messages()
+
+
+class MeshNodeDetailView(ControlPanelMixin, DetailView):
+    model = MeshNode
+    template_name = "control/mesh_node_detail.html"
+    pk_url_kwargs = "address"
+    context_object_name = "node"
 
 
 class MeshMessageListView(ControlPanelMixin, ListView):

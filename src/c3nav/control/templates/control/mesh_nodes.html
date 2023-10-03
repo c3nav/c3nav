@@ -15,7 +15,7 @@
         </tr>
         {% for node in nodes %}
             <tr>
-                <td>{{ node }}</td>
+                <td><a href="{% url "control.mesh_node.detail" pk=node.address %}">{{ node }}</a></td>
                 <td>
                     {{ node.last_messages.CONFIG_FIRMWARE.parsed.get_chip_display }}
                     rev{{ node.last_messages.CONFIG_FIRMWARE.parsed.revision|join:"." }}
@@ -34,7 +34,7 @@
                         {{ timesince }} ago
                     {% endblocktrans %}
                 </td>
-                <td>{{ node.uplink }}</td>
+                <td><a href="{% url "control.mesh_node.detail" pk=node.uplink.address %}">{{ node.uplink }}</a></td>
             </tr>
         {% endfor %}
     </table>

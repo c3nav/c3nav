@@ -31,19 +31,43 @@
         {% for msg in mesh_messages %}
             <tr>
                 <td>{{ msg.datetime }}</td>
-                <td>{{ msg.src_node }}</td>
+                <td><a href="{% url "control.mesh_node.detail" pk=msg.src_node.address %}">{{ msg.src_node }}</a></td>
                 <td>{{ msg.get_message_type_display }}</td>
                 <td>
+                    {% if msg.get_message_type_display == "CONFIG_FIRMWARE" %}
+                        <strong>Chip:</strong> {{ msg.parsed.get_chip_display }} rev{{ msg.parsed.revision|join:"." }}
+                        <br>
+                        <strong>Firmware:</strong> {{ msg.parsed.project_name }} {{ msg.parsed.version }} (IDF {{ msg.parsed.idf_version }})
+                        <br>
+                        <strong>Compile Date:</strong> {{ msg.parsed.compile_date }} {{ msg.parsed.compile_time }}
+                        <br>
+                        <strong>SHA256:</strong> <small>{{ msg.parsed.app_elf_sha256 }}</small>
 
-                    {% for key, value in msg.data.items %}
-                        {% if key != "src" and key != "dst" and key != "msg_id" %}
-                        <div class="mesh-msg-data mesh-msg-type-{{ key }}">
-                            <strong>{{ key }}</strong>: {{ value }}
-                        </div>
-                        {% endif %}
-                    {% endfor %}
+                    {% elif msg.get_message_type_display == "CONFIG_UPLINK" %}
+                        <strong>Enabled:</strong> {{ msg.parsed.enabled }},
+                        <strong>SSID:</strong> {{ msg.parsed.ssid }},
+                        <strong>Channel:</strong> {{ msg.parsed.channel }}<br>
+                        <strong>Host:</strong> {{ msg.parsed.host }},
+                        <strong>Port:</strong> {{ msg.parsed.port }},
+                        <strong>UDP:</strong> {{ msg.parsed.udp }},
+                        <strong>SSL:</strong> {{ msg.parsed.ssl }}
+
+                    {% elif msg.get_message_type_display == "CONFIG_LED" %}
+                        <strong>LED config:</strong> {{ msg.parsed.led_config }}
+
+                    {% elif msg.get_message_type_display == "CONFIG_POSITION" %}
+                        <strong>X=</strong>{{ msg.parsed.x_pos }}, <strong>Y=</strong>{{ msg.parsed.y_pos }}, <strong>Z=</strong>{{ msg.parsed.z_pos }}
+                    {% else %}
+                        {% for key, value in msg.data.items %}
+                            {% if key != "src" and key != "dst" and key != "msg_id" %}
+                            <div class="mesh-msg-data mesh-msg-type-{{ key }}">
+                                <strong>{{ key }}</strong>: {{ value }}
+                            </div>
+                            {% endif %}
+                        {% endfor %}
+                    {% endif %}
                 </td>
-                <td>{{ msg.uplink_node }}</td>
+                <td><a href="{% url "control.mesh_node.detail" pk=msg.uplink_node.address %}">{{ msg.uplink_node }}</a></td>
             </tr>
         {% endfor %}
     </table>
