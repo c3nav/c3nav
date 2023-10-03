@@ -30,6 +30,12 @@ class MessageType(IntEnum):
 M = TypeVar('M', bound='Message')
 
 
+@unique
+class ChipType(IntEnum):
+    ESP32_S2 = 2
+    ESP32_C3 = 5
+
+
 @dataclass
 class Message:
     dst: str = field(metadata={'format': MacAddressFormat()})
@@ -133,6 +139,9 @@ class ConfigFirmwareMessage(Message, msg_id=MessageType.CONFIG_FIRMWARE):
             'idf_version': self.idf_version,
             'sha256_hash': self.app_elf_sha256,
         }
+
+    def get_chip_display(self):
+        return ChipType(self.chip).name.replace('_', '-')
 
 
 @dataclass

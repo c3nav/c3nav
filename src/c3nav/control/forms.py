@@ -306,7 +306,7 @@ class MeshMessageFilerForm(Form):
         required=False,
         label=_('message types'),
     )
-    nodes = ModelMultipleChoiceField(
+    src_nodes = ModelMultipleChoiceField(
         queryset=MeshNode.objects.all(),
         required=False,
         label=_('nodes'),

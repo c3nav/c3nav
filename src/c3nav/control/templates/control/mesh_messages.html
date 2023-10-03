@@ -10,7 +10,7 @@
                 {{ form.message_types }}
             </div>
             <div class="field">
-                {{ form.nodes }}
+                {{ form.src_nodes }}
             </div>
             <div class="field">
                 <button type="submit">Filer</button>
@@ -26,11 +26,12 @@
             <th>{% trans 'Node' %}</th>
             <th>{% trans 'Type' %}</th>
             <th>{% trans 'Data' %}</th>
+            <th>{% trans 'Uplink' %}</th>
         </tr>
         {% for msg in mesh_messages %}
             <tr>
                 <td>{{ msg.datetime }}</td>
-                <td>{{ msg.node }}</td>
+                <td>{{ msg.src_node }}</td>
                 <td>{{ msg.get_message_type_display }}</td>
                 <td>
 
@@ -42,6 +43,7 @@
                         {% endif %}
                     {% endfor %}
                 </td>
+                <td>{{ msg.uplink_node }}</td>
             </tr>
         {% endfor %}
     </table>

@@ -1,6 +1,5 @@
 from django.db.models import Max
 from django.views.generic import ListView
-from django.views.generic.edit import FormMixin
 
 from c3nav.control.forms import MeshMessageFilerForm
 from c3nav.control.views.base import ControlPanelMixin
@@ -14,7 +13,7 @@ class MeshNodeListView(ControlPanelMixin, ListView):
     context_object_name = "nodes"
 
     def get_queryset(self):
-        return super().get_queryset().annotate(last_msg=Max('received_messages__datetime'))
+        return super().get_queryset().annotate(last_msg=Max('received_messages__datetime')).prefetch_last_messages()
 
 
 class MeshMessageListView(ControlPanelMixin, ListView):
@@ -31,8 +30,8 @@ class MeshMessageListView(ControlPanelMixin, ListView):
         if self.form.is_valid():
             if self.form.cleaned_data['message_types']:
                 qs = qs.filter(message_type__in=self.form.cleaned_data['message_types'])
-            if self.form.cleaned_data['nodes']:
-                qs = qs.filter(node__in=self.form.cleaned_data['nodes'])
+            if self.form.cleaned_data['src_nodes']:
+                qs = qs.filter(src_node__in=self.form.cleaned_data['src_nodes'])
 
         return qs
 
@@ -47,4 +46,3 @@ class MeshMessageListView(ControlPanelMixin, ListView):
             'form_data': form_data.urlencode(),
         })
         return ctx
-
