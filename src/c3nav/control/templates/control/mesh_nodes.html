@@ -7,22 +7,14 @@
     <table>
         <tr>
             <th>{% trans 'Node' %}</th>
-            <th>{% trans 'Status' %}</th>
             <th>{% trans 'Chip' %}</th>
             <th>{% trans 'Firmware' %}</th>
             <th>{% trans 'Last msg' %}</th>
-            <th>{% trans 'Parent' %}</th>
-            <th>{% trans 'Route' %}</th>
+            <th>{% trans 'Last signin' %}</th>
+            <th>{% trans 'Uplink' %}</th>
         </tr>
         {% for node in nodes %}
             <tr>
-                <td>
-                    {% if node.route %}
-                        <span style="color: green;">{% trans "online" %}</span>
-                    {% else %}
-                        <span style="color: red;">{% trans "offline" %}</span>
-                    {% endif %}
-                </td>
                 <td>{{ node }}</td>
                 <td>
                     {{ node.last_messages.CONFIG_FIRMWARE.parsed.get_chip_display }}
@@ -37,9 +29,12 @@
                         {{ timesince }} ago
                     {% endblocktrans %}
                 </td>
-                <td>{{ node.parent }}</td>
-                <td>{{ node.route }}</td>
-                <td>{{ node.last_messages.CONFIG_FIRMWARE.data }}</td>
+                <td>
+                    {% blocktrans trimmed with timesince=node.last_signin|timesince %}
+                        {{ timesince }} ago
+                    {% endblocktrans %}
+                </td>
+                <td>{{ node.uplink }}</td>
             </tr>
         {% endfor %}
     </table>

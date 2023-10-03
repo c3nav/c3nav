@@ -32,8 +32,8 @@ class MeshNodeQuerySet(models.QuerySet):
             try:
                 for message in NodeMessage.objects.order_by('-datetime', '-pk').filter(
                         message_type__in=self._prefetch_last_messages,
-                        node__in=nodes.keys(),
-                ).distinct('message_type', 'node'):
+                        src_node__in=nodes.keys(),
+                ).distinct('message_type', 'src_node'):
                     nodes[message.node].last_messages[message.message_type] = message
             except NotSupportedError:
                 pass
@@ -73,8 +73,9 @@ class MeshNode(models.Model):
     address = models.CharField(_('mac address'), max_length=17, primary_key=True)
     name = models.CharField(_('name'), max_length=32, null=True, blank=True)
     first_seen = models.DateTimeField(_('first seen'), auto_now_add=True)
-    route = models.ForeignKey('MeshNode', models.PROTECT, null=True,
-                              related_name='routed_nodes', verbose_name=_('route'))
+    uplink = models.ForeignKey('MeshNode', models.PROTECT, null=True,
+                               related_name='routed_nodes', verbose_name=_('uplink'))
+    last_signin = models.DateTimeField(_('last signin'), null=True)
     objects = models.Manager.from_queryset(MeshNodeQuerySet)()
 
     def __str__(self):

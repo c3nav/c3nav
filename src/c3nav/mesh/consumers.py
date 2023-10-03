@@ -2,6 +2,7 @@ import traceback
 
 from asgiref.sync import async_to_sync
 from channels.generic.websocket import WebsocketConsumer
+from django.utils import timezone
 
 from c3nav.mesh import messages
 from c3nav.mesh.models import MeshNode, NodeMessage
@@ -19,9 +20,11 @@ class MeshConsumer(WebsocketConsumer):
     def disconnect(self, close_code):
         print('disconnected!')
         if self.uplink_node is not None:
-            self.remove_route(self.uplink_node)
-            self.channel_layer.group_discard('route_%s' % self.node.address.replace(':', ''), self.channel_name)
-        self.channel_layer.group_discard('route_broadcast', self.channel_name)
+            # leave broadcast group
+            async_to_sync(self.channel_layer.group_add)('mesh_broadcast', self.channel_name)
+
+            # remove all other destinations
+            self.remove_dst_nodes(self.dst_nodes)
 
     def send_msg(self, msg):
         print('Sending message:', msg)
@@ -57,8 +60,14 @@ class MeshConsumer(WebsocketConsumer):
                 layer=messages.NO_LAYER
             ))
 
-            # add signed in uplink node to broadcast route
+            # add signed in uplink node to broadcast group
             async_to_sync(self.channel_layer.group_add)('mesh_broadcast', self.channel_name)
+
+            # kick out other consumers talking to the same uplink
+            async_to_sync(self.channel_layer.group_send)(self.group_name_for_node(msg.src), {
+                "type": "mesh.uplink_consumer",
+                "name": self.channel_name,
+            })
 
             # add this node as a destination that this uplink handles (duh)
             self.add_dst_nodes((src_node.address, ))
@@ -72,12 +81,17 @@ class MeshConsumer(WebsocketConsumer):
 
         self.log_received_message(src_node, msg)
 
-    def uplink_change(self, data):
+    def mesh_uplink_consumer(self, data):
+        # message handler: if we are not the given uplink, leave this group
+        if data["name"] != self.channel_name:
+            print('shutting down since we have been replaced')
+            self.close()
+
+    def mesh_dst_node_uplink(self, data):
         # message handler: if we are not the given uplink, leave this group
         if data["uplink"] != self.uplink_node.address:
-            group = self.group_name_for_node(data["address"])
-            print('leaving uplink group...')
-            async_to_sync(self.channel_layer.group_discard)(group, self.channel_name)
+            print('leaving node group...')
+            self.remove_dst_nodes((data["address"], ))
 
     def log_received_message(self, src_node: MeshNode, msg: messages.Message):
         NodeMessage.objects.create(
@@ -88,7 +102,6 @@ class MeshConsumer(WebsocketConsumer):
         )
 
     def add_dst_nodes(self, addresses):
-        # add ourselves to this one
         for address in addresses:
             # create group name for this address
             group = self.group_name_for_node(address)
@@ -100,7 +113,7 @@ class MeshConsumer(WebsocketConsumer):
 
             # tell other consumers to leave the group
             async_to_sync(self.channel_layer.group_send)(group, {
-                "type": "uplink_change",
+                "type": "mesh.dst_node_uplink",
                 "node": address,
                 "uplink": self.uplink_node.address
             })
@@ -114,7 +127,27 @@ class MeshConsumer(WebsocketConsumer):
             )
 
         # add the stuff to the db as well
-        MeshNode.objects.filter(address__in=addresses).update(route_id=self.uplink_node.address)
+        MeshNode.objects.filter(address__in=addresses).update(
+            uplink_id=self.uplink_node.address,
+            last_signin=timezone.now(),
+        )
+
+    def remove_dst_nodes(self, addresses):
+        for address in addresses:
+            # create group name for this address
+            group = self.group_name_for_node(address)
+
+            # leave the group
+            if address in self.dst_nodes:
+                async_to_sync(self.channel_layer.group_discard)(group, self.channel_name)
+                self.dst_nodes.discard(address)
+
+        # add the stuff to the db as well
+        # todo: can't do this because of race condition
+        #MeshNode.objects.filter(address__in=addresses, uplink_id=self.uplink_node.address).update(
+        #    uplink_id=self.uplink_node.address,
+        #    last_signin=timezone.now(),
+        #)
 
     def group_name_for_node(self, address):
         return 'mesh_%s' % address.replace(':', '-')
