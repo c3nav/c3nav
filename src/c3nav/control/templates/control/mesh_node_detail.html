@@ -12,6 +12,23 @@
                 <strong>Name:</strong> {% if node.name %}{{ node.name }}{% else %}<em>{% trans '(no name)' %}</em>{% endif %}
             </p>
             <p>
+                <strong>Uplink:</strong> <a href="{% url "control.mesh_node.detail" pk=node.uplink.address %}">{{ node.uplink }}</a><br>
+
+                <strong>Last signin:</strong>
+                {{ node.last_signin.date }} {{ node.last_signin.time|date:"H:i:s" }}
+                ({% blocktrans trimmed with timesince=node.last_signin|timesince %}
+                    {{ timesince }} ago
+                {% endblocktrans %})
+                <br>
+
+                <strong>Last Message:</strong>
+                {{ node.last_msg.date }} {{ node.last_msg.time|date:"H:i:s" }}
+                ({% blocktrans trimmed with timesince=node.last_msg|timesince %}
+                    {{ timesince }} ago
+                {% endblocktrans %})
+                <br>
+            </p>
+            <p>
                 <a class="button" href="{% url "control.mesh_node.edit" pk=node.pk %}">
                     {% trans 'Edit' %}
                 </a>

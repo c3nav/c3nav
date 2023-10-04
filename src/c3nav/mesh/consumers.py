@@ -72,7 +72,7 @@ class MeshConsumer(WebsocketConsumer):
             })
 
             # add this node as a destination that this uplink handles (duh)
-            self.add_dst_nodes((src_node.address, ))
+            self.add_dst_nodes(nodes=(src_node, ))
 
             return
 
@@ -84,10 +84,10 @@ class MeshConsumer(WebsocketConsumer):
         self.log_received_message(src_node, msg)
 
         if isinstance(msg, messages.MeshAddDestinationsMessage):
-            self.add_dst_nodes(src_node.mac_addresses)
+            self.add_dst_nodes(addresses=msg.mac_addresses)
 
         if isinstance(msg, messages.MeshRemoveDestinationsMessage):
-            self.remove_dst_nodes(src_node.mac_addresses)
+            self.remove_dst_nodes(addresses=msg.mac_addresses)
 
     def mesh_uplink_consumer(self, data):
         # message handler: if we are not the given uplink, leave this group
@@ -112,7 +112,19 @@ class MeshConsumer(WebsocketConsumer):
             data=msg.tojson()
         )
 
-    def add_dst_nodes(self, addresses):
+    def add_dst_nodes(self, nodes=None, addresses=None):
+        nodes = list(nodes) if nodes else []
+        addresses = set(addresses) if addresses else set()
+
+        missing_addresses = addresses - set(node.address for node in nodes)
+
+        if missing_addresses:
+            MeshNode.objects.bulk_create(
+                [MeshNode(address=address) for address in missing_addresses],
+                ignore_conflicts=True
+            )
+        addresses |= missing_addresses
+
         for address in addresses:
             # create group name for this address
             group = get_mesh_comm_group(address)
