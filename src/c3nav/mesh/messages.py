@@ -16,7 +16,7 @@ NO_LAYER = 0xFF
 
 
 @unique
-class MessageType(IntEnum):
+class MeshMessageType(IntEnum):
     ECHO_REQUEST = 0x01
     ECHO_RESPONSE = 0x02
 
@@ -42,7 +42,7 @@ class ChipType(IntEnum):
 
 
 @dataclass
-class Message:
+class MeshMessage:
     dst: str = field(metadata={'format': MacAddressFormat()})
     src: str = field(metadata={'format': MacAddressFormat()})
     msg_id: int = field(metadata={'format': SimpleFormat('B')}, init=False, repr=False)
@@ -53,9 +53,9 @@ class Message:
         super().__init_subclass__(**kwargs)
         if msg_id:
             cls.msg_id = msg_id
-            if msg_id in Message.msg_types:
+            if msg_id in MeshMessage.msg_types:
                 raise TypeError('duplicate use of msg_id %d' % msg_id)
-            Message.msg_types[msg_id] = cls
+            MeshMessage.msg_types[msg_id] = cls
 
     def encode(self):
         data = bytes()
@@ -92,42 +92,42 @@ class Message:
 
 
 @dataclass
-class EchoRequestMessage(Message, msg_id=MessageType.ECHO_REQUEST):
+class EchoRequestMessage(MeshMessage, msg_id=MeshMessageType.ECHO_REQUEST):
     content: str = field(default='', metadata={'format': VarStrFormat()})
 
 
 @dataclass
-class EchoResponseMessage(Message, msg_id=MessageType.ECHO_RESPONSE):
+class EchoResponseMessage(MeshMessage, msg_id=MeshMessageType.ECHO_RESPONSE):
     content: str = field(default='', metadata={'format': VarStrFormat()})
 
 
 @dataclass
-class MeshSigninMessage(Message, msg_id=MessageType.MESH_SIGNIN):
+class MeshSigninMessage(MeshMessage, msg_id=MeshMessageType.MESH_SIGNIN):
     pass
 
 
 @dataclass
-class MeshLayerAnnounceMessage(Message, msg_id=MessageType.MESH_LAYER_ANNOUNCE):
+class MeshLayerAnnounceMessage(MeshMessage, msg_id=MeshMessageType.MESH_LAYER_ANNOUNCE):
     layer: int = field(metadata={'format': SimpleFormat('B')})
 
 
 @dataclass
-class MeshAddDestinationsMessage(Message, msg_id=MessageType.MESH_ADD_DESTINATIONS):
+class MeshAddDestinationsMessage(MeshMessage, msg_id=MeshMessageType.MESH_ADD_DESTINATIONS):
     mac_addresses: list[str] = field(default_factory=list, metadata={'format': MacAddressesListFormat()})
 
 
 @dataclass
-class MeshRemoveDestinationsMessage(Message, msg_id=MessageType.MESH_REMOVE_DESTINATIONS):
+class MeshRemoveDestinationsMessage(MeshMessage, msg_id=MeshMessageType.MESH_REMOVE_DESTINATIONS):
     mac_addresses: list[str] = field(default_factory=list, metadata={'format': MacAddressesListFormat()})
 
 
 @dataclass
-class ConfigDumpMessage(Message, msg_id=MessageType.CONFIG_DUMP):
+class ConfigDumpMessage(MeshMessage, msg_id=MeshMessageType.CONFIG_DUMP):
     pass
 
 
 @dataclass
-class ConfigFirmwareMessage(Message, msg_id=MessageType.CONFIG_FIRMWARE):
+class ConfigFirmwareMessage(MeshMessage, msg_id=MeshMessageType.CONFIG_FIRMWARE):
     chip: int = field(metadata={'format': SimpleFormat('H')})
     revision: int = field(metadata={'format': SimpleFormat('2B')})
     magic_word: int = field(metadata={'format': SimpleFormat('I')}, repr=False)
@@ -155,19 +155,19 @@ class ConfigFirmwareMessage(Message, msg_id=MessageType.CONFIG_FIRMWARE):
 
 
 @dataclass
-class ConfigPositionMessage(Message, msg_id=MessageType.CONFIG_POSITION):
+class ConfigPositionMessage(MeshMessage, msg_id=MeshMessageType.CONFIG_POSITION):
     x_pos: int = field(metadata={'format': SimpleFormat('I')})
     y_pos: int = field(metadata={'format': SimpleFormat('I')})
     z_pos: int = field(metadata={'format': SimpleFormat('H')})
 
 
 @dataclass
-class ConfigLedMessage(Message, msg_id=MessageType.CONFIG_LED):
+class ConfigLedMessage(MeshMessage, msg_id=MeshMessageType.CONFIG_LED):
     led_config: LedConfig = field(metadata={'format': LedConfigFormat()})
 
 
 @dataclass
-class ConfigUplinkMessage(Message, msg_id=MessageType.CONFIG_UPLINK):
+class ConfigUplinkMessage(MeshMessage, msg_id=MeshMessageType.CONFIG_UPLINK):
     enabled: bool = field(metadata={'format': BoolFormat()})
     ssid: str = field(metadata={'format': FixedStrFormat(32)})
     password: str = field(metadata={'format': FixedStrFormat(64)})

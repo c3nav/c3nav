@@ -20,7 +20,7 @@ from c3nav.mapdata.forms import I18nModelFormMixin
 from c3nav.mapdata.models import MapUpdate, Space
 from c3nav.mapdata.models.access import (AccessPermission, AccessPermissionToken, AccessPermissionTokenItem,
                                          AccessRestriction, AccessRestrictionGroup)
-from c3nav.mesh.messages import MessageType
+from c3nav.mesh.messages import MeshMessageType
 from c3nav.mesh.models import MeshNode
 from c3nav.site.models import Announcement
 
@@ -302,7 +302,7 @@ class MapUpdateForm(ModelForm):
 
 class MeshMessageFilterForm(Form):
     message_types = MultipleChoiceField(
-        choices=[(msgtype.value, msgtype.name) for msgtype in MessageType],
+        choices=[(msgtype.value, msgtype.name) for msgtype in MeshMessageType],
         required=False,
         label=_('message types'),
     )

@@ -6,7 +6,7 @@ from django.utils import timezone
 
 from c3nav.control.views.utils import get_mesh_comm_group
 from c3nav.mesh import messages
-from c3nav.mesh.messages import Message, BROADCAST_ADDRESS
+from c3nav.mesh.messages import MeshMessage, BROADCAST_ADDRESS
 from c3nav.mesh.models import MeshNode, NodeMessage
 
 
@@ -36,7 +36,7 @@ class MeshConsumer(WebsocketConsumer):
         if bytes_data is None:
             return
         try:
-            msg = messages.Message.decode(bytes_data)
+            msg = messages.MeshMessage.decode(bytes_data)
         except Exception:
             traceback.print_exc()
             return
@@ -96,9 +96,9 @@ class MeshConsumer(WebsocketConsumer):
             self.remove_dst_nodes((data["address"], ))
 
     def mesh_send(self, data):
-        self.send_msg(Message.fromjson(data["msg"]))
+        self.send_msg(MeshMessage.fromjson(data["msg"]))
 
-    def log_received_message(self, src_node: MeshNode, msg: messages.Message):
+    def log_received_message(self, src_node: MeshNode, msg: messages.MeshMessage):
         NodeMessage.objects.create(
             uplink_node=self.uplink_node,
             src_node=src_node,

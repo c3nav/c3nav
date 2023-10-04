@@ -2,7 +2,7 @@ from django import forms
 from django.http import Http404
 from django.utils.translation import gettext_lazy as _
 
-from c3nav.mesh.messages import MessageType, Message, ROOT_ADDRESS
+from c3nav.mesh.messages import MeshMessageType, MeshMessage, ROOT_ADDRESS
 from c3nav.mesh.models import MeshNode
 
 
@@ -56,7 +56,7 @@ class MeshMessageForm(forms.Form):
 
 
 class ConfigUplinkMessageForm(MeshMessageForm):
-    msg_type = MessageType.CONFIG_UPLINK
+    msg_type = MeshMessageType.CONFIG_UPLINK
 
     enabled = forms.BooleanField(required=False, label=_('enabled'))
     ssid = forms.CharField(required=False, label=_('ssid'), max_length=31)
@@ -80,7 +80,7 @@ class ConfigUplinkMessageForm(MeshMessageForm):
         recipients = [self.recipient] if self.recipient else self.cleaned_data['recipients']
         for recipient in recipients:
             print('sending to ', recipient)
-            Message.fromjson({
+            MeshMessage.fromjson({
                 'dst': recipient,
                 **msg_data,
             }).send()

@@ -4,7 +4,7 @@ from functools import cached_property
 from django.db import models, NotSupportedError
 from django.utils.translation import gettext_lazy as _
 
-from c3nav.mesh.messages import MessageType, ChipType, Message as MeshMessage
+from c3nav.mesh.messages import MeshMessageType, ChipType, MeshMessage as MeshMessage
 
 
 class MeshNodeQuerySet(models.QuerySet):
@@ -18,10 +18,10 @@ class MeshNodeQuerySet(models.QuerySet):
         clone._prefetch_last_messages = self._prefetch_last_messages
         return clone
 
-    def prefetch_last_messages(self, *types: MessageType):
+    def prefetch_last_messages(self, *types: MeshMessageType):
         clone = self._chain()
         clone._prefetch_last_messages |= (
-            set(types) if types else set(msgtype.value for msgtype in MessageType)
+            set(types) if types else set(msgtype.value for msgtype in MeshMessageType)
         )
         return clone
 
@@ -37,7 +37,7 @@ class MeshNodeQuerySet(models.QuerySet):
                     nodes[message.node].last_messages[message.message_type] = message
             except NotSupportedError:
                 pass
-            print(tuple(nodes.values())[0].last_messages[MessageType.MESH_SIGNIN])
+            print(tuple(nodes.values())[0].last_messages[MeshMessageType.MESH_SIGNIN])
 
 
 class LastMessagesByTypeLookup(UserDict):
@@ -46,14 +46,14 @@ class LastMessagesByTypeLookup(UserDict):
         self.node = node
 
     def _get_key(self, item):
-        if isinstance(item, MessageType):
+        if isinstance(item, MeshMessageType):
             return item
         if isinstance(item, str):
             try:
-                return getattr(MessageType, item)
+                return getattr(MeshMessageType, item)
             except AttributeError:
                 pass
-        return MessageType(item)
+        return MeshMessageType(item)
 
     def __getitem__(self, key):
         key = self._get_key(key)
@@ -89,7 +89,7 @@ class MeshNode(models.Model):
 
 
 class NodeMessage(models.Model):
-    MESSAGE_TYPES = [(msgtype.value, msgtype.name) for msgtype in MessageType]
+    MESSAGE_TYPES = [(msgtype.value, msgtype.name) for msgtype in MeshMessageType]
     src_node = models.ForeignKey('MeshNode', models.PROTECT,
                                  related_name='received_messages', verbose_name=_('node'))
     uplink_node = models.ForeignKey('MeshNode', models.PROTECT,

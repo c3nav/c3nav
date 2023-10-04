@@ -8,7 +8,7 @@ from django.views.generic import ListView, DetailView, FormView
 from c3nav.control.forms import MeshMessageFilterForm
 from c3nav.control.views.base import ControlPanelMixin
 from c3nav.mesh.forms import MeshMessageForm
-from c3nav.mesh.messages import MessageType
+from c3nav.mesh.messages import MeshMessageType
 from c3nav.mesh.models import MeshNode, NodeMessage
 
 
@@ -69,7 +69,7 @@ class MeshMessageSendView(ControlPanelMixin, FormView):
 
     def get_form_class(self):
         try:
-            return MeshMessageForm.get_form_for_type(MessageType[self.kwargs['msg_type']])
+            return MeshMessageForm.get_form_for_type(MeshMessageType[self.kwargs['msg_type']])
         except KeyError:
             raise Http404('unknown message type')
 
