@@ -1,0 +1,19 @@
+{% extends 'control/base.html' %}
+{% load i18n %}
+
+{% block heading %}{% trans 'Mesh logs' %}{% endblock %}
+
+{% block subcontent %}
+    <table style="font-size: 85%;">
+        <thead>
+            <tr>
+                <th>{% trans 'Time' %}</th>
+                <th>{% trans 'Uplink' %}</th>
+                <th>{% trans 'Node' %}</th>
+                <th>{% trans 'Message' %}</th>
+            </tr>
+        </thead>
+        <tbody id="mesh-logs"></tbody>
+    </table>
+    {% include "control/fragment_mesh_websocket.html" %}
+{% endblock %}

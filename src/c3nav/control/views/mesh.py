@@ -4,7 +4,7 @@ from django.db.models import Max
 from django.http import Http404
 from django.urls import reverse
 from django.utils.translation import gettext_lazy as _
-from django.views.generic import ListView, DetailView, FormView, UpdateView
+from django.views.generic import ListView, DetailView, FormView, UpdateView, TemplateView
 
 from c3nav.control.forms import MeshMessageFilterForm
 from c3nav.control.views.base import ControlPanelMixin
@@ -116,3 +116,14 @@ class MeshMessageSendView(ControlPanelMixin, FormView):
         form.send()
         messages.success(self.request, _('Message sent successfully'))
         return super().form_valid(form)
+
+class MeshLogView(ControlPanelMixin, TemplateView):
+    template_name = "control/mesh_logs.html"
+
+    def get_context_data(self, **kwargs):
+        return {
+            **super().get_context_data(),
+            "node_names": {
+                node.address: node.name for node in MeshNode.objects.all()
+            }
+        }

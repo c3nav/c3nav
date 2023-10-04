@@ -1,0 +1,66 @@
+{% if node_names %}
+    {{ node_names|json_script:"node-names" }}
+{% endif %}
+<script type="text/javascript">
+{% if node_names %}
+    const node_names = JSON.parse(document.getElementById('node-names').textContent);
+{% endif %}
+function connect() {
+    console.log('reconnecting websocket...');
+    var ws = new WebSocket((window.location.protocol=="https:"?"wss:":"ws:")+window.location.host+"/mesh/ui/ws", []);
+    ws.onopen = (event) => {
+        console.log('websocket connected.');
+        ws.send(JSON.stringify({"subscribe": "log"}));
+    };
+    ws.onclose = (event) => {
+        window.setTimeout(connect, 500);
+    }
+    ws.onmessage = (event) => {
+        var data = JSON.parse(event.data);
+        switch(data.type) {
+            case 'mesh.log_entry':
+                var line = document.createElement("tr"), cell, link_tag;
+
+                cell = document.createElement("td");
+                cell.innerText = data.timestamp;
+                line.appendChild(cell);
+
+                cell = document.createElement("td");
+                cell.innerText = data.channel;
+                if (data.uplink) {
+                    cell.append(document.createElement("br"));
+                    link_tag = document.createElement("a")
+                    link_tag.href = "/control/mesh/" + data.uplink;
+                    link_tag.innerText = data.uplink;
+                    if (node_names[data.uplink]) {
+                        link_tag.innerText += " ("+node_names[data.uplink]+")";
+                    }
+                    cell.append(link_tag)
+                }
+                line.appendChild(cell);
+
+                cell = document.createElement("td");
+                link_tag = document.createElement("a")
+                link_tag.href = "/control/mesh/" + data.node;
+                link_tag.innerText = data.node;
+                if (node_names[data.node]) {
+                    link_tag.innerText += " ("+node_names[data.node]+")";
+                }
+                cell.append(link_tag);
+                line.appendChild(cell);
+
+                cell = document.createElement("td");
+                cell.innerText = data.text;
+                line.appendChild(cell);
+
+                document.querySelector("tbody").prepend(line);
+                break;
+        }
+
+        console.log(data);
+    }
+}
+
+connect();
+
+</script>

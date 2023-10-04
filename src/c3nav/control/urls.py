@@ -1,7 +1,7 @@
 from django.urls import path
 
 from c3nav.control.views.mesh import MeshNodeListView, MeshMessageListView, MeshNodeDetailView, MeshMessageSendView, \
-    MeshNodeEditView
+    MeshNodeEditView, MeshLogView
 from c3nav.control.views.mapupdates import map_updates
 from c3nav.control.views.announcements import announcement_list, announcement_detail
 from c3nav.control.views.access import grant_access, grant_access_qr
@@ -17,6 +17,7 @@ urlpatterns = [
     path('announcements/<int:annoucement>/', announcement_detail, name='control.announcements.detail'),
     path('mapupdates/', map_updates, name='control.map_updates'),
     path('mesh/', MeshNodeListView.as_view(), name='control.mesh_nodes'),
+    path('mesh/logs/', MeshLogView.as_view(), name='control.mesh_log'),
     path('mesh/messages/', MeshMessageListView.as_view(), name='control.mesh_messages'),
     path('mesh/<str:pk>/', MeshNodeDetailView.as_view(), name='control.mesh_node.detail'),
     path('mesh/<str:pk>/edit/', MeshNodeEditView.as_view(), name='control.mesh_node.edit'),
