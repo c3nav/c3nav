@@ -138,14 +138,3 @@ class LedConfigFormat:
         else:
             raise ValueError
         return value, data[4:]
-
-    def from_json(self, value):
-        if value is None:
-            return None
-
-        type_ = value.pop('type')
-        if type_ == 'serial':
-            return SerialLedConfig(**value)
-        elif type_ == 'multipin':
-            return MultipinLedConfig(**value)
-        raise ValueError

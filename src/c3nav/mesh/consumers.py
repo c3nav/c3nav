@@ -109,7 +109,7 @@ class MeshConsumer(WebsocketConsumer):
     def add_dst_nodes(self, addresses):
         for address in addresses:
             # create group name for this address
-            group = self.comm_address_group(address)
+            group = get_mesh_comm_group(address)
 
             # if we aren't handling this address yet, join the group
             if address not in self.dst_nodes:
@@ -140,7 +140,7 @@ class MeshConsumer(WebsocketConsumer):
     def remove_dst_nodes(self, addresses):
         for address in tuple(addresses):
             # create group name for this address
-            group = self.comm_address_group(address)
+            group = get_mesh_comm_group(address)
 
             # leave the group
             if address in self.dst_nodes:

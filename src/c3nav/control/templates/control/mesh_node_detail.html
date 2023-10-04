@@ -17,19 +17,41 @@
         </div>
         <div>
             <h4>Uplink</h4>
-            <strong>Enabled:</strong> {{ node.last_messages.CONFIG_UPLINK.parsed.enabled }},
-            <strong>SSID:</strong> {{ node.last_messages.CONFIG_UPLINK.parsed.ssid }},
-            <strong>Channel:</strong> {{ node.last_messages.CONFIG_UPLINK.parsed.channel }}<br>
-            <strong>Host:</strong> {{ node.last_messages.CONFIG_UPLINK.parsed.host }},
-            <strong>Port:</strong> {{ node.last_messages.CONFIG_UPLINK.parsed.port }},
-            <strong>UDP:</strong> {{ node.last_messages.CONFIG_UPLINK.parsed.udp }},
-            <strong>SSL:</strong> {{ node.last_messages.CONFIG_UPLINK.parsed.ssl }}
+            <p>
+                <strong>Enabled:</strong> {{ node.last_messages.CONFIG_UPLINK.parsed.enabled }},
+                <strong>SSID:</strong> {{ node.last_messages.CONFIG_UPLINK.parsed.ssid }},
+                <strong>Channel:</strong> {{ node.last_messages.CONFIG_UPLINK.parsed.channel }}<br>
+                <strong>Host:</strong> {{ node.last_messages.CONFIG_UPLINK.parsed.host }},
+                <strong>Port:</strong> {{ node.last_messages.CONFIG_UPLINK.parsed.port }},
+                <strong>UDP:</strong> {{ node.last_messages.CONFIG_UPLINK.parsed.udp }},
+                <strong>SSL:</strong> {{ node.last_messages.CONFIG_UPLINK.parsed.ssl }}<br>
+            </p>
+            <p>
+                <a class="button" href="{% url "control.mesh_message.send" recipient=node.address msg_type="CONFIG_UPLINK" %}">
+                    {% trans 'Change' %}
+                </a>
+            </p>
+
 
             <h4>Position</h4>
-            <strong>X=</strong>{{ node.last_messages.CONFIG_POSITION.parsed.x_pos }}, <strong>Y=</strong>{{ node.last_messages.CONFIG_POSITION.parsed.y_pos }}, <strong>Z=</strong>{{ node.last_messages.CONFIG_POSITION.parsed.z_pos }}
+            <p>
+                <strong>X=</strong>{{ node.last_messages.CONFIG_POSITION.parsed.x_pos }}, <strong>Y=</strong>{{ node.last_messages.CONFIG_POSITION.parsed.y_pos }}, <strong>Z=</strong>{{ node.last_messages.CONFIG_POSITION.parsed.z_pos }}
+            </p>
+            <p>
+                <a class="button" href="{% url "control.mesh_message.send" recipient=node.address msg_type="CONFIG_POSITION" %}">
+                    {% trans 'Change' %}
+                </a>
+            </p>
 
             <h4>LED config</h4>
-            {{ node.last_messages.CONFIG_LED.parsed.led_config }}
+            <p>
+                {{ node.last_messages.CONFIG_LED.parsed.led_config }}
+            </p>
+            <p>
+                <a class="button" href="{% url "control.mesh_message.send" recipient=node.address msg_type="CONFIG_LED" %}">
+                    {% trans 'Change' %}
+                </a>
+            </p>
         </div>
     </div>
 {% endblock %}
