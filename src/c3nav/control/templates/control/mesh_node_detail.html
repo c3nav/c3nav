@@ -22,7 +22,8 @@
 
             <h4>Firmware</h4>
             <p>
-                <strong>Chip:</strong> {{ node.last_messages.CONFIG_FIRMWARE.parsed.get_chip_display }} rev{{ node.last_messages.CONFIG_FIRMWARE.parsed.revision|join:"." }}
+                <strong>Chip:</strong> {{ node.last_messages.CONFIG_FIRMWARE.parsed.get_chip_display }}
+                rev{{ node.last_messages.CONFIG_FIRMWARE.parsed.revision_major }}.{{ node.last_messages.CONFIG_FIRMWARE.parsed.revision_minor }}
                 <br>
                 <strong>Firmware:</strong> {{ node.last_messages.CONFIG_FIRMWARE.parsed.project_name }} {{ node.last_messages.CONFIG_FIRMWARE.parsed.version }} (IDF {{ node.last_messages.CONFIG_FIRMWARE.parsed.idf_version }})
                 <br>

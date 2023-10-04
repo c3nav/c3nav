@@ -4,6 +4,9 @@
 {% block heading %}{% trans 'Mesh' %}{% endblock %}
 
 {% block subcontent %}
+    <a class="button" href="{% url "control.mesh_messages" %}">
+        {% trans 'View messages' %}
+    </a>
     <table>
         <tr>
             <th>{% trans 'Node' %}</th>
@@ -18,7 +21,7 @@
                 <td><a href="{% url "control.mesh_node.detail" pk=node.address %}">{{ node }}</a></td>
                 <td>
                     {{ node.last_messages.CONFIG_FIRMWARE.parsed.get_chip_display }}
-                    rev{{ node.last_messages.CONFIG_FIRMWARE.parsed.revision|join:"." }}
+                    rev{{ node.last_messages.CONFIG_FIRMWARE.parsed.revision_major }}.{{ node.last_messages.CONFIG_FIRMWARE.parsed.revision_minor }}
                 </td>
                 <td>
                     {{ node.last_messages.CONFIG_FIRMWARE.parsed.version }}

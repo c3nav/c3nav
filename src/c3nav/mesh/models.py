@@ -1,5 +1,6 @@
 from collections import UserDict
 from functools import cached_property
+from operator import attrgetter
 
 from django.db import models, NotSupportedError
 from django.utils.translation import gettext_lazy as _
@@ -33,12 +34,12 @@ class MeshNodeQuerySet(models.QuerySet):
                 for message in NodeMessage.objects.order_by('-datetime', '-pk').filter(
                         message_type__in=self._prefetch_last_messages,
                         src_node__in=nodes.keys(),
-                ).distinct('message_type', 'src_node'):
+                ).prefetch_related("uplink_node").distinct('message_type', 'src_node'):
                     nodes[message.node].last_messages[message.message_type] = message
+                for node in nodes.values():
+                    node.last_messages["any"] = max(node.last_messages.values(), key=attrgetter("datetime"))
             except NotSupportedError:
                 pass
-            print(tuple(nodes.values())[0].last_messages[MeshMessageType.MESH_SIGNIN])
-
 
 class LastMessagesByTypeLookup(UserDict):
     def __init__(self, node):
@@ -56,6 +57,10 @@ class LastMessagesByTypeLookup(UserDict):
         return MeshMessageType(item)
 
     def __getitem__(self, key):
+        if key == "any":
+            msg = self.node.received_messages.order_by('-datetime', '-pk').first()
+            self.data["any"] = msg
+            return msg
         key = self._get_key(key)
         try:
             return self.data[key]

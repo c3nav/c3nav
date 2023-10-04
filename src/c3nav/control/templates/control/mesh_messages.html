@@ -35,7 +35,7 @@
                 <td>{{ msg.get_message_type_display }}</td>
                 <td>
                     {% if msg.get_message_type_display == "CONFIG_FIRMWARE" %}
-                        <strong>Chip:</strong> {{ msg.parsed.get_chip_display }} rev{{ msg.parsed.revision|join:"." }}
+                        <strong>Chip:</strong> {{ msg.parsed.get_chip_display }} rev{{ msg.parsed.revision_major }}.{{ msg.parsed.revision_minor }}
                         <br>
                         <strong>Firmware:</strong> {{ msg.parsed.project_name }} {{ msg.parsed.version }} (IDF {{ msg.parsed.idf_version }})
                         <br>
