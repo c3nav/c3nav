@@ -6,14 +6,30 @@
 {% block subcontent %}
     <div class="columns">
         <div>
+            <h4>General</h4>
+            <p>
+                <strong>Address:</strong> {{ node.address }}<br>
+                <strong>Name:</strong> {% if node.name %}{{ node.name }}{% else %}<em>{% trans '(no name)' %}</em>{% endif %}
+            </p>
+            <p>
+                <a class="button" href="{% url "control.mesh_node.edit" pk=node.pk %}">
+                    {% trans 'Edit' %}
+                </a>
+                <a class="button" href="{% url "control.mesh_messages" %}?src_nodes={{ node.address }}">
+                    {% trans 'View messages' %}
+                </a>
+            </p>
+
             <h4>Firmware</h4>
-            <strong>Chip:</strong> {{ node.last_messages.CONFIG_FIRMWARE.parsed.get_chip_display }} rev{{ node.last_messages.CONFIG_FIRMWARE.parsed.revision|join:"." }}
-            <br>
-            <strong>Firmware:</strong> {{ node.last_messages.CONFIG_FIRMWARE.parsed.project_name }} {{ node.last_messages.CONFIG_FIRMWARE.parsed.version }} (IDF {{ node.last_messages.CONFIG_FIRMWARE.parsed.idf_version }})
-            <br>
-            <strong>Compile Date:</strong> {{ node.last_messages.CONFIG_FIRMWARE.parsed.compile_date }} {{ node.last_messages.CONFIG_FIRMWARE.parsed.compile_time }}
-            <br>
-            <strong>SHA256:</strong> <small>{{ node.last_messages.CONFIG_FIRMWARE.parsed.app_elf_sha256 }}</small>
+            <p>
+                <strong>Chip:</strong> {{ node.last_messages.CONFIG_FIRMWARE.parsed.get_chip_display }} rev{{ node.last_messages.CONFIG_FIRMWARE.parsed.revision|join:"." }}
+                <br>
+                <strong>Firmware:</strong> {{ node.last_messages.CONFIG_FIRMWARE.parsed.project_name }} {{ node.last_messages.CONFIG_FIRMWARE.parsed.version }} (IDF {{ node.last_messages.CONFIG_FIRMWARE.parsed.idf_version }})
+                <br>
+                <strong>Compile Date:</strong> {{ node.last_messages.CONFIG_FIRMWARE.parsed.compile_date }} {{ node.last_messages.CONFIG_FIRMWARE.parsed.compile_time }}
+                <br>
+                <strong>SHA256:</strong> <small>{{ node.last_messages.CONFIG_FIRMWARE.parsed.app_elf_sha256 }}</small>
+            </p>
         </div>
         <div>
             <h4>Uplink</h4>
@@ -31,7 +47,6 @@
                     {% trans 'Change' %}
                 </a>
             </p>
-
 
             <h4>Position</h4>
             <p>

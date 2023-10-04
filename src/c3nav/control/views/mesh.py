@@ -1,13 +1,14 @@
 from django.contrib import messages
+from django.contrib.messages.views import SuccessMessageMixin
 from django.db.models import Max
 from django.http import Http404
 from django.urls import reverse
 from django.utils.translation import gettext_lazy as _
-from django.views.generic import ListView, DetailView, FormView
+from django.views.generic import ListView, DetailView, FormView, UpdateView
 
 from c3nav.control.forms import MeshMessageFilterForm
 from c3nav.control.views.base import ControlPanelMixin
-from c3nav.mesh.forms import MeshMessageForm
+from c3nav.mesh.forms import MeshMessageForm, MeshNodeForm
 from c3nav.mesh.messages import MeshMessageType
 from c3nav.mesh.models import MeshNode, NodeMessage
 
@@ -30,6 +31,22 @@ class MeshNodeDetailView(ControlPanelMixin, DetailView):
 
     def get_queryset(self):
         return super().get_queryset().annotate(last_msg=Max('received_messages__datetime')).prefetch_last_messages()
+
+
+class MeshNodeEditView(ControlPanelMixin, SuccessMessageMixin, UpdateView):
+    model = MeshNode
+    form_class = MeshNodeForm
+    template_name = "control/form.html"
+    success_message = _('Name updated successfully')
+
+    def get_context_data(self, **kwargs):
+        return {
+            **super().get_context_data(),
+            'title': _('Editing mesh node: %s') % self.get_object(),
+        }
+
+    def get_success_url(self):
+        return reverse('control.mesh_node.detail', kwargs={'pk': self.get_object().pk})
 
 
 class MeshMessageListView(ControlPanelMixin, ListView):

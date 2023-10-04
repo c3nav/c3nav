@@ -90,10 +90,16 @@ class MeshMessage:
     def fromjson(cls, data) -> M:
         kwargs = data.copy()
         klass = cls.msg_types[kwargs.pop('msg_id')]
+        kwargs = klass.upgrade_json(kwargs)
+        names = set(field.name for field in fields(klass))
         for field_ in fields(klass):
             if is_dataclass(field_.type):
                 kwargs[field_.name] = field_.type.fromjson(kwargs[field_.name])
         return klass(**kwargs)
+
+    @classmethod
+    def upgrade_json(cls, data):
+        return data
 
     def send(self):
         async_to_sync(channels.layers.get_channel_layer().group_send)(get_mesh_comm_group(self.dst), {
@@ -256,14 +262,14 @@ class ConfigFirmwareMessage(MeshMessage, msg_id=MeshMessageType.CONFIG_FIRMWARE)
     app_elf_sha256: str = field(metadata={"format": HexFormat(32)})
     reserv2: list[int] = field(metadata={"format": SimpleFormat('20I')}, repr=False)
 
-    def to_model_data(self):
-        return {
-            'chip': self.chip,
-            'project_name': self.project_name,
-            'version': self.version,
-            'idf_version': self.idf_version,
-            'sha256_hash': self.app_elf_sha256,
-        }
+    @classmethod
+    def upgrade_json(cls, data):
+        data = data.copy()  # todo: deepcopy?
+        print(data)
+        if 'revision' in data:
+            data['revision_major'], data['revision_minor'] = data.pop('revision')
+        print(data)
+        return data
 
     def get_chip_display(self):
         return ChipType(self.chip).name.replace('_', '-')

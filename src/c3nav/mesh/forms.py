@@ -166,3 +166,9 @@ class ConfigPositionMessageForm(MeshMessageForm):
     x_pos = forms.IntegerField(min_value=0, max_value=2**16-1, label=_('X'))
     y_pos = forms.IntegerField(min_value=0, max_value=2 ** 16 - 1, label=_('Y'))
     z_pos = forms.IntegerField(min_value=0, max_value=2 ** 16 - 1, label=_('Z'))
+
+
+class MeshNodeForm(forms.ModelForm):
+    class Meta:
+        model = MeshNode
+        fields = ["name"]
