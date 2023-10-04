@@ -4,7 +4,7 @@ from asgiref.sync import async_to_sync
 from channels.generic.websocket import WebsocketConsumer
 from django.utils import timezone
 
-from c3nav.control.views.utils import get_mesh_comm_group
+from c3nav.mesh.utils import get_mesh_comm_group
 from c3nav.mesh import messages
 from c3nav.mesh.messages import MeshMessage, BROADCAST_ADDRESS
 from c3nav.mesh.models import MeshNode, NodeMessage
