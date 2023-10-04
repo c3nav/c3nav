@@ -83,6 +83,12 @@ class MeshConsumer(WebsocketConsumer):
 
         self.log_received_message(src_node, msg)
 
+        if isinstance(msg, messages.MeshAddDestinationsMessage):
+            self.add_dst_nodes(src_node.mac_addresses)
+
+        if isinstance(msg, messages.MeshRemoveDestinationsMessage):
+            self.remove_dst_nodes(src_node.mac_addresses)
+
     def mesh_uplink_consumer(self, data):
         # message handler: if we are not the given uplink, leave this group
         if data["name"] != self.channel_name:
@@ -148,11 +154,10 @@ class MeshConsumer(WebsocketConsumer):
                 self.dst_nodes.discard(address)
 
         # add the stuff to the db as well
-        # todo: can't do this because of race condition
-        # MeshNode.objects.filter(address__in=addresses, uplink_id=self.uplink_node.address).update(
-        #     uplink_id=self.uplink_node.address,
-        #     last_signin=timezone.now(),
-        # )
+        # todo: shouldn't do this because of race condition?
+        MeshNode.objects.filter(address__in=addresses, uplink_id=self.uplink_node.address).update(
+            uplink_id=None,
+        )
 
     def remove_route(self, route_address):
         MeshNode.objects.filter(route_id=route_address).update(route_id=None)

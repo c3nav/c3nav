@@ -265,10 +265,8 @@ class ConfigFirmwareMessage(MeshMessage, msg_id=MeshMessageType.CONFIG_FIRMWARE)
     @classmethod
     def upgrade_json(cls, data):
         data = data.copy()  # todo: deepcopy?
-        print(data)
         if 'revision' in data:
             data['revision_major'], data['revision_minor'] = data.pop('revision')
-        print(data)
         return data
 
     def get_chip_display(self):
