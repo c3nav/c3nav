@@ -2,11 +2,16 @@ from dataclasses import asdict, dataclass, field, fields, is_dataclass
 from enum import IntEnum, unique
 from typing import TypeVar
 
+import channels
+from asgiref.sync import async_to_sync
+
+from c3nav.control.views.utils import get_mesh_comm_group
 from c3nav.mesh.dataformats import (BoolFormat, FixedStrFormat, HexFormat, LedConfig, LedConfigFormat,
                                     MacAddressesListFormat, MacAddressFormat, SimpleFormat, VarStrFormat)
 
 ROOT_ADDRESS = '00:00:00:00:00:00'
 PARENT_ADDRESS = '00:00:00:ff:ff:ff'
+BROADCAST_ADDRESS = 'ff:ff:ff:ff:ff:ff'
 NO_LAYER = 0xFF
 
 
@@ -60,7 +65,6 @@ class Message:
 
     @classmethod
     def decode(cls, data: bytes) -> M:
-        # print('decode', data.hex(' '))
         klass = cls.msg_types[data[12]]
         values = {}
         for field_ in fields(klass):
@@ -79,6 +83,12 @@ class Message:
             if is_dataclass(field_.type):
                 kwargs[field_.name] = field_.type.fromjson(kwargs[field_.name])
         return klass(**kwargs)
+
+    def send(self):
+        async_to_sync(channels.layers.get_channel_layer().group_send)(get_mesh_comm_group(self.dst), {
+            "type": "mesh.send",
+            "msg": self.tojson()
+        })
 
 
 @dataclass

@@ -1,0 +1,23 @@
+{% extends 'control/base.html' %}
+{% load i18n %}
+
+{% block heading %}
+    {% if form.recipient %}
+        {% blocktrans trimmed with msg_type=form.msg_type.name recipient=form.get_recipient_display %}
+            Send {{ msg_type }} message to {{ recipient }}
+        {% endblocktrans %}
+    {% else %}
+        {% blocktrans trimmed with msg_type=form.msg_type %}
+            Send {{ msg_type }} message
+        {% endblocktrans %}
+    {% endif %}
+{% endblock %}
+
+{% block subcontent %}
+    <form method="POST" style="max-width:400px;">
+        {% csrf_token %}
+        {{ form }}
+        <button type="submit">{% trans 'Send' %}</button>
+    </form>
+
+{% endblock %}

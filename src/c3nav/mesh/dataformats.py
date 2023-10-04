@@ -25,7 +25,7 @@ class FixedStrFormat:
         self.num = num
 
     def encode(self, value):
-        return struct.pack('%ss' % self.num, value)
+        return struct.pack('%ss' % self.num, value.encode())
 
     def decode(self, data: bytes):
         return struct.unpack('%ss' % self.num, data[:self.num])[0].rstrip(bytes((0, ))).decode(), data[self.num:]
@@ -33,7 +33,7 @@ class FixedStrFormat:
 
 class BoolFormat:
     def encode(self, value):
-        return struct.pack('B', (int(value), ))
+        return struct.pack('B', int(value))
 
     def decode(self, data: bytes):
         return bool(struct.unpack('B', data[:1])[0]), data[1:]

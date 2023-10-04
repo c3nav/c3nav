@@ -300,7 +300,7 @@ class MapUpdateForm(ModelForm):
         fields = ('geometries_changed', )
 
 
-class MeshMessageFilerForm(Form):
+class MeshMessageFilterForm(Form):
     message_types = MultipleChoiceField(
         choices=[(msgtype.value, msgtype.name) for msgtype in MessageType],
         required=False,

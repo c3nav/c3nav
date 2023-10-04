@@ -4,7 +4,9 @@ from asgiref.sync import async_to_sync
 from channels.generic.websocket import WebsocketConsumer
 from django.utils import timezone
 
+from c3nav.control.views.utils import get_mesh_comm_group
 from c3nav.mesh import messages
+from c3nav.mesh.messages import Message, BROADCAST_ADDRESS
 from c3nav.mesh.models import MeshNode, NodeMessage
 
 
@@ -21,7 +23,7 @@ class MeshConsumer(WebsocketConsumer):
         print('disconnected!')
         if self.uplink_node is not None:
             # leave broadcast group
-            async_to_sync(self.channel_layer.group_add)('mesh_broadcast', self.channel_name)
+            async_to_sync(self.channel_layer.group_add)(get_mesh_comm_group(BROADCAST_ADDRESS), self.channel_name)
 
             # remove all other destinations
             self.remove_dst_nodes(self.dst_nodes)
@@ -64,7 +66,7 @@ class MeshConsumer(WebsocketConsumer):
             async_to_sync(self.channel_layer.group_add)('mesh_broadcast', self.channel_name)
 
             # kick out other consumers talking to the same uplink
-            async_to_sync(self.channel_layer.group_send)(self.group_name_for_node(msg.src), {
+            async_to_sync(self.channel_layer.group_send)(get_mesh_comm_group(msg.src), {
                 "type": "mesh.uplink_consumer",
                 "name": self.channel_name,
             })
@@ -93,6 +95,9 @@ class MeshConsumer(WebsocketConsumer):
             print('leaving node group...')
             self.remove_dst_nodes((data["address"], ))
 
+    def mesh_send(self, data):
+        self.send_msg(Message.fromjson(data["msg"]))
+
     def log_received_message(self, src_node: MeshNode, msg: messages.Message):
         NodeMessage.objects.create(
             uplink_node=self.uplink_node,
@@ -104,7 +109,7 @@ class MeshConsumer(WebsocketConsumer):
     def add_dst_nodes(self, addresses):
         for address in addresses:
             # create group name for this address
-            group = self.group_name_for_node(address)
+            group = self.comm_address_group(address)
 
             # if we aren't handling this address yet, join the group
             if address not in self.dst_nodes:
@@ -133,9 +138,9 @@ class MeshConsumer(WebsocketConsumer):
         )
 
     def remove_dst_nodes(self, addresses):
-        for address in addresses:
+        for address in tuple(addresses):
             # create group name for this address
-            group = self.group_name_for_node(address)
+            group = self.comm_address_group(address)
 
             # leave the group
             if address in self.dst_nodes:
@@ -144,13 +149,10 @@ class MeshConsumer(WebsocketConsumer):
 
         # add the stuff to the db as well
         # todo: can't do this because of race condition
-        #MeshNode.objects.filter(address__in=addresses, uplink_id=self.uplink_node.address).update(
-        #    uplink_id=self.uplink_node.address,
-        #    last_signin=timezone.now(),
-        #)
-
-    def group_name_for_node(self, address):
-        return 'mesh_%s' % address.replace(':', '-')
+        # MeshNode.objects.filter(address__in=addresses, uplink_id=self.uplink_node.address).update(
+        #     uplink_id=self.uplink_node.address,
+        #     last_signin=timezone.now(),
+        # )
 
     def remove_route(self, route_address):
         MeshNode.objects.filter(route_id=route_address).update(route_id=None)
