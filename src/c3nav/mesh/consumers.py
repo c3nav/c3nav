@@ -33,7 +33,7 @@ class MeshConsumer(WebsocketConsumer):
     def send_msg(self, msg, sender=None):
         # print("sending", msg)
         # self.log_text(msg.dst, "sending %s" % msg)
-        self.send(bytes_data=msg.encode())
+        self.send(bytes_data=MeshMessage.encode(msg))
         async_to_sync(self.channel_layer.group_send)("mesh_msg_sent", {
             "type": "mesh.msg_sent",
             "timestamp": timezone.now().strftime("%d.%m.%y %H:%M:%S.%f"),
@@ -48,7 +48,7 @@ class MeshConsumer(WebsocketConsumer):
         if bytes_data is None:
             return
         try:
-            msg = messages.MeshMessage.decode(bytes_data)
+            msg, data = messages.MeshMessage.decode(bytes_data)
         except Exception:
             traceback.print_exc()
             return
@@ -119,7 +119,7 @@ class MeshConsumer(WebsocketConsumer):
         self.send_msg(MeshMessage.fromjson(data["msg"]), data["sender"])
 
     def log_received_message(self, src_node: MeshNode, msg: messages.MeshMessage):
-        as_json = msg.tojson()
+        as_json = MeshMessage.tojson(msg)
         async_to_sync(self.channel_layer.group_send)("mesh_msg_received", {
             "type": "mesh.msg_received",
             "timestamp": timezone.now().strftime("%d.%m.%y %H:%M:%S.%f"),

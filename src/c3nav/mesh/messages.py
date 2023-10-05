@@ -67,43 +67,11 @@ class MeshMessage(StructType, union_type_field="msg_id"):
                 raise TypeError('duplicate use of c_struct_name %s' % c_struct_name)
             MeshMessage.c_structs[c_struct_name] = cls
 
-    def encode(self):
-        data = bytes()
-        for field_ in fields(self):
-            data += field_.metadata["format"].encode(getattr(self, field_.name))
-        return data
-
-    @classmethod
-    def decode(cls, data: bytes) -> M:
-        klass = cls.msg_types[data[12]]
-        values = {}
-        for field_ in fields(klass):
-            values[field_.name], data = field_.metadata["format"].decode(data)
-        values.pop('msg_id')
-        return klass(**values)
-
-    def tojson(self):
-        return asdict(self)
-
-    @classmethod
-    def fromjson(cls, data) -> M:
-        kwargs = data.copy()
-        klass = cls.msg_types[kwargs.pop('msg_id')]
-        kwargs = klass.upgrade_json(kwargs)
-        for field_ in fields(klass):
-            if is_dataclass(field_.type):
-                kwargs[field_.name] = field_.type.fromjson(kwargs[field_.name])
-        return klass(**kwargs)
-
-    @classmethod
-    def upgrade_json(cls, data):
-        return data
-
     def send(self, sender=None):
         async_to_sync(channels.layers.get_channel_layer().group_send)(get_mesh_comm_group(self.dst), {
             "type": "mesh.send",
             "sender": sender,
-            "msg": self.tojson()
+            "msg": MeshMessage.tojson(self),
         })
 
     @classmethod
@@ -135,10 +103,6 @@ class MeshMessage(StructType, union_type_field="msg_id"):
             r"\1_\2",
             cls.__name__.removeprefix('Mesh').removesuffix('Message')
         ).upper().replace('CONFIG', 'CFG').replace('FIRMWARE', 'FW').replace('POSITION', 'POS')
-
-    @classmethod
-    def get_msg_types(cls):
-        return cls._union_options["msg_id"]
 
 
 @dataclass
@@ -264,7 +228,6 @@ class ConfigFirmwareMessage(MeshMessage, msg_id=MeshMessageType.CONFIG_FIRMWARE)
 
     @classmethod
     def upgrade_json(cls, data):
-        data = data.copy()  # todo: deepcopy?
         if 'revision' in data:
             data['revision_major'], data['revision_minor'] = data.pop('revision')
         return data

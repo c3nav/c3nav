@@ -1,3 +1,4 @@
+from functools import cached_property
 from uuid import uuid4
 
 from django.contrib import messages
@@ -12,7 +13,7 @@ from django.views.generic import ListView, DetailView, FormView, UpdateView, Tem
 from c3nav.control.forms import MeshMessageFilterForm
 from c3nav.control.views.base import ControlPanelMixin
 from c3nav.mesh.forms import MeshMessageForm, MeshNodeForm
-from c3nav.mesh.messages import MeshMessageType
+from c3nav.mesh.messages import MeshMessageType, MeshMessage
 from c3nav.mesh.models import MeshNode, NodeMessage
 from c3nav.mesh.utils import get_node_names
 
@@ -99,9 +100,13 @@ class MeshMessageListView(ControlPanelMixin, ListView):
 class MeshMessageSendView(ControlPanelMixin, FormView):
     template_name = "control/mesh_message_send.html"
 
+    @cached_property
+    def msg_type(self):
+        return MeshMessageType[self.kwargs['msg_type']]
+
     def get_form_class(self):
         try:
-            return MeshMessageForm.get_form_for_type(MeshMessageType[self.kwargs['msg_type']])
+            return MeshMessageForm.get_form_for_type(self.msg_type)
         except KeyError:
             raise Http404('unknown message type')
 
@@ -112,13 +117,15 @@ class MeshMessageSendView(ControlPanelMixin, FormView):
         }
 
     def get_initial(self):
-        if 'recipient' in self.kwargs and self.kwargs['msg_type'].startswith('CONFIG_'):
+        if 'recipient' in self.kwargs and self.msg_type.name.startswith('CONFIG_'):
             try:
                 node = MeshNode.objects.get(address=self.kwargs['recipient'])
             except MeshNode.DoesNotExist:
                 pass
             else:
-                return node.last_messages[self.kwargs['msg_type']].parsed.tojson()
+                return MeshMessage.get_type(self.msg_type).tojson(
+                    node.last_messages[self.msg_type].parsed
+                )
         return {}
 
     def get_success_url(self):
@@ -155,7 +162,7 @@ class MeshMessageSendingView(ControlPanelMixin, TemplateView):
             "node_names": node_names,
             "send_uuid": uuid,
             **data,
-            "node_name": node_names[data["msg_data"]["address"]],
+            "node_name": node_names.get(data["msg_data"].get("address"), ""),
             "recipients": [(address, node_names[address]) for address in data["recipients"]],
             "msg_type": MeshMessageType(data["msg_data"]["msg_id"]).name,
         }

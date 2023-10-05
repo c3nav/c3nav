@@ -23,7 +23,7 @@ class Command(BaseCommand):
         struct_lines = {}
 
         ignore_names = set(field_.name for field_ in fields(MeshMessage))
-        for msg_id, msg_type in MeshMessage.get_msg_types().items():
+        for msg_id, msg_type in MeshMessage.get_types().items():
             if msg_type.c_struct_name:
                 if msg_type.c_struct_name in done_struct_names:
                     continue
@@ -53,10 +53,10 @@ class Command(BaseCommand):
         print("} mesh_msg_data_t;")
         print()
 
-        max_msg_type = max(MeshMessage.get_msg_types().keys())
+        max_msg_type = max(MeshMessage.get_types().keys())
         macro_data = []
         for i in range(((max_msg_type//16)+1)*16):
-            msg_type = MeshMessage.get_msg_types().get(i, None)
+            msg_type = MeshMessage.get_types().get(i, None)
             if msg_type:
                 name = (msg_type.c_struct_name or self.shorten_name(normalize_name(
                     getattr(msg_type.msg_id, 'name', msg_type.__name__)

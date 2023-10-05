@@ -1,6 +1,7 @@
 from collections import UserDict
 from functools import cached_property
 from operator import attrgetter
+from typing import Mapping, Self, Any
 
 from django.db import models, NotSupportedError
 from django.utils.translation import gettext_lazy as _
@@ -89,7 +90,7 @@ class MeshNode(models.Model):
         return self.address
 
     @cached_property
-    def last_messages(self):
+    def last_messages(self) -> Mapping[Any, Self]:
         return LastMessagesByTypeLookup(self)
 
 
@@ -107,7 +108,7 @@ class NodeMessage(models.Model):
         return '(#%d) %s at %s' % (self.pk, self.get_message_type_display(), self.datetime)
 
     @cached_property
-    def parsed(self):
+    def parsed(self) -> dict:
         return MeshMessage.fromjson(self.data)
 
 

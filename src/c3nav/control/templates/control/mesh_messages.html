@@ -59,9 +59,9 @@
                         <strong>X=</strong>{{ msg.parsed.x_pos }}, <strong>Y=</strong>{{ msg.parsed.y_pos }}, <strong>Z=</strong>{{ msg.parsed.z_pos }}
 
                     {% elif msg.get_message_type_display == "MESH_ADD_DESTINATIONS" or msg.get_message_type_display == "MESH_REMOVE_DESTINATIONS" %}
-                        <strong>mac adresses:</strong><br>
+                        <strong>adresses:</strong><br>
                         <ul style="margin: 0;">
-                            {% for address in msg.parsed.mac_addresses %}
+                            {% for address in msg.parsed.addresses %}
                                 <li style="margin: 0;">{{ address }}</li>
                             {% endfor %}
                         </ul>

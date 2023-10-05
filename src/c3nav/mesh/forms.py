@@ -54,6 +54,7 @@ class MeshMessageForm(forms.Form):
         if cls.msg_type in MeshMessageForm.msg_types:
             raise TypeError('duplicate use of msg %s' % cls.msg_type)
         MeshMessageForm.msg_types[cls.msg_type] = cls
+        cls.msg_type_class = MeshMessage.get_type(cls.msg_type)
 
     @classmethod
     def get_form_for_type(cls, msg_type):
@@ -94,7 +95,7 @@ class MeshMessageForm(forms.Form):
 class MeshRouteRequestForm(MeshMessageForm):
     msg_type = MeshMessageType.MESH_ROUTE_REQUEST
 
-    address = forms.ChoiceField(choices=())
+    address = forms.ChoiceField(choices=(), required=True)
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
