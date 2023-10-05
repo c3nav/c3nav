@@ -8,8 +8,8 @@ import channels
 from asgiref.sync import async_to_sync
 
 from c3nav.mesh.utils import get_mesh_comm_group, indent_c
-from c3nav.mesh.dataformats import (BoolFormat, FixedStrFormat, HexFormat, LedConfig, LedConfigFormat,
-                                    MacAddressesListFormat, MacAddressFormat, SimpleFormat, VarStrFormat)
+from c3nav.mesh.dataformats import (BoolFormat, FixedStrFormat, FixedHexFormat, LedConfig, LedConfig,
+                                    MacAddressesListFormat, MacAddressFormat, SimpleFormat, VarStrFormat, StructType)
 
 MESH_ROOT_ADDRESS = '00:00:00:00:00:00'
 MESH_PARENT_ADDRESS = '00:00:00:ff:ff:ff'
@@ -37,6 +37,8 @@ class MeshMessageType(IntEnum):
     CONFIG_LED = 0x13
     CONFIG_UPLINK = 0x14
 
+    LOCATE_REPORT_RANGE = 0x20
+
 
 M = TypeVar('M', bound='MeshMessage')
 
@@ -48,22 +50,16 @@ class ChipType(IntEnum):
 
 
 @dataclass
-class MeshMessage:
+class MeshMessage(StructType, union_type_field="msg_id"):
     dst: str = field(metadata={"format": MacAddressFormat()})
     src: str = field(metadata={"format": MacAddressFormat()})
     msg_id: int = field(metadata={"format": SimpleFormat('B')}, init=False, repr=False)
-    msg_types = {}
     c_structs = {}
     c_struct_name = None
 
     # noinspection PyMethodOverriding
-    def __init_subclass__(cls, /, msg_id=None, c_struct_name=None, **kwargs):
+    def __init_subclass__(cls, /, c_struct_name=None, **kwargs):
         super().__init_subclass__(**kwargs)
-        if msg_id is not None:
-            cls.msg_id = msg_id
-            if msg_id in MeshMessage.msg_types:
-                raise TypeError('duplicate use of msg_id %d' % msg_id)
-            MeshMessage.msg_types[msg_id] = cls
         if c_struct_name:
             cls.c_struct_name = c_struct_name
             if c_struct_name in MeshMessage.c_structs:
@@ -118,39 +114,9 @@ class MeshMessage:
         return ()
 
     @classmethod
-    def get_c_struct(cls):
-        ignore_fields = cls.get_ignore_c_fields()
-        if cls != MeshMessage:
-            ignore_fields |= set(field.name for field in fields(MeshMessage))
-
-        items = tuple(
-            (
-                tuple(field.metadata["format"].get_c_struct(field.metadata.get("c_name", field.name)).split("\n")),
-                field.metadata.get("doc", None),
-            )
-            for field in fields(cls)
-            if field.name not in ignore_fields
-        )
-        if not items:
-            return ""
-        max_line_len = max(len(line) for line in chain(*(code for code, doc in items)))
-
-        msg_comment = cls.__doc__.strip()
-
-        return "%(comment)stypedef struct __packed {\n%(elements)s\n} %(name)s;" % {
-            "comment": ("/** %s */\n" % msg_comment) if msg_comment else "",
-            "elements": indent_c(
-                "\n".join(chain(*(
-                    (code if not comment
-                     else (code[:-1]+("%s /** %s */" % (code[-1].ljust(max_line_len), comment),)))
-                    for code, comment in items
-                ), cls.get_additional_c_fields()))
-            ),
-            "name": "mesh_msg_%s_t" % cls.get_c_struct_name(),
-        }
-
-    @classmethod
     def get_var_num(cls):
+        return 0
+        # todo: fix
         return sum((getattr(field.metadata["format"], "var_num", 0) for field in fields(cls)), start=0)
 
     @classmethod
@@ -171,6 +137,10 @@ class MeshMessage:
             r"\1_\2",
             cls.__name__.removeprefix('Mesh').removesuffix('Message')
         ).upper().replace('CONFIG', 'CFG').replace('FIRMWARE', 'FW').replace('POSITION', 'POS')
+
+    @classmethod
+    def get_msg_types(cls):
+        return cls._union_options["msg_id"]
 
 
 @dataclass
@@ -291,7 +261,7 @@ class ConfigFirmwareMessage(MeshMessage, msg_id=MeshMessageType.CONFIG_FIRMWARE)
     compile_time: str = field(metadata={"format": FixedStrFormat(16)})
     compile_date: str = field(metadata={"format": FixedStrFormat(16)})
     idf_version: str = field(metadata={"format": FixedStrFormat(32)})
-    app_elf_sha256: str = field(metadata={"format": HexFormat(32)})
+    app_elf_sha256: str = field(metadata={"format": FixedHexFormat(32)})
     reserv2: list[int] = field(metadata={"format": SimpleFormat('20I')}, repr=False)
 
     @classmethod
@@ -327,7 +297,7 @@ class ConfigPositionMessage(MeshMessage, msg_id=MeshMessageType.CONFIG_POSITION)
 @dataclass
 class ConfigLedMessage(MeshMessage, msg_id=MeshMessageType.CONFIG_LED):
     """ set/respond led config """
-    led_config: LedConfig = field(metadata={"format": LedConfigFormat()})
+    led_config: LedConfig = field(metadata={})
 
 
 @dataclass
@@ -341,3 +311,10 @@ class ConfigUplinkMessage(MeshMessage, msg_id=MeshMessageType.CONFIG_UPLINK):
     ssl: bool = field(metadata={"format": BoolFormat()})
     host: str = field(metadata={"format": FixedStrFormat(64)})
     port: int = field(metadata={"format": SimpleFormat('H')})
+
+
+@dataclass
+class LocateReportRangeMessage(MeshMessage, msg_id=MeshMessageType.LOCATE_REPORT_RANGE):
+    """ report distance to given nodes """
+    #ranges: dict[str, int] =
+    pass

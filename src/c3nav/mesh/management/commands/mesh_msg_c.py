@@ -1,5 +1,8 @@
+from dataclasses import fields
+
 from django.core.management.base import BaseCommand
 
+from c3nav.mesh.dataformats import normalize_name
 from c3nav.mesh.messages import MeshMessage
 from c3nav.mesh.utils import indent_c
 
@@ -12,26 +15,26 @@ class Command(BaseCommand):
         nodata = set()
         struct_lines = {}
 
-        for msg_type in MeshMessage.msg_types.values():
+        ignore_names = set(field_.name for field_ in fields(MeshMessage))
+        from pprint import pprint
+        pprint(MeshMessage.get_msg_types())
+        for msg_id, msg_type in MeshMessage.get_msg_types().items():
             if msg_type.c_struct_name:
                 if msg_type.c_struct_name in done_struct_names:
                     continue
                 done_struct_names.add(msg_type.c_struct_name)
                 msg_type = MeshMessage.c_structs[msg_type.c_struct_name]
 
-            code = msg_type.get_c_struct()
+            name = "mesh_msg_%s_t" % (
+                msg_type.c_struct_name or normalize_name(getattr(msg_id, 'name', msg_type.__name__))
+            )
+            code = msg_type.get_c_code(name, ignore_fields=ignore_names, no_empty=True)
             if code:
-                struct_lines[msg_type.get_c_struct_name()] = (
-                    "mesh_msg_%s_t %s;" % (
-                        msg_type.get_c_struct_name(),
-                        msg_type.get_c_struct_name().replace("_announce", ""),
-                    )
-                )
                 print(code)
                 print()
             else:
                 nodata.add(msg_type)
-
+        return
         print("/** union between all message data structs */")
         print("typedef union __packed {")
         for line in struct_lines.values():
