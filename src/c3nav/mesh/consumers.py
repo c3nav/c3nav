@@ -116,7 +116,6 @@ class MeshConsumer(WebsocketConsumer):
             self.remove_dst_nodes((data["address"], ))
 
     def mesh_send(self, data):
-        print("mesh_send", data)
         self.send_msg(MeshMessage.fromjson(data["msg"]), data["sender"])
 
     def log_received_message(self, src_node: MeshNode, msg: messages.MeshMessage):
@@ -262,7 +261,6 @@ class MeshUIConsumer(JsonWebsocketConsumer):
         self.send_json(data)
 
     def mesh_msg_received(self, data):
-        print('got received', data)
         for key, filter_value in self.msg_received_filter.items():
             value = data.get(key, data["msg"].get(key, None))
             if isinstance(filter_value, list):
