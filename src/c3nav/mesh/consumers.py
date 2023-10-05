@@ -29,8 +29,8 @@ class MeshConsumer(WebsocketConsumer):
             self.remove_dst_nodes(self.dst_nodes)
 
     def send_msg(self, msg):
-        print("sending", msg)
-        self.log_text(msg.dst, "sending %s" % msg)
+        # print("sending", msg)
+        # self.log_text(msg.dst, "sending %s" % msg)
         self.send(bytes_data=msg.encode())
 
     def receive(self, text_data=None, bytes_data=None):
@@ -47,7 +47,7 @@ class MeshConsumer(WebsocketConsumer):
             # todo: this message isn't for us, forward it
             return
 
-        print('Received message:', msg)
+        #print('Received message:', msg)
 
         src_node, created = MeshNode.objects.get_or_create(address=msg.src)
 
@@ -85,10 +85,10 @@ class MeshConsumer(WebsocketConsumer):
         self.log_received_message(src_node, msg)
 
         if isinstance(msg, messages.MeshAddDestinationsMessage):
-            self.add_dst_nodes(addresses=msg.mac_addresses)
+            self.add_dst_nodes(addresses=msg.addresses)
 
         if isinstance(msg, messages.MeshRemoveDestinationsMessage):
-            self.remove_dst_nodes(addresses=msg.mac_addresses)
+            self.remove_dst_nodes(addresses=msg.addresses)
 
     def mesh_uplink_consumer(self, data):
         # message handler: if we are not the given uplink, leave this group
@@ -106,7 +106,7 @@ class MeshConsumer(WebsocketConsumer):
         self.send_msg(MeshMessage.fromjson(data["msg"]))
 
     def log_received_message(self, src_node: MeshNode, msg: messages.MeshMessage):
-        self.log_text(msg.src, "received %s" % msg)
+        # self.log_text(msg.src, "received %s" % msg)
         NodeMessage.objects.create(
             uplink_node=self.uplink_node,
             src_node=src_node,

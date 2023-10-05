@@ -28,6 +28,9 @@ class MeshMessageType(IntEnum):
     MESH_LAYER_ANNOUNCE = 0x04
     MESH_ADD_DESTINATIONS = 0x05
     MESH_REMOVE_DESTINATIONS = 0x06
+    MESH_ROUTE_REQUEST = 0x07
+    MESH_ROUTE_RESPONSE = 0x08
+    MESH_ROUTE_TRACE = 0x09
 
     CONFIG_DUMP = 0x10
     CONFIG_FIRMWARE = 0x11
@@ -217,10 +220,10 @@ class MeshLayerAnnounceMessage(MeshMessage, msg_id=MeshMessageType.MESH_LAYER_AN
 @dataclass
 class BaseDestinationsMessage(MeshMessage, c_struct_name="destinations"):
     """ downstream node announces served/no longer served destination """
-    mac_addresses: list[str] = field(default_factory=list, metadata={
+    addresses: list[str] = field(default_factory=list, metadata={
         "format": MacAddressesListFormat(),
-        "doc": "mac adresses of the destinations",
-        "c_name": "mac",
+        "doc": "adresses of the destinations",
+        "c_name": "addresses",
     })
 
 
@@ -234,6 +237,36 @@ class MeshAddDestinationsMessage(BaseDestinationsMessage, msg_id=MeshMessageType
 class MeshRemoveDestinationsMessage(BaseDestinationsMessage, msg_id=MeshMessageType.MESH_REMOVE_DESTINATIONS):
     """ downstream node announces no longer served destination """
     pass
+
+
+@dataclass
+class MeshRouteRequestMessage(MeshMessage, msg_id=MeshMessageType.MESH_ROUTE_REQUEST):
+    """ request routing information for node """
+    request_id: int = field(metadata={"format": SimpleFormat('I')})
+    address: str = field(metadata={
+        "format": MacAddressFormat(),
+        "doc": "target address for the route"
+    })
+
+
+@dataclass
+class MeshRouteResponseMessage(MeshMessage, msg_id=MeshMessageType.MESH_ROUTE_RESPONSE):
+    """ reporting the routing table entry to the given address """
+    request_id: int = field(metadata={"format": SimpleFormat('I')})
+    route: str = field(metadata={
+        "format": MacAddressFormat(),
+        "doc": "routing table entry or 00:00:00:00:00:00"
+    })
+
+
+@dataclass
+class MeshRouteTraceMessage(MeshMessage, msg_id=MeshMessageType.MESH_ROUTE_TRACE):
+    """ special message, collects all hop adresses on its way """
+    request_id: int = field(metadata={"format": SimpleFormat('I')})
+    trace: list[str] = field(default_factory=list, metadata={
+        "format": MacAddressesListFormat(),
+        "doc": "addresses encountered by this message",
+    })
 
 
 @dataclass
