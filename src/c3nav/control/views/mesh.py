@@ -1,7 +1,10 @@
+from uuid import uuid4
+
 from django.contrib import messages
 from django.contrib.messages.views import SuccessMessageMixin
 from django.db.models import Max
 from django.http import Http404
+from django.shortcuts import redirect
 from django.urls import reverse
 from django.utils.translation import gettext_lazy as _
 from django.views.generic import ListView, DetailView, FormView, UpdateView, TemplateView
@@ -113,9 +116,39 @@ class MeshMessageSendView(ControlPanelMixin, FormView):
             return self.request.path
 
     def form_valid(self, form):
-        form.send()
-        messages.success(self.request, _('Message sent successfully'))
-        return super().form_valid(form)
+        if 'noscript' in self.request.POST:
+            form.send()
+            messages.success(self.request, _('Message sent successfully(?)'))
+            super().form_valid(form)
+        uuid = uuid4()
+        self.request.session["mesh_msg_%s" % uuid] = {
+            "success_url": self.get_success_url(),
+            "recipients": form.get_recipients(),
+            "msg_data": form.get_msg_data(),
+        }
+        return redirect(reverse('control.mesh_message.sending', kwargs={'uuid': uuid}))
+
+
+class MeshMessageSendingView(ControlPanelMixin, TemplateView):
+    template_name = "control/mesh_message_sending.html"
+
+    def get_context_data(self, uuid):
+        try:
+            data = self.request.session["mesh_msg_%s" % uuid]
+        except KeyError:
+            raise Http404
+        node_names = {
+            node.address: node.name for node in MeshNode.objects.all()
+        }
+        return {
+            **super().get_context_data(),
+            "node_names": node_names,
+            "send_uuid": uuid,
+            **data,
+            "recipients": [(address, node_names[address]) for address in data["recipients"]],
+            "msg_type": MeshMessageType(data["msg_data"]["msg_id"]).name,
+        }
+
 
 class MeshLogView(ControlPanelMixin, TemplateView):
     template_name = "control/mesh_logs.html"

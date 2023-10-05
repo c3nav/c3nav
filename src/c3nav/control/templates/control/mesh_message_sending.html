@@ -1,0 +1,26 @@
+{% extends 'control/base.html' %}
+{% load i18n %}
+
+{% block heading %}
+    {% blocktrans trimmed with msg_type=msg_type %}
+        Sending {{ msg_type }} message
+    {% endblocktrans %}
+{% endblock %}
+
+{% block subcontent %}
+    <p><a class="button" href="{{ success_url }}">Go back</a></p>
+    <table>
+        <tr>
+            <th>Recipient</th>
+            <th>Status</th>
+        </tr>
+        {% for address, name in recipients %}
+            <tr>
+                <td>{{ address }}{% if name %} ({{ name }}){% endif %}</td>
+                <td id="sending-status-{{ address }}"></td>
+            </tr>
+        {% endfor %}
+    </table>
+    {% include "control/fragment_mesh_websocket.html" %}
+
+{% endblock %}

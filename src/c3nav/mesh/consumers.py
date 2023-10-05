@@ -28,10 +28,19 @@ class MeshConsumer(WebsocketConsumer):
             # remove all other destinations
             self.remove_dst_nodes(self.dst_nodes)
 
-    def send_msg(self, msg):
+    def send_msg(self, msg, sender=None):
         # print("sending", msg)
         # self.log_text(msg.dst, "sending %s" % msg)
         self.send(bytes_data=msg.encode())
+        async_to_sync(self.channel_layer.group_send)("mesh_msg_sent", {
+            "type": "mesh.msg_sent",
+            "timestamp": timezone.now().strftime("%d.%m.%y %H:%M:%S.%f"),
+            "channel": self.channel_name,
+            "sender": sender,
+            "uplink": self.uplink_node.address if self.uplink_node else None,
+            "recipient": msg.dst,
+            #"msg": msg.tojson(),  # not doing this part for privacy reasons
+        })
 
     def receive(self, text_data=None, bytes_data=None):
         if bytes_data is None:
@@ -103,15 +112,23 @@ class MeshConsumer(WebsocketConsumer):
             self.remove_dst_nodes((data["address"], ))
 
     def mesh_send(self, data):
-        self.send_msg(MeshMessage.fromjson(data["msg"]))
+        print("mesh_send", data)
+        self.send_msg(MeshMessage.fromjson(data["msg"]), data["sender"])
 
     def log_received_message(self, src_node: MeshNode, msg: messages.MeshMessage):
-        # self.log_text(msg.src, "received %s" % msg)
+        as_json = msg.tojson()
+        async_to_sync(self.channel_layer.group_send)("mesh_msg_received", {
+            "type": "mesh.msg_received",
+            "timestamp": timezone.now().strftime("%d.%m.%y %H:%M:%S.%f"),
+            "channel": self.channel_name,
+            "uplink": self.uplink_node.address if self.uplink_node else None,
+            "msg": as_json,
+        })
         NodeMessage.objects.create(
             uplink_node=self.uplink_node,
             src_node=src_node,
             message_type=msg.msg_id,
-            data=msg.tojson()
+            data=as_json,
         )
 
     def log_text(self, address, text):
@@ -196,13 +213,47 @@ class MeshUIConsumer(JsonWebsocketConsumer):
     def connect(self):
         # todo: auth
         self.accept()
+        self.msg_sent_filter = {}
+        self.msg_received_filter = {}
 
     def receive_json(self, content, **kwargs):
         if content.get("subscribe", None) == "log":
             async_to_sync(self.channel_layer.group_add)("mesh_log", self.channel_name)
+        if content.get("subscribe", None) == "msg_sent":
+            async_to_sync(self.channel_layer.group_add)("mesh_msg_sent", self.channel_name)
+            self.msg_sent_filter = dict(content.get("filter", {}))
+        if content.get("subscribe", None) == "msg_received":
+            async_to_sync(self.channel_layer.group_add)("mesh_msg_sent", self.channel_name)
+            self.msg_received_filter = dict(content.get("filter", {}))
+        if "send_msg" in content:
+            msg_to_send = self.scope["session"].pop("mesh_msg_%s" % content["send_msg"], None)
+            if not msg_to_send:
+                return
+            self.scope["session"].save()
+            async_to_sync(self.channel_layer.group_add)("mesh_msg_sent", self.channel_name)
+            self.msg_sent_filter = {"sender": self.channel_name}
+            for recipient in msg_to_send["recipients"]:
+                print('send to', recipient)
+                MeshMessage.fromjson({
+                    'dst': recipient,
+                    **msg_to_send["msg_data"],
+                }).send(sender=self.channel_name)
 
     def mesh_log_entry(self, data):
         self.send_json(data)
 
+    def mesh_msg_sent(self, data):
+        print('got data', data)
+        for key, value in self.msg_sent_filter.items():
+            if isinstance(value, list):
+                if data.get(key, None) not in value:
+                    return
+            else:
+                if data.get(key, None) != value:
+                    return
+        self.send_json(data)
+
     def disconnect(self, code):
         async_to_sync(self.channel_layer.group_discard)("mesh_log", self.channel_name)
+        async_to_sync(self.channel_layer.group_discard)("mesh_msg_sent", self.channel_name)
+        async_to_sync(self.channel_layer.group_discard)("mesh_msg_received", self.channel_name)

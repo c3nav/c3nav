@@ -17,6 +17,7 @@
     <form method="POST" style="max-width:400px;">
         {% csrf_token %}
         {{ form }}
+        <noscript><input type="hidden" name="noscript" value"1"></noscript>
         <button type="submit">{% trans 'Send' %}</button>
     </form>
 

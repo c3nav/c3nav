@@ -1,25 +1,33 @@
 {% if node_names %}
     {{ node_names|json_script:"node-names" }}
 {% endif %}
+{% if send_uuid %}
+    {{ send_uuid|json_script:"send-uuid" }}
+{% endif %}
 <script type="text/javascript">
 {% if node_names %}
     const node_names = JSON.parse(document.getElementById('node-names').textContent);
 {% endif %}
+
 function connect() {
     console.log('reconnecting websocket...');
     var ws = new WebSocket((window.location.protocol=="https:"?"wss:":"ws:")+window.location.host+"/mesh/ui/ws", []);
     ws.onopen = (event) => {
         console.log('websocket connected.');
-        ws.send(JSON.stringify({"subscribe": "log"}));
+        {% if send_uuid %}
+            ws.send(JSON.stringify({"send_msg": JSON.parse(document.getElementById('send-uuid').textContent)}));
+        {% else %}
+            ws.send(JSON.stringify({"subscribe": "log"}));
+        {% endif %}
     };
     ws.onclose = (event) => {
         window.setTimeout(connect, 500);
     }
     ws.onmessage = (event) => {
-        var data = JSON.parse(event.data);
+        var data = JSON.parse(event.data), line, text;
         switch(data.type) {
             case 'mesh.log_entry':
-                var line = document.createElement("tr"), cell, link_tag;
+                line = document.createElement("tr"), cell, link_tag;
 
                 cell = document.createElement("td");
                 cell.innerText = data.timestamp;
@@ -54,6 +62,16 @@ function connect() {
                 line.appendChild(cell);
 
                 document.querySelector("tbody").prepend(line);
+                break
+            case 'mesh.msg_sent':
+                {% if send_uuid %}
+                    line = document.createElement("p");
+                    line.innerText = "sent via uplink ["+data.channel+"] "+data.uplink;
+                    if (node_names[data.uplink]) {
+                        line.innerText += " ("+node_names[data.uplink]+")";
+                    }
+                    document.getElementById("sending-status-"+data.recipient).appendChild(line);
+                {% endif %}
                 break;
         }
 

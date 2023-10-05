@@ -16,7 +16,6 @@ PARENT_ADDRESS = '00:00:00:ff:ff:ff'
 BROADCAST_ADDRESS = 'ff:ff:ff:ff:ff:ff'
 NO_LAYER = 0xFF
 
-
 @unique
 class MeshMessageType(IntEnum):
     NOOP = 0x00
@@ -94,7 +93,6 @@ class MeshMessage:
         kwargs = data.copy()
         klass = cls.msg_types[kwargs.pop('msg_id')]
         kwargs = klass.upgrade_json(kwargs)
-        names = set(field.name for field in fields(klass))
         for field_ in fields(klass):
             if is_dataclass(field_.type):
                 kwargs[field_.name] = field_.type.fromjson(kwargs[field_.name])
@@ -104,9 +102,10 @@ class MeshMessage:
     def upgrade_json(cls, data):
         return data
 
-    def send(self):
+    def send(self, sender=None):
         async_to_sync(channels.layers.get_channel_layer().group_send)(get_mesh_comm_group(self.dst), {
             "type": "mesh.send",
+            "sender": sender,
             "msg": self.tojson()
         })
 

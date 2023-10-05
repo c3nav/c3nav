@@ -63,17 +63,22 @@ class MeshMessageForm(forms.Form):
         msg_data.pop('recipients', None)
         return msg_data
 
-    def send(self):
+    def get_msg_data(self):
         if not self.is_valid():
             raise Exception('nope')
 
-        msg_data = {
+        return {
             'msg_id': self.msg_type,
             'src': ROOT_ADDRESS,
             **self.get_cleaned_msg_data(),
         }
 
-        recipients = [self.recipient] if self.recipient else self.cleaned_data['recipients']
+    def get_recipients(self):
+        return [self.recipient] if self.recipient else self.cleaned_data['recipients']
+
+    def send(self):
+        msg_data = self.get_msg_data()
+        recipients = self.get_recipients()
         for recipient in recipients:
             print('sending to ', recipient)
             MeshMessage.fromjson({
