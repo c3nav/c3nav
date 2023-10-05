@@ -24,10 +24,10 @@ function connect() {
         window.setTimeout(connect, 500);
     }
     ws.onmessage = (event) => {
-        var data = JSON.parse(event.data), line, text;
+        var data = JSON.parse(event.data), line, text, cell, link_tag;
         switch(data.type) {
             case 'mesh.log_entry':
-                line = document.createElement("tr"), cell, link_tag;
+                line = document.createElement("tr");
 
                 cell = document.createElement("td");
                 cell.innerText = data.timestamp;
@@ -37,7 +37,7 @@ function connect() {
                 cell.innerText = data.channel;
                 if (data.uplink) {
                     cell.append(document.createElement("br"));
-                    link_tag = document.createElement("a")
+                    link_tag = document.createElement("a");
                     link_tag.href = "/control/mesh/" + data.uplink;
                     link_tag.innerText = data.uplink;
                     if (node_names[data.uplink]) {
@@ -48,7 +48,7 @@ function connect() {
                 line.appendChild(cell);
 
                 cell = document.createElement("td");
-                link_tag = document.createElement("a")
+                link_tag = document.createElement("a");
                 link_tag.href = "/control/mesh/" + data.node;
                 link_tag.innerText = data.node;
                 if (node_names[data.node]) {
@@ -71,6 +71,54 @@ function connect() {
                         line.innerText += " ("+node_names[data.uplink]+")";
                     }
                     document.getElementById("sending-status-"+data.recipient).appendChild(line);
+                {% endif %}
+                break;
+
+            case 'mesh.msg_received':
+                {% if send_uuid and msg_type == "MESH_ROUTE_REQUEST" %}
+                    if (data.msg.route) {
+                        link_tag = document.createElement("a");
+                        link_tag.href = "/control/mesh/" + data.msg.src;
+                        link_tag.innerText = data.msg.src;
+                        if (node_names[data.msg.src]) {
+                            link_tag.innerText += " ("+node_names[data.msg.src]+")";
+                        }
+                        if (data.msg.route === "00:00:00:00:00:00") {
+                            line = document.createElement("li");
+                            line.appendChild(link_tag);
+                            document.getElementById("no-routes").appendChild(line);
+                        } else {
+                            line = document.createElement("tr");
+
+                            cell = document.createElement("td");
+                            cell.appendChild(link_tag);
+                            line.appendChild(cell);
+
+                            cell = document.createElement("td");
+                            link_tag = document.createElement("a");
+                            link_tag.href = "/control/mesh/" + data.msg.route;
+                            link_tag.innerText = data.msg.route;
+                            if (node_names[data.msg.route]) {
+                                link_tag.innerText += " ("+node_names[data.msg.route]+")";
+                            }
+                            cell.append(link_tag);
+                            line.appendChild(cell);
+
+                            document.getElementById("route-responses").appendChild(line);
+                        }
+                    } else {
+                        for (var i=0;i<data.msg.trace.length;i++) {
+                            line = document.createElement("li");
+                            link_tag = document.createElement("a");
+                            link_tag.href = "/control/mesh/" + data.msg.trace[i];
+                            link_tag.innerText = data.msg.trace[i];
+                            if (node_names[data.msg.trace[i]]) {
+                                link_tag.innerText += " ("+node_names[data.msg.trace[i]]+")";
+                            }
+                            line.appendChild(link_tag);
+                            document.getElementById("route-trace").appendChild(line);
+                        }
+                    }
                 {% endif %}
                 break;
         }

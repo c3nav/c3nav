@@ -6,7 +6,7 @@ from django.utils import timezone
 
 from c3nav.mesh.utils import get_mesh_comm_group
 from c3nav.mesh import messages
-from c3nav.mesh.messages import MeshMessage, BROADCAST_ADDRESS
+from c3nav.mesh.messages import MeshMessage, MESH_BROADCAST_ADDRESS, MeshMessageType
 from c3nav.mesh.models import MeshNode, NodeMessage
 
 
@@ -23,7 +23,9 @@ class MeshConsumer(WebsocketConsumer):
         self.log_text(self.uplink_node, "mesh websocket disconnected")
         if self.uplink_node is not None:
             # leave broadcast group
-            async_to_sync(self.channel_layer.group_add)(get_mesh_comm_group(BROADCAST_ADDRESS), self.channel_name)
+            async_to_sync(self.channel_layer.group_discard)(
+                get_mesh_comm_group(MESH_BROADCAST_ADDRESS), self.channel_name
+            )
 
             # remove all other destinations
             self.remove_dst_nodes(self.dst_nodes)
@@ -51,7 +53,7 @@ class MeshConsumer(WebsocketConsumer):
             traceback.print_exc()
             return
 
-        if msg.dst != messages.ROOT_ADDRESS and msg.dst != messages.PARENT_ADDRESS:
+        if msg.dst != messages.MESH_ROOT_ADDRESS and msg.dst != messages.MESH_PARENT_ADDRESS:
             print('Received message for forwarding:', msg)
             # todo: this message isn't for us, forward it
             return
@@ -67,13 +69,15 @@ class MeshConsumer(WebsocketConsumer):
 
             # inform signed in uplink node about its layer
             self.send_msg(messages.MeshLayerAnnounceMessage(
-                src=messages.ROOT_ADDRESS,
+                src=messages.MESH_ROOT_ADDRESS,
                 dst=msg.src,
                 layer=messages.NO_LAYER
             ))
 
             # add signed in uplink node to broadcast group
-            async_to_sync(self.channel_layer.group_add)('mesh_broadcast', self.channel_name)
+            async_to_sync(self.channel_layer.group_add)(
+                get_mesh_comm_group(MESH_BROADCAST_ADDRESS), self.channel_name
+            )
 
             # kick out other consumers talking to the same uplink
             async_to_sync(self.channel_layer.group_send)(get_mesh_comm_group(msg.src), {
@@ -179,7 +183,7 @@ class MeshConsumer(WebsocketConsumer):
             # tell the node to dump its current information
             self.send_msg(
                 messages.ConfigDumpMessage(
-                    src=messages.ROOT_ADDRESS,
+                    src=messages.MESH_ROOT_ADDRESS,
                     dst=address,
                 )
             )
@@ -230,10 +234,15 @@ class MeshUIConsumer(JsonWebsocketConsumer):
             if not msg_to_send:
                 return
             self.scope["session"].save()
+
             async_to_sync(self.channel_layer.group_add)("mesh_msg_sent", self.channel_name)
             self.msg_sent_filter = {"sender": self.channel_name}
+
+            if msg_to_send["msg_data"]["msg_id"] == MeshMessageType.MESH_ROUTE_REQUEST:
+                async_to_sync(self.channel_layer.group_add)("mesh_msg_received", self.channel_name)
+                self.msg_received_filter = {"request_id": msg_to_send["msg_data"]["request_id"]}
+
             for recipient in msg_to_send["recipients"]:
-                print('send to', recipient)
                 MeshMessage.fromjson({
                     'dst': recipient,
                     **msg_to_send["msg_data"],
@@ -243,13 +252,24 @@ class MeshUIConsumer(JsonWebsocketConsumer):
         self.send_json(data)
 
     def mesh_msg_sent(self, data):
-        print('got data', data)
         for key, value in self.msg_sent_filter.items():
             if isinstance(value, list):
                 if data.get(key, None) not in value:
                     return
             else:
                 if data.get(key, None) != value:
+                    return
+        self.send_json(data)
+
+    def mesh_msg_received(self, data):
+        print('got received', data)
+        for key, filter_value in self.msg_received_filter.items():
+            value = data.get(key, data["msg"].get(key, None))
+            if isinstance(filter_value, list):
+                if value not in filter_value:
+                    return
+            else:
+                if value != filter_value:
                     return
         self.send_json(data)
 

@@ -1,4 +1,6 @@
+import time
 from dataclasses import fields as dataclass_fields
+from functools import cached_property
 
 from django import forms
 from django.core.exceptions import ValidationError
@@ -6,7 +8,7 @@ from django.http import Http404
 from django.utils.translation import gettext_lazy as _
 
 from c3nav.mesh.dataformats import LedConfig
-from c3nav.mesh.messages import MeshMessageType, MeshMessage, ROOT_ADDRESS
+from c3nav.mesh.messages import MeshMessageType, MeshMessage, MESH_ROOT_ADDRESS, MESH_BROADCAST_ADDRESS
 from c3nav.mesh.models import MeshNode
 
 
@@ -25,23 +27,26 @@ class MeshMessageForm(forms.Form):
         super().__init__(*args, initial=initial, **kwargs)
 
         recipient_root_choices = {
-            'ff:ff:ff:ff:ff:ff': _('broadcast')
+            MESH_BROADCAST_ADDRESS: _('broadcast')
         }
-        recipient_node_choices = {
+        node_choices = {
             node.address: str(node) for node in MeshNode.objects.all()
         }
-        self.recipient_choices = {
+        self.node_choices_flat = {
             **recipient_root_choices,
-            **recipient_node_choices,
+            **node_choices,
         }
+        self.node_choices = tuple(node_choices.items())
+        self.node_choices_with_broadcast = (
+            *recipient_root_choices.items(),
+            (_('nodes'), self.node_choices),
+        )
+
         if self.recipient is None:
-            self.fields['recipients'].choices = (
-                *recipient_root_choices.items(),
-                (_('nodes'), tuple(recipient_node_choices.items()))
-            )
+            self.fields['recipients'].choices = self.node_choices_with_broadcast
         else:
-            if self.recipient not in self.recipient_choices:
-                raise Http404
+            if self.recipient not in self.node_choices_flat:
+                raise Http404('unknown recipient')
             self.fields.pop('recipients')
 
     # noinspection PyMethodOverriding
@@ -56,7 +61,7 @@ class MeshMessageForm(forms.Form):
         return cls.msg_types[msg_type]
 
     def get_recipient_display(self):
-        return self.recipient_choices[self.recipient]
+        return self.node_choices_flat[self.recipient]
 
     def get_cleaned_msg_data(self):
         msg_data = self.cleaned_data.copy()
@@ -69,7 +74,7 @@ class MeshMessageForm(forms.Form):
 
         return {
             'msg_id': self.msg_type,
-            'src': ROOT_ADDRESS,
+            'src': MESH_ROOT_ADDRESS,
             **self.get_cleaned_msg_data(),
         }
 
@@ -85,6 +90,22 @@ class MeshMessageForm(forms.Form):
                 'dst': recipient,
                 **msg_data,
             }).send()
+
+
+class MeshRouteRequestForm(MeshMessageForm):
+    msg_type = MeshMessageType.MESH_ROUTE_REQUEST
+
+    address = forms.ChoiceField(choices=())
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["address"].choices = self.node_choices
+
+    def get_msg_data(self):
+        return {
+            **super().get_msg_data(),
+            "request_id": int(time.time()*100000) % 2**32,
+        }
 
 
 class ConfigUplinkMessageForm(MeshMessageForm):

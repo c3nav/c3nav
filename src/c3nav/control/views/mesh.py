@@ -14,6 +14,7 @@ from c3nav.control.views.base import ControlPanelMixin
 from c3nav.mesh.forms import MeshMessageForm, MeshNodeForm
 from c3nav.mesh.messages import MeshMessageType
 from c3nav.mesh.models import MeshNode, NodeMessage
+from c3nav.mesh.utils import get_node_names
 
 
 class MeshNodeListView(ControlPanelMixin, ListView):
@@ -137,9 +138,7 @@ class MeshMessageSendingView(ControlPanelMixin, TemplateView):
             data = self.request.session["mesh_msg_%s" % uuid]
         except KeyError:
             raise Http404
-        node_names = {
-            node.address: node.name for node in MeshNode.objects.all()
-        }
+        node_names = get_node_names()
         return {
             **super().get_context_data(),
             "node_names": node_names,
@@ -156,7 +155,5 @@ class MeshLogView(ControlPanelMixin, TemplateView):
     def get_context_data(self, **kwargs):
         return {
             **super().get_context_data(),
-            "node_names": {
-                node.address: node.name for node in MeshNode.objects.all()
-            }
+            "node_names": get_node_names(),
         }

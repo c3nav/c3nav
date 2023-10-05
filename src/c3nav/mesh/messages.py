@@ -11,9 +11,9 @@ from c3nav.mesh.utils import get_mesh_comm_group, indent_c
 from c3nav.mesh.dataformats import (BoolFormat, FixedStrFormat, HexFormat, LedConfig, LedConfigFormat,
                                     MacAddressesListFormat, MacAddressFormat, SimpleFormat, VarStrFormat)
 
-ROOT_ADDRESS = '00:00:00:00:00:00'
-PARENT_ADDRESS = '00:00:00:ff:ff:ff'
-BROADCAST_ADDRESS = 'ff:ff:ff:ff:ff:ff'
+MESH_ROOT_ADDRESS = '00:00:00:00:00:00'
+MESH_PARENT_ADDRESS = '00:00:00:ff:ff:ff'
+MESH_BROADCAST_ADDRESS = 'ff:ff:ff:ff:ff:ff'
 NO_LAYER = 0xFF
 
 @unique

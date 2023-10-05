@@ -9,18 +9,45 @@
 
 {% block subcontent %}
     <p><a class="button" href="{{ success_url }}">Go back</a></p>
-    <table>
-        <tr>
-            <th>Recipient</th>
-            <th>Status</th>
-        </tr>
-        {% for address, name in recipients %}
-            <tr>
-                <td>{{ address }}{% if name %} ({{ name }}){% endif %}</td>
-                <td id="sending-status-{{ address }}"></td>
-            </tr>
-        {% endfor %}
-    </table>
+    <div class="columns">
+        <div>
+            <h4>Sending progress</h4>
+            <table>
+                <tr>
+                    <th>Recipient</th>
+                    <th>Status</th>
+                </tr>
+                {% for address, name in recipients %}
+                    <tr>
+                        <td>{{ address }}{% if name %} ({{ name }}){% endif %}</td>
+                        <td id="sending-status-{{ address }}"></td>
+                    </tr>
+                {% endfor %}
+            </table>
+        </div>
+        {% if msg_type == "MESH_ROUTE_REQUEST" %}
+            <div>
+                <h4>Routes</h4>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>{% trans 'Node' %}</th>
+                            <th>{% trans 'Route' %}</th>
+                        </tr>
+                    </thead>
+                    <tbody id="route-responses"></tbody>
+                </table>
+            </div>
+            <div>
+                <h4>No Route</h4>
+                <ul id="no-routes"></ul>
+            </div>
+            <div>
+                <h4>Trace</h4>
+                <ul id="route-trace"></ul>
+            </div>
+        {% endif %}
+    </div>
     {% include "control/fragment_mesh_websocket.html" %}
 
 {% endblock %}
