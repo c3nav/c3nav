@@ -9,7 +9,8 @@ from asgiref.sync import async_to_sync
 
 from c3nav.mesh.utils import get_mesh_comm_group, indent_c
 from c3nav.mesh.dataformats import (BoolFormat, FixedStrFormat, FixedHexFormat, LedConfig, LedConfig,
-                                    MacAddressesListFormat, MacAddressFormat, SimpleFormat, VarStrFormat, StructType)
+                                    MacAddressesListFormat, MacAddressFormat, SimpleFormat, VarStrFormat, StructType,
+                                    VarArrayFormat, RangeItemType)
 
 MESH_ROOT_ADDRESS = '00:00:00:00:00:00'
 MESH_PARENT_ADDRESS = '00:00:00:ff:ff:ff'
@@ -120,15 +121,12 @@ class MeshMessage(StructType, union_type_field="msg_id"):
         return sum((getattr(field.metadata["format"], "var_num", 0) for field in fields(cls)), start=0)
 
     @classmethod
-    def get_c_struct_name(cls):
-        return (
-            cls.c_struct_name if cls.c_struct_name else
-            re.sub(
-                r"([a-z])([A-Z])",
-                r"\1_\2",
-                cls.__name__.removeprefix('Mesh').removesuffix('Message')
-            ).lower().replace('config', 'cfg').replace('firmware', 'fw').replace('position', 'pos')
-        )
+    def get_variable_name(cls, base_name):
+        return cls.c_struct_name or base_name
+
+    @classmethod
+    def get_struct_name(cls, base_name):
+        return "mesh_msg_%s_t" % base_name
 
     @classmethod
     def get_c_enum_name(cls):
@@ -316,5 +314,4 @@ class ConfigUplinkMessage(MeshMessage, msg_id=MeshMessageType.CONFIG_UPLINK):
 @dataclass
 class LocateReportRangeMessage(MeshMessage, msg_id=MeshMessageType.LOCATE_REPORT_RANGE):
     """ report distance to given nodes """
-    #ranges: dict[str, int] =
-    pass
+    ranges: dict[str, int] = field(metadata={"format": VarArrayFormat(RangeItemType)})
