@@ -26,6 +26,17 @@ class MeshNodeListView(ControlPanelMixin, ListView):
     def get_queryset(self):
         return super().get_queryset().annotate(last_msg=Max('received_messages__datetime')).prefetch_last_messages()
 
+    def get_context_data(self, *args, **kwargs):
+        return {
+            **super().get_context_data(*args, **kwargs),
+            "send_msg_types": [msg_type.name for msg_type in MeshMessageForm.msg_types.keys()],
+        }
+
+    def post(self, request):
+        return redirect(
+            reverse("control.mesh_message.send", kwargs={"msg_type": request.POST.get("send_msg_type", "")})
+        )
+
 
 class MeshNodeDetailView(ControlPanelMixin, DetailView):
     model = MeshNode

@@ -10,9 +10,7 @@ class Command(BaseCommand):
     def handle(self, *args, **options):
         done_struct_names = set()
         nodata = set()
-        struct_lines = {
-            "num": "uint8_t num; /** defined here for convenience. subtypes that use it will define it themselves */"
-        }
+        struct_lines = {}
 
         for msg_type in MeshMessage.msg_types.values():
             if msg_type.c_struct_name:

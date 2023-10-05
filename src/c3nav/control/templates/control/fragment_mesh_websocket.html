@@ -65,11 +65,26 @@ function connect() {
                 break
             case 'mesh.msg_sent':
                 {% if send_uuid %}
-                    line = document.createElement("p");
-                    line.innerText = "sent via uplink ["+data.channel+"] "+data.uplink;
+                    line = document.createElement("span");
+
+                    text = document.createElement("span")
+                    text.innerText = "sent via uplink "
+                    line.appendChild(text)
+
+                    text = document.createElement("small")
+                    text.innerText = "["+data.channel+"] "
+                    line.appendChild(text)
+
+                    link_tag = document.createElement("a");
+                    link_tag.href = "/control/mesh/" + data.uplink;
+                    link_tag.innerText = data.uplink;
                     if (node_names[data.uplink]) {
-                        line.innerText += " ("+node_names[data.uplink]+")";
+                        link_tag.innerText += "("+node_names[data.uplink]+")";
                     }
+                    line.appendChild(link_tag);
+
+                    line.appendChild(document.createElement("br"));
+
                     document.getElementById("sending-status-"+data.recipient).appendChild(line);
                 {% endif %}
                 break;
@@ -77,23 +92,21 @@ function connect() {
             case 'mesh.msg_received':
                 {% if send_uuid and msg_type == "MESH_ROUTE_REQUEST" %}
                     if (data.msg.route) {
+                        line = document.createElement('tr');
+
+                        cell = document.createElement("td");
                         link_tag = document.createElement("a");
                         link_tag.href = "/control/mesh/" + data.msg.src;
                         link_tag.innerText = data.msg.src;
                         if (node_names[data.msg.src]) {
                             link_tag.innerText += " ("+node_names[data.msg.src]+")";
                         }
+                        cell.appendChild(link_tag);
+                        line.appendChild(cell);
+
                         if (data.msg.route === "00:00:00:00:00:00") {
-                            line = document.createElement("li");
-                            line.appendChild(link_tag);
                             document.getElementById("no-routes").appendChild(line);
                         } else {
-                            line = document.createElement("tr");
-
-                            cell = document.createElement("td");
-                            cell.appendChild(link_tag);
-                            line.appendChild(cell);
-
                             cell = document.createElement("td");
                             link_tag = document.createElement("a");
                             link_tag.href = "/control/mesh/" + data.msg.route;
@@ -108,14 +121,17 @@ function connect() {
                         }
                     } else {
                         for (var i=0;i<data.msg.trace.length;i++) {
-                            line = document.createElement("li");
+                            line = document.createElement('tr');
+
+                            cell = document.createElement("td");
                             link_tag = document.createElement("a");
                             link_tag.href = "/control/mesh/" + data.msg.trace[i];
                             link_tag.innerText = data.msg.trace[i];
                             if (node_names[data.msg.trace[i]]) {
                                 link_tag.innerText += " ("+node_names[data.msg.trace[i]]+")";
                             }
-                            line.appendChild(link_tag);
+                            cell.appendChild(link_tag);
+                            line.appendChild(cell);
                             document.getElementById("route-trace").appendChild(line);
                         }
                     }

@@ -19,14 +19,18 @@
                 </tr>
                 {% for address, name in recipients %}
                     <tr>
-                        <td>{{ address }}{% if name %} ({{ name }}){% endif %}</td>
+                        <td>
+                            {% if address != "ff:ff:ff:ff:ff:ff" %}<a href="{% url "control.mesh_node.detail" pk=address %}">{% endif %}
+                            {{ address }}{% if name %} ({{ name }}){% endif %}
+                            {% if address != "ff:ff:ff:ff:ff:ff" %}</a>{% endif %}
+                        </td>
                         <td id="sending-status-{{ address }}"></td>
                     </tr>
                 {% endfor %}
             </table>
         </div>
         {% if msg_type == "MESH_ROUTE_REQUEST" %}
-            <div>
+            <div style="min-width: 12vw;">
                 <h4>Routes</h4>
                 <table>
                     <thead>
@@ -38,13 +42,27 @@
                     <tbody id="route-responses"></tbody>
                 </table>
             </div>
-            <div>
-                <h4>No Route</h4>
-                <ul id="no-routes"></ul>
+            <div style="min-width: 12vw;">
+                <h4 class="white-space: nowrap;">No Route</h4>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>{% trans 'Node' %}</th>
+                        </tr>
+                    </thead>
+                    <tbody id="no-routes"></tbody>
+                </table>
             </div>
-            <div>
+            <div style="min-width: 12vw;">
                 <h4>Trace</h4>
-                <ul id="route-trace"></ul>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>{% trans 'Hop' %}</th>
+                        </tr>
+                    </thead>
+                    <tbody id="route-trace"></tbody>
+                </table>
             </div>
         {% endif %}
     </div>

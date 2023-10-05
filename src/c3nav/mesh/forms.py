@@ -1,6 +1,5 @@
 import time
 from dataclasses import fields as dataclass_fields
-from functools import cached_property
 
 from django import forms
 from django.core.exceptions import ValidationError
@@ -99,7 +98,7 @@ class MeshRouteRequestForm(MeshMessageForm):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.fields["address"].choices = self.node_choices
+        self.fields["address"].choices = (('', '------'), )+self.node_choices
 
     def get_msg_data(self):
         return {

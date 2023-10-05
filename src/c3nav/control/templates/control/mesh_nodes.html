@@ -4,9 +4,34 @@
 {% block heading %}{% trans 'Mesh' %}{% endblock %}
 
 {% block subcontent %}
-    <a class="button" href="{% url "control.mesh_messages" %}">
-        {% trans 'View messages' %}
-    </a>
+    <div class="columns">
+        <div>
+            <h4>View messages</h4>
+            <a class="button" href="{% url "control.mesh_messages" %}">
+                {% trans 'View received messages' %}
+            </a>
+        </div>
+        <div>
+            <h4>Send messages</h4>
+            <form method="POST">
+                {% csrf_token %}
+                <select name="send_msg_type" style="display: inline-block; width: auto;" required>
+                    <option value="">select type</option>
+                    {% for msg_type in send_msg_types %}
+                        <option value="{{ msg_type }}">{{ msg_type }}</option>
+                    {% endfor %}
+                </select>
+                <button type="submit">{% trans 'Send message' %}</button>
+            </form>
+        </div>
+        <div>
+            <h4>Logs</h4>
+            <a class="button" href="{% url "control.mesh_log" %}">
+                {% trans 'View log' %}
+            </a>
+        </div>
+    </div>
+    <h4>Nodes</h4>
     <table>
         <tr>
             <th>{% trans 'Node' %}</th>
@@ -21,11 +46,11 @@
                 <td><a href="{% url "control.mesh_node.detail" pk=node.address %}">{{ node }}</a></td>
                 <td>
                     {{ node.last_messages.CONFIG_FIRMWARE.parsed.get_chip_display }}
-                    rev{{ node.last_messages.CONFIG_FIRMWARE.parsed.revision_major }}.{{ node.last_messages.CONFIG_FIRMWARE.parsed.revision_minor }}
+                    <small>rev{{ node.last_messages.CONFIG_FIRMWARE.parsed.revision_major }}.{{ node.last_messages.CONFIG_FIRMWARE.parsed.revision_minor }}</small>
                 </td>
                 <td>
                     {{ node.last_messages.CONFIG_FIRMWARE.parsed.version }}
-                    (IDF {{ node.last_messages.CONFIG_FIRMWARE.parsed.idf_version }})
+                    <small>(IDF {{ node.last_messages.CONFIG_FIRMWARE.parsed.idf_version }})</small>
                 </td>
                 <td>
                     {% blocktrans trimmed with timesince=node.last_msg|timesince %}
