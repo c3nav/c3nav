@@ -2,7 +2,8 @@ from dataclasses import fields
 
 from django.core.management.base import BaseCommand
 
-from c3nav.mesh.dataformats import normalize_name, LedConfig
+from c3nav.mesh.dataformats import LedConfig
+from c3nav.mesh.baseformats import normalize_name
 from c3nav.mesh.messages import MeshMessage, MeshMessageType
 from c3nav.mesh.utils import indent_c
 
@@ -17,10 +18,11 @@ class Command(BaseCommand):
         name = name.replace('firmware', 'fw')
         return name
 
-    def handle(self, *args, **options):
+    def handle(self,  *args, **options):
         done_struct_names = set()
         nodata = set()
         struct_lines = {}
+        struct_sizes = []
 
         ignore_names = set(field_.name for field_ in fields(MeshMessage))
         for msg_id, msg_type in MeshMessage.get_types().items():
@@ -35,13 +37,13 @@ class Command(BaseCommand):
             )))
             name = "mesh_msg_%s_t" % base_name
 
-            if msg_id == MeshMessageType.CONFIG_LED:
-                msg_type = LedConfig
-
             code = msg_type.get_c_code(name, ignore_fields=ignore_names, no_empty=True)
             if code:
+                size = msg_type.get_min_size(no_inherited_fields=True)
                 struct_lines[base_name] = "%s %s;" % (name, base_name.replace('_announce', ''))
+                struct_sizes.append(size)
                 print(code)
+                print("static_assert(sizeof(%s) == %d, \"size of generated message structs is calculated wrong\");" % (name, size))
                 print()
             else:
                 nodata.add(msg_type)
@@ -50,8 +52,8 @@ class Command(BaseCommand):
         print("typedef union __packed {")
         for line in struct_lines.values():
             print(indent_c(line))
-        print("} mesh_msg_data_t;")
-        print()
+        print("} mesh_msg_data_t; ")
+        print("static_assert(sizeof(mesh_msg_data_t) == %d, \"size of generated message structs is calculated wrong\");" % max(struct_sizes))
 
         max_msg_type = max(MeshMessage.get_types().keys())
         macro_data = []

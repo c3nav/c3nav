@@ -8,9 +8,10 @@ import channels
 from asgiref.sync import async_to_sync
 
 from c3nav.mesh.utils import get_mesh_comm_group, indent_c
-from c3nav.mesh.dataformats import (BoolFormat, FixedStrFormat, FixedHexFormat, LedConfig, LedConfig,
-                                    MacAddressesListFormat, MacAddressFormat, SimpleFormat, VarStrFormat, StructType,
-                                    VarArrayFormat, RangeItemType)
+from c3nav.mesh.dataformats import (LedConfig, LedConfig,
+                                    MacAddressesListFormat, MacAddressFormat, RangeItemType, FirmwareAppDescription)
+from c3nav.mesh.baseformats import SimpleFormat, BoolFormat, FixedStrFormat, FixedHexFormat, VarArrayFormat, \
+    VarStrFormat, StructType
 
 MESH_ROOT_ADDRESS = '00:00:00:00:00:00'
 MESH_PARENT_ADDRESS = '00:00:00:ff:ff:ff'
@@ -31,6 +32,7 @@ class MeshMessageType(IntEnum):
     MESH_ROUTE_REQUEST = 0x07
     MESH_ROUTE_RESPONSE = 0x08
     MESH_ROUTE_TRACE = 0x09
+    MESH_ROUTING_FAILED = 0x0a
 
     CONFIG_DUMP = 0x10
     CONFIG_FIRMWARE = 0x11
@@ -82,12 +84,6 @@ class MeshMessage(StructType, union_type_field="msg_id"):
     @classmethod
     def get_additional_c_fields(self):
         return ()
-
-    @classmethod
-    def get_var_num(cls):
-        return 0
-        # todo: fix
-        return sum((getattr(field.metadata["format"], "var_num", 0) for field in fields(cls)), start=0)
 
     @classmethod
     def get_variable_name(cls, base_name):
@@ -202,6 +198,12 @@ class MeshRouteTraceMessage(MeshMessage, msg_id=MeshMessageType.MESH_ROUTE_TRACE
 
 
 @dataclass
+class MeshRoutingFailedMessage(MeshMessage, msg_id=MeshMessageType.MESH_ROUTING_FAILED):
+    """ TODO description"""
+    address: str = field(metadata={"format": MacAddressFormat()})
+
+
+@dataclass
 class ConfigDumpMessage(MeshMessage, msg_id=MeshMessageType.CONFIG_DUMP):
     """ request for the node to dump its config """
     pass
@@ -216,16 +218,7 @@ class ConfigFirmwareMessage(MeshMessage, msg_id=MeshMessageType.CONFIG_FIRMWARE)
     })
     revision_major: int = field(metadata={"format": SimpleFormat('B')})
     revision_minor: int = field(metadata={"format": SimpleFormat('B')})
-    magic_word: int = field(metadata={"format": SimpleFormat('I')}, repr=False)
-    secure_version: int = field(metadata={"format": SimpleFormat('I')})
-    reserv1: list[int] = field(metadata={"format": SimpleFormat('2I')}, repr=False)
-    version: str = field(metadata={"format": FixedStrFormat(32)})
-    project_name: str = field(metadata={"format": FixedStrFormat(32)})
-    compile_time: str = field(metadata={"format": FixedStrFormat(16)})
-    compile_date: str = field(metadata={"format": FixedStrFormat(16)})
-    idf_version: str = field(metadata={"format": FixedStrFormat(32)})
-    app_elf_sha256: str = field(metadata={"format": FixedHexFormat(32)})
-    reserv2: list[int] = field(metadata={"format": SimpleFormat('20I')}, repr=False)
+    app_desc: FirmwareAppDescription = field(metadata={'json_embed': True})
 
     @classmethod
     def upgrade_json(cls, data):
@@ -259,7 +252,7 @@ class ConfigPositionMessage(MeshMessage, msg_id=MeshMessageType.CONFIG_POSITION)
 @dataclass
 class ConfigLedMessage(MeshMessage, msg_id=MeshMessageType.CONFIG_LED):
     """ set/respond led config """
-    led_config: LedConfig = field(metadata={})
+    led_config: LedConfig = field(metadata={"c_embed": True})
 
 
 @dataclass

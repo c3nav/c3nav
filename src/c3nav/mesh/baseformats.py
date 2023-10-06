@@ -1,23 +1,25 @@
 import re
 import struct
 from abc import ABC, abstractmethod
-from dataclasses import dataclass, field, fields
-from enum import IntEnum, unique, Enum
-from typing import Self, Sequence, Any
+from dataclasses import dataclass, fields, field, Field
+from typing import Any, Sequence, Self
 
 from c3nav.mesh.utils import indent_c
 
-MAC_FMT = '%02x:%02x:%02x:%02x:%02x:%02x'
-
 
 class BaseFormat(ABC):
+
+
+    def get_var_num(self):
+        return 0
+
     @abstractmethod
     def encode(self, value):
         pass
 
     @classmethod
     @abstractmethod
-    def decode(cls, data: bytes) -> tuple[Any, bytes]:
+    def decode(cls, data) -> tuple[Any, bytes]:
         pass
 
     def fromjson(self, data):
@@ -48,9 +50,7 @@ class SimpleFormat(BaseFormat):
         self.num = int(self.fmt[:-1]) if len(self.fmt) > 1 else 1
 
     def encode(self, value):
-        if self.num == 1:
-            return struct.pack(self.fmt, value)
-        return struct.pack(self.fmt, *value)
+        return struct.pack(self.fmt, (value,) if self.num == 1 else tuple(value))
 
     def decode(self, data: bytes) -> tuple[Any, bytes]:
         value = struct.unpack(self.fmt, data[:self.size])
@@ -93,7 +93,7 @@ class FixedStrFormat(SimpleFormat):
         super().__init__('%ds' % self.num)
 
     def encode(self, value: str):
-        return value.encode()[:self.num].ljust(self.num, bytes((0, ))),
+        return value.encode()[:self.num].ljust(self.num, bytes((0,))),
 
     def decode(self, data: bytes) -> tuple[str, bytes]:
         return data[:self.num].rstrip(bytes((0,))).decode(), data[self.num:]
@@ -106,7 +106,7 @@ class FixedHexFormat(SimpleFormat):
         super().__init__('%dB' % self.num)
 
     def encode(self, value: str):
-        return super().encode(tuple(bytes.fromhex(value.replace(':', ''))))
+        return super().encode(tuple(bytes.fromhex(value)))
 
     def decode(self, data: bytes) -> tuple[str, bytes]:
         return self.sep.join(('%02x' % i) for i in data[:self.num]), data[self.num:]
@@ -131,48 +131,43 @@ class VarArrayFormat(BaseVarFormat):
         self.child_type = child_type
         self.child_size = self.child_type.get_min_size()
 
+    def get_var_num(self):
+        return self.child_size
+        pass
+
     def encode(self, values: Sequence) -> bytes:
-        data = struct.pack(self.num_fmt, len(values))
+        data = struct.pack(self.num_fmt, (len(values),))
         for value in values:
             data += self.child_type.encode(value)
         return data
 
     def decode(self, data: bytes) -> tuple[list[Any], bytes]:
         num = struct.unpack(self.num_fmt, data[:self.num_size])[0]
-        data = data[self.num_size:]
-        result = []
-        for i in range(num):
-            item, data = self.child_type.decode(data)
-            result.append(item)
-        return result, data
+        return [
+            self.child_type.decode(data[i:i + self.child_size])
+            for i in range(self.num_size, self.num_size + num * self.child_size, self.child_size)
+        ], data[self.num_size + num * self.child_size:]
 
     def get_c_parts(self):
         pre, post = self.child_type.get_c_parts()
-        return super().get_num_c_code()+"\n"+pre, "[0]"+post
+        return super().get_num_c_code() + "\n" + pre, "[0]" + post
 
 
 class VarStrFormat(BaseVarFormat):
+
+    def get_var_num(self):
+        return 1
+
     def encode(self, value: str) -> bytes:
-        return struct.pack(self.num_fmt, len(str))+value.encode()
+        return struct.pack(self.num_fmt, (len(str),)) + value.encode()
 
     def decode(self, data: bytes) -> tuple[str, bytes]:
         num = struct.unpack(self.num_fmt, data[:self.num_size])[0]
-        return data[self.num_size:self.num_size+num].rstrip(bytes((0,))).decode(), data[self.num_size+num:]
+        return data[self.num_size:self.num_size + num].rstrip(bytes((0,))).decode(), data[self.num_size + num:]
 
     def get_c_parts(self):
-        return super().get_num_c_code()+"\n"+"char", "[0]"
+        return super().get_num_c_code() + "\n" + "char", "[0]"
 
-
-""" TPYES """
-
-def normalize_name(name):
-    if '_' in name:
-        return name.lower()
-    return re.sub(
-        r"([a-z])([A-Z])",
-        r"\1_\2",
-        name
-    ).lower()
 
 @dataclass
 class StructType:
@@ -180,12 +175,27 @@ class StructType:
     union_type_field = None
 
     # noinspection PyMethodOverriding
-    def __init_subclass__(cls, /, union_type_field=None, **kwargs):
+    def __init_subclass__(cls, /, union_type_field=None, no_c_type=False, **kwargs):
         cls.union_type_field = union_type_field
         if union_type_field:
             if union_type_field in cls._union_options:
                 raise TypeError('Duplicate union_type_field: %s', union_type_field)
             cls._union_options[union_type_field] = {}
+            f = getattr(cls, union_type_field)
+            metadata = dict(f.metadata)
+            metadata['union_discriminator'] = True
+            f.metadata = metadata
+            f.repr = False
+            f.init = False
+
+        for attr_name in cls.__dict__.keys():
+            attr = getattr(cls, attr_name)
+            if isinstance(attr, Field):
+                metadata = dict(attr.metadata)
+                if "defining_class" not in metadata:
+                    metadata["defining_class"] = cls
+                attr.metadata = metadata
+
         for key, values in cls._union_options.items():
             value = kwargs.pop(key, None)
             if value is not None:
@@ -196,41 +206,34 @@ class StructType:
         super().__init_subclass__(**kwargs)
 
     @classmethod
-    def get_types(cls):
-        if not cls.union_type_field:
-            raise TypeError('Not a union class')
-        return cls._union_options[cls.union_type_field]
+    def get_var_num(cls):
+        return sum([f.metadata.get("format", f.type).get_var_num() for f in fields(cls)], start=0)
 
     @classmethod
-    def get_type(cls, type_id) -> Self:
-        if not cls.union_type_field:
-            raise TypeError('Not a union class')
-        return cls.get_types()[type_id]
-
-    @classmethod
-    def encode(cls, instance, ignore_fields=()) -> bytes:
+    def encode(cls, instance) -> bytes:
         data = bytes()
         if cls.union_type_field and type(instance) is not cls:
             if not isinstance(instance, cls):
                 raise ValueError('expected value of type %r, got %r' % (cls, instance))
 
-            for field_ in fields(cls):
-                data += field_.metadata["format"].encode(getattr(instance, field_.name))
+            for field_ in fields(instance):
+                if field_.name is cls.union_type_field:
+                    data += field_.metadata["format"].encode(getattr(instance, field_.name))
+                    break
+            else:
+                raise TypeError('couldn\'t find %s value' % cls.union_type_field)
 
-            # todo: better
-            data += instance.encode(instance, ignore_fields=set(f.name for f in fields(cls)))
+            data += instance.encode(instance)
             return data
 
         for field_ in fields(cls):
-            if field_.name in ignore_fields:
-                continue
             value = getattr(instance, field_.name)
             if "format" in field_.metadata:
                 data += field_.metadata["format"].encode(value)
             elif issubclass(field_.type, StructType):
                 if not isinstance(value, field_.type):
                     raise ValueError('expected value of type %r for %s.%s, got %r' %
-                                    (field_.type, cls.__name__, field_.name, value))
+                                     (field_.type, cls.__name__, field_.name, value))
                 data += value.encode(value)
             else:
                 raise TypeError('field %s.%s has no format and is no StructType' %
@@ -238,36 +241,31 @@ class StructType:
         return data
 
     @classmethod
-    def decode(cls, data: bytes) -> tuple[Self, bytes]:
-        orig_data = data
-        kwargs = {}
-        no_init_data = {}
+    def decode(cls, data: bytes) -> Self:
+        values = {}
         for field_ in fields(cls):
             if "format" in field_.metadata:
-                value, data = field_.metadata["format"].decode(data)
+                data = field_.metadata["format"].decode(data)
             elif issubclass(field_.type, StructType):
-                value, data = field_.type.decode(data)
+                data = field_.type.decode(data)
             else:
                 raise TypeError('field %s.%s has no format and is no StructType' %
                                 (cls.__name__, field_.name))
-            if field_.init:
-                kwargs[field_.name] = value
-            else:
-                no_init_data[field_.name] = value
+            values[field_.name] = field_.metadata["format"].decode(data)
 
         if cls.union_type_field:
             try:
-                type_value = no_init_data[cls.union_type_field]
+                type_value = values[cls.union_type_field]
             except KeyError:
                 raise TypeError('union_type_field %s.%s is missing' %
                                 (cls.__name__, cls.union_type_field))
             try:
-                klass = cls.get_type(type_value)
+                klass = cls._union_options[type_value]
             except KeyError:
                 raise TypeError('union_type_field %s.%s value %r no known' %
                                 (cls.__name__, cls.union_type_field, type_value))
-            return klass.decode(orig_data)
-        return cls(**kwargs), data
+            return klass.decode(data)
+        return cls(**values)
 
     @classmethod
     def tojson(cls, instance) -> dict:
@@ -279,7 +277,7 @@ class StructType:
 
             for field_ in fields(instance):
                 if field_.name is cls.union_type_field:
-                    result[field_.name] = field_.metadata["format"].tojson(getattr(instance, field_.name))
+                    result[field_.name] = field_.metadata["format"].encode(getattr(instance, field_.name))
                     break
             else:
                 raise TypeError('couldn\'t find %s value' % cls.union_type_field)
@@ -302,117 +300,128 @@ class StructType:
         return result
 
     @classmethod
-    def upgrade_json(cls, data):
-        return data
-
-    @classmethod
-    def fromjson(cls, data: dict):
+    def fromjson(cls, data):
         data = data.copy()
 
         # todo: upgrade_json
-        cls.upgrade_json(data)
 
         kwargs = {}
-        no_init_data = {}
         for field_ in fields(cls):
-            raw_value = data.get(field_.name, None)
             if "format" in field_.metadata:
-                value = field_.metadata["format"].fromjson(raw_value)
+                data = field_.metadata["format"].decode(data)
             elif issubclass(field_.type, StructType):
-                value = field_.type.fromjson(raw_value)
+                data = field_.type.decode(data)
             else:
                 raise TypeError('field %s.%s has no format and is no StructType' %
                                 (cls.__name__, field_.name))
-            if field_.init:
-                kwargs[field_.name] = value
-            else:
-                no_init_data[field_.name] = value
+            kwargs[field_.name], data = field_.metadata["format"].decode(data)
 
         if cls.union_type_field:
             try:
-                type_value = no_init_data.pop(cls.union_type_field)
+                type_value = kwargs[cls.union_type_field]
             except KeyError:
                 raise TypeError('union_type_field %s.%s is missing' %
                                 (cls.__name__, cls.union_type_field))
             try:
-                klass = cls.get_type(type_value)
+                klass = cls._union_options[type_value]
             except KeyError:
-                raise TypeError('union_type_field %s.%s value 0x%02x no known' %
+                raise TypeError('union_type_field %s.%s value %r no known' %
                                 (cls.__name__, cls.union_type_field, type_value))
             return klass.fromjson(data)
 
         return cls(**kwargs)
 
     @classmethod
-    def get_c_parts(cls, ignore_fields=None, no_empty=False, typedef=False, union_only=False,
-                    union_member_as_types=False):
+    def get_c_struct_items(cls, ignore_fields=None, no_empty=False, top_level=False, union_only=False, in_union=False):
         ignore_fields = set() if not ignore_fields else set(ignore_fields)
 
-        pre = ""
-
         items = []
+
         for field_ in fields(cls):
             if field_.name in ignore_fields:
                 continue
+            if in_union and field_.metadata["defining_class"] != cls:
+                continue
+
             name = field_.metadata.get("c_name", field_.name)
             if "format" in field_.metadata:
-                items.append((
-                    field_.metadata["format"].get_c_code(name),
-                    field_.metadata.get("doc", None),
-                )),
+                if not field_.metadata.get("union_discriminator") or field_.metadata.get("defining_class") == cls:
+                    items.append((
+                        field_.metadata["format"].get_c_code(name),
+                        field_.metadata.get("doc", None),
+                    )),
             elif issubclass(field_.type, StructType):
-                items.append((
-                    field_.type.get_c_code(name, typedef=False),
-                    field_.metadata.get("doc", None),
-                ))
+                if field_.metadata.get("c_embed"):
+                    embedded_items = field_.type.get_c_struct_items(ignore_fields, no_empty, top_level, union_only)
+                    items.extend(embedded_items)
+                else:
+                    items.append((
+                        field_.type.get_c_code(name, typedef=False),
+                        field_.metadata.get("doc", None),
+                    ))
             else:
                 raise TypeError('field %s.%s has no format and is no StructType' %
                                 (cls.__name__, field_.name))
 
         if cls.union_type_field:
-            parent_fields = set(field_.name for field_ in fields(cls))
-            union_items = []
-            for key, option in cls.get_types().items():
-                base_name = normalize_name(getattr(key, 'name', option.__name__))
-                if union_member_as_types:
-                    struct_name = cls.get_struct_name(base_name)
-                    pre += option.get_c_code(
-                        struct_name,
-                        ignore_fields=(ignore_fields | parent_fields),
-                        typedef=True
-                    )+"\n\n"
-                    union_items.append(
-                        "%s %s;" % (struct_name, cls.get_variable_name(base_name)),
-                    )
-                else:
-                    union_items.append(
-                        option.get_c_code(base_name, ignore_fields=(ignore_fields | parent_fields))
-                    )
+            if not union_only:
+                union_code = cls.get_c_union_code(ignore_fields)
+                items.append(("union __packed %s;" % union_code, ""))
+
+        return items
+
+    @classmethod
+    def get_c_union_size(cls):
+        return max(
+            (option.get_min_size(no_inherited_fields=True) for option in
+             cls._union_options[cls.union_type_field].values()),
+            default=0,
+        )
+
+    @classmethod
+    def get_c_union_code(cls, ignore_fields=None):
+        union_items = []
+        for key, option in cls._union_options[cls.union_type_field].items():
+            base_name = normalize_name(getattr(key, 'name', option.__name__))
             union_items.append(
-                "uint8_t bytes[%s];" % max(
-                    (option.get_min_size() for option in cls.get_types().values()),
-                    default=0,
-                )
+                option.get_c_code(base_name, ignore_fields=ignore_fields, typedef=False, in_union=True)
             )
-            union_code = "{\n"+indent_c("\n".join(union_items))+"\n}",
-            if union_only:
-                return "typedef union __packed %s" % union_code, "";
+        size = cls.get_c_union_size()
+        union_items.append(
+            "uint8_t bytes[%0d]; " % size
+        )
+        return "{\n" + indent_c("\n".join(union_items)) + "\n}"
+
+    @classmethod
+    def get_c_parts(cls, ignore_fields=None, no_empty=False, top_level=False, union_only=False, in_union=False):
+        ignore_fields = set() if not ignore_fields else set(ignore_fields)
+
+        if union_only:
+            if cls.union_type_field:
+                union_code = cls.get_c_union_code(ignore_fields)
+                return "typedef union __packed %s" % union_code, ""
             else:
-                items.append(("union %s;" % union_code, ""))
-        elif union_only:
-            return "", ""
+                return "", ""
+
+        pre = ""
+
+        items = cls.get_c_struct_items(ignore_fields=ignore_fields,
+                                       no_empty=no_empty,
+                                       top_level=top_level,
+                                       union_only=union_only,
+                                       in_union=in_union)
 
         if no_empty and not items:
             return "", ""
 
         # todo: struct comment
-        if typedef:
+        if top_level:
             comment = cls.__doc__.strip()
             if comment:
                 pre += "/** %s */\n" % comment
             pre += "typedef struct __packed "
         else:
-            pre += "struct "
+            pre += "struct __packed "
 
         pre += "{\n%(elements)s\n}" % {
             "elements": indent_c(
@@ -426,10 +435,12 @@ class StructType:
 
     @classmethod
     def get_c_code(cls, name=None, ignore_fields=None, no_empty=False, typedef=True, union_only=False,
-                   union_member_as_types=False) -> str:
-        pre, post = cls.get_c_parts(ignore_fields=ignore_fields, no_empty=no_empty, typedef=typedef,
-                                    union_only=union_only, union_member_as_types=union_member_as_types,
-                                    )
+                   in_union=False) -> str:
+        pre, post = cls.get_c_parts(ignore_fields=ignore_fields,
+                                    no_empty=no_empty,
+                                    top_level=typedef,
+                                    union_only=union_only,
+                                    in_union=in_union)
         if no_empty and not pre and not post:
             return ""
         return "%s %s%s;" % (pre, name, post)
@@ -443,66 +454,24 @@ class StructType:
         return "%s_t" % base_name
 
     @classmethod
-    def get_min_size(cls) -> int:
+    def get_min_size(cls, no_inherited_fields=False) -> int:
         if cls.union_type_field:
-            return (
-                {f.name: field for f in fields()}[cls.union_type_field].metadata["format"].get_min_size() +
-                sum((option.get_min_size() for option in cls.get_types().values()), start=0)
-            )
-        return sum((f.metadata.get("format", f.type).get_min_size() for f in fields(cls)), start=0)
+            own_size = sum([f.metadata.get("format", f.type).get_min_size() for f in fields(cls)])
+            union_size = max(
+                [0] + [option.get_min_size(True) for option in cls._union_options[cls.union_type_field].values()])
+            return own_size + union_size
+        if no_inherited_fields:
+            relevant_fields = [f for f in fields(cls) if f.metadata["defining_class"] == cls]
+        else:
+            relevant_fields = [f for f in fields(cls) if not f.metadata.get("union_discriminator")]
+        return sum((f.metadata.get("format", f.type).get_min_size() for f in relevant_fields), start=0)
 
 
-class MacAddressFormat(FixedHexFormat):
-    def __init__(self):
-        super().__init__(num=6, sep=':')
-
-
-class MacAddressesListFormat(VarArrayFormat):
-    def __init__(self):
-        super().__init__(child_type=MacAddressFormat())
-
-
-
-@unique
-class LedType(IntEnum):
-    SERIAL = 1
-    MULTIPIN = 2
-
-
-@dataclass
-class LedConfig(StructType, union_type_field="led_type"):
-    led_type: LedType = field(metadata={"format": SimpleFormat('B')})
-    leds_are_cool: int = field(metadata={"format": SimpleFormat('B')})
-
-
-@dataclass
-class SerialLedConfig(LedConfig, led_type=LedType.SERIAL):
-    gpio: int = field(metadata={"format": SimpleFormat('B')})
-    rmt: int = field(metadata={"format": SimpleFormat('B')})
-
-
-@dataclass
-class MultipinLedConfig(LedConfig, led_type=LedType.MULTIPIN):
-    gpio_red: int = field(metadata={"format": SimpleFormat('B')})
-    gpio_green: int = field(metadata={"format": SimpleFormat('B')})
-    gpio_blue: int = field(metadata={"format": SimpleFormat('B')})
-
-
-@dataclass
-class RangeItemType(StructType):
-    address: str = field(metadata={"format": MacAddressFormat()})
-    distance: int = field(metadata={"format": SimpleFormat('H')})
-
-
-@dataclass
-class FirmwareAppDescription(StructType, no_c_type=True):
-    magic_word: int = field(metadata={"format": SimpleFormat('I')}, repr=False)
-    secure_version: int = field(metadata={"format": SimpleFormat('I')})
-    reserv1: list[int] = field(metadata={"format": SimpleFormat('2I')}, repr=False)
-    version: str = field(metadata={"format": FixedStrFormat(32)})
-    project_name: str = field(metadata={"format": FixedStrFormat(32)})
-    compile_time: str = field(metadata={"format": FixedStrFormat(16)})
-    compile_date: str = field(metadata={"format": FixedStrFormat(16)})
-    idf_version: str = field(metadata={"format": FixedStrFormat(32)})
-    app_elf_sha256: str = field(metadata={"format": FixedHexFormat(32)})
-    reserv2: list[int] = field(metadata={"format": SimpleFormat('20I')}, repr=False)
+def normalize_name(name):
+    if '_' in name:
+        return name.lower()
+    return re.sub(
+        r"([a-z])([A-Z])",
+        r"\1_\2",
+        name
+    ).lower()
