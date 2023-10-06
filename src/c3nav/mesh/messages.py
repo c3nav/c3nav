@@ -67,10 +67,11 @@ class MeshMessage(StructType, union_type_field="msg_id"):
                 raise TypeError('duplicate use of c_struct_name %s' % c_struct_name)
             MeshMessage.c_structs[c_struct_name] = cls
 
-    def send(self, sender=None):
+    def send(self, sender=None, exclude_uplink_address=None):
         async_to_sync(channels.layers.get_channel_layer().group_send)(get_mesh_comm_group(self.dst), {
             "type": "mesh.send",
             "sender": sender,
+            "exclude_uplink_address": exclude_uplink_address,
             "msg": MeshMessage.tojson(self),
         })
 

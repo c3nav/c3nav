@@ -132,7 +132,7 @@ class VarArrayFormat(BaseVarFormat):
         self.child_size = self.child_type.get_min_size()
 
     def encode(self, values: Sequence) -> bytes:
-        data = struct.pack(self.num_fmt, (len(values),))
+        data = struct.pack(self.num_fmt, len(values))
         for value in values:
             data += self.child_type.encode(value)
         return data
@@ -153,7 +153,7 @@ class VarArrayFormat(BaseVarFormat):
 
 class VarStrFormat(BaseVarFormat):
     def encode(self, value: str) -> bytes:
-        return struct.pack(self.num_fmt, (len(str),))+value.encode()
+        return struct.pack(self.num_fmt, len(str))+value.encode()
 
     def decode(self, data: bytes) -> tuple[str, bytes]:
         num = struct.unpack(self.num_fmt, data[:self.num_size])[0]
@@ -238,7 +238,7 @@ class StructType:
         return data
 
     @classmethod
-    def decode(cls, data: bytes) -> Self:
+    def decode(cls, data: bytes) -> tuple[Self, bytes]:
         orig_data = data
         kwargs = {}
         no_init_data = {}
