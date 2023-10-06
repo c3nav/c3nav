@@ -182,7 +182,8 @@ class StructType:
     def __init_subclass__(cls, /, union_type_field=None, existing_c_struct=None, **kwargs):
         cls.union_type_field = union_type_field
         if cls.existing_c_struct is not None:
-            raise TypeError('subclassing an external c struct is not possible') # TODO: can we make it possible? does it even make sense?
+            # TODO: can we make it possible? does it even make sense?
+            raise TypeError('subclassing an external c struct is not possible')
         cls.existing_c_struct = existing_c_struct
         if union_type_field:
             if union_type_field in cls._union_options:

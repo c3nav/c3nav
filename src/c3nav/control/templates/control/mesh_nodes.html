@@ -49,8 +49,8 @@
                     <small>rev{{ node.last_messages.CONFIG_FIRMWARE.parsed.revision_major }}.{{ node.last_messages.CONFIG_FIRMWARE.parsed.revision_minor }}</small>
                 </td>
                 <td>
-                    {{ node.last_messages.CONFIG_FIRMWARE.parsed.version }}
-                    <small>(IDF {{ node.last_messages.CONFIG_FIRMWARE.parsed.idf_version }})</small>
+                    {{ node.last_messages.CONFIG_FIRMWARE.parsed.app_desc.version }}
+                    <small>(IDF {{ node.last_messages.CONFIG_FIRMWARE.parsed.app_desc.idf_version }})</small>
                 </td>
                 <td>
                     {% blocktrans trimmed with timesince=node.last_msg|timesince %}

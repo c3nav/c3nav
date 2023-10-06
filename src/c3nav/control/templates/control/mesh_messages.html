@@ -37,11 +37,11 @@
                     {% if msg.get_message_type_display == "CONFIG_FIRMWARE" %}
                         <strong>Chip:</strong> {{ msg.parsed.get_chip_display }} rev{{ msg.parsed.revision_major }}.{{ msg.parsed.revision_minor }}
                         <br>
-                        <strong>Firmware:</strong> {{ msg.parsed.project_name }} {{ msg.parsed.version }} (IDF {{ msg.parsed.idf_version }})
+                        <strong>Firmware:</strong> {{ msg.parsed.app_desc.project_name }} {{ msg.parsed.app_desc.version }} (IDF {{ msg.parsed.app_desc.idf_version }})
                         <br>
-                        <strong>Compile Date:</strong> {{ msg.parsed.compile_date }} {{ msg.parsed.compile_time }}
+                        <strong>Compile Date:</strong> {{ msg.parsed.app_desc.compile_date }} {{ msg.parsed.app_desc.compile_time }}
                         <br>
-                        <strong>SHA256:</strong> <small>{{ msg.parsed.app_elf_sha256 }}</small>
+                        <strong>SHA256:</strong> <small>{{ msg.parsed.app_desc.app_elf_sha256 }}</small>
 
                     {% elif msg.get_message_type_display == "CONFIG_UPLINK" %}
                         <strong>Enabled:</strong> {{ msg.parsed.enabled }},

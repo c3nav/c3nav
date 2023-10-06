@@ -42,11 +42,11 @@
                 <strong>Chip:</strong> {{ node.last_messages.CONFIG_FIRMWARE.parsed.get_chip_display }}
                 rev{{ node.last_messages.CONFIG_FIRMWARE.parsed.revision_major }}.{{ node.last_messages.CONFIG_FIRMWARE.parsed.revision_minor }}
                 <br>
-                <strong>Firmware:</strong> {{ node.last_messages.CONFIG_FIRMWARE.parsed.project_name }} {{ node.last_messages.CONFIG_FIRMWARE.parsed.version }} (IDF {{ node.last_messages.CONFIG_FIRMWARE.parsed.idf_version }})
+                <strong>Firmware:</strong> {{ node.last_messages.CONFIG_FIRMWARE.parsed.app_desc.project_name }} {{ node.last_messages.CONFIG_FIRMWARE.parsed.version }} (IDF {{ node.last_messages.CONFIG_FIRMWARE.parsed.app_desc.idf_version }})
                 <br>
-                <strong>Compile Date:</strong> {{ node.last_messages.CONFIG_FIRMWARE.parsed.compile_date }} {{ node.last_messages.CONFIG_FIRMWARE.parsed.compile_time }}
+                <strong>Compile Date:</strong> {{ node.last_messages.CONFIG_FIRMWARE.parsed.app_desc.compile_date }} {{ node.last_messages.CONFIG_FIRMWARE.parsed.app_desc.compile_time }}
                 <br>
-                <strong>SHA256:</strong> <small>{{ node.last_messages.CONFIG_FIRMWARE.parsed.app_elf_sha256 }}</small>
+                <strong>SHA256:</strong> <small>{{ node.last_messages.CONFIG_FIRMWARE.parsed.app_desc.app_elf_sha256 }}</small>
             </p>
         </div>
         <div>
