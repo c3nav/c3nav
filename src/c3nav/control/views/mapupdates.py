@@ -10,7 +10,7 @@ from django.shortcuts import redirect, render
 from django.utils.timezone import make_aware
 from django.utils.translation import gettext_lazy as _
 
-from c3nav.control.forms import MapUpdateForm, MapUpdateFilterForm
+from c3nav.control.forms import MapUpdateFilterForm, MapUpdateForm
 from c3nav.control.views.base import control_panel_view
 from c3nav.mapdata.models import MapUpdate
 from c3nav.mapdata.tasks import process_map_updates

@@ -1,7 +1,7 @@
 from dataclasses import dataclass, field
 from enum import IntEnum, unique
 
-from c3nav.mesh.baseformats import FixedHexFormat, VarArrayFormat, StructType, SimpleFormat, FixedStrFormat
+from c3nav.mesh.baseformats import FixedHexFormat, FixedStrFormat, SimpleFormat, StructType, VarArrayFormat
 
 
 class MacAddressFormat(FixedHexFormat):
@@ -12,7 +12,6 @@ class MacAddressFormat(FixedHexFormat):
 class MacAddressesListFormat(VarArrayFormat):
     def __init__(self):
         super().__init__(child_type=MacAddressFormat())
-
 
 
 @unique

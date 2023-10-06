@@ -1,17 +1,15 @@
 import re
-from dataclasses import asdict, dataclass, field, fields, is_dataclass
+from dataclasses import dataclass, field
 from enum import IntEnum, unique
-from itertools import chain
 from typing import TypeVar
 
 import channels
 from asgiref.sync import async_to_sync
 
-from c3nav.mesh.utils import get_mesh_comm_group, indent_c
-from c3nav.mesh.dataformats import (LedConfig, LedConfig,
-                                    MacAddressesListFormat, MacAddressFormat, RangeItemType, FirmwareAppDescription)
-from c3nav.mesh.baseformats import SimpleFormat, BoolFormat, FixedStrFormat, FixedHexFormat, VarArrayFormat, \
-    VarStrFormat, StructType
+from c3nav.mesh.baseformats import BoolFormat, FixedStrFormat, SimpleFormat, StructType, VarArrayFormat, VarStrFormat
+from c3nav.mesh.dataformats import (FirmwareAppDescription, LedConfig, MacAddressesListFormat, MacAddressFormat,
+                                    RangeItemType)
+from c3nav.mesh.utils import get_mesh_comm_group
 
 MESH_ROOT_ADDRESS = '00:00:00:00:00:00'
 MESH_NONE_ADDRESS = '00:00:00:00:00:00'
@@ -19,6 +17,7 @@ MESH_PARENT_ADDRESS = '00:00:00:ff:ff:ff'
 MESH_CHILDREN_ADDRESS = '00:00:00:00:ff:ff'
 MESH_BROADCAST_ADDRESS = 'ff:ff:ff:ff:ff:ff'
 NO_LAYER = 0xFF
+
 
 @unique
 class MeshMessageType(IntEnum):

@@ -8,12 +8,12 @@ from django.http import Http404
 from django.shortcuts import redirect
 from django.urls import reverse
 from django.utils.translation import gettext_lazy as _
-from django.views.generic import ListView, DetailView, FormView, UpdateView, TemplateView
+from django.views.generic import DetailView, FormView, ListView, TemplateView, UpdateView
 
 from c3nav.control.forms import MeshMessageFilterForm
 from c3nav.control.views.base import ControlPanelMixin
 from c3nav.mesh.forms import MeshMessageForm, MeshNodeForm
-from c3nav.mesh.messages import MeshMessageType, MeshMessage
+from c3nav.mesh.messages import MeshMessage, MeshMessageType
 from c3nav.mesh.models import MeshNode, NodeMessage
 from c3nav.mesh.utils import get_node_names
 
@@ -35,7 +35,7 @@ class MeshNodeListView(ControlPanelMixin, ListView):
 
     def post(self, request):
         return redirect(
-            reverse("control.mesh_message.send", kwargs={"msg_type": request.POST.get("send_msg_type", "")})
+            reverse("control.mesh.send", kwargs={"msg_type": request.POST.get("send_msg_type", "")})
         )
 
 
@@ -62,7 +62,7 @@ class MeshNodeEditView(ControlPanelMixin, SuccessMessageMixin, UpdateView):
         }
 
     def get_success_url(self):
-        return reverse('control.mesh_node.detail', kwargs={'pk': self.get_object().pk})
+        return reverse('control.mesh.node.detail', kwargs={'pk': self.get_object().pk})
 
 
 class MeshMessageListView(ControlPanelMixin, ListView):
@@ -130,7 +130,7 @@ class MeshMessageSendView(ControlPanelMixin, FormView):
 
     def get_success_url(self):
         if 'recipient' in self.kwargs and False:
-            return reverse('control.mesh_node.detail', kwargs={'pk': self.kwargs['recipient']})
+            return reverse('control.mesh.node.detail', kwargs={'pk': self.kwargs['recipient']})
         else:
             return self.request.path
 
@@ -145,7 +145,7 @@ class MeshMessageSendView(ControlPanelMixin, FormView):
             "recipients": form.get_recipients(),
             "msg_data": form.get_msg_data(),
         }
-        return redirect(reverse('control.mesh_message.sending', kwargs={'uuid': uuid}))
+        return redirect(reverse('control.mesh.sending', kwargs={'uuid': uuid}))
 
 
 class MeshMessageSendingView(ControlPanelMixin, TemplateView):

@@ -1,15 +1,15 @@
 import traceback
 
 from asgiref.sync import async_to_sync
-from channels.generic.websocket import WebsocketConsumer, JsonWebsocketConsumer
+from channels.generic.websocket import JsonWebsocketConsumer, WebsocketConsumer
 from django.utils import timezone
 
-from c3nav.mesh.utils import get_mesh_comm_group
 from c3nav.mesh import messages
-from c3nav.mesh.messages import MeshMessage, MESH_BROADCAST_ADDRESS, MeshMessageType, MESH_ROOT_ADDRESS, \
-    MESH_NONE_ADDRESS
+from c3nav.mesh.messages import (MESH_BROADCAST_ADDRESS, MESH_NONE_ADDRESS, MESH_ROOT_ADDRESS, MeshMessage,
+                                 MeshMessageType)
 from c3nav.mesh.models import MeshNode, NodeMessage
 from c3nav.mesh.tasks import send_channel_msg
+from c3nav.mesh.utils import get_mesh_comm_group
 
 
 # noinspection PyAttributeOutsideInit
@@ -34,8 +34,8 @@ class MeshConsumer(WebsocketConsumer):
             self.remove_dst_nodes(self.dst_nodes)
 
     def send_msg(self, msg, sender=None, exclude_uplink_address=None):
-        #print("sending", msg, MeshMessage.encode(msg).hex(' ', 1))
-        #self.log_text(msg.dst, "sending %s" % msg)
+        # print("sending", msg, MeshMessage.encode(msg).hex(' ', 1))
+        # self.log_text(msg.dst, "sending %s" % msg)
         self.send(bytes_data=MeshMessage.encode(msg))
         async_to_sync(self.channel_layer.group_send)("mesh_msg_sent", {
             "type": "mesh.msg_sent",
@@ -44,7 +44,7 @@ class MeshConsumer(WebsocketConsumer):
             "sender": sender,
             "uplink": self.uplink_node.address if self.uplink_node else None,
             "recipient": msg.dst,
-            #"msg": msg.tojson(),  # not doing this part for privacy reasons
+            # "msg": msg.tojson(),  # not doing this part for privacy reasons
         })
 
     def receive(self, text_data=None, bytes_data=None):
@@ -81,7 +81,7 @@ class MeshConsumer(WebsocketConsumer):
             print('it\'s a broadcast so it\'s also for us')
             self.log_text(MESH_ROOT_ADDRESS, "received broadcast message, forwarding and handling...")
 
-        #print('Received message:', msg)
+        # print('Received message:', msg)
 
         src_node, created = MeshNode.objects.get_or_create(address=msg.src)
 

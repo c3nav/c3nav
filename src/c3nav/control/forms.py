@@ -9,8 +9,8 @@ from itertools import chain
 import pytz
 from django.contrib.auth.models import User
 from django.db.models import Prefetch
-from django.forms import ChoiceField, Form, IntegerField, ModelForm, Select, MultipleChoiceField, \
-    ModelMultipleChoiceField
+from django.forms import (ChoiceField, Form, IntegerField, ModelForm, ModelMultipleChoiceField, MultipleChoiceField,
+                          Select)
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 from django.utils.translation import ngettext_lazy

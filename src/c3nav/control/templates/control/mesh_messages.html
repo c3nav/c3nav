@@ -31,7 +31,7 @@
         {% for msg in mesh_messages %}
             <tr>
                 <td>{{ msg.datetime.date }} {{ msg.datetime.time|date:"H:i:s" }}</td>
-                <td><a href="{% url "control.mesh_node.detail" pk=msg.src_node.address %}">{{ msg.src_node }}</a></td>
+                <td><a href="{% url "control.mesh.node.detail" pk=msg.src_node.address %}">{{ msg.src_node }}</a></td>
                 <td>{{ msg.get_message_type_display }}</td>
                 <td>
                     {% if msg.get_message_type_display == "CONFIG_FIRMWARE" %}
@@ -76,7 +76,7 @@
                         {% endfor %}
                     {% endif %}
                 </td>
-                <td><a href="{% url "control.mesh_node.detail" pk=msg.uplink_node.address %}">{{ msg.uplink_node }}</a></td>
+                <td><a href="{% url "control.mesh.node.detail" pk=msg.uplink_node.address %}">{{ msg.uplink_node }}</a></td>
             </tr>
         {% endfor %}
     </table>

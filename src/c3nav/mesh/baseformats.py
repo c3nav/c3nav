@@ -1,8 +1,8 @@
 import re
 import struct
 from abc import ABC, abstractmethod
-from dataclasses import dataclass, fields, field, Field
-from typing import Any, Sequence, Self
+from dataclasses import Field, dataclass, fields
+from typing import Any, Self, Sequence
 
 from c3nav.mesh.utils import indent_c
 

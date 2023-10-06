@@ -3,7 +3,7 @@ import string
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User
-from django.db import transaction, IntegrityError
+from django.db import IntegrityError, transaction
 from django.db.models import Prefetch
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
@@ -11,8 +11,8 @@ from django.utils.crypto import get_random_string
 from django.utils.translation import gettext_lazy as _
 from django.views.generic import ListView
 
-from c3nav.control.forms import UserPermissionsForm, AccessPermissionForm, UserSpaceAccessForm
-from c3nav.control.models import UserSpaceAccess, UserPermissions
+from c3nav.control.forms import AccessPermissionForm, UserPermissionsForm, UserSpaceAccessForm
+from c3nav.control.models import UserPermissions, UserSpaceAccess
 from c3nav.control.views.base import ControlPanelMixin, control_panel_view
 from c3nav.mapdata.models import AccessRestriction
 from c3nav.mapdata.models.access import AccessPermission
@@ -35,7 +35,7 @@ class UserListView(ControlPanelMixin, ListView):
 
 @login_required(login_url='site.login')
 @control_panel_view
-def user_detail(request, user):  # todo: make class based view 
+def user_detail(request, user):  # todo: make class based view
     qs = User.objects.select_related(
         'permissions',
     ).prefetch_related(

@@ -2,9 +2,8 @@ from dataclasses import fields
 
 from django.core.management.base import BaseCommand
 
-from c3nav.mesh.dataformats import LedConfig
 from c3nav.mesh.baseformats import normalize_name
-from c3nav.mesh.messages import MeshMessage, MeshMessageType
+from c3nav.mesh.messages import MeshMessage
 from c3nav.mesh.utils import indent_c
 
 
@@ -43,7 +42,8 @@ class Command(BaseCommand):
                 struct_lines[base_name] = "%s %s;" % (name, base_name.replace('_announce', ''))
                 struct_sizes.append(size)
                 print(code)
-                print("static_assert(sizeof(%s) == %d, \"size of generated message structs is calculated wrong\");" % (name, size))
+                print("static_assert(sizeof(%s) == %d, \"size of generated message structs is calculated wrong\");" %
+                      (name, size))
                 print()
             else:
                 nodata.add(msg_type)
@@ -53,7 +53,10 @@ class Command(BaseCommand):
         for line in struct_lines.values():
             print(indent_c(line))
         print("} mesh_msg_data_t; ")
-        print("static_assert(sizeof(mesh_msg_data_t) == %d, \"size of generated message structs is calculated wrong\");" % max(struct_sizes))
+        print(
+            "static_assert(sizeof(mesh_msg_data_t) == %d, \"size of generated message structs is calculated wrong\");"
+            % max(struct_sizes)
+        )
 
         max_msg_type = max(MeshMessage.get_types().keys())
         macro_data = []

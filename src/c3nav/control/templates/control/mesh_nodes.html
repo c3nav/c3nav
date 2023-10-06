@@ -7,7 +7,7 @@
     <div class="columns">
         <div>
             <h4>View messages</h4>
-            <a class="button" href="{% url "control.mesh_messages" %}">
+            <a class="button" href="{% url "control.mesh.messages" %}">
                 {% trans 'View received messages' %}
             </a>
         </div>
@@ -26,7 +26,7 @@
         </div>
         <div>
             <h4>Logs</h4>
-            <a class="button" href="{% url "control.mesh_log" %}">
+            <a class="button" href="{% url "control.mesh.log" %}">
                 {% trans 'View log' %}
             </a>
         </div>
@@ -43,7 +43,7 @@
         </tr>
         {% for node in nodes %}
             <tr>
-                <td><a href="{% url "control.mesh_node.detail" pk=node.address %}">{{ node }}</a></td>
+                <td><a href="{% url "control.mesh.node.detail" pk=node.address %}">{{ node }}</a></td>
                 <td>
                     {{ node.last_messages.CONFIG_FIRMWARE.parsed.get_chip_display }}
                     <small>rev{{ node.last_messages.CONFIG_FIRMWARE.parsed.revision_major }}.{{ node.last_messages.CONFIG_FIRMWARE.parsed.revision_minor }}</small>
@@ -62,7 +62,7 @@
                         {{ timesince }} ago
                     {% endblocktrans %}
                 </td>
-                <td><a href="{% url "control.mesh_node.detail" pk=node.uplink.address %}">{{ node.uplink }}</a></td>
+                <td><a href="{% url "control.mesh.node.detail" pk=node.uplink.address %}">{{ node.uplink }}</a></td>
             </tr>
         {% endfor %}
     </table>

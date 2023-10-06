@@ -7,7 +7,7 @@ from django.http import Http404
 from django.utils.translation import gettext_lazy as _
 
 from c3nav.mesh.dataformats import LedConfig
-from c3nav.mesh.messages import MeshMessageType, MeshMessage, MESH_ROOT_ADDRESS, MESH_BROADCAST_ADDRESS
+from c3nav.mesh.messages import MESH_BROADCAST_ADDRESS, MESH_ROOT_ADDRESS, MeshMessage, MeshMessageType
 from c3nav.mesh.models import MeshNode
 
 

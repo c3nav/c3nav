@@ -1,12 +1,14 @@
 from collections import UserDict
 from functools import cached_property
 from operator import attrgetter
-from typing import Mapping, Self, Any
+from typing import Any, Mapping, Self
 
-from django.db import models, NotSupportedError
+from django.db import NotSupportedError, models
 from django.utils.translation import gettext_lazy as _
 
-from c3nav.mesh.messages import MeshMessageType, ChipType, MeshMessage as MeshMessage
+from c3nav.mesh.messages import ChipType
+from c3nav.mesh.messages import MeshMessage as MeshMessage
+from c3nav.mesh.messages import MeshMessageType
 
 
 class MeshNodeQuerySet(models.QuerySet):
@@ -41,6 +43,7 @@ class MeshNodeQuerySet(models.QuerySet):
                     node.last_messages["any"] = max(node.last_messages.values(), key=attrgetter("datetime"))
             except NotSupportedError:
                 pass
+
 
 class LastMessagesByTypeLookup(UserDict):
     def __init__(self, node):
