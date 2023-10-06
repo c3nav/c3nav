@@ -14,7 +14,9 @@ from c3nav.mesh.baseformats import SimpleFormat, BoolFormat, FixedStrFormat, Fix
     VarStrFormat, StructType
 
 MESH_ROOT_ADDRESS = '00:00:00:00:00:00'
+MESH_NONE_ADDRESS = '00:00:00:00:00:00'
 MESH_PARENT_ADDRESS = '00:00:00:ff:ff:ff'
+MESH_CHILDREN_ADDRESS = '00:00:00:00:ff:ff'
 MESH_BROADCAST_ADDRESS = 'ff:ff:ff:ff:ff:ff'
 NO_LAYER = 0xFF
 

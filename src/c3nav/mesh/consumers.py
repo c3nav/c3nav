@@ -6,8 +6,10 @@ from django.utils import timezone
 
 from c3nav.mesh.utils import get_mesh_comm_group
 from c3nav.mesh import messages
-from c3nav.mesh.messages import MeshMessage, MESH_BROADCAST_ADDRESS, MeshMessageType, MESH_ROOT_ADDRESS
+from c3nav.mesh.messages import MeshMessage, MESH_BROADCAST_ADDRESS, MeshMessageType, MESH_ROOT_ADDRESS, \
+    MESH_NONE_ADDRESS
 from c3nav.mesh.models import MeshNode, NodeMessage
+from c3nav.mesh.tasks import send_channel_msg
 
 
 # noinspection PyAttributeOutsideInit
@@ -17,6 +19,7 @@ class MeshConsumer(WebsocketConsumer):
         self.uplink_node = None
         self.log_text(None, "new mesh websocket connection")
         self.dst_nodes = set()
+        self.open_requests = set()
         self.accept()
 
     def disconnect(self, close_code):
@@ -135,11 +138,18 @@ class MeshConsumer(WebsocketConsumer):
             else:
                 # todo: find a way to send a "no route" message if there is no route
                 self.log_text(MESH_ROOT_ADDRESS, "requesting route response responsible uplink")
+                self.open_requests.add(msg.request_id)
                 async_to_sync(self.channel_layer.group_send)(get_mesh_comm_group(msg.address), {
                     "type": "mesh.send_route_response",
                     "request_id": msg.request_id,
+                    "channel": self.channel_name,
                     "dst": msg.src,
                 })
+                send_channel_msg.apply_async(self.channel_name, {
+                    "type": "mesh.no_route_response",
+                    "request_id": msg.request_id,
+                    "dst": msg.src,
+                }, countdown=5)
 
     def mesh_uplink_consumer(self, data):
         # message handler: if we are not the given uplink, leave this group
@@ -173,6 +183,26 @@ class MeshConsumer(WebsocketConsumer):
             dst=data["dst"],
             request_id=data["request_id"],
             route=self.uplink_node.address,
+        ).send()
+        async_to_sync(self.channel_layer.send)(data["channel"], {
+            "type": "mesh.route_response_sent",
+            "request_id": data["request_id"],
+        })
+
+    def mesh_route_response_sent(self, data):
+        self.open_requests.discard(data["request_id"])
+
+    def mesh_no_route_response(self, data):
+        print('no route response check')
+        if data["request_id"] not in self.open_requests:
+            print('a route was sent')
+            return
+        print('sending no route')
+        messages.MeshRouteResponseMessage(
+            src=MESH_ROOT_ADDRESS,
+            dst=data["dst"],
+            request_id=data["request_id"],
+            route=MESH_NONE_ADDRESS,
         ).send()
 
     def log_received_message(self, src_node: MeshNode, msg: messages.MeshMessage):
