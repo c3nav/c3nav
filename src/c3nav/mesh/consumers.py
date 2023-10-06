@@ -145,11 +145,11 @@ class MeshConsumer(WebsocketConsumer):
                     "channel": self.channel_name,
                     "dst": msg.src,
                 })
-                send_channel_msg.apply_async(self.channel_name, {
+                send_channel_msg.apply_async((self.channel_name, {
                     "type": "mesh.no_route_response",
                     "request_id": msg.request_id,
                     "dst": msg.src,
-                }, countdown=5)
+                }), countdown=5)
 
     def mesh_uplink_consumer(self, data):
         # message handler: if we are not the given uplink, leave this group
