@@ -35,6 +35,9 @@
                 <a class="button" href="{% url "control.mesh.messages" %}?src_nodes={{ node.address }}">
                     {% trans 'View messages' %}
                 </a>
+                <a class="button" href="{% url "control.mesh.send" msg_type="MESH_ROUTE_REQUEST" %}?address={{ node.address }}" >
+                    {% trans 'Find route' %}
+                </a>
             </p>
 
             <h4>Firmware</h4>

@@ -7,7 +7,7 @@
             Send {{ msg_type }} message to {{ recipient }}
         {% endblocktrans %}
     {% else %}
-        {% blocktrans trimmed with msg_type=form.msg_type %}
+        {% blocktrans trimmed with msg_type=form.msg_type.name %}
             Send {{ msg_type }} message
         {% endblocktrans %}
     {% endif %}

@@ -120,12 +120,17 @@ class MeshMessageSendView(ControlPanelMixin, FormView):
         if 'recipient' in self.kwargs and self.msg_type.name.startswith('CONFIG_'):
             try:
                 node = MeshNode.objects.get(address=self.kwargs['recipient'])
+                return {}
             except MeshNode.DoesNotExist:
                 pass
             else:
                 return MeshMessage.get_type(self.msg_type).tojson(
                     node.last_messages[self.msg_type].parsed
                 )
+
+        if 'address' in self.request.GET and self.msg_type == MeshMessageType.MESH_ROUTE_REQUEST:
+            return {"address": self.request.GET["address"]}
+
         return {}
 
     def get_success_url(self):
