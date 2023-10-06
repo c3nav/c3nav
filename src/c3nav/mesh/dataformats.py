@@ -45,7 +45,7 @@ class RangeItemType(StructType):
 
 
 @dataclass
-class FirmwareAppDescription(StructType, no_c_type=True):
+class FirmwareAppDescription(StructType, existing_c_struct="esp_app_desc_t"):
     magic_word: int = field(metadata={"format": SimpleFormat('I')}, repr=False)
     secure_version: int = field(metadata={"format": SimpleFormat('I')})
     reserv1: list[int] = field(metadata={"format": SimpleFormat('2I')}, repr=False)

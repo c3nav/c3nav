@@ -176,10 +176,14 @@ class VarStrFormat(BaseVarFormat):
 class StructType:
     _union_options = {}
     union_type_field = None
+    existing_c_struct = None
 
     # noinspection PyMethodOverriding
-    def __init_subclass__(cls, /, union_type_field=None, no_c_type=False, **kwargs):
+    def __init_subclass__(cls, /, union_type_field=None, existing_c_struct=None, **kwargs):
         cls.union_type_field = union_type_field
+        if cls.existing_c_struct is not None:
+            raise TypeError('subclassing an external c struct is not possible') # TODO: can we make it possible? does it even make sense?
+        cls.existing_c_struct = existing_c_struct
         if union_type_field:
             if union_type_field in cls._union_options:
                 raise TypeError('Duplicate union_type_field: %s', union_type_field)
@@ -312,7 +316,12 @@ class StructType:
                 if not isinstance(value, field_.type):
                     raise ValueError('expected value of type %r for %s.%s, got %r' %
                                      (field_.type, cls.__name__, field_.name, value))
-                result[field_.name] = value.tojson(value)
+                json_val = value.tojson(value)
+                if field_.metadata.get("json_embed"):
+                    for k, v in json_val.items():
+                        result[k] = v
+                else:
+                    result[field_.name] = value.tojson(value)
             else:
                 raise TypeError('field %s.%s has no format and is no StructType' %
                                 (cls.__class__.__name__, field_.name))
@@ -336,7 +345,10 @@ class StructType:
             if "format" in field_.metadata:
                 value = field_.metadata["format"].fromjson(raw_value)
             elif issubclass(field_.type, StructType):
-                value = field_.type.fromjson(raw_value)
+                if field_.metadata.get("json_embed"):
+                    value = field_.type.fromjson(data)
+                else:
+                    value = field_.type.fromjson(raw_value)
             else:
                 raise TypeError('field %s.%s has no format and is no StructType' %
                                 (cls.__name__, field_.name))
@@ -465,6 +477,9 @@ class StructType:
     @classmethod
     def get_c_code(cls, name=None, ignore_fields=None, no_empty=False, typedef=True, union_only=False,
                    in_union=False) -> str:
+        if cls.existing_c_struct is not None:
+            return "%s %s;" % (cls.existing_c_struct, name)
+
         pre, post = cls.get_c_parts(ignore_fields=ignore_fields,
                                     no_empty=no_empty,
                                     top_level=typedef,
