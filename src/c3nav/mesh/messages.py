@@ -41,7 +41,8 @@ class MeshMessageType(IntEnum):
     CONFIG_LED = 0x13
     CONFIG_UPLINK = 0x14
 
-    LOCATE_REPORT_RANGE = 0x20
+    LOCATE_REQUEST_RANGE = 0x20
+    LOCATE_RANGE_RESULTS = 0x21
 
 
 M = TypeVar('M', bound='MeshMessage')
@@ -270,6 +271,12 @@ class ConfigUplinkMessage(MeshMessage, msg_id=MeshMessageType.CONFIG_UPLINK):
 
 
 @dataclass
-class LocateReportRangeMessage(MeshMessage, msg_id=MeshMessageType.LOCATE_REPORT_RANGE):
-    """ report distance to given nodes """
+class LocateRequestRangeMessage(MeshMessage, msg_id=MeshMessageType.LOCATE_REQUEST_RANGE):
+    """ request to report distance to all nearby nodes """
+    pass
+
+
+@dataclass
+class LocateRangeResults(MeshMessage, msg_id=MeshMessageType.LOCATE_RANGE_RESULTS):
+    """ reports distance to given nodes """
     ranges: dict[str, int] = field(metadata={"format": VarArrayFormat(RangeItemType)})
