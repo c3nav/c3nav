@@ -1,7 +1,8 @@
 from dataclasses import dataclass, field
 from enum import IntEnum, unique
 
-from c3nav.mesh.baseformats import FixedHexFormat, FixedStrFormat, SimpleFormat, StructType, VarArrayFormat
+from c3nav.mesh.baseformats import (BoolFormat, EnumFormat, FixedHexFormat, FixedStrFormat, SimpleFormat, StructType,
+                                    VarArrayFormat)
 
 
 class MacAddressFormat(FixedHexFormat):
@@ -16,19 +17,29 @@ class MacAddressesListFormat(VarArrayFormat):
 
 @unique
 class LedType(IntEnum):
+    NONE = 0
     SERIAL = 1
     MULTIPIN = 2
 
 
+@unique
+class SerialLedType(IntEnum):
+    WS2812 = 1
+    SK6812 = 2
+
+
 @dataclass
 class LedConfig(StructType, union_type_field="led_type"):
-    led_type: LedType = field(metadata={"format": SimpleFormat('B')})
+    """
+    configuration for an optional connected status LED
+    """
+    led_type: LedType = field(metadata={"format": EnumFormat(), "c_name": "type"})
 
 
 @dataclass
 class SerialLedConfig(LedConfig, led_type=LedType.SERIAL):
+    serial_led_type: SerialLedType = field(metadata={"format": EnumFormat(), "c_name": "type"})
     gpio: int = field(metadata={"format": SimpleFormat('B')})
-    rmt: int = field(metadata={"format": SimpleFormat('B')})
 
 
 @dataclass
@@ -36,6 +47,72 @@ class MultipinLedConfig(LedConfig, led_type=LedType.MULTIPIN):
     gpio_red: int = field(metadata={"format": SimpleFormat('B')})
     gpio_green: int = field(metadata={"format": SimpleFormat('B')})
     gpio_blue: int = field(metadata={"format": SimpleFormat('B')})
+
+
+@dataclass
+class UWBConfig(StructType):
+    """
+    configuration for the connection to the UWB module
+    """
+    enable: bool = field(metadata={"format": BoolFormat()})
+    gpio_miso: int = field(metadata={"format": SimpleFormat('B')})
+    gpio_mosi: int = field(metadata={"format": SimpleFormat('B')})
+    gpio_clk: int = field(metadata={"format": SimpleFormat('B')})
+    gpio_cs: int = field(metadata={"format": SimpleFormat('B')})
+    gpio_irq: int = field(metadata={"format": SimpleFormat('B')})
+    gpio_rst: int = field(metadata={"format": SimpleFormat('B')})
+    gpio_wakeup: int = field(metadata={"format": SimpleFormat('B')})
+    gpio_exton: int = field(metadata={"format": SimpleFormat('B')})
+
+
+@unique
+class BoardType(IntEnum):
+    CUSTOM = 0x00
+
+    # devboards
+    ESP32_C3_DEVKIT_M_1 = 0x01
+    ESP32_C3_32S = 2
+
+    # custom boards
+    C3NAV_UWB_BOARD = 0x10
+    C3NAV_LOCATION_PCB_REV_0_1 = 0x11
+    C3NAV_LOCATION_PCB_REV_0_2 = 0x12
+
+
+@dataclass
+class BoardConfig(StructType, union_type_field="board"):
+    board: BoardType = field(metadata={"format": EnumFormat(as_hex=True)})
+
+
+@dataclass
+class CustomBoardConfig(StructType, board=BoardType.CUSTOM):
+    uwb: UWBConfig = field(metadata={"as_definition": True})
+    led: LedConfig = field(metadata={"as_definition": True})
+
+
+@dataclass
+class DevkitMBoardConfig(StructType, board=BoardType.ESP32_C3_DEVKIT_M_1):
+    uwb: UWBConfig = field(metadata={"as_definition": True})
+
+
+@dataclass
+class Esp32SBoardConfig(StructType, board=BoardType.ESP32_C3_32S):
+    uwb: UWBConfig = field(metadata={"as_definition": True})
+
+
+@dataclass
+class UwbBoardConfig(StructType, board=BoardType.C3NAV_UWB_BOARD):
+    pass
+
+
+@dataclass
+class LocationPCBRev0Dot1BoardConfig(StructType, board=BoardType.C3NAV_LOCATION_PCB_REV_0_1):
+    pass
+
+
+@dataclass
+class LocationPCBRev0Dot2BoardConfig(StructType, board=BoardType.C3NAV_LOCATION_PCB_REV_0_2):
+    pass
 
 
 @dataclass

@@ -10,18 +10,12 @@ from c3nav.mesh.utils import indent_c
 class Command(BaseCommand):
     help = 'export mesh message structs for c code'
 
-    def shorten_name(self, name):
-        name = name.replace('config', 'cfg')
-        name = name.replace('position', 'pos')
-        name = name.replace('mesh_', '')
-        name = name.replace('firmware', 'fw')
-        return name
-
     def handle(self,  *args, **options):
         done_struct_names = set()
         nodata = set()
         struct_lines = {}
         struct_sizes = []
+        done_definitions = set()
 
         ignore_names = set(field_.name for field_ in fields(MeshMessage))
         for msg_id, msg_type in MeshMessage.get_types().items():
@@ -31,10 +25,16 @@ class Command(BaseCommand):
                 done_struct_names.add(msg_type.c_struct_name)
                 msg_type = MeshMessage.c_structs[msg_type.c_struct_name]
 
-            base_name = (msg_type.c_struct_name or self.shorten_name(normalize_name(
+            base_name = (msg_type.c_struct_name or normalize_name(
                 getattr(msg_id, 'name', msg_type.__name__)
-            )))
+            ))
             name = "mesh_msg_%s_t" % base_name
+
+            for definition_name, definition in msg_type.get_c_definitions().items():
+                if definition_name not in done_definitions:
+                    done_definitions.add(definition_name)
+                    print(definition)
+                    print()
 
             code = msg_type.get_c_code(name, ignore_fields=ignore_names, no_empty=True)
             if code:
@@ -58,14 +58,16 @@ class Command(BaseCommand):
             % max(struct_sizes)
         )
 
+        print()
+
         max_msg_type = max(MeshMessage.get_types().keys())
         macro_data = []
         for i in range(((max_msg_type//16)+1)*16):
             msg_type = MeshMessage.get_types().get(i, None)
             if msg_type:
-                name = (msg_type.c_struct_name or self.shorten_name(normalize_name(
+                name = (msg_type.c_struct_name or normalize_name(
                     getattr(msg_type.msg_id, 'name', msg_type.__name__)
-                )))
+                ))
                 macro_data.append((
                     msg_type.get_c_enum_name()+',',
                     ("nodata" if msg_type in nodata else name)+',',

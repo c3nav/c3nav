@@ -1,4 +1,3 @@
-import re
 from dataclasses import dataclass, field
 from enum import IntEnum, unique
 from typing import TypeVar
@@ -6,8 +5,9 @@ from typing import TypeVar
 import channels
 from asgiref.sync import async_to_sync
 
-from c3nav.mesh.baseformats import BoolFormat, FixedStrFormat, SimpleFormat, StructType, VarArrayFormat, VarStrFormat
-from c3nav.mesh.dataformats import (FirmwareAppDescription, LedConfig, MacAddressesListFormat, MacAddressFormat,
+from c3nav.mesh.baseformats import (BoolFormat, FixedStrFormat, SimpleFormat, StructType, VarArrayFormat, VarStrFormat,
+                                    normalize_name)
+from c3nav.mesh.dataformats import (BoardConfig, FirmwareAppDescription, MacAddressesListFormat, MacAddressFormat,
                                     RangeItemType)
 from c3nav.mesh.utils import get_mesh_comm_group
 
@@ -36,10 +36,11 @@ class MeshMessageType(IntEnum):
     MESH_ROUTING_FAILED = 0x0a
 
     CONFIG_DUMP = 0x10
-    CONFIG_FIRMWARE = 0x11
-    CONFIG_POSITION = 0x12
-    CONFIG_LED = 0x13
+    CONFIG_HARDWARE = 0x11
+    CONFIG_BOARD = 0x12
+    CONFIG_FIRMWARE = 0x13
     CONFIG_UPLINK = 0x14
+    CONFIG_POSITION = 0x15
 
     LOCATE_REQUEST_RANGE = 0x20
     LOCATE_RANGE_RESULTS = 0x21
@@ -92,16 +93,8 @@ class MeshMessage(StructType, union_type_field="msg_id"):
         return cls.c_struct_name or base_name
 
     @classmethod
-    def get_struct_name(cls, base_name):
-        return "mesh_msg_%s_t" % base_name
-
-    @classmethod
     def get_c_enum_name(cls):
-        return re.sub(
-            r"([a-z])([A-Z])",
-            r"\1_\2",
-            cls.__name__.removeprefix('Mesh').removesuffix('Message')
-        ).upper().replace('CONFIG', 'CFG').replace('FIRMWARE', 'FW').replace('POSITION', 'POS')
+        return normalize_name(cls.__name__.removeprefix('Mesh').removesuffix('Message')).upper()
 
 
 @dataclass
@@ -212,35 +205,35 @@ class ConfigDumpMessage(MeshMessage, msg_id=MeshMessageType.CONFIG_DUMP):
 
 
 @dataclass
-class ConfigFirmwareMessage(MeshMessage, msg_id=MeshMessageType.CONFIG_FIRMWARE):
-    """ respond firmware info """
+class ConfigHardwareMessage(MeshMessage, msg_id=MeshMessageType.CONFIG_HARDWARE):
+    """ respond hardware/chip info """
     chip: int = field(metadata={
         "format": SimpleFormat('H'),
         "c_name": "chip_id",
     })
     revision_major: int = field(metadata={"format": SimpleFormat('B')})
     revision_minor: int = field(metadata={"format": SimpleFormat('B')})
-    app_desc: FirmwareAppDescription = field(metadata={'json_embed': True})
-
-    @classmethod
-    def upgrade_json(cls, data):
-        if 'revision' in data:
-            data['revision_major'], data['revision_minor'] = data.pop('revision')
-        return data
 
     def get_chip_display(self):
         return ChipType(self.chip).name.replace('_', '-')
 
-    @classmethod
-    def get_ignore_c_fields(self):
-        return {
-            "magic_word", "secure_version", "reserv1", "version", "project_name",
-            "compile_time", "compile_date", "idf_version", "app_elf_sha256", "reserv2"
-        }
 
-    @classmethod
-    def get_additional_c_fields(self):
-        return ("esp_app_desc_t app_desc;", )
+@unique
+class BoardType(IntEnum):
+    SERIAL = 1
+    MULTIPIN = 2
+
+
+@dataclass
+class ConfigBoardMessage(MeshMessage, msg_id=MeshMessageType.CONFIG_BOARD):
+    """ set/respond board config """
+    board_config: BoardConfig = field(metadata={"c_embed": True})
+
+
+@dataclass
+class ConfigFirmwareMessage(MeshMessage, msg_id=MeshMessageType.CONFIG_FIRMWARE):
+    """ respond firmware info """
+    app_desc: FirmwareAppDescription = field(metadata={'json_embed': True})
 
 
 @dataclass
@@ -249,12 +242,6 @@ class ConfigPositionMessage(MeshMessage, msg_id=MeshMessageType.CONFIG_POSITION)
     x_pos: int = field(metadata={"format": SimpleFormat('i')})
     y_pos: int = field(metadata={"format": SimpleFormat('i')})
     z_pos: int = field(metadata={"format": SimpleFormat('h')})
-
-
-@dataclass
-class ConfigLedMessage(MeshMessage, msg_id=MeshMessageType.CONFIG_LED):
-    """ set/respond led config """
-    led_config: LedConfig = field(metadata={"c_embed": True})
 
 
 @dataclass

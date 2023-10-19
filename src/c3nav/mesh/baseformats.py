@@ -39,6 +39,15 @@ class BaseFormat(ABC):
         pre, post = self.get_c_parts()
         return "%s %s%s;" % (pre, name, post)
 
+    def set_field_type(self, field_type):
+        self.field_type = field_type
+
+    def get_c_definitions(self) -> dict[str, str]:
+        return {}
+
+    def get_typedef_name(self):
+        return '%s_t' % normalize_name(self.field_type.__name__)
+
 
 class SimpleFormat(BaseFormat):
     def __init__(self, fmt):
@@ -74,6 +83,44 @@ class SimpleFormat(BaseFormat):
 
     def get_c_parts(self):
         return self.c_type, ("" if self.num == 1 else ("[%d]" % self.num))
+
+
+class EnumFormat(SimpleFormat):
+    def __init__(self, as_hex=False):
+        super().__init__("B")
+        self.as_hex = as_hex
+
+    def set_field_type(self, field_type):
+        super().set_field_type(field_type)
+        self.c_struct_name = normalize_name(field_type.__name__)+'_t'
+
+    def decode(self, data: bytes) -> tuple[Any, bytes]:
+        value, out_data = super().decode(data)
+        return self.field_type(value), out_data
+
+    def get_c_parts(self):
+        return self.c_struct_name, ""
+
+    def get_c_definitions(self) -> dict[str, str]:
+        prefix = normalize_name(self.field_type.__name__).upper()
+        options = []
+        last_value = None
+        for item in self.field_type:
+            if last_value is not None and item.value != last_value+1:
+                options.append('')
+            last_value = item.value
+            options.append("%(prefix)s_%(name)s = %(value)s," % {
+                "prefix": prefix,
+                "name": normalize_name(item.name).upper(),
+                "value": ("0x%02x" if self.as_hex else "%d") % item.value
+            })
+
+        return {
+            self.c_struct_name: "enum {\n%(options)s\n};\ntypedef uint8_t %(name)s;" % {
+                "options": indent_c("\n".join(options)),
+                "name": self.c_struct_name,
+            }
+        }
 
 
 class BoolFormat(SimpleFormat):
@@ -202,6 +249,9 @@ class StructType:
                 metadata = dict(attr.metadata)
                 if "defining_class" not in metadata:
                     metadata["defining_class"] = cls
+                    if "format" in metadata:
+                        metadata["format"].set_field_type(cls.__annotations__[attr_name])
+
                 attr.metadata = metadata
 
         for key, values in cls._union_options.items():
@@ -389,7 +439,14 @@ class StructType:
             if "format" in field_.metadata:
                 if not field_.metadata.get("union_discriminator") or field_.metadata.get("defining_class") == cls:
                     items.append((
-                        field_.metadata["format"].get_c_code(name),
+                        (
+                            ("%(typedef_name)s %(name)s;" % {
+                                "typedef_name": field_.metadata["format"].get_typedef_name(),
+                                "name": name,
+                            })
+                            if field_.metadata.get("as_definition")
+                            else field_.metadata["format"].get_c_code(name)
+                        ),
                         field_.metadata.get("doc", None),
                     )),
             elif issubclass(field_.type, StructType):
@@ -398,9 +455,16 @@ class StructType:
                     items.extend(embedded_items)
                 else:
                     items.append((
-                        field_.type.get_c_code(name, typedef=False),
+                        (
+                            ("%(typedef_name)s %(name)s;" % {
+                                "typedef_name": field_.type.get_typedef_name(),
+                                "name": name,
+                            })
+                            if field_.metadata.get("as_definition")
+                            else field_.type.get_c_code(name, typedef=False)
+                        ),
                         field_.metadata.get("doc", None),
-                    ))
+                    )),
             else:
                 raise TypeError('field %s.%s has no format and is no StructType' %
                                 (cls.__name__, field_.name))
@@ -421,13 +485,40 @@ class StructType:
         )
 
     @classmethod
+    def get_c_definitions(cls) -> dict[str, str]:
+        definitions = {}
+        for field_ in fields(cls):
+            if "format" in field_.metadata:
+                definitions.update(field_.metadata["format"].get_c_definitions())
+                if field_.metadata.get("as_definition"):
+                    typedef_name = field_.metadata["format"].get_typedef_name()
+                    definitions[typedef_name] = 'typedef %(code)s %(name)s;' % {
+                        "code": ''.join(field_.metadata["format"].get_c_parts()),
+                        "name": typedef_name,
+                    }
+            elif issubclass(field_.type, StructType):
+                definitions.update(field_.type.get_c_definitions())
+                if field_.metadata.get("as_definition"):
+                    typedef_name = field_.type.get_typedef_name()
+                    definitions[typedef_name] = field_.type.get_c_code(name=typedef_name, typedef=True)
+            else:
+                raise TypeError('field %s.%s has no format and is no StructType' %
+                                (cls.__name__, field_.name))
+        if cls.union_type_field:
+            for key, option in cls._union_options[cls.union_type_field].items():
+                definitions.update(option.get_c_definitions())
+        return definitions
+
+    @classmethod
     def get_c_union_code(cls, ignore_fields=None):
         union_items = []
         for key, option in cls._union_options[cls.union_type_field].items():
             base_name = normalize_name(getattr(key, 'name', option.__name__))
-            union_items.append(
-                option.get_c_code(base_name, ignore_fields=ignore_fields, typedef=False, in_union=True)
+            item_c_code = option.get_c_code(
+                base_name, ignore_fields=ignore_fields, typedef=False, in_union=True, no_empty=True
             )
+            if item_c_code:
+                union_items.append(item_c_code)
         size = cls.get_c_union_size()
         union_items.append(
             "uint8_t bytes[%0d]; " % size
@@ -495,8 +586,8 @@ class StructType:
         return base_name
 
     @classmethod
-    def get_struct_name(cls, base_name):
-        return "%s_t" % base_name
+    def get_typedef_name(cls):
+        return "%s_t" % normalize_name(cls.__name__)
 
     @classmethod
     def get_min_size(cls, no_inherited_fields=False) -> int:
@@ -514,9 +605,16 @@ class StructType:
 
 def normalize_name(name):
     if '_' in name:
-        return name.lower()
-    return re.sub(
-        r"([a-z])([A-Z])",
-        r"\1_\2",
-        name
-    ).lower()
+        name = name.lower()
+    else:
+        name = re.sub(
+            r"([a-zA-Z])([A-Z][a-z])",
+            r"\1_\2",
+            name
+        ).lower()
+    name = name.replace('config', 'cfg')
+    name = name.replace('position', 'pos')
+    name = name.replace('mesh_', '')
+    name = name.replace('firmware', 'fw')
+    name = name.replace('hardware', 'hw')
+    return name
