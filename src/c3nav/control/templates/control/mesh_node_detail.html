@@ -40,11 +40,13 @@
                 </a>
             </p>
 
+            <h4>Hardware</h4>
+            <p>
+                <strong>Chip:</strong> {{ node.last_messages.CONFIG_HARDWARE.parsed.get_chip_display }}
+                rev{{ node.last_messages.CONFIG_HARDWARE.parsed.revision_major }}.{{ node.last_messages.CONFIG_HARDWARE.parsed.revision_minor }}
+            </p>
             <h4>Firmware</h4>
             <p>
-                <strong>Chip:</strong> {{ node.last_messages.CONFIG_FIRMWARE.parsed.get_chip_display }}
-                rev{{ node.last_messages.CONFIG_FIRMWARE.parsed.revision_major }}.{{ node.last_messages.CONFIG_FIRMWARE.parsed.revision_minor }}
-                <br>
                 <strong>Firmware:</strong> {{ node.last_messages.CONFIG_FIRMWARE.parsed.app_desc.project_name }} {{ node.last_messages.CONFIG_FIRMWARE.parsed.version }} (IDF {{ node.last_messages.CONFIG_FIRMWARE.parsed.app_desc.idf_version }})
                 <br>
                 <strong>Compile Date:</strong> {{ node.last_messages.CONFIG_FIRMWARE.parsed.app_desc.compile_date }} {{ node.last_messages.CONFIG_FIRMWARE.parsed.app_desc.compile_time }}

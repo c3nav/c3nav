@@ -45,8 +45,8 @@
             <tr>
                 <td><a href="{% url "control.mesh.node.detail" pk=node.address %}">{{ node }}</a></td>
                 <td>
-                    {{ node.last_messages.CONFIG_FIRMWARE.parsed.get_chip_display }}
-                    <small>rev{{ node.last_messages.CONFIG_FIRMWARE.parsed.revision_major }}.{{ node.last_messages.CONFIG_FIRMWARE.parsed.revision_minor }}</small>
+                    {{ node.last_messages.CONFIG_HARDWARE.parsed.get_chip_display }}
+                    <small>rev{{ node.last_messages.CONFIG_HARDWARE.parsed.revision_major }}.{{ node.last_messages.CONFIG_HARDWARE.parsed.revision_minor }}</small>
                 </td>
                 <td>
                     {{ node.last_messages.CONFIG_FIRMWARE.parsed.app_desc.version }}

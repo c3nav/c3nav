@@ -34,9 +34,10 @@
                 <td><a href="{% url "control.mesh.node.detail" pk=msg.src_node.address %}">{{ msg.src_node }}</a></td>
                 <td>{{ msg.get_message_type_display }}</td>
                 <td>
-                    {% if msg.get_message_type_display == "CONFIG_FIRMWARE" %}
+                    {% if msg.get_message_type_display == "CONFIG_HARDWARE" %}
                         <strong>Chip:</strong> {{ msg.parsed.get_chip_display }} rev{{ msg.parsed.revision_major }}.{{ msg.parsed.revision_minor }}
-                        <br>
+
+                    {% elif msg.get_message_type_display == "CONFIG_FIRMWARE" %}
                         <strong>Firmware:</strong> {{ msg.parsed.app_desc.project_name }} {{ msg.parsed.app_desc.version }} (IDF {{ msg.parsed.app_desc.idf_version }})
                         <br>
                         <strong>Compile Date:</strong> {{ msg.parsed.app_desc.compile_date }} {{ msg.parsed.app_desc.compile_time }}

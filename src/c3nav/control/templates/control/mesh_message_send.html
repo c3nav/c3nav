@@ -16,8 +16,42 @@
 {% block subcontent %}
     <form method="POST" style="max-width:400px;">
         {% csrf_token %}
-        {{ form }}
-        <noscript><input type="hidden" name="noscript" value"1"></noscript>
+        {{ form.as_div }}
+        {{ form.conditionals | json_script:"form-conditionals" }}
+        <noscript><input type="hidden" name="noscript" value="1"></noscript>
+        <script>
+            var form_conditionals = JSON.parse(document.getElementById('form-conditionals').innerHTML)
+            function update_form() {
+                var field, other_field, value, show;
+                for (field of document.querySelectorAll("select, input[name]")) {
+                    show = true;
+                    for (elem of form_conditionals) {
+                        if (field.name.startsWith(elem.prefix)) {
+                            other_field = document.getElementsByName(elem.field)[0];
+                            value = (other_field.type == "checkbox") ? other_field.checked : other_field.value;
+
+                            console.log({"field": field.name, "filter": elem, "value": value});
+                            if (!elem.values.includes(value)) {
+                                console.log('no show');
+                                show = false;
+                                break;
+                            }
+                        }
+                    }
+                    field.parentNode.style.display = show ? "" : "none";
+                }
+            }
+            var done_fields = [];
+            for (elem of form_conditionals) {
+                if (done_fields.includes(elem.field)) continue;
+                done_fields.push(elem.field);
+                field = document.getElementsByName(elem.field)[0];
+                field.addEventListener("input", update_form);
+                field.addEventListener("change", update_form);
+
+            }
+            update_form();
+        </script>
         <button type="submit">{% trans 'Send' %}</button>
     </form>
 

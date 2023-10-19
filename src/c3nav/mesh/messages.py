@@ -227,7 +227,7 @@ class BoardType(IntEnum):
 @dataclass
 class ConfigBoardMessage(MeshMessage, msg_id=MeshMessageType.CONFIG_BOARD):
     """ set/respond board config """
-    board_config: BoardConfig = field(metadata={"c_embed": True})
+    board_config: BoardConfig = field(metadata={"c_embed": True, "json_embed": True})
 
 
 @dataclass
