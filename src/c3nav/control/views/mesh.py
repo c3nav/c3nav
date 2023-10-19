@@ -145,10 +145,6 @@ class MeshMessageSendView(ControlPanelMixin, FormView):
             messages.success(self.request, _('Message sent successfully(?)'))
             super().form_valid(form)
         uuid = uuid4()
-        from pprint import pprint
-        pprint(form.get_msg_data())
-        pprint(MeshMessage.fromjson(form.get_msg_data()))
-        1/0
         self.request.session["mesh_msg_%s" % uuid] = {
             "success_url": self.get_success_url(),
             "recipients": form.get_recipients(),

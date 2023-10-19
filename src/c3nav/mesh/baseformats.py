@@ -101,6 +101,12 @@ class EnumFormat(SimpleFormat):
     def get_c_parts(self):
         return self.c_struct_name, ""
 
+    def fromjson(self, data):
+        return self.field_type[data]
+
+    def tojson(self, data):
+        return data.name
+
     def get_c_definitions(self) -> dict[str, str]:
         prefix = normalize_name(self.field_type.__name__).upper()
         options = []

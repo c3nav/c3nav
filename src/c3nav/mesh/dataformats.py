@@ -37,6 +37,11 @@ class LedConfig(StructType, union_type_field="led_type"):
 
 
 @dataclass
+class NoLedConfig(LedConfig, led_type=LedType.NONE):
+    pass
+
+
+@dataclass
 class SerialLedConfig(LedConfig, led_type=LedType.SERIAL):
     serial_led_type: SerialLedType = field(metadata={"format": EnumFormat(), "c_name": "type"})
     gpio: int = field(metadata={"format": SimpleFormat('B')})

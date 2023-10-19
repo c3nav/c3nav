@@ -1,12 +1,11 @@
 import time
-from dataclasses import fields as dataclass_fields
 
 from django import forms
 from django.core.exceptions import ValidationError
 from django.http import Http404
 from django.utils.translation import gettext_lazy as _
 
-from c3nav.mesh.dataformats import LedConfig, LedType, SerialLedType, BoardType, BoardConfig
+from c3nav.mesh.dataformats import BoardConfig, BoardType, LedType, SerialLedType
 from c3nav.mesh.messages import MESH_BROADCAST_ADDRESS, MESH_ROOT_ADDRESS, MeshMessage, MeshMessageType
 from c3nav.mesh.models import MeshNode
 
@@ -125,11 +124,11 @@ class ConfigBoardMessageForm(MeshMessageForm):
     msg_type = MeshMessageType.CONFIG_BOARD
 
     # todo: don't use numerical values
-    board = forms.ChoiceField(choices=((item.value, item.name) for item in BoardType),
+    board = forms.ChoiceField(choices=((item.name, item.name) for item in BoardType),
                               label=_('board'))
-    led_type = forms.ChoiceField(choices=((item.value, item.name) for item in LedType),
+    led_type = forms.ChoiceField(choices=((item.name, item.name) for item in LedType),
                                  label=_('LED type'))
-    led_serial_type = forms.ChoiceField(choices=((item.value or '', item.name) for item in SerialLedType),
+    led_serial_type = forms.ChoiceField(choices=((item.name, item.name) for item in SerialLedType),
                                         label=_('serial LED type'), help_text=_('serial LED only'))
     # todo: make this use the modern messages
     led_serial_gpio = forms.IntegerField(min_value=0, max_value=48, required=False,
@@ -142,15 +141,15 @@ class ConfigBoardMessageForm(MeshMessageForm):
                                              label=_('multpin LED GPIO blue'), help_text=_('multipin LED only'))
 
     uwb_enable = forms.BooleanField(required=False, label=_('UWB enable'))
-    uwb_gpio_miso = forms.IntegerField(min_value=-1, max_value=48, required=False,
+    uwb_gpio_miso = forms.IntegerField(min_value=0, max_value=48, required=False,
                                        label=_('UWB GPIO MISO'), help_text=_('UWB only'))
-    uwb_gpio_mosi = forms.IntegerField(min_value=-1, max_value=48, required=False,
+    uwb_gpio_mosi = forms.IntegerField(min_value=0, max_value=48, required=False,
                                        label=_('UWB GPIO MOSI'), help_text=_('UWB only'))
-    uwb_gpio_clk = forms.IntegerField(min_value=-1, max_value=48, required=False,
+    uwb_gpio_clk = forms.IntegerField(min_value=0, max_value=48, required=False,
                                       label=_('UWB GPIO CLK'), help_text=_('UWB only'))
-    uwb_gpio_cs = forms.IntegerField(min_value=-1, max_value=48, required=False,
+    uwb_gpio_cs = forms.IntegerField(min_value=0, max_value=48, required=False,
                                      label=_('UWB GPIO CS'), help_text=_('UWB only'))
-    uwb_gpio_irq = forms.IntegerField(min_value=-1, max_value=48, required=False,
+    uwb_gpio_irq = forms.IntegerField(min_value=0, max_value=48, required=False,
                                       label=_('UWB GPIO IRQ'), help_text=_('UWB only'))
     uwb_gpio_rst = forms.IntegerField(min_value=-1, max_value=48, required=False,
                                       label=_('UWB GPIO RST'), help_text=_('UWB only'))
@@ -164,25 +163,25 @@ class ConfigBoardMessageForm(MeshMessageForm):
             "prefix": "led_",
             "field": "board",
             "values": tuple(
-                str(cfg.board.value) for cfg in BoardConfig._union_options["board"].values()
+                cfg.board.name for cfg in BoardConfig._union_options["board"].values()
                 if "led" in cfg.__dataclass_fields__
             ),
         },
         {
             "prefix": "led_serial_",
             "field": "led_type",
-            "values": (str(LedType.SERIAL.value),),
+            "values": (LedType.SERIAL.name,),
         },
         {
             "prefix": "led_multipin_",
             "field": "led_type",
-            "values": (str(LedType.MULTIPIN.value),),
+            "values": (LedType.MULTIPIN.name,),
         },
         {
             "prefix": "uwb_",
             "field": "board",
             "values": tuple(
-                str(cfg.board.value) for cfg in BoardConfig._union_options["board"].values()
+                cfg.board.name for cfg in BoardConfig._union_options["board"].values()
                 if "uwb" in cfg.__dataclass_fields__
             ),
         },
@@ -196,43 +195,58 @@ class ConfigBoardMessageForm(MeshMessageForm):
     def clean(self):
         cleaned_data = super().clean()
 
-        led_type = int(cleaned_data["led_type"])
+        board_cfg = BoardConfig._union_options["board"][BoardType[cleaned_data["board"]]]
+        has_led = "led" in board_cfg.__dataclass_fields__
+        has_uwb = "uwb" in board_cfg.__dataclass_fields__
 
-        if led_type:
-            required_fields = set(field.name for field in dataclass_fields(LedConfig.ledconfig_types[led_type]))
-        else:
-            required_fields = set()
-
-        errors = {}
-        led_config = {
-            "led_type": led_type
+        led_values = {
+            "led_type": cleaned_data.pop("led_type"),
+            **{
+                name.removeprefix('led_'): cleaned_data.pop(name)
+                for name in tuple(cleaned_data.keys())
+                if name.startswith('led_')
+            }
+        }
+        uwb_values = {
+            name.removeprefix('uwb_'): cleaned_data.pop(name)
+            for name in tuple(cleaned_data.keys())
+            if name.startswith('uwb_')
         }
 
-        """for key, value in cleaned_data.items():
-            if key == "recipients":
-                continue
-            if value and key not in required_fields:
-                errors[key] = _("this field is not allowed for this LED type")
+        errors = {}
 
-        for key in required_fields:
-            value = cleaned_data.pop(key, "")
-            if value == "":
-                errors[key] = _("this field is required for this LED type")
-            led_config[key] = value"""
+        if has_led:
+            prefix = led_values["led_type"].lower()+'_'
+            cleaned_data["led"] = {
+                "led_type": led_values["led_type"],
+                **{
+                    name.removeprefix(prefix): value
+                    for name, value in led_values.items()
+                    if name.startswith(prefix)
+                }
+            }
+            for key, value in tuple(cleaned_data["led"].items()):
+                if value is None:
+                    field_name = f'led_{prefix}{key}'
+                    if self.fields[field_name].min_value == -1:
+                        cleaned_data[key] = -1
+                    else:
+                        errors[field_name] = _('this field is required')
 
-        cleaned_data["led_config"] = led_config
+        if has_uwb:
+            cleaned_data["uwb"] = uwb_values
+            for key, value in tuple(cleaned_data["uwb"].items()):
+                if value is None:
+                    field_name = f'uwb_{key}'
+                    if self.fields[field_name].min_value == -1 or not cleaned_data["uwb"]["enable"]:
+                        cleaned_data[key] = -1
+                    else:
+                        errors[field_name] = _('this field is required')
 
         if errors:
             raise ValidationError(errors)
 
         return cleaned_data
-
-    def get_cleaned_msg_data(self):
-        msg_data = super().get_cleaned_msg_data().copy()
-        msg_data = {
-            "led_config": msg_data["led_config"],
-        }
-        return msg_data
 
     def __init__(self, *args, initial=None, **kwargs):
         if initial:
