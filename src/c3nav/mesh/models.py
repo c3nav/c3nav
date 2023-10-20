@@ -70,7 +70,7 @@ class LastMessagesByTypeLookup(UserDict):
             return self.data[key]
         except KeyError:
             pass
-        msg = self.node.received_messages.filter(message_type=key).order_by('-datetime', '-pk').first()
+        msg = self.node.received_messages.filter(message_type=key.name).order_by('-datetime', '-pk').first()
         self.data[key] = msg
         return msg
 
