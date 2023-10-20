@@ -56,6 +56,11 @@
                 {% endif %}
 
             </p>
+            <p>
+                <a class="button" href="{% url "control.mesh.send" recipient=node.address msg_type="CONFIG_BOARD" %}">
+                    {% trans 'Chaange board settings' %}
+                </a>
+            </p>
             <h4>Firmware</h4>
             <p>
                 <strong>Firmware:</strong> {{ node.last_messages.CONFIG_FIRMWARE.parsed.app_desc.project_name }} {{ node.last_messages.CONFIG_FIRMWARE.parsed.version }} (IDF {{ node.last_messages.CONFIG_FIRMWARE.parsed.app_desc.idf_version }})
@@ -88,16 +93,6 @@
             </p>
             <p>
                 <a class="button" href="{% url "control.mesh.send" recipient=node.address msg_type="CONFIG_POSITION" %}">
-                    {% trans 'Change' %}
-                </a>
-            </p>
-
-            <h4>LED config</h4>
-            <p>
-                {{ node.last_messages.CONFIG_LED.parsed.led_config }}
-            </p>
-            <p>
-                <a class="button" href="{% url "control.mesh.send" recipient=node.address msg_type="CONFIG_LED" %}">
                     {% trans 'Change' %}
                 </a>
             </p>

@@ -248,11 +248,6 @@ class ConfigBoardMessageForm(MeshMessageForm):
 
         return cleaned_data
 
-    def __init__(self, *args, initial=None, **kwargs):
-        if initial:
-            initial.update(initial.pop('led_config'))
-        super().__init__(*args, initial=initial, **kwargs)
-
 
 class ConfigPositionMessageForm(MeshMessageForm):
     msg_type = MeshMessageType.CONFIG_POSITION

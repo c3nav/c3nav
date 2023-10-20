@@ -120,13 +120,18 @@ class MeshMessageSendView(ControlPanelMixin, FormView):
         if 'recipient' in self.kwargs and self.msg_type.name.startswith('CONFIG_'):
             try:
                 node = MeshNode.objects.get(address=self.kwargs['recipient'])
-                return {}
             except MeshNode.DoesNotExist:
                 pass
             else:
-                return MeshMessage.get_type(self.msg_type).tojson(
+                initial = MeshMessage.get_type(self.msg_type).tojson(
                     node.last_messages[self.msg_type].parsed
                 )
+                while keys := tuple(key for key, value in initial.items() if isinstance(value, dict)):
+                    for key in keys:
+                        subdict = initial.pop(key)
+                        for subkey, value in subdict.items():
+                            initial[key+"_"+subkey.removeprefix(key).lstrip('_')] = value
+                return initial
 
         if 'address' in self.request.GET and self.msg_type == MeshMessageType.MESH_ROUTE_REQUEST:
             return {"address": self.request.GET["address"]}
