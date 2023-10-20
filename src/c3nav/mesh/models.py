@@ -25,7 +25,7 @@ class MeshNodeQuerySet(models.QuerySet):
     def prefetch_last_messages(self, *types: MeshMessageType):
         clone = self._chain()
         clone._prefetch_last_messages |= (
-            set(types) if types else set(msgtype.value for msgtype in MeshMessageType)
+            set(types) if types else set(msgtype for msgtype in MeshMessageType)
         )
         return clone
 
@@ -35,7 +35,7 @@ class MeshNodeQuerySet(models.QuerySet):
             nodes = {node.pk: node for node in self._result_cache}
             try:
                 for message in NodeMessage.objects.order_by('message_type', 'src_node', '-datetime', '-pk').filter(
-                        message_type__in=self._prefetch_last_messages,
+                        message_type__in=(t.name for t in self._prefetch_last_messages),
                         src_node__in=nodes.keys(),
                 ).prefetch_related("uplink_node").distinct('message_type', 'src_node'):
                     nodes[message.src_node_id].last_messages[message.message_type] = message
@@ -101,13 +101,13 @@ class MeshNode(models.Model):
 
 
 class NodeMessage(models.Model):
-    MESSAGE_TYPES = [(msgtype.value, msgtype.name) for msgtype in MeshMessageType]
+    MESSAGE_TYPES = [(msgtype.name, msgtype.pretty_name) for msgtype in MeshMessageType]
     src_node = models.ForeignKey('MeshNode', models.PROTECT,
                                  related_name='received_messages', verbose_name=_('node'))
     uplink_node = models.ForeignKey('MeshNode', models.PROTECT,
                                     related_name='relayed_messages', verbose_name=_('uplink node'))
     datetime = models.DateTimeField(_('datetime'), db_index=True, auto_now_add=True)
-    message_type = models.SmallIntegerField(_('message type'), db_index=True, choices=MESSAGE_TYPES)
+    message_type = models.CharField(_('message type'), max_length=24, db_index=True, choices=MESSAGE_TYPES)
     data = models.JSONField(_('message data'))
 
     def __str__(self):
