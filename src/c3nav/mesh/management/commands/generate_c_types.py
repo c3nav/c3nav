@@ -18,27 +18,27 @@ class Command(BaseCommand):
         done_definitions = set()
 
         ignore_names = set(field_.name for field_ in fields(MeshMessage))
-        for msg_id, msg_type in MeshMessage.get_types().items():
-            if msg_type.c_struct_name:
-                if msg_type.c_struct_name in done_struct_names:
+        for msg_type, msg_class in MeshMessage.get_types().items():
+            if msg_class.c_struct_name:
+                if msg_class.c_struct_name in done_struct_names:
                     continue
-                done_struct_names.add(msg_type.c_struct_name)
-                msg_type = MeshMessage.c_structs[msg_type.c_struct_name]
+                done_struct_names.add(msg_class.c_struct_name)
+                msg_class = MeshMessage.c_structs[msg_class.c_struct_name]
 
-            base_name = (msg_type.c_struct_name or normalize_name(
-                getattr(msg_id, 'name', msg_type.__name__)
+            base_name = (msg_class.c_struct_name or normalize_name(
+                getattr(msg_type, 'name', msg_class.__name__)
             ))
             name = "mesh_msg_%s_t" % base_name
 
-            for definition_name, definition in msg_type.get_c_definitions().items():
+            for definition_name, definition in msg_class.get_c_definitions().items():
                 if definition_name not in done_definitions:
                     done_definitions.add(definition_name)
                     print(definition)
                     print()
 
-            code = msg_type.get_c_code(name, ignore_fields=ignore_names, no_empty=True)
+            code = msg_class.get_c_code(name, ignore_fields=ignore_names, no_empty=True)
             if code:
-                size = msg_type.get_min_size(no_inherited_fields=True)
+                size = msg_class.get_min_size(no_inherited_fields=True)
                 struct_lines[base_name] = "%s %s;" % (name, base_name.replace('_announce', ''))
                 struct_sizes.append(size)
                 print(code)
@@ -46,7 +46,7 @@ class Command(BaseCommand):
                       (name, size))
                 print()
             else:
-                nodata.add(msg_type)
+                nodata.add(msg_class)
 
         print("/** union between all message data structs */")
         print("typedef union __packed {")
@@ -63,16 +63,16 @@ class Command(BaseCommand):
         max_msg_type = max(MeshMessage.get_types().keys())
         macro_data = []
         for i in range(((max_msg_type//16)+1)*16):
-            msg_type = MeshMessage.get_types().get(i, None)
-            if msg_type:
-                name = (msg_type.c_struct_name or normalize_name(
-                    getattr(msg_type.msg_id, 'name', msg_type.__name__)
+            msg_class = MeshMessage.get_types().get(i, None)
+            if msg_class:
+                name = (msg_class.c_struct_name or normalize_name(
+                    getattr(msg_class.msg_type, 'name', msg_class.__name__)
                 ))
                 macro_data.append((
-                    msg_type.get_c_enum_name()+',',
-                    ("nodata" if msg_type in nodata else name)+',',
-                    msg_type.get_var_num(),
-                    msg_type.__doc__.strip(),
+                    msg_class.get_c_enum_name()+',',
+                    ("nodata" if msg_class in nodata else name)+',',
+                    msg_class.get_var_num(),
+                    msg_class.__doc__.strip(),
                 ))
             else:
                 macro_data.append((

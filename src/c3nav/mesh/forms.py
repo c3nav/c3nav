@@ -72,7 +72,7 @@ class MeshMessageForm(forms.Form):
             raise Exception('nope')
 
         return {
-            'msg_id': self.msg_type,
+            'msg_type': self.msg_type.name,
             'src': MESH_ROOT_ADDRESS,
             **self.get_cleaned_msg_data(),
         }

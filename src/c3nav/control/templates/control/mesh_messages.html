@@ -69,7 +69,7 @@
 
                     {% else %}
                         {% for key, value in msg.data.items %}
-                            {% if key != "src" and key != "dst" and key != "msg_id" %}
+                            {% if key != "src" and key != "dst" and key != "msg_type" %}
                             <div class="mesh-msg-data mesh-msg-type-{{ key }}">
                                 <strong>{{ key }}</strong>: {{ value }}
                             </div>

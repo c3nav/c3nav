@@ -217,7 +217,7 @@ class MeshConsumer(WebsocketConsumer):
         NodeMessage.objects.create(
             uplink_node=self.uplink_node,
             src_node=src_node,
-            message_type=msg.msg_id,
+            message_type=msg.msg_type.name,
             data=as_json,
         )
 
@@ -325,7 +325,7 @@ class MeshUIConsumer(JsonWebsocketConsumer):
             async_to_sync(self.channel_layer.group_add)("mesh_msg_sent", self.channel_name)
             self.msg_sent_filter = {"sender": self.channel_name}
 
-            if msg_to_send["msg_data"]["msg_id"] == MeshMessageType.MESH_ROUTE_REQUEST:
+            if msg_to_send["msg_data"]["msg_type"] == MeshMessageType.MESH_ROUTE_REQUEST.name:
                 async_to_sync(self.channel_layer.group_add)("mesh_msg_received", self.channel_name)
                 self.msg_received_filter = {"request_id": msg_to_send["msg_data"]["request_id"]}
 

@@ -47,7 +47,11 @@ class MeshMessageType(IntEnum):
 
     @property
     def pretty_name(self):
-        return self.name.replace('_', ' ').title()
+        name = self.name.replace('_', ' ').lower()
+        if name.startswith('config'):
+            name = name.removeprefix('config').strip()+' config'
+        name.replace('ota', 'OTA')
+        return name
 
 
 M = TypeVar('M', bound='MeshMessage')
@@ -64,10 +68,10 @@ class ChipType(IntEnum):
 
 
 @dataclass
-class MeshMessage(StructType, union_type_field="msg_id"):
+class MeshMessage(StructType, union_type_field="msg_type"):
     dst: str = field(metadata={"format": MacAddressFormat()})
     src: str = field(metadata={"format": MacAddressFormat()})
-    msg_id: int = field(metadata={"format": SimpleFormat('B')}, init=False, repr=False)
+    msg_type: MeshMessageType = field(metadata={"format": EnumFormat('B')}, init=False, repr=False)
     c_structs = {}
     c_struct_name = None
 
@@ -106,7 +110,7 @@ class MeshMessage(StructType, union_type_field="msg_id"):
 
 
 @dataclass
-class NoopMessage(MeshMessage, msg_id=MeshMessageType.NOOP):
+class NoopMessage(MeshMessage, msg_type=MeshMessageType.NOOP):
     """ noop """
     pass
 
@@ -122,25 +126,25 @@ class BaseEchoMessage(MeshMessage, c_struct_name="echo"):
 
 
 @dataclass
-class EchoRequestMessage(BaseEchoMessage, msg_id=MeshMessageType.ECHO_REQUEST):
+class EchoRequestMessage(BaseEchoMessage, msg_type=MeshMessageType.ECHO_REQUEST):
     """ repeat back string """
     pass
 
 
 @dataclass
-class EchoResponseMessage(BaseEchoMessage, msg_id=MeshMessageType.ECHO_RESPONSE):
+class EchoResponseMessage(BaseEchoMessage, msg_type=MeshMessageType.ECHO_RESPONSE):
     """ repeat back string """
     pass
 
 
 @dataclass
-class MeshSigninMessage(MeshMessage, msg_id=MeshMessageType.MESH_SIGNIN):
+class MeshSigninMessage(MeshMessage, msg_type=MeshMessageType.MESH_SIGNIN):
     """ node says hello to upstream node """
     pass
 
 
 @dataclass
-class MeshLayerAnnounceMessage(MeshMessage, msg_id=MeshMessageType.MESH_LAYER_ANNOUNCE):
+class MeshLayerAnnounceMessage(MeshMessage, msg_type=MeshMessageType.MESH_LAYER_ANNOUNCE):
     """ upstream node announces layer number """
     layer: int = field(metadata={
         "format": SimpleFormat('B'),
@@ -159,19 +163,19 @@ class BaseDestinationsMessage(MeshMessage, c_struct_name="destinations"):
 
 
 @dataclass
-class MeshAddDestinationsMessage(BaseDestinationsMessage, msg_id=MeshMessageType.MESH_ADD_DESTINATIONS):
+class MeshAddDestinationsMessage(BaseDestinationsMessage, msg_type=MeshMessageType.MESH_ADD_DESTINATIONS):
     """ downstream node announces served destination """
     pass
 
 
 @dataclass
-class MeshRemoveDestinationsMessage(BaseDestinationsMessage, msg_id=MeshMessageType.MESH_REMOVE_DESTINATIONS):
+class MeshRemoveDestinationsMessage(BaseDestinationsMessage, msg_type=MeshMessageType.MESH_REMOVE_DESTINATIONS):
     """ downstream node announces no longer served destination """
     pass
 
 
 @dataclass
-class MeshRouteRequestMessage(MeshMessage, msg_id=MeshMessageType.MESH_ROUTE_REQUEST):
+class MeshRouteRequestMessage(MeshMessage, msg_type=MeshMessageType.MESH_ROUTE_REQUEST):
     """ request routing information for node """
     request_id: int = field(metadata={"format": SimpleFormat('I')})
     address: str = field(metadata={
@@ -181,7 +185,7 @@ class MeshRouteRequestMessage(MeshMessage, msg_id=MeshMessageType.MESH_ROUTE_REQ
 
 
 @dataclass
-class MeshRouteResponseMessage(MeshMessage, msg_id=MeshMessageType.MESH_ROUTE_RESPONSE):
+class MeshRouteResponseMessage(MeshMessage, msg_type=MeshMessageType.MESH_ROUTE_RESPONSE):
     """ reporting the routing table entry to the given address """
     request_id: int = field(metadata={"format": SimpleFormat('I')})
     route: str = field(metadata={
@@ -191,7 +195,7 @@ class MeshRouteResponseMessage(MeshMessage, msg_id=MeshMessageType.MESH_ROUTE_RE
 
 
 @dataclass
-class MeshRouteTraceMessage(MeshMessage, msg_id=MeshMessageType.MESH_ROUTE_TRACE):
+class MeshRouteTraceMessage(MeshMessage, msg_type=MeshMessageType.MESH_ROUTE_TRACE):
     """ special message, collects all hop adresses on its way """
     request_id: int = field(metadata={"format": SimpleFormat('I')})
     trace: list[str] = field(default_factory=list, metadata={
@@ -201,19 +205,19 @@ class MeshRouteTraceMessage(MeshMessage, msg_id=MeshMessageType.MESH_ROUTE_TRACE
 
 
 @dataclass
-class MeshRoutingFailedMessage(MeshMessage, msg_id=MeshMessageType.MESH_ROUTING_FAILED):
+class MeshRoutingFailedMessage(MeshMessage, msg_type=MeshMessageType.MESH_ROUTING_FAILED):
     """ TODO description"""
     address: str = field(metadata={"format": MacAddressFormat()})
 
 
 @dataclass
-class ConfigDumpMessage(MeshMessage, msg_id=MeshMessageType.CONFIG_DUMP):
+class ConfigDumpMessage(MeshMessage, msg_type=MeshMessageType.CONFIG_DUMP):
     """ request for the node to dump its config """
     pass
 
 
 @dataclass
-class ConfigHardwareMessage(MeshMessage, msg_id=MeshMessageType.CONFIG_HARDWARE):
+class ConfigHardwareMessage(MeshMessage, msg_type=MeshMessageType.CONFIG_HARDWARE):
     """ respond hardware/chip info """
     chip: ChipType = field(metadata={
         "format": EnumFormat("H"),
@@ -227,19 +231,19 @@ class ConfigHardwareMessage(MeshMessage, msg_id=MeshMessageType.CONFIG_HARDWARE)
 
 
 @dataclass
-class ConfigBoardMessage(MeshMessage, msg_id=MeshMessageType.CONFIG_BOARD):
+class ConfigBoardMessage(MeshMessage, msg_type=MeshMessageType.CONFIG_BOARD):
     """ set/respond board config """
     board_config: BoardConfig = field(metadata={"c_embed": True, "json_embed": True})
 
 
 @dataclass
-class ConfigFirmwareMessage(MeshMessage, msg_id=MeshMessageType.CONFIG_FIRMWARE):
+class ConfigFirmwareMessage(MeshMessage, msg_type=MeshMessageType.CONFIG_FIRMWARE):
     """ respond firmware info """
     app_desc: FirmwareAppDescription = field(metadata={'json_embed': True})
 
 
 @dataclass
-class ConfigPositionMessage(MeshMessage, msg_id=MeshMessageType.CONFIG_POSITION):
+class ConfigPositionMessage(MeshMessage, msg_type=MeshMessageType.CONFIG_POSITION):
     """ set/respond position config """
     x_pos: int = field(metadata={"format": SimpleFormat('i')})
     y_pos: int = field(metadata={"format": SimpleFormat('i')})
@@ -247,7 +251,7 @@ class ConfigPositionMessage(MeshMessage, msg_id=MeshMessageType.CONFIG_POSITION)
 
 
 @dataclass
-class ConfigUplinkMessage(MeshMessage, msg_id=MeshMessageType.CONFIG_UPLINK):
+class ConfigUplinkMessage(MeshMessage, msg_type=MeshMessageType.CONFIG_UPLINK):
     """ set/respond uplink config """
     enabled: bool = field(metadata={"format": BoolFormat()})
     ssid: str = field(metadata={"format": FixedStrFormat(32)})
@@ -260,12 +264,12 @@ class ConfigUplinkMessage(MeshMessage, msg_id=MeshMessageType.CONFIG_UPLINK):
 
 
 @dataclass
-class LocateRequestRangeMessage(MeshMessage, msg_id=MeshMessageType.LOCATE_REQUEST_RANGE):
+class LocateRequestRangeMessage(MeshMessage, msg_type=MeshMessageType.LOCATE_REQUEST_RANGE):
     """ request to report distance to all nearby nodes """
     pass
 
 
 @dataclass
-class LocateRangeResults(MeshMessage, msg_id=MeshMessageType.LOCATE_RANGE_RESULTS):
+class LocateRangeResults(MeshMessage, msg_type=MeshMessageType.LOCATE_RANGE_RESULTS):
     """ reports distance to given nodes """
     ranges: dict[str, int] = field(metadata={"format": VarArrayFormat(RangeItemType)})
