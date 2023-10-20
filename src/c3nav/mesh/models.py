@@ -34,11 +34,11 @@ class MeshNodeQuerySet(models.QuerySet):
         if self._prefetch_last_messages and not self._prefetch_last_messages_done:
             nodes = {node.pk: node for node in self._result_cache}
             try:
-                for message in NodeMessage.objects.order_by('-datetime', '-pk').filter(
+                for message in NodeMessage.objects.order_by('message_type', 'src_node', '-datetime', '-pk').filter(
                         message_type__in=self._prefetch_last_messages,
                         src_node__in=nodes.keys(),
                 ).prefetch_related("uplink_node").distinct('message_type', 'src_node'):
-                    nodes[message.node].last_messages[message.message_type] = message
+                    nodes[message.src_node_id].last_messages[message.message_type] = message
                 for node in nodes.values():
                     node.last_messages["any"] = max(node.last_messages.values(), key=attrgetter("datetime"))
             except NotSupportedError:
@@ -75,6 +75,9 @@ class LastMessagesByTypeLookup(UserDict):
         return msg
 
     def __setitem__(self, key, item):
+        if key == "any":
+            self.data["any"] = item
+            return
         self.data[self._get_key(key)] = item
 
 
