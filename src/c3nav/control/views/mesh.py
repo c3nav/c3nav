@@ -174,7 +174,7 @@ class MeshMessageSendingView(ControlPanelMixin, TemplateView):
             **data,
             "node_name": node_names.get(data["msg_data"].get("address"), ""),
             "recipients": [(address, node_names[address]) for address in data["recipients"]],
-            "msg_type": data["msg_data"]["msg_type"],
+            "msg_type": MeshMessageType[data["msg_data"]["msg_type"]].pretty_name,
         }
 
 

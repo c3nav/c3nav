@@ -3,11 +3,11 @@
 
 {% block heading %}
     {% if form.recipient %}
-        {% blocktrans trimmed with msg_type=form.msg_type.name recipient=form.get_recipient_display %}
+        {% blocktrans trimmed with msg_type=form.msg_type.pretty_name recipient=form.get_recipient_display %}
             Send {{ msg_type }} message to {{ recipient }}
         {% endblocktrans %}
     {% else %}
-        {% blocktrans trimmed with msg_type=form.msg_type.name %}
+        {% blocktrans trimmed with msg_type=form.msg_type.pretty_name %}
             Send {{ msg_type }} message
         {% endblocktrans %}
     {% endif %}
