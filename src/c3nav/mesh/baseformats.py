@@ -209,6 +209,16 @@ class VarArrayFormat(BaseVarFormat):
             result.append(item)
         return result, data
 
+    def fromjson(self, data):
+        return [
+            self.child_type.fromjson(item) for item in data
+        ]
+
+    def tojson(self, data):
+        return [
+            item.tojson(item) for item in data
+        ]
+
     def get_c_parts(self):
         pre, post = self.child_type.get_c_parts()
         return super().get_num_c_code() + "\n" + pre, "[0]" + post

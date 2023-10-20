@@ -340,4 +340,4 @@ class LocateRequestRangeMessage(MeshMessage, msg_type=MeshMessageType.LOCATE_REQ
 @dataclass
 class LocateRangeResults(MeshMessage, msg_type=MeshMessageType.LOCATE_RANGE_RESULTS):
     """ reports distance to given nodes """
-    ranges: dict[str, int] = field(metadata={"format": VarArrayFormat(RangeItemType)})
+    ranges: list[RangeItemType] = field(metadata={"format": VarArrayFormat(RangeItemType)})

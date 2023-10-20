@@ -34,17 +34,31 @@
                 <td><a href="{% url "control.mesh.node.detail" pk=msg.src_node.address %}">{{ msg.src_node }}</a></td>
                 <td>{{ msg.get_message_type_display }}</td>
                 <td>
-                    {% if msg.get_message_type_display == "CONFIG_HARDWARE" %}
-                        <strong>Chip:</strong> {{ msg.parsed.get_chip_display }} rev{{ msg.parsed.revision_major }}.{{ msg.parsed.revision_minor }}
 
-                    {% elif msg.get_message_type_display == "CONFIG_FIRMWARE" %}
+                    {% if msg.message_type == "CONFIG_HARDWARE" %}
+                        <strong>Chip:</strong> {{ msg.parsed.chip.pretty_name }} rev{{ msg.parsed.revision_major }}.{{ msg.parsed.revision_minor }}
+
+                    {% elif msg.message_type == "CONFIG_BOARD" %}
+                        <strong>Board:</strong> {{ msg.parsed.board_config.board.pretty_name }}
+
+                        {% if msg.parsed.led %}
+                        <br>
+                        <strong>Status LED:</strong> {{ msg.parsed.led }}
+                        {% endif %}
+
+                        {% if msg.parsed.uwb %}
+                        <br>
+                        <strong>UWB:</strong> {{ msg.parsed.led }}
+                        {% endif %}
+
+                    {% elif msg.message_type == "CONFIG_FIRMWARE" %}
                         <strong>Firmware:</strong> {{ msg.parsed.app_desc.project_name }} {{ msg.parsed.app_desc.version }} (IDF {{ msg.parsed.app_desc.idf_version }})
                         <br>
                         <strong>Compile Date:</strong> {{ msg.parsed.app_desc.compile_date }} {{ msg.parsed.app_desc.compile_time }}
                         <br>
                         <strong>SHA256:</strong> <small>{{ msg.parsed.app_desc.app_elf_sha256 }}</small>
 
-                    {% elif msg.get_message_type_display == "CONFIG_UPLINK" %}
+                    {% elif msg.message_type == "CONFIG_UPLINK" %}
                         <strong>Enabled:</strong> {{ msg.parsed.enabled }},
                         <strong>SSID:</strong> {{ msg.parsed.ssid }},
                         <strong>Channel:</strong> {{ msg.parsed.channel }}<br>
@@ -53,17 +67,25 @@
                         <strong>UDP:</strong> {{ msg.parsed.udp }},
                         <strong>SSL:</strong> {{ msg.parsed.ssl }}
 
-                    {% elif msg.get_message_type_display == "CONFIG_LED" %}
+                    {% elif msg.message_type == "CONFIG_LED" %}
                         <strong>LED config:</strong> {{ msg.parsed.led_config }}
 
-                    {% elif msg.get_message_type_display == "CONFIG_POSITION" %}
+                    {% elif msg.message_type == "CONFIG_POSITION" %}
                         <strong>X=</strong>{{ msg.parsed.x_pos }}, <strong>Y=</strong>{{ msg.parsed.y_pos }}, <strong>Z=</strong>{{ msg.parsed.z_pos }}
 
-                    {% elif msg.get_message_type_display == "MESH_ADD_DESTINATIONS" or msg.get_message_type_display == "MESH_REMOVE_DESTINATIONS" %}
+                    {% elif msg.message_type == "MESH_ADD_DESTINATIONS" or msg.message_type == "MESH_REMOVE_DESTINATIONS" %}
                         <strong>adresses:</strong><br>
                         <ul style="margin: 0;">
                             {% for address in msg.parsed.addresses %}
                                 <li style="margin: 0;">{{ address }}</li>
+                            {% endfor %}
+                        </ul>
+
+                    {% elif msg.message_type == "LOCATE_RANGE_RESULTS" %}
+                        <strong>ranges:</strong><br>
+                        <ul style="margin: 0;">
+                            {% for range in msg.parsed.ranges %}
+                                <li style="margin: 0;">{{ range.address }} - {{ range.distance }}</li>
                             {% endfor %}
                         </ul>
 

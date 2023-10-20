@@ -262,6 +262,10 @@ class ConfigPositionMessageForm(MeshMessageForm):
     z_pos = forms.IntegerField(min_value=0, max_value=2 ** 16 - 1, label=_('Z'))
 
 
+class LocateRequestRangeMessageForm(MeshMessageForm):
+    msg_type = MeshMessageType.LOCATE_REQUEST_RANGE
+
+
 class MeshNodeForm(forms.ModelForm):
     class Meta:
         model = MeshNode
