@@ -124,9 +124,9 @@ class ConfigBoardMessageForm(MeshMessageForm):
     msg_type = MeshMessageType.CONFIG_BOARD
 
     # todo: don't use numerical values
-    board = forms.ChoiceField(choices=((item.name, item.name) for item in BoardType),
+    board = forms.ChoiceField(choices=((item.name, item.pretty_name) for item in BoardType),
                               label=_('board'))
-    led_type = forms.ChoiceField(choices=((item.name, item.name) for item in LedType),
+    led_type = forms.ChoiceField(choices=((item.name, item.pretty_name) for item in LedType),
                                  label=_('LED type'))
     led_serial_type = forms.ChoiceField(choices=((item.name, item.name) for item in SerialLedType),
                                         label=_('serial LED type'), help_text=_('serial LED only'))

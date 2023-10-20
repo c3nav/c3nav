@@ -1,3 +1,4 @@
+import re
 from dataclasses import dataclass, field
 from enum import IntEnum, unique
 
@@ -20,6 +21,10 @@ class LedType(IntEnum):
     NONE = 0
     SERIAL = 1
     MULTIPIN = 2
+
+    @property
+    def pretty_name(self):
+        return self.name.lower()
 
 
 @unique
@@ -82,6 +87,18 @@ class BoardType(IntEnum):
     C3NAV_UWB_BOARD = 0x10
     C3NAV_LOCATION_PCB_REV_0_1 = 0x11
     C3NAV_LOCATION_PCB_REV_0_2 = 0x12
+
+    @property
+    def pretty_name(self):
+        if self.name.startswith('ESP32'):
+            return self.name.replace('_', '-').replace('DEVKIT-', 'DevKit')
+        if self.name.startswith('C3NAV'):
+            name = self.name.replace('_', ' ').lower()
+            name = name.replace('uwb', 'UWB').replace('pcb', 'PCB')
+            name = re.sub(r'[0-9]+( [0-9+])+', lambda s: s[0].replace(' ', '.'), name)
+            name = re.sub(r'rev.*', lambda s: s[0].replace(' ', ''), name)
+            return name
+        return self.name
 
 
 @dataclass

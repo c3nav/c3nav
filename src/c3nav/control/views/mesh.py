@@ -30,7 +30,7 @@ class MeshNodeListView(ControlPanelMixin, ListView):
     def get_context_data(self, *args, **kwargs):
         return {
             **super().get_context_data(*args, **kwargs),
-            "send_msg_types": [msg_type.name for msg_type in MeshMessageForm.msg_types.keys()],
+            "send_msg_types": {msg_type for msg_type in MeshMessageForm.msg_types.keys()}
         }
 
     def post(self, request):

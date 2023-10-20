@@ -18,7 +18,7 @@
                 <select name="send_msg_type" style="display: inline-block; width: auto;" required>
                     <option value="">select type</option>
                     {% for msg_type in send_msg_types %}
-                        <option value="{{ msg_type }}">{{ msg_type }}</option>
+                        <option value="{{ msg_type.name }}">{{ msg_type.pretty_name }}</option>
                     {% endfor %}
                 </select>
                 <button type="submit">{% trans 'Send message' %}</button>
@@ -45,8 +45,8 @@
             <tr>
                 <td><a href="{% url "control.mesh.node.detail" pk=node.address %}">{{ node }}</a></td>
                 <td>
-                    {{ node.last_messages.CONFIG_BOARD.parsed.board_config.board.name }}
-                    ({{ node.last_messages.CONFIG_HARDWARE.parsed.get_chip_display }} <small>rev{{ node.last_messages.CONFIG_HARDWARE.parsed.revision_major }}.{{ node.last_messages.CONFIG_HARDWARE.parsed.revision_minor }}</small>)
+                    {{ node.last_messages.CONFIG_BOARD.parsed.board_config.board.pretty_name }}
+                    ({{ node.last_messages.CONFIG_HARDWARE.parsed.chip.pretty_name }} <small>rev{{ node.last_messages.CONFIG_HARDWARE.parsed.revision_major }}.{{ node.last_messages.CONFIG_HARDWARE.parsed.revision_minor }}</small>)
                 </td>
                 <td>
                     {{ node.last_messages.CONFIG_FIRMWARE.parsed.app_desc.version }}

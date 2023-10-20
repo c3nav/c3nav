@@ -45,6 +45,10 @@ class MeshMessageType(IntEnum):
     LOCATE_REQUEST_RANGE = 0x20
     LOCATE_RANGE_RESULTS = 0x21
 
+    @property
+    def pretty_name(self):
+        return self.name.replace('_', ' ').title()
+
 
 M = TypeVar('M', bound='MeshMessage')
 
@@ -53,6 +57,10 @@ M = TypeVar('M', bound='MeshMessage')
 class ChipType(IntEnum):
     ESP32_S2 = 2
     ESP32_C3 = 5
+
+    @property
+    def pretty_name(self):
+        return self.name.replace('_', '-')
 
 
 @dataclass
@@ -216,12 +224,6 @@ class ConfigHardwareMessage(MeshMessage, msg_id=MeshMessageType.CONFIG_HARDWARE)
 
     def get_chip_display(self):
         return ChipType(self.chip).name.replace('_', '-')
-
-
-@unique
-class BoardType(IntEnum):
-    SERIAL = 1
-    MULTIPIN = 2
 
 
 @dataclass
