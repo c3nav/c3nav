@@ -86,9 +86,10 @@ class SimpleFormat(BaseFormat):
 
 
 class EnumFormat(SimpleFormat):
-    def __init__(self, fmt="B", *, as_hex=False):
+    def __init__(self, fmt="B", *, as_hex=False, c_definition=True):
         super().__init__(fmt)
         self.as_hex = as_hex
+        self.c_definition = c_definition
 
     def set_field_type(self, field_type):
         super().set_field_type(field_type)
@@ -99,6 +100,8 @@ class EnumFormat(SimpleFormat):
         return self.field_type(value), out_data
 
     def get_c_parts(self):
+        if not self.c_definition:
+            return super().get_c_parts()
         return self.c_struct_name, ""
 
     def fromjson(self, data):
@@ -108,6 +111,8 @@ class EnumFormat(SimpleFormat):
         return data.name
 
     def get_c_definitions(self) -> dict[str, str]:
+        if not self.c_definition:
+            return {}
         prefix = normalize_name(self.field_type.__name__).upper()
         options = []
         last_value = None
@@ -222,6 +227,21 @@ class VarStrFormat(BaseVarFormat):
 
     def get_c_parts(self):
         return super().get_num_c_code() + "\n" + "char", "[0]"
+
+
+class VarBytesFormat(BaseVarFormat):
+    def get_var_num(self):
+        return 1
+
+    def encode(self, value: bytes) -> bytes:
+        return struct.pack(self.num_fmt, len(value)) + value
+
+    def decode(self, data: bytes) -> tuple[bytes, bytes]:
+        num = struct.unpack(self.num_fmt, data[:self.num_size])[0]
+        return data[self.num_size:self.num_size + num].rstrip(bytes((0,))), data[self.num_size + num:]
+
+    def get_c_parts(self):
+        return super().get_num_c_code() + "\n" + "uint8_t", "[0]"
 
 
 @dataclass

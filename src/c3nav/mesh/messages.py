@@ -5,8 +5,8 @@ from typing import TypeVar
 import channels
 from asgiref.sync import async_to_sync
 
-from c3nav.mesh.baseformats import (BoolFormat, FixedStrFormat, SimpleFormat, StructType, VarArrayFormat, VarStrFormat,
-                                    normalize_name, EnumFormat)
+from c3nav.mesh.baseformats import (BoolFormat, EnumFormat, FixedStrFormat, SimpleFormat, StructType, VarArrayFormat,
+                                    VarBytesFormat, VarStrFormat, normalize_name)
 from c3nav.mesh.dataformats import (BoardConfig, FirmwareAppDescription, MacAddressesListFormat, MacAddressFormat,
                                     RangeItemType)
 from c3nav.mesh.utils import get_mesh_comm_group
@@ -42,8 +42,17 @@ class MeshMessageType(IntEnum):
     CONFIG_UPLINK = 0x14
     CONFIG_POSITION = 0x15
 
-    LOCATE_REQUEST_RANGE = 0x20
-    LOCATE_RANGE_RESULTS = 0x21
+    OTA_STATUS = 0x20
+    OTA_REQUEST_STATUS = 0x21
+    OTA_START = 0x22
+    OTA_URL = 0x23
+    OTA_FRAGMENT = 0x24
+    OTA_REQUEST_FRAGMENT = 0x25
+    OTA_APPLY = 0x26
+    OTA_REBOOT = 0x27
+
+    LOCATE_REQUEST_RANGE = 0x30
+    LOCATE_RANGE_RESULTS = 0x31
 
     @property
     def pretty_name(self):
@@ -71,7 +80,7 @@ class ChipType(IntEnum):
 class MeshMessage(StructType, union_type_field="msg_type"):
     dst: str = field(metadata={"format": MacAddressFormat()})
     src: str = field(metadata={"format": MacAddressFormat()})
-    msg_type: MeshMessageType = field(metadata={"format": EnumFormat('B')}, init=False, repr=False)
+    msg_type: MeshMessageType = field(metadata={"format": EnumFormat('B', c_definition=False)}, init=False, repr=False)
     c_structs = {}
     c_struct_name = None
 
@@ -220,7 +229,7 @@ class ConfigDumpMessage(MeshMessage, msg_type=MeshMessageType.CONFIG_DUMP):
 class ConfigHardwareMessage(MeshMessage, msg_type=MeshMessageType.CONFIG_HARDWARE):
     """ respond hardware/chip info """
     chip: ChipType = field(metadata={
-        "format": EnumFormat("H"),
+        "format": EnumFormat("H", c_definition=False),
         "c_name": "chip_id",
     })
     revision_major: int = field(metadata={"format": SimpleFormat('B')})
@@ -261,6 +270,65 @@ class ConfigUplinkMessage(MeshMessage, msg_type=MeshMessageType.CONFIG_UPLINK):
     ssl: bool = field(metadata={"format": BoolFormat()})
     host: str = field(metadata={"format": FixedStrFormat(64)})
     port: int = field(metadata={"format": SimpleFormat('H')})
+
+
+@dataclass
+class OTAStatusMessage(MeshMessage, msg_type=MeshMessageType.OTA_STATUS):
+    """ report OTA status """
+    source: bool = field(metadata={"format": BoolFormat()})
+    update_id: int = field(metadata={"format": SimpleFormat('I')})
+    total_bytes: int = field(metadata={"format": SimpleFormat('I')})
+    received_bytes: int = field(metadata={"format": SimpleFormat('I')})
+    auto_apply: int = field(metadata={"format": SimpleFormat('I')})
+    app_desc: FirmwareAppDescription = field()
+
+
+@dataclass
+class OTARequestStatusMessage(MeshMessage, msg_type=MeshMessageType.OTA_REQUEST_STATUS):
+    """ request OTA status """
+
+
+@dataclass
+class OTAStartMessage(MeshMessage, msg_type=MeshMessageType.OTA_START):
+    """ instruct node to start OTA """
+    update_id: int = field(metadata={"format": SimpleFormat('I')})
+    total_bytes: int = field(metadata={"format": SimpleFormat('I')})
+
+
+@dataclass
+class OTAURLMessage(MeshMessage, msg_type=MeshMessageType.OTA_URL):
+    """ supply download URL for OTA update and who to distribute it to """
+    update_id: int = field(metadata={"format": SimpleFormat('I')})
+    distribute_to: str = field(metadata={"format": MacAddressFormat()})
+    url: str = field(metadata={"format": VarStrFormat()})
+
+
+@dataclass
+class OTAFragmentMessage(MeshMessage, msg_type=MeshMessageType.OTA_FRAGMENT):
+    """ supply OTA fragment """
+    update_id: int = field(metadata={"format": SimpleFormat('I')})
+    offset_bytes: int = field(metadata={"format": SimpleFormat('I')})
+    data: str = field(metadata={"format": VarBytesFormat()})
+
+
+@dataclass
+class OTAFRequestMessage(MeshMessage, msg_type=MeshMessageType.OTA_REQUEST_FRAGMENT):
+    """ request fragment after we haven't gottan one for a while """
+    update_id: int = field(metadata={"format": SimpleFormat('I')})
+    offset_bytes: int = field(metadata={"format": SimpleFormat('I')})
+
+
+@dataclass
+class OTAApplyMessage(MeshMessage, msg_type=MeshMessageType.OTA_APPLY):
+    """ apply OTA, optionally instruct to apply it when done """
+    update_id: int = field(metadata={"format": SimpleFormat('I')})
+    when_done: bool = field(metadata={"format": BoolFormat()})
+
+
+@dataclass
+class OTARebootMessage(MeshMessage, msg_type=MeshMessageType.OTA_REBOOT):
+    """ announcing OTA reboot """
+    update_id: int = field(metadata={"format": SimpleFormat('I')})
 
 
 @dataclass
