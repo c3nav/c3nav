@@ -216,7 +216,7 @@ class VarArrayFormat(BaseVarFormat):
 
     def tojson(self, data):
         return [
-            item.tojson(item) for item in data
+            self.child_type.tojson(item) for item in data
         ]
 
     def get_c_parts(self):
@@ -647,6 +647,13 @@ def normalize_name(name):
             r"\1_\2",
             name
         ).lower()
+
+    name = re.sub(
+        r"(ota)([a-z])",
+        r"\1_\2",
+        name
+    ).lower()
+
     name = name.replace('config', 'cfg')
     name = name.replace('position', 'pos')
     name = name.replace('mesh_', '')

@@ -312,8 +312,8 @@ class OTAFragmentMessage(MeshMessage, msg_type=MeshMessageType.OTA_FRAGMENT):
 
 
 @dataclass
-class OTAFRequestMessage(MeshMessage, msg_type=MeshMessageType.OTA_REQUEST_FRAGMENT):
-    """ request fragment after we haven't gottan one for a while """
+class OTARequestFragmentMessage(MeshMessage, msg_type=MeshMessageType.OTA_REQUEST_FRAGMENT):
+    """ request fragment after we haven't gotten one for a while """
     update_id: int = field(metadata={"format": SimpleFormat('I')})
     offset_bytes: int = field(metadata={"format": SimpleFormat('I')})
 

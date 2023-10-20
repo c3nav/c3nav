@@ -66,7 +66,7 @@
                         {{ timesince }} ago
                     {% endblocktrans %}
                 </td>
-                <td><a href="{% url "control.mesh.node.detail" pk=node.uplink.address %}">{{ node.uplink }}</a></td>
+                <td>{% if node.uplink %}<a href="{% url "control.mesh.node.detail" pk=node.uplink.address %}">{{ node.uplink }}</a>{% endif %}</td>
             </tr>
         {% endfor %}
     </table>

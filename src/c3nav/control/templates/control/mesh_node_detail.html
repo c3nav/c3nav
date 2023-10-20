@@ -12,7 +12,7 @@
                 <strong>Name:</strong> {% if node.name %}{{ node.name }}{% else %}<em>{% trans '(no name)' %}</em>{% endif %}
             </p>
             <p>
-                <strong>Uplink:</strong> <a href="{% url "control.mesh.node.detail" pk=node.uplink.address %}">{{ node.uplink }}</a><br>
+                <strong>Uplink:</strong> {% if node.uplink %}<a href="{% url "control.mesh.node.detail" pk=node.uplink.address %}">{{ node.uplink }}</a><br>{% endif %}
 
                 <strong>Last signin:</strong>
                 {{ node.last_signin.date }} {{ node.last_signin.time|date:"H:i:s" }}
