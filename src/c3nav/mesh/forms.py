@@ -123,14 +123,13 @@ class ConfigUplinkMessageForm(MeshMessageForm):
 class ConfigBoardMessageForm(MeshMessageForm):
     msg_type = MeshMessageType.CONFIG_BOARD
 
-    # todo: don't use numerical values
     board = forms.ChoiceField(choices=((item.name, item.pretty_name) for item in BoardType),
                               label=_('board'))
     led_type = forms.ChoiceField(choices=((item.name, item.pretty_name) for item in LedType),
                                  label=_('LED type'))
     led_serial_type = forms.ChoiceField(choices=((item.name, item.name) for item in SerialLedType),
                                         label=_('serial LED type'), help_text=_('serial LED only'))
-    # todo: make this use the modern messages
+
     led_serial_gpio = forms.IntegerField(min_value=0, max_value=48, required=False,
                                          label=_('serial LED GPIO pin'), help_text=_('serial LED only'))
     led_multipin_gpio_r = forms.IntegerField(min_value=0, max_value=48, required=False,
