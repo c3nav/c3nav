@@ -86,8 +86,8 @@ class SimpleFormat(BaseFormat):
 
 
 class EnumFormat(SimpleFormat):
-    def __init__(self, as_hex=False):
-        super().__init__("B")
+    def __init__(self, fmt="B", *, as_hex=False):
+        super().__init__(fmt)
         self.as_hex = as_hex
 
     def set_field_type(self, field_type):
@@ -210,12 +210,11 @@ class VarArrayFormat(BaseVarFormat):
 
 
 class VarStrFormat(BaseVarFormat):
-
     def get_var_num(self):
         return 1
 
     def encode(self, value: str) -> bytes:
-        return struct.pack(self.num_fmt, len(str)) + value.encode()
+        return struct.pack(self.num_fmt, len(value)) + value.encode()
 
     def decode(self, data: bytes) -> tuple[str, bytes]:
         num = struct.unpack(self.num_fmt, data[:self.num_size])[0]

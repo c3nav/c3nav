@@ -6,7 +6,7 @@ import channels
 from asgiref.sync import async_to_sync
 
 from c3nav.mesh.baseformats import (BoolFormat, FixedStrFormat, SimpleFormat, StructType, VarArrayFormat, VarStrFormat,
-                                    normalize_name)
+                                    normalize_name, EnumFormat)
 from c3nav.mesh.dataformats import (BoardConfig, FirmwareAppDescription, MacAddressesListFormat, MacAddressFormat,
                                     RangeItemType)
 from c3nav.mesh.utils import get_mesh_comm_group
@@ -207,8 +207,8 @@ class ConfigDumpMessage(MeshMessage, msg_id=MeshMessageType.CONFIG_DUMP):
 @dataclass
 class ConfigHardwareMessage(MeshMessage, msg_id=MeshMessageType.CONFIG_HARDWARE):
     """ respond hardware/chip info """
-    chip: int = field(metadata={
-        "format": SimpleFormat('H'),
+    chip: ChipType = field(metadata={
+        "format": EnumFormat("H"),
         "c_name": "chip_id",
     })
     revision_major: int = field(metadata={"format": SimpleFormat('B')})

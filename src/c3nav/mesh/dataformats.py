@@ -90,33 +90,33 @@ class BoardConfig(StructType, union_type_field="board"):
 
 
 @dataclass
-class CustomBoardConfig(StructType, board=BoardType.CUSTOM):
+class CustomBoardConfig(BoardConfig, board=BoardType.CUSTOM):
     uwb: UWBConfig = field(metadata={"as_definition": True})
     led: LedConfig = field(metadata={"as_definition": True})
 
 
 @dataclass
-class DevkitMBoardConfig(StructType, board=BoardType.ESP32_C3_DEVKIT_M_1):
+class DevkitMBoardConfig(BoardConfig, board=BoardType.ESP32_C3_DEVKIT_M_1):
     uwb: UWBConfig = field(metadata={"as_definition": True})
 
 
 @dataclass
-class Esp32SBoardConfig(StructType, board=BoardType.ESP32_C3_32S):
+class Esp32SBoardConfig(BoardConfig, board=BoardType.ESP32_C3_32S):
     uwb: UWBConfig = field(metadata={"as_definition": True})
 
 
 @dataclass
-class UwbBoardConfig(StructType, board=BoardType.C3NAV_UWB_BOARD):
+class UwbBoardConfig(BoardConfig, board=BoardType.C3NAV_UWB_BOARD):
     pass
 
 
 @dataclass
-class LocationPCBRev0Dot1BoardConfig(StructType, board=BoardType.C3NAV_LOCATION_PCB_REV_0_1):
+class LocationPCBRev0Dot1BoardConfig(BoardConfig, board=BoardType.C3NAV_LOCATION_PCB_REV_0_1):
     pass
 
 
 @dataclass
-class LocationPCBRev0Dot2BoardConfig(StructType, board=BoardType.C3NAV_LOCATION_PCB_REV_0_2):
+class LocationPCBRev0Dot2BoardConfig(BoardConfig, board=BoardType.C3NAV_LOCATION_PCB_REV_0_2):
     pass
 
 

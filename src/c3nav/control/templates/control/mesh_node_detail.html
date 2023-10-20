@@ -42,7 +42,7 @@
 
             <h4>Hardware</h4>
             <p>
-                <strong>Board:</strong> {{ node.last_messages.CONFIG_BOARD.parsed.board.name }}
+                <strong>Board:</strong> {{ node.last_messages.CONFIG_BOARD.parsed.board_config.board.name }}
                 (with {{ node.last_messages.CONFIG_HARDWARE.parsed.chip.name }} rev{{ node.last_messages.CONFIG_HARDWARE.parsed.revision_major }}.{{ node.last_messages.CONFIG_HARDWARE.parsed.revision_minor }})
 
                 {% if node.last_messages.CONFIG_BOARD.parsed.led %}
