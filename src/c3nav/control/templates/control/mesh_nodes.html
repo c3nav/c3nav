@@ -17,8 +17,12 @@
                 {% csrf_token %}
                 <select name="send_msg_type" style="display: inline-block; width: auto;" required>
                     <option value="">select type</option>
-                    {% for msg_type in send_msg_types %}
-                        <option value="{{ msg_type.name }}">{{ msg_type.pretty_name }}</option>
+                    {% for category, msg_types in send_msg_types %}
+                        <optgroup label="{{ category }}">
+                            {% for value, label in msg_types %}
+                                <option value="{{ value }}">{{ label }}</option>
+                            {% endfor %}
+                        </optgroup>
                     {% endfor %}
                 </select>
                 <button type="submit">{% trans 'Send message' %}</button>

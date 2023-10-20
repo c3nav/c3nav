@@ -15,7 +15,7 @@ from c3nav.control.views.base import ControlPanelMixin
 from c3nav.mesh.forms import MeshMessageForm, MeshNodeForm
 from c3nav.mesh.messages import MeshMessage, MeshMessageType
 from c3nav.mesh.models import MeshNode, NodeMessage
-from c3nav.mesh.utils import get_node_names
+from c3nav.mesh.utils import get_node_names, group_msg_type_choices
 
 
 class MeshNodeListView(ControlPanelMixin, ListView):
@@ -30,7 +30,7 @@ class MeshNodeListView(ControlPanelMixin, ListView):
     def get_context_data(self, *args, **kwargs):
         return {
             **super().get_context_data(*args, **kwargs),
-            "send_msg_types": {msg_type for msg_type in MeshMessageForm.msg_types.keys()}
+            "send_msg_types": group_msg_type_choices({msg_type for msg_type in MeshMessageForm.msg_types.keys()})
         }
 
     def post(self, request):

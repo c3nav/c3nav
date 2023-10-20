@@ -1,3 +1,6 @@
+from operator import attrgetter
+
+
 def get_mesh_comm_group(address):
     return 'mesh_comm_%s' % address.replace(':', '-')
 
@@ -14,3 +17,13 @@ def get_node_names():
         '00:00:00:ff:ff:ff': "direct parent",
         '00:00:00:00:00:00': "root",
     }
+
+
+def group_msg_type_choices(msg_types):
+    msg_types = sorted(msg_types, key=attrgetter('value'))
+    choices = {}
+    for msg_type in msg_types:
+        choices.setdefault(msg_type.name.split('_')[0].lower(), []).append(
+            (msg_type.name, msg_type.pretty_name)
+        )
+    return tuple(choices.items())

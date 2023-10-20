@@ -22,6 +22,7 @@ from c3nav.mapdata.models.access import (AccessPermission, AccessPermissionToken
                                          AccessRestriction, AccessRestrictionGroup)
 from c3nav.mesh.messages import MeshMessageType
 from c3nav.mesh.models import MeshNode
+from c3nav.mesh.utils import group_msg_type_choices
 from c3nav.site.models import Announcement
 
 
@@ -302,7 +303,7 @@ class MapUpdateForm(ModelForm):
 
 class MeshMessageFilterForm(Form):
     message_types = MultipleChoiceField(
-        choices=[(msgtype.value, msgtype.name) for msgtype in MeshMessageType],
+        choices=group_msg_type_choices(list(MeshMessageType)),
         required=False,
         label=_('message types'),
     )
