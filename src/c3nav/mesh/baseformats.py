@@ -75,9 +75,11 @@ class SimpleFormat(BaseFormat):
         "B": "uint8_t",
         "H": "uint16_t",
         "I": "uint32_t",
+        "Q": "uint64_t",
         "b": "int8_t",
         "h": "int16_t",
         "i": "int32_t",
+        "q": "uint64_t",
         "s": "char",
     }
 
@@ -562,6 +564,9 @@ class StructType:
 
     @classmethod
     def get_c_parts(cls, ignore_fields=None, no_empty=False, top_level=False, union_only=False, in_union=False):
+        if cls.existing_c_struct is not None:
+            return (cls.existing_c_struct, "")
+
         ignore_fields = set() if not ignore_fields else set(ignore_fields)
 
         if union_only:
@@ -604,9 +609,6 @@ class StructType:
     @classmethod
     def get_c_code(cls, name=None, ignore_fields=None, no_empty=False, typedef=True, union_only=False,
                    in_union=False) -> str:
-        if cls.existing_c_struct is not None:
-            return "%s %s;" % (cls.existing_c_struct, name)
-
         pre, post = cls.get_c_parts(ignore_fields=ignore_fields,
                                     no_empty=no_empty,
                                     top_level=typedef,
