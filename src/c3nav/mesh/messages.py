@@ -8,7 +8,7 @@ from asgiref.sync import async_to_sync
 from c3nav.mesh.baseformats import (BoolFormat, EnumFormat, FixedStrFormat, SimpleFormat, StructType, VarArrayFormat,
                                     VarBytesFormat, VarStrFormat, normalize_name)
 from c3nav.mesh.dataformats import (BoardConfig, FirmwareAppDescription, MacAddressesListFormat, MacAddressFormat,
-                                    RangeItemType)
+                                    RangeResultItem, RawFTMEntry)
 from c3nav.mesh.utils import get_mesh_comm_group
 
 MESH_ROOT_ADDRESS = '00:00:00:00:00:00'
@@ -53,6 +53,7 @@ class MeshMessageType(IntEnum):
 
     LOCATE_REQUEST_RANGE = 0x30
     LOCATE_RANGE_RESULTS = 0x31
+    LOCATE_RAW_FTM_RESULTS = 0x32
 
     @property
     def pretty_name(self):
@@ -340,4 +341,11 @@ class LocateRequestRangeMessage(MeshMessage, msg_type=MeshMessageType.LOCATE_REQ
 @dataclass
 class LocateRangeResults(MeshMessage, msg_type=MeshMessageType.LOCATE_RANGE_RESULTS):
     """ reports distance to given nodes """
-    ranges: list[RangeItemType] = field(metadata={"format": VarArrayFormat(RangeItemType)})
+    ranges: list[RangeResultItem] = field(metadata={"format": VarArrayFormat(RangeResultItem)})
+
+
+@dataclass
+class LocateRawFTMResults(MeshMessage, msg_type=MeshMessageType.LOCATE_RAW_FTM_RESULTS):
+    """ reports distance to given nodes """
+    distribute_to: str = field(metadata={"format": MacAddressFormat()})
+    results: list[RawFTMEntry] = field(metadata={"format": VarArrayFormat(RawFTMEntry)})

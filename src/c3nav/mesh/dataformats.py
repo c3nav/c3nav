@@ -138,9 +138,20 @@ class LocationPCBRev0Dot2BoardConfig(BoardConfig, board=BoardType.C3NAV_LOCATION
 
 
 @dataclass
-class RangeItemType(StructType):
+class RangeResultItem(StructType):
     address: str = field(metadata={"format": MacAddressFormat()})
     distance: int = field(metadata={"format": SimpleFormat('H')})
+
+
+@dataclass
+class RawFTMEntry(StructType, existing_c_struct="wifi_ftm_report_entry_t"):
+    dlog_token: int = field(metadata={"format": SimpleFormat('B')})
+    rssi: int = field(metadata={"format": SimpleFormat('b')})
+    rtt: int = field(metadata={"format": SimpleFormat('I')})
+    t1: int = field(metadata={"format": SimpleFormat('Q')})
+    t2: int = field(metadata={"format": SimpleFormat('Q')})
+    t3: int = field(metadata={"format": SimpleFormat('Q')})
+    t4: int = field(metadata={"format": SimpleFormat('Q')})
 
 
 @dataclass
