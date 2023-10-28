@@ -79,7 +79,7 @@ class SimpleFormat(BaseFormat):
         "b": "int8_t",
         "h": "int16_t",
         "i": "int32_t",
-        "q": "uint64_t",
+        "q": "int64_t",
         "s": "char",
     }
 

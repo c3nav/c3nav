@@ -89,6 +89,33 @@
                             {% endfor %}
                         </ul>
 
+                    {% elif msg.message_type == "LOCATE_RAW_FTM_RESULTS" %}
+                        <strong>peer:</strong> {{ msg.parsed.peer }}<br>
+                        <table class="smalltable">
+                            <tr>
+                                <th>i</th>
+                                <th>token</th>
+                                <th>rssi</th>
+                                <th>rtt</th>
+                                <th>t1</th>
+                                <th>t2</th>
+                                <th>t3</th>
+                                <th>t4</th>
+                            </tr>
+                            {% for entry in msg.parsed.results %}
+                                <tr>
+                                    <td>{{ forloop.counter0 }}</td>
+                                    <td>{{ entry.dlog_token }}</td>
+                                    <td>{{ entry.rssi }}</td>
+                                    <td>{{ entry.rtt }}</td>
+                                    <td>{{ entry.t1 }}</td>
+                                    <td>{{ entry.t2 }}</td>
+                                    <td>{{ entry.t3 }}</td>
+                                    <td>{{ entry.t4 }}</td>
+                                </tr>
+                            {% endfor %}
+                        </table>
+
                     {% else %}
                         {% for key, value in msg.data.items %}
                             {% if key != "src" and key != "dst" and key != "msg_type" %}

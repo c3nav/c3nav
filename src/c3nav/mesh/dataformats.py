@@ -144,7 +144,7 @@ class RangeResultItem(StructType):
 
 
 @dataclass
-class RawFTMEntry(StructType, existing_c_struct="wifi_ftm_report_entry_t"):
+class RawFTMEntry(StructType):
     dlog_token: int = field(metadata={"format": SimpleFormat('B')})
     rssi: int = field(metadata={"format": SimpleFormat('b')})
     rtt: int = field(metadata={"format": SimpleFormat('I')})

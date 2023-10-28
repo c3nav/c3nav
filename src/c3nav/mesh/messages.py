@@ -347,5 +347,5 @@ class LocateRangeResults(MeshMessage, msg_type=MeshMessageType.LOCATE_RANGE_RESU
 @dataclass
 class LocateRawFTMResults(MeshMessage, msg_type=MeshMessageType.LOCATE_RAW_FTM_RESULTS):
     """ reports distance to given nodes """
-    distribute_to: str = field(metadata={"format": MacAddressFormat()})
+    peer: str = field(metadata={"format": MacAddressFormat()})
     results: list[RawFTMEntry] = field(metadata={"format": VarArrayFormat(RawFTMEntry)})

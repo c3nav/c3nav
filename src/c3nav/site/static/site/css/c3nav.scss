@@ -1359,3 +1359,9 @@ button + button {
     margin-bottom: 0.5rem;
     font-size: 80%;
 }
+.smalltable {
+    font-size:80%;
+    td, th {
+        padding: 2px;
+    }
+}

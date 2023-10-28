@@ -56,6 +56,8 @@ class MeshConsumer(WebsocketConsumer):
             traceback.print_exc()
             return
 
+        print(msg)
+
         if msg.dst != messages.MESH_ROOT_ADDRESS and msg.dst != messages.MESH_PARENT_ADDRESS:
             # message not adressed to us, forward it
             print('Received message for forwarding:', msg)
