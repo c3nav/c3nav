@@ -1,5 +1,5 @@
 {% extends 'control/base.html' %}
-{% load i18n %}
+{% load i18n mesh_node %}
 
 {% block heading %}{% trans 'Mesh messages' %}{% endblock %}
 
@@ -31,7 +31,7 @@
         {% for msg in mesh_messages %}
             <tr>
                 <td>{{ msg.datetime.date }} {{ msg.datetime.time|date:"H:i:s" }}</td>
-                <td><a href="{% url "control.mesh.node.detail" pk=msg.src_node.address %}">{{ msg.src_node }}</a></td>
+                <td>{% mesh_node msg.src_node %}</td>
                 <td>{{ msg.get_message_type_display }}</td>
                 <td>
 
@@ -82,18 +82,25 @@
                         </ul>
 
                     {% elif msg.message_type == "LOCATE_RANGE_RESULTS" %}
-                        <strong>ranges:</strong><br>
-                        <ul style="margin: 0;">
-                            {% for range in msg.parsed.ranges %}
-                                <li style="margin: 0;">{{ range.address }} - {{ range.distance }}</li>
+                        <table>
+                            <tr>
+                                <th>peer</th>
+                                <th>RSSI</th>
+                                <th>distance</th>
+                            </tr>
+                            {% for entry in msg.parsed.ranges %}
+                                <tr>
+                                    <td>{% mesh_node entry.peer %}</td>
+                                    <td>{{ entry.rssi }}</td>
+                                    <td>{{ entry.distance }}</td>
+                                </tr>
                             {% endfor %}
-                        </ul>
+                        </table>
 
                     {% elif msg.message_type == "LOCATE_RAW_FTM_RESULTS" %}
-                        <strong>peer:</strong> {{ msg.parsed.peer }}<br>
+                        <p><strong>peer:</strong> {% mesh_node msg.parsed.peer %}</p>
                         <table class="smalltable">
                             <tr>
-                                <th>i</th>
                                 <th>token</th>
                                 <th>rssi</th>
                                 <th>rtt</th>
@@ -104,7 +111,6 @@
                             </tr>
                             {% for entry in msg.parsed.results %}
                                 <tr>
-                                    <td>{{ forloop.counter0 }}</td>
                                     <td>{{ entry.dlog_token }}</td>
                                     <td>{{ entry.rssi }}</td>
                                     <td>{{ entry.rtt }}</td>
@@ -126,7 +132,7 @@
                         {% endfor %}
                     {% endif %}
                 </td>
-                <td><a href="{% url "control.mesh.node.detail" pk=msg.uplink_node.address %}">{{ msg.uplink_node }}</a></td>
+                <td>{% mesh_node msg.uplink_node %}</td>
             </tr>
         {% endfor %}
     </table>

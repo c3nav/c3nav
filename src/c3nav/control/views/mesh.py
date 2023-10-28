@@ -91,6 +91,7 @@ class MeshMessageListView(ControlPanelMixin, ListView):
         form_data.pop('page', None)
 
         ctx.update({
+            "node_names": get_node_names(),
             'form': self.form,
             'form_data': form_data.urlencode(),
         })
