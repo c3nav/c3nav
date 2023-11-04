@@ -1,148 +1,127 @@
+{% load compress %}
+{% load static %}
 {% if node_names %}
     {{ node_names|json_script:"node-names" }}
 {% endif %}
 {% if send_uuid %}
     {{ send_uuid|json_script:"send-uuid" }}
 {% endif %}
+{{ msg_type|json_script:"msg-type" }}
 <script type="text/javascript">
-{% if node_names %}
-    const node_names = JSON.parse(document.getElementById('node-names').textContent);
-{% endif %}
+    {% if node_names %}
+        const node_names = JSON.parse(document.getElementById('node-names').textContent);
+    {% else %}
+        const node_names = null;
+    {% endif %}
+    {% if send_uuid %}
+        const send_uuid = JSON.parse(document.getElementById('send-uuid').textContent);
+    {% else %}
+        const send_uuid = null;
+    {% endif %}
+    const msg_type = JSON.parse(document.getElementById('msg-type').textContent);
+</script>
 
-function connect() {
-    console.log('reconnecting websocket...');
-    var ws = new WebSocket((window.location.protocol=="https:"?"wss:":"ws:")+window.location.host+"/mesh/ui/ws", []);
-    ws.onopen = (event) => {
-        console.log('websocket connected.');
-        {% if send_uuid %}
-            ws.send(JSON.stringify({"send_msg": JSON.parse(document.getElementById('send-uuid').textContent)}));
-        {% else %}
-            ws.send(JSON.stringify({"subscribe": "log"}));
-        {% endif %}
-    };
-    ws.onclose = (event) => {
-        window.setTimeout(connect, 500);
-    }
-    ws.onmessage = (event) => {
-        var data = JSON.parse(event.data), line, text, cell, link_tag;
-        switch(data.type) {
-            case 'mesh.log_entry':
-                line = document.createElement("tr");
-
-                cell = document.createElement("td");
-                cell.innerText = data.timestamp;
-                line.appendChild(cell);
-
-                cell = document.createElement("td");
-                cell.innerText = data.channel;
-                if (data.uplink) {
-                    cell.append(document.createElement("br"));
-                    link_tag = document.createElement("a");
-                    link_tag.href = "/control/mesh/" + data.uplink;
-                    link_tag.innerText = data.uplink;
-                    if (node_names[data.uplink]) {
-                        link_tag.innerText += " ("+node_names[data.uplink]+")";
-                    }
-                    cell.append(link_tag)
+{% compress js %}
+    <script type="text/javascript" src="{% static 'site/js/jsx.js' %}"></script>
+    <script type="text/javascript">
+        function connect() {
+            console.log('reconnecting websocket...');
+            var ws = new WebSocket((window.location.protocol == "https:" ? "wss:" : "ws:") + window.location.host + "/mesh/ui/ws", []);
+            ws.onopen = (event) => {
+                console.log('websocket connected.');
+                if (send_uuid) {
+                    ws.send(JSON.stringify({"send_msg": JSON.parse(document.getElementById('send-uuid').textContent)}));
+                } else {
+                    ws.send(JSON.stringify({"subscribe": "log"}));
                 }
-                line.appendChild(cell);
+            };
+            ws.onclose = (event) => {
+                window.setTimeout(connect, 500);
+            }
+            ws.onmessage = (event) => {
+                var data = JSON.parse(event.data), line, text, cell, link_tag;
+                switch (data.type) {
+                    case 'mesh.log_entry':
+                        line = <tr>
+                            <td>{data.timestamp}</td>
+                            <td>
+                                {data.channel}
+                                {data.uplink && <>
+                                    <br/>
+                                    <a href={`/control/mesh/${data.uplink}`}>
+                                        {data.uplink}
+                                        {node_names[data.uplink] && `(${node_names[data.uplink]})`}
+                                    </a>
+                                </>}
+                            </td>
+                            <td>{data.text}</td>
+                        </tr>;
 
-                cell = document.createElement("td");
-                link_tag = document.createElement("a");
-                link_tag.href = "/control/mesh/" + data.node;
-                link_tag.innerText = data.node;
-                if (node_names[data.node]) {
-                    link_tag.innerText += " ("+node_names[data.node]+")";
+                        document.querySelector("tbody").prepend(line);
+                        break
+                    case 'mesh.msg_sent':
+                        if (send_uuid) {
+                            line = <span>
+                                <span>sent via uplink</span>
+                                <small>[{data.channel}]</small>
+                                <a href={`/control/mesh/${data.uplink}`}>
+                                    {data.uplink}
+                                    {node_names[data.uplink] && `(${node_names[data.uplink]})`}
+                                </a>
+                                <br/>
+                            </span>;
+
+                            document.getElementById("sending-status-" + data.recipient).append(line);
+                        }
+                        break;
+
+                    case 'mesh.msg_received':
+                        if (send_uuid && msg_type == "MESH_ROUTE_REQUEST") {
+                            if (data.msg.route) {
+                                line = <tr>
+                                    <td>
+                                        <a href={`/control/mesh/${data.msg.src}`}>
+                                            {data.msg.src}
+                                            {node_names[data.msg.src] && `(${node_names[data.msg.src]})`}
+                                        </a>
+                                    </td>
+                                </tr>;
+
+                                if (data.msg.route === "00:00:00:00:00:00") {
+                                    document.getElementById("no-routes").append(line);
+                                } else {
+                                    cell = <td>
+                                        <a href={`/control/mesh/${data.msg.route}`}>
+                                            {data.msg.route}
+                                            {node_names[data.msg.route] && `(${node_names[data.msg.route]})`}
+                                        </a>
+                                    </td>;
+                                    line.append(cell);
+
+                                    document.getElementById("route-responses").append(line);
+                                }
+                            } else {
+                                for (let i = 0; i < data.msg.trace.length; i++) {
+                                    line = <tr>
+                                        <td>
+                                            <a href={`/control/mesh/${data.msg.trace[i]}`}>
+                                                {data.msg.trace[i]}
+                                                {node_names[data.msg.trace[i]] && `(${node_names[data.msg.trace[i]]})`}
+                                            </a>
+                                        </td>
+                                    </tr>;
+                                    document.getElementById("route-trace").append(line);
+                                }
+                            }
+                        }
+                        break;
                 }
-                cell.append(link_tag);
-                line.appendChild(cell);
 
-                cell = document.createElement("td");
-                cell.innerText = data.text;
-                line.appendChild(cell);
-
-                document.querySelector("tbody").prepend(line);
-                break
-            case 'mesh.msg_sent':
-                {% if send_uuid %}
-                    line = document.createElement("span");
-
-                    text = document.createElement("span")
-                    text.innerText = "sent via uplink "
-                    line.appendChild(text)
-
-                    text = document.createElement("small")
-                    text.innerText = "["+data.channel+"] "
-                    line.appendChild(text)
-
-                    link_tag = document.createElement("a");
-                    link_tag.href = "/control/mesh/" + data.uplink;
-                    link_tag.innerText = data.uplink;
-                    if (node_names[data.uplink]) {
-                        link_tag.innerText += "("+node_names[data.uplink]+")";
-                    }
-                    line.appendChild(link_tag);
-
-                    line.appendChild(document.createElement("br"));
-
-                    document.getElementById("sending-status-"+data.recipient).appendChild(line);
-                {% endif %}
-                break;
-
-            case 'mesh.msg_received':
-                {% if send_uuid and msg_type == "MESH_ROUTE_REQUEST" %}
-                    if (data.msg.route) {
-                        line = document.createElement('tr');
-
-                        cell = document.createElement("td");
-                        link_tag = document.createElement("a");
-                        link_tag.href = "/control/mesh/" + data.msg.src;
-                        link_tag.innerText = data.msg.src;
-                        if (node_names[data.msg.src]) {
-                            link_tag.innerText += " ("+node_names[data.msg.src]+")";
-                        }
-                        cell.appendChild(link_tag);
-                        line.appendChild(cell);
-
-                        if (data.msg.route === "00:00:00:00:00:00") {
-                            document.getElementById("no-routes").appendChild(line);
-                        } else {
-                            cell = document.createElement("td");
-                            link_tag = document.createElement("a");
-                            link_tag.href = "/control/mesh/" + data.msg.route;
-                            link_tag.innerText = data.msg.route;
-                            if (node_names[data.msg.route]) {
-                                link_tag.innerText += " ("+node_names[data.msg.route]+")";
-                            }
-                            cell.append(link_tag);
-                            line.appendChild(cell);
-
-                            document.getElementById("route-responses").appendChild(line);
-                        }
-                    } else {
-                        for (var i=0;i<data.msg.trace.length;i++) {
-                            line = document.createElement('tr');
-
-                            cell = document.createElement("td");
-                            link_tag = document.createElement("a");
-                            link_tag.href = "/control/mesh/" + data.msg.trace[i];
-                            link_tag.innerText = data.msg.trace[i];
-                            if (node_names[data.msg.trace[i]]) {
-                                link_tag.innerText += " ("+node_names[data.msg.trace[i]]+")";
-                            }
-                            cell.appendChild(link_tag);
-                            line.appendChild(cell);
-                            document.getElementById("route-trace").appendChild(line);
-                        }
-                    }
-                {% endif %}
-                break;
+                console.log(data);
+            }
         }
 
-        console.log(data);
-    }
-}
+        connect();
 
-connect();
-
-</script>
+    </script>
+{% endcompress %}
