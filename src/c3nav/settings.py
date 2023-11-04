@@ -387,6 +387,8 @@ STATICFILES_DIRS = [
 
 COMPRESS_PRECOMPILERS = (
     ('text/x-scss', 'django_libsass.SassCompiler'),
+    ('text/javascript', 'esbuild --jsx-factory=jsx_create --jsx-fragment=jsx_fragment --charset=utf8 '
+                        '--jsx-side-effects --loader=jsx <{infile} >{outfile}')
 )
 
 COMPRESS_ENABLED = COMPRESS_OFFLINE = not debug_fallback
