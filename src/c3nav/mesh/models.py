@@ -155,7 +155,7 @@ class FirmwareBuild(models.Model):
     variant = models.CharField(_('variant name'), max_length=64)
     chip = models.SmallIntegerField(_('chip'), db_index=True, choices=CHIPS)
     sha256_hash = models.CharField(_('SHA256 hash'), unique=True, max_length=64)
-    project_description = models.JSONField
+    project_description = models.JSONField(verbose_name=_('project_description.json'))
     binary = models.FileField(_('firmware file'), null=True, upload_to=firmware_upload_path)
 
     class Meta:
