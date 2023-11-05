@@ -17,6 +17,7 @@ from c3nav.mapdata.api import (AccessRestrictionGroupViewSet, AccessRestrictionV
                                LocationViewSet, MapViewSet, ObstacleViewSet, POIViewSet, RampViewSet, SourceViewSet,
                                SpaceViewSet, StairViewSet, UpdatesViewSet)
 from c3nav.mapdata.utils.user import can_access_editor
+from c3nav.mesh.api import FirmwareViewSet
 from c3nav.routing.api import RoutingViewSet
 
 router = SimpleRouter()
@@ -52,6 +53,8 @@ router.register(r'routing', RoutingViewSet, basename='routing')
 router.register(r'editor', EditorViewSet, basename='editor')
 router.register(r'changesets', ChangeSetViewSet)
 router.register(r'session', SessionViewSet, basename='session')
+
+router.register(r'firmwares', FirmwareViewSet, basename='firmware')
 
 
 class APIRoot(GenericAPIView):

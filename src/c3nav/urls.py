@@ -2,6 +2,7 @@ from contextlib import suppress
 
 from channels.routing import URLRouter
 from django.conf import settings
+from django.conf.urls.static import static
 from django.contrib import admin
 from django.urls import include, path
 
@@ -20,7 +21,7 @@ urlpatterns = [
     path('control/', include(c3nav.control.urls)),
     path('locales/', include('django.conf.urls.i18n')),
     path('', include(c3nav.site.urls)),
-]
+] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
 
 websocket_urlpatterns = [
     path('mesh/', URLRouter(c3nav.mesh.urls.websocket_urlpatterns)),

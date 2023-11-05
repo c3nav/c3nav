@@ -3,9 +3,12 @@ from functools import cached_property
 from operator import attrgetter
 from typing import Any, Mapping, Self
 
+from django.contrib.auth import get_user_model
 from django.db import NotSupportedError, models
+from django.utils.text import slugify
 from django.utils.translation import gettext_lazy as _
 
+from c3nav.mesh.dataformats import BoardType
 from c3nav.mesh.messages import ChipType
 from c3nav.mesh.messages import MeshMessage as MeshMessage
 from c3nav.mesh.messages import MeshMessageType
@@ -118,16 +121,67 @@ class NodeMessage(models.Model):
         return MeshMessage.fromjson(self.data)
 
 
-class Firmware(models.Model):
-    CHIPS = [(msgtype.value, msgtype.name.replace('_', '-')) for msgtype in ChipType]
-    chip = models.SmallIntegerField(_('chip'), db_index=True, choices=CHIPS)
+class FirmwareVersion(models.Model):
     project_name = models.CharField(_('project name'), max_length=32)
-    version = models.CharField(_('firmware version'), max_length=32)
+    version = models.CharField(_('firmware version'), max_length=32, unique=True)
     idf_version = models.CharField(_('IDF version'), max_length=32)
+    uploader = models.ForeignKey(get_user_model(), null=True, on_delete=models.SET_NULL)
+    created = models.DateTimeField(_('creation/upload date'), auto_now_add=True)
+
+    def serialize(self):
+        return {
+            'project_name': self.project_name,
+            'version': self.version,
+            'idf_version': self.idf_version,
+            'created': self.created.isoformat(),
+            'builds': {
+                build.variant: build.serialize()
+                for build in self.builds.all().prefetch_related("firmwarebuildboard_set")
+            }
+        }
+
+
+def firmware_upload_path(instance, filename):
+    # file will be uploaded to MEDIA_ROOT/user_<id>/<filename>
+    version = slugify(instance.version.version)
+    variant = slugify(instance.variant)
+    return f"firmware/{version}/{variant}/{filename}"
+
+
+class FirmwareBuild(models.Model):
+    CHIPS = [(chiptype.value, chiptype.pretty_name) for chiptype in ChipType]
+
+    version = models.ForeignKey(FirmwareVersion, related_name='builds', on_delete=models.CASCADE)
+    variant = models.CharField(_('variant name'), max_length=64)
+    chip = models.SmallIntegerField(_('chip'), db_index=True, choices=CHIPS)
     sha256_hash = models.CharField(_('SHA256 hash'), unique=True, max_length=64)
-    binary = models.FileField(_('firmware file'), null=True)
+    project_description = models.JSONField
+    binary = models.FileField(_('firmware file'), null=True, upload_to=firmware_upload_path)
 
     class Meta:
         unique_together = [
-            ('chip', 'project_name', 'version', 'idf_version', 'sha256_hash'),
+            ('version', 'variant'),
+        ]
+
+    @property
+    def boards(self):
+        return [board.board for board in self.firmwarebuildboard_set.all()]
+
+    def serialize(self):
+        return {
+            'chip': ChipType(self.chip).name,
+            'sha256_hash': self.sha256_hash,
+            'url': self.binary.url,
+            'boards': self.boards,
+        }
+
+
+class FirmwareBuildBoard(models.Model):
+    BOARDS = [(boardtype.name, boardtype.pretty_name) for boardtype in BoardType]
+    build = models.ForeignKey(FirmwareBuild, on_delete=models.CASCADE)
+    board = models.CharField(_('board'), max_length=32, db_index=True, choices=BOARDS)
+
+    class Meta:
+        unique_together = [
+            ('build', 'board'),
         ]

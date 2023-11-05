@@ -43,6 +43,8 @@ TILES_ROOT = os.path.join(DATA_DIR, 'tiles')
 CACHE_ROOT = os.path.join(DATA_DIR, 'cache')
 STATS_ROOT = os.path.join(DATA_DIR, 'stats')
 
+MEDIA_URL = '/media/'
+
 if not os.path.exists(DATA_DIR):
     os.mkdir(DATA_DIR)
 if not os.path.exists(LOG_DIR):
