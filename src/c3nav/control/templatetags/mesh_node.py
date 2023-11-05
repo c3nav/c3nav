@@ -18,3 +18,8 @@ def mesh_node(context, bssid):
             '<a href="{url}">{bssid}</a>',
             url=reverse('control.mesh.node.detail', kwargs={"pk": bssid}), bssid=bssid
         )
+
+
+@register.filter()
+def m_to_cm(value):
+    return "%.2fm" % (int(value)/100)
