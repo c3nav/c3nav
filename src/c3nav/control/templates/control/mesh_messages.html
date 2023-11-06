@@ -132,7 +132,8 @@
                         {% endfor %}
                     {% endif %}
                 </td>
-                <td>{% mesh_node msg.uplink_node %}</td>
+                {% comment %}todo: more details{% endcomment %}
+                <td>{% mesh_node msg.uplink.node %}</td>
             </tr>
         {% endfor %}
     </table>

@@ -2,12 +2,13 @@ import traceback
 
 from asgiref.sync import async_to_sync
 from channels.generic.websocket import JsonWebsocketConsumer, WebsocketConsumer
+from django.db import transaction
 from django.utils import timezone
 
 from c3nav.mesh import messages
 from c3nav.mesh.messages import (MESH_BROADCAST_ADDRESS, MESH_NONE_ADDRESS, MESH_ROOT_ADDRESS, MeshMessage,
                                  MeshMessageType)
-from c3nav.mesh.models import MeshNode, NodeMessage
+from c3nav.mesh.models import MeshNode, MeshUplink, NodeMessage
 from c3nav.mesh.tasks import send_channel_msg
 from c3nav.mesh.utils import get_mesh_comm_group
 
@@ -16,15 +17,17 @@ from c3nav.mesh.utils import get_mesh_comm_group
 class MeshConsumer(WebsocketConsumer):
     def connect(self):
         # todo: auth
-        self.uplink_node = None
+        self.uplink = None
         self.log_text(None, "new mesh websocket connection")
         self.dst_nodes = set()
         self.open_requests = set()
         self.accept()
 
+        # todo: ping stuff
+
     def disconnect(self, close_code):
-        self.log_text(self.uplink_node, "mesh websocket disconnected")
-        if self.uplink_node is not None:
+        self.log_text(self.uplink.node, "mesh websocket disconnected")
+        if self.uplink is not None:
             # leave broadcast group
             async_to_sync(self.channel_layer.group_discard)(
                 get_mesh_comm_group(MESH_BROADCAST_ADDRESS), self.channel_name
@@ -32,6 +35,15 @@ class MeshConsumer(WebsocketConsumer):
 
             # remove all other destinations
             self.remove_dst_nodes(self.dst_nodes)
+
+            # set end reason (unless we set it to replaced already)
+            MeshUplink.objects.filter(
+                pk=self.uplink.pk,
+            ).exclude(
+                end_reason=MeshUplink.EndReason.REPLACED
+            ).update(
+                end_reason=MeshUplink.EndReason.CLOSED
+            )
 
     def send_msg(self, msg, sender=None, exclude_uplink_address=None):
         # print("sending", msg, MeshMessage.encode(msg).hex(' ', 1))
@@ -42,7 +54,7 @@ class MeshConsumer(WebsocketConsumer):
             "timestamp": timezone.now().strftime("%d.%m.%y %H:%M:%S.%f"),
             "channel": self.channel_name,
             "sender": sender,
-            "uplink": self.uplink_node.address if self.uplink_node else None,
+            "uplink": self.uplink.node.address if self.uplink else None,
             "recipient": msg.dst,
             # "msg": msg.tojson(),  # not doing this part for privacy reasons
         })
@@ -62,8 +74,8 @@ class MeshConsumer(WebsocketConsumer):
             # message not adressed to us, forward it
             print('Received message for forwarding:', msg)
 
-            if not self.uplink_node:
-                self.log_text(self.uplink_node, "received message not for us before sign in message, ignoring...")
+            if not self.uplink:
+                self.log_text(None, "received message not for us before sign in message, ignoring...")
                 print('no sign in yet, ignoring')
                 return
 
@@ -73,7 +85,7 @@ class MeshConsumer(WebsocketConsumer):
                 self.log_text(MESH_ROOT_ADDRESS, "adding ourselves to trace message before forwarding")
                 msg.trace.append(MESH_ROOT_ADDRESS)
 
-            msg.send(exclude_uplink_address=self.uplink_node.address)
+            msg.send(exclude_uplink_address=self.uplink.node.address)
 
             # don't handle this message unless it's a broadcast message
             if msg.dst != messages.MESH_BROADCAST_ADDRESS:
@@ -88,34 +100,49 @@ class MeshConsumer(WebsocketConsumer):
         src_node, created = MeshNode.objects.get_or_create(address=msg.src)
 
         if isinstance(msg, messages.MeshSigninMessage):
-            self.uplink_node = src_node
-            # log message, since we will not log it further down
-            self.log_received_message(src_node, msg)
+            with transaction.atomic():
+                # tatabase fumbling, lock the mesh node database row
+                locked_node = MeshNode.objects.select_for_update().get(address=msg.src)
 
-            # inform signed in uplink node about its layer
-            self.send_msg(messages.MeshLayerAnnounceMessage(
-                src=messages.MESH_ROOT_ADDRESS,
-                dst=msg.src,
-                layer=messages.NO_LAYER
-            ))
+                # close other uplinks in the database (they might add their own close reason in a bit)
+                locked_node.uplink_sessions.filter(end_reason__isnull=True).update(
+                    end_reason=MeshUplink.EndReason.NEW_TIMEOUT
+                )
 
-            # add signed in uplink node to broadcast group
-            async_to_sync(self.channel_layer.group_add)(
-                get_mesh_comm_group(MESH_BROADCAST_ADDRESS), self.channel_name
-            )
+                # create our own uplink in the database
+                self.uplink = MeshUplink.objects.create(
+                    node=locked_node,
+                    last_ping=timezone.now(),
+                    name=self.channel_name,
+                )
 
-            # kick out other consumers talking to the same uplink
-            async_to_sync(self.channel_layer.group_send)(get_mesh_comm_group(msg.src), {
-                "type": "mesh.uplink_consumer",
-                "name": self.channel_name,
-            })
+                # inform other uplinks to shut down
+                async_to_sync(self.channel_layer.group_send)(get_mesh_comm_group(msg.src), {
+                    "type": "mesh.uplink_consumer",
+                    "name": self.channel_name,
+                })
 
-            # add this node as a destination that this uplink handles (duh)
-            self.add_dst_nodes(nodes=(src_node, ))
+                # log message, since we will not log it further down
+                self.log_received_message(src_node, msg)
+
+                # inform signed in uplink node about its layer
+                self.send_msg(messages.MeshLayerAnnounceMessage(
+                    src=messages.MESH_ROOT_ADDRESS,
+                    dst=msg.src,
+                    layer=messages.NO_LAYER
+                ))
+
+                # add signed in uplink node to broadcast group
+                async_to_sync(self.channel_layer.group_add)(
+                    get_mesh_comm_group(MESH_BROADCAST_ADDRESS), self.channel_name
+                )
+
+                # add this node as a destination that this uplink handles (duh)
+                self.add_dst_nodes(nodes=(src_node, ))
 
             return
 
-        if self.uplink_node is None:
+        if self.uplink is None:
             print('Expected sign-in message, but got a different one!')
             self.close()
             return
@@ -156,35 +183,38 @@ class MeshConsumer(WebsocketConsumer):
     def mesh_uplink_consumer(self, data):
         # message handler: if we are not the given uplink, leave this group
         if data["name"] != self.channel_name:
-            self.log_text(self.uplink_node, "shutting down, uplink now served by new consumer")
+            self.log_text(self.uplink.node, "shutting down, uplink now served by new consumer")
+            MeshUplink.objects.filter(pk=self.uplink.pk,).update(
+                end_reason=MeshUplink.EndReason.REPLACED
+            )
             self.close()
 
     def mesh_dst_node_uplink(self, data):
         # message handler: if we are not the given uplink, leave this group
-        if data["uplink"] != self.uplink_node.address:
+        if data["uplink"] != self.uplink.node.address:
             self.log_text(data["address"], "node now served by new consumer")
             self.remove_dst_nodes((data["address"], ))
 
     def mesh_send(self, data):
-        if self.uplink_node.address == data["exclude_uplink_address"]:
+        if self.uplink.node.address == data["exclude_uplink_address"]:
             if data["msg"]["dst"] == MESH_BROADCAST_ADDRESS:
                 self.log_text(
-                    self.uplink_node.address, "not forwarding this broadcast message via us since it came from here"
+                    self.uplink.node.address, "not forwarding this broadcast message via us since it came from here"
                 )
             else:
                 self.log_text(
-                    self.uplink_node.address, "we're the route for this message but it came from here so... no"
+                    self.uplink.node.address, "we're the route for this message but it came from here so... no"
                 )
             return
         self.send_msg(MeshMessage.fromjson(data["msg"]), data["sender"])
 
     def mesh_send_route_response(self, data):
-        self.log_text(self.uplink_node.address, "we're the uplink for this address, sending route response...")
+        self.log_text(self.uplink.node.address, "we're the uplink for this address, sending route response...")
         messages.MeshRouteResponseMessage(
             src=MESH_ROOT_ADDRESS,
             dst=data["dst"],
             request_id=data["request_id"],
-            route=self.uplink_node.address,
+            route=self.uplink.node.address,
         ).send()
         async_to_sync(self.channel_layer.send)(data["channel"], {
             "type": "mesh.route_response_sent",
@@ -213,11 +243,11 @@ class MeshConsumer(WebsocketConsumer):
             "type": "mesh.msg_received",
             "timestamp": timezone.now().strftime("%d.%m.%y %H:%M:%S.%f"),
             "channel": self.channel_name,
-            "uplink": self.uplink_node.address if self.uplink_node else None,
+            "uplink": self.uplink.node.address if self.uplink else None,
             "msg": as_json,
         })
         NodeMessage.objects.create(
-            uplink_node=self.uplink_node,
+            uplink=self.uplink,
             src_node=src_node,
             message_type=msg.msg_type.name,
             data=as_json,
@@ -229,11 +259,11 @@ class MeshConsumer(WebsocketConsumer):
             "type": "mesh.log_entry",
             "timestamp": timezone.now().strftime("%d.%m.%y %H:%M:%S.%f"),
             "channel": self.channel_name,
-            "uplink": self.uplink_node.address if self.uplink_node else None,
+            "uplink": self.uplink.node.address if self.uplink else None,
             "node": address,
             "text": text,
         })
-        print("MESH %s: [%s] %s" % (self.uplink_node, address, text))
+        print("MESH %s: [%s] %s" % (self.uplink.node, address, text))
 
     def add_dst_nodes(self, nodes=None, addresses=None):
         nodes = list(nodes) if nodes else []
@@ -266,7 +296,7 @@ class MeshConsumer(WebsocketConsumer):
             async_to_sync(self.channel_layer.group_send)(group, {
                 "type": "mesh.dst_node_uplink",
                 "node": address,
-                "uplink": self.uplink_node.address
+                "uplink": self.uplink.node.address
             })
 
             # tell the node to dump its current information
@@ -279,7 +309,7 @@ class MeshConsumer(WebsocketConsumer):
 
         # add the stuff to the db as well
         MeshNode.objects.filter(address__in=addresses).update(
-            uplink_id=self.uplink_node.address,
+            uplink=self.uplink,
             last_signin=timezone.now(),
         )
 
@@ -297,9 +327,7 @@ class MeshConsumer(WebsocketConsumer):
 
         # add the stuff to the db as well
         # todo: shouldn't do this because of race condition?
-        MeshNode.objects.filter(address__in=addresses, uplink_id=self.uplink_node.address).update(
-            uplink_id=None,
-        )
+        MeshNode.objects.filter(address__in=addresses, uplink=self.uplink).update(uplink=None)
 
 
 class MeshUIConsumer(JsonWebsocketConsumer):

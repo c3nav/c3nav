@@ -5,6 +5,7 @@ from typing import Any, Mapping, Self
 
 from django.contrib.auth import get_user_model
 from django.db import NotSupportedError, models
+from django.db.models import Q, UniqueConstraint
 from django.utils.text import slugify
 from django.utils.translation import gettext_lazy as _
 
@@ -40,7 +41,7 @@ class MeshNodeQuerySet(models.QuerySet):
                 for message in NodeMessage.objects.order_by('message_type', 'src_node', '-datetime', '-pk').filter(
                         message_type__in=(t.name for t in self._prefetch_last_messages),
                         src_node__in=nodes.keys(),
-                ).prefetch_related("uplink_node").distinct('message_type', 'src_node'):
+                ).prefetch_related("uplink").distinct('message_type', 'src_node'):
                     nodes[message.src_node_id].last_messages[message.message_type] = message
                 for node in nodes.values():
                     node.last_messages["any"] = max(node.last_messages.values(), key=attrgetter("datetime"))
@@ -85,10 +86,13 @@ class LastMessagesByTypeLookup(UserDict):
 
 
 class MeshNode(models.Model):
+    """
+    A nesh node. Any node.
+    """
     address = models.CharField(_('mac address'), max_length=17, primary_key=True)
     name = models.CharField(_('name'), max_length=32, null=True, blank=True)
     first_seen = models.DateTimeField(_('first seen'), auto_now_add=True)
-    uplink = models.ForeignKey('MeshNode', models.PROTECT, null=True,
+    uplink = models.ForeignKey('MeshUplink', models.PROTECT, null=True,
                                related_name='routed_nodes', verbose_name=_('uplink'))
     last_signin = models.DateTimeField(_('last signin'), null=True)
     objects = models.Manager.from_queryset(MeshNodeQuerySet)()
@@ -103,12 +107,35 @@ class MeshNode(models.Model):
         return LastMessagesByTypeLookup(self)
 
 
+class MeshUplink(models.Model):
+    """
+    An uplink session, a direct connection to a node
+    """
+
+    class EndReason(models.TextChoices):
+        CLOSED = "closed", _("closed")
+        REPLACED = "replaced", _("replaced")
+        NEW_TIMEOUT = "new_timeout", _("new (timeout)")
+
+    name = models.CharField(_('channel name'), max_length=128)
+    started = models.DateTimeField(_('started'), auto_now_add=True)
+    node = models.ForeignKey('MeshNode', models.PROTECT, related_name='uplink_sessions',
+                             verbose_name=_('node'))
+    last_ping = models.DateTimeField(_('last ping from consumer'))
+    end_reason = models.CharField(_('end reason'), choices=EndReason.choices, null=True, max_length=16)
+
+    class Meta:
+        constraints = (
+            UniqueConstraint(fields=["node"], condition=Q(end_reason__isnull=True), name='only_one_active_uplink'),
+        )
+
+
 class NodeMessage(models.Model):
     MESSAGE_TYPES = [(msgtype.name, msgtype.pretty_name) for msgtype in MeshMessageType]
     src_node = models.ForeignKey('MeshNode', models.PROTECT,
                                  related_name='received_messages', verbose_name=_('node'))
-    uplink_node = models.ForeignKey('MeshNode', models.PROTECT,
-                                    related_name='relayed_messages', verbose_name=_('uplink node'))
+    uplink = models.ForeignKey('MeshUplink', models.PROTECT, related_name='relayed_messages',
+                               verbose_name=_('uplink'))
     datetime = models.DateTimeField(_('datetime'), db_index=True, auto_now_add=True)
     message_type = models.CharField(_('message type'), max_length=24, db_index=True, choices=MESSAGE_TYPES)
     data = models.JSONField(_('message data'))
