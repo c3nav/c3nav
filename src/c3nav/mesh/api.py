@@ -43,7 +43,6 @@ class FirmwareViewSet(CreateModelMixin, ReadOnlyModelViewSet):
             # check only for not-secret auth
             SessionAuthentication().enforce_csrf(request)
 
-        print(request.user)
         if not request.user.is_superuser:
             # todo: make this proper
             raise PermissionDenied()
