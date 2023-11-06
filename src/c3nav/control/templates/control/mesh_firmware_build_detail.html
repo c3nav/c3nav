@@ -1,0 +1,78 @@
+{% extends 'control/base.html' %}
+{% load i18n mesh_node %}
+
+{% block heading %}{% trans 'Mesh' %}{% endblock %}
+
+{% block subcontent %}
+    <h4>{% trans 'Firmware Build' %}</h4>
+
+    <div class="columns">
+        <div>
+            <p>
+                <strong>Project name:</strong> {{ build.version.project_name }}<br>
+                <strong>Version:</strong> {{ build.version.version }}<br>
+                <strong>IDF Version:</strong> {{ build.version.idf_version }}<br>
+                <strong>Uploader:</strong> {{ build.version.uploader }}<br>
+                <strong>Created:</strong> {{ build.version.created }}<br>
+            </p>
+            <o>
+                <strong>Variant:</strong> {{ build.variant }}<br>
+                <strong>Chip:</strong> {{ build.get_chip_display }}<br>
+            </o>
+            <h4>Compatible boards:</h4>
+            <ul>
+                {% for board in build.boards %}
+                    <li>{{ board.pretty_name }}</li>
+                {% endfor %}
+            </ul>
+        </div>
+        <div>
+            <h4>Installed nodes</h4>
+            <table>
+                <tr>
+                    <th>{% trans 'Node' %}</th>
+                    <th>{% trans 'Hardware' %}</th>
+                </tr>
+                {% for node in installed_nodes %}
+                    <tr>
+                        <td>
+                            {% mesh_node node %}
+                        </td>
+                        <td>
+                            {{ node.board.pretty_name }} ({{ node.chip.pretty_name }})
+                        </td>
+                    </tr>
+                {% endfor %}
+            </table>
+
+            <h4>Compatible nodes</h4>
+            <table>
+                <tr>
+                    <th>{% trans 'Node' %}</th>
+                    <th>{% trans 'Hardware' %}</th>
+                    <th>{% trans 'Current Firmware' %}</th>
+                </tr>
+                {% for node in compatible_nodes %}
+                    <tr>
+                        <td>
+                            {% mesh_node node %}
+                        </td>
+                        <td>
+                            {{ node.board.pretty_name }} <small>({{ node.chip.pretty_name }})</small>
+                        </td>
+                        <td>
+                            {% if node.firmware_desc.build %}
+                                <a href="{% url "control.mesh.firmwares.detail" pk=node.firmware_desc.build.version.pk %}">
+                                    {{ node.firmware_desc.project_name }} {{ node.firmware_desc.version }}
+                                </a><br>
+                                Build <a href="{% url "control.mesh.firmwares.build.detail" pk=node.firmware_desc.build.pk %}">{{ node.firmware_desc.build.variant }}</a>
+                            {% else %}
+                                {{ node.firmware_desc.project_name }} {{ node.firmware_desc.version }}
+                            {% endif %}
+                        </td>
+                    </tr>
+                {% endfor %}
+            </table>
+        </div>
+    </div>
+{% endblock %}

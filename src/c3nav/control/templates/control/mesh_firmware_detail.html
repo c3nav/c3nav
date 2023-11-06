@@ -1,0 +1,103 @@
+{% extends 'control/base.html' %}
+{% load i18n mesh_node %}
+
+{% block heading %}{% trans 'Mesh' %}{% endblock %}
+
+{% block subcontent %}
+    <h4>{% trans 'Firmware' %}</h4>
+
+    <div class="columns">
+        <div>
+            <p>
+                <strong>Project name:</strong> {{ firmware.project_name }}<br>
+                <strong>Version:</strong> {{ firmware.version }}<br>
+                <strong>IDF Version:</strong> {{ firmware.idf_version }}<br>
+                <strong>Uploader:</strong> {{ firmware.uploader }}<br>
+                <strong>Created:</strong> {{ firmware.created }}<br>
+            </p>
+
+            <h4>Builds</h4>
+            <table>
+                <tr>
+                    <th>{% trans 'Build' %}</th>
+                    <th>{% trans 'Chip' %}</th>
+                    <th>{% trans 'Boards' %}</th>
+                </tr>
+                {% for build in builds %}
+                    <tr>
+                        <td>
+                            <a href="{% url "control.mesh.firmwares.build.detail" pk=build.pk %}">
+                                {{ build.variant }}
+                            </a>
+                        </td>
+                        <td>{{ build.get_chip_display }}</td>
+                        <td>
+                            {% for board in build.boards %}
+                                {{ board.pretty_name }}<br>
+                            {% endfor %}
+                        </td>
+                    </tr>
+                {% endfor %}
+
+            </table>
+        </div>
+        <div>
+            <h4>Installed nodes</h4>
+            <table>
+                <tr>
+                    <th>{% trans 'Node' %}</th>
+                    <th>{% trans 'Hardware' %}</th>
+                    <th>{% trans 'Build' %}</th>
+                </tr>
+                {% for node in installed_nodes %}
+                    <tr>
+                        <td>
+                            {% mesh_node node %}
+                        </td>
+                        <td>
+                            {{ node.board.pretty_name }} ({{ node.chip.pretty_name }})
+                        </td>
+                        <td>
+                            {{ node.firmware_desc.build.variant }}
+                        </td>
+                    </tr>
+                {% endfor %}
+            </table>
+
+            <h4>Compatible nodes</h4>
+            <table>
+                <tr>
+                    <th>{% trans 'Node' %}</th>
+                    <th>{% trans 'Hardware' %}</th>
+                    <th>{% trans 'Current Firmware' %}</th>
+                    <th>{% trans 'Compatible Builds' %}</th>
+                </tr>
+                {% for node in compatible_nodes %}
+                    <tr>
+                        <td>
+                            {% mesh_node node %}
+                        </td>
+                        <td>
+                            {{ node.board.pretty_name }} <small>({{ node.chip.pretty_name }})</small>
+                        </td>
+                        <td>
+                            {% if node.firmware_desc.build %}
+                                <a href="{% url "control.mesh.firmwares.detail" pk=node.firmware_desc.build.version.pk %}">
+                                    {{ node.firmware_desc.project_name }} {{ node.firmware_desc.version }}
+                                </a><br>
+                                Build <a href="{% url "control.mesh.firmwares.build.detail" pk=node.firmware_desc.build.pk %}">{{ node.firmware_desc.build.variant }}</a>
+                            {% else %}
+                                {{ node.firmware_desc.project_name }} {{ node.firmware_desc.version }}
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% for build in node.compatible_builds %}
+                                {{ build.variant }}<br>
+                            {% endfor %}
+                        </td>
+                    </tr>
+                {% endfor %}
+            </table>
+        </div>
+    </div>
+{% endblock %}

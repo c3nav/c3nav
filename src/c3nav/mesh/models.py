@@ -192,6 +192,14 @@ class MeshNode(models.Model):
             sha256_hash=firmware_msg.app_desc.app_elf_sha256,
         )
 
+    @cached_property
+    def chip(self) -> ChipType:
+        return self.last_messages[MeshMessageType.CONFIG_HARDWARE].parsed.chip
+
+    @cached_property
+    def board(self) -> ChipType:
+        return self.last_messages[MeshMessageType.CONFIG_BOARD].parsed.board_config.board
+
 
 class MeshUplink(models.Model):
     """
@@ -278,7 +286,7 @@ class FirmwareBuild(models.Model):
 
     @property
     def boards(self):
-        return [board.board for board in self.firmwarebuildboard_set.all()]
+        return {BoardType[board.board] for board in self.firmwarebuildboard_set.all()}
 
     def serialize(self):
         return {

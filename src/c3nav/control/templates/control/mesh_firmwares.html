@@ -1,7 +1,7 @@
 {% extends 'control/base.html' %}
 {% load i18n %}
 
-{% block heading %}{% trans 'Mesh Firmwares' %}{% endblock %}
+{% block heading %}{% trans 'Mesh' %}{% endblock %}
 
 {% block subcontent %}
     <h4>Firmwares</h4>
@@ -23,11 +23,17 @@
             <tr>
                 <td>{{ firmware.created }}</td>
                 <td>{{ firmware.uploader }}</td>
-                <td>{{ firmware.project_name }} {{ firmware.version }}</td>
+                <td>
+                    <a href="{% url "control.mesh.firmwares.detail" pk=firmware.pk %}">
+                        {{ firmware.project_name }} {{ firmware.version }}
+                    </a>
+                </td>
                 <td>{{ firmware.idf_version }}</td>
                 <td>
                     {% for build in firmware.builds.all %}
-                        {{ build.variant }} ({{ build.get_chip_display }})<br>
+                        <a href="{% url "control.mesh.firmwares.build.detail" pk=build.pk %}">
+                            {{ build.variant }} ({{ build.get_chip_display }})
+                        </a><br>
                     {% endfor %}
                 </td>
             </tr>
