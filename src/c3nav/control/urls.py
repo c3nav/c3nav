@@ -4,8 +4,9 @@ from c3nav.control.views.access import grant_access, grant_access_qr
 from c3nav.control.views.announcements import announcement_detail, announcement_list
 from c3nav.control.views.base import ControlPanelIndexView
 from c3nav.control.views.mapupdates import map_updates
-from c3nav.control.views.mesh import (MeshFirmwaresListView, MeshLogView, MeshMessageListView, MeshMessageSendingView,
-                                      MeshMessageSendView, MeshNodeDetailView, MeshNodeEditView, MeshNodeListView)
+from c3nav.control.views.mesh import (MeshFirmwaresCurrentListView, MeshFirmwaresListView, MeshLogView,
+                                      MeshMessageListView, MeshMessageSendingView, MeshMessageSendView,
+                                      MeshNodeDetailView, MeshNodeEditView, MeshNodeListView)
 from c3nav.control.views.users import UserListView, user_detail
 
 urlpatterns = [
@@ -20,6 +21,7 @@ urlpatterns = [
     path('mesh/logs/', MeshLogView.as_view(), name='control.mesh.log'),
     path('mesh/messages/', MeshMessageListView.as_view(), name='control.mesh.messages'),
     path('mesh/firmwares/', MeshFirmwaresListView.as_view(), name='control.mesh.firmwares'),
+    path('mesh/firmwares/current/', MeshFirmwaresCurrentListView.as_view(), name='control.mesh.firmwares.current'),
     path('mesh/<str:pk>/', MeshNodeDetailView.as_view(), name='control.mesh.node.detail'),
     path('mesh/<str:pk>/edit/', MeshNodeEditView.as_view(), name='control.mesh.node.edit'),
     path('mesh/message/sending/<uuid:uuid>/', MeshMessageSendingView.as_view(), name='control.mesh.sending'),

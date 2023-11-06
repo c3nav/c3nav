@@ -5,6 +5,9 @@
 
 {% block subcontent %}
     <h4>Firmwares</h4>
+    <a class="button" href="{% url "control.mesh.firmwares.current" %}">
+        {% trans 'View current firmwares' %}
+    </a>
 
     {% include 'control/fragment_pagination.html' %}
 
@@ -12,8 +15,7 @@
         <tr>
             <th>{% trans 'Created' %}</th>
             <th>{% trans 'Uploader' %}</th>
-            <th>{% trans 'Project Name' %}</th>
-            <th>{% trans 'Version' %}</th>
+            <th>{% trans 'Firmware' %}</th>
             <th>{% trans 'IDF version' %}</th>
             <th>{% trans 'Builds' %}</th>
         </tr>
@@ -21,8 +23,7 @@
             <tr>
                 <td>{{ firmware.created }}</td>
                 <td>{{ firmware.uploader }}</td>
-                <td>{{ firmware.project_name }}</td>
-                <td>{{ firmware.version }}</td>
+                <td>{{ firmware.project_name }} {{ firmware.version }}</td>
                 <td>{{ firmware.idf_version }}</td>
                 <td>
                     {% for build in firmware.builds.all %}

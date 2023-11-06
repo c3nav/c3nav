@@ -195,3 +195,23 @@ class MeshFirmwaresListView(ControlPanelMixin, ListView):
     ordering = "-created"
     context_object_name = "firmwares"
     paginate_by = 20
+
+
+class MeshFirmwaresCurrentListView(ControlPanelMixin, TemplateView):
+    template_name = "control/mesh_firmwares_current.html"
+
+    def get_context_data(self, **kwargs):
+        nodes = list(MeshNode.objects.all().prefetch_firmwares())
+
+        firmwares = {}
+        for node in nodes:
+            firmwares.setdefault(node.firmware_desc.get_lookup(), (node.firmware_desc, []))[1].append(node)
+
+        firmwares = sorted(firmwares.values(), key=lambda k: k[0].created, reverse=True)
+
+        print(firmwares)
+
+        return {
+            **super().get_context_data(),
+            "firmwares": firmwares,
+        }

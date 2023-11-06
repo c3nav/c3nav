@@ -1,0 +1,47 @@
+{% extends 'control/base.html' %}
+{% load i18n mesh_node %}
+
+{% block heading %}{% trans 'Mesh Firmwares' %}{% endblock %}
+
+{% block subcontent %}
+    <h4>Current Firmwares</h4>
+    <a class="button" href="{% url "control.mesh.firmwares" %}">
+        {% trans 'View available firmwares' %}
+    </a>
+
+    <table>
+        <tr>
+            <th>{% trans 'Created / First seen' %}</th>
+            <th>{% trans 'Firmware' %}</th>
+            <th>{% trans 'Build' %}</th>
+            <th>{% trans 'IDF version' %}</th>
+            <th>{% trans 'Installed on' %}</th>
+        </tr>
+        {% for firmware, nodes in firmwares %}
+            <tr>
+                <td>{{ firmware.created }}</td>
+                <td>
+                    {% if firmware.build %}
+                        <a href="#">{{ firmware.project_name }} {{ firmware.version }}</a>
+                    {% else %}
+                        {{ firmware.project_name }} {{ firmware.version }}<br>
+                        <small>{{ firmware.sha256_hash }}</small>
+                    {% endif %}
+                </td>
+                <td>
+                    {% if firmware.build %}
+                        <a href="#">{{ firmware.build.variant }} ({{ firmware.chip.pretty_name }})</a>
+                    {% else %}
+                        ({{ firmware.chip.pretty_name }})
+                    {% endif %}
+                </td>
+                <td>{{ firmware.idf_version }}</td>
+                <td>
+                    {% for node in nodes %}
+                        {% mesh_node node %}
+                    {% endfor %}
+                </td>
+            </tr>
+        {% endfor %}
+    </table>
+{% endblock %}
