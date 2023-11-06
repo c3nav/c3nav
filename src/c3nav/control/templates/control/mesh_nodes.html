@@ -12,6 +12,12 @@
             </a>
         </div>
         <div>
+            <h4>View firmwares</h4>
+            <a class="button" href="{% url "control.mesh.firmwares" %}">
+                {% trans 'View firmwares' %}
+            </a>
+        </div>
+        <div>
             <h4>Send messages</h4>
             <form method="POST">
                 {% csrf_token %}

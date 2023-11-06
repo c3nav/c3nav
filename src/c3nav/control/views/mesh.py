@@ -14,7 +14,7 @@ from c3nav.control.forms import MeshMessageFilterForm
 from c3nav.control.views.base import ControlPanelMixin
 from c3nav.mesh.forms import MeshMessageForm, MeshNodeForm
 from c3nav.mesh.messages import MeshMessage, MeshMessageType
-from c3nav.mesh.models import MeshNode, NodeMessage
+from c3nav.mesh.models import FirmwareVersion, MeshNode, NodeMessage
 from c3nav.mesh.utils import get_node_names, group_msg_type_choices
 
 
@@ -187,3 +187,11 @@ class MeshLogView(ControlPanelMixin, TemplateView):
             **super().get_context_data(),
             "node_names": get_node_names(),
         }
+
+
+class MeshFirmwaresListView(ControlPanelMixin, ListView):
+    model = FirmwareVersion
+    template_name = "control/mesh_firmwares.html"
+    ordering = "-created"
+    context_object_name = "firmwares"
+    paginate_by = 20

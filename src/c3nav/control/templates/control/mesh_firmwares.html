@@ -1,0 +1,38 @@
+{% extends 'control/base.html' %}
+{% load i18n %}
+
+{% block heading %}{% trans 'Mesh Firmwares' %}{% endblock %}
+
+{% block subcontent %}
+    <h4>Firmwares</h4>
+
+    {% include 'control/fragment_pagination.html' %}
+
+    <table>
+        <tr>
+            <th>{% trans 'Created' %}</th>
+            <th>{% trans 'Uploader' %}</th>
+            <th>{% trans 'Project Name' %}</th>
+            <th>{% trans 'Version' %}</th>
+            <th>{% trans 'IDF version' %}</th>
+            <th>{% trans 'Builds' %}</th>
+        </tr>
+        {% for firmware in firmwares %}
+            <tr>
+                <td>{{ firmware.created }}</td>
+                <td>{{ firmware.uploader }}</td>
+                <td>{{ firmware.project_name }}</td>
+                <td>{{ firmware.version }}</td>
+                <td>{{ firmware.idf_version }}</td>
+                <td>
+                    {% for build in firmware.builds.all %}
+                        {{ build.variant }} ({{ build.get_chip_display }})<br>
+                    {% endfor %}
+                </td>
+            </tr>
+        {% endfor %}
+
+    </table>
+
+    {% include 'control/fragment_pagination.html' %}
+{% endblock %}
