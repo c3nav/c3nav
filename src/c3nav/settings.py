@@ -5,11 +5,29 @@ import string
 import sys
 from contextlib import suppress
 from pathlib import Path
+from typing import Optional
 
 import sass
 from django.contrib.messages import constants as messages
 from django.utils.crypto import get_random_string
 from django.utils.translation import gettext_lazy as _
+
+
+def get_data_dir(setting: str, fallback: Path, create: bool = True, parents: bool = False,
+                 config_section: str = 'c3nav', config_option: Optional[str] = None):
+    if not config_option:
+        config_option = setting.lower()
+    subdir = config.get(config_section, config_option, fallback=os.environ.get('C3NAV_%s' % setting, None))
+    subdir = Path(subdir).resolve() if subdir else fallback
+    if not subdir.exists():
+        if create:
+            subdir.mkdir(parents=parents)
+        else:
+            raise FileNotFoundError('The %s directory [%s] doesn\'t exist.' % (config_option, subdir))
+    elif not subdir.is_dir():
+        raise NotADirectoryError('The path set for the %s directory [%s] is not a directory.' % (config_option, subdir))
+    return subdir
+
 
 config = configparser.RawConfigParser()
 if 'C3NAV_CONFIG' in os.environ:
@@ -35,23 +53,18 @@ with suppress(ImportError):
 # Build paths inside the project like this: BASE_DIR / 'something'
 PROJECT_DIR = Path(__file__).resolve().parent
 BASE_DIR = PROJECT_DIR.parent
-DATA_DIR = config.get('c3nav', 'datadir', fallback=os.environ.get('C3NAV_DATA_DIR', None))
-DATA_DIR = Path(DATA_DIR).resolve() if DATA_DIR else BASE_DIR / 'data'
-LOG_DIR = config.get('c3nav', 'logdir', fallback=None)
-LOG_DIR = Path(LOG_DIR).resolve() if LOG_DIR else DATA_DIR / 'logs'
-MEDIA_ROOT = DATA_DIR / 'media'
-SOURCES_ROOT = DATA_DIR / 'sources'
-MAP_ROOT = DATA_DIR / 'map'
-RENDER_ROOT = DATA_DIR / 'render'
-TILES_ROOT = DATA_DIR / 'tiles'
-CACHE_ROOT = DATA_DIR / 'cache'
-STATS_ROOT = DATA_DIR / 'stats'
+DATA_DIR = get_data_dir('DATA_DIR', BASE_DIR / 'data', parents=True, config_option='datadir')
+LOG_DIR = get_data_dir('LOG_DIR', DATA_DIR / 'logs', config_option='logdir')
+MEDIA_ROOT = get_data_dir('MEDIA_ROOT', DATA_DIR / 'media', config_section='django')
+SOURCES_ROOT = get_data_dir('SOURCES_ROOT', DATA_DIR / 'sources')
+MAP_ROOT = get_data_dir('MAP_ROOT', DATA_DIR / 'map')
+RENDER_ROOT = get_data_dir('RENDER_ROOT', DATA_DIR / 'render')
+TILES_ROOT = get_data_dir('TILES_ROOT', DATA_DIR / 'tiles')
+CACHE_ROOT = get_data_dir('CACHE_ROOT', DATA_DIR / 'cache')
+STATS_ROOT = get_data_dir('STATS_ROOT', DATA_DIR / 'stats')
 
-if not DATA_DIR.exists():
-    DATA_DIR.mkdir(parents=True)
-for subdir in (LOG_DIR, MEDIA_ROOT, SOURCES_ROOT, MAP_ROOT, RENDER_ROOT, TILES_ROOT, CACHE_ROOT, STATS_ROOT):
-    if not subdir.exists():
-        subdir.mkdir()
+# override the matplotlib default config directory if it's not configured
+os.environ.setdefault('MPLCONFIGDIR', str(get_data_dir('MPLCONFIGDIR', CACHE_ROOT / 'matplotlib')))
 
 MEDIA_URL = '/media/'
 
@@ -66,7 +79,8 @@ if RANDOM_LOCATION_GROUPS:
 if config.has_option('django', 'secret'):
     SECRET_KEY = config.get('django', 'secret')
 else:
-    SECRET_FILE = DATA_DIR / '.secret'
+    SECRET_FILE = config.get('django', 'secret_file',
+                             fallback=os.environ.get('C3NAV_SECRET_FILE', default=DATA_DIR / '.secret'))
     if SECRET_FILE.exists():
         with open(SECRET_FILE, 'r') as f:
             SECRET_KEY = f.read().strip()
