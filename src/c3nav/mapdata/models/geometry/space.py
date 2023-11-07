@@ -230,7 +230,7 @@ class LineObstacle(SpaceGeometryMixin, models.Model):
 
     @property
     def buffered_geometry(self):
-        return self.geometry.buffer(self.width / 2, join_style=JOIN_STYLE.mitre, cap_style=CAP_STYLE.flat)
+        return self.geometry.buffer(float(self.width / 2), join_style=JOIN_STYLE.mitre, cap_style=CAP_STYLE.flat)
 
     def to_geojson(self, *args, **kwargs):
         result = super().to_geojson(*args, **kwargs)
