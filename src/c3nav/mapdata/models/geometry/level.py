@@ -229,13 +229,13 @@ class AltitudeArea(LevelGeometryMixin, models.Model):
                 if space.outside:
                     space.geometry = space.geometry.difference(buildings_geom)
                 space_accessible = space.geometry.difference(
-                    unary_union(tuple(c.geometry for c in space.columns.all() if c.access_restriction_id is None) +
-                                tuple(o.geometry for o in space.obstacles.all() if o.altitude == 0) +
+                    unary_union(tuple(unwrap_geom(c.geometry) for c in space.columns.all() if c.access_restriction_id is None) +
+                                tuple(unwrap_geom(o.geometry) for o in space.obstacles.all() if o.altitude == 0) +
                                 tuple(o.buffered_geometry for o in space.lineobstacles.all() if o.altitude == 0) +
-                                tuple(h.geometry for h in space.holes.all()))
+                                tuple(unwrap_geom(h.geometry) for h in space.holes.all()))
                 )
 
-                space_ramps = unary_union(tuple(r.geometry for r in space.ramps.all()))
+                space_ramps = unary_union(tuple(unwrap_geom(r.geometry) for r in space.ramps.all()))
                 areas.append(space_accessible.difference(space_ramps))
                 for geometry in assert_multipolygon(space_accessible.intersection(space_ramps)):
                     ramp = AltitudeArea(geometry=geometry, level=level)
@@ -244,7 +244,7 @@ class AltitudeArea(LevelGeometryMixin, models.Model):
                     ramps.append(ramp)
 
             areas = tuple(orient(polygon) for polygon in assert_multipolygon(
-                unary_union(areas+list(door.geometry for door in level.doors.all()))
+                unary_union(areas+list(unwrap_geom(door.geometry) for door in level.doors.all()))
             ))
 
             # collect all stairs on this level
@@ -281,7 +281,7 @@ class AltitudeArea(LevelGeometryMixin, models.Model):
             for space in level.spaces.all():
                 for altitudemarker in space.altitudemarkers.all():
                     for area in space_areas[space.pk]:
-                        if area.geometry_prep.contains(altitudemarker.geometry):
+                        if area.geometry_prep.contains(unwrap_geom(altitudemarker.geometry)):
                             area.altitude = altitudemarker.altitude
                             break
                     else:
@@ -471,7 +471,7 @@ class AltitudeArea(LevelGeometryMixin, models.Model):
                 space.geometry = space.orig_geometry
 
             buildings_geom = unary_union(tuple(unwrap_geom(b.geometry) for b in level.buildings.all()))
-            doors_geom = unary_union(tuple(d.geometry for d in level.doors.all()))
+            doors_geom = unary_union(tuple(unwrap_geom(d.geometry) for d in level.doors.all()))
             space_geom = unary_union(tuple((unwrap_geom(s.geometry)
                                             if not s.outside
                                             else s.geometry.difference(buildings_geom))
@@ -481,7 +481,7 @@ class AltitudeArea(LevelGeometryMixin, models.Model):
             accessible_area = unary_union((doors_geom, space_geom))
             for space in level.spaces.all():
                 accessible_area = accessible_area.difference(space.geometry.intersection(
-                    unary_union(tuple(h.geometry for h in space.holes.all()))
+                    unary_union(tuple(unwrap_geom(h.geometry) for h in space.holes.all()))
                 ))
 
             # areas mean altitude areas (including ramps) here
@@ -497,17 +497,17 @@ class AltitudeArea(LevelGeometryMixin, models.Model):
                 if space.outside:
                     space_geom = space_geom.difference(buildings_geom)
                 space_geom_prep = prepared.prep(unwrap_geom(space_geom))
-                holes_geom = unary_union(tuple(h.geometry for h in space.holes.all()))
+                holes_geom = unary_union(tuple(unwrap_geom(h.geometry) for h in space.holes.all()))
 
                 # remaining_space means remaining space (=obstacles) that still needs to be added to altitude areas
                 remaining_space = (
-                    tuple(o.geometry for o in space.obstacles.all()) +
+                    tuple(unwrap_geom(o.geometry) for o in space.obstacles.all()) +
                     tuple(o.buffered_geometry for o in space.lineobstacles.all())
                 )
                 # make sure to remove everything outside the space the obstacles are in as well as holes
-                remaining_space = tuple(g.intersection(space_geom).difference(holes_geom)
+                remaining_space = tuple(g.intersection(unwrap_geom(space_geom)).difference(holes_geom)
                                         for g in remaining_space
-                                        if space_geom_prep.intersects(g))
+                                        if space_geom_prep.intersects(unwrap_geom(g)))
                 # we need this to be a list of simple normal polygons
                 remaining_space = tuple(chain(*(
                     assert_multipolygon(g) for g in remaining_space if not g.is_empty
@@ -597,9 +597,9 @@ class AltitudeArea(LevelGeometryMixin, models.Model):
                 potential_areas = [area for area in potential_areas
                                    if (candidate.altitude, candidate.altitude2) in ((area.altitude, area.altitude2),
                                                                                     (area.altitude2, area.altitude))]
-                potential_areas = [(area, area.geometry.intersection(candidate.geometry).area)
+                potential_areas = [(area, area.geometry.intersection(unwrap_geom(candidate.geometry)).area)
                                    for area in potential_areas
-                                   if candidate.geometry_prep.intersects(area.geometry)]
+                                   if candidate.geometry_prep.intersects(unwrap_geom(area.geometry))]
                 if potential_areas:
                     new_area = max(potential_areas, key=itemgetter(1))[0]
 

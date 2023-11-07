@@ -78,13 +78,13 @@ class Router:
             for space in level.spaces.all():
                 # create space geometries
                 accessible_geom = space.geometry.difference(unary_union(
-                    tuple(column.geometry for column in space.columns.all() if column.access_restriction_id is None) +
-                    tuple(hole.geometry for hole in space.holes.all()) +
+                    tuple(unwrap_geom(column.geometry) for column in space.columns.all() if column.access_restriction_id is None) +
+                    tuple(unwrap_geom(hole.geometry) for hole in space.holes.all()) +
                     ((buildings_geom, ) if space.outside else ())
                 ))
                 obstacles_geom = unary_union(
-                    tuple(obstacle.geometry for obstacle in space.obstacles.all()) +
-                    tuple(lineobstacle.buffered_geometry for lineobstacle in space.lineobstacles.all())
+                    tuple(unwrap_geom(obstacle.geometry) for obstacle in space.obstacles.all()) +
+                    tuple(unwrap_geom(lineobstacle.buffered_geometry) for lineobstacle in space.lineobstacles.all())
                 )
                 clear_geom = unary_union(tuple(get_rings(accessible_geom.difference(obstacles_geom))))
                 clear_geom_prep = prepared.prep(clear_geom)

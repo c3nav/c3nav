@@ -78,11 +78,11 @@ class LevelGeometries:
             if columns:
                 subtract.extend(columns)
             if subtract:
-                space.geometry = space.geometry.difference(unary_union(subtract))
+                space.geometry = space.geometry.difference(unary_union([unwrap_geom(geom) for geom in subtract]))
 
             holes = tuple(h.geometry for h in space.holes.all())
             if holes:
-                space.holes_geom = unary_union([h.geometry for h in space.holes.all()])
+                space.holes_geom = unary_union([unwrap_geom(h.geometry) for h in space.holes.all()])
                 space.walkable_geom = space.geometry.difference(space.holes_geom)
                 space.holes_geom = space.geometry.intersection(space.holes_geom)
             else:
@@ -110,7 +110,7 @@ class LevelGeometries:
         heightareas = {}
         for space in level.spaces.all():
             buffered = space.geometry.buffer(0.01).union(unary_union(
-                tuple(door.geometry for door in level.doors.all() if door.geometry.intersects(space.geometry))
+                tuple(unwrap_geom(door.geometry) for door in level.doors.all() if door.geometry.intersects(unwrap_geom(space.geometry)))
             ).difference(walkable_spaces_geom))
             intersects = buildings_geom_prep.intersects(buffered)
 
@@ -133,7 +133,7 @@ class LevelGeometries:
 
             for area in space.areas.all():
                 access_restriction = area.access_restriction_id or space.access_restriction_id
-                area.geometry = area.geometry.intersection(space.walkable_geom)
+                area.geometry = area.geometry.intersection(unwrap_geom(space.walkable_geom))
                 if access_restriction is not None:
                     access_restriction_affected.setdefault(access_restriction, []).append(area.geometry)
                 colors.setdefault(area.get_color_sorted(), {}).setdefault(access_restriction, []).append(area.geometry)
@@ -142,7 +142,7 @@ class LevelGeometries:
                 access_restriction = column.access_restriction_id
                 if access_restriction is None:
                     continue
-                column.geometry = column.geometry.intersection(space.walkable_geom)
+                column.geometry = column.geometry.intersection(unwrap_geom(space.walkable_geom))
                 buffered_column = column.geometry.buffer(0.01)
                 if intersects:
                     restricted_spaces_indoors.setdefault(access_restriction, []).append(buffered_column)
@@ -156,14 +156,14 @@ class LevelGeometries:
                 obstacles.setdefault(
                     int((obstacle.height+obstacle.altitude)*1000), {}
                 ).setdefault(obstacle.color, []).append(
-                    obstacle.geometry.intersection(space.walkable_geom)
+                    obstacle.geometry.intersection(unwrap_geom(space.walkable_geom))
                 )
 
             for lineobstacle in space.lineobstacles.all():
                 if not lineobstacle.height:
                     continue
                 obstacles.setdefault(int(lineobstacle.height*1000), {}).setdefault(lineobstacle.color, []).append(
-                    lineobstacle.buffered_geometry.intersection(space.walkable_geom)
+                    lineobstacle.buffered_geometry.intersection(unwrap_geom(space.walkable_geom))
                 )
 
             geoms.ramps.extend(ramp.geometry for ramp in space.ramps.all())
@@ -196,7 +196,7 @@ class LevelGeometries:
                     new_color_obstacles = []
                     for obstacle in color_obstacles:
                         if altitudearea_prep.intersects(obstacle):
-                            new_color_obstacles.append(obstacle.intersection(altitudearea.geometry))
+                            new_color_obstacles.append(obstacle.intersection(unwrap_geom(altitudearea.geometry)))
                     if new_color_obstacles:
                         new_height_obstacles[color] = new_color_obstacles
                 if new_height_obstacles:
@@ -211,7 +211,7 @@ class LevelGeometries:
                                   for height, geoms in sorted(heightareas.items(), key=operator.itemgetter(0)))
 
         # merge access restrictions
-        geoms.access_restriction_affected = {access_restriction: unary_union(areas)
+        geoms.access_restriction_affected = {access_restriction: unary_union([unwrap_geom(geom) for geom in areas])
                                              for access_restriction, areas in access_restriction_affected.items()}
         geoms.restricted_spaces_indoors = {access_restriction: unary_union(spaces)
                                            for access_restriction, spaces in restricted_spaces_indoors.items()}
@@ -228,11 +228,11 @@ class LevelGeometries:
             intersection = altitudearea.geometry.intersection(remaining).buffer(0)
             if intersection.is_empty:
                 continue
-            remaining = remaining.difference(altitudearea.geometry)
+            remaining = remaining.difference(unwrap_geom(altitudearea.geometry))
             geoms.short_walls.append((altitudearea, intersection))
         geoms.all_walls = geoms.walls
         geoms.walls = geoms.walls.difference(
-            unary_union(tuple(altitudearea.geometry for altitudearea in altitudeareas_above))
+            unary_union(tuple(unwrap_geom(altitudearea.geometry) for altitudearea in altitudeareas_above))
         )
 
         # general level infos

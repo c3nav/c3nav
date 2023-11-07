@@ -20,6 +20,7 @@ from c3nav.mapdata.models.geometry.level import LevelGeometryMixin, Space
 from c3nav.mapdata.models.geometry.space import SpaceGeometryMixin
 from c3nav.mapdata.models.locations import LocationRedirect, LocationSlug, Position, SpecificLocation
 from c3nav.mapdata.utils.cache.local import LocalCacheProxy
+from c3nav.mapdata.utils.geometry import unwrap_geom
 from c3nav.mapdata.utils.models import get_submodels
 
 proxied_cache = LocalCacheProxy(maxsize=128)
@@ -137,7 +138,7 @@ def get_better_space_geometries():
     result = {}
     for space in Space.objects.prefetch_related('columns', 'holes'):
         geometry = space.geometry.difference(
-            unary_union(tuple(obj.geometry for obj in chain(space.columns.all(), space.holes.all())))
+            unary_union(tuple(unwrap_geom(obj.geometry) for obj in chain(space.columns.all(), space.holes.all())))
         )
         if not geometry.is_empty:
             result[space.pk] = geometry

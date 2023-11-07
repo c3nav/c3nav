@@ -131,8 +131,8 @@ def good_representative_point(geometry):
         if Polygon(polygon.exterior.coords).contains(c):
             return c
     x1, y1, x2, y2 = geometry.bounds
-    lines = (tuple(assert_multilinestring(LineString(((x1, c.y), (x2, c.y))).intersection(geometry))) +
-             tuple(assert_multilinestring(LineString(((c.x, y1), (c.x, y2))).intersection(geometry))))
+    lines = (tuple(assert_multilinestring(LineString(((x1, c.y), (x2, c.y))).intersection(unwrap_geom(geometry)))) +
+             tuple(assert_multilinestring(LineString(((c.x, y1), (c.x, y2))).intersection(unwrap_geom(geometry)))))
     return min(lines, key=lambda line: (line.distance(c), line.length),
                default=geometry.representative_point()).centroid
 

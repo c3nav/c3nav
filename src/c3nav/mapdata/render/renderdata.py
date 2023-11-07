@@ -211,7 +211,7 @@ class LevelRenderData:
                             new_color_obstacles = []
                             for obstacle in color_obstacles:
                                 if new_geometry_prep.intersects(obstacle):
-                                    new_color_obstacles.append(obstacle.intersection(altitudearea.geometry))
+                                    new_color_obstacles.append(obstacle.intersection(unwrap_geom(altitudearea.geometry)))
                             if new_color_obstacles:
                                 new_height_obstacles[color] = new_color_obstacles
                         if new_height_obstacles:
@@ -224,12 +224,12 @@ class LevelRenderData:
                     continue
 
                 new_geoms.ramps = tuple(
-                    ramp for ramp in (crop_to.intersection(ramp) for ramp in old_geoms.ramps)
+                    ramp for ramp in (crop_to.intersection(unwrap_geom(ramp)) for ramp in old_geoms.ramps)
                     if not ramp.is_empty
                 )
 
                 new_geoms.heightareas = tuple(
-                    (area, height) for area, height in ((crop_to.intersection(area), height)
+                    (area, height) for area, height in ((crop_to.intersection(unwrap_geom(area)), height)
                                                         for area, height in old_geoms.heightareas)
                     if not area.is_empty
                 )
