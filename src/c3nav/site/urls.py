@@ -25,11 +25,9 @@ def index_paths(pre, suf):
         path(f'{pre}d/<loc:slug>/{suf}', map_index, {'mode': 'd'}, name='site.index'),
         path(f'{pre}r/{suf}', map_index, {'mode': 'r'}, name='site.index'),
         path(f'{pre}r/<loc:slug>/<loc:slug2>/{suf}', map_index, {'mode': 'r'}, name='site.index'),
-        path(f'{pre}r/<loc:slug>/<loc:slug2>/details{suf}', map_index, {'mode': 'r', 'details': True},
+        path(f'{pre}r/<loc:slug>/<loc:slug2>/details/{suf}', map_index, {'mode': 'r', 'details': True},
              name='site.index'),
-        path(f'{pre}r/<loc:slug>/<loc:slug2>/options{suf}', map_index, {'mode': 'r', 'options': True},
-             name='site.index'),
-        path(f'{pre}r/<loc:slug>/<loc:slug2>/options{suf}', map_index, {'mode': 'r', 'options': True},
+        path(f'{pre}r/<loc:slug>/<loc:slug2>/options/{suf}', map_index, {'mode': 'r', 'options': True},
              name='site.index'),
         path(f'{pre}{suf}', map_index, name='site.index'),
     ]
