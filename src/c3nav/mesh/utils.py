@@ -1,8 +1,13 @@
 from operator import attrgetter
 
 
-def get_mesh_comm_group(address):
-    return 'mesh_comm_%s' % address.replace(':', '-')
+def get_mesh_uplink_group(address):
+    return 'mesh_uplink_%s' % address.replace(':', '-')
+
+
+MESH_ALL_UPLINKS_GROUP = "mesh_uplink_all"
+UPLINK_PING = 5
+UPLINK_TIMEOUT = UPLINK_PING+5
 
 
 def indent_c(code):

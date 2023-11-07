@@ -1,6 +1,6 @@
 from collections import UserDict, namedtuple
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import datetime, timedelta
 from functools import cached_property
 from operator import attrgetter
 from typing import Any, Mapping, Optional, Self
@@ -8,6 +8,7 @@ from typing import Any, Mapping, Optional, Self
 from django.contrib.auth import get_user_model
 from django.db import NotSupportedError, models
 from django.db.models import Q, UniqueConstraint
+from django.utils import timezone
 from django.utils.text import slugify
 from django.utils.translation import gettext_lazy as _
 
@@ -15,6 +16,7 @@ from c3nav.mesh.dataformats import BoardType
 from c3nav.mesh.messages import ChipType, ConfigFirmwareMessage, ConfigHardwareMessage
 from c3nav.mesh.messages import MeshMessage as MeshMessage
 from c3nav.mesh.messages import MeshMessageType
+from c3nav.mesh.utils import UPLINK_TIMEOUT
 
 FirmwareLookup = namedtuple('FirmwareLookup', ('sha256_hash', 'chip', 'project_name', 'version', 'idf_version'))
 
@@ -199,6 +201,21 @@ class MeshNode(models.Model):
     @cached_property
     def board(self) -> ChipType:
         return self.last_messages[MeshMessageType.CONFIG_BOARD].parsed.board_config.board
+
+    def get_uplink(self) -> Optional["MeshUplink"]:
+        if self.uplink_id is None:
+            return None
+        if self.uplink.last_ping + timedelta(seconds=UPLINK_TIMEOUT) < timezone.now():
+            return None
+        return self.uplink
+
+    @classmethod
+    def get_node_and_uplink(self, address) -> Optional["MeshUplink"]:
+        try:
+            dst_node = MeshNode.objects.select_related('uplink').get(address=address)
+        except MeshNode.DoesNotExist:
+            return False
+        return dst_node.get_uplink()
 
 
 class MeshUplink(models.Model):

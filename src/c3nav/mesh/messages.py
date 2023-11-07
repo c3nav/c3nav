@@ -3,13 +3,13 @@ from enum import IntEnum, unique
 from typing import TypeVar
 
 import channels
-from asgiref.sync import async_to_sync
+from channels.db import database_sync_to_async
 
 from c3nav.mesh.baseformats import (BoolFormat, EnumFormat, FixedStrFormat, SimpleFormat, StructType, VarArrayFormat,
                                     VarBytesFormat, VarStrFormat, normalize_name)
 from c3nav.mesh.dataformats import (BoardConfig, FirmwareAppDescription, MacAddressesListFormat, MacAddressFormat,
                                     RangeResultItem, RawFTMEntry)
-from c3nav.mesh.utils import get_mesh_comm_group
+from c3nav.mesh.utils import MESH_ALL_UPLINKS_GROUP
 
 MESH_ROOT_ADDRESS = '00:00:00:00:00:00'
 MESH_NONE_ADDRESS = '00:00:00:00:00:00'
@@ -94,13 +94,25 @@ class MeshMessage(StructType, union_type_field="msg_type"):
                 raise TypeError('duplicate use of c_struct_name %s' % c_struct_name)
             MeshMessage.c_structs[c_struct_name] = cls
 
-    def send(self, sender=None, exclude_uplink_address=None):
-        async_to_sync(channels.layers.get_channel_layer().group_send)(get_mesh_comm_group(self.dst), {
+    async def send(self, sender=None, exclude_uplink_address=None) -> bool:
+        data = {
             "type": "mesh.send",
             "sender": sender,
             "exclude_uplink_address": exclude_uplink_address,
             "msg": MeshMessage.tojson(self),
-        })
+        }
+
+        if self.dst in (MESH_CHILDREN_ADDRESS, MESH_BROADCAST_ADDRESS):
+            await channels.layers.get_channel_layer().group_send(MESH_ALL_UPLINKS_GROUP, data)
+            return True
+
+        from c3nav.mesh.models import MeshNode
+        uplink = database_sync_to_async(MeshNode.get_node_and_uplink)(self.dst)
+        if not uplink:
+            return False
+        if uplink.node_id == exclude_uplink_address:
+            return False
+        await channels.layers.get_channel_layer().send(uplink.name, data)
 
     @classmethod
     def get_ignore_c_fields(self):

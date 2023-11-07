@@ -420,7 +420,7 @@ class StructType:
         return data
 
     @classmethod
-    def fromjson(cls, data: dict):
+    def fromjson(cls, data: dict) -> Self:
         data = data.copy()
 
         # todo: upgrade_json

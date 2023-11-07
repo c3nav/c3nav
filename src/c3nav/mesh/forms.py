@@ -1,5 +1,6 @@
 import time
 
+from asgiref.sync import async_to_sync
 from django import forms
 from django.core.exceptions import ValidationError
 from django.http import Http404
@@ -85,10 +86,10 @@ class MeshMessageForm(forms.Form):
         recipients = self.get_recipients()
         for recipient in recipients:
             print('sending to ', recipient)
-            MeshMessage.fromjson({
+            async_to_sync(MeshMessage.fromjson({
                 'dst': recipient,
                 **msg_data,
-            }).send()
+            }).send)()
 
 
 class MeshRouteRequestForm(MeshMessageForm):
