@@ -3,8 +3,10 @@ from contextlib import suppress
 
 from channels.auth import AuthMiddlewareStack
 from channels.routing import ProtocolTypeRouter, URLRouter
+from channels.security.websocket import AllowedHostsOriginValidator
 from django.core.asgi import get_asgi_application
 
+from c3nav.control.middleware import UserPermissionsChannelMiddleware
 from c3nav.urls import websocket_urlpatterns
 
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "c3nav.settings")
@@ -12,8 +14,12 @@ django_asgi = get_asgi_application()
 
 application = ProtocolTypeRouter({
     "http": django_asgi,
-    "websocket": AuthMiddlewareStack(
-        URLRouter(websocket_urlpatterns)
+    "websocket": AllowedHostsOriginValidator(
+        AuthMiddlewareStack(
+            UserPermissionsChannelMiddleware(
+                URLRouter(websocket_urlpatterns),
+            ),
+        ),
     ),
 })
 
@@ -30,7 +36,4 @@ with suppress(ImportError):
             Mount(settings.STATIC_URL, app=StaticFiles(directory=settings.STATIC_ROOT), name='static'),
             Mount('/', app=django_asgi),
         ]),
-        "websocket": AuthMiddlewareStack(
-            URLRouter(websocket_urlpatterns)
-        ),
     })

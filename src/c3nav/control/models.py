@@ -1,5 +1,5 @@
 from contextlib import contextmanager
-from typing import Dict
+from typing import Dict, Self
 
 from django.conf import settings
 from django.contrib.auth.models import User
@@ -73,7 +73,7 @@ class UserPermissions(models.Model):
             yield
 
     @classmethod
-    def get_for_user(cls, user, force=False) -> 'UserPermissions':
+    def get_for_user(cls, user, force=False) -> Self:
         if not user.is_authenticated:
             return cls()
         cache_key = cls.get_cache_key(user.pk)

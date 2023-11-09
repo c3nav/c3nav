@@ -5,6 +5,7 @@ from functools import cached_property
 
 from asgiref.sync import async_to_sync
 from channels.db import database_sync_to_async
+from channels.exceptions import DenyConnection
 from channels.generic.websocket import AsyncJsonWebsocketConsumer, AsyncWebsocketConsumer
 from django.db import transaction
 from django.utils import timezone
@@ -347,7 +348,8 @@ class MeshUIConsumer(AsyncJsonWebsocketConsumer):
         self.msg_received_filter = {}
 
     async def connect(self):
-        # todo: auth
+        if not self.scope["user_permisions"].mesh_control:
+            raise DenyConnection
         await self.accept()
 
     async def receive_json(self, content, **kwargs):

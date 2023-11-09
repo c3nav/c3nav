@@ -1,6 +1,13 @@
-from django.utils.functional import SimpleLazyObject, lazy
+from channels.db import database_sync_to_async
+from channels.middleware import BaseMiddleware as BaseChannelsMiddleware
+from django.utils.functional import LazyObject, SimpleLazyObject, lazy
 
 from c3nav.control.models import UserPermissions, UserSpaceAccess
+
+
+class UserPermissionsLazyObject(LazyObject):
+    def _setup(self):
+        raise ValueError("Accessing scope user before it is ready.")
 
 
 class UserPermissionsMiddleware:
@@ -32,3 +39,12 @@ class UserPermissionsMiddleware:
         request.user_permissions = SimpleLazyObject(lambda: self.get_user_permissions(request))
         request.user_space_accesses = lazy(self.get_user_space_accesses, dict)(request)
         return self.get_response(request)
+
+
+class UserPermissionsChannelMiddleware(BaseChannelsMiddleware):
+    async def __call__(self, scope, receive, send):
+        # todo: this doesn't seem to actually be lazy. and scope["user"] isn't either?
+        scope["user_permissions"] = UserPermissionsLazyObject()
+        scope["user_permissions"]._wrapped = await database_sync_to_async(UserPermissions.get_for_user)(scope["user"])
+
+        return await super().__call__(scope, receive, send)
