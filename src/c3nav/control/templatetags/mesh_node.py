@@ -18,12 +18,12 @@ def mesh_node(context, node: str | MeshNode):
     if name:
         return format_html(
             '<a href="{url}">{bssid}</a> ({name})',
-            url=reverse('control.mesh.node.detail', kwargs={"pk": bssid}), bssid=bssid, name=name
+            url=reverse('mesh.node.detail', kwargs={"pk": bssid}), bssid=bssid, name=name
         )
     else:
         return format_html(
             '<a href="{url}">{bssid}</a>',
-            url=reverse('control.mesh.node.detail', kwargs={"pk": bssid}), bssid=bssid
+            url=reverse('mesh.node.detail', kwargs={"pk": bssid}), bssid=bssid
         )
 
 

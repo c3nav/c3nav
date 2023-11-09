@@ -1,4 +1,4 @@
-{% extends 'control/base.html' %}
+{% extends 'mesh/base.html' %}
 {% load i18n %}
 
 {% block heading %}{% trans 'Mesh Node' %} {{ node }}{% endblock %}
@@ -13,7 +13,7 @@
             </p>
             <p>
                 {% comment %}todo: more details{% endcomment %}
-                <strong>Uplink:</strong> {% if node.uplink %}<a href="{% url "control.mesh.node.detail" pk=node.uplink.node_id %}">{{ node.uplink.node }}</a><br>{% endif %}
+                <strong>Uplink:</strong> {% if node.uplink %}<a href="{% url "mesh.node.detail" pk=node.uplink.node_id %}">{{ node.uplink.node }}</a><br>{% endif %}
 
                 <strong>Last signin:</strong>
                 {{ node.last_signin.date }} {{ node.last_signin.time|date:"H:i:s" }}
@@ -30,13 +30,13 @@
                 <br>
             </p>
             <p>
-                <a class="button" href="{% url "control.mesh.node.edit" pk=node.pk %}">
+                <a class="button" href="{% url "mesh.node.edit" pk=node.pk %}">
                     {% trans 'Edit' %}
                 </a>
-                <a class="button" href="{% url "control.mesh.messages" %}?src_nodes={{ node.address }}">
+                <a class="button" href="{% url "mesh.messages" %}?src_nodes={{ node.address }}">
                     {% trans 'View messages' %}
                 </a>
-                <a class="button" href="{% url "control.mesh.send" msg_type="MESH_ROUTE_REQUEST" %}?address={{ node.address }}" >
+                <a class="button" href="{% url "mesh.send" msg_type="MESH_ROUTE_REQUEST" %}?address={{ node.address }}" >
                     {% trans 'Find route' %}
                 </a>
             </p>
@@ -58,7 +58,7 @@
 
             </p>
             <p>
-                <a class="button" href="{% url "control.mesh.send" recipient=node.address msg_type="CONFIG_BOARD" %}">
+                <a class="button" href="{% url "mesh.send" recipient=node.address msg_type="CONFIG_BOARD" %}">
                     {% trans 'Chaange board settings' %}
                 </a>
             </p>
@@ -83,7 +83,7 @@
                 <strong>SSL:</strong> {{ node.last_messages.CONFIG_UPLINK.parsed.ssl }}<br>
             </p>
             <p>
-                <a class="button" href="{% url "control.mesh.send" recipient=node.address msg_type="CONFIG_UPLINK" %}">
+                <a class="button" href="{% url "mesh.send" recipient=node.address msg_type="CONFIG_UPLINK" %}">
                     {% trans 'Change' %}
                 </a>
             </p>
@@ -93,7 +93,7 @@
                 <strong>X=</strong>{{ node.last_messages.CONFIG_POSITION.parsed.x_pos }}, <strong>Y=</strong>{{ node.last_messages.CONFIG_POSITION.parsed.y_pos }}, <strong>Z=</strong>{{ node.last_messages.CONFIG_POSITION.parsed.z_pos }}
             </p>
             <p>
-                <a class="button" href="{% url "control.mesh.send" recipient=node.address msg_type="CONFIG_POSITION" %}">
+                <a class="button" href="{% url "mesh.send" recipient=node.address msg_type="CONFIG_POSITION" %}">
                     {% trans 'Change' %}
                 </a>
             </p>

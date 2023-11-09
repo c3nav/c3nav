@@ -3,9 +3,9 @@
 {% load compress %}
 {% load static %}
 
-{% block title %}{% trans 'c3nav control panel' %}{% endblock %}
-{% block header_title %}<span id="subheader">{% trans 'control panel' %}</span>{% endblock %}
-{% block header_title_url %}{% url 'control.index' %}{% endblock %}
+{% block title %}{% trans 'c3nav mesh control' %}{% endblock %}
+{% block header_title %}<span id="subheader">{% trans 'mesh control' %}</span>{% endblock %}
+{% block header_title_url %}{% url 'mesh.nodes' %}{% endblock %}
 
 {% block content %}
 <main class="control"{% block addattributes %}{% endblock %}>
@@ -15,17 +15,10 @@
     {% block menu %}
     <nav>
         <p>
-            <a href="{% url 'control.index' %}">{% trans 'Overview' %}</a> &middot;
-            <a href="{% url 'control.users' %}">{% trans 'Users' %}</a> &middot;
-            <a href="{% url 'control.access' %}">{% trans 'Access' %}</a> &middot;
-            {% if request.user_permissions.manage_announcements %}
-                <a href="{% url 'control.announcements' %}">{% trans 'Announcements' %}</a> &middot;
-            {% endif %}
-            {% if request.user_permissions.manage_map_updates %}
-                <a href="{% url 'control.map_updates' %}">{% trans 'Map Updates' %}</a> &middot;
-            {% endif %}
-            <a href="{% url 'mesh.nodes' %}">{% trans 'Mesh' %}</a> &middot;
-            <a href="{% url 'control.users.detail' user=request.user.pk %}">{{ request.user.username }}</a>
+            <a href="{% url 'mesh.nodes' %}">Nodes</a> &middot;
+            <a href="{% url 'mesh.messages' %}">Messages</a> &middot;
+            <a href="{% url 'mesh.firmwares' %}">Firmwares</a> &middot;
+            <a href="{% url 'mesh.logs' %}">Live logs</a> &middot;
         </p>
     </nav>
     <hr>

@@ -35,6 +35,8 @@ class UserPermissions(models.Model):
                                                   limit_choices_to={'access_restriction': None},
                                                   verbose_name=_('can review reports belonging to'))
 
+    mesh_control = models.BooleanField(default=False, verbose_name=_('can access mesh control'))
+
     api_secret = models.CharField(null=True, blank=True, max_length=64, verbose_name=_('API secret'))
 
     class Meta:

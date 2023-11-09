@@ -1,4 +1,4 @@
-{% extends 'control/base.html' %}
+{% extends 'mesh/base.html' %}
 {% load i18n %}
 
 {% block heading %}
@@ -10,7 +10,7 @@
 {% block subcontent %}
     <p><a class="button" href="{{ success_url }}">Go back</a></p>
     {% if msg_type == "MESH_ROUTE_REQUEST" %}
-        <p>Route to <a href="{% url "control.mesh.node.detail" pk=msg_data.address %}">{{ msg_data.address }} {% if node_name %} ({{ node_name }}){% endif %}</a></p>
+        <p>Route to <a href="{% url "mesh.node.detail" pk=msg_data.address %}">{{ msg_data.address }} {% if node_name %} ({{ node_name }}){% endif %}</a></p>
     {% endif %}
     <div class="columns">
         <div>
@@ -23,7 +23,7 @@
                 {% for address, name in recipients %}
                     <tr>
                         <td>
-                            {% if address != "ff:ff:ff:ff:ff:ff" %}<a href="{% url "control.mesh.node.detail" pk=address %}">{% endif %}
+                            {% if address != "ff:ff:ff:ff:ff:ff" %}<a href="{% url "mesh.node.detail" pk=address %}">{% endif %}
                             {{ address }}{% if name %} ({{ name }}){% endif %}
                             {% if address != "ff:ff:ff:ff:ff:ff" %}</a>{% endif %}
                         </td>
@@ -69,6 +69,6 @@
             </div>
         {% endif %}
     </div>
-    {% include "control/fragment_mesh_websocket.html" %}
+    {% include "mesh/fragment_mesh_websocket.html" %}
 
 {% endblock %}

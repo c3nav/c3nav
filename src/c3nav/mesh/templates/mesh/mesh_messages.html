@@ -1,10 +1,30 @@
-{% extends 'control/base.html' %}
+{% extends 'mesh/base.html' %}
 {% load i18n mesh_node %}
 
 {% block heading %}{% trans 'Mesh messages' %}{% endblock %}
 
 {% block subcontent %}
+    <div class="columns">
+        <div>
+            <h4>Send messages</h4>
+            <form method="POST">
+                {% csrf_token %}
+                <select name="send_msg_type" style="display: inline-block; width: auto;" required>
+                    <option value="">select type</option>
+                    {% for category, msg_types in send_msg_types %}
+                        <optgroup label="{{ category }}">
+                            {% for value, label in msg_types %}
+                                <option value="{{ value }}">{{ label }}</option>
+                            {% endfor %}
+                        </optgroup>
+                    {% endfor %}
+                </select>
+                <button type="submit">{% trans 'Send message' %}</button>
+            </form>
+        </div>
+    </div>
     <form>
+        <h4>Filter</h4>
         <div class="fields">
             <div class="field">
                 {{ form.message_types }}

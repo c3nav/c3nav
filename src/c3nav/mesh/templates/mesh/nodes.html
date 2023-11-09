@@ -1,0 +1,43 @@
+{% extends 'mesh/base.html' %}
+{% load i18n %}
+
+{% block heading %}{% trans 'Mesh Nodes' %}{% endblock %}
+
+{% block subcontent %}
+    <table>
+        <tr>
+            <th>{% trans 'Node' %}</th>
+            <th>{% trans 'Chip' %}</th>
+            <th>{% trans 'Firmware' %}</th>
+            <th>{% trans 'Last msg' %}</th>
+            <th>{% trans 'Last signin' %}</th>
+            <th>{% trans 'Uplink' %}</th>
+        </tr>
+        {% for node in nodes %}
+            <tr>
+                <td><a href="{% url "mesh.node.detail" pk=node.address %}">{{ node }}</a></td>
+                <td>
+                    {{ node.last_messages.CONFIG_BOARD.parsed.board_config.board.pretty_name }}
+                    ({{ node.last_messages.CONFIG_HARDWARE.parsed.chip.pretty_name }} <small>rev{{ node.last_messages.CONFIG_HARDWARE.parsed.revision_major }}.{{ node.last_messages.CONFIG_HARDWARE.parsed.revision_minor }}</small>)
+                </td>
+                <td>
+                    {{ node.last_messages.CONFIG_FIRMWARE.parsed.app_desc.version }}
+                    <small>(IDF {{ node.last_messages.CONFIG_FIRMWARE.parsed.app_desc.idf_version }})</small>
+                </td>
+                <td>
+                    {% blocktrans trimmed with timesince=node.last_msg|timesince %}
+                        {{ timesince }} ago
+                    {% endblocktrans %}
+                </td>
+                <td>
+                    {% blocktrans trimmed with timesince=node.last_signin|timesince %}
+                        {{ timesince }} ago
+                    {% endblocktrans %}
+                </td>
+                {% comment %}todo: hide uplink if timed out{% endcomment %}
+                {% comment %}todo: more details{% endcomment %}
+                <td>{% if node.uplink %}<a href="{% url "mesh.node.detail" pk=node.uplink.node_id %}">{{ node.uplink.node }}</a>{% endif %}</td>
+            </tr>
+        {% endfor %}
+    </table>
+{% endblock %}

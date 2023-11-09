@@ -1,4 +1,4 @@
-{% extends 'control/base.html' %}
+{% extends 'mesh/base.html' %}
 {% load i18n mesh_node %}
 
 {% block heading %}{% trans 'Mesh' %}{% endblock %}
@@ -62,10 +62,10 @@
                         </td>
                         <td>
                             {% if node.firmware_desc.build %}
-                                <a href="{% url "control.mesh.firmwares.detail" pk=node.firmware_desc.build.version.pk %}">
+                                <a href="{% url "mesh.firmwares.detail" pk=node.firmware_desc.build.version.pk %}">
                                     {{ node.firmware_desc.project_name }} {{ node.firmware_desc.version }}
                                 </a><br>
-                                Build <a href="{% url "control.mesh.firmwares.build.detail" pk=node.firmware_desc.build.pk %}">{{ node.firmware_desc.build.variant }}</a>
+                                Build <a href="{% url "mesh.firmwares.build.detail" pk=node.firmware_desc.build.pk %}">{{ node.firmware_desc.build.variant }}</a>
                             {% else %}
                                 {{ node.firmware_desc.project_name }} {{ node.firmware_desc.version }}
                             {% endif %}

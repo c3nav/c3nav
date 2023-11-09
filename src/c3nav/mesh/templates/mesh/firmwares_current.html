@@ -1,11 +1,10 @@
-{% extends 'control/base.html' %}
+{% extends 'mesh/base.html' %}
 {% load i18n mesh_node %}
 
-{% block heading %}{% trans 'Mesh' %}{% endblock %}
+{% block heading %}{% trans 'Current firmwares' %}{% endblock %}
 
 {% block subcontent %}
-    <h4>Current Firmwares</h4>
-    <a class="button" href="{% url "control.mesh.firmwares" %}">
+    <a class="button" href="{% url "mesh.firmwares" %}">
         {% trans 'View available firmwares' %}
     </a>
 
@@ -22,7 +21,7 @@
                 <td>{{ firmware.created }}</td>
                 <td>
                     {% if firmware.build %}
-                        <a href="{% url "control.mesh.firmwares.detail" pk=firmware.pk %}">{{ firmware.project_name }} {{ firmware.version }}</a>
+                        <a href="{% url "mesh.firmwares.detail" pk=firmware.pk %}">{{ firmware.project_name }} {{ firmware.version }}</a>
                     {% else %}
                         {{ firmware.project_name }} {{ firmware.version }}<br>
                         <small>{{ firmware.sha256_hash }}</small>
@@ -30,7 +29,7 @@
                 </td>
                 <td>
                     {% if firmware.build %}
-                        <a href="{% url "control.mesh.firmwares.build.detail" pk=firmware.build.pk %}">
+                        <a href="{% url "mesh.firmwares.build.detail" pk=firmware.build.pk %}">
                             {{ firmware.build.variant }} ({{ firmware.chip.pretty_name }})
                         </a>
                     {% else %}

@@ -19,6 +19,7 @@ urlpatterns = [
     path('map/', include(c3nav.mapdata.urls)),
     path('admin/', admin.site.urls),
     path('control/', include(c3nav.control.urls)),
+    path('mesh/', include(c3nav.mesh.urls)),
     path('locales/', include('django.conf.urls.i18n')),
     path('', include(c3nav.site.urls)),
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

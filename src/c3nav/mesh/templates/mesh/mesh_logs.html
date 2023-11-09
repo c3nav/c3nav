@@ -1,4 +1,4 @@
-{% extends 'control/base.html' %}
+{% extends 'mesh/base.html' %}
 {% load i18n %}
 
 {% block heading %}{% trans 'Mesh logs' %}{% endblock %}
@@ -15,5 +15,5 @@
         </thead>
         <tbody id="mesh-logs"></tbody>
     </table>
-    {% include "control/fragment_mesh_websocket.html" %}
+    {% include "mesh/fragment_mesh_websocket.html" %}
 {% endblock %}

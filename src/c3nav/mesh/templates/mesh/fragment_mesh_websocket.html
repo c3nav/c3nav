@@ -38,7 +38,7 @@ function connect() {
                 if (data.uplink) {
                     cell.append(document.createElement("br"));
                     link_tag = document.createElement("a");
-                    link_tag.href = "/control/mesh/" + data.uplink;
+                    link_tag.href = "/mesh/" + data.uplink;
                     link_tag.innerText = data.uplink;
                     if (node_names[data.uplink]) {
                         link_tag.innerText += " ("+node_names[data.uplink]+")";
@@ -49,7 +49,7 @@ function connect() {
 
                 cell = document.createElement("td");
                 link_tag = document.createElement("a");
-                link_tag.href = "/control/mesh/" + data.node;
+                link_tag.href = "/mesh/" + data.node;
                 link_tag.innerText = data.node;
                 if (node_names[data.node]) {
                     link_tag.innerText += " ("+node_names[data.node]+")";
@@ -76,7 +76,7 @@ function connect() {
                     line.appendChild(text)
 
                     link_tag = document.createElement("a");
-                    link_tag.href = "/control/mesh/" + data.uplink;
+                    link_tag.href = "/mesh/" + data.uplink;
                     link_tag.innerText = data.uplink;
                     if (node_names[data.uplink]) {
                         link_tag.innerText += "("+node_names[data.uplink]+")";
@@ -96,7 +96,7 @@ function connect() {
 
                         cell = document.createElement("td");
                         link_tag = document.createElement("a");
-                        link_tag.href = "/control/mesh/" + data.msg.src;
+                        link_tag.href = "/mesh/" + data.msg.src;
                         link_tag.innerText = data.msg.src;
                         if (node_names[data.msg.src]) {
                             link_tag.innerText += " ("+node_names[data.msg.src]+")";
@@ -109,7 +109,7 @@ function connect() {
                         } else {
                             cell = document.createElement("td");
                             link_tag = document.createElement("a");
-                            link_tag.href = "/control/mesh/" + data.msg.route;
+                            link_tag.href = "/mesh/" + data.msg.route;
                             link_tag.innerText = data.msg.route;
                             if (node_names[data.msg.route]) {
                                 link_tag.innerText += " ("+node_names[data.msg.route]+")";
@@ -125,7 +125,7 @@ function connect() {
 
                             cell = document.createElement("td");
                             link_tag = document.createElement("a");
-                            link_tag.href = "/control/mesh/" + data.msg.trace[i];
+                            link_tag.href = "/mesh/" + data.msg.trace[i];
                             link_tag.innerText = data.msg.trace[i];
                             if (node_names[data.msg.trace[i]]) {
                                 link_tag.innerText += " ("+node_names[data.msg.trace[i]]+")";
