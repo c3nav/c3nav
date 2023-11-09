@@ -12,7 +12,7 @@ urlpatterns = [
     path('access/', grant_access, name='control.access'),
     path('access/<str:token>', grant_access_qr, name='control.access.qr'),
     path('announcements/', announcement_list, name='control.announcements'),
-    path('announcements/<int:annoucement>/', announcement_detail, name='control.announcements.detail'),
+    path('announcements/<int:announcement>/', announcement_detail, name='control.announcements.detail'),
     path('mapupdates/', map_updates, name='control.map_updates'),
     path('', ControlPanelIndexView.as_view(), name='control.index'),
 ]
