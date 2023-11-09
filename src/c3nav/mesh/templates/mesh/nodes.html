@@ -17,15 +17,22 @@
             <tr>
                 <td><a href="{% url "mesh.node.detail" pk=node.address %}">{{ node }}</a></td>
                 <td>
-                    {{ node.last_messages.CONFIG_BOARD.parsed.board_config.board.pretty_name }}
-                    ({{ node.last_messages.CONFIG_HARDWARE.parsed.chip.pretty_name }} <small>rev{{ node.last_messages.CONFIG_HARDWARE.parsed.revision_major }}.{{ node.last_messages.CONFIG_HARDWARE.parsed.revision_minor }}</small>)
+                    {{ node.last_messages.CONFIG_BOARD.parsed.board_config.board.pretty_name }}<br>
+                    <small>({{ node.last_messages.CONFIG_HARDWARE.parsed.chip.pretty_name }} rev{{ node.last_messages.CONFIG_HARDWARE.parsed.revision_major }}.{{ node.last_messages.CONFIG_HARDWARE.parsed.revision_minor }})</small>
                 </td>
                 <td>
-                    {{ node.last_messages.CONFIG_FIRMWARE.parsed.app_desc.version }}
-                    <small>(IDF {{ node.last_messages.CONFIG_FIRMWARE.parsed.app_desc.idf_version }})</small>
+                    {% if node.firmware_desc.build %}
+                        <a href="{% url "mesh.firmwares.detail" pk=node.firmware_desc.build.firmware.pk %}">{{ node.firmware_desc.project_name }} {{ node.firmware_desc.version }}</a><br>
+                        <a href="{% url "mesh.firmwares.build.detail" pk=node.firmware_desc.build.pk %}">
+                            {{ node.firmware_desc.build.variant }}
+                        </a>
+                    {% else %}
+                        {{ node.firmware_desc.project_name }} {{ node.firmware_desc.version }}<br>
+                        <small>{{ node.firmware_desc.sha256_hash }}</small>
+                    {% endif %}
                 </td>
                 <td>
-                    {% blocktrans trimmed with timesince=node.last_msg|timesince %}
+                    {% blocktrans trimmed with timesince=node.last_messages.any.datetime|timesince %}
                         {{ timesince }} ago
                     {% endblocktrans %}
                 </td>
@@ -34,9 +41,15 @@
                         {{ timesince }} ago
                     {% endblocktrans %}
                 </td>
-                {% comment %}todo: hide uplink if timed out{% endcomment %}
-                {% comment %}todo: more details{% endcomment %}
-                <td>{% if node.uplink %}<a href="{% url "mesh.node.detail" pk=node.uplink.node_id %}">{{ node.uplink.node }}</a>{% endif %}</td>
+                <td>
+                    {% with uplink=node_get_uplink %}
+                        {% if uplink %}
+                            <a href="{% url "mesh.node.detail" pk=uplink.node_id %}">{{ node.uplink.node }}</a>
+                        {% else %}
+                            <em>offline</em>
+                        {% endif %}
+                    {% endwith %}
+                </td>
             </tr>
         {% endfor %}
     </table>

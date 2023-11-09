@@ -194,6 +194,9 @@ class MeshNode(models.Model):
             sha256_hash=firmware_msg.app_desc.app_elf_sha256,
         )
 
+    # overriden by prefetch_firmwares()
+    firmware_desc = None
+
     @cached_property
     def chip(self) -> ChipType:
         return self.last_messages[MeshMessageType.CONFIG_HARDWARE].parsed.chip

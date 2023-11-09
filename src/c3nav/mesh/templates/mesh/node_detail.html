@@ -13,8 +13,19 @@
             </p>
             <p>
                 {% comment %}todo: more details{% endcomment %}
-                <strong>Uplink:</strong> {% if node.uplink %}<a href="{% url "mesh.node.detail" pk=node.uplink.node_id %}">{{ node.uplink.node }}</a><br>{% endif %}
-
+                <strong>Uplink:</strong>
+                {% with uplink=node.get_uplink %}
+                    {% if uplink %}
+                        <a href="{% url "mesh.node.detail" pk=uplink.node_id %}">{{ uplink.node }}</a>
+                        {% if uplink.node == node %}
+                            <em>(direct)</em>
+                        {% endif %}
+                    {% else %}
+                        <em>offline</em>
+                    {% endif %}
+                {% endwith %}
+            </p>
+            <p>
                 <strong>Last signin:</strong>
                 {{ node.last_signin.date }} {{ node.last_signin.time|date:"H:i:s" }}
                 ({% blocktrans trimmed with timesince=node.last_signin|timesince %}
@@ -23,7 +34,7 @@
                 <br>
 
                 <strong>Last Message:</strong>
-                {{ node.last_msg.date }} {{ node.last_msg.time|date:"H:i:s" }}
+                {{ node.last_messages.any.datetime.date }} {{ node.last_messages.any.datetime|date:"H:i:s" }}
                 ({% blocktrans trimmed with timesince=node.last_msg|timesince %}
                     {{ timesince }} ago
                 {% endblocktrans %})
@@ -64,15 +75,19 @@
             </p>
             <h4>Firmware</h4>
             <p>
-                <strong>Firmware:</strong> {{ node.last_messages.CONFIG_FIRMWARE.parsed.app_desc.project_name }} {{ node.last_messages.CONFIG_FIRMWARE.parsed.version }} (IDF {{ node.last_messages.CONFIG_FIRMWARE.parsed.app_desc.idf_version }})
-                <br>
-                <strong>Compile Date:</strong> {{ node.last_messages.CONFIG_FIRMWARE.parsed.app_desc.compile_date }} {{ node.last_messages.CONFIG_FIRMWARE.parsed.app_desc.compile_time }}
-                <br>
-                <strong>SHA256:</strong> <small>{{ node.last_messages.CONFIG_FIRMWARE.parsed.app_desc.app_elf_sha256 }}</small>
+                {% if node.firmware_desc.build %}
+                    <strong>Firmware:</strong> <a href="{% url "mesh.firmwares.detail" pk=node.firmware_desc.build.firmware.pk %}">{{ node.firmware_desc.project_name }} {{ node.firmware_desc.version }}</a><br>
+                    <strong>Build:</strong> <a href="{% url "mesh.firmwares.build.detail" pk=node.firmware_desc.build.pk %}">{{ node.firmware_desc.build.variant }}</a><br>
+                    <strong>Created:</strong> {{ node.firmware_desc.created }}<br>
+                {% else %}
+                    <strong>Firmware:</strong> {{ node.firmware_desc.project_name }} {{ node.firmware_desc.version }}<br>
+                    <strong>First seen:</strong> {{ node.firmware_desc.created }}<br>
+                    <strong>SHA256:</strong> <small>{{ node.firmware_desc.sha256_hash }}</small><br>
+                {% endif %}
             </p>
         </div>
         <div>
-            <h4>Uplink</h4>
+            <h4>Uplink configuration</h4>
             <p>
                 <strong>Enabled:</strong> {{ node.last_messages.CONFIG_UPLINK.parsed.enabled }},
                 <strong>SSID:</strong> {{ node.last_messages.CONFIG_UPLINK.parsed.ssid }},
@@ -88,7 +103,7 @@
                 </a>
             </p>
 
-            <h4>Position</h4>
+            <h4>Position configuration</h4>
             <p>
                 <strong>X=</strong>{{ node.last_messages.CONFIG_POSITION.parsed.x_pos }}, <strong>Y=</strong>{{ node.last_messages.CONFIG_POSITION.parsed.y_pos }}, <strong>Z=</strong>{{ node.last_messages.CONFIG_POSITION.parsed.z_pos }}
             </p>

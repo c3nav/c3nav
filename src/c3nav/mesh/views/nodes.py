@@ -1,5 +1,4 @@
 from django.contrib.messages.views import SuccessMessageMixin
-from django.db.models import Max
 from django.shortcuts import redirect
 from django.urls import reverse
 from django.utils.translation import gettext_lazy as _
@@ -17,7 +16,7 @@ class NodeListView(MeshControlMixin, ListView):
     context_object_name = "nodes"
 
     def get_queryset(self):
-        return super().get_queryset().annotate(last_msg=Max('received_messages__datetime')).prefetch_last_messages()
+        return super().get_queryset().prefetch_last_messages().prefetch_firmwares()
 
     def post(self, request):
         return redirect(
@@ -32,7 +31,7 @@ class NodeDetailView(MeshControlMixin, DetailView):
     context_object_name = "node"
 
     def get_queryset(self):
-        return super().get_queryset().annotate(last_msg=Max('received_messages__datetime')).prefetch_last_messages()
+        return super().get_queryset().prefetch_last_messages().prefetch_firmwares()
 
 
 class NodeEditView(MeshControlMixin, SuccessMessageMixin, UpdateView):

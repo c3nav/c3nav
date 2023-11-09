@@ -44,7 +44,7 @@ class FirmwareDetailView(MeshControlMixin, DetailView):
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data()
 
-        nodes = list(MeshNode.objects.all().prefetch_firmwares().prefetch_last_messages(
+        nodes: list[MeshNode] = list(MeshNode.objects.all().prefetch_firmwares().prefetch_last_messages(
             MeshMessageType.CONFIG_BOARD,
         ))
         builds = self.get_object().builds.all()
