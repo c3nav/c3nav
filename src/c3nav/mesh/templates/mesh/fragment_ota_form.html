@@ -51,12 +51,12 @@
                         {% mesh_node node %}
                     </td>
                     <td>
-                        {% include "mesh/fragment_firmware_cell.html" with firmware_desc=node.firmware_desc %}
+                        {% include "mesh/fragment_firmware_cell.html" with firmware_desc=node.firmware_description %}
                     </td>
                     <td>
                         {% if node.current_ota %}
                             <a>#{{ node.current_ota.update.pk }} <small>({{ node.current_ota.update.created }})</small></a><br>
-                            {% include "mesh/fragment_firmware_cell.html" with firmware_desc=node.current_ota.update.build.get_firmware_description %}
+                            {% include "mesh/fragment_firmware_cell.html" with firmware_desc=node.current_ota.update.build.firmware_description %}
                         {% else %}
                             -
                         {% endif %}

@@ -23,7 +23,9 @@ class FirmwaresCurrentListView(MeshControlMixin, TemplateView):
 
         firmwares = {}
         for node in nodes:
-            firmwares.setdefault(node.firmware_desc.get_lookup(), (node.firmware_desc, []))[1].append(node)
+            firmwares.setdefault(
+                node.firmware_description.get_lookup(), (node.firmware_description, [])
+            )[1].append(node)
 
         firmwares = sorted(firmwares.values(), key=lambda k: k[0].created, reverse=True)
 

@@ -94,12 +94,12 @@ class OTACreateForm(Form):
 
         builds_by_hardware = {}
         for build in builds:
-            for hardware_desc in build.get_hardware_descriptions():
+            for hardware_desc in build.hardware_descriptions:
                 builds_by_hardware.setdefault(hardware_desc, []).append(build)
 
         nodes_by_hardware = {}
         for node in nodes:
-            nodes_by_hardware.setdefault(node.get_hardware_description(), []).append(node)
+            nodes_by_hardware.setdefault(node.hardware_description, []).append(node)
 
         self._groups: list[OTAFormGroup] = []
         for hardware, hw_nodes in sorted(nodes_by_hardware.items(), key=lambda k: len(k[1]), reverse=True):

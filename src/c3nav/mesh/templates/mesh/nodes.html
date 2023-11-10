@@ -21,7 +21,7 @@
                     <small>({{ node.last_messages.CONFIG_HARDWARE.parsed.chip.pretty_name }} rev{{ node.last_messages.CONFIG_HARDWARE.parsed.revision_major }}.{{ node.last_messages.CONFIG_HARDWARE.parsed.revision_minor }})</small>
                 </td>
                 <td>
-                    {% include "mesh/fragment_firmware_cell.html" with firmware_desc=node.firmware_desc %}
+                    {% include "mesh/fragment_firmware_cell.html" with firmware_desc=node.firmware_description %}
                 </td>
                 <td>
                     {% blocktrans trimmed with timesince=node.last_messages.any.datetime|timesince %}

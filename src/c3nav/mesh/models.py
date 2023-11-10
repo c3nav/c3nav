@@ -1,4 +1,5 @@
 from collections import UserDict, namedtuple
+from contextlib import suppress
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 from functools import cached_property
@@ -102,7 +103,7 @@ class MeshNodeQuerySet(models.QuerySet):
                 # fetch matching firmware builds
                 firmwares = {
                     fw_desc.get_lookup(): fw_desc for fw_desc in
-                    (build.get_firmware_description() for build in FirmwareBuild.objects.filter(
+                    (build.firmware_description for build in FirmwareBuild.objects.filter(
                         sha256_hash__in=set(
                             node.last_messages[MeshMessageType.CONFIG_FIRMWARE].parsed.app_desc.app_elf_sha256
                             for node in self._result_cache
@@ -112,20 +113,21 @@ class MeshNodeQuerySet(models.QuerySet):
 
                 # assign firmware descriptions
                 for node in nodes.values():
-                    firmware_desc = node.get_firmware_description()
-                    node.firmware_desc = firmwares.get(firmware_desc.get_lookup(), firmware_desc)
+                    firmware_desc = node.firmware_description
+                    node._firmware_description = firmwares.get(firmware_desc.get_lookup(), firmware_desc)
 
                 # get date of first appearance
                 nodes_to_complete = tuple(
                     node for node in nodes.values()
-                    if node.firmware_desc.build is None
+                    if node._firmware_description.build is None
                 )
                 try:
                     created_lookup = {
                         msg.parsed.app_desc.app_elf_sha256: msg.datetime
                         for msg in NodeMessage.objects.filter(
                             message_type=MeshMessageType.CONFIG_FIRMWARE.name,
-                            data__app_elf_sha256__in=(node.firmware_desc.sha256_hash for node in nodes_to_complete)
+                            data__app_elf_sha256__in=(node._firmware_description.sha256_hash
+                                                      for node in nodes_to_complete)
                         ).order_by('data__app_elf_sha256', 'datetime').distinct('data__app_elf_sha256')
                     }
                     print(created_lookup)
@@ -135,10 +137,10 @@ class MeshNodeQuerySet(models.QuerySet):
                             message_type=MeshMessageType.CONFIG_FIRMWARE.name,
                             data__app_elf_sha256=app_elf_sha256
                         ).order_by('datetime').first()
-                        for app_elf_sha256 in {node.firmware_desc.sha256_hash for node in nodes_to_complete}
+                        for app_elf_sha256 in {node.f_firmware_description.sha256_hash for node in nodes_to_complete}
                     }
                 for node in nodes_to_complete:
-                    node.firmware_desc.created = created_lookup[node.firmware_desc.sha256_hash]
+                    node._firmware_description.created = created_lookup[node._firmware_description.sha256_hash]
 
         if self._prefetch_ota and not self._prefetch_ota_done:
             if nodes is None:
@@ -222,7 +224,11 @@ class MeshNode(models.Model):
         except AttributeError:
             return self.ota_updates.order_by('-update__created').first()
 
-    def get_firmware_description(self) -> FirmwareDescription:
+    # noinspection PyUnresolvedReferences
+    @cached_property
+    def firmware_description(self) -> FirmwareDescription:
+        with suppress(AttributeError):
+            return self._firmware_description
         # noinspection PyTypeChecker
         firmware_msg: ConfigFirmwareMessage = self.last_messages[MeshMessageType.CONFIG_FIRMWARE].parsed
         # noinspection PyTypeChecker
@@ -235,7 +241,8 @@ class MeshNode(models.Model):
             sha256_hash=firmware_msg.app_desc.app_elf_sha256,
         )
 
-    def get_hardware_description(self) -> HardwareDescription:
+    @cached_property
+    def hardware_description(self) -> HardwareDescription:
         # noinspection PyUnresolvedReferences
         return HardwareDescription(
             chip=self.last_messages[MeshMessageType.CONFIG_HARDWARE].parsed.chip,
@@ -369,7 +376,8 @@ class FirmwareBuild(models.Model):
             'boards': self.boards,
         }
 
-    def get_firmware_description(self) -> FirmwareDescription:
+    @cached_property
+    def firmware_description(self) -> FirmwareDescription:
         return FirmwareDescription(
             chip=self.chip_type,
             project_name=self.version.project_name,
@@ -380,7 +388,8 @@ class FirmwareBuild(models.Model):
             build=self,
         )
 
-    def get_hardware_descriptions(self) -> list[HardwareDescription]:
+    @cached_property
+    def hardware_descriptions(self) -> list[HardwareDescription]:
         return [
             HardwareDescription(
                 chip=self.chip_type,

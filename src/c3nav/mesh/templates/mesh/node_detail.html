@@ -75,14 +75,14 @@
             </p>
             <h4>Firmware</h4>
             <p>
-                {% if node.firmware_desc.build %}
-                    <strong>Firmware:</strong> <a href="{% url "mesh.firmwares.detail" pk=node.firmware_desc.build.firmware.pk %}">{{ node.firmware_desc.project_name }} {{ node.firmware_desc.version }}</a><br>
-                    <strong>Build:</strong> <a href="{% url "mesh.firmwares.build.detail" pk=node.firmware_desc.build.pk %}">{{ node.firmware_desc.build.variant }}</a><br>
-                    <strong>Created:</strong> {{ node.firmware_desc.created }}<br>
+                {% if node.firmware_description.build %}
+                    <strong>Firmware:</strong> <a href="{% url "mesh.firmwares.detail" pk=node.firmware_description.build.firmware.pk %}">{{ node.firmware_description.project_name }} {{ node.firmware_description.version }}</a><br>
+                    <strong>Build:</strong> <a href="{% url "mesh.firmwares.build.detail" pk=node.firmware_description.build.pk %}">{{ node.firmware_description.build.variant }}</a><br>
+                    <strong>Created:</strong> {{ node.firmware_description.created }}<br>
                 {% else %}
-                    <strong>Firmware:</strong> {{ node.firmware_desc.project_name }} {{ node.firmware_desc.version }}<br>
-                    <strong>First seen:</strong> {{ node.firmware_desc.created }}<br>
-                    <strong>SHA256:</strong> <small>{{ node.firmware_desc.sha256_hash }}</small><br>
+                    <strong>Firmware:</strong> {{ node.firmware_description.project_name }} {{ node.firmware_description.version }}<br>
+                    <strong>First seen:</strong> {{ node.firmware_description.created }}<br>
+                    <strong>SHA256:</strong> <small>{{ node.firmware_description.sha256_hash }}</small><br>
                 {% endif %}
             </p>
         </div>
