@@ -147,6 +147,7 @@ class EditorViewSet(EditorViewSetMixin, ViewSet):
         Door = request.changeset.wrap_model('Door')
         LocationGroup = request.changeset.wrap_model('LocationGroup')
         WifiMeasurement = request.changeset.wrap_model('WifiMeasurement')
+        RangingBeacon = request.changeset.wrap_model('RangingBeacon')
 
         level = request.GET.get('level')
         space = request.GET.get('space')
@@ -179,6 +180,7 @@ class EditorViewSet(EditorViewSetMixin, ViewSet):
                 Prefetch('spaces__holes', Hole.objects.only('geometry', 'space')),
                 Prefetch('spaces__altitudemarkers', AltitudeMarker.objects.only('geometry', 'space')),
                 Prefetch('spaces__wifi_measurements', WifiMeasurement.objects.only('geometry', 'space')),
+                Prefetch('spaces__ranging_beacons', RangingBeacon.objects.only('geometry', 'space')),
                 # Prefetch('spaces__graphnodes', graphnodes_qs)
             )
 
@@ -212,7 +214,8 @@ class EditorViewSet(EditorViewSetMixin, ViewSet):
                 self._get_level_geometries(level),
                 *(self._get_level_geometries(level) for level in levels_on_top),
                 *(space.altitudemarkers.all() for space in level.spaces.all()),
-                *(space.wifi_measurements.all() for space in level.spaces.all())
+                *(space.wifi_measurements.all() for space in level.spaces.all()),
+                *(space.ranging_beacons.all() for space in level.spaces.all()),
                 # graphedges,
                 # graphnodes,
             )
@@ -228,7 +231,7 @@ class EditorViewSet(EditorViewSetMixin, ViewSet):
 
             if request.user_permissions.can_access_base_mapdata:
                 doors = [door for door in level.doors.filter(Door.q_for_request(request)).all()
-                         if door.geometry.intersects(space.geometry)]
+                         if door.geometry.wrapped_geom.intersects(space.geometry.wrapped_geom)]
                 doors_space_geom = unary_union(
                     [unwrap_geom(door.geometry) for door in doors] +
                     [unwrap_geom(space.geometry)]
@@ -325,6 +328,7 @@ class EditorViewSet(EditorViewSetMixin, ViewSet):
                 space.columns.all().only('geometry', 'space'),
                 space.altitudemarkers.all().only('geometry', 'space'),
                 space.wifi_measurements.all().only('geometry', 'space'),
+                space.ranging_beacons.all().only('geometry', 'space'),
                 space.pois.filter(POI.q_for_request(request)).only('geometry', 'space').prefetch_related(
                     Prefetch('groups', LocationGroup.objects.only(
                         'color', 'category', 'priority', 'hierarchy', 'category__priority', 'category__allow_pois'
@@ -370,6 +374,7 @@ class EditorViewSet(EditorViewSetMixin, ViewSet):
             'graphedge': '#00CC00',
             'altitudemarker': '#0000FF',
             'wifimeasurement': '#DDDD00',
+            'rangingbeacon': '#CC00CC',
         })
 
     @action(detail=False, methods=['get'])

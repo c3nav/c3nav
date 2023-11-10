@@ -106,7 +106,7 @@ def space_detail(request, level, pk):
     if edit_utils.can_access_child_base_mapdata:
         submodels = ('POI', 'Area', 'Obstacle', 'LineObstacle', 'Stair', 'Ramp', 'Column',
                      'Hole', 'AltitudeMarker', 'LeaveDescription', 'CrossDescription',
-                     'WifiMeasurement')
+                     'WifiMeasurement', 'RangingBeacon')
     else:
         submodels = ('POI', 'Area', 'AltitudeMarker', 'LeaveDescription', 'CrossDescription')
 

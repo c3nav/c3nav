@@ -2,7 +2,7 @@ from decimal import Decimal
 
 from django.conf import settings
 from django.core.exceptions import ObjectDoesNotExist
-from django.core.validators import MinValueValidator
+from django.core.validators import MinValueValidator, RegexValidator
 from django.db import models
 from django.urls import reverse
 from django.utils.functional import cached_property
@@ -398,3 +398,38 @@ class WifiMeasurement(SpaceGeometryMixin, models.Model):
     @property
     def geometry_changed(self):
         return False
+
+
+class RangingBeacon(SpaceGeometryMixin, models.Model):
+    """
+    A ranging beacon
+    """
+    geometry = GeometryField('point')
+    bssid = models.CharField(_('BSSID'), max_length=17, unique=True,
+                             validators=[RegexValidator(
+                                 regex='^([a-f0-9]{2}:){5}[a-f0-9]{2}$',
+                                 message='Must be a lower-case bssid',
+                                 code='invalid_bssid'
+                             )])
+    altitude = models.DecimalField(_('altitude above ground'), max_digits=6, decimal_places=2, default=0,
+                                   validators=[MinValueValidator(Decimal('0'))])
+    comment = models.TextField(null=True, blank=True, verbose_name=_('comment'))
+
+    class Meta:
+        verbose_name = _('Ranging beacon')
+        verbose_name_plural = _('Ranging beacons')
+        default_related_name = 'ranging_beacons'
+
+    @property
+    def all_geometry_changed(self):
+        return False
+
+    @property
+    def geometry_changed(self):
+        return False
+
+    @property
+    def title(self):
+        if self.comment:
+            return f'{self.bssid} ({self.comment})'
+        return self.bssid
