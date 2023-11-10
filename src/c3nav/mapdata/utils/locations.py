@@ -2,9 +2,10 @@ import math
 import operator
 import re
 from collections import OrderedDict
+from dataclasses import dataclass, field
 from functools import reduce
 from itertools import chain
-from typing import List, Mapping, Optional, Union
+from typing import Any, List, Mapping, Optional, Union
 
 from django.apps import apps
 from django.db.models import Prefetch, Q
@@ -271,20 +272,23 @@ def get_custom_location_for_request(slug: str, request):
                           AccessPermission.get_for_request(request))
 
 
+@dataclass
 class CustomLocation:
     can_search = True
     can_describe = True
     access_restriction_id = None
 
-    def __init__(self, level, x, y, permissions, icon='pin_drop'):
-        x = round(x, 2)
-        y = round(y, 2)
-        self.pk = 'c:%s:%s:%s' % (level.short_label, x, y)
-        self.permissions = permissions
-        self.level = level
-        self.x = x
-        self.y = y
-        self.icon = icon
+    pk: str = field(init=False)
+    level: Level
+    x: float | int
+    y: float | int
+    permissions: Any = ()  # todo: correct this
+    icon: str = "pin_drop"
+
+    def __post_init__(self):
+        x = round(self.x, 2)
+        y = round(self.y, 2)
+        self.pk = 'c:%s:%s:%s' % (self.level.short_label, x, y)
 
     @property
     def serialized_geometry(self):

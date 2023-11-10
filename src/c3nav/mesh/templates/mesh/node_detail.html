@@ -1,5 +1,5 @@
 {% extends 'mesh/base.html' %}
-{% load i18n %}
+{% load i18n mesh_node %}
 
 {% block heading %}{% trans 'Mesh Node' %} {{ node }}{% endblock %}
 
@@ -105,13 +105,30 @@
 
             <h4>Position configuration</h4>
             <p>
-                <strong>X=</strong>{{ node.last_messages.CONFIG_POSITION.parsed.x_pos }}, <strong>Y=</strong>{{ node.last_messages.CONFIG_POSITION.parsed.y_pos }}, <strong>Z=</strong>{{ node.last_messages.CONFIG_POSITION.parsed.z_pos }}
+                <strong>On Device:</strong>
+                X={{ node.last_messages.CONFIG_POSITION.parsed.x_pos | cm_to_m }}
+                Y={{ node.last_messages.CONFIG_POSITION.parsed.y_pos | cm_to_m }}
+                Z={{ node.last_messages.CONFIG_POSITION.parsed.z_pos | cm_to_m }}
             </p>
-            <p>
-                <a class="button" href="{% url "mesh.send" recipient=node.address msg_type="CONFIG_POSITION" %}">
-                    {% trans 'Change' %}
-                </a>
-            </p>
+            {% with locator_beacon=node.get_locator_beacon %}
+                {% if locator_beacon %}
+                    <p>
+                        <strong>In Map:</strong>
+                        X={{ locator_beacon.x | cm_to_m }}
+                        Y={{ locator_beacon.y | cm_to_m }}
+                        Z={{ locator_beacon.z | cm_to_m }}
+                    </p>
+                {% else %}
+                    <p>
+                        <em>(not known in map)</em>
+                    </p>
+                    <p>
+                        <a class="button" href="{% url "mesh.send" recipient=node.address msg_type="CONFIG_POSITION" %}">
+                            {% trans 'Change' %}
+                        </a>
+                    </p>
+                {% endif %}
+            {% endwith %}
         </div>
     </div>
 {% endblock %}

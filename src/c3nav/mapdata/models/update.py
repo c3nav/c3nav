@@ -184,6 +184,10 @@ class MapUpdate(models.Model):
             from c3nav.routing.locator import Locator
             Locator.rebuild(new_updates[-1].to_tuple)
 
+            logger.info('Rebuilding range locator...')
+            from c3nav.routing.rangelocator import RangeLocator
+            RangeLocator.rebuild(new_updates[-1].to_tuple)
+
             for new_update in reversed(new_updates):
                 new_update.processed = True
                 new_update.save()

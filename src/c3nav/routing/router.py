@@ -78,7 +78,9 @@ class Router:
             for space in level.spaces.all():
                 # create space geometries
                 accessible_geom = space.geometry.difference(unary_union(
-                    tuple(unwrap_geom(column.geometry) for column in space.columns.all() if column.access_restriction_id is None) +
+                    tuple(unwrap_geom(column.geometry)
+                          for column in space.columns.all()
+                          if column.access_restriction_id is None) +
                     tuple(unwrap_geom(hole.geometry) for hole in space.holes.all()) +
                     ((buildings_geom, ) if space.outside else ())
                 ))
@@ -361,6 +363,9 @@ class Router:
         if not spaces:
             return None
         return min(spaces, key=operator.itemgetter(1))[0]
+
+    def altitude_for_point(self, space: int, point: Point) -> float:
+        return self.spaces[space].altitudearea_for_point(point).get_altitude(point)
 
     def describe_custom_location(self, location):
         restrictions = self.get_restrictions(location.permissions)

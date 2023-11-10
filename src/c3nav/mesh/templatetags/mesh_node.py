@@ -27,6 +27,6 @@ def mesh_node(context, node: str | MeshNode):
         )
 
 
-@register.filter()
-def m_to_cm(value):
-    return "%.2fm" % (int(value)/100)
+@register.filter(name="cm_to_m")
+def cm_to_m(value):
+    return "%.2f" % (int(value)/100)
