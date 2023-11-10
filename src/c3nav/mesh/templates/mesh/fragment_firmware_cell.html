@@ -1,0 +1,12 @@
+{% if firmware_desc.build %}
+    <a href="{% url "mesh.firmwares.detail" pk=firmware_desc.build.version.pk %}">
+        <small>{{ firmware_desc.project_name }}</small>
+        {{ firmware_desc.version }}
+    </a><br>
+    Variant: <a href="{% url "mesh.firmwares.build.detail" pk=firmware_desc.build.pk %}">
+        {{ firmware_desc.build.variant }}
+    </a>
+{% else %}
+    <small>{{ firmware_desc.project_name }}</small> {{ firmware_desc.version }}<br>
+    <small>{{ firmware_desc.sha256_hash }}</small>
+{% endif %}

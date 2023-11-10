@@ -1,0 +1,74 @@
+{% load i18n mesh_node %}
+<form method="post">
+    {% csrf_token %}
+    {% for group in form.groups %}
+        <h4>{{ group.hardware.board.pretty_name }} ({{ group.hardware.chip.pretty_name }})</h4>
+        <div style="text-align: right;margin-top: -35px;">
+            Set
+            <select style="width: auto;">
+                <option value="all">all</option>
+                <option value="older">older</option>
+                <option value="newer">newer</option>
+                <option value="different">different</option>
+            </select>
+            <select style="width: auto;">
+                <option value="no-ota">with no OTA</option>
+                <option value="all">regardless of OTA</option>
+            </select>
+            to
+            {% if group.builds|length == 1 %}
+                <select style="width: auto;">
+                    <option value="yes">yes</option>
+                    <option value="no">no</option>
+                </select>
+            {% else %}
+                <select style="width: auto;">
+                    <option value="">---</option>
+                    {% for build in group.builds %}
+                        <option value="{{ build.pk }}">{{ build.variant }}</option>
+                    {% endfor %}
+                </select>
+            {% endif %}
+
+            <button type="button">{% trans 'Set' %}</button>
+        </div>
+        <table>
+            <tr>
+                <th>{% trans 'Node' %}</th>
+                <th>{% trans 'Current Firmware' %}</th>
+                <th>{% trans 'Current OTA' %}</th>
+                <th>
+                    {% if group.builds|length == 1 %}
+                        Install {{ group.builds.0.variant }}
+                    {% else %}
+                        {% trans 'Build to install' %}
+                    {% endif %}
+                </th>
+            </tr>
+            {% for node, field in group.fields.values %}
+                <tr>
+                    <td>
+                        {% mesh_node node %}
+                    </td>
+                    <td>
+                        {% include "mesh/fragment_firmware_cell.html" with firmware_desc=node.firmware_desc %}
+                    </td>
+                    <td>
+                        {% if node.current_ota %}
+                            <a>#{{ node.current_ota.update.pk }} <small>({{ node.current_ota.update.created }})</small></a><br>
+                            {% include "mesh/fragment_firmware_cell.html" with firmware_desc=node.current_ota.update.build.get_firmware_description %}
+                        {% else %}
+                            -
+                        {% endif %}
+                    </td>
+                    <td>
+                        {{ field }}
+                    </td>
+                </tr>
+            {% endfor %}
+        </table>
+    {% endfor %}
+    <div style="text-align: right">
+        <button type="submit">{% trans 'Start OTA' %}</button>
+    </div>
+</form>

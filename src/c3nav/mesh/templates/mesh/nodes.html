@@ -21,15 +21,7 @@
                     <small>({{ node.last_messages.CONFIG_HARDWARE.parsed.chip.pretty_name }} rev{{ node.last_messages.CONFIG_HARDWARE.parsed.revision_major }}.{{ node.last_messages.CONFIG_HARDWARE.parsed.revision_minor }})</small>
                 </td>
                 <td>
-                    {% if node.firmware_desc.build %}
-                        <a href="{% url "mesh.firmwares.detail" pk=node.firmware_desc.build.firmware.pk %}">{{ node.firmware_desc.project_name }} {{ node.firmware_desc.version }}</a><br>
-                        <a href="{% url "mesh.firmwares.build.detail" pk=node.firmware_desc.build.pk %}">
-                            {{ node.firmware_desc.build.variant }}
-                        </a>
-                    {% else %}
-                        {{ node.firmware_desc.project_name }} {{ node.firmware_desc.version }}<br>
-                        <small>{{ node.firmware_desc.sha256_hash }}</small>
-                    {% endif %}
+                    {% include "mesh/fragment_firmware_cell.html" with firmware_desc=node.firmware_desc %}
                 </td>
                 <td>
                     {% blocktrans trimmed with timesince=node.last_messages.any.datetime|timesince %}

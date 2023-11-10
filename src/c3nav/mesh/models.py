@@ -41,17 +41,26 @@ class FirmwareDescription:
         )
 
 
+@dataclass(frozen=True)
+class HardwareDescription:
+    chip: ChipType
+    board: BoardType
+
+
 class MeshNodeQuerySet(models.QuerySet):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self._prefetch_last_messages = set()
         self._prefetch_last_messages_done = False
         self._prefetch_firmwares = False
+        self._prefetch_ota = False
+        self._prefetch_ota_done = False
 
     def _clone(self):
         clone = super()._clone()
         clone._prefetch_last_messages = self._prefetch_last_messages
         clone._prefetch_firmwares = self._prefetch_firmwares
+        clone._prefetch_ota = self._prefetch_ota
         return clone
 
     def prefetch_last_messages(self, *types: MeshMessageType):
@@ -67,8 +76,14 @@ class MeshNodeQuerySet(models.QuerySet):
         clone._prefetch_firmwares = True
         return clone
 
+    def prefetch_ota(self):
+        clone = self._chain()
+        clone._prefetch_pta = True
+        return clone
+
     def _fetch_all(self):
         super()._fetch_all()
+        nodes = None
         if self._prefetch_last_messages and not self._prefetch_last_messages_done:
             nodes: dict[str, MeshNode] = {node.pk: node for node in self._result_cache}
             try:
@@ -124,6 +139,22 @@ class MeshNodeQuerySet(models.QuerySet):
                     }
                 for node in nodes_to_complete:
                     node.firmware_desc.created = created_lookup[node.firmware_desc.sha256_hash]
+
+        if self._prefetch_ota and not self._prefetch_ota_done:
+            if nodes is None:
+                nodes: dict[str, MeshNode] = {node.pk: node for node in self._result_cache}
+            try:
+                for ota in OTAUpdateRecipient.objects.order_by('node', '-update__created').filter(
+                        src_node__in=nodes.keys(),
+                ).select_related("update", "update__build").distinct('node'):
+                    # noinspection PyUnresolvedReferences
+                    nodes[ota.node_id]._current_ota = ota
+                for node in nodes.values():
+                    if not hasattr(node, "_current_ota"):
+                        node._current_ota = None
+                self._prefetch_ota_done = True
+            except NotSupportedError:
+                pass
 
 
 class LastMessagesByTypeLookup(UserDict):
@@ -183,8 +214,18 @@ class MeshNode(models.Model):
     def last_messages(self) -> Mapping[Any, "NodeMessage"]:
         return LastMessagesByTypeLookup(self)
 
+    @cached_property
+    def current_ota(self) -> Optional["OTAUpdateRecipient"]:
+        try:
+            # noinspection PyUnresolvedReferences
+            return self._current_ota
+        except AttributeError:
+            return self.ota_updates.order_by('-update__created').first()
+
     def get_firmware_description(self) -> FirmwareDescription:
+        # noinspection PyTypeChecker
         firmware_msg: ConfigFirmwareMessage = self.last_messages[MeshMessageType.CONFIG_FIRMWARE].parsed
+        # noinspection PyTypeChecker
         hardware_msg: ConfigHardwareMessage = self.last_messages[MeshMessageType.CONFIG_HARDWARE].parsed
         return FirmwareDescription(
             chip=hardware_msg.chip,
@@ -192,6 +233,13 @@ class MeshNode(models.Model):
             version=firmware_msg.app_desc.version,
             idf_version=firmware_msg.app_desc.idf_version,
             sha256_hash=firmware_msg.app_desc.app_elf_sha256,
+        )
+
+    def get_hardware_description(self) -> HardwareDescription:
+        # noinspection PyUnresolvedReferences
+        return HardwareDescription(
+            chip=self.last_messages[MeshMessageType.CONFIG_HARDWARE].parsed.chip,
+            board=self.last_messages[MeshMessageType.CONFIG_BOARD].parsed.board_config.board,
         )
 
     # overriden by prefetch_firmwares()
@@ -203,6 +251,7 @@ class MeshNode(models.Model):
 
     @cached_property
     def board(self) -> ChipType:
+        # noinspection PyUnresolvedReferences
         return self.last_messages[MeshMessageType.CONFIG_BOARD].parsed.board_config.board
 
     def get_uplink(self) -> Optional["MeshUplink"]:
@@ -233,7 +282,7 @@ class MeshUplink(models.Model):
 
     name = models.CharField(_('channel name'), max_length=128)
     started = models.DateTimeField(_('started'), auto_now_add=True)
-    node = models.ForeignKey('MeshNode', models.PROTECT, related_name='uplink_sessions',
+    node = models.ForeignKey(MeshNode, models.PROTECT, related_name='uplink_sessions',
                              verbose_name=_('node'))
     last_ping = models.DateTimeField(_('last ping from consumer'))
     end_reason = models.CharField(_('end reason'), choices=EndReason.choices, null=True, max_length=16)
@@ -246,9 +295,9 @@ class MeshUplink(models.Model):
 
 class NodeMessage(models.Model):
     MESSAGE_TYPES = [(msgtype.name, msgtype.pretty_name) for msgtype in MeshMessageType]
-    src_node = models.ForeignKey('MeshNode', models.PROTECT,
-                                 related_name='received_messages', verbose_name=_('node'))
-    uplink = models.ForeignKey('MeshUplink', models.PROTECT, related_name='relayed_messages',
+    src_node = models.ForeignKey(MeshNode, models.PROTECT, related_name='received_messages',
+                                 verbose_name=_('node'))
+    uplink = models.ForeignKey(MeshUplink, models.PROTECT, related_name='relayed_messages',
                                verbose_name=_('uplink'))
     datetime = models.DateTimeField(_('datetime'), db_index=True, auto_now_add=True)
     message_type = models.CharField(_('message type'), max_length=24, db_index=True, choices=MESSAGE_TYPES)
@@ -308,6 +357,10 @@ class FirmwareBuild(models.Model):
     def boards(self):
         return {BoardType[board.board] for board in self.firmwarebuildboard_set.all()}
 
+    @property
+    def chip_type(self) -> ChipType:
+        return ChipType(self.chip)
+
     def serialize(self):
         return {
             'chip': ChipType(self.chip).name,
@@ -318,7 +371,7 @@ class FirmwareBuild(models.Model):
 
     def get_firmware_description(self) -> FirmwareDescription:
         return FirmwareDescription(
-            chip=ChipType(self.chip),
+            chip=self.chip_type,
             project_name=self.version.project_name,
             version=self.version.version,
             idf_version=self.version.idf_version,
@@ -326,6 +379,15 @@ class FirmwareBuild(models.Model):
             created=self.version.created,
             build=self,
         )
+
+    def get_hardware_descriptions(self) -> list[HardwareDescription]:
+        return [
+            HardwareDescription(
+                chip=self.chip_type,
+                board=board,
+            )
+            for board in self.boards
+        ]
 
 
 class FirmwareBuildBoard(models.Model):
@@ -337,3 +399,14 @@ class FirmwareBuildBoard(models.Model):
         unique_together = [
             ('build', 'board'),
         ]
+
+
+class OTAUpdate(models.Model):
+    build = models.ForeignKey(FirmwareBuild, on_delete=models.CASCADE)
+    created = models.DateTimeField(_('creation'), auto_now_add=True)
+
+
+class OTAUpdateRecipient(models.Model):
+    update = models.ForeignKey(OTAUpdate, on_delete=models.CASCADE, related_name='recipients')
+    node = models.ForeignKey(MeshNode, models.PROTECT, related_name='ota_updates',
+                             verbose_name=_('node'))

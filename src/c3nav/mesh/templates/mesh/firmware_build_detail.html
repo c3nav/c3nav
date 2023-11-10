@@ -10,7 +10,7 @@
         <div>
             <p>
                 <strong>Project name:</strong> {{ build.version.project_name }}<br>
-                <strong>Version:</strong> {{ build.version.version }}<br>
+                <strong>Version:</strong> <a href="{% url 'mesh.firmwares.detail' pk=build.version.pk %}">{{ build.version.version }}</a><br>
                 <strong>IDF Version:</strong> {{ build.version.idf_version }}<br>
                 <strong>Uploader:</strong> {{ build.version.uploader }}<br>
                 <strong>Created:</strong> {{ build.version.created }}<br>
@@ -27,52 +27,7 @@
             </ul>
         </div>
         <div>
-            <h4>Installed nodes</h4>
-            <table>
-                <tr>
-                    <th>{% trans 'Node' %}</th>
-                    <th>{% trans 'Hardware' %}</th>
-                </tr>
-                {% for node in installed_nodes %}
-                    <tr>
-                        <td>
-                            {% mesh_node node %}
-                        </td>
-                        <td>
-                            {{ node.board.pretty_name }} ({{ node.chip.pretty_name }})
-                        </td>
-                    </tr>
-                {% endfor %}
-            </table>
-
-            <h4>Compatible nodes</h4>
-            <table>
-                <tr>
-                    <th>{% trans 'Node' %}</th>
-                    <th>{% trans 'Hardware' %}</th>
-                    <th>{% trans 'Current Firmware' %}</th>
-                </tr>
-                {% for node in compatible_nodes %}
-                    <tr>
-                        <td>
-                            {% mesh_node node %}
-                        </td>
-                        <td>
-                            {{ node.board.pretty_name }} <small>({{ node.chip.pretty_name }})</small>
-                        </td>
-                        <td>
-                            {% if node.firmware_desc.build %}
-                                <a href="{% url "mesh.firmwares.detail" pk=node.firmware_desc.build.version.pk %}">
-                                    {{ node.firmware_desc.project_name }} {{ node.firmware_desc.version }}
-                                </a><br>
-                                Build <a href="{% url "mesh.firmwares.build.detail" pk=node.firmware_desc.build.pk %}">{{ node.firmware_desc.build.variant }}</a>
-                            {% else %}
-                                {{ node.firmware_desc.project_name }} {{ node.firmware_desc.version }}
-                            {% endif %}
-                        </td>
-                    </tr>
-                {% endfor %}
-            </table>
+            {% include "mesh/fragment_ota_form.html" %}
         </div>
     </div>
 {% endblock %}

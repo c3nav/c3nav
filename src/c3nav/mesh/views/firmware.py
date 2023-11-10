@@ -1,8 +1,10 @@
+from django.contrib.messages.views import SuccessMessageMixin
 from django.views.generic import DetailView, ListView, TemplateView
+from django.views.generic.edit import FormMixin
 
-from c3nav.mesh.messages import MeshMessageType
 from c3nav.mesh.models import FirmwareBuild, FirmwareVersion, MeshNode
 from c3nav.mesh.views.base import MeshControlMixin
+from c3nav.site.forms import OTACreateForm
 
 
 class FirmwaresListView(MeshControlMixin, ListView):
@@ -33,7 +35,22 @@ class FirmwaresCurrentListView(MeshControlMixin, TemplateView):
         }
 
 
-class FirmwareDetailView(MeshControlMixin, DetailView):
+class OTACreateMixin(SuccessMessageMixin, FormMixin):
+    form_class = OTACreateForm
+    success_message = 'OTA have been created'
+
+    def post(self, *args, **kwargs):
+        form = self.get_form()
+        if not form.is_valid():
+            return self.form_invalid(form)
+        form.save()
+        return self.form_valid(form)
+
+    def get_success_url(self):
+        return self.request.path
+
+
+class FirmwareDetailView(OTACreateMixin, MeshControlMixin, DetailView):
     model = FirmwareVersion
     template_name = "mesh/firmware_detail.html"
     context_object_name = "firmware"
@@ -41,38 +58,21 @@ class FirmwareDetailView(MeshControlMixin, DetailView):
     def get_queryset(self):
         return super().get_queryset().prefetch_related('builds', 'builds__firmwarebuildboard_set')
 
+    def get_form_kwargs(self):
+        return {
+            **super().get_form_kwargs(),
+            'builds': self.get_object().builds.all(),
+        }
+
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data()
-
-        nodes: list[MeshNode] = list(MeshNode.objects.all().prefetch_firmwares().prefetch_last_messages(
-            MeshMessageType.CONFIG_BOARD,
-        ))
-        builds = self.get_object().builds.all()
-
-        build_lookups = set(build.get_firmware_description().get_lookup() for build in builds)
-
-        installed_nodes = []
-        compatible_nodes = []
-        for node in nodes:
-            if node.firmware_desc.get_lookup() in build_lookups:
-                installed_nodes.append(node)
-            else:
-                node.compatible_builds = []
-                for build in builds:
-                    if node.board in build.boards:
-                        node.compatible_builds.append(build)
-                if node.compatible_builds:
-                    compatible_nodes.append(node)
-
         ctx.update({
-            'builds': builds,
-            'installed_nodes': installed_nodes,
-            'compatible_nodes': compatible_nodes,
+            'builds': self.get_object().builds.all(),
         })
         return ctx
 
 
-class FirmwareBuildDetailView(MeshControlMixin, DetailView):
+class FirmwareBuildDetailView(OTACreateMixin, MeshControlMixin, DetailView):
     model = FirmwareBuild
     template_name = "mesh/firmware_build_detail.html"
     context_object_name = "build"
@@ -80,27 +80,8 @@ class FirmwareBuildDetailView(MeshControlMixin, DetailView):
     def get_queryset(self):
         return super().get_queryset().prefetch_related('firmwarebuildboard_set')
 
-    def get_context_data(self, **kwargs):
-        ctx = super().get_context_data()
-
-        nodes = list(MeshNode.objects.all().prefetch_firmwares().prefetch_last_messages(
-            MeshMessageType.CONFIG_BOARD,
-        ))
-
-        build_lookup = self.get_object().get_firmware_description().get_lookup()
-        build_boards = self.get_object().boards
-
-        installed_nodes = []
-        compatible_nodes = []
-        for node in nodes:
-            if node.firmware_desc.get_lookup() == build_lookup:
-                installed_nodes.append(node)
-            else:
-                if node.board in build_boards:
-                    compatible_nodes.append(node)
-
-        ctx.update({
-            'installed_nodes': installed_nodes,
-            'compatible_nodes': compatible_nodes,
-        })
-        return ctx
+    def get_form_kwargs(self):
+        return {
+            **super().get_form_kwargs(),
+            'builds': [self.get_object()],
+        }
