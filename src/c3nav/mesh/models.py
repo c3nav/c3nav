@@ -7,6 +7,7 @@ from operator import attrgetter
 from typing import Any, Mapping, Optional, Self
 
 from django.contrib.auth import get_user_model
+from django.core.validators import RegexValidator
 from django.db import NotSupportedError, models
 from django.db.models import Q, UniqueConstraint
 from django.utils import timezone
@@ -199,7 +200,13 @@ class MeshNode(models.Model):
     """
     A nesh node. Any node.
     """
-    address = models.CharField(_('mac address'), max_length=17, primary_key=True)
+    address = models.CharField(_('mac address'), max_length=17, primary_key=True,
+                               validators=[RegexValidator(
+                                   regex='^([a-f0-9]{2}:){5}[a-f0-9]{2}$',
+                                   message='Must be a lower-case mac address',
+                                   code='invalid_macaddress'
+                               )])
+
     name = models.CharField(_('name'), max_length=32, null=True, blank=True)
     first_seen = models.DateTimeField(_('first seen'), auto_now_add=True)
     uplink = models.ForeignKey('MeshUplink', models.PROTECT, null=True,
