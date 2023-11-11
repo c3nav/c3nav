@@ -112,7 +112,7 @@
                                 <tr>
                                     <td>{% mesh_node entry.peer %}</td>
                                     <td>{{ entry.rssi }}</td>
-                                    <td>{{ entry.distance | m_to_cm }}</td>
+                                    <td>{{ entry.distance | cm_to_m }}</td>
                                 </tr>
                             {% endfor %}
                         </table>
