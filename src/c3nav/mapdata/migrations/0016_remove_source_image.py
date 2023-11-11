@@ -11,7 +11,7 @@ from django.db import migrations
 def move_sources(apps, schema_editor):
     Source = apps.get_model('mapdata', 'Source')
     for source in Source.objects.all():
-        with open(settings.SOURCES_ROOT / source.name), 'wb') as f:
+        with open(settings.SOURCES_ROOT / source.name, 'wb') as f:
             f.write(source.image)
 
 
