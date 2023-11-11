@@ -90,7 +90,7 @@
                     <button class="mobileclient-shortcut">{% trans 'create shortcut' %}</button>
                 </p>
             </section>
-            <section id="app-ad">
+            <section id="app-ad" class="hidden">
                 <h3>{% trans 'Wifi-based location' %}</h3>
                 <p>{% trans 'Get the c3nav app for Android to see your location on the map.' %}</p>
                 <p class="app-download-buttons">
@@ -211,7 +211,7 @@
                     </section>
                 </div>
             </section>
-            <div class="app-ads">
+            <div class="app-ads hidden">
                 <div id="android-app-ad">
                     <a href="#" class="close"><i class="material-icons">close</i></a>
                     {% blocktrans with play_url="https://play.google.com/store/apps/details?id=de.c3nav.droid" apk_url="https://github.com/c3nav/c3nav-android/releases" %}Get the c3nav Android app on <a href="{{ play_url }}" target="_blank">Google Play</a> or <a href="{{ apk_url }}" target="_blank">download the APK!</a>{% endblocktrans %}
@@ -239,6 +239,10 @@
         <script type="text/javascript" src="{% static 'leaflet-new/leaflet-src.js' %}"></script>
         <script type="text/javascript" src="{% static 'leaflet-layergroup-collision/rbush.js' %}"></script>
         <script type="text/javascript" src="{% static 'leaflet-layergroup-collision/Leaflet.LayerGroup.Collision.js' %}"></script>
+        <script type="text/javascript" src="{% static 'site/js/jsx.js' %}"></script>
+        <script type="text/javascript" src="{% static 'site/js/event.js' %}"></script>
+        <script type="text/javascript" src="{% static 'site/js/c3nav-new.jsx' %}"></script>
         <script type="text/javascript" src="{% static 'site/js/c3nav.js' %}"></script>
+{#        <script type="text/javascript" src="{% static 'site/js/c3nav-old.js' %}"></script>#}
     {% endcompress %}
 {% endblock %}

@@ -753,6 +753,9 @@ main:not([data-view=route-result]) #route-dots {
     border-radius: 2px;
 }
 .location-popup {
+    #location-popup-buttons, #anywhere-popup-buttons {
+        display: initial;
+    }
     .leaflet-popup-content-wrapper {
         padding: 0;
     }
@@ -1088,7 +1091,7 @@ body:not(.mobileclient) .share-ui p {
 body:not(.mobileclient) .locationinput.empty .locate {
     opacity: 0.4;
 }
-main > .share-ui, #reload-msg, #app-ad {
+main > .share-ui, #reload-msg {
     display: none;
 }
 
@@ -1140,7 +1143,6 @@ ul.messages li.alert-danger {
     left:0;
     padding:0;
     text-align: center;
-    display:none;
 }
 .app-ads div {
     background-color: #ffffff;
@@ -1338,6 +1340,7 @@ button + button {
 }
 .material-icons {
     text-transform: none !important;
+    letter-spacing: 0 !important;
 }
 
 .helptext {
@@ -1355,4 +1358,9 @@ button + button {
 }
 table td select:last-child {
     margin-bottom: 0;
+}
+
+
+.hidden {
+    display: none !important;
 }

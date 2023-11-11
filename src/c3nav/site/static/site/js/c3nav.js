@@ -4,17 +4,19 @@
      * and resulting anti-aliasing.
      * https://github.com/Leaflet/Leaflet/issues/3575
      */
-    var originalInitTile = L.GridLayer.prototype._initTile;
-    L.GridLayer.include({
-        _initTile: function (tile) {
-            originalInitTile.call(this, tile);
-
-            var tileSize = this.getTileSize();
-
-            tile.style.width = tileSize.x + 1 + 'px';
-            tile.style.height = tileSize.y + 1 + 'px';
-        }
-    });
+    // TODO: commented out for now since the new css seems to fix it in firefox and chrome
+    //       need to check on current phone browsers before removing
+    // var originalInitTile = L.GridLayer.prototype._initTile;
+    // L.GridLayer.include({
+    //     _initTile: function (tile) {
+    //         originalInitTile.call(this, tile);
+    //
+    //         var tileSize = this.getTileSize();
+    //
+    //         tile.style.width = tileSize.x + 1 + 'px';
+    //         tile.style.height = tileSize.y + 1 + 'px';
+    //     }
+    // });
 
     /*
      * Fix scroll wheel zoom on precise scrolling devices
@@ -30,15 +32,16 @@
     /*
      * Polyfill for Math.Log2 because Internet Explorer sucks
      */
-    Math.log2 = Math.log2 || function(x) {
+    // TODO: I think we can remove internet explorer polyfills at this point
+    Math.log2 = Math.log2 || function (x) {
         return Math.log(x) * Math.LOG2E;
     };
 
     var originalGetIconBox = L.LayerGroup.Collision.prototype._getIconBox;
-    L.LayerGroup.Collision.prototype._getIconBox = function(el) {
+    L.LayerGroup.Collision.prototype._getIconBox = function (el) {
         var result = originalGetIconBox(el);
-        var offsetX = (result[2]-result[0]/2),
-            offsetY = (result[3]-result[1]/2);
+        var offsetX = (result[2] - result[0] / 2),
+            offsetY = (result[3] - result[1] / 2);
         result[0] -= offsetX;
         result[1] -= offsetY;
         result[2] -= offsetX;
@@ -47,115 +50,105 @@
     };
 }());
 
-/**
- * a wrapper for localStorage, catching possible exception when accessing or setting data.
- * working silently if there are errors apart from a console log message when setting an item.
- * does NOT have a in memory storage if localStorage is not available.
- * @type Storage
- */
-localStorageWrapper = {
-    get length() {
-        try {
-            return localStorage.length;
-        } catch(e) {
-            return 0;
-        }
-    },
-    key: function(key) {
-        try {
-            return localStorage.key(key);
-        } catch(e) {
-            return null;
-        }
-    },
-    getItem: function(keyName) {
-        try {
-            return localStorage.getItem(keyName)
-        } catch(e) {
-            return null;
-        }
-    },
-    setItem: function(keyName, keyValue) {
-        try {
-            localStorage.setItem(keyName, keyValue)
-        } catch(e) {
-            console.log("can't set localstorage preference for "+ keyName);
-        }
-    },
-    removeItem: function(keyName) {
-        try {
-            localStorage.removeItem(keyName)
-        } catch(e) {
-        }
-    },
-    clear: function() {
-        try {
-            localStorage.clear()
-        } catch(e) {
-        }
-    },
-};
 
 c3nav = {
+    request: async function (resource, options) {
+        if (!options) {
+            options = {};
+        }
+        const res = await fetch(resource, {
+            ...options,
+            headers: {
+                ...options.headers,
+                'X-CSRFToken': c3nav.get_csrf_token(),
+            },
+        });
+        if (res.ok) {
+            return res;
+        } else {
+            throw new Error(res.statusText);
+        }
+    },
+    json_get: function (resource) {
+        return c3nav.request(resource, {
+            headers: {
+                'Accept': 'application/json'
+            }
+        }).then(res => res.json());
+    },
+    json_post: function (resource, data) {
+        return c3nav.request(resource, {
+            body: JSON.stringify(data),
+            method: 'POST',
+            headers: {
+                'Accept': 'application/json',
+                'Content-Type': 'application/json'
+            }
+        }).then(res => res.json());
+    },
+
+
+    settings: null,
     init_completed: false,
     user_data: null,
+    sidebar: null,
+    modal: null,
+    messages: null,
     init: function () {
+        c3nav.settings = new Settings(localStorage);
+        c3nav.sidebar = new Sidebar(document.querySelector('#sidebar'));
+        c3nav.modal = new Modal(document.querySelector('#modal'));
+        c3nav.messages = new Messages(document.querySelector('#messages'));
+
         c3nav.load_material_icons_if_needed();
         c3nav.load_searchable_locations();
 
-        $('#messages').find('ul.messages li').each(function() {
-            $(this).prepend(
-                $('<a href="#" class="close"><i class="material-icons">close</i></a>').click(function(e) {
-                    e.preventDefault();
-                    $(this).parent().remove();
-                })
-            );
-        });
 
-        if (!window.mobileclient && !localStorageWrapper.getItem('hideAppAds') && navigator.userAgent.toLowerCase().indexOf("android") > -1) {
-            $('.app-ads').show();
-            $('.app-ads .close').click(function() {
-                localStorageWrapper.setItem('hideAppAds', true);
-                $('.app-ads').remove();
-            });
+        const appAds = document.querySelector('.app-ads');
+        if (!window.mobileclient && !c3nav.settings.get('hideAppAds', false) && navigator.userAgent.toLowerCase().indexOf("android") > -1) {
+            appAds.classList.remove('hidden');
+
+            on(appAds, 'click', '.close', e => {
+                c3nav.settings.set('hideAppAds', true);
+                appAds.remove();
+            })
         } else {
-            $('.app-ads').remove();
+            appAds.remove();
         }
 
-        var $body = $('body');
         if (window.mobileclient) {
-            $body.addClass('mobileclient');
+            document.body.classList.add('mobileclient');
             c3nav._set_user_location(null);
         } else {
             document.addEventListener('visibilitychange', c3nav.on_visibility_change, false);
         }
 
-        if ($body.is('[data-user-data]')) {
-            c3nav._set_user_data(JSON.parse($body.attr('data-user-data')));
+        if (document.body.dataset.hasOwnProperty('userData')) {
+            c3nav._set_user_data(JSON.parse(document.body.dataset.userData));
         }
     },
     _searchable_locations_timer: null,
-    load_searchable_locations: function(firstTime) {
+    load_searchable_locations: function () {
         c3nav._searchable_locations_timer = null;
         $.ajax({
             dataType: "json",
             url: '/api/locations/?searchable',
             success: c3nav._searchable_locations_loaded,
             ifModified: true,
-        }).fail(function() {
-            if(c3nav._searchable_locations_timer === null) {
+        }).fail(function () {
+            if (c3nav._searchable_locations_timer === null) {
                 c3nav._searchable_locations_timer = window.setTimeout(c3nav.load_searchable_locations, c3nav.init_completed ? 300000 : 15000);
             }
         });
     },
-    _sort_labels: function(a, b) {
+    _sort_labels: function (a, b) {
         var result = (a[0].label_settings.min_zoom || -10) - (b[0].label_settings.min_zoom || -10);
         if (result === 0) result = b[0].label_settings.font_size - a[0].label_settings.font_size;
         return result;
     },
     _last_time_searchable_locations_loaded: null,
     _searchable_locations_interval: 120000,
-    _searchable_locations_loaded: function(data) {
+    _searchable_locations_loaded: function (data) {
         c3nav._last_time_searchable_locations_loaded = Date.now();
         if (data !== undefined) {
             var locations = [],
@@ -163,7 +156,6 @@ c3nav = {
                 labels = {};
             for (var i = 0; i < data.length; i++) {
                 var location = data[i];
-                location.elem = c3nav._build_location_html(location);
                 location.title_words = location.title.toLowerCase().split(/\s+/);
                 location.subtitle_words = location.subtitle.toLowerCase().split(/\s+/);
                 location.match = ' ' + location.title_words.join(' ') + ' ' + location.subtitle_words.join(' ') + '  ' + location.slug + ' ' + location.add_search.toLowerCase();
@@ -190,23 +182,28 @@ c3nav = {
             c3nav._searchable_locations_timer = window.setTimeout(c3nav.load_searchable_locations, c3nav._searchable_locations_interval);
         }
     },
-    continue_init: function() {
+    ssids: null,
+    random_location_groups: null,
+    continue_init: function () {
         c3nav.init_map();
 
-        $('.locationinput').data('location', null);
+        const $main = document.querySelector('main');
 
-        var $main = $('main'),
-            state = JSON.parse($main.attr('data-state'));
-        c3nav.embed = $main.is('[data-embed]');
+        const state = JSON.parse($main.dataset.state);
+        c3nav.embed = $main.matches('[data-embed]');
 
-        c3nav.last_site_update = JSON.parse($main.attr('data-last-site-update'));
+        c3nav.last_site_update = JSON.parse($main.dataset.lastSiteUpdate);
         c3nav.new_site_update = false;
 
-        c3nav._primary_color = $main.attr('data-primary-color') || L.polyline([0, 0]).options.color;
+        c3nav._primary_color = $main.dataset.primaryColor || L.polyline([0, 0]).options.color;
 
-        c3nav.ssids = $main.is('[data-ssids]') ? JSON.parse($main.attr('data-ssids')) : null;
+        if ($main.dataset.hasOwnProperty('ssids')) {
+            c3nav.ssids = JSON.parse($main.dataset.ssids);
+        }
 
-        c3nav.random_location_groups = $main.is('[data-random-location-groups]') ? $main.attr('data-random-location-groups').split(',').map(id => parseInt(id)) : null;
+        if ($main.dataset.hasOwnProperty('randomLocationGroups')) {
+            c3nav.random_location_groups = $main.dataset.randomLocationGroups.split(',').map(id => parseInt(id));
+        }
 
         history.replaceState(state, window.location.path);
         c3nav.load_state(state, true);
@@ -225,30 +222,11 @@ c3nav = {
 
         c3nav.init_locationinputs();
 
-        $('#location-buttons').find('.route').on('click', c3nav._location_buttons_route_click);
 
-        var $result_buttons = $('#location-buttons, #route-result-buttons');
-        $result_buttons.find('.share').on('click', c3nav._buttons_share_click);
-        $result_buttons.find('.details').on('click', c3nav._buttons_details_click);
-        $('#route-search-buttons, #route-result-buttons').find('.swap').on('click', c3nav._route_buttons_swap_click);
-        $('#route-search-buttons').find('.close').on('click', c3nav._route_buttons_close_click);
-        $('#route-summary').find('.options').on('click', c3nav._buttons_options_click);
+        on('header #user, #about-link, .buttons a', 'click', c3nav.link_handler_modal);
 
-        var $route_options = $('#route-options');
-        $route_options.find('.close').on('click', c3nav._route_options_close_click);
-        $route_options.find('button').on('click', c3nav._route_options_submit);
-        $('#map').on('click', '.location-popup .button-clear', c3nav._popup_button_click);
 
-        $('.details .close').on('click', c3nav._buttons_details_close_click);
-
-        $('#modal').on('click', c3nav._modal_click)
-            .on('click', 'a', c3nav._modal_link_click)
-            .on('submit', 'form', c3nav._modal_submit)
-            .on('click', '.mobileclient-share', c3nav._mobileclient_share_click)
-            .on('click', '.mobileclient-shortcut', c3nav._mobileclient_shortcut_click);
-        $('header #user, #about-link, .buttons a').on('click', c3nav._modal_link_click);
-
-        $('header h1 a').removeAttr('href');
+        document.querySelector('header h1 a').removeAttribute('href');
 
         window.onpopstate = c3nav._onpopstate;
 
@@ -264,7 +242,7 @@ c3nav = {
         c3nav.test_location();
 
     },
-    get_csrf_token: function() {
+    get_csrf_token: function () {
         return document.cookie.match(new RegExp('c3nav_csrftoken=([^;]+)'))[1];
     },
     test_location: function() {
@@ -279,7 +257,26 @@ c3nav = {
     },
 
     state: {},
-    update_state: function(routing, replace, details, options, nearby) {
+    update_state: function (routing, replace, details, options, nearby) {
+        const state = {};
+        if (typeof routing === 'boolean') {
+            state.routing = routing;
+        }
+        if (typeof replace === 'boolean') {
+            state.replace = replace;
+        }
+        if (typeof details === 'boolean') {
+            state.details = details;
+        }
+        if (typeof options === 'boolean') {
+            state.options = options;
+        }
+        if (typeof nearby === 'boolean') {
+            state.nearby = nearby;
+        }
+        c3nav.update_state_new(state);
+    },
+    update_state_new: function ({routing, replace, details, options, nearby} = {}) {
         if (typeof routing !== "boolean") routing = c3nav.state.routing;
 
         if (details) {
@@ -293,12 +290,10 @@ c3nav = {
             options = false;
         }
 
-        var destination = $('#destination-input').data('location'),
-            origin = $('#origin-input').data('location'),
-            new_state = {
+        const new_state = {
                 routing: routing,
-                origin: origin,
-                destination: destination,
+                origin: c3nav.sidebar.origin.location,
+                destination: c3nav.sidebar.destination.location,
                 sidebar: true,
                 details: !!details,
                 options: !!options,
@@ -311,9 +306,9 @@ c3nav = {
     },
     update_map_state: function (replace, level, center, zoom) {
         var new_state = {
-            level: center ? level : c3nav._levelControl.currentLevel,
-            center: L.GeoJSON.latLngToCoords(center ? center : c3nav.map.getCenter(), 2),
-            zoom: Math.round((center ? zoom : c3nav.map.getZoom()) * 100) / 100
+            level: center ? level : c3nav.map.levelControl.currentLevel,
+            center: L.GeoJSON.latLngToCoords(center ? center : c3nav.map.center, 2),
+            zoom: Math.round((center ? zoom : c3nav.map.zoom) * 100) / 100
         };
         if (!replace) new_state.sidebar = false;
 
@@ -327,7 +322,7 @@ c3nav = {
         } else {
             view = state.destination ? 'location' : 'search';
             if (state.origin) {
-                c3nav._locationinput_set($('#origin-input'), null);
+                c3nav.sidebar.origin.set(null);
             }
         }
         c3nav._view = view;
@@ -335,34 +330,36 @@ c3nav = {
         if (view === 'location' && state.details) {
             c3nav.load_location_details(state.destination);
         } else {
-            $('#location-details').removeAttr('data-id');
+            c3nav.sidebar.locationDetails.id = null;
             c3nav._clear_detail_layers();
         }
 
         if (view === 'route-result') {
             if (state.route_result) {
                 c3nav._display_route_result(state.route_result, nofly);
-                c3nav._display_route_options(state.route_options);
+                c3nav.sidebar.routeOptions.setOptions(state.route_options);
             } else {
                 c3nav.load_route(state.origin, state.destination, nofly);
             }
         } else {
-            $('#route-summary').removeAttr('data-origin').removeAttr('data-destination');
+            c3nav.sidebar.routeSummary.origin = null;
+            c3nav.sidebar.routeSummary.destination = null;
             c3nav._clear_route_layers();
         }
 
-        $('main').attr('data-view', view)
-            .toggleClass('show-details', !!state.details)
-            .toggleClass('show-options', !!state.options);
+        const $main = document.querySelector('main');
+        $main.dataset.view = view;
+        $main.classList.toggle('show-details', !!state.details)
+        $main.classList.toggle('show-options', !!state.options);
 
         if (c3nav._gridLayer) {
             window.setTimeout(function () {
-                c3nav._gridLayer._updateGrid(c3nav.map);
+                c3nav._gridLayer._updateGrid();
             }, 300);
         }
 
-        var $search = $('#search');
-        $search.removeClass('loading');
+        var $search = document.querySelector('#search');
+        $search.classList.remove('loading');
 
         var $selected_locationinputs = $('.locationinput.selected');
         $selected_locationinputs.filter(':focus').blur();
@@ -370,31 +367,31 @@ c3nav = {
             $('#destination-input, [data-view^=route] #origin-input').filter(':not(.selected)').find('input').first().focus();
         }
         if (!$selected_locationinputs.filter(':focus').length) {
-            $search.removeClass('focused');
+            $search.classList.remove('focused');
         }
         c3nav._first_sidebar_state = false;
 
         c3nav.update_map_locations();
     },
-    _clear_route_layers: function() {
-        c3nav._firstRouteLevel = null;
-        c3nav._routeLayerBounds = {};
-        for (var id in c3nav._routeLayers) {
-            c3nav._routeLayers[id].clearLayers();
+    _clear_route_layers: function () {
+        c3nav.map.firstRouteLevel = null;
+        c3nav.map.routeLayerBounds = {};
+        for (var id in c3nav.map.routeLayers) {
+            c3nav.map.routeLayers[id].clearLayers();
         }
     },
-    _clear_detail_layers: function() {
-        for (var id in c3nav._detailLayers) {
-            c3nav._detailLayers[id].clearLayers();
+    _clear_detail_layers: function () {
+        for (var id in c3nav.map.detailLayers) {
+            c3nav.map.detailLayers[id].clearLayers();
         }
     },
 
-    update_location_labels: function() {
-        if (!c3nav._labelControl.labelsActive) return;
-        c3nav._labelLayer.clearLayers();
-        var labels = c3nav.labels[c3nav._levelControl.currentLevel],
-            bounds = c3nav.map.getBounds().pad(0.15),
-            zoom = c3nav.map.getZoom();
+    update_location_labels: function () {
+        if (!c3nav.map.labelControl.labelsActive) return;
+        c3nav.map.labelLayer.clearLayers();
+        var labels = c3nav.labels[c3nav.map.levelControl.currentLevel],
+            bounds = c3nav.map.view_bounds.pad(0.15),
+            zoom = c3nav.map.zoom;
         if (!labels) return;
 
         var valid_upper = [], location, label;
@@ -407,83 +404,35 @@ c3nav = {
             }
             if (bounds.contains(label.getLatLng())) {
                 if ((location.label_settings.max_zoom || 10) > zoom) {
-                    c3nav._labelLayer._maybeAddLayerToRBush(label);
+                    c3nav.map.labelLayer._maybeAddLayerToRBush(label);
                 } else {
                     valid_upper.unshift(label);
                 }
             }
         }
         for (label of valid_upper) {
-            c3nav._labelLayer._maybeAddLayerToRBush(label);
+            c3nav.map.labelLayer._maybeAddLayerToRBush(label);
         }
 
     },
 
     load_location_details: function (location) {
-        var $location_details = $('#location-details');
-        if ($location_details.attr('data-id') !== String(location.id)) {
-            $location_details.addClass('loading').attr('data-id', location.id);
+        if (c3nav.sidebar.locationDetails.id !== location.id) {
+            c3nav.sidebar.locationDetails.setLoading(true);
+            c3nav.sidebar.locationDetails.id = location.id;
             c3nav._clear_route_layers();
-            $.getJSON('/api/locations/'+location.id+'/details', c3nav._location_details_loaded).fail(function (data) {
-                var $location_details = $('#location-details');
-                $location_details.find('.details-body').text('Error '+String(data.status));
-                $location_details.find('.details-body').html('').append(elem);
-                $location_details.find('.editor').hide();
-                $location_details.find('.report').hide();
-                $location_details.removeClass('loading');
+            $.getJSON(`/api/locations/${location.id}/details`, c3nav._location_details_loaded).fail(function (data) {
+                c3nav.sidebar.locationDetails.setError(data.status);
             });
         }
     },
-    _location_details_loaded: function(data) {
-        var $location_details = $('#location-details');
-        if ($location_details.attr('data-id') !== String(data.id)) {
+    _location_details_loaded: function (data) {
+        if (c3nav.sidebar.locationDetails.id !== data.id) {
             // loaded too late, information no longer needed
             return;
         }
-        var line, sublocations, loc, loclist, elem = $('<dl>');
-        for (var i = 0; i < data.display.length; i++) {
-            line = data.display[i];
-            elem.append($('<dt>').text(line[0]));
-            if (typeof line[1] === 'string') {
-                elem.append($('<dd>').text(line[1]));
-            } else if (line[1] === null || line.length === 0) {
-                elem.append($('<dd>').text('-'));
-            } else {
-                sublocations = (line[1].length === undefined) ? [line[1]] : line[1];
-                loclist = $('<dd>');
-                for (var j = 0; j < sublocations.length; j++) {
-                    loc = sublocations[j];
-                    if (loc.can_search) {
-                        loclist.append($('<a>').attr('href', '/l/' + loc.slug + '/details/').attr('data-id', loc.id).click(function (e) {
-                            e.preventDefault();
-                            c3nav._locationinput_set($('#destination-input'), c3nav.locations_by_id[parseInt($(this).attr('data-id'))]);
-                            c3nav.update_state(false, false, true);
-                        }).text(loc.title));
-                    } else {
-                        loclist.append($('<span>').text(loc.title));
-                    }
-                }
-                elem.append(loclist);
-            }
-        }
-        $location_details.find('.details-body').html('').append(elem);
 
-        var $editor = $location_details.find('.editor');
-        if (data.editor_url) {
-            $editor.attr('href', data.editor_url).show();
-        } else {
-            $editor.hide();
-        }
-
-        if (data.geometry) {
-            var custom_location = typeof data.id !== 'number',
-                report_url = '/report/l/'+String(data.id)+'/';
-            $location_details.find('.report').attr('href', report_url);
-            $location_details.find('.report-issue').toggle(!custom_location);
-            $location_details.find('.report-missing').toggle(custom_location);
-        } else {
-            $location_details.find('.report').hide();
-        }
+        c3nav.sidebar.locationDetails.setLocation(data);
 
         if (data.geometry && data.level) {
             L.geoJSON(data.geometry, {
@@ -491,55 +440,48 @@ c3nav = {
                     color: c3nav._primary_color,
                     fillOpacity: 0.1,
                 }
-            }).addTo(c3nav._routeLayers[data.level]);
+            }).addTo(c3nav.map.routeLayers[data.level]);
         }
-        $location_details.removeClass('loading');
     },
     next_route_options: null,
     load_route: function (origin, destination, nofly) {
-        var $route = $('#route-summary'),
-            $details_wrapper = $('#route-details'),
-            $options_wrapper = $('#route-options');
-        if (c3nav.next_route_options || $route.attr('data-origin') !== String(origin.id) || $route.attr('data-destination') !== String(destination.id)) {
+        if (c3nav.next_route_options || c3nav.sidebar.routeSummary.origin !== origin.id || c3nav.sidebar.routeSummary.destination !== destination.id) {
             c3nav._clear_route_layers();
-            $route.addClass('loading').attr('data-origin', origin.id).attr('data-destination', destination.id);
-            $details_wrapper.addClass('loading');
-            $options_wrapper.addClass('loading');
+            c3nav.sidebar.routeSummary.setLoading(true);
+            c3nav.sidebar.routeSummary.origin = origin.id;
+            c3nav.sidebar.routeSummary.destination = destination.id;
+            c3nav.sidebar.routeDetails.setLoading(true);
+            c3nav.sidebar.routeOptions.setLoading(true);
             $.post('/api/routing/route/', $.extend({
                 'origin': origin.id,
                 'destination': destination.id,
                 'csrfmiddlewaretoken': c3nav.get_csrf_token()
-            }, c3nav.next_route_options || {}), function(data) {
+            }, c3nav.next_route_options || {}), function (data) {
                 c3nav._route_loaded(data, nofly)
-            }, 'json').fail(function(data) {
+            }, 'json').fail(function (data) {
                 c3nav._route_loaded({
-                    'error': 'Error '+String(data.status)
+                    'error': `Error ${data.status}`
                 })
             });
         }
         c3nav.next_route_options = null;
     },
-    _route_loaded: function(data, nofly) {
-        var $route = $('#route-summary');
-        if (data.error && $route.is('.loading')) {
-            $route.find('span').text(data.error);
-            $route.removeClass('loading');
+    _route_loaded: function (data, nofly) {
+        if (data.error && c3nav.sidebar.routeSummary.isLoading()) {
+            c3nav.sidebar.routeSummary.setError(data.error);
             return;
         }
-        if ($route.attr('data-origin') !== String(data.request.origin) || $route.attr('data-destination') !== String(data.request.destination)) {
+        if (c3nav.sidebar.routeSummary.origin !== data.request.origin || c3nav.sidebar.routeSummary.destination !== data.request.destination) {
             // loaded too late, information no longer needed
             return;
         }
-        $('#route-details .report').attr('href', data.report_issue_url);
+        c3nav.sidebar.routeDetails.setIssueUrl(data.report_issue_url);
         c3nav._push_state({route_result: data.result, route_options: data.options}, true);
         c3nav._display_route_result(data.result, nofly);
-        c3nav._display_route_options(data.options);
+        c3nav.sidebar.routeOptions.setOptions(data.options);
     },
-    _display_route_result: function(result, nofly) {
-        var $route = $('#route-summary'),
-            $details_wrapper = $('#route-details'),
-            $details = $details_wrapper.find('.details-body'),
-            first_primary_level = null,
+    _display_route_result: function (result, nofly) {
+        var first_primary_level = null,
             last_primary_level = null,
             level_collect = [],
             next_level_collect = [],
@@ -547,18 +489,10 @@ c3nav = {
             item, coords, description;
         c3nav._clear_route_layers();
 
-        $details_wrapper.find('.report')
 
-        $details.html('');
-        $details.append(c3nav._build_location_html(result.origin));
-
-        for (var i=0; i < result.items.length; i++) {
+        c3nav.sidebar.routeDetails.setRoute(result);
+        for (var i = 0; i < result.items.length; i++) {
             item = result.items[i];
-
-            for (var j=0; j < item.descriptions.length; j++) {
-                description = item.descriptions[j];
-                $details.append(c3nav._build_route_item(description[0], description[1]));
-            }
 
             coords = [item.coordinates[0], item.coordinates[1]];
             level_collect.push(coords);
@@ -601,7 +535,6 @@ c3nav = {
             c3nav._add_line_to_route(last_primary_level, level_collect);
         }
 
-        $details.append(c3nav._build_location_html(result.destination));
 
         // add origin and destination lines
         c3nav._location_point_overrides = {};
@@ -621,11 +554,8 @@ c3nav = {
         }
         c3nav.update_map_locations();
 
-        c3nav._firstRouteLevel = first_primary_level;
-        $route.find('span').text(result.summary);
-        $route.find('em').text(result.options_summary);
-        $route.removeClass('loading');
-        $details_wrapper.removeClass('loading');
+        c3nav.map.firstRouteLevel = first_primary_level;
+        c3nav.sidebar.routeSummary.setSummary(result.summary, result.options_summary);
 
         if (!nofly) c3nav.fly_to_bounds(true);
     },
@@ -636,86 +566,55 @@ c3nav = {
         }
         return false;
     },
-    _build_route_item: function (icon, text) {
-        var elem = $('<div class="routeitem">');
-        if (icon.indexOf('.') === -1) {
-            elem.append($('<span class="icon"><i class="material-icons">' + icon + '</i></span>'));
-        } else {
-            elem.append($('<span class="icon"><img src="/static/site/img/icons/' + icon + '"></span>'));
-        }
-        elem.append($('<span>').text(text));
-        return elem;
-    },
-    _add_intermediate_point: function(origin, destination, next) {
-        var angle = Math.atan2(destination[1]-next[1], destination[0]-next[0]),
-            distance = Math.sqrt(Math.pow(origin[0]-destination[0], 2) + Math.pow(origin[1]-destination[1], 2)),
-            offset = Math.min(1.5, distance/4),
-            point = [destination[0]+Math.cos(angle)*offset, destination[1]+Math.sin(angle)*offset];
+    _add_intermediate_point: function (origin, destination, next) {
+        var angle = Math.atan2(destination[1] - next[1], destination[0] - next[0]),
+            distance = Math.sqrt(Math.pow(origin[0] - destination[0], 2) + Math.pow(origin[1] - destination[1], 2)),
+            offset = Math.min(1.5, distance / 4),
+            point = [destination[0] + Math.cos(angle) * offset, destination[1] + Math.sin(angle) * offset];
         return [origin, point, destination];
     },
-    _add_line_to_route: function(level, coords, gray, link_to_level) {
+    _add_line_to_route: function (level, coords, gray, link_to_level) {
         if (coords.length < 2) return;
         var latlngs = L.GeoJSON.coordsToLatLngs(c3nav._smooth_line(coords)),
-            routeLayer = c3nav._routeLayers[level];
-            line = L.polyline(latlngs, {
-                color: gray ? '#888888': c3nav._primary_color,
-                dashArray: (gray || link_to_level) ? '7' : null,
-                interactive: false,
-                smoothFactor: 0.5
-            }).addTo(routeLayer);
-            bounds = {};
+            routeLayer = c3nav.map.routeLayers[level];
+        line = L.polyline(latlngs, {
+            color: gray ? '#888888' : c3nav._primary_color,
+            dashArray: (gray || link_to_level) ? '7' : null,
+            interactive: false,
+            smoothFactor: 0.5
+        }).addTo(routeLayer);
+        bounds = {};
         bounds[level] = line.getBounds();
 
-        c3nav._merge_bounds(c3nav._routeLayerBounds, bounds);
+        c3nav._merge_bounds(c3nav.map.routeLayerBounds, bounds);
 
         if (link_to_level) {
             L.polyline(latlngs, {
                 opacity: 0,
                 weight: 15,
                 interactive: true
-            }).addTo(routeLayer).on('click', function() {
-                c3nav._levelControl.setLevel(link_to_level);
+            }).addTo(routeLayer).on('click', function () {
+                c3nav.map.levelControl.setLevel(link_to_level);
             });
         }
     },
-    _smooth_line: function(coords) {
+    _smooth_line: function (coords) {
         if (coords.length > 2) {
-            for (var i=0; i<4; i++) {
+            for (var i = 0; i < 4; i++) {
                 coords = c3nav._smooth_line_iteration(coords);
             }
         }
         return coords
     },
-    _smooth_line_iteration: function(coords) {
+    _smooth_line_iteration: function (coords) {
         // Chaikin'S Corner Cutting Algorithm
         var new_coords = [coords[0]];
-        for (var i=1; i<coords.length-1; i++) {
-            new_coords.push([(coords[i][0]*5+coords[i-1][0])/6, (coords[i][1]*5+coords[i-1][1])/6]);
-            new_coords.push([(coords[i][0]*5+coords[i+1][0])/6, (coords[i][1]*5+coords[i+1][1])/6]);
+        for (var i = 1; i < coords.length - 1; i++) {
+            new_coords.push([(coords[i][0] * 5 + coords[i - 1][0]) / 6, (coords[i][1] * 5 + coords[i - 1][1]) / 6]);
+            new_coords.push([(coords[i][0] * 5 + coords[i + 1][0]) / 6, (coords[i][1] * 5 + coords[i + 1][1]) / 6]);
         }
-        new_coords.push(coords[coords.length-1]);
+        new_coords.push(coords[coords.length - 1]);
         return new_coords
-    },
-    _display_route_options: function(options) {
-        var $options_wrapper = $('#route-options'),
-            $options = $options_wrapper.find('.route-options-fields'),
-            option, field, field_id, choice;
-        $options.html('');
-        for (var i=0; i<options.length; i++) {
-            option = options[i];
-            field_id = 'option_id_'+option.name;
-            $options.append($('<label for="'+field_id+'">').text(option.label));
-            if (option.type === 'select') {
-                field = $('<select name="'+option.name+'" id="'+field_id+'">');
-                for (j=0; j<option.choices.length; j++) {
-                    choice = option.choices[j];
-                    field.append($('<option value="'+choice.name+'">').text(choice.title));
-                }
-            }
-            field.val(option.value);
-            $options.append(field);
-        }
-        $options_wrapper.removeClass('loading');
     },
 
     _equal_states: function (a, b) {
@@ -728,29 +627,7 @@ c3nav = {
         return true;
     },
     _build_state_url: function (state, embed) {
-        var url = embed ? '/embed' : '';
-        if (state.routing) {
-            if (state.origin) {
-                url += (state.destination) ? '/r/'+state.origin.slug+'/'+state.destination.slug+'/' : '/o/'+state.origin.slug+'/';
-            } else {
-                url += (state.destination) ? '/d/'+state.destination.slug+'/' : '/r/';
-            }
-        } else {
-            url += state.destination?('/l/'+state.destination.slug+'/'):'/';
-        }
-        if (state.details && (url.startsWith('/l/') || url.startsWith('/r/'))) {
-            url += 'details/'
-        }
-        if (state.nearby && url.startsWith('/l/')) {
-            url += 'nearby/'
-        }
-        if (state.options && url.startsWith('/r/')) {
-            url += 'options/'
-        }
-        if (state.center) {
-            url += '@'+String(c3nav.level_labels_by_id[state.level])+','+String(state.center[0])+','+String(state.center[1])+','+String(state.zoom);
-        }
-        return url
+        return new State(state).build_url(embed);
     },
     _push_state: function (state, replace) {
         state = $.extend({}, c3nav.state, state);
@@ -774,12 +651,12 @@ c3nav = {
             history.pushState(state, '', url);
         }
 
-        c3nav._maybe_load_site_update(state);
+        c3nav.maybe_load_site_update();
     },
     _onpopstate: function (e) {
         // console.log('state popped');
         c3nav.load_state(e.state);
-        c3nav._maybe_load_site_update(e.state);
+        c3nav.maybe_load_site_update();
     },
     load_state: function (state, nofly) {
         if (state.modal) {
@@ -787,13 +664,13 @@ c3nav = {
             return;
         }
         state.modal = false;
-        $('#modal').removeClass('show');
-        c3nav._locationinput_set($('#origin-input'), state.origin);
-        c3nav._locationinput_set($('#destination-input'), state.destination);
+        c3nav.modal.hide();
+        c3nav.sidebar.origin.set(state.origin);
+        c3nav.sidebar.destination.set(state.destination);
         c3nav._sidebar_state_updated(state, state.center);
         if (state.center) {
-            c3nav._levelControl.setLevel(state.level);
-            var center = c3nav.map._limitCenter(L.GeoJSON.coordsToLatLng(state.center), state.zoom, c3nav.map.options.maxBounds);
+            c3nav.map.levelControl.setLevel(state.level);
+            var center = c3nav.map.limitCenter(L.GeoJSON.coordsToLatLng(state.center), state.zoom);
             if (nofly) {
                 c3nav.map.setView(center, state.zoom, {animate: false});
             } else {
@@ -803,121 +680,32 @@ c3nav = {
         $.extend(c3nav.state, state);
     },
 
-    // button handlers
-    _buttons_details_click: function () {
-        c3nav.update_state(null, null, !c3nav.state.details);
-    },
     _buttons_details_close_click: function () {
         c3nav.update_state(null, null, false);
     },
-    _buttons_options_click: function () {
-        c3nav.update_state(null, null, null, !c3nav.state.options);
-    },
-    _route_options_close_click: function () {
-        c3nav.update_state(null, null, null, false);
-    },
-    _route_options_submit: function () {
-        var options = {
-            'csrfmiddlewaretoken': c3nav.get_csrf_token()
-        };
-        $('#route-options').find('.route-options-fields [name]').each(function() {
-            options[$(this).attr('name')] = $(this).val();
-        });
-        if ($(this).is('.save')) {
-            $.post('/api/routing/options/', options);
-        }
-        c3nav.next_route_options = options;
-        c3nav.update_state(null, null, null, false);
-    },
-    _location_buttons_route_click: function () {
-        c3nav.update_state(true);
-    },
-    _route_buttons_swap_click: function () {
-        var $origin = $('#origin-input'),
-            $destination = $('#destination-input'),
-            tmp = $origin.data('location');
-        c3nav._locationinput_set($origin, $destination.data('location'));
-        c3nav._locationinput_set($destination, tmp);
-        var offset = $destination.position().top - $origin.position().top;
-        $origin.stop().css('top', offset).animate({top: 0}, 150);
-        $destination.stop().css('top', -offset).animate({top: 0}, 150);
-        c3nav.update_state();
-    },
     _route_buttons_close_click: function () {
-        var $origin = $('#origin-input'),
-            $destination = $('#destination-input');
-        if ($origin.is('.selected') && !$destination.is('.selected')) {
-            c3nav._locationinput_set($destination, $origin.data('location'));
+        if (c3nav.sidebar.origin.isSelected() && !c3nav.sidebar.destination.isSelected()) {
+            c3nav.sidebar.destination.set(c3nav.sidebar.origin.location);
         }
         c3nav.update_state(false);
-    },
-    _popup_button_click: function (e) {
-        e.stopPropagation();
-        var $location = $(this).parent().siblings('.location');
-        if ($location.length) {
-            var location = c3nav.locations_by_id[parseInt($location.attr('data-id'))],
-                $origin = $('#origin-input'),
-                $destination = $('#destination-input');
-            if (!location) {
-                location = JSON.parse($location.attr('data-location'));
-            }
-            if ($(this).is('.as-location')) {
-                c3nav._locationinput_set($destination, location);
-                c3nav.update_state(false);
-            } else if ($(this).is('.share')) {
-                c3nav._buttons_share_click(location);
-            } else if ($(this).is('a')) {
-                c3nav._modal_link_click.call(this, e);
-            } else {
-                var $locationinput = $(this).is('.as-origin') ? $origin : $destination,
-                    $other_locationinput = $(this).is('.as-origin') ? $destination : $origin,
-                    other_location = $other_locationinput.data('location');
-                c3nav._locationinput_set($locationinput, location);
-                if (other_location && (other_location.id === location.id || (other_location.locations && other_location.locations.includes(location.id)))) {
-                    c3nav._locationinput_set($other_locationinput, null);
-                }
-                c3nav.update_state(true);
-            }
-            if (c3nav._click_anywhere_popup) c3nav._click_anywhere_popup.remove();
-        } else {
-            if ($(this).is('.select-point')) {
-                c3nav._click_anywhere_load(false);
-            } else if ($(this).is('.show-nearby')) {
-                c3nav._click_anywhere_load(true);
-            } else if ($(this).is('a')) {
-                c3nav._modal_link_click.call(this, e);
-            }
-        }
     },
 
     // share logic
     _buttons_share_click: function (location) {
-        c3nav.open_modal($('main > .share-ui')[0].outerHTML);
-        c3nav._update_share_ui(false, location);
-    },
-    _update_share_ui: function(with_position, location) {
-        var $share = $('#modal').find('.share-ui'),
-            state = $.extend({}, c3nav.state),
-            url;
+        const shareUi = document.querySelector('main > .share-ui').cloneNode(true);
+        const state = {...c3nav.state};
+        let url;
         if (location.slug) {
-            url = '/l/' + location.slug + '/';
+            url = `/l/${location.slug}/`;
         } else {
-            if (!with_position) {
-                state.center = null;
-            }
+            state.center = null;
             url = c3nav._build_state_url(state);
         }
-        $share.find('img').attr('src', '/qr' + url);
-        $share.find('input').val(window.location.protocol + '//' + window.location.host + url);
-        if (!window.mobileclient) $share.find('input')[0].select();
+        shareUi.querySelector('img').src = `/qr${url}`;
+        shareUi.querySelector('input').value = `${window.location.protocol}//${window.location.host}${url}`;
+        c3nav.modal.open(shareUi);
+        if (!window.mobileclient) shareUi.querySelector('input').select();
     },
-    _mobileclient_share_click: function() {
-        mobileclient.shareUrl($('#modal').find('.share-ui input').val());
-    },
-    _mobileclient_shortcut_click: function() {
-        mobileclient.createShortcut($('#modal').find('.share-ui input').val(), c3nav.state.destination.title);
-    },
-
     // location inputs
     locations: [],
     locations_by_id: {},
@@ -925,28 +713,23 @@ c3nav = {
     last_match_words_key: null,
     init_locationinputs: function () {
 
-        $('.locationinput input').on('input', c3nav._locationinput_input)
-            .on('blur', c3nav._locationinput_blur)
-            .on('keydown', c3nav._locationinput_keydown);
-        $('.locationinput .clear').on('click', c3nav._locationinput_clear);
-        $('.locationinput .locate').on('click', c3nav._locationinput_locate);
         $('.locationinput .random').on('click', c3nav._random_location_click);
-        $('.leaflet-control-user-location a').on('click', c3nav._goto_user_location_click).dblclick(function(e) { e.stopPropagation(); });
-        $('#autocomplete').on('mouseover', '.location', c3nav._locationinput_hover_suggestion)
-            .on('click', '.location', c3nav._locationinput_click_suggestion);
+        $('.leaflet-control-user-location a').on('click', c3nav._goto_user_location_click).dblclick(function (e) {
+            e.stopPropagation();
+        });
         $('html').on('focus', '*', c3nav._locationinput_global_focuschange)
             .on('mousedown', '*', c3nav._locationinput_global_focuschange);
     },
-    _build_location_html: function(location) {
-        var html = $('<div class="location">')
-            .append($('<i class="icon material-icons">').text(c3nav._map_material_icon(location.icon || 'place')))
-            .append($('<span>').text(location.title))
-            .append($('<small>').text(location.subtitle)).attr('data-id', location.id);
-        html.attr('data-location', JSON.stringify(location));
-        return html[0].outerHTML;
+    _build_location_html: function (location) {
+        return <div className="location" data-id={location.id} data-location={JSON.stringify(location)}>
+            <i className="icon material-icons">{c3nav._map_material_icon(location.icon || 'place')}</i>
+            <span>{location.title}</span>
+            <small>{location.subtitle}</small>
+        </div>;
     },
-    _build_location_label: function(location) {
-        var text = location.label_override || location.title, segments = [''], new_segments=[], new_text = [''], len=0, since_last=0;
+    _build_location_label: function (location) {
+        var text = location.label_override || location.title, segments = [''], new_segments = [], new_text = [''],
+            len = 0, since_last = 0;
         segments = text.split(' ');
         for (var segment of segments) {
             if (segment.length > 12) {
@@ -960,23 +743,23 @@ c3nav = {
                 }
                 new_segments[new_segments.length - 1] += ' ';
             } else {
-                new_segments.push(segment+' ');
+                new_segments.push(segment + ' ');
             }
         }
         for (var segment of new_segments) {
-            if (len === 0 || len+segment.length < 12) {
-                new_text[new_text.length-1] += $('<div>').text(segment).html();
+            if (len === 0 || len + segment.length < 12) {
+                new_text[new_text.length - 1] += $('<div>').text(segment).html();
                 len += segment.length;
             } else {
                 new_text.push(segment);
                 len = segment.length;
             }
         }
-        for (var i=0;i<new_text.length;i++) {
+        for (var i = 0; i < new_text.length; i++) {
             new_text[i] = new_text[i].trim();
         }
-        var html = $('<div class="location-label-text">').append($('<span>').html('&#8239;'+new_text.join('&#8239;<br>&#8239;')+'&#8239;'));
-        html.css('font-size', location.label_settings.font_size+'px');
+        var html = $('<div class="location-label-text">').append($('<span>').html('&#8239;' + new_text.join('&#8239;<br>&#8239;') + '&#8239;'));
+        html.css('font-size', location.label_settings.font_size + 'px');
         return L.marker(L.GeoJSON.coordsToLatLng(location.point.slice(1)), {
             icon: L.divIcon({
                 html: html[0].outerHTML,
@@ -987,68 +770,13 @@ c3nav = {
             clickable: false	//      0.7.3
         });
     },
-    _locationinput_set: function (elem, location) {
-        // set a location input
-        if (location && location.elem === undefined) location.elem = c3nav._build_location_html(location);
-        c3nav._locationinput_reset_autocomplete();
-        elem.toggleClass('selected', !!location).toggleClass('empty', !location)
-            .data('location', location).data('lastlocation', location).removeData('suggestion');
-        elem.find('.icon').text(location ? c3nav._map_material_icon(location.icon || 'place') : '');
-        elem.find('input').val(location ? location.title : '').removeData('origval');
-        elem.find('small').text(location ? location.subtitle : '');
-    },
-    _locationinput_reset: function (elem) {
-        // reset this locationinput to its last location
-        c3nav._locationinput_set(elem, elem.data('lastlocation'));
-        c3nav.update_state();
-    },
-    _locationinput_clear: function () {
-        // clear this locationinput
-        c3nav._locationinput_set($(this).parent(), null);
-        c3nav.update_state();
-        $(this).parent().find('input').focus();
-    },
-    _locationinput_locate: function (e) {
-        e.preventDefault();
-        if (!window.mobileclient) {
-            c3nav.open_modal($('#app-ad').html());
-            return;
-        }
-        if (typeof window.mobileclient.checkLocationPermission === 'function') {
-            window.mobileclient.checkLocationPermission(true);
-        }
-        if (c3nav._current_user_location) {
-            c3nav._locationinput_set($(this).parent(), c3nav._current_user_location);
-            c3nav.update_state();
-        }
-    },
-    _locationinput_reset_autocomplete: function () {
-        // hide autocomplete
-        var $autocomplete = $('#autocomplete');
-        $autocomplete.find('.focus').removeClass('focus');
-        $autocomplete.html('');
-        c3nav._last_locationinput_words_key = null;
-        c3nav.current_locationinput = null;
-    },
-    _locationinput_blur: function () {
-        // when a locationinput is blurred…
-        var suggestion = $(this).parent().data('suggestion');
-        if (suggestion) {
-            // if it has a suggested location in it currently
-            c3nav._locationinput_set($(this).parent(), suggestion);
-            c3nav.update_state();
-        } else {
-            // otherwise, forget the last location
-            $(this).parent().data('lastlocation', null);
-        }
-    },
     _locationinput_global_focuschange: function (e) {
         // when focus changed, reset autocomplete if it is outside of locationinputs or autocomplete
         if (c3nav.current_locationinput && !$(e.target).is('#autocomplete *, #' + c3nav.current_locationinput + ' *')) {
-            c3nav._locationinput_reset_autocomplete();
+            c3nav.sidebar.autocomplete.reset();
         }
-        if (c3nav._click_anywhere_popup && !$(e.target).is('.leaflet-popup *')) {
-            c3nav._click_anywhere_popup.remove();
+        if (!$(e.target).is('.leaflet-popup *')) {
+            c3nav.map.remove_popup();
         }
         if (!$(e.target).is('#search *')) {
             $('#search').removeClass('focused');
@@ -1056,70 +784,7 @@ c3nav = {
             $('#search').addClass('focused');
         }
     },
-    _locationinput_keydown: function (e) {
-        var $autocomplete = $('#autocomplete'), $focused, origval;
-        if (e.which === 27) {
-            // escape: reset the location input
-            origval = $(this).data('origval');
-            if (origval) {
-                $(this).val(origval).removeData('origval');
-                $(this).parent().removeData('suggestion');
-                $autocomplete.find('.focus').removeClass('focus');
-            } else {
-                c3nav._locationinput_reset($(this).parent());
-            }
-        } else if (e.which === 40 || e.which === 38) {
-            // arrows up/down
-            var $locations = $autocomplete.find('.location');
-            if (!$locations.length) return;
 
-            // save current input value in case we have to restore it
-            if (!$(this).data('origval')) {
-                $(this).data('origval', $(this).val())
-            }
-
-            // find focused element and remove focus
-            $focused = $locations.filter('.focus');
-            $locations.removeClass('focus');
-
-            // find next element
-            var next;
-            if (!$focused.length) {
-                next = $locations.filter((e.which === 40) ? ':first-child' : ':last-child');
-            } else {
-                next = (e.which === 40) ? $focused.next() : $focused.prev();
-            }
-
-            if (!next.length) {
-                // if there is no next element, restore original value
-                $(this).val($(this).data('origval')).parent().removeData('suggestion');
-            } else {
-                // otherwise, focus this element, and save location to the input
-                next.addClass('focus');
-                $(this).val(next.find('span').text()).parent()
-                    .data('suggestion', c3nav.locations_by_id[next.attr('data-id')]);
-            }
-        } else if (e.which === 13) {
-            // enter: select currently focused suggestion or first suggestion
-            $focused = $autocomplete.find('.location.focus');
-            if (!$focused.length) {
-                $focused = $autocomplete.find('.location:first-child');
-            }
-            if (!$focused.length) return;
-            c3nav._locationinput_set($(this).parent(), c3nav.locations_by_id[$focused.attr('data-id')]);
-            c3nav.update_state();
-            c3nav.fly_to_bounds(true);
-        }
-    },
-    _locationinput_hover_suggestion: function () {
-        $(this).addClass('focus').siblings().removeClass('focus');
-    },
-    _locationinput_click_suggestion: function () {
-        var $locationinput = $('#' + c3nav.current_locationinput);
-        c3nav._locationinput_set($locationinput, c3nav.locations_by_id[$(this).attr('data-id')]);
-        c3nav.update_state();
-        c3nav.fly_to_bounds(true);
-    },
     _locationinput_matches_compare: function (a, b) {
         if (a[1] !== b[1]) return b[1] - a[1];
         if (a[2] !== b[2]) return b[2] - a[2];
@@ -1127,96 +792,25 @@ c3nav = {
         if (a[4] !== b[4]) return b[4] - a[4];
         return a[5] - b[5];
     },
-    _locationinput_input: function () {
-        var matches = [],
-            val = $(this).removeData('origval').val(),
-            val_trimmed = $.trim(val),
-            val_words = val_trimmed.toLowerCase().split(/\s+/),
-            val_words_key = val_words.join(' '),
-            $autocomplete = $('#autocomplete'),
-            $parent = $(this).parent();
-        $parent.toggleClass('empty', val === '').removeData('suggestion');
-        if ($parent.is('.selected')) {
-            $parent.removeClass('selected').data('location', null);
-            c3nav.update_state();
-        }
 
-        $autocomplete.find('.focus').removeClass('focus');
-        c3nav.current_locationinput = $parent.attr('id');
-
-        if (val_trimmed === '') {
-            c3nav._locationinput_reset_autocomplete();
-            return;
-        }
-        if (val_words_key === c3nav._last_locationinput_words_key) return;
-        c3nav._last_locationinput_words_key = val_words_key;
-
-        for (var i = 0; i < c3nav.locations.length; i++) {
-            var location = c3nav.locations[i],
-                leading_words_count = 0,
-                words_total_count = 0,
-                words_start_count = 0,
-                nomatch = false,
-                val_word, j;
-
-            // each word has to be in the location
-            for (j = 0; j < val_words.length; j++) {
-                val_word = val_words[j];
-                if (location.match.indexOf(val_word) === -1) {
-                    nomatch = true;
-                    break;
-                }
-            }
-            if (nomatch) continue;
-
-            // how many words from the beginning are in the title
-            for (j = 0; j < val_words.length; j++) {
-                val_word = val_words[j];
-                if (location.title_words[j] !== val_word &&
-                    (j !== val_words.length - 1 || location.title_words[j].indexOf(val_word) !== 0)) break;
-                leading_words_count++;
-            }
-
-            // how many words in total can be found
-            for (j = 0; j < val_words.length; j++) {
-                val_word = val_words[j];
-                if (location.match.indexOf(' ' + val_word + ' ') !== -1) {
-                    words_total_count++;
-                } else if (location.match.indexOf(' ' + val_word) !== -1) {
-                    words_start_count++;
-                }
-            }
-
-            matches.push([location.elem, leading_words_count, words_total_count, words_start_count, -location.title.length, i])
-        }
-
-        matches.sort(c3nav._locationinput_matches_compare);
-
-        $autocomplete.html('');
-        var max_items = Math.min(matches.length, Math.floor($('#resultswrapper').height() / 55));
-        for (i = 0; i < max_items; i++) {
-            $autocomplete.append(matches[i][0]);
-        }
-    },
-
-    _random_location_click: function() {
+    _random_location_click: function () {
         var $button = $('button.random'),
             parent = $button.parent(),
             width = parent.width(),
             height = parent.height();
 
         $cover = $('<div>').css({
-            'width': width+'px',
-            'height': height+'px',
+            'width': width + 'px',
+            'height': height + 'px',
             'background-color': '#ffffff',
             'position': 'absolute',
             'top': 0,
-            'left': $button.position().left+$button.width()/2+'px',
+            'left': $button.position().left + $button.width() / 2 + 'px',
             'z-index': 200,
         }).appendTo(parent);
 
         $cover.animate({
-            left: 5+$button.width()/2+'px'
+            left: 5 + $button.width() / 2 + 'px'
         }, 300, 'swing');
         $button.css({
             'left': $button.position().left,
@@ -1229,87 +823,47 @@ c3nav = {
             'pointer-events': 'none'
         }).animate({
             left: 5,
-        }, 300, 'swing').queue(function(d) {
+        }, 300, 'swing').queue(function (d) {
             d();
             var possible_locations = new Set();
             for (var id of c3nav.random_location_groups) {
                 var group = c3nav.locations_by_id[id];
                 if (!group) continue;
-                group.locations.forEach(subid => {if (subid in c3nav.locations_by_id) possible_locations.add(subid)});
+                group.locations.forEach(subid => {
+                    if (subid in c3nav.locations_by_id) possible_locations.add(subid)
+                });
             }
             possible_locations = Array.from(possible_locations);
-            var location = c3nav.locations_by_id[possible_locations[Math.floor(Math.random()*possible_locations.length)]];
-            c3nav._locationinput_set($('#destination-input'), location);
+            var location = c3nav.locations_by_id[possible_locations[Math.floor(Math.random() * possible_locations.length)]];
+            c3nav.sidebar.destination.set(location);
             c3nav.update_state(false);
             c3nav.fly_to_bounds(true);
             $cover.animate({
-                left: width+$button.width()/2+'px'
+                left: width + $button.width() / 2 + 'px'
             }, 300, 'swing');
             $button.animate({
                 left: width,
-            }, 300, 'swing').queue(function(d) {
+            }, 300, 'swing').queue(function (d) {
                 d();
                 $button.attr('style', 'display: none;');
                 $cover.remove();
                 // give the css transition some time
-            }).delay(300).queue(function(d) {
+            }).delay(300).queue(function (d) {
                 d();
                 $button.attr('style', '');
             });
         });
     },
-
-    modal_noclose: false,
-    open_modal: function (content, no_close) {
-        c3nav.modal_noclose = no_close;
-        var $modal = $('#modal');
-        c3nav._set_modal_content(content, no_close);
-        if (!$modal.is('.show')) {
-            c3nav._push_state({modal: true, sidebar: true});
-            $modal.addClass('show');
-        }
-    },
-    _set_modal_content: function(content, no_close) {
-        $('#modal').toggleClass('loading', !content)
-            .find('#modal-content')
-            .html((!no_close) ? '<button class="button-clear material-icons" id="close-modal">clear</button>' :'')
-            .append(content || '');
-    },
-    _modal_click: function(e) {
-        if (!c3nav.modal_noclose && (e.target.id === 'modal' || e.target.id === 'close-modal')) {
-            history.back();
-        }
-    },
-    _modal_link_click: function(e) {
-        var location = $(this).attr('href');
-        if ($(this).is('[target]') || location.startsWith('/control/')) {
-            $(this).attr('target', '_blank');
+    link_handler_modal: function (e, el) {
+        var location = el.href;
+        if (el.target || location.startsWith('/control/')) {
+            el.target = '_blank';
             return;
         }
         e.preventDefault();
         e.stopPropagation();
-        c3nav.open_modal();
-        $.get(location, c3nav._modal_loaded).fail(c3nav._modal_error);
-    },
-    _modal_submit: function(e) {
-        e.preventDefault();
-        $.post($(this).attr('action'), $(this).serialize(), c3nav._modal_loaded).fail(c3nav._modal_error);
-    },
-    _modal_loaded: function(data) {
-        if (data.startsWith('{')) {
-            c3nav._set_user_data(JSON.parse(data));
-            history.back();
-            return;
-        }
-        var html = $('<div>'+data.replace('<body', '<div')+'</div>');
-        var user_data = html.find('[data-user-data]');
-        if (user_data.length) {
-            c3nav._set_user_data(JSON.parse(user_data.attr('data-user-data')));
-        }
-        c3nav._set_modal_content(html.find('main').html());
-    },
-    _modal_error: function(data) {
-        $('#modal').removeClass('loading').find('#modal-content').html('<h3>Error '+data.status+'</h3>');
+        c3nav.modal.open();
+        c3nav.modal.load(fetch(location));
     },
 
     // map
@@ -1317,57 +871,17 @@ c3nav = {
         var $map = $('#map'),
             $main = $('main'),
             i;
-        c3nav.bounds = JSON.parse($map.attr('data-bounds'));
-        c3nav.levels = JSON.parse($map.attr('data-levels'));
+
         c3nav.tile_server = $map.attr('data-tile-server');
 
-        if ($map.is('[data-initial-bounds]')) {
-            var bounds = JSON.parse($map.attr('data-initial-bounds'));
-            bounds = [bounds.slice(0, 2), bounds.slice(2)];
-            c3nav.initial_bounds = bounds;
-        } else {
-            c3nav.initial_bounds = c3nav.bounds
-        }
 
-        if ($map.is('[data-initial-level]')) {
-            c3nav.initial_level = parseInt($map.attr('data-initial-level'));
-        } else if (c3nav.levels.length) {
-            c3nav.initial_level = c3nav.levels[0][0];
-        } else {
-            c3nav.initial_level = 0
-        }
+        c3nav.map = new Map(document.querySelector('#map'));
 
-        c3nav.level_labels_by_id = {};
-        for (i = 0; i < c3nav.levels.length; i++) {
-            c3nav.level_labels_by_id[c3nav.levels[i][0]] = c3nav.levels[i][1];
-        }
-
-        minZoom = Math.log2(Math.max(0.25, Math.min(
-            ($main.width() - 40) / (c3nav.bounds[1][0] - c3nav.bounds[0][0]),
-            ($main.height() - 250) / (c3nav.bounds[1][1] - c3nav.bounds[0][1])
-        )));
-
-        // create leaflet map
-        c3nav.map = L.map('map', {
-            renderer: L.svg({padding: 2}),
-            zoom: 0,
-            maxZoom: 5,
-            minZoom: minZoom,
-            crs: L.CRS.Simple,
-            maxBounds: L.GeoJSON.coordsToLatLngs(c3nav._get_padded_max_bounds(minZoom)),
-            zoomSnap: 0,
-            zoomControl: false,
-            attributionControl: !window.mobileclient,
+        c3nav.map.init({
+            width: $main.width() - 40,
+            height: $main.height() - 250,
         });
-        if (!window.mobileclient) c3nav.map.attributionControl.setPrefix($('#attributions').html());
-        if (!('ontouchstart' in window || navigator.maxTouchPoints)) {
-            $('.leaflet-touch').removeClass('leaflet-touch');
-        }
 
-        c3nav.map.fitBounds(L.GeoJSON.coordsToLatLngs(c3nav.initial_bounds), c3nav._add_map_padding({}));
-
-        c3nav.map.on('moveend', c3nav._map_moved);
-        c3nav.map.on('zoomend', c3nav._map_zoomed);
 
         // set up icons
         L.Icon.Default.imagePath = '/static/leaflet/images/';
@@ -1375,111 +889,19 @@ c3nav = {
         c3nav._add_icon('destination');
         c3nav._add_icon('nearby');
 
-        // setup scale control
-        L.control.scale({imperial: false}).addTo(c3nav.map);
-
-        // setup level control
-        c3nav._levelControl = new LevelControl().addTo(c3nav.map);
-        c3nav._locationLayers = {};
-        c3nav._locationLayerBounds = {};
-        c3nav._detailLayers = {};
-        c3nav._routeLayers = {};
-        c3nav._routeLayerBounds = {};
-        c3nav._userLocationLayers = {};
-        c3nav._firstRouteLevel = null;
-        c3nav._labelLayer = L.LayerGroup.collision({margin: 5}).addTo(c3nav.map);
-        for (i = c3nav.levels.length - 1; i >= 0; i--) {
-            var level = c3nav.levels[i];
-            var layerGroup = c3nav._levelControl.addLevel(level[0], level[1]);
-            c3nav._detailLayers[level[0]] = L.layerGroup().addTo(layerGroup);
-            c3nav._locationLayers[level[0]] = L.layerGroup().addTo(layerGroup);
-            c3nav._routeLayers[level[0]] = L.layerGroup().addTo(layerGroup);
-            c3nav._userLocationLayers[level[0]] = L.layerGroup().addTo(layerGroup);
-        }
-        c3nav._levelControl.finalize();
-        c3nav._levelControl.setLevel(c3nav.initial_level);
-
-        c3nav._labelControl = new LabelControl().addTo(c3nav.map);
-
-        // setup grid control
-        if ($map.is('[data-grid]')) {
-            c3nav._gridLayer = new L.SquareGridLayer(JSON.parse($map.attr('data-grid')));
-            c3nav._gridControl = new SquareGridControl().addTo(c3nav.map);
-        }
-
-        // setup user location control
-        c3nav._userLocationControl = new UserLocationControl().addTo(c3nav.map);
-
-        L.control.zoom({
-            position: 'bottomright'
-        }).addTo(c3nav.map);
-
-        c3nav.map.on('click', c3nav._click_anywhere);
-
         c3nav.schedule_fetch_updates();
 
     },
-    _click_anywhere_popup: null,
-    _click_anywhere: function(e) {
-        if (e.originalEvent.target.id !== 'map') return;
-        var popup = L.popup(c3nav._add_map_padding({className: 'location-popup', maxWidth: 500}, 'autoPanPaddingTopLeft', 'autoPanPaddingBottomRight')),
-            name = c3nav._latlng_to_name(e.latlng);
-        var buttons = $('#anywhere-popup-buttons').clone();
-        buttons.find('.report').attr('href', '/report/l/' + name + '/');
-        buttons.find('.set-position').attr('href', '/positions/set/' + name + '/');
-        popup.setLatLng(e.latlng).setContent(buttons.html());
-        c3nav._click_anywhere_popup = popup;
-        popup.on('remove', function() { c3nav._click_anywhere_popup = null }).openOn(c3nav.map);
-    },
-    _latlng_to_name: function(latlng) {
-        var level = c3nav._levelControl.currentLevel;
-        return 'c:'+String(c3nav.level_labels_by_id[level])+':'+Math.round(latlng.lng*100)/100+':'+Math.round(latlng.lat*100)/100;
-    },
-    _click_anywhere_load: function(nearby) {
-        if (!c3nav._click_anywhere_popup) return;
-        var latlng = c3nav._click_anywhere_popup.getLatLng();
-        c3nav._click_anywhere_popup.remove();
-        var popup = L.popup().setLatLng(latlng).setContent('<div class="loader"></div>'),
-            name = c3nav._latlng_to_name(latlng);
-        c3nav._click_anywhere_popup = popup;
-        popup.on('remove', function() { c3nav._click_anywhere_popup = null }).openOn(c3nav.map);
-        $.getJSON('/api/locations/'+name+'/', function(data) {
-            if (c3nav._click_anywhere_popup !== popup || !popup.isOpen()) return;
-            popup.remove();
-            if (nearby) {
-                var $destination = $('#destination-input');
-                c3nav._locationinput_set($destination, data);
-                c3nav.update_state(false, false, false, false, true);
-            } else {
-                newpopup = L.popup(c3nav._add_map_padding({
-                    className: 'location-popup',
-                    maxWidth: 500
-                }, 'autoPanPaddingTopLeft', 'autoPanPaddingBottomRight'));
-                var buttons = $('#location-popup-buttons').clone();
-                buttons.find('.report-issue').remove();
-                buttons.find('.report').attr('href', '/report/l/' + String(data.id) + '/');
-                newpopup.setLatLng(latlng).setContent(c3nav._build_location_html(data) + buttons.html());
-                c3nav._click_anywhere_popup = newpopup;
-                newpopup.on('remove', function () {
-                    c3nav._click_anywhere_popup = null
-                }).openOn(c3nav.map);
-            }
-        }).fail(function() {
-            popup.remove();
-        });
-    },
-    _map_moved: function () {
-        c3nav.update_map_state();
-        c3nav.update_location_labels();
-    },
-    _map_zoomed: function () {
-        c3nav.update_map_state();
-        c3nav.update_location_labels();
+    _latlng_to_name: function (latlng) {
+        var level = c3nav.map.levelControl.currentLevel;
+        const lng = Math.round(latlng.lng * 100) / 100;
+        const lat = Math.round(latlng.lat * 100) / 100;
+        return `c:${c3nav.map.level_labels_by_id[level]}:${lng}:${lat}`;
     },
     _add_icon: function (name) {
-        c3nav[name+'Icon'] = new L.Icon({
-            iconUrl: '/static/img/marker-icon-'+name+'.png',
-            iconRetinaUrl: '/static/img/marker-icon-'+name+'-2x.png',
+        c3nav[name + 'Icon'] = new L.Icon({
+            iconUrl: '/static/img/marker-icon-' + name + '.png',
+            iconRetinaUrl: '/static/img/marker-icon-' + name + '-2x.png',
             shadowUrl: '/static/leaflet/images/marker-shadow.png',
             iconSize: [25, 41],
             iconAnchor: [12, 41],
@@ -1491,62 +913,62 @@ c3nav = {
     visible_map_locations: [],
     update_map_locations: function () {
         // update locations markers on the map
-        var origin = $('#origin-input').data('location'),
-            destination = $('#destination-input').data('location'),
+        var origin = c3nav.sidebar.origin.location,
+            destination = c3nav.sidebar.destination.location,
             single = !$('main').is('[data-view^=route]'),
             bounds = {};
-        for (var level_id in c3nav._locationLayers) {
-            c3nav._locationLayers[level_id].clearLayers()
+        for (var level_id in c3nav.map.locationLayers) {
+            c3nav.map.locationLayers[level_id].clearLayers()
         }
         c3nav._visible_map_locations = [];
-        if (origin) c3nav._merge_bounds(bounds, c3nav._add_location_to_map(origin, single ? new L.Icon.Default() : c3nav.originIcon));
-        if (destination) c3nav._merge_bounds(bounds, c3nav._add_location_to_map(destination, single ? new L.Icon.Default() : c3nav.destinationIcon));
+        if (origin) c3nav._merge_bounds(bounds, c3nav.map.add_location(origin, single ? new L.Icon.Default() : c3nav.originIcon));
+        if (destination) c3nav._merge_bounds(bounds, c3nav.map.add_location(destination, single ? new L.Icon.Default() : c3nav.destinationIcon));
         var done = [];
         if (c3nav.state.nearby && destination && 'areas' in destination) {
             if (destination.space) {
-                c3nav._merge_bounds(bounds, c3nav._add_location_to_map(c3nav.locations_by_id[destination.space], c3nav.nearbyIcon, true));
+                c3nav._merge_bounds(bounds, c3nav.map.add_location(c3nav.locations_by_id[destination.space], c3nav.nearbyIcon, true));
             }
             if (destination.near_area) {
                 done.push(destination.near_area);
-                c3nav._merge_bounds(bounds, c3nav._add_location_to_map(c3nav.locations_by_id[destination.near_area], c3nav.nearbyIcon, true));
+                c3nav._merge_bounds(bounds, c3nav.map.add_location(c3nav.locations_by_id[destination.near_area], c3nav.nearbyIcon, true));
             }
             for (var area of destination.areas) {
                 done.push(area);
-                c3nav._merge_bounds(bounds, c3nav._add_location_to_map(c3nav.locations_by_id[area], c3nav.nearbyIcon, true));
+                c3nav._merge_bounds(bounds, c3nav.map.add_location(c3nav.locations_by_id[area], c3nav.nearbyIcon, true));
             }
             for (var location of destination.nearby) {
                 if (location in done) continue;
-                c3nav._merge_bounds(bounds, c3nav._add_location_to_map(c3nav.locations_by_id[location], c3nav.nearbyIcon, true));
+                c3nav._merge_bounds(bounds, c3nav.map.add_location(c3nav.locations_by_id[location], c3nav.nearbyIcon, true));
             }
         }
-        c3nav._locationLayerBounds = bounds;
+        c3nav.map.locationLayerBounds = bounds;
     },
-    fly_to_bounds: function(replace_state, nofly) {
+    fly_to_bounds: function (replace_state, nofly) {
         // fly to the bounds of the current overlays
-        var level = c3nav._levelControl.currentLevel,
+        var level = c3nav.map.levelControl.currentLevel,
             bounds = null;
 
-        if (c3nav._firstRouteLevel) {
-            level = c3nav._firstRouteLevel;
-            bounds = c3nav._routeLayerBounds[level];
-        } else if (c3nav._locationLayerBounds[level]) {
-            bounds = c3nav._locationLayerBounds[level];
+        if (c3nav.map.firstRouteLevel) {
+            level = c3nav.map.firstRouteLevel;
+            bounds = c3nav.map.routeLayerBounds[level];
+        } else if (c3nav.map.locationLayerBounds[level]) {
+            bounds = c3nav.map.locationLayerBounds[level];
         } else {
-            for (var level_id in c3nav._locationLayers) {
-                if (c3nav._locationLayerBounds[level_id]) {
-                    bounds = c3nav._locationLayerBounds[level_id];
+            for (var level_id in c3nav.map.locationLayers) {
+                if (c3nav.map.locationLayerBounds[level_id]) {
+                    bounds = c3nav.map.locationLayerBounds[level_id];
                     level = level_id
                 }
             }
         }
-        c3nav._levelControl.setLevel(level);
+        c3nav.map.levelControl.setLevel(level);
         if (bounds) {
-            var target = c3nav.map._getBoundsCenterZoom(bounds, c3nav._add_map_padding({}));
-            var center = c3nav.map._limitCenter(target.center, target.zoom, c3nav.map.options.maxBounds);
+            var target = c3nav.map.getBoundsCenterZoom(bounds, c3nav._add_map_padding({}));
+            var center = c3nav.map.limitCenter(target.center, target.zoom);
             if (nofly) {
-                c3nav.map.flyTo(center, target.zoom, { animate: false });
+                c3nav.map.flyTo(center, target.zoom, {animate: false});
             } else {
-                c3nav.map.flyTo(center, target.zoom, { duration: 1 });
+                c3nav.map.flyTo(center, target.zoom, {duration: 1});
             }
 
             if (replace_state) {
@@ -1554,7 +976,7 @@ c3nav = {
             }
         }
     },
-    _add_map_padding: function(options, topleft, bottomright) {
+    _add_map_padding: function (options, topleft, bottomright) {
         // add padding information for the current ui layout to fitBounds options
         var $search = $('#search'),
             $main = $('main'),
@@ -1562,98 +984,29 @@ c3nav = {
                 $main.width() > 1000 &&
                 ($main.height() < 250 || c3nav.state.details || c3nav.state.options)
             ),
-            left = padBesideSidebar ? ($search.width() || 0)+10 : 0,
-            top = padBesideSidebar ? 10 : ($search.height() || 0)+10;
+            left = padBesideSidebar ? ($search.width() || 0) + 10 : 0,
+            top = padBesideSidebar ? 10 : ($search.height() || 0) + 10;
         if ('maxWidth' in options) {
-            options.maxWidth = Math.min(options.maxWidth, $main.width()-left-13-50)
+            options.maxWidth = Math.min(options.maxWidth, $main.width() - left - 13 - 50)
         }
-        options[topleft || 'paddingTopLeft'] = L.point(left+13, top+41);
+        options[topleft || 'paddingTopLeft'] = L.point(left + 13, top + 41);
         options[bottomright || 'paddingBottomRight'] = L.point(50, 20);
         return options;
     },
-    _get_padded_max_bounds: function(zoom) {
-        if (zoom === undefined) zoom = c3nav.map.getZoom();
-        var bounds = c3nav.bounds,
-            factor = Math.pow(2, zoom);
-        return [
-            [bounds[0][0]-600/factor, bounds[0][1]-200/factor],
-            [bounds[1][0]+600/factor, bounds[1][1]+200/factor]
-        ];
-    },
     _location_point_overrides: {},
-    _add_location_to_map: function(location, icon, no_geometry) {
-        if (!location) {
-            // if location is not in the searchable list...
-            return
-        }
-        if (location.dynamic) {
-            if (!('available' in location)) {
-                $.getJSON('/api/locations/dynamic/' + location.id + '/', c3nav._dynamic_location_loaded);
-                return;
-            } else if (!location.available) {
-                return;
-            }
-        }
-        // add a location to the map as a marker
-        if (location.locations) {
-            var bounds = {};
-            for (var i = 0; i < location.locations.length; i++) {
-                c3nav._merge_bounds(bounds, c3nav._add_location_to_map(c3nav.locations_by_id[location.locations[i]], icon, true));
-            }
-            return bounds;
-        }
-
-        if (!no_geometry && c3nav._visible_map_locations.indexOf(location.id) === -1) {
-            c3nav._visible_map_locations.push(location.id);
-            $.getJSON('/api/locations/' + location.id + '/geometry/', c3nav._location_geometry_loaded);
-        }
-
-        if (!location.point) return;
-        var point = c3nav._location_point_overrides[location.id] || location.point.slice(1),
-            latlng = L.GeoJSON.coordsToLatLng(point),
-            buttons = $('#location-popup-buttons').clone();
-        if (typeof location.id == 'number') {
-            buttons.find('.report-missing').remove();
-        } else {
-            buttons.find('.report-issue').remove();
-        }
-        buttons.find('.report').attr('href', '/report/l/'+String(location.id)+'/');
-
-        L.marker(latlng, {
-            icon: icon
-        }).bindPopup(location.elem+buttons.html(), c3nav._add_map_padding({
-            className: 'location-popup',
-            maxWidth: 500
-        }, 'autoPanPaddingTopLeft', 'autoPanPaddingBottomRight')).addTo(c3nav._locationLayers[location.point[0]]);
-
-        var result = {};
-        result[location.point[0]] = L.latLngBounds(
-            location.bounds ? L.GeoJSON.coordsToLatLngs(location.bounds) : [latlng, latlng]
-        );
-        return result
-    },
-    _merge_bounds: function(bounds, new_bounds) {
+    _merge_bounds: function (bounds, new_bounds) {
         for (var level_id in new_bounds) {
             bounds[level_id] = bounds[level_id] ? bounds[level_id].extend(new_bounds[level_id]) : new_bounds[level_id];
         }
     },
-    _dynamic_location_loaded: function(data) {
-        if (c3nav._maybe_update_dynamic_location($('#origin-input'), data) || c3nav._maybe_update_dynamic_location($('#destination-input'), data)) {
+    _dynamic_location_loaded: function (data) {
+        if (c3nav.sidebar.origin.maybe_set(data) || c3nav.sidebar.destination.maybe_set(data)) {
             c3nav.update_state();
             c3nav.fly_to_bounds(true);
         }
     },
-    _maybe_update_dynamic_location: function(elem, location) {
-        if (elem.is('.empty')) return false;
-        var orig_location = elem.data('location');
-        if (orig_location.id !== location.id) return false;
 
-        new_location = $.extend({}, orig_location, location);
-        c3nav._locationinput_set(elem, new_location);
-        return true;
-    },
-
-    _location_geometry_loaded: function(data) {
+    _location_geometry_loaded: function (data) {
         if (c3nav._visible_map_locations.indexOf(data.id) === -1 || data.geometry === null || data.level === null) return;
 
         if (data.geometry.type === "Point") return;
@@ -1663,7 +1016,7 @@ c3nav = {
                 fillOpacity: 0.2,
                 interactive: false,
             }
-        }).addTo(c3nav._locationLayers[data.level]);
+        }).addTo(c3nav.map.locationLayers[data.level]);
     },
 
     _fetch_updates_timer: null,
@@ -1675,11 +1028,11 @@ c3nav = {
     _fetch_updates_failure_count: 0,
     fetch_updates: function () {
         c3nav._fetch_updates_timer = null;
-        $.get('/api/updates/fetch/', c3nav._fetch_updates_callback).fail(function() {
+        $.get('/api/updates/fetch/', c3nav._fetch_updates_callback).fail(function () {
             c3nav._fetch_updates_failure_count++;
             waittime = Math.min(5 + c3nav._fetch_updates_failure_count * 5, 120);
             // console.log('fetch updates failed, retying in ' + waittime + 'sec');
-            c3nav.schedule_fetch_updates(waittime*1000);
+            c3nav.schedule_fetch_updates(waittime * 1000);
         });
     },
     _fetch_updates_callback: function (data) {
@@ -1688,21 +1041,21 @@ c3nav = {
         if (c3nav.last_site_update !== data.last_site_update) {
             c3nav.new_site_update = true;
             c3nav.last_site_update = data.last_site_update;
-            c3nav._maybe_load_site_update(c3nav.state);
+            c3nav.maybe_load_site_update();
         }
         c3nav._set_user_data(data.user);
     },
-    _maybe_load_site_update: function(state) {
-        if (c3nav.new_site_update && !state.modal && (!state.routing || !state.origin || !state.destination)) {
+    maybe_load_site_update: function () {
+        if (c3nav.new_site_update && !c3nav.state.modal && (!c3nav.state.routing || !c3nav.state.origin || !c3nav.state.destination)) {
             c3nav._load_site_update();
         }
     },
-    _load_site_update: function() {
-        $('#modal-content').css({
+    _load_site_update: function () {
+        $('#modal-content').css({ // TODO: what is this for
             width: 'auto',
             minHeight: 0
         });
-        c3nav.open_modal($('#reload-msg').html(), true);
+        c3nav.modal.open(document.querySelector('#reload-msg').cloneNode(true).childNodes, true);
         window.location.reload();
     },
     _set_user_data: function (data) {
@@ -1715,14 +1068,14 @@ c3nav = {
     },
 
     _hasLocationPermission: undefined,
-    hasLocationPermission: function(nocache) {
+    hasLocationPermission: function (nocache) {
         if (c3nav._hasLocationPermission === undefined || (nocache !== undefined && nocache === true)) {
             c3nav._hasLocationPermission = window.mobileclient && (typeof window.mobileclient.hasLocationPermission !== 'function' || window.mobileclient.hasLocationPermission())
         }
         return c3nav._hasLocationPermission;
     },
 
-    getWifiScanRate: function() {
+    getWifiScanRate: function () {
         if (mobileclient.getWifiScanRate) {
             return mobileclient.getWifiScanRate() * 1000;
         }
@@ -1731,13 +1084,15 @@ c3nav = {
 
     },
     _wifiScanningTimer: null,
-    startWifiScanning: function() {
+    startWifiScanning: function () {
         if (c3nav._wifiScanningTimer == null) {
             console.log("started wifi scanning with interval of " + c3nav.getWifiScanRate());
-            c3nav._wifiScanningTimer = window.setInterval(function() { mobileclient.scanNow(); }, c3nav.getWifiScanRate());
+            c3nav._wifiScanningTimer = window.setInterval(function () {
+                mobileclient.scanNow();
+            }, c3nav.getWifiScanRate());
         }
     },
-    stopWifiScanning: function() {
+    stopWifiScanning: function () {
         if (c3nav._wifiScanningTimer !== null) {
             window.clearInterval(c3nav._wifiScanningTimer);
             c3nav._wifiScanningTimer = null;
@@ -1745,7 +1100,7 @@ c3nav = {
     },
 
     _no_wifi_count: 0,
-    _wifi_scan_results: function(data) {
+    _wifi_scan_results: function (data) {
         data = JSON.parse(data);
 
         if (data.length) {
@@ -1755,11 +1110,11 @@ c3nav = {
         }
 
         var now = Date.now();
-        if (now-4000 < c3nav._last_wifi_scan) return;
+        if (now - 4000 < c3nav._last_wifi_scan) return;
 
         if (c3nav.ssids) {
             var newdata = [];
-            for (var i=0; i<data.length; i++) {
+            for (var i = 0; i < data.length; i++) {
                 if (c3nav.ssids.indexOf(data[i]['ssid']) >= 0) {
                     newdata.push(data[i]);
                 }
@@ -1787,29 +1142,29 @@ c3nav = {
             data: JSON.stringify(data),
             dataType: 'json',
             contentType: 'application/json',
-            beforeSend: function(xhrObj){
+            beforeSend: function (xhrObj) {
                 xhrObj.setRequestHeader('X-CSRFToken', c3nav.get_csrf_token());
             },
-            success: function(data) {
+            success: function (data) {
                 c3nav._set_user_location(data.location);
             }
-        }).fail(function() {
+        }).fail(function () {
             c3nav._set_user_location(null);
             c3nav._last_wifi_scan = Date.now() + 20000
         });
     },
     _current_user_location: null,
-    _set_user_location: function(location) {
+    _set_user_location: function (location) {
         c3nav._current_user_location = location;
-        for (var id in c3nav._userLocationLayers) {
-            c3nav._userLocationLayers[id].clearLayers();
+        for (var id in c3nav.map.userLocationLayers) {
+            c3nav.map.userLocationLayers[id].clearLayers();
         }
         if (location) {
             $('.locationinput .locate, .leaflet-control-user-location a').text(c3nav._map_material_icon('my_location'));
             var latlng = L.GeoJSON.coordsToLatLng(location.geometry.coordinates);
-            for (level in c3nav._userLocationLayers) {
-                if (!c3nav._userLocationLayers.hasOwnProperty(level)) continue;
-                layer = c3nav._userLocationLayers[level];
+            for (level in c3nav.map.userLocationLayers) {
+                if (!c3nav.map.userLocationLayers.hasOwnProperty(level)) continue;
+                layer = c3nav.map.userLocationLayers[level];
                 factor = (parseInt(level) === location.level) ? 1 : 0.3;
                 L.circleMarker(latlng, {
                     radius: 11,
@@ -1830,31 +1185,42 @@ c3nav = {
             $('.locationinput .locate, .leaflet-control-user-location a').text(c3nav._map_material_icon('location_disabled'));
             $('.leaflet-control-user-location a').toggleClass('control-disabled', true);
         }
-        if (mobileclient.isCurrentLocationRequested && mobileclient.isCurrentLocationRequested()) {
-            if (location) {
-                c3nav._goto_user_location_click();
-            } else {
-                mobileclient.currentLocationRequesteFailed()
+        if (window.mobileclient) {
+            if (mobileclient.isCurrentLocationRequested && mobileclient.isCurrentLocationRequested()) {
+                if (location) {
+                    c3nav._goto_user_location_click();
+                } else {
+                    mobileclient.currentLocationRequesteFailed()
+                }
             }
         }
     },
-    _goto_user_location_click: function (e) {
+    fetch_fake_location: async function () {
+        const location = await window.fake_location();
+        c3nav._set_user_location(location);
+    },
+    _goto_user_location_click: async function (e) {
         e.preventDefault();
-        if (!window.mobileclient) {
-            c3nav.open_modal($('#app-ad').html());
-            return;
-        }
-        if (typeof window.mobileclient.checkLocationPermission === 'function') {
-            window.mobileclient.checkLocationPermission(true);
-        }
-        if (c3nav._current_user_location) {
-            c3nav._levelControl.setLevel(c3nav._current_user_location.level);
-            c3nav.map.flyTo(L.GeoJSON.coordsToLatLng(c3nav._current_user_location.geometry.coordinates), 3, { duration: 1 });
+        if (window.fake_location) {
+            c3nav.fetch_fake_location();
+            window.setInterval(c3nav.fetch_fake_location, 1000);
+        } else {
+            if (!window.mobileclient) {
+                c3nav.modal.open(document.querySelector('#app-ad').cloneNode(true).childNodes);
+                return;
+            }
+            if (typeof window.mobileclient.checkLocationPermission === 'function') {
+                window.mobileclient.checkLocationPermission(true);
+            }
+            if (c3nav._current_user_location) {
+                c3nav.map.levelControl.setLevel(c3nav._current_user_location.level);
+                c3nav.map.flyTo(L.GeoJSON.coordsToLatLng(c3nav._current_user_location.geometry.coordinates), 3, {duration: 1});
+            }
         }
     },
 
     _material_icons_codepoints: null,
-    load_material_icons_if_needed: function() {
+    load_material_icons_if_needed: function () {
         // load material icons codepoint for android 4.3.3 and other heccing old browsers
         var elem = document.createElement('span'),
             before = elem.style.fontFeatureSettings,
@@ -1867,26 +1233,26 @@ c3nav = {
             $.get('/static/material-icons/codepoints', c3nav._material_icons_loaded);
         }
     },
-    _material_icons_loaded: function(data) {
+    _material_icons_loaded: function (data) {
         var lines = data.split("\n"),
             line, result = {};
 
-        for (var i=0;i<lines.length;i++) {
+        for (var i = 0; i < lines.length; i++) {
             line = lines[i].split(' ');
             if (line.length === 2) {
                 result[line[0]] = String.fromCharCode(parseInt(line[1], 16));
             }
         }
         c3nav._material_icons_codepoints = result;
-        $('.material-icons').each(function() {
+        $('.material-icons').each(function () {
             $(this).text(c3nav._map_material_icon($(this).text()));
         });
     },
-    _map_material_icon: function(name) {
+    _map_material_icon: function (name) {
         if (c3nav._material_icons_codepoints === null) return name;
         return c3nav._material_icons_codepoints[name] || '';
     },
-    _pause: function() {
+    _pause: function () {
         if (c3nav._fetch_updates_timer !== null) {
             window.clearTimeout(c3nav._fetch_updates_timer);
             c3nav._fetch_updates_timer = null;
@@ -1896,7 +1262,7 @@ c3nav = {
             c3nav._searchable_locations_timer = null;
         }
     },
-    _resume: function() {
+    _resume: function () {
         if (c3nav._fetch_updates_timer === null) {
             console.log("c3nav._resume() -> fetch_updates");
             c3nav.fetch_updates();
@@ -1916,9 +1282,9 @@ c3nav = {
         }
     },
     _visibility_hidden_timer: null,
-    on_visibility_change: function() {
+    on_visibility_change: function () {
         if (document.visibilityState === "hidden") {
-            c3nav._visibility_hidden_timer = window.setTimeout( function () {
+            c3nav._visibility_hidden_timer = window.setTimeout(function () {
                 c3nav._visibility_hidden_timer = null;
                 if (document.visibilityState === "hidden") {
                     c3nav._pause();
@@ -1939,8 +1305,8 @@ function nearby_stations_available() {
 }
 
 function openInModal(location) {
-    c3nav.open_modal();
-    $.get(location, c3nav._modal_loaded).fail(c3nav._modal_error);
+    c3nav.modal.open();
+    c3nav.modal.load(fetch(location));
 }
 
 function mobileclientOnPause() {
@@ -1953,300 +1319,5 @@ function mobileclientOnResume() {
     c3nav._resume();
 }
 
-LevelControl = L.Control.extend({
-    options: {
-        position: 'bottomright',
-        addClasses: ''
-    },
-
-    onAdd: function () {
-        this._container = L.DomUtil.create('div', 'leaflet-control-levels leaflet-bar ' + this.options.addClasses);
-        this._tileLayers = {};
-        this._overlayLayers = {};
-        this._levelButtons = {};
-        this.currentLevel = null;
-        return this._container;
-    },
-
-    createTileLayer: function(id) {
-        return L.tileLayer((c3nav.tile_server || '/map/') + String(id) + '/{z}/{x}/{y}.png', {
-            minZoom: -2,
-            maxZoom: 5,
-            bounds: L.GeoJSON.coordsToLatLngs(c3nav.bounds)
-        });
-    },
-    addLevel: function (id, title) {
-        this._tileLayers[id] = this.createTileLayer(id);
-        var overlay = L.layerGroup();
-        this._overlayLayers[id] = overlay;
-
-        var link = L.DomUtil.create('a', '', this._container);
-        link.innerHTML = title;
-        link.level = id;
-        link.href = '#';
-
-        L.DomEvent
-            .on(link, 'mousedown dblclick', L.DomEvent.stopPropagation)
-            .on(link, 'click', this._levelClick, this);
-
-        this._levelButtons[id] = link;
-        return overlay;
-    },
-
-    setLevel: function (id) {
-        if (id === this.currentLevel) return true;
-        if (this._tileLayers[id] === undefined) return false;
-
-        if (this.currentLevel) {
-            this._tileLayers[this.currentLevel].remove();
-            this._overlayLayers[this.currentLevel].remove();
-            L.DomUtil.removeClass(this._levelButtons[this.currentLevel], 'current');
-        }
-        this._tileLayers[id].addTo(c3nav.map);
-        this._overlayLayers[id].addTo(c3nav.map);
-        L.DomUtil.addClass(this._levelButtons[id], 'current');
-        this.currentLevel = id;
-        return true;
-    },
-
-    _levelClick: function (e) {
-        e.preventDefault();
-        e.stopPropagation();
-        this.setLevel(e.target.level);
-        c3nav.update_map_state();
-        c3nav.update_location_labels();
-    },
-
-    finalize: function () {
-        var buttons = $(this._container).find('a');
-        buttons.addClass('current');
-        buttons.width(buttons.width());
-        buttons.removeClass('current');
-    },
-
-    reloadMap: function() {
-        var old_tile_layer = this._tileLayers[this.currentLevel],
-            new_tile_layer = this.createTileLayer(this.currentLevel);
-        this._tileLayers[this.currentLevel] = new_tile_layer;
-        new_tile_layer.addTo(c3nav.map);
-        window.setTimeout(function() { old_tile_layer.remove(); }, 2000);
-    }
-});
 
 
-UserLocationControl = L.Control.extend({
-    options: {
-        position: 'bottomright',
-        addClasses: ''
-    },
-
-    onAdd: function () {
-        this._container = L.DomUtil.create('div', 'leaflet-control-user-location leaflet-bar ' + this.options.addClasses);
-        this._button = L.DomUtil.create('a', 'material-icons', this._container);
-        this._button.innerHTML = c3nav._map_material_icon(c3nav.hasLocationPermission() ? 'location_searching' : 'location_disabled');
-        this._button.classList.toggle('control-disabled', !c3nav.hasLocationPermission());
-        this._button.href = '#';
-        this.currentLevel = null;
-        return this._container;
-    }
-});
-
-
-LabelControl = L.Control.extend({
-    options: {
-        position: 'bottomright',
-        addClasses: ''
-    },
-
-    onAdd: function () {
-        this._container = L.DomUtil.create('div', 'leaflet-control-labels leaflet-bar ' + this.options.addClasses);
-        this._button = L.DomUtil.create('a', 'material-icons', this._container);
-        $(this._button).click(this.toggleLabels).dblclick(function(e) { e.stopPropagation(); });
-        this._button.innerText = c3nav._map_material_icon('label');
-        this._button.href = '#';
-        this._button.classList.toggle('control-disabled', false);
-        this.labelsActive = true;
-        if (localStorageWrapper.getItem('hideLabels')) {
-            this.hideLabels();
-        }
-        return this._container;
-    },
-
-    toggleLabels: function(e) {
-        if(e) e.preventDefault();
-        if (c3nav._labelControl.labelsActive) {
-            c3nav._labelControl.hideLabels();
-        } else {
-            c3nav._labelControl.showLabels();
-        }
-    },
-
-    showLabels: function() {
-        if (this.labelsActive) return;
-        c3nav._labelLayer.addTo(c3nav.map);
-        this._button.innerText = c3nav._map_material_icon('label');
-        this._button.classList.toggle('control-disabled', false);
-        this.labelsActive = true;
-        localStorageWrapper.removeItem('hideLabels');
-        c3nav.update_location_labels();
-    },
-
-    hideLabels: function() {
-        if (!this.labelsActive) return;
-        c3nav._labelLayer.clearLayers();
-        c3nav._labelLayer.remove();
-        this._button.innerText = c3nav._map_material_icon('label_outline');
-        this._button.classList.toggle('control-disabled', true);
-        this.labelsActive = false;
-        localStorageWrapper.setItem('hideLabels', true);
-    }
-});
-
-
-SquareGridControl = L.Control.extend({
-    options: {
-        position: 'bottomright',
-        addClasses: ''
-    },
-
-    onAdd: function () {
-        this._container = L.DomUtil.create('div', 'leaflet-control-grid-layer leaflet-bar ' + this.options.addClasses);
-        this._button = L.DomUtil.create('a', 'material-icons', this._container);
-        $(this._button).click(this.toggleGrid).dblclick(function(e) { e.stopPropagation(); });
-        this._button.innerText = c3nav._map_material_icon('grid_off');
-        this._button.href = '#';
-        this._button.classList.toggle('control-disabled', true);
-        this.gridActive = false;
-        if (localStorageWrapper.getItem('showGrid')) {
-            this.showGrid();
-        }
-        return this._container;
-    },
-
-    toggleGrid: function(e) {
-        if(e) e.preventDefault();
-        if (c3nav._gridControl.gridActive) {
-            c3nav._gridControl.hideGrid();
-        } else {
-            c3nav._gridControl.showGrid();
-        }
-    },
-
-    showGrid: function() {
-        if (this.gridActive) return;
-        c3nav._gridLayer.addTo(c3nav.map);
-        this._button.innerText = c3nav._map_material_icon('grid_on');
-        this._button.classList.toggle('control-disabled', false);
-        this.gridActive = true;
-        localStorageWrapper.setItem('showGrid', true);
-    },
-
-    hideGrid: function() {
-        if (!this.gridActive) return;
-        c3nav._gridLayer.remove();
-        this._button.innerText = c3nav._map_material_icon('grid_off');
-        this._button.classList.toggle('control-disabled', true);
-        this.gridActive = false;
-        localStorageWrapper.removeItem('showGrid');
-    }
-});
-
-
-L.SquareGridLayer = L.Layer.extend({
-    initialize: function (config) {
-        this.config = config;
-	},
-
-    onAdd: function(map) {
-        this._container = L.DomUtil.create('div', 'leaflet-pane c3nav-grid');
-        this.getPane().appendChild(this._container);
-
-        this.cols = [];
-        this.rows = [];
-        var i, elem, label;
-        for(i=0;i<this.config.cols.length;i++) {
-            elem = L.DomUtil.create('div', 'c3nav-grid-column');
-            label = String.fromCharCode(65+(this.config.invert_x ? (this.config.cols.length-i-2) : i));
-            if (i<this.config.cols.length-1) {
-                elem.innerHTML = '<span>'+label+'</span><span>'+label+'</span>';
-            }
-            this._container.appendChild(elem);
-            this.cols.push(elem);
-        }
-        for(i=0;i<this.config.rows.length;i++) {
-            elem = L.DomUtil.create('div', 'c3nav-grid-row');
-            label = (this.config.invert_y ? (this.config.rows.length-i) : i);
-            if (i>0) {
-                elem.innerHTML = '<span>'+label+'</span><span>'+label+'</span>';
-            }
-            this._container.appendChild(elem);
-            this.rows.push(elem);
-        }
-
-        this._updateGrid(map);
-
-        map.on('viewreset zoom move zoomend moveend', this._update, this);
-    },
-
-    onRemove: function(map) {
-        L.DomUtil.remove(this._container);
-        this.cols = [];
-        this.rows = [];
-        map.off('viewreset zoom move zoomend moveend', this._update, this);
-    },
-
-    _update: function(e) {
-        this._updateGrid(e.target);
-    },
-
-    _updateGrid: function(map) {
-        if (!this.cols || this.cols.length === 0) return;
-        var mapSize = map.getSize(),
-            panePos = map._getMapPanePos(),
-            sidebarStart = $('#sidebar').outerWidth() + 15,
-            searchHeight = $('#search').outerHeight() + 10,
-            controlsWidth = $('.leaflet-control-zoom').outerWidth() + 10,
-            attributionStart = mapSize.x - $('.leaflet-control-attribution').outerWidth() - 16,
-            bottomRightStart = mapSize.y - $('.leaflet-bottom.leaflet-right').outerHeight() - 24,
-            coord = null, lastCoord = null, size, center;
-        this._container.style.width = mapSize.x+'px';
-        this._container.style.height = mapSize.y+'px';
-        this._container.style.left = (-panePos.x)+'px';
-        this._container.style.top = (-panePos.y)+'px';
-        for(i=0;i<this.config.cols.length;i++) {
-            coord = map.latLngToContainerPoint([0, this.config.cols[i]], map.getZoom()).x;
-            coord = Math.min(mapSize.x, Math.max(-1, coord));
-            this.cols[i].style.left = coord+'px';
-            if (i>0) {
-                size = coord-lastCoord;
-                center = (lastCoord+coord)/2;
-                if (size > 0) {
-                    this.cols[i - 1].style.display = '';
-                    this.cols[i - 1].style.width = size + 'px';
-                    this.cols[i - 1].style.paddingTop = Math.max(0, Math.min(searchHeight, (sidebarStart-center)/15*searchHeight)) + 'px';
-                    this.cols[i - 1].style.paddingBottom = Math.max(0, Math.min(16, (center-attributionStart))) + 'px';
-                } else {
-                    this.cols[i - 1].style.display = 'none';
-                }
-            }
-            lastCoord = coord;
-        }
-        for(i=0;i<this.config.rows.length;i++) {
-            coord = map.latLngToContainerPoint([this.config.rows[i], 0], map.getZoom()).y;
-            coord = Math.min(mapSize.y, Math.max(-1, coord));
-            this.rows[i].style.top = coord+'px';
-            if (i>0) {
-                size = lastCoord-coord;
-                center = (lastCoord+coord)/2;
-                if (size > 0) {
-                    this.rows[i].style.display = '';
-                    this.rows[i].style.height = size+'px';
-                    this.rows[i].style.paddingRight = Math.max(0, Math.min(controlsWidth, (center-bottomRightStart)/16*controlsWidth)) + 'px';
-                } else {
-                    this.rows[i].style.display = 'none';
-                }
-            }
-            lastCoord = coord;
-        }
-    }
-});
