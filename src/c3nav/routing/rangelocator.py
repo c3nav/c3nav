@@ -90,9 +90,14 @@ class RangeLocator:
             # TODO: three points aren't really enough for precise results? hm. maybe just a 2d fix then?
             pass
 
+        factor = None
+
         # rating the guess by calculating the distances
         def rate_guess(guess):
-            return scipy.linalg.norm(np_ranges[:, :3]-guess[:3], axis=1)*guess[3]-np_ranges[:, 3]
+            diffs = scipy.linalg.norm(np_ranges[:, :3] - guess[:3], axis=1) * (factor or guess[3]) - np_ranges[:, 3]
+            #if (diffs < -200).any():
+            #    return diffs+10000-np.clip(diffs, None, -200)*10
+            return diffs
 
         # initial guess i the average of all beacons, with scale 1
         initial_guess = np.append(np.average(np_ranges[:, :3], axis=0), 1)
@@ -112,8 +117,8 @@ class RangeLocator:
         )
 
         print("measured ranges:", ", ".join(("%.2f" % i) for i in tuple(np_ranges[:, 3])))
-        print("result ranges:", ", ".join(("%.2f" % i) for i in tuple(scipy.linalg.norm(np_ranges[:, :3] - results.x[:3], axis=1) * results.x[3])))
+        print("result ranges:", ", ".join(("%.2f" % i) for i in tuple(scipy.linalg.norm(np_ranges[:, :3] - results.x[:3], axis=1)*(factor or results.x[3]))))
         print("height:", results.x[2])
-        print("scale:", results.x[3])
+        print("scale:", (factor or results.x[3]))
 
         return location
