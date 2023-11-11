@@ -1,6 +1,5 @@
 import logging
 import operator
-import os
 import pickle
 import threading
 from collections import deque, namedtuple
@@ -29,7 +28,7 @@ logger = logging.getLogger('c3nav')
 
 
 class Router:
-    filename = os.path.join(settings.CACHE_ROOT, 'router')
+    filename = settings.CACHE_ROOT / 'router'
 
     def __init__(self, levels, spaces, areas, pois, groups, restrictions, nodes, edges, waytypes, graph):
         self.levels = levels
@@ -273,7 +272,7 @@ class Router:
 
     @classmethod
     def build_filename(cls, update):
-        return os.path.join(settings.CACHE_ROOT, 'router_%s.pickle' % MapUpdate.build_cache_key(*update))
+        return settings.CACHE_ROOT / ('router_%s.pickle' % MapUpdate.build_cache_key(*update))
 
     @classmethod
     def load_nocache(cls, update):

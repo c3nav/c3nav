@@ -104,7 +104,7 @@ class MapUpdate(models.Model):
                 yield cls.objects.select_for_update().get(pk=earliest.pk)
 
     def _changed_geometries_filename(self):
-        return os.path.join(settings.CACHE_ROOT, 'changed_geometries', 'update_%d.pickle' % self.pk)
+        return settings.CACHE_ROOT / 'changed_geometries' / ('update_%d.pickle' % self.pk)
 
     class ProcessUpdatesAlreadyRunning(Exception):
         pass

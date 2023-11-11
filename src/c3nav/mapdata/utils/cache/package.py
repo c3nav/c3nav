@@ -21,7 +21,7 @@ class CachePackage:
     def save(self, filename=None, compression=None):
         if filename is None:
             from django.conf import settings
-            filename = os.path.join(settings.CACHE_ROOT, 'package.tar')
+            filename = settings.CACHE_ROOT / 'package.tar'
             if compression is not None:
                 filename += '.' + compression
 
@@ -75,7 +75,7 @@ class CachePackage:
     def open(cls, filename=None):
         if filename is None:
             from django.conf import settings
-            filename = os.path.join(settings.CACHE_ROOT, 'package.tar')
+            filename = settings.CACHE_ROOT / 'package.tar'
         return cls.read(open(filename, 'rb'))
 
     cached = None

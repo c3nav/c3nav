@@ -1,5 +1,4 @@
 import mimetypes
-import os
 import typing
 from contextlib import suppress
 
@@ -739,7 +738,7 @@ def sourceimage(request, filename):
         return PermissionDenied
 
     try:
-        return HttpResponse(open(os.path.join(settings.SOURCES_ROOT, filename), 'rb'),
+        return HttpResponse(open(settings.SOURCES_ROOT / filename, 'rb'),
                             content_type=mimetypes.guess_type(filename)[0])
     except FileNotFoundError:
         raise Http404

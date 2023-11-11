@@ -1,5 +1,4 @@
 import math
-import os
 import struct
 import threading
 
@@ -197,7 +196,7 @@ class LevelGeometryIndexed(GeometryIndexed):
     @classmethod
     def level_filename(cls, level_id, mode):
         from django.conf import settings
-        return os.path.join(settings.CACHE_ROOT, '%s_%s_level_%d' % (cls.variant_name, mode, level_id))
+        return settings.CACHE_ROOT / ('%s_%s_level_%d' % (cls.variant_name, mode, level_id))
 
     @classmethod
     def open_level(cls, level_id, mode, **kwargs):

@@ -99,9 +99,9 @@ def tile(request, level, zoom, x, y, access_permissions=None):
 
     # get tile cache last update
     if settings.CACHE_TILES:
-        tile_dirname = os.path.sep.join((settings.TILES_ROOT, str(level), str(zoom), str(x), str(y)))
-        last_update_filename = os.path.join(tile_dirname, 'last_update')
-        tile_filename = os.path.join(tile_dirname, access_cache_key+'.png')
+        tile_dirname = settings.TILES_ROOT / str(level) / str(zoom) / str(x) / str(y)
+        last_update_filename = tile_dirname / 'last_update'
+        tile_filename = tile_dirname / (access_cache_key+'.png')
 
         # get tile cache last update
         tile_cache_update_cache_key = 'mapdata:tile-cache-update:%d-%d-%d-%d' % (level, zoom, x, y)
@@ -114,7 +114,7 @@ def tile(request, level, zoom, x, y, access_permissions=None):
                 pass
 
         if tile_cache_update != base_cache_key:
-            os.system('rm -rf '+os.path.join(tile_dirname, '*'))
+            os.system('rm -rf '+(tile_dirname / '*'))
         else:
             try:
                 with open(tile_filename, 'rb') as f:
@@ -171,7 +171,7 @@ def map_history(request, level, mode, filetype):
 def get_cache_package(request, filetype):
     enforce_tile_secret_auth(request)
 
-    filename = os.path.join(settings.CACHE_ROOT, 'package.'+filetype)
+    filename = settings.CACHE_ROOT / ('package.'+filetype)
     f = open(filename, 'rb')
 
     f.seek(0, os.SEEK_END)

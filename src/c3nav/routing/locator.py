@@ -1,5 +1,4 @@
 import operator
-import os
 import pickle
 import re
 import threading
@@ -17,7 +16,7 @@ from c3nav.routing.router import Router
 
 
 class Locator:
-    filename = os.path.join(settings.CACHE_ROOT, 'locator')
+    filename = settings.CACHE_ROOT / 'locator'
 
     def __init__(self, stations, spaces):
         self.stations = stations
@@ -42,7 +41,7 @@ class Locator:
 
     @classmethod
     def build_filename(cls, update):
-        return os.path.join(settings.CACHE_ROOT, 'locator_%s.pickle' % MapUpdate.build_cache_key(*update))
+        return settings.CACHE_ROOT / ('locator_%s.pickle' % MapUpdate.build_cache_key(*update))
 
     @classmethod
     def load_nocache(cls, update):

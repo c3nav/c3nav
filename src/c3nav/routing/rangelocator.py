@@ -1,4 +1,3 @@
-import os
 import pickle
 import threading
 from dataclasses import dataclass
@@ -21,7 +20,7 @@ class RangeLocatorBeacon:
 
 @dataclass
 class RangeLocator:
-    filename = os.path.join(settings.CACHE_ROOT, 'rangelocator')
+    filename = settings.CACHE_ROOT / 'rangelocator'
 
     beacons: dict[str, RangeLocatorBeacon]
 
@@ -45,7 +44,7 @@ class RangeLocator:
 
     @classmethod
     def build_filename(cls, update):
-        return os.path.join(settings.CACHE_ROOT, 'rangelocator_%s.pickle' % MapUpdate.build_cache_key(*update))
+        return settings.CACHE_ROOT / ('rangelocator_%s.pickle' % MapUpdate.build_cache_key(*update))
 
     @classmethod
     def load_nocache(cls, update):

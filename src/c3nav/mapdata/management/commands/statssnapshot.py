@@ -1,5 +1,4 @@
 import json
-import os
 
 from django.conf import settings
 from django.core.management.base import BaseCommand
@@ -20,10 +19,9 @@ class Command(BaseCommand):
     def handle(self, *args, **options):
         result = stats_snapshot(reset=options['reset'])
         if options['save']:
-            filename = os.path.join(
-                settings.STATS_ROOT,
-                'stats__%s__%s.json' % (result['start_date'], result['end_date'])
-            ).replace(' ', '_').replace(':', '-')
+            filename = settings.STATS_ROOT / (
+                ('stats__%s__%s.json' % (result['start_date'], result['end_date'])).replace(' ', '_').replace(':', '-')
+            )
             json.dump(result, open(filename, 'w'), indent=4)
             print('saved to %s' % filename)
         else:

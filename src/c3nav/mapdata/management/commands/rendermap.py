@@ -1,5 +1,4 @@
 import argparse
-import os
 
 from django.conf import settings
 from django.core.management.base import BaseCommand, CommandError
@@ -109,8 +108,7 @@ class Command(BaseCommand):
                                    min_width=options['min_width'])
 
             name = options['name'] or ('level_%s' % level.short_label)
-            filename = os.path.join(settings.RENDER_ROOT,
-                                    '%s.%s' % (name, options['filetype']))
+            filename = settings.RENDER_ROOT / ('%s.%s' % (name, options['filetype']))
 
             render = renderer.render(get_engine(options['filetype']), center=not options['no_center'])
             data = render.render(filename)

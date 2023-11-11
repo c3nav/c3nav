@@ -1,5 +1,3 @@
-import os
-
 from django.conf import settings
 from django.db import models
 from django.utils.translation import gettext_lazy as _
@@ -21,7 +19,7 @@ class Source(BoundsMixin, AccessRestrictionMixin, models.Model):
 
     @property
     def filepath(self):
-        return os.path.join(settings.SOURCES_ROOT, self.name)
+        return settings.SOURCES_ROOT / self.name
 
     @property
     def title(self):

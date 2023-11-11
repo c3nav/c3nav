@@ -1,5 +1,4 @@
 import operator
-import os
 import pickle
 import threading
 from collections import deque
@@ -297,7 +296,7 @@ class LevelRenderData:
 
     @staticmethod
     def _level_filename(pk):
-        return os.path.join(settings.CACHE_ROOT, 'render_data_level_%d.pickle' % pk)
+        return settings.CACHE_ROOT / ('render_data_level_%d.pickle' % pk)
 
     @classmethod
     def get(cls, level):
