@@ -1,6 +1,7 @@
 import pickle
 import threading
 from dataclasses import dataclass
+from pprint import pprint
 from typing import Self
 
 import numpy as np
@@ -63,48 +64,45 @@ class RangeLocator:
                 cls.cached = cls.load_nocache(update)
         return cls.cached
 
-    def locate(self, scan: dict[str, int], permissions=None):
+    def locate(self, ranges: dict[str, int], permissions=None):
         # get the i and peer for every peer that we actually know
-        ranges = tuple(
-            (i, peer) for i, peer in (
-                (self.beacon_lookup.get(bssid, None), distance) for bssid, distance in scan.items()
+        relevant_ranges = tuple(
+            (i, distance) for i, distance in (
+                (self.beacon_lookup.get(bssid, None), distance) for bssid, distance in ranges.items()
             ) if i is not None
         )
 
         # create 2d array with x, y, z, distance as rows
         np_ranges = np.hstack((
-            self.beacon_positions[tuple(i for i, distance in ranges), :],
-            np.array(tuple(distance for i, distance in ranges)).reshape((-1, 1)),
+            self.beacon_positions[tuple(i for i, distance in relevant_ranges), :],
+            np.array(tuple(distance for i, distance in relevant_ranges)).reshape((-1, 1)),
         ))
 
         if np_ranges.shape[0] < 3:
             # can't get a good result from just two beacons
             # todo: maybe we can at least give… something?
+            print('less than 3 ranges, can\'t do ranging')
             return None
 
         if np_ranges.shape[0] == 3:
-            # TODO: three points aren't really enough for precise results? hm. maybe just a 2d fix then?
-            pass
-
-        dimensions = 2
+            print('2D trilateration')
+            dimensions = 2
+        else:
+            print('3D trilateration')
+            dimensions = 3
 
         measured_ranges = np_ranges[:, 3]
-        measured_ranges = measured_ranges / np.max(measured_ranges)
 
         # rating the guess by calculating the distances
-        def rate_guess(guess):
-            guessed_ranges = scipy.linalg.norm(np_ranges[:, :dimensions] - guess[:dimensions], axis=1)
-            guessed_ranges /= np.max(guessed_ranges)
-            diffs = guessed_ranges-measured_ranges
-            if (diffs < -200).any():
-                return diffs+100-np.clip(diffs, None, -200)*10
-            return diffs
+        def cost_func(guess):
+            factors = scipy.linalg.norm(np_ranges[:, :dimensions] - guess[:dimensions], axis=1) / measured_ranges
+            return factors - np.mean(factors)
 
         # initial guess i the average of all beacons, with scale 1
         initial_guess = np.average(np_ranges[:, :dimensions], axis=0)
 
         # here the magic happens
-        results = least_squares(rate_guess, initial_guess)
+        results = least_squares(cost_func, initial_guess)
 
         # create result
         # todo: figure out level
@@ -117,10 +115,12 @@ class RangeLocator:
             icon='my_location'
         )
 
+        pprint(relevant_ranges)
         print("measured ranges:", ", ".join(("%.2f" % i) for i in tuple(np_ranges[:, 3])))
         print("result ranges:", ", ".join(
             ("%.2f" % i) for i in tuple(scipy.linalg.norm(np_ranges[:, :dimensions] - results.x[:dimensions], axis=1))
         ))
+        print("cost:", cost_func(results.x))
         if dimensions > 2:
             print("height:", results.x[2])
         # print("scale:", (factor or results.x[3]))
