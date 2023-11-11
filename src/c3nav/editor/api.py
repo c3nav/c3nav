@@ -90,7 +90,7 @@ class EditorViewSet(EditorViewSetMixin, ViewSet):
             holes = [unwrap_geom(hole.geometry) for hole in space.holes.all()]
             if holes:
                 space_holes_geom = unary_union(holes)
-                holes_geom.append(space_holes_geom.intersection(space.geometry))
+                holes_geom.append(space_holes_geom.intersection(unwrap_geom(space.geometry)))
                 space.geometry = space.geometry.difference(space_holes_geom)
 
         for building in buildings:
@@ -100,7 +100,7 @@ class EditorViewSet(EditorViewSetMixin, ViewSet):
             holes_geom = unary_union(holes_geom)
             holes_geom_prep = prepared.prep(holes_geom)
             for obj in buildings:
-                if holes_geom_prep.intersects(obj.geometry):
+                if holes_geom_prep.intersects(unwrap_geom(obj.geometry)):
                     obj.geometry = obj.geometry.difference(holes_geom)
 
         results = []
