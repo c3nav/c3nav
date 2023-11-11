@@ -109,9 +109,10 @@ class LevelGeometries:
         obstacles = {}
         heightareas = {}
         for space in level.spaces.all():
-            buffered = space.geometry.buffer(0.01).union(unary_union(
-                tuple(unwrap_geom(door.geometry) for door in level.doors.all() if door.geometry.intersects(unwrap_geom(space.geometry)))
-            ).difference(walkable_spaces_geom))
+            buffered = space.geometry.buffer(0.01).union(unary_union(tuple(
+                unwrap_geom(door.geometry)
+                for door in level.doors.all() if door.geometry.intersects(unwrap_geom(space.geometry))
+            )).difference(walkable_spaces_geom))
             intersects = buildings_geom_prep.intersects(buffered)
 
             access_restriction = space.access_restriction_id

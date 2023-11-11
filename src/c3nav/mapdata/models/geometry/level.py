@@ -229,10 +229,11 @@ class AltitudeArea(LevelGeometryMixin, models.Model):
                 if space.outside:
                     space.geometry = space.geometry.difference(buildings_geom)
                 space_accessible = space.geometry.difference(
-                    unary_union(tuple(unwrap_geom(c.geometry) for c in space.columns.all() if c.access_restriction_id is None) +
-                                tuple(unwrap_geom(o.geometry) for o in space.obstacles.all() if o.altitude == 0) +
-                                tuple(o.buffered_geometry for o in space.lineobstacles.all() if o.altitude == 0) +
-                                tuple(unwrap_geom(h.geometry) for h in space.holes.all()))
+                    unary_union(
+                        tuple(unwrap_geom(c.geometry) for c in space.columns.all() if c.access_restriction_id is None) +
+                        tuple(unwrap_geom(o.geometry) for o in space.obstacles.all() if o.altitude == 0) +
+                        tuple(o.buffered_geometry for o in space.lineobstacles.all() if o.altitude == 0) +
+                        tuple(unwrap_geom(h.geometry) for h in space.holes.all()))
                 )
 
                 space_ramps = unary_union(tuple(unwrap_geom(r.geometry) for r in space.ramps.all()))

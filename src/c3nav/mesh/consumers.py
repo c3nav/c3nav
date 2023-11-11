@@ -28,7 +28,7 @@ class MeshConsumer(AsyncWebsocketConsumer):
     async def connect(self):
         # todo: auth
 
-        #await self.log_text(None, "new mesh websocket connection")
+        # await self.log_text(None, "new mesh websocket connection")
         await self.accept()
         self.ping_task = get_event_loop().create_task(self.ping_regularly())
 

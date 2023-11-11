@@ -210,7 +210,9 @@ class LevelRenderData:
                             new_color_obstacles = []
                             for obstacle in color_obstacles:
                                 if new_geometry_prep.intersects(obstacle):
-                                    new_color_obstacles.append(obstacle.intersection(unwrap_geom(altitudearea.geometry)))
+                                    new_color_obstacles.append(
+                                        obstacle.intersection(unwrap_geom(altitudearea.geometry))
+                                    )
                             if new_color_obstacles:
                                 new_height_obstacles[color] = new_color_obstacles
                         if new_height_obstacles:
