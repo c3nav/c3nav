@@ -11,7 +11,6 @@ from scipy.optimize import least_squares
 from c3nav.mapdata.models import MapUpdate
 from c3nav.mapdata.models.geometry.space import RangingBeacon
 from c3nav.mapdata.utils.locations import CustomLocation
-from c3nav.mesh.messages import MeshMessageType
 from c3nav.routing.router import Router
 
 
@@ -72,9 +71,6 @@ class RangeLocator:
             ) if i is not None
         )
 
-        # get index of all known beacons
-        beacons_i = tuple(i for i, peer in ranges)
-
         # create 2d array with x, y, z, distance as rows
         np_ranges = np.hstack((
             self.beacon_positions[tuple(i for i, distance in ranges), :],
@@ -90,17 +86,22 @@ class RangeLocator:
             # TODO: three points aren't really enough for precise results? hm. maybe just a 2d fix then?
             pass
 
-        factor = None
+        dimensions = 2
+
+        measured_ranges = np_ranges[:, 3]
+        measured_ranges = measured_ranges / np.max(measured_ranges)
 
         # rating the guess by calculating the distances
         def rate_guess(guess):
-            diffs = scipy.linalg.norm(np_ranges[:, :3] - guess[:3], axis=1) * (factor or guess[3]) - np_ranges[:, 3]
-            #if (diffs < -200).any():
-            #    return diffs+10000-np.clip(diffs, None, -200)*10
+            guessed_ranges = scipy.linalg.norm(np_ranges[:, :dimensions] - guess[:dimensions], axis=1)
+            guessed_ranges /= np.max(guessed_ranges)
+            diffs = guessed_ranges-measured_ranges
+            if (diffs < -200).any():
+                return diffs+100-np.clip(diffs, None, -200)*10
             return diffs
 
         # initial guess i the average of all beacons, with scale 1
-        initial_guess = np.append(np.average(np_ranges[:, :3], axis=0), 1)
+        initial_guess = np.average(np_ranges[:, :dimensions], axis=0)
 
         # here the magic happens
         results = least_squares(rate_guess, initial_guess)
@@ -117,8 +118,11 @@ class RangeLocator:
         )
 
         print("measured ranges:", ", ".join(("%.2f" % i) for i in tuple(np_ranges[:, 3])))
-        print("result ranges:", ", ".join(("%.2f" % i) for i in tuple(scipy.linalg.norm(np_ranges[:, :3] - results.x[:3], axis=1)*(factor or results.x[3]))))
-        print("height:", results.x[2])
-        print("scale:", (factor or results.x[3]))
+        print("result ranges:", ", ".join(
+            ("%.2f" % i) for i in tuple(scipy.linalg.norm(np_ranges[:, :dimensions] - results.x[:dimensions], axis=1))
+        ))
+        if dimensions > 2:
+            print("height:", results.x[2])
+        # print("scale:", (factor or results.x[3]))
 
         return location
