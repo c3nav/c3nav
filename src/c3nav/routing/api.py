@@ -16,6 +16,7 @@ from c3nav.routing.exceptions import LocationUnreachable, NoRouteFound, NotYetRo
 from c3nav.routing.forms import RouteForm
 from c3nav.routing.locator import Locator
 from c3nav.routing.models import RouteOptions
+from c3nav.routing.rangelocator import RangeLocator
 from c3nav.routing.router import Router
 
 
@@ -172,14 +173,5 @@ class RoutingViewSet(ViewSet):
 
     @action(detail=False)
     def locate_test(self, request):
-        position = RangingBeacon.objects.select_related('space__level').first()
-        if not position:
-            return Response(None)
-        location = CustomLocation(
-            level=position.space.level,
-            x=position.geometry.x,
-            y=position.geometry.y,
-            permissions=(),
-            icon='my_location'
-        )
-        return Response({'location': location.serialize(simple_geometry=True)})
+        locator = RangeLocator.load()
+        return Response(locator.locate(None, None))

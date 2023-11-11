@@ -270,11 +270,11 @@ c3nav = {
     test_location: function() {
         $.getJSON('/api/routing/locate_test/', function(data) {
             console.log(data);
+            window.setTimeout(c3nav.test_location, 1000);
             c3nav._set_user_location(data.location);
-            window.setTimeout(c3nav.test_location, 1000);
         }).fail(function() {
-            c3nav._set_user_location(null);
             window.setTimeout(c3nav.test_location, 1000);
+            c3nav._set_user_location(null);
         });
     },
 
