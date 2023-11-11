@@ -184,7 +184,14 @@ class RoutingViewSet(ViewSet):
         msg = node.last_messages[MeshMessageType.LOCATE_RANGE_RESULTS]
 
         locator = RangeLocator.load()
-        location = locator.locate({r.peer: r.distance for r in msg.parsed.ranges}, None)
+        location = locator.locate(
+            {
+                r.peer: r.distance
+                for r in msg.parsed.ranges
+                if r.distance != 0xFFFF
+            },
+            None
+        )
         return Response({
             "ranges": msg.parsed.tojson(msg.parsed)["ranges"],
             "datetime": msg.datetime,
