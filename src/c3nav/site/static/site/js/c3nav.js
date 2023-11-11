@@ -260,9 +260,22 @@ c3nav = {
         if (document.visibilityState && document.visibilityState === "hidden") {
             c3nav.on_visibility_change();
         }
+
+        c3nav.test_location();
+
     },
     get_csrf_token: function() {
         return document.cookie.match(new RegExp('c3nav_csrftoken=([^;]+)'))[1];
+    },
+    test_location: function() {
+        $.getJSON('/api/routing/locate_test/', function(data) {
+            console.log(data);
+            c3nav._set_user_location(data.location);
+            window.setTimeout(c3nav.test_location, 1000);
+        }).fail(function() {
+            c3nav._set_user_location(null);
+            window.setTimeout(c3nav.test_location, 1000);
+        });
     },
 
     state: {},
