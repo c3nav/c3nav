@@ -8,10 +8,9 @@ from rest_framework.viewsets import ViewSet
 from c3nav.mapdata.api import api_stats_clean_location_value
 from c3nav.mapdata.forms import PositionAPIUpdateForm
 from c3nav.mapdata.models.access import AccessPermission
-from c3nav.mapdata.models.geometry.space import RangingBeacon
 from c3nav.mapdata.models.locations import Position
 from c3nav.mapdata.utils.cache.stats import increment_cache_key
-from c3nav.mapdata.utils.locations import CustomLocation, visible_locations_for_request
+from c3nav.mapdata.utils.locations import visible_locations_for_request
 from c3nav.routing.exceptions import LocationUnreachable, NoRouteFound, NotYetRoutable
 from c3nav.routing.forms import RouteForm
 from c3nav.routing.locator import Locator
