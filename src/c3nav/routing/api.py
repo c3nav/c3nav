@@ -8,9 +8,10 @@ from rest_framework.viewsets import ViewSet
 from c3nav.mapdata.api import api_stats_clean_location_value
 from c3nav.mapdata.forms import PositionAPIUpdateForm
 from c3nav.mapdata.models.access import AccessPermission
+from c3nav.mapdata.models.geometry.space import RangingBeacon
 from c3nav.mapdata.models.locations import Position
 from c3nav.mapdata.utils.cache.stats import increment_cache_key
-from c3nav.mapdata.utils.locations import visible_locations_for_request
+from c3nav.mapdata.utils.locations import visible_locations_for_request, CustomLocation
 from c3nav.routing.exceptions import LocationUnreachable, NoRouteFound, NotYetRoutable
 from c3nav.routing.forms import RouteForm
 from c3nav.routing.locator import Locator
@@ -168,3 +169,17 @@ class RoutingViewSet(ViewSet):
             form.save()
 
         return Response({'location': None if location is None else location.serialize(simple_geometry=True)})
+
+    @action(detail=False)
+    def locate_test(self, request):
+        position = RangingBeacon.objects.select_related('space__level').first()
+        if not position:
+            return Response(None)
+        location = CustomLocation(
+            level=position.space.level,
+            x=position.geometry.x,
+            y=position.geometry.y,
+            permissions=(),
+            icon='my_location'
+        )
+        return Response({'location': location.serialize(simple_geometry=True)})
