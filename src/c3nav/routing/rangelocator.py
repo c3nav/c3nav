@@ -64,20 +64,11 @@ class RangeLocator:
                 cls.cached = cls.load_nocache(update)
         return cls.cached
 
-    def locate(self, scan, permissions=None):
-        from c3nav.mesh.models import MeshNode
-        try:
-            node = MeshNode.objects.prefetch_last_messages(MeshMessageType.LOCATE_RANGE_RESULTS).get(
-                address="d4:f9:8d:2d:0d:f1"
-            )
-        except MeshNode.DoesNotExist:
-            raise
-        msg = node.last_messages[MeshMessageType.LOCATE_RANGE_RESULTS]
-
+    def locate(self, scan: dict[str, int], permissions=None):
         # get the i and peer for every peer that we actually know
         ranges = tuple(
             (i, peer) for i, peer in (
-                (self.beacon_lookup.get(r.peer, None), r) for r in msg.parsed.ranges
+                (self.beacon_lookup.get(bssid, None), distance) for bssid, distance in scan.items()
             ) if i is not None
         )
 
@@ -86,18 +77,14 @@ class RangeLocator:
 
         # create 2d array with x, y, z, distance as rows
         np_ranges = np.hstack((
-            self.beacon_positions[tuple(i for i, peer in ranges), :],
-            np.array(tuple(r.distance for i, r in ranges)).reshape((-1, 1)),
+            self.beacon_positions[tuple(i for i, distance in ranges), :],
+            np.array(tuple(distance for i, distance in ranges)).reshape((-1, 1)),
         ))
 
         if np_ranges.shape[0] < 3:
             # can't get a good result from just two beacons
             # todo: maybe we can at least give… something?
-            return {
-                "ranges": msg.parsed.tojson(msg.parsed)["ranges"],
-                "datetime": msg.datetime,
-                "location": None,
-            }
+            return None
 
         if np_ranges.shape[0] == 3:
             # TODO: three points aren't really enough for precise results? hm. maybe just a 2d fix then?
@@ -114,8 +101,7 @@ class RangeLocator:
         results = least_squares(rate_guess, initial_guess)
 
         # create result
-        from pprint import pprint
-        pprint(msg.parsed.tojson(msg.parsed)["ranges"])
+        # todo: figure out level
         from c3nav.mapdata.models import Level
         location = CustomLocation(
             level=Level.objects.first(),
@@ -130,8 +116,4 @@ class RangeLocator:
         print("height:", results.x[2])
         print("scale:", results.x[3])
 
-        return {
-            "ranges": msg.parsed.tojson(msg.parsed)["ranges"],
-            "datetime": msg.datetime,
-            "location": location.serialize()
-        }
+        return location

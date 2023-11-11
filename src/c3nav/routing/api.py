@@ -173,5 +173,20 @@ class RoutingViewSet(ViewSet):
 
     @action(detail=False)
     def locate_test(self, request):
+        from c3nav.mesh.models import MeshNode
+        from c3nav.mesh.messages import MeshMessageType
+        try:
+            node = MeshNode.objects.prefetch_last_messages(MeshMessageType.LOCATE_RANGE_RESULTS).get(
+                address="d4:f9:8d:2d:0d:f1"
+            )
+        except MeshNode.DoesNotExist:
+            raise
+        msg = node.last_messages[MeshMessageType.LOCATE_RANGE_RESULTS]
+
         locator = RangeLocator.load()
-        return Response(locator.locate(None, None))
+        location = locator.locate({r.peer: r.distance for r in msg.parsed.ranges}, None)
+        return Response({
+            "ranges": msg.parsed.tojson(msg.parsed)["ranges"],
+            "datetime": msg.datetime,
+            "location": location.serialize(simple_geometry=True) if location else None
+        })
