@@ -385,7 +385,7 @@ class FirmwareBuild(models.Model):
             'chip': ChipType(self.chip).name,
             'sha256_hash': self.sha256_hash,
             'url': self.binary.url,
-            'boards': self.boards,
+            'boards': [board.name for board in self.boards],
         }
 
     @cached_property

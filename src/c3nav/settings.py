@@ -248,6 +248,7 @@ INSTALLED_APPS = [
     'channels',
     'compressor',
     'bootstrap3',
+    'ninja',
     'c3nav.api',
     'rest_framework',
     'c3nav.mapdata',
@@ -328,6 +329,8 @@ REST_FRAMEWORK = {
         'rest_framework.permissions.AllowAny',
     )
 }
+
+NINJA_PAGINATION_CLASS = "ninja.pagination.LimitOffsetPagination"
 
 LOCALE_PATHS = (
     PROJECT_DIR / 'locale',

@@ -2,6 +2,7 @@ import re
 from dataclasses import dataclass, field
 from enum import IntEnum, unique
 
+from c3nav.api.utils import EnumSchemaByNameMixin
 from c3nav.mesh.baseformats import (BoolFormat, EnumFormat, FixedHexFormat, FixedStrFormat, SimpleFormat, StructType,
                                     VarArrayFormat)
 
@@ -76,7 +77,7 @@ class UWBConfig(StructType):
 
 
 @unique
-class BoardType(IntEnum):
+class BoardType(EnumSchemaByNameMixin, IntEnum):
     CUSTOM = 0x00
 
     # devboards

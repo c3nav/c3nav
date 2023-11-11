@@ -4,6 +4,7 @@ from collections import OrderedDict
 
 from django.urls import include, path, re_path
 from django.utils.functional import cached_property
+from ninja import NinjaAPI
 from rest_framework.generics import GenericAPIView
 from rest_framework.response import Response
 from rest_framework.routers import SimpleRouter
@@ -18,7 +19,15 @@ from c3nav.mapdata.api import (AccessRestrictionGroupViewSet, AccessRestrictionV
                                SpaceViewSet, StairViewSet, UpdatesViewSet)
 from c3nav.mapdata.utils.user import can_access_editor
 from c3nav.mesh.api import FirmwareViewSet
+from c3nav.mesh.newapi import api_router as mesh_api_router
 from c3nav.routing.api import RoutingViewSet
+
+ninja_api = NinjaAPI(
+    title="c3nav API",
+    version="v2",
+    docs_url="/",
+)
+ninja_api.add_router("/mesh/", mesh_api_router)
 
 router = SimpleRouter()
 router.register(r'map', MapViewSet, basename='map')
@@ -63,6 +72,8 @@ class APIRoot(GenericAPIView):
     The HTML preview is only shown because your Browser sent text/html in its Accept header.
     If you want to use this API on a large scale, please use a client that supports E-Tags.
     For more information on a specific API endpoint, access it with a browser.
+
+    This is the old API which is slowly being phased out in favor of the new API at /api/v2/.
     """
 
     def _format_pattern(self, pattern):
