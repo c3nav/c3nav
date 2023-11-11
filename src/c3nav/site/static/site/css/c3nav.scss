@@ -784,18 +784,6 @@ main:not([data-view=route-result]) #route-dots {
         width: 22px;
         top: 2px;
     }
-    .leaflet-popup-tip-container::after {
-        content: "";
-        border: 0 #dddddd solid;
-        border-top-width: 1px;
-        display: block;
-        width: 28px;
-        height: 20px;
-        top: 0;
-        left: 11px;
-        margin: auto;
-        position: absolute;
-    }
 }
 
 .buttons {
