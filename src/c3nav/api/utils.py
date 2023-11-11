@@ -1,5 +1,5 @@
 from enum import EnumMeta
-from typing import Any, Optional, cast, Iterator, Callable
+from typing import Any, Callable, Iterator, Optional, cast
 
 from pydantic.fields import ModelField
 from rest_framework.exceptions import ParseError

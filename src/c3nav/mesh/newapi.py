@@ -1,6 +1,8 @@
 from datetime import datetime
 
-from ninja import Router as APIRouter, Field as APIField, Schema
+from ninja import Field as APIField
+from ninja import Router as APIRouter
+from ninja import Schema
 from ninja.pagination import paginate
 
 from c3nav.mesh.dataformats import BoardType
