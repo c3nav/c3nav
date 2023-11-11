@@ -16,34 +16,29 @@ from c3nav.routing.router import Router
 
 
 @dataclass
-class RangeLocatorBeacon:
-    bssid: str
-    x: int
-    y: int
-    z: int
-
-
-@dataclass
 class RangeLocator:
     filename = settings.CACHE_ROOT / 'rangelocator'
 
-    beacons: dict[str, RangeLocatorBeacon]
+    beacon_positions: np.array
+    beacon_lookup: dict[str: int]
 
     @classmethod
     def rebuild(cls, update):
         router = Router.load()
 
-        # get beacons and calculate absoluze z coordinate
-        beacons = {}
-        for beacon in RangingBeacon.objects.all():
-            beacons[beacon.bssid] = RangeLocatorBeacon(
-                bssid=beacon.bssid,
-                x=int(beacon.geometry.x * 100),
-                y=int(beacon.geometry.y * 100),
-                z=int((router.altitude_for_point(beacon.space_id, beacon.geometry)+float(beacon.altitude)) * 100),
-            )
+        beacons = RangingBeacon.objects.all()
 
-        locator = cls(beacons=beacons)
+        locator = cls(
+            beacon_positions=np.array(tuple(
+                (
+                    int(beacon.geometry.x * 100),
+                    int(beacon.geometry.y * 100),
+                    int((router.altitude_for_point(beacon.space_id, beacon.geometry) + float(beacon.altitude)) * 100),
+                )
+                for beacon in beacons
+            )),
+            beacon_lookup={beacon.bssid: i for i, beacon in enumerate(beacons)}
+        )
         pickle.dump(locator, open(cls.build_filename(update), 'wb'))
         return locator
 
@@ -70,15 +65,6 @@ class RangeLocator:
         return cls.cached
 
     def locate(self, scan, permissions=None):
-        position = RangingBeacon.objects.select_related('space__level').first()
-        location = CustomLocation(
-            level=position.space.level,
-            x=position.geometry.x,
-            y=position.geometry.y,
-            permissions=(),
-            icon='my_location'
-        )
-
         from c3nav.mesh.models import MeshNode
         try:
             node = MeshNode.objects.prefetch_last_messages(MeshMessageType.LOCATE_RANGE_RESULTS).get(
@@ -88,37 +74,51 @@ class RangeLocator:
             raise
         msg = node.last_messages[MeshMessageType.LOCATE_RANGE_RESULTS]
 
-        np_data = []
-        for range in msg.parsed.ranges:
-            try:
-                beacon = self.beacons[range.peer]
-            except KeyError:
-                continue
-            np_data.append((beacon.x, beacon.y, beacon.z, range.distance))
-        if len(np_data) < 3:
+        # get the i and peer for every peer that we actually know
+        ranges = tuple(
+            (i, peer) for i, peer in (
+                (self.beacon_lookup.get(r.peer, None), r) for r in msg.parsed.ranges
+            ) if i is not None
+        )
+
+        # get index of all known beacons
+        beacons_i = tuple(i for i, peer in ranges)
+
+        # create 2d array with x, y, z, distance as rows
+        np_ranges = np.hstack((
+            self.beacon_positions[tuple(i for i, peer in ranges), :],
+            np.array(tuple(r.distance for i, r in ranges)).reshape((-1, 1)),
+        ))
+
+        if np_ranges.shape[0] < 3:
+            # can't get a good result from just two beacons
+            # todo: maybe we can at least give… something?
             return {
                 "ranges": msg.parsed.tojson(msg.parsed)["ranges"],
                 "datetime": msg.datetime,
                 "location": None,
             }
-        np_ranges = np.array(np_data)
 
+        if np_ranges.shape[0] == 3:
+            # TODO: three points aren't really enough for precise results? hm. maybe just a 2d fix then?
+            pass
+
+        # rating the guess by calculating the distances
         def rate_guess(guess):
-            #print(guess)
-            #print(np_ranges[:, :3], guess[:3])
-            #print([float(i) for i in results.x])
             return scipy.linalg.norm(np_ranges[:, :3]-guess[:3], axis=1)*guess[3]-np_ranges[:, 3]
 
+        # initial guess i the average of all beacons, with scale 1
         initial_guess = np.append(np.average(np_ranges[:, :3], axis=0), 1)
 
+        # here the magic happens
         results = least_squares(rate_guess, initial_guess)
-        #print(results)
-        #print([float(i) for i in results.x])
 
+        # create result
         from pprint import pprint
         pprint(msg.parsed.tojson(msg.parsed)["ranges"])
+        from c3nav.mapdata.models import Level
         location = CustomLocation(
-            level=position.space.level,
+            level=Level.objects.first(),
             x=results.x[0]/100,
             y=results.x[1]/100,
             permissions=(),
