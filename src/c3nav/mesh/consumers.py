@@ -28,7 +28,7 @@ class MeshConsumer(AsyncWebsocketConsumer):
     async def connect(self):
         # todo: auth
 
-        await self.log_text(None, "new mesh websocket connection")
+        #await self.log_text(None, "new mesh websocket connection")
         await self.accept()
         self.ping_task = get_event_loop().create_task(self.ping_regularly())
 
@@ -220,9 +220,9 @@ class MeshConsumer(AsyncWebsocketConsumer):
         message handler: if we are not the given uplink, leave this group
         """
         if data["uplink"] != self.channel_name:
-            await self.log_text(data["address"], "node now served by new consumer")
+            await self.log_text(data["node"], "node now served by new consumer")
             # going the short way cause the other consumer will already have done database stuff
-            self.dst_nodes.discard(data["address"])
+            self.dst_nodes.discard(data["node"])
 
     async def mesh_send(self, data):
         if self.uplink.node.address == data["exclude_uplink_address"]:
@@ -304,7 +304,7 @@ class MeshConsumer(AsyncWebsocketConsumer):
         with transaction.atomic():
             node = MeshNode.objects.select_for_update().get(address=address)
             # update database
-            node.uplink = self.uplink,
+            node.uplink = self.uplink
             node.last_signin = timezone.now()
             node.save()
 

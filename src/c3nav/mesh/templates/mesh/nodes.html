@@ -34,7 +34,7 @@
                     {% endblocktrans %}
                 </td>
                 <td>
-                    {% with uplink=node_get_uplink %}
+                    {% with uplink=node.get_uplink %}
                         {% if uplink %}
                             <a href="{% url "mesh.node.detail" pk=uplink.node_id %}">{{ node.uplink.node }}</a>
                         {% else %}
