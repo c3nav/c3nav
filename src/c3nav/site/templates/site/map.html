@@ -235,7 +235,8 @@
     {% include 'site/fragment_fakemobileclient.html' %}
     {% compress js %}
         <script type="text/javascript" src="{% static 'jquery/jquery.js' %}"></script>
-        <script type="text/javascript" src="{% static 'leaflet/leaflet.js' %}"></script>
+{#        <script type="text/javascript" src="{% static 'leaflet/leaflet.js' %}"></script>#}
+        <script type="text/javascript" src="{% static 'leaflet-new/leaflet-src.js' %}"></script>
         <script type="text/javascript" src="{% static 'leaflet-layergroup-collision/rbush.js' %}"></script>
         <script type="text/javascript" src="{% static 'leaflet-layergroup-collision/Leaflet.LayerGroup.Collision.js' %}"></script>
         <script type="text/javascript" src="{% static 'site/js/c3nav.js' %}"></script>
