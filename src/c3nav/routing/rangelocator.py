@@ -35,7 +35,7 @@ class RangeLocator:
                 bssid=beacon.bssid,
                 x=int(beacon.geometry.x * 100),
                 y=int(beacon.geometry.y * 100),
-                z=int(router.altitude_for_point(beacon.space_id, beacon.geometry) * 100),
+                z=int((router.altitude_for_point(beacon.space_id, beacon.geometry)+beacon.altitude) * 100),
             )
 
         locator = cls(beacons=beacons)
