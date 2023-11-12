@@ -1,8 +1,10 @@
 # syntax=docker/dockerfile:1.4
 FROM ubuntu:lunar-20231004@sha256:51e70689b125fcc2e800f5efb7ba465dee85ede9da9c268ff5599053c7e52b77 as base
+ARG TARGETARCH
 ENV DEBIAN_FRONTEND noninteractive
 
-RUN --mount=type=cache,target=/var/cache/apt --mount=type=tmpfs,target=/var/lib/apt/lists \
+RUN --mount=type=cache,target=/var/cache/apt,id=apt_$TARGETARCH --mount=type=tmpfs,target=/var/lib/apt/lists \
+    rm /etc/apt/apt.conf.d/docker-clean && \
     apt-get update && apt-get install -y --no-install-recommends \
     python3.11=3.11.4-1~23.04 \
     # renovate: srcname=python3.11
@@ -18,7 +20,7 @@ RUN --mount=type=cache,target=/var/cache/apt --mount=type=tmpfs,target=/var/lib/
 
 
 FROM base as builder
-RUN --mount=type=cache,target=/var/cache/apt --mount=type=tmpfs,target=/var/lib/apt/lists \
+RUN --mount=type=cache,target=/var/cache/apt,id=apt_$TARGETARCH --mount=type=tmpfs,target=/var/lib/apt/lists \
     apt-get update && apt-get install -y --no-install-recommends \
     build-essential=12.9ubuntu3 \
     # renovate: srcname=python3.11
