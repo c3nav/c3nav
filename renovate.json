@@ -1,0 +1,82 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": [
+    "config:recommended",
+    "default:automergeDigest",
+    "default:automergeBranchPush",
+    "docker:enableMajor",
+    "docker:pinDigests",
+    "group:monorepos"
+  ],
+  "rebaseWhen": "behind-base-branch",
+  "dependencyDashboard": true,
+  "labels": [
+    "dependency"
+  ],
+  "commitMessagePrefix": "⬆️",
+  "commitMessageTopic": "{{depName}}",
+  "enabledManagers": [
+    "pip_requirements",
+    "dockerfile",
+    "gitlabci",
+    "regex"
+  ],
+  "pip_requirements": {
+    "fileMatch": [
+      "(^|/)[\\w-]*requirements(-\\w+)?\\.(txt|pip)$",
+      "^src/requirements/\\w+\\.(txt|pip)$"
+    ]
+  },
+  "regexManagers": [
+    {
+      "fileMatch": ["(^|/)[\\w-]*[Dd]ockerfile$"],
+      "matchStringsStrategy": "any",
+      "matchStrings": [
+        "ARG BUILD_FROM=(?<depName>.*?):(?<currentValue>.*?)\\s+"
+      ],
+      "datasourceTemplate": "docker"
+    },
+    {
+      "fileMatch": ["(^|/)[\\w-]*[Dd]ockerfile$"],
+      "matchStringsStrategy": "any",
+      "matchStrings": [
+        "\\s+(?<package>[a-z0-9][a-z0-9-]+)=(?<currentValue>[a-z0-9-:_+~.]+)\\s+"
+      ],
+      "versioningTemplate": "deb",
+      "datasourceTemplate": "repology",
+      "depNameTemplate": "ubuntu_23_04/{{{package}}}"
+    }
+  ],
+  "packageRules": [
+    {
+      "groupName": "docker core image",
+      "matchPaths": [
+        "docker/Dockerfile"
+      ]
+    },
+    {
+      "groupName": "docker tileserver image",
+      "matchPaths": [
+        "docker/tileserver.dockerfile"
+      ]
+    },
+    {
+      "groupName": "python development dependencies",
+      "matchPaths": [
+        "src/requirements/dev.txt"
+      ]
+    },
+    {
+      "groupName": "python ASGI server dependencies",
+      "matchPaths": [
+        "src/requirements/server-asgi.txt"
+      ]
+    },
+    {
+      "groupName": "python tile-server dependencies",
+      "matchPaths": [
+        "src/requirements-tileserver.txt"
+      ]
+    }
+  ]
+}
