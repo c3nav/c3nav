@@ -1,9 +1,8 @@
 # syntax=docker/dockerfile:1.4
+FROM ubuntu:lunar-20231004@sha256:51e70689b125fcc2e800f5efb7ba465dee85ede9da9c268ff5599053c7e52b77 as base
 ARG BASE_IMAGE_NAME=ubuntu:lunar-20231004
 ARG BASE_IMAGE_DIGEST=sha256:51e70689b125fcc2e800f5efb7ba465dee85ede9da9c268ff5599053c7e52b77
 ARG TARGETARCH
-
-FROM ${BASE_IMAGE_NAME}@${BASE_IMAGE_DIGEST} as base
 
 LABEL org.opencontainers.image.base.name="docker.io/library/$BASE_IMAGE_NAME" \
       org.opencontainers.image.base.digest="$BASE_IMAGE_DIGEST" \
