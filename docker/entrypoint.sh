@@ -21,6 +21,7 @@ web)
     --pythonpath "/app/src" \
     --enable-threads --ignore-sigpipe --disable-logging --need-app \
     --stats ":5000" \
+    --stats-http \
     --http "0.0.0.0:8000"
   ;;
 webstatic)
@@ -32,6 +33,7 @@ webstatic)
     --static-map "${C3NAV_STATIC_URL:-/static}=${C3NAV_STATIC_ROOT:-/app/c3nav/static.dist}" \
     --static-safe "/app/c3nav/static" \
     --stats ":5000" \
+    --stats-http \
     --http "0.0.0.0:8000"
   ;;
 web-async)
