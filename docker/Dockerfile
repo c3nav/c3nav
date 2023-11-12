@@ -67,6 +67,7 @@ COPY --chown=root:root --chmod=0755 /docker/entrypoint.sh /usr/bin/entrypoint
 ENV C3NAV_DEBUG="" \
     C3NAV_LOGLEVEL="info" \
     C3NAV_DATA_DIR="/data" \
+    C3NAV_AUTOMIGRATE="yes" \
     MPLBACKEND="agg" \
     UWSGI_WORKERS="8"
 

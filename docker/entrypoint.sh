@@ -5,8 +5,17 @@ cd /app
 # enable python virtual env
 . /app/env/bin/activate
 
+automigrate() {
+  AUTOMIGRATE="${C3NAV_AUTOMIGRATE:no}"
+  echo "Running migrations as automigrate is enabled. Set \"C3NAV_AUTOMIGRATE\" to \"no\" or \"false\" to disable."
+  if [[ "$AUTOMIGRATE" == "yes" || "$AUTOMIGRATE" == "true" ]]; then
+    python manage.py migrate
+  fi
+}
+
 case "$1" in
 web)
+  automigrate
   exec /app/env/bin/uwsgi --master \
     --wsgi "c3nav.wsgi" \
     --pythonpath "/app/src" \
@@ -15,6 +24,7 @@ web)
     --http "0.0.0.0:8000"
   ;;
 webstatic)
+  automigrate
   exec /app/env/bin/uwsgi --master \
     --wsgi "c3nav.wsgi" \
     --pythonpath "/app/src" \
@@ -25,9 +35,11 @@ webstatic)
     --http "0.0.0.0:8000"
   ;;
 web-async)
+  automigrate
   exec python -m uvicorn --host 0.0.0.0 --proxy-headers --no-server-header  ${*:2} c3nav.asgi:application
   ;;
 webstatic-async)
+  automigrate
   exec python -m uvicorn --host 0.0.0.0 --proxy-headers --no-server-header ${*:2} c3nav.asgi:static_app
   ;;
 worker)
