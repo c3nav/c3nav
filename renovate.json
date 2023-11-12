@@ -32,7 +32,8 @@
       "fileMatch": ["(^|/)[\\w-.]*[Dd]ockerfile$"],
       "matchStringsStrategy": "any",
       "matchStrings": [
-        "ARG BUILD_FROM=(?<depName>.*?):(?<currentValue>.*?)\\s+"
+        "ARG BUILD_FROM=(?<depName>.*?):(?<currentValue>.*?)\\s+",
+        "ARG BASE_IMAGE_NAME=(?<depName>.*?):(?<currentVersion>.*?)\\s+(ARG )?BASE_IMAGE_DIGEST=(?<currentDigest>.*?)\\s"
       ],
       "datasourceTemplate": "docker"
     },
