@@ -8,7 +8,7 @@
     "docker:pinDigests",
     "group:monorepos"
   ],
-  "rebaseWhen": "behind-base-branch",
+  "rebaseWhen": "auto",
   "dependencyDashboard": true,
   "labels": [
     "dependency"
