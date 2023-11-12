@@ -54,6 +54,13 @@
       "enabled": false
     },
     {
+      "matchPackagePatterns": ["ubuntu_\\d\\d_\\d\\d/.*"],
+      "matchManagers": ["regex"],
+      "matchUpdateTypes": ["minor", "patch"],
+      "automerge": true,
+      "automergeType": "branch"
+    },
+    {
       "groupName": "docker core image",
       "matchPaths": [
         "docker/Dockerfile"
@@ -83,5 +90,11 @@
         "src/requirements-tileserver.txt"
       ]
     }
-  ]
+  ],
+  "lockFileMaintenance": {
+    "enabled": true,
+    "automerge": true,
+    "automergeType": "branch"
+  },
+  "ignoreTests": true
 }
