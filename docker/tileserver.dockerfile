@@ -1,17 +1,17 @@
 # syntax=docker/dockerfile:1.4
-FROM ubuntu:lunar as base
+FROM ubuntu:lunar-20231004@sha256:51e70689b125fcc2e800f5efb7ba465dee85ede9da9c268ff5599053c7e52b77 as base
 ENV DEBIAN_FRONTEND noninteractive
 
 RUN --mount=type=cache,target=/var/cache/apt --mount=type=tmpfs,target=/var/lib/apt/lists \
     apt-get update && apt-get install -y --no-install-recommends \
-    python3.11=3.11.2-6ubuntu0.1 \
+    python3.11=3.11.4-1~23.04 \
     # renovate: srcname=python3.11
-    libpython3.11=3.11.2-6ubuntu0.1 \
+    libpython3.11=3.11.4-1~23.04 \
     # renovate: srcname=python3.11
-    python3.11-venv=3.11.2-6ubuntu0.1 \
+    python3.11-venv=3.11.4-1~23.04 \
     # renovate: srcname=python-pip
-    python3-pip=23.0.1+dfsg-1 \
-    curl=7.88.1-8ubuntu2 \
+    python3-pip=23.0.1+dfsg-1ubuntu0.1 \
+    curl=7.88.1-8ubuntu2.3 \
     libpcre3=2:8.39-15 \
     tzdata=2023c-2exp1ubuntu1.1 \
     ca-certificates=20230311ubuntu0.23.04.1
@@ -22,7 +22,7 @@ RUN --mount=type=cache,target=/var/cache/apt --mount=type=tmpfs,target=/var/lib/
     apt-get update && apt-get install -y --no-install-recommends \
     build-essential=12.9ubuntu3 \
     # renovate: srcname=python3.11
-    python3.11-dev=3.11.2-6ubuntu0.1 \
+    python3.11-dev=3.11.4-1~23.04 \
     libpcre3-dev=2:8.39-15
 
 
