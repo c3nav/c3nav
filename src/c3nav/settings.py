@@ -152,7 +152,7 @@ DEFAULT_AUTO_FIELD = 'django.db.models.AutoField'
 
 STATIC_URL = config.get('urls', 'static', fallback='/static/')
 
-ALLOWED_HOSTS = [n for n in config.get('django', 'hosts', fallback='').split(',') if n]
+ALLOWED_HOSTS = [n for n in config.get('django', 'hosts', fallback='*').split(',') if n]
 
 LANGUAGE_CODE = config.get('locale', 'default', fallback='en')
 TIME_ZONE = config.get('locale', 'timezone', fallback='UTC')
