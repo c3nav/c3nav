@@ -675,7 +675,6 @@ c3nav = {
     last_match_words_key: null,
     init_locationinputs: function () {
 
-        // $('.locationinput .random').on('click', c3nav._random_location_click);
         $('.leaflet-control-user-location a').on('click', c3nav._goto_user_location_click).dblclick(function (e) {
             e.stopPropagation();
         });
@@ -768,68 +767,7 @@ c3nav = {
         return c3nav.locations_by_id[possible_locations[Math.floor(Math.random() * possible_locations.length)]];
     },
 
-    _random_location_click: function () {
-        var $button = $('button.random'),
-            parent = $button.parent(),
-            width = parent.width(),
-            height = parent.height();
-
-        $cover = $('<div>').css({
-            'width': width + 'px',
-            'height': height + 'px',
-            'background-color': '#ffffff',
-            'position': 'absolute',
-            'top': 0,
-            'left': $button.position().left + $button.width() / 2 + 'px',
-            'z-index': 200,
-        }).appendTo(parent);
-
-        $cover.animate({
-            left: 5 + $button.width() / 2 + 'px'
-        }, 300, 'swing');
-        $button.css({
-            'left': $button.position().left,
-            'background-color': '#ffffff',
-            'right': null,
-            'z-index': 201,
-            'opacity': 1,
-            'transform': 'scale(1)',
-            'color': c3nav._primary_color,
-            'pointer-events': 'none'
-        }).animate({
-            left: 5,
-        }, 300, 'swing').queue(function (d) {
-            d();
-            var possible_locations = new Set();
-            for (var id of c3nav.random_location_groups) {
-                var group = c3nav.locations_by_id[id];
-                if (!group) continue;
-                group.locations.forEach(subid => {
-                    if (subid in c3nav.locations_by_id) possible_locations.add(subid)
-                });
-            }
-            possible_locations = Array.from(possible_locations);
-            var location = c3nav.locations_by_id[possible_locations[Math.floor(Math.random() * possible_locations.length)]];
-            c3nav.sidebar.destination.set(location);
-            c3nav.update_state(false);
-            c3nav.fly_to_bounds(true);
-            $cover.animate({
-                left: width + $button.width() / 2 + 'px'
-            }, 300, 'swing');
-            $button.animate({
-                left: width,
-            }, 300, 'swing').queue(function (d) {
-                d();
-                $button.attr('style', 'display: none;');
-                $cover.remove();
-                // give the css transition some time
-            }).delay(300).queue(function (d) {
-                d();
-                $button.attr('style', '');
-            });
-        });
-    },
-    link_handler_modal: function (e, el) {
+     link_handler_modal: function (e, el) {
         var location = el.href;
         if (el.target || location.startsWith('/control/')) {
             el.target = '_blank';
