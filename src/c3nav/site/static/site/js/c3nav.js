@@ -239,21 +239,10 @@ c3nav = {
             c3nav.on_visibility_change();
         }
 
-        c3nav.test_location();
 
     },
     get_csrf_token: function () {
         return document.cookie.match(new RegExp('c3nav_csrftoken=([^;]+)'))[1];
-    },
-    test_location: function() {
-        $.getJSON('/api/routing/locate_test/', function(data) {
-            console.log(data);
-            window.setTimeout(c3nav.test_location, 1000);
-            c3nav._set_user_location(data.location);
-        }).fail(function() {
-            window.setTimeout(c3nav.test_location, 1000);
-            c3nav._set_user_location(null);
-        });
     },
 
     state: {},
@@ -328,7 +317,7 @@ c3nav = {
         c3nav._view = view;
 
         if (view === 'location' && state.details) {
-            c3nav.load_location_details(state.destination);
+            c3nav.sidebar.locationDetails.load(state.destination);
         } else {
             c3nav.sidebar.locationDetails.id = null;
             c3nav._clear_detail_layers();
@@ -416,33 +405,6 @@ c3nav = {
 
     },
 
-    load_location_details: function (location) {
-        if (c3nav.sidebar.locationDetails.id !== location.id) {
-            c3nav.sidebar.locationDetails.setLoading(true);
-            c3nav.sidebar.locationDetails.id = location.id;
-            c3nav._clear_route_layers();
-            $.getJSON(`/api/locations/${location.id}/details`, c3nav._location_details_loaded).fail(function (data) {
-                c3nav.sidebar.locationDetails.setError(data.status);
-            });
-        }
-    },
-    _location_details_loaded: function (data) {
-        if (c3nav.sidebar.locationDetails.id !== data.id) {
-            // loaded too late, information no longer needed
-            return;
-        }
-
-        c3nav.sidebar.locationDetails.setLocation(data);
-
-        if (data.geometry && data.level) {
-            L.geoJSON(data.geometry, {
-                style: {
-                    color: c3nav._primary_color,
-                    fillOpacity: 0.1,
-                }
-            }).addTo(c3nav.map.routeLayers[data.level]);
-        }
-    },
     next_route_options: null,
     load_route: function (origin, destination, nofly) {
         if (c3nav.next_route_options || c3nav.sidebar.routeSummary.origin !== origin.id || c3nav.sidebar.routeSummary.destination !== destination.id) {
@@ -713,7 +675,7 @@ c3nav = {
     last_match_words_key: null,
     init_locationinputs: function () {
 
-        $('.locationinput .random').on('click', c3nav._random_location_click);
+        // $('.locationinput .random').on('click', c3nav._random_location_click);
         $('.leaflet-control-user-location a').on('click', c3nav._goto_user_location_click).dblclick(function (e) {
             e.stopPropagation();
         });
@@ -779,9 +741,9 @@ c3nav = {
             c3nav.map.remove_popup();
         }
         if (!$(e.target).is('#search *')) {
-            $('#search').removeClass('focused');
+            c3nav.sidebar.unfocusSearch();
         } else if ($(e.target).is('.locationinput input')) {
-            $('#search').addClass('focused');
+            c3nav.sidebar.focusSearch();
         }
     },
 
@@ -791,6 +753,19 @@ c3nav = {
         if (a[3] !== b[3]) return b[3] - a[3];
         if (a[4] !== b[4]) return b[4] - a[4];
         return a[5] - b[5];
+    },
+
+    choose_random_location: function() {
+        var possible_locations = new Set();
+        for (var id of c3nav.random_location_groups) {
+            var group = c3nav.locations_by_id[id];
+            if (!group) continue;
+            group.locations.forEach(subid => {
+                if (subid in c3nav.locations_by_id) possible_locations.add(subid)
+            });
+        }
+        possible_locations = Array.from(possible_locations);
+        return c3nav.locations_by_id[possible_locations[Math.floor(Math.random() * possible_locations.length)]];
     },
 
     _random_location_click: function () {
@@ -1195,27 +1170,18 @@ c3nav = {
             }
         }
     },
-    fetch_fake_location: async function () {
-        const location = await window.fake_location();
-        c3nav._set_user_location(location);
-    },
     _goto_user_location_click: async function (e) {
         e.preventDefault();
-        if (window.fake_location) {
-            c3nav.fetch_fake_location();
-            window.setInterval(c3nav.fetch_fake_location, 1000);
-        } else {
-            if (!window.mobileclient) {
-                c3nav.modal.open(document.querySelector('#app-ad').cloneNode(true).childNodes);
-                return;
-            }
-            if (typeof window.mobileclient.checkLocationPermission === 'function') {
-                window.mobileclient.checkLocationPermission(true);
-            }
-            if (c3nav._current_user_location) {
-                c3nav.map.levelControl.setLevel(c3nav._current_user_location.level);
-                c3nav.map.flyTo(L.GeoJSON.coordsToLatLng(c3nav._current_user_location.geometry.coordinates), 3, {duration: 1});
-            }
+        if (!window.mobileclient) {
+            c3nav.modal.open(document.querySelector('#app-ad').cloneNode(true).childNodes);
+            return;
+        }
+        if (typeof window.mobileclient.checkLocationPermission === 'function') {
+            window.mobileclient.checkLocationPermission(true);
+        }
+        if (c3nav._current_user_location) {
+            c3nav.map.levelControl.setLevel(c3nav._current_user_location.level);
+            c3nav.map.flyTo(L.GeoJSON.coordsToLatLng(c3nav._current_user_location.geometry.coordinates), 3, {duration: 1});
         }
     },
 

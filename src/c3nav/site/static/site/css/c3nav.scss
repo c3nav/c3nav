@@ -680,7 +680,26 @@ main:not([data-random-location-groups]) button.random {
     &:hover {
         color: lighten($color-icon-light, 8%);
     }
+
+    &.animating {
+        background-color: #ffffff;
+        z-index: 201;
+        opacity: 1;
+        transform: scale(1);
+        color: $color-primary;
+        pointer-events: none;
+        transition: left 300ms ease-in-out;
+    }
 }
+
+#search .random-cover {
+    background-color: #ffffff;
+    position: absolute;
+    top: 0;
+    z-index: 200;
+    transition: left 300ms ease-in-out;
+}
+
 .locationinput:not(.empty) button.locate, .locationinput.empty button.clear,
 main[data-view^=route] button.random, .locationinput:not(.empty) button.random {
     -webkit-transform: scale(0.7);

@@ -2,8 +2,56 @@ function c3nav_icon(name) {
     return name; // TODO
 }
 
-class LocationInput {
-    sidebar;
+function wait(ms) {
+    return new Promise(resolve =>
+        window.setTimeout(() => resolve(), ms));
+}
+
+function nextTick() {
+    return wait(0);
+}
+
+
+function waitEvent(selector, event, subselector = null, timeout = null) {
+    if (typeof subselector === 'number' && timeout === null) {
+        timeout = subselector;
+        subselector = null;
+    }
+    return new Promise((resolve) => {
+        let completed = false;
+        let timeoutHandle = null;
+
+        const handler = (e, el) => complete([e, el]);
+
+        const complete = (result) => {
+            if (completed) return;
+            completed = true;
+            off(selector, event, subselector, handler);
+            if (timeoutHandle !== null) {
+                window.clearTimeout(timeoutHandle);
+            }
+            resolve(result);
+        }
+
+        if (timeout !== null) {
+            timeoutHandle = window.setTimeout(() => complete(null), timeout);
+        }
+
+        on(selector, event, subselector, handler);
+    });
+}
+
+
+async function recoverPromise(promise) {
+    try {
+        return await promise;
+    } catch (e) {
+        return e;
+    }
+}
+
+
+class OriginInput {
     root;
     icon;
     inputEl;
@@ -15,8 +63,7 @@ class LocationInput {
     suggestion = null;
     origval = null;
 
-    constructor(root, sidebar) {
-        this.sidebar = sidebar;
+    constructor(root) {
         this.root = root;
         this.icon = this.root.querySelector('.icon');
         this.inputEl = this.root.querySelector('input');
@@ -38,7 +85,7 @@ class LocationInput {
         if (location !== null && location.constructor !== ({}).constructor) {
             throw new Error('invalid location, must be plain object');
         }
-        this.sidebar.autocomplete.reset();
+        c3nav.sidebar.autocomplete.reset();
         this.root.classList.toggle('selected', !!location);
         this.root.classList.toggle('empty', !location);
         this.location = location;
@@ -88,24 +135,20 @@ class LocationInput {
 
     locate = async (e) => {
         e.preventDefault();
-        if (window.fake_location) {
-            const location = await window.fake_location();
-            c3nav._set_user_location(location);
-        } else {
-            if (!window.mobileclient) {
-                const content = document.querySelector('#app-ad').cloneNode(true);
-                content.classList.remove('hidden');
-                c3nav.modal.open(content);
-                return;
-            }
-            if (typeof window.mobileclient.checkLocationPermission === 'function') {
-                window.mobileclient.checkLocationPermission(true);
-            }
-            if (c3nav._current_user_location) {
-                this.set(c3nav._current_user_location);
-                c3nav.update_state_new();
-            }
+        if (!window.mobileclient) {
+            const content = document.querySelector('#app-ad').cloneNode(true);
+            content.classList.remove('hidden');
+            c3nav.modal.open(content);
+            return;
         }
+        if (typeof window.mobileclient.checkLocationPermission === 'function') {
+            window.mobileclient.checkLocationPermission(true);
+        }
+        if (c3nav._current_user_location) {
+            this.set(c3nav._current_user_location);
+            c3nav.update_state_new();
+        }
+
     }
 
 
@@ -121,7 +164,7 @@ class LocationInput {
                 this.inputEl.value = this.origval;
                 this.origval = null;
                 this.suggestion = null;
-                this.sidebar.autocomplete.unfocus();
+                c3nav.sidebar.autocomplete.unfocus();
             } else {
                 this.reset();
             }
@@ -129,9 +172,9 @@ class LocationInput {
             this.origval = this.inputEl.value;
             let new_val;
             if (e.key === 'ArrowUp') {
-                new_val = this.sidebar.autocomplete.prev();
+                new_val = c3nav.sidebar.autocomplete.prev();
             } else {
-                new_val = this.sidebar.autocomplete.next();
+                new_val = c3nav.sidebar.autocomplete.next();
             }
             if (!new_val) {
                 // if there is no next element, restore original value
@@ -144,7 +187,7 @@ class LocationInput {
             }
         } else if (e.key === 'Enter') {
             // enter: select currently focused suggestion or first suggestion
-            const selected = this.sidebar.autocomplete.focused();
+            const selected = c3nav.sidebar.autocomplete.focused();
             if (!selected) return;
             this.set(c3nav.locations_by_id[selected.dataset.id]);
             c3nav.update_state_new();
@@ -164,13 +207,64 @@ class LocationInput {
             c3nav.update_state_new();
         }
 
-        this.sidebar.autocomplete.input(val, this);
+        c3nav.sidebar.autocomplete.input(val, this);
     }
 
     isSelected = () => {
         return this.root.classList.contains('selected');
     }
 }
+
+class DestinationInput extends OriginInput {
+    randomButton;
+
+    constructor(root) {
+        super(root);
+        this.randomButton = root.querySelector('button.random');
+
+        on(this.randomButton, 'click', this.onRandomClick);
+    }
+
+
+    onRandomClick = async e => {
+        try {
+            const {width, height} = this.root.getBoundingClientRect();
+            const buttonRect = this.randomButton.getBoundingClientRect();
+            const left = buttonRect.left + buttonRect.width / 2;
+            const cover = <div style={{
+                width: `${width}px`,
+                height: `${height}px`,
+                left: `${left}px`,
+            }}></div>;
+            this.root.append(cover);
+            const new_left = 5 + buttonRect.width / 2;
+            this.randomButton.style.left = `${buttonRect.left}px`;
+            this.randomButton.classList.add('animating');
+            await nextTick();
+            cover.style.left = `${new_left}px`;
+            this.randomButton.style.left = `5px`;
+            await nextTick();
+            const transitionEndAwaiter = waitEvent([cover, this.randomButton], 'transitionend', 350);
+            const location = c3nav.choose_random_location();
+            await transitionEndAwaiter;
+            c3nav.sidebar.destination.set(location);
+            c3nav.update_state(false);
+            c3nav.fly_to_bounds(true);
+            cover.style.left = `${width + buttonRect.width / 2}px`;
+            this.randomButton.style.left = `${width}px`;
+            await waitEvent([cover, this.randomButton], 'transitionend', 350);
+            this.randomButton.classList.add('hidden');
+            this.randomButton.classList.remove('animating');
+            cover.remove();
+            this.randomButton.style.removeProperty('left');
+            await wait(100)
+            this.randomButton.classList.remove('hidden');
+        } catch (e) {
+            console.log(e);
+        }
+    }
+}
+
 
 function c3nav_search(words) {
     const matches = [];
@@ -221,13 +315,11 @@ function c3nav_search(words) {
 
 class AutoComplete {
     root;
-    sidebar;
     current_locationinput = null;
     last_words_key = null;
 
-    constructor(root, sidebar) {
+    constructor(root) {
         this.root = root;
-        this.sidebar = sidebar;
 
         on(this.root, 'mouseover', '.location', this.onmouseover);
         on(this.root, 'click', '.location', this.onclick);
@@ -352,6 +444,37 @@ class LocationDetails {
         c3nav.update_state_new({details: false});
     }
 
+
+    async load(location) {
+        if (this.id !== location.id) {
+            this.setLoading(true);
+            this.id = location.id;
+            c3nav._clear_route_layers();
+            try {
+                const data = await c3nav.json_get(`/api/locations/${location.id}/details`);
+                if (this.id !== data.id) {
+                    return;
+                }
+                this.setLocation(data);
+                if (data.geometry && data.level) {
+                    L.geoJSON(data.geometry, {
+                        style: {
+                            color: c3nav._primary_color,
+                            fillOpacity: 0.1,
+                        }
+                    }).addTo(c3nav._routeLayers[data.level]);
+                }
+            } catch (e) {
+                this.setError(e.message);
+            }
+
+            $.getJSON(`/api/locations/${location.id}/details`, c3nav._location_details_loaded).fail(function (data) {
+                this.locationDetails.setError(data.status);
+            });
+        }
+    }
+
+
     setLoading = (loading) => {
         this.root.classList.toggle('loading', loading);
     }
@@ -464,12 +587,10 @@ class RouteDetails {
 
 class RouteOptions {
     root;
-    sidebar;
     fields;
 
-    constructor(root, sidebar) {
+    constructor(root) {
         this.root = root;
-        this.sidebar = sidebar;
         this.fields = root.querySelector('.route-options-fields');
 
         on(this.root, 'click', '.close', this.close);
@@ -574,8 +695,8 @@ class Sidebar {
         this.routeSearchButtons = root.querySelector('#route-search-buttons');
         this.routeResultButtons = root.querySelector('#route-result-buttons');
 
-        this.origin = new LocationInput(root.querySelector('#origin-input'), this);
-        this.destination = new LocationInput(root.querySelector('#destination-input'), this);
+        this.origin = new OriginInput(root.querySelector('#origin-input'), this);
+        this.destination = new DestinationInput(root.querySelector('#destination-input'), this);
         this.autocomplete = new AutoComplete(root.querySelector('#autocomplete'), this);
         this.locationDetails = new LocationDetails(root.querySelector('#location-details'), this);
         this.routeDetails = new RouteDetails(root.querySelector('#route-details'));
@@ -626,6 +747,14 @@ class Sidebar {
             this.destination.set(this.origin.location);
         }
         c3nav.update_state_new({routing: false});
+    }
+
+    unfocusSearch = () => {
+        this.search.classList.remove('focused');
+    }
+
+    focusSearch = () => {
+        this.search.classList.add('focused');
     }
 
 
@@ -834,7 +963,7 @@ class State {
 
 
     push = (new_state, replace) => {
-        const had_sidebar = this.sidebar;
+        const had_sidebar = c3nav.sidebar;
         const changed = this.assign(new_state);
         if (!replace && !changed) return;
 
@@ -844,7 +973,7 @@ class State {
             embed_link.href = this.build_url();
         }
 
-        if (replace || (!this.sidebar && !had_sidebar)) {
+        if (replace || (!c3nav.sidebar && !had_sidebar)) {
             history.replaceState({...this}, '', url);
         } else {
             history.pushState({...this}, '', url);
@@ -1534,8 +1663,3 @@ L.SquareGridLayer = L.Layer.extend({
         }
     }
 });
-
-
-window.fake_location = () => {
-    return c3nav.json_get('/api/routing/locate_test/').then(data => data.location);
-}
