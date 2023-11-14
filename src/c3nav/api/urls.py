@@ -10,6 +10,7 @@ from rest_framework.response import Response
 from rest_framework.routers import SimpleRouter
 
 from c3nav.api.api import SessionViewSet
+from c3nav.api.newapi import auth_api_router
 from c3nav.editor.api import ChangeSetViewSet, EditorViewSet
 from c3nav.mapdata.api import (AccessRestrictionGroupViewSet, AccessRestrictionViewSet, AreaViewSet, BuildingViewSet,
                                ColumnViewSet, CrossDescriptionViewSet, DoorViewSet, DynamicLocationPositionViewSet,
@@ -27,6 +28,7 @@ ninja_api = NinjaAPI(
     version="v2",
     docs_url="/",
 )
+ninja_api.add_router("/auth/", auth_api_router)
 ninja_api.add_router("/mesh/", mesh_api_router)
 
 router = SimpleRouter()
