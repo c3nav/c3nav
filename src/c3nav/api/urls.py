@@ -10,7 +10,9 @@ from rest_framework.response import Response
 from rest_framework.routers import SimpleRouter
 
 from c3nav.api.api import SessionViewSet
+from c3nav.api.exceptions import CustomAPIException
 from c3nav.api.newapi import auth_api_router
+from c3nav.api.newauth import BearerAuth
 from c3nav.editor.api import ChangeSetViewSet, EditorViewSet
 from c3nav.mapdata.api import (AccessRestrictionGroupViewSet, AccessRestrictionViewSet, AreaViewSet, BuildingViewSet,
                                ColumnViewSet, CrossDescriptionViewSet, DoorViewSet, DynamicLocationPositionViewSet,
@@ -21,13 +23,22 @@ from c3nav.mapdata.api import (AccessRestrictionGroupViewSet, AccessRestrictionV
 from c3nav.mapdata.utils.user import can_access_editor
 from c3nav.mesh.api import FirmwareViewSet
 from c3nav.mesh.newapi import api_router as mesh_api_router
+from c3nav.mapdata.newapi import api_router as mapdata_api_router
 from c3nav.routing.api import RoutingViewSet
 
 ninja_api = NinjaAPI(
     title="c3nav API",
     version="v2",
     docs_url="/",
+    auth=BearerAuth(),
 )
+
+
+@ninja_api.exception_handler(CustomAPIException)
+def on_invalid_token(request, exc):
+    return ninja_api.create_response(request, {"detail": exc.detail}, status=exc.status_code)
+
+
 ninja_api.add_router("/auth/", auth_api_router)
 ninja_api.add_router("/mesh/", mesh_api_router)
 

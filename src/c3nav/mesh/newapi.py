@@ -5,6 +5,7 @@ from ninja import Router as APIRouter
 from ninja import Schema
 from ninja.pagination import paginate
 
+from c3nav.api.newauth import auth_responses
 from c3nav.mesh.dataformats import BoardType
 from c3nav.mesh.messages import ChipType
 from c3nav.mesh.models import FirmwareVersion
@@ -38,15 +39,15 @@ class Error(Schema):
     detail: str
 
 
-@api_router.get('/firmwares/', response=list[FirmwareSchema],
-                summary="List available firmwares")
+@api_router.get('/firmwares/', summary="List available firmwares",
+                response={200: list[FirmwareSchema], **auth_responses})
 @paginate
 def firmware_list(request):
     return FirmwareVersion.objects.all()
 
 
-@api_router.get('/firmwares/{firmware_id}/', response={200: FirmwareSchema, 404: Error},
-                summary="Get specific firmware")
+@api_router.get('/firmwares/{firmware_id}/', summary="Get specific firmware",
+                response={200: FirmwareSchema, **auth_responses})
 def firmware_detail(request, firmware_id: int):
     try:
         return FirmwareVersion.objects.get(id=firmware_id)
