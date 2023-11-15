@@ -5,7 +5,7 @@ from django.db.models import Q
 from ninja.security import HttpBearer
 
 from c3nav import settings
-from c3nav.api.exceptions import APITokenInvalid, APIPermissionDenied
+from c3nav.api.exceptions import APIPermissionDenied, APITokenInvalid
 from c3nav.api.schema import APIErrorSchema
 from c3nav.control.models import UserPermissions
 
