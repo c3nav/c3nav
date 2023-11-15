@@ -22,6 +22,7 @@ class EnumSchemaByNameMixin:
         if field is None:
             return
         field_schema["enum"] = list(cast(EnumMeta, field.type_).__members__.keys())
+        field_schema["type"] = "string"
 
     @classmethod
     def _validate(cls, v: Any, field: ModelField) -> Any:
