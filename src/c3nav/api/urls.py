@@ -23,7 +23,6 @@ from c3nav.mapdata.api import (AccessRestrictionGroupViewSet, AccessRestrictionV
 from c3nav.mapdata.utils.user import can_access_editor
 from c3nav.mesh.api import FirmwareViewSet
 from c3nav.mesh.newapi import api_router as mesh_api_router
-from c3nav.mapdata.newapi import api_router as mapdata_api_router
 from c3nav.routing.api import RoutingViewSet
 
 ninja_api = NinjaAPI(
