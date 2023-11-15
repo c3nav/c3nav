@@ -38,8 +38,7 @@ class BearerAuth(HttpBearer):
                 ).select_related("user").get()
             except UserPermissions.DoesNotExist:
                 raise APITokenInvalid
-            session = self.SessionStore(token.removeprefix("secret:"))
-            return session.user
+            return user_perms.user
         # todo: implement token (app) auth
         raise APITokenInvalid
 
