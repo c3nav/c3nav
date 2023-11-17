@@ -1,5 +1,7 @@
+from collections import namedtuple
 from importlib import import_module
 
+from django.contrib.auth import get_user as auth_get_user
 from django.contrib.auth.models import AnonymousUser
 from django.db.models import Q
 from ninja.security import HttpBearer
@@ -9,9 +11,7 @@ from c3nav.api.exceptions import APIPermissionDenied, APITokenInvalid
 from c3nav.api.schema import APIErrorSchema
 from c3nav.control.models import UserPermissions
 
-
-class InvalidToken(Exception):
-    pass
+FakeRequest = namedtuple('FakeRequest', ('session', ))
 
 
 class BearerAuth(HttpBearer):
@@ -28,7 +28,8 @@ class BearerAuth(HttpBearer):
         elif token.startswith("session:"):
             session = self.SessionStore(token.removeprefix("session:"))
             # todo: ApiTokenInvalid?
-            return session.user
+            user = auth_get_user(FakeRequest(session=session))
+            return user
         elif token.startswith("secret:"):
             try:
                 user_perms = UserPermissions.objects.filter(
@@ -51,6 +52,5 @@ class BearerAuth(HttpBearer):
         return user
 
 
-auth_responses = {401: APIErrorSchema}
-auth_permission_responses = {401: APIErrorSchema, 403: APIErrorSchema}
-
+auth_responses = {400: APIErrorSchema, 401: APIErrorSchema}
+auth_permission_responses = {400: APIErrorSchema, 401: APIErrorSchema, 403: APIErrorSchema}

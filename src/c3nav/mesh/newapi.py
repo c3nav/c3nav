@@ -1,14 +1,13 @@
-import base64
 from datetime import datetime
 
-from django.db import transaction
+from django.db import IntegrityError, transaction
 from ninja import Field as APIField
-from ninja import ModelSchema
 from ninja import Router as APIRouter
 from ninja import Schema, UploadedFile
 from ninja.pagination import paginate
 from pydantic import validator
 
+from c3nav.api.exceptions import APIConflict, APIRequestValidationFailed
 from c3nav.api.newauth import BearerAuth, auth_permission_responses, auth_responses
 from c3nav.mesh.dataformats import BoardType
 from c3nav.mesh.messages import ChipType
@@ -29,6 +28,11 @@ class FirmwareBuildSchema(Schema):
     def resolve_chip(obj):
         # todo: do this in model? idk
         return ChipType(obj.chip)
+
+    @staticmethod
+    def resolve_boards(obj):
+        print(obj.boards)
+        return obj.boards
 
 
 class FirmwareSchema(Schema):
@@ -66,52 +70,20 @@ def firmware_detail(request, firmware_id: int):
         return 404, {"detail": "firmware not found"}
 
 
-class Base64Bytes(bytes):
-    @classmethod
-    def __get_validators__(cls):
-        # one or more validators may be yielded which will be called in the
-        # order to validate the input, each validator will receive as an input
-        # the value returned from the previous validator
-        yield cls.validate
-
-    @classmethod
-    def __modify_schema__(cls, field_schema):
-        # __modify_schema__ should mutate the dict it receives in place,
-        # the returned value will be ignored
-        field_schema.update(
-            # simplified regex here for brevity, see the wikipedia link above
-            pattern='^[A-Z]{1,2}[0-9][A-Z0-9]? ?[0-9][A-Z]{2}$',
-            # some example postcodes
-            examples=['SP11 9DG', 'w1j7bu'],
-        )
-
-    @classmethod
-    def validate(cls, v):
-        if not isinstance(v, str):
-            raise TypeError('string required')
-        return cls(base64.b64decode(v.encode("ascii")))
-
-    def __repr__(self):
-        return f'PostCode({super().__repr__()})'
-
-
 class UploadFirmwareBuildSchema(Schema):
     variant: str = APIField(..., example="c3uart")
     chip: ChipType = APIField(..., example=ChipType.ESP32_C3.name)
     sha256_hash: str = APIField(..., regex=r"^[0-9a-f]{64}$")
     boards: list[BoardType] = APIField(..., example=[BoardType.C3NAV_LOCATION_PCB_REV_0_2.name, ])
-    binary: bytes = APIField(..., example="base64", contentEncoding="base64")
-
-    @validator('binary')
-    def get_binary_base64(cls, binary):
-        return base64.b64decode(binary.encode())
+    project_description: dict = APIField(..., title='project_description.json contents')
+    uploaded_filename: str = APIField(..., example="firmware.bin")
 
 
 class UploadFirmwareSchema(Schema):
     project_name: str = APIField(..., example="c3nav_positioning")
     version: str = APIField(..., example="499837d-dirty")
     idf_version: str = APIField(..., example="v5.1-476-g3187b8b326")
-    builds: list[UploadFirmwareBuildSchema] = APIField(..., min_items=1)
+    builds: list[UploadFirmwareBuildSchema] = APIField(..., min_items=1, unique_items=True)
 
     @validator('builds')
     def builds_variants_must_be_unique(cls, builds):
@@ -121,6 +93,51 @@ class UploadFirmwareSchema(Schema):
 
 
 @api_router.post('/firmwares/upload', summary="Upload firmware", auth=BearerAuth(superuser=True),
-                 response={200: FirmwareSchema, **auth_permission_responses})
-def firmware_upload(request, firmware_data: UploadFirmwareSchema):
-    raise NotImplementedError
+                 description="your OpenAPI viewer might not show it: firmware_data is UploadFirmwareSchema as json",
+                 response={200: FirmwareSchema, **auth_permission_responses, **APIConflict.dict()})
+def firmware_upload(request, firmware_data: UploadFirmwareSchema, binary_files: list[UploadedFile]):
+    binary_files_by_name = {binary_file.name: binary_file for binary_file in binary_files}
+    if len([binary_file.name for binary_file in binary_files]) != len(binary_files_by_name):
+        raise APIRequestValidationFailed("Filenames of uploaded binary files must be unique.")
+
+    build_filenames = [build_data.uploaded_filename for build_data in firmware_data.builds]
+    if len(build_filenames) != len(set(build_filenames)):
+        raise APIRequestValidationFailed("Builds need to refer to different unique binary file names.")
+
+    if set(binary_files_by_name) != set(build_filenames):
+        raise APIRequestValidationFailed("All uploaded binary files need to be refered to by one build.")
+
+    try:
+        with transaction.atomic():
+            version = FirmwareVersion.objects.create(
+                project_name=firmware_data.project_name,
+                version=firmware_data.version,
+                idf_version=firmware_data.idf_version,
+                uploader=request.auth,
+            )
+
+            for build_data in firmware_data.builds:
+                # if bin_file.size > 4 * 1024 * 1024:
+                #    raise ValueError  # todo: better error
+
+                # h = hashlib.sha256()
+                # h.update(build_data.binary)
+                # sha256_bin_file = h.hexdigest()  # todo: verify sha256 correctly
+                #
+                # if sha256_bin_file != build_data.sha256_hash:
+                #     raise ValueError
+
+                build = version.builds.create(
+                    variant=build_data.variant,
+                    chip=build_data.chip,
+                    sha256_hash=build_data.sha256_hash,
+                    project_description=build_data.project_description,
+                    binary=binary_files_by_name[build_data.uploaded_filename],
+                )
+
+                for board in build_data.boards:
+                    build.firmwarebuildboard_set.create(board=board)
+    except IntegrityError:
+        raise APIConflict('Firmware version already exists.')
+
+    return version
