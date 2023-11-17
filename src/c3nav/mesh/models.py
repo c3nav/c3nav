@@ -412,8 +412,7 @@ class FirmwareBuild(models.Model):
 
     @cached_property
     def firmware_image(self) -> FirmwareImage:
-        firmware_image, remaining = FirmwareImage.decode(self.binary.open('rb').read()[:FirmwareImage.get_min_size()])
-        return firmware_image
+        return FirmwareImage.from_file(self.binary.open('rb'))
 
 
 class FirmwareBuildBoard(models.Model):

@@ -1,6 +1,7 @@
 import re
 from dataclasses import dataclass, field
 from enum import IntEnum, unique
+from typing import BinaryIO, Self
 
 from c3nav.api.utils import EnumSchemaByNameMixin
 from c3nav.mesh.baseformats import (BoolFormat, EnumFormat, FixedHexFormat, FixedStrFormat, SimpleFormat, StructType,
@@ -227,7 +228,7 @@ class FirmwareImageFileHeader(StructType):
 class FirmwareImageExtendedFileHeader(StructType):
     wp_pin: int = field(metadata={"format": SimpleFormat('B')})
     drive_settings: int = field(metadata={"format": SimpleFormat('3B')})
-    chip_id: ChipType = field(metadata={"format": EnumFormat('H')})
+    chip: ChipType = field(metadata={"format": EnumFormat('H')})
     min_chip_rev_old: int = field(metadata={"format": SimpleFormat('B')})
     min_chip_rev: tuple[int, int] = field(metadata={"format": ChipRevFormat()})
     max_chip_rev: tuple[int, int] = field(metadata={"format": ChipRevFormat()})
@@ -241,3 +242,8 @@ class FirmwareImage(StructType):
     ext_header: FirmwareImageExtendedFileHeader
     first_segment_headers: tuple[int, int] = field(metadata={"format": SimpleFormat('2I')}, repr=False)
     app_desc: FirmwareAppDescription
+
+    @classmethod
+    def from_file(cls, file: BinaryIO) -> Self:
+        result, data = cls.decode(file.read(FirmwareImage.get_min_size()))
+        return result

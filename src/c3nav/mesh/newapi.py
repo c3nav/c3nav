@@ -88,8 +88,6 @@ def firmware_project_description(request, firmware_id: int, variant: str):
 
 class UploadFirmwareBuildSchema(Schema):
     variant: str = APIField(..., example="c3uart")
-    chip: ChipType = APIField(..., example=ChipType.ESP32_C3.name)
-    sha256_hash: str = APIField(..., regex=r"^[0-9a-f]{64}$")
     boards: list[BoardType] = APIField(..., example=[BoardType.C3NAV_LOCATION_PCB_REV_0_2.name, ])
     project_description: dict = APIField(..., title='project_description.json contents')
     uploaded_filename: str = APIField(..., example="firmware.bin")
@@ -143,16 +141,21 @@ def firmware_upload(request, firmware_data: UploadFirmwareSchema, binary_files: 
                 # if sha256_bin_file != build_data.sha256_hash:
                 #     raise ValueError
 
+                try:
+                    image = FirmwareImage.from_file(binary_files_by_name[build_data.uploaded_filename].open('rb'))
+                except ValueError:
+                    raise APIRequestValidationFailed(f"Can't parse binary image {build_data.uploaded_filename}")
+
                 build = version.builds.create(
                     variant=build_data.variant,
-                    chip=build_data.chip,
-                    sha256_hash=build_data.sha256_hash,
+                    chip=image.ext_header.chip.name,
+                    sha256_hash=image.app_desc.app_elf_sha256,
                     project_description=build_data.project_description,
                     binary=binary_files_by_name[build_data.uploaded_filename],
                 )
 
                 for board in build_data.boards:
-                    build.firmwarebuildboard_set.create(board=board)
+                    build.firmwarebuildboard_set.create(board=board.name)
     except IntegrityError:
         raise APIConflict('Firmware version already exists.')
 
