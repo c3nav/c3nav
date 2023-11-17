@@ -7,11 +7,10 @@ from ninja import Schema, UploadedFile
 from ninja.pagination import paginate
 from pydantic import validator
 
-from c3nav.api.exceptions import APIConflict, APIRequestValidationFailed
+from c3nav.api.exceptions import APIConflict, APIRequestValidationFailed, API404
 from c3nav.api.newauth import BearerAuth, auth_permission_responses, auth_responses
-from c3nav.mesh.dataformats import BoardType
-from c3nav.mesh.messages import ChipType
-from c3nav.mesh.models import FirmwareVersion
+from c3nav.mesh.dataformats import BoardType, FirmwareImage, ChipType
+from c3nav.mesh.models import FirmwareVersion, FirmwareBuild
 
 api_router = APIRouter(tags=["mesh"])
 
@@ -22,17 +21,13 @@ class FirmwareBuildSchema(Schema):
     chip: ChipType = APIField(..., example=ChipType.ESP32_C3.name)
     sha256_hash: str = APIField(..., regex=r"^[0-9a-f]{64}$")
     url: str = APIField(..., alias="binary", example="/media/firmware/012345/firmware.bin")
-    boards: list[BoardType] = APIField(..., example=[BoardType.C3NAV_LOCATION_PCB_REV_0_2.name, ])
+    # todo: should not be none, but parse errors
+    boards: list[BoardType] = APIField(None, example=[BoardType.C3NAV_LOCATION_PCB_REV_0_2.name, ])
 
     @staticmethod
     def resolve_chip(obj):
         # todo: do this in model? idk
         return ChipType(obj.chip)
-
-    @staticmethod
-    def resolve_boards(obj):
-        print(obj.boards)
-        return obj.boards
 
 
 class FirmwareSchema(Schema):
@@ -62,12 +57,33 @@ def firmware_list(request):
 
 
 @api_router.get('/firmwares/{firmware_id}/', summary="Get specific firmware",
-                response={200: FirmwareSchema, **auth_responses})
+                response={200: FirmwareSchema, **API404.dict(), **auth_responses})
 def firmware_detail(request, firmware_id: int):
     try:
         return FirmwareVersion.objects.get(id=firmware_id)
     except FirmwareVersion.DoesNotExist:
-        return 404, {"detail": "firmware not found"}
+        raise API404("Firmware not found")
+
+
+@api_router.get('/firmwares/{firmware_id}/{variant}/image_data',
+                summary="Get header data of firmware build image",
+                response={200: FirmwareImage.schema, **API404.dict(), **auth_responses})
+def firmware_build_image(request, firmware_id: int, variant: str):
+    try:
+        build = FirmwareBuild.objects.get(version_id=firmware_id, variant=variant)
+        return FirmwareImage.tojson(build.firmware_image)
+    except FirmwareVersion.DoesNotExist:
+        raise API404("Firmware or firmware build not found")
+
+
+@api_router.get('/firmwares/{firmware_id}/{variant}/project_description',
+                summary="Get project description of firmware build",
+                response={200: dict, **API404.dict(), **auth_responses})
+def firmware_project_description(request, firmware_id: int, variant: str):
+    try:
+        return FirmwareBuild.objects.get(version_id=firmware_id, variant=variant).firmware_description
+    except FirmwareVersion.DoesNotExist:
+        raise API404("Firmware or firmware build not found")
 
 
 class UploadFirmwareBuildSchema(Schema):

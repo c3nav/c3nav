@@ -14,8 +14,8 @@ from django.utils import timezone
 from django.utils.text import slugify
 from django.utils.translation import gettext_lazy as _
 
-from c3nav.mesh.dataformats import BoardType
-from c3nav.mesh.messages import ChipType, ConfigFirmwareMessage, ConfigHardwareMessage
+from c3nav.mesh.dataformats import BoardType, ChipType, FirmwareImage
+from c3nav.mesh.messages import ConfigFirmwareMessage, ConfigHardwareMessage
 from c3nav.mesh.messages import MeshMessage as MeshMessage
 from c3nav.mesh.messages import MeshMessageType
 from c3nav.mesh.utils import UPLINK_TIMEOUT
@@ -409,6 +409,11 @@ class FirmwareBuild(models.Model):
             )
             for board in self.boards
         ]
+
+    @cached_property
+    def firmware_image(self) -> FirmwareImage:
+        firmware_image, remaining = FirmwareImage.decode(self.binary.open('rb').read()[:FirmwareImage.get_min_size()])
+        return firmware_image
 
 
 class FirmwareBuildBoard(models.Model):

@@ -1,8 +1,10 @@
 import re
 import struct
 from abc import ABC, abstractmethod
-from dataclasses import Field, dataclass, fields
+from dataclasses import Field, dataclass, fields as dataclass_fields
 from typing import Any, Self, Sequence
+
+from pydantic import create_model
 
 from c3nav.mesh.utils import indent_c
 
@@ -87,6 +89,18 @@ class SimpleFormat(BaseFormat):
         return self.c_type, ("" if self.num == 1 else ("[%d]" % self.num))
 
 
+class SimpleConstFormat(SimpleFormat):
+    def __init__(self, fmt, const_value: int):
+        super().__init__(fmt)
+        self.const_value = const_value
+
+    def decode(self, data: bytes) -> tuple[Any, bytes]:
+        value, out_data = super().decode(data)
+        if value != self.const_value:
+            raise ValueError('const_value is wrong')
+        return value, out_data
+
+
 class EnumFormat(SimpleFormat):
     def __init__(self, fmt="B", *, as_hex=False, c_definition=True):
         super().__init__(fmt)
@@ -136,6 +150,45 @@ class EnumFormat(SimpleFormat):
         }
 
 
+class TwoNibblesEnumFormat(SimpleFormat):
+    def __init__(self):
+        super().__init__('B')
+
+    def decode(self, data: bytes) -> tuple[bool, bytes]:
+        fields = dataclass_fields(self.field_type)
+        value, data = super().decode(data)
+        return self.field_type(fields[0].type(value//2**4), fields[1].type(value//2**4)), data
+
+    def encode(self, value):
+        fields = dataclass_fields(self.field_type)
+        return super().encode(
+            getattr(value, fields[0].name).value * 2**4 +
+            getattr(value, fields[1].name).value * 2**4
+        )
+
+    def fromjson(self, data):
+        fields = dataclass_fields(self.field_type)
+        return self.field_type(*(field.type[data[field.name]] for field in fields))
+
+    def tojson(self, data):
+        fields = dataclass_fields(self.field_type)
+        return {
+            field.name: getattr(data, field.name).name for field in fields
+        }
+
+
+class ChipRevFormat(SimpleFormat):
+    def __init__(self):
+        super().__init__('H')
+
+    def decode(self, data: bytes) -> tuple[bool, bytes]:
+        value, data = super().decode(data)
+        return (value // 100, value % 100), data
+
+    def encode(self, value):
+        return value[0]*100 + value[1]
+
+
 class BoolFormat(SimpleFormat):
     def __init__(self):
         super().__init__('B')
@@ -145,6 +198,8 @@ class BoolFormat(SimpleFormat):
 
     def decode(self, data: bytes) -> tuple[bool, bytes]:
         value, data = super().decode(data)
+        if value > 1:
+            raise ValueError('Boolean value > 1')
         return bool(value), data
 
 
@@ -298,11 +353,39 @@ class StructType:
                     raise TypeError('Duplicate %s: %s', (key, value))
                 values[value] = cls
                 setattr(cls, key, value)
+
+        # pydantic model
+        cls._pydantic_fields = getattr(cls, '_pydantic_fields', {}).copy()
+        fields = []
+        for field_ in dataclass_fields(cls):
+            fields.append((field_.name, field_.type, field_.metadata))
+        for attr_name in tuple(cls.__annotations__.keys()):
+            attr = getattr(cls, attr_name, None)
+            metadata = attr.metadata if isinstance(attr, Field) else {}
+            try:
+                type_ = cls.__annotations__[attr_name]
+            except KeyError:
+                # print('nope', cls, attr_name)
+                continue
+            fields.append((attr_name, type_, metadata))
+        for name, type_, metadata in fields:
+            if metadata.get("format", None):
+                cls._pydantic_fields[name] = (type_, ...)
+            elif issubclass(type_, StructType):
+                if metadata.get("json_embed"):
+                    cls._pydantic_fields.update(type_._pydantic_fields)
+                else:
+                    cls._pydantic_fields[name] = (type_.schema, ...)
+            else:
+                raise TypeError('field %s.%s has no format and is no StructType' %
+                                (cls.__class__.__name__, name))
+        print(cls.__name__, cls._pydantic_fields)
+        cls.schema = create_model(cls.__name__+'Schema', **cls._pydantic_fields)
         super().__init_subclass__(**kwargs)
 
     @classmethod
     def get_var_num(cls):
-        return sum([f.metadata.get("format", f.type).get_var_num() for f in fields(cls)], start=0)
+        return sum([f.metadata.get("format", f.type).get_var_num() for f in dataclass_fields(cls)], start=0)
 
     @classmethod
     def get_types(cls):
@@ -323,14 +406,14 @@ class StructType:
             if not isinstance(instance, cls):
                 raise ValueError('expected value of type %r, got %r' % (cls, instance))
 
-            for field_ in fields(cls):
+            for field_ in dataclass_fields(cls):
                 data += field_.metadata["format"].encode(getattr(instance, field_.name))
 
             # todo: better
-            data += instance.encode(instance, ignore_fields=set(f.name for f in fields(cls)))
+            data += instance.encode(instance, ignore_fields=set(f.name for f in dataclass_fields(cls)))
             return data
 
-        for field_ in fields(cls):
+        for field_ in dataclass_fields(cls):
             if field_.name in ignore_fields:
                 continue
             value = getattr(instance, field_.name)
@@ -351,7 +434,7 @@ class StructType:
         orig_data = data
         kwargs = {}
         no_init_data = {}
-        for field_ in fields(cls):
+        for field_ in dataclass_fields(cls):
             if "format" in field_.metadata:
                 value, data = field_.metadata["format"].decode(data)
             elif issubclass(field_.type, StructType):
@@ -386,7 +469,7 @@ class StructType:
             if not isinstance(instance, cls):
                 raise ValueError('expected value of type %r, got %r' % (cls, instance))
 
-            for field_ in fields(instance):
+            for field_ in dataclass_fields(instance):
                 if field_.name is cls.union_type_field:
                     result[field_.name] = field_.metadata["format"].tojson(getattr(instance, field_.name))
                     break
@@ -396,7 +479,7 @@ class StructType:
             result.update(instance.tojson(instance))
             return result
 
-        for field_ in fields(cls):
+        for field_ in dataclass_fields(cls):
             value = getattr(instance, field_.name)
             if "format" in field_.metadata:
                 result[field_.name] = field_.metadata["format"].tojson(value)
@@ -428,7 +511,7 @@ class StructType:
 
         kwargs = {}
         no_init_data = {}
-        for field_ in fields(cls):
+        for field_ in dataclass_fields(cls):
             raw_value = data.get(field_.name, None)
             if "format" in field_.metadata:
                 value = field_.metadata["format"].fromjson(raw_value)
@@ -466,7 +549,7 @@ class StructType:
 
         items = []
 
-        for field_ in fields(cls):
+        for field_ in dataclass_fields(cls):
             if field_.name in ignore_fields:
                 continue
             if in_union and field_.metadata["defining_class"] != cls:
@@ -524,7 +607,7 @@ class StructType:
     @classmethod
     def get_c_definitions(cls) -> dict[str, str]:
         definitions = {}
-        for field_ in fields(cls):
+        for field_ in dataclass_fields(cls):
             if "format" in field_.metadata:
                 definitions.update(field_.metadata["format"].get_c_definitions())
                 if field_.metadata.get("as_definition"):
@@ -629,14 +712,14 @@ class StructType:
     @classmethod
     def get_min_size(cls, no_inherited_fields=False) -> int:
         if cls.union_type_field:
-            own_size = sum([f.metadata.get("format", f.type).get_min_size() for f in fields(cls)])
+            own_size = sum([f.metadata.get("format", f.type).get_min_size() for f in dataclass_fields(cls)])
             union_size = max(
                 [0] + [option.get_min_size(True) for option in cls._union_options[cls.union_type_field].values()])
             return own_size + union_size
         if no_inherited_fields:
-            relevant_fields = [f for f in fields(cls) if f.metadata["defining_class"] == cls]
+            relevant_fields = [f for f in dataclass_fields(cls) if f.metadata["defining_class"] == cls]
         else:
-            relevant_fields = [f for f in fields(cls) if not f.metadata.get("union_discriminator")]
+            relevant_fields = [f for f in dataclass_fields(cls) if not f.metadata.get("union_discriminator")]
         return sum((f.metadata.get("format", f.type).get_min_size() for f in relevant_fields), start=0)
 
 

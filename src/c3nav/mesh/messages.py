@@ -5,11 +5,10 @@ from typing import TypeVar
 import channels
 from channels.db import database_sync_to_async
 
-from c3nav.api.utils import EnumSchemaByNameMixin
 from c3nav.mesh.baseformats import (BoolFormat, EnumFormat, FixedStrFormat, SimpleFormat, StructType, VarArrayFormat,
                                     VarBytesFormat, VarStrFormat, normalize_name)
 from c3nav.mesh.dataformats import (BoardConfig, FirmwareAppDescription, MacAddressesListFormat, MacAddressFormat,
-                                    RangeResultItem, RawFTMEntry)
+                                    RangeResultItem, RawFTMEntry, ChipType)
 from c3nav.mesh.utils import MESH_ALL_UPLINKS_GROUP
 
 MESH_ROOT_ADDRESS = '00:00:00:00:00:00'
@@ -66,16 +65,6 @@ class MeshMessageType(IntEnum):
 
 
 M = TypeVar('M', bound='MeshMessage')
-
-
-@unique
-class ChipType(EnumSchemaByNameMixin, IntEnum):
-    ESP32_S2 = 2
-    ESP32_C3 = 5
-
-    @property
-    def pretty_name(self):
-        return self.name.replace('_', '-')
 
 
 @dataclass

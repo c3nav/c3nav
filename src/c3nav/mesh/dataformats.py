@@ -4,7 +4,7 @@ from enum import IntEnum, unique
 
 from c3nav.api.utils import EnumSchemaByNameMixin
 from c3nav.mesh.baseformats import (BoolFormat, EnumFormat, FixedHexFormat, FixedStrFormat, SimpleFormat, StructType,
-                                    VarArrayFormat)
+                                    VarArrayFormat, TwoNibblesEnumFormat, ChipRevFormat, SimpleConstFormat)
 
 
 class MacAddressFormat(FixedHexFormat):
@@ -158,7 +158,7 @@ class RawFTMEntry(StructType):
 
 @dataclass
 class FirmwareAppDescription(StructType, existing_c_struct="esp_app_desc_t"):
-    magic_word: int = field(metadata={"format": SimpleFormat('I')}, repr=False)
+    magic_word: int = field(metadata={"format": SimpleConstFormat('I', 0xAB_CD_54_32)}, repr=False)
     secure_version: int = field(metadata={"format": SimpleFormat('I')})
     reserv1: list[int] = field(metadata={"format": SimpleFormat('2I')}, repr=False)
     version: str = field(metadata={"format": FixedStrFormat(32)})
@@ -168,3 +168,76 @@ class FirmwareAppDescription(StructType, existing_c_struct="esp_app_desc_t"):
     idf_version: str = field(metadata={"format": FixedStrFormat(32)})
     app_elf_sha256: str = field(metadata={"format": FixedHexFormat(32)})
     reserv2: list[int] = field(metadata={"format": SimpleFormat('20I')}, repr=False)
+
+
+@unique
+class SPIFlashMode(EnumSchemaByNameMixin, IntEnum):
+    QIO = 0
+    QOUT = 1
+    DIO = 2
+    DOUT = 3
+
+
+@unique
+class FlashSize(EnumSchemaByNameMixin, IntEnum):
+    SIZE_1MB = 0
+    SIZE_2MB = 1
+    SIZE_4MB = 2
+    SIZE_8MB = 3
+    SIZE_16MB = 4
+    SIZE_32MB = 5
+    SIZE_64MB = 6
+    SIZE_128MB = 7
+
+
+@unique
+class FlashFrequency(EnumSchemaByNameMixin, IntEnum):
+    FREQ_40MHZ = 0
+    FREQ_26MHZ = 1
+    FREQ_20MHZ = 2
+    FREQ_80MHZ = 0xf
+
+
+@dataclass
+class FlashSettings:
+    size: FlashSize
+    frequency: FlashFrequency
+
+
+@unique
+class ChipType(EnumSchemaByNameMixin, IntEnum):
+    ESP32_S2 = 2
+    ESP32_C3 = 5
+
+    @property
+    def pretty_name(self):
+        return self.name.replace('_', '-')
+
+
+@dataclass
+class FirmwareImageFileHeader(StructType):
+    magic_word: int = field(metadata={"format": SimpleConstFormat('B', 0xE9)}, repr=False)
+    num_segments: int = field(metadata={"format": SimpleFormat('B')})
+    spi_flash_mode: SPIFlashMode = field(metadata={"format": EnumFormat()})
+    flash_stuff: FlashSettings = field(metadata={"format": TwoNibblesEnumFormat()})
+    entry_point: int = field(metadata={"format": SimpleFormat('I')})
+
+
+@dataclass
+class FirmwareImageExtendedFileHeader(StructType):
+    wp_pin: int = field(metadata={"format": SimpleFormat('B')})
+    drive_settings: int = field(metadata={"format": SimpleFormat('3B')})
+    chip_id: ChipType = field(metadata={"format": EnumFormat('H')})
+    min_chip_rev_old: int = field(metadata={"format": SimpleFormat('B')})
+    min_chip_rev: tuple[int, int] = field(metadata={"format": ChipRevFormat()})
+    max_chip_rev: tuple[int, int] = field(metadata={"format": ChipRevFormat()})
+    reserv: int = field(metadata={"format": SimpleFormat('I')}, repr=False)
+    hash_appended: bool = field(metadata={"format": BoolFormat()})
+
+
+@dataclass
+class FirmwareImage(StructType):
+    header: FirmwareImageFileHeader
+    ext_header: FirmwareImageExtendedFileHeader
+    first_segment_headers: tuple[int, int] = field(metadata={"format": SimpleFormat('2I')}, repr=False)
+    app_desc: FirmwareAppDescription

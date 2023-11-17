@@ -10,7 +10,7 @@ from rest_framework.status import HTTP_201_CREATED
 from rest_framework.viewsets import ReadOnlyModelViewSet
 
 from c3nav.control.models import UserPermissions
-from c3nav.mesh.messages import ChipType
+from c3nav.mesh.dataformats import ChipType
 from c3nav.mesh.models import FirmwareVersion
 
 
