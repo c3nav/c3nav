@@ -49,7 +49,8 @@ class FilterSchema(Schema):
 class GroupFilter(FilterSchema):
     group: Optional[int] = APIField(
         None,
-        name="filter by location group"
+        title="filter by location group",
+        description="if set, only items belonging to the location group with that ID will be shown"
     )
 
     def validate(self, request):
@@ -67,8 +68,8 @@ class GroupFilter(FilterSchema):
 class OnTopOfFilter(FilterSchema):
     on_top_of: Optional[Literal["null"] | int] = APIField(
         None,
-        name='filter by on top of level ID (or "null")',
-        description='if set, only levels on top of this level (or "null" for no level) will be shown'
+        title='filter by on top of level ID (or "null")',
+        description='if set, only levels on top of the level with this ID (or "null" for no level) will be shown'
     )
 
     def validate(self, request):
