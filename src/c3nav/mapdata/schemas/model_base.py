@@ -1,12 +1,9 @@
-from functools import cached_property
-from typing import Annotated, Any, Optional
+from typing import Any, Optional
 
-import annotated_types
 from ninja import Schema
 from pydantic import Field as APIField
 from pydantic import PositiveInt, model_validator
 from pydantic.functional_validators import ModelWrapValidatorHandler
-from pydantic.utils import GetterDict
 from pydantic_core.core_schema import ValidationInfo
 
 from c3nav.api.utils import NonEmptyStr
