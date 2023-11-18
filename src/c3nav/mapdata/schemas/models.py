@@ -1,6 +1,6 @@
 from typing import Optional
 
-from ninja import Schema
+from ninja import Schema, Swagger
 from pydantic import Field as APIField
 from pydantic import PositiveFloat, PositiveInt
 
@@ -9,6 +9,11 @@ from c3nav.mapdata.schemas.model_base import SpecificLocationSchema
 
 
 class LevelSchema(SpecificLocationSchema):
+    """
+    A physical level of the map, containing building, spaces, doors…
+
+    A level is a specific location, and can therefor be routed to and from, as well as belong to location groups.
+    """
     short_label: NonEmptyStr = APIField(
         title="short label (for level selector)",
         description="unique among levels",

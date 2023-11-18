@@ -3,4 +3,10 @@ from pydantic import Field as APIField
 
 
 class BoundsSchema(Schema):
-    bounds: tuple[tuple[float, float], tuple[float, float]] = APIField(..., example=((-10, -20), (20, 30)))
+    """
+    Describing a bounding box
+    """
+    bounds: tuple[tuple[float, float], tuple[float, float]] = APIField(
+        description="(x, y) to (x, y)",
+        example=((-10, -20), (20, 30)),
+    )

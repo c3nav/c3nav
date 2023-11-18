@@ -3,9 +3,16 @@ from typing import Literal
 from ninja import Schema
 from pydantic import Field as APIField
 
+from c3nav.api.utils import NonEmptyStr
+
 
 class APIErrorSchema(Schema):
-    detail: str
+    """
+    An error has occured with this request
+    """
+    detail: NonEmptyStr = APIField(
+        description="A human-readable error description"
+    )
 
 
 class PolygonSchema(Schema):

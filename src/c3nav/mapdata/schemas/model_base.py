@@ -77,7 +77,11 @@ class LocationSchema(AccessRestrictionSchema, TitledSchema, LocationSlugSchema, 
     # todo: add_search
 
 
-class LabelSettingsSchema(TitledSchema, Schema):
+class LabelSettingsSchema(TitledSchema, DjangoModelSchema):
+    """
+    Settings preset for how and when to display a label. Reusable between objects.
+    The title describes the title of this preset, not the displayed label.
+    """
     min_zoom: float = APIField(
         title="min zoom",
     )

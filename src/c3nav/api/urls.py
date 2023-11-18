@@ -5,7 +5,7 @@ from collections import OrderedDict
 from django.conf import settings
 from django.urls import include, path, re_path
 from django.utils.functional import cached_property
-from ninja import NinjaAPI
+from ninja import NinjaAPI, Swagger
 from ninja.schema import NinjaGenerateJsonSchema
 from rest_framework.generics import GenericAPIView
 from rest_framework.response import Response
@@ -14,7 +14,7 @@ from rest_framework.routers import SimpleRouter
 from c3nav.api.api import SessionViewSet
 from c3nav.api.exceptions import CustomAPIException
 from c3nav.api.newapi import auth_api_router
-from c3nav.api.newauth import BearerAuth
+from c3nav.api.newauth import APITokenAuth
 from c3nav.editor.api import ChangeSetViewSet, EditorViewSet
 from c3nav.mapdata.api import (AccessRestrictionGroupViewSet, AccessRestrictionViewSet, AreaViewSet, BuildingViewSet,
                                ColumnViewSet, CrossDescriptionViewSet, DoorViewSet, DynamicLocationPositionViewSet,
@@ -28,11 +28,42 @@ from c3nav.mesh.api import FirmwareViewSet
 from c3nav.mesh.newapi import mesh_api_router
 from c3nav.routing.api import RoutingViewSet
 
+description = """
+Nearly all endpoints require authentication, but guest authentication can be used.
+
+API endpoints may change to add more features and properties, 
+but no properties will be removed without a version change.
+""".strip()
+
 ninja_api = NinjaAPI(
     title="c3nav API",
     version="v2",
+    description=description,
+
     docs_url="/",
-    auth=(None if settings.DEBUG else BearerAuth()),
+    docs=Swagger(settings={
+        "persistAuthorization": True,
+        "defaultModelRendering": "model",
+    }),
+
+    auth=APITokenAuth(),
+
+    openapi_extra={
+        "tags": [
+            {
+                "name": "auth",
+                "description": "Get and manage API access",
+            },
+            {
+                "name": "map",
+                "description": "Access the map data",
+            },
+            {
+                "name": "mesh",
+                "description": "Manage the location node mesh network",
+            },
+        ],
+    }
 )
 
 
@@ -41,7 +72,9 @@ def on_invalid_token(request, exc):
     return ninja_api.create_response(request, {"detail": exc.detail}, status=exc.status_code)
 
 
-# ugly hack: remove schema from the end of definition names
+"""
+ugly hack: remove schema from the end of definition names
+"""
 orig_normalize_name = NinjaGenerateJsonSchema.normalize_name
 def wrap_normalize_name(self, name: str):  # noqa
     return orig_normalize_name(self, name).removesuffix('Schema')

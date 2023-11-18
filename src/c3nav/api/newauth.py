@@ -14,7 +14,20 @@ from c3nav.control.models import UserPermissions
 FakeRequest = namedtuple('FakeRequest', ('session', ))
 
 
-class BearerAuth(HttpBearer):
+description = """
+An API token can be acquired in 4 ways:
+
+* Use `anonymous` for guest access.
+* Generate a session-bound token using the auth session endpoint.
+* Create an API token in your user account settings.
+* Create an API token by signing in through the auth endpoint.
+""".strip()
+
+
+class APITokenAuth(HttpBearer):
+    openapi_name = "api token authentication"
+    openapi_description = description
+
     def __init__(self, logged_in=False, superuser=False):
         super().__init__()
         self.logged_in = superuser or logged_in

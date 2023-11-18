@@ -6,10 +6,11 @@ from ninja import Field as APIField
 from ninja import Router as APIRouter
 from ninja import Schema, UploadedFile
 from ninja.pagination import paginate
+from ninja.renderers import BaseRenderer
 from pydantic import PositiveInt, field_validator
 
 from c3nav.api.exceptions import API404, APIConflict, APIRequestValidationFailed
-from c3nav.api.newauth import BearerAuth, auth_permission_responses, auth_responses, validate_responses
+from c3nav.api.newauth import APITokenAuth, auth_permission_responses, auth_responses, validate_responses
 from c3nav.mesh.dataformats import BoardType, ChipType, FirmwareImage
 from c3nav.mesh.models import FirmwareBuild, FirmwareVersion
 
@@ -17,35 +18,53 @@ mesh_api_router = APIRouter(tags=["mesh"])
 
 
 class FirmwareBuildSchema(Schema):
+    """
+    A build belonging to a firmware version.
+    """
     id: PositiveInt
-    variant: str = APIField(..., example="c3uart")
-    chip: ChipType = APIField(..., example=ChipType.ESP32_C3.name)
-    sha256_hash: str = APIField(..., pattern=r"^[0-9a-f]{64}$")
-    url: str = APIField(..., alias="binary", example="/media/firmware/012345/firmware.bin")  # todo: downlaod differently?
+    variant: str = APIField(
+        description="a variant identifier for this build, unique for this firmware version",
+        example="c3uart"
+    )
+    chip: ChipType = APIField(
+        description="the chip that this build was built for",
+        example=ChipType.ESP32_C3.name,
+    )
+    sha256_hash: str = APIField(
+        description="SHE256 hash of the underlying ELF file",
+        pattern=r"^[0-9a-f]{64}$",
+    )
+    url: str = APIField(
+        alias="binary",
+        example="/media/firmware/012345/firmware.bin",
+        description="download URL for the build binary",
+    ) # todo: downlaod differently?
     # todo: should not be none, but parse errors
-    boards: list[BoardType] = APIField(None, example=[BoardType.C3NAV_LOCATION_PCB_REV_0_2.name, ])
+    boards: set[BoardType] = APIField(
+        description="set of boards that this build is compatible with",
+        example={BoardType.C3NAV_LOCATION_PCB_REV_0_2.name, }
+    )
 
     class Config(Schema.Config):
         pass
 
 
 class FirmwareSchema(Schema):
+    """
+    A firmware version, usually with multiple build variants.
+    """
     id: PositiveInt
     project_name: str = APIField(..., example="c3nav_positioning")
     version: str = APIField(..., example="499837d-dirty")
     idf_version: str = APIField(..., example="v5.1-476-g3187b8b326")
     created: datetime
-    builds: list[FirmwareBuildSchema]
+    builds: list[FirmwareBuildSchema] = APIField(min_items=1)
 
     @field_validator('builds')
     def builds_variants_must_be_unique(cls, builds):
         if len(set(build.variant for build in builds)) != len(builds):
             raise ValueError("builds must have unique variant identifiers")
         return builds
-
-
-class Error(Schema):
-    detail: str
 
 
 @mesh_api_router.get('/firmwares/', summary="List available firmwares",
@@ -66,7 +85,9 @@ def firmware_detail(request, firmware_id: int):
 
 @mesh_api_router.get('/firmwares/{firmware_id}/{variant}/image_data',
                      summary="Get header data of firmware build image",
-                     response={200: FirmwareImage.schema, **API404.dict(), **auth_responses})
+                     response={200: FirmwareImage.schema, **API404.dict(), **auth_responses},
+                     openapi_extra={"externalDocs": "https://docs.espressif.com/projects/esptool/en/latest/esp32s3/"
+                                                    "advanced-topics/firmware-image-format.html"})
 def firmware_build_image(request, firmware_id: int, variant: str):
     try:
         build = FirmwareBuild.objects.get(version_id=firmware_id, variant=variant)
@@ -77,7 +98,9 @@ def firmware_build_image(request, firmware_id: int, variant: str):
 
 @mesh_api_router.get('/firmwares/{firmware_id}/{variant}/project_description',
                      summary="Get project description of firmware build",
-                     response={200: dict, **API404.dict(), **auth_responses})
+                     response={200: dict, **API404.dict(), **auth_responses},
+                     openapi_extra={"externalDocs": "https://docs.espressif.com/projects/esp-idf/en/latest/esp32/"
+                                                    "api-guides/build-system.html#build-system-metadata"})
 def firmware_project_description(request, firmware_id: int, variant: str):
     try:
         return FirmwareBuild.objects.get(version_id=firmware_id, variant=variant).firmware_description
@@ -86,6 +109,9 @@ def firmware_project_description(request, firmware_id: int, variant: str):
 
 
 class UploadFirmwareBuildSchema(Schema):
+    """
+    A firmware build to upload, with at least one build variant
+    """
     variant: str = APIField(..., example="c3uart")
     boards: list[BoardType] = APIField(..., example=[BoardType.C3NAV_LOCATION_PCB_REV_0_2.name, ])
     project_description: dict = APIField(..., title='project_description.json contents')
@@ -93,10 +119,13 @@ class UploadFirmwareBuildSchema(Schema):
 
 
 class UploadFirmwareSchema(Schema):
+    """
+    A firmware version to upload, with at least one build variant
+    """
     project_name: str = APIField(..., example="c3nav_positioning")
     version: str = APIField(..., example="499837d-dirty")
     idf_version: str = APIField(..., example="v5.1-476-g3187b8b326")
-    builds: list[UploadFirmwareBuildSchema] = APIField(..., min_items=1)
+    builds: list[UploadFirmwareBuildSchema] = APIField(min_items=1)
 
     @field_validator('builds')
     def builds_variants_must_be_unique(cls, builds):

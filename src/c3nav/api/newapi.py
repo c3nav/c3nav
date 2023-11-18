@@ -2,11 +2,16 @@ from django.conf import settings
 from ninja import Router as APIRouter
 from ninja import Schema
 
+from c3nav.api.utils import NonEmptyStr
+
 auth_api_router = APIRouter(tags=["auth"])
 
 
 class APITokenSchema(Schema):
-    token: str
+    """
+    An API token to be used with Bearer authentication
+    """
+    token: NonEmptyStr
 
 
 @auth_api_router.get('/session/', response=APITokenSchema, auth=None,
