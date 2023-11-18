@@ -4,8 +4,8 @@ from enum import IntEnum, unique
 from typing import BinaryIO, Self
 
 from c3nav.api.utils import EnumSchemaByNameMixin
-from c3nav.mesh.baseformats import (BoolFormat, EnumFormat, FixedHexFormat, FixedStrFormat, SimpleFormat, StructType,
-                                    VarArrayFormat, TwoNibblesEnumFormat, ChipRevFormat, SimpleConstFormat)
+from c3nav.mesh.baseformats import (BoolFormat, ChipRevFormat, EnumFormat, FixedHexFormat, FixedStrFormat,
+                                    SimpleConstFormat, SimpleFormat, StructType, TwoNibblesEnumFormat, VarArrayFormat)
 
 
 class MacAddressFormat(FixedHexFormat):

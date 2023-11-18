@@ -74,7 +74,7 @@ class TitledMixin(SerializableMixin, models.Model):
         result = super()._serialize(detailed=detailed, **kwargs)
         if detailed:
             result['titles'] = self.titles
-        result['title'] = self.title
+        result['title'] = str(self.title)
         return result
 
     @property

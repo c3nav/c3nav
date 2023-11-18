@@ -52,5 +52,6 @@ class BearerAuth(HttpBearer):
         return user
 
 
-auth_responses = {400: APIErrorSchema, 401: APIErrorSchema}
-auth_permission_responses = {400: APIErrorSchema, 401: APIErrorSchema, 403: APIErrorSchema}
+validate_responses = {422: APIErrorSchema,}
+auth_responses = {401: APIErrorSchema,}
+auth_permission_responses = {401: APIErrorSchema, 403: APIErrorSchema,}

@@ -3,7 +3,7 @@ django-bootstrap3==23.1
 django-compressor==4.3.1
 csscompressor==0.9.5
 djangorestframework==3.14.0
-django-ninja==0.22.2
+django-ninja==1.0.1
 django-filter==23.2
 shapely==2.0.1
 pybind11==2.10.4

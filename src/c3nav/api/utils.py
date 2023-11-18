@@ -1,7 +1,9 @@
-from enum import EnumMeta
-from typing import Any, Callable, Iterator, Optional, cast
+from typing import Annotated, Any, Type
 
-from pydantic.fields import ModelField
+import annotated_types
+from pydantic import AfterValidator, GetCoreSchemaHandler, GetJsonSchemaHandler, PlainSerializer
+from pydantic.json_schema import JsonSchemaValue, WithJsonSchema
+from pydantic_core import CoreSchema, core_schema
 from rest_framework.exceptions import ParseError
 
 
@@ -18,23 +20,34 @@ def get_api_post_data(request):
 
 class EnumSchemaByNameMixin:
     @classmethod
-    def __modify_schema__(cls, field_schema: dict[str, Any], field: Optional[ModelField]) -> None:
-        if field is None:
-            return
-        field_schema["enum"] = list(cast(EnumMeta, field.type_).__members__.keys())
-        field_schema["type"] = "string"
+    def __get_pydantic_json_schema__(
+        cls, core_schema: CoreSchema, handler: GetJsonSchemaHandler
+    ) -> JsonSchemaValue:
+        json_schema = handler(core_schema)
+        json_schema = handler.resolve_ref_schema(json_schema)
+        json_schema["enum"] = [m.name for m in cls]
+        json_schema["type"] = "string"
+        return json_schema
 
     @classmethod
-    def _validate(cls, v: Any, field: ModelField) -> Any:
+    def __get_pydantic_core_schema__(
+        cls, source: Type[Any], handler: GetCoreSchemaHandler
+    ) -> core_schema.CoreSchema:
+        return core_schema.no_info_after_validator_function(
+            cls.validate,
+            core_schema.any_schema(),
+            serialization=core_schema.plain_serializer_function_ser_schema(lambda x: x.name),
+        )
+
+    @classmethod
+    def validate(cls, v: int):
         if isinstance(v, cls):
-            # it's already the object, so it's going to json, return string
-            return v.name
+            return v
         try:
-            # it's a string, so it's coming from json, return object
             return cls[v]
         except KeyError:
-            raise ValueError(f"Invalid value for {cls}: `{v}`")
+            pass
+        return cls(v)
 
-    @classmethod
-    def __get_validators__(cls) -> Iterator[Callable[..., Any]]:
-        yield cls._validate
+
+NonEmptyStr = Annotated[str, annotated_types.MinLen(1)]

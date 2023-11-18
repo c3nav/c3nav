@@ -172,8 +172,8 @@ class RoutingViewSet(ViewSet):
 
     @action(detail=False)
     def locate_test(self, request):
-        from c3nav.mesh.models import MeshNode
         from c3nav.mesh.messages import MeshMessageType
+        from c3nav.mesh.models import MeshNode
         try:
             node = MeshNode.objects.prefetch_last_messages(MeshMessageType.LOCATE_RANGE_RESULTS).get(
                 address="d4:f9:8d:2d:0d:f1"

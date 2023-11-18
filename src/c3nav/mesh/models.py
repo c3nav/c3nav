@@ -371,10 +371,10 @@ class FirmwareBuild(models.Model):
         unique_together = [
             ('version', 'variant'),
         ]
-
     @property
     def boards(self):
-        return {BoardType[board.board] for board in self.firmwarebuildboard_set.all()}
+        return {BoardType[board.board] for board in self.firmwarebuildboard_set.all()
+                if board.board in BoardType._member_names_}
 
     @property
     def chip_type(self) -> ChipType:

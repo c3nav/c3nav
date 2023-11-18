@@ -2,9 +2,11 @@ import inspect
 import re
 from collections import OrderedDict
 
+from django.conf import settings
 from django.urls import include, path, re_path
 from django.utils.functional import cached_property
 from ninja import NinjaAPI
+from ninja.schema import NinjaGenerateJsonSchema
 from rest_framework.generics import GenericAPIView
 from rest_framework.response import Response
 from rest_framework.routers import SimpleRouter
@@ -20,16 +22,17 @@ from c3nav.mapdata.api import (AccessRestrictionGroupViewSet, AccessRestrictionV
                                LocationBySlugViewSet, LocationGroupCategoryViewSet, LocationGroupViewSet,
                                LocationViewSet, MapViewSet, ObstacleViewSet, POIViewSet, RampViewSet, SourceViewSet,
                                SpaceViewSet, StairViewSet, UpdatesViewSet)
+from c3nav.mapdata.newapi.endpoints import map_api_router
 from c3nav.mapdata.utils.user import can_access_editor
 from c3nav.mesh.api import FirmwareViewSet
-from c3nav.mesh.newapi import api_router as mesh_api_router
+from c3nav.mesh.newapi import mesh_api_router
 from c3nav.routing.api import RoutingViewSet
 
 ninja_api = NinjaAPI(
     title="c3nav API",
     version="v2",
     docs_url="/",
-    auth=BearerAuth(),
+    auth=(None if settings.DEBUG else BearerAuth()),
 )
 
 
@@ -38,7 +41,15 @@ def on_invalid_token(request, exc):
     return ninja_api.create_response(request, {"detail": exc.detail}, status=exc.status_code)
 
 
+# ugly hack: remove schema from the end of definition names
+orig_normalize_name = NinjaGenerateJsonSchema.normalize_name
+def wrap_normalize_name(self, name: str):  # noqa
+    return orig_normalize_name(self, name).removesuffix('Schema')
+NinjaGenerateJsonSchema.normalize_name = wrap_normalize_name  # noqa
+
+
 ninja_api.add_router("/auth/", auth_api_router)
+ninja_api.add_router("/map/", map_api_router)
 ninja_api.add_router("/mesh/", mesh_api_router)
 
 router = SimpleRouter()

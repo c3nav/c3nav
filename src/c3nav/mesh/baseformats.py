@@ -1,7 +1,8 @@
 import re
 import struct
 from abc import ABC, abstractmethod
-from dataclasses import Field, dataclass, fields as dataclass_fields
+from dataclasses import Field, dataclass
+from dataclasses import fields as dataclass_fields
 from typing import Any, Self, Sequence
 
 from pydantic import create_model
@@ -379,7 +380,6 @@ class StructType:
             else:
                 raise TypeError('field %s.%s has no format and is no StructType' %
                                 (cls.__class__.__name__, name))
-        print(cls.__name__, cls._pydantic_fields)
         cls.schema = create_model(cls.__name__+'Schema', **cls._pydantic_fields)
         super().__init_subclass__(**kwargs)
 
