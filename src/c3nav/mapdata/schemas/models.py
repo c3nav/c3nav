@@ -4,8 +4,8 @@ from pydantic import Field as APIField
 from pydantic import NonNegativeFloat, PositiveFloat, PositiveInt
 
 from c3nav.api.utils import NonEmptyStr
-from c3nav.mapdata.schemas.model_base import (AccessRestrictionSchema, DjangoModelSchema, LabelSettingsSchema,
-                                              LocationSchema, SerializableSchema, SpecificLocationSchema, TitledSchema,
+from c3nav.mapdata.schemas.model_base import (DjangoModelSchema, LabelSettingsSchema, LocationSchema,
+                                              SpecificLocationSchema, TitledSchema, WithAccessRestrictionSchema,
                                               WithLevelSchema, WithLineStringGeometrySchema, WithPointGeometrySchema,
                                               WithPolygonGeometrySchema, WithSpaceSchema)
 
@@ -58,7 +58,7 @@ class SpaceSchema(WithPolygonGeometrySchema, SpecificLocationSchema, WithLevelSc
     )
 
 
-class DoorSchema(WithPolygonGeometrySchema, AccessRestrictionSchema, WithLevelSchema, DjangoModelSchema):
+class DoorSchema(WithPolygonGeometrySchema, WithAccessRestrictionSchema, WithLevelSchema, DjangoModelSchema):
     """
     A link between two spaces
     """
@@ -221,7 +221,7 @@ class LocationGroupSchema(LocationSchema, DjangoModelSchema):
     )
 
 
-class LocationGroupCategorySchema(TitledSchema, SerializableSchema, DjangoModelSchema):
+class LocationGroupCategorySchema(TitledSchema, DjangoModelSchema):
     """
     A location group category can hold either one or multiple location groups.
 
@@ -277,7 +277,7 @@ class LocationGroupCategorySchema(TitledSchema, SerializableSchema, DjangoModelS
     priority: int = APIField()  # todo: ???
 
 
-class SourceSchema(AccessRestrictionSchema, DjangoModelSchema):
+class SourceSchema(WithAccessRestrictionSchema, DjangoModelSchema):
     """
     A source image that can be traced in the editor.
     """
@@ -289,3 +289,22 @@ class SourceSchema(AccessRestrictionSchema, DjangoModelSchema):
     left: float
     top: float
     right: float
+
+
+class AccessRestrictionSchema(TitledSchema, DjangoModelSchema):
+    """
+    A category that some objects can belong to.
+
+    If they do, you can only see them if you have a permission to see objects with this access retriction.
+    """
+    open: bool
+    groups: list[PositiveInt] = APIField(
+        title="access restriction groups"
+    )
+
+
+class AccessRestrictionGroupSchema(WithAccessRestrictionSchema, DjangoModelSchema):
+    """
+    For simplicity's sake, access restrictions can belong to groups, and you can grant permissions for the entire group.
+    """
+    pass

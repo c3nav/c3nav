@@ -9,13 +9,14 @@ from c3nav.api.exceptions import API404
 from c3nav.mapdata.api import optimize_query
 from c3nav.mapdata.models import (Area, Building, Door, Hole, Level, LocationGroup, LocationGroupCategory, Source,
                                   Space, Stair)
-from c3nav.mapdata.models.access import AccessPermission
+from c3nav.mapdata.models.access import AccessPermission, AccessRestriction, AccessRestrictionGroup
 from c3nav.mapdata.models.geometry.space import (POI, Column, CrossDescription, LeaveDescription, LineObstacle,
                                                  Obstacle, Ramp)
 from c3nav.mapdata.schemas.filters import (ByCategoryFilter, ByGroupFilter, ByLevelFilter, ByOnTopOfFilter,
                                            BySpaceFilter, FilterSchema)
-from c3nav.mapdata.schemas.models import (AreaSchema, BuildingSchema, ColumnSchema, CrossDescriptionSchema, DoorSchema,
-                                          HoleSchema, LeaveDescriptionSchema, LevelSchema, LineObstacleSchema,
+from c3nav.mapdata.schemas.models import (AccessRestrictionGroupSchema, AccessRestrictionSchema, AreaSchema,
+                                          BuildingSchema, ColumnSchema, CrossDescriptionSchema, DoorSchema, HoleSchema,
+                                          LeaveDescriptionSchema, LevelSchema, LineObstacleSchema,
                                           LocationGroupCategorySchema, LocationGroupSchema, ObstacleSchema, POISchema,
                                           RampSchema, SourceSchema, SpaceSchema, StairSchema)
 
@@ -420,3 +421,43 @@ def source_list(request):
 def source_detail(request, source_id: int):
     # todo: access, caching, filtering, etc
     return mapdata_retrieve_endpoint(request, Source, pk=source_id)
+
+
+"""
+AccessRestrictions
+"""
+
+
+@mapdata_api_router.get('/accessrestrictions/', response=list[AccessRestrictionSchema],
+                        summary="Get access restriction list")
+@paginate
+def accessrestriction_list(request):
+    # todo cache?
+    return mapdata_list_endpoint(request, model=AccessRestriction)
+
+
+@mapdata_api_router.get('/accessrestrictions/{accessrestriction_id}/', response=AccessRestrictionSchema,
+                        summary="Get access restriction by ID")
+def accessrestriction_detail(request, accessrestriction_id: int):
+    # todo: access, caching, filtering, etc
+    return mapdata_retrieve_endpoint(request, AccessRestriction, pk=accessrestriction_id)
+
+
+"""
+AccessRestrictionGroups
+"""
+
+
+@mapdata_api_router.get('/accessrestrictiongroups/', response=list[AccessRestrictionGroupSchema],
+                        summary="Get access restriction group list")
+@paginate
+def accessrestrictiongroup_list(request):
+    # todo cache?
+    return mapdata_list_endpoint(request, model=AccessRestrictionGroup)
+
+
+@mapdata_api_router.get('/accessrestrictiongroups/{group_id}/', response=AccessRestrictionGroupSchema,
+                        summary="Get access restriction group by ID")
+def accessrestrictiongroups_detail(request, group_id: int):
+    # todo: access, caching, filtering, etc
+    return mapdata_retrieve_endpoint(request, AccessRestrictionGroup, pk=group_id)

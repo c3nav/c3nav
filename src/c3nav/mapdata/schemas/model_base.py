@@ -10,12 +10,6 @@ from c3nav.api.schema import LineStringSchema, PointSchema, PolygonSchema
 from c3nav.api.utils import NonEmptyStr
 
 
-class DjangoModelSchema(Schema):
-    id: PositiveInt = APIField(
-        title="ID",
-    )
-
-
 class SerializableSchema(Schema):
     @model_validator(mode="wrap")  # noqa
     @classmethod
@@ -23,6 +17,12 @@ class SerializableSchema(Schema):
         """ overwriting this, we need to call serialize to get the correct data """
         values = values.serialize()
         return handler(values)
+
+
+class DjangoModelSchema(SerializableSchema):
+    id: PositiveInt = APIField(
+        title="ID",
+    )
 
 
 class LocationSlugSchema(Schema):
@@ -36,7 +36,7 @@ class LocationSlugSchema(Schema):
     )
 
 
-class AccessRestrictionSchema(Schema):
+class WithAccessRestrictionSchema(Schema):
     access_restriction: Optional[PositiveInt] = APIField(
         default=None,
         title="access restriction ID",
@@ -58,7 +58,7 @@ class TitledSchema(Schema):
     )
 
 
-class LocationSchema(AccessRestrictionSchema, TitledSchema, LocationSlugSchema, SerializableSchema):
+class LocationSchema(WithAccessRestrictionSchema, TitledSchema, LocationSlugSchema):
     subtitle: NonEmptyStr = APIField(
         title="subtitle (preferred language)",
         description="an automatically generated short description for this location. "
