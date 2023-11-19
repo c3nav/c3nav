@@ -7,13 +7,17 @@ from ninja.pagination import paginate
 
 from c3nav.api.exceptions import API404
 from c3nav.mapdata.api import optimize_query
-from c3nav.mapdata.models import Area, Building, Door, Hole, Level, Space, Stair
+from c3nav.mapdata.models import (Area, Building, Door, Hole, Level, LocationGroup, LocationGroupCategory, Source,
+                                  Space, Stair)
 from c3nav.mapdata.models.access import AccessPermission
-from c3nav.mapdata.models.geometry.space import POI, Column, LineObstacle, Obstacle, Ramp
-from c3nav.mapdata.schemas.filters import ByGroupFilter, ByLevelFilter, ByOnTopOfFilter, BySpaceFilter, FilterSchema
-from c3nav.mapdata.schemas.models import (AreaSchema, BuildingSchema, ColumnSchema, DoorSchema, HoleSchema, LevelSchema,
-                                          LineObstacleSchema, ObstacleSchema, POISchema, RampSchema, SpaceSchema,
-                                          StairSchema)
+from c3nav.mapdata.models.geometry.space import (POI, Column, CrossDescription, LeaveDescription, LineObstacle,
+                                                 Obstacle, Ramp)
+from c3nav.mapdata.schemas.filters import (ByCategoryFilter, ByGroupFilter, ByLevelFilter, ByOnTopOfFilter,
+                                           BySpaceFilter, FilterSchema)
+from c3nav.mapdata.schemas.models import (AreaSchema, BuildingSchema, ColumnSchema, CrossDescriptionSchema, DoorSchema,
+                                          HoleSchema, LeaveDescriptionSchema, LevelSchema, LineObstacleSchema,
+                                          LocationGroupCategorySchema, LocationGroupSchema, ObstacleSchema, POISchema,
+                                          RampSchema, SourceSchema, SpaceSchema, StairSchema)
 
 mapdata_api_router = APIRouter(tags=["mapdata"])
 
@@ -316,3 +320,103 @@ def poi_list(request, filters: Query[BySpaceFilter]):
 def poi_detail(request, poi_id: int):
     # todo: access, caching, filtering, etc
     return mapdata_retrieve_endpoint(request, POI, pk=poi_id)
+
+
+"""
+LeaveDescriptions
+"""
+
+
+@mapdata_api_router.get('/leavedescriptions/', response=list[LeaveDescriptionSchema],
+                        summary="Get leave description list")
+@paginate
+def leavedescription_list(request, filters: Query[BySpaceFilter]):
+    # todo cache?
+    return mapdata_list_endpoint(request, model=LeaveDescription, filters=filters)
+
+
+@mapdata_api_router.get('/leavedescriptions/{leavedescription_id}/', response=LeaveDescriptionSchema,
+                        summary="Get leave description by ID")
+def leavedescription_detail(request, leavedescription_id: int):
+    # todo: access, caching, filtering, etc
+    return mapdata_retrieve_endpoint(request, LeaveDescription, pk=leavedescription_id)
+
+
+"""
+CrossDescriptions
+"""
+
+
+@mapdata_api_router.get('/crossdescriptions/', response=list[CrossDescriptionSchema],
+                        summary="Get cross description list")
+@paginate
+def crossdescription_list(request, filters: Query[BySpaceFilter]):
+    # todo cache?
+    return mapdata_list_endpoint(request, model=CrossDescription, filters=filters)
+
+
+@mapdata_api_router.get('/crossdescriptions/{crossdescription_id}/', response=CrossDescriptionSchema,
+                        summary="Get cross description by ID")
+def crossdescription_detail(request, crossdescription_id: int):
+    # todo: access, caching, filtering, etc
+    return mapdata_retrieve_endpoint(request, CrossDescription, pk=crossdescription_id)
+
+
+"""
+LocationGroup
+"""
+
+
+@mapdata_api_router.get('/locationgroups/', response=list[LocationGroupSchema],
+                        summary="Get location group list")
+@paginate
+def locationgroup_list(request, filters: Query[ByCategoryFilter]):
+    # todo cache?
+    return mapdata_list_endpoint(request, model=LocationGroup, filters=filters)
+
+
+@mapdata_api_router.get('/locationgroups/{locationgroup_id}/', response=LocationGroupSchema,
+                        summary="Get location group by ID")
+def locationgroup_detail(request, locationgroup_id: int):
+    # todo: access, caching, filtering, etc
+    return mapdata_retrieve_endpoint(request, LocationGroup, pk=locationgroup_id)
+
+
+"""
+LocationGroupCategories
+"""
+
+
+@mapdata_api_router.get('/locationgroupcategories/', response=list[LocationGroupCategorySchema],
+                        summary="Get location group category list")
+@paginate
+def locationgroupcategory_list(request):
+    # todo cache?
+    return mapdata_list_endpoint(request, model=LocationGroupCategory)
+
+
+@mapdata_api_router.get('/locationgroupcategories/{category_id}/', response=LocationGroupCategorySchema,
+                        summary="Get location group category by ID")
+def locationgroupcategory_detail(request, category_id: int):
+    # todo: access, caching, filtering, etc
+    return mapdata_retrieve_endpoint(request, LocationGroupCategory, pk=category_id)
+
+
+"""
+Sources
+"""
+
+
+@mapdata_api_router.get('/sources/', response=list[SourceSchema],
+                        summary="Get source list")
+@paginate
+def source_list(request):
+    # todo cache?
+    return mapdata_list_endpoint(request, model=Source)
+
+
+@mapdata_api_router.get('/sources/{source_id}/', response=SourceSchema,
+                        summary="Get source by ID")
+def source_detail(request, source_id: int):
+    # todo: access, caching, filtering, etc
+    return mapdata_retrieve_endpoint(request, Source, pk=source_id)

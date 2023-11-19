@@ -116,6 +116,7 @@ class SpecificLocationSchema(LocationSchema):
     label_settings: Optional[LabelSettingsSchema] = APIField(
         default=None,
         title="label settings",
+        description="if not set, it may be taken from location groups"
     )
     label_override: Optional[NonEmptyStr] = APIField(
         default=None,

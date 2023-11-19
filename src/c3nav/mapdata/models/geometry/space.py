@@ -326,7 +326,7 @@ class LeaveDescription(SerializableMixin):
         result = super()._serialize(**kwargs)
         result['space'] = self.space_id
         result['target_space'] = self.target_space_id
-        result['description_i18n'] = self.description_i18n
+        result['descriptions'] = self.description_i18n
         result['description'] = self.description
         return result
 
@@ -366,7 +366,7 @@ class CrossDescription(SerializableMixin):
         result['space'] = self.space_id
         result['origin_space'] = self.origin_space_id
         result['target_space'] = self.target_space_id
-        result['description_i18n'] = self.description_i18n
+        result['descriptions'] = self.description_i18n
         result['description'] = self.description
         return result
 

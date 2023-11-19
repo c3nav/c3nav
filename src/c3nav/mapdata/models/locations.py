@@ -293,9 +293,21 @@ class LocationGroupCategory(SerializableMixin, models.Model):
     def _serialize(self, detailed=True, **kwargs):
         result = super()._serialize(detailed=detailed, **kwargs)
         result['name'] = self.name
+        result['single'] = self.single
         if detailed:
             result['titles'] = self.titles
-        result['title'] = self.title
+            result['titles_plural'] = self.titles_plural
+            result['help_texts'] = self.help_texts
+        result['title'] = str(self.title)
+        result['title_plural'] = str(self.title_plural)
+        result['help_text'] = str(self.help_text)
+        result['allow_levels'] = self.allow_levels
+        result['allow_spaces'] = self.allow_spaces
+        result['allow_areas'] = self.allow_areas
+        result['allow_pois'] = self.allow_pois
+        result['allow_dynamic_locations'] = self.allow_dynamic_locations
+        result['priority'] = self.priority
+
         return result
 
     def register_changed_geometries(self):
@@ -352,6 +364,9 @@ class LocationGroup(Location, models.Model):
     def _serialize(self, simple_geometry=False, **kwargs):
         result = super()._serialize(simple_geometry=simple_geometry, **kwargs)
         result['category'] = self.category_id
+        result['priority'] = self.priority
+        result['hierarchy'] = self.hierarchy
+        result['can_report_missing'] = self.can_report_missing
         result['color'] = self.color
         if simple_geometry:
             result['locations'] = tuple(obj.pk for obj in getattr(self, 'locations', ()))

@@ -2,10 +2,10 @@ from typing import Optional
 
 from pydantic import Field as APIField
 from pydantic import NonNegativeFloat, PositiveFloat, PositiveInt
-from pydantic.color import Color
 
 from c3nav.api.utils import NonEmptyStr
-from c3nav.mapdata.schemas.model_base import (AccessRestrictionSchema, DjangoModelSchema, SpecificLocationSchema,
+from c3nav.mapdata.schemas.model_base import (AccessRestrictionSchema, DjangoModelSchema, LabelSettingsSchema,
+                                              LocationSchema, SerializableSchema, SpecificLocationSchema, TitledSchema,
                                               WithLevelSchema, WithLineStringGeometrySchema, WithPointGeometrySchema,
                                               WithPolygonGeometrySchema, WithSpaceSchema)
 
@@ -14,7 +14,7 @@ class LevelSchema(SpecificLocationSchema, DjangoModelSchema):
     """
     A physical level of the map, containing building, spaces, doors…
 
-    A level is a specific location, and can therefor be routed to and from, as well as belong to location groups.
+    A level is a specific location, and can therefore be routed to and from, as well as belong to location groups.
     """
     short_label: NonEmptyStr = APIField(
         title="short label (for level selector)",
@@ -46,7 +46,7 @@ class SpaceSchema(WithPolygonGeometrySchema, SpecificLocationSchema, WithLevelSc
     """
     An accessible area on a level. It can be outside-only or inside-only.
 
-    A space is a specific location, and can therefor be routed to and from, as well as belong to location groups.
+    A space is a specific location, and can therefore be routed to and from, as well as belong to location groups.
     """
     outside: bool = APIField(
         title="outside only",
@@ -76,7 +76,7 @@ class AreaSchema(WithPolygonGeometrySchema, SpecificLocationSchema, WithSpaceSch
     """
     An area inside a space.
 
-    An area is a specific location, and can therefor be routed to and from, as well as belong to location groups.
+    An area is a specific location, and can therefore be routed to and from, as well as belong to location groups.
     """
     slow_down_factor: PositiveFloat = APIField(
         title="slow-down factor",
@@ -107,7 +107,7 @@ class BaseObstacleSchema(WithSpaceSchema, DjangoModelSchema):
         title="altitude above ground",
         description="altitude above ground"
     )
-    color: Optional[Color] = APIField(
+    color: Optional[NonEmptyStr] = APIField(
         title="color",
         description="an optional color for this obstacle"
     )
@@ -141,6 +141,151 @@ class POISchema(WithPointGeometrySchema, SpecificLocationSchema, WithSpaceSchema
     """
     A point of interest inside a space.
 
-    A POI is a specific location, and can therefor be routed to and from, as well as belong to location groups.
+    A POI is a specific location, and can therefore be routed to and from, as well as belong to location groups.
     """
     pass
+
+
+class LeaveDescriptionSchema(WithSpaceSchema, DjangoModelSchema):
+    """
+    A description for leaving a space to enter another space.
+    """
+    target_space: PositiveInt = APIField(
+        title="target space",
+        description="the space that is being entered",
+    )
+    descriptions: dict[NonEmptyStr, NonEmptyStr] = APIField(
+        title="description (all languages)",
+        description="property names are the ISO-language code. languages may be missing.",
+        example={
+            "en": "Stanley walked through the red door.",
+            "de": "Stanley ging durch die rote Tür.",
+        }
+    )
+    description: NonEmptyStr = APIField(
+        title="description (preferred language)",
+        description="preferred language based on the Accept-Language header."
+    )
+
+
+class CrossDescriptionSchema(WithSpaceSchema, DjangoModelSchema):
+    """
+    A description for crossing through a space from one space to another.
+    """
+    origin_space: PositiveInt = APIField(
+        title="origin space",
+        description="the space from which the main space is being entered",
+    )
+    target_space: PositiveInt = APIField(
+        title="target space",
+        description="the space that is being entered from the main space",
+    )
+    descriptions: dict[NonEmptyStr, NonEmptyStr] = APIField(
+        title="description (all languages)",
+        description="property names are the ISO-language code. languages may be missing.",
+        example={
+            "en": "Go straight ahead through the big glass doors.",
+            "de": "gehe geradeaus durch die Glastüren.",
+        }
+    )
+    description: NonEmptyStr = APIField(
+        title="description (preferred language)",
+        description="preferred language based on the Accept-Language header."
+    )
+
+
+class LocationGroupSchema(LocationSchema, DjangoModelSchema):
+    """
+    A location group, always belonging to a location group category.
+
+    A location group is a (non-specific) location, which means it can be routed to and from.
+    """
+    category: PositiveInt = APIField(
+        title="category",
+        description="location group category that this location group belongs to",
+    )
+    priority: int = APIField()  # todo: ???
+    hierarchy: int = APIField()  # todo: ???
+    label_settings: Optional[LabelSettingsSchema] = APIField(
+        default=None,
+        title="label settings",
+        description="for locations with this group, can be overwritten by specific locations"
+    )
+    can_report_missing: bool = APIField(
+        title="report missing locations",
+        description="can be used in form for reporting missing locations",
+    )
+    color: Optional[NonEmptyStr] = APIField(
+        title="color",
+        description="an optional color for spaces and areas with this group"
+    )
+
+
+class LocationGroupCategorySchema(TitledSchema, SerializableSchema, DjangoModelSchema):
+    """
+    A location group category can hold either one or multiple location groups.
+
+    It is used to allow for having different kind of groups for different means.
+    """
+    name: NonEmptyStr = APIField(
+        title="name/slug",
+        description="name/slug of this location group category",
+    )
+    single: bool = APIField(
+        title="single choice",
+        description="if true, every location can only have one group from this category, not a list"
+    )
+    titles_plural: dict[NonEmptyStr, NonEmptyStr] = APIField(
+        title="plural title (all languages)",
+        description="property names are the ISO-language code. languages may be missing.",
+        example={
+            "en": "Title",
+            "de": "Titel",
+        }
+    )
+    title_plural: NonEmptyStr = APIField(
+        title="plural title (preferred language)",
+        description="preferred language based on the Accept-Language header."
+    )
+    help_texts: dict[NonEmptyStr, NonEmptyStr] = APIField(
+        title="help text (all languages)",
+        description="property names are the ISO-language code. languages may be missing.",
+        example={
+            "en": "Title",
+            "de": "Titel",
+        }
+    )
+    help_text: str = APIField(
+        title="help text (preferred language)",
+        description="preferred language based on the Accept-Language header."
+    )
+    allow_levels: bool = APIField(
+        description="whether groups with this category can be assigned to levels"
+    )
+    allow_spaces: bool = APIField(
+        description="whether groups with this category can be assigned to spaces"
+    )
+    allow_areas: bool = APIField(
+        description="whether groups with this category can be assigned to areas"
+    )
+    allow_pois: bool = APIField(
+        description="whether groups with this category can be assigned to POIs"
+    )
+    allow_dynamic_locations: bool = APIField(
+        description="whether groups with this category can be assigned to dynamic locations"
+    )
+    priority: int = APIField()  # todo: ???
+
+
+class SourceSchema(AccessRestrictionSchema, DjangoModelSchema):
+    """
+    A source image that can be traced in the editor.
+    """
+    name: NonEmptyStr = APIField(
+        title="name",
+        description="name/filename of the source",
+    )
+    bottom: float
+    left: float
+    top: float
+    right: float

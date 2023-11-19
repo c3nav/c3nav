@@ -6,7 +6,7 @@ from ninja import Schema
 from pydantic import Field as APIField
 
 from c3nav.api.exceptions import APIRequestValidationFailed
-from c3nav.mapdata.models import Level, LocationGroup, MapUpdate, Space
+from c3nav.mapdata.models import Level, LocationGroup, LocationGroupCategory, MapUpdate, Space
 from c3nav.mapdata.models.access import AccessPermission
 
 
@@ -79,6 +79,24 @@ class BySpaceFilter(FilterSchema):
     def filter_qs(self, qs: QuerySet) -> QuerySet:
         if self.space is not None:
             qs = qs.filter(groups=self.space)
+        return super().filter_qs(qs)
+
+
+class ByCategoryFilter(FilterSchema):
+    category: Optional[int] = APIField(
+        None,
+        title="filter by location group category",
+        description="if set, only groups belonging to the location group category with this ID will be shown"
+    )
+
+    def validate(self, request):
+        super().validate(request)
+        if self.category is not None:
+            assert_valid_value(request, LocationGroupCategory, "pk", {self.category})
+
+    def filter_qs(self, qs: QuerySet) -> QuerySet:
+        if self.category is not None:
+            qs = qs.filter(category=self.category)
         return super().filter_qs(qs)
 
 
