@@ -1,12 +1,10 @@
 from datetime import datetime
-from pathlib import Path
 
 from django.db import IntegrityError, transaction
 from ninja import Field as APIField
 from ninja import Router as APIRouter
 from ninja import Schema, UploadedFile
 from ninja.pagination import paginate
-from ninja.renderers import BaseRenderer
 from pydantic import PositiveInt, field_validator
 
 from c3nav.api.exceptions import API404, APIConflict, APIRequestValidationFailed
@@ -38,8 +36,7 @@ class FirmwareBuildSchema(Schema):
         alias="binary",
         example="/media/firmware/012345/firmware.bin",
         description="download URL for the build binary",
-    ) # todo: downlaod differently?
-    # todo: should not be none, but parse errors
+    )  # todo: downlaod differently?
     boards: set[BoardType] = APIField(
         description="set of boards that this build is compatible with",
         example={BoardType.C3NAV_LOCATION_PCB_REV_0_2.name, }

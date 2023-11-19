@@ -6,6 +6,7 @@ from pydantic import PositiveInt, model_validator
 from pydantic.functional_validators import ModelWrapValidatorHandler
 from pydantic_core.core_schema import ValidationInfo
 
+from c3nav.api.schema import LineStringSchema, PointSchema, PolygonSchema
 from c3nav.api.utils import NonEmptyStr
 
 
@@ -93,7 +94,7 @@ class LabelSettingsSchema(TitledSchema, DjangoModelSchema):
     )
 
 
-class SpecificLocationSchema(LocationSchema, DjangoModelSchema):
+class SpecificLocationSchema(LocationSchema):
     grid_square: Optional[NonEmptyStr] = APIField(
         default=None,
         title="grid square",
@@ -120,4 +121,36 @@ class SpecificLocationSchema(LocationSchema, DjangoModelSchema):
         default=None,
         title="label override (preferred language)",
         description="preferred language based on the Accept-Language header."
+    )
+
+
+class WithPolygonGeometrySchema(Schema):
+    geometry: PolygonSchema = APIField(
+        title="geometry",
+    )
+
+
+class WithLineStringGeometrySchema(Schema):
+    geometry: LineStringSchema = APIField(
+        title="geometry",
+    )
+
+
+class WithPointGeometrySchema(Schema):
+    geometry: PointSchema = APIField(
+        title="geometry",
+    )
+
+
+class WithLevelSchema(SerializableSchema):
+    level: PositiveInt = APIField(
+        title="level",
+        description="level id this object belongs to.",
+    )
+
+
+class WithSpaceSchema(SerializableSchema):
+    space: PositiveInt = APIField(
+        title="space",
+        description="space id this object belongs to.",
     )

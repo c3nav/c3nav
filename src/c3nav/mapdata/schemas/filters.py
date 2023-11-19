@@ -6,7 +6,7 @@ from ninja import Schema
 from pydantic import Field as APIField
 
 from c3nav.api.exceptions import APIRequestValidationFailed
-from c3nav.mapdata.models import Level, LocationGroup, MapUpdate
+from c3nav.mapdata.models import Level, LocationGroup, MapUpdate, Space
 from c3nav.mapdata.models.access import AccessPermission
 
 
@@ -46,11 +46,47 @@ class FilterSchema(Schema):
         pass
 
 
-class GroupFilter(FilterSchema):
+class ByLevelFilter(FilterSchema):
+    level: Optional[int] = APIField(
+        None,
+        title="filter by level",
+        description="if set, only items belonging to the level with this ID will be shown"
+    )
+
+    def validate(self, request):
+        super().validate(request)
+        if self.level is not None:
+            assert_valid_value(request, Level, "pk", {self.level})
+
+    def filter_qs(self, qs: QuerySet) -> QuerySet:
+        if self.level is not None:
+            qs = qs.filter(level_id=self.level)
+        return super().filter_qs(qs)
+
+
+class BySpaceFilter(FilterSchema):
+    space: Optional[int] = APIField(
+        None,
+        title="filter by space",
+        description="if set, only items belonging to the space with this ID will be shown"
+    )
+
+    def validate(self, request):
+        super().validate(request)
+        if self.space is not None:
+            assert_valid_value(request, Space, "pk", {self.space})
+
+    def filter_qs(self, qs: QuerySet) -> QuerySet:
+        if self.space is not None:
+            qs = qs.filter(groups=self.space)
+        return super().filter_qs(qs)
+
+
+class ByGroupFilter(FilterSchema):
     group: Optional[int] = APIField(
         None,
         title="filter by location group",
-        description="if set, only items belonging to the location group with that ID will be shown"
+        description="if set, only items belonging to the location group with this ID will be shown"
     )
 
     def validate(self, request):
@@ -59,13 +95,12 @@ class GroupFilter(FilterSchema):
             assert_valid_value(request, LocationGroup, "pk", {self.group})
 
     def filter_qs(self, qs: QuerySet) -> QuerySet:
-        qs = super().filter_qs(qs)
         if self.group is not None:
             qs = qs.filter(groups=self.group)
         return super().filter_qs(qs)
 
 
-class OnTopOfFilter(FilterSchema):
+class ByOnTopOfFilter(FilterSchema):
     on_top_of: Optional[Literal["null"] | int] = APIField(
         None,
         title='filter by on top of level ID (or "null")',

@@ -44,6 +44,12 @@ class SpaceGeometryMixin(GeometryMixin):
             result['opacity'] = self.opacity
         return result
 
+    def _serialize(self, space=True, **kwargs):
+        result = super()._serialize(**kwargs)
+        if space:
+            result['space'] = self.space_id
+        return result
+
     @property
     def subtitle(self):
         base_subtitle = super().subtitle
@@ -126,6 +132,7 @@ class Area(SpaceGeometryMixin, SpecificLocation, models.Model):
 
     def _serialize(self, **kwargs):
         result = super()._serialize(**kwargs)
+        result["slow_down_factor"] = float(self.slow_down_factor)
         return result
 
     @property

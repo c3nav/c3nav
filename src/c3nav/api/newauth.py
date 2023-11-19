@@ -65,6 +65,6 @@ class APITokenAuth(HttpBearer):
         return user
 
 
-validate_responses = {422: APIErrorSchema,}
-auth_responses = {401: APIErrorSchema,}
-auth_permission_responses = {401: APIErrorSchema, 403: APIErrorSchema,}
+validate_responses = {422: APIErrorSchema, }
+auth_responses = {401: APIErrorSchema, }
+auth_permission_responses = {401: APIErrorSchema, 403: APIErrorSchema, }
