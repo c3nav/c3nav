@@ -6,6 +6,7 @@ from ninja import Router as APIRouter
 from ninja.pagination import paginate
 
 from c3nav.api.exceptions import API404
+from c3nav.api.newauth import auth_responses, validate_responses
 from c3nav.mapdata.api import optimize_query
 from c3nav.mapdata.models import (Area, Building, Door, Hole, Level, LocationGroup, LocationGroupCategory, Source,
                                   Space, Stair)
@@ -80,7 +81,8 @@ class LevelFilters(ByGroupFilter, ByOnTopOfFilter):
     pass
 
 
-@mapdata_api_router.get('/levels/', response=list[LevelSchema],
+@mapdata_api_router.get('/levels/',
+                        response={200: list[LevelSchema], **validate_responses, **auth_responses},
                         summary="Get level list")
 @paginate
 def level_list(request, filters: Query[LevelFilters]):
@@ -88,7 +90,8 @@ def level_list(request, filters: Query[LevelFilters]):
     return mapdata_list_endpoint(request, model=Level, filters=filters)
 
 
-@mapdata_api_router.get('/levels/{level_id}/', response=LevelSchema,
+@mapdata_api_router.get('/levels/{level_id}/',
+                        response={200: LevelSchema, **API404.dict(), **auth_responses},
                         summary="Get level by ID")
 def level_detail(request, level_id: int):
     # todo: access, caching, filtering, etc
@@ -100,7 +103,8 @@ Buildings
 """
 
 
-@mapdata_api_router.get('/buildings/', response=list[BuildingSchema],
+@mapdata_api_router.get('/buildings/',
+                        response={200: list[BuildingSchema], **validate_responses, **auth_responses},
                         summary="Get building list")
 @paginate
 def building_list(request, filters: Query[ByLevelFilter]):
@@ -108,7 +112,8 @@ def building_list(request, filters: Query[ByLevelFilter]):
     return mapdata_list_endpoint(request, model=Building, filters=filters)
 
 
-@mapdata_api_router.get('/buildings/{building_id}/', response=BuildingSchema,
+@mapdata_api_router.get('/buildings/{building_id}/',
+                        response={200: BuildingSchema, **API404.dict(), **auth_responses},
                         summary="Get building by ID")
 def building_detail(request, building_id: int):
     # todo: access, caching, filtering, etc
@@ -124,7 +129,8 @@ class SpaceFilters(ByGroupFilter, ByLevelFilter):
     pass
 
 
-@mapdata_api_router.get('/spaces/', response=list[SpaceSchema],
+@mapdata_api_router.get('/spaces/',
+                        response={200: list[SpaceSchema], **validate_responses, **auth_responses},
                         summary="Get space list")
 @paginate
 def space_list(request, filters: Query[SpaceFilters]):
@@ -132,7 +138,8 @@ def space_list(request, filters: Query[SpaceFilters]):
     return mapdata_list_endpoint(request, model=Space, filters=filters)
 
 
-@mapdata_api_router.get('/space/{space_id}/', response=SpaceSchema,
+@mapdata_api_router.get('/space/{space_id}/',
+                        response={200: SpaceSchema, **API404.dict(), **auth_responses},
                         summary="Get space by ID")
 def space_detail(request, space_id: int):
     # todo: access, caching, filtering, etc
@@ -144,7 +151,8 @@ Doors
 """
 
 
-@mapdata_api_router.get('/doors/', response=list[DoorSchema],
+@mapdata_api_router.get('/doors/',
+                        response={200: list[DoorSchema], **validate_responses, **auth_responses},
                         summary="Get door list")
 @paginate
 def door_list(request, filters: Query[ByLevelFilter]):
@@ -152,7 +160,8 @@ def door_list(request, filters: Query[ByLevelFilter]):
     return mapdata_list_endpoint(request, model=Door, filters=filters)
 
 
-@mapdata_api_router.get('/doors/{door_id}/', response=DoorSchema,
+@mapdata_api_router.get('/doors/{door_id}/',
+                        response={200: DoorSchema, **API404.dict(), **auth_responses},
                         summary="Get door by ID")
 def door_detail(request, door_id: int):
     # todo: access, caching, filtering, etc
@@ -164,7 +173,8 @@ Holes
 """
 
 
-@mapdata_api_router.get('/holes/', response=list[HoleSchema],
+@mapdata_api_router.get('/holes/',
+                        response={200: list[HoleSchema], **validate_responses, **auth_responses},
                         summary="Get hole list")
 @paginate
 def hole_list(request, filters: Query[BySpaceFilter]):
@@ -172,7 +182,8 @@ def hole_list(request, filters: Query[BySpaceFilter]):
     return mapdata_list_endpoint(request, model=Hole, filters=filters)
 
 
-@mapdata_api_router.get('/holes/{hole_id}/', response=HoleSchema,
+@mapdata_api_router.get('/holes/{hole_id}/',
+                        response={200: HoleSchema, **API404.dict(), **auth_responses},
                         summary="Get hole by ID")
 def hole_detail(request, hole_id: int):
     # todo: access, caching, filtering, etc
@@ -188,7 +199,8 @@ class AreaFilters(ByGroupFilter, BySpaceFilter):
     pass
 
 
-@mapdata_api_router.get('/areas/', response=list[AreaSchema],
+@mapdata_api_router.get('/areas/',
+                        response={200: list[AreaSchema], **validate_responses, **auth_responses},
                         summary="Get area list")
 @paginate
 def area_list(request, filters: Query[AreaFilters]):
@@ -196,7 +208,8 @@ def area_list(request, filters: Query[AreaFilters]):
     return mapdata_list_endpoint(request, model=Area, filters=filters)
 
 
-@mapdata_api_router.get('/areas/{area_id}/', response=AreaSchema,
+@mapdata_api_router.get('/areas/{area_id}/',
+                        response={200: AreaSchema, **API404.dict(), **auth_responses},
                         summary="Get area by ID")
 def area_detail(request, area_id: int):
     # todo: access, caching, filtering, etc
@@ -208,7 +221,8 @@ Stairs
 """
 
 
-@mapdata_api_router.get('/stairs/', response=list[StairSchema],
+@mapdata_api_router.get('/stairs/',
+                        response={200: list[StairSchema], **validate_responses, **auth_responses},
                         summary="Get stair list")
 @paginate
 def stair_list(request, filters: Query[BySpaceFilter]):
@@ -216,7 +230,8 @@ def stair_list(request, filters: Query[BySpaceFilter]):
     return mapdata_list_endpoint(request, model=Stair, filters=filters)
 
 
-@mapdata_api_router.get('/stairs/{stair_id}/', response=StairSchema,
+@mapdata_api_router.get('/stairs/{stair_id}/',
+                        response={200: StairSchema, **API404.dict(), **auth_responses},
                         summary="Get stair by ID")
 def stair_detail(request, stair_id: int):
     # todo: access, caching, filtering, etc
@@ -228,7 +243,8 @@ Ramps
 """
 
 
-@mapdata_api_router.get('/ramps/', response=list[RampSchema],
+@mapdata_api_router.get('/ramps/',
+                        response={200: list[RampSchema], **validate_responses, **auth_responses},
                         summary="Get ramp list")
 @paginate
 def ramp_list(request, filters: Query[BySpaceFilter]):
@@ -236,7 +252,8 @@ def ramp_list(request, filters: Query[BySpaceFilter]):
     return mapdata_list_endpoint(request, model=Ramp, filters=filters)
 
 
-@mapdata_api_router.get('/ramps/{ramp_id}/', response=RampSchema,
+@mapdata_api_router.get('/ramps/{ramp_id}/',
+                        response={200: RampSchema, **API404.dict(), **auth_responses},
                         summary="Get ramp by ID")
 def ramp_detail(request, ramp_id: int):
     # todo: access, caching, filtering, etc
@@ -248,7 +265,8 @@ Obstacles
 """
 
 
-@mapdata_api_router.get('/obstacles/', response=list[ObstacleSchema],
+@mapdata_api_router.get('/obstacles/',
+                        response={200: list[ObstacleSchema], **validate_responses, **auth_responses},
                         summary="Get obstacle list")
 @paginate
 def obstacle_list(request, filters: Query[BySpaceFilter]):
@@ -256,7 +274,8 @@ def obstacle_list(request, filters: Query[BySpaceFilter]):
     return mapdata_list_endpoint(request, model=Obstacle, filters=filters)
 
 
-@mapdata_api_router.get('/obstacles/{obstacle_id}/', response=ObstacleSchema,
+@mapdata_api_router.get('/obstacles/{obstacle_id}/',
+                        response={200: ObstacleSchema, **API404.dict(), **auth_responses},
                         summary="Get obstacle by ID")
 def obstacle_detail(request, obstacle_id: int):
     # todo: access, caching, filtering, etc
@@ -268,7 +287,8 @@ LineObstacles
 """
 
 
-@mapdata_api_router.get('/lineobstacles/', response=list[LineObstacleSchema],
+@mapdata_api_router.get('/lineobstacles/',
+                        response={200: list[LineObstacleSchema], **validate_responses, **auth_responses},
                         summary="Get line obstacle list")
 @paginate
 def lineobstacle_list(request, filters: Query[BySpaceFilter]):
@@ -276,7 +296,8 @@ def lineobstacle_list(request, filters: Query[BySpaceFilter]):
     return mapdata_list_endpoint(request, model=LineObstacle, filters=filters)
 
 
-@mapdata_api_router.get('/lineobstacles/{lineobstacle_id}/', response=LineObstacleSchema,
+@mapdata_api_router.get('/lineobstacles/{lineobstacle_id}/',
+                        response={200: LineObstacleSchema, **API404.dict(), **auth_responses},
                         summary="Get line obstacle by ID")
 def lineobstacle_detail(request, lineobstacle_id: int):
     # todo: access, caching, filtering, etc
@@ -288,7 +309,8 @@ Columns
 """
 
 
-@mapdata_api_router.get('/columns/', response=list[ColumnSchema],
+@mapdata_api_router.get('/columns/',
+                        response={200: list[ColumnSchema], **validate_responses, **auth_responses},
                         summary="Get column list")
 @paginate
 def column_list(request, filters: Query[BySpaceFilter]):
@@ -296,7 +318,8 @@ def column_list(request, filters: Query[BySpaceFilter]):
     return mapdata_list_endpoint(request, model=Column, filters=filters)
 
 
-@mapdata_api_router.get('/columns/{column_id}/', response=ColumnSchema,
+@mapdata_api_router.get('/columns/{column_id}/',
+                        response={200: ColumnSchema, **API404.dict(), **auth_responses},
                         summary="Get column by ID")
 def column_detail(request, column_id: int):
     # todo: access, caching, filtering, etc
@@ -308,7 +331,8 @@ POIs
 """
 
 
-@mapdata_api_router.get('/pois/', response=list[POISchema],
+@mapdata_api_router.get('/pois/',
+                        response={200: list[POISchema], **validate_responses, **auth_responses},
                         summary="Get POI list")
 @paginate
 def poi_list(request, filters: Query[BySpaceFilter]):
@@ -316,7 +340,8 @@ def poi_list(request, filters: Query[BySpaceFilter]):
     return mapdata_list_endpoint(request, model=POI, filters=filters)
 
 
-@mapdata_api_router.get('/pois/{poi_id}/', response=POISchema,
+@mapdata_api_router.get('/pois/{poi_id}/',
+                        response={200: POISchema, **API404.dict(), **auth_responses},
                         summary="Get POI by ID")
 def poi_detail(request, poi_id: int):
     # todo: access, caching, filtering, etc
@@ -328,7 +353,8 @@ LeaveDescriptions
 """
 
 
-@mapdata_api_router.get('/leavedescriptions/', response=list[LeaveDescriptionSchema],
+@mapdata_api_router.get('/leavedescriptions/',
+                        response={200: list[LeaveDescriptionSchema], **validate_responses, **auth_responses},
                         summary="Get leave description list")
 @paginate
 def leavedescription_list(request, filters: Query[BySpaceFilter]):
@@ -336,7 +362,8 @@ def leavedescription_list(request, filters: Query[BySpaceFilter]):
     return mapdata_list_endpoint(request, model=LeaveDescription, filters=filters)
 
 
-@mapdata_api_router.get('/leavedescriptions/{leavedescription_id}/', response=LeaveDescriptionSchema,
+@mapdata_api_router.get('/leavedescriptions/{leavedescription_id}/',
+                        response={200: LeaveDescriptionSchema, **API404.dict(), **auth_responses},
                         summary="Get leave description by ID")
 def leavedescription_detail(request, leavedescription_id: int):
     # todo: access, caching, filtering, etc
@@ -348,7 +375,8 @@ CrossDescriptions
 """
 
 
-@mapdata_api_router.get('/crossdescriptions/', response=list[CrossDescriptionSchema],
+@mapdata_api_router.get('/crossdescriptions/',
+                        response={200: list[CrossDescriptionSchema], **validate_responses, **auth_responses},
                         summary="Get cross description list")
 @paginate
 def crossdescription_list(request, filters: Query[BySpaceFilter]):
@@ -356,7 +384,8 @@ def crossdescription_list(request, filters: Query[BySpaceFilter]):
     return mapdata_list_endpoint(request, model=CrossDescription, filters=filters)
 
 
-@mapdata_api_router.get('/crossdescriptions/{crossdescription_id}/', response=CrossDescriptionSchema,
+@mapdata_api_router.get('/crossdescriptions/{crossdescription_id}/',
+                        response={200: CrossDescriptionSchema, **API404.dict(), **auth_responses},
                         summary="Get cross description by ID")
 def crossdescription_detail(request, crossdescription_id: int):
     # todo: access, caching, filtering, etc
@@ -368,7 +397,8 @@ LocationGroup
 """
 
 
-@mapdata_api_router.get('/locationgroups/', response=list[LocationGroupSchema],
+@mapdata_api_router.get('/locationgroups/',
+                        response={200: list[LocationGroupSchema], **validate_responses, **auth_responses},
                         summary="Get location group list")
 @paginate
 def locationgroup_list(request, filters: Query[ByCategoryFilter]):
@@ -376,7 +406,8 @@ def locationgroup_list(request, filters: Query[ByCategoryFilter]):
     return mapdata_list_endpoint(request, model=LocationGroup, filters=filters)
 
 
-@mapdata_api_router.get('/locationgroups/{locationgroup_id}/', response=LocationGroupSchema,
+@mapdata_api_router.get('/locationgroups/{locationgroup_id}/',
+                        response={200: LocationGroupSchema, **API404.dict(), **auth_responses},
                         summary="Get location group by ID")
 def locationgroup_detail(request, locationgroup_id: int):
     # todo: access, caching, filtering, etc
@@ -388,7 +419,8 @@ LocationGroupCategories
 """
 
 
-@mapdata_api_router.get('/locationgroupcategories/', response=list[LocationGroupCategorySchema],
+@mapdata_api_router.get('/locationgroupcategories/',
+                        response={200: list[LocationGroupCategorySchema], **auth_responses},
                         summary="Get location group category list")
 @paginate
 def locationgroupcategory_list(request):
@@ -396,7 +428,8 @@ def locationgroupcategory_list(request):
     return mapdata_list_endpoint(request, model=LocationGroupCategory)
 
 
-@mapdata_api_router.get('/locationgroupcategories/{category_id}/', response=LocationGroupCategorySchema,
+@mapdata_api_router.get('/locationgroupcategories/{category_id}/',
+                        response={200: LocationGroupCategorySchema, **API404.dict(), **auth_responses},
                         summary="Get location group category by ID")
 def locationgroupcategory_detail(request, category_id: int):
     # todo: access, caching, filtering, etc
@@ -408,7 +441,8 @@ Sources
 """
 
 
-@mapdata_api_router.get('/sources/', response=list[SourceSchema],
+@mapdata_api_router.get('/sources/',
+                        response={200: list[SourceSchema], **auth_responses},
                         summary="Get source list")
 @paginate
 def source_list(request):
@@ -416,7 +450,8 @@ def source_list(request):
     return mapdata_list_endpoint(request, model=Source)
 
 
-@mapdata_api_router.get('/sources/{source_id}/', response=SourceSchema,
+@mapdata_api_router.get('/sources/{source_id}/',
+                        response={200: SourceSchema, **API404.dict(), **auth_responses},
                         summary="Get source by ID")
 def source_detail(request, source_id: int):
     # todo: access, caching, filtering, etc
@@ -428,7 +463,8 @@ AccessRestrictions
 """
 
 
-@mapdata_api_router.get('/accessrestrictions/', response=list[AccessRestrictionSchema],
+@mapdata_api_router.get('/accessrestrictions/',
+                        response={200: list[AccessRestrictionSchema], **auth_responses},
                         summary="Get access restriction list")
 @paginate
 def accessrestriction_list(request):
@@ -436,7 +472,8 @@ def accessrestriction_list(request):
     return mapdata_list_endpoint(request, model=AccessRestriction)
 
 
-@mapdata_api_router.get('/accessrestrictions/{accessrestriction_id}/', response=AccessRestrictionSchema,
+@mapdata_api_router.get('/accessrestrictions/{accessrestriction_id}/',
+                        response={200: AccessRestrictionSchema, **API404.dict(), **auth_responses},
                         summary="Get access restriction by ID")
 def accessrestriction_detail(request, accessrestriction_id: int):
     # todo: access, caching, filtering, etc
@@ -448,7 +485,8 @@ AccessRestrictionGroups
 """
 
 
-@mapdata_api_router.get('/accessrestrictiongroups/', response=list[AccessRestrictionGroupSchema],
+@mapdata_api_router.get('/accessrestrictiongroups/',
+                        response={200: list[AccessRestrictionGroupSchema], **auth_responses},
                         summary="Get access restriction group list")
 @paginate
 def accessrestrictiongroup_list(request):
@@ -456,7 +494,8 @@ def accessrestrictiongroup_list(request):
     return mapdata_list_endpoint(request, model=AccessRestrictionGroup)
 
 
-@mapdata_api_router.get('/accessrestrictiongroups/{group_id}/', response=AccessRestrictionGroupSchema,
+@mapdata_api_router.get('/accessrestrictiongroups/{group_id}/',
+                        response={200: AccessRestrictionGroupSchema, **API404.dict(), **auth_responses},
                         summary="Get access restriction group by ID")
 def accessrestrictiongroups_detail(request, group_id: int):
     # todo: access, caching, filtering, etc
