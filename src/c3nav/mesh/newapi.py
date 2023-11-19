@@ -135,8 +135,8 @@ class UploadFirmwareSchema(Schema):
 
 
 @mesh_api_router.post(
-    '/firmwares/upload', summary="Upload firmware", auth=BearerAuth(superuser=True),
-    description="your OpenAPI viewer might not show it: firmware_data is UploadFirmwareSchema as json",
+    '/firmwares/upload', summary="Upload firmware", auth=APITokenAuth(superuser=True),
+    description="your OpenAPI viewer might not show it: firmware_data is UploadFirmware as json",
     response={200: FirmwareSchema, **validate_responses, **auth_permission_responses, **APIConflict.dict()}
 )
 def firmware_upload(request, firmware_data: UploadFirmwareSchema, binary_files: list[UploadedFile]):
