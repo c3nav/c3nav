@@ -1,6 +1,7 @@
-from typing import Literal
+from typing import Annotated, Literal, Union
 
 from ninja import Schema
+from pydantic import Discriminator
 from pydantic import Field as APIField
 
 from c3nav.api.utils import NonEmptyStr
@@ -43,3 +44,13 @@ class PointSchema(Schema):
     coordinates: tuple[float, float] = APIField(
         example=[1, 2.5]
     )
+
+
+GeometrySchema = Annotated[
+    Union[
+        PolygonSchema,
+        LineStringSchema,
+        PointSchema,],
+    Discriminator("type"),
+]
+

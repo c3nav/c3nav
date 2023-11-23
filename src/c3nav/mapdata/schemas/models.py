@@ -7,12 +7,14 @@ from pydantic import GetJsonSchemaHandler, NonNegativeFloat, PositiveFloat, Posi
 from pydantic.json_schema import JsonSchemaValue
 from pydantic_core import CoreSchema
 
+from c3nav.api.schema import GeometrySchema
 from c3nav.api.utils import NonEmptyStr
-from c3nav.mapdata.schemas.model_base import (DjangoModelSchema, LabelSettingsSchema, LocationSchema,
-                                              LocationSlugSchema, SimpleGeometryBoundsAndPointSchema,
-                                              SimpleGeometryBoundsSchema, SimpleGeometryLocationsSchema,
-                                              SpecificLocationSchema, TitledSchema, WithAccessRestrictionSchema,
-                                              WithLevelSchema, WithLineStringGeometrySchema, WithPointGeometrySchema,
+from c3nav.mapdata.schemas.model_base import (DjangoModelSchema, LabelSettingsSchema, LocationID, LocationSchema,
+                                              LocationSlugSchema, SerializableSchema,
+                                              SimpleGeometryBoundsAndPointSchema, SimpleGeometryBoundsSchema,
+                                              SimpleGeometryLocationsSchema, SpecificLocationSchema, TitledSchema,
+                                              WithAccessRestrictionSchema, WithLevelSchema,
+                                              WithLineStringGeometrySchema, WithPointGeometrySchema,
                                               WithPolygonGeometrySchema, WithSpaceSchema)
 
 
@@ -439,3 +441,42 @@ SlimLocationSchema = Annotated[
 ]
 
 
+class DisplayLink(Schema):
+    """
+    A link for the location display
+    """
+    id: PositiveInt
+    slug: NonEmptyStr
+    title: NonEmptyStr
+    can_search: bool
+
+
+class LocationDisplay(SerializableSchema):
+    id: LocationID = APIField(
+        description="a numeric ID for a map location or a string ID for generated locations",
+    )
+    level: Optional[PositiveInt] = APIField(
+        None,
+        description="level ID, if applicable"
+    )
+    space: Optional[PositiveInt] = APIField(
+        None,
+        description="space ID, if applicable"
+    )
+    display: list[
+        tuple[
+            Annotated[NonEmptyStr, APIField(name="field title")],
+            Annotated[Union[
+                Annotated[str, APIField(name="a simple string value")],
+                Annotated[DisplayLink, APIField(namen="a link value")],
+                Annotated[list[DisplayLink], APIField(name="a list of link values")],
+                Annotated[Literal[None], APIField(name="no value")]
+            ], APIField(name="field value")]
+        ]
+    ] = APIField(description="a list of human-readable display values")
+    geometry: Optional[GeometrySchema] = APIField(
+        None, description="representative geometry, if available"
+    )
+    editor_url: Optional[NonEmptyStr] = APIField(
+        None, description="path to edit this object in the editor, if the user has access to it",
+    )

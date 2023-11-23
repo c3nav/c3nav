@@ -1,4 +1,4 @@
-from typing import Annotated, Any, ClassVar, Optional
+from typing import Annotated, Any, ClassVar, Optional, Union
 
 from ninja import Schema
 from pydantic import Field as APIField
@@ -189,3 +189,14 @@ class SimpleGeometryLocationsSchema(Schema):
         example=(1, 2, 3),
     )
 
+
+LocationID = Union[
+    Annotated[int, APIField(title="location ID",
+                            description="numeric ID of any lcation")],
+    Annotated[str, APIField(title="custom location ID",
+                            pattern=r"c:[a-z0-9-_]+:(-?\d+(\.\d+)?):(-?\d+(\.\d+)?)$",
+                            description="level short_name and x/y coordinates form the ID of a custom location")],
+    Annotated[str, APIField(title="position ID",
+                            pattern=r"p:[a-z0-9]+$",
+                            description="the ID of a user-defined tracked position is made up of its secret")],
+]
