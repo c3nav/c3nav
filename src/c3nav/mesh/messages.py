@@ -278,11 +278,9 @@ class ConfigUplinkMessage(MeshMessage, msg_type=MeshMessageType.CONFIG_UPLINK):
 @dataclass
 class OTAStatusMessage(MeshMessage, msg_type=MeshMessageType.OTA_STATUS):
     """ report OTA status """
-    source: bool = field(metadata={"format": BoolFormat()})
     update_id: int = field(metadata={"format": SimpleFormat('I')})
-    total_bytes: int = field(metadata={"format": SimpleFormat('I')})
     received_bytes: int = field(metadata={"format": SimpleFormat('I')})
-    auto_apply: int = field(metadata={"format": SimpleFormat('I')})
+    auto_apply: bool = field(metadata={"format": BoolFormat()})
     app_desc: FirmwareAppDescription = field()
 
 
@@ -310,7 +308,7 @@ class OTAURLMessage(MeshMessage, msg_type=MeshMessageType.OTA_URL):
 class OTAFragmentMessage(MeshMessage, msg_type=MeshMessageType.OTA_FRAGMENT):
     """ supply OTA fragment """
     update_id: int = field(metadata={"format": SimpleFormat('I')})
-    offset_bytes: int = field(metadata={"format": SimpleFormat('I')})
+    chunk: int = field(metadata={"format": SimpleFormat('H')})
     data: str = field(metadata={"format": VarBytesFormat()})
 
 
@@ -318,7 +316,7 @@ class OTAFragmentMessage(MeshMessage, msg_type=MeshMessageType.OTA_FRAGMENT):
 class OTARequestFragmentMessage(MeshMessage, msg_type=MeshMessageType.OTA_REQUEST_FRAGMENT):
     """ request fragment after we haven't gotten one for a while """
     update_id: int = field(metadata={"format": SimpleFormat('I')})
-    offset_bytes: int = field(metadata={"format": SimpleFormat('I')})
+    chunk: int = field(metadata={"format": SimpleFormat('H')})
 
 
 @dataclass
