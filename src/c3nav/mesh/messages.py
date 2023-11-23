@@ -47,7 +47,7 @@ class MeshMessageType(IntEnum):
     OTA_START = 0x22
     OTA_URL = 0x23
     OTA_FRAGMENT = 0x24
-    OTA_REQUEST_FRAGMENT = 0x25
+    OTA_REQUEST_FRAGMENTS = 0x25
     OTA_APPLY = 0x26
     OTA_REBOOT = 0x27
 
@@ -313,10 +313,10 @@ class OTAFragmentMessage(MeshMessage, msg_type=MeshMessageType.OTA_FRAGMENT):
 
 
 @dataclass
-class OTARequestFragmentMessage(MeshMessage, msg_type=MeshMessageType.OTA_REQUEST_FRAGMENT):
+class OTARequestFragmentsMessage(MeshMessage, msg_type=MeshMessageType.OTA_REQUEST_FRAGMENTS):
     """ request fragment after we haven't gotten one for a while """
     update_id: int = field(metadata={"format": SimpleFormat('I')})
-    chunk: int = field(metadata={"format": SimpleFormat('H')})
+    chunks: list[int] = field(metadata={"format":  VarArrayFormat(SimpleFormat('H'))})
 
 
 @dataclass
