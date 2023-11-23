@@ -84,10 +84,12 @@ class LabelSettingsSchema(DjangoModelSchema):  # todo: add titles back in here
     Settings preset for how and when to display a label. Reusable between objects.
     The title describes the title of this preset, not the displayed label.
     """
-    min_zoom: Optional[float] = APIField(
+    min_zoom: float = APIField(
+        -10,
         title="min zoom",
     )
-    max_zoom: Optional[float] = APIField(
+    max_zoom: float = APIField(
+        10,
         title="max zoom",
     )
     font_size: PositiveInt = APIField(
