@@ -12,6 +12,7 @@ from pydantic import PositiveInt
 
 from c3nav.api.exceptions import API404
 from c3nav.api.newauth import auth_responses, validate_responses
+from c3nav.api.utils import NonEmptyStr
 from c3nav.mapdata.models import Source
 from c3nav.mapdata.models.access import AccessPermission
 from c3nav.mapdata.models.locations import LocationRedirect
@@ -19,8 +20,8 @@ from c3nav.mapdata.schemas.filters import BySearchableFilter, RemoveGeometryFilt
 from c3nav.mapdata.schemas.model_base import LocationID
 from c3nav.mapdata.schemas.models import FullLocationSchema, LocationDisplay, SlimLocationSchema
 from c3nav.mapdata.schemas.responses import BoundsSchema
-from c3nav.mapdata.utils.locations import (get_location_by_id_for_request, searchable_locations_for_request,
-                                           visible_locations_for_request)
+from c3nav.mapdata.utils.locations import (get_location_by_id_for_request, get_location_by_slug_for_request,
+                                           searchable_locations_for_request, visible_locations_for_request)
 from c3nav.mapdata.utils.user import can_access_editor
 
 map_api_router = APIRouter(tags=["map"])
@@ -134,7 +135,7 @@ class ShowRedirects(Schema):
                     summary="Get location by ID (with most important attributes)",
                     description="a numeric ID for a map location or a string ID for generated locations can be used")
 def location_by_id(request, location_id: LocationID, filters: Query[RemoveGeometryFilter],
-                      redirects: Query[ShowRedirects]):
+                   redirects: Query[ShowRedirects]):
     return _location_retrieve(
         request,
         get_location_by_id_for_request(location_id, request),
@@ -147,7 +148,7 @@ def location_by_id(request, location_id: LocationID, filters: Query[RemoveGeomet
                     summary="Get location by ID (with all attributes)",
                     description="a numeric ID for a map location or a string ID for generated locations can be used")
 def location_by_id_full(request, location_id: LocationID, filters: Query[RemoveGeometryFilter],
-                           redirects: Query[ShowRedirects]):
+                        redirects: Query[ShowRedirects]):
     return _location_retrieve(
         request,
         get_location_by_id_for_request(location_id, request),
@@ -166,3 +167,36 @@ def location_by_id_display(request, location_id: LocationID):
     )
 
 
+
+@map_api_router.get('/locations/by-slug/{location_slug}/',
+                    response={200: SlimLocationSchema, **API404.dict(), **validate_responses, **auth_responses},
+                    summary="Get location by slug (with most important attributes)")
+def location_by_slug(request, location_slug: NonEmptyStr, filters: Query[RemoveGeometryFilter],
+                     redirects: Query[ShowRedirects]):
+    return _location_retrieve(
+        request,
+        get_location_by_slug_for_request(location_slug, request),
+        detailed=False, geometry=filters.geometry, show_redirects=redirects.show_redirects,
+    )
+
+
+@map_api_router.get('/locations/by-slug/{location_slug}/full/',
+                    response={200: FullLocationSchema, **API404.dict(), **validate_responses, **auth_responses},
+                    summary="Get location by slug (with all attributes)")
+def location_by_slug_full(request, location_slug: NonEmptyStr, filters: Query[RemoveGeometryFilter],
+                          redirects: Query[ShowRedirects]):
+    return _location_retrieve(
+        request,
+        get_location_by_slug_for_request(location_slug, request),
+        detailed=True, geometry=filters.geometry, show_redirects=redirects.show_redirects,
+    )
+
+
+@map_api_router.get('/locations/by-slug/{location_slug}/display/',
+                    response={200: LocationDisplay, **API404.dict(), **auth_responses},
+                    summary="Get location display data by slug")
+def location_by_slug_display(request, location_slug: NonEmptyStr):
+    return _location_display(
+        request,
+        get_location_by_slug_for_request(location_slug, request),
+    )
