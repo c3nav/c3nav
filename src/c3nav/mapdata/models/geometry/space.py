@@ -137,6 +137,8 @@ class Area(SpaceGeometryMixin, SpecificLocation, models.Model):
 
     @property
     def grid_square(self):
+        if "geometry" in self.get_deferred_fields():
+            return None
         return grid.get_squares_for_bounds(self.geometry.bounds) or ''
 
     def details_display(self, editor_url=True, **kwargs):
@@ -265,6 +267,8 @@ class POI(SpaceGeometryMixin, SpecificLocation, models.Model):
 
     @property
     def grid_square(self):
+        if "geometry" in self.get_deferred_fields():
+            return None
         return grid.get_square_for_point(self.x, self.y) or ''
 
     @property

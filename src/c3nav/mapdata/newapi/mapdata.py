@@ -13,8 +13,8 @@ from c3nav.mapdata.models import (Area, Building, Door, Hole, Level, LocationGro
 from c3nav.mapdata.models.access import AccessPermission, AccessRestriction, AccessRestrictionGroup
 from c3nav.mapdata.models.geometry.space import (POI, Column, CrossDescription, LeaveDescription, LineObstacle,
                                                  Obstacle, Ramp)
-from c3nav.mapdata.schemas.filters import (ByCategoryFilter, ByGroupFilter, ByLevelFilter, ByOnTopOfFilter,
-                                           BySpaceFilter, FilterSchema)
+from c3nav.mapdata.schemas.filters import (ByCategoryFilter, ByGroupFilter, ByOnTopOfFilter, FilterSchema,
+                                           LevelGeometryFilter, SpaceGeometryFilter)
 from c3nav.mapdata.schemas.models import (AccessRestrictionGroupSchema, AccessRestrictionSchema, AreaSchema,
                                           BuildingSchema, ColumnSchema, CrossDescriptionSchema, DoorSchema, HoleSchema,
                                           LeaveDescriptionSchema, LevelSchema, LineObstacleSchema,
@@ -107,7 +107,7 @@ Buildings
                         response={200: list[BuildingSchema], **validate_responses, **auth_responses},
                         summary="Get building list")
 @paginate
-def building_list(request, filters: Query[ByLevelFilter]):
+def building_list(request, filters: Query[LevelGeometryFilter]):
     # todo cache?
     return mapdata_list_endpoint(request, model=Building, filters=filters)
 
@@ -125,7 +125,7 @@ Spaces
 """
 
 
-class SpaceFilters(ByGroupFilter, ByLevelFilter):
+class SpaceFilters(ByGroupFilter, LevelGeometryFilter):
     pass
 
 
@@ -155,7 +155,7 @@ Doors
                         response={200: list[DoorSchema], **validate_responses, **auth_responses},
                         summary="Get door list")
 @paginate
-def door_list(request, filters: Query[ByLevelFilter]):
+def door_list(request, filters: Query[LevelGeometryFilter]):
     # todo cache?
     return mapdata_list_endpoint(request, model=Door, filters=filters)
 
@@ -177,7 +177,7 @@ Holes
                         response={200: list[HoleSchema], **validate_responses, **auth_responses},
                         summary="Get hole list")
 @paginate
-def hole_list(request, filters: Query[BySpaceFilter]):
+def hole_list(request, filters: Query[SpaceGeometryFilter]):
     # todo cache?
     return mapdata_list_endpoint(request, model=Hole, filters=filters)
 
@@ -195,7 +195,7 @@ Areas
 """
 
 
-class AreaFilters(ByGroupFilter, BySpaceFilter):
+class AreaFilters(ByGroupFilter, SpaceGeometryFilter):
     pass
 
 
@@ -225,7 +225,7 @@ Stairs
                         response={200: list[StairSchema], **validate_responses, **auth_responses},
                         summary="Get stair list")
 @paginate
-def stair_list(request, filters: Query[BySpaceFilter]):
+def stair_list(request, filters: Query[SpaceGeometryFilter]):
     # todo cache?
     return mapdata_list_endpoint(request, model=Stair, filters=filters)
 
@@ -247,7 +247,7 @@ Ramps
                         response={200: list[RampSchema], **validate_responses, **auth_responses},
                         summary="Get ramp list")
 @paginate
-def ramp_list(request, filters: Query[BySpaceFilter]):
+def ramp_list(request, filters: Query[SpaceGeometryFilter]):
     # todo cache?
     return mapdata_list_endpoint(request, model=Ramp, filters=filters)
 
@@ -269,7 +269,7 @@ Obstacles
                         response={200: list[ObstacleSchema], **validate_responses, **auth_responses},
                         summary="Get obstacle list")
 @paginate
-def obstacle_list(request, filters: Query[BySpaceFilter]):
+def obstacle_list(request, filters: Query[SpaceGeometryFilter]):
     # todo cache?
     return mapdata_list_endpoint(request, model=Obstacle, filters=filters)
 
@@ -291,7 +291,7 @@ LineObstacles
                         response={200: list[LineObstacleSchema], **validate_responses, **auth_responses},
                         summary="Get line obstacle list")
 @paginate
-def lineobstacle_list(request, filters: Query[BySpaceFilter]):
+def lineobstacle_list(request, filters: Query[SpaceGeometryFilter]):
     # todo cache?
     return mapdata_list_endpoint(request, model=LineObstacle, filters=filters)
 
@@ -313,7 +313,7 @@ Columns
                         response={200: list[ColumnSchema], **validate_responses, **auth_responses},
                         summary="Get column list")
 @paginate
-def column_list(request, filters: Query[BySpaceFilter]):
+def column_list(request, filters: Query[SpaceGeometryFilter]):
     # todo cache?
     return mapdata_list_endpoint(request, model=Column, filters=filters)
 
@@ -335,7 +335,7 @@ POIs
                         response={200: list[POISchema], **validate_responses, **auth_responses},
                         summary="Get POI list")
 @paginate
-def poi_list(request, filters: Query[BySpaceFilter]):
+def poi_list(request, filters: Query[SpaceGeometryFilter]):
     # todo cache?
     return mapdata_list_endpoint(request, model=POI, filters=filters)
 
@@ -357,7 +357,7 @@ LeaveDescriptions
                         response={200: list[LeaveDescriptionSchema], **validate_responses, **auth_responses},
                         summary="Get leave description list")
 @paginate
-def leavedescription_list(request, filters: Query[BySpaceFilter]):
+def leavedescription_list(request, filters: Query[SpaceGeometryFilter]):
     # todo cache?
     return mapdata_list_endpoint(request, model=LeaveDescription, filters=filters)
 
@@ -379,7 +379,7 @@ CrossDescriptions
                         response={200: list[CrossDescriptionSchema], **validate_responses, **auth_responses},
                         summary="Get cross description list")
 @paginate
-def crossdescription_list(request, filters: Query[BySpaceFilter]):
+def crossdescription_list(request, filters: Query[SpaceGeometryFilter]):
     # todo cache?
     return mapdata_list_endpoint(request, model=CrossDescription, filters=filters)
 

@@ -160,3 +160,11 @@ class RemoveGeometryFilter(FilterSchema):
         if not self.geometry:
             qs = qs.defer('geometry')
         return super().filter_qs(qs)
+
+
+class LevelGeometryFilter(ByLevelFilter, RemoveGeometryFilter):
+    pass
+
+
+class SpaceGeometryFilter(BySpaceFilter, RemoveGeometryFilter):
+    pass

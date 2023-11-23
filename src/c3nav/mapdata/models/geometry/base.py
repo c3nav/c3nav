@@ -78,13 +78,15 @@ class GeometryMixin(SerializableMixin):
 
     @cached_property
     def point(self):
+        if "geometry" in self.get_deferred_fields():
+            raise ValueError
         return good_representative_point(self.geometry)
 
     def _serialize(self, geometry=True, simple_geometry=False, **kwargs):
         result = super()._serialize(simple_geometry=simple_geometry, **kwargs)
         if geometry and "geometry" not in self.get_deferred_fields():
             result['geometry'] = format_geojson(smart_mapping(self.geometry), rounded=False)
-        if simple_geometry:
+        if simple_geometry and "geometry" not in self.get_deferred_fields():
             result['point'] = (self.level_id, ) + tuple(round(i, 2) for i in self.point.coords[0])
             if not isinstance(self.geometry, Point):
                 self.geometry: BaseGeometry
@@ -99,6 +101,8 @@ class GeometryMixin(SerializableMixin):
         return result
 
     def get_geometry(self, detailed_geometry=True):
+        if "geometry" in self.get_deferred_fields():
+            return None
         if detailed_geometry:
             return format_geojson(smart_mapping(self.geometry), rounded=False)
         return format_geojson(smart_mapping(box(*self.geometry.bounds)), rounded=False)
