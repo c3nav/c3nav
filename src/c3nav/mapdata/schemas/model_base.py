@@ -79,7 +79,7 @@ class LocationSchema(WithAccessRestrictionSchema, TitledSchema, LocationSlugSche
     # todo: add_search
 
 
-class LabelSettingsSchema(TitledSchema, DjangoModelSchema):
+class LabelSettingsSchema(DjangoModelSchema):  # todo: add titles back in here
     """
     Settings preset for how and when to display a label. Reusable between objects.
     The title describes the title of this preset, not the displayed label.
