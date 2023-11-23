@@ -1,10 +1,15 @@
-from typing import Optional
+from typing import Annotated, Literal, Optional, Union
 
+from pydantic import Discriminator
 from pydantic import Field as APIField
-from pydantic import NonNegativeFloat, PositiveFloat, PositiveInt
+from pydantic import GetJsonSchemaHandler, NonNegativeFloat, PositiveFloat, PositiveInt
+from pydantic.json_schema import JsonSchemaValue
+from pydantic_core import CoreSchema
 
 from c3nav.api.utils import NonEmptyStr
 from c3nav.mapdata.schemas.model_base import (DjangoModelSchema, LabelSettingsSchema, LocationSchema,
+                                              LocationSlugSchema, SimpleGeometryBoundsAndPointSchema,
+                                              SimpleGeometryBoundsSchema, SimpleGeometryLocationsSchema,
                                               SpecificLocationSchema, TitledSchema, WithAccessRestrictionSchema,
                                               WithLevelSchema, WithLineStringGeometrySchema, WithPointGeometrySchema,
                                               WithPolygonGeometrySchema, WithSpaceSchema)
@@ -308,3 +313,57 @@ class AccessRestrictionGroupSchema(WithAccessRestrictionSchema, DjangoModelSchem
     For simplicity's sake, access restrictions can belong to groups, and you can grant permissions for the entire group.
     """
     pass
+
+
+class TypedLevelSchema(LevelSchema):
+    """
+    A level for the location API.
+    See Level schema for details.
+    """
+    locationtype: Literal["level"]
+
+
+class TypedSpaceSchema(SimpleGeometryBoundsAndPointSchema, SpaceSchema):
+    """
+    A space with some additional information for the location API.
+    See Space schema for details.
+    """
+    locationtype: Literal["space"]
+
+
+class TypedAreaSchema(SimpleGeometryBoundsAndPointSchema, AreaSchema):
+    """
+    An area with some additional information for the location API.
+    See Area schema for details.
+    """
+    locationtype: Literal["area"]
+
+
+class TypedPOISchema(SimpleGeometryBoundsSchema, POISchema):
+    """
+    A point of interest with some additional information for the location API.
+    See POI schema for details.
+    """
+    locationtype: Literal["poi"]
+
+
+class TypedLocationGroupSchema(SimpleGeometryLocationsSchema, LocationGroupSchema):
+    """
+    A locagroun group with some additional information for the location API.
+    See LocationGroup schema for details.
+    """
+    locationtype: Literal["locationgroup"]
+
+
+AnyLocationSchema = Annotated[
+    Union[
+        TypedLevelSchema,
+        TypedSpaceSchema,
+        TypedAreaSchema,
+        TypedPOISchema,
+        TypedLocationGroupSchema,
+    ],
+    Discriminator("locationtype"),
+]
+
+

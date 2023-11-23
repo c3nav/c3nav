@@ -82,6 +82,7 @@ class LocationSlug(SerializableMixin, models.Model):
 
     def _serialize(self, **kwargs):
         result = super()._serialize(**kwargs)
+        result["locationtype"] = self.__class__.__name__.lower()
         result['slug'] = self.get_slug()
         return result
 

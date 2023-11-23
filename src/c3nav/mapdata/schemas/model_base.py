@@ -15,7 +15,8 @@ class SerializableSchema(Schema):
     @classmethod
     def _run_root_validator(cls, values: Any, handler: ModelWrapValidatorHandler[Schema], info: ValidationInfo) -> Any:
         """ overwriting this, we need to call serialize to get the correct data """
-        values = values.serialize()
+        if not isinstance(values, dict):
+            values = values.serialize()
         return handler(values)
 
 
@@ -154,4 +155,25 @@ class WithSpaceSchema(SerializableSchema):
     space: PositiveInt = APIField(
         title="space",
         description="space id this object belongs to.",
+    )
+
+
+class SimpleGeometryBoundsSchema(Schema):
+    bounds: tuple[tuple[float, float], tuple[float, float]] = APIField(
+        description="location bounding box from (x, y) to (x, y)",
+        example=((-10, -20), (20, 30)),
+    )
+
+
+class SimpleGeometryBoundsAndPointSchema(SimpleGeometryBoundsSchema):
+    point: tuple[PositiveInt, float, float] = APIField(
+        title="point representation of the location",
+        description="made from the level ID, X and Y in this order",
+    )
+
+
+class SimpleGeometryLocationsSchema(Schema):
+    locations: list[PositiveInt] = APIField(  # todo: this should be a set… but json serialization?
+        description="IDs of all locations that belong to this grouo",
+        example=(1, 2, 3),
     )
