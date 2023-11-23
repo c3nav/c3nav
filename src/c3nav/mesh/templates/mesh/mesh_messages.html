@@ -112,7 +112,13 @@
                                 <tr>
                                     <td>{% mesh_node entry.peer %}</td>
                                     <td>{{ entry.rssi }}</td>
-                                    <td>{{ entry.distance | cm_to_m }}</td>
+                                    <td>
+                                        {% if entry.distance == 65535 %}
+                                            {{ entry.distance | cm_to_m }}
+                                        {% else %}
+                                            <em>very low</em>
+                                        {% endif %}
+                                    </td>
                                 </tr>
                             {% endfor %}
                         </table>
