@@ -190,6 +190,10 @@ class FlashSize(EnumSchemaByNameMixin, IntEnum):
     SIZE_64MB = 6
     SIZE_128MB = 7
 
+    @property
+    def pretty_name(self):
+        return self.name.removeprefix('SIZE_')
+
 
 @unique
 class FlashFrequency(EnumSchemaByNameMixin, IntEnum):
@@ -198,11 +202,19 @@ class FlashFrequency(EnumSchemaByNameMixin, IntEnum):
     FREQ_20MHZ = 2
     FREQ_80MHZ = 0xf
 
+    @property
+    def pretty_name(self):
+        return self.name.removeprefix('FREQ_').replace('MHZ', 'Mhz')
+
 
 @dataclass
 class FlashSettings:
     size: FlashSize
     frequency: FlashFrequency
+
+    @property
+    def display(self):
+        return f"{self.size.pretty_name} ({self.frequency.pretty_name})"
 
 
 @unique

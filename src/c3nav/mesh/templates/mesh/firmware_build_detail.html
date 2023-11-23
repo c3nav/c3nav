@@ -8,6 +8,7 @@
 
     <div class="columns">
         <div>
+
             <p>
                 <strong>Project name:</strong> {{ build.version.project_name }}<br>
                 <strong>Version:</strong> <a href="{% url 'mesh.firmwares.detail' pk=build.version.pk %}">{{ build.version.version }}</a><br>
@@ -15,10 +16,18 @@
                 <strong>Uploader:</strong> {{ build.version.uploader }}<br>
                 <strong>Created:</strong> {{ build.version.created }}<br>
             </p>
-            <o>
+            <p>
                 <strong>Variant:</strong> {{ build.variant }}<br>
-                <strong>Chip:</strong> {{ build.get_chip_display }}<br>
-            </o>
+                <strong>Chip:</strong> {{ build.get_chip_display }}
+                <small>
+                    >=rev{{ build.firmware_image.ext_header.min_chip_rev.0 }}.{{ build.firmware_image.ext_header.min_chip_rev.1 }}
+                    <=rev{{ build.firmware_image.ext_header.max_chip_rev.0 }}.{{ build.firmware_image.ext_header.max_chip_rev.1 }}
+                </small>
+                <br>
+                <strong>Flash:</strong> {{ build.firmware_image.header.flash_stuff.display }}<br>
+                <strong>SPI Flash Mode:</strong> {{ build.firmware_image.header.spi_flash_mode.name }}<br>
+                <strong>App ELF SHA256:</strong> <small>{{ build.sha256_hash }}</small><br>
+            </p>
             <h4>Compatible boards:</h4>
             <ul>
                 {% for board in build.boards %}
