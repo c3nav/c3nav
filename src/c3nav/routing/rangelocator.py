@@ -50,6 +50,13 @@ class RangeLocator:
     def load_nocache(cls, update):
         return pickle.load(open(cls.build_filename(update), 'rb'))
 
+    def get_xyz(self, address) -> tuple[int, int, int] | None:
+        try:
+            i = self.beacon_lookup[address]
+        except KeyError:
+            return None
+        return tuple(self.beacon_positions[i])
+
     cached = None
     cache_update = None
     cache_lock = threading.Lock()

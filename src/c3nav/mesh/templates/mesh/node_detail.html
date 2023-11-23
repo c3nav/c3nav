@@ -110,13 +110,13 @@
                 Y={{ node.last_messages.CONFIG_POSITION.parsed.y_pos | cm_to_m }}
                 Z={{ node.last_messages.CONFIG_POSITION.parsed.z_pos | cm_to_m }}
             </p>
-            {% with locator_beacon=node.get_locator_beacon %}
-                {% if locator_beacon %}
+            {% with locator_xyz=node.get_locator_xyz %}
+                {% if locator_xyz %}
                     <p>
                         <strong>In Map:</strong>
-                        X={{ locator_beacon.x | cm_to_m }}
-                        Y={{ locator_beacon.y | cm_to_m }}
-                        Z={{ locator_beacon.z | cm_to_m }}
+                        X={{ locator_xyz.0 | cm_to_m }}
+                        Y={{ locator_xyz.1 | cm_to_m }}
+                        Z={{ locator_xyz.2 | cm_to_m }}
                     </p>
                 {% else %}
                     <p>

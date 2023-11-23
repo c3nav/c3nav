@@ -284,9 +284,9 @@ class MeshNode(models.Model):
             return False
         return dst_node.get_uplink()
 
-    def get_locator_beacon(self):
+    def get_locator_xyz(self):
         locator = RangeLocator.load()
-        return locator.beacons.get(self.address, None)
+        return locator.get_xyz(self.address)
 
 
 class MeshUplink(models.Model):
