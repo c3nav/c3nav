@@ -471,7 +471,7 @@ class LocationDisplay(SerializableSchema):
                 Annotated[DisplayLink, APIField(namen="a link value")],
                 Annotated[list[DisplayLink], APIField(name="a list of link values")],
                 Annotated[Literal[None], APIField(name="no value")]
-            ], APIField(name="field value")]
+            ], APIField(name="field value", union_mode='left_to_right')]
         ]
     ] = APIField(description="a list of human-readable display values")
     geometry: Optional[GeometrySchema] = APIField(
