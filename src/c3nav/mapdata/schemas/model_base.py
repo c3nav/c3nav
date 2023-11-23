@@ -1,4 +1,4 @@
-from typing import Any, ClassVar, Optional
+from typing import Any, ClassVar, Optional, Annotated
 
 from ninja import Schema
 from pydantic import Field as APIField
@@ -172,9 +172,14 @@ class SimpleGeometryBoundsSchema(Schema):
 
 
 class SimpleGeometryBoundsAndPointSchema(SimpleGeometryBoundsSchema):
-    point: tuple[PositiveInt, float, float] = APIField(
-        title="point representation of the location",
-        description="made from the level ID, X and Y in this order",
+    point: tuple[
+        Annotated[PositiveInt, APIField(title="level ID")],
+        Annotated[float, APIField(title="x coordinate")],
+        Annotated[float, APIField(title="y coordinate")]
+    ] = APIField(
+        title="point representation",
+        description="representative point for the location",
+        example=(1, 4.2, 13.37)
     )
 
 
