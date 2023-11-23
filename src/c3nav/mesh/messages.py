@@ -48,18 +48,23 @@ class MeshMessageType(IntEnum):
     OTA_URL = 0x23
     OTA_FRAGMENT = 0x24
     OTA_REQUEST_FRAGMENTS = 0x25
-    OTA_APPLY = 0x26
-    OTA_REBOOT = 0x27
+    OTA_SETTING = 0x26
+    OTA_APPLY = 0x27
+    OTA_ABORT = 0x29
 
     LOCATE_REQUEST_RANGE = 0x30
     LOCATE_RANGE_RESULTS = 0x31
     LOCATE_RAW_FTM_RESULTS = 0x32
 
+    REBOOT = 0x40
+
+    REPORT_ERROR = 0x50
+
     @property
     def pretty_name(self):
         name = self.name.replace('_', ' ').lower()
         if name.startswith('config'):
-            name = name.removeprefix('config').strip()+' config'
+            name = name.removeprefix('config').strip() + ' config'
         name.replace('ota', 'OTA')
         return name
 
@@ -280,13 +285,16 @@ class OTAStatusMessage(MeshMessage, msg_type=MeshMessageType.OTA_STATUS):
     """ report OTA status """
     update_id: int = field(metadata={"format": SimpleFormat('I')})
     received_bytes: int = field(metadata={"format": SimpleFormat('I')})
+    highest_chunk: int = field(metadata={"format": SimpleFormat('H')})
     auto_apply: bool = field(metadata={"format": BoolFormat()})
-    app_desc: FirmwareAppDescription = field()
+    auto_reboot: bool = field(metadata={"format": BoolFormat()})
 
 
 @dataclass
 class OTARequestStatusMessage(MeshMessage, msg_type=MeshMessageType.OTA_REQUEST_STATUS):
     """ request OTA status """
+    # if 0, request any status, otherwise only for specified update id
+    update_id: int = field(metadata={"format": SimpleFormat('I')})
 
 
 @dataclass
@@ -294,6 +302,8 @@ class OTAStartMessage(MeshMessage, msg_type=MeshMessageType.OTA_START):
     """ instruct node to start OTA """
     update_id: int = field(metadata={"format": SimpleFormat('I')})
     total_bytes: int = field(metadata={"format": SimpleFormat('I')})
+    auto_apply: bool = field(metadata={"format": BoolFormat()})
+    auto_reboot: bool = field(metadata={"format": BoolFormat()})
 
 
 @dataclass
@@ -314,21 +324,29 @@ class OTAFragmentMessage(MeshMessage, msg_type=MeshMessageType.OTA_FRAGMENT):
 
 @dataclass
 class OTARequestFragmentsMessage(MeshMessage, msg_type=MeshMessageType.OTA_REQUEST_FRAGMENTS):
-    """ request fragment after we haven't gotten one for a while """
+    """ request missing fragments """
     update_id: int = field(metadata={"format": SimpleFormat('I')})
-    chunks: list[int] = field(metadata={"format":  VarArrayFormat(SimpleFormat('H'))})
+    chunks: list[int] = field(metadata={"format": VarArrayFormat(SimpleFormat('H'))})
+
+
+@dataclass
+class OTASettingMessage(MeshMessage, msg_type=MeshMessageType.OTA_SETTING):
+    """ configure whether to automatically apply and reboot when update is completed """
+    update_id: int = field(metadata={"format": SimpleFormat('I')})
+    auto_apply: bool = field(metadata={"format": BoolFormat()})
+    auto_reboot: bool = field(metadata={"format": BoolFormat()})
 
 
 @dataclass
 class OTAApplyMessage(MeshMessage, msg_type=MeshMessageType.OTA_APPLY):
-    """ apply OTA, optionally instruct to apply it when done """
+    """ apply OTA and optionally reboot """
     update_id: int = field(metadata={"format": SimpleFormat('I')})
-    when_done: bool = field(metadata={"format": BoolFormat()})
+    reboot: bool = field(metadata={"format": BoolFormat()})
 
 
 @dataclass
-class OTARebootMessage(MeshMessage, msg_type=MeshMessageType.OTA_REBOOT):
-    """ announcing OTA reboot """
+class OTAAbortMessage(MeshMessage, msg_type=MeshMessageType.OTA_ABORT):
+    """ announcing OTA abort """
     update_id: int = field(metadata={"format": SimpleFormat('I')})
 
 
@@ -349,3 +367,15 @@ class LocateRawFTMResults(MeshMessage, msg_type=MeshMessageType.LOCATE_RAW_FTM_R
     """ reports distance to given nodes """
     peer: str = field(metadata={"format": MacAddressFormat()})
     results: list[RawFTMEntry] = field(metadata={"format": VarArrayFormat(RawFTMEntry)})
+
+
+@dataclass
+class Reboot(MeshMessage, msg_type=MeshMessageType.REBOOT):
+    """ reboot the device """
+    pass
+
+
+@dataclass
+class ReportError(MeshMessage, msg_type=MeshMessageType.REPORT_ERROR):
+    """ report a critical error to upstream """
+    message: str = field(metadata={"format": VarStrFormat()})
