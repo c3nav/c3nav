@@ -1,4 +1,4 @@
-from typing import Any, Optional
+from typing import Any, ClassVar, Optional
 
 from ninja import Schema
 from pydantic import Field as APIField
@@ -127,20 +127,26 @@ class SpecificLocationSchema(LocationSchema):
 
 
 class WithPolygonGeometrySchema(Schema):
-    geometry: PolygonSchema = APIField(
+    geometry: Optional[PolygonSchema] = APIField(
+        None,
         title="geometry",
+        description="can be null if not available or excluded from endpoint",
     )
 
 
 class WithLineStringGeometrySchema(Schema):
-    geometry: LineStringSchema = APIField(
+    geometry: Optional[LineStringSchema] = APIField(
+        None,
         title="geometry",
+        description="can be null if not available or excluded from endpoint",
     )
 
 
 class WithPointGeometrySchema(Schema):
-    geometry: PointSchema = APIField(
+    geometry: Optional[PointSchema] = APIField(
+        None,
         title="geometry",
+        description="can be null if not available or excluded from endpoint",
     )
 
 
@@ -177,3 +183,4 @@ class SimpleGeometryLocationsSchema(Schema):
         description="IDs of all locations that belong to this grouo",
         example=(1, 2, 3),
     )
+

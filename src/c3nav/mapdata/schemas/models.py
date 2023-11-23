@@ -1,5 +1,6 @@
-from typing import Annotated, Literal, Optional, Union
+from typing import Annotated, ClassVar, Literal, Optional, Union
 
+from ninja import Schema
 from pydantic import Discriminator
 from pydantic import Field as APIField
 from pydantic import GetJsonSchemaHandler, NonNegativeFloat, PositiveFloat, PositiveInt
@@ -315,7 +316,7 @@ class AccessRestrictionGroupSchema(WithAccessRestrictionSchema, DjangoModelSchem
     pass
 
 
-class TypedLevelSchema(LevelSchema):
+class FullLevelLocationSchema(LevelSchema):
     """
     A level for the location API.
     See Level schema for details.
@@ -323,7 +324,7 @@ class TypedLevelSchema(LevelSchema):
     locationtype: Literal["level"]
 
 
-class TypedSpaceSchema(SimpleGeometryBoundsAndPointSchema, SpaceSchema):
+class FullSpaceLocationSchema(SimpleGeometryBoundsAndPointSchema, SpaceSchema):
     """
     A space with some additional information for the location API.
     See Space schema for details.
@@ -331,7 +332,7 @@ class TypedSpaceSchema(SimpleGeometryBoundsAndPointSchema, SpaceSchema):
     locationtype: Literal["space"]
 
 
-class TypedAreaSchema(SimpleGeometryBoundsAndPointSchema, AreaSchema):
+class FullAreaLocationSchema(SimpleGeometryBoundsAndPointSchema, AreaSchema):
     """
     An area with some additional information for the location API.
     See Area schema for details.
@@ -339,7 +340,7 @@ class TypedAreaSchema(SimpleGeometryBoundsAndPointSchema, AreaSchema):
     locationtype: Literal["area"]
 
 
-class TypedPOISchema(SimpleGeometryBoundsSchema, POISchema):
+class FullPOILocationSchema(SimpleGeometryBoundsSchema, POISchema):
     """
     A point of interest with some additional information for the location API.
     See POI schema for details.
@@ -347,21 +348,92 @@ class TypedPOISchema(SimpleGeometryBoundsSchema, POISchema):
     locationtype: Literal["poi"]
 
 
-class TypedLocationGroupSchema(SimpleGeometryLocationsSchema, LocationGroupSchema):
+class FullLocationGroupLocationSchema(SimpleGeometryLocationsSchema, LocationGroupSchema):
     """
-    A locagroun group with some additional information for the location API.
+    A location group with some additional information for the location API.
     See LocationGroup schema for details.
     """
     locationtype: Literal["locationgroup"]
 
 
-AnyLocationSchema = Annotated[
+class SlimLocationMixin(Schema):
+    level: ClassVar[None]
+    space: ClassVar[None]
+    titles: ClassVar[None]
+    access_restriction: ClassVar[None]
+    can_search: ClassVar[None]
+    can_describe: ClassVar[None]
+    groups: ClassVar[None]
+
+
+class SlimLevelLocationSchema(SlimLocationMixin, FullLevelLocationSchema):
+    """
+    A level for the location API with some rarely needed fields removed.
+    See Level schema for details.
+    """
+    short_label: ClassVar[None]
+    on_top_of: ClassVar[None]
+    base_altitude: ClassVar[None]
+    default_height: ClassVar[None]
+    door_height: ClassVar[None]
+
+
+class SlimSpaceLocationSchema(SlimLocationMixin, FullSpaceLocationSchema):
+    """
+    A space with some rarely needed fields removed and some additional information for the location API.
+    See Space schema for details.
+    """
+    outside: ClassVar[None]
+    height: ClassVar[None]
+
+
+class SlimAreaLocationSchema(SlimLocationMixin, FullAreaLocationSchema):
+    """
+    An area with some rarely needed fields removed and some additional information for the location API.
+    See Area schema for details.
+    """
+    slow_down_factor: ClassVar[None]
+
+
+class SlimPOILocationSchema(SlimLocationMixin, FullPOILocationSchema):
+    """
+    A point of interest with some rarely needed fields removed and some additional information for the location API.
+    See POI schema for details.
+    """
+    pass
+
+
+class SlimLocationGroupLocationSchema(SlimLocationMixin, FullLocationGroupLocationSchema):
+    """
+    A locagroun group with some rarely needed fields removed and some additional information for the location API.
+    See LocationGroup schema for details.
+    """
+    category: ClassVar[None]
+    priority: ClassVar[None]
+    hierarchy: ClassVar[None]
+    color: ClassVar[None]
+    can_report_missing: ClassVar[None]
+
+
+
+FullLocationSchema = Annotated[
     Union[
-        TypedLevelSchema,
-        TypedSpaceSchema,
-        TypedAreaSchema,
-        TypedPOISchema,
-        TypedLocationGroupSchema,
+        FullLevelLocationSchema,
+        FullSpaceLocationSchema,
+        FullAreaLocationSchema,
+        FullPOILocationSchema,
+        FullLocationGroupLocationSchema,
+    ],
+    Discriminator("locationtype"),
+]
+
+SlimLocationSchema = Annotated[
+    Union[
+        SlimLevelLocationSchema,
+        SlimSpaceLocationSchema,
+        SlimAreaLocationSchema,
+        SlimPOILocationSchema,
+        SlimLocationGroupLocationSchema,
     ],
     Discriminator("locationtype"),
 ]

@@ -134,3 +134,29 @@ class ByOnTopOfFilter(FilterSchema):
         if self.on_top_of is not None:
             qs = qs.filter(on_top_of_id=None if self.on_top_of == "null" else self.on_top_of)
         return super().filter_qs(qs)
+
+
+class BySearchableFilter(FilterSchema):
+    searchable: bool = APIField(
+        False,
+        title='searchable locations only',
+        description='only show locations that should show up in search'
+    )
+
+    def filter_qs(self, qs: QuerySet) -> QuerySet:
+        if self.searchable is not None:
+            qs = qs.filter(can_search=True)
+        return super().filter_qs(qs)
+
+
+class RemoveGeometryFilter(FilterSchema):
+    geometry: bool = APIField(
+        False,  # todo: should be false
+        title='include geometry',
+        description='by default, geometry will be ommited. set to true to include it (if available)'
+    )
+
+    def filter_qs(self, qs: QuerySet) -> QuerySet:
+        if not self.geometry:
+            qs = qs.defer('geometry')
+        return super().filter_qs(qs)

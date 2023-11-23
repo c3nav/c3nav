@@ -82,7 +82,7 @@ class GeometryMixin(SerializableMixin):
 
     def _serialize(self, geometry=True, simple_geometry=False, **kwargs):
         result = super()._serialize(simple_geometry=simple_geometry, **kwargs)
-        if geometry:
+        if geometry and "geometry" not in self.get_deferred_fields():
             result['geometry'] = format_geojson(smart_mapping(self.geometry), rounded=False)
         if simple_geometry:
             result['point'] = (self.level_id, ) + tuple(round(i, 2) for i in self.point.coords[0])
