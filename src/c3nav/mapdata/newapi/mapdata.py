@@ -13,13 +13,14 @@ from c3nav.mapdata.models import (Area, Building, Door, Hole, Level, LocationGro
 from c3nav.mapdata.models.access import AccessPermission, AccessRestriction, AccessRestrictionGroup
 from c3nav.mapdata.models.geometry.space import (POI, Column, CrossDescription, LeaveDescription, LineObstacle,
                                                  Obstacle, Ramp)
+from c3nav.mapdata.models.locations import DynamicLocation
 from c3nav.mapdata.schemas.filters import (ByCategoryFilter, ByGroupFilter, ByOnTopOfFilter, FilterSchema,
                                            LevelGeometryFilter, SpaceGeometryFilter)
 from c3nav.mapdata.schemas.models import (AccessRestrictionGroupSchema, AccessRestrictionSchema, AreaSchema,
-                                          BuildingSchema, ColumnSchema, CrossDescriptionSchema, DoorSchema, HoleSchema,
-                                          LeaveDescriptionSchema, LevelSchema, LineObstacleSchema,
-                                          LocationGroupCategorySchema, LocationGroupSchema, ObstacleSchema, POISchema,
-                                          RampSchema, SourceSchema, SpaceSchema, StairSchema)
+                                          BuildingSchema, ColumnSchema, CrossDescriptionSchema, DoorSchema,
+                                          DynamicLocationSchema, HoleSchema, LeaveDescriptionSchema, LevelSchema,
+                                          LineObstacleSchema, LocationGroupCategorySchema, LocationGroupSchema,
+                                          ObstacleSchema, POISchema, RampSchema, SourceSchema, SpaceSchema, StairSchema)
 
 mapdata_api_router = APIRouter(tags=["mapdata"])
 
@@ -500,3 +501,25 @@ def accessrestrictiongroup_list(request):
 def accessrestrictiongroups_retrieve(request, group_id: int):
     # todo: access, caching, filtering, etc
     return mapdata_retrieve_endpoint(request, AccessRestrictionGroup, pk=group_id)
+
+
+"""
+DynamicLocations
+"""
+
+
+@mapdata_api_router.get('/dynamiclocations/',
+                        response={200: list[DynamicLocationSchema], **auth_responses},
+                        summary="Get dynamic location list")
+@paginate
+def dynamiclocation_list(request):
+    # todo cache?
+    return mapdata_list_endpoint(request, model=DynamicLocation)
+
+
+@mapdata_api_router.get('/dynamiclocations/{dynamiclocation_id}/',
+                        response={200: DynamicLocationSchema, **API404.dict(), **auth_responses},
+                        summary="Get dynamic location by ID")
+def dynamiclocation_retrieve(request, dynamiclocation_id: int):
+    # todo: access, caching, filtering, etc
+    return mapdata_retrieve_endpoint(request, DynamicLocation, pk=dynamiclocation_id)

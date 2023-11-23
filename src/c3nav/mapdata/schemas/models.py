@@ -285,6 +285,16 @@ class LocationGroupCategorySchema(TitledSchema, DjangoModelSchema):
     priority: int = APIField()  # todo: ???
 
 
+class DynamicLocationSchema(SpecificLocationSchema, DjangoModelSchema):
+    """
+    A dynamic location represents a moving object. Its position has to be separately queries through the position API.
+
+    A dynamic location is a specific location, and can therefore be routed to and from,
+    as well as belong to location groups.
+    """
+    pass
+
+
 class SourceSchema(WithAccessRestrictionSchema, DjangoModelSchema):
     """
     A source image that can be traced in the editor.
@@ -358,6 +368,14 @@ class FullLocationGroupLocationSchema(SimpleGeometryLocationsSchema, LocationGro
     locationtype: Literal["locationgroup"]
 
 
+class FullDynamicLocationLocationSchema(SimpleGeometryLocationsSchema, DynamicLocationSchema):
+    """
+    A dynamic location for the location API.
+    See DynamicLocation schema for details.
+    """
+    locationtype: Literal["dynamiclocation"]
+
+
 class SlimLocationMixin(Schema):
     level: ClassVar[None]
     space: ClassVar[None]
@@ -407,7 +425,7 @@ class SlimPOILocationSchema(SlimLocationMixin, FullPOILocationSchema):
 
 class SlimLocationGroupLocationSchema(SlimLocationMixin, FullLocationGroupLocationSchema):
     """
-    A locagroun group with some rarely needed fields removed and some additional information for the location API.
+    A location group with some rarely needed fields removed and some additional information for the location API.
     See LocationGroup schema for details.
     """
     category: ClassVar[None]
@@ -417,6 +435,13 @@ class SlimLocationGroupLocationSchema(SlimLocationMixin, FullLocationGroupLocati
     can_report_missing: ClassVar[None]
 
 
+class SlimDynamicLocationLocationSchema(SlimLocationMixin, FullDynamicLocationLocationSchema):
+    """
+    A dynamic location with some rarely needed fields removed for the location API.
+    See DynamicLocation schema for details.
+    """
+    pass
+
 
 FullLocationSchema = Annotated[
     Union[
@@ -425,6 +450,7 @@ FullLocationSchema = Annotated[
         FullAreaLocationSchema,
         FullPOILocationSchema,
         FullLocationGroupLocationSchema,
+        FullDynamicLocationLocationSchema,
     ],
     Discriminator("locationtype"),
 ]
@@ -436,6 +462,7 @@ SlimLocationSchema = Annotated[
         SlimAreaLocationSchema,
         SlimPOILocationSchema,
         SlimLocationGroupLocationSchema,
+        SlimDynamicLocationLocationSchema,
     ],
     Discriminator("locationtype"),
 ]
