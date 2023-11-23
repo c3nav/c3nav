@@ -73,7 +73,7 @@ def firmware_list(request):
 
 @mesh_api_router.get('/firmwares/{firmware_id}/', summary="Get specific firmware",
                      response={200: FirmwareSchema, **API404.dict(), **auth_responses})
-def firmware_detail(request, firmware_id: int):
+def firmware_retrieve(request, firmware_id: int):
     try:
         return FirmwareVersion.objects.get(id=firmware_id)
     except FirmwareVersion.DoesNotExist:
