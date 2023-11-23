@@ -84,10 +84,10 @@ class LabelSettingsSchema(TitledSchema, DjangoModelSchema):
     Settings preset for how and when to display a label. Reusable between objects.
     The title describes the title of this preset, not the displayed label.
     """
-    min_zoom: float = APIField(
+    min_zoom: Optional[float] = APIField(
         title="min zoom",
     )
-    max_zoom: float = APIField(
+    max_zoom: Optional[float] = APIField(
         title="max zoom",
     )
     font_size: PositiveInt = APIField(
