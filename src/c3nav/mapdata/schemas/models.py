@@ -9,7 +9,7 @@ from c3nav.api.schema import GeometrySchema, PointSchema
 from c3nav.api.utils import NonEmptyStr
 from c3nav.mapdata.schemas.model_base import (AnyLocationID, AnyPositionID, CustomLocationID, DjangoModelSchema,
                                               LabelSettingsSchema, LocationSchema, PositionID, SerializableSchema,
-                                              SimpleGeometryBoundsAndPointSchema, SimpleGeometryBoundsSchema,
+                                              SimpleGeometryPointAndBoundsSchema, SimpleGeometryPointSchema,
                                               SimpleGeometryLocationsSchema, SpecificLocationSchema, TitledSchema,
                                               WithAccessRestrictionSchema, WithLevelSchema,
                                               WithLineStringGeometrySchema, WithPointGeometrySchema,
@@ -416,7 +416,7 @@ class FullLevelLocationSchema(LevelSchema):
     locationtype: Literal["level"]
 
 
-class FullSpaceLocationSchema(SimpleGeometryBoundsAndPointSchema, SpaceSchema):
+class FullSpaceLocationSchema(SimpleGeometryPointAndBoundsSchema, SpaceSchema):
     """
     A space with some additional information for the location API.
     See Space schema for details.
@@ -424,7 +424,7 @@ class FullSpaceLocationSchema(SimpleGeometryBoundsAndPointSchema, SpaceSchema):
     locationtype: Literal["space"]
 
 
-class FullAreaLocationSchema(SimpleGeometryBoundsAndPointSchema, AreaSchema):
+class FullAreaLocationSchema(SimpleGeometryPointAndBoundsSchema, AreaSchema):
     """
     An area with some additional information for the location API.
     See Area schema for details.
@@ -432,7 +432,7 @@ class FullAreaLocationSchema(SimpleGeometryBoundsAndPointSchema, AreaSchema):
     locationtype: Literal["area"]
 
 
-class FullPOILocationSchema(SimpleGeometryBoundsSchema, POISchema):
+class FullPOILocationSchema(SimpleGeometryPointSchema, POISchema):
     """
     A point of interest with some additional information for the location API.
     See POI schema for details.
@@ -448,7 +448,7 @@ class FullLocationGroupLocationSchema(SimpleGeometryLocationsSchema, LocationGro
     locationtype: Literal["locationgroup"]
 
 
-class FullDynamicLocationLocationSchema(SimpleGeometryLocationsSchema, DynamicLocationSchema):
+class FullDynamicLocationLocationSchema(DynamicLocationSchema):
     """
     A dynamic location for the location API.
     See DynamicLocation schema for details.
@@ -456,7 +456,7 @@ class FullDynamicLocationLocationSchema(SimpleGeometryLocationsSchema, DynamicLo
     locationtype: Literal["dynamiclocation"]
 
 
-class CustomLocationLocationSchema(SimpleGeometryBoundsAndPointSchema, CustomLocationSchema):
+class CustomLocationLocationSchema(SimpleGeometryPointAndBoundsSchema, CustomLocationSchema):
     """
     A custom location for the location API.
     See CustomLocation schema for details.

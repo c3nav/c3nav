@@ -202,7 +202,7 @@ class SpecificLocation(Location, models.Model):
             result['label_settings'] = label_settings.serialize(detailed=False)
         if self.label_overrides:
             # todo: what if only one language is set?
-            result['label_override'] = self.label_override
+            result['label_override'] = str(self.label_override)
         return result
 
     def get_label_settings(self):

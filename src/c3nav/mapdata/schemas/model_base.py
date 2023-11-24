@@ -166,14 +166,7 @@ class WithSpaceSchema(SerializableSchema):
     )
 
 
-class SimpleGeometryBoundsSchema(Schema):
-    bounds: tuple[tuple[float, float], tuple[float, float]] = APIField(
-        description="location bounding box from (x, y) to (x, y)",
-        example=((-10, -20), (20, 30)),
-    )
-
-
-class SimpleGeometryBoundsAndPointSchema(SimpleGeometryBoundsSchema):
+class SimpleGeometryPointSchema(Schema):
     point: tuple[
         Annotated[PositiveInt, APIField(title="level ID")],
         Annotated[float, APIField(title="x coordinate")],
@@ -182,6 +175,13 @@ class SimpleGeometryBoundsAndPointSchema(SimpleGeometryBoundsSchema):
         title="point representation",
         description="representative point for the location",
         example=(1, 4.2, 13.37)
+    )
+
+
+class SimpleGeometryPointAndBoundsSchema(SimpleGeometryPointSchema):
+    bounds: tuple[tuple[float, float], tuple[float, float]] = APIField(
+        description="location bounding box from (x, y) to (x, y)",
+        example=((-10, -20), (20, 30)),
     )
 
 
