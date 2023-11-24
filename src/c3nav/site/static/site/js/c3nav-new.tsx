@@ -1349,7 +1349,7 @@ class C3NavMap {
         }
         if (location.locationtype === 'dynamiclocation') {
             if (!('available' in location)) {
-                c3nav.json_get(`/api/v2/map/get_position/${location.id}/`)
+                c3nav.json_get(`/api/v2/map/positions/${location.id}/`)
                     .then(c3nav._dynamic_location_loaded);
                 return;
             } else if (!location.available) {
