@@ -538,7 +538,7 @@ class DynamicLocation(CustomLocationProxyMixin, SpecificLocation, models.Model):
                 'id': self.pk,
                 'slug': self.slug,
                 'icon': self.get_icon(),
-                'title': self.title,
+                'title': str(self.title),
                 'subtitle': '%s %s, %s' % (_('currently unavailable'), _('(moving)'), self.subtitle)
             }
         result = custom_location.serialize(simple_geometry=True)
