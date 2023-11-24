@@ -76,8 +76,11 @@ class LocationSchema(WithAccessRestrictionSchema, TitledSchema, LocationSlugSche
     can_describe: bool = APIField(
         title="can describe locations",
     )
-    # todo: add_search
-
+    add_search: Optional[str] = APIField(
+        None,
+        title="more data for search index, only set when looking for searchable locations"
+    )
+    
 
 class LabelSettingsSchema(DjangoModelSchema):  # todo: add titles back in here
     """
