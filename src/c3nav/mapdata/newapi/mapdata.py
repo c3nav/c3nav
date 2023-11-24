@@ -9,7 +9,7 @@ from c3nav.api.newauth import auth_responses, validate_responses
 from c3nav.mapdata.api import optimize_query
 from c3nav.mapdata.models import (Area, Building, Door, Hole, Level, LocationGroup, LocationGroupCategory, Source,
                                   Space, Stair)
-from c3nav.mapdata.models.access import AccessPermission, AccessRestriction, AccessRestrictionGroup
+from c3nav.mapdata.models.access import AccessRestriction, AccessRestrictionGroup
 from c3nav.mapdata.models.geometry.space import (POI, Column, CrossDescription, LeaveDescription, LineObstacle,
                                                  Obstacle, Ramp)
 from c3nav.mapdata.models.locations import DynamicLocation
@@ -30,20 +30,6 @@ def mapdata_list_endpoint(request,
                           filters: Optional[FilterSchema] = None,
                           order_by: Sequence[str] = ('pk',)):
     # todo: request permissions based on api key
-
-    # todo: pagination cache?
-
-    # generate cache_key
-    # todo: don't ignore request language
-    cache_key = 'mapdata:api:%s:%s' % (model.__name__, AccessPermission.cache_key_for_request(request))
-    if filters:
-        for name in filters.model_fields_set:  # noqa
-            value = getattr(filters, name)
-            if value is None:
-                continue
-            cache_key += ';%s,%s' % (name, value)
-
-    # todo: we have the cache key, this would be a great time for a shortcut
 
     # validate filters
     if filters:
@@ -87,7 +73,6 @@ class LevelFilters(ByGroupFilter, ByOnTopOfFilter):
                         summary="Get level list")
 @newapi_etag()
 def level_list(request, filters: Query[LevelFilters]):
-    # todo cache?
     return mapdata_list_endpoint(request, model=Level, filters=filters)
 
 
@@ -96,7 +81,6 @@ def level_list(request, filters: Query[LevelFilters]):
                         summary="Get level by ID")
 @newapi_etag()
 def level_by_id(request, level_id: int):
-    # todo: access, caching, filtering, etc
     return mapdata_retrieve_endpoint(request, Level, pk=level_id)
 
 
@@ -110,7 +94,6 @@ Buildings
                         summary="Get building list")
 @newapi_etag(base_mapdata=True)
 def building_list(request, filters: Query[LevelGeometryFilter]):
-    # todo cache?
     return mapdata_list_endpoint(request, model=Building, filters=filters)
 
 
@@ -119,7 +102,6 @@ def building_list(request, filters: Query[LevelGeometryFilter]):
                         summary="Get building by ID")
 @newapi_etag(base_mapdata=True)
 def building_by_id(request, building_id: int):
-    # todo: access, caching, filtering, etc
     return mapdata_retrieve_endpoint(request, Building, pk=building_id)
 
 
@@ -137,7 +119,6 @@ class SpaceFilters(ByGroupFilter, LevelGeometryFilter):
                         summary="Get space list")
 @newapi_etag(base_mapdata=True)
 def space_list(request, filters: Query[SpaceFilters]):
-    # todo cache?
     return mapdata_list_endpoint(request, model=Space, filters=filters)
 
 
@@ -146,7 +127,6 @@ def space_list(request, filters: Query[SpaceFilters]):
                         summary="Get space by ID")
 @newapi_etag(base_mapdata=True)
 def space_by_id(request, space_id: int):
-    # todo: access, caching, filtering, etc
     return mapdata_retrieve_endpoint(request, Space, pk=space_id)
 
 
@@ -160,7 +140,6 @@ Doors
                         summary="Get door list")
 @newapi_etag(base_mapdata=True)
 def door_list(request, filters: Query[LevelGeometryFilter]):
-    # todo cache?
     return mapdata_list_endpoint(request, model=Door, filters=filters)
 
 
@@ -169,7 +148,6 @@ def door_list(request, filters: Query[LevelGeometryFilter]):
                         summary="Get door by ID")
 @newapi_etag(base_mapdata=True)
 def door_by_id(request, door_id: int):
-    # todo: access, caching, filtering, etc
     return mapdata_retrieve_endpoint(request, Door, pk=door_id)
 
 
@@ -183,7 +161,6 @@ Holes
                         summary="Get hole list")
 @newapi_etag()
 def hole_list(request, filters: Query[SpaceGeometryFilter]):
-    # todo cache?
     return mapdata_list_endpoint(request, model=Hole, filters=filters)
 
 
@@ -192,7 +169,6 @@ def hole_list(request, filters: Query[SpaceGeometryFilter]):
                         summary="Get hole by ID")
 @newapi_etag()
 def hole_by_id(request, hole_id: int):
-    # todo: access, caching, filtering, etc
     return mapdata_retrieve_endpoint(request, Hole, pk=hole_id)
 
 
@@ -210,7 +186,6 @@ class AreaFilters(ByGroupFilter, SpaceGeometryFilter):
                         summary="Get area list")
 @newapi_etag()
 def area_list(request, filters: Query[AreaFilters]):
-    # todo cache?
     return mapdata_list_endpoint(request, model=Area, filters=filters)
 
 
@@ -219,7 +194,6 @@ def area_list(request, filters: Query[AreaFilters]):
                         summary="Get area by ID")
 @newapi_etag()
 def area_by_id(request, area_id: int):
-    # todo: access, caching, filtering, etc
     return mapdata_retrieve_endpoint(request, Area, pk=area_id)
 
 
@@ -233,7 +207,6 @@ Stairs
                         summary="Get stair list")
 @newapi_etag()
 def stair_list(request, filters: Query[SpaceGeometryFilter]):
-    # todo cache?
     return mapdata_list_endpoint(request, model=Stair, filters=filters)
 
 
@@ -242,7 +215,6 @@ def stair_list(request, filters: Query[SpaceGeometryFilter]):
                         summary="Get stair by ID")
 @newapi_etag()
 def stair_by_id(request, stair_id: int):
-    # todo: access, caching, filtering, etc
     return mapdata_retrieve_endpoint(request, Stair, pk=stair_id)
 
 
@@ -256,7 +228,6 @@ Ramps
                         summary="Get ramp list")
 @newapi_etag()
 def ramp_list(request, filters: Query[SpaceGeometryFilter]):
-    # todo cache?
     return mapdata_list_endpoint(request, model=Ramp, filters=filters)
 
 
@@ -265,7 +236,6 @@ def ramp_list(request, filters: Query[SpaceGeometryFilter]):
                         summary="Get ramp by ID")
 @newapi_etag()
 def ramp_by_id(request, ramp_id: int):
-    # todo: access, caching, filtering, etc
     return mapdata_retrieve_endpoint(request, Ramp, pk=ramp_id)
 
 
@@ -279,7 +249,6 @@ Obstacles
                         summary="Get obstacle list")
 @newapi_etag()
 def obstacle_list(request, filters: Query[SpaceGeometryFilter]):
-    # todo cache?
     return mapdata_list_endpoint(request, model=Obstacle, filters=filters)
 
 
@@ -288,7 +257,6 @@ def obstacle_list(request, filters: Query[SpaceGeometryFilter]):
                         summary="Get obstacle by ID")
 @newapi_etag()
 def obstacle_by_id(request, obstacle_id: int):
-    # todo: access, caching, filtering, etc
     return mapdata_retrieve_endpoint(request, Obstacle, pk=obstacle_id)
 
 
@@ -302,7 +270,6 @@ LineObstacles
                         summary="Get line obstacle list")
 @newapi_etag()
 def lineobstacle_list(request, filters: Query[SpaceGeometryFilter]):
-    # todo cache?
     return mapdata_list_endpoint(request, model=LineObstacle, filters=filters)
 
 
@@ -311,7 +278,6 @@ def lineobstacle_list(request, filters: Query[SpaceGeometryFilter]):
                         summary="Get line obstacle by ID")
 @newapi_etag()
 def lineobstacle_by_id(request, lineobstacle_id: int):
-    # todo: access, caching, filtering, etc
     return mapdata_retrieve_endpoint(request, LineObstacle, pk=lineobstacle_id)
 
 
@@ -325,7 +291,6 @@ Columns
                         summary="Get column list")
 @newapi_etag()
 def column_list(request, filters: Query[SpaceGeometryFilter]):
-    # todo cache?
     return mapdata_list_endpoint(request, model=Column, filters=filters)
 
 
@@ -334,7 +299,6 @@ def column_list(request, filters: Query[SpaceGeometryFilter]):
                         summary="Get column by ID")
 @newapi_etag()
 def column_by_id(request, column_id: int):
-    # todo: access, caching, filtering, etc
     return mapdata_retrieve_endpoint(request, Column, pk=column_id)
 
 
@@ -348,7 +312,6 @@ POIs
                         summary="Get POI list")
 @newapi_etag()
 def poi_list(request, filters: Query[SpaceGeometryFilter]):
-    # todo cache?
     return mapdata_list_endpoint(request, model=POI, filters=filters)
 
 
@@ -357,7 +320,6 @@ def poi_list(request, filters: Query[SpaceGeometryFilter]):
                         summary="Get POI by ID")
 @newapi_etag()
 def poi_by_id(request, poi_id: int):
-    # todo: access, caching, filtering, etc
     return mapdata_retrieve_endpoint(request, POI, pk=poi_id)
 
 
@@ -371,7 +333,6 @@ LeaveDescriptions
                         summary="Get leave description list")
 @newapi_etag()
 def leavedescription_list(request, filters: Query[SpaceGeometryFilter]):
-    # todo cache?
     return mapdata_list_endpoint(request, model=LeaveDescription, filters=filters)
 
 
@@ -380,7 +341,6 @@ def leavedescription_list(request, filters: Query[SpaceGeometryFilter]):
                         summary="Get leave description by ID")
 @newapi_etag()
 def leavedescription_by_id(request, leavedescription_id: int):
-    # todo: access, caching, filtering, etc
     return mapdata_retrieve_endpoint(request, LeaveDescription, pk=leavedescription_id)
 
 
@@ -394,7 +354,6 @@ CrossDescriptions
                         summary="Get cross description list")
 @newapi_etag()
 def crossdescription_list(request, filters: Query[SpaceGeometryFilter]):
-    # todo cache?
     return mapdata_list_endpoint(request, model=CrossDescription, filters=filters)
 
 
@@ -403,7 +362,6 @@ def crossdescription_list(request, filters: Query[SpaceGeometryFilter]):
                         summary="Get cross description by ID")
 @newapi_etag()
 def crossdescription_by_id(request, crossdescription_id: int):
-    # todo: access, caching, filtering, etc
     return mapdata_retrieve_endpoint(request, CrossDescription, pk=crossdescription_id)
 
 
@@ -417,7 +375,6 @@ LocationGroup
                         summary="Get location group list")
 @newapi_etag()
 def locationgroup_list(request, filters: Query[ByCategoryFilter]):
-    # todo cache?
     return mapdata_list_endpoint(request, model=LocationGroup, filters=filters)
 
 
@@ -426,7 +383,6 @@ def locationgroup_list(request, filters: Query[ByCategoryFilter]):
                         summary="Get location group by ID")
 @newapi_etag()
 def locationgroup_by_id(request, locationgroup_id: int):
-    # todo: access, caching, filtering, etc
     return mapdata_retrieve_endpoint(request, LocationGroup, pk=locationgroup_id)
 
 
@@ -440,7 +396,6 @@ LocationGroupCategories
                         summary="Get location group category list")
 @newapi_etag()
 def locationgroupcategory_list(request):
-    # todo cache?
     return mapdata_list_endpoint(request, model=LocationGroupCategory)
 
 
@@ -449,7 +404,6 @@ def locationgroupcategory_list(request):
                         summary="Get location group category by ID")
 @newapi_etag()
 def locationgroupcategory_by_id(request, category_id: int):
-    # todo: access, caching, filtering, etc
     return mapdata_retrieve_endpoint(request, LocationGroupCategory, pk=category_id)
 
 
@@ -463,7 +417,6 @@ Sources
                         summary="Get source list")
 @newapi_etag()
 def source_list(request):
-    # todo cache?
     return mapdata_list_endpoint(request, model=Source)
 
 
@@ -472,7 +425,6 @@ def source_list(request):
                         summary="Get source by ID")
 @newapi_etag()
 def source_by_id(request, source_id: int):
-    # todo: access, caching, filtering, etc
     return mapdata_retrieve_endpoint(request, Source, pk=source_id)
 
 
@@ -486,7 +438,6 @@ AccessRestrictions
                         summary="Get access restriction list")
 @newapi_etag()
 def accessrestriction_list(request):
-    # todo cache?
     return mapdata_list_endpoint(request, model=AccessRestriction)
 
 
@@ -495,7 +446,6 @@ def accessrestriction_list(request):
                         summary="Get access restriction by ID")
 @newapi_etag()
 def accessrestriction_by_id(request, accessrestriction_id: int):
-    # todo: access, caching, filtering, etc
     return mapdata_retrieve_endpoint(request, AccessRestriction, pk=accessrestriction_id)
 
 
@@ -509,7 +459,6 @@ AccessRestrictionGroups
                         summary="Get access restriction group list")
 @newapi_etag()
 def accessrestrictiongroup_list(request):
-    # todo cache?
     return mapdata_list_endpoint(request, model=AccessRestrictionGroup)
 
 
@@ -518,7 +467,6 @@ def accessrestrictiongroup_list(request):
                         summary="Get access restriction group by ID")
 @newapi_etag()
 def accessrestrictiongroups_by_id(request, group_id: int):
-    # todo: access, caching, filtering, etc
     return mapdata_retrieve_endpoint(request, AccessRestrictionGroup, pk=group_id)
 
 
@@ -532,7 +480,6 @@ DynamicLocations
                         summary="Get dynamic location list")
 @newapi_etag()
 def dynamiclocation_list(request):
-    # todo cache?
     return mapdata_list_endpoint(request, model=DynamicLocation)
 
 
@@ -541,5 +488,4 @@ def dynamiclocation_list(request):
                         summary="Get dynamic location by ID")
 @newapi_etag()
 def dynamiclocation_by_id(request, dynamiclocation_id: int):
-    # todo: access, caching, filtering, etc
     return mapdata_retrieve_endpoint(request, DynamicLocation, pk=dynamiclocation_id)
