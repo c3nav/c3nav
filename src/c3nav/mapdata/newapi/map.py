@@ -94,6 +94,10 @@ def _location_retrieve(request, location, detailed: bool, geometry: bool, show_r
         if not show_redirects:
             return redirect('../' + str(location.target.slug))  # todo: use reverse, make pk and slug both work
 
+    if isinstance(location, (DynamicLocation, Position)):
+        request._target_etag = None
+        request._target_cache_key = None
+
     return location.serialize(
         detailed=detailed,
         geometry=geometry and can_access_geometry(request),

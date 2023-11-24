@@ -80,7 +80,7 @@ class LocationSchema(WithAccessRestrictionSchema, TitledSchema, LocationSlugSche
         None,
         title="more data for search index, only set when looking for searchable locations"
     )
-    
+
 
 class LabelSettingsSchema(DjangoModelSchema):  # todo: add titles back in here
     """

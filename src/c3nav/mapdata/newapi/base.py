@@ -24,9 +24,11 @@ def newapi_etag(permissions=True, etag_func=AccessPermission.etag_func, base_map
         def outer_wrapped_func(request, *args, **kwargs):
             response = func(request, *args, **kwargs)
             if response.status_code == 200:
-                response['ETag'] = request._target_etag
+                if request._target_etag:
+                    response['ETag'] = request._target_etag
                 response['Cache-Control'] = 'no-cache'
-                request_cache.set(request._target_cache_key, response, 900)
+                if request._target_cache_key:
+                    request_cache.set(request._target_cache_key, response, 900)
             return response
         return outer_wrapped_func
 
