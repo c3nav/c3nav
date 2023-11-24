@@ -242,7 +242,8 @@ def location_by_slug_geometry(request, location_slug: NonEmptyStr):
 
 @map_api_router.get('/get_position/{position_id}/',
                     response={200: AnyPositionStatusSchema, **API404.dict(), **auth_responses},
-                    summary="a numeric ID for a dynamic location or a string ID for the position secret can be used")
+                    summary="get current position of a moving object",
+                    description="a numeric ID for a dynamic location or a string ID for the position secret can be used")
 def get_current_position_by_id(request, position_id: AnyPositionID):
     location = None
     if isinstance(position_id, int) or position_id.isdigit():
