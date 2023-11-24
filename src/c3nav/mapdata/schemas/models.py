@@ -372,7 +372,7 @@ class CustomLocationSchema(SerializableSchema):
     near_poi: Optional[PositiveInt] = APIField(
         description="the ID of a POI near this custom location, if there is one"
     )
-    neaby: list[PositiveInt] = APIField(
+    nearby: list[PositiveInt] = APIField(
         description="list of IDs of nearby locations"
     )
     altitude: Optional[float] = APIField(
