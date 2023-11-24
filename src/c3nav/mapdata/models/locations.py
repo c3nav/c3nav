@@ -547,7 +547,7 @@ class DynamicLocation(CustomLocationProxyMixin, SpecificLocation, models.Model):
             'id': self.pk,
             'slug': self.slug,
             'icon': self.get_icon(),
-            'title': self.title,
+            'title': str(self.title),
             'subtitle': '%s %s%s, %s' % (
                 _('(moving)'),
                 ('%s, ' % self.subtitle) if self.describing_groups else '',
