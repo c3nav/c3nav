@@ -606,13 +606,13 @@ class LocationDisplay(SerializableSchema):
     )
     display: list[
         tuple[
-            Annotated[NonEmptyStr, APIField(name="field title")],
+            Annotated[NonEmptyStr, APIField(title="field title")],
             Annotated[Union[
-                Annotated[str, APIField(name="a simple string value")],
-                Annotated[DisplayLink, APIField(namen="a link value")],
-                Annotated[list[DisplayLink], APIField(name="a list of link values")],
-                Annotated[Literal[None], APIField(name="no value")]
-            ], APIField(name="field value", union_mode='left_to_right')]
+                Annotated[str, APIField(title="a simple string value")],
+                Annotated[DisplayLink, APIField(title="a link value")],
+                Annotated[list[DisplayLink], APIField(title="a list of link values")],
+                Annotated[Literal[None], APIField(title="no value")]
+            ], APIField(title="field value", union_mode='left_to_right')]
         ]
     ] = APIField(description="a list of human-readable display values")
     geometry: Optional[GeometrySchema] = APIField(

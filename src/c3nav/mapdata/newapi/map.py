@@ -1,5 +1,4 @@
 import json
-from typing import Annotated, Union
 
 from django.core.cache import cache
 from django.core.serializers.json import DjangoJSONEncoder
@@ -9,7 +8,6 @@ from ninja import Query
 from ninja import Router as APIRouter
 from ninja import Schema
 from pydantic import Field as APIField
-from pydantic import PositiveInt
 
 from c3nav.api.exceptions import API404
 from c3nav.api.newauth import auth_responses, validate_responses

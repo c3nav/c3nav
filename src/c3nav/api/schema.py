@@ -53,4 +53,3 @@ GeometrySchema = Annotated[
         PointSchema,],
     Discriminator("type"),
 ]
-

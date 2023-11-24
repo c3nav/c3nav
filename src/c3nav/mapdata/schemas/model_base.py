@@ -1,4 +1,4 @@
-from typing import Annotated, Any, ClassVar, Optional, Union
+from typing import Annotated, Any, Optional, Union
 
 from ninja import Schema
 from pydantic import Field as APIField
