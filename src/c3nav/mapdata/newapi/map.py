@@ -56,23 +56,15 @@ class LocationListFilters(BySearchableFilter, RemoveGeometryFilter):
 
 def _location_list(request, detailed: bool, filters: LocationListFilters):
     # todo: cache, visibility, etc…
-    cache_key = 'mapdata:api:location:list:%d:%s:%d' % (
-        filters.searchable + detailed*2 + filters.geometry*4,
-        AccessPermission.cache_key_for_request(request),
-        request.user_permissions.can_access_base_mapdata
-    )
-    result = cache.get(cache_key, None)
-    if result is None:
-        if filters.searchable:
-            locations = searchable_locations_for_request(request)
-        else:
-            locations = visible_locations_for_request(request).values()
+    if filters.searchable:
+        locations = searchable_locations_for_request(request)
+    else:
+        locations = visible_locations_for_request(request).values()
 
-        result = tuple(obj.serialize(detailed=detailed, search=filters.searchable,
-                                     geometry=filters.geometry and can_access_geometry(request),
-                                     simple_geometry=True)
-                       for obj in locations)
-        cache.set(cache_key, result, 300)
+    result = tuple(obj.serialize(detailed=detailed, search=filters.searchable,
+                                 geometry=filters.geometry and can_access_geometry(request),
+                                 simple_geometry=True)
+                   for obj in locations)
     return result
 
 
