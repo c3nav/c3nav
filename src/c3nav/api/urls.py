@@ -24,12 +24,16 @@ from c3nav.mapdata.utils.user import can_access_editor
 from c3nav.mesh.api import FirmwareViewSet
 from c3nav.mesh.newapi import mesh_api_router
 from c3nav.routing.api import RoutingViewSet
+from c3nav.routing.newapi.positioning import positioning_api_router
+from c3nav.routing.newapi.routing import routing_api_router
 
 """
 new API (v2)
 """
 ninja_api.add_router("/auth/", auth_api_router)
 ninja_api.add_router("/map/", map_api_router)
+ninja_api.add_router("/routing/", routing_api_router)
+ninja_api.add_router("/positioning/", positioning_api_router)
 ninja_api.add_router("/mapdata/", mapdata_api_router)
 ninja_api.add_router("/mesh/", mesh_api_router)
 

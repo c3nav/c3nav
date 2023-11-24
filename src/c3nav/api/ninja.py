@@ -43,6 +43,14 @@ ninja_api = c3navAPI(
                 "description": "Common map endpoints",
             },
             {
+                "name": "routing",
+                "description": "Calculate routes",
+            },
+            {
+                "name": "positioning",
+                "description": "Determine your position",
+            },
+            {
                 "name": "mapdata",
                 "description": "Access the raw map data",
             },
