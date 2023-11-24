@@ -826,7 +826,7 @@ c3nav = {
     },
 
     _location_geometry_loaded: function (data) {
-        if (c3nav._visible_map_locations.indexOf(data.id) === -1 || data.geometry === null || data.level === null) return;
+        if (c3nav.map.visible_map_locations.indexOf(data.id) === -1 || data.geometry === null || data.level === null) return;
 
         if (data.geometry.type === "Point") return;
         L.geoJSON(data.geometry, {

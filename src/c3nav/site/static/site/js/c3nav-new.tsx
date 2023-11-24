@@ -202,7 +202,7 @@ class OriginInput {
             if (!selected) return;
             this.set(c3nav.locations_by_id[selected.dataset.id]);
             c3nav.update_state_new();
-            c3nav.fly_to_bounds(true);
+            c3nav.map.fly_to_bounds(true);
         }
     }
 
@@ -260,7 +260,7 @@ class DestinationInput extends OriginInput {
             await transitionEndAwaiter;
             c3nav.sidebar.destination.set(location);
             c3nav.update_state(false);
-            c3nav.fly_to_bounds(true);
+            c3nav.map.fly_to_bounds(true);
             cover.style.left = `${width + buttonRect.width / 2}px`;
             this.randomButton.style.left = `${width}px`;
             await waitEvent([cover, this.randomButton], 'transitionend', 350);
@@ -346,22 +346,19 @@ function c3nav_search(words: string[]): C3NavLocation[] {
 
         matches.push({
             location,
-            leading_words_count,
-            words_total_count,
-            words_start_count
+            sort: [leading_words_count, words_total_count, words_start_count, -location.title.length, i],
         });
-        matches.push([location, leading_words_count, words_total_count, words_start_count, -location.title.length, i])
     }
 
     matches.sort((a, b) => {
-        if (a[1] !== b[1]) return b[1] - a[1];
-        if (a[2] !== b[2]) return b[2] - a[2];
-        if (a[3] !== b[3]) return b[3] - a[3];
-        if (a[4] !== b[4]) return b[4] - a[4];
-        return a[5] - b[5];
+        if (a.sort[1] !== b.sort[1]) return b.sort[1] - a.sort[1];
+        if (a.sort[2] !== b.sort[2]) return b.sort[2] - a.sort[2];
+        if (a.sort[3] !== b.sort[3]) return b.sort[3] - a.sort[3];
+        if (a.sort[4] !== b.sort[4]) return b.sort[4] - a.sort[4];
+        return a.sort[5] - b.sort[5];
     });
 
-    return matches.map(match => match[0]);
+    return matches.map(match => match.location);
 }
 
 
@@ -385,7 +382,7 @@ class AutoComplete {
     onclick = (e: MouseEvent, el: HTMLElement) => {
         this.current_locationinput.set(c3nav.locations_by_id[el.dataset.id]);
         c3nav.update_state_new();
-        c3nav.fly_to_bounds(true);
+        c3nav.map.fly_to_bounds(true);
     }
 
     reset = () => {
@@ -503,7 +500,7 @@ class LocationDetails {
             this.id = location.id;
             c3nav._clear_route_layers();
             try {
-                const data = await c3nav.json_get(`/api/v2/locations/${location.id}/display`);
+                const data = await c3nav.json_get(`/api/v2/map/locations/${location.id}/display`);
                 if (this.id !== data.id) {
                     return;
                 }
@@ -1370,8 +1367,13 @@ class C3NavMap {
 
         if (!no_geometry && this.visible_map_locations.indexOf(location.id) === -1) {
             this.visible_map_locations.push(location.id);
-            c3nav.json_get(`/api/v2/map/locations/${location.id}/geometry/`)
-                .then(c3nav._location_geometry_loaded)
+            let geom_req;
+            if (location.locationtype === 'dynamiclocation') {
+                geom_req = c3nav.json_get(`/api/v2/map/get_position/${location.id}/`);
+            } else {
+                geom_req = c3nav.json_get(`/api/v2/map/locations/${location.id}/geometry/`);
+            }
+            geom_req.then(c3nav._location_geometry_loaded)
         }
 
         if (!location.point) return;
