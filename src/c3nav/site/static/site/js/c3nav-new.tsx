@@ -1347,7 +1347,7 @@ class C3NavMap {
             // if location is not in the searchable list...
             return;
         }
-        if (location.dynamic) {
+        if (location.locationtype === 'dynamiclocation') {
             if (!('available' in location)) {
                 c3nav.json_get(`/api/v2/map/get_position/${location.id}/`)
                     .then(c3nav._dynamic_location_loaded);
@@ -1367,13 +1367,7 @@ class C3NavMap {
 
         if (!no_geometry && this.visible_map_locations.indexOf(location.id) === -1) {
             this.visible_map_locations.push(location.id);
-            let geom_req;
-            if (location.locationtype === 'dynamiclocation') {
-                geom_req = c3nav.json_get(`/api/v2/map/get_position/${location.id}/`);
-            } else {
-                geom_req = c3nav.json_get(`/api/v2/map/locations/${location.id}/geometry/`);
-            }
-            geom_req.then(c3nav._location_geometry_loaded)
+            c3nav.json_get(`/api/v2/map/locations/${location.id}/geometry/`).then(c3nav._location_geometry_loaded)
         }
 
         if (!location.point) return;
