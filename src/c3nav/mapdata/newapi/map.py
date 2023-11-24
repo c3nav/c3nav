@@ -257,12 +257,12 @@ def location_by_slug_geometry(request, location_slug: NonEmptyStr):
     )
 
 
-@map_api_router.get('/get_position/{position_id}/',
+@map_api_router.get('/positions/{position_id}/',
                     response={200: AnyPositionStatusSchema, **API404.dict(), **auth_responses},
                     summary="get coordinates of a moving position",
                     description="a numeric ID for a dynamic location or a string ID for the position secret can be used")
 @newapi_stats('get_position')
-def get_current_position_by_id(request, position_id: AnyPositionID):
+def get_position_by_id(request, position_id: AnyPositionID):
     # no caching for obvious reasons!
     location = None
     if isinstance(position_id, int) or position_id.isdigit():
@@ -288,12 +288,11 @@ class UpdatePositionSchema(Schema):
     )
 
 
-@map_api_router.put('/get_position/{position_id}/', url_name="position-update",
+@map_api_router.put('/positions/{position_id}/', url_name="position-update",
                     response={200: AnyPositionStatusSchema, **API404.dict(), **auth_permission_responses},
                     summary="set coordinates of a moving position",
                     description="only the string ID for the position secret must be used")
-@newapi_stats('get_position')
-def position_update(request, position_id: AnyPositionID, update: UpdatePositionSchema):
+def set_position(request, position_id: AnyPositionID, update: UpdatePositionSchema):
     # todo: may an API key do this?
     if not update.position_id.startswith('p:'):
         raise API404()
