@@ -1,24 +1,25 @@
 import json
+from typing import Annotated, Optional
 
 from django.core.cache import cache
 from django.core.serializers.json import DjangoJSONEncoder
-from django.http import Http404
 from django.shortcuts import redirect
+from django.utils import timezone
 from ninja import Query
 from ninja import Router as APIRouter
 from ninja import Schema
-from ninja.decorators import decorate_view
 from pydantic import Field as APIField
+from pydantic import PositiveInt
 
-from c3nav.api.exceptions import API404
-from c3nav.api.newauth import auth_responses, validate_responses
+from c3nav.api.exceptions import API404, APIPermissionDenied, APIRequestValidationFailed
+from c3nav.api.newauth import auth_permission_responses, auth_responses, validate_responses
 from c3nav.api.utils import NonEmptyStr
 from c3nav.mapdata.models import Source
 from c3nav.mapdata.models.access import AccessPermission
 from c3nav.mapdata.models.locations import DynamicLocation, LocationRedirect, Position
 from c3nav.mapdata.newapi.base import newapi_etag, newapi_stats
 from c3nav.mapdata.schemas.filters import BySearchableFilter, RemoveGeometryFilter
-from c3nav.mapdata.schemas.model_base import AnyLocationID, AnyPositionID
+from c3nav.mapdata.schemas.model_base import AnyLocationID, AnyPositionID, CustomLocationID
 from c3nav.mapdata.schemas.models import (AnyPositionStatusSchema, FullListableLocationSchema, FullLocationSchema,
                                           LocationDisplay, SlimListableLocationSchema, SlimLocationSchema)
 from c3nav.mapdata.schemas.responses import BoundsSchema, LocationGeometry
@@ -96,7 +97,7 @@ def _location_retrieve(request, location, detailed: bool, geometry: bool, show_r
     # todo: cache, visibility, etc…
 
     if location is None:
-        raise API404
+        raise API404()
 
     if isinstance(location, LocationRedirect):
         if not show_redirects:
@@ -113,7 +114,7 @@ def _location_display(request, location):
     # todo: cache, visibility, etc…
 
     if location is None:
-        raise API404
+        raise API404()
 
     if isinstance(location, LocationRedirect):
         return redirect('../' + str(location.target.slug) + '/details/')  # todo: use reverse, make pk+slug work
@@ -131,7 +132,7 @@ def _location_geometry(request, location):
     # todo: cache, visibility, etc…
 
     if location is None:
-        raise API404
+        raise API404()
 
     if isinstance(location, LocationRedirect):
         return redirect('../' + str(location.target.slug) + '/geometry/')  # todo: use reverse, make pk+slug work
@@ -263,7 +264,7 @@ def location_by_slug_geometry(request, location_slug: NonEmptyStr):
 
 @map_api_router.get('/get_position/{position_id}/',
                     response={200: AnyPositionStatusSchema, **API404.dict(), **auth_responses},
-                    summary="get current position of a moving object",
+                    summary="get coordinates of a moving position",
                     description="a numeric ID for a dynamic location or a string ID for the position secret can be used")
 @newapi_stats('get_position')
 def get_current_position_by_id(request, position_id: AnyPositionID):
@@ -272,10 +273,49 @@ def get_current_position_by_id(request, position_id: AnyPositionID):
     if isinstance(position_id, int) or position_id.isdigit():
         location = get_location_by_id_for_request(position_id, request)
         if not isinstance(location, DynamicLocation):
-            raise Http404
+            raise API404()
     if location is None and position_id.startswith('p:'):
         try:
             location = Position.objects.get(secret=position_id[2:])
         except Position.DoesNotExist:
-            raise Http404
+            raise API404()
+    return location.serialize_position()
+
+
+class UpdatePositionSchema(Schema):
+    coordinates_id: Optional[CustomLocationID] = APIField(
+        description="coordinates to set the location to or None to unset it"
+    )
+    timeout: Optional[int] = APIField(
+        None,
+        description="timeout for this new location in seconds, or None if not to change it",
+        example=None,
+    )
+
+
+@map_api_router.put('/get_position/{position_id}/', url_name="position-update",
+                    response={200: AnyPositionStatusSchema, **API404.dict(), **auth_permission_responses},
+                    summary="set coordinates of a moving position",
+                    description="only the string ID for the position secret must be used")
+@newapi_stats('get_position')
+def position_update(request, position_id: AnyPositionID, update: UpdatePositionSchema):
+    # todo: may an API key do this?
+    if not update.position_id.startswith('p:'):
+        raise API404()
+    try:
+        location = Position.objects.get(secret=update.position_id[2:])
+    except Position.DoesNotExist:
+        raise API404()
+    if location.owner != request.user:
+        raise APIPermissionDenied()
+
+    coordinates = get_location_by_id_for_request(update.coordinates_id, request)
+    if coordinates is None:
+        raise APIRequestValidationFailed('Cant resolve coordinates.')
+
+    location.coordinates_id = update.coordinates_id
+    location.timeout = update.timeout
+    location.last_coordinates_update = timezone.now()
+    location.save()
+
     return location.serialize_position()

@@ -535,9 +535,6 @@ def position_detail(request, pk):
             if request.POST.get('reset_secret', None):
                 position.secret = get_position_secret()
 
-            if request.POST.get('reset_api_secret', None):
-                position.api_secret = get_position_api_secret()
-
             form = PositionForm(instance=position, data=request.POST)
             if form.is_valid():
                 form.save()

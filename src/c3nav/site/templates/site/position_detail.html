@@ -18,10 +18,6 @@
         <strong>{% trans 'Secret' %}:</strong>
         <code>{{ position.secret }}</code>
     </p>
-    <p>
-        <strong>{% trans 'API secret' %}:</strong>
-        <code>{{ position.api_secret }}</code>
-    </p>
 
     <hr>
     <h4>{% trans 'How to manage' %}</h4>
@@ -33,21 +29,9 @@
         {% trans 'We only keep your last position, we do not save any position history.' %}
     </p>
     <p>
-        {% trans 'To set it via the API, send a JSON PUT request to:' %}<br>
-        <code><a href="/api/locations/dynamic/p:{{ position.secret }}/">/api/locations/dynamic/p:{{ position.secret }}/</a></code><br>
-    </p>
-    <pre>
-    {
-        "coordinates_id": "c:z:xx.x:yy.y",
-        "secret": "your API secret",
-        "timeout": (in seconds, only if you want to change it)
-    }</pre>
-    <p>
-        {% trans 'To get it via the API, just send a GET request to that URL.' %}
-    </p>
-    <p>
-        {% trans 'To access this position on the map, visit:' %}<br>
-        <code><a href="/l/p:{{ position.secret }}/">/l/p:{{ position.secret }}/</a></code>
+        {% trans 'To get and set it via the API, use this API endpoint:' %}<br>
+        <code>{% url 'api-v2:position-update' position_id=position.slug %}</code>
+        <a href="{% url 'api-v2:openapi-view' %}">({% trans 'View OpenAPI documentation' %})</a><br>
     </p>
 
     <hr>
@@ -57,7 +41,6 @@
         {{ form.as_p }}
         <label><input type="checkbox" name="set_null" value="1"> {% trans 'unset coordinates' %}</label>
         <label><input type="checkbox" name="reset_secret" value="1"> {% trans 'reset secret' %}</label>
-        <label><input type="checkbox" name="reset_api_secret" value="1"> {% trans 'reset API secret' %}</label>
         <label><input type="checkbox" name="delete" value="1"> {% trans 'delete this position' %}</label>
         <button type="submit">{% trans 'Update position' %}</button>
     </form>

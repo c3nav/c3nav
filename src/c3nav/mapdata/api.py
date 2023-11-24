@@ -19,7 +19,6 @@ from rest_framework.mixins import RetrieveModelMixin, UpdateModelMixin
 from rest_framework.response import Response
 from rest_framework.viewsets import GenericViewSet, ReadOnlyModelViewSet, ViewSet
 
-from c3nav.mapdata.forms import PositionAPIUpdateForm
 from c3nav.mapdata.models import AccessRestriction, Building, Door, Hole, LocationGroup, MapUpdate, Source, Space
 from c3nav.mapdata.models.access import AccessPermission, AccessRestrictionGroup
 from c3nav.mapdata.models.geometry.base import GeometryMixin
@@ -484,20 +483,6 @@ class DynamicLocationPositionViewSet(UpdateModelMixin, RetrieveModelMixin, Gener
     def retrieve(self, request, key=None, *args, **kwargs):
         obj = self.get_object()
         return Response(obj.serialize_position())
-
-    def update(self, request, *args, **kwargs):
-        instance = self.get_object()
-        params = request.data
-        form = PositionAPIUpdateForm(instance=instance, data=params, request=request)
-
-        if not form.is_valid():
-            return Response({
-                'errors': form.errors,
-            }, status=400)
-
-        form.save()
-
-        return Response(form.instance.serialize_position())
 
 
 class SourceViewSet(MapdataViewSet):

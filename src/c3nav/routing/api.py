@@ -6,7 +6,6 @@ from rest_framework.response import Response
 from rest_framework.viewsets import ViewSet
 
 from c3nav.mapdata.api import api_stats_clean_location_value
-from c3nav.mapdata.forms import PositionAPIUpdateForm
 from c3nav.mapdata.models.access import AccessPermission
 from c3nav.mapdata.models.locations import Position
 from c3nav.mapdata.utils.cache.stats import increment_cache_key
@@ -159,7 +158,8 @@ class RoutingViewSet(ViewSet):
                 'coordinates_id': None if location is None else location.pk,
             }
 
-            form = PositionAPIUpdateForm(instance=position, data=form_data, request=request)
+            # todo: migrate
+            #form = PositionAPIUpdateForm(instance=position, data=form_data, request=request)
 
             if not form.is_valid():
                 return Response({
