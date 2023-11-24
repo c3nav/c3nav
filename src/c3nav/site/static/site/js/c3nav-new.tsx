@@ -1,10 +1,21 @@
-function c3nav_icon(name) {
+type EventHandler = (e: Event, el: Node) => void;
+
+declare function on(selector: string | Node | Node[] | NodeList | HTMLCollection, type: string, subselector: string | EventHandler, handler?: EventHandler): void;
+
+declare function off(selector: string | Node | Node[] | NodeList | HTMLCollection, type: string, subselector: string | EventHandler, handler?: EventHandler): void;
+
+declare var c3nav: any;
+declare var mobileclient: any;
+declare var L: any;
+
+
+function c3nav_icon(name: string) {
     return name; // TODO
 }
 
-function wait(ms) {
+function wait(ms: number) {
     return new Promise(resolve =>
-        window.setTimeout(() => resolve(), ms));
+        window.setTimeout(() => resolve(null), ms));
 }
 
 function nextTick() {
@@ -12,7 +23,7 @@ function nextTick() {
 }
 
 
-function waitEvent(selector, event, subselector = null, timeout = null) {
+function waitEvent(selector: string | Node | Node[] | NodeList | HTMLCollection, event: string, subselector: string | number = null, timeout: number = null) {
     if (typeof subselector === 'number' && timeout === null) {
         timeout = subselector;
         subselector = null;
@@ -26,7 +37,7 @@ function waitEvent(selector, event, subselector = null, timeout = null) {
         const complete = (result) => {
             if (completed) return;
             completed = true;
-            off(selector, event, subselector, handler);
+            off(selector, event, subselector as string, handler);
             if (timeoutHandle !== null) {
                 window.clearTimeout(timeoutHandle);
             }
@@ -37,12 +48,12 @@ function waitEvent(selector, event, subselector = null, timeout = null) {
             timeoutHandle = window.setTimeout(() => complete(null), timeout);
         }
 
-        on(selector, event, subselector, handler);
+        on(selector, event, subselector as string, handler);
     });
 }
 
 
-async function recoverPromise(promise) {
+async function recoverPromise<T>(promise: Promise<T>): Promise<T | any> {
     try {
         return await promise;
     } catch (e) {
@@ -52,18 +63,18 @@ async function recoverPromise(promise) {
 
 
 class OriginInput {
-    root;
-    icon;
-    inputEl;
-    subtitle;
-    locateButton;
-    clearButton;
-    location = null;
-    lastlocation = null;
-    suggestion = null;
-    origval = null;
+    root: HTMLElement;
+    icon: HTMLElement;
+    inputEl: HTMLInputElement;
+    subtitle: HTMLElement;
+    locateButton: HTMLElement;
+    clearButton: HTMLElement;
+    location: C3NavLocation = null;
+    lastlocation: C3NavLocation = null;
+    suggestion: C3NavLocation = null;
+    origval: string = null;
 
-    constructor(root) {
+    constructor(root: HTMLElement) {
         this.root = root;
         this.icon = this.root.querySelector('.icon');
         this.inputEl = this.root.querySelector('input');
@@ -78,7 +89,7 @@ class OriginInput {
         on(this.locateButton, 'click', this.locate);
     }
 
-    set = (location) => {
+    set = (location: C3NavLocation) => {
         if (typeof location !== 'object') {
             throw new Error('invalid location, must be null or object');
         }
@@ -103,7 +114,7 @@ class OriginInput {
         }
     }
 
-    maybe_set = (location) => {
+    maybe_set = (location: C3NavLocation) => {
         if (this.root.matches('.empty')) return false;
         const orig_location = this.location;
         if (orig_location.id !== location.id) return false;
@@ -133,10 +144,10 @@ class OriginInput {
         this.inputEl.focus();
     }
 
-    locate = async (e) => {
+    locate = async (e: MouseEvent) => {
         e.preventDefault();
         if (!window.mobileclient) {
-            const content = document.querySelector('#app-ad').cloneNode(true);
+            const content = document.querySelector('#app-ad').cloneNode(true) as HTMLElement;
             content.classList.remove('hidden');
             c3nav.modal.open(content);
             return;
@@ -157,7 +168,7 @@ class OriginInput {
         c3nav.update_state_new();
     }
 
-    onkeydown = e => {
+    onkeydown = (e: KeyboardEvent) => {
         if (e.key === 'Escape') {
             // escape: reset the location input
             if (this.origval) {
@@ -195,7 +206,7 @@ class OriginInput {
         }
     }
 
-    oninput = e => {
+    oninput = (e: InputEvent) => {
         this.origval = null;
         this.suggestion = null;
         const val = this.inputEl.value;
@@ -216,9 +227,9 @@ class OriginInput {
 }
 
 class DestinationInput extends OriginInput {
-    randomButton;
+    randomButton: HTMLElement;
 
-    constructor(root) {
+    constructor(root: HTMLElement) {
         super(root);
         this.randomButton = root.querySelector('button.random');
 
@@ -226,7 +237,7 @@ class DestinationInput extends OriginInput {
     }
 
 
-    onRandomClick = async e => {
+    onRandomClick = async (e: MouseEvent) => {
         try {
             const {width, height} = this.root.getBoundingClientRect();
             const buttonRect = this.randomButton.getBoundingClientRect();
@@ -265,20 +276,50 @@ class DestinationInput extends OriginInput {
     }
 }
 
+interface Geometry {
 
-function c3nav_search(words) {
+}
+
+type LocationDisplayInfo = any;
+
+interface C3NavLocation {
+    // TODO
+    type: string;
+    display: LocationDisplayInfo[];
+    geometry: Geometry;
+    editor_url: string;
+    id: number;
+    icon?: string;
+    subtitle: string;
+    title: string;
+}
+
+type RouteItemDescription = [string, string];
+
+interface RouteItem {
+    descriptions: RouteItemDescription[];
+
+}
+
+interface Route {
+    items: RouteItem[];
+    destination: C3NavLocation;
+    origin: C3NavLocation;
+
+}
+
+
+function c3nav_search(words: string[]): C3NavLocation[] {
     const matches = [];
     for (let i = 0; i < c3nav.locations.length; i++) {
-        var location = c3nav.locations[i],
-            leading_words_count = 0,
-            words_total_count = 0,
-            words_start_count = 0,
-            nomatch = false,
-            word, j;
+        const location = c3nav.locations[i];
+        let leading_words_count = 0;
+        let words_total_count = 0;
+        let words_start_count = 0;
+        let nomatch = false;
 
         // each word has to be in the location
-        for (j = 0; j < words.length; j++) {
-            word = words[j];
+        for (const word of words) {
             if (location.match.indexOf(word) === -1) {
                 nomatch = true;
                 break;
@@ -287,16 +328,15 @@ function c3nav_search(words) {
         if (nomatch) continue;
 
         // how many words from the beginning are in the title
-        for (j = 0; j < words.length; j++) {
-            word = words[j];
+        for (let j = 0; j < words.length; j++) {
+            let word = words[j];
             if (location.title_words[j] !== word &&
                 (j !== words.length - 1 || location.title_words[j].indexOf(word) !== 0)) break;
             leading_words_count++;
         }
 
         // how many words in total can be found
-        for (j = 0; j < words.length; j++) {
-            word = words[j];
+        for (const word of words) {
             if (location.match.indexOf(' ' + word + ' ') !== -1) {
                 words_total_count++;
             } else if (location.match.indexOf(' ' + word) !== -1) {
@@ -304,33 +344,45 @@ function c3nav_search(words) {
             }
         }
 
+        matches.push({
+            location,
+            leading_words_count,
+            words_total_count,
+            words_start_count
+        });
         matches.push([location, leading_words_count, words_total_count, words_start_count, -location.title.length, i])
     }
 
-    matches.sort(c3nav._locationinput_matches_compare);
+    matches.sort((a, b) => {
+        if (a[1] !== b[1]) return b[1] - a[1];
+        if (a[2] !== b[2]) return b[2] - a[2];
+        if (a[3] !== b[3]) return b[3] - a[3];
+        if (a[4] !== b[4]) return b[4] - a[4];
+        return a[5] - b[5];
+    });
 
-    return matches;
+    return matches.map(match => match[0]);
 }
 
 
 class AutoComplete {
-    root;
-    current_locationinput = null;
-    last_words_key = null;
+    root: HTMLElement;
+    current_locationinput: OriginInput = null;
+    last_words_key: string = null;
 
-    constructor(root) {
+    constructor(root: HTMLElement) {
         this.root = root;
 
         on(this.root, 'mouseover', '.location', this.onmouseover);
         on(this.root, 'click', '.location', this.onclick);
     }
 
-    onmouseover = (e, el) => {
+    onmouseover = (e: MouseEvent, el: HTMLElement) => {
         this.unfocus();
         el.classList.add('focus');
     }
 
-    onclick = (e, el) => {
+    onclick = (e: MouseEvent, el: HTMLElement) => {
         this.current_locationinput.set(c3nav.locations_by_id[el.dataset.id]);
         c3nav.update_state_new();
         c3nav.fly_to_bounds(true);
@@ -350,9 +402,9 @@ class AutoComplete {
         }
     }
 
-    prevnext = (next) => {
+    prevnext = (next: boolean) => {
         // arrows up
-        var locations = [...this.root.querySelectorAll('.location')];
+        const locations = [...this.root.querySelectorAll('.location')];
         if (!locations.length) return;
 
         // find focused element
@@ -395,7 +447,7 @@ class AutoComplete {
         return this.root.querySelector('.location:first-child');
     }
 
-    input = (val, source) => {
+    input = (val: string, source: OriginInput) => {
         const val_trimmed = val.trim();
         const val_words = val_trimmed.toLowerCase().split(/\s+/);
         const val_words_key = val_words.join(' ');
@@ -416,21 +468,21 @@ class AutoComplete {
         this.root.replaceChildren();
 
         for (let i = 0; i < max_items; i++) {
-            this.root.append(c3nav._build_location_html(matches[i][0]));
+            this.root.append(c3nav._build_location_html(matches[i]));
         }
     }
 }
 
 class LocationDetails {
-    root;
-    detailsBody;
-    editor;
-    reportIssue;
-    reportMissing;
+    root: HTMLElement;
+    detailsBody: HTMLElement;
+    editor: HTMLLinkElement;
+    reportIssue: HTMLLinkElement;
+    reportMissing: HTMLLinkElement;
 
-    id = null;
+    id: number = null;
 
-    constructor(root) {
+    constructor(root: HTMLElement) {
         this.root = root;
         this.detailsBody = this.root.querySelector('.details-body')
         this.editor = this.root.querySelector('.editor')
@@ -445,13 +497,13 @@ class LocationDetails {
     }
 
 
-    async load(location) {
+    async load(location: C3NavLocation) {
         if (this.id !== location.id) {
             this.setLoading(true);
             this.id = location.id;
             c3nav._clear_route_layers();
             try {
-                const data = await c3nav.json_get(`/api/locations/${location.id}/details`);
+                const data = await c3nav.json_get(`/api/v2/locations/${location.id}/display`);
                 if (this.id !== data.id) {
                     return;
                 }
@@ -467,26 +519,23 @@ class LocationDetails {
             } catch (e) {
                 this.setError(e.message);
             }
-
-            $.getJSON(`/api/locations/${location.id}/details`, c3nav._location_details_loaded).fail(function (data) {
-                this.locationDetails.setError(data.status);
-            });
         }
     }
 
 
-    setLoading = (loading) => {
+    setLoading = (loading: boolean) => {
         this.root.classList.toggle('loading', loading);
     }
 
-    setError = (error) => {
+    setError = (error: string) => {
         this.detailsBody.textContent = `Error ${error}`;
         this.editor.classList.add('hidden');
-        this.report.classList.add('hidden');
+        this.reportIssue.classList.add('hidden');
+        this.reportMissing.classList.add('hidden');
         this.setLoading(false);
     }
 
-    setLocation = (location) => {
+    setLocation = (location: C3NavLocation) => {
         const dl = <dl/>;
         const clickhandler = id => e => {
             e.preventDefault();
@@ -542,11 +591,11 @@ class LocationDetails {
 }
 
 class RouteDetails {
-    root;
-    report;
-    body;
+    root: HTMLElement;
+    report: HTMLLinkElement;
+    body: HTMLElement;
 
-    constructor(root) {
+    constructor(root: HTMLElement) {
         this.root = root;
         this.report = root.querySelector('.report');
         this.body = root.querySelector('.details-body');
@@ -554,16 +603,16 @@ class RouteDetails {
         on(root, 'click', '.close', this.close);
     }
 
-    setIssueUrl(url) {
+    setIssueUrl(url: string) {
         this.report.href = url;
     }
 
 
-    setLoading = (loading) => {
+    setLoading = (loading: boolean) => {
         this.root.classList.toggle('loading', loading);
     }
 
-    setRoute(route) {
+    setRoute(route: Route) {
         this.body.replaceChildren();
         this.body.append(c3nav._build_location_html(route.origin));
         for (const item of route.items) {
@@ -695,12 +744,12 @@ class Sidebar {
         this.routeSearchButtons = root.querySelector('#route-search-buttons');
         this.routeResultButtons = root.querySelector('#route-result-buttons');
 
-        this.origin = new OriginInput(root.querySelector('#origin-input'), this);
-        this.destination = new DestinationInput(root.querySelector('#destination-input'), this);
-        this.autocomplete = new AutoComplete(root.querySelector('#autocomplete'), this);
-        this.locationDetails = new LocationDetails(root.querySelector('#location-details'), this);
+        this.origin = new OriginInput(root.querySelector('#origin-input'));
+        this.destination = new DestinationInput(root.querySelector('#destination-input'));
+        this.autocomplete = new AutoComplete(root.querySelector('#autocomplete'));
+        this.locationDetails = new LocationDetails(root.querySelector('#location-details'));
         this.routeDetails = new RouteDetails(root.querySelector('#route-details'));
-        this.routeOptions = new RouteOptions(root.querySelector('#route-options'), this);
+        this.routeOptions = new RouteOptions(root.querySelector('#route-options'));
 
 
         on([this.locationButtons, this.routeResultButtons], 'click', '.details', this.onDetailsClick);
@@ -819,7 +868,7 @@ class Modal {
                 } else {
                     const html = await res.text();
                     const doc = (new DOMParser()).parseFromString(html, 'text/html');
-                    const data = doc.querySelector('[data-user-data]')?.dataset?.userData ?? null;
+                    const data = (doc.querySelector('[data-user-data]') as HTMLElement)?.dataset?.userData ?? null;
                     if (data) {
                         c3nav._set_user_data(JSON.parse(data));
                     }
@@ -968,7 +1017,7 @@ class State {
         if (!replace && !changed) return;
 
         const url = this.build_url(c3nav.embed);
-        const embed_link = document.querySelector('.embed-link');
+        const embed_link = document.querySelector('a.embed-link') as HTMLLinkElement;
         if (embed_link) {
             embed_link.href = this.build_url();
         }
@@ -1045,7 +1094,7 @@ class Messages {
     }
 }
 
-class Map {
+class C3NavMap {
     root;
     anywhereButtons;
     locationButtons;
@@ -1066,11 +1115,20 @@ class Map {
     userLocationLayers = {};
     firstRouteLevel = null;
 
+    location_point_overrides = {};
+
+    levelControl;
+    labelControl;
+    labelLayer;
+
+    tile_server;
 
     anywherePopup = null;
 
-    constructor(root) {
+    constructor(root: HTMLElement) {
         this.root = root;
+        this.tile_server = root.dataset.tileServer ?? '/map/';
+
         this.anywhereButtons = document.querySelector('#anywhere-popup-buttons').cloneNode(true);
         this.locationButtons = document.querySelector('#location-popup-buttons').cloneNode(true);
         this.bounds = JSON.parse(this.root.dataset.bounds);
@@ -1138,7 +1196,7 @@ class Map {
         // setup level control
         this.levelControl = new LevelControl().addTo(this.map);
         for (const level of this.levels.toReversed()) {
-            var layerGroup = this.levelControl.addLevel(level[0], level[1]);
+            const layerGroup = this.levelControl.addLevel(level[0], level[1]);
             this.detailLayers[level[0]] = L.layerGroup().addTo(layerGroup);
             this.locationLayers[level[0]] = L.layerGroup().addTo(layerGroup);
             this.routeLayers[level[0]] = L.layerGroup().addTo(layerGroup);
@@ -1155,6 +1213,11 @@ class Map {
             this.labelControl.hideLabels();
         }
 
+
+        L.control.zoom({
+            position: 'bottomright'
+        }).addTo(this.map);
+
         // setup grid control
         if (this.root.dataset.hasOwnProperty('grid')) {
             c3nav._gridLayer = new L.SquareGridLayer(JSON.parse(this.root.dataset.grid));
@@ -1163,10 +1226,6 @@ class Map {
 
         // setup user location control
         c3nav._userLocationControl = new UserLocationControl().addTo(this.map);
-
-        L.control.zoom({
-            position: 'bottomright'
-        }).addTo(this.map);
 
 
         this.map.on('click', this.click_anywhere);
@@ -1216,7 +1275,7 @@ class Map {
         }).openOn(this.map);
 
         try {
-            const data = await c3nav.json_get(`/api/locations/${name}/`);
+            const data = await c3nav.json_get(`/api/v2/map/locations/${name}/`);
             if (this.anywherePopup !== popup || !popup.isOpen()) return;
             popup.remove();
             if (nearby) {
@@ -1286,14 +1345,14 @@ class Map {
         }
     }
 
-    add_location = (location, icon, no_geometry) => {
+    add_location = (location, icon, no_geometry = false) => {
         if (!location) {
             // if location is not in the searchable list...
             return;
         }
         if (location.dynamic) {
             if (!('available' in location)) {
-                c3nav.json_get(`/api/locations/dynamic/${location.id}/`)
+                c3nav.json_get(`/api/v2/map/get_position/${location.id}/`)
                     .then(c3nav._dynamic_location_loaded);
                 return;
             } else if (!location.available) {
@@ -1311,13 +1370,13 @@ class Map {
 
         if (!no_geometry && this.visible_map_locations.indexOf(location.id) === -1) {
             this.visible_map_locations.push(location.id);
-            c3nav.json_get(`/api/locations/${location.id}/geometry/`)
+            c3nav.json_get(`/api/v2/map/locations/${location.id}/geometry/`)
                 .then(c3nav._location_geometry_loaded)
         }
 
         if (!location.point) return;
 
-        const point = c3nav._location_point_overrides[location.id] || location.point.slice(1);
+        const point = this.location_point_overrides[location.id] || location.point.slice(1);
         const latlng = L.GeoJSON.coordsToLatLng(point);
         const buttons = this.locationButtons.cloneNode(true);
         if (typeof location.id == 'number') {
@@ -1362,6 +1421,155 @@ class Map {
     setView = (center, zoom, options) => this.map.setView(center, zoom, options)
 
     flyTo = (center, zoom, options) => this.map.flyTo(center, zoom, options)
+
+    fly_to_bounds = (replace_state, nofly) => {
+        let level = this.levelControl.currentLevel;
+        let bounds = null;
+        if (this.firstRouteLevel) {
+            level = this.firstRouteLevel;
+            bounds = this.routeLayerBounds[level];
+        } else if (this.locationLayerBounds[level]) {
+            bounds = this.locationLayerBounds[level];
+        } else {
+            for (const level_id in this.locationLayers) {
+                if (this.locationLayerBounds[level_id]) {
+                    bounds = this.locationLayerBounds[level_id];
+                    level = level_id;
+                }
+            }
+        }
+        this.levelControl.setLevel(level);
+        if (bounds) {
+            const target = this.getBoundsCenterZoom(bounds, c3nav._add_map_padding({}));
+            const center = this.limitCenter(target.center, target.zoom);
+            this.map.flyTo(center, target.zoom, nofly ? {
+                animate: false,
+            } : {
+                duration: 1,
+            });
+            if (replace_state) {
+                c3nav.update_map_state(true, level, center, target.zoom);
+            }
+        }
+    }
+
+    add_line_to_route = (level: number, coords: [[number, number], [number, number]], gray: boolean, link_to_level: boolean) => {
+        if (coords.length < 2) {
+            console.warn('invalid coords');
+            return;
+        }
+        const latlngs = L.GeoJSON.coordsToLatLngs(c3nav._smooth_line(coords));
+        const routeLayer = this.routeLayers[level];
+        const line = L.polyline(latlngs, {
+            color: gray ? '#888888' : c3nav._primary_color,
+            dashArray: (gray || link_to_level) ? '7' : null,
+            interactive: false,
+            smoothFactor: 0.5
+        }).addTo(routeLayer);
+        const bounds = {};
+        bounds[level] = line.getBounds();
+
+        c3nav._merge_bounds(this.routeLayerBounds, bounds);
+
+        if (link_to_level) {
+            L.polyline(latlngs, {
+                opacity: 0,
+                weight: 15,
+                interactive: true
+            })
+                .addTo(routeLayer)
+                .on('click', () => {
+                    this.levelControl.setLevel(link_to_level);
+                });
+        }
+
+    }
+
+    add_location_point_override = (location: C3NavLocation, item) => {
+        if (location.type === 'level' || location.type === 'space' || location.type === 'area') {
+            this.location_point_overrides[location.id] = item.coordinates.slice(0, -1);
+            return true;
+        }
+        return false;
+    }
+
+    update_locations = (single) => {
+        for (const level_id in this.locationLayers) {
+            this.locationLayers[level_id].clearLayers();
+        }
+
+        const bounds = {};
+        const origin = c3nav.sidebar.origin.location;
+        const destination = c3nav.sidebar.destination.location;
+
+        if (origin) {
+            c3nav._merge_bounds(bounds, this.add_location(origin, single ? new L.Icon.Default() : c3nav.originIcon));
+        }
+        if (destination) {
+            c3nav._merge_bounds(bounds, this.add_location(destination, single ? new L.Icon.Default() : c3nav.destinationIcon));
+        }
+        const done = [];
+        if (c3nav.state.nearby && destination && 'areas' in destination) {
+            if (destination.space) {
+                c3nav._merge_bounds(bounds, this.add_location(c3nav.locations_by_id[destination.space], c3nav.nearbyIcon, true));
+            }
+            if (destination.near_area) {
+                done.push(destination.near_area);
+                c3nav._merge_bounds(bounds, this.add_location(c3nav.locations_by_id[destination.near_area], c3nav.nearbyIcon, true));
+            }
+            for (var area of destination.areas) {
+                done.push(area);
+                c3nav._merge_bounds(bounds, this.add_location(c3nav.locations_by_id[area], c3nav.nearbyIcon, true));
+            }
+            for (var location of destination.nearby) {
+                if (location in done) continue;
+                c3nav._merge_bounds(bounds, this.add_location(c3nav.locations_by_id[location], c3nav.nearbyIcon, true));
+            }
+        }
+        this.locationLayerBounds = bounds;
+    }
+
+}
+
+
+const LOCALSTORAGE_SESSION_KEY = 'c3nav_session_token';
+
+interface SessionChangeEventData {
+    token: string;
+    logout: boolean;
+}
+
+function make_session_change_event(token: string, logout: boolean) {
+    return new CustomEvent<SessionChangeEventData>('sessionchanged', {
+        detail: {
+            token,
+            logout
+        }
+    });
+}
+
+
+class C3NavApi extends EventTarget {
+    constructor() {
+        super();
+        window.addEventListener('storage', e => {
+            if (e.key !== LOCALSTORAGE_SESSION_KEY) {
+                return;
+            }
+            this.dispatchEvent(make_session_change_event(e.newValue, e.oldValue !== 'anonymous'));
+        });
+        this.get_auth_session().then(data => {
+            localStorage.setItem(LOCALSTORAGE_SESSION_KEY, data.token);
+            this.dispatchEvent(make_session_change_event(data.token, false));
+        });
+    }
+
+    private get_auth_session = async () => {
+        const response = await fetch('/api/v2/auth/session', {
+            credentials: 'same-origin'
+        });
+        return await response.json();
+    }
 }
 
 
@@ -1374,9 +1582,8 @@ const LabelControl = L.Control.extend({
     onAdd: function () {
         this._container = L.DomUtil.create('div', 'leaflet-control-labels leaflet-bar ' + this.options.addClasses);
         this._button = L.DomUtil.create('a', 'material-icons', this._container);
-        $(this._button).click(this.toggleLabels).dblclick(function (e) {
-            e.stopPropagation();
-        });
+        on(this._button, 'click', this.toggleLabels);
+        on(this._button, 'dblclick', e => e.stopPropagation());
         this._button.innerText = c3nav._map_material_icon('label');
         this._button.href = '#';
         this._button.classList.toggle('control-disabled', false);
@@ -1430,7 +1637,7 @@ const LevelControl = L.Control.extend({
     },
 
     createTileLayer: function (id) {
-        return L.tileLayer(`${c3nav.tile_server || '/map/'}${id}/{z}/{x}/{y}.png`, {
+        return L.tileLayer(`${c3nav.map.tile_server}${id}/{z}/{x}/{y}.png`, {
             minZoom: -2,
             maxZoom: 5,
             bounds: L.GeoJSON.coordsToLatLngs(c3nav.map.bounds)
@@ -1438,10 +1645,10 @@ const LevelControl = L.Control.extend({
     },
     addLevel: function (id, title) {
         this._tileLayers[id] = this.createTileLayer(id);
-        var overlay = L.layerGroup();
+        const overlay = L.layerGroup();
         this._overlayLayers[id] = overlay;
 
-        var link = L.DomUtil.create('a', '', this._container);
+        const link = L.DomUtil.create('a', '', this._container);
         link.innerHTML = title;
         link.level = id;
         link.href = '#';
@@ -1479,15 +1686,20 @@ const LevelControl = L.Control.extend({
     },
 
     finalize: function () {
-        var buttons = $(this._container).find('a');
-        buttons.addClass('current');
-        buttons.width(buttons.width());
-        buttons.removeClass('current');
+        const buttons = this._container.querySelectorAll('a');
+        for (const button of buttons) {
+            button.classList.add('current');
+        }
+        const width = Math.max(...[...buttons].map(b => b.clientWidth));
+        for (const button of buttons) {
+            button.style.width = `${width}px`;
+            button.classList.remove('current');
+        }
     },
 
     reloadMap: function () {
-        var old_tile_layer = this._tileLayers[this.currentLevel],
-            new_tile_layer = this.createTileLayer(this.currentLevel);
+        const old_tile_layer = this._tileLayers[this.currentLevel];
+        const new_tile_layer = this.createTileLayer(this.currentLevel);
         this._tileLayers[this.currentLevel] = new_tile_layer;
         new_tile_layer.addTo(this._map);
         window.setTimeout(function () {
@@ -1508,6 +1720,10 @@ const UserLocationControl = L.Control.extend({
         this._button.innerHTML = c3nav._map_material_icon(c3nav.hasLocationPermission() ? 'location_searching' : 'location_disabled');
         this._button.classList.toggle('control-disabled', !c3nav.hasLocationPermission());
         this._button.href = '#';
+
+        L.DomEvent.on(this._button, 'click', c3nav._goto_user_location_click);
+        L.DomEvent.on(this._button, 'dblclick', e => e.stopPropagation());
+
         this.currentLevel = null;
         return this._container;
     }
@@ -1523,9 +1739,8 @@ const SquareGridControl = L.Control.extend({
     onAdd: function () {
         this._container = L.DomUtil.create('div', 'leaflet-control-grid-layer leaflet-bar ' + this.options.addClasses);
         this._button = L.DomUtil.create('a', 'material-icons', this._container);
-        $(this._button).click(this.toggleGrid).dblclick(function (e) {
-            e.stopPropagation();
-        });
+        on(this._button, 'click', this.toggleGrid);
+        on(this._button, 'dblclick', e => e.stopPropagation());
         this._button.innerText = c3nav._map_material_icon('grid_off');
         this._button.href = '#';
         this._button.classList.toggle('control-disabled', true);
@@ -1576,19 +1791,18 @@ L.SquareGridLayer = L.Layer.extend({
 
         this.cols = [];
         this.rows = [];
-        var i, elem, label;
-        for (i = 0; i < this.config.cols.length; i++) {
-            elem = L.DomUtil.create('div', 'c3nav-grid-column');
-            label = String.fromCharCode(65 + (this.config.invert_x ? (this.config.cols.length - i - 2) : i));
+        for (let i = 0; i < this.config.cols.length; i++) {
+            const elem = L.DomUtil.create('div', 'c3nav-grid-column');
+            const label = String.fromCharCode(65 + (this.config.invert_x ? (this.config.cols.length - i - 2) : i));
             if (i < this.config.cols.length - 1) {
                 elem.innerHTML = '<span>' + label + '</span><span>' + label + '</span>';
             }
             this._container.appendChild(elem);
             this.cols.push(elem);
         }
-        for (i = 0; i < this.config.rows.length; i++) {
-            elem = L.DomUtil.create('div', 'c3nav-grid-row');
-            label = (this.config.invert_y ? (this.config.rows.length - i) : i);
+        for (let i = 0; i < this.config.rows.length; i++) {
+            const elem = L.DomUtil.create('div', 'c3nav-grid-row');
+            const label = (this.config.invert_y ? (this.config.rows.length - i) : i);
             if (i > 0) {
                 elem.innerHTML = '<span>' + label + '</span><span>' + label + '</span>';
             }
@@ -1614,25 +1828,25 @@ L.SquareGridLayer = L.Layer.extend({
 
     _updateGrid: function () {
         if (!this.cols || this.cols.length === 0) return;
-        var mapSize = this._map.getSize(),
-            panePos = this._map._getMapPanePos(),
-            sidebarStart = $('#sidebar').outerWidth() + 15,
-            searchHeight = $('#search').outerHeight() + 10,
-            controlsWidth = $('.leaflet-control-zoom').outerWidth() + 10,
-            attributionStart = mapSize.x - $('.leaflet-control-attribution').outerWidth() - 16,
-            bottomRightStart = mapSize.y - $('.leaflet-bottom.leaflet-right').outerHeight() - 24,
-            coord = null, lastCoord = null, size, center;
+        const mapSize = this._map.getSize();
+        const panePos = this._map._getMapPanePos();
+        const sidebarStart = c3nav.sidebar.root.offsetWidth + 15;
+        const searchHeight = c3nav.sidebar.search.offsetHeight + 10;
+        const controlsWidth = (document.querySelector('.leaflet-control-zoom') as HTMLElement).offsetWidth + 10;
+        const attributionStart = mapSize.x + (document.querySelector('.leaflet-control-attribution') as HTMLElement).offsetWidth - 16;
+        const bottomRightStart = mapSize.y - (document.querySelector('.leaflet-bottom.leaflet-right') as HTMLElement).offsetHeight - 24;
+        let lastCoord = null;
         this._container.style.width = mapSize.x + 'px';
         this._container.style.height = mapSize.y + 'px';
         this._container.style.left = (-panePos.x) + 'px';
         this._container.style.top = (-panePos.y) + 'px';
-        for (i = 0; i < this.config.cols.length; i++) {
-            coord = this._map.latLngToContainerPoint([0, this.config.cols[i]], this._map.getZoom()).x;
+        for (let i = 0; i < this.config.cols.length; i++) {
+            let coord = this._map.latLngToContainerPoint([0, this.config.cols[i]], this._map.getZoom()).x;
             coord = Math.min(mapSize.x, Math.max(-1, coord));
             this.cols[i].style.left = coord + 'px';
             if (i > 0) {
-                size = coord - lastCoord;
-                center = (lastCoord + coord) / 2;
+                let size = coord - lastCoord;
+                let center = (lastCoord + coord) / 2;
                 if (size > 0) {
                     this.cols[i - 1].style.display = '';
                     this.cols[i - 1].style.width = size + 'px';
@@ -1644,13 +1858,13 @@ L.SquareGridLayer = L.Layer.extend({
             }
             lastCoord = coord;
         }
-        for (i = 0; i < this.config.rows.length; i++) {
-            coord = this._map.latLngToContainerPoint([this.config.rows[i], 0], this._map.getZoom()).y;
+        for (let i = 0; i < this.config.rows.length; i++) {
+            let coord = this._map.latLngToContainerPoint([this.config.rows[i], 0], this._map.getZoom()).y;
             coord = Math.min(mapSize.y, Math.max(-1, coord));
             this.rows[i].style.top = coord + 'px';
             if (i > 0) {
-                size = lastCoord - coord;
-                center = (lastCoord + coord) / 2;
+                let size = lastCoord - coord;
+                let center = (lastCoord + coord) / 2;
                 if (size > 0) {
                     this.rows[i].style.display = '';
                     this.rows[i].style.height = size + 'px';
@@ -1663,3 +1877,5 @@ L.SquareGridLayer = L.Layer.extend({
         }
     }
 });
+
+
