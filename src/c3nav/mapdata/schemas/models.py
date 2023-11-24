@@ -611,7 +611,7 @@ class LocationDisplay(SerializableSchema):
                 Annotated[str, APIField(title="a simple string value")],
                 Annotated[DisplayLink, APIField(title="a link value")],
                 Annotated[list[DisplayLink], APIField(title="a list of link values")],
-                Annotated[Literal[None], APIField(title="no value")]
+                Annotated[None, APIField(title="no value")]
             ], APIField(title="field value", union_mode='left_to_right')]
         ]
     ] = APIField(description="a list of human-readable display values")
