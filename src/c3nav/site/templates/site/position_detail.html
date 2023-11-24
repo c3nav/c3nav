@@ -29,6 +29,10 @@
         {% trans 'We only keep your last position, we do not save any position history.' %}
     </p>
     <p>
+        {% trans 'To access this position on the map, visit:' %}<br>
+        <code><a href="/l/p:{{ position.secret }}/">/l/p:{{ position.secret }}/</a></code>
+    </p>
+    <p>
         {% trans 'To get and set it via the API, use this API endpoint:' %}<br>
         <code>{% url 'api-v2:position-update' position_id=position.slug %}</code>
         <a href="{% url 'api-v2:openapi-view' %}">({% trans 'View OpenAPI documentation' %})</a><br>
