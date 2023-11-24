@@ -19,7 +19,7 @@ from c3nav.mapdata.schemas.filters import BySearchableFilter, RemoveGeometryFilt
 from c3nav.mapdata.schemas.model_base import AnyLocationID, AnyPositionID
 from c3nav.mapdata.schemas.models import (AnyPositionStatusSchema, FullListableLocationSchema, FullLocationSchema,
                                           LocationDisplay, SlimListableLocationSchema, SlimLocationSchema)
-from c3nav.mapdata.schemas.responses import BoundsSchema
+from c3nav.mapdata.schemas.responses import BoundsSchema, LocationGeometry
 from c3nav.mapdata.utils.locations import (get_location_by_id_for_request, get_location_by_slug_for_request,
                                            searchable_locations_for_request, visible_locations_for_request)
 from c3nav.mapdata.utils.user import can_access_editor
@@ -122,6 +122,24 @@ def _location_display(request, location):
     return json.loads(json.dumps(result, cls=DjangoJSONEncoder))  # todo: wtf?? well we need to get rid of lazy strings
 
 
+def _location_geometry(request, location):
+    # todo: cache, visibility, etc…
+
+    if location is None:
+        raise API404
+
+    if isinstance(location, LocationRedirect):
+        return redirect('../' + str(location.target.slug) + '/geometry/')  # todo: use reverse, make pk+slug work
+
+    return LocationGeometry(
+        id=location.pk,
+        level=getattr(location, 'level_id', None),
+        geometry=location.get_geometry(
+            detailed_geometry=can_access_geometry(request)
+        )
+    )
+
+
 class ShowRedirects(Schema):
     show_redirects: bool = APIField(
         False,
@@ -167,6 +185,17 @@ def location_by_id_display(request, location_id: AnyLocationID):
     )
 
 
+@map_api_router.get('/locations/{location_id}/geometry/',
+                    response={200: LocationGeometry, **API404.dict(), **auth_responses},
+                    summary="Get location geometry (if available) by ID",
+                    description="a numeric ID for a map location or a string ID for generated locations can be used")
+def location_by_id_geometry(request, location_id: AnyLocationID):
+    return _location_geometry(
+        request,
+        get_location_by_id_for_request(location_id, request),
+    )
+
+
 @map_api_router.get('/locations/by-slug/{location_slug}/',
                     response={200: SlimLocationSchema, **API404.dict(), **validate_responses, **auth_responses},
                     summary="Get location by slug (with most important attributes)")
@@ -196,6 +225,16 @@ def location_by_slug_full(request, location_slug: NonEmptyStr, filters: Query[Re
                     summary="Get location display data by slug")
 def location_by_slug_display(request, location_slug: NonEmptyStr):
     return _location_display(
+        request,
+        get_location_by_slug_for_request(location_slug, request),
+    )
+
+
+@map_api_router.get('/locations/by-slug/{location_slug}/geometry/',
+                    response={200: LocationGeometry, **API404.dict(), **auth_responses},
+                    summary="Get location geometry (if available) by slug")
+def location_by_slug_geometry(request, location_slug: NonEmptyStr):
+    return _location_geometry(
         request,
         get_location_by_slug_for_request(location_slug, request),
     )
