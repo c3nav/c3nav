@@ -1,0 +1,16 @@
+{
+  "name": "c3nav-js",
+  "type": "module",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "generate-api": "openapi-generator generate -g typescript-fetch -i openapi_v2.json -o js-src/api/ --remove-operation-id-prefix --additional-properties=modelPropertyNaming=snake_case"
+  },
+  "dependencies": {
+    "@apiture/openapi-down-convert": "^0.9.0",
+    "openapi-fetch": "^0.8.1",
+    "openapi-typescript-helpers": "^0.0.6"
+  },
+  "devDependencies": {
+    "openapi-typescript": "^6.7.1"
+  }
+}
