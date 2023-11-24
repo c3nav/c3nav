@@ -632,11 +632,12 @@ class PositionStatusSchema(Schema):
     )
 
 
-class PositionUnavailableStatusSchema(PositionStatusSchema, TrackablePositionSchema):
+class PositionUnavailableStatusSchema(PositionStatusSchema, SimpleGeometryPointAndBoundsSchema, TrackablePositionSchema):
     available: Literal[False]
 
 
-class PositionAvailableStatusSchema(PositionStatusSchema, TrackablePositionSchema, CustomLocationSchema):
+class PositionAvailableStatusSchema(PositionStatusSchema, SimpleGeometryPointAndBoundsSchema, TrackablePositionSchema,
+                                    CustomLocationSchema):
     available: Literal[True]
 
 
