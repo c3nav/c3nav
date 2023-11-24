@@ -120,7 +120,7 @@ class OriginInput {
         if (orig_location.id !== location.id) return false;
         const new_location = {
             ...orig_location,
-            location
+            ...location
         };
         this.set(new_location);
         return true;
