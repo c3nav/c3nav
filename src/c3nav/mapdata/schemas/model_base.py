@@ -192,19 +192,30 @@ class SimpleGeometryLocationsSchema(Schema):
     )
 
 
-LocationID = Union[
+CustomLocationID = Annotated[NonEmptyStr, APIField(
+    title="custom location ID",
+    pattern=r"c:[a-z0-9-_]+:(-?\d+(\.\d+)?):(-?\d+(\.\d+)?)$",
+    description="level short_name and x/y coordinates form the ID of a custom location"
+)]
+PositionID = Annotated[NonEmptyStr, APIField(
+    title="position ID",
+    pattern=r"p:[a-z0-9]+$",
+    description="the ID of a user-defined tracked position is made up of its secret"
+)]
+
+
+AnyLocationID = Union[
     Annotated[PositiveInt, APIField(
         title="location ID",
         description="numeric ID of any lcation"
     )],
-    Annotated[NonEmptyStr, APIField(
-        title="custom location ID",
-        pattern=r"c:[a-z0-9-_]+:(-?\d+(\.\d+)?):(-?\d+(\.\d+)?)$",
-        description="level short_name and x/y coordinates form the ID of a custom location"
+    CustomLocationID,
+    PositionID,
+]
+AnyPositionID = Union[
+    Annotated[PositiveInt, APIField(
+        title="dynamic location ID",
+        description="numeric ID of any dynamic lcation"
     )],
-    Annotated[NonEmptyStr, APIField(
-        title="position ID",
-        pattern=r"p:[a-z0-9]+$",
-        description="the ID of a user-defined tracked position is made up of its secret"
-    )],
+    PositionID,
 ]

@@ -536,6 +536,8 @@ class DynamicLocation(CustomLocationProxyMixin, SpecificLocation, models.Model):
             return {
                 'available': False,
                 'id': self.pk,
+                'slug': self.slug,
+                'icon': self.get_icon(),
                 'title': self.title,
                 'subtitle': '%s %s, %s' % (_('currently unavailable'), _('(moving)'), self.subtitle)
             }

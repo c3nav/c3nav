@@ -3,14 +3,12 @@ from typing import Annotated, ClassVar, Literal, Optional, Union
 from ninja import Schema
 from pydantic import Discriminator
 from pydantic import Field as APIField
-from pydantic import GetJsonSchemaHandler, NonNegativeFloat, PositiveFloat, PositiveInt
-from pydantic.json_schema import JsonSchemaValue
-from pydantic_core import CoreSchema
+from pydantic import NonNegativeFloat, PositiveFloat, PositiveInt
 
-from c3nav.api.schema import GeometrySchema
+from c3nav.api.schema import GeometrySchema, PointSchema
 from c3nav.api.utils import NonEmptyStr
-from c3nav.mapdata.schemas.model_base import (DjangoModelSchema, LabelSettingsSchema, LocationID, LocationSchema,
-                                              LocationSlugSchema, SerializableSchema,
+from c3nav.mapdata.schemas.model_base import (AnyLocationID, AnyPositionID, CustomLocationID, DjangoModelSchema,
+                                              LabelSettingsSchema, LocationSchema, PositionID, SerializableSchema,
                                               SimpleGeometryBoundsAndPointSchema, SimpleGeometryBoundsSchema,
                                               SimpleGeometryLocationsSchema, SpecificLocationSchema, TitledSchema,
                                               WithAccessRestrictionSchema, WithLevelSchema,
@@ -328,6 +326,88 @@ class AccessRestrictionGroupSchema(WithAccessRestrictionSchema, DjangoModelSchem
     pass
 
 
+class CustomLocationSchema(SerializableSchema):
+    """
+    A custom location represents coordinates that have been put in or calculated.
+
+    A custom location is a location, so it can be routed to and from.
+    """
+    id: CustomLocationID = APIField(
+        description="ID representing the coordinates"
+    )
+    slug: CustomLocationID = APIField(
+        description="slug, identical to ID"
+    )
+    icon: Optional[NonEmptyStr] = APIField(
+        default=None,
+        title="icon name",
+        description="any material design icon name"
+    )
+    title: NonEmptyStr = APIField(
+        title="title (preferred language)",
+        description="preferred language based on the Accept-Language header."
+    )
+    subtitle: NonEmptyStr = APIField(
+        title="subtitle (preferred language)",
+        description="an automatically generated short description for this location. "
+                    "preferred language based on the Accept-Language header."
+    )
+    level: PositiveInt = APIField(
+        description="level ID this custom location is located on"
+    )
+    space: Optional[PositiveInt] = APIField(
+        description="space ID this custom location is located in, if applicable"
+    )
+    areas: list[PositiveInt] = APIField(
+        description="IDs of areas this custom location is located in"
+    )
+    grid_square: Optional[NonEmptyStr] = APIField(
+        default=None,
+        title="grid square",
+        description="if a grid is defined and this custom location is within it",
+    )
+    near_area: Optional[PositiveInt] = APIField(
+        description="the ID of an area near this custom location, if there is one"
+    )
+    near_poi: Optional[PositiveInt] = APIField(
+        description="the ID of a POI near this custom location, if there is one"
+    )
+    neaby: list[PositiveInt] = APIField(
+        description="list of IDs of nearby locations"
+    )
+    altitude: Optional[float] = APIField(
+        description="ground altitude (in the map-wide coordinate system), if it can be determined"
+    )
+    geometry: Optional[PointSchema] = APIField(
+        description="point geometry for this custom location",
+    )
+
+
+class TrackablePositionSchema(Schema):
+    """
+    A trackable position. It's position can be set or reset.
+    """
+    id: PositionID = APIField(
+        description="ID representing the position"
+    )
+    slug: PositionID = APIField(
+        description="slug representing the position"
+    )
+    icon: Optional[NonEmptyStr] = APIField(
+        default=None,
+        title="icon name",
+        description="any material design icon name"
+    )
+    title: NonEmptyStr = APIField(
+        title="title of the position",
+    )
+    subtitle: NonEmptyStr = APIField(
+        title="subtitle (preferred language)",
+        description="an automatically generated short description, which might change when the position changes. "
+                    "preferred language based on the Accept-Language header."
+    )
+
+
 class FullLevelLocationSchema(LevelSchema):
     """
     A level for the location API.
@@ -374,6 +454,22 @@ class FullDynamicLocationLocationSchema(SimpleGeometryLocationsSchema, DynamicLo
     See DynamicLocation schema for details.
     """
     locationtype: Literal["dynamiclocation"]
+
+
+class CustomLocationLocationSchema(SimpleGeometryBoundsAndPointSchema, CustomLocationSchema):
+    """
+    A custom location for the location API.
+    See CustomLocation schema for details.
+    """
+    locationtype: Literal["customlocation"]
+
+
+class TrackablePositionLocationSchema(TrackablePositionSchema):
+    """
+    A trackable position for the location API.
+    See TrackablePosition schema for details.
+    """
+    locationtype: Literal["position"]
 
 
 class SlimLocationMixin(Schema):
@@ -443,7 +539,7 @@ class SlimDynamicLocationLocationSchema(SlimLocationMixin, FullDynamicLocationLo
     pass
 
 
-FullLocationSchema = Annotated[
+FullListableLocationSchema = Annotated[
     Union[
         FullLevelLocationSchema,
         FullSpaceLocationSchema,
@@ -455,7 +551,16 @@ FullLocationSchema = Annotated[
     Discriminator("locationtype"),
 ]
 
-SlimLocationSchema = Annotated[
+FullLocationSchema = Annotated[
+    Union[
+        FullListableLocationSchema,
+        CustomLocationLocationSchema,
+        TrackablePositionLocationSchema,
+    ],
+    Discriminator("locationtype"),
+]
+
+SlimListableLocationSchema = Annotated[
     Union[
         SlimLevelLocationSchema,
         SlimSpaceLocationSchema,
@@ -463,6 +568,15 @@ SlimLocationSchema = Annotated[
         SlimPOILocationSchema,
         SlimLocationGroupLocationSchema,
         SlimDynamicLocationLocationSchema,
+    ],
+    Discriminator("locationtype"),
+]
+
+SlimLocationSchema = Annotated[
+    Union[
+        SlimListableLocationSchema,
+        CustomLocationLocationSchema,
+        TrackablePositionLocationSchema,
     ],
     Discriminator("locationtype"),
 ]
@@ -479,7 +593,7 @@ class DisplayLink(Schema):
 
 
 class LocationDisplay(SerializableSchema):
-    id: LocationID = APIField(
+    id: AnyLocationID = APIField(
         description="a numeric ID for a map location or a string ID for generated locations",
     )
     level: Optional[PositiveInt] = APIField(
@@ -507,3 +621,29 @@ class LocationDisplay(SerializableSchema):
     editor_url: Optional[NonEmptyStr] = APIField(
         None, description="path to edit this object in the editor, if the user has access to it",
     )
+
+
+class PositionStatusSchema(Schema):
+    id: AnyPositionID = APIField(
+        description="the ID of the dynamic position that has been queries",
+    )
+    slug: NonEmptyStr = APIField(
+        description="a description for the dynamic position that has been queried"
+    )
+
+
+class PositionUnavailableStatusSchema(PositionStatusSchema, TrackablePositionSchema):
+    available: Literal[False]
+
+
+class PositionAvailableStatusSchema(PositionStatusSchema, TrackablePositionSchema, CustomLocationSchema):
+    available: Literal[True]
+
+
+AnyPositionStatusSchema = Annotated[
+    Union[
+        Annotated[PositionUnavailableStatusSchema, APIField(title="position is unavailable")],
+        Annotated[PositionAvailableStatusSchema, APIField(title="position is available")],
+    ],
+    Discriminator("available"),
+]

@@ -312,7 +312,8 @@ class CustomLocation:
             ('near_area', self.near_area.pk if self.near_area else None),
             ('near_poi', self.near_poi.pk if self.near_poi else None),
             ('nearby', tuple(location.pk for location in self.nearby)),
-            ('altitude', None if self.altitude is None else round(self.altitude, 2))
+            ('altitude', None if self.altitude is None else round(self.altitude, 2)),
+            ('locationtype', 'customlocation'),
         ))
         if hasattr(self, 'score'):
             result['score'] = self.score
