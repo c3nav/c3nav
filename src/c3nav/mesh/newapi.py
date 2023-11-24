@@ -83,8 +83,11 @@ def firmware_by_id(request, firmware_id: int):
 @mesh_api_router.get('/firmwares/{firmware_id}/{variant}/image_data',
                      summary="Get header data of firmware build image",
                      response={200: FirmwareImage.schema, **API404.dict(), **auth_responses},
-                     openapi_extra={"externalDocs": "https://docs.espressif.com/projects/esptool/en/latest/esp32s3/"
-                                                    "advanced-topics/firmware-image-format.html"})
+                     openapi_extra={"externalDocs": {
+                         'description': "esp-idf documentation",
+                         'url': "https://docs.espressif.com/projects/esptool/en/latest/esp32s3/"
+                                "advanced-topics/firmware-image-format.html"
+                     }})
 def firmware_build_image(request, firmware_id: int, variant: str):
     try:
         build = FirmwareBuild.objects.get(version_id=firmware_id, variant=variant)
@@ -96,8 +99,11 @@ def firmware_build_image(request, firmware_id: int, variant: str):
 @mesh_api_router.get('/firmwares/{firmware_id}/{variant}/project_description',
                      summary="Get project description of firmware build",
                      response={200: dict, **API404.dict(), **auth_responses},
-                     openapi_extra={"externalDocs": "https://docs.espressif.com/projects/esp-idf/en/latest/esp32/"
-                                                    "api-guides/build-system.html#build-system-metadata"})
+                     openapi_extra={"externalDocs": {
+                         'description': 'esp-idf docs',
+                         'url': "https://docs.espressif.com/projects/esp-idf/en/latest/esp32/"
+                                "api-guides/build-system.html#build-system-metadata"
+                     }})
 def firmware_project_description(request, firmware_id: int, variant: str):
     try:
         return FirmwareBuild.objects.get(version_id=firmware_id, variant=variant).firmware_description
