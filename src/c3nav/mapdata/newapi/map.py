@@ -7,6 +7,7 @@ from django.shortcuts import redirect
 from ninja import Query
 from ninja import Router as APIRouter
 from ninja import Schema
+from ninja.decorators import decorate_view
 from pydantic import Field as APIField
 
 from c3nav.api.exceptions import API404
@@ -15,6 +16,7 @@ from c3nav.api.utils import NonEmptyStr
 from c3nav.mapdata.models import Source
 from c3nav.mapdata.models.access import AccessPermission
 from c3nav.mapdata.models.locations import DynamicLocation, LocationRedirect, Position
+from c3nav.mapdata.newapi.base import newapi_etag
 from c3nav.mapdata.schemas.filters import BySearchableFilter, RemoveGeometryFilter
 from c3nav.mapdata.schemas.model_base import AnyLocationID, AnyPositionID
 from c3nav.mapdata.schemas.models import (AnyPositionStatusSchema, FullListableLocationSchema, FullLocationSchema,
@@ -29,6 +31,7 @@ map_api_router = APIRouter(tags=["map"])
 
 @map_api_router.get('/bounds/', summary="Get map boundaries",
                     response={200: BoundsSchema, **auth_responses})
+@newapi_etag(permissions=False)
 def bounds(request):
     return {
         "bounds": Source.max_bounds(),
@@ -76,6 +79,7 @@ def _location_list(request, detailed: bool, filters: LocationListFilters):
 @map_api_router.get('/locations/',
                     response={200: list[SlimListableLocationSchema], **validate_responses, **auth_responses},
                     summary="Get locations (with most important attributes)")
+@newapi_etag(base_mapdata=True)
 def location_list(request, filters: Query[LocationListFilters]):
     return _location_list(request, detailed=False, filters=filters)
 
@@ -83,6 +87,7 @@ def location_list(request, filters: Query[LocationListFilters]):
 @map_api_router.get('/locations/full/',
                     response={200: list[FullListableLocationSchema], **validate_responses, **auth_responses},
                     summary="Get locations (with all attributes)")
+@newapi_etag(base_mapdata=True)
 def location_list_full(request, filters: Query[LocationListFilters]):
     return _location_list(request, detailed=True, filters=filters)
 
@@ -152,6 +157,7 @@ class ShowRedirects(Schema):
                     response={200: SlimLocationSchema, **API404.dict(), **validate_responses, **auth_responses},
                     summary="Get location by ID (with most important attributes)",
                     description="a numeric ID for a map location or a string ID for generated locations can be used")
+@newapi_etag(base_mapdata=True)
 def location_by_id(request, location_id: AnyLocationID, filters: Query[RemoveGeometryFilter],
                    redirects: Query[ShowRedirects]):
     return _location_retrieve(
@@ -165,6 +171,7 @@ def location_by_id(request, location_id: AnyLocationID, filters: Query[RemoveGeo
                     response={200: FullLocationSchema, **API404.dict(), **validate_responses, **auth_responses},
                     summary="Get location by ID (with all attributes)",
                     description="a numeric ID for a map location or a string ID for generated locations can be used")
+@newapi_etag(base_mapdata=True)
 def location_by_id_full(request, location_id: AnyLocationID, filters: Query[RemoveGeometryFilter],
                         redirects: Query[ShowRedirects]):
     return _location_retrieve(
@@ -178,6 +185,7 @@ def location_by_id_full(request, location_id: AnyLocationID, filters: Query[Remo
                     response={200: LocationDisplay, **API404.dict(), **auth_responses},
                     summary="Get location display data by ID",
                     description="a numeric ID for a map location or a string ID for generated locations can be used")
+@newapi_etag(base_mapdata=True)
 def location_by_id_display(request, location_id: AnyLocationID):
     return _location_display(
         request,
@@ -189,6 +197,7 @@ def location_by_id_display(request, location_id: AnyLocationID):
                     response={200: LocationGeometry, **API404.dict(), **auth_responses},
                     summary="Get location geometry (if available) by ID",
                     description="a numeric ID for a map location or a string ID for generated locations can be used")
+@newapi_etag(base_mapdata=True)
 def location_by_id_geometry(request, location_id: AnyLocationID):
     return _location_geometry(
         request,
@@ -199,6 +208,7 @@ def location_by_id_geometry(request, location_id: AnyLocationID):
 @map_api_router.get('/locations/by-slug/{location_slug}/',
                     response={200: SlimLocationSchema, **API404.dict(), **validate_responses, **auth_responses},
                     summary="Get location by slug (with most important attributes)")
+@newapi_etag(base_mapdata=True)
 def location_by_slug(request, location_slug: NonEmptyStr, filters: Query[RemoveGeometryFilter],
                      redirects: Query[ShowRedirects]):
     return _location_retrieve(
@@ -211,6 +221,7 @@ def location_by_slug(request, location_slug: NonEmptyStr, filters: Query[RemoveG
 @map_api_router.get('/locations/by-slug/{location_slug}/full/',
                     response={200: FullLocationSchema, **API404.dict(), **validate_responses, **auth_responses},
                     summary="Get location by slug (with all attributes)")
+@newapi_etag(base_mapdata=True)
 def location_by_slug_full(request, location_slug: NonEmptyStr, filters: Query[RemoveGeometryFilter],
                           redirects: Query[ShowRedirects]):
     return _location_retrieve(
@@ -223,6 +234,7 @@ def location_by_slug_full(request, location_slug: NonEmptyStr, filters: Query[Re
 @map_api_router.get('/locations/by-slug/{location_slug}/display/',
                     response={200: LocationDisplay, **API404.dict(), **auth_responses},
                     summary="Get location display data by slug")
+@newapi_etag(base_mapdata=True)
 def location_by_slug_display(request, location_slug: NonEmptyStr):
     return _location_display(
         request,
@@ -233,6 +245,7 @@ def location_by_slug_display(request, location_slug: NonEmptyStr):
 @map_api_router.get('/locations/by-slug/{location_slug}/geometry/',
                     response={200: LocationGeometry, **API404.dict(), **auth_responses},
                     summary="Get location geometry (if available) by slug")
+@newapi_etag(base_mapdata=True)
 def location_by_slug_geometry(request, location_slug: NonEmptyStr):
     return _location_geometry(
         request,
@@ -245,6 +258,7 @@ def location_by_slug_geometry(request, location_slug: NonEmptyStr):
                     summary="get current position of a moving object",
                     description="a numeric ID for a dynamic location or a string ID for the position secret can be used")
 def get_current_position_by_id(request, position_id: AnyPositionID):
+    # no caching for obvious reasons!
     location = None
     if isinstance(position_id, int) or position_id.isdigit():
         location = get_location_by_id_for_request(position_id, request)
