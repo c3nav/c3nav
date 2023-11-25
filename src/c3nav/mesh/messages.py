@@ -161,26 +161,23 @@ class MeshLayerAnnounceMessage(MeshMessage, msg_type=MeshMessageType.MESH_LAYER_
     })
 
 
+
 @dataclass
-class BaseDestinationsMessage(MeshMessage, c_struct_name="destinations"):
-    """ downstream node announces served/no longer served destination """
+class MeshAddDestinationsMessage(MeshMessage, msg_type=MeshMessageType.MESH_ADD_DESTINATIONS):
+    """ downstream node announces served destination """
     addresses: list[str] = field(default_factory=list, metadata={
         "format": MacAddressesListFormat(max_num=16),
-        "doc": "adresses of the destinations",
-        "c_name": "addresses",
+        "doc": "adresses of the added destinations",
     })
 
 
 @dataclass
-class MeshAddDestinationsMessage(BaseDestinationsMessage, msg_type=MeshMessageType.MESH_ADD_DESTINATIONS):
-    """ downstream node announces served destination """
-    pass
-
-
-@dataclass
-class MeshRemoveDestinationsMessage(BaseDestinationsMessage, msg_type=MeshMessageType.MESH_REMOVE_DESTINATIONS):
+class MeshRemoveDestinationsMessage(MeshMessage, msg_type=MeshMessageType.MESH_REMOVE_DESTINATIONS):
     """ downstream node announces no longer served destination """
-    pass
+    addresses: list[str] = field(default_factory=list, metadata={
+        "format": MacAddressesListFormat(max_num=16),
+        "doc": "adresses of the removed destinations",
+    })
 
 
 @dataclass
