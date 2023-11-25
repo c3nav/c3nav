@@ -102,7 +102,7 @@ class MeshMessage(StructType, union_type_field="msg_type"):
             return True
 
         from c3nav.mesh.models import MeshNode
-        uplink = database_sync_to_async(MeshNode.get_node_and_uplink)(self.dst)
+        uplink = await database_sync_to_async(MeshNode.get_node_and_uplink)(self.dst)
         if not uplink:
             return False
         if uplink.node_id == exclude_uplink_address:

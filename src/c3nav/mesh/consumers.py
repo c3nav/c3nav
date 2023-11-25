@@ -369,7 +369,7 @@ class MeshUIConsumer(AsyncJsonWebsocketConsumer):
             msg_to_send = self.scope["session"].pop("mesh_msg_%s" % content["send_msg"], None)
             if not msg_to_send:
                 return
-            self.scope["session"].save()
+            database_sync_to_async(self.scope["session"].save)()
 
             await self.channel_layer.group_add("mesh_msg_sent", self.channel_name)
             self.msg_sent_filter = {"sender": self.channel_name}
