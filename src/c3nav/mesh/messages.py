@@ -132,26 +132,18 @@ class NoopMessage(MeshMessage, msg_type=MeshMessageType.NOOP):
     pass
 
 
-@dataclass
-class BaseEchoMessage(MeshMessage, c_struct_name="echo"):
-    """ repeat back string """
-    content: str = field(default='', metadata={
-        "format": VarStrFormat(max_len=255),
-        "doc": "string to echo",
-        "c_name": "str",
-    })
 
 
 @dataclass
-class EchoRequestMessage(BaseEchoMessage, msg_type=MeshMessageType.ECHO_REQUEST):
+class EchoRequestMessage(MeshMessage, msg_type=MeshMessageType.ECHO_REQUEST):
     """ repeat back string """
-    pass
+    content: str = field(default='', metadata={'format': VarStrFormat(max_len=255)})
 
 
 @dataclass
-class EchoResponseMessage(BaseEchoMessage, msg_type=MeshMessageType.ECHO_RESPONSE):
+class EchoResponseMessage(MeshMessage, msg_type=MeshMessageType.ECHO_RESPONSE):
     """ repeat back string """
-    pass
+    content: str = field(default='', metadata={'format': VarStrFormat(max_len=255)})
 
 
 @dataclass
