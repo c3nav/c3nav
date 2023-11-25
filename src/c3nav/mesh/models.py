@@ -85,7 +85,7 @@ class MeshNodeQuerySet(models.QuerySet):
 
     def prefetch_ota(self):
         clone = self._chain()
-        clone._prefetch_pta = True
+        clone._prefetch_ota = True
         return clone
 
     def prefetch_ranging_beacon(self):
@@ -158,7 +158,7 @@ class MeshNodeQuerySet(models.QuerySet):
                 nodes: dict[str, MeshNode] = {node.pk: node for node in self._result_cache}
             try:
                 for ota in OTAUpdateRecipient.objects.order_by('node', '-update__created').filter(
-                        src_node__in=nodes.keys(),
+                        node__in=nodes.keys(),
                 ).select_related("update", "update__build").distinct('node'):
                     # noinspection PyUnresolvedReferences
                     nodes[ota.node_id]._current_ota = ota
@@ -253,7 +253,7 @@ class MeshNode(models.Model):
             # noinspection PyUnresolvedReferences
             return self._current_ota
         except AttributeError:
-            return self.ota_updates.order_by('-update__created').first()
+            return self.ota_updates.order_by('-update__created').select_related("update", "update__build").first()
 
     @cached_property
     def ranging_beacon(self) -> Optional["RangingBeacon"]:
