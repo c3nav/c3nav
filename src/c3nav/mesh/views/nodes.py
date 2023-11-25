@@ -16,7 +16,7 @@ class NodeListView(MeshControlMixin, ListView):
     context_object_name = "nodes"
 
     def get_queryset(self):
-        return super().get_queryset().prefetch_last_messages().prefetch_firmwares()
+        return super().get_queryset().prefetch_last_messages().prefetch_firmwares().prefetch_ranging_beacon()
 
 
 

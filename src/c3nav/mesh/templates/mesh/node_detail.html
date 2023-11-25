@@ -117,6 +117,12 @@
                         X={{ locator_xyz.0 | cm_to_m }}
                         Y={{ locator_xyz.1 | cm_to_m }}
                         Z={{ locator_xyz.2 | cm_to_m }}
+                        {% if node.ranging_beacon %}
+                            <br>
+                            <a href="{% url "editor.ranging_beacons.edit" space=node.ranging_beacon.space_id pk=node.ranging_beacon.pk %}">Ranging Beacon #{{ node.ranging_beacon.pk }}</a>
+                            {% if node.ranging_beacon.comment %}({{ node.ranging_beacon.comment }}){% endif %}
+                            in {{ node.ranging_beacon.space.title }}
+                        {% endif %}
                     </p>
                 {% else %}
                     <p>

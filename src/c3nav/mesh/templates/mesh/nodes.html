@@ -15,7 +15,15 @@
         </tr>
         {% for node in nodes %}
             <tr>
-                <td><a href="{% url "mesh.node.detail" pk=node.address %}">{{ node }}</a></td>
+                <td>
+                    <a href="{% url "mesh.node.detail" pk=node.address %}">{{ node }}</a>
+                    {% if node.ranging_beacon %}
+                        <br>
+                        <a href="{% url "editor.ranging_beacons.edit" space=node.ranging_beacon.space_id pk=node.ranging_beacon.pk %}">Ranging Beacon #{{ node.ranging_beacon.pk }}</a>
+                        {% if node.ranging_beacon.comment and node.ranging_beacon.comment != node.name %}({{ node.ranging_beacon.comment }}){% endif %}
+                        in {{ node.ranging_beacon.space.title }}
+                    {% endif %}
+                </td>
                 <td>
                     {{ node.last_messages.CONFIG_BOARD.parsed.board_config.board.pretty_name }}<br>
                     <small>({{ node.last_messages.CONFIG_HARDWARE.parsed.chip.pretty_name }} rev{{ node.last_messages.CONFIG_HARDWARE.parsed.revision_major }}.{{ node.last_messages.CONFIG_HARDWARE.parsed.revision_minor }})</small>

@@ -14,6 +14,7 @@ from django.utils import timezone
 from django.utils.text import slugify
 from django.utils.translation import gettext_lazy as _
 
+from c3nav.mapdata.models.geometry.space import RangingBeacon
 from c3nav.mesh.dataformats import BoardType, ChipType, FirmwareImage
 from c3nav.mesh.messages import ConfigFirmwareMessage, ConfigHardwareMessage
 from c3nav.mesh.messages import MeshMessage as MeshMessage
@@ -58,12 +59,15 @@ class MeshNodeQuerySet(models.QuerySet):
         self._prefetch_firmwares = False
         self._prefetch_ota = False
         self._prefetch_ota_done = False
+        self._prefetch_ranging_beacon = False
+        self._prefetch_ranging_beacon_done = False
 
     def _clone(self):
         clone = super()._clone()
         clone._prefetch_last_messages = self._prefetch_last_messages
         clone._prefetch_firmwares = self._prefetch_firmwares
         clone._prefetch_ota = self._prefetch_ota
+        clone._prefetch_ranging_beacon = self._prefetch_ranging_beacon
         return clone
 
     def prefetch_last_messages(self, *types: MeshMessageType):
@@ -82,6 +86,11 @@ class MeshNodeQuerySet(models.QuerySet):
     def prefetch_ota(self):
         clone = self._chain()
         clone._prefetch_pta = True
+        return clone
+
+    def prefetch_ranging_beacon(self):
+        clone = self._chain()
+        clone._prefetch_ranging_beacon = True
         return clone
 
     def _fetch_all(self):
@@ -160,6 +169,20 @@ class MeshNodeQuerySet(models.QuerySet):
             except NotSupportedError:
                 pass
 
+        if self._prefetch_ranging_beacon and not self._prefetch_ranging_beacon_done:
+            if nodes is None:
+                nodes: dict[str, MeshNode] = {node.pk: node for node in self._result_cache}
+            try:
+                for ranging_beacon in RangingBeacon.objects.filter(bssid__in=nodes.keys()).select_related('space'):
+                    # noinspection PyUnresolvedReferences
+                    nodes[ranging_beacon.bssid]._ranging_beacon = ranging_beacon
+                for node in nodes.values():
+                    if not hasattr(node, "_ranging_beacon"):
+                        node._ranging_beacon = None
+                self._prefetch_ranging_beacon_done = True
+            except NotSupportedError:
+                pass
+
 
 class LastMessagesByTypeLookup(UserDict):
     def __init__(self, node):
@@ -231,6 +254,14 @@ class MeshNode(models.Model):
             return self._current_ota
         except AttributeError:
             return self.ota_updates.order_by('-update__created').first()
+
+    @cached_property
+    def ranging_beacon(self) -> Optional["RangingBeacon"]:
+        try:
+            # noinspection PyUnresolvedReferences
+            return self._ranging_beacon
+        except AttributeError:
+            return RangingBeacon.objects.filter(bssid=self.address).first()
 
     # noinspection PyUnresolvedReferences
     @cached_property
