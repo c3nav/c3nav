@@ -490,6 +490,11 @@ LOGGING = {
             'level': 'INFO',
             'propagate': True,
         },
+        'daphne.ws_protocol': {
+            'handlers': ['file', 'console'],
+            'level': 'INFO',  # Do not output all communication
+            'propagate': True,
+        },
     },
 }
 
