@@ -76,7 +76,7 @@ def user_detail(request, user):  # todo: make class based view
 
             with transaction.atomic():
                 if api_secret_action in ('generate', 'regenerate'):
-                    api_secret = '%d-%s' % (user.pk, get_random_string(64, string.ascii_letters+string.digits))
+                    api_secret = '%d-%s' % (user.pk, get_random_string(62, string.ascii_letters+string.digits))
                     permissions.api_secret = api_secret
                     permissions.save()
 
