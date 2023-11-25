@@ -244,7 +244,16 @@ class FixedHexFormat(SimpleFormat):
 
 @abstractmethod
 class BaseVarFormat(BaseFormat, ABC):
-    def __init__(self, max_num, num_fmt='B'):
+    def __init__(self, max_num, num_fmt=None):
+        if num_fmt is None:
+            if max_num < 2 ** 8:
+                num_fmt = 'B'
+            elif max_num < 2 ** 16:
+                num_fmt = 'H'
+            elif max_num < 2 ** 32:
+                num_fmt = 'I'
+            else:
+                num_fmt = 'Q'
         self.num_fmt = num_fmt
         self.num_size = struct.calcsize(self.num_fmt)
         self.max_num = max_num
@@ -260,7 +269,7 @@ class BaseVarFormat(BaseFormat, ABC):
 
 
 class VarArrayFormat(BaseVarFormat):
-    def __init__(self, child_type, max_num, num_fmt='B'):
+    def __init__(self, child_type, max_num, num_fmt=None):
         super().__init__(num_fmt=num_fmt, max_num=max_num)
         self.child_type = child_type
         self.child_size = self.child_type.get_min_size()
@@ -305,8 +314,8 @@ class VarArrayFormat(BaseVarFormat):
 
 
 class VarStrFormat(BaseVarFormat):
-    def __init__(self, max_len):
-        super().__init__(max_num=max_len)
+    def __init__(self, max_len, num_fmt=None):
+        super().__init__(max_num=max_len, num_fmt=num_fmt)
 
     def get_var_num(self):
         return 1
@@ -328,8 +337,8 @@ class VarStrFormat(BaseVarFormat):
 
 
 class VarBytesFormat(BaseVarFormat):
-    def __init__(self, max_size):
-        super().__init__(max_num=max_size)
+    def __init__(self, max_size, num_fmt=None):
+        super().__init__(max_num=max_size, num_fmt=num_fmt)
 
     def get_var_num(self):
         return 1
