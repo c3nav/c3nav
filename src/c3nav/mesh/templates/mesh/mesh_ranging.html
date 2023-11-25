@@ -1,0 +1,33 @@
+{% extends 'mesh/base.html' %}
+{% load i18n mesh_node %}
+
+{% block heading %}{% trans 'Mesh ranging' %}{% endblock %}
+
+{% block subcontent %}
+    {% if not ranging_form.is_valid %}
+        <form>
+        {{ ranging_form }}
+        <button type="submit">{% trans 'Show ranging' %}</button>
+        </form>
+    {% else %}
+        <table>
+            <tr>
+                <th></th>
+                {% for range_from in ranging_form.cleaned_data.range_from %}
+                    <th>{% mesh_node range_from %}</th>
+                {% endfor %}
+            </tr>
+
+            {% for range_to in ranging_form.cleaned_data.range_to %}
+            <tr>
+                <td>{% mesh_node range_to %}</td>
+                {% for range_from in ranging_form.cleaned_data.range_from %}
+                    <td data-range-to="{{ range_to }}" data-range-from="{{ range_from }}"></td>
+                {% endfor %}
+            </tr>
+            {% endfor %}
+        </table>
+    {% endif %}
+
+    {% include "mesh/fragment_mesh_websocket.html" %}
+{% endblock %}

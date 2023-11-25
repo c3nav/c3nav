@@ -265,3 +265,17 @@ class MeshNodeForm(forms.ModelForm):
     class Meta:
         model = MeshNode
         fields = ["name"]
+
+
+class RangingForm(forms.Form):
+    msg_types = {}
+
+    range_from = forms.MultipleChoiceField(choices=(), required=True)
+    range_to = forms.MultipleChoiceField(choices=(), required=True)
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        node_choices = tuple((node.address, str(node)) for node in MeshNode.objects.all())
+        self.fields['range_from'].choices = node_choices
+        self.fields['range_to'].choices = node_choices

@@ -16,6 +16,8 @@ function connect() {
         console.log('websocket connected.');
         {% if send_uuid %}
             ws.send(JSON.stringify({"send_msg": JSON.parse(document.getElementById('send-uuid').textContent)}));
+        {% elif ranging_form %}
+            ws.send(JSON.stringify({"subscribe": "ranging"}));
         {% else %}
             ws.send(JSON.stringify({"subscribe": "log"}));
         {% endif %}
@@ -90,6 +92,21 @@ function connect() {
                 break;
 
             case 'mesh.msg_received':
+                {% if ranging_form %}
+                    var cell;
+                    for (cell of document.querySelectorAll(`[data-range-from="${data.msg.src}"]`)) {
+                        cell.innerText = "-";
+                    }
+                    for (var i=0;i<data.msg.ranges.length;i++) {
+                        cell = document.querySelector(
+                            `[data-range-from="${data.msg.src}"][data-range-to="${data.msg.ranges[i].peer}"]`
+                        );
+                        if (cell) cell.innerText = (
+                            ((data.msg.ranges[i].distance == 0xff) ? "invalid" : `${data.msg.ranges[i].distance}cm`) +
+                            ` (${data.msg.ranges[i].rssi}dBm)`
+                        );
+                    }
+                {% endif %}
                 {% if send_uuid and msg_type == "MESH_ROUTE_REQUEST" %}
                     if (data.msg.route) {
                         line = document.createElement('tr');
