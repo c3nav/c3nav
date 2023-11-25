@@ -18,10 +18,6 @@ class NodeListView(MeshControlMixin, ListView):
     def get_queryset(self):
         return super().get_queryset().prefetch_last_messages().prefetch_firmwares()
 
-    def post(self, request):
-        return redirect(
-            reverse("control.mesh.send", kwargs={"msg_type": request.POST.get("send_msg_type", "")})
-        )
 
 
 class NodeDetailView(MeshControlMixin, DetailView):

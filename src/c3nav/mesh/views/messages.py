@@ -49,6 +49,11 @@ class MeshMessageListView(MeshControlMixin, ListView):
         })
         return ctx
 
+    def post(self, request):
+        return redirect(
+            reverse("mesh.send", kwargs={"msg_type": request.POST.get("send_msg_type", "")})
+        )
+
 
 class MeshMessageSendView(MeshControlMixin, FormView):
     template_name = "mesh/mesh_message_send.html"
