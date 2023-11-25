@@ -4,9 +4,16 @@
 {% if send_uuid %}
     {{ send_uuid|json_script:"send-uuid" }}
 {% endif %}
+{% if nodes_xyz %}
+    {{ nodes_xyz|json_script:"nodes-xyz" }}
+{% endif %}
 <script type="text/javascript">
 {% if node_names %}
     const node_names = JSON.parse(document.getElementById('node-names').textContent);
+{% endif %}
+{% if node_names %}
+    const nodes_xyz = JSON.parse(document.getElementById('nodes-xyz').textContent);
+    const nodes_distances = {}
 {% endif %}
 
 function connect() {
@@ -93,18 +100,37 @@ function connect() {
 
             case 'mesh.msg_received':
                 {% if ranging_form %}
-                    var cell;
-                    for (cell of document.querySelectorAll(`[data-range-from="${data.msg.src}"]`)) {
+                    var cell, key, src_node, peer_node;
+                    src_node = data.msg.src;
+                    for (cell of document.querySelectorAll(`[data-range-from="${src_node}"]:not([data-range-to="${src_node}"])`)) {
                         cell.innerText = "-";
                     }
                     for (var i=0;i<data.msg.ranges.length;i++) {
+                        let range = data.msg.ranges[i];
+                        peer_node = range.peer;
                         cell = document.querySelector(
-                            `[data-range-from="${data.msg.src}"][data-range-to="${data.msg.ranges[i].peer}"]`
+                            `[data-range-from="${src_node}"][data-range-to="${peer_node}"]`
                         );
-                        if (cell) cell.innerText = (
-                            ((data.msg.ranges[i].distance == 0xff) ? "invalid" : `${data.msg.ranges[i].distance}cm`) +
-                            ` (${data.msg.ranges[i].rssi}dBm)`
+                        if (!cell) continue;
+                        key = `${src_node}-${peer_node}`
+                        if (!(key in nodes_distances)) {
+                            if (!(src_node in nodes_xyz && peer_node in nodes_xyz)) {
+                                nodes_distances[key] = null;
+                            } else {
+                                nodes_distances[key] = Math.round(Math.sqrt(
+                                    Math.pow(nodes_xyz[src_node][0]-nodes_xyz[peer_node][0], 2) +
+                                    Math.pow(nodes_xyz[src_node][1]-nodes_xyz[peer_node][1], 2) +
+                                    Math.pow(nodes_xyz[src_node][2]-nodes_xyz[peer_node][2], 2)
+                                ));
+                            }
+                        }
+                        cell.innerText = (
+                            ((range.distance == 0xff) ? "invalid" : `${range.distance}cm`) +
+                            ` (${range.rssi}dBm)`
                         );
+                        if (nodes_distances[key] != null) {
+                            cell.innerHTML += `<br> <em>(actual: ${nodes_distances[key]}cm</em>)`
+                        }
                     }
                 {% endif %}
                 {% if send_uuid and msg_type == "MESH_ROUTE_REQUEST" %}

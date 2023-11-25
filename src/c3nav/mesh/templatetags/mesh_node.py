@@ -8,7 +8,7 @@ register = template.Library()
 
 
 @register.simple_tag(takes_context=True)
-def mesh_node(context, node: str | MeshNode):
+def mesh_node(context, node: str | MeshNode, linebreak=False):
     if isinstance(node, str):
         bssid = node
         name = context.get("node_names", {}).get(node, None)
@@ -17,7 +17,7 @@ def mesh_node(context, node: str | MeshNode):
         name = node.name
     if name:
         return format_html(
-            '<a href="{url}">{bssid}</a> ({name})',
+            '<a href="{url}">{bssid}</a>'+('<br>' if linebreak else ' ')+'({name})',
             url=reverse('mesh.node.detail', kwargs={"pk": bssid}), bssid=bssid, name=name
         )
     else:

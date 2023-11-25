@@ -12,15 +12,15 @@
     {% else %}
         <table>
             <tr>
-                <th></th>
+                <th>peer \ source</th>
                 {% for range_from in ranging_form.cleaned_data.range_from %}
-                    <th>{% mesh_node range_from %}</th>
+                    <th>{% mesh_node range_from True %}</th>
                 {% endfor %}
             </tr>
 
             {% for range_to in ranging_form.cleaned_data.range_to %}
             <tr>
-                <td>{% mesh_node range_to %}</td>
+                <td>{% mesh_node range_to True %}</td>
                 {% for range_from in ranging_form.cleaned_data.range_from %}
                     <td data-range-to="{{ range_to }}" data-range-from="{{ range_from }}"></td>
                 {% endfor %}

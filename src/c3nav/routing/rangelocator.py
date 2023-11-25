@@ -57,6 +57,12 @@ class RangeLocator:
             return None
         return tuple(self.beacon_positions[i])
 
+    def get_all_xyz(self):
+        return {
+            address: tuple(self.beacon_positions[i].tolist())
+            for address, i in self.beacon_lookup.items()
+        }
+
     cached = None
     cache_update = None
     cache_lock = threading.Lock()
