@@ -35,6 +35,16 @@ class BaseFormat(ABC):
         pass
 
     @abstractmethod
+    def get_max_size(self):
+        pass
+
+    def get_size(self, calculate_max=False):
+        if calculate_max:
+            return self.get_max_size()
+        else:
+            return self.get_min_size()
+
+    @abstractmethod
     def get_c_parts(self) -> tuple[str, str]:
         pass
 
@@ -74,6 +84,9 @@ class SimpleFormat(BaseFormat):
     def get_min_size(self):
         return self.size
 
+    def get_max_size(self):
+        return self.size
+
     c_types = {
         "B": "uint8_t",
         "H": "uint16_t",
@@ -110,7 +123,7 @@ class EnumFormat(SimpleFormat):
 
     def set_field_type(self, field_type):
         super().set_field_type(field_type)
-        self.c_struct_name = normalize_name(field_type.__name__)+'_t'
+        self.c_struct_name = normalize_name(field_type.__name__) + '_t'
 
     def decode(self, data: bytes) -> tuple[Any, bytes]:
         value, out_data = super().decode(data)
@@ -134,7 +147,7 @@ class EnumFormat(SimpleFormat):
         options = []
         last_value = None
         for item in self.field_type:
-            if last_value is not None and item.value != last_value+1:
+            if last_value is not None and item.value != last_value + 1:
                 options.append('')
             last_value = item.value
             options.append("%(prefix)s_%(name)s = %(value)s," % {
@@ -158,13 +171,13 @@ class TwoNibblesEnumFormat(SimpleFormat):
     def decode(self, data: bytes) -> tuple[bool, bytes]:
         fields = dataclass_fields(self.field_type)
         value, data = super().decode(data)
-        return self.field_type(fields[0].type(value//2**4), fields[1].type(value//2**4)), data
+        return self.field_type(fields[0].type(value // 2 ** 4), fields[1].type(value // 2 ** 4)), data
 
     def encode(self, value):
         fields = dataclass_fields(self.field_type)
         return super().encode(
-            getattr(value, fields[0].name).value * 2**4 +
-            getattr(value, fields[1].name).value * 2**4
+            getattr(value, fields[0].name).value * 2 ** 4 +
+            getattr(value, fields[1].name).value * 2 ** 4
         )
 
     def fromjson(self, data):
@@ -187,7 +200,7 @@ class ChipRevFormat(SimpleFormat):
         return (value // 100, value % 100), data
 
     def encode(self, value):
-        return value[0]*100 + value[1]
+        return value[0] * 100 + value[1]
 
 
 class BoolFormat(SimpleFormat):
@@ -231,20 +244,24 @@ class FixedHexFormat(SimpleFormat):
 
 @abstractmethod
 class BaseVarFormat(BaseFormat, ABC):
-    def __init__(self, num_fmt='B'):
+    def __init__(self, max_num, num_fmt='B'):
         self.num_fmt = num_fmt
         self.num_size = struct.calcsize(self.num_fmt)
+        self.max_num = max_num
 
     def get_min_size(self):
         return self.num_size
+
+    def get_max_size(self):
+        return self.num_size + self.max_num * self.get_var_num()
 
     def get_num_c_code(self):
         return SimpleFormat(self.num_fmt).get_c_code("num")
 
 
 class VarArrayFormat(BaseVarFormat):
-    def __init__(self, child_type, num_fmt='B'):
-        super().__init__(num_fmt=num_fmt)
+    def __init__(self, child_type, max_num, num_fmt='B'):
+        super().__init__(num_fmt=num_fmt, max_num=max_num)
         self.child_type = child_type
         self.child_size = self.child_type.get_min_size()
 
@@ -253,13 +270,18 @@ class VarArrayFormat(BaseVarFormat):
         pass
 
     def encode(self, values: Sequence) -> bytes:
-        data = struct.pack(self.num_fmt, len(values))
+        num = len(values)
+        if num > self.max_num:
+            raise ValueError(f'too many elements, got {num} but maximum is {self.max_num}')
+        data = struct.pack(self.num_fmt, num)
         for value in values:
             data += self.child_type.encode(value)
         return data
 
     def decode(self, data: bytes) -> tuple[list[Any], bytes]:
         num = struct.unpack(self.num_fmt, data[:self.num_size])[0]
+        if num > self.max_num:
+            raise ValueError(f'too many elements, got {num} but maximum is {self.max_num}')
         data = data[self.num_size:]
         result = []
         for i in range(num):
@@ -283,14 +305,22 @@ class VarArrayFormat(BaseVarFormat):
 
 
 class VarStrFormat(BaseVarFormat):
+    def __init__(self, max_len):
+        super().__init__(max_num=max_len)
+
     def get_var_num(self):
         return 1
 
     def encode(self, value: str) -> bytes:
-        return struct.pack(self.num_fmt, len(value)) + value.encode()
+        num = len(value)
+        if num > self.max_num:
+            raise ValueError(f'too many elements, got {num} but maximum is {self.max_num}')
+        return struct.pack(self.num_fmt, num) + value.encode()
 
     def decode(self, data: bytes) -> tuple[str, bytes]:
         num = struct.unpack(self.num_fmt, data[:self.num_size])[0]
+        if num > self.max_num:
+            raise ValueError(f'too many elements, got {num} but maximum is {self.max_num}')
         return data[self.num_size:self.num_size + num].rstrip(bytes((0,))).decode(), data[self.num_size + num:]
 
     def get_c_parts(self):
@@ -298,14 +328,22 @@ class VarStrFormat(BaseVarFormat):
 
 
 class VarBytesFormat(BaseVarFormat):
+    def __init__(self, max_size):
+        super().__init__(max_num=max_size)
+
     def get_var_num(self):
         return 1
 
     def encode(self, value: bytes) -> bytes:
-        return struct.pack(self.num_fmt, len(value)) + value
+        num = len(value)
+        if num > self.max_num:
+            raise ValueError(f'too many elements, got {num} but maximum is {self.max_num}')
+        return struct.pack(self.num_fmt, num) + value
 
     def decode(self, data: bytes) -> tuple[bytes, bytes]:
         num = struct.unpack(self.num_fmt, data[:self.num_size])[0]
+        if num > self.max_num:
+            raise ValueError(f'too many elements, got {num} but maximum is {self.max_num}')
         return data[self.num_size:self.num_size + num].rstrip(bytes((0,))), data[self.num_size + num:]
 
     def get_c_parts(self):
@@ -380,7 +418,7 @@ class StructType:
             else:
                 raise TypeError('field %s.%s has no format and is no StructType' %
                                 (cls.__class__.__name__, name))
-        cls.schema = create_model(cls.__name__+'Schema', **cls._pydantic_fields)
+        cls.schema = create_model(cls.__name__ + 'Schema', **cls._pydantic_fields)
         super().__init_subclass__(**kwargs)
 
     @classmethod
@@ -721,6 +759,22 @@ class StructType:
         else:
             relevant_fields = [f for f in dataclass_fields(cls) if not f.metadata.get("union_discriminator")]
         return sum((f.metadata.get("format", f.type).get_min_size() for f in relevant_fields), start=0)
+
+    @classmethod
+    def get_size(cls, no_inherited_fields=False, calculate_max=False) -> int:
+        if cls.union_type_field:
+            own_size = sum(
+                [f.metadata.get("format", f.type).get_size(calculate_max=calculate_max) for f in dataclass_fields(cls)])
+            union_size = max(
+                [0] + [option.get_size(no_inherited_fields=True, calculate_max=calculate_max) for option in
+                       cls._union_options[cls.union_type_field].values()])
+            return own_size + union_size
+        if no_inherited_fields:
+            relevant_fields = [f for f in dataclass_fields(cls) if f.metadata["defining_class"] == cls]
+        else:
+            relevant_fields = [f for f in dataclass_fields(cls) if not f.metadata.get("union_discriminator")]
+        return sum((f.metadata.get("format", f.type).get_size(calculate_max=calculate_max) for f in relevant_fields),
+                   start=0)
 
 
 def normalize_name(name):

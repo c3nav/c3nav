@@ -14,8 +14,8 @@ class MacAddressFormat(FixedHexFormat):
 
 
 class MacAddressesListFormat(VarArrayFormat):
-    def __init__(self):
-        super().__init__(child_type=MacAddressFormat())
+    def __init__(self, max_num):
+        super().__init__(child_type=MacAddressFormat(), max_num=max_num)
 
 
 @unique

@@ -136,7 +136,7 @@ class NoopMessage(MeshMessage, msg_type=MeshMessageType.NOOP):
 class BaseEchoMessage(MeshMessage, c_struct_name="echo"):
     """ repeat back string """
     content: str = field(default='', metadata={
-        "format": VarStrFormat(),
+        "format": VarStrFormat(max_len=255),
         "doc": "string to echo",
         "c_name": "str",
     })
@@ -173,7 +173,7 @@ class MeshLayerAnnounceMessage(MeshMessage, msg_type=MeshMessageType.MESH_LAYER_
 class BaseDestinationsMessage(MeshMessage, c_struct_name="destinations"):
     """ downstream node announces served/no longer served destination """
     addresses: list[str] = field(default_factory=list, metadata={
-        "format": MacAddressesListFormat(),
+        "format": MacAddressesListFormat(max_num=16),
         "doc": "adresses of the destinations",
         "c_name": "addresses",
     })
@@ -216,7 +216,7 @@ class MeshRouteTraceMessage(MeshMessage, msg_type=MeshMessageType.MESH_ROUTE_TRA
     """ special message, collects all hop adresses on its way """
     request_id: int = field(metadata={"format": SimpleFormat('I')})
     trace: list[str] = field(default_factory=list, metadata={
-        "format": MacAddressesListFormat(),
+        "format": MacAddressesListFormat(max_num=16),
         "doc": "addresses encountered by this message",
     })
 
@@ -311,7 +311,7 @@ class OTAURLMessage(MeshMessage, msg_type=MeshMessageType.OTA_URL):
     """ supply download URL for OTA update and who to distribute it to """
     update_id: int = field(metadata={"format": SimpleFormat('I')})
     distribute_to: str = field(metadata={"format": MacAddressFormat()})
-    url: str = field(metadata={"format": VarStrFormat()})
+    url: str = field(metadata={"format": VarStrFormat(max_len=255)})
 
 
 @dataclass
@@ -319,14 +319,14 @@ class OTAFragmentMessage(MeshMessage, msg_type=MeshMessageType.OTA_FRAGMENT):
     """ supply OTA fragment """
     update_id: int = field(metadata={"format": SimpleFormat('I')})
     chunk: int = field(metadata={"format": SimpleFormat('H')})
-    data: str = field(metadata={"format": VarBytesFormat()})
+    data: str = field(metadata={"format": VarBytesFormat(max_size=512)})
 
 
 @dataclass
 class OTARequestFragmentsMessage(MeshMessage, msg_type=MeshMessageType.OTA_REQUEST_FRAGMENTS):
     """ request missing fragments """
     update_id: int = field(metadata={"format": SimpleFormat('I')})
-    chunks: list[int] = field(metadata={"format": VarArrayFormat(SimpleFormat('H'))})
+    chunks: list[int] = field(metadata={"format": VarArrayFormat(SimpleFormat('H'), max_num=32)})
 
 
 @dataclass
@@ -359,14 +359,14 @@ class LocateRequestRangeMessage(MeshMessage, msg_type=MeshMessageType.LOCATE_REQ
 @dataclass
 class LocateRangeResults(MeshMessage, msg_type=MeshMessageType.LOCATE_RANGE_RESULTS):
     """ reports distance to given nodes """
-    ranges: list[RangeResultItem] = field(metadata={"format": VarArrayFormat(RangeResultItem)})
+    ranges: list[RangeResultItem] = field(metadata={"format": VarArrayFormat(RangeResultItem, max_num=16)})
 
 
 @dataclass
 class LocateRawFTMResults(MeshMessage, msg_type=MeshMessageType.LOCATE_RAW_FTM_RESULTS):
     """ reports distance to given nodes """
     peer: str = field(metadata={"format": MacAddressFormat()})
-    results: list[RawFTMEntry] = field(metadata={"format": VarArrayFormat(RawFTMEntry)})
+    results: list[RawFTMEntry] = field(metadata={"format": VarArrayFormat(RawFTMEntry, max_num=16)})
 
 
 @dataclass
@@ -378,4 +378,4 @@ class Reboot(MeshMessage, msg_type=MeshMessageType.REBOOT):
 @dataclass
 class ReportError(MeshMessage, msg_type=MeshMessageType.REPORT_ERROR):
     """ report a critical error to upstream """
-    message: str = field(metadata={"format": VarStrFormat()})
+    message: str = field(metadata={"format": VarStrFormat(max_len=255)})
