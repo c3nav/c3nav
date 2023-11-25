@@ -26,6 +26,13 @@
                 {% endfor %}
             </tr>
             {% endfor %}
+
+            <tr>
+                <td></td>
+                {% for range_from in ranging_form.cleaned_data.range_from %}
+                    <td data-range-location="{{ range_from }}"></td>
+                {% endfor %}
+            </tr>
         </table>
     {% endif %}
 

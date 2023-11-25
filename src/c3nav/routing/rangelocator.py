@@ -126,7 +126,8 @@ class RangeLocator:
             y=results.x[1]/100,
             permissions=(),
             icon='my_location'
-        )
+        )#
+        location.z = results.x[2]
 
         pprint(relevant_ranges)
         print("measured ranges:", ", ".join(("%.2f" % i) for i in tuple(np_ranges[:, 3])))

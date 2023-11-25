@@ -105,6 +105,27 @@ function connect() {
                     for (cell of document.querySelectorAll(`[data-range-from="${src_node}"]:not([data-range-to="${src_node}"])`)) {
                         cell.innerText = "-";
                     }
+                    cell = document.querySelector(`[data-range-location="${src_node}"]`);
+                    if (!cell) break;
+                    if (data.position) {
+                        cell.innerHTML = `Location (${data.position[0]}, ${data.position[1]}, ${data.position[2]})`;
+                        if (src_node in nodes_xyz) {
+                            cell.innerHTML += `<br><em>Actual: (${nodes_xyz[src_node][0]}, ${nodes_xyz[src_node][1]}, ${nodes_xyz[src_node][2]})</em>`;
+                            cell.innerHTML += `<br><em>Diff: (${data.position[0]-nodes_xyz[src_node][0]}, ${data.position[1]-nodes_xyz[src_node][1]}, ${data.position[2]-nodes_xyz[src_node][2]})</em>`;
+
+                            cell.innerHTML += '<br><em>XY: '+String(Math.round(Math.sqrt(
+                                Math.pow(nodes_xyz[src_node][0]-data.position[0], 2) +
+                                Math.pow(nodes_xyz[src_node][1]-data.position[1], 2)
+                            )))+' // XYZ: '+String(Math.round(Math.sqrt(
+                                Math.pow(nodes_xyz[src_node][0]-data.position[0], 2) +
+                                Math.pow(nodes_xyz[src_node][1]-data.position[1], 2) +
+                                Math.pow(nodes_xyz[src_node][2]-data.position[2], 2)
+                            )));
+
+                        }
+                    } else {
+                        cell.innerHTML = '';
+                    }
                     for (var i=0;i<data.msg.ranges.length;i++) {
                         let range = data.msg.ranges[i];
                         peer_node = range.peer;

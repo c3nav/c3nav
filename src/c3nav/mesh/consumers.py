@@ -269,6 +269,22 @@ class MeshConsumer(AsyncWebsocketConsumer):
         })
         print("MESH %s: [%s] %s" % (self.uplink.node, address, text))
 
+    async def check_ota(self, addresses):
+        recipients = await self.get_nodes_with_ota(addresses)
+        for address, recipient in recipients.items():
+            if not recipient:
+                continue
+            await self.check_ota_recipient(address, recipient)
+
+    @database_sync_to_async
+    def get_nodes_with_ota(self, addresses) -> dict:
+        return {node.address: node.current_ota
+                for node in MeshNode.objects.filter(address__in=addresses).prefetch_ota()}
+
+    async def check_ota_recipient(self, address, update):
+        print('checking OTA recipient', address, update)
+        pass
+
     async def add_dst_nodes(self, nodes=None, addresses=None):
         nodes = list(nodes) if nodes else []
         addresses = set(addresses) if addresses else set()
@@ -298,6 +314,8 @@ class MeshConsumer(AsyncWebsocketConsumer):
                     dst=address,
                 )
             )
+
+            await self.check_ota([address])
 
     @database_sync_to_async
     def _add_destination(self, address):
@@ -406,7 +424,23 @@ class MeshUIConsumer(AsyncJsonWebsocketConsumer):
             else:
                 if value != filter_value:
                     return
+        if data["msg"]["msg_type"] == MeshMessageType.LOCATE_RANGE_RESULTS.name:
+            data = data.copy()
+            location = await self.locator(data["msg"])
+            data["position"] = None if not location else (int(location.x*100), int(location.y*100), int(location.z*100))
         await self.send_json(data)
+
+    @database_sync_to_async
+    def locator(self, msg):
+        locator = RangeLocator.load()
+        return locator.locate(
+            {
+                r["peer"]: r["distance"]
+                for r in msg["ranges"]
+                if r["distance"] != 0xFFFF
+            },
+            None
+        )
 
     async def disconnect(self, code):
         await self.channel_layer.group_discard("mesh_log", self.channel_name)
