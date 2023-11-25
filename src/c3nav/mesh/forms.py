@@ -261,6 +261,11 @@ class LocateRequestRangeMessageForm(MeshMessageForm):
     msg_type = MeshMessageType.LOCATE_REQUEST_RANGE
 
 
+class EchoRequestMessageForm(MeshMessageForm):
+    msg_type = MeshMessageType.ECHO_REQUEST
+    content = forms.CharField(max_length=255, label=_('content'))
+
+
 class MeshNodeForm(forms.ModelForm):
     class Meta:
         model = MeshNode
