@@ -235,6 +235,13 @@ class MeshConsumer(AsyncWebsocketConsumer):
                         print('queue chunk sending')
                         await self.ota_set_chunks(node_status.ota_recipient.update, min_chunk=msg.highest_chunk+1)
 
+        if isinstance(msg, messages.OTARequestFragmentsMessage):
+            print('got OTA fragment request', msg)
+            desired_update_id = node_status.ota_recipient.update_id if node_status.ota_recipient else 0
+            if desired_update_id and msg.update_id == desired_update_id:
+                print('queue requested chunk sending')
+                await self.ota_set_chunks(node_status.ota_recipient.update, chunks=set(msg.chunks))
+
     @database_sync_to_async
     def create_uplink_in_database(self, address):
         with transaction.atomic():
