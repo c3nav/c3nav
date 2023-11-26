@@ -12,12 +12,16 @@ from django.contrib.messages import constants as messages
 from django.utils.crypto import get_random_string
 from django.utils.translation import gettext_lazy as _
 
+from c3nav.utils.environ import Env
+
+env = Env()
+
 
 def get_data_dir(setting: str, fallback: Path, create: bool = True, parents: bool = False,
                  config_section: str = 'c3nav', config_option: Optional[str] = None):
     if not config_option:
         config_option = setting.lower()
-    subdir = config.get(config_section, config_option, fallback=os.environ.get('C3NAV_%s' % setting, None))
+    subdir = config.get(config_section, config_option, fallback=env.str('C3NAV_' + setting, None))
     subdir = Path(subdir).resolve() if subdir else fallback
     if not subdir.exists():
         if create:
@@ -30,9 +34,10 @@ def get_data_dir(setting: str, fallback: Path, create: bool = True, parents: boo
 
 
 config = configparser.RawConfigParser()
-if 'C3NAV_CONFIG' in os.environ:
-    open(os.environ.get('C3NAV_CONFIG'), encoding='utf-8')
-config.read(['/etc/c3nav/c3nav.cfg', os.path.expanduser('~/.c3nav.cfg'), os.environ.get('C3NAV_CONFIG', 'c3nav.cfg')],
+if 'C3NAV_CONFIG' in env:
+    # if a config file is explicitly defined, make sure we can read it.
+    env.path('C3NAV_CONFIG').open('r')
+config.read(['/etc/c3nav/c3nav.cfg', os.path.expanduser('~/.c3nav.cfg'), env.str('C3NAV_CONFIG', 'c3nav.cfg')],
             encoding='utf-8')
 
 INSTANCE_NAME = config.get('c3nav', 'name', fallback='')
@@ -79,8 +84,10 @@ if RANDOM_LOCATION_GROUPS:
 if config.has_option('django', 'secret'):
     SECRET_KEY = config.get('django', 'secret')
 else:
-    SECRET_FILE = config.get('django', 'secret_file',
-                             fallback=os.environ.get('C3NAV_SECRET_FILE', default=DATA_DIR / '.secret'))
+    SECRET_FILE = env.path('C3NAV_SECRET_FILE', default=config.get('django', 'secret_file', fallback=None),
+                           parse_default=True)
+    if SECRET_FILE is None:
+        SECRET_FILE = DATA_DIR / '.secret'
     if SECRET_FILE.exists():
         with open(SECRET_FILE, 'r') as f:
             SECRET_KEY = f.read().strip()
