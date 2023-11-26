@@ -9,8 +9,8 @@ from c3nav.api.schema import GeometrySchema, PointSchema
 from c3nav.api.utils import NonEmptyStr
 from c3nav.mapdata.schemas.model_base import (AnyLocationID, AnyPositionID, CustomLocationID, DjangoModelSchema,
                                               LabelSettingsSchema, LocationSchema, PositionID, SerializableSchema,
-                                              SimpleGeometryPointAndBoundsSchema, SimpleGeometryPointSchema,
-                                              SimpleGeometryLocationsSchema, SpecificLocationSchema, TitledSchema,
+                                              SimpleGeometryLocationsSchema, SimpleGeometryPointAndBoundsSchema,
+                                              SimpleGeometryPointSchema, SpecificLocationSchema, TitledSchema,
                                               WithAccessRestrictionSchema, WithLevelSchema,
                                               WithLineStringGeometrySchema, WithPointGeometrySchema,
                                               WithPolygonGeometrySchema, WithSpaceSchema)
@@ -632,7 +632,8 @@ class PositionStatusSchema(Schema):
     )
 
 
-class PositionUnavailableStatusSchema(PositionStatusSchema, SimpleGeometryPointAndBoundsSchema, TrackablePositionSchema):
+class PositionUnavailableStatusSchema(PositionStatusSchema, SimpleGeometryPointAndBoundsSchema,
+                                      TrackablePositionSchema):
     available: Literal[False]
 
 

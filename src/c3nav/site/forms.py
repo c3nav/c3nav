@@ -13,8 +13,8 @@ from c3nav.mapdata.forms import I18nModelFormMixin
 from c3nav.mapdata.models.locations import Position
 from c3nav.mapdata.models.report import Report, ReportUpdate
 from c3nav.mesh.messages import MeshMessageType
-from c3nav.mesh.models import FirmwareBuild, HardwareDescription, MeshNode, OTAUpdate, OTAUpdateRecipient, \
-    OTARecipientStatus
+from c3nav.mesh.models import (FirmwareBuild, HardwareDescription, MeshNode, OTARecipientStatus, OTAUpdate,
+                               OTAUpdateRecipient)
 
 
 class ReportIssueForm(I18nModelFormMixin, ModelForm):

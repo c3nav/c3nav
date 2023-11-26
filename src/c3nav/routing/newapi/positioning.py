@@ -15,6 +15,7 @@ def locate(request):
         "bounds": Source.max_bounds(),
     }
 
+
 @positioning_api_router.get('/locate-test/', summary="get dummy location for debugging",
                             response={200: BoundsSchema, **auth_responses})
 def locate_test(request):

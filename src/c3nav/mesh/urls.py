@@ -2,7 +2,7 @@ from django.urls import path
 
 from c3nav.mesh.consumers import MeshConsumer, MeshUIConsumer
 from c3nav.mesh.views.firmware import (FirmwareBuildDetailView, FirmwareDetailView, FirmwaresCurrentListView,
-                                       FirmwaresListView, OTAListView, OTADetailView)
+                                       FirmwaresListView, OTADetailView, OTAListView)
 from c3nav.mesh.views.messages import MeshMessageListView, MeshMessageSendingView, MeshMessageSendView
 from c3nav.mesh.views.misc import MeshLogView, MeshRangingView
 from c3nav.mesh.views.nodes import NodeDetailView, NodeEditView, NodeListView

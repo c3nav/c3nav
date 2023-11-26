@@ -576,10 +576,6 @@ def get_position_secret():
     return get_random_string(32, string.ascii_letters+string.digits)
 
 
-def get_position_api_secret():
-    return get_random_string(64, string.ascii_letters+string.digits)
-
-
 class Position(CustomLocationProxyMixin, models.Model):
     owner = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
     name = models.CharField(_('name'), max_length=32)

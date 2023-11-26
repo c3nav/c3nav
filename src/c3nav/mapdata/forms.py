@@ -3,14 +3,11 @@ from collections import OrderedDict
 from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.forms import CharField, ModelForm
-from django.utils import timezone
 from django.utils.text import capfirst, format_lazy
 from django.utils.translation import get_language_info
 from django.utils.translation import gettext_lazy as _
 
 from c3nav.mapdata.fields import I18nField
-from c3nav.mapdata.models.locations import Position
-from c3nav.mapdata.utils.locations import get_location_by_id_for_request
 
 
 class I18nModelFormMixin(ModelForm):

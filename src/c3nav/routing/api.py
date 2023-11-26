@@ -139,34 +139,34 @@ class RoutingViewSet(ViewSet):
                 'errors': (_('Invalid scan data.'),),
             }, status=400)
 
-        if 'set_position' in data and location:
-            set_position = data['set_position']
-            if not set_position.startswith('p:'):
-                return Response({
-                    'errors': (_('Invalid set_position.'),),
-                }, status=400)
-
-            try:
-                position = Position.objects.get(secret=set_position[2:])
-            except Position.DoesNotExist:
-                return Response({
-                    'errors': (_('Invalid set_position.'),),
-                }, status=400)
-
-            form_data = {
-                **data,
-                'coordinates_id': None if location is None else location.pk,
-            }
-
-            # todo: migrate
-            #form = PositionAPIUpdateForm(instance=position, data=form_data, request=request)
-
-            if not form.is_valid():
-                return Response({
-                    'errors': form.errors,
-                }, status=400)
-
-            form.save()
+        # if 'set_position' in data and location:
+        #     set_position = data['set_position']
+        #     if not set_position.startswith('p:'):
+        #         return Response({
+        #             'errors': (_('Invalid set_position.'),),
+        #         }, status=400)
+        #
+        #     try:
+        #         position = Position.objects.get(secret=set_position[2:])
+        #     except Position.DoesNotExist:
+        #         return Response({
+        #             'errors': (_('Invalid set_position.'),),
+        #         }, status=400)
+        #
+        #     form_data = {
+        #         **data,
+        #         'coordinates_id': None if location is None else location.pk,
+        #     }
+        #
+        #     # todo: migrate
+        #     # form = PositionAPIUpdateForm(instance=position, data=form_data, request=request)
+        #     #
+        #     # if not form.is_valid():
+        #     #     return Response({
+        #     #         'errors': form.errors,
+        #     #     }, status=400)
+        #     #
+        #     # form.save()
 
         return Response({'location': None if location is None else location.serialize(simple_geometry=True)})
 

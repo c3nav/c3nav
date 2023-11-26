@@ -28,8 +28,7 @@ from c3nav.control.forms import AccessPermissionForm, SignedPermissionDataError
 from c3nav.mapdata.grid import grid
 from c3nav.mapdata.models import Location, Source
 from c3nav.mapdata.models.access import AccessPermissionToken
-from c3nav.mapdata.models.locations import (LocationRedirect, Position, SpecificLocation, get_position_api_secret,
-                                            get_position_secret)
+from c3nav.mapdata.models.locations import LocationRedirect, Position, SpecificLocation, get_position_secret
 from c3nav.mapdata.models.report import Report, ReportUpdate
 from c3nav.mapdata.utils.locations import (get_location_by_id_for_request, get_location_by_slug_for_request,
                                            levels_by_short_label_for_request)

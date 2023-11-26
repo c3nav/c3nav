@@ -15,8 +15,9 @@ def get_route(request):
         "bounds": Source.max_bounds(),
     }
 
+
 @routing_api_router.get('/options/', summary="get current route options",
-                         response={200: BoundsSchema, **auth_responses})
+                        response={200: BoundsSchema, **auth_responses})
 def get_route_options(request):
     # todo: implement
     return {
@@ -34,7 +35,7 @@ def set_route_options(request):
 
 
 @routing_api_router.get('/options/form/', summary="get current route options with form definitions (like old API)",
-                         response={200: BoundsSchema, **auth_responses})
+                        response={200: BoundsSchema, **auth_responses})
 def get_route_options_form(request):
     # todo: implement
     return {

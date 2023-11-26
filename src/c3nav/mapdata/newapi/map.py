@@ -1,7 +1,6 @@
 import json
 from typing import Optional
 
-from django.core.cache import cache
 from django.core.serializers.json import DjangoJSONEncoder
 from django.shortcuts import redirect
 from django.utils import timezone
@@ -14,7 +13,6 @@ from c3nav.api.exceptions import API404, APIPermissionDenied, APIRequestValidati
 from c3nav.api.newauth import auth_permission_responses, auth_responses, validate_responses
 from c3nav.api.utils import NonEmptyStr
 from c3nav.mapdata.models import Source
-from c3nav.mapdata.models.access import AccessPermission
 from c3nav.mapdata.models.locations import DynamicLocation, LocationRedirect, Position
 from c3nav.mapdata.newapi.base import newapi_etag, newapi_stats
 from c3nav.mapdata.schemas.filters import BySearchableFilter, RemoveGeometryFilter
@@ -260,7 +258,8 @@ def location_by_slug_geometry(request, location_slug: NonEmptyStr):
 @map_api_router.get('/positions/{position_id}/',
                     response={200: AnyPositionStatusSchema, **API404.dict(), **auth_responses},
                     summary="get coordinates of a moving position",
-                    description="a numeric ID for a dynamic location or a string ID for the position secret can be used")
+                    description="a numeric ID for a dynamic location or a string ID for the position secret "
+                                "can be used")
 @newapi_stats('get_position')
 def get_position_by_id(request, position_id: AnyPositionID):
     # no caching for obvious reasons!

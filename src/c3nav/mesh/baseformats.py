@@ -195,7 +195,7 @@ class ChipRevFormat(SimpleFormat):
     def __init__(self):
         super().__init__('H')
 
-    def decode(self, data: bytes) -> tuple[tuple[int,int], bytes]:
+    def decode(self, data: bytes) -> tuple[tuple[int, int], bytes]:
         value, data = super().decode(data)
         return (value // 100, value % 100), data
 

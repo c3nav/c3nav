@@ -115,7 +115,7 @@ class MeshConsumer(AsyncWebsocketConsumer):
             traceback.print_exc()
             return
 
-        #print(msg)
+        # print(msg)
 
         if msg.dst != messages.MESH_ROOT_ADDRESS and msg.dst != messages.MESH_PARENT_ADDRESS:
             # message not adressed to us, forward it
@@ -370,7 +370,6 @@ class MeshConsumer(AsyncWebsocketConsumer):
             else:
                 node_state.ota_recipient = None
 
-
     @database_sync_to_async
     def get_nodes_with_ota(self, addresses) -> dict[str, Optional[OTAUpdateRecipient]]:
         return {node.address: node.current_ota
@@ -429,11 +428,13 @@ class MeshConsumer(AsyncWebsocketConsumer):
                     traceback.print_exc()
             await asyncio.sleep(1)
 
-    async def ota_set_chunks(self, update: OTAUpdate, chunks: Optional[set[int]] = None, min_chunk: int=0):
+    async def ota_set_chunks(self, update: OTAUpdate, chunks: Optional[set[int]] = None, min_chunk: int = 0):
         async with self.ota_chunks_available_condition:
             num_chunks = (update.build.binary.size-1)//OTA_CHUNK_SIZE+1
             print('queueing chunks for update', update.id, 'num_chunks=%d' % num_chunks, "chunks:", chunks)
-            chunks = set(range(min_chunk, num_chunks*0+10)) if chunks is None else {chunk for chunk in chunks if chunk < num_chunks}
+            chunks = (set(range(min_chunk, num_chunks*0+10))
+                      if chunks is None
+                      else {chunk for chunk in chunks if chunk < num_chunks})
             self.ota_chunks.setdefault(update.id, set()).update(chunks)
             self.ota_chunks_available_condition.notify_all()
 
@@ -522,7 +523,6 @@ class MeshConsumer(AsyncWebsocketConsumer):
                 "uplink": self.channel_name
             })
 
-
     async def remove_dst_nodes(self, addresses):
         for address in tuple(addresses):
             await self.log_text(address, "destination removed")
@@ -559,12 +559,12 @@ class MeshUIConsumer(AsyncJsonWebsocketConsumer):
         if content.get("subscribe", None) == "log":
             await self.channel_layer.group_add("mesh_log", self.channel_name)
         # disabled because security
-        #if content.get("subscribe", None) == "msg_sent":
-        #    await self.channel_layer.group_add("mesh_msg_sent", self.channel_name)
-        #    self.msg_sent_filter = dict(content.get("filter", {}))
-        #if content.get("subscribe", None) == "msg_received":
-        #    await self.channel_layer.group_add("mesh_msg_sent", self.channel_name)
-        #    self.msg_received_filter = dict(content.get("filter", {}))
+        # if content.get("subscribe", None) == "msg_sent":
+        #     await self.channel_layer.group_add("mesh_msg_sent", self.channel_name)
+        #     self.msg_sent_filter = dict(content.get("filter", {}))
+        # if content.get("subscribe", None) == "msg_received":
+        #     await self.channel_layer.group_add("mesh_msg_sent", self.channel_name)
+        #     self.msg_received_filter = dict(content.get("filter", {}))
         if content.get("subscribe", None) == "ranging":
             await self.channel_layer.group_add("mesh_msg_received", self.channel_name)
             self.msg_received_filter = {"msg_type": MeshMessageType.LOCATE_RANGE_RESULTS.name}
