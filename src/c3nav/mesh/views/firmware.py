@@ -2,7 +2,7 @@ from django.contrib.messages.views import SuccessMessageMixin
 from django.views.generic import DetailView, ListView, TemplateView
 from django.views.generic.edit import FormMixin
 
-from c3nav.mesh.models import FirmwareBuild, FirmwareVersion, MeshNode
+from c3nav.mesh.models import FirmwareBuild, FirmwareVersion, MeshNode, OTAUpdate, OTARecipientStatus
 from c3nav.mesh.views.base import MeshControlMixin
 from c3nav.site.forms import OTACreateForm
 
@@ -87,3 +87,35 @@ class FirmwareBuildDetailView(OTACreateMixin, MeshControlMixin, DetailView):
             **super().get_form_kwargs(),
             'builds': [self.get_object()],
         }
+
+
+class OTAListView(ListView):
+    model = OTAUpdate
+    template_name = "mesh/ota_list.html"
+    ordering = "-created"
+    context_object_name = "updates"
+    all = False
+
+    def get_queryset(self):
+        qs = super().get_queryset().prefetch_related('recipients')
+        if self.all:
+            qs = qs.filter(recipients__status=OTARecipientStatus.RUNNING)
+        return qs
+
+    def get_context_data(self, **kwargs):
+        return {
+            **super().get_context_data(),
+            "all": self.all,
+        }
+
+    def get_paginate_by(self, queryset):
+        return 20 if self.all else None
+
+
+class OTADetailView(MeshControlMixin, DetailView):
+    model = OTAUpdate
+    template_name = "mesh/ota_detail.html"
+    context_object_name = "update"
+
+    def get_queryset(self):
+        return super().get_queryset().prefetch_related('recipients', 'recipients__node')

@@ -1,0 +1,56 @@
+{% extends 'mesh/base.html' %}
+{% load i18n %}
+
+{% block heading %}{% if all %}{% trans 'All OTA Updates' %}{% else %}{% trans 'Running OTA Updates' %}{% endif %}{% endblock %}
+
+{% block subcontent %}
+    {% if all %}
+        <a class="button" href="{% url "mesh.ota.list" %}">
+            {% trans 'View running OTA updates only' %}
+        </a>
+    {% else %}
+        <a class="button" href="{% url "mesh.ota.list.all" %}">
+            {% trans 'View all OTA updates' %}
+        </a>
+    {% endif %}
+
+    {% if all %}
+        {% include 'control/fragment_pagination.html' %}
+    {% endif %}
+
+    <table>
+        <tr>
+            <th>{% trans 'ID' %}</th>
+            <th>{% trans 'Created' %}</th>
+            <th>{% trans 'Firmware' %}</th>
+            <th>{% trans 'Recipients' %}</th>
+        </tr>
+        {% for update in updates %}
+            <tr>
+                <td><a href="{% url 'mesh.ota.detail' pk=update.pk %}">{{ update.pk }}</a></td>
+                <td>{{ update.created }}</td>
+                <td>
+                    <a href="{% url "mesh.firmwares.detail" pk=update.build.version.pk %}">
+                        {{ update.build.version.project_name }}
+                        {{ update.build.version.version }}
+                    </a><br>
+                    Variant: <a href="{% url "mesh.firmwares.build.detail" pk=update.build.pk %}">
+                        {{ update.build.variant }}
+                    </a>
+                </td>
+                <td>
+                    <a href="{% url 'mesh.ota.detail' pk=update.pk %}">{{ update.recipients.all | length }} recipients</a><br>
+                    {% for status, recipients in update.grouped_recipients.items %}
+                        {% if forloop.counter0 > 0 %} &bull; {% endif %}
+                        {{ status }}: {{ recipients|length }}
+                    {% endfor %}
+                </td>
+            </tr>
+        {% endfor %}
+
+    </table>
+
+    {% if all %}
+        {% include 'control/fragment_pagination.html' %}
+    {% endif %}
+{% endblock %}

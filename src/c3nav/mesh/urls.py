@@ -2,7 +2,7 @@ from django.urls import path
 
 from c3nav.mesh.consumers import MeshConsumer, MeshUIConsumer
 from c3nav.mesh.views.firmware import (FirmwareBuildDetailView, FirmwareDetailView, FirmwaresCurrentListView,
-                                       FirmwaresListView)
+                                       FirmwaresListView, OTAListView, OTADetailView)
 from c3nav.mesh.views.messages import MeshMessageListView, MeshMessageSendingView, MeshMessageSendView
 from c3nav.mesh.views.misc import MeshLogView, MeshRangingView
 from c3nav.mesh.views.nodes import NodeDetailView, NodeEditView, NodeListView
@@ -15,6 +15,9 @@ urlpatterns = [
     path('firmwares/current/', FirmwaresCurrentListView.as_view(), name='mesh.firmwares.current'),
     path('firmwares/<int:pk>/', FirmwareDetailView.as_view(), name='mesh.firmwares.detail'),
     path('firmwares/builds/<int:pk>/', FirmwareBuildDetailView.as_view(), name='mesh.firmwares.build.detail'),
+    path('ota/', OTAListView.as_view(), name='mesh.ota.list'),
+    path('ota/all/', OTAListView.as_view(all=True), name='mesh.ota.list.all'),
+    path('ota/<int:pk>/', OTADetailView.as_view(), name='mesh.ota.detail'),
     path('nodes/<str:pk>/', NodeDetailView.as_view(), name='mesh.node.detail'),
     path('nodes/<str:pk>/edit/', NodeEditView.as_view(), name='mesh.node.edit'),
     path('message/sending/<uuid:uuid>/', MeshMessageSendingView.as_view(), name='mesh.sending'),

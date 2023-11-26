@@ -55,7 +55,7 @@
                     </td>
                     <td>
                         {% if node.current_ota %}
-                            <a>#{{ node.current_ota.update.pk }} <small>({{ node.current_ota.update.created }})</small></a><br>
+                            <a href="{% url 'mesh.ota.detail' pk=node.current_ota.update.pk %}">#{{ node.current_ota.update.pk }} <small>({{ node.current_ota.update.created }})</small></a><br>
                             {% include "mesh/fragment_firmware_cell.html" with firmware_desc=node.current_ota.update.build.firmware_description %}
                         {% else %}
                             -

@@ -19,7 +19,6 @@ class NodeListView(MeshControlMixin, ListView):
         return super().get_queryset().prefetch_last_messages().prefetch_firmwares().prefetch_ranging_beacon()
 
 
-
 class NodeDetailView(MeshControlMixin, DetailView):
     model = MeshNode
     template_name = "mesh/node_detail.html"

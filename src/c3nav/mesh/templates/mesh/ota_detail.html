@@ -1,0 +1,37 @@
+{% extends 'mesh/base.html' %}
+{% load i18n mesh_node %}
+
+{% block heading %}{% trans 'OTA Update' %}{% endblock %}
+
+{% block subcontent %}
+
+    <div class="columns">
+        <div>
+            <h4>{% trans 'Firmware Build' %}</h4>
+            <strong>Firmware:</strong> <a href="{% url "mesh.firmwares.detail" pk=update.build.version.pk %}">
+                {{ update.build.version.project_name }}
+                {{ update.build.version.version }}
+            </a><br>
+            <strong>Build:</strong> <a href="{% url "mesh.firmwares.build.detail" pk=update.build.pk %}">
+                {{ update.build.variant }}
+            </a><br>
+            <strong>Created:</strong> {{ update.created }}
+        </div>
+        <div>
+            <table>
+                <tr>
+                    <th>{% trans 'Node' %}</th>
+                    <th>{% trans 'Status' %}</th>
+                    <th>{% trans 'Progress' %}</th>
+                </tr>
+            {% for recipient in update.recipients.all %}
+                <tr>
+                    <td>{% mesh_node recipient.node %}</td>
+                    <td>{{ recipient.get_status_display}}</td>
+                    <td></td>
+                </tr>
+            {% endfor %}
+            </table>
+        </div>
+    </div>
+{% endblock %}

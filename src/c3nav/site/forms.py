@@ -1,6 +1,7 @@
 from dataclasses import dataclass
 from dataclasses import replace as dataclass_replace
 from functools import cached_property
+from itertools import chain
 from operator import attrgetter
 from typing import Any, Sequence
 
@@ -12,7 +13,8 @@ from c3nav.mapdata.forms import I18nModelFormMixin
 from c3nav.mapdata.models.locations import Position
 from c3nav.mapdata.models.report import Report, ReportUpdate
 from c3nav.mesh.messages import MeshMessageType
-from c3nav.mesh.models import FirmwareBuild, HardwareDescription, MeshNode, OTAUpdate
+from c3nav.mesh.models import FirmwareBuild, HardwareDescription, MeshNode, OTAUpdate, OTAUpdateRecipient, \
+    OTARecipientStatus
 
 
 class ReportIssueForm(I18nModelFormMixin, ModelForm):
@@ -154,6 +156,11 @@ class OTACreateForm(Form):
     def save(self) -> list[OTAUpdate]:
         updates = []
         with transaction.atomic():
+            replaced_recipients = OTAUpdateRecipient.objects.filter(
+                node__in=chain(*self.selected_builds.values()),
+                status=OTARecipientStatus.RUNNING,
+            ).select_for_update()
+            replaced_recipients.update(status=OTARecipientStatus.REPLACED)
             for build, nodes in self.selected_builds.items():
                 update = OTAUpdate.objects.create(build=build)
                 for node in nodes:

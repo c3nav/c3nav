@@ -164,9 +164,10 @@ class MeshNodeQuerySet(models.QuerySet):
             if nodes is None:
                 nodes: dict[str, MeshNode] = {node.pk: node for node in self._result_cache}
             try:
-                for ota in OTAUpdateRecipient.objects.order_by('node', '-update__created').filter(
+                for ota in OTAUpdateRecipient.objects.filter(
                         node__in=nodes.keys(),
-                ).select_related("update", "update__build").distinct('node'):
+                        status=OTARecipientStatus.RUNNING,
+                ).select_related("update", "update__build"):
                     # noinspection PyUnresolvedReferences
                     nodes[ota.node_id]._current_ota = ota
                 for node in nodes.values():
@@ -260,7 +261,9 @@ class MeshNode(models.Model):
             # noinspection PyUnresolvedReferences
             return self._current_ota
         except AttributeError:
-            return self.ota_updates.order_by('-update__created').select_related("update", "update__build").first()
+            return self.ota_updates.select_related("update", "update__build").filter(
+                status=OTARecipientStatus.RUNNING
+            ).first()
 
     @cached_property
     def ranging_beacon(self) -> Optional["RangingBeacon"]:
@@ -477,8 +480,31 @@ class OTAUpdate(models.Model):
     build = models.ForeignKey(FirmwareBuild, on_delete=models.CASCADE)
     created = models.DateTimeField(_('creation'), auto_now_add=True)
 
+    @property
+    def grouped_recipients(self):
+        result = {}
+        for recipient in self.recipients.all():
+            result.setdefault(recipient.get_status_display(), []).append(recipient)
+        return result
+
+
+class OTARecipientStatus(models.TextChoices):
+    RUNNING = "running", _("running")
+    REPLACED = "replaced", _("replaced")
+    CANCELED = "canceled", _("canceled")
+    FAILED = "failed", _("failed")
+    SUCCESS = "success", _("success")
+
 
 class OTAUpdateRecipient(models.Model):
     update = models.ForeignKey(OTAUpdate, on_delete=models.CASCADE, related_name='recipients')
     node = models.ForeignKey(MeshNode, models.PROTECT, related_name='ota_updates',
                              verbose_name=_('node'))
+    status = models.CharField(max_length=10, choices=OTARecipientStatus.choices, default=OTARecipientStatus.RUNNING,
+                              verbose_name=_('status'))
+
+    class Meta:
+        constraints = (
+            UniqueConstraint(fields=["node"], condition=Q(status=OTARecipientStatus.RUNNING),
+                             name='only_one_active_ota'),
+        )
