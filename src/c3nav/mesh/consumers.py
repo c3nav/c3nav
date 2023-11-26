@@ -30,7 +30,7 @@ class Unknown:
 class NodeWaitingFor(IntEnum):
     NOTHING = auto()
     CONFIG = auto()
-    OTA_CHECK = auto()
+    OTA_START_STOP = auto()
 
 
 @dataclass
@@ -226,7 +226,7 @@ class MeshConsumer(AsyncWebsocketConsumer):
         if isinstance(msg, messages.OTAStatusMessage):
             print('got OTA status', msg)
             node_status.reported_ota_update = msg.update_id
-            if node_status.waiting_for == NodeWaitingFor.OTA_CHECK:
+            if node_status.waiting_for == NodeWaitingFor.OTA_START_STOP:
                 update_id = node_status.ota_recipient.update_id if node_status.ota_recipient else 0
                 if update_id == msg.update_id:
                     print('start/cancel confirmed!')
@@ -363,7 +363,7 @@ class MeshConsumer(AsyncWebsocketConsumer):
             desired_update_id = recipient.update_id if recipient else 0
             if desired_update_id != node_state.reported_ota_update:
                 print('changing OTA state on node')
-                node_state.waiting_for = NodeWaitingFor.OTA_CHECK
+                node_state.waiting_for = NodeWaitingFor.OTA_START_STOP
                 node_state.attempt = 0
                 node_state.ota_recipient = recipient
                 await self.node_resend_ask(address)
@@ -392,7 +392,7 @@ class MeshConsumer(AsyncWebsocketConsumer):
                     dst=address,
                 ))
 
-            case NodeWaitingFor.OTA_CHECK:
+            case NodeWaitingFor.OTA_START_STOP:
                 node_state.last_sent = timezone.now()
                 if node_state.ota_recipient:
                     print('starting ota, attempt #%d' % node_state.attempt)
