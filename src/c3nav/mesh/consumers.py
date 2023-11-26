@@ -1,7 +1,11 @@
 import asyncio
 import traceback
 from asyncio import get_event_loop
+from dataclasses import dataclass, field
+from datetime import datetime, timedelta
+from enum import IntEnum, auto, unique
 from functools import cached_property
+from typing import Optional
 
 from asgiref.sync import async_to_sync
 from channels.db import database_sync_to_async
@@ -11,10 +15,29 @@ from django.db import transaction
 from django.utils import timezone
 
 from c3nav.mesh import messages
-from c3nav.mesh.messages import (MESH_BROADCAST_ADDRESS, MESH_NONE_ADDRESS, MESH_ROOT_ADDRESS, MeshMessage,
-                                 MeshMessageType)
-from c3nav.mesh.models import MeshNode, MeshUplink, NodeMessage
+from c3nav.mesh.messages import (MESH_BROADCAST_ADDRESS, MESH_NONE_ADDRESS, MESH_ROOT_ADDRESS, OTA_CHUNK_SIZE,
+                                 MeshMessage, MeshMessageType)
+from c3nav.mesh.models import MeshNode, MeshUplink, NodeMessage, OTAUpdate, OTAUpdateRecipient
 from c3nav.mesh.utils import MESH_ALL_UPLINKS_GROUP, UPLINK_PING, get_mesh_uplink_group
+from c3nav.routing.rangelocator import RangeLocator
+
+
+class Unknown:
+    pass
+
+
+@unique
+class OTAWaitingFor(IntEnum):
+    NOTHING = auto()
+    START_OR_CANCEL_CONFIRM = auto()
+
+
+@dataclass
+class OTADeviceState:
+    waiting_for: OTAWaitingFor = OTAWaitingFor.NOTHING
+    reported_ota: Optional[int] = None  # None = unknown, 0 = no update
+    last_sent: datetime = field(default_factory=timezone.now)
+    recipient: Optional[OTAUpdateRecipient] = None
 
 
 class MeshConsumer(AsyncWebsocketConsumer):
@@ -24,6 +47,11 @@ class MeshConsumer(AsyncWebsocketConsumer):
         self.dst_nodes = set()
         self.open_requests = set()
         self.ping_task = None
+        self.check_ota_states_task = None
+        self.ota_send_task = None
+        self.ota_states: dict[str, OTADeviceState] = {}  # keys are addresses
+        self.ota_chunks: dict[int, set[int]] = {}  # keys are update IDs, values are a list of chunk IDs
+        self.ota_chunks_available_condition = asyncio.Condition()
 
     async def connect(self):
         # todo: auth
@@ -31,9 +59,13 @@ class MeshConsumer(AsyncWebsocketConsumer):
         # await self.log_text(None, "new mesh websocket connection")
         await self.accept()
         self.ping_task = get_event_loop().create_task(self.ping_regularly())
+        self.check_ota_states_task = get_event_loop().create_task(self.check_node_ota_states())
+        self.ota_send_task = get_event_loop().create_task(self.ota_send())
 
     async def disconnect(self, close_code):
         self.ping_task.cancel()
+        self.check_ota_states_task.cancel()
+        self.ota_send_task.cancel()
         await self.log_text(self.uplink.node, "mesh websocket disconnected")
         if self.uplink is not None:
             # leave broadcast group
@@ -76,10 +108,12 @@ class MeshConsumer(AsyncWebsocketConsumer):
         try:
             msg, data = messages.MeshMessage.decode(bytes_data)
         except Exception:
+            print("Unable to decode: ")
+            print(bytes_data)
             traceback.print_exc()
             return
 
-        print(msg)
+        #print(msg)
 
         if msg.dst != messages.MESH_ROOT_ADDRESS and msg.dst != messages.MESH_PARENT_ADDRESS:
             # message not adressed to us, forward it
@@ -172,6 +206,23 @@ class MeshConsumer(AsyncWebsocketConsumer):
                     request_id=msg.request_id,
                     route=uplink.node_id if uplink else MESH_NONE_ADDRESS,
                 ))
+
+        if isinstance(msg, messages.OTAStatusMessage):
+            print('got OTA status', msg)
+            try:
+                ota_status = self.ota_states[msg.src]
+            except KeyError:
+                print('ota status from node where we didn\'t expect it')
+                await self.check_ota(msg.src)
+            else:
+                if ota_status.waiting_for == OTAWaitingFor.START_OR_CANCEL_CONFIRM:
+                    update_id = ota_status.recipient.update_id if ota_status.recipient else 0
+                    if update_id == msg.update_id:
+                        print('start/cancel confirmed!')
+                        ota_status.waiting_for = OTAWaitingFor.NOTHING
+                        if update_id:
+                            print('queue chunk sending')
+                            await self.ota_set_chunks(ota_status.recipient.update)
 
     @database_sync_to_async
     def create_uplink_in_database(self, address):
@@ -272,18 +323,105 @@ class MeshConsumer(AsyncWebsocketConsumer):
     async def check_ota(self, addresses):
         recipients = await self.get_nodes_with_ota(addresses)
         for address, recipient in recipients.items():
-            if not recipient:
-                continue
-            await self.check_ota_recipient(address, recipient)
+            ota_state = self.ota_states.setdefault(address, OTADeviceState())
+            update_id = recipient.update_id if recipient else 0
+            if update_id != ota_state.reported_ota:
+                ota_state.waiting_for = OTAWaitingFor.START_OR_CANCEL_CONFIRM
+                ota_state.recipient = recipient
+                await self.ota_resend_ask(address)
 
     @database_sync_to_async
     def get_nodes_with_ota(self, addresses) -> dict:
         return {node.address: node.current_ota
-                for node in MeshNode.objects.filter(address__in=addresses).prefetch_ota()}
+                for node in MeshNode.objects.prefetch_ota().filter(address__in=addresses)}
 
-    async def check_ota_recipient(self, address, update):
-        print('checking OTA recipient', address, update)
-        pass
+    async def ota_resend_ask(self, address):
+        ota_state = self.ota_states[address]
+        if ota_state.waiting_for == OTAWaitingFor.START_OR_CANCEL_CONFIRM:
+            ota_state.last_sent = timezone.now()
+            if ota_state.recipient:
+                print('starting ota')
+
+                await self.send_msg(messages.OTAStartMessage(
+                    src=MESH_ROOT_ADDRESS,
+                    dst=address,
+                    update_id=ota_state.recipient.update_id,  # noqa
+                    total_bytes=ota_state.recipient.update.build.binary.size,
+                    auto_apply=False,
+                    auto_reboot=False,
+                ))
+            else:
+                print('canceling ota')
+                await self.send_msg(messages.OTAAbortMessage(
+                    src=MESH_ROOT_ADDRESS,
+                    dst=address,
+                    update_id=0,
+                ))
+
+    async def check_node_ota_states(self):
+        while True:
+            for address in tuple(self.ota_states.keys()):
+                try:
+                    if address not in self.dst_nodes:
+                        self.ota_states.pop(address, None)
+                        continue
+                    ota_state = self.ota_states.get(address, None)
+                    if ota_state:
+                        if (ota_state.waiting_for != OTAWaitingFor.NOTHING and
+                                ota_state.last_sent+timedelta(seconds=10) < timezone.now()):
+                            await self.ota_resend_ask(address)
+                except Exception:  # noqa
+                    print('failure in check_node_ota_states')
+                    traceback.print_exc()
+            await asyncio.sleep(1)
+
+    async def ota_set_chunks(self, update: OTAUpdate, chunks: Optional[set[int]] = None):
+        async with self.ota_chunks_available_condition:
+            num_chunks = (update.build.binary.size-1)//OTA_CHUNK_SIZE+1
+            print('queueing chunks for update', update.id, 'num_chunks=%d' % num_chunks, "chunks:", chunks)
+            chunks = set(range(num_chunks*0+2)) if chunks is None else {chunk for chunk in chunks if chunk < num_chunks}
+            self.ota_chunks.setdefault(update.id, set()).update(chunks)
+            self.ota_chunks_available_condition.notify_all()
+
+    async def ota_send(self):
+        while True:
+            for update_id in tuple(self.ota_chunks.keys()):
+                try:
+                    chunk = self.ota_chunks[update_id].pop()
+                except KeyError:
+                    # no longer there, go on
+                    print('nothing left to send for update', update_id)
+                    self.ota_chunks.pop(update_id, None)
+                    continue
+
+                # find recipients, so we know if broadcast or not
+                recipients = [address for address, state in self.ota_states.items()
+                              if state.recipient and state.recipient.update_id == update_id]
+                if not recipients:
+                    # no recipients? then lets stop
+                    print('no more recipients for', update_id, 'stopping sending…')
+                    self.ota_chunks.pop(update_id, None)
+                    continue
+
+                # send the message
+                print("sending", update_id, "chunk", chunk)
+                with self.ota_states[recipients[0]].recipient.update.build.binary.open('rb') as f:
+                    f.seek(chunk * OTA_CHUNK_SIZE)
+                    data = f.read(OTA_CHUNK_SIZE)
+                await self.send_msg(messages.OTAFragmentMessage(
+                    src=MESH_ROOT_ADDRESS,
+                    dst=recipients[0] if len(recipients) == 1 else MESH_BROADCAST_ADDRESS,
+                    update_id=update_id,
+                    chunk=chunk,
+                    data=data,
+                ))
+
+                # wait a bit until we send more
+                await asyncio.sleep(1)
+
+            async with self.ota_chunks_available_condition:
+                if not self.ota_chunks:
+                    await self.ota_chunks_available_condition.wait()
 
     async def add_dst_nodes(self, nodes=None, addresses=None):
         nodes = list(nodes) if nodes else []
@@ -315,6 +453,7 @@ class MeshConsumer(AsyncWebsocketConsumer):
                 )
             )
 
+            self.ota_states.pop(address, None)
             await self.check_ota([address])
 
     @database_sync_to_async
@@ -341,6 +480,7 @@ class MeshConsumer(AsyncWebsocketConsumer):
         for address in tuple(addresses):
             await self.log_text(address, "destination removed")
 
+            self.ota_states.pop(address, None)
             await self._remove_destination(address)
 
     @database_sync_to_async
