@@ -35,7 +35,7 @@ RUN --mount=type=cache,target=/var/cache/apt,id=apt_$TARGETARCH --mount=type=tmp
     libgirepository-1.0-1=1.76.1-1 \
     tzdata=2023c-2exp1ubuntu1.1 \
     ca-certificates=20230311ubuntu0.23.04.1
-ENV PATH="/usr/lib/postgresql/14/bin/:$PATH"
+ENV PATH="/usr/lib/postgresql/15/bin/:$PATH"
 
 
 FROM base as builder
@@ -68,7 +68,7 @@ RUN --mount=type=cache,target=/pip-cache \
 
 FROM base as final
 RUN groupadd -r -g 500 c3nav && useradd -r -u 500 -g 500 -G www-data c3nav
-RUN mkdir /data && chown -R c3nav:c3nav /data
+RUN mkdir /data /etc/c3nav && chown -R c3nav:c3nav /data /etc/c3nav
 VOLUME /data
 
 COPY --link --chown=500:500 /src /app
@@ -80,7 +80,8 @@ ENV C3NAV_DEBUG="" \
     C3NAV_DATA_DIR="/data" \
     C3NAV_AUTOMIGRATE="yes" \
     MPLBACKEND="agg" \
-    UWSGI_WORKERS="8"
+    UWSGI_WORKERS="8" \
+    PATH="/app/env/bin/:$PATH"
 
 USER c3nav
 WORKDIR /app
