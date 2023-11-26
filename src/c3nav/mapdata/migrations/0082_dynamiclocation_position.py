@@ -23,7 +23,7 @@ class Migration(migrations.Migration):
                 ('secret', models.CharField(default=c3nav.mapdata.models.locations.get_position_secret, max_length=32, unique=True, verbose_name='secret')),
                 ('last_location_update', models.DateTimeField(null=True, verbose_name='last location update')),
                 ('location_id', models.CharField(max_length=48, null=True, verbose_name='location')),
-                ('api_secret', models.CharField(default=c3nav.mapdata.models.locations.get_position_api_secret, max_length=64, verbose_name='api secret')),
+                ('api_secret', models.CharField(default="", max_length=64, verbose_name='api secret')),
                 ('owner', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='dynamic_positions', to=settings.AUTH_USER_MODEL)),
             ],
             options={
