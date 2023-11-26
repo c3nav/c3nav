@@ -105,7 +105,10 @@ class MeshNodeQuerySet(models.QuerySet):
                 ).prefetch_related("uplink").distinct('message_type', 'src_node'):
                     nodes[message.src_node_id].last_messages[message.message_type] = message
                 for node in nodes.values():
-                    node.last_messages["any"] = max(node.last_messages.values(), key=attrgetter("datetime"))
+                    node.last_messages["any"] = (
+                        max(node.last_messages.values(), key=attrgetter("datetime"))
+                        if node.last_messages else None
+                    )
                 self._prefetch_last_messages_done = True
             except NotSupportedError:
                 pass
@@ -118,6 +121,7 @@ class MeshNodeQuerySet(models.QuerySet):
                         sha256_hash__in=set(
                             node.last_messages[MeshMessageType.CONFIG_FIRMWARE].parsed.app_desc.app_elf_sha256
                             for node in self._result_cache
+                            if node.last_messages[MeshMessageType.CONFIG_FIRMWARE]
                         )
                     ))
                 }
@@ -125,12 +129,15 @@ class MeshNodeQuerySet(models.QuerySet):
                 # assign firmware descriptions
                 for node in nodes.values():
                     firmware_desc = node.firmware_description
-                    node._firmware_description = firmwares.get(firmware_desc.get_lookup(), firmware_desc)
+                    node._firmware_description = (
+                        firmwares.get(firmware_desc.get_lookup(), firmware_desc)
+                        if firmware_desc else None
+                    )
 
                 # get date of first appearance
                 nodes_to_complete = tuple(
                     node for node in nodes.values()
-                    if node._firmware_description.build is None
+                    if node._firmware_description and node._firmware_description.build is None
                 )
                 try:
                     created_lookup = {
@@ -265,13 +272,19 @@ class MeshNode(models.Model):
 
     # noinspection PyUnresolvedReferences
     @cached_property
-    def firmware_description(self) -> FirmwareDescription:
+    def firmware_description(self) -> Optional[FirmwareDescription]:
         with suppress(AttributeError):
             return self._firmware_description
+
+        fw_msg = self.last_messages[MeshMessageType.CONFIG_FIRMWARE]
+        hw_msg = self.last_messages[MeshMessageType.CONFIG_HARDWARE]
+        if not fw_msg or not hw_msg:
+            return None
+
         # noinspection PyTypeChecker
-        firmware_msg: ConfigFirmwareMessage = self.last_messages[MeshMessageType.CONFIG_FIRMWARE].parsed
+        firmware_msg: ConfigFirmwareMessage = fw_msg.parsed
         # noinspection PyTypeChecker
-        hardware_msg: ConfigHardwareMessage = self.last_messages[MeshMessageType.CONFIG_HARDWARE].parsed
+        hardware_msg: ConfigHardwareMessage = hw_msg.parsed
         return FirmwareDescription(
             chip=hardware_msg.chip,
             project_name=firmware_msg.app_desc.project_name,
@@ -283,9 +296,12 @@ class MeshNode(models.Model):
     @cached_property
     def hardware_description(self) -> HardwareDescription:
         # noinspection PyUnresolvedReferences
+
+        hw_msg = self.last_messages[MeshMessageType.CONFIG_HARDWARE]
+        board_msg = self.last_messages[MeshMessageType.CONFIG_BOARD]
         return HardwareDescription(
-            chip=self.last_messages[MeshMessageType.CONFIG_HARDWARE].parsed.chip,
-            board=self.last_messages[MeshMessageType.CONFIG_BOARD].parsed.board_config.board,
+            chip=hw_msg.parsed.chip if hw_msg else None,
+            board=board_msg.parsed.board_config.board if board_msg else None,
         )
 
     # overriden by prefetch_firmwares()
