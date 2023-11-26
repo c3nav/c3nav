@@ -18,6 +18,8 @@ MESH_CHILDREN_ADDRESS = '00:00:00:00:ff:ff'
 MESH_BROADCAST_ADDRESS = 'ff:ff:ff:ff:ff:ff'
 NO_LAYER = 0xFF
 
+OTA_CHUNK_SIZE = 512
+
 
 @unique
 class MeshMessageType(IntEnum):
@@ -130,8 +132,6 @@ class MeshMessage(StructType, union_type_field="msg_type"):
 class NoopMessage(MeshMessage, msg_type=MeshMessageType.NOOP):
     """ noop """
     pass
-
-
 
 
 @dataclass
@@ -308,7 +308,7 @@ class OTAFragmentMessage(MeshMessage, msg_type=MeshMessageType.OTA_FRAGMENT):
     """ supply OTA fragment """
     update_id: int = field(metadata={"format": SimpleFormat('I')})
     chunk: int = field(metadata={"format": SimpleFormat('H')})
-    data: str = field(metadata={"format": VarBytesFormat(max_size=512)})
+    data: bytes = field(metadata={"format": VarBytesFormat(max_size=OTA_CHUNK_SIZE)})
 
 
 @dataclass
