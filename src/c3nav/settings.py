@@ -225,11 +225,8 @@ HAS_REDIS = bool(config.get('redis', 'location', fallback=None, env='C3NAV_REDIS
 if HAS_REDIS:
     HAS_REAL_CACHE = True
     CACHES['redis'] = {
-        "BACKEND": "django_redis.cache.RedisCache",
+        "BACKEND": "django.core.cache.backends.redis.RedisCache",
         "LOCATION": config.get('redis', 'location', env='C3NAV_REDIS'),
-        "OPTIONS": {
-            "CLIENT_CLASS": "django_redis.client.DefaultClient",
-        }
     }
     if not HAS_MEMCACHED:
         CACHES['default'] = CACHES['redis']
