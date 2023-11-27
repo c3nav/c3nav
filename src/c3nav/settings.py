@@ -52,7 +52,8 @@ with suppress(ImportError):
         from sentry_sdk.scrubber import EventScrubber, DEFAULT_DENYLIST
 
         sensitive_env_vars = ['C3NAV_DJANGO_SECRET', 'C3NAV_TILE_SECRET', 'C3NAV_DATABASE', 'C3NAV_DATABASE_PASSWORD',
-                              'C3NAV_MEMCACHED', 'C3NAV_REDIS', 'C3NAV_CELERY_BROKER', 'C3NAV_CELERY_BACKEND',
+                              'C3NAV_MEMCACHED', 'C3NAV_MEMCACHED_USER', 'C3NAV_MEMCACHED_PASSWORD',
+                              'C3NAV_REDIS', 'C3NAV_CELERY_BROKER', 'C3NAV_CELERY_BACKEND',
                               'C3NAV_EMAIL', 'C3NAV_EMAIL_PASSWORD']
         sensitive_vars = ['SECRET_KEY', 'TILE_SECRET_KEY', 'DATABASES', 'CACHES', 'BROKER_URL', 'CELERY_RESULT_BACKEND']
 
@@ -218,6 +219,10 @@ if HAS_MEMCACHED:
     CACHES['default'] = {
         'BACKEND': 'django.core.cache.backends.memcached.PyLibMCCache',
         'LOCATION': config.get('memcached', 'location', env='C3NAV_MEMCACHED'),
+        'OPTIONS': {
+            'username': config.get('memcached', 'username', fallback=None),
+            'password': config.get('memcached', 'password', fallback=None),
+        }
     }
     SESSION_ENGINE = "django.contrib.sessions.backends.cached_db"
 
