@@ -1,5 +1,4 @@
 # c3nav settings, mostly taken from the pretix project
-import configparser
 import os
 import string
 import sys
@@ -12,16 +11,15 @@ from django.contrib.messages import constants as messages
 from django.utils.crypto import get_random_string
 from django.utils.translation import gettext_lazy as _
 
+from c3nav.utils.config import C3navConfigParser
 from c3nav.utils.environ import Env
-
-env = Env()
 
 
 def get_data_dir(setting: str, fallback: Path, create: bool = True, parents: bool = False,
                  config_section: str = 'c3nav', config_option: Optional[str] = None):
     if not config_option:
         config_option = setting.lower()
-    subdir = config.get(config_section, config_option, fallback=env.str('C3NAV_' + setting, None))
+    subdir = config.get(config_section, config_option, fallback=None, env='C3NAV_' + setting)
     subdir = Path(subdir).resolve() if subdir else fallback
     if not subdir.exists():
         if create:
@@ -33,16 +31,17 @@ def get_data_dir(setting: str, fallback: Path, create: bool = True, parents: boo
     return subdir
 
 
-config = configparser.RawConfigParser()
+env = Env()
+config = C3navConfigParser(env=env)
 if 'C3NAV_CONFIG' in env:
     # if a config file is explicitly defined, make sure we can read it.
     env.path('C3NAV_CONFIG').open('r')
 config.read(['/etc/c3nav/c3nav.cfg', os.path.expanduser('~/.c3nav.cfg'), env.str('C3NAV_CONFIG', 'c3nav.cfg')],
             encoding='utf-8')
 
-INSTANCE_NAME = config.get('c3nav', 'name', fallback='')
+INSTANCE_NAME = config.get('c3nav', 'name', fallback='', env='C3NAV_INSTANCE_NAME')
 
-SENTRY_DSN = config.get('sentry', 'dsn', fallback=None)
+SENTRY_DSN = config.get('sentry', 'dsn', fallback=None, env='SENTRY_DSN')
 
 with suppress(ImportError):
     if SENTRY_DSN:
@@ -81,12 +80,12 @@ RANDOM_LOCATION_GROUPS = config.get('c3nav', 'random_location_groups', fallback=
 if RANDOM_LOCATION_GROUPS:
     RANDOM_LOCATION_GROUPS = tuple(int(i) for i in RANDOM_LOCATION_GROUPS.split(','))
 
-if config.has_option('django', 'secret'):
-    SECRET_KEY = config.get('django', 'secret')
-else:
-    SECRET_FILE = env.path('C3NAV_SECRET_FILE', default=config.get('django', 'secret_file', fallback=None),
-                           parse_default=True)
-    if SECRET_FILE is None:
+SECRET_KEY = config.get('django', 'secret', fallback=None)
+if not SECRET_KEY:
+    SECRET_FILE = config.get('django', 'secret_file', fallback=None)
+    if SECRET_FILE:
+        SECRET_FILE = Path(SECRET_FILE)
+    else:
         SECRET_FILE = DATA_DIR / '.secret'
     if SECRET_FILE.exists():
         with open(SECRET_FILE, 'r') as f:
@@ -98,10 +97,13 @@ else:
             os.chown(SECRET_FILE, os.getuid(), os.getgid())
             f.write(SECRET_KEY)
 
-if config.has_option('c3nav', 'tile_secret'):
-    SECRET_TILE_KEY = config.get('c3nav', 'tile_secret')
-else:
-    SECRET_TILE_FILE = DATA_DIR / '.tile_secret'
+SECRET_TILE_KEY = config.get('c3nav', 'tile_secret', fallback=None)
+if not SECRET_TILE_KEY:
+    SECRET_TILE_FILE = config.get('c3nav', 'tile_secret_file', fallback=None)
+    if SECRET_TILE_FILE:
+        SECRET_TILE_FILE = Path(SECRET_TILE_FILE)
+    else:
+        SECRET_TILE_FILE = DATA_DIR / '.tile_secret'
     if SECRET_TILE_FILE.exists():
         with open(SECRET_TILE_FILE, 'r') as f:
             SECRET_TILE_KEY = f.read().strip()
@@ -115,9 +117,9 @@ else:
 # Adjustable settings
 
 debug_fallback = "runserver" in sys.argv
-DEBUG = config.getboolean('django', 'debug', fallback=debug_fallback)
+DEBUG = config.getboolean('django', 'debug', fallback=debug_fallback, env='C3NAV_DEBUG')
 
-RENDER_SCALE = float(config.get('c3nav', 'render_scale', fallback=20.0))
+RENDER_SCALE = config.getfloat('c3nav', 'render_scale', fallback=20.0)
 IMAGE_RENDERER = config.get('c3nav', 'image_renderer', fallback='svg')
 SVG_RENDERER = config.get('c3nav', 'svg_renderer', fallback='rsvg-convert')
 
