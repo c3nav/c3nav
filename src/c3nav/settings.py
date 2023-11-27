@@ -145,18 +145,26 @@ if len(INITIAL_BOUNDS) == 4:
 else:
     INITIAL_BOUNDS = None
 
-db_backend = config.get('database', 'backend', fallback='sqlite3')
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.' + db_backend,
-        'NAME': config.get('database', 'name', fallback=DATA_DIR / 'db.sqlite3'),
-        'USER': config.get('database', 'user', fallback=''),
-        'PASSWORD': config.get('database', 'password', fallback=''),
-        'HOST': config.get('database', 'host', fallback=''),
-        'PORT': config.get('database', 'port', fallback=''),
-        'CONN_MAX_AGE': 0 if db_backend == 'sqlite3' else 120
+_db_backend = config.get('database', 'backend', fallback='sqlite3')
+DATABASES: dict[str, dict[str, str | int | Path]] = {
+    'default': env.db_url('C3NAV_DATABASE') if 'C3NAV_DATABASE' in env else {
+        'ENGINE': _db_backend if '.' in _db_backend else 'django.db.backends.' + _db_backend,
     }
 }
+for key in ('NAME', 'USER', 'PASSWORD', 'HOST', 'PORT'):
+    if 'C3NAV_DATABASE' in env:
+        # if the C3NAV_DATABASE is present all database options in the config files are ignored
+        value = env.str('C3NAV_DATABASE_' + key, default=None)
+    else:
+        value = config.get('database', key.lower(), fallback=None)
+    if value:
+        DATABASES['default'][key] = value
+    elif key == 'NAME':
+        DATABASES['default'].setdefault(key, DATA_DIR / 'db.sqlite3' if _db_backend.endswith('sqlite3')
+                                        else (f'c3nav_{INSTANCE_NAME}' if INSTANCE_NAME else 'c3nav'))
+
+DATABASES['default'].setdefault('CONN_MAX_AGE', (0 if _db_backend.endswith('sqlite3') else 120))
+
 DEFAULT_AUTO_FIELD = 'django.db.models.AutoField'
 
 STATIC_URL = config.get('django', 'static_url', fallback='/static/', env='C3NAV_STATIC_URL')
@@ -187,21 +195,21 @@ HAS_REAL_CACHE = False
 
 SESSION_ENGINE = "django.contrib.sessions.backends.db"
 
-HAS_MEMCACHED = config.has_option('memcached', 'location')
+HAS_MEMCACHED = bool(config.get('memcached', 'location', fallback=None, env='C3NAV_MEMCACHED'))
 if HAS_MEMCACHED:
     HAS_REAL_CACHE = True
     CACHES['default'] = {
         'BACKEND': 'django.core.cache.backends.memcached.PyLibMCCache',
-        'LOCATION': config.get('memcached', 'location'),
+        'LOCATION': config.get('memcached', 'location', env='C3NAV_MEMCACHED'),
     }
     SESSION_ENGINE = "django.contrib.sessions.backends.cached_db"
 
-HAS_REDIS = config.has_option('redis', 'location')
+HAS_REDIS = bool(config.get('redis', 'location', fallback=None, env='C3NAV_REDIS'))
 if HAS_REDIS:
     HAS_REAL_CACHE = True
     CACHES['redis'] = {
         "BACKEND": "django_redis.cache.RedisCache",
-        "LOCATION": config.get('redis', 'location'),
+        "LOCATION": config.get('redis', 'location', env='C3NAV_REDIS'),
         "OPTIONS": {
             "CLIENT_CLASS": "django_redis.client.DefaultClient",
         }
@@ -212,7 +220,7 @@ if HAS_REDIS:
     else:
         SESSION_CACHE_ALIAS = "redis"
 
-HAS_CELERY = config.has_option('celery', 'broker')
+HAS_CELERY = config.get('celery', 'broker', fallback=None)
 if HAS_CELERY:
     BROKER_URL = config.get('celery', 'broker')
     CELERY_RESULT_BACKEND = config.get('celery', 'backend')
