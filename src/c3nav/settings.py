@@ -8,6 +8,7 @@ from typing import Optional
 
 import sass
 from django.contrib.messages import constants as messages
+from django.core.exceptions import ImproperlyConfigured
 from django.utils.crypto import get_random_string
 from django.utils.translation import gettext_lazy as _
 
@@ -174,14 +175,22 @@ ALLOWED_HOSTS = [n for n in config.get('django', 'allowed_hosts', fallback='*').
 LANGUAGE_CODE = config.get('locale', 'default', fallback='en', env='C3NAV_DEFAULT_LOCALE')
 TIME_ZONE = config.get('locale', 'timezone', fallback='UTC', env='C3NAV_TIMEZONE')
 
-MAIL_FROM = SERVER_EMAIL = DEFAULT_FROM_EMAIL = config.get('mail', 'from', fallback='c3nav@localhost')
-EMAIL_HOST = config.get('mail', 'host', fallback='localhost')
-EMAIL_PORT = config.getint('mail', 'port', fallback=25)
-EMAIL_HOST_USER = config.get('mail', 'user', fallback='')
-EMAIL_HOST_PASSWORD = config.get('mail', 'password', fallback='')
-EMAIL_USE_TLS = config.getboolean('mail', 'tls', fallback=False)
-EMAIL_USE_SSL = config.getboolean('mail', 'ssl', fallback=False)
+MAIL_FROM = SERVER_EMAIL = DEFAULT_FROM_EMAIL = config.get('email', 'from', fallback='c3nav@localhost')
+EMAIL_HOST = config.get('email', 'host', fallback='' if DEBUG else 'localhost')
+EMAIL_PORT = config.getint('email', 'port', fallback=25)
+EMAIL_HOST_USER = config.get('email', 'user', fallback='')
+EMAIL_HOST_PASSWORD = config.get('email', 'password', fallback='')
+EMAIL_USE_TLS = config.getboolean('email', 'tls', fallback=False)
+EMAIL_USE_SSL = config.getboolean('email', 'ssl', fallback=False)
+EMAIL_BACKEND = config.get(
+    'email', 'ssl',
+    fallback='django.core.mail.backends.' + ('smtp' if EMAIL_HOST else 'console') + '.EmailBackend',
+)
+if 'C3NAV_EMAIL' in env:
+    vars().update(env.email_url('C3NAV_EMAIL'))
 EMAIL_SUBJECT_PREFIX = ('[c3nav-%s] ' % INSTANCE_NAME) if INSTANCE_NAME else '[c3nav]'
+if config.has_section('mail'):
+    raise ImproperlyConfigured('mail config section got renamed to email. Please fix your config file.')
 
 ADMINS = [('Admin', n) for n in config.get('mail', 'admins', fallback='').split(",") if n]
 
