@@ -49,10 +49,18 @@ with suppress(ImportError):
         import sentry_sdk
         from sentry_sdk.integrations.celery import CeleryIntegration
         from sentry_sdk.integrations.django import DjangoIntegration
+        from sentry_sdk.scrubber import EventScrubber, DEFAULT_DENYLIST
 
+        sensitive_env_vars = ['C3NAV_DJANGO_SECRET', 'C3NAV_TILE_SECRET', 'C3NAV_DATABASE', 'C3NAV_DATABASE_PASSWORD',
+                              'C3NAV_MEMCACHED', 'C3NAV_REDIS', 'C3NAV_CELERY_BROKER', 'C3NAV_CELERY_BACKEND',
+                              'C3NAV_EMAIL', 'C3NAV_EMAIL_PASSWORD']
+        sensitive_vars = ['SECRET_KEY', 'TILE_SECRET_KEY', 'DATABASES', 'CACHES', 'BROKER_URL', 'CELERY_RESULT_BACKEND']
+
+        denylist = DEFAULT_DENYLIST + sensitive_env_vars + sensitive_vars
         sentry_sdk.init(
             dsn=SENTRY_DSN,
-            integrations=[CeleryIntegration(), DjangoIntegration()]
+            integrations=[CeleryIntegration(), DjangoIntegration()],
+            event_scrubber=EventScrubber(denylist=denylist),
         )
 
 # Build paths inside the project like this: BASE_DIR / 'something'
