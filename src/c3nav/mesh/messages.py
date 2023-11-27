@@ -5,6 +5,7 @@ from typing import TypeVar
 import channels
 from channels.db import database_sync_to_async
 
+from c3nav.api.utils import EnumSchemaByNameMixin
 from c3nav.mesh.baseformats import (BoolFormat, EnumFormat, FixedStrFormat, SimpleFormat, StructType, VarArrayFormat,
                                     VarBytesFormat, VarStrFormat, normalize_name)
 from c3nav.mesh.dataformats import (BoardConfig, ChipType, FirmwareAppDescription, MacAddressesListFormat,
@@ -22,7 +23,7 @@ OTA_CHUNK_SIZE = 512
 
 
 @unique
-class MeshMessageType(IntEnum):
+class MeshMessageType(EnumSchemaByNameMixin, IntEnum):
     NOOP = 0x00
 
     ECHO_REQUEST = 0x01

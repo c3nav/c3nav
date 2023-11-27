@@ -1,7 +1,8 @@
 from datetime import datetime
+from typing import Optional, Annotated
 
 from django.db import IntegrityError, transaction
-from ninja import Field as APIField
+from ninja import Field as APIField, Query
 from ninja import Router as APIRouter
 from ninja import Schema, UploadedFile
 from ninja.pagination import paginate
@@ -10,7 +11,8 @@ from pydantic import PositiveInt, field_validator
 from c3nav.api.exceptions import API404, APIConflict, APIRequestValidationFailed
 from c3nav.api.newauth import APITokenAuth, auth_permission_responses, auth_responses, validate_responses
 from c3nav.mesh.dataformats import BoardType, ChipType, FirmwareImage
-from c3nav.mesh.models import FirmwareBuild, FirmwareVersion
+from c3nav.mesh.messages import MeshMessageType
+from c3nav.mesh.models import FirmwareBuild, FirmwareVersion, NodeMessage
 
 mesh_api_router = APIRouter(tags=["mesh"])
 
@@ -193,3 +195,43 @@ def firmware_upload(request, firmware_data: UploadFirmwareSchema, binary_files: 
         raise APIConflict('Firmware version already exists.')
 
     return version
+
+
+NodeAddress = Annotated[str, APIField(pattern=r"^[a-z0-9]{2}(:[a-z0-9]{2}){5}$")]
+
+
+class MessagesFilter(Schema):
+    src_node: Optional[NodeAddress] = None
+    msg_type: Optional[MeshMessageType] = None
+    time_from: Optional[datetime] = None
+    time_until: Optional[datetime] = None
+
+
+class NodeMessageSchema(Schema):
+    id: int
+    src_node: NodeAddress
+    message_type: MeshMessageType
+    datetime: datetime
+    data: dict
+
+    @staticmethod
+    def resolve_src_node(obj):
+        return obj.src_node.address
+
+
+@mesh_api_router.get(
+    '/messages/', summary="query recorded mesh messages", auth=APITokenAuth(superuser=True),
+    response={200: list[NodeMessageSchema], **auth_permission_responses}
+)
+@paginate
+def messages_list(request, filters: Query[MessagesFilter]):
+    qs = NodeMessage.objects.all()
+    if filters.src_node:
+        qs = qs.filter(src_node__address=filters.src_node)
+    if filters.msg_type:
+        qs = qs.filter(message_type=filters.msg_type.name)
+    if filters.time_from:
+        qs = qs.filter(datetime__gte=filters.time_from)
+    if filters.time_until:
+        qs = qs.filter(datetime__lte=filters.time_until)
+    return qs
