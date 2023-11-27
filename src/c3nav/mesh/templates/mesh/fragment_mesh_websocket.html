@@ -151,6 +151,7 @@ function connect() {
                         );
                         if (nodes_distances[key] != null) {
                             cell.innerHTML += `<br> <em>(actual: ${nodes_distances[key]}cm</em>)`
+                            cell.innerHTML += `<br> <em>(diff: ${range.distance-nodes_distances[key]}cm</em>)`
                         }
                     }
                 {% endif %}
