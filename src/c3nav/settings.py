@@ -69,6 +69,7 @@ BASE_DIR = PROJECT_DIR.parent
 DATA_DIR = get_data_dir('DATA_DIR', BASE_DIR / 'data', parents=True, config_option='datadir')
 LOG_DIR = get_data_dir('LOG_DIR', DATA_DIR / 'logs', config_option='logdir')
 MEDIA_ROOT = get_data_dir('MEDIA_ROOT', DATA_DIR / 'media', config_section='django')
+STATIC_ROOT = get_data_dir('STATIC_ROOT', PROJECT_DIR / 'static.dist', config_section='django')
 SOURCES_ROOT = get_data_dir('SOURCES_ROOT', DATA_DIR / 'sources')
 MAP_ROOT = get_data_dir('MAP_ROOT', DATA_DIR / 'map')
 RENDER_ROOT = get_data_dir('RENDER_ROOT', DATA_DIR / 'render')
@@ -78,8 +79,6 @@ STATS_ROOT = get_data_dir('STATS_ROOT', DATA_DIR / 'stats')
 
 # override the matplotlib default config directory if it's not configured
 os.environ.setdefault('MPLCONFIGDIR', str(get_data_dir('MPLCONFIGDIR', CACHE_ROOT / 'matplotlib')))
-
-MEDIA_URL = '/media/'
 
 PUBLIC_EDITOR = config.getboolean('c3nav', 'editor', fallback=True)
 PUBLIC_BASE_MAPDATA = config.getboolean('c3nav', 'public_base_mapdata', fallback=False)
@@ -177,6 +176,7 @@ DATABASES['default'].setdefault('CONN_MAX_AGE', (0 if _db_backend.endswith('sqli
 DEFAULT_AUTO_FIELD = 'django.db.models.AutoField'
 
 STATIC_URL = config.get('django', 'static_url', fallback='/static/', env='C3NAV_STATIC_URL')
+MEDIA_URL = config.get('django', 'media_url', fallback='/media/', env='C3NAV_MEDIA_URL')
 
 ALLOWED_HOSTS = [n for n in config.get('django', 'allowed_hosts', fallback='*').split(',') if n]
 
@@ -251,7 +251,6 @@ CELERY_RESULT_SERIALIZER = 'json'
 TILE_CACHE_SERVER = config.get('c3nav', 'tile_cache_server', fallback=None)
 
 # Internal settings
-STATIC_ROOT = PROJECT_DIR / 'static.dist'
 
 SESSION_COOKIE_NAME = 'c3nav_session'
 SESSION_COOKIE_DOMAIN = config.get('c3nav', 'session_cookie_domain', fallback=None)
