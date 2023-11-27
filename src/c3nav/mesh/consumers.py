@@ -638,12 +638,12 @@ class MeshUIConsumer(AsyncJsonWebsocketConsumer):
                     return
         if data["msg"]["msg_type"] == MeshMessageType.LOCATE_RANGE_RESULTS.name:
             data = data.copy()
-            location = await self.locator(data["msg"])
+            location = await self.locator(data["msg"], data["msg"]["src"])
             data["position"] = None if not location else (int(location.x*100), int(location.y*100), int(location.z*100))
         await self.send_json(data)
 
     @database_sync_to_async
-    def locator(self, msg):
+    def locator(self, msg, orig_addr=None):
         locator = RangeLocator.load()
         return locator.locate(
             {
@@ -651,7 +651,8 @@ class MeshUIConsumer(AsyncJsonWebsocketConsumer):
                 for r in msg["ranges"]
                 if r["distance"] != 0xFFFF
             },
-            None
+            permissions=None,
+            orig_addr=orig_addr,
         )
 
     async def disconnect(self, code):
