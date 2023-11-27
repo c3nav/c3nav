@@ -113,6 +113,9 @@ class GeometryField(models.JSONField):
     def get_prep_value(self, value):
         if value is None:
             return None
+        if isinstance(value, dict):
+            # todo: this should also not be needed but whatever
+            value = shape(value)
         self._validate_geomtype(value, exception=TypeError)
         if value.is_empty:
             raise Exception('Cannot save empty geometry.')
