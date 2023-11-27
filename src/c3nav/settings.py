@@ -335,7 +335,7 @@ if HAS_REDIS:
         'default': {
             'BACKEND': 'channels_redis.core.RedisChannelLayer',
             'CONFIG': {
-                "hosts": [config.get('redis', 'location')],
+                "hosts": config.get('redis', 'location', env='C3NAV_REDIS').split(','),
             },
         },
     }
