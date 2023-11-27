@@ -159,12 +159,12 @@ DATABASES = {
 }
 DEFAULT_AUTO_FIELD = 'django.db.models.AutoField'
 
-STATIC_URL = config.get('urls', 'static', fallback='/static/')
+STATIC_URL = config.get('django', 'static_url', fallback='/static/', env='C3NAV_STATIC_URL')
 
-ALLOWED_HOSTS = [n for n in config.get('django', 'hosts', fallback='*').split(',') if n]
+ALLOWED_HOSTS = [n for n in config.get('django', 'allowed_hosts', fallback='*').split(',') if n]
 
-LANGUAGE_CODE = config.get('locale', 'default', fallback='en')
-TIME_ZONE = config.get('locale', 'timezone', fallback='UTC')
+LANGUAGE_CODE = config.get('locale', 'default', fallback='en', env='C3NAV_DEFAULT_LOCALE')
+TIME_ZONE = config.get('locale', 'timezone', fallback='UTC', env='C3NAV_TIMEZONE')
 
 MAIL_FROM = SERVER_EMAIL = DEFAULT_FROM_EMAIL = config.get('mail', 'from', fallback='c3nav@localhost')
 EMAIL_HOST = config.get('mail', 'host', fallback='localhost')
