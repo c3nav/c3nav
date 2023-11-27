@@ -189,7 +189,11 @@ class MeshConsumer(AsyncWebsocketConsumer):
 
         await self.log_received_message(src_node, msg)
 
-        node_status = self.dst_nodes[msg.src]
+        try:
+            node_status = self.dst_nodes[msg.src]
+        except KeyError:
+            print('unexpected message from', msg.src)
+            return
         node_status.last_msg[msg.msg_type] = msg
 
         if isinstance(msg, messages.MeshAddDestinationsMessage):
