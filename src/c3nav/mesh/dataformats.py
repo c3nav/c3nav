@@ -143,7 +143,7 @@ class LocationPCBRev0Dot2BoardConfig(BoardConfig, board=BoardType.C3NAV_LOCATION
 class RangeResultItem(StructType):
     peer: str = field(metadata={"format": MacAddressFormat()})
     rssi: int = field(metadata={"format": SimpleFormat('b')})
-    distance: int = field(metadata={"format": SimpleFormat('H')})
+    distance: int = field(metadata={"format": SimpleFormat('h')})
 
 
 @dataclass
