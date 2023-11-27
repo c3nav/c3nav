@@ -234,4 +234,4 @@ def messages_list(request, filters: Query[MessagesFilter]):
         qs = qs.filter(datetime__gte=filters.time_from)
     if filters.time_until:
         qs = qs.filter(datetime__lte=filters.time_until)
-    return qs
+    return qs.order_by('-datetime')
