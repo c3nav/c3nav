@@ -1,4 +1,4 @@
-# syntax=docker/dockerfile:1.4
+# syntax=docker/dockerfile:1.6@sha256:ac85f380a63b13dfcefa89046420e1781752bab202122f8f50032edf31be0021
 FROM ubuntu:lunar-20231004@sha256:51e70689b125fcc2e800f5efb7ba465dee85ede9da9c268ff5599053c7e52b77 as base
 ARG BASE_IMAGE_NAME=ubuntu:lunar-20231004
 ARG BASE_IMAGE_DIGEST=sha256:51e70689b125fcc2e800f5efb7ba465dee85ede9da9c268ff5599053c7e52b77
@@ -15,13 +15,13 @@ ENV DEBIAN_FRONTEND noninteractive
 RUN --mount=type=cache,target=/var/cache/apt,id=apt_$TARGETARCH --mount=type=tmpfs,target=/var/lib/apt/lists \
     rm /etc/apt/apt.conf.d/docker-clean && \
     apt-get update && apt-get install -y --no-install-recommends \
-    python3.11=3.11.4-1~23.04 \
+    python3.11=3.11.4-1~23.04.1 \
     # renovate: srcname=python3.11
-    libpython3.11=3.11.4-1~23.04 \
+    libpython3.11=3.11.4-1~23.04.1 \
     # renovate: srcname=python3.11
-    python3.11-venv=3.11.4-1~23.04 \
+    python3.11-venv=3.11.4-1~23.04.1 \
     # renovate: srcname=python-pip
-    python3-pip=23.0.1+dfsg-1ubuntu0.1 \
+    python3-pip=23.0.1+dfsg-1ubuntu0.2 \
     # renovate: srcname=postgresql-15
     libpq5=15.4-0ubuntu0.23.04.1 \
     # renovate: srcname=postgresql-15
@@ -43,7 +43,7 @@ RUN --mount=type=cache,target=/var/cache/apt,id=apt_$TARGETARCH --mount=type=tmp
     apt-get update && apt-get install -y --no-install-recommends \
     build-essential=12.9ubuntu3 \
     # renovate: srcname=python3.11
-    python3.11-dev=3.11.4-1~23.04 \
+    python3.11-dev=3.11.4-1~23.04.1 \
     libpcre3-dev=2:8.39-15 \
     # renovate: srcname=postgresql-15
     libpq-dev=15.4-0ubuntu0.23.04.1 \
