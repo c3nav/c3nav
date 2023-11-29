@@ -476,7 +476,7 @@ MESSAGE_STORAGE = 'django.contrib.messages.storage.session.SessionStorage'
 
 SILENCED_SYSTEM_CHECKS = ['debug_toolbar.W006']
 
-loglevel = env.str('C3NAV_LOGLEVEL', default='DEBUG' if DEBUG else 'INFO')
+loglevel = env.str('C3NAV_LOGLEVEL', default='DEBUG' if DEBUG else 'INFO').upper()
 
 LOGGING = {
     'version': 1,

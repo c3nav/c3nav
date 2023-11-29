@@ -56,7 +56,7 @@ COPY --link --chown=500:500 /src /app
 COPY --from=builder --chown=500:500 /app/env /app/env
 
 ENV C3NAV_DEBUG="" \
-    C3NAV_LOGLEVEL="info" \
+    C3NAV_LOGLEVEL="INFO" \
     C3NAV_DATA_DIR="/data" \
     C3NAV_RELOAD_INTERVAL="60" \
     UWSGI_WORKERS="8"
