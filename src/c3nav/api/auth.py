@@ -5,16 +5,14 @@ from rest_framework.exceptions import AuthenticationFailed
 
 class APISecretAuthentication(TokenAuthentication):
     def authenticate_credentials(self, key):
-        from c3nav.control.models import UserPermissions
-
         try:
-            user_perms = UserPermissions.objects.exclude(api_secret='').exclude(api_secret__isnull=True).filter(
-                api_secret=key
-            ).get()
-        except UserPermissions.DoesNotExist:
+            from c3nav.api.models import Secret
+            secret = Secret.objects.filter(api_secret=key).select_related('user', 'user__permissions')
+            # todo: auth scopes are ignored here, we need to get rid of this
+        except Secret.DoesNotExist:
             raise AuthenticationFailed(_('Invalid token.'))
 
-        if not user_perms.user.is_active:
+        if not secret.user.is_active:
             raise AuthenticationFailed(_('User inactive or deleted.'))
 
-        return (user_perms.user, user_perms)
+        return (secret.user, secret)

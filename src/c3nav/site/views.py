@@ -18,12 +18,14 @@ from django.middleware import csrf
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.utils import timezone
+from django.utils.html import format_html
 from django.utils.translation import gettext_lazy as _
 from django.utils.translation import ngettext_lazy
 from django.views.decorators.cache import cache_control, never_cache
 from django.views.decorators.clickjacking import xframe_options_exempt
 from django.views.decorators.http import etag
 
+from c3nav.api.models import Secret
 from c3nav.control.forms import AccessPermissionForm, SignedPermissionDataError
 from c3nav.mapdata.grid import grid
 from c3nav.mapdata.models import Location, Source
@@ -35,7 +37,7 @@ from c3nav.mapdata.utils.locations import (get_location_by_id_for_request, get_l
 from c3nav.mapdata.utils.user import can_access_editor, get_user_data
 from c3nav.mapdata.views import set_tile_access_cookie
 from c3nav.routing.models import RouteOptions
-from c3nav.site.forms import PositionForm, PositionSetForm, ReportUpdateForm
+from c3nav.site.forms import APISecretForm, PositionForm, PositionSetForm, ReportUpdateForm
 from c3nav.site.models import Announcement, SiteUpdate
 
 
@@ -568,5 +570,41 @@ def position_set(request, coordinates):
 
     return render(request, 'site/position_set.html', {
         'coordinates': coordinates,
+        'form': form,
+    })
+
+
+@login_required(login_url='site.login')
+def api_secret_list(request):
+    print(Secret.objects.values_list("api_secret", flat=True))
+    if request.method == 'POST' and request.POST.get('delete', 'nope').isdigit():
+        Secret.objects.filter(user=request.user, pk=int(request.POST['delete'])).delete()
+        messages.success(request, _('API secret deleted.'))
+        return redirect(reverse('site.api_secret_list'))
+    return render(request, 'site/api_secret_list.html', {
+        'api_secrets': Secret.objects.filter(user=request.user).order_by('-created'),
+        'user_data_json': json.dumps(get_user_data(request), cls=DjangoJSONEncoder),
+    })
+
+
+@login_required(login_url='site.login')
+def api_secret_create(request):
+    if Secret.objects.filter(user=request.user).count() >= 20:
+        messages.error(request, _('You can\'t create more than 20 API secrets.'))
+
+    if request.method == 'POST':
+        form = APISecretForm(data=request.POST, request=request)
+        if form.is_valid():
+            secret = form.save()
+            messages.success(request, format_html(
+                '{}<br><code>{}</code>',
+                _('API secret created. Save it now, cause it will not be shown again!'),
+                secret.api_secret,
+            ))
+            return redirect(reverse('site.api_secret_list'))
+    else:
+        form = APISecretForm(request=request)
+
+    return render(request, 'site/api_secret_create.html', {
         'form': form,
     })

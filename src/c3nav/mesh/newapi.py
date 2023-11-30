@@ -1,8 +1,9 @@
 from datetime import datetime
-from typing import Optional, Annotated
+from typing import Annotated, Optional
 
 from django.db import IntegrityError, transaction
-from ninja import Field as APIField, Query
+from ninja import Field as APIField
+from ninja import Query
 from ninja import Router as APIRouter
 from ninja import Schema, UploadedFile
 from ninja.pagination import paginate
@@ -14,7 +15,7 @@ from c3nav.mesh.dataformats import BoardType, ChipType, FirmwareImage
 from c3nav.mesh.messages import MeshMessageType
 from c3nav.mesh.models import FirmwareBuild, FirmwareVersion, NodeMessage
 
-mesh_api_router = APIRouter(tags=["mesh"])
+mesh_api_router = APIRouter(tags=["mesh"], auth=APITokenAuth(permissions={"mesh_control"}))
 
 
 class FirmwareBuildSchema(Schema):
@@ -144,7 +145,7 @@ class UploadFirmwareSchema(Schema):
 
 
 @mesh_api_router.post(
-    '/firmwares/upload', summary="Upload firmware", auth=APITokenAuth(superuser=True),
+    '/firmwares/upload', summary="Upload firmware",
     description="your OpenAPI viewer might not show it: firmware_data is UploadFirmware as json",
     response={200: FirmwareSchema, **validate_responses, **auth_permission_responses, **APIConflict.dict()}
 )
@@ -166,20 +167,10 @@ def firmware_upload(request, firmware_data: UploadFirmwareSchema, binary_files: 
                 project_name=firmware_data.project_name,
                 version=firmware_data.version,
                 idf_version=firmware_data.idf_version,
-                uploader=request.auth,
+                uploader=request.user,
             )
 
             for build_data in firmware_data.builds:
-                # if bin_file.size > 4 * 1024 * 1024:
-                #    raise ValueError  # todo: better error
-
-                # h = hashlib.sha256()
-                # h.update(build_data.binary)
-                # sha256_bin_file = h.hexdigest()  # todo: verify sha256 correctly
-                #
-                # if sha256_bin_file != build_data.sha256_hash:
-                #     raise ValueError
-
                 try:
                     image = FirmwareImage.from_file(binary_files_by_name[build_data.uploaded_filename].open('rb'))
                 except ValueError:
@@ -224,7 +215,7 @@ class NodeMessageSchema(Schema):
 
 
 @mesh_api_router.get(
-    '/messages/', summary="query recorded mesh messages", auth=APITokenAuth(superuser=True),
+    '/messages/', summary="query recorded mesh messages",
     response={200: list[NodeMessageSchema], **auth_permission_responses}
 )
 @paginate

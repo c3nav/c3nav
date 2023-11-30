@@ -3,9 +3,10 @@ from itertools import chain
 from django.urls import path, register_converter
 
 from c3nav.site.converters import AtPositionConverter, CoordinatesConverter, IsEmbedConverter, LocationConverter
-from c3nav.site.views import (about_view, access_redeem_view, account_view, change_password_view, choose_language,
-                              login_view, logout_view, map_index, position_create, position_detail, position_list,
-                              position_set, qr_code, register_view, report_create, report_detail, report_list)
+from c3nav.site.views import (about_view, access_redeem_view, account_view, api_secret_create, api_secret_list,
+                              change_password_view, choose_language, login_view, logout_view, map_index,
+                              position_create, position_detail, position_list, position_set, qr_code, register_view,
+                              report_create, report_detail, report_list)
 
 register_converter(LocationConverter, 'loc')
 register_converter(CoordinatesConverter, 'coords')
@@ -55,4 +56,6 @@ urlpatterns = [
     path('positions/create/', position_create, name='site.position_create'),
     path('positions/<int:pk>/', position_detail, name='site.position_detail'),
     path('positions/set/<coords:coordinates>/', position_set, name='site.position_set'),
+    path('api-secrets/', api_secret_list, name='site.api_secret_list'),
+    path('api-secrets/create/', api_secret_create, name='site.api_secret_create'),
 ]

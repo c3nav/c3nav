@@ -13,25 +13,24 @@
         {% endwith %}
     </p>
 
-    {% if request.user_permissions.control_panel and not request.mobileclient %}
-        <hr>
+    {% if request.user_permissions.control_panel or request.user_permissions.can_review_reports or request.user_permissions.mesh_control %}
         <p>
-            {% trans 'You can access the control panel.' %}
+            {% trans 'You can manage:' %}
         </p>
         <p>
-            <a class="button" href="{% url 'control.index' %}">{% trans 'c3nav control panel' %}</a>
+            {% if request.user_permissions.control_panel %}
+                <a class="button" href="{% url 'control.index' %}">{% trans 'stuff' %}</a>
+            {% endif %}
+            {% if request.user_permissions.can_review_reports %}
+                <a class="button" href="{% url 'site.report_list' %}">{% trans 'reports' %}</a>
+            {% endif %}
+            {% if request.user_permissions.mesh_control %}
+                <a class="button" href="{% url 'mesh.nodes' %}">{% trans 'mesh' %}</a>
+            {% endif %}
         </p>
     {% endif %}
 
-    {% if request.user_permissions.can_review_reports %}
-        <hr>
-        <p>
-            {% trans 'You can review reports' %}
-        </p>
-        <p>
-            <a class="button" target="_blank" href="{% url 'site.report_list' filter='open' %}">{% trans 'Show reports' %}</a>
-        </p>
-    {% elif user_has_reports %}
+    {% if not request.user_permissions.can_review_reports and user_has_reports %}
         <hr>
         <p>
             {% trans 'You have submitted reports.' %}
@@ -42,12 +41,11 @@
     {% endif %}
 
     <hr>
-
     <p>
-        {% trans 'You can create custom positions.' %}
+        <a class="button" target="_blank" href="{% url 'site.position_list' %}">{% trans 'Manage custom positions' %}</a>
     </p>
     <p>
-        <a class="button" target="_blank" href="{% url 'site.position_list' %}">{% trans 'Manage your positions' %}</a>
+        <a class="button" target="_blank" href="{% url 'site.api_secret_list' %}">{% trans 'Manage API secrets' %}</a>
     </p>
 
     <hr>

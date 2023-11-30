@@ -2,7 +2,7 @@ import pickle
 import threading
 from dataclasses import dataclass
 from pprint import pprint
-from typing import Self
+from typing import Annotated, Self
 
 import numpy as np
 import scipy

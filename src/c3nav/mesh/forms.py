@@ -3,20 +3,20 @@ from dataclasses import dataclass
 from dataclasses import replace as dataclass_replace
 from functools import cached_property
 from itertools import chain
-from typing import Sequence, Any
+from typing import Any, Sequence
 
 from asgiref.sync import async_to_sync
 from django import forms
 from django.core.exceptions import ValidationError
 from django.db import transaction
-from django.forms import Form, ChoiceField, BooleanField
+from django.forms import BooleanField, ChoiceField, Form
 from django.http import Http404
 from django.utils.translation import gettext_lazy as _
 
 from c3nav.mesh.dataformats import BoardConfig, BoardType, LedType, SerialLedType
 from c3nav.mesh.messages import MESH_BROADCAST_ADDRESS, MESH_ROOT_ADDRESS, MeshMessage, MeshMessageType
-from c3nav.mesh.models import MeshNode, HardwareDescription, FirmwareBuild, OTAUpdateRecipient, OTARecipientStatus, \
-    OTAUpdate
+from c3nav.mesh.models import (FirmwareBuild, HardwareDescription, MeshNode, OTARecipientStatus, OTAUpdate,
+                               OTAUpdateRecipient)
 
 
 class MeshMessageForm(forms.Form):
@@ -298,7 +298,6 @@ class RangingForm(forms.Form):
         node_choices = tuple((node.address, str(node)) for node in MeshNode.objects.all())
         self.fields['range_from'].choices = node_choices
         self.fields['range_to'].choices = node_choices
-
 
 
 @dataclass

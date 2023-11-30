@@ -13,7 +13,7 @@ positioning_api_router = APIRouter(tags=["positioning"])
 
 @positioning_api_router.post('/locate/', summary="locate based on wifi scans",
                              response={200: BoundsSchema, **auth_responses})
-def locate(request):
+def locate():
     # todo: implement
     return {
         "bounds": Source.max_bounds(),
@@ -22,7 +22,7 @@ def locate(request):
 
 @positioning_api_router.get('/locate-test/', summary="get dummy location for debugging",
                             response={200: BoundsSchema, **auth_responses})
-def locate_test(request):
+def locate_test():
     # todo: implement
     return {
         "bounds": Source.max_bounds(),
@@ -44,5 +44,5 @@ BeaconsXYZ = dict[
 
 @positioning_api_router.get('/beacons-xyz/', summary="get calculated x y z for all beacons",
                             response={200: BeaconsXYZ, **auth_responses})
-def beacons_xyz(request):
+def beacons_xyz():
     return RangeLocator.load().get_all_xyz()

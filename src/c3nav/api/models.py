@@ -6,7 +6,37 @@ from django.utils.crypto import constant_time_compare, get_random_string
 from django.utils.translation import gettext_lazy as _
 
 
-class Token(models.Model):
+class SecretQuerySet(models.QuerySet):
+    def get_by_secret(self, secret):
+        self.filter(secret=secret, )
+
+
+class Secret(models.Model):
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="api_secrets")
+    name = models.CharField(_('name'))
+    created = models.DateTimeField(auto_now_add=True, verbose_name=_('creation date'))
+    api_secret = models.CharField(max_length=64, verbose_name=_('API secret'), unique=True)
+    readonly = models.BooleanField(_('readonly'))
+    scope_grant_permissions = models.BooleanField(_('grant map access permissions'), default=False)
+    scope_editor = models.BooleanField(_('editor access'), default=False)
+    scope_mesh = models.BooleanField(_('mesh access'), default=False)
+    valid_until = models.DateTimeField(null=True, verbose_name=_('valid_until'))
+
+    def scopes_display(self):
+        return [
+            field.verbose_name for field in self._meta.get_fields()
+            if field.name.startswith('scope_') and getattr(self, field.name)
+        ] + ([_('(readonly)')] if self.readonly else [])
+
+    class Meta:
+        verbose_name = _('API secret')
+        verbose_name_plural = _('API secrets')
+        unique_together = [
+            ('user', 'name'),
+        ]
+
+
+class LoginToken(models.Model):
     """
     Token for log in via API
     """

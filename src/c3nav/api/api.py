@@ -8,7 +8,7 @@ from rest_framework.exceptions import ParseError, PermissionDenied
 from rest_framework.response import Response
 from rest_framework.viewsets import ViewSet
 
-from c3nav.api.models import Token
+from c3nav.api.models import LoginToken
 from c3nav.api.utils import get_api_post_data
 
 
@@ -39,8 +39,8 @@ class SessionViewSet(ViewSet):
 
         if 'token' in data:
             try:
-                token = Token.get_by_token(data['token'])
-            except Token.DoesNotExist:
+                token = LoginToken.get_by_token(data['token'])
+            except LoginToken.DoesNotExist:
                 raise PermissionDenied(_('This token does not exist or is no longer valid.'))
             user = token.user
         elif 'username' in data:

@@ -158,6 +158,7 @@ class AccessPermissionForm(Form):
                                      unique_key=unique_key)
 
     def get_signed_data(self, key=None):
+        # todo: yep, we stil need to fix this
         if not self.author.permissions.api_secret:
             raise ValueError('Author has no api secret.')
         data = {
