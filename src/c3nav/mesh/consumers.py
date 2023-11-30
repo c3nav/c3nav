@@ -451,7 +451,7 @@ class MeshConsumer(AsyncWebsocketConsumer):
         async with self.ota_chunks_available_condition:
             num_chunks = (update.build.binary.size-1)//OTA_CHUNK_SIZE+1
             print('queueing chunks for update', update.id, 'num_chunks=%d' % num_chunks, "chunks:", chunks)
-            chunks = (set(range(min_chunk, num_chunks*0+10))
+            chunks = (set(range(min_chunk, num_chunks))
                       if chunks is None
                       else {chunk for chunk in chunks if chunk < num_chunks})
             self.ota_chunks.setdefault(update.id, set()).update(chunks)
@@ -490,7 +490,7 @@ class MeshConsumer(AsyncWebsocketConsumer):
                 ))
 
                 # wait a bit until we send more
-                await asyncio.sleep(0.1)  # 100ms
+                await asyncio.sleep(0.05)  # 50ms
 
             async with self.ota_chunks_available_condition:
                 if not self.ota_chunks:
