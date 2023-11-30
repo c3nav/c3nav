@@ -82,7 +82,7 @@ ENV C3NAV_DEBUG="" \
     C3NAV_DATA_DIR="/data" \
     C3NAV_AUTOMIGRATE="yes" \
     MPLBACKEND="agg" \
-    UWSGI_WORKERS="8" \
+    UWSGI_WORKERS="4" \
     PATH="/app/env/bin/:$PATH"
 
 USER c3nav
