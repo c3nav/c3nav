@@ -5,6 +5,9 @@ cd /app
 # enable python virtual env
 . /app/env/bin/activate
 
+# number of workers for guicorn, we coppy the value of UWSGI_WORKERS if it is not set
+export WEB_CONCURRENCY="${WEB_CONCURRENCY:-$UWSGI_WORKERS}"
+
 automigrate() {
   AUTOMIGRATE="${C3NAV_AUTOMIGRATE:no}"
   echo "Running migrations as automigrate is enabled. Set \"C3NAV_AUTOMIGRATE\" to \"no\" or \"false\" to disable."
@@ -28,7 +31,7 @@ webstatic)
   automigrate
   exec /app/env/bin/uwsgi --master \
     --wsgi "c3nav.wsgi" \
-    --pythonpath "/app/src" \
+    --pythonpath "/app" \
     --enable-threads --ignore-sigpipe --disable-logging --need-app \
     --static-map "${C3NAV_STATIC_URL:-/static}=${C3NAV_STATIC_ROOT:-/app/c3nav/static.dist}" \
     --static-safe "/app/c3nav/static" \
@@ -38,11 +41,11 @@ webstatic)
   ;;
 web-async)
   automigrate
-  exec python -m uvicorn --host 0.0.0.0 --proxy-headers --no-server-header  ${*:2} c3nav.asgi:application
+  exec gunicorn -k uvicorn.workers.UvicornWorker --bind 0.0.0.0:8000 ${*:2} c3nav.asgi:application
   ;;
 webstatic-async)
   automigrate
-  exec python -m uvicorn --host 0.0.0.0 --proxy-headers --no-server-header ${*:2} c3nav.asgi:static_app
+  exec gunicorn -k uvicorn.workers.UvicornWorker --bind 0.0.0.0:8000 ${*:2}  c3nav.asgi:static_app
   ;;
 worker)
   exec celery -A c3nav worker --max-tasks-per-child 300 --concurrency 2 -l INFO -E
