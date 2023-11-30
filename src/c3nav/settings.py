@@ -239,7 +239,7 @@ if HAS_REDIS:
     else:
         SESSION_CACHE_ALIAS = "redis"
 
-HAS_CELERY = config.get('celery', 'broker', fallback=None)
+HAS_CELERY = bool(config.get('celery', 'broker', fallback=None))
 if HAS_CELERY:
     BROKER_URL = config.get('celery', 'broker')
     CELERY_RESULT_BACKEND = config.get('celery', 'backend')
