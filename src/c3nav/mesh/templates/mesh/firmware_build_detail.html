@@ -28,6 +28,10 @@
                 <strong>SPI Flash Mode:</strong> {{ build.firmware_image.header.spi_flash_mode.name }}<br>
                 <strong>App ELF SHA256:</strong> <small>{{ build.sha256_hash }}</small><br>
             </p>
+            <p>
+                <strong>Binary Size:</strong> {{ build.binary.size|filesizeformat }} ({{ build.binary.size }} bytes)<br>
+                <strong>Download:</strong> <a href="{{ build.binary.url }}">Click HERE for free download</a>
+            </p>
             <h4>Compatible boards:</h4>
             <ul>
                 {% for board in build.boards %}
