@@ -179,7 +179,7 @@ class RoutingViewSet(ViewSet):
                 address="d4:f9:8d:2d:0d:f1"
             )
         except MeshNode.DoesNotExist:
-            raise
+            return None
         msg = node.last_messages[MeshMessageType.LOCATE_RANGE_RESULTS]
 
         locator = RangeLocator.load()
