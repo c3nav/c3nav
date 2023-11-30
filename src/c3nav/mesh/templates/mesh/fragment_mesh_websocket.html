@@ -25,6 +25,8 @@ function connect() {
             ws.send(JSON.stringify({"send_msg": JSON.parse(document.getElementById('send-uuid').textContent)}));
         {% elif ranging_form %}
             ws.send(JSON.stringify({"subscribe": "ranging"}));
+        {% elif update %}
+            ws.send(JSON.stringify({"subscribe": "ota-{{ update.pk }}"}));
         {% else %}
             ws.send(JSON.stringify({"subscribe": "log"}));
         {% endif %}
@@ -154,6 +156,12 @@ function connect() {
                             cell.innerHTML += `<br> <em>(diff: ${range.distance-nodes_distances[key]}cm</em>)`
                         }
                     }
+                {% endif %}
+                {% if update %}
+                    var row = document.querySelector(`#ota-recipients-${data.msg.update_id} [id="recipient-${data.msg.src}"]`);
+                    if (!row) break;
+                    row.querySelector('.received_bytes').innerText = data.msg.received_bytes;
+                    row.querySelector('progress').value = data.msg.received_bytes;
                 {% endif %}
                 {% if send_uuid and msg_type == "MESH_ROUTE_REQUEST" %}
                     if (data.msg.route) {

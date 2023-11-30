@@ -595,6 +595,9 @@ class MeshUIConsumer(AsyncJsonWebsocketConsumer):
         if content.get("subscribe", None) == "ranging":
             await self.channel_layer.group_add("mesh_msg_received", self.channel_name)
             self.msg_received_filter = {"msg_type": MeshMessageType.LOCATE_RANGE_RESULTS.name}
+        if content.get("subscribe", None) == "ota":
+            await self.channel_layer.group_add("mesh_msg_received", self.channel_name)
+            self.msg_received_filter = {"msg_type": MeshMessageType.OTA_STATUS.name}
         if "send_msg" in content:
             msg_to_send = self.scope["session"].pop("mesh_msg_%s" % content["send_msg"], None)
             if not msg_to_send:

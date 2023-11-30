@@ -18,20 +18,25 @@
             <strong>Created:</strong> {{ update.created }}
         </div>
         <div>
-            <table>
+            <table id="ota-recipients-{{ update.pk }}">
                 <tr>
                     <th>{% trans 'Node' %}</th>
                     <th>{% trans 'Status' %}</th>
                     <th>{% trans 'Progress' %}</th>
                 </tr>
             {% for recipient in update.recipients.all %}
-                <tr>
+                <tr id="recipient-{{ recipient.node_id }}">
                     <td>{% mesh_node recipient.node %}</td>
-                    <td>{{ recipient.get_status_display}}</td>
-                    <td></td>
+                    <td>{{ recipient.get_status_display }}</td>
+                    <td>
+                        <span class="received_bytes">??</span> of {{ update.build.binary.size }} bytes
+                        <br>
+                        <progress id="file" max="{{ update.build.binary.size }}" value="0"></progress>
+                    </td>
                 </tr>
             {% endfor %}
             </table>
         </div>
     </div>
+    {% include "mesh/fragment_mesh_websocket.html" %}
 {% endblock %}
