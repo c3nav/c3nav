@@ -32,7 +32,7 @@ class FirmwareBuildSchema(Schema):
         example=ChipType.ESP32_C3.name,
     )
     sha256_hash: str = APIField(
-        description="SHE256 hash of the underlying ELF file",
+        description="SHA256 hash of the underlying ELF file",
         pattern=r"^[0-9a-f]{64}$",
     )
     url: str = APIField(
