@@ -45,6 +45,10 @@ class FirmwareBuildSchema(Schema):
         example={BoardType.C3NAV_LOCATION_PCB_REV_0_2.name, }
     )
 
+    @staticmethod
+    def resolve_boards(obj):
+        return list(obj.boards)
+
     class Config(Schema.Config):
         pass
 
@@ -122,10 +126,6 @@ class UploadFirmwareBuildSchema(Schema):
     boards: list[BoardType] = APIField(..., example=[BoardType.C3NAV_LOCATION_PCB_REV_0_2.name, ])
     project_description: dict = APIField(..., title='project_description.json contents')
     uploaded_filename: str = APIField(..., example="firmware.bin")
-
-    @staticmethod
-    def resolve_boards(obj):
-        return list(obj.boards)
 
 
 class UploadFirmwareSchema(Schema):

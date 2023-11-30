@@ -28,8 +28,8 @@ class APIAuthMethod(StrEnum):
 
 @dataclass
 class NewAPIAuth:
-    auth_method: APIAuthMethod
-    auth_readonly: bool
+    method: APIAuthMethod
+    readonly: bool
 
 
 description = """
@@ -61,8 +61,8 @@ class APITokenAuth(HttpBearer):
 
         if token == "anonymous":
             return NewAPIAuth(
-                auth_method=APIAuthMethod.ANONYMOUS,
-                auth_readonly=True,
+                method=APIAuthMethod.ANONYMOUS,
+                readonly=True,
             )
         elif token.startswith("session:"):
             session = self.SessionStore(token.removeprefix("session:"))
@@ -72,8 +72,8 @@ class APITokenAuth(HttpBearer):
                 raise APITokenInvalid
             request.user = user
             return NewAPIAuth(
-                auth_method=APIAuthMethod.SESSION,
-                auth_readonly=True,
+                method=APIAuthMethod.SESSION,
+                readonly=True,
             )
         elif token.startswith("secret:"):
             try:
@@ -97,10 +97,9 @@ class APITokenAuth(HttpBearer):
             request.user_permissions = user_permissions
 
             return NewAPIAuth(
-                auth_method=APIAuthMethod.SESSION,
-                auth_readonly=True
+                method=APIAuthMethod.SESSION,
+                readonly=secret.readonly
             )
-        # todo: implement token (app) auth
         raise APITokenInvalid
 
     def authenticate(self, request, token):
@@ -114,7 +113,7 @@ class APITokenAuth(HttpBearer):
                 raise APIPermissionDenied('You need to have the "%s" permission for this endpoint.')
         if request.method == 'GET' and self.is_readonly:
             raise ValueError('this makes no sense for GET')
-        if request.method != 'GET' and not self.is_readonly:
+        if request.method != 'GET' and not self.is_readonly and auth_result.readonly:
             raise APIPermissionDenied('You need a non-readonly API access key for this endpoint.')
         return auth_result
 
