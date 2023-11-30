@@ -62,6 +62,7 @@ RUN --mount=type=cache,target=/pip-cache \
     -r requirements/htmlmin.txt \
     -r requirements/postgres.txt \
     -r requirements/redis.txt \
+    -r requirements/memcached.txt \
     -r requirements/rsvg.txt \
     -r requirements/sentry.txt \
     -r requirements/server-asgi.txt && \
