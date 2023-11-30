@@ -50,6 +50,9 @@ webstatic-async)
 worker)
   exec celery -A c3nav worker --max-tasks-per-child 300 --concurrency 2 -l INFO -E
   ;;
+worker_healthcheck)
+  exec celery -A c3nav inspect ping -d "celery@${HOSTNAME}"
+  ;;
 beat)
   exec celery -A c3nav beat -l INFO
   ;;
