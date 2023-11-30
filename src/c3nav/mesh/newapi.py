@@ -40,7 +40,7 @@ class FirmwareBuildSchema(Schema):
         example="/media/firmware/012345/firmware.bin",
         description="download URL for the build binary",
     )  # todo: downlaod differently?
-    boards: set[BoardType] = APIField(
+    boards: list[BoardType] = APIField(
         description="set of boards that this build is compatible with",
         example={BoardType.C3NAV_LOCATION_PCB_REV_0_2.name, }
     )
