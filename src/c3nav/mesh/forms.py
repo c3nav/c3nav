@@ -274,6 +274,12 @@ class EchoRequestMessageForm(MeshMessageForm):
     content = forms.CharField(max_length=255, label=_('content'))
 
 
+class OTAApplyMessageForm(MeshMessageForm):
+    msg_type = MeshMessageType.OTA_APPLY
+    update_id = forms.IntegerField(min_value=0, max_value=2**32-1, label=_('Update ID'))
+    reboot = forms.BooleanField(required=False, label=_('reboot'))
+
+
 class MeshNodeForm(forms.ModelForm):
     class Meta:
         model = MeshNode
