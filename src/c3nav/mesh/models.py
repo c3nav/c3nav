@@ -1,3 +1,4 @@
+import string
 from collections import UserDict, namedtuple
 from contextlib import suppress
 from dataclasses import dataclass
@@ -11,6 +12,7 @@ from django.core.validators import RegexValidator
 from django.db import NotSupportedError, models
 from django.db.models import Q, UniqueConstraint
 from django.utils import timezone
+from django.utils.crypto import get_random_string
 from django.utils.text import slugify
 from django.utils.translation import gettext_lazy as _
 
@@ -404,7 +406,8 @@ def firmware_upload_path(instance, filename):
     # file will be uploaded to MEDIA_ROOT/user_<id>/<filename>
     version = slugify(instance.version.version)
     variant = slugify(instance.variant)
-    return f"firmware/{version}/{variant}/{filename}"
+    random_string = get_random_string(32, string.ascii_letters + string.digits)
+    return f"firmware/{version}/{variant}/{random_string}/{filename}"
 
 
 class FirmwareBuild(models.Model):
