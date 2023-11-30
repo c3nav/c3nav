@@ -79,7 +79,7 @@ class MeshNodeQuerySet(models.QuerySet):
         )
         return clone
 
-    def prefetch_firmwares(self, *types: MeshMessageType):
+    def prefetch_firmwares(self):
         clone = self.prefetch_last_messages(MeshMessageType.CONFIG_FIRMWARE,
                                             MeshMessageType.CONFIG_HARDWARE)
         clone._prefetch_firmwares = True

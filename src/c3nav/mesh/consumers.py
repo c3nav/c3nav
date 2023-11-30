@@ -17,7 +17,7 @@ from django.utils import timezone
 from c3nav.mesh import messages
 from c3nav.mesh.messages import (MESH_BROADCAST_ADDRESS, MESH_NONE_ADDRESS, MESH_ROOT_ADDRESS, OTA_CHUNK_SIZE,
                                  MeshMessage, MeshMessageType)
-from c3nav.mesh.models import MeshNode, MeshUplink, NodeMessage, OTAUpdate, OTAUpdateRecipient
+from c3nav.mesh.models import MeshNode, MeshUplink, NodeMessage, OTAUpdate, OTAUpdateRecipient, OTARecipientStatus
 from c3nav.mesh.utils import MESH_ALL_UPLINKS_GROUP, UPLINK_PING, get_mesh_uplink_group
 from c3nav.routing.rangelocator import RangeLocator
 
@@ -374,8 +374,10 @@ class MeshConsumer(AsyncWebsocketConsumer):
                 print('current app desc:', current_app_desc)
                 if target_app_desc == current_app_desc:
                     print('the node already has this firmware, awesome')
-                    # todo: do something with this information
-                    recipient = False
+                    await OTAUpdateRecipient.objects.filter(pk=recipient.pk).aupdate(
+                        status=OTARecipientStatus.SUCCESS
+                    )
+                    recipient = None
                 else:
                     print('app desc does not match')
 
