@@ -2,9 +2,9 @@ from django.contrib.messages.views import SuccessMessageMixin
 from django.views.generic import DetailView, ListView, TemplateView
 from django.views.generic.edit import FormMixin
 
+from c3nav.mesh.forms import OTACreateForm
 from c3nav.mesh.models import FirmwareBuild, FirmwareVersion, MeshNode, OTARecipientStatus, OTAUpdate
 from c3nav.mesh.views.base import MeshControlMixin
-from c3nav.site.forms import OTACreateForm
 
 
 class FirmwaresListView(MeshControlMixin, ListView):
