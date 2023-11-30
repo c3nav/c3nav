@@ -122,6 +122,10 @@ class UploadFirmwareBuildSchema(Schema):
     project_description: dict = APIField(..., title='project_description.json contents')
     uploaded_filename: str = APIField(..., example="firmware.bin")
 
+    @staticmethod
+    def resolve_boards(obj):
+        return list(obj.boards)
+
 
 class UploadFirmwareSchema(Schema):
     """
