@@ -56,8 +56,8 @@ class GeometryField(models.JSONField):
         if value is None or value == '':
             return None
         if isinstance(value, str):
-            # todo: this is all too complex, why do we need this?
-            value = json.loads(value)
+            raise ValueError('got a string in GeometryField.to_python()')
+            # todo: not a todo, hopefully
         try:
             geometry = shape(value)
         except Exception:
@@ -107,23 +107,17 @@ class GeometryField(models.JSONField):
 
         return format_geojson(mapping(value), rounded=False) if as_json else value
 
-    def get_db_prep_value(self, value, connection, prepared=False):
-        return super().get_db_prep_value(mapping(value), connection, prepared=prepared)
-
     def get_prep_value(self, value):
         if value is None:
             return None
-        if isinstance(value, dict):
-            # todo: this should also not be needed but whatever
-            value = shape(value)
         self._validate_geomtype(value, exception=TypeError)
         if value.is_empty:
             raise Exception('Cannot save empty geometry.')
-        return json.dumps(self.get_final_value(value, as_json=True))
+        return self.get_final_value(value, as_json=True)
 
     def value_to_string(self, obj):
         value = self.value_from_object(obj)
-        return self.get_prep_value(value)
+        return json.dumps(self.get_prep_value(value))
 
 
 class JSONField(models.TextField):

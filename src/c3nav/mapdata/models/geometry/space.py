@@ -18,6 +18,7 @@ from c3nav.mapdata.models.base import SerializableMixin
 from c3nav.mapdata.models.geometry.base import GeometryMixin
 from c3nav.mapdata.models.locations import SpecificLocation
 from c3nav.mapdata.utils.cache.changes import changed_geometries
+from c3nav.mapdata.utils.geometry import unwrap_geom
 from c3nav.mapdata.utils.json import format_geojson
 
 
@@ -97,7 +98,7 @@ class SpaceGeometryMixin(GeometryMixin):
 
     def register_delete(self):
         space = self.space
-        changed_geometries.register(space.level_id, space.geometry.intersection(self.geometry))
+        changed_geometries.register(space.level_id, space.geometry.intersection(unwrap_geom(self.geometry)))
 
     def save(self, *args, **kwargs):
         self.register_change()

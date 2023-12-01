@@ -37,9 +37,6 @@ class WrappedGeometry():
     wrapped_geojson = None
 
     def __init__(self, geojson):
-        if isinstance(geojson, str):
-            # todo: this should not be needed unless the database is fucked
-            geojson = json.loads(geojson)
         self.wrapped_geojson = geojson
 
     @cached_property
