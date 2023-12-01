@@ -13,7 +13,7 @@ class SecretQuerySet(models.QuerySet):
 
 class Secret(models.Model):
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="api_secrets")
-    name = models.CharField(_('name'))
+    name = models.CharField(_('name'), max_length=32)
     created = models.DateTimeField(auto_now_add=True, verbose_name=_('creation date'))
     api_secret = models.CharField(max_length=64, verbose_name=_('API secret'), unique=True)
     readonly = models.BooleanField(_('readonly'))

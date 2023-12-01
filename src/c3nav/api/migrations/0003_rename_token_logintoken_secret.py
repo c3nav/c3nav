@@ -52,7 +52,7 @@ class Migration(migrations.Migration):
                         verbose_name="ID",
                     ),
                 ),
-                ("name", models.CharField(verbose_name="name")),
+                ("name", models.CharField(verbose_name="name", max_length=32)),
                 (
                     "created",
                     models.DateTimeField(
