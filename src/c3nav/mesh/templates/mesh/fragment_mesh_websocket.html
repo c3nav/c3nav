@@ -15,13 +15,49 @@
     const nodes_xyz = JSON.parse(document.getElementById('nodes-xyz').textContent);
     const nodes_distances = {};
 {% endif %}
+
+var ws;
+
 {% if update %}
     const update_id = {{ update.pk }};
+    for (const apply_link of document.querySelectorAll('.auto-apply a')) {
+        apply_link.addEventListener("click", function(e) {
+            e.preventDefault();
+            ws.send(JSON.stringify({
+                ota_auto: {
+                    apply: (e.target.innerHTML == 'no'),
+                    reboot: (e.target.parentElement.parentElement.querySelector('.auto-reboot a').innerText == 'yes'),
+                },
+                recipient: parseInt(e.target.parentElement.parentElement.parentElement.dataset.recipient),
+            }));
+        });
+    }
+    for (const apply_link of document.querySelectorAll('.auto-reboot a')) {
+        apply_link.addEventListener("click", function(e) {
+            e.preventDefault();
+            ws.send(JSON.stringify({
+                ota_auto: {
+                    apply: (e.target.parentElement.parentElement.querySelector('.auto-apply a').innerText == 'yes'),
+                    reboot: (e.target.innerHTML == 'no'),
+                },
+                recipient: parseInt(e.target.parentElement.parentElement.parentElement.dataset.recipient),
+            }));
+        });
+    }
+    for (const apply_link of document.querySelectorAll('[id^=ota-recipient-] button')) {
+        apply_link.addEventListener("click", function(e) {
+            e.preventDefault();
+            ws.send(JSON.stringify({
+                ota: e.target.name,
+                recipient: parseInt(e.target.parentElement.parentElement.dataset.recipient),
+            }));
+        });
+    }
 {% endif %}
 
 function connect() {
     console.log('reconnecting websocket...');
-    var ws = new WebSocket((window.location.protocol=="https:"?"wss:":"ws:")+window.location.host+"/mesh/ui/ws", []);
+    ws = new WebSocket((window.location.protocol=="https:"?"wss:":"ws:")+window.location.host+"/mesh/ui/ws", []);
     ws.onopen = (event) => {
         console.log('websocket connected.');
         {% if send_uuid %}
@@ -108,7 +144,13 @@ function connect() {
                     var row = document.querySelector(`[id="ota-recipient-${data.update}-${data.node}"]`);
                     if (!row) break;
                     row.querySelector('.status').innerText = data.status;
+                    if (data.status !== 'running') {
+                        row.querySelectorAll('.auto-apply').forEach(x => x.remove());
+                        row.querySelectorALL('.auto-reboot').forEach(x => x.remove());
+                        row.querySelectorAll('button').forEach(x => x.remove());
+                    }
                 {% endif %}
+                break;
 
             case 'mesh.msg_received':
                 {% if ranging_form %}
@@ -170,10 +212,17 @@ function connect() {
                 {% if update %}
                     var row = document.querySelector(`[id="ota-recipient-${data.msg.update_id}-${data.msg.src}"]`);
                     if (!row) break;
+                    var total = parseInt(row.querySelector('.total_bytes').innerText);
                     row.querySelector('.received_bytes').innerText = data.msg.received_bytes;
                     row.querySelector('progress').value = data.msg.received_bytes;
-                    row.querySelector('.auto-apply span').innerText = data.msg.auto_apply ? 'yes' : 'no';
-                    row.querySelector('.auto-reboot span').innerText = data.msg.auto_reboot ? 'yes' : 'no';
+                    row.querySelectorAll('.auto-apply a').forEach(x => x.innerText = data.msg.auto_apply ? 'yes' : 'no');
+                    row.querySelectorAll('.auto-reboot a').forEach(x => x.innerText = data.msg.auto_reboot ? 'yes' : 'no');
+                    row.querySelectorAll('button[name=apply]').forEach(
+                        x => x.style.display = (received_bytes >= total && data.msg.status === "STARTED") ? 'inline-block' : 'none'
+                    );
+                    row.querySelectorAll('button[name=reboot]').forEach(
+                        x => x.style.display = ((received_bytes >= total && data.msg.status === "STARTED") || data.msg.status === "APPLIED") ? 'inline-block' : 'none'
+                    );
                 {% endif %}
                 {% if send_uuid and msg_type == "MESH_ROUTE_REQUEST" %}
                     if (data.msg.route) {

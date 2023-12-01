@@ -16,7 +16,7 @@ from django.utils import timezone
 
 from c3nav.mesh import messages
 from c3nav.mesh.messages import (MESH_BROADCAST_ADDRESS, MESH_NONE_ADDRESS, MESH_ROOT_ADDRESS, OTA_CHUNK_SIZE,
-                                 MeshMessage, MeshMessageType)
+                                 MeshMessage, MeshMessageType, OTASettingMessage, OTAApplyMessage)
 from c3nav.mesh.models import MeshNode, MeshUplink, NodeMessage, OTARecipientStatus, OTAUpdate, OTAUpdateRecipient
 from c3nav.mesh.utils import MESH_ALL_OTA_GROUP, MESH_ALL_UPLINKS_GROUP, UPLINK_PING, get_mesh_uplink_group
 from c3nav.routing.rangelocator import RangeLocator
@@ -618,6 +618,28 @@ class MeshUIConsumer(AsyncJsonWebsocketConsumer):
             await self.dump_newest_messages(MeshMessageType.OTA_STATUS)
             for recipient in await self._qs_as_list(OTAUpdateRecipient.objects.filter(update_id=update_id)):
                 await self.send_json(recipient.get_status_json())
+        if "ota_auto" in content:
+            data = content["ota_auto"]
+            recipient = await OTAUpdateRecipient.objects.aget(pk=content["recipient"])
+            await OTASettingMessage(
+                dst=recipient.node_id,
+                src=MESH_ROOT_ADDRESS,
+                update_id=recipient.update_id,
+                auto_apply=data["apply"],
+                auto_reboot=data["reboot"],
+            ).send()
+
+        if "ota" in content:
+            ota = content["ota"]
+            recipient = await OTAUpdateRecipient.objects.aget(pk=content["recipient"])
+            if ota in ("apply", "reboot"):
+                await OTAApplyMessage(
+                    dst=recipient.node_id,
+                    src=MESH_ROOT_ADDRESS,
+                    update_id=recipient.update_id,
+                    reboot=(ota == "reboot"),
+                ).send()
+
         if "send_msg" in content:
             msg_to_send = self.scope["session"].pop("mesh_msg_%s" % content["send_msg"], None)
             if not msg_to_send:
@@ -679,6 +701,9 @@ class MeshUIConsumer(AsyncJsonWebsocketConsumer):
             data = data.copy()
             location = await self.locator(data["msg"], data["msg"]["src"])
             data["position"] = None if not location else (int(location.x*100), int(location.y*100), int(location.z*100))
+        await self.send_json(data)
+
+    async def mesh_ota_recipient_status(self, data):
         await self.send_json(data)
 
     @database_sync_to_async

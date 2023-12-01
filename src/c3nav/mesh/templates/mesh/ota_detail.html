@@ -25,17 +25,19 @@
                     <th>{% trans 'Progress' %}</th>
                 </tr>
             {% for recipient in update.recipients.all %}
-                <tr id="ota-recipient-{{ update.pk }}-{{ recipient.node_id }}">
+                <tr id="ota-recipient-{{ update.pk }}-{{ recipient.node_id }}" data-recipient="{{ recipient.pk }}">
                     <td>{% mesh_node recipient.node %}</td>
                     <td>
                         <span class="status"></span><br>
-                        <span class="auto-apply"><strong>auto apply:</strong> <span></span><br></span>
-                        <span class="auto-reboot"><strong>auto reboot:</strong> <span></span><br></span>
+                        <span class="auto-apply"><strong>auto apply:</strong> <a href="#"></a><br></span>
+                        <span class="auto-reboot"><strong>auto reboot:</strong> <a href="#"></a><br></span>
                     </td>
                     <td>
-                        <span class="received_bytes">??</span> of {{ update.build.binary.size }} bytes
+                        <span class="received_bytes">??</span> of <span class="total_bytes">{{ update.build.binary.size }}</span> bytes
                         <br>
                         <progress id="file" max="{{ update.build.binary.size }}" value="0"></progress>
+                        <br>
+                        <button name="cancel">cancel</button> <button name="apply">apply</button> <button name="reboot">apply &amp; reboot</button>
                     </td>
                 </tr>
             {% endfor %}
