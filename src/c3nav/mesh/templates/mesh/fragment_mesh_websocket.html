@@ -218,10 +218,10 @@ function connect() {
                     row.querySelectorAll('.auto-apply a').forEach(x => x.innerText = data.msg.auto_apply ? 'yes' : 'no');
                     row.querySelectorAll('.auto-reboot a').forEach(x => x.innerText = data.msg.auto_reboot ? 'yes' : 'no');
                     row.querySelectorAll('button[name=apply]').forEach(
-                        x => x.style.display = (received_bytes >= total && data.msg.status === "STARTED") ? 'inline-block' : 'none'
+                        x => x.style.display = (data.msg.received_bytes >= total && data.msg.status === "STARTED") ? 'inline-block' : 'none'
                     );
                     row.querySelectorAll('button[name=reboot]').forEach(
-                        x => x.style.display = ((received_bytes >= total && data.msg.status === "STARTED") || data.msg.status === "APPLIED") ? 'inline-block' : 'none'
+                        x => x.style.display = ((data.msg.received_bytes >= total && data.msg.status === "STARTED") || data.msg.status === "APPLIED") ? 'inline-block' : 'none'
                     );
                 {% endif %}
                 {% if send_uuid and msg_type == "MESH_ROUTE_REQUEST" %}
