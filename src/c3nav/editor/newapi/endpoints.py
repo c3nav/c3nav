@@ -28,7 +28,7 @@ editor_api_router = APIRouter(tags=["editor"], auth=APITokenAuth(permissions={"e
 @editor_api_router.get('/bounds/', summary="Get editor map boundaries",
                        response={200: BoundsSchema, **auth_permission_responses})
 @newapi_etag()
-def bounds(request):
+def bounds():
     return {
         "bounds": Source.max_bounds(),
     }
@@ -107,5 +107,3 @@ def view_as_api(path: str):
     this is a mess. good luck. if you actually want to use this, poke us so we might add better documentation.
     """
     raise NotImplementedError
-
-
