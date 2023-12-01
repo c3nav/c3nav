@@ -355,10 +355,13 @@ class StructType:
     _union_options = {}
     union_type_field = None
     existing_c_struct = None
+    c_includes = set()
 
     # noinspection PyMethodOverriding
-    def __init_subclass__(cls, /, union_type_field=None, existing_c_struct=None, **kwargs):
+    def __init_subclass__(cls, /, union_type_field=None, existing_c_struct=None, c_includes=None, **kwargs):
         cls.union_type_field = union_type_field
+        if c_includes is not None:
+            cls.c_includes |= set(c_includes)
         if cls.existing_c_struct is not None:
             # TODO: can we make it possible? does it even make sense?
             raise TypeError('subclassing an external c struct is not possible')

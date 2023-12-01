@@ -158,7 +158,7 @@ class RawFTMEntry(StructType):
 
 
 @dataclass
-class FirmwareAppDescription(StructType, existing_c_struct="esp_app_desc_t"):
+class FirmwareAppDescription(StructType, existing_c_struct="esp_app_desc_t", c_includes=['<esp_app_desc.h>']):
     magic_word: int = field(metadata={"format": SimpleConstFormat('I', 0xAB_CD_54_32)}, repr=False)
     secure_version: int = field(metadata={"format": SimpleFormat('I')})
     reserv1: list[int] = field(metadata={"format": SimpleFormat('2I')}, repr=False)

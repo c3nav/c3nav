@@ -2,7 +2,7 @@ from dataclasses import fields
 
 from django.core.management.base import BaseCommand
 
-from c3nav.mesh.baseformats import normalize_name
+from c3nav.mesh.baseformats import normalize_name, StructType
 from c3nav.mesh.messages import MeshMessage
 from c3nav.mesh.utils import indent_c
 
@@ -18,13 +18,19 @@ class Command(BaseCommand):
         struct_max_sizes = []
         done_definitions = set()
 
+        for include in StructType.c_includes:
+            print(f'#include {include}')
+
         ignore_names = set(field_.name for field_ in fields(MeshMessage))
         for msg_type, msg_class in MeshMessage.get_types().items():
             if msg_class.c_struct_name:
                 if msg_class.c_struct_name in done_struct_names:
                     continue
                 done_struct_names.add(msg_class.c_struct_name)
-                msg_class = MeshMessage.c_structs[msg_class.c_struct_name]
+                if MeshMessage.c_structs[msg_class.c_struct_name] != msg_class:
+                    # the purpose of MeshMessage.c_structs is unclear, currently this never triggers
+                    # todo get rid of the whole c_structs thing if it doesn't turn out to be useful for anything
+                    raise ValueError('what happened?')
 
             base_name = (msg_class.c_struct_name or normalize_name(
                 getattr(msg_type, 'name', msg_class.__name__)
