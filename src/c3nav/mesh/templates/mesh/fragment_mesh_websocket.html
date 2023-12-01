@@ -13,7 +13,10 @@
 {% endif %}
 {% if nodes_xyz %}
     const nodes_xyz = JSON.parse(document.getElementById('nodes-xyz').textContent);
-    const nodes_distances = {}
+    const nodes_distances = {};
+{% endif %}
+{% if update %}
+    const update_id = {{ update.pk }};
 {% endif %}
 
 function connect() {
@@ -26,7 +29,7 @@ function connect() {
         {% elif ranging_form %}
             ws.send(JSON.stringify({"subscribe": "ranging"}));
         {% elif update %}
-            ws.send(JSON.stringify({"subscribe": "ota-{{ update.pk }}"}));
+            ws.send(JSON.stringify({"subscribe": "ota", "update_id": update_id}));
         {% else %}
             ws.send(JSON.stringify({"subscribe": "log"}));
         {% endif %}
@@ -100,6 +103,13 @@ function connect() {
                 {% endif %}
                 break;
 
+            case 'mesh.ota_recipient_status':
+                {% if update %}
+                    var row = document.querySelector(`[id="ota-recipient-${data.update}-${data.node}"]`);
+                    if (!row) break;
+                    row.querySelector('.status').innerText = data.status;
+                {% endif %}
+
             case 'mesh.msg_received':
                 {% if ranging_form %}
                     var cell, key, src_node, peer_node;
@@ -158,10 +168,12 @@ function connect() {
                     }
                 {% endif %}
                 {% if update %}
-                    var row = document.querySelector(`#ota-recipients-${data.msg.update_id} [id="recipient-${data.msg.src}"]`);
+                    var row = document.querySelector(`[id="ota-recipient-${data.msg.update_id}-${data.msg.src}"]`);
                     if (!row) break;
                     row.querySelector('.received_bytes').innerText = data.msg.received_bytes;
                     row.querySelector('progress').value = data.msg.received_bytes;
+                    row.querySelector('.auto-apply span').innerText = data.msg.auto_apply ? 'yes' : 'no';
+                    row.querySelector('.auto-reboot span').innerText = data.msg.auto_reboot ? 'yes' : 'no';
                 {% endif %}
                 {% if send_uuid and msg_type == "MESH_ROUTE_REQUEST" %}
                     if (data.msg.route) {

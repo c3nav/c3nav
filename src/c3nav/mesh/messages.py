@@ -53,7 +53,7 @@ class MeshMessageType(EnumSchemaByNameMixin, IntEnum):
     OTA_REQUEST_FRAGMENTS = 0x25
     OTA_SETTING = 0x26
     OTA_APPLY = 0x27
-    OTA_ABORT = 0x29
+    OTA_ABORT = 0x28
 
     LOCATE_REQUEST_RANGE = 0x30
     LOCATE_RANGE_RESULTS = 0x31
@@ -269,6 +269,25 @@ class ConfigUplinkMessage(MeshMessage, msg_type=MeshMessageType.CONFIG_UPLINK):
     port: int = field(metadata={"format": SimpleFormat('H')})
 
 
+
+@unique
+class OTADeviceStatus(EnumSchemaByNameMixin, IntEnum):
+    """ ota status, the ones >= 0x10 denote a permanent failure """
+    NONE = 0x00
+
+    STARTED = 0x01
+    APPLIED = 0x02
+
+    START_FAILED = 0x10
+    WRITE_FAILED = 0x12
+    APPLY_FAILED = 0x13
+    ROLLED_BACK = 0x14
+
+    @property
+    def pretty_name(self):
+        return self.name.replace('_', ' ').lower()
+
+
 @dataclass
 class OTAStatusMessage(MeshMessage, msg_type=MeshMessageType.OTA_STATUS):
     """ report OTA status """
@@ -277,6 +296,7 @@ class OTAStatusMessage(MeshMessage, msg_type=MeshMessageType.OTA_STATUS):
     highest_chunk: int = field(metadata={"format": SimpleFormat('H')})
     auto_apply: bool = field(metadata={"format": BoolFormat()})
     auto_reboot: bool = field(metadata={"format": BoolFormat()})
+    status: OTADeviceStatus = field(metadata={"format": EnumFormat('B')})
 
 
 @dataclass

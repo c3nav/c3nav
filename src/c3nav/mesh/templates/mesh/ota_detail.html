@@ -18,16 +18,20 @@
             <strong>Created:</strong> {{ update.created }}
         </div>
         <div>
-            <table id="ota-recipients-{{ update.pk }}">
+            <table>
                 <tr>
                     <th>{% trans 'Node' %}</th>
                     <th>{% trans 'Status' %}</th>
                     <th>{% trans 'Progress' %}</th>
                 </tr>
             {% for recipient in update.recipients.all %}
-                <tr id="recipient-{{ recipient.node_id }}">
+                <tr id="ota-recipient-{{ update.pk }}-{{ recipient.node_id }}">
                     <td>{% mesh_node recipient.node %}</td>
-                    <td>{{ recipient.get_status_display }}</td>
+                    <td>
+                        <span class="status"></span><br>
+                        <span class="auto-apply"><strong>auto apply:</strong> <span></span><br></span>
+                        <span class="auto-reboot"><strong>auto reboot:</strong> <span></span><br></span>
+                    </td>
                     <td>
                         <span class="received_bytes">??</span> of {{ update.build.binary.size }} bytes
                         <br>

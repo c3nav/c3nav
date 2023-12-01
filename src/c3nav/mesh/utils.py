@@ -6,6 +6,7 @@ def get_mesh_uplink_group(address):
 
 
 MESH_ALL_UPLINKS_GROUP = "mesh_uplink_all"
+MESH_ALL_OTA_GROUP = "mesh_ota_all"
 UPLINK_PING = 5
 UPLINK_TIMEOUT = UPLINK_PING+5
 

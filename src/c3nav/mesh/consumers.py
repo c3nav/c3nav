@@ -18,7 +18,7 @@ from c3nav.mesh import messages
 from c3nav.mesh.messages import (MESH_BROADCAST_ADDRESS, MESH_NONE_ADDRESS, MESH_ROOT_ADDRESS, OTA_CHUNK_SIZE,
                                  MeshMessage, MeshMessageType)
 from c3nav.mesh.models import MeshNode, MeshUplink, NodeMessage, OTAUpdate, OTAUpdateRecipient, OTARecipientStatus
-from c3nav.mesh.utils import MESH_ALL_UPLINKS_GROUP, UPLINK_PING, get_mesh_uplink_group
+from c3nav.mesh.utils import MESH_ALL_UPLINKS_GROUP, UPLINK_PING, get_mesh_uplink_group, MESH_ALL_OTA_GROUP
 from c3nav.routing.rangelocator import RangeLocator
 
 
@@ -597,9 +597,16 @@ class MeshUIConsumer(AsyncJsonWebsocketConsumer):
         if content.get("subscribe", None) == "ranging":
             await self.channel_layer.group_add("mesh_msg_received", self.channel_name)
             self.msg_received_filter = {"msg_type": MeshMessageType.LOCATE_RANGE_RESULTS.name}
+            await self.dump_newest_messages(MeshMessageType.LOCATE_RANGE_RESULTS)
         if content.get("subscribe", None) == "ota":
             await self.channel_layer.group_add("mesh_msg_received", self.channel_name)
-            self.msg_received_filter = {"msg_type": MeshMessageType.OTA_STATUS.name}
+            update_id = content.get("update_id", 0)
+            self.msg_received_filter = {"msg_type": MeshMessageType.OTA_STATUS.name,
+                                        "update_id": update_id}
+            await self.channel_layer.group_add(MESH_ALL_OTA_GROUP, self.channel_name)
+            await self.dump_newest_messages(MeshMessageType.OTA_STATUS)
+            for recipient in await self._qs_as_list(OTAUpdateRecipient.objects.filter(update_id=update_id)):
+                await self.send_json(recipient.get_status_json())
         if "send_msg" in content:
             msg_to_send = self.scope["session"].pop("mesh_msg_%s" % content["send_msg"], None)
             if not msg_to_send:
@@ -618,6 +625,22 @@ class MeshUIConsumer(AsyncJsonWebsocketConsumer):
                     'dst': recipient,
                     **msg_to_send["msg_data"],
                 }).send(sender=self.channel_name)
+
+    async def dump_newest_messages(self, msg_type: MeshMessageType, include_ota=False):
+        for msg in await self._get_last_messages(msg_type):
+            await self.mesh_msg_received({
+                "type": "mesh.msg_received",
+                "msg": msg.data
+            })
+
+    @database_sync_to_async
+    def _get_last_messages(self, msg_type):
+        results = (node.last_messages[msg_type] for node in MeshNode.objects.prefetch_last_messages(msg_type))
+        return [msg for msg in results if msg]
+
+    @database_sync_to_async
+    def _qs_as_list(self, qs):
+        return list(qs)
 
     async def mesh_log_entry(self, data):
         await self.send_json(data)
