@@ -12,6 +12,7 @@ from c3nav.api.api import SessionViewSet
 from c3nav.api.newapi import auth_api_router
 from c3nav.api.ninja import ninja_api
 from c3nav.editor.api import ChangeSetViewSet, EditorViewSet
+from c3nav.editor.newapi.endpoints import editor_api_router
 from c3nav.mapdata.api import (AccessRestrictionGroupViewSet, AccessRestrictionViewSet, AreaViewSet, BuildingViewSet,
                                ColumnViewSet, CrossDescriptionViewSet, DoorViewSet, DynamicLocationPositionViewSet,
                                HoleViewSet, LeaveDescriptionViewSet, LevelViewSet, LineObstacleViewSet,
@@ -34,6 +35,7 @@ ninja_api.add_router("/map/", map_api_router)
 ninja_api.add_router("/routing/", routing_api_router)
 ninja_api.add_router("/positioning/", positioning_api_router)
 ninja_api.add_router("/mapdata/", mapdata_api_router)
+ninja_api.add_router("/editor/", editor_api_router)
 ninja_api.add_router("/mesh/", mesh_api_router)
 
 

@@ -36,6 +36,16 @@ class LineStringSchema(Schema):
     )
 
 
+class LineSchema(Schema):
+    """
+    A GeoJSON LineString with only two points
+    """
+    type: Literal["LineString"]
+    coordinates: tuple[tuple[float, float], tuple[float, float]] = APIField(
+        example=[[1.5, 1.5], [5, 8.7]]
+    )
+
+
 class PointSchema(Schema):
     """
     A GeoJSON Point

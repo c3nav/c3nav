@@ -55,6 +55,10 @@ ninja_api = c3navAPI(
                 "description": "Access the raw map data",
             },
             {
+                "name": "editor",
+                "description": "Endpoints for the editor and to interface with the editor",
+            },
+            {
                 "name": "mesh",
                 "description": "Manage the location node mesh network",
             },
