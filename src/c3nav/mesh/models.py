@@ -8,7 +8,6 @@ from operator import attrgetter
 from typing import Any, Mapping, Optional, Self
 
 import channels
-from asgiref.sync import async_to_sync
 from django.contrib.auth import get_user_model
 from django.core.validators import RegexValidator
 from django.db import NotSupportedError, models
@@ -23,7 +22,7 @@ from c3nav.mesh.dataformats import BoardType, ChipType, FirmwareImage
 from c3nav.mesh.messages import ConfigFirmwareMessage, ConfigHardwareMessage
 from c3nav.mesh.messages import MeshMessage as MeshMessage
 from c3nav.mesh.messages import MeshMessageType
-from c3nav.mesh.utils import UPLINK_TIMEOUT, MESH_ALL_OTA_GROUP
+from c3nav.mesh.utils import MESH_ALL_OTA_GROUP, UPLINK_TIMEOUT
 from c3nav.routing.rangelocator import RangeLocator
 
 FirmwareLookup = namedtuple('FirmwareLookup', ('sha256_hash', 'chip', 'project_name', 'version', 'idf_version'))
@@ -528,4 +527,3 @@ class OTAUpdateRecipient(models.Model):
             "update": self.update_id,
             "status": self.status,
         }
-

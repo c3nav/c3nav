@@ -269,7 +269,6 @@ class ConfigUplinkMessage(MeshMessage, msg_type=MeshMessageType.CONFIG_UPLINK):
     port: int = field(metadata={"format": SimpleFormat('H')})
 
 
-
 @unique
 class OTADeviceStatus(EnumSchemaByNameMixin, IntEnum):
     """ ota status, the ones >= 0x10 denote a permanent failure """
