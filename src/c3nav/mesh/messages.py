@@ -296,7 +296,7 @@ class OTAStatusMessage(MeshMessage, msg_type=MeshMessageType.OTA_STATUS):
     """ report OTA status """
     update_id: int = field(metadata={"format": SimpleFormat('I')})
     received_bytes: int = field(metadata={"format": SimpleFormat('I')})
-    highest_chunk: int = field(metadata={"format": SimpleFormat('H')})
+    next_expected_chunk: int = field(metadata={"format": SimpleFormat('H')})
     auto_apply: bool = field(metadata={"format": BoolFormat()})
     auto_reboot: bool = field(metadata={"format": BoolFormat()})
     status: OTADeviceStatus = field(metadata={"format": EnumFormat('B')})

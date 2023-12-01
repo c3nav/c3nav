@@ -262,7 +262,8 @@ class MeshConsumer(AsyncWebsocketConsumer):
                             node_status.ota_recipient = None
                         else:
                             print('queue chunk sending')
-                            await self.ota_set_chunks(node_status.ota_recipient.update, min_chunk=msg.highest_chunk+1)
+                            await self.ota_set_chunks(node_status.ota_recipient.update,
+                                                      min_chunk=msg.next_expected_chunk)
 
         if isinstance(msg, messages.OTARequestFragmentsMessage):
             print('got OTA fragment request', msg)
