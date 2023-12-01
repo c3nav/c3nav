@@ -11,6 +11,7 @@ from asgiref.sync import async_to_sync
 from channels.db import database_sync_to_async
 from channels.exceptions import DenyConnection
 from channels.generic.websocket import AsyncJsonWebsocketConsumer, AsyncWebsocketConsumer
+from django.conf import settings
 from django.db import transaction
 from django.utils import timezone
 
@@ -56,7 +57,9 @@ class MeshConsumer(AsyncWebsocketConsumer):
         self.ota_chunks_available_condition = asyncio.Condition()
 
     async def connect(self):
-        # todo: auth
+        self.headers = dict(self.scope["headers"])
+        if self.headers[b'authorization'].strip() != b'Bearer '+settings.SECRET_MESH_KEY.encode():
+            raise DenyConnection
 
         # await self.log_text(None, "new mesh websocket connection")
         await self.accept()

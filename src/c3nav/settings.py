@@ -123,6 +123,23 @@ if not SECRET_TILE_KEY:
             os.chown(SECRET_TILE_FILE, os.getuid(), os.getgid())
             f.write(SECRET_TILE_KEY)
 
+SECRET_MESH_KEY = config.get('c3nav', 'mesh_secret', fallback=None)
+if not SECRET_MESH_KEY:
+    SECRET_MESH_FILE = config.get('c3nav', 'mesh_secret_file', fallback=None)
+    if SECRET_MESH_FILE:
+        SECRET_MESH_FILE = Path(SECRET_MESH_FILE)
+    else:
+        SECRET_MESH_FILE = DATA_DIR / '.mesh_secret'
+    if SECRET_MESH_FILE.exists():
+        with open(SECRET_MESH_FILE, 'r') as f:
+            SECRET_MESH_KEY = f.read().strip()
+    else:
+        SECRET_MESH_KEY = get_random_string(50, string.printable)
+        with open(SECRET_MESH_FILE, 'w') as f:
+            os.chmod(SECRET_MESH_FILE, 0o600)
+            os.chown(SECRET_MESH_FILE, os.getuid(), os.getgid())
+            f.write(SECRET_MESH_KEY)
+
 # Adjustable settings
 
 debug_fallback = "runserver" in sys.argv
