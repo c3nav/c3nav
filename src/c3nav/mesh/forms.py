@@ -5,6 +5,7 @@ from functools import cached_property
 from itertools import chain
 from typing import Any, Sequence
 
+import channels
 from asgiref.sync import async_to_sync
 from django import forms
 from django.core.exceptions import ValidationError
@@ -17,6 +18,7 @@ from c3nav.mesh.dataformats import BoardConfig, BoardType, LedType, SerialLedTyp
 from c3nav.mesh.messages import MESH_BROADCAST_ADDRESS, MESH_ROOT_ADDRESS, MeshMessage, MeshMessageType
 from c3nav.mesh.models import (FirmwareBuild, HardwareDescription, MeshNode, OTARecipientStatus, OTAUpdate,
                                OTAUpdateRecipient)
+from c3nav.mesh.utils import MESH_ALL_OTA_GROUP
 
 
 class MeshMessageForm(forms.Form):
@@ -380,6 +382,7 @@ class OTACreateForm(Form):
 
     def save(self) -> list[OTAUpdate]:
         updates = []
+        addresses = []
         with transaction.atomic():
             replaced_recipients = OTAUpdateRecipient.objects.filter(
                 node__in=chain(*self.selected_builds.values()),
@@ -390,5 +393,10 @@ class OTACreateForm(Form):
                 update = OTAUpdate.objects.create(build=build)
                 for node in nodes:
                     update.recipients.create(node=node)
+                    addresses.append(node.address)
                 updates.append(update)
+        async_to_sync(channels.layers.get_channel_layer().group_send)(MESH_ALL_OTA_GROUP, {
+            "type": "mesh.ota_recipients_changed",
+            "addresses": [addresses]
+        })
         return updates

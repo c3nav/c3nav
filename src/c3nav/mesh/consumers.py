@@ -16,7 +16,7 @@ from django.utils import timezone
 
 from c3nav.mesh import messages
 from c3nav.mesh.messages import (MESH_BROADCAST_ADDRESS, MESH_NONE_ADDRESS, MESH_ROOT_ADDRESS, OTA_CHUNK_SIZE,
-                                 MeshMessage, MeshMessageType, OTASettingMessage, OTAApplyMessage)
+                                 MeshMessage, MeshMessageType, OTAApplyMessage, OTASettingMessage)
 from c3nav.mesh.models import MeshNode, MeshUplink, NodeMessage, OTARecipientStatus, OTAUpdate, OTAUpdateRecipient
 from c3nav.mesh.utils import MESH_ALL_OTA_GROUP, MESH_ALL_UPLINKS_GROUP, UPLINK_PING, get_mesh_uplink_group
 from c3nav.routing.rangelocator import RangeLocator
@@ -176,6 +176,9 @@ class MeshConsumer(AsyncWebsocketConsumer):
             # add signed in uplink node to broadcast group
             await self.channel_layer.group_add(MESH_ALL_UPLINKS_GROUP, self.channel_name)
 
+            # OTA releases bluh bluh
+            await self.channel_layer.group_add(MESH_ALL_OTA_GROUP, self.channel_name)
+
             # add this node as a destination that this uplink handles (duh)
             await self.add_dst_nodes(nodes=(src_node, ))
             self.dst_nodes[msg.src].last_msg[MeshMessageType.MESH_SIGNIN] = msg
@@ -326,6 +329,14 @@ class MeshConsumer(AsyncWebsocketConsumer):
                 )
             return
         await self.send_msg(MeshMessage.fromjson(data["msg"]), data["sender"])
+
+    async def mesh_ota_recipients_changed(self, data):
+        addresses = set(data["addresses"]) - set(self.dst_nodes.keys())
+        print('recipients changed!')
+        if not addresses:
+            print('but none of ours')
+            return
+        await self.check_ota(addresses)
 
     """
     helper functions
@@ -639,6 +650,16 @@ class MeshUIConsumer(AsyncJsonWebsocketConsumer):
                     update_id=recipient.update_id,
                     reboot=(ota == "reboot"),
                 ).send()
+            elif ota == "cancel":
+                recipient.status = OTARecipientStatus.CANCELED
+                await recipient.send_status()
+                await OTAUpdateRecipient.objects.filter(pk=recipient.pk).aupdate(
+                    status=OTARecipientStatus.CANCELED
+                )
+                self.channel_layer.group_send(MESH_ALL_OTA_GROUP, {
+                    "type": "mesh.ota_recipients_changed",
+                    "addresses": [recipient.node_id]
+                })
 
         if "send_msg" in content:
             msg_to_send = self.scope["session"].pop("mesh_msg_%s" % content["send_msg"], None)
