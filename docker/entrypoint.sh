@@ -10,8 +10,8 @@ export WEB_CONCURRENCY="${WEB_CONCURRENCY:-$UWSGI_WORKERS}"
 
 automigrate() {
   AUTOMIGRATE="${C3NAV_AUTOMIGRATE:no}"
-  echo "Running migrations as automigrate is enabled. Set \"C3NAV_AUTOMIGRATE\" to \"no\" or \"false\" to disable."
   if [[ "$AUTOMIGRATE" == "yes" || "$AUTOMIGRATE" == "true" ]]; then
+    echo "Running migrations as automigrate is enabled. Set \"C3NAV_AUTOMIGRATE\" to \"no\" or \"false\" to disable."
     python manage.py migrate
   fi
 }
