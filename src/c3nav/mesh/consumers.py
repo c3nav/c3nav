@@ -242,10 +242,19 @@ class MeshConsumer(AsyncWebsocketConsumer):
                 update_id = node_status.ota_recipient.update_id if node_status.ota_recipient else 0
                 if update_id == msg.update_id:
                     print('start/cancel confirmed!')
-                    node_status.waiting_for = NodeWaitingFor.NOTHING  # todo: probably good to continue from here
+                    node_status.waiting_for = NodeWaitingFor.NOTHING
                     if update_id:
-                        print('queue chunk sending')
-                        await self.ota_set_chunks(node_status.ota_recipient.update, min_chunk=msg.highest_chunk+1)
+                        if msg.status.is_failed:
+                            print('ota failed')
+                            node_status.ota_recipient.status = OTARecipientStatus.FAILED
+                            await node_status.ota_recipient.send_status()
+                            await OTAUpdateRecipient.objects.filter(pk=node_status.ota_recipient.pk).aupdate(
+                                status=OTARecipientStatus.SUCCESS
+                            )
+                            node_status.ota_recipient = None
+                        else:
+                            print('queue chunk sending')
+                            await self.ota_set_chunks(node_status.ota_recipient.update, min_chunk=msg.highest_chunk+1)
 
         if isinstance(msg, messages.OTARequestFragmentsMessage):
             print('got OTA fragment request', msg)
@@ -374,6 +383,8 @@ class MeshConsumer(AsyncWebsocketConsumer):
                 print('current app desc:', current_app_desc)
                 if target_app_desc == current_app_desc:
                     print('the node already has this firmware, awesome')
+                    recipient.status = OTARecipientStatus.SUCCESS
+                    await recipient.send_status()
                     await OTAUpdateRecipient.objects.filter(pk=recipient.pk).aupdate(
                         status=OTARecipientStatus.SUCCESS
                     )

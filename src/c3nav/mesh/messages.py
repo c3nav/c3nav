@@ -286,6 +286,10 @@ class OTADeviceStatus(EnumSchemaByNameMixin, IntEnum):
     def pretty_name(self):
         return self.name.replace('_', ' ').lower()
 
+    @property
+    def is_failed(self):
+        return self >= self.START_FAILED
+
 
 @dataclass
 class OTAStatusMessage(MeshMessage, msg_type=MeshMessageType.OTA_STATUS):
