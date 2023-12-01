@@ -37,8 +37,6 @@ class UserPermissions(models.Model):
 
     mesh_control = models.BooleanField(default=False, verbose_name=_('can access mesh control'))
 
-    api_secret = models.CharField(null=True, blank=True, max_length=64, verbose_name=_('API secret'))
-
     class Meta:
         verbose_name = _('User Permissions')
         verbose_name_plural = _('User Permissions')

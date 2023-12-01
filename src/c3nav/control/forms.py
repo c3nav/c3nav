@@ -15,6 +15,7 @@ from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 from django.utils.translation import ngettext_lazy
 
+from c3nav.api.models import Secret
 from c3nav.control.models import UserPermissions, UserSpaceAccess
 from c3nav.mapdata.forms import I18nModelFormMixin
 from c3nav.mapdata.models import MapUpdate, Space
@@ -159,8 +160,10 @@ class AccessPermissionForm(Form):
 
     def get_signed_data(self, key=None):
         # todo: yep, we stil need to fix this
-        if not self.author.permissions.api_secret:
-            raise ValueError('Author has no api secret.')
+        try:
+            api_secret = self.author.api_secrets.filter(scope_grant_permission=True).valid_only().get().api_secret
+        except Secret.DoesNotExist:
+            raise ValueError('Author has no feasable api secret.')
         data = {
             'id': self.data['access_restrictions'],
             'time': int(time.time()),
@@ -170,8 +173,7 @@ class AccessPermissionForm(Form):
         if key is not None:
             data['key'] = key
         data = json.dumps(data, separators=(',', ':'))
-        signature = hmac.new(self.author.permissions.api_secret.encode(),
-                             msg=data.encode(), digestmod=hashlib.sha256).digest()
+        signature = hmac.new(api_secret, msg=data.encode(), digestmod=hashlib.sha256).digest()
         return '%s:%s' % (data, binascii.b2a_base64(signature).strip().decode())
 
     @classmethod
@@ -230,16 +232,19 @@ class AccessPermissionForm(Form):
         except User.DoesNotExist:
             raise SignedPermissionDataError('Author does not exist.')
 
-        try:
-            api_secret = author.permissions.api_secret
-        except AttributeError:
+        api_secrets = author.api_secrets.filter(
+            scope_grant_permission=True
+        ).valid_only().values_list('api_secret', flat=True)
+        if not api_secrets:
             raise SignedPermissionDataError('Author has no API secret.')
 
-        verify_signature = binascii.b2a_base64(hmac.new(api_secret.encode(),
-                                                        msg=raw_data.encode(), digestmod=hashlib.sha256).digest())
-        print(verify_signature, signature)
-        if signature != verify_signature.strip().decode():
-            raise SignedPermissionDataError('Invalid signature.')
+        for api_secret in api_secrets:
+            verify_signature = binascii.b2a_base64(hmac.new(api_secret.encode(),
+                                                            msg=raw_data.encode(), digestmod=hashlib.sha256).digest())
+            if signature == verify_signature.strip().decode():
+                break
+        else:
+            raise SignedPermissionDataError('Invalid signature.')  # todo: test this!!
 
         form = cls(author=author, expire_date=valid_until, data={
             'access_restrictions': str(restrictions),

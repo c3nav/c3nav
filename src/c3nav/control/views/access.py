@@ -22,7 +22,7 @@ def grant_access(request):  # todo: make class based view
             token = form.get_token()
             token.save()
             # todo: this still needs fixing
-            if settings.DEBUG and request.user_permissions.api_secret:
+            if settings.DEBUG:
                 signed_data = form.get_signed_data()
                 print('/?'+urlencode({'access': signed_data}))
             return redirect(reverse('control.access.qr', kwargs={'token': token.token}))

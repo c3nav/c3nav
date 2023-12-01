@@ -2,13 +2,20 @@ import string
 
 from django.conf import settings
 from django.db import models
+from django.db.models import Q
+from django.utils import timezone
 from django.utils.crypto import constant_time_compare, get_random_string
 from django.utils.translation import gettext_lazy as _
 
 
 class SecretQuerySet(models.QuerySet):
     def get_by_secret(self, secret):
-        self.filter(secret=secret, )
+        return self.filter(api_secret=secret).valid_only()
+
+    def valid_only(self):
+        return self.filter(
+            Q(valid_until__isnull=True) | Q(valid_until__gte=timezone.now()),
+        )
 
 
 class Secret(models.Model):
@@ -21,6 +28,8 @@ class Secret(models.Model):
     scope_editor = models.BooleanField(_('editor access'), default=False)
     scope_mesh = models.BooleanField(_('mesh access'), default=False)
     valid_until = models.DateTimeField(null=True, verbose_name=_('valid_until'))
+
+    objects = models.Manager.from_queryset(SecretQuerySet)()
 
     def scopes_display(self):
         return [

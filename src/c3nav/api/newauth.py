@@ -5,8 +5,6 @@ from importlib import import_module
 
 from django.contrib.auth import get_user as auth_get_user
 from django.contrib.auth.models import AnonymousUser
-from django.db.models import Q
-from django.utils import timezone
 from django.utils.functional import SimpleLazyObject, lazy
 from ninja.security import HttpBearer
 
@@ -77,10 +75,7 @@ class APITokenAuth(HttpBearer):
             )
         elif token.startswith("secret:"):
             try:
-                secret = Secret.objects.filter(
-                    Q(api_secret=token.removeprefix("secret:")),
-                    Q(valid_until__isnull=True) | Q(valid_until__gte=timezone.now()),
-                ).select_related("user", "user__permissions").get()
+                secret = Secret.objects.get_by_secret(token.removeprefix("secret:")).get()
             except Secret.DoesNotExist:
                 raise APITokenInvalid
 
