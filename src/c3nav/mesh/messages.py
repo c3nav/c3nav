@@ -305,8 +305,7 @@ class OTAStatusMessage(MeshMessage, msg_type=MeshMessageType.OTA_STATUS):
 @dataclass
 class OTARequestStatusMessage(MeshMessage, msg_type=MeshMessageType.OTA_REQUEST_STATUS):
     """ request OTA status """
-    # if 0, request any status, otherwise only for specified update id
-    update_id: int = field(metadata={"format": SimpleFormat('I')})
+    pass
 
 
 @dataclass
