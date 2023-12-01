@@ -397,6 +397,6 @@ class OTACreateForm(Form):
                 updates.append(update)
         async_to_sync(channels.layers.get_channel_layer().group_send)(MESH_ALL_OTA_GROUP, {
             "type": "mesh.ota_recipients_changed",
-            "addresses": [addresses]
+            "addresses": addresses,
         })
         return updates
