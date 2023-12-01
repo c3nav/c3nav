@@ -14,6 +14,7 @@ from channels.generic.websocket import AsyncJsonWebsocketConsumer, AsyncWebsocke
 from django.conf import settings
 from django.db import transaction
 from django.utils import timezone
+from django.utils.crypto import constant_time_compare
 
 from c3nav.mesh import messages
 from c3nav.mesh.messages import (MESH_BROADCAST_ADDRESS, MESH_NONE_ADDRESS, MESH_ROOT_ADDRESS, OTA_CHUNK_SIZE,
@@ -58,7 +59,8 @@ class MeshConsumer(AsyncWebsocketConsumer):
 
     async def connect(self):
         self.headers = dict(self.scope["headers"])
-        if self.headers[b'authorization'].strip() != b'Bearer '+settings.SECRET_MESH_KEY.encode():
+        if not constant_time_compare(self.headers[b'authorization'].strip(),
+                                     b'Bearer '+settings.SECRET_MESH_KEY.encode()):
             raise DenyConnection
 
         # await self.log_text(None, "new mesh websocket connection")
