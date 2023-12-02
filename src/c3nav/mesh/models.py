@@ -277,7 +277,7 @@ class MeshNode(models.Model):
             return RangingBeacon.objects.filter(bssid=self.address).first()
 
     # noinspection PyUnresolvedReferences
-    @cached_property
+    @property
     def firmware_description(self) -> Optional[FirmwareDescription]:
         with suppress(AttributeError):
             return self._firmware_description
