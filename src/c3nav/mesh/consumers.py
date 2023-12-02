@@ -257,7 +257,7 @@ class MeshConsumer(AsyncWebsocketConsumer):
                             node_status.ota_recipient.status = OTARecipientStatus.FAILED
                             await node_status.ota_recipient.send_status()
                             await OTAUpdateRecipient.objects.filter(pk=node_status.ota_recipient.pk).aupdate(
-                                status=OTARecipientStatus.SUCCESS
+                                status=OTARecipientStatus.FAILED
                             )
                             node_status.ota_recipient = None
                         else:
@@ -337,7 +337,7 @@ class MeshConsumer(AsyncWebsocketConsumer):
         await self.send_msg(MeshMessage.fromjson(data["msg"]), data["sender"])
 
     async def mesh_ota_recipients_changed(self, data):
-        addresses = set(data["addresses"]) - set(self.dst_nodes.keys())
+        addresses = set(data["addresses"]) & set(self.dst_nodes.keys())
         print('recipients changed!')
         if not addresses:
             print('but none of ours')
@@ -662,7 +662,7 @@ class MeshUIConsumer(AsyncJsonWebsocketConsumer):
                 await OTAUpdateRecipient.objects.filter(pk=recipient.pk).aupdate(
                     status=OTARecipientStatus.CANCELED
                 )
-                self.channel_layer.group_send(MESH_ALL_OTA_GROUP, {
+                await self.channel_layer.group_send(MESH_ALL_OTA_GROUP, {
                     "type": "mesh.ota_recipients_changed",
                     "addresses": [recipient.node_id]
                 })

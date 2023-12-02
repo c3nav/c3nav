@@ -518,7 +518,7 @@ class OTAUpdateRecipient(models.Model):
         """
         use this for OTA stuffs
         """
-        channels.layers.get_channel_layer().group_send(MESH_ALL_OTA_GROUP, self.get_status_json())
+        await channels.layers.get_channel_layer().group_send(MESH_ALL_OTA_GROUP, self.get_status_json())
 
     def get_status_json(self):
         return {
