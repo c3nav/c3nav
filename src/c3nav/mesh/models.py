@@ -158,7 +158,7 @@ class MeshNodeQuerySet(models.QuerySet):
                             message_type=MeshMessageType.CONFIG_FIRMWARE.name,
                             data__app_elf_sha256=app_elf_sha256
                         ).order_by('datetime').first()
-                        for app_elf_sha256 in {node.f_firmware_description.sha256_hash for node in nodes_to_complete}
+                        for app_elf_sha256 in {node._firmware_description.sha256_hash for node in nodes_to_complete}
                     }
                 for node in nodes_to_complete:
                     node._firmware_description.created = created_lookup[node._firmware_description.sha256_hash]
