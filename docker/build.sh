@@ -25,6 +25,6 @@ docker buildx build -f docker/tileserver.dockerfile \
     --annotation org.opencontainers.image.url="https://c3nav.de" \
     --annotation org.opencontainers.image.authors="c3nav team" \
     --annotation org.opencontainers.image.description="Indoor navigation for the Chaos Communication Congress and other events. - Tileserver" \
-    --cache-from "type=registry,ref=ghcr.io/c3nav/c3nav_cache:main" \
-    --cache-to "type=registry,ref=ghcr.io/c3nav/c3nav_cache:main,mode=max" \
+    --cache-from "type=registry,ref=ghcr.io/c3nav/c3nav_cache:tileserver" \
+    --cache-to "type=registry,ref=ghcr.io/c3nav/c3nav_cache:tileserver,mode=max" \
     --push .
