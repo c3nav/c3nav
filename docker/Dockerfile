@@ -50,7 +50,8 @@ RUN --mount=type=cache,target=/var/cache/apt,id=apt_$TARGETARCH --mount=type=tmp
     libgirepository1.0-dev=1.76.1-1
 
 
-COPY --link /src /app
+RUN mkdir /app
+COPY /src/requirements /app/requirements
 WORKDIR /app
 
 RUN --mount=type=cache,target=/pip-cache \
