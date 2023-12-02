@@ -146,7 +146,7 @@ function connect() {
                     row.querySelector('.status').innerText = data.status;
                     if (data.status !== 'running') {
                         row.querySelectorAll('.auto-apply').forEach(x => x.remove());
-                        row.querySelectorALL('.auto-reboot').forEach(x => x.remove());
+                        row.querySelectorAll('.auto-reboot').forEach(x => x.remove());
                         row.querySelectorAll('button').forEach(x => x.remove());
                         row.querySelectorAll('.progress').forEach(x => x.remove());
                     }
