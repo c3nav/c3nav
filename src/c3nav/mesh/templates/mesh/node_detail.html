@@ -76,7 +76,7 @@
             <h4>Firmware</h4>
             <p>
                 {% if node.firmware_description.build %}
-                    <strong>Firmware:</strong> <a href="{% url "mesh.firmwares.detail" pk=node.firmware_description.build.firmware.pk %}">{{ node.firmware_description.project_name }} {{ node.firmware_description.version }}</a><br>
+                    <strong>Firmware:</strong> <a href="{% url "mesh.firmwares.detail" pk=node.firmware_description.build.version.pk %}">{{ node.firmware_description.project_name }} {{ node.firmware_description.version }}</a><br>
                     <strong>Build:</strong> <a href="{% url "mesh.firmwares.build.detail" pk=node.firmware_description.build.pk %}">{{ node.firmware_description.build.variant }}</a><br>
                     <strong>Created:</strong> {{ node.firmware_description.created }}<br>
                 {% else %}
