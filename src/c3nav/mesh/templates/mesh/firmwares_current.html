@@ -21,7 +21,7 @@
                 <td>{{ firmware.created }}</td>
                 <td>
                     {% if firmware.build %}
-                        <a href="{% url "mesh.firmwares.detail" pk=firmware.pk %}">{{ firmware.project_name }} {{ firmware.version }}</a>
+                        <a href="{% url "mesh.firmwares.detail" pk=firmware.build.version.pk %}">{{ firmware.project_name }} {{ firmware.version }}</a>
                     {% else %}
                         {{ firmware.project_name }} {{ firmware.version }}<br>
                         <small>{{ firmware.sha256_hash }}</small>
