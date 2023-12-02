@@ -79,7 +79,7 @@ class APITokenAuth(HttpBearer):
             try:
                 secret = Secret.objects.filter(
                     Q(api_secret=token.removeprefix("secret:")),
-                    Q(valid_until__isnull=True) | Q(valid_until__lt=timezone.now()),
+                    Q(valid_until__isnull=True) | Q(valid_until__gte=timezone.now()),
                 ).select_related("user", "user__permissions").get()
             except Secret.DoesNotExist:
                 raise APITokenInvalid
