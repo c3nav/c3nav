@@ -6,11 +6,11 @@ from channels.routing import ProtocolTypeRouter, URLRouter
 from channels.security.websocket import AllowedHostsOriginValidator
 from django.core.asgi import get_asgi_application
 
-from c3nav.control.middleware import UserPermissionsChannelMiddleware
-from c3nav.urls import websocket_urlpatterns
-
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "c3nav.settings")
 django_asgi = get_asgi_application()
+
+from c3nav.control.middleware import UserPermissionsChannelMiddleware
+from c3nav.urls import websocket_urlpatterns
 
 application = ProtocolTypeRouter({
     "http": django_asgi,
