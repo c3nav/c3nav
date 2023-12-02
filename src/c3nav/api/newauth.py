@@ -85,7 +85,7 @@ class APITokenAuth(HttpBearer):
                 raise APITokenInvalid
 
             # get user permissions and restrict them based on scopes
-            user_permissions: UserPermissions = secret.user.permissions
+            user_permissions: UserPermissions = UserPermissions.get_for_user(secret.user)
             if secret.scope_mesh is False:
                 user_permissions.mesh_control = False
             if secret.scope_editor is False:
