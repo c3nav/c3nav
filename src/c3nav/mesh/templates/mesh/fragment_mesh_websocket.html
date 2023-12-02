@@ -215,7 +215,7 @@ function connect() {
                     var total = parseInt(row.querySelector('.total_bytes').innerText);
                     row.querySelector('.received_bytes').innerText = data.msg.received_bytes;
                     row.querySelector('progress').value = data.msg.received_bytes;
-                    row.querySelector('.device_status').value = data.msg.status;
+                    row.querySelector('.device_status').innerText = data.msg.status;
                     row.querySelectorAll('.auto-apply a').forEach(x => x.innerText = data.msg.auto_apply ? 'yes' : 'no');
                     row.querySelectorAll('.auto-reboot a').forEach(x => x.innerText = data.msg.auto_reboot ? 'yes' : 'no');
                     row.querySelectorAll('button[name=apply]').forEach(
