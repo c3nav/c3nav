@@ -73,7 +73,7 @@ class FirmwareSchema(Schema):
 
 @mesh_api_router.get('/firmwares/', summary="List available firmwares",
                      response={200: list[FirmwareSchema], **validate_responses, **auth_responses},
-                     openapi_extra={"security": [{"APITokenAuth": ["mesh_control", "write"]}]})
+                     openapi_extra={"security": [{"APITokenAuth": ["mesh_control"]}]})
 @paginate
 def firmware_list(request):
     return FirmwareVersion.objects.all()
@@ -81,7 +81,7 @@ def firmware_list(request):
 
 @mesh_api_router.get('/firmwares/{firmware_id}/', summary="Get specific firmware",
                      response={200: FirmwareSchema, **API404.dict(), **auth_responses},
-                     openapi_extra={"security": [{"APITokenAuth": ["mesh_control", "write"]}]})
+                     openapi_extra={"security": [{"APITokenAuth": ["mesh_control"]}]})
 def firmware_by_id(request, firmware_id: int):
     try:
         return FirmwareVersion.objects.get(id=firmware_id)
