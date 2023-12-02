@@ -227,6 +227,9 @@ function connect() {
                     row.querySelectorAll('button[name=reboot]').forEach(
                         x => x.style.display = ((data.msg.received_bytes >= total && data.msg.status === "STARTED") || data.msg.status === "APPLIED") ? 'inline-block' : 'none'
                     );
+                    row.querySelectorAll('.apply_and').forEach(
+                        x => x.style.display = (data.msg.status === 'APPLIED') ? 'none' : 'inline'
+                    );
                 {% endif %}
                 {% if send_uuid and msg_type == "MESH_ROUTE_REQUEST" %}
                     if (data.msg.route) {
