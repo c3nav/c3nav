@@ -72,14 +72,16 @@ class FirmwareSchema(Schema):
 
 
 @mesh_api_router.get('/firmwares/', summary="List available firmwares",
-                     response={200: list[FirmwareSchema], **validate_responses, **auth_responses})
+                     response={200: list[FirmwareSchema], **validate_responses, **auth_responses},
+                     openapi_extra={"security": [{"APITokenAuth": ["mesh_control", "write"]}]})
 @paginate
 def firmware_list(request):
     return FirmwareVersion.objects.all()
 
 
 @mesh_api_router.get('/firmwares/{firmware_id}/', summary="Get specific firmware",
-                     response={200: FirmwareSchema, **API404.dict(), **auth_responses})
+                     response={200: FirmwareSchema, **API404.dict(), **auth_responses},
+                     openapi_extra={"security": [{"APITokenAuth": ["mesh_control", "write"]}]})
 def firmware_by_id(request, firmware_id: int):
     try:
         return FirmwareVersion.objects.get(id=firmware_id)
@@ -90,11 +92,14 @@ def firmware_by_id(request, firmware_id: int):
 @mesh_api_router.get('/firmwares/{firmware_id}/{variant}/image_data',
                      summary="Get header data of firmware build image",
                      response={200: FirmwareImage.schema, **API404.dict(), **auth_responses},
-                     openapi_extra={"externalDocs": {
-                         'description': "esp-idf documentation",
-                         'url': "https://docs.espressif.com/projects/esptool/en/latest/esp32s3/"
-                                "advanced-topics/firmware-image-format.html"
-                     }})
+                     openapi_extra={
+                         "externalDocs": {
+                             'description': 'esp-idf docs',
+                             'url': "https://docs.espressif.com/projects/esp-idf/en/latest/esp32/"
+                                    "api-guides/build-system.html#build-system-metadata"
+                         },
+                         "security": [{"APITokenAuth": ["mesh_control"]}]
+                     })
 def firmware_build_image(request, firmware_id: int, variant: str):
     try:
         build = FirmwareBuild.objects.get(version_id=firmware_id, variant=variant)
@@ -106,11 +111,14 @@ def firmware_build_image(request, firmware_id: int, variant: str):
 @mesh_api_router.get('/firmwares/{firmware_id}/{variant}/project_description',
                      summary="Get project description of firmware build",
                      response={200: dict, **API404.dict(), **auth_responses},
-                     openapi_extra={"externalDocs": {
-                         'description': 'esp-idf docs',
-                         'url': "https://docs.espressif.com/projects/esp-idf/en/latest/esp32/"
-                                "api-guides/build-system.html#build-system-metadata"
-                     }})
+                     openapi_extra={
+                         "externalDocs": {
+                             'description': 'esp-idf docs',
+                             'url': "https://docs.espressif.com/projects/esp-idf/en/latest/esp32/"
+                                    "api-guides/build-system.html#build-system-metadata"
+                         },
+                         "security": [{"APITokenAuth": ["mesh_control"]}]
+                     })
 def firmware_project_description(request, firmware_id: int, variant: str):
     try:
         return FirmwareBuild.objects.get(version_id=firmware_id, variant=variant).firmware_description
@@ -147,7 +155,8 @@ class UploadFirmwareSchema(Schema):
 @mesh_api_router.post(
     '/firmwares/upload', summary="Upload firmware",
     description="your OpenAPI viewer might not show it: firmware_data is UploadFirmware as json",
-    response={200: FirmwareSchema, **validate_responses, **auth_permission_responses, **APIConflict.dict()}
+    response={200: FirmwareSchema, **validate_responses, **auth_permission_responses, **APIConflict.dict()},
+    openapi_extra={"security": [{"APITokenAuth": ["mesh_control", "write"]}]}
 )
 def firmware_upload(request, firmware_data: UploadFirmwareSchema, binary_files: list[UploadedFile]):
     binary_files_by_name = {binary_file.name: binary_file for binary_file in binary_files}
@@ -216,7 +225,8 @@ class NodeMessageSchema(Schema):
 
 @mesh_api_router.get(
     '/messages/', summary="query recorded mesh messages",
-    response={200: list[NodeMessageSchema], **auth_permission_responses}
+    response={200: list[NodeMessageSchema], **auth_permission_responses},
+    openapi_extra={"security": [{"APITokenAuth": ["mesh_control"]}]}
 )
 @paginate
 def messages_list(request, filters: Query[MessagesFilter]):

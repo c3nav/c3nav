@@ -26,7 +26,8 @@ editor_api_router = APIRouter(tags=["editor"], auth=APITokenAuth(permissions={"e
 
 
 @editor_api_router.get('/bounds/', summary="Get editor map boundaries",
-                       response={200: BoundsSchema, **auth_permission_responses})
+                       response={200: BoundsSchema, **auth_permission_responses},
+                       openapi_extra={"security": [{"APITokenAuth": ["editor_access"]}]})
 @newapi_etag()
 def bounds():
     return {
@@ -35,7 +36,8 @@ def bounds():
 
 
 @editor_api_router.get('/geometrystyles/', summary="get the default colors for each geometry type",
-                       response={200: GeometryStylesSchema, **auth_permission_responses})
+                       response={200: GeometryStylesSchema, **auth_permission_responses},
+                       openapi_extra={"security": [{"APITokenAuth": ["editor_access"]}]})
 @newapi_etag(permissions=False)
 def geometrystyles():
     return {
@@ -61,7 +63,8 @@ def geometrystyles():
 
 @editor_api_router.get('/geometries/space/{space_id}/', summary="get the geometries to display for a space",
                        response={200: list[EditorSpaceGeometriesElemSchema], **API404.dict(),
-                                 **auth_permission_responses})
+                                 **auth_permission_responses},
+                       openapi_extra={"security": [{"APITokenAuth": ["editor_access"]}]})
 @newapi_etag()  # todo: correct?
 def space_geometries(space_id: EditorID, update_cache_key: UpdateCacheKey = None):
     """
@@ -72,7 +75,8 @@ def space_geometries(space_id: EditorID, update_cache_key: UpdateCacheKey = None
 
 @editor_api_router.get('/geometries/level/{level_id}/', summary="get the geometries to display for a level",
                        response={200: list[EditorLevelGeometriesElemSchema], **API404.dict(),
-                                 **auth_permission_responses})
+                                 **auth_permission_responses},
+                       openapi_extra={"security": [{"APITokenAuth": ["editor_access"]}]})
 @newapi_etag()  # todo: correct?
 def level_geometries(level_id: EditorID, update_cache_key: UpdateCacheKey = None):
     """
@@ -85,7 +89,8 @@ def level_geometries(level_id: EditorID, update_cache_key: UpdateCacheKey = None
 
 
 @editor_api_router.get('/{path:path}/', summary="access the editor UI programmatically",
-                       response={200: dict, **API404.dict(), **auth_permission_responses})
+                       response={200: dict, **API404.dict(), **auth_permission_responses},
+                       openapi_extra={"security": [{"APITokenAuth": ["editor_access"]}]})
 @newapi_etag()  # todo: correct?
 def view_as_api(path: str):
     """
@@ -98,7 +103,8 @@ def view_as_api(path: str):
 
 
 @editor_api_router.post('/{path:path}/', summary="access the editor UI programmatically",
-                        response={200: dict, **API404.dict(), **auth_permission_responses})
+                        response={200: dict, **API404.dict(), **auth_permission_responses},
+                        openapi_extra={"security": [{"APITokenAuth": ["editor_access", "write"]}]})
 @newapi_etag()  # todo: correct?
 def view_as_api(path: str):
     """
