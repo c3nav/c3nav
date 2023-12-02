@@ -55,7 +55,7 @@ class APITokenAuth(HttpBearer):
         self.SessionStore = engine.SessionStore
 
     def _authenticate(self, request, token) -> NewAPIAuth:
-        request.user = AnonymousUser
+        request.user = AnonymousUser()
         request.user_permissions = SimpleLazyObject(lambda: UserPermissionsMiddleware.get_user_permissions(request))
         request.user_space_accesses = lazy(UserPermissionsMiddleware.get_user_space_accesses, dict)(request)
 
