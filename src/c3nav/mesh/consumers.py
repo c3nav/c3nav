@@ -732,6 +732,9 @@ class MeshUIConsumer(AsyncJsonWebsocketConsumer):
     async def mesh_ota_recipient_status(self, data):
         await self.send_json(data)
 
+    async def mesh_ota_recipients_changed(self, data):
+        pass
+
     @database_sync_to_async
     def locator(self, msg, orig_addr=None):
         locator = RangeLocator.load()
