@@ -148,6 +148,7 @@ function connect() {
                         row.querySelectorAll('.auto-apply').forEach(x => x.remove());
                         row.querySelectorALL('.auto-reboot').forEach(x => x.remove());
                         row.querySelectorAll('button').forEach(x => x.remove());
+                        row.querySelectorAll('.progress').forEach(x => x.remove());
                     }
                     if (data.status === 'canceled') {
                         row.querySelectorAll('.device_status').forEach(x => x.remove());

@@ -33,10 +33,11 @@
                         <span class="auto-reboot"><strong>auto reboot:</strong> <a href="#"></a><br></span>
                     </td>
                     <td>
+                        <span class="progress">
                         <span class="received_bytes">??</span> of <span class="total_bytes">{{ update.build.binary.size }}</span> bytes
                         <br>
                         <progress id="file" max="{{ update.build.binary.size }}" value="0"></progress>
-                        <br>
+                        <br></span>
                         <button name="cancel">cancel</button> <button name="apply">apply</button> <button name="reboot"><span class="apply_and">apply &amp; </span>reboot</button>
                     </td>
                 </tr>
