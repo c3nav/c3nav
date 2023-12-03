@@ -301,10 +301,12 @@ class SourceSchema(WithAccessRestrictionSchema, DjangoModelSchema):
         title="name",
         description="name/filename of the source",
     )
-    bottom: float
-    left: float
-    top: float
-    right: float
+    bounds: tuple[
+        Annotated[float, APIField(name="left")],
+        Annotated[float, APIField(name="bottom")],
+        Annotated[float, APIField(name="right")],
+        Annotated[float, APIField(name="top")],
+    ]
 
 
 class AccessRestrictionSchema(TitledSchema, DjangoModelSchema):
