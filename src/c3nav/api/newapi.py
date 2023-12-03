@@ -18,7 +18,8 @@ class AuthStatusSchema(Schema):
     scopes: list[str]
 
 
-@auth_api_router.get('/status/', summary="get current auth details",
+@auth_api_router.get('/status/', summary="get status",
+                     description="Returns details about the current authentication",
                      response={200: AuthStatusSchema, **auth_responses})
 def get_status(request):
     permissions = UserPermissions.get_for_user(request.user)
@@ -41,7 +42,7 @@ class APITokenSchema(Schema):
 
 
 @auth_api_router.get('/session/', response=APITokenSchema, auth=None,
-                     summary="Get API token tied to the current session")
+                     summary="get session-bound token")
 def session_token(request):
     session_id = request.COOKIES.get(settings.SESSION_COOKIE_NAME, None)
     return {"token": "anonymous" if session_id is None else f"session:{session_id}"}

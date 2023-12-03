@@ -27,7 +27,8 @@ from c3nav.mapdata.utils.user import can_access_editor
 map_api_router = APIRouter(tags=["map"])
 
 
-@map_api_router.get('/bounds/', summary="Get map boundaries",
+@map_api_router.get('/bounds/', summary="get boundaries",
+                    description="get maximum boundaries of everything on the map",
                     response={200: BoundsSchema, **auth_responses})
 @newapi_etag(permissions=False)
 def bounds(request):

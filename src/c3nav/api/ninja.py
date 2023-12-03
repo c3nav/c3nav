@@ -31,15 +31,20 @@ class SwaggerAndRedoc(DocsBase):
 
 
 description = """
-We provide two API documentation viewers:
-
-* [Redoc](/api/v2/): more comprehensive and clean *(default)*
-* [Swagger](/api/v2/?swagger): less good, but has a built-in API client 
 
 Nearly all endpoints require authentication, but guest authentication can be used.
 
-API endpoints may change to add more features and properties,
-but no properties will be removed without a version change.
+API endpoints may change to add more features and properties, but we will attempt to keep it backwards-compatible.
+
+We provide two API documentation viewers:
+
+* [Redoc](/api/v2/): more comprehensive and clean *(default)*
+* [Swagger](/api/v2/?swagger): less good, but has a built-in API client
+
+We recommend reading the documentation using Redoc, and either using the Code examples provided next to each request,
+or switching to swagger if you want an in-browser API client. 
+
+
 """.strip()
 ninja_api = c3navAPI(
     title="c3nav API",
@@ -47,41 +52,47 @@ ninja_api = c3navAPI(
     description=description,
 
     docs_url="/",
-    docs=Swagger(settings={
-        "persistAuthorization": True,
-        "defaultModelRendering": "model",
-    }),
+    docs=SwaggerAndRedoc(),
 
     auth=APITokenAuth(),
 
     openapi_extra={
+
+        
         "tags": [
             {
                 "name": "auth",
+                "x-displayName": "Authentication",
                 "description": "Get and manage API access",
             },
             {
                 "name": "map",
+                "x-displayName": "Map access",
                 "description": "Common map endpoints",
             },
             {
                 "name": "routing",
+                "x-displayName": "Routing",
                 "description": "Calculate routes",
             },
             {
                 "name": "positioning",
+                "x-displayName": "Positioning",
                 "description": "Determine your position",
             },
             {
                 "name": "mapdata",
+                "x-displayName": "Raw map data",
                 "description": "Access the raw map data",
             },
             {
                 "name": "editor",
+                "x-displayName": "Editor",
                 "description": "Endpoints for the editor and to interface with the editor",
             },
             {
                 "name": "mesh",
+                "x-displayName": "Mesh",
                 "description": "Manage the location node mesh network",
             },
         ],
