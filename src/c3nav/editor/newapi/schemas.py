@@ -4,7 +4,7 @@ from ninja import Schema
 from pydantic import Field as APIField
 from pydantic import PositiveInt
 
-from c3nav.api.schema import GeometrySchema, LineSchema
+from c3nav.api.schema import GeometrySchema, LineSchema, AnyGeometrySchema
 from c3nav.api.utils import NonEmptyStr
 
 GeometryStylesSchema = Annotated[
@@ -71,7 +71,7 @@ class EditorGeometriesGraphEdgeElemSchema(Schema):
 
 class BaseEditorGeometriesGeometryElemSchema(Schema):
     type: Literal["Feature"]
-    geometry: GeometrySchema = APIField(description="geometry, potentially modified for displaying")
+    geometry: AnyGeometrySchema = APIField(description="geometry, potentially modified for displaying")
     original_geometry: Optional[GeometrySchema] = APIField(
         default=None,
         description="original unchanged geometry, not modified, original(??)",  # todo: more precise

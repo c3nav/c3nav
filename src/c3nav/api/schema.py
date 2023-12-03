@@ -63,3 +63,10 @@ GeometrySchema = Annotated[
         PointSchema,],
     Discriminator("type"),
 ]
+
+class AnyGeometrySchema(Schema):
+    """
+    A GeoJSON Geometry
+    """
+    type: NonEmptyStr
+    coordinates: Any
