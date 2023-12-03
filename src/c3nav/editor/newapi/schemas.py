@@ -82,5 +82,5 @@ EditorGeometriesElemSchema = Union[
 
 UpdateCacheKey = Annotated[
     Optional[NonEmptyStr],
-    APIField(default=None, pattern="^c:[0-9]+$", title="the cache key under which you have cached objects"),
+    APIField(default=None, title="the cache key under which you have cached objects"),
 ]
