@@ -18,7 +18,7 @@ from c3nav.mapdata.utils.cache.stats import increment_cache_key
 request_cache = LocalCacheProxy(maxsize=64)
 
 
-def newapi_etag(permissions=True, etag_func=AccessPermission.etag_func, base_mapdata=False):
+def api_etag(permissions=True, etag_func=AccessPermission.etag_func, base_mapdata=False):
 
     def outer_wrapper(func):
         @wraps(func)
@@ -79,7 +79,7 @@ def newapi_etag(permissions=True, etag_func=AccessPermission.etag_func, base_map
     return inner_wrapper
 
 
-def newapi_stats(stat_name):
+def api_stats(stat_name):
     def wrapper(func):
         @wraps(func)
         def wrapped_func(request, *args, **kwargs):
@@ -108,17 +108,3 @@ def api_stats_clean_location_value(value):
         value = 'c:%s:%d:%d' % (value[1], int(float(value[2]) / 3) * 3, int(float(value[3]) / 3) * 3)
         return (value, 'c:anywhere')
     return (value, )
-
-
-def api_stats(view_name):
-    def wrapper(func):
-        @wraps(func)
-        def wrapped_func(self, request, *args, **kwargs):
-            response = func(self, request, *args, **kwargs)
-            if response.status_code < 400 and kwargs:
-                name, value = next(iter(kwargs.items()))
-                for value in api_stats_clean_location_value(value):
-                    increment_cache_key('apistats__%s__%s__%s' % (view_name, name, value))
-            return response
-        return wrapped_func
-    return wrapper

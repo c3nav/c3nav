@@ -25,7 +25,7 @@ class APIAuthMethod(StrEnum):
 
 
 @dataclass
-class NewAPIAuth:
+class APIAuthDetails:
     method: APIAuthMethod
     readonly: bool
 
@@ -52,13 +52,13 @@ class APITokenAuth(HttpBearer):
         engine = import_module(settings.SESSION_ENGINE)
         self.SessionStore = engine.SessionStore
 
-    def _authenticate(self, request, token) -> NewAPIAuth:
+    def _authenticate(self, request, token) -> APIAuthDetails:
         request.user = AnonymousUser()
         request.user_permissions = SimpleLazyObject(lambda: UserPermissionsMiddleware.get_user_permissions(request))
         request.user_space_accesses = lazy(UserPermissionsMiddleware.get_user_space_accesses, dict)(request)
 
         if token == "anonymous":
-            return NewAPIAuth(
+            return APIAuthDetails(
                 method=APIAuthMethod.ANONYMOUS,
                 readonly=True,
             )
@@ -69,7 +69,7 @@ class APITokenAuth(HttpBearer):
             if not user.is_authenticated:
                 raise APITokenInvalid
             request.user = user
-            return NewAPIAuth(
+            return APIAuthDetails(
                 method=APIAuthMethod.SESSION,
                 readonly=False,
             )
@@ -91,7 +91,7 @@ class APITokenAuth(HttpBearer):
             request.user = secret.user
             request.user_permissions = user_permissions
 
-            return NewAPIAuth(
+            return APIAuthDetails(
                 method=APIAuthMethod.SESSION,
                 readonly=secret.readonly
             )

@@ -9,12 +9,12 @@ from ninja import Router as APIRouter
 from ninja import Schema
 from pydantic import PositiveInt
 
+from c3nav.api.auth import APITokenAuth, auth_responses, validate_responses
 from c3nav.api.exceptions import APIRequestValidationFailed
-from c3nav.api.newauth import APITokenAuth, auth_responses, validate_responses
 from c3nav.api.utils import NonEmptyStr
+from c3nav.mapdata.api.base import api_stats_clean_location_value
 from c3nav.mapdata.models.access import AccessPermission
 from c3nav.mapdata.models.locations import Position
-from c3nav.mapdata.newapi.base import api_stats_clean_location_value
 from c3nav.mapdata.schemas.model_base import AnyLocationID, Coordinates3D
 from c3nav.mapdata.utils.cache.stats import increment_cache_key
 from c3nav.mapdata.utils.locations import visible_locations_for_request

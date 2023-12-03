@@ -1,15 +1,15 @@
 from django.urls import path
 from django.views.generic.base import RedirectView
 
-from c3nav.api.newapi import auth_api_router
+from c3nav.api.api import auth_api_router
 from c3nav.api.ninja import ninja_api
-from c3nav.editor.newapi.endpoints import editor_api_router
-from c3nav.mapdata.newapi.map import map_api_router
-from c3nav.mapdata.newapi.mapdata import mapdata_api_router
-from c3nav.mapdata.newapi.updates import updates_api_router
-from c3nav.mesh.newapi import mesh_api_router
-from c3nav.routing.newapi.positioning import positioning_api_router
-from c3nav.routing.newapi.routing import routing_api_router
+from c3nav.editor.api.endpoints import editor_api_router
+from c3nav.mapdata.api.map import map_api_router
+from c3nav.mapdata.api.mapdata import mapdata_api_router
+from c3nav.mapdata.api.updates import updates_api_router
+from c3nav.mesh.api import mesh_api_router
+from c3nav.routing.api.positioning import positioning_api_router
+from c3nav.routing.api.routing import routing_api_router
 
 """
 new API (v2)

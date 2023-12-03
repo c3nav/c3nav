@@ -6,10 +6,10 @@ from ninja import Router as APIRouter
 from ninja import Schema
 from pydantic import PositiveInt
 
-from c3nav.api.newauth import auth_responses
+from c3nav.api.auth import auth_responses
 from c3nav.api.utils import NonEmptyStr
+from c3nav.mapdata.api.base import api_etag
 from c3nav.mapdata.models import MapUpdate
-from c3nav.mapdata.newapi.base import newapi_etag
 from c3nav.mapdata.schemas.responses import BoundsSchema
 from c3nav.mapdata.utils.cache.stats import increment_cache_key
 from c3nav.mapdata.utils.user import get_user_data

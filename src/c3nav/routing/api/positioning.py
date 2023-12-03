@@ -6,7 +6,7 @@ from ninja import Router as APIRouter
 from ninja import Schema
 from pydantic import NegativeInt, PositiveInt
 
-from c3nav.api.newauth import auth_responses
+from c3nav.api.auth import auth_responses
 from c3nav.api.utils import NonEmptyStr
 from c3nav.mapdata.models.access import AccessPermission
 from c3nav.mapdata.schemas.models import CustomLocationSchema

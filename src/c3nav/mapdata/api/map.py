@@ -9,12 +9,12 @@ from ninja import Router as APIRouter
 from ninja import Schema
 from pydantic import Field as APIField
 
+from c3nav.api.auth import auth_permission_responses, auth_responses, validate_responses
 from c3nav.api.exceptions import API404, APIPermissionDenied, APIRequestValidationFailed
-from c3nav.api.newauth import auth_permission_responses, auth_responses, validate_responses
 from c3nav.api.utils import NonEmptyStr
+from c3nav.mapdata.api.base import api_etag, api_stats
 from c3nav.mapdata.models import Source
 from c3nav.mapdata.models.locations import DynamicLocation, LocationRedirect, Position
-from c3nav.mapdata.newapi.base import newapi_etag, newapi_stats
 from c3nav.mapdata.schemas.filters import BySearchableFilter, RemoveGeometryFilter
 from c3nav.mapdata.schemas.model_base import AnyLocationID, AnyPositionID, CustomLocationID
 from c3nav.mapdata.schemas.models import (AnyPositionStatusSchema, FullListableLocationSchema, FullLocationSchema,
@@ -30,7 +30,7 @@ map_api_router = APIRouter(tags=["map"])
 @map_api_router.get('/bounds/', summary="get boundaries",
                     description="get maximum boundaries of everything on the map",
                     response={200: BoundsSchema, **auth_responses})
-@newapi_etag(permissions=False)
+@api_etag(permissions=False)
 def bounds(request):
     return {
         "bounds": Source.max_bounds(),
@@ -70,7 +70,7 @@ def _location_list(request, detailed: bool, filters: LocationListFilters):
 @map_api_router.get('/locations/', summary="list locations (slim)",
                     description="Get locations (with most important attributes set)",
                     response={200: list[SlimListableLocationSchema], **validate_responses, **auth_responses})
-@newapi_etag(base_mapdata=True)
+@api_etag(base_mapdata=True)
 def location_list(request, filters: Query[LocationListFilters]):
     return _location_list(request, detailed=False, filters=filters)
 
@@ -78,7 +78,7 @@ def location_list(request, filters: Query[LocationListFilters]):
 @map_api_router.get('/locations/full/', summary="list locations (full)",
                     description="Get locations (with all attributes set)",
                     response={200: list[FullListableLocationSchema], **validate_responses, **auth_responses})
-@newapi_etag(base_mapdata=True)
+@api_etag(base_mapdata=True)
 def location_list_full(request, filters: Query[LocationListFilters]):
     return _location_list(request, detailed=True, filters=filters)
 
@@ -151,8 +151,8 @@ class ShowRedirects(Schema):
 @map_api_router.get('/locations/{location_id}/', summary="location by ID (slim)",
                     description="Get locations by ID (with all attributes set)",
                     response={200: SlimLocationSchema, **API404.dict(), **validate_responses, **auth_responses})
-@newapi_stats('location_get')
-@newapi_etag(base_mapdata=True)
+@api_stats('location_get')
+@api_etag(base_mapdata=True)
 def location_by_id(request, location_id: AnyLocationID, filters: Query[RemoveGeometryFilter],
                    redirects: Query[ShowRedirects]):
     return _location_retrieve(
@@ -165,8 +165,8 @@ def location_by_id(request, location_id: AnyLocationID, filters: Query[RemoveGeo
 @map_api_router.get('/locations/{location_id}/full/', summary="location by ID (full)",
                     description="Get location by ID (with all attributes set)",
                     response={200: FullLocationSchema, **API404.dict(), **validate_responses, **auth_responses})
-@newapi_stats('location_get')
-@newapi_etag(base_mapdata=True)
+@api_stats('location_get')
+@api_etag(base_mapdata=True)
 def location_by_id_full(request, location_id: AnyLocationID, filters: Query[RemoveGeometryFilter],
                         redirects: Query[ShowRedirects]):
     return _location_retrieve(
@@ -179,8 +179,8 @@ def location_by_id_full(request, location_id: AnyLocationID, filters: Query[Remo
 @map_api_router.get('/locations/{location_id}/display/', summary="location display by ID",
                     description="Get location display information by ID",
                     response={200: LocationDisplay, **API404.dict(), **auth_responses})
-@newapi_stats('location_display')
-@newapi_etag(base_mapdata=True)
+@api_stats('location_display')
+@api_etag(base_mapdata=True)
 def location_by_id_display(request, location_id: AnyLocationID):
     return _location_display(
         request,
@@ -191,8 +191,8 @@ def location_by_id_display(request, location_id: AnyLocationID):
 @map_api_router.get('/locations/{location_id}/geometry/', summary="location geometry by id",
                     description="Get location geometry (if available) by ID",
                     response={200: LocationGeometry, **API404.dict(), **auth_responses})
-@newapi_stats('location_geometery')
-@newapi_etag(base_mapdata=True)
+@api_stats('location_geometery')
+@api_etag(base_mapdata=True)
 def location_by_id_geometry(request, location_id: AnyLocationID):
     return _location_geometry(
         request,
@@ -203,8 +203,8 @@ def location_by_id_geometry(request, location_id: AnyLocationID):
 @map_api_router.get('/locations/by-slug/{location_slug}/', summary="location by slug (slim)",
                     description="Get location by slug (with most important attributes set)",
                     response={200: SlimLocationSchema, **API404.dict(), **validate_responses, **auth_responses})
-@newapi_stats('location_get')
-@newapi_etag(base_mapdata=True)
+@api_stats('location_get')
+@api_etag(base_mapdata=True)
 def location_by_slug(request, location_slug: NonEmptyStr, filters: Query[RemoveGeometryFilter],
                      redirects: Query[ShowRedirects]):
     return _location_retrieve(
@@ -217,8 +217,8 @@ def location_by_slug(request, location_slug: NonEmptyStr, filters: Query[RemoveG
 @map_api_router.get('/locations/by-slug/{location_slug}/full/', summary="location by slug (full)",
                     description="Get location by slug (with all attributes set)",
                     response={200: FullLocationSchema, **API404.dict(), **validate_responses, **auth_responses})
-@newapi_stats('location_get')
-@newapi_etag(base_mapdata=True)
+@api_stats('location_get')
+@api_etag(base_mapdata=True)
 def location_by_slug_full(request, location_slug: NonEmptyStr, filters: Query[RemoveGeometryFilter],
                           redirects: Query[ShowRedirects]):
     return _location_retrieve(
@@ -231,8 +231,8 @@ def location_by_slug_full(request, location_slug: NonEmptyStr, filters: Query[Re
 @map_api_router.get('/locations/by-slug/{location_slug}/display/', summary="location display by slug",
                     description="Get location display information by slug",
                     response={200: LocationDisplay, **API404.dict(), **auth_responses})
-@newapi_stats('location_display')
-@newapi_etag(base_mapdata=True)
+@api_stats('location_display')
+@api_etag(base_mapdata=True)
 def location_by_slug_display(request, location_slug: NonEmptyStr):
     return _location_display(
         request,
@@ -243,8 +243,8 @@ def location_by_slug_display(request, location_slug: NonEmptyStr):
 @map_api_router.get('/locations/by-slug/{location_slug}/geometry/', summary="location geometry by slug",
                     description="Get location geometry (if available) by slug",
                     response={200: LocationGeometry, **API404.dict(), **auth_responses})
-@newapi_stats('location_geometry')
-@newapi_etag(base_mapdata=True)
+@api_stats('location_geometry')
+@api_etag(base_mapdata=True)
 def location_by_slug_geometry(request, location_slug: NonEmptyStr):
     return _location_geometry(
         request,
@@ -255,7 +255,7 @@ def location_by_slug_geometry(request, location_slug: NonEmptyStr):
 @map_api_router.get('/positions/{position_id}/', summary="moving position coordinates",
                     description="get current coordinates of a moving position / dynamic location",
                     response={200: AnyPositionStatusSchema, **API404.dict(), **auth_responses})
-@newapi_stats('get_position')
+@api_stats('get_position')
 def get_position_by_id(request, position_id: AnyPositionID):
     # no caching for obvious reasons!
     location = None
