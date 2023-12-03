@@ -385,6 +385,7 @@ class CustomLocationSchema(SerializableSchema):
         description="ground altitude (in the map-wide coordinate system), if it can be determined"
     )
     geometry: Optional[PointSchema] = APIField(
+        None,
         description="point geometry for this custom location",
     )
 
