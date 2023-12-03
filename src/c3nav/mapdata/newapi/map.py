@@ -67,17 +67,17 @@ def _location_list(request, detailed: bool, filters: LocationListFilters):
     return result
 
 
-@map_api_router.get('/locations/',
-                    response={200: list[SlimListableLocationSchema], **validate_responses, **auth_responses},
-                    summary="Get locations (with most important attributes)")
+@map_api_router.get('/locations/', summary="list locations (slim)",
+                    description="Get locations (with most important attributes set)",
+                    response={200: list[SlimListableLocationSchema], **validate_responses, **auth_responses})
 @newapi_etag(base_mapdata=True)
 def location_list(request, filters: Query[LocationListFilters]):
     return _location_list(request, detailed=False, filters=filters)
 
 
-@map_api_router.get('/locations/full/',
-                    response={200: list[FullListableLocationSchema], **validate_responses, **auth_responses},
-                    summary="Get locations (with all attributes)")
+@map_api_router.get('/locations/full/', summary="list locations (full)",
+                    description="Get locations (with all attributes set)",
+                    response={200: list[FullListableLocationSchema], **validate_responses, **auth_responses})
 @newapi_etag(base_mapdata=True)
 def location_list_full(request, filters: Query[LocationListFilters]):
     return _location_list(request, detailed=True, filters=filters)
@@ -148,10 +148,9 @@ class ShowRedirects(Schema):
     )
 
 
-@map_api_router.get('/locations/{location_id}/',
-                    response={200: SlimLocationSchema, **API404.dict(), **validate_responses, **auth_responses},
-                    summary="Get location by ID (with most important attributes)",
-                    description="a numeric ID for a map location or a string ID for generated locations can be used")
+@map_api_router.get('/locations/{location_id}/', summary="location by ID (slim)",
+                    description="Get locations by ID (with all attributes set)",
+                    response={200: SlimLocationSchema, **API404.dict(), **validate_responses, **auth_responses})
 @newapi_stats('location_get')
 @newapi_etag(base_mapdata=True)
 def location_by_id(request, location_id: AnyLocationID, filters: Query[RemoveGeometryFilter],
@@ -163,10 +162,9 @@ def location_by_id(request, location_id: AnyLocationID, filters: Query[RemoveGeo
     )
 
 
-@map_api_router.get('/locations/{location_id}/full/',
-                    response={200: FullLocationSchema, **API404.dict(), **validate_responses, **auth_responses},
-                    summary="Get location by ID (with all attributes)",
-                    description="a numeric ID for a map location or a string ID for generated locations can be used")
+@map_api_router.get('/locations/{location_id}/full/', summary="location by ID (full)",
+                    description="Get location by ID (with all attributes set)",
+                    response={200: FullLocationSchema, **API404.dict(), **validate_responses, **auth_responses})
 @newapi_stats('location_get')
 @newapi_etag(base_mapdata=True)
 def location_by_id_full(request, location_id: AnyLocationID, filters: Query[RemoveGeometryFilter],
@@ -178,10 +176,9 @@ def location_by_id_full(request, location_id: AnyLocationID, filters: Query[Remo
     )
 
 
-@map_api_router.get('/locations/{location_id}/display/',
-                    response={200: LocationDisplay, **API404.dict(), **auth_responses},
-                    summary="Get location display data by ID",
-                    description="a numeric ID for a map location or a string ID for generated locations can be used")
+@map_api_router.get('/locations/{location_id}/display/', summary="location display by ID",
+                    description="Get location display information by ID",
+                    response={200: LocationDisplay, **API404.dict(), **auth_responses})
 @newapi_stats('location_display')
 @newapi_etag(base_mapdata=True)
 def location_by_id_display(request, location_id: AnyLocationID):
@@ -191,10 +188,9 @@ def location_by_id_display(request, location_id: AnyLocationID):
     )
 
 
-@map_api_router.get('/locations/{location_id}/geometry/',
-                    response={200: LocationGeometry, **API404.dict(), **auth_responses},
-                    summary="Get location geometry (if available) by ID",
-                    description="a numeric ID for a map location or a string ID for generated locations can be used")
+@map_api_router.get('/locations/{location_id}/geometry/', summary="location geometry by id",
+                    description="Get location geometry (if available) by ID",
+                    response={200: LocationGeometry, **API404.dict(), **auth_responses})
 @newapi_stats('location_geometery')
 @newapi_etag(base_mapdata=True)
 def location_by_id_geometry(request, location_id: AnyLocationID):
@@ -204,9 +200,9 @@ def location_by_id_geometry(request, location_id: AnyLocationID):
     )
 
 
-@map_api_router.get('/locations/by-slug/{location_slug}/',
-                    response={200: SlimLocationSchema, **API404.dict(), **validate_responses, **auth_responses},
-                    summary="Get location by slug (with most important attributes)")
+@map_api_router.get('/locations/by-slug/{location_slug}/', summary="location by slug (slim)",
+                    description="Get location by slug (with most important attributes set)",
+                    response={200: SlimLocationSchema, **API404.dict(), **validate_responses, **auth_responses})
 @newapi_stats('location_get')
 @newapi_etag(base_mapdata=True)
 def location_by_slug(request, location_slug: NonEmptyStr, filters: Query[RemoveGeometryFilter],
@@ -218,9 +214,9 @@ def location_by_slug(request, location_slug: NonEmptyStr, filters: Query[RemoveG
     )
 
 
-@map_api_router.get('/locations/by-slug/{location_slug}/full/',
-                    response={200: FullLocationSchema, **API404.dict(), **validate_responses, **auth_responses},
-                    summary="Get location by slug (with all attributes)")
+@map_api_router.get('/locations/by-slug/{location_slug}/full/', summary="location by slug (full)",
+                    description="Get location by slug (with all attributes set)",
+                    response={200: FullLocationSchema, **API404.dict(), **validate_responses, **auth_responses})
 @newapi_stats('location_get')
 @newapi_etag(base_mapdata=True)
 def location_by_slug_full(request, location_slug: NonEmptyStr, filters: Query[RemoveGeometryFilter],
@@ -232,9 +228,9 @@ def location_by_slug_full(request, location_slug: NonEmptyStr, filters: Query[Re
     )
 
 
-@map_api_router.get('/locations/by-slug/{location_slug}/display/',
-                    response={200: LocationDisplay, **API404.dict(), **auth_responses},
-                    summary="Get location display data by slug")
+@map_api_router.get('/locations/by-slug/{location_slug}/display/', summary="location display by slug",
+                    description="Get location display information by slug",
+                    response={200: LocationDisplay, **API404.dict(), **auth_responses})
 @newapi_stats('location_display')
 @newapi_etag(base_mapdata=True)
 def location_by_slug_display(request, location_slug: NonEmptyStr):
@@ -244,9 +240,9 @@ def location_by_slug_display(request, location_slug: NonEmptyStr):
     )
 
 
-@map_api_router.get('/locations/by-slug/{location_slug}/geometry/',
-                    response={200: LocationGeometry, **API404.dict(), **auth_responses},
-                    summary="Get location geometry (if available) by slug")
+@map_api_router.get('/locations/by-slug/{location_slug}/geometry/', summary="location geometry by slug",
+                    description="Get location geometry (if available) by slug",
+                    response={200: LocationGeometry, **API404.dict(), **auth_responses})
 @newapi_stats('location_geometry')
 @newapi_etag(base_mapdata=True)
 def location_by_slug_geometry(request, location_slug: NonEmptyStr):
@@ -256,11 +252,9 @@ def location_by_slug_geometry(request, location_slug: NonEmptyStr):
     )
 
 
-@map_api_router.get('/positions/{position_id}/',
-                    response={200: AnyPositionStatusSchema, **API404.dict(), **auth_responses},
-                    summary="get coordinates of a moving position",
-                    description="a numeric ID for a dynamic location or a string ID for the position secret "
-                                "can be used")
+@map_api_router.get('/positions/{position_id}/', summary="moving position coordinates",
+                    description="get current coordinates of a moving position / dynamic location",
+                    response={200: AnyPositionStatusSchema, **API404.dict(), **auth_responses})
 @newapi_stats('get_position')
 def get_position_by_id(request, position_id: AnyPositionID):
     # no caching for obvious reasons!
@@ -289,9 +283,9 @@ class UpdatePositionSchema(Schema):
 
 
 @map_api_router.put('/positions/{position_id}/', url_name="position-update",
-                    response={200: AnyPositionStatusSchema, **API404.dict(), **auth_permission_responses},
-                    summary="set coordinates of a moving position",
-                    description="only the string ID for the position secret must be used")
+                    summary="set moving position",
+                    description="only the string ID for the position secret must be used",
+                    response={200: AnyPositionStatusSchema, **API404.dict(), **auth_permission_responses})
 def set_position(request, position_id: AnyPositionID, update: UpdatePositionSchema):
     # todo: may an API key do this?
     if not update.position_id.startswith('p:'):
