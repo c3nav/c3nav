@@ -1,4 +1,4 @@
-from typing import Annotated, Literal, Union, Any
+from typing import Annotated, Any, Literal, Union
 
 from ninja import Schema
 from pydantic import Discriminator

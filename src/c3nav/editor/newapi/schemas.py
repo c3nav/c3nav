@@ -4,7 +4,7 @@ from ninja import Schema
 from pydantic import Field as APIField
 from pydantic import PositiveInt
 
-from c3nav.api.schema import GeometrySchema, LineSchema, AnyGeometrySchema
+from c3nav.api.schema import AnyGeometrySchema, GeometrySchema, LineSchema
 from c3nav.api.utils import NonEmptyStr
 
 GeometryStylesSchema = Annotated[
