@@ -302,10 +302,14 @@ class SourceSchema(WithAccessRestrictionSchema, DjangoModelSchema):
         description="name/filename of the source",
     )
     bounds: tuple[
-        Annotated[float, APIField(name="left")],
-        Annotated[float, APIField(name="bottom")],
-        Annotated[float, APIField(name="right")],
-        Annotated[float, APIField(name="top")],
+        tuple[
+            Annotated[float, APIField(name="left")],
+            Annotated[float, APIField(name="bottom")],
+        ],
+        tuple[
+            Annotated[float, APIField(name="right")],
+            Annotated[float, APIField(name="top")],
+        ]
     ]
 
 
