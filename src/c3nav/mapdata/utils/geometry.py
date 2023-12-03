@@ -33,7 +33,6 @@ def check_speedups(app_configs, **kwargs):
 
 
 class WrappedGeometry():
-    picklable = False
     wrapped_geojson = None
 
     def __init__(self, geojson):
@@ -45,32 +44,15 @@ class WrappedGeometry():
             return GeometryCollection()
         return shapely_shape(self.wrapped_geojson)
 
-    def __getstate__(self):
-        self.picklable = True
-        # make sure geometry is cached
-        if self.wrapped_geojson:
-            # noinspection PyStatementEffect
-            self.wrapped_geom
-        super().__getstate__()
-
     def __getattr__(self, name):
-        if name in ('__getstate__'):
-            self.picklable = True
-            # make sure geometry is cached
-            if self.wrapped_geojson:
-                # noinspection PyStatementEffect
-                self.wrapped_geom
-            raise AttributeError
-        if name in ('__reduce__', '__getstate__', '__setstate__', '__reduce_ex__',
-                    '__getnewargs__', '__getnewargs_ex__'):
-            raise AttributeError
         return getattr(self.wrapped_geom, name)
 
     @property
     def __class__(self):
-        result = WrappedGeometry if self.picklable else self.wrapped_geom.__class__
-        self.__dict__.pop('picklable', None)
-        return result
+        return self.wrapped_geom.__class__
+
+    def __reduce__(self):
+        return WrappedGeometry, (self.wrapped_geojson, )
 
 
 def unwrap_geom(geometry):
