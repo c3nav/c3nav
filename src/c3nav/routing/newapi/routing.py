@@ -74,10 +74,19 @@ class RouteParametersSchema(Schema):
 class RouteItemSchema(Schema):
     id: PositiveInt
     coordinates: Coordinates3D
-    way_type: Optional[dict]  # todo: improve
-    space: Optional[dict] = APIField(title="new space being entered")
-    level: Optional[dict] = APIField(title="new level being entered")
-    descriptions: list[NonEmptyStr]
+    waytype: Optional[dict] = None  # todo: improve
+    space: Optional[dict] = APIField(None, title="new space being entered")
+    level: Optional[dict] = APIField(None, title="new level being entered")
+    descriptions: list[tuple[
+        Annotated[NonEmptyStr, APIField(
+            title="icon name",
+            description="any material design icon name"
+        )],
+        Annotated[NonEmptyStr, APIField(
+            title="instruction",
+            description="navigation instruction"
+        )]
+    ]]
 
 
 class RouteSchema(Schema):
@@ -124,7 +133,8 @@ def get_route(request, parameters: RouteParametersSchema):
         return APIRequestValidationFailed("\n".join(form.errors))
 
     options = RouteOptions.get_for_request(request)
-    _new_update_route_options(options, parameters.options_override)
+    if parameters.options_override is not None:
+        _new_update_route_options(options, parameters.options_override)
 
     try:
         route = Router.load().get_route(origin=form.cleaned_data['origin'],
@@ -165,8 +175,8 @@ def get_route(request, parameters: RouteParametersSchema):
         request=parameters,
         options=_new_serialize_route_options(options),
         report_issue_url=reverse('site.report_create', kwargs={
-            'origin': request.POST['origin'],
-            'destination': request.POST['destination'],
+            'origin': parameters.origin,
+            'destination': parameters.destination,
             'options': options.serialize_string()
         }),
         result=route.serialize(locations=visible_locations_for_request(request)),
