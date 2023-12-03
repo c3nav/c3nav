@@ -54,6 +54,7 @@ class AltitudeWayTypeChoice(StrEnum):
 
 
 class RouteOptionsSchema(Schema):
+    # todo: default is wrong, this should be optional
     mode: RouteMode = RouteMode.FASTEST
     walk_speed: WalkSpeed = WalkSpeed.DEFAULT
     way_types: dict[
