@@ -116,7 +116,7 @@ def resolve_editor_path_api(request, path):
     return resolved
 
 
-@editor_api_router.get('/{path:path}', summary="access the editor UI programmatically",
+@editor_api_router.get('/as_api/{path:path}', summary="access the editor UI programmatically",
                        response={200: dict, **API404.dict(), **auth_permission_responses},
                        openapi_extra={"security": [{"APITokenAuth": ["editor_access"]}]})
 @newapi_etag()  # todo: correct?
@@ -138,7 +138,7 @@ def view_as_api(request, path: str):
     return response
 
 
-@editor_api_router.post('/{path:path}', summary="access the editor UI programmatically",
+@editor_api_router.post('/as_api/{path:path}', summary="access the editor UI programmatically",
                         response={200: dict, **API404.dict(), **auth_permission_responses},
                         openapi_extra={"security": [{"APITokenAuth": ["editor_access", "write"]}]})
 @newapi_etag()  # todo: correct?
