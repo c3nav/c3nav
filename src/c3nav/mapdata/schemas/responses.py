@@ -5,6 +5,7 @@ from pydantic import Field as APIField
 from pydantic import PositiveInt
 
 from c3nav.api.schema import GeometrySchema
+from c3nav.mapdata.schemas.model_base import AnyLocationID
 
 
 class BoundsSchema(Schema):
@@ -18,7 +19,7 @@ class BoundsSchema(Schema):
 
 
 class LocationGeometry(Schema):
-    id: PositiveInt = APIField(
+    id: AnyLocationID = APIField(
         description="ID of the location that the geometry is being queried for",
     )
     level: Optional[PositiveInt] = APIField(
