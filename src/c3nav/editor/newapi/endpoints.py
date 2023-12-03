@@ -15,7 +15,8 @@ from c3nav.mapdata.schemas.responses import BoundsSchema
 editor_api_router = APIRouter(tags=["editor"], auth=APITokenAuth(permissions={"editor_access"}))
 
 
-@editor_api_router.get('/bounds/', summary="Get editor map boundaries",
+@editor_api_router.get('/bounds/', summary="boundaries",
+                       description="get maximum boundaries of everything on the map",
                        response={200: BoundsSchema, **auth_permission_responses},
                        openapi_extra={"security": [{"APITokenAuth": ["editor_access"]}]})
 @newapi_etag()
@@ -25,7 +26,8 @@ def bounds(request):
     }
 
 
-@editor_api_router.get('/geometrystyles/', summary="get the default colors for each geometry type",
+@editor_api_router.get('/geometrystyles/', summary="geometry styles",
+                       description="get the default colors for each geometry type",
                        response={200: GeometryStylesSchema, **auth_permission_responses},
                        openapi_extra={"security": [{"APITokenAuth": ["editor_access"]}]})
 @newapi_etag(permissions=False)
@@ -51,15 +53,13 @@ def geometrystyles(request):
     }
 
 
-@editor_api_router.get('/geometries/space/{space_id}/', summary="get the geometries to display for a space",
+@editor_api_router.get('/geometries/space/{space_id}/', summary="space geometries",
+                       description="get the geometries to display on the editor map for a space",
                        response={200: list[EditorGeometriesElemSchema], **API404.dict(),
                                  **auth_permission_responses},
                        openapi_extra={"security": [{"APITokenAuth": ["editor_access"]}]})
 @newapi_etag_with_update_cache_key(etag_func=editor_etag_func)
 def space_geometries(request, space_id: EditorID, update_cache_key: UpdateCacheKey = None, **kwargs):
-    """
-    look. this is a complex mess. there will hopefully be more documentation soon. or a better endpoint.
-    """
     # newapi_etag_with_update_cache_key does the following, don't let it confuse you:
     # - update_cache_key becomes the actual update_cache_key, not the one supplied be the user
     # - kwargs has "update_cache_key_match", which is true if update_cache_key matches the one supplied be the user
@@ -73,15 +73,13 @@ def space_geometries(request, space_id: EditorID, update_cache_key: UpdateCacheK
     # todo: test the heck out of this
 
 
-@editor_api_router.get('/geometries/level/{level_id}/', summary="get the geometries to display for a level",
+@editor_api_router.get('/geometries/level/{level_id}/', summary="level geometries",
+                       description="get the geometries to display on the editor map for a space",
                        response={200: list[EditorGeometriesElemSchema], **API404.dict(),
                                  **auth_permission_responses},
                        openapi_extra={"security": [{"APITokenAuth": ["editor_access"]}]})
 @newapi_etag_with_update_cache_key(etag_func=editor_etag_func)
 def level_geometries(request, level_id: EditorID, update_cache_key: UpdateCacheKey = None, **kwargs):
-    """
-    look. this is a complex mess. there will hopefully be more documentation soon. or a better endpoint.
-    """
     # newapi_etag_with_update_cache_key does the following, don't let it confuse you:
     # - update_cache_key becomes the actual update_cache_key, not the one supplied be the user
     # - kwargs has "update_cache_key_match", which is true if update_cache_key matches the one supplied be the user
@@ -116,7 +114,7 @@ def resolve_editor_path_api(request, path):
     return resolved
 
 
-@editor_api_router.get('/as_api/{path:path}', summary="access the editor UI programmatically",
+@editor_api_router.get('/as_api/{path:path}', summary="raw editor access",
                        response={200: dict, **API404.dict(), **auth_permission_responses},
                        openapi_extra={"security": [{"APITokenAuth": ["editor_access"]}]})
 @newapi_etag()  # todo: correct?
@@ -138,7 +136,7 @@ def view_as_api(request, path: str):
     return response
 
 
-@editor_api_router.post('/as_api/{path:path}', summary="access the editor UI programmatically",
+@editor_api_router.post('/as_api/{path:path}', summary="raw editor access",
                         response={200: dict, **API404.dict(), **auth_permission_responses},
                         openapi_extra={"security": [{"APITokenAuth": ["editor_access", "write"]}]})
 @newapi_etag()  # todo: correct?
