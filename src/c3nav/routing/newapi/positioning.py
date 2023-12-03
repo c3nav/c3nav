@@ -35,7 +35,9 @@ class PositioningResult(Schema):
     location: Optional[CustomLocationSchema]
 
 
-@positioning_api_router.post('/locate/', summary="locate based on wifi scans",
+@positioning_api_router.post('/locate/', summary="determine position",
+                             description="determine position based on wireless measurements "
+                                         "(including ranging, if available)",
                              response={200: PositioningResult, **auth_responses})
 def get_position(request, parameters: LocateRequestSchema):
     try:
@@ -52,7 +54,8 @@ def get_position(request, parameters: LocateRequestSchema):
     }
 
 
-@positioning_api_router.get('/locate-test/', summary="get dummy location for debugging",
+@positioning_api_router.get('/locate-test/', summary="debug position",
+                            description="outputs a location for debugging purposes",
                             response={200: PositioningResult, **auth_responses})
 def locate_test():
     from c3nav.mesh.messages import MeshMessageType
@@ -96,7 +99,8 @@ BeaconsXYZ = dict[
 ]
 
 
-@positioning_api_router.get('/beacons-xyz/', summary="get calculated x y z for all beacons",
+@positioning_api_router.get('/beacons-xyz/', summary="get beacon coordinates",
+                            description="get xyz coordinates for all known positioning beacons",
                             response={200: BeaconsXYZ, **auth_responses})
 def beacons_xyz():
     return RangeLocator.load().get_all_xyz()
