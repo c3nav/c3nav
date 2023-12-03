@@ -34,7 +34,7 @@ class LevelChildEditUtils(DefaultEditUtils):
 
     @property
     def _geometry_url(self):
-        return '/api/editor/geometries/?level=' + str(self.level.primary_level_pk)
+        return '/api/v2/editor/geometries/level/' + str(self.level.primary_level_pk)
 
 
 class SpaceChildEditUtils(DefaultEditUtils):
@@ -54,4 +54,4 @@ class SpaceChildEditUtils(DefaultEditUtils):
 
     @property
     def _geometry_url(self):
-        return '/api/editor/geometries/?space='+str(self.space.pk)
+        return '/api/v2/editor/geometries/space/'+str(self.space.pk)

@@ -137,16 +137,13 @@ c3nav = {
     _searchable_locations_timer: null,
     load_searchable_locations: function(firstTime) {
         c3nav._searchable_locations_timer = null;
-        $.ajax({
-            dataType: "json",
-            url: '/api/locations/?searchable',
-            success: c3nav._searchable_locations_loaded,
-            ifModified: true,
-        }).fail(function() {
-            if(c3nav._searchable_locations_timer === null) {
-                c3nav._searchable_locations_timer = window.setTimeout(c3nav.load_searchable_locations, c3nav.init_completed ? 300000 : 15000);
-            }
-        });
+        c3nav_api.get('map/locations?searchable=true')
+            .then(c3nav._searchable_locations_loaded)
+            .catch(() => {
+                if (c3nav._searchable_locations_timer === null) {
+                    c3nav._searchable_locations_timer = window.setTimeout(c3nav.load_searchable_locations, c3nav.init_completed ? 300000 : 15000);
+                }
+            });
     },
     _sort_labels: function(a, b) {
         var result = (a[0].label_settings.min_zoom || -10) - (b[0].label_settings.min_zoom || -10);
@@ -424,14 +421,15 @@ c3nav = {
         if ($location_details.attr('data-id') !== String(location.id)) {
             $location_details.addClass('loading').attr('data-id', location.id);
             c3nav._clear_route_layers();
-            $.getJSON('/api/locations/'+location.id+'/details', c3nav._location_details_loaded).fail(function (data) {
-                var $location_details = $('#location-details');
-                $location_details.find('.details-body').text('Error '+String(data.status));
-                $location_details.find('.details-body').html('').append(elem);
-                $location_details.find('.editor').hide();
-                $location_details.find('.report').hide();
-                $location_details.removeClass('loading');
-            });
+            c3nav_api.get(`map/locations/${location.id}/display`).then(c3nav._location_details_loaded)
+                .catch(data => {
+                    var $location_details = $('#location-details');
+                    $location_details.find('.details-body').text('Error ' + String(data.status));
+                    $location_details.find('.details-body').html('').append(elem);
+                    $location_details.find('.editor').hide();
+                    $location_details.find('.report').hide();
+                    $location_details.removeClass('loading');
+                })
         }
     },
     _location_details_loaded: function(data) {
@@ -505,17 +503,13 @@ c3nav = {
             $route.addClass('loading').attr('data-origin', origin.id).attr('data-destination', destination.id);
             $details_wrapper.addClass('loading');
             $options_wrapper.addClass('loading');
-            $.post('/api/routing/route/', $.extend({
-                'origin': origin.id,
-                'destination': destination.id,
-                'csrfmiddlewaretoken': c3nav.get_csrf_token()
-            }, c3nav.next_route_options || {}), function(data) {
-                c3nav._route_loaded(data, nofly)
-            }, 'json').fail(function(data) {
-                c3nav._route_loaded({
-                    'error': 'Error '+String(data.status)
-                })
-            });
+            c3nav_api.post('routing/route', {
+                origin: origin.id,
+                destination: destination.id,
+                ...(c3nav.next_route_options || {}),
+            })
+                .then(data => c3nav._route_loaded(data, nofly))
+                .catch(data => c3nav._route_loaded({error: `Error ${data.status}`}));
         }
         c3nav.next_route_options = null;
     },
@@ -824,7 +818,7 @@ c3nav = {
             options[$(this).attr('name')] = $(this).val();
         });
         if ($(this).is('.save')) {
-            $.post('/api/routing/options/', options);
+            c3nav_api.post('routing/options', options);
         }
         c3nav.next_route_options = options;
         c3nav.update_state(null, null, null, false);
@@ -1443,30 +1437,32 @@ c3nav = {
             name = c3nav._latlng_to_name(latlng);
         c3nav._click_anywhere_popup = popup;
         popup.on('remove', function() { c3nav._click_anywhere_popup = null }).openOn(c3nav.map);
-        $.getJSON('/api/locations/'+name+'/', function(data) {
-            if (c3nav._click_anywhere_popup !== popup || !popup.isOpen()) return;
-            popup.remove();
-            if (nearby) {
-                var $destination = $('#destination-input');
-                c3nav._locationinput_set($destination, data);
-                c3nav.update_state(false, false, false, false, true);
-            } else {
-                newpopup = L.popup(c3nav._add_map_padding({
-                    className: 'location-popup',
-                    maxWidth: 500
-                }, 'autoPanPaddingTopLeft', 'autoPanPaddingBottomRight'));
-                var buttons = $('#location-popup-buttons').clone();
-                buttons.find('.report-issue').remove();
-                buttons.find('.report').attr('href', '/report/l/' + String(data.id) + '/');
-                newpopup.setLatLng(latlng).setContent(c3nav._build_location_html(data) + buttons.html());
-                c3nav._click_anywhere_popup = newpopup;
-                newpopup.on('remove', function () {
-                    c3nav._click_anywhere_popup = null
-                }).openOn(c3nav.map);
-            }
-        }).fail(function() {
-            popup.remove();
-        });
+        c3nav_api.get(`map/locations/${name}/`)
+            .then(data => {
+                if (c3nav._click_anywhere_popup !== popup || !popup.isOpen()) return;
+                popup.remove();
+                if (nearby) {
+                    var $destination = $('#destination-input');
+                    c3nav._locationinput_set($destination, data);
+                    c3nav.update_state(false, false, false, false, true);
+                } else {
+                    newpopup = L.popup(c3nav._add_map_padding({
+                        className: 'location-popup',
+                        maxWidth: 500
+                    }, 'autoPanPaddingTopLeft', 'autoPanPaddingBottomRight'));
+                    var buttons = $('#location-popup-buttons').clone();
+                    buttons.find('.report-issue').remove();
+                    buttons.find('.report').attr('href', '/report/l/' + String(data.id) + '/');
+                    newpopup.setLatLng(latlng).setContent(c3nav._build_location_html(data) + buttons.html());
+                    c3nav._click_anywhere_popup = newpopup;
+                    newpopup.on('remove', function () {
+                        c3nav._click_anywhere_popup = null
+                    }).openOn(c3nav.map);
+                }
+            })
+            .catch(function() {
+                popup.remove();
+            });
     },
     _map_moved: function () {
         c3nav.update_map_state();
@@ -1588,7 +1584,8 @@ c3nav = {
         }
         if (location.dynamic) {
             if (!('available' in location)) {
-                $.getJSON('/api/locations/dynamic/' + location.id + '/', c3nav._dynamic_location_loaded);
+                c3nav_api.get(`map/locations/dynamic/${location.id}/`)
+                    .then(c3nav._dynamic_location_loaded);
                 return;
             } else if (!location.available) {
                 return;
@@ -1605,7 +1602,7 @@ c3nav = {
 
         if (!no_geometry && c3nav._visible_map_locations.indexOf(location.id) === -1) {
             c3nav._visible_map_locations.push(location.id);
-            $.getJSON('/api/locations/' + location.id + '/geometry/', c3nav._location_geometry_loaded);
+            c3nav_api.get(`map/locations/${location.id}/geometry/`).then(c3nav._location_geometry_loaded);
         }
 
         if (!location.point) return;
@@ -1675,12 +1672,14 @@ c3nav = {
     _fetch_updates_failure_count: 0,
     fetch_updates: function () {
         c3nav._fetch_updates_timer = null;
-        $.get('/api/updates/fetch/', c3nav._fetch_updates_callback).fail(function() {
-            c3nav._fetch_updates_failure_count++;
-            waittime = Math.min(5 + c3nav._fetch_updates_failure_count * 5, 120);
-            // console.log('fetch updates failed, retying in ' + waittime + 'sec');
-            c3nav.schedule_fetch_updates(waittime*1000);
-        });
+        c3nav_api.get('updates/fetch')
+            .then(c3nav._fetch_updates_callback)
+            .catch(() => {
+                c3nav._fetch_updates_failure_count++;
+                waittime = Math.min(5 + c3nav._fetch_updates_failure_count * 5, 120);
+                // console.log('fetch updates failed, retying in ' + waittime + 'sec');
+                c3nav.schedule_fetch_updates(waittime*1000);
+            });
     },
     _fetch_updates_callback: function (data) {
         c3nav._fetch_updates_failure_count = 0;
@@ -1782,21 +1781,12 @@ c3nav = {
         }
         c3nav._no_wifi_count = 0;
 
-        $.post({
-            url: '/api/routing/locate/',
-            data: JSON.stringify(data),
-            dataType: 'json',
-            contentType: 'application/json',
-            beforeSend: function(xhrObj){
-                xhrObj.setRequestHeader('X-CSRFToken', c3nav.get_csrf_token());
-            },
-            success: function(data) {
-                c3nav._set_user_location(data.location);
-            }
-        }).fail(function() {
-            c3nav._set_user_location(null);
-            c3nav._last_wifi_scan = Date.now() + 20000
-        });
+        c3nav_api.post('routing/locate', data)
+            .then(data => c3nav._set_user_location(data.location))
+            .catch(() => {
+                c3nav._set_user_location(null);
+                c3nav._last_wifi_scan = Date.now() + 20000
+            });
     },
     _current_user_location: null,
     _set_user_location: function(location) {

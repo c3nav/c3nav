@@ -93,16 +93,17 @@ editor = {
         // load sources
         editor._sources_control = L.control.layers([], [], { autoZIndex: false });
 
-        $.getJSON('/api/sources/', function (sources) {
-            var source;
-            for (var i = 0; i < sources.length; i++) {
-                source = sources[i];
-                editor.sources[source.id] = source;
-                source.layer = L.imageOverlay('/api/sources/'+source.id+'/image/', L.GeoJSON.coordsToLatLngs(source.bounds), {opacity: 0.3});
-                editor._sources_control.addOverlay(source.layer, source.name);
-            }
-            if (sources.length) editor._sources_control.addTo(editor.map);
-        });
+        c3nav_api.get('mapdata/sources')
+            .then(sources => {
+                var source;
+                for (var i = 0; i < sources.length; i++) {
+                    source = sources[i];
+                    editor.sources[source.id] = source;
+                    source.layer = L.imageOverlay('/api/sources/'+source.id+'/image/', L.GeoJSON.coordsToLatLngs(source.bounds), {opacity: 0.3});
+                    editor._sources_control.addOverlay(source.layer, source.name);
+                }
+                if (sources.length) editor._sources_control.addTo(editor.map);
+            })
     },
 
     // sidebar
@@ -148,7 +149,7 @@ editor = {
         if (window.mobileclient && mobileclient.wificollectorStop && $('#sidebar').find('.wificollector.running').length) {
             mobileclient.wificollectorStop();
         }
-        
+
         $('#sidebar').addClass('loading').find('.content').html('');
         editor._cancel_editing();
     },
@@ -664,16 +665,19 @@ editor = {
 
         editor.map.on('zoomend', editor._adjust_line_zoom);
 
-        $.getJSON('/api/editor/geometrystyles/', function(geometrystyles) {
-            editor.geometrystyles = geometrystyles;
-            $.getJSON('/api/editor/bounds/', function(bounds) {
-                bounds = L.GeoJSON.coordsToLatLngs(bounds.bounds);
-                editor._max_bounds = bounds;
-                editor._set_max_bounds();
-                editor.map.fitBounds(bounds, {padding: [30, 50]});
-                editor.init_sidebar();
-            });
-        });
+        c3nav_api.get('editor/geometrystyles')
+            .then(geometrystyles => {
+                editor.geometrystyles = geometrystyles;
+                c3nav_api.get('editor/bounds')
+                    .then(bounds => {
+                        bounds = L.GeoJSON.coordsToLatLngs(bounds.bounds);
+                        editor._max_bounds = bounds;
+                        editor._set_max_bounds();
+                        editor.map.fitBounds(bounds, {padding: [30, 50]});
+                        editor.init_sidebar();
+                    })
+            })
+
         editor.get_sources();
     },
     _set_max_bounds: function(bounds) {
@@ -703,102 +707,103 @@ editor = {
         editor._set_max_bounds();
 
         if (same_url && editor._last_geometry_update_cache_key) {
-            geometry_url += '&update_cache_key='+editor._last_geometry_update_cache_key;
+            geometry_url += '?update_cache_key='+editor._last_geometry_update_cache_key;
         }
-        $.getJSON(geometry_url, function(result) {
-            var geometries = [], feature, new_cache = {}, feature_type, feature_id;
-            // geometries cache logic
-            for (var i=0;i<result.length;i++) {
-                feature = result[i];
-                if (Array.isArray(feature)) {
-                    if (feature[0] === 'update_cache_key') {
-                        editor._last_geometry_update_cache_key = feature[1];
-                        continue;
+        c3nav_api.get(geometry_url)
+            .then(result => {
+                var geometries = [], feature, new_cache = {}, feature_type, feature_id;
+                // geometries cache logic
+                for (var i=0;i<result.length;i++) {
+                    feature = result[i];
+                    if (Array.isArray(feature)) {
+                        if (feature[0] === 'update_cache_key') {
+                            editor._last_geometry_update_cache_key = feature[1];
+                            continue;
+                        }
+                        // load from cache
+                        if (feature[0] in editor._last_geometry_cache) {
+                            feature = editor._last_geometry_cache[feature[0]][feature[1]];
+                        } else {
+                            feature = null;
+                        }
+                        if (!feature) {
+                            editor._last_geometry_update_cache_key = null;
+                            editor.load_geometries(editor._last_geometry_url, editor._highlight_type, editor._editing_id);
+                            return;
+                        }
                     }
-                    // load from cache
-                    if (feature[0] in editor._last_geometry_cache) {
-                        feature = editor._last_geometry_cache[feature[0]][feature[1]];
-                    } else {
-                        feature = null;
+                    if (!feature.properties.changed) {
+                        if (!new_cache[feature.properties.type]) {
+                            new_cache[feature.properties.type] = {};
+                        }
+                        new_cache[feature.properties.type][feature.properties.id] = feature;
                     }
-                    if (!feature) {
-                        editor._last_geometry_update_cache_key = null;
-                        editor.load_geometries(editor._last_geometry_url, editor._highlight_type, editor._editing_id);
-                        return;
-                    }
+                    geometries.push(feature);
                 }
-                if (!feature.properties.changed) {
-                    if (!new_cache[feature.properties.type]) {
-                        new_cache[feature.properties.type] = {};
-                    }
-                    new_cache[feature.properties.type][feature.properties.id] = feature;
-                }
-                geometries.push(feature);
-            }
-            editor._last_geometry_cache = new_cache;
+                editor._last_geometry_cache = new_cache;
 
-            editor.map.removeLayer(editor._highlight_layer);
-            editor._highlight_layer.clearLayers();
-            if (editor._geometries_layer !== null) {
-                editor.map.removeLayer(editor._geometries_layer);
-            }
-            var remove_feature = null;
-            if (editor._editing_id !== null) {
-                for (i=0;i<geometries.length;i++) {
-                    feature = geometries[i];
-                    if (feature.properties.original_type !== undefined && feature.properties.original_type+'-'+String(feature.properties.original_id) === editor._editing_id) {
-                        remove_feature = i;
-                    } else if (feature.original_geometry !== undefined && feature.properties.type+'-'+String(feature.properties.id) === editor._editing_id) {
-                        feature.geometry = feature.original_geometry;
-                        break;
+                editor.map.removeLayer(editor._highlight_layer);
+                editor._highlight_layer.clearLayers();
+                if (editor._geometries_layer !== null) {
+                    editor.map.removeLayer(editor._geometries_layer);
+                }
+                var remove_feature = null;
+                if (editor._editing_id !== null) {
+                    for (i=0;i<geometries.length;i++) {
+                        feature = geometries[i];
+                        if (feature.properties.original_type !== undefined && feature.properties.original_type+'-'+String(feature.properties.original_id) === editor._editing_id) {
+                            remove_feature = i;
+                        } else if (feature.original_geometry !== undefined && feature.properties.type+'-'+String(feature.properties.id) === editor._editing_id) {
+                            feature.geometry = feature.original_geometry;
+                            break;
+                        }
                     }
                 }
-            }
-            if (remove_feature !== null) {
-                geometries.splice(remove_feature, 1);
-            }
-            if (editor._last_graph_path === null) {
-                geometries = geometries.filter(function(val) { return val.properties.type !== 'graphnode' && val.properties.type !== 'graphedge' })
-            }
-            editor._geometries_layer = L.geoJSON(geometries, {
-                style: editor._get_geometry_style,
-                pointToLayer: editor._point_to_layer,
-                onEachFeature: editor._register_geojson_feature
-            });
-            editor._geometries_layer.addTo(editor.map);
-            editor._highlight_layer.addTo(editor.map);
-            editor._loading_geometry = false;
-            if (editor._bounds_layer === null && editor._geometries_layer.getLayers().length) editor._bounds_layer = editor._geometries_layer;
-            if (editor._next_zoom && editor._bounds_layer !== null) {
-                editor.map.flyToBounds((editor._bounds_layer.getBounds !== undefined) ? editor._bounds_layer.getBounds() : [editor._bounds_layer.getLatLng(), editor._bounds_layer.getLatLng()], {
-                    maxZoom: Math.max(4, editor.map.getZoom()),
-                    duration: 0.5,
-                    padding: [20, 20]
+                if (remove_feature !== null) {
+                    geometries.splice(remove_feature, 1);
+                }
+                if (editor._last_graph_path === null) {
+                    geometries = geometries.filter(function(val) { return val.properties.type !== 'graphnode' && val.properties.type !== 'graphedge' })
+                }
+                editor._geometries_layer = L.geoJSON(geometries, {
+                    style: editor._get_geometry_style,
+                    pointToLayer: editor._point_to_layer,
+                    onEachFeature: editor._register_geojson_feature
                 });
-            }
-            editor._next_zoom = null;
-            editor.map.doubleClickZoom.enable();
-
-            editor._adjust_line_zoom();
-
-            if (editor.map.options.renderer._container !== undefined) {
-                var defs = editor.map.options.renderer._container.querySelector('defs');
-                if (defs === null) {
-                    editor.map.options.renderer._container.insertAdjacentHTML('afterbegin', '<defs></defs>');
-                    defs = editor.map.options.renderer._container.querySelector('defs');
-                } else {
-                    defs.innerHTML = '';
+                editor._geometries_layer.addTo(editor.map);
+                editor._highlight_layer.addTo(editor.map);
+                editor._loading_geometry = false;
+                if (editor._bounds_layer === null && editor._geometries_layer.getLayers().length) editor._bounds_layer = editor._geometries_layer;
+                if (editor._next_zoom && editor._bounds_layer !== null) {
+                    editor.map.flyToBounds((editor._bounds_layer.getBounds !== undefined) ? editor._bounds_layer.getBounds() : [editor._bounds_layer.getLatLng(), editor._bounds_layer.getLatLng()], {
+                        maxZoom: Math.max(4, editor.map.getZoom()),
+                        duration: 0.5,
+                        padding: [20, 20]
+                    });
                 }
-                for(i=0;i<editor._arrow_colors.length;i++) {
-                    var color = editor._arrow_colors[i];
-                    defs = editor.map.options.renderer._container.querySelector('defs');
-                    // noinspection HtmlUnknownAttribute
-                    defs.insertAdjacentHTML('beforeend', '<marker id="graph-edge-arrow-'+String(i)+'" markerWidth="2" markerHeight="3" refX="3.5" refY="1.5" orient="auto"><path d="M0,0 L2,1.5 L0,3 L0,0" fill="'+color+'"></path></marker>');
-                }
-            }
+                editor._next_zoom = null;
+                editor.map.doubleClickZoom.enable();
 
-            editor._check_start_editing();
-        });
+                editor._adjust_line_zoom();
+
+                if (editor.map.options.renderer._container !== undefined) {
+                    var defs = editor.map.options.renderer._container.querySelector('defs');
+                    if (defs === null) {
+                        editor.map.options.renderer._container.insertAdjacentHTML('afterbegin', '<defs></defs>');
+                        defs = editor.map.options.renderer._container.querySelector('defs');
+                    } else {
+                        defs.innerHTML = '';
+                    }
+                    for(i=0;i<editor._arrow_colors.length;i++) {
+                        var color = editor._arrow_colors[i];
+                        defs = editor.map.options.renderer._container.querySelector('defs');
+                        // noinspection HtmlUnknownAttribute
+                        defs.insertAdjacentHTML('beforeend', '<marker id="graph-edge-arrow-'+String(i)+'" markerWidth="2" markerHeight="3" refX="3.5" refY="1.5" orient="auto"><path d="M0,0 L2,1.5 L0,3 L0,0" fill="'+color+'"></path></marker>');
+                    }
+                }
+
+                editor._check_start_editing();
+            })
     },
     reload_geometries: function () {
         if ($('body').is('.map-enabled') && editor._last_geometry_url !== null) {
@@ -870,13 +875,13 @@ editor = {
             style.weight = 3;
             style.color = '#00ff00';
         }
-        if (feature.properties.color !== undefined) {
+        if (feature.properties.color !== null) {
             style.fillColor = feature.properties.color;
         }
         if (feature.geometry.type === 'LineString') {
             style = editor._line_draw_geometry_style(style);
         }
-        if (feature.properties.opacity !== undefined) {
+        if (feature.properties.opacity !== null) {
             style.fillOpacity = feature.properties.opacity;
         }
         return style
@@ -1402,5 +1407,5 @@ LevelControl = L.Control.extend({
 
 
 if ($('#sidebar').length) {
-    editor.init();
+    c3nav_api.authenticated().then(() => editor.init());
 }
