@@ -110,7 +110,8 @@ def get_request_pk(location):
     return location.slug if isinstance(location, Position) else location.pk
 
 
-@routing_api_router.post('/route/', summary="get route between two locations",
+@routing_api_router.post('/route/', summary="query route",
+                         description="query route between two locations",
                          response={200: RouteResponse | NoRouteResponse, **validate_responses, **auth_responses})
 # todo: route failure responses
 def get_route(request, parameters: RouteParametersSchema):
@@ -198,14 +199,17 @@ def _new_update_route_options(options, new_options):
         raise APIRequestValidationFailed(str(e))
 
 
-@routing_api_router.get('/options/', summary="get current route options",
+@routing_api_router.get('/options/', summary="current route options",
+                        description="get current preferred route options for this user (or session, if signed out)",
                         response={200: RouteOptionsSchema, **auth_responses})
 def get_route_options(request):
+    # todo: API key should not override for user
     options = RouteOptions.get_for_request(request)
     return _new_serialize_route_options(options)
 
 
-@routing_api_router.put('/options/', summary="set route options for user or session",
+@routing_api_router.put('/options/', summary="set route options",
+                        description="set current preferred route options for this user (or session, if signed out)",
                         response={200: RouteOptionsSchema, **validate_responses, **auth_responses})
 def set_route_options(request, new_options: RouteOptionsSchema):
     options = RouteOptions.get_for_request(request)
@@ -214,8 +218,6 @@ def set_route_options(request, new_options: RouteOptionsSchema):
     options.save()
 
     return _new_serialize_route_options(options)
-
-
 
 
 class RouteOptionsFieldChoices(Schema):
@@ -232,7 +234,8 @@ class RouteOptionsField(Schema):
     value_display: NonEmptyStr
 
 
-@routing_api_router.get('/options/form/', summary="get current route options with form definitions (like old API)",
+@routing_api_router.get('/options/form/', summary="get route options form",
+                        description="get description of all form options, to render like a form (like old API)",
                         response={200: list[RouteOptionsField], **auth_responses})
 def get_route_options_form(request):
     options = RouteOptions.get_for_request(request)
