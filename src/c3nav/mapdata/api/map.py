@@ -1,5 +1,5 @@
 import json
-from typing import Annotated, Optional
+from typing import Annotated, Optional, Union
 
 from django.core.serializers.json import DjangoJSONEncoder
 from django.shortcuts import redirect
@@ -8,6 +8,7 @@ from ninja import Query
 from ninja import Router as APIRouter
 from ninja import Schema
 from pydantic import Field as APIField
+from pydantic import PositiveInt
 
 from c3nav.api.auth import auth_permission_responses, auth_responses, validate_responses
 from c3nav.api.exceptions import API404, APIPermissionDenied, APIRequestValidationFailed
@@ -270,15 +271,20 @@ def get_position_by_id(request, position_id: AnyPositionID):
             raise API404()
     return location.serialize_position()
 
-
 class UpdatePositionSchema(Schema):
-    coordinates_id: Optional[CustomLocationID] = APIField(
-        description="coordinates to set the location to or None to unset it"
+    coordinates_id: Union[
+        Annotated[CustomLocationID, APIField(title="set coordinates")],
+        Annotated[None, APIField(title="unset coordinates")],
+    ] = APIField(
+        description="coordinates to set the location to or null to unset it"
     )
-    timeout: Optional[int] = APIField(
+    timeout: Union[
+        Annotated[PositiveInt, APIField(title="new timeout")],
+        Annotated[None, APIField(title="don't change")],
+    ] = APIField(
         None,
+        title="timeout",
         description="timeout for this new location in seconds, or None if not to change it",
-        example=None,
     )
 
 
