@@ -40,9 +40,11 @@ EditorGeometriesCacheReferenceElem = Annotated[
 ]
 
 
-class BaseEditorGeometriesPropertiesSchema(Schema):
+class EditorGeometriesPropertiesSchema(Schema):
     id: EditorID
     type: NonEmptyStr
+    space: Optional[EditorID] = None
+    level: Optional[EditorID] = None
     bounds: bool = False
     color: Optional[str] = None
     opacity: Optional[float] = None   # todo: range
@@ -55,46 +57,25 @@ class EditorGeometriesGraphEdgePropertiesSchema(Schema):
     to_node: EditorID
 
 
-class EditorSpaceGeometriesPropertiesSchema(BaseEditorGeometriesPropertiesSchema):
-    space: EditorID
-
-
-class EditorLevelGeometriesPropertiesSchema(BaseEditorGeometriesPropertiesSchema):
-    level: EditorID
-
-
 class EditorGeometriesGraphEdgeElemSchema(Schema):
     type: Literal["Feature"]
     properties: EditorGeometriesGraphEdgePropertiesSchema
     geometry: LineSchema
 
 
-class BaseEditorGeometriesGeometryElemSchema(Schema):
+class EditorGeometriesGeometryElemSchema(Schema):
     type: Literal["Feature"]
     geometry: AnyGeometrySchema = APIField(description="geometry, potentially modified for displaying")
     original_geometry: Optional[GeometrySchema] = APIField(
         default=None,
         description="original unchanged geometry, not modified, original(??)",  # todo: more precise
     )
+    properties: EditorGeometriesPropertiesSchema
 
 
-class EditorSpaceGeometriesGeometryElemSchema(BaseEditorGeometriesGeometryElemSchema):
-    properties: EditorSpaceGeometriesPropertiesSchema
-
-
-class EditorLevelGeometriesGeometryElemSchema(BaseEditorGeometriesGeometryElemSchema):
-    properties: EditorLevelGeometriesPropertiesSchema
-
-
-EditorSpaceGeometriesElemSchema = Union[
+EditorGeometriesElemSchema = Union[
     EditorGeometriesUpdateCacheKeyElem,
-    Annotated[EditorSpaceGeometriesGeometryElemSchema, APIField(title="a geometry object")],
-    Annotated[EditorGeometriesGraphEdgeElemSchema, APIField(title="a graph edge")],
-    EditorGeometriesCacheReferenceElem,
-]
-EditorLevelGeometriesElemSchema = Union[
-    EditorGeometriesUpdateCacheKeyElem,
-    Annotated[EditorLevelGeometriesGeometryElemSchema, APIField(title="a geometry object")],
+    Annotated[EditorGeometriesGeometryElemSchema, APIField(title="a geometry object")],
     Annotated[EditorGeometriesGraphEdgeElemSchema, APIField(title="a graph edge")],
     EditorGeometriesCacheReferenceElem,
 ]

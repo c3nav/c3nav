@@ -53,7 +53,7 @@ def geometrystyles(request):
 
 
 @editor_api_router.get('/geometries/space/{space_id}/', summary="get the geometries to display for a space",
-                       response={200: list[EditorSpaceGeometriesElemSchema], **API404.dict(),
+                       response={200: list[EditorGeometriesElemSchema], **API404.dict(),
                                  **auth_permission_responses},
                        openapi_extra={"security": [{"APITokenAuth": ["editor_access"]}]})
 @newapi_etag_with_update_cache_key(etag_func=editor_etag_func)
@@ -75,7 +75,7 @@ def space_geometries(request, space_id: EditorID, update_cache_key: UpdateCacheK
 
 
 @editor_api_router.get('/geometries/level/{level_id}/', summary="get the geometries to display for a level",
-                       response={200: list[EditorLevelGeometriesElemSchema], **API404.dict(),
+                       response={200: list[EditorGeometriesElemSchema], **API404.dict(),
                                  **auth_permission_responses},
                        openapi_extra={"security": [{"APITokenAuth": ["editor_access"]}]})
 @newapi_etag_with_update_cache_key(etag_func=editor_etag_func)
