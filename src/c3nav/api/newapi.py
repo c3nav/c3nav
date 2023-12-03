@@ -2,7 +2,7 @@ from django.conf import settings
 from ninja import Router as APIRouter
 from ninja import Schema
 
-from c3nav.api.newauth import auth_responses, APIAuthMethod
+from c3nav.api.newauth import APIAuthMethod, auth_responses
 from c3nav.api.utils import NonEmptyStr
 from c3nav.control.models import UserPermissions
 

@@ -289,7 +289,7 @@ def call_api_hybrid_view_for_html(func, request, *args, **kwargs):
     raise NoAPIHybridResponse
 
 
-def etag_func(request, *args, **kwargs):
+def editor_etag_func(request, *args, **kwargs):
     try:
         changeset = request.changeset
     except AttributeError:

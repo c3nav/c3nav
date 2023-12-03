@@ -1,12 +1,14 @@
 from enum import StrEnum
-from typing import Annotated, Union, Optional
+from typing import Annotated, Optional, Union
 
-from ninja import Router as APIRouter, Schema, Field as APIField
+from ninja import Field as APIField
+from ninja import Router as APIRouter
+from ninja import Schema
+from pydantic import PositiveInt
 
 from c3nav.api.newauth import auth_responses, validate_responses
 from c3nav.api.utils import NonEmptyStr
 from c3nav.mapdata.models import Source
-from pydantic import PositiveInt
 from c3nav.mapdata.schemas.model_base import AnyLocationID, Coordinates3D
 from c3nav.mapdata.schemas.responses import BoundsSchema
 

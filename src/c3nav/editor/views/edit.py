@@ -17,8 +17,8 @@ from django.views.decorators.http import etag
 from c3nav.editor.forms import GraphEdgeSettingsForm, GraphEditorActionForm
 from c3nav.editor.utils import DefaultEditUtils, LevelChildEditUtils, SpaceChildEditUtils
 from c3nav.editor.views.base import (APIHybridError, APIHybridFormTemplateResponse, APIHybridLoginRequiredResponse,
-                                     APIHybridMessageRedirectResponse, APIHybridTemplateContextResponse, etag_func,
-                                     sidebar_view)
+                                     APIHybridMessageRedirectResponse, APIHybridTemplateContextResponse,
+                                     editor_etag_func, sidebar_view)
 from c3nav.mapdata.models.access import AccessPermission
 from c3nav.mapdata.utils.user import can_access_editor
 
@@ -40,7 +40,7 @@ def child_model(request, model: typing.Union[str, models.Model], kwargs=None, pa
     }
 
 
-@etag(etag_func)
+@etag(editor_etag_func)
 @sidebar_view(api_hybrid=True)
 def main_index(request):
     Level = request.changeset.wrap_model('Level')
@@ -61,7 +61,7 @@ def main_index(request):
     }, fields=('can_create_level', 'child_models'))
 
 
-@etag(etag_func)
+@etag(editor_etag_func)
 @sidebar_view(api_hybrid=True)
 def level_detail(request, pk):
     Level = request.changeset.wrap_model('Level')
@@ -90,7 +90,7 @@ def level_detail(request, pk):
     }, fields=('level', 'can_edit_graph', 'can_create_level', 'child_models', 'levels_on_top'))
 
 
-@etag(etag_func)
+@etag(editor_etag_func)
 @sidebar_view(api_hybrid=True)
 def space_detail(request, level, pk):
     Level = request.changeset.wrap_model('Level')
@@ -126,7 +126,7 @@ def get_changeset_exceeded(request):
     return request.user_permissions.max_changeset_changes <= request.changeset.changed_objects_count
 
 
-@etag(etag_func)
+@etag(editor_etag_func)
 @sidebar_view(api_hybrid=True)
 def edit(request, pk=None, model=None, level=None, space=None, on_top_of=None, explicit_edit=False):
     changeset_exceeded = get_changeset_exceeded(request)
@@ -412,7 +412,7 @@ def get_visible_spaces_kwargs(model, request):
     return kwargs
 
 
-@etag(etag_func)
+@etag(editor_etag_func)
 @sidebar_view(api_hybrid=True)
 def list_objects(request, model=None, level=None, space=None, explicit_edit=False):
     resolver_match = getattr(request, 'sub_resolver_match', request.resolver_match)
@@ -568,7 +568,7 @@ def connect_nodes(request, active_node, clicked_node, edge_settings_form):
             messages.success(request, _('Reverse edge overwritten.') if is_reverse else _('Edge overwritten.'))
 
 
-@etag(etag_func)
+@etag(editor_etag_func)
 @sidebar_view
 def graph_edit(request, level=None, space=None):
     if not request.user_permissions.can_access_base_mapdata:

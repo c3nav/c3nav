@@ -18,7 +18,7 @@ from c3nav.api.utils import get_api_post_data
 from c3nav.editor.forms import ChangeSetForm, RejectForm
 from c3nav.editor.models import ChangeSet
 from c3nav.editor.utils import LevelChildEditUtils, SpaceChildEditUtils
-from c3nav.editor.views.base import etag_func
+from c3nav.editor.views.base import editor_etag_func
 from c3nav.mapdata.api import api_etag
 from c3nav.mapdata.models import Area, MapUpdate, Source
 from c3nav.mapdata.models.geometry.space import POI
@@ -136,7 +136,7 @@ class EditorViewSet(EditorViewSetMixin, ViewSet):
 
     # noinspection PyPep8Naming
     @action(detail=False, methods=['get'])
-    @api_etag_with_update_cache_key(etag_func=etag_func, cache_parameters={'level': str, 'space': str})
+    @api_etag_with_update_cache_key(etag_func=editor_etag_func, cache_parameters={'level': str, 'space': str})
     def geometries(self, request, update_cache_key, update_cache_key_match, *args, **kwargs):
         Level = request.changeset.wrap_model('Level')
         Space = request.changeset.wrap_model('Space')
@@ -378,7 +378,7 @@ class EditorViewSet(EditorViewSetMixin, ViewSet):
         })
 
     @action(detail=False, methods=['get'])
-    @api_etag(etag_func=etag_func, cache_parameters={})
+    @api_etag(etag_func=editor_etag_func, cache_parameters={})
     def bounds(self, request, *args, **kwargs):
         return Response({
             'bounds': Source.max_bounds(),

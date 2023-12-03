@@ -2,7 +2,7 @@ from dataclasses import fields
 
 from django.core.management.base import BaseCommand
 
-from c3nav.mesh.baseformats import normalize_name, StructType
+from c3nav.mesh.baseformats import StructType, normalize_name
 from c3nav.mesh.messages import MeshMessage
 from c3nav.mesh.utils import indent_c
 

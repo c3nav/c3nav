@@ -1,9 +1,10 @@
-from typing import Annotated, Union, Literal, Optional
+from typing import Annotated, Literal, Optional, Union
 
 from ninja import Schema
-from pydantic import Field as APIField, PositiveInt
+from pydantic import Field as APIField
+from pydantic import PositiveInt
 
-from c3nav.api.schema import LineSchema, GeometrySchema
+from c3nav.api.schema import GeometrySchema, LineSchema
 from c3nav.api.utils import NonEmptyStr
 
 GeometryStylesSchema = Annotated[

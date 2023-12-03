@@ -1,7 +1,8 @@
 from typing import Annotated, Optional
 
 from ninja import Field as APIField
-from ninja import Router as APIRouter, Schema
+from ninja import Router as APIRouter
+from ninja import Schema
 from pydantic import NegativeInt
 
 from c3nav.api.newauth import auth_responses

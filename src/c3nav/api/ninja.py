@@ -1,4 +1,4 @@
-from ninja import NinjaAPI, Swagger
+from ninja import NinjaAPI, Redoc, Swagger
 from ninja.operation import Operation
 from ninja.schema import NinjaGenerateJsonSchema
 

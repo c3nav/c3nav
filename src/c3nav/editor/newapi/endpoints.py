@@ -1,26 +1,15 @@
-from datetime import datetime
-from typing import Annotated, Optional, Literal, Union
-
-from django.db import IntegrityError, transaction
-from ninja import Field as APIField
-from ninja import Query
 from ninja import Router as APIRouter
-from ninja import Schema, UploadedFile
-from ninja.pagination import paginate
-from pydantic import PositiveInt, field_validator
 
-from c3nav.api.exceptions import API404, APIConflict, APIRequestValidationFailed
-from c3nav.api.newauth import APITokenAuth, auth_permission_responses, auth_responses, validate_responses
-from c3nav.api.schema import GeometrySchema, LineSchema
-from c3nav.api.utils import NonEmptyStr
-from c3nav.editor.newapi.schemas import GeometryStylesSchema, EditorID, EditorSpaceGeometriesElemSchema, \
-    EditorLevelGeometriesElemSchema, UpdateCacheKey
+from c3nav.api.exceptions import API404
+from c3nav.api.newauth import APITokenAuth, auth_permission_responses
+from c3nav.editor.newapi.base import newapi_etag_with_update_cache_key
+from c3nav.editor.newapi.geometries import get_level_geometries_result, get_space_geometries_result
+from c3nav.editor.newapi.schemas import (EditorID, EditorLevelGeometriesElemSchema, EditorSpaceGeometriesElemSchema,
+                                         GeometryStylesSchema, UpdateCacheKey)
+from c3nav.editor.views.base import editor_etag_func
 from c3nav.mapdata.models import Source
 from c3nav.mapdata.newapi.base import newapi_etag
 from c3nav.mapdata.schemas.responses import BoundsSchema
-from c3nav.mesh.dataformats import BoardType, ChipType, FirmwareImage
-from c3nav.mesh.messages import MeshMessageType
-from c3nav.mesh.models import FirmwareBuild, FirmwareVersion, NodeMessage
 
 editor_api_router = APIRouter(tags=["editor"], auth=APITokenAuth(permissions={"editor_access"}))
 
@@ -65,12 +54,22 @@ def geometrystyles():
                        response={200: list[EditorSpaceGeometriesElemSchema], **API404.dict(),
                                  **auth_permission_responses},
                        openapi_extra={"security": [{"APITokenAuth": ["editor_access"]}]})
-@newapi_etag()  # todo: correct?
-def space_geometries(space_id: EditorID, update_cache_key: UpdateCacheKey = None):
+@newapi_etag_with_update_cache_key(etag_func=editor_etag_func)  # todo: correct?
+def space_geometries(request, space_id: EditorID, update_cache_key: UpdateCacheKey = None, **kwargs):
     """
     look. this is a complex mess. there will hopefully be more documentation soon. or a better endpoint.
     """
-    raise NotImplementedError
+    # newapi_etag_with_update_cache_key does the following, don't let it confuse you:
+    # - update_cache_key becomes the actual update_cache_key, not the one supplied be the user
+    # - kwargs has "update_cache_key_match", which is true if update_cache_key matches the one supplied be the user
+    # this is done so the api etag is correctly generated, as it takes the function arguments into account
+    return get_space_geometries_result(
+        request,
+        space_id=space_id,
+        update_cache_key=update_cache_key,
+        update_cache_key_match=kwargs["update_cache_key_match"]
+    )
+    # todo: test the heck out of this
 
 
 @editor_api_router.get('/geometries/level/{level_id}/', summary="get the geometries to display for a level",
@@ -78,11 +77,21 @@ def space_geometries(space_id: EditorID, update_cache_key: UpdateCacheKey = None
                                  **auth_permission_responses},
                        openapi_extra={"security": [{"APITokenAuth": ["editor_access"]}]})
 @newapi_etag()  # todo: correct?
-def level_geometries(level_id: EditorID, update_cache_key: UpdateCacheKey = None):
+def level_geometries(request, level_id: EditorID, update_cache_key: UpdateCacheKey = None, **kwargs):
     """
     look. this is a complex mess. there will hopefully be more documentation soon. or a better endpoint.
     """
-    raise NotImplementedError
+    # newapi_etag_with_update_cache_key does the following, don't let it confuse you:
+    # - update_cache_key becomes the actual update_cache_key, not the one supplied be the user
+    # - kwargs has "update_cache_key_match", which is true if update_cache_key matches the one supplied be the user
+    # this is done so the api etag is correctly generated, as it takes the function arguments into account
+    return get_level_geometries_result(
+        request,
+        level_id=level_id,
+        update_cache_key=update_cache_key,
+        update_cache_key_match=kwargs["update_cache_key_match"]
+    )
+    # todo: test the heck out of this
 
 
 # todo: need a way to pass the changeset if it's not a session API key
