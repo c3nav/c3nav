@@ -71,7 +71,7 @@ class APITokenAuth(HttpBearer):
             request.user = user
             return NewAPIAuth(
                 method=APIAuthMethod.SESSION,
-                readonly=True,
+                readonly=False,
             )
         elif token.startswith("secret:"):
             try:
