@@ -54,7 +54,7 @@ def geometrystyles(request):
                        response={200: list[EditorSpaceGeometriesElemSchema], **API404.dict(),
                                  **auth_permission_responses},
                        openapi_extra={"security": [{"APITokenAuth": ["editor_access"]}]})
-@newapi_etag_with_update_cache_key(etag_func=editor_etag_func)  # todo: correct?
+@newapi_etag_with_update_cache_key(etag_func=editor_etag_func)
 def space_geometries(request, space_id: EditorID, update_cache_key: UpdateCacheKey = None, **kwargs):
     """
     look. this is a complex mess. there will hopefully be more documentation soon. or a better endpoint.
@@ -76,7 +76,7 @@ def space_geometries(request, space_id: EditorID, update_cache_key: UpdateCacheK
                        response={200: list[EditorLevelGeometriesElemSchema], **API404.dict(),
                                  **auth_permission_responses},
                        openapi_extra={"security": [{"APITokenAuth": ["editor_access"]}]})
-@newapi_etag()  # todo: correct?
+@newapi_etag_with_update_cache_key(etag_func=editor_etag_func)
 def level_geometries(request, level_id: EditorID, update_cache_key: UpdateCacheKey = None, **kwargs):
     """
     look. this is a complex mess. there will hopefully be more documentation soon. or a better endpoint.
