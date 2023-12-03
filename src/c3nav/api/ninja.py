@@ -57,13 +57,16 @@ ninja_api = c3navAPI(
     auth=APITokenAuth(),
 
     openapi_extra={
-
-        
         "tags": [
             {
                 "name": "auth",
                 "x-displayName": "Authentication",
                 "description": "Get and manage API access",
+            },
+            {
+                "name": "updates",
+                "x-displayName": "Updates",
+                "description": "Get regular updates",
             },
             {
                 "name": "map",
