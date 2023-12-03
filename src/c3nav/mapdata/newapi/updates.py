@@ -40,7 +40,6 @@ class FetchUpdatesResponseSchema(Schema):
                                     "if not called regularly, the tileserver will ignore your access permissions.\n\n"
                                     "this endpoint can be called cross-origin, but it will have no user data then.",
                         response={200: FetchUpdatesResponseSchema, **auth_responses})
-@newapi_etag(permissions=False)
 def fetch_updates(request, response: HttpResponse):
     cross_origin = request.META.get('HTTP_ORIGIN')
     if cross_origin is not None:
