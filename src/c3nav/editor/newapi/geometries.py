@@ -4,7 +4,7 @@ from typing import Sequence
 
 from django.db.models import Prefetch, Q
 from shapely import prepared
-from shapely.lib import unary_union
+from shapely.ops import unary_union
 
 from c3nav.api.exceptions import API404, APIPermissionDenied
 from c3nav.editor.utils import LevelChildEditUtils, SpaceChildEditUtils
