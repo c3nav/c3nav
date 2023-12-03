@@ -21,9 +21,10 @@ class CachePackage:
     def save(self, filename=None, compression=None):
         if filename is None:
             from django.conf import settings
-            filename = settings.CACHE_ROOT / 'package.tar'
             if compression is not None:
-                filename += '.' + compression
+                filename = settings.CACHE_ROOT / f'package.tar.{compression}'
+            else:
+                filename = settings.CACHE_ROOT / 'package.tar'
 
         filemode = 'w'
         if compression is not None:
