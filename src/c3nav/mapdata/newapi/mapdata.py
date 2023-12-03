@@ -155,7 +155,7 @@ def hole_list(request, filters: Query[SpaceGeometryFilter]):
     return mapdata_list_endpoint(request, model=Hole, filters=filters)
 
 
-@mapdata_api_router.get('/holes/{hole_id}/', summary="hole by id",
+@mapdata_api_router.get('/holes/{hole_id}/', summary="hole by ID",
                         response={200: HoleSchema, **API404.dict(), **auth_responses})
 @newapi_etag()
 def hole_by_id(request, hole_id: int):
