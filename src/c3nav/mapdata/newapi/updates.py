@@ -67,4 +67,4 @@ def fetch_updates(request, response: HttpResponse):
         response['Access-Control-Allow-Credentials'] = 'true'
     set_tile_access_cookie(request, response)
 
-    return response
+    return result
