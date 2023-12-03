@@ -70,7 +70,7 @@ ninja_api = c3navAPI(
             },
             {
                 "name": "map",
-                "x-displayName": "Map access",
+                "x-displayName": "Map",
                 "description": "Common map endpoints",
             },
             {
@@ -84,9 +84,19 @@ ninja_api = c3navAPI(
                 "description": "Determine your position",
             },
             {
-                "name": "mapdata",
-                "x-displayName": "Raw map data",
-                "description": "Access the raw map data",
+                "name": "mapdata-root",
+                "x-displayName": "Root map data",
+                "description": "Objects that don't belong to a level or space",
+            },
+            {
+                "name": "mapdata-level",
+                "x-displayName": "Level map data",
+                "description": "Objects that belong to a level",
+            },
+            {
+                "name": "mapdata-space",
+                "x-displayName": "Space map data",
+                "description": "Objects that belong to a space",
             },
             {
                 "name": "editor",
@@ -99,6 +109,25 @@ ninja_api = c3navAPI(
                 "description": "Manage the location node mesh network",
             },
         ],
+        "x-tagGroups": [
+            {
+                "name": "Setup",
+                "tags": ["auth", "updates"],
+            },
+            {
+                "name": "Main",
+                "tags": ["map", "routing", "positioning"],
+            },
+            {
+                "name": "Raw map data",
+                "tags": ["mapdata-root", "mapdata-level", "mapdata-space"],
+            },
+            {
+                "name": "Other",
+                "tags": ["editor", "mesh"],
+            },
+
+        ]
     }
 )
 

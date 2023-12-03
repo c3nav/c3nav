@@ -59,6 +59,10 @@ def mapdata_retrieve_endpoint(request, model: Type[Model], **lookups):
         raise API404("%s not found" % model.__name__.lower())
 
 
+def schema_description(schema):
+    return schema.__doc__.replace("\n    ", "\n")
+
+
 """
 Levels
 """
@@ -69,6 +73,7 @@ class LevelFilters(ByGroupFilter, ByOnTopOfFilter):
 
 
 @mapdata_api_router.get('/levels/', summary="level list",
+                        tags=["mapdata-root"], description=schema_description(LevelSchema),
                         response={200: list[LevelSchema], **validate_responses, **auth_responses})
 @newapi_etag()
 def level_list(request, filters: Query[LevelFilters]):
@@ -76,6 +81,7 @@ def level_list(request, filters: Query[LevelFilters]):
 
 
 @mapdata_api_router.get('/levels/{level_id}/', summary="level by ID",
+                        tags=["mapdata-root"], description=schema_description(LevelSchema),
                         response={200: LevelSchema, **API404.dict(), **auth_responses})
 @newapi_etag()
 def level_by_id(request, level_id: int):
@@ -88,6 +94,7 @@ Buildings
 
 
 @mapdata_api_router.get('/buildings/', summary="building list",
+                        tags=["mapdata-level"], description=schema_description(BuildingSchema),
                         response={200: list[BuildingSchema], **validate_responses, **auth_responses})
 @newapi_etag(base_mapdata=True)
 def building_list(request, filters: Query[LevelGeometryFilter]):
@@ -95,6 +102,7 @@ def building_list(request, filters: Query[LevelGeometryFilter]):
 
 
 @mapdata_api_router.get('/buildings/{building_id}/', summary="building by ID",
+                        tags=["mapdata-level"], description=schema_description(BuildingSchema),
                         response={200: BuildingSchema, **API404.dict(), **auth_responses})
 @newapi_etag(base_mapdata=True)
 def building_by_id(request, building_id: int):
@@ -111,6 +119,7 @@ class SpaceFilters(ByGroupFilter, LevelGeometryFilter):
 
 
 @mapdata_api_router.get('/spaces/', summary="space list",
+                        tags=["mapdata-level"], description=schema_description(SpaceSchema),
                         response={200: list[SpaceSchema], **validate_responses, **auth_responses})
 @newapi_etag(base_mapdata=True)
 def space_list(request, filters: Query[SpaceFilters]):
@@ -118,6 +127,7 @@ def space_list(request, filters: Query[SpaceFilters]):
 
 
 @mapdata_api_router.get('/space/{space_id}/', summary="space by ID",
+                        tags=["mapdata-level"], description=schema_description(SpaceSchema),
                         response={200: SpaceSchema, **API404.dict(), **auth_responses})
 @newapi_etag(base_mapdata=True)
 def space_by_id(request, space_id: int):
@@ -130,6 +140,7 @@ Doors
 
 
 @mapdata_api_router.get('/doors/', summary="door list",
+                        tags=["mapdata-level"], description=schema_description(DoorSchema),
                         response={200: list[DoorSchema], **validate_responses, **auth_responses})
 @newapi_etag(base_mapdata=True)
 def door_list(request, filters: Query[LevelGeometryFilter]):
@@ -137,6 +148,7 @@ def door_list(request, filters: Query[LevelGeometryFilter]):
 
 
 @mapdata_api_router.get('/doors/{door_id}/', summary="door by ID",
+                        tags=["mapdata-level"], description=schema_description(DoorSchema),
                         response={200: DoorSchema, **API404.dict(), **auth_responses})
 @newapi_etag(base_mapdata=True)
 def door_by_id(request, door_id: int):
@@ -149,6 +161,7 @@ Holes
 
 
 @mapdata_api_router.get('/holes/', summary="hole list",
+                        tags=["mapdata-space"], description=schema_description(HoleSchema),
                         response={200: list[HoleSchema], **validate_responses, **auth_responses})
 @newapi_etag()
 def hole_list(request, filters: Query[SpaceGeometryFilter]):
@@ -156,6 +169,7 @@ def hole_list(request, filters: Query[SpaceGeometryFilter]):
 
 
 @mapdata_api_router.get('/holes/{hole_id}/', summary="hole by ID",
+                        tags=["mapdata-space"], description=schema_description(HoleSchema),
                         response={200: HoleSchema, **API404.dict(), **auth_responses})
 @newapi_etag()
 def hole_by_id(request, hole_id: int):
@@ -172,6 +186,7 @@ class AreaFilters(ByGroupFilter, SpaceGeometryFilter):
 
 
 @mapdata_api_router.get('/areas/', summary="area list",
+                        tags=["mapdata-space"], description=schema_description(AreaSchema),
                         response={200: list[AreaSchema], **validate_responses, **auth_responses})
 @newapi_etag()
 def area_list(request, filters: Query[AreaFilters]):
@@ -179,6 +194,7 @@ def area_list(request, filters: Query[AreaFilters]):
 
 
 @mapdata_api_router.get('/areas/{area_id}/', summary="area by ID",
+                        tags=["mapdata-space"], description=schema_description(AreaSchema),
                         response={200: AreaSchema, **API404.dict(), **auth_responses})
 @newapi_etag()
 def area_by_id(request, area_id: int):
@@ -191,6 +207,7 @@ Stairs
 
 
 @mapdata_api_router.get('/stairs/', summary="stair list",
+                        tags=["mapdata-space"], description=schema_description(StairSchema),
                         response={200: list[StairSchema], **validate_responses, **auth_responses})
 @newapi_etag()
 def stair_list(request, filters: Query[SpaceGeometryFilter]):
@@ -198,6 +215,7 @@ def stair_list(request, filters: Query[SpaceGeometryFilter]):
 
 
 @mapdata_api_router.get('/stairs/{stair_id}/', summary="stair by ID",
+                        tags=["mapdata-space"], description=schema_description(StairSchema),
                         response={200: StairSchema, **API404.dict(), **auth_responses})
 @newapi_etag()
 def stair_by_id(request, stair_id: int):
@@ -210,6 +228,7 @@ Ramps
 
 
 @mapdata_api_router.get('/ramps/', summary="ramp list",
+                        tags=["mapdata-space"], description=schema_description(RampSchema),
                         response={200: list[RampSchema], **validate_responses, **auth_responses})
 @newapi_etag()
 def ramp_list(request, filters: Query[SpaceGeometryFilter]):
@@ -217,6 +236,7 @@ def ramp_list(request, filters: Query[SpaceGeometryFilter]):
 
 
 @mapdata_api_router.get('/ramps/{ramp_id}/', summary="ramp by ID",
+                        tags=["mapdata-space"], description=schema_description(RampSchema),
                         response={200: RampSchema, **API404.dict(), **auth_responses})
 @newapi_etag()
 def ramp_by_id(request, ramp_id: int):
@@ -229,6 +249,7 @@ Obstacles
 
 
 @mapdata_api_router.get('/obstacles/', summary="obstacle list",
+                        tags=["mapdata-space"], description=schema_description(ObstacleSchema),
                         response={200: list[ObstacleSchema], **validate_responses, **auth_responses})
 @newapi_etag()
 def obstacle_list(request, filters: Query[SpaceGeometryFilter]):
@@ -236,6 +257,7 @@ def obstacle_list(request, filters: Query[SpaceGeometryFilter]):
 
 
 @mapdata_api_router.get('/obstacles/{obstacle_id}/', summary="obstacle by ID",
+                        tags=["mapdata-space"], description=schema_description(ObstacleSchema),
                         response={200: ObstacleSchema, **API404.dict(), **auth_responses})
 @newapi_etag()
 def obstacle_by_id(request, obstacle_id: int):
@@ -248,6 +270,7 @@ LineObstacles
 
 
 @mapdata_api_router.get('/lineobstacles/', summary="line obstacle list",
+                        tags=["mapdata-space"], description=schema_description(LineObstacleSchema),
                         response={200: list[LineObstacleSchema], **validate_responses, **auth_responses})
 @newapi_etag()
 def lineobstacle_list(request, filters: Query[SpaceGeometryFilter]):
@@ -255,6 +278,7 @@ def lineobstacle_list(request, filters: Query[SpaceGeometryFilter]):
 
 
 @mapdata_api_router.get('/lineobstacles/{lineobstacle_id}/', summary="line obstacle by ID",
+                        tags=["mapdata-space"], description=schema_description(LineObstacleSchema),
                         response={200: LineObstacleSchema, **API404.dict(), **auth_responses},)
 @newapi_etag()
 def lineobstacle_by_id(request, lineobstacle_id: int):
@@ -267,6 +291,7 @@ Columns
 
 
 @mapdata_api_router.get('/columns/', summary="column list",
+                        tags=["mapdata-space"], description=schema_description(ColumnSchema),
                         response={200: list[ColumnSchema], **validate_responses, **auth_responses})
 @newapi_etag()
 def column_list(request, filters: Query[SpaceGeometryFilter]):
@@ -274,6 +299,7 @@ def column_list(request, filters: Query[SpaceGeometryFilter]):
 
 
 @mapdata_api_router.get('/columns/{column_id}/', summary="column by ID",
+                        tags=["mapdata-space"], description=schema_description(ColumnSchema),
                         response={200: ColumnSchema, **API404.dict(), **auth_responses})
 @newapi_etag()
 def column_by_id(request, column_id: int):
@@ -286,6 +312,7 @@ POIs
 
 
 @mapdata_api_router.get('/pois/', summary="POI list",
+                        tags=["mapdata-space"], description=schema_description(POISchema),
                         response={200: list[POISchema], **validate_responses, **auth_responses})
 @newapi_etag()
 def poi_list(request, filters: Query[SpaceGeometryFilter]):
@@ -293,6 +320,7 @@ def poi_list(request, filters: Query[SpaceGeometryFilter]):
 
 
 @mapdata_api_router.get('/pois/{poi_id}/', summary="POI by ID",
+                        tags=["mapdata-space"], description=schema_description(POISchema),
                         response={200: POISchema, **API404.dict(), **auth_responses})
 @newapi_etag()
 def poi_by_id(request, poi_id: int):
@@ -305,6 +333,7 @@ LeaveDescriptions
 
 
 @mapdata_api_router.get('/leavedescriptions/', summary="leave description list",
+                        tags=["mapdata-space"], description=schema_description(LeaveDescriptionSchema),
                         response={200: list[LeaveDescriptionSchema], **validate_responses, **auth_responses})
 @newapi_etag()
 def leavedescription_list(request, filters: Query[SpaceGeometryFilter]):
@@ -312,6 +341,7 @@ def leavedescription_list(request, filters: Query[SpaceGeometryFilter]):
 
 
 @mapdata_api_router.get('/leavedescriptions/{leavedescription_id}/', summary="leave description by ID",
+                        tags=["mapdata-space"], description=schema_description(LeaveDescriptionSchema),
                         response={200: LeaveDescriptionSchema, **API404.dict(), **auth_responses})
 @newapi_etag()
 def leavedescription_by_id(request, leavedescription_id: int):
@@ -324,6 +354,7 @@ CrossDescriptions
 
 
 @mapdata_api_router.get('/crossdescriptions/', summary="cross description list",
+                        tags=["mapdata-space"], description=schema_description(CrossDescriptionSchema),
                         response={200: list[CrossDescriptionSchema], **validate_responses, **auth_responses})
 @newapi_etag()
 def crossdescription_list(request, filters: Query[SpaceGeometryFilter]):
@@ -331,6 +362,7 @@ def crossdescription_list(request, filters: Query[SpaceGeometryFilter]):
 
 
 @mapdata_api_router.get('/crossdescriptions/{crossdescription_id}/', summary="cross description by ID",
+                        tags=["mapdata-space"], description=schema_description(CrossDescriptionSchema),
                         response={200: CrossDescriptionSchema, **API404.dict(), **auth_responses})
 @newapi_etag()
 def crossdescription_by_id(request, crossdescription_id: int):
@@ -343,6 +375,7 @@ LocationGroup
 
 
 @mapdata_api_router.get('/locationgroups/', summary="location group list",
+                        tags=["mapdata-root"], description=schema_description(LocationGroupSchema),
                         response={200: list[LocationGroupSchema], **validate_responses, **auth_responses})
 @newapi_etag()
 def locationgroup_list(request, filters: Query[ByCategoryFilter]):
@@ -350,6 +383,7 @@ def locationgroup_list(request, filters: Query[ByCategoryFilter]):
 
 
 @mapdata_api_router.get('/locationgroups/{locationgroup_id}/', summary="location group by ID",
+                        tags=["mapdata-root"], description=schema_description(LocationGroupSchema),
                         response={200: LocationGroupSchema, **API404.dict(), **auth_responses})
 @newapi_etag()
 def locationgroup_by_id(request, locationgroup_id: int):
@@ -362,6 +396,7 @@ LocationGroupCategories
 
 
 @mapdata_api_router.get('/locationgroupcategories/', summary="location group category list",
+                        tags=["mapdata-root"], description=schema_description(LocationGroupCategorySchema),
                         response={200: list[LocationGroupCategorySchema], **auth_responses})
 @newapi_etag()
 def locationgroupcategory_list(request):
@@ -369,6 +404,7 @@ def locationgroupcategory_list(request):
 
 
 @mapdata_api_router.get('/locationgroupcategories/{category_id}/', summary="location group category by ID",
+                        tags=["mapdata-root"], description=schema_description(LocationGroupCategorySchema),
                         response={200: LocationGroupCategorySchema, **API404.dict(), **auth_responses})
 @newapi_etag()
 def locationgroupcategory_by_id(request, category_id: int):
@@ -381,6 +417,7 @@ Sources
 
 
 @mapdata_api_router.get('/sources/', summary="source list",
+                        tags=["mapdata-root"], description=schema_description(SourceSchema),
                         response={200: list[SourceSchema], **auth_responses})
 @newapi_etag()
 def source_list(request):
@@ -388,6 +425,7 @@ def source_list(request):
 
 
 @mapdata_api_router.get('/sources/{source_id}/', summary="source by ID",
+                        tags=["mapdata-root"], description=schema_description(SourceSchema),
                         response={200: SourceSchema, **API404.dict(), **auth_responses})
 @newapi_etag()
 def source_by_id(request, source_id: int):
@@ -400,6 +438,7 @@ AccessRestrictions
 
 
 @mapdata_api_router.get('/accessrestrictions/', summary="access restriction list",
+                        tags=["mapdata-root"], description=schema_description(AccessRestrictionSchema),
                         response={200: list[AccessRestrictionSchema], **auth_responses})
 @newapi_etag()
 def accessrestriction_list(request):
@@ -407,6 +446,7 @@ def accessrestriction_list(request):
 
 
 @mapdata_api_router.get('/accessrestrictions/{accessrestriction_id}/', summary="access restriction by ID",
+                        tags=["mapdata-root"], description=schema_description(AccessRestrictionSchema),
                         response={200: AccessRestrictionSchema, **API404.dict(), **auth_responses})
 @newapi_etag()
 def accessrestriction_by_id(request, accessrestriction_id: int):
@@ -419,6 +459,7 @@ AccessRestrictionGroups
 
 
 @mapdata_api_router.get('/accessrestrictiongroups/', summary="access restriction group list",
+                        tags=["mapdata-root"], description=schema_description(AccessRestrictionGroupSchema),
                         response={200: list[AccessRestrictionGroupSchema], **auth_responses})
 @newapi_etag()
 def accessrestrictiongroup_list(request):
@@ -426,6 +467,7 @@ def accessrestrictiongroup_list(request):
 
 
 @mapdata_api_router.get('/accessrestrictiongroups/{group_id}/', summary="access restriction group by ID",
+                        tags=["mapdata-root"], description=schema_description(AccessRestrictionGroupSchema),
                         response={200: AccessRestrictionGroupSchema, **API404.dict(), **auth_responses})
 @newapi_etag()
 def accessrestrictiongroups_by_id(request, group_id: int):
@@ -438,6 +480,7 @@ DynamicLocations
 
 
 @mapdata_api_router.get('/dynamiclocations/', summary="dynamic location list",
+                        tags=["mapdata-root"], description=schema_description(DynamicLocationSchema),
                         response={200: list[DynamicLocationSchema], **auth_responses})
 @newapi_etag()
 def dynamiclocation_list(request):
@@ -445,6 +488,7 @@ def dynamiclocation_list(request):
 
 
 @mapdata_api_router.get('/dynamiclocations/{dynamiclocation_id}/', summary="dynamic location by ID",
+                        tags=["mapdata-root"], description=schema_description(DynamicLocationSchema),
                         response={200: DynamicLocationSchema, **API404.dict(), **auth_responses})
 @newapi_etag()
 def dynamiclocation_by_id(request, dynamiclocation_id: int):
