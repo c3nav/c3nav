@@ -31,10 +31,10 @@ class AtPositionConverter:
         if not value:
             return None
         value = AtPos(*value.split(','))
-        return AtPos(value.level, float(value.x), float(value.y), float(value.zoom))
+        return AtPos(value.level[1:], float(value.x), float(value.y), float(value.zoom))
 
     def to_url(self, value):
-        return ','.join(str(s) for s in value)
+        return '@' + ','.join(str(s) for s in value)
 
 
 class ConditionalConverter:
