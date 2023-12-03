@@ -18,7 +18,7 @@ from c3nav.mapdata.models.locations import Position
 from c3nav.mapdata.schemas.model_base import AnyLocationID, Coordinates3D
 from c3nav.mapdata.utils.cache.stats import increment_cache_key
 from c3nav.mapdata.utils.locations import visible_locations_for_request
-from c3nav.routing.exceptions import NotYetRoutable, LocationUnreachable, NoRouteFound
+from c3nav.routing.exceptions import LocationUnreachable, NoRouteFound, NotYetRoutable
 from c3nav.routing.forms import RouteForm
 from c3nav.routing.models import RouteOptions
 from c3nav.routing.router import Router
