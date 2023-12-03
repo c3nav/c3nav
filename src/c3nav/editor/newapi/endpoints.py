@@ -18,7 +18,7 @@ editor_api_router = APIRouter(tags=["editor"], auth=APITokenAuth(permissions={"e
                        response={200: BoundsSchema, **auth_permission_responses},
                        openapi_extra={"security": [{"APITokenAuth": ["editor_access"]}]})
 @newapi_etag()
-def bounds():
+def bounds(request):
     return {
         "bounds": Source.max_bounds(),
     }
@@ -28,7 +28,7 @@ def bounds():
                        response={200: GeometryStylesSchema, **auth_permission_responses},
                        openapi_extra={"security": [{"APITokenAuth": ["editor_access"]}]})
 @newapi_etag(permissions=False)
-def geometrystyles():
+def geometrystyles(request):
     return {
         'building': '#aaaaaa',
         'space': '#eeeeee',
@@ -101,7 +101,7 @@ def level_geometries(request, level_id: EditorID, update_cache_key: UpdateCacheK
                        response={200: dict, **API404.dict(), **auth_permission_responses},
                        openapi_extra={"security": [{"APITokenAuth": ["editor_access"]}]})
 @newapi_etag()  # todo: correct?
-def view_as_api(path: str):
+def view_as_api(request, path: str):
     """
     get editor views rendered as JSON instead of HTML.
     `path` is the path after /editor/.
@@ -115,7 +115,7 @@ def view_as_api(path: str):
                         response={200: dict, **API404.dict(), **auth_permission_responses},
                         openapi_extra={"security": [{"APITokenAuth": ["editor_access", "write"]}]})
 @newapi_etag()  # todo: correct?
-def view_as_api(path: str):
+def view_as_api(request, path: str):
     """
     get editor views rendered as JSON instead of HTML.
     `path` is the path after /editor/.
