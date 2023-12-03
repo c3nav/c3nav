@@ -1,3 +1,5 @@
+from django.urls import Resolver404, resolve
+from django.utils.translation import gettext_lazy as _
 from ninja import Router as APIRouter
 
 from c3nav.api.exceptions import API404
@@ -96,8 +98,26 @@ def level_geometries(request, level_id: EditorID, update_cache_key: UpdateCacheK
 
 # todo: need a way to pass the changeset if it's not a session API key
 
+def resolve_editor_path_api(request, path):
+    resolved = None
+    if path:
+        try:
+            resolved = resolve('/editor/'+path+'/')
+        except Resolver404:
+            pass
 
-@editor_api_router.get('/{path:path}/', summary="access the editor UI programmatically",
+    if not resolved:
+        try:
+            resolved = resolve('/editor/'+path)
+        except Resolver404:
+            pass
+
+    request.sub_resolver_match = resolved
+
+    return resolved
+
+
+@editor_api_router.get('/{path:path}', summary="access the editor UI programmatically",
                        response={200: dict, **API404.dict(), **auth_permission_responses},
                        openapi_extra={"security": [{"APITokenAuth": ["editor_access"]}]})
 @newapi_etag()  # todo: correct?
@@ -107,11 +127,19 @@ def view_as_api(request, path: str):
     `path` is the path after /editor/.
     this is a mess. good luck. if you actually want to use this, poke us so we might add better documentation.
     """
+    resolved = resolve_editor_path_api(request, path)
 
-    raise NotImplementedError
+    if not resolved:
+        raise API404(str(_('No matching editor view endpoint found.')))
+
+    if not getattr(resolved.func, 'api_hybrid', False):
+        raise API404(_('Matching editor view point does not provide an API.'))
+
+    response = resolved.func(request, api=True, *resolved.args, **resolved.kwargs)
+    return response
 
 
-@editor_api_router.post('/{path:path}/', summary="access the editor UI programmatically",
+@editor_api_router.post('/{path:path}', summary="access the editor UI programmatically",
                         response={200: dict, **API404.dict(), **auth_permission_responses},
                         openapi_extra={"security": [{"APITokenAuth": ["editor_access", "write"]}]})
 @newapi_etag()  # todo: correct?
