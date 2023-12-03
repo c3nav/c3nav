@@ -164,16 +164,16 @@ class RouteOptions(models.Model):
             {
                 'name': name,
                 'type': field.widget.input_type,
-                'label': field.label,
+                'label': str(field.label),
                 'choices': [
                     {
                         'name': choice_name,
-                        'title': choice_title,
+                        'title': str(choice_title),
                     }
                     for choice_name, choice_title in field.choices
                 ],
                 'value': self[name],
-                'value_display': dict(field.choices)[self[name]],
+                'value_display': str(dict(field.choices)[self[name]]),
             }
             for name, field in self.get_fields().items()
         ]
