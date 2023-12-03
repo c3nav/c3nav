@@ -1,4 +1,5 @@
 from ninja import NinjaAPI, Redoc, Swagger
+from ninja.openapi.docs import DocsBase
 from ninja.operation import Operation
 from ninja.schema import NinjaGenerateJsonSchema
 
@@ -13,7 +14,28 @@ class c3navAPI(NinjaAPI):
         return result
 
 
+class SwaggerAndRedoc(DocsBase):
+    swagger_config = Swagger(settings={
+        "persistAuthorization": True,
+        "defaultModelRendering": "model",
+    })
+    redoc_config = Redoc(settings={
+
+    })
+
+    def render_page(self, request, api):
+        print(request.GET)
+        if request.GET.get('swagger', None) is not None:
+            return self.swagger_config.render_page(request, api)
+        return self.redoc_config.render_page(request, api)
+
+
 description = """
+We provide two API documentation viewers:
+
+* [Redoc](/api/v2/): more comprehensive and clean *(default)*
+* [Swagger](/api/v2/?swagger): less good, but has a built-in API client 
+
 Nearly all endpoints require authentication, but guest authentication can be used.
 
 API endpoints may change to add more features and properties,
