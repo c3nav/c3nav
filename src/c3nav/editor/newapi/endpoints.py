@@ -7,7 +7,7 @@ from c3nav.api.newauth import APITokenAuth, auth_permission_responses
 from c3nav.editor.newapi.base import newapi_etag_with_update_cache_key
 from c3nav.editor.newapi.geometries import get_level_geometries_result, get_space_geometries_result
 from c3nav.editor.newapi.schemas import (EditorID, EditorLevelGeometriesElemSchema, EditorSpaceGeometriesElemSchema,
-                                         GeometryStylesSchema, UpdateCacheKey)
+                                         GeometryStylesSchema, UpdateCacheKey, EditorGeometriesElemSchema)
 from c3nav.editor.views.base import editor_etag_func
 from c3nav.mapdata.models import Source
 from c3nav.mapdata.newapi.base import newapi_etag
