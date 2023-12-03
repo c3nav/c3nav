@@ -1,5 +1,5 @@
 import json
-from typing import Optional
+from typing import Annotated, Optional
 
 from django.core.serializers.json import DjangoJSONEncoder
 from django.shortcuts import redirect

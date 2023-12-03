@@ -20,7 +20,14 @@ class SwaggerAndRedoc(DocsBase):
         "defaultModelRendering": "model",
     })
     redoc_config = Redoc(settings={
-
+        "hideOneOfDescription": True,
+        "expandSingleSchemaField": True,
+        "jsonSampleExpandLevel": 4,
+        "showObjectSchemaExamples": True,
+        "expandResponses": "200",
+        "hideSingleRequestSampleTab": True,
+        "nativeScrollbars": True,
+        "simpleOneOfTypeLabel": True,
     })
 
     def render_page(self, request, api):

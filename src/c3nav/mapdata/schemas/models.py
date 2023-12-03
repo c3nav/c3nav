@@ -415,7 +415,17 @@ class TrackablePositionSchema(Schema):
     )
 
 
-class FullLevelLocationSchema(LevelSchema):
+def put_locationtype_first(schema):
+    fields = schema.__fields__.copy()
+    schema.__fields__ = {"locationtype": fields.pop("locationtype"), **fields}
+    return schema
+
+
+class LocationTypeSchema(Schema):
+    locationtype: str
+
+
+class FullLevelLocationSchema(LevelSchema, LocationTypeSchema):
     """
     A level for the location API.
     See Level schema for details.
@@ -423,7 +433,7 @@ class FullLevelLocationSchema(LevelSchema):
     locationtype: Literal["level"]
 
 
-class FullSpaceLocationSchema(SimpleGeometryPointAndBoundsSchema, SpaceSchema):
+class FullSpaceLocationSchema(SimpleGeometryPointAndBoundsSchema, SpaceSchema, LocationTypeSchema):
     """
     A space with some additional information for the location API.
     See Space schema for details.
@@ -431,7 +441,7 @@ class FullSpaceLocationSchema(SimpleGeometryPointAndBoundsSchema, SpaceSchema):
     locationtype: Literal["space"]
 
 
-class FullAreaLocationSchema(SimpleGeometryPointAndBoundsSchema, AreaSchema):
+class FullAreaLocationSchema(SimpleGeometryPointAndBoundsSchema, AreaSchema, LocationTypeSchema):
     """
     An area with some additional information for the location API.
     See Area schema for details.
@@ -439,7 +449,7 @@ class FullAreaLocationSchema(SimpleGeometryPointAndBoundsSchema, AreaSchema):
     locationtype: Literal["area"]
 
 
-class FullPOILocationSchema(SimpleGeometryPointSchema, POISchema):
+class FullPOILocationSchema(SimpleGeometryPointSchema, POISchema, LocationTypeSchema):
     """
     A point of interest with some additional information for the location API.
     See POI schema for details.
@@ -447,7 +457,7 @@ class FullPOILocationSchema(SimpleGeometryPointSchema, POISchema):
     locationtype: Literal["poi"]
 
 
-class FullLocationGroupLocationSchema(SimpleGeometryLocationsSchema, LocationGroupSchema):
+class FullLocationGroupLocationSchema(SimpleGeometryLocationsSchema, LocationGroupSchema, LocationTypeSchema):
     """
     A location group with some additional information for the location API.
     See LocationGroup schema for details.
@@ -455,7 +465,7 @@ class FullLocationGroupLocationSchema(SimpleGeometryLocationsSchema, LocationGro
     locationtype: Literal["locationgroup"]
 
 
-class FullDynamicLocationLocationSchema(DynamicLocationSchema):
+class FullDynamicLocationLocationSchema(DynamicLocationSchema, LocationTypeSchema):
     """
     A dynamic location for the location API.
     See DynamicLocation schema for details.
@@ -463,7 +473,7 @@ class FullDynamicLocationLocationSchema(DynamicLocationSchema):
     locationtype: Literal["dynamiclocation"]
 
 
-class CustomLocationLocationSchema(SimpleGeometryPointAndBoundsSchema, CustomLocationSchema):
+class CustomLocationLocationSchema(SimpleGeometryPointAndBoundsSchema, CustomLocationSchema, LocationTypeSchema):
     """
     A custom location for the location API.
     See CustomLocation schema for details.
@@ -471,7 +481,7 @@ class CustomLocationLocationSchema(SimpleGeometryPointAndBoundsSchema, CustomLoc
     locationtype: Literal["customlocation"]
 
 
-class TrackablePositionLocationSchema(TrackablePositionSchema):
+class TrackablePositionLocationSchema(TrackablePositionSchema, LocationTypeSchema):
     """
     A trackable position for the location API.
     See TrackablePosition schema for details.
@@ -639,13 +649,19 @@ class PositionStatusSchema(Schema):
     )
 
 
+class PositionAvailabilitySchema(Schema):
+    available: str
+
+
 class PositionUnavailableStatusSchema(PositionStatusSchema, SimpleGeometryPointAndBoundsSchema,
-                                      TrackablePositionSchema):
+                                      TrackablePositionSchema, PositionAvailabilitySchema):
+    """ position unavailable """
     available: Literal[False]
 
 
 class PositionAvailableStatusSchema(PositionStatusSchema, SimpleGeometryPointAndBoundsSchema, TrackablePositionSchema,
-                                    CustomLocationSchema):
+                                    CustomLocationSchema, PositionAvailabilitySchema):
+    """ position available """
     available: Literal[True]
 
 
