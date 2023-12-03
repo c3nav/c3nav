@@ -6,14 +6,13 @@ from ninja import Router as APIRouter
 
 from c3nav.api.exceptions import API404
 from c3nav.api.newauth import auth_responses, validate_responses
-from c3nav.mapdata.api import optimize_query
 from c3nav.mapdata.models import (Area, Building, Door, Hole, Level, LocationGroup, LocationGroupCategory, Source,
                                   Space, Stair)
 from c3nav.mapdata.models.access import AccessRestriction, AccessRestrictionGroup
 from c3nav.mapdata.models.geometry.space import (POI, Column, CrossDescription, LeaveDescription, LineObstacle,
                                                  Obstacle, Ramp)
 from c3nav.mapdata.models.locations import DynamicLocation
-from c3nav.mapdata.newapi.base import newapi_etag
+from c3nav.mapdata.newapi.base import newapi_etag, optimize_query
 from c3nav.mapdata.schemas.filters import (ByCategoryFilter, ByGroupFilter, ByOnTopOfFilter, FilterSchema,
                                            LevelGeometryFilter, SpaceGeometryFilter)
 from c3nav.mapdata.schemas.models import (AccessRestrictionGroupSchema, AccessRestrictionSchema, AreaSchema,

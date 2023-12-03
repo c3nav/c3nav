@@ -60,10 +60,10 @@ def _location_list(request, detailed: bool, filters: LocationListFilters):
     else:
         locations = visible_locations_for_request(request).values()
 
-    result = tuple(obj.serialize(detailed=detailed, search=filters.searchable,
-                                 geometry=filters.geometry and can_access_geometry(request),
-                                 simple_geometry=True)
-                   for obj in locations)
+    result = [obj.serialize(detailed=detailed, search=filters.searchable,
+                            geometry=filters.geometry and can_access_geometry(request),
+                            simple_geometry=True)
+              for obj in locations]
     return result
 
 

@@ -14,7 +14,6 @@ from django.shortcuts import redirect, render
 from django.utils.cache import patch_vary_headers
 from django.utils.translation import get_language
 from django.utils.translation import gettext_lazy as _
-from rest_framework.response import Response as APIResponse
 
 from c3nav.editor.models import ChangeSet
 from c3nav.editor.wrappers import QuerySetWrapper
@@ -269,7 +268,8 @@ def call_api_hybrid_view_for_api(func, request, *args, **kwargs):
             result['messages'] = messages
             result.move_to_end('messages', last=False)
 
-        api_response = APIResponse(result, status=response.status_code)
+        # todo: fix this
+        # api_response = APIResponse(result, status=response.status_code)
         if request.method == 'GET':
             response.add_headers(api_response)
         return api_response

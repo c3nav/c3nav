@@ -2,15 +2,16 @@ import json
 from functools import wraps
 
 from django.core.serializers.json import DjangoJSONEncoder
+from django.db.models import Prefetch
 from django.utils.cache import get_conditional_response
 from django.utils.http import quote_etag
 from django.utils.translation import get_language
 from ninja.decorators import decorate_view
 
-from c3nav.mapdata.api import api_stats_clean_location_value
-from c3nav.mapdata.models import MapUpdate
+from c3nav.mapdata.models import AccessRestriction, LocationGroup, MapUpdate
 from c3nav.mapdata.models.access import AccessPermission
 from c3nav.mapdata.models.geometry.base import GeometryMixin
+from c3nav.mapdata.models.locations import SpecificLocation
 from c3nav.mapdata.utils.cache.local import LocalCacheProxy
 from c3nav.mapdata.utils.cache.stats import increment_cache_key
 
@@ -90,3 +91,34 @@ def newapi_stats(stat_name):
             return response
         return wrapped_func
     return decorate_view(wrapper)
+
+
+def optimize_query(qs):
+    if issubclass(qs.model, SpecificLocation):
+        base_qs = LocationGroup.objects.select_related('category')
+        qs = qs.prefetch_related(Prefetch('groups', queryset=base_qs))
+    if issubclass(qs.model, AccessRestriction):
+        qs = qs.prefetch_related('groups')
+    return qs
+
+
+def api_stats_clean_location_value(value):
+    if isinstance(value, str) and value.startswith('c:'):
+        value = value.split(':')
+        value = 'c:%s:%d:%d' % (value[1], int(float(value[2]) / 3) * 3, int(float(value[3]) / 3) * 3)
+        return (value, 'c:anywhere')
+    return (value, )
+
+
+def api_stats(view_name):
+    def wrapper(func):
+        @wraps(func)
+        def wrapped_func(self, request, *args, **kwargs):
+            response = func(self, request, *args, **kwargs)
+            if response.status_code < 400 and kwargs:
+                name, value = next(iter(kwargs.items()))
+                for value in api_stats_clean_location_value(value):
+                    increment_cache_key('apistats__%s__%s__%s' % (view_name, name, value))
+            return response
+        return wrapped_func
+    return wrapper

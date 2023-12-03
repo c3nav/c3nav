@@ -15,8 +15,7 @@ import c3nav.site.urls
 
 urlpatterns = [
     path('editor/', include(c3nav.editor.urls)),
-    path('api/v2/', c3nav.api.urls.ninja_api.urls),
-    path('api/', include((c3nav.api.urls, 'api'), namespace='api')),
+    path('api/', include(c3nav.api.urls)),
     path('map/', include(c3nav.mapdata.urls)),
     path('admin/', admin.site.urls),
     path('control/', include(c3nav.control.urls)),

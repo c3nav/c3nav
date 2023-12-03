@@ -302,7 +302,6 @@ INSTALLED_APPS = [
     'bootstrap3',
     'ninja',
     'c3nav.api',
-    'rest_framework',
     'c3nav.mapdata',
     'c3nav.routing',
     'c3nav.site',
@@ -371,16 +370,6 @@ else:
 USE_I18N = True
 USE_L10N = True
 USE_TZ = True
-
-REST_FRAMEWORK = {
-    'DEFAULT_AUTHENTICATION_CLASSES': (
-        'rest_framework.authentication.SessionAuthentication',
-        'c3nav.api.auth.APISecretAuthentication',
-    ),
-    'DEFAULT_PERMISSION_CLASSES': (
-        'rest_framework.permissions.AllowAny',
-    )
-}
 
 NINJA_PAGINATION_CLASS = "ninja.pagination.LimitOffsetPagination"
 
