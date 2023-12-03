@@ -1024,27 +1024,27 @@ editor = {
     _highlight_geometry: function(id) {
         // highlight a geometries layer and itemtable row if they both exist
         var geometry = editor._highlight_geometries[id];
-        if (geometry !== undefined) {
-            geometry.setStyle({
-                color: '#FFFFDD',
-                weight: 3,
-                opacity: 1,
-                fillOpacity: 0
-            });
-            geometry.list_elem.addClass('highlight');
-        }
+        if (!geometry) return;
+        if (Object.keys(geometry._bounds).length === 0) return; // ignore geometries with empty bounds
+        geometry.setStyle({
+            color: '#FFFFDD',
+            weight: 3,
+            opacity: 1,
+            fillOpacity: 0
+        });
+        geometry.list_elem.addClass('highlight');
     },
     _unhighlight_geometry: function(id) {
         // unhighlight whatever is highlighted currently
         var geometry = editor._highlight_geometries[id];
-        if (geometry !== undefined) {
-            geometry.setStyle({
-                weight: 3,
-                opacity: 0,
-                fillOpacity: 0
-            });
-            geometry.list_elem.removeClass('highlight');
-        }
+        if (!geometry) return;
+        if (Object.keys(geometry._bounds).length === 0) return; // ignore geometries with empty bounds
+        geometry.setStyle({
+            weight: 3,
+            opacity: 0,
+            fillOpacity: 0
+        });
+        geometry.list_elem.removeClass('highlight');
     },
 
     // graph events
