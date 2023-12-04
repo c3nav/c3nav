@@ -15,12 +15,16 @@ class AuthStatusSchema(Schema):
     """
     key_type: APIKeyType = APIField(
         title="api key type",
+        description="the type of api KEY THAT IS BEING USED"
     )
     readonly: bool = APIField(
         title="read only",
         description="if true, no API operations that modify data can be called"
     )
-    scopes: list[str]
+    scopes: list[str] = APIField(
+        title="authorized scopes",
+        description="scopes available with the current authorization",
+    )
 
 
 @auth_api_router.get('/status/', summary="get status",
@@ -40,14 +44,19 @@ def get_status(request):
 
 
 class APITokenSchema(Schema):
-    """
-    An API token to be used with Bearer authentication
-    """
-    token: NonEmptyStr
+    token: NonEmptyStr = APIField(
+        title="API token",
+        description="API token to be directly used with `Authorization: Bearer <token>` HTTP header."
+    )
 
 
 @auth_api_router.get('/session/', response=APITokenSchema, auth=None,
                      summary="get session-bound token")
 def session_token(request):
+    """
+    Get an API token that is bound to the transmitted session cookie.
+
+    Keep in mind that this API token will be invalid if the session gets signed out or similar.
+    """
     session_id = request.COOKIES.get(settings.SESSION_COOKIE_NAME, None)
     return {"token": "anonymous" if session_id is None else f"session:{session_id}"}

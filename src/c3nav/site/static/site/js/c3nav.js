@@ -1689,7 +1689,7 @@ c3nav = {
             c3nav.last_site_update = data.last_site_update;
             c3nav._maybe_load_site_update(c3nav.state);
         }
-        c3nav._set_user_data(data.user);
+        c3nav._set_user_data(data.user_data);
     },
     _maybe_load_site_update: function(state) {
         if (c3nav.new_site_update && !state.modal && (!state.routing || !state.origin || !state.destination)) {

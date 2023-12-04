@@ -50,10 +50,16 @@ EditorGeometriesCacheReferenceElem = Annotated[
 class EditorGeometriesPropertiesSchema(Schema):
     id: EditorID
     type: NonEmptyStr
-    space: Optional[EditorID] = None
+    space: Union[
+        Annotated[EditorID, APIField(title="level")],
+        Annotated[None, APIField(title="null")]
+    ] = APIField(None, title="lolala")
     level: Optional[EditorID] = None
     bounds: bool = False
-    color: Optional[str] = None
+    color: Union[
+        Annotated[str, APIField(title="color")],
+        Annotated[None, APIField(title="no color")]
+    ] = None
     opacity: Optional[float] = None   # todo: range
 
 
