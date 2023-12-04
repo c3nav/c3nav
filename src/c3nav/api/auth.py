@@ -18,7 +18,7 @@ from c3nav.control.models import UserPermissions
 FakeRequest = namedtuple('FakeRequest', ('session', ))
 
 
-class APIAuthMethod(StrEnum):
+class APIKeyType(StrEnum):
     ANONYMOUS = 'anonymous'
     SESSION = 'session'
     SECRET = 'secret'
@@ -26,7 +26,7 @@ class APIAuthMethod(StrEnum):
 
 @dataclass
 class APIAuthDetails:
-    method: APIAuthMethod
+    key_type: APIKeyType
     readonly: bool
 
 
@@ -59,7 +59,7 @@ class APITokenAuth(HttpBearer):
 
         if token == "anonymous":
             return APIAuthDetails(
-                method=APIAuthMethod.ANONYMOUS,
+                key_type=APIKeyType.ANONYMOUS,
                 readonly=True,
             )
         elif token.startswith("session:"):
@@ -70,7 +70,7 @@ class APITokenAuth(HttpBearer):
                 raise APITokenInvalid
             request.user = user
             return APIAuthDetails(
-                method=APIAuthMethod.SESSION,
+                key_type=APIKeyType.SESSION,
                 readonly=False,
             )
         elif token.startswith("secret:"):
@@ -92,7 +92,7 @@ class APITokenAuth(HttpBearer):
             request.user_permissions = user_permissions
 
             return APIAuthDetails(
-                method=APIAuthMethod.SESSION,
+                key_type=APIKeyType.SESSION,
                 readonly=secret.readonly
             )
         raise APITokenInvalid

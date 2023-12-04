@@ -1,8 +1,8 @@
 from django.conf import settings
-from ninja import Router as APIRouter
+from ninja import Router as APIRouter, Field as APIField
 from ninja import Schema
 
-from c3nav.api.auth import APIAuthMethod, auth_responses
+from c3nav.api.auth import APIKeyType, auth_responses
 from c3nav.api.utils import NonEmptyStr
 from c3nav.control.models import UserPermissions
 
@@ -13,8 +13,13 @@ class AuthStatusSchema(Schema):
     """
     Current auth state and permissions
     """
-    method: APIAuthMethod
-    readonly: bool
+    key_type: APIKeyType = APIField(
+        title="api key type",
+    )
+    readonly: bool = APIField(
+        title="read only",
+        description="if true, no API operations that modify data can be called"
+    )
     scopes: list[str]
 
 
