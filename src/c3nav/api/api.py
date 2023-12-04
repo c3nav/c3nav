@@ -16,7 +16,7 @@ class AuthStatusSchema(Schema):
     """
     key_type: APIKeyType = APIField(
         title="api key type",
-        description="the type of api KEY THAT IS BEING USED"
+        description="the type of api key that is being used"
     )
     readonly: bool = APIField(
         title="read only",
