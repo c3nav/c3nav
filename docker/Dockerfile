@@ -1,7 +1,7 @@
 # syntax=docker/dockerfile:1.6@sha256:ac85f380a63b13dfcefa89046420e1781752bab202122f8f50032edf31be0021
 FROM ubuntu:lunar-20231128@sha256:5a828e28de105c3d7821c4442f0f5d1c52dc16acf4999d5f31a3bc0f03f06edd as base
-ARG BASE_IMAGE_NAME=ubuntu:lunar-20231004
-ARG BASE_IMAGE_DIGEST=sha256:51e70689b125fcc2e800f5efb7ba465dee85ede9da9c268ff5599053c7e52b77
+ARG BASE_IMAGE_NAME=ubuntu:lunar-20231128
+ARG BASE_IMAGE_DIGEST=sha256:5a828e28de105c3d7821c4442f0f5d1c52dc16acf4999d5f31a3bc0f03f06edd
 ARG TARGETARCH
 
 LABEL org.opencontainers.image.base.name="docker.io/library/$BASE_IMAGE_NAME" \
