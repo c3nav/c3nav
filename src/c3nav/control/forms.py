@@ -4,9 +4,9 @@ import hmac
 import json
 import time
 from datetime import datetime, timedelta
+from datetime import timezone as dt_timezone
 from itertools import chain
 
-import pytz
 from django.contrib.auth.models import User
 from django.db.models import Prefetch
 from django.forms import (ChoiceField, Form, IntegerField, ModelForm, ModelMultipleChoiceField, MultipleChoiceField,
@@ -210,7 +210,7 @@ class AccessPermissionForm(Form):
         except ValueError:
             raise SignedPermissionDataError('Invalid valid_until.')
         else:
-            valid_until = valid_until and datetime.utcfromtimestamp(valid_until).replace(tzinfo=pytz.utc)
+            valid_until = valid_until and datetime.utcfromtimestamp(valid_until).replace(tzinfo=dt_timezone.utc)
 
         try:
             author_id = int(author_id)
