@@ -25,7 +25,6 @@ ninja_api.add_router("/mesh/", mesh_api_router)
 
 
 urlpatterns = [
-    # todo: does this work? can it be better?
     path('v2/', ninja_api.urls),
     path('', RedirectView.as_view(pattern_name="api-v2:openapi-view")),
 ]

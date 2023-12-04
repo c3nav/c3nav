@@ -48,7 +48,7 @@ class LocationEndpointParameters(Schema):
 
 
 def can_access_geometry(request):
-    return True  # todo: implementFd
+    return True  # todo: implement
 
 
 class LocationListFilters(BySearchableFilter, RemoveGeometryFilter):

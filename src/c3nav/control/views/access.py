@@ -21,7 +21,6 @@ def grant_access(request):  # todo: make class based view
         if form.is_valid():
             token = form.get_token()
             token.save()
-            # todo: this still needs fixing
             if settings.DEBUG:
                 signed_data = form.get_signed_data()
                 print('/?'+urlencode({'access': signed_data}))

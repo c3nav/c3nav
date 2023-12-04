@@ -31,7 +31,7 @@ EditorGeometriesUpdateCacheKeyElem = Annotated[
         Annotated[NonEmptyStr, APIField(title="the new cache key")],
     ],
     APIField(
-        title="new cache key",  # todo better explanation
+        title="new cache key",
         description="the first element of the list, it informs you of the cache key to store these geometries under"
     )
 ]
@@ -41,7 +41,7 @@ EditorGeometriesCacheReferenceElem = Annotated[
         Annotated[EditorID, APIField(title="geometry id")],  # this could be an editor id, right?
     ],
     APIField(
-        title="reference to a cached geometry",  # todo better explanation
+        title="reference to a cached geometry",
         description="replaces an element that has not changed from the cache key you supplied. get it from your cache."
     )
 ]

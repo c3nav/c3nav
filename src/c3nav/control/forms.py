@@ -159,11 +159,10 @@ class AccessPermissionForm(Form):
                                      unique_key=unique_key)
 
     def get_signed_data(self, key=None):
-        # todo: yep, we stil need to fix this
         try:
             api_secret = self.author.api_secrets.filter(scope_grant_permission=True).valid_only().get().api_secret
         except Secret.DoesNotExist:
-            raise ValueError('Author has no feasable api secret.')
+            raise ValueError('Author has no feasible api secret.')
         data = {
             'id': self.data['access_restrictions'],
             'time': int(time.time()),

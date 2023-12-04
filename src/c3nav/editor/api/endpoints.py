@@ -70,7 +70,6 @@ def space_geometries(request, space_id: EditorID, update_cache_key: UpdateCacheK
         update_cache_key=update_cache_key,
         update_cache_key_match=kwargs["update_cache_key_match"]
     )
-    # todo: test the heck out of this
 
 
 @editor_api_router.get('/geometries/level/{level_id}/', summary="level geometries",
@@ -90,7 +89,6 @@ def level_geometries(request, level_id: EditorID, update_cache_key: UpdateCacheK
         update_cache_key=update_cache_key,
         update_cache_key_match=kwargs["update_cache_key_match"]
     )
-    # todo: test the heck out of this
 
 
 # todo: need a way to pass the changeset if it's not a session API key
