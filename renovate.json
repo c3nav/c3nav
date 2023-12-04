@@ -35,7 +35,8 @@
         "ARG BUILD_FROM=(?<depName>.*?):(?<currentValue>.*?)\\s+",
         "ARG BASE_IMAGE_NAME=(?<depName>.*?):(?<currentValue>.*?)\\s+(ARG )?BASE_IMAGE_DIGEST=(?<currentDigest>.*?)\\s"
       ],
-      "datasourceTemplate": "docker"
+      "datasourceTemplate": "docker",
+      "versioningTemplate": "docker"
     },
     {
       "fileMatch": ["(^|/)[\\w-.]*[Dd]ockerfile$"],
