@@ -259,20 +259,21 @@ c3nav = {
         }
 
         c3nav.test_location();
-
     },
     get_csrf_token: function() {
         return document.cookie.match(new RegExp('c3nav_csrftoken=([^;]+)'))[1];
     },
     test_location: function() {
-        $.getJSON('/api/routing/locate_test/', function(data) {
-            console.log(data);
-            window.setTimeout(c3nav.test_location, 1000);
-            c3nav._set_user_location(data.location);
-        }).fail(function() {
-            window.setTimeout(c3nav.test_location, 1000);
-            c3nav._set_user_location(null);
-        });
+        c3nav_api.post('positioning/locate-test/', data)
+            .then(data => {
+                console.log(data);
+                window.setTimeout(c3nav.test_location, 1000);
+                c3nav._set_user_location(data.location);
+            })
+            .catch(() => {
+                window.setTimeout(c3nav.test_location, 1000);
+                c3nav._set_user_location(null);
+            });
     },
 
     state: {},
@@ -1781,7 +1782,7 @@ c3nav = {
         }
         c3nav._no_wifi_count = 0;
 
-        c3nav_api.post('routing/locate', data)
+        c3nav_api.post('positioning/locate/', data)
             .then(data => c3nav._set_user_location(data.location))
             .catch(() => {
                 c3nav._set_user_location(null);
