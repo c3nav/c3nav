@@ -53,31 +53,73 @@ class AltitudeWayTypeChoice(StrEnum):
     AVOID = "avoid"
 
 
-class RouteOptionsSchema(Schema):
+class UpdateRouteOptionsSchema(Schema):
     # todo: default is wrong, this should be optional
-    mode: RouteMode = RouteMode.FASTEST
-    walk_speed: WalkSpeed = WalkSpeed.DEFAULT
+    mode: Union[
+        Annotated[RouteMode, APIField(title="route mode", description="routing mode to use")],
+        Annotated[None, APIField(title="null", description="don't change routing mode")],
+    ] = APIField(
+        default=None,
+        title="routing mode",
+    )
+    walk_speed: Union[
+        Annotated[WalkSpeed, APIField(title="walk speed", description="walk speed to use")],
+        Annotated[None, APIField(title="null", description="don't change walk speed")],
+    ] = APIField(
+        default=None,
+        title="walk speed",
+    )
     way_types: dict[
         Annotated[NonEmptyStr, APIField(title="waytype")],
         Union[
-            Annotated[LevelWayTypeChoice, APIField(default=LevelWayTypeChoice.ALLOW)],
-            Annotated[AltitudeWayTypeChoice, APIField(default=AltitudeWayTypeChoice.ALLOW)],
+            Annotated[LevelWayTypeChoice, APIField(title="waytype without altitude change")],
+            Annotated[AltitudeWayTypeChoice, APIField(title="waytype with altitude change")],
         ]
-    ] = APIField(default_factory=dict)
+    ] = APIField(
+        default_factory=dict,
+        title="waytype settings",
+    )
+
+
+class RouteOptionsSchema(Schema):
+    # todo: default is wrong, this should be optional
+    mode: RouteMode = APIField(name="routing mode")
+    walk_speed: WalkSpeed = APIField(name="walk speed")
+    way_types: dict[
+        Annotated[NonEmptyStr, APIField(title="waytype")],
+        Union[
+            Annotated[LevelWayTypeChoice, APIField(title="waytype without altitude change")],
+            Annotated[AltitudeWayTypeChoice, APIField(title="waytype with altitude change")],
+        ]
+    ] = APIField(
+        title="waytype settings",
+    )
 
 
 class RouteParametersSchema(Schema):
     origin: AnyLocationID
     destination: AnyLocationID
-    options_override: Optional[RouteOptionsSchema] = None
+    options_override: UpdateRouteOptionsSchema = APIField(
+        title="override routing options",
+        default_factory=dict,
+    )
 
 
 class RouteItemSchema(Schema):
     id: PositiveInt
     coordinates: Coordinates3D
-    waytype: Optional[dict] = None  # todo: improve
-    space: Optional[dict] = APIField(None, title="new space being entered")
-    level: Optional[dict] = APIField(None, title="new level being entered")
+    waytype: Union[
+        Annotated[dict, APIField(title="waytype", descripiton="waytype used for this segment")],
+        Annotated[None, APIField(title="null", description="no waytype (normal walking)")],
+    ] = APIField(None, title="waytype")
+    space: Union[
+        Annotated[dict, APIField(title="space", descripiton="new space that is being entered")],
+        Annotated[None, APIField(title="null", description="staying in the same space")],
+    ] = APIField(None, description="new space being entered")
+    level: Union[
+        Annotated[dict, APIField(title="level", descripiton="new level that is being entered")],
+        Annotated[None, APIField(title="null", description="staying in the same level")],
+    ] = APIField(None, description="new level being entered")
     descriptions: list[tuple[
         Annotated[NonEmptyStr, APIField(
             title="icon name",
@@ -108,12 +150,21 @@ class RouteResponse(Schema):
     report_issue_url: NonEmptyStr
     result: RouteSchema
 
+    class Config(Schema.Config):
+        title = "route found"
+
 
 class NoRouteResponse(Schema):
-    """ the routing parameters were valid, but it was not possible to determine a route for these parameters """
     request: RouteParametersSchema
     options: RouteOptionsSchema
-    error: NonEmptyStr = APIField(name="error description")
+    error: NonEmptyStr = APIField(
+        name="error description",
+        description=("the routing parameters were valid, but it was not possible to determine a route. "
+                     "this field contains the reason.")
+    )
+
+    class Config(Schema.Config):
+        title = "route could not be determined"
 
 
 def get_request_pk(location):
@@ -222,7 +273,7 @@ def get_route_options(request):
 @routing_api_router.put('/options/', summary="set route options",
                         description="set current preferred route options for this user (or session, if signed out)",
                         response={200: RouteOptionsSchema, **validate_responses, **auth_responses})
-def set_route_options(request, new_options: RouteOptionsSchema):
+def set_route_options(request, new_options: UpdateRouteOptionsSchema):
     options = RouteOptions.get_for_request(request)
 
     _new_update_route_options(options, new_options)

@@ -1,4 +1,4 @@
-from typing import Annotated, Optional
+from typing import Annotated, Union
 
 from django.core.exceptions import ValidationError
 from ninja import Field as APIField
@@ -20,19 +20,55 @@ positioning_api_router = APIRouter(tags=["positioning"])
 
 
 class LocateRequestPeerSchema(Schema):
-    bssid: BSSIDSchema
-    ssid: NonEmptyStr
-    rssi: NegativeInt
-    frequency: Optional[PositiveInt] = None
-    distance: Optional[float] = None
+    bssid: BSSIDSchema = APIField(
+        title="BSSID",
+        description="BSSID of the peer",
+        example="c3:42:13:37:ac:ab",
+    )
+    ssid: NonEmptyStr = APIField(
+        title="SSID",
+        description="(E)SSID of the peer",
+        example="c3nav-locate",
+    )
+    rssi: NegativeInt = APIField(
+        title="RSSI",
+        description="RSSI in dBm",
+        example=-42,
+    )
+    frequency: Union[
+        PositiveInt,
+        Annotated[None, APIField(title="null", description="frequency not given")]
+    ] = APIField(
+        default=None,
+        title="frequency",
+        description="frequency in KHz",
+        example=2472,
+    )
+    distance: Union[
+        float,
+        Annotated[None, APIField(title="null", description="distance was not measured")]
+    ] = APIField(
+        default=None,
+        title="distance",
+        description="measured distance in meters",
+        example=8.32
+    )
 
 
 class LocateRequestSchema(Schema):
-    peers: list[LocateRequestPeerSchema]
+    peers: list[LocateRequestPeerSchema] = APIField(
+        title="list of visible/measured location beacons",
+    )
 
 
 class PositioningResult(Schema):
-    location: Optional[CustomLocationSchema]
+    location: Union[
+        Annotated[CustomLocationSchema, APIField(title="location")],
+        Annotated[None, APIField(title="null", description="position could not be determined")]
+    ] = APIField(
+        title="location",
+        description="positinoing result",
+    )
 
 
 @positioning_api_router.post('/locate/', summary="determine position",
