@@ -369,7 +369,7 @@ class CustomLocationSchema(SerializableSchema):
     slug: CustomLocationID = APIField(
         description="slug, identical to ID"
     )
-    icon: NonEmptyStr = APIField(
+    icon: Optional[NonEmptyStr] = APIField(  # todo: not optional?
         title="icon name",
         description="any material design icon name",
         example="pin_drop",
@@ -451,7 +451,7 @@ class TrackablePositionSchema(Schema):
         description="slug representing the position",
         example="p:adskjfalskdj",
     )
-    icon: NonEmptyStr = APIField(
+    icon: Optional[NonEmptyStr] = APIField(  # todo: not optional?
         title="icon name",
         description="any material design icon name",
         example="pin_drop",

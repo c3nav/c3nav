@@ -1,5 +1,5 @@
 import re
-from typing import Annotated, Any, Union
+from typing import Annotated, Any, Union, Optional
 
 from ninja import Schema
 from pydantic import Field as APIField
@@ -100,7 +100,7 @@ class LocationSchema(WithAccessRestrictionSchema, TitledSchema, LocationSlugSche
                     "preferred language based on the Accept-Language header.",
         example="near Area 51",
     )
-    icon: NonEmptyStr = APIField(
+    icon: Optional[NonEmptyStr] = APIField(  # todo: not optional?
         title="icon name",
         description="any material design icon name",
         example="pin_drop",
