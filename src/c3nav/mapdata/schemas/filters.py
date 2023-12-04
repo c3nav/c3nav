@@ -151,7 +151,7 @@ class BySearchableFilter(FilterSchema):
 
 class RemoveGeometryFilter(FilterSchema):
     geometry: bool = APIField(
-        False,  # todo: should be false
+        False,
         title='include geometry',
         description='by default, geometry will be ommited. set to true to include it (if available)'
     )

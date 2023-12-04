@@ -29,8 +29,6 @@ def mapdata_list_endpoint(request,
                           model: Type[Model],
                           filters: Optional[FilterSchema] = None,
                           order_by: Sequence[str] = ('pk',)):
-    # todo: request permissions based on api key
-
     # validate filters
     if filters:
         filters.validate(request)

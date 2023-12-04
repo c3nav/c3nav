@@ -89,7 +89,6 @@ class APISecretForm(ModelForm):
     class Meta:
         model = Secret
         fields = ['name', 'readonly', 'scope_grant_permissions', 'scope_editor', 'scope_mesh']
-        # todo: allow suuplying days and hours
 
     def save(self, *args, **kwargs):
         self.instance.valid_until = (
