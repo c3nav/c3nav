@@ -198,6 +198,10 @@ MEDIA_URL = config.get('django', 'media_url', fallback='/media/', env='C3NAV_MED
 
 ALLOWED_HOSTS = [n for n in config.get('django', 'allowed_hosts', fallback='*').split(',') if n]
 
+if config.getboolean('django', 'reverse_proxy'):
+    SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
+
+
 LANGUAGE_CODE = config.get('locale', 'default', fallback='en', env='C3NAV_DEFAULT_LOCALE')
 TIME_ZONE = config.get('locale', 'timezone', fallback='UTC', env='C3NAV_TIMEZONE')
 
