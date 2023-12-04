@@ -13,7 +13,7 @@ from pydantic import PositiveInt
 from c3nav.api.auth import auth_permission_responses, auth_responses, validate_responses
 from c3nav.api.exceptions import API404, APIPermissionDenied, APIRequestValidationFailed
 from c3nav.api.utils import NonEmptyStr
-from c3nav.mapdata.api.base import api_etag, api_stats
+from c3nav.mapdata.api.base import api_etag, api_stats, can_access_geometry
 from c3nav.mapdata.models import Source
 from c3nav.mapdata.models.locations import DynamicLocation, LocationRedirect, Position
 from c3nav.mapdata.schemas.filters import BySearchableFilter, RemoveGeometryFilter
@@ -47,10 +47,6 @@ class LocationEndpointParameters(Schema):
     )
 
 
-def can_access_geometry(request):
-    return True  # todo: implement
-
-
 class LocationListFilters(BySearchableFilter, RemoveGeometryFilter):
     pass
 
@@ -63,7 +59,7 @@ def _location_list(request, detailed: bool, filters: LocationListFilters):
         locations = visible_locations_for_request(request).values()
 
     result = [obj.serialize(detailed=detailed, search=filters.searchable,
-                            geometry=filters.geometry and can_access_geometry(request),
+                            geometry=filters.geometry and can_access_geometry(request, obj),
                             simple_geometry=True)
               for obj in locations]
     return result
@@ -103,7 +99,7 @@ def _location_retrieve(request, location, detailed: bool, geometry: bool, show_r
 
     return location.serialize(
         detailed=detailed,
-        geometry=geometry and can_access_geometry(request),
+        geometry=geometry and can_access_geometry(request, location),
         simple_geometry=True
     )
 
@@ -118,7 +114,7 @@ def _location_display(request, location):
         return redirect('../' + str(location.target.slug) + '/details/')  # todo: use reverse, make pk+slug work
 
     result = location.details_display(
-        detailed_geometry=can_access_geometry(request),
+        detailed_geometry=can_access_geometry(request, location),
         editor_url=can_access_editor(request)
     )
     from pprint import pprint
@@ -139,7 +135,7 @@ def _location_geometry(request, location):
         id=location.pk,
         level=getattr(location, 'level_id', None),
         geometry=location.get_geometry(
-            detailed_geometry=can_access_geometry(request)
+            detailed_geometry=can_access_geometry(request, location)
         )
     )
 
