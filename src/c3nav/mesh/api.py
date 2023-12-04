@@ -73,7 +73,7 @@ class FirmwareSchema(Schema):
 
 @mesh_api_router.get('/firmwares/', summary="firmware list",
                      response={200: list[FirmwareSchema], **validate_responses, **auth_responses},
-                     openapi_extra={"security": [{"APITokenAuth": ["mesh_control"]}]})
+                     openapi_extra={"security": [{"APIKeyAuth": ["mesh_control"]}]})
 @paginate
 def firmware_list(request):
     return FirmwareVersion.objects.all()
@@ -81,7 +81,7 @@ def firmware_list(request):
 
 @mesh_api_router.get('/firmwares/{firmware_id}/', summary="firmware by ID",
                      response={200: FirmwareSchema, **API404.dict(), **auth_responses},
-                     openapi_extra={"security": [{"APITokenAuth": ["mesh_control"]}]})
+                     openapi_extra={"security": [{"APIKeyAuth": ["mesh_control"]}]})
 def firmware_by_id(request, firmware_id: int):
     try:
         return FirmwareVersion.objects.get(id=firmware_id)
@@ -99,7 +99,7 @@ def firmware_by_id(request, firmware_id: int):
                              'url': "https://docs.espressif.com/projects/esp-idf/en/latest/esp32/"
                                     "api-guides/build-system.html#build-system-metadata"
                          },
-                         "security": [{"APITokenAuth": ["mesh_control"]}]
+                         "security": [{"APIKeyAuth": ["mesh_control"]}]
                      })
 def firmware_build_image(request, firmware_id: int, variant: str):
     try:
@@ -119,7 +119,7 @@ def firmware_build_image(request, firmware_id: int, variant: str):
                              'url': "https://docs.espressif.com/projects/esp-idf/en/latest/esp32/"
                                     "api-guides/build-system.html#build-system-metadata"
                          },
-                         "security": [{"APITokenAuth": ["mesh_control"]}]
+                         "security": [{"APIKeyAuth": ["mesh_control"]}]
                      })
 def firmware_project_description(request, firmware_id: int, variant: str):
     try:
@@ -157,7 +157,7 @@ class UploadFirmwareSchema(Schema):
 @mesh_api_router.post(
     '/firmwares/upload', summary="upload firmware",
     response={200: FirmwareSchema, **validate_responses, **auth_permission_responses, **APIConflict.dict()},
-    openapi_extra={"security": [{"APITokenAuth": ["mesh_control", "write"]}]}
+    openapi_extra={"security": [{"APIKeyAuth": ["mesh_control", "write"]}]}
 )
 def firmware_upload(request, firmware_data: UploadFirmwareSchema, binary_files: list[UploadedFile]):
     binary_files_by_name = {binary_file.name: binary_file for binary_file in binary_files}
@@ -228,7 +228,7 @@ class NodeMessageSchema(Schema):
     '/messages/', summary="mesh messages list",
     description="query and filter all received mesh messages",
     response={200: list[NodeMessageSchema], **auth_permission_responses},
-    openapi_extra={"security": [{"APITokenAuth": ["mesh_control"]}]}
+    openapi_extra={"security": [{"APIKeyAuth": ["mesh_control"]}]}
 )
 @paginate
 def messages_list(request, filters: Query[MessagesFilter]):

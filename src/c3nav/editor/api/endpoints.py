@@ -18,7 +18,7 @@ editor_api_router = APIRouter(tags=["editor"], auth=APIKeyAuth(permissions={"edi
 @editor_api_router.get('/bounds/', summary="boundaries",
                        description="get maximum boundaries of everything on the map",
                        response={200: WithBoundsSchema, **auth_permission_responses},
-                       openapi_extra={"security": [{"APITokenAuth": ["editor_access"]}]})
+                       openapi_extra={"security": [{"APIKeyAuth": ["editor_access"]}]})
 @api_etag()
 def bounds(request):
     return {
@@ -29,7 +29,7 @@ def bounds(request):
 @editor_api_router.get('/geometrystyles/', summary="geometry styles",
                        description="get the default colors for each geometry type",
                        response={200: GeometryStylesSchema, **auth_permission_responses},
-                       openapi_extra={"security": [{"APITokenAuth": ["editor_access"]}]})
+                       openapi_extra={"security": [{"APIKeyAuth": ["editor_access"]}]})
 @api_etag(permissions=False)
 def geometrystyles(request):
     return {
@@ -57,7 +57,7 @@ def geometrystyles(request):
                        description="get the geometries to display on the editor map for a space",
                        response={200: list[EditorGeometriesElemSchema], **API404.dict(),
                                  **auth_permission_responses},
-                       openapi_extra={"security": [{"APITokenAuth": ["editor_access"]}]})
+                       openapi_extra={"security": [{"APIKeyAuth": ["editor_access"]}]})
 @api_etag_with_update_cache_key(etag_func=editor_etag_func)
 def space_geometries(request, space_id: EditorID, update_cache_key: UpdateCacheKey = None, **kwargs):
     # newapi_etag_with_update_cache_key does the following, don't let it confuse you:
@@ -76,7 +76,7 @@ def space_geometries(request, space_id: EditorID, update_cache_key: UpdateCacheK
                        description="get the geometries to display on the editor map for a space",
                        response={200: list[EditorGeometriesElemSchema], **API404.dict(),
                                  **auth_permission_responses},
-                       openapi_extra={"security": [{"APITokenAuth": ["editor_access"]}]})
+                       openapi_extra={"security": [{"APIKeyAuth": ["editor_access"]}]})
 @api_etag_with_update_cache_key(etag_func=editor_etag_func)
 def level_geometries(request, level_id: EditorID, update_cache_key: UpdateCacheKey = None, **kwargs):
     # newapi_etag_with_update_cache_key does the following, don't let it confuse you:
@@ -114,7 +114,7 @@ def resolve_editor_path_api(request, path):
 
 @editor_api_router.get('/as_api/{path:path}', summary="raw editor access",
                        response={200: dict, **API404.dict(), **auth_permission_responses},
-                       openapi_extra={"security": [{"APITokenAuth": ["editor_access"]}]})
+                       openapi_extra={"security": [{"APIKeyAuth": ["editor_access"]}]})
 @api_etag()  # todo: correct?
 def view_as_api(request, path: str):
     """
@@ -136,7 +136,7 @@ def view_as_api(request, path: str):
 
 @editor_api_router.post('/as_api/{path:path}', summary="raw editor access",
                         response={200: dict, **API404.dict(), **auth_permission_responses},
-                        openapi_extra={"security": [{"APITokenAuth": ["editor_access", "write"]}]})
+                        openapi_extra={"security": [{"APIKeyAuth": ["editor_access", "write"]}]})
 @api_etag()  # todo: correct?
 def view_as_api(request, path: str):
     """
