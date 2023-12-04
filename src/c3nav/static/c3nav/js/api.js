@@ -33,7 +33,7 @@
 
         get(path) {
             return fetch(this.make_url(path), {
-                credentials: 'omit',
+                credentials: 'same-origin',
                 method: 'GET',
                 headers: {
                     'X-API-Key': this.key,
@@ -45,10 +45,10 @@
 
         async post(path, data) {
             return fetch(this.make_url(path), {
-                credentials: 'omit',
+                credentials: 'same-origin',
                 method: 'POST',
                 headers: {
-                    'Authorization': `Bearer ${this.key}`,
+                    'X-API-Key': this.key,
                     'Accept': 'application/json',
                     'Content-Type': 'application/json',
                 },
