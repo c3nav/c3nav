@@ -16,15 +16,14 @@ class BoundsSchema(Schema):
         Annotated[tuple[
             Annotated[float, APIField(title="left", description="lowest X coordindate")],
             Annotated[float, APIField(title="bottom", description="lowest Y coordindate")]
-        ], APIField(title="(left, bottom)", description="lowest coordinates")],
+        ], APIField(title="(left, bottom)", description="lowest coordinates", example=(-10, -20))],
         Annotated[tuple[
             Annotated[float, APIField(title="right", description="highest X coordindate")],
             Annotated[float, APIField(title="top", description="highest Y coordindate")]
-        ], APIField(title="(right, top)", description="highest coordinates")]
+        ], APIField(title="(right, top)", description="highest coordinates", example=(20, 30))]
     ] = APIField(
         title="boundaries",
         description="(left, bottom) to (top, right)",
-        example=((-10, -20), (20, 30)),
     )
 
 
