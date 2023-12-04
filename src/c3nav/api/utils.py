@@ -4,7 +4,6 @@ import annotated_types
 from pydantic import GetCoreSchemaHandler, GetJsonSchemaHandler
 from pydantic.json_schema import JsonSchemaValue
 from pydantic_core import CoreSchema, core_schema
-from rest_framework.exceptions import ParseError
 
 
 def get_api_post_data(request):
@@ -13,7 +12,7 @@ def get_api_post_data(request):
         try:
             data = request.json_body
         except AttributeError:
-            raise ParseError('Invalid JSON.')
+            pass # todo fix this raise ParseError('Invalid JSON.')
         return data
     return request.POST
 
