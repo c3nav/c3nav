@@ -9,7 +9,7 @@ from ninja import Router as APIRouter
 from ninja import Schema
 from pydantic import PositiveInt
 
-from c3nav.api.auth import APITokenAuth, auth_responses, validate_responses
+from c3nav.api.auth import APIKeyAuth, auth_responses, validate_responses
 from c3nav.api.exceptions import APIRequestValidationFailed
 from c3nav.api.utils import NonEmptyStr
 from c3nav.mapdata.api.base import api_stats_clean_location_value
@@ -171,7 +171,7 @@ def get_request_pk(location):
     return location.slug if isinstance(location, Position) else location.pk
 
 
-@routing_api_router.post('/route/', summary="query route", auth=APITokenAuth(is_readonly=True),
+@routing_api_router.post('/route/', summary="query route", auth=APIKeyAuth(is_readonly=True),
                          description="query route between two locations",
                          response={200: RouteResponse | NoRouteResponse, **validate_responses, **auth_responses})
 # todo: route failure responses

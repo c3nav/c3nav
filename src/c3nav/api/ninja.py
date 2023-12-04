@@ -3,7 +3,7 @@ from ninja.openapi.docs import DocsBase
 from ninja.operation import Operation
 from ninja.schema import NinjaGenerateJsonSchema
 
-from c3nav.api.auth import APITokenAuth
+from c3nav.api.auth import APIKeyAuth
 from c3nav.api.exceptions import CustomAPIException
 
 
@@ -60,7 +60,7 @@ ninja_api = c3navAPI(
     docs_url="/",
     docs=SwaggerAndRedoc(),
 
-    auth=APITokenAuth(),
+    auth=APIKeyAuth(),
 
     openapi_extra={
         "tags": [

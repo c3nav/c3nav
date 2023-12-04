@@ -9,13 +9,13 @@ from ninja import Schema, UploadedFile
 from ninja.pagination import paginate
 from pydantic import PositiveInt, field_validator
 
-from c3nav.api.auth import APITokenAuth, auth_permission_responses, auth_responses, validate_responses
+from c3nav.api.auth import APIKeyAuth, auth_permission_responses, auth_responses, validate_responses
 from c3nav.api.exceptions import API404, APIConflict, APIRequestValidationFailed
 from c3nav.mesh.dataformats import BoardType, ChipType, FirmwareImage
 from c3nav.mesh.messages import MeshMessageType
 from c3nav.mesh.models import FirmwareBuild, FirmwareVersion, NodeMessage
 
-mesh_api_router = APIRouter(tags=["mesh"], auth=APITokenAuth(permissions={"mesh_control"}))
+mesh_api_router = APIRouter(tags=["mesh"], auth=APIKeyAuth(permissions={"mesh_control"}))
 
 
 class FirmwareBuildSchema(Schema):

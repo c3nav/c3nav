@@ -2,7 +2,7 @@ from django.urls import Resolver404, resolve
 from django.utils.translation import gettext_lazy as _
 from ninja import Router as APIRouter
 
-from c3nav.api.auth import APITokenAuth, auth_permission_responses
+from c3nav.api.auth import APIKeyAuth, auth_permission_responses
 from c3nav.api.exceptions import API404
 from c3nav.editor.api.base import api_etag_with_update_cache_key
 from c3nav.editor.api.geometries import get_level_geometries_result, get_space_geometries_result
@@ -12,7 +12,7 @@ from c3nav.mapdata.api.base import api_etag
 from c3nav.mapdata.models import Source
 from c3nav.mapdata.schemas.responses import WithBoundsSchema
 
-editor_api_router = APIRouter(tags=["editor"], auth=APITokenAuth(permissions={"editor_access"}))
+editor_api_router = APIRouter(tags=["editor"], auth=APIKeyAuth(permissions={"editor_access"}))
 
 
 @editor_api_router.get('/bounds/', summary="boundaries",

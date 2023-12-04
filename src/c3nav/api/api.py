@@ -44,20 +44,20 @@ def get_status(request):
     )
 
 
-class APITokenSchema(Schema):
-    token: NonEmptyStr = APIField(
-        title="API token",
-        description="API token to be directly used with `Authorization: Bearer <token>` HTTP header."
+class APIKeySchema(Schema):
+    key: NonEmptyStr = APIField(
+        title="API key",
+        description="API secret to be directly used with `X-API-Key` HTTP header."
     )
 
 
-@auth_api_router.get('/session/', response=APITokenSchema, auth=None,
-                     summary="get session-bound token")
-def session_token(request):
+@auth_api_router.get('/session/', response=APIKeySchema, auth=None,
+                     summary="get session-bound key")
+def session_key(request):
     """
-    Get an API token that is bound to the transmitted session cookie.
+    Get an API key that is bound to the transmitted session cookie.
 
-    Keep in mind that this API token will be invalid if the session gets signed out or similar.
+    Keep in mind that this API key will be invalid if the session gets signed out or similar.
     """
     session_id = request.COOKIES.get(settings.SESSION_COOKIE_NAME, None)
-    return {"token": "anonymous" if session_id is None else f"session:{session_id}"}
+    return {"key": "anonymous" if session_id is None else f"session:{session_id}"}

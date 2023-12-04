@@ -22,9 +22,9 @@ class APIUnauthorized(CustomAPIException):
     detail = "Authorization is required for this endpoint."
 
 
-class APITokenInvalid(CustomAPIException):
+class APIKeyInvalid(CustomAPIException):
     status_code = 401
-    detail = "Invalid API token."
+    detail = "Invalid API key."
 
 
 class APIPermissionDenied(CustomAPIException):

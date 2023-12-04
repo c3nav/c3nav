@@ -1,7 +1,7 @@
 (function () {
 
     class C3NavApi {
-        token = 'anonymous';
+        key = 'anonymous';
 
         constructor(base ) {
             this.base = base;
@@ -11,7 +11,7 @@
             })
                 .then(res => res.json())
                 .then(data => {
-                    this.token = data.token
+                    this.key = data.key
                 })
                 .catch(err => {
                     throw err;
@@ -36,7 +36,7 @@
                 credentials: 'omit',
                 method: 'GET',
                 headers: {
-                    'Authorization': `Bearer ${this.token}`,
+                    'X-API-Key': this.key,
                     'Accept': 'application/json'
                 }
             })
@@ -48,7 +48,7 @@
                 credentials: 'omit',
                 method: 'POST',
                 headers: {
-                    'Authorization': `Bearer ${this.token}`,
+                    'Authorization': `Bearer ${this.key}`,
                     'Accept': 'application/json',
                     'Content-Type': 'application/json',
                 },
