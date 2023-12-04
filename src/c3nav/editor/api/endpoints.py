@@ -10,14 +10,14 @@ from c3nav.editor.api.schemas import EditorGeometriesElemSchema, EditorID, Geome
 from c3nav.editor.views.base import editor_etag_func
 from c3nav.mapdata.api.base import api_etag
 from c3nav.mapdata.models import Source
-from c3nav.mapdata.schemas.responses import BoundsSchema
+from c3nav.mapdata.schemas.responses import WithBoundsSchema
 
 editor_api_router = APIRouter(tags=["editor"], auth=APITokenAuth(permissions={"editor_access"}))
 
 
 @editor_api_router.get('/bounds/', summary="boundaries",
                        description="get maximum boundaries of everything on the map",
-                       response={200: BoundsSchema, **auth_permission_responses},
+                       response={200: WithBoundsSchema, **auth_permission_responses},
                        openapi_extra={"security": [{"APITokenAuth": ["editor_access"]}]})
 @api_etag()
 def bounds(request):

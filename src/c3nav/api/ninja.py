@@ -22,8 +22,7 @@ class SwaggerAndRedoc(DocsBase):
     redoc_config = Redoc(settings={
         "hideOneOfDescription": True,
         "expandSingleSchemaField": True,
-        "jsonSampleExpandLevel": 4,
-        "showObjectSchemaExamples": True,
+        "jsonSampleExpandLevel": 5,
         "expandResponses": "200",
         "hideSingleRequestSampleTab": True,
         "nativeScrollbars": True,

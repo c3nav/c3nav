@@ -15,6 +15,7 @@ from c3nav.mapdata.models.geometry.space import (POI, Column, CrossDescription, 
 from c3nav.mapdata.models.locations import DynamicLocation
 from c3nav.mapdata.schemas.filters import (ByCategoryFilter, ByGroupFilter, ByOnTopOfFilter, FilterSchema,
                                            LevelGeometryFilter, SpaceGeometryFilter)
+from c3nav.mapdata.schemas.model_base import schema_description
 from c3nav.mapdata.schemas.models import (AccessRestrictionGroupSchema, AccessRestrictionSchema, AreaSchema,
                                           BuildingSchema, ColumnSchema, CrossDescriptionSchema, DoorSchema,
                                           DynamicLocationSchema, HoleSchema, LeaveDescriptionSchema, LevelSchema,
@@ -56,10 +57,6 @@ def mapdata_retrieve_endpoint(request, model: Type[Model], **lookups):
         ).get(**lookups)
     except model.DoesNotExist:
         raise API404("%s not found" % model.__name__.lower())
-
-
-def schema_description(schema):
-    return schema.__doc__.replace("\n    ", "\n")
 
 
 """

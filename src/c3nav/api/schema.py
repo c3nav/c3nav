@@ -25,6 +25,9 @@ class PolygonSchema(Schema):
         example=[[[1.5, 1.5], [1.5, 2.5], [2.5, 2.5], [2.5, 2.5]]]
     )
 
+    class Config(Schema.Config):
+        title = "GeoJSON Polygon"
+
 
 class LineStringSchema(Schema):
     """
@@ -34,6 +37,9 @@ class LineStringSchema(Schema):
     coordinates: list[tuple[float, float]] = APIField(
         example=[[1.5, 1.5], [2.5, 2.5], [5, 8.7]]
     )
+
+    class Config(Schema.Config):
+        title = "GeoJSON LineString"
 
 
 class LineSchema(Schema):
@@ -45,6 +51,9 @@ class LineSchema(Schema):
         example=[[1.5, 1.5], [5, 8.7]]
     )
 
+    class Config(Schema.Config):
+        title = "GeoJSON LineString (only two points)"
+
 
 class PointSchema(Schema):
     """
@@ -54,6 +63,9 @@ class PointSchema(Schema):
     coordinates: tuple[float, float] = APIField(
         example=[1, 2.5]
     )
+
+    class Config(Schema.Config):
+        title = "GeoJSON Point"
 
 
 GeometrySchema = Annotated[

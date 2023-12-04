@@ -17,10 +17,11 @@ from c3nav.mapdata.api.base import api_etag, api_stats
 from c3nav.mapdata.models import Source
 from c3nav.mapdata.models.locations import DynamicLocation, LocationRedirect, Position
 from c3nav.mapdata.schemas.filters import BySearchableFilter, RemoveGeometryFilter
-from c3nav.mapdata.schemas.model_base import AnyLocationID, AnyPositionID, CustomLocationID
+from c3nav.mapdata.schemas.model_base import AnyLocationID, AnyPositionID, CustomLocationID, schema_definition
 from c3nav.mapdata.schemas.models import (AnyPositionStatusSchema, FullListableLocationSchema, FullLocationSchema,
-                                          LocationDisplay, SlimListableLocationSchema, SlimLocationSchema)
-from c3nav.mapdata.schemas.responses import BoundsSchema, LocationGeometry
+                                          LevelSchema, LocationDisplay, SlimListableLocationSchema, SlimLocationSchema,
+                                          all_location_definitions, listable_location_definitions)
+from c3nav.mapdata.schemas.responses import LocationGeometry, WithBoundsSchema
 from c3nav.mapdata.utils.locations import (get_location_by_id_for_request, get_location_by_slug_for_request,
                                            searchable_locations_for_request, visible_locations_for_request)
 from c3nav.mapdata.utils.user import can_access_editor
@@ -30,7 +31,7 @@ map_api_router = APIRouter(tags=["map"])
 
 @map_api_router.get('/bounds/', summary="get boundaries",
                     description="get maximum boundaries of everything on the map",
-                    response={200: BoundsSchema, **auth_responses})
+                    response={200: WithBoundsSchema, **auth_responses})
 @api_etag(permissions=False)
 def bounds(request):
     return {
@@ -69,7 +70,8 @@ def _location_list(request, detailed: bool, filters: LocationListFilters):
 
 
 @map_api_router.get('/locations/', summary="list locations (slim)",
-                    description="Get locations (with most important attributes set)",
+                    description=("Get locations (with most important attributes set)\n\n"
+                                 "Possible location types:\n"+listable_location_definitions),
                     response={200: list[SlimListableLocationSchema], **validate_responses, **auth_responses})
 @api_etag(base_mapdata=True)
 def location_list(request, filters: Query[LocationListFilters]):
@@ -77,7 +79,8 @@ def location_list(request, filters: Query[LocationListFilters]):
 
 
 @map_api_router.get('/locations/full/', summary="list locations (full)",
-                    description="Get locations (with all attributes set)",
+                    description=("Get locations (with all attributes set)\n\n"
+                                 "Possible location types:\n"+listable_location_definitions),
                     response={200: list[FullListableLocationSchema], **validate_responses, **auth_responses})
 @api_etag(base_mapdata=True)
 def location_list_full(request, filters: Query[LocationListFilters]):
@@ -150,7 +153,8 @@ class ShowRedirects(Schema):
 
 
 @map_api_router.get('/locations/{location_id}/', summary="location by ID (slim)",
-                    description="Get locations by ID (with all attributes set)",
+                    description=("Get locations by ID (with all attributes set)\n\n"
+                                 "Possible location types:\n"+all_location_definitions),
                     response={200: SlimLocationSchema, **API404.dict(), **validate_responses, **auth_responses})
 @api_stats('location_get')
 @api_etag(base_mapdata=True)
@@ -164,7 +168,8 @@ def location_by_id(request, location_id: AnyLocationID, filters: Query[RemoveGeo
 
 
 @map_api_router.get('/locations/{location_id}/full/', summary="location by ID (full)",
-                    description="Get location by ID (with all attributes set)",
+                    description=("Get location by ID (with all attributes set)\n\n"
+                                 "Possible location types:\n"+all_location_definitions),
                     response={200: FullLocationSchema, **API404.dict(), **validate_responses, **auth_responses})
 @api_stats('location_get')
 @api_etag(base_mapdata=True)
@@ -202,7 +207,8 @@ def location_by_id_geometry(request, location_id: AnyLocationID):
 
 
 @map_api_router.get('/locations/by-slug/{location_slug}/', summary="location by slug (slim)",
-                    description="Get location by slug (with most important attributes set)",
+                    description=("Get location by slug (with most important attributes set)\n\n"
+                                 "Possible location types:\n"+all_location_definitions),
                     response={200: SlimLocationSchema, **API404.dict(), **validate_responses, **auth_responses})
 @api_stats('location_get')
 @api_etag(base_mapdata=True)
@@ -216,7 +222,8 @@ def location_by_slug(request, location_slug: NonEmptyStr, filters: Query[RemoveG
 
 
 @map_api_router.get('/locations/by-slug/{location_slug}/full/', summary="location by slug (full)",
-                    description="Get location by slug (with all attributes set)",
+                    description=("Get location by slug (with all attributes set)\n\n"
+                                 "Possible location types:\n"+all_location_definitions),
                     response={200: FullLocationSchema, **API404.dict(), **validate_responses, **auth_responses})
 @api_stats('location_get')
 @api_etag(base_mapdata=True)

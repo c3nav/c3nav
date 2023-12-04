@@ -1,4 +1,5 @@
-from typing import Annotated, Any, Optional, Union
+import re
+from typing import Annotated, Any, Union
 
 from ninja import Schema
 from pydantic import Field as APIField
@@ -8,6 +9,31 @@ from pydantic_core.core_schema import ValidationInfo
 
 from c3nav.api.schema import LineStringSchema, PointSchema, PolygonSchema
 from c3nav.api.utils import NonEmptyStr
+
+
+def schema_description(schema):
+    return schema.__doc__.replace("\n    ", "\n").strip()
+
+
+def schema_definition(schema):
+    return ("- **"+re.sub(r"([a-z])([A-Z])", r"\1 \2", schema.__name__.removesuffix("Schema")) +"**: " +
+            schema_description(schema).split("\n")[0].strip())
+
+
+def schema_definitions(schemas):
+    return "\n".join(schema_definition(schema) for schema in schemas)
+
+
+BoundsSchema = tuple[
+    Annotated[tuple[
+        Annotated[float, APIField(title="left", description="lowest X coordindate")],
+        Annotated[float, APIField(title="bottom", description="lowest Y coordindate")]
+    ], APIField(title="(left, bottom)", description="lowest coordinates", example=(-10, -20))],
+    Annotated[tuple[
+        Annotated[float, APIField(title="right", description="highest X coordindate")],
+        Annotated[float, APIField(title="top", description="highest Y coordindate")]
+    ], APIField(title="(right, top)", description="highest coordinates", example=(20, 30))]
+]
 
 
 class SerializableSchema(Schema):
@@ -23,62 +49,79 @@ class SerializableSchema(Schema):
 class DjangoModelSchema(SerializableSchema):
     id: PositiveInt = APIField(
         title="ID",
+        example=1,
     )
 
 
 class LocationSlugSchema(Schema):
     slug: NonEmptyStr = APIField(
         title="location slug",
-        description="a slug is a unique way to refer to a location across all location types. "
-                    "locations can have a human-readable slug. "
-                    "if it doesn't, this field holds a slug generated based from the location type and ID. "
-                    "this slug will work even if a human-readable slug is defined later. "
-                    "even dynamic locations like coordinates have a slug.",
+        description="a slug is a unique way to refer to a location. while locations have a shared ID space, slugs"
+                    "are meants to be human-readable and easy to remember.\n\n"
+                    "if a location doesn't have a slug defined, this field holds a slug generated from the "
+                    "location type and ID, which will work even  if a human-readable slug is defined later.\n\n"
+                    "even dynamic locations like coordinates have an (auto-generated) slug.",
+        example="entrance",
     )
 
 
 class WithAccessRestrictionSchema(Schema):
-    access_restriction: Optional[PositiveInt] = APIField(
+    access_restriction: Union[
+        Annotated[PositiveInt, APIField(title="access restriction ID")],
+        Annotated[None, APIField(title="null", description="no access restriction")],
+    ] = APIField(
         default=None,
         title="access restriction ID",
+        description="access restriction that this object belongs to",
     )
 
 
 class TitledSchema(Schema):
     titles: dict[NonEmptyStr, NonEmptyStr] = APIField(
         title="title (all languages)",
-        description="property names are the ISO-language code. languages may be missing.",
+        description="title in all available languages. property names are the ISO-language code. "
+                    "languages may be missing.",
         example={
-            "en": "Title",
-            "de": "Titel",
+            "en": "Entrance",
+            "de": "Eingang",
         }
     )
     title: NonEmptyStr = APIField(
         title="title (preferred language)",
-        description="preferred language based on the Accept-Language header."
+        description="title in the preferred language based on the Accept-Language header.",
+        example="Entrance",
     )
 
 
 class LocationSchema(WithAccessRestrictionSchema, TitledSchema, LocationSlugSchema):
     subtitle: NonEmptyStr = APIField(
         title="subtitle (preferred language)",
-        description="an automatically generated short description for this location. "
-                    "preferred language based on the Accept-Language header."
+        description="an automatically generated short description for this location in the "
+                    "preferred language based on the Accept-Language header.",
+        example="near Area 51",
     )
-    icon: Optional[NonEmptyStr] = APIField(
-        default=None,
+    icon: NonEmptyStr = APIField(
         title="icon name",
-        description="any material design icon name"
+        description="any material design icon name",
+        example="pin_drop",
     )
     can_search: bool = APIField(
         title="can be searched",
+        description="if `true`, this object can show up in search results",
     )
     can_describe: bool = APIField(
         title="can describe locations",
+        description="if `true`, this object can be used to describe other locations (e.g. in their subtitle)",
     )
-    add_search: Optional[str] = APIField(
+    add_search: Union[
+        Annotated[str, APIField(title="search terms", description="set when looking for searchable locations")],
+        Annotated[None, APIField(title="null", description="when not looking for searchable locations")],
+    ] = APIField(
         None,
-        title="more data for search index, only set when looking for searchable locations"
+        title="additional search terms",
+        description="more data for the search index separated by spaces, "
+                    "only set when looking for searchable locations",
+        example="more search terms",
     )
 
 
@@ -90,49 +133,91 @@ class LabelSettingsSchema(DjangoModelSchema):  # todo: add titles back in here
     min_zoom: float = APIField(
         -10,
         title="min zoom",
+        description="minimum zoom to display the label at",
     )
     max_zoom: float = APIField(
         10,
         title="max zoom",
+        description="maximum, zoom to display the label at",
     )
     font_size: PositiveInt = APIField(
         title="font size",
+        description="font size of the label",
+        example=12,
     )
 
 
 class SpecificLocationSchema(LocationSchema):
-    grid_square: Optional[NonEmptyStr] = APIField(
+    grid_square: Union[
+        Annotated[NonEmptyStr, APIField(title="grid square", description="grid square(s) that this location is in")],
+        Annotated[None, APIField(title="null", description="no grid defined or outside of grid")],
+    ] = APIField(
         default=None,
         title="grid square",
-        description="if a grid is defined and this location is within it",
+        description="grid cell(s) that this location is in, if a grid is defined and the location is within it",
+        example="C3",
     )
-    groups: dict[NonEmptyStr, list[PositiveInt] | Optional[PositiveInt]] = APIField(
+    groups: dict[
+        Annotated[NonEmptyStr, APIField(title="location group category name")],
+        Union[
+            Annotated[list[PositiveInt], APIField(
+                title="array of location IDs",
+                description="for categories that have `single` set to `false`. can be an empty array.",
+                example=[1,4,5],
+            )],
+            Annotated[PositiveInt, APIField(
+                title="one location ID",
+                description="for categories that have `single` set to `true`.",
+                example=1,
+            )],
+            Annotated[None, APIField(
+                title="null",
+                description="for categories that have `single` set to `true`."
+            )],
+        ]
+    ] = APIField(
         title="location groups",
-        description="grouped by location group categories. "
-                    "property names are the names of location groupes. "
-                    "property values are integer, None or a list of integers, see example."
-                    "see location group category endpoint for currently available possibilities."
+        description="location group(s) that this specific location belongs to, grouped by categories.\n\n"
+                    "keys are location group category names. see location group category endpoint for details.\n\n"
                     "categories may be missing if no groups apply.",
         example={
             "category_with_single_true": 5,
             "other_category_with_single_true": None,
-            "categoryother_category_with_single_false": [1, 3, 7],
+            "category_with_single_false": [1, 3, 7],
         }
     )
-    label_settings: Optional[LabelSettingsSchema] = APIField(
+    label_settings: Union[
+        Annotated[LabelSettingsSchema, APIField(
+            title="label settings",
+            description="label settings to use",
+        )],
+        Annotated[None, APIField(
+            title="null",
+            description="label settings from location group will be used, if available"
+        )],
+    ] = APIField(
         default=None,
         title="label settings",
-        description="if not set, it may be taken from location groups"
+        description=(
+            schema_description(LabelSettingsSchema) +
+            "\n\nif not set, label settings of location groups might be used"
+        )
     )
-    label_override: Optional[NonEmptyStr] = APIField(
+    label_override: Union[
+        Annotated[NonEmptyStr, APIField(title="label override", description="text to use for label")],
+        Annotated[None, APIField(title="null", description="title will be used")],
+    ] = APIField(
         default=None,
         title="label override (preferred language)",
-        description="preferred language based on the Accept-Language header."
+        description="text to use for the label. by default (null), the title would be used."
     )
 
 
 class WithPolygonGeometrySchema(Schema):
-    geometry: Optional[PolygonSchema] = APIField(
+    geometry: Union[
+        PolygonSchema,
+        Annotated[None, APIField(title="null", description="geometry not available of excluded from endpoint")]
+    ] = APIField(
         None,
         title="geometry",
         description="can be null if not available or excluded from endpoint",
@@ -140,7 +225,10 @@ class WithPolygonGeometrySchema(Schema):
 
 
 class WithLineStringGeometrySchema(Schema):
-    geometry: Optional[LineStringSchema] = APIField(
+    geometry: Union[
+        LineStringSchema,
+        Annotated[None, APIField(title="null", description="geometry not available of excluded from endpoint")]
+    ] = APIField(
         None,
         title="geometry",
         description="can be null if not available or excluded from endpoint",
@@ -148,7 +236,10 @@ class WithLineStringGeometrySchema(Schema):
 
 
 class WithPointGeometrySchema(Schema):
-    geometry: Optional[PointSchema] = APIField(
+    geometry: Union[
+        PointSchema,
+        Annotated[None, APIField(title="null", description="geometry not available of excluded from endpoint")]
+    ] = APIField(
         None,
         title="geometry",
         description="can be null if not available or excluded from endpoint",
@@ -159,6 +250,7 @@ class WithLevelSchema(SerializableSchema):
     level: PositiveInt = APIField(
         title="level",
         description="level id this object belongs to.",
+        example=1,
     )
 
 
@@ -166,6 +258,7 @@ class WithSpaceSchema(SerializableSchema):
     space: PositiveInt = APIField(
         title="space",
         description="space id this object belongs to.",
+        example=1,
     )
 
 
@@ -182,8 +275,8 @@ class SimpleGeometryPointSchema(Schema):
 
 
 class SimpleGeometryPointAndBoundsSchema(SimpleGeometryPointSchema):
-    bounds: tuple[tuple[float, float], tuple[float, float]] = APIField(
-        description="location bounding box from (x, y) to (x, y)",
+    bounds: BoundsSchema = APIField(
+        description="location bounding box",
         example=((-10, -20), (20, 30)),
     )
 
@@ -212,7 +305,7 @@ Coordinates3D = tuple[float, float, float]
 AnyLocationID = Union[
     Annotated[PositiveInt, APIField(
         title="location ID",
-        description="numeric ID of any lcation"
+        description="numeric ID of any lcation – all locations have a shared ID space"
     )],
     CustomLocationID,
     PositionID,

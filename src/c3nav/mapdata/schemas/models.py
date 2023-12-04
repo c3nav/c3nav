@@ -13,7 +13,8 @@ from c3nav.mapdata.schemas.model_base import (AnyLocationID, AnyPositionID, Cust
                                               SimpleGeometryPointSchema, SpecificLocationSchema, TitledSchema,
                                               WithAccessRestrictionSchema, WithLevelSchema,
                                               WithLineStringGeometrySchema, WithPointGeometrySchema,
-                                              WithPolygonGeometrySchema, WithSpaceSchema)
+                                              WithPolygonGeometrySchema, WithSpaceSchema, schema_definitions,
+                                              schema_description)
 
 
 class LevelSchema(SpecificLocationSchema, DjangoModelSchema):
@@ -26,18 +27,26 @@ class LevelSchema(SpecificLocationSchema, DjangoModelSchema):
         title="short label (for level selector)",
         description="unique among levels",
     )
-    on_top_of: Optional[PositiveInt] = APIField(
+    on_top_of: Union[
+        Annotated[PositiveInt, APIField(title="level ID", description="level this level is on top of", example=1)],
+        Annotated[None, APIField(title="null", description="this is a main level, not on top of any other")]
+    ] = APIField(
         title="on top of level ID",
         description="if set, this is not a main level, but it's on top of this other level"
     )
     base_altitude: float = APIField(
         title="base/default altitude",
+        description="default ground altitude for this level, if it can't be determined using altitude markers.",
     )
     default_height: PositiveFloat = APIField(
         title="default ceiling height",
+        description="default ceiling height for all spaces that don't set their own",
+        example=2.5
     )
     door_height: PositiveFloat = APIField(
         title="door height",
+        description="height for all doors on this level",
+        example="2.0",
     )
 
 
@@ -86,7 +95,8 @@ class AreaSchema(WithPolygonGeometrySchema, SpecificLocationSchema, WithSpaceSch
     """
     slow_down_factor: PositiveFloat = APIField(
         title="slow-down factor",
-        description="how much walking in this area is slowed down, overlapping areas are multiplied"
+        description="how much walking in this area is slowed down, overlapping areas are multiplied",
+        example=1.0,
     )
 
 
@@ -212,16 +222,31 @@ class LocationGroupSchema(LocationSchema, DjangoModelSchema):
     )
     priority: int = APIField()  # todo: ???
     hierarchy: int = APIField()  # todo: ???
-    label_settings: Optional[LabelSettingsSchema] = APIField(
+    label_settings: Union[
+        Annotated[LabelSettingsSchema, APIField(
+            title="label settings",
+            description="label settings to use for gruop members that don't have their own set",
+        )],
+        Annotated[None, APIField(
+            title="null",
+            description="no label settings set"
+        )],
+    ] = APIField(
         default=None,
         title="label settings",
-        description="for locations with this group, can be overwritten by specific locations"
+        description=(
+                schema_description(LabelSettingsSchema) +
+                "\n\nlocations can override this setting"
+        )
     )
     can_report_missing: bool = APIField(
         title="report missing locations",
         description="can be used in form for reporting missing locations",
     )
-    color: Optional[NonEmptyStr] = APIField(
+    color: Union[
+        Annotated[NonEmptyStr, APIField(title="color", description="a valid CSS color expression")],
+        Annotated[None, APIField(title="null", description="default/no color will be used")],
+    ] = APIField(
         title="color",
         description="an optional color for spaces and areas with this group"
     )
@@ -285,7 +310,7 @@ class LocationGroupCategorySchema(TitledSchema, DjangoModelSchema):
 
 class DynamicLocationSchema(SpecificLocationSchema, DjangoModelSchema):
     """
-    A dynamic location represents a moving object. Its position has to be separately queries through the position API.
+    Represents a moving object. Its position has to be separately queried through the position API.
 
     A dynamic location is a specific location, and can therefore be routed to and from,
     as well as belong to location groups.
@@ -344,10 +369,10 @@ class CustomLocationSchema(SerializableSchema):
     slug: CustomLocationID = APIField(
         description="slug, identical to ID"
     )
-    icon: Optional[NonEmptyStr] = APIField(
-        default=None,
+    icon: NonEmptyStr = APIField(
         title="icon name",
-        description="any material design icon name"
+        description="any material design icon name",
+        example="pin_drop",
     )
     title: NonEmptyStr = APIField(
         title="title (preferred language)",
@@ -359,32 +384,56 @@ class CustomLocationSchema(SerializableSchema):
                     "preferred language based on the Accept-Language header."
     )
     level: PositiveInt = APIField(
-        description="level ID this custom location is located on"
+        description="level ID this custom location is located on",
+        example=1,
     )
-    space: Optional[PositiveInt] = APIField(
-        description="space ID this custom location is located in, if applicable"
+    space: Union[
+        Annotated[PositiveInt, APIField(title="space ID", example=1)],
+        Annotated[None, APIField(title="null", description="the location is not inside a space")],
+    ] = APIField(
+        default=None,
+        description="space ID this custom location is located in"
     )
     areas: list[PositiveInt] = APIField(
         description="IDs of areas this custom location is located in"
     )
-    grid_square: Optional[NonEmptyStr] = APIField(
+    grid_square: Union[
+        Annotated[NonEmptyStr, APIField(title="grid square", description="grid square(s) that this location is in")],
+        Annotated[None, APIField(title="null", description="no grid defined or outside of grid")],
+    ] = APIField(
         default=None,
         title="grid square",
-        description="if a grid is defined and this custom location is within it",
+        description="grid cell(s) that this location is in, if a grid is defined and the location is within it",
+        example="C3",
     )
-    near_area: Optional[PositiveInt] = APIField(
-        description="the ID of an area near this custom location, if there is one"
+    near_area: Union[
+        Annotated[PositiveInt, APIField(title="area ID", example=1)],
+        Annotated[None, APIField(title="null", description="the location is not near any areas")],
+    ] = APIField(
+        near="nearby area",
+        description="the ID of an area near this custom location"
     )
-    near_poi: Optional[PositiveInt] = APIField(
-        description="the ID of a POI near this custom location, if there is one"
+    near_poi: Union[
+        Annotated[PositiveInt, APIField(title="POI ID", example=1)],
+        Annotated[None, APIField(title="null", description="the location is not near any POIs")],
+    ] = APIField(
+        title="nearby POI",
+        description="the ID of a POI near this custom location"
     )
     nearby: list[PositiveInt] = APIField(
         description="list of IDs of nearby locations"
     )
-    altitude: Optional[float] = APIField(
-        description="ground altitude (in the map-wide coordinate system), if it can be determined"
+    altitude: Union[
+        Annotated[float, APIField(title="ground altitude", example=1)],
+        Annotated[None, APIField(title="null", description="could not be determined (outside of space?)")],
+    ] = APIField(
+        title="ground altitude",
+        description="ground altitude (in the map-wide coordinate system)"
     )
-    geometry: Optional[PointSchema] = APIField(
+    geometry: Union[
+        PointSchema,
+        Annotated[None, APIField(title="null", description="geometry excluded from endpoint")]
+    ] = APIField(
         None,
         description="point geometry for this custom location",
     )
@@ -392,37 +441,43 @@ class CustomLocationSchema(SerializableSchema):
 
 class TrackablePositionSchema(Schema):
     """
-    A trackable position. It's position can be set or reset.
+    A trackable position. Its position can be set or reset.
     """
     id: PositionID = APIField(
-        description="ID representing the position"
+        description="ID representing the position",
+        example="p:adskjfalskdj",
     )
     slug: PositionID = APIField(
-        description="slug representing the position"
+        description="slug representing the position",
+        example="p:adskjfalskdj",
     )
-    icon: Optional[NonEmptyStr] = APIField(
-        default=None,
+    icon: NonEmptyStr = APIField(
         title="icon name",
-        description="any material design icon name"
+        description="any material design icon name",
+        example="pin_drop",
     )
     title: NonEmptyStr = APIField(
         title="title of the position",
+        example="My position"
     )
     subtitle: NonEmptyStr = APIField(
         title="subtitle (preferred language)",
         description="an automatically generated short description, which might change when the position changes. "
-                    "preferred language based on the Accept-Language header."
+                    "preferred language based on the Accept-Language header.",
+        example="Near Bällebad"
     )
 
 
-def put_locationtype_first(schema):
-    fields = schema.__fields__.copy()
-    schema.__fields__ = {"locationtype": fields.pop("locationtype"), **fields}
-    return schema
-
-
 class LocationTypeSchema(Schema):
-    locationtype: str
+    locationtype: str = APIField(title="location type",
+                                 description="indicates what kind of location is included. "
+                                             "different location types have different fields.")
+
+
+def LocationTypeAPIField():
+    return APIField(title="location type",
+                    description="indicates what kind of location is included. "
+                                "different location types have different fields.")
 
 
 class FullLevelLocationSchema(LevelSchema, LocationTypeSchema):
@@ -430,7 +485,7 @@ class FullLevelLocationSchema(LevelSchema, LocationTypeSchema):
     A level for the location API.
     See Level schema for details.
     """
-    locationtype: Literal["level"]
+    locationtype: Literal["level"] = LocationTypeAPIField()
 
 
 class FullSpaceLocationSchema(SimpleGeometryPointAndBoundsSchema, SpaceSchema, LocationTypeSchema):
@@ -438,7 +493,7 @@ class FullSpaceLocationSchema(SimpleGeometryPointAndBoundsSchema, SpaceSchema, L
     A space with some additional information for the location API.
     See Space schema for details.
     """
-    locationtype: Literal["space"]
+    locationtype: Literal["space"] = LocationTypeAPIField()
 
 
 class FullAreaLocationSchema(SimpleGeometryPointAndBoundsSchema, AreaSchema, LocationTypeSchema):
@@ -446,7 +501,7 @@ class FullAreaLocationSchema(SimpleGeometryPointAndBoundsSchema, AreaSchema, Loc
     An area with some additional information for the location API.
     See Area schema for details.
     """
-    locationtype: Literal["area"]
+    locationtype: Literal["area"] = LocationTypeAPIField()
 
 
 class FullPOILocationSchema(SimpleGeometryPointSchema, POISchema, LocationTypeSchema):
@@ -454,7 +509,7 @@ class FullPOILocationSchema(SimpleGeometryPointSchema, POISchema, LocationTypeSc
     A point of interest with some additional information for the location API.
     See POI schema for details.
     """
-    locationtype: Literal["poi"]
+    locationtype: Literal["poi"] = LocationTypeAPIField()
 
 
 class FullLocationGroupLocationSchema(SimpleGeometryLocationsSchema, LocationGroupSchema, LocationTypeSchema):
@@ -462,7 +517,7 @@ class FullLocationGroupLocationSchema(SimpleGeometryLocationsSchema, LocationGro
     A location group with some additional information for the location API.
     See LocationGroup schema for details.
     """
-    locationtype: Literal["locationgroup"]
+    locationtype: Literal["locationgroup"] = LocationTypeAPIField()
 
 
 class FullDynamicLocationLocationSchema(DynamicLocationSchema, LocationTypeSchema):
@@ -470,7 +525,7 @@ class FullDynamicLocationLocationSchema(DynamicLocationSchema, LocationTypeSchem
     A dynamic location for the location API.
     See DynamicLocation schema for details.
     """
-    locationtype: Literal["dynamiclocation"]
+    locationtype: Literal["dynamiclocation"] = LocationTypeAPIField()
 
 
 class CustomLocationLocationSchema(SimpleGeometryPointAndBoundsSchema, CustomLocationSchema, LocationTypeSchema):
@@ -478,7 +533,7 @@ class CustomLocationLocationSchema(SimpleGeometryPointAndBoundsSchema, CustomLoc
     A custom location for the location API.
     See CustomLocation schema for details.
     """
-    locationtype: Literal["customlocation"]
+    locationtype: Literal["customlocation"] = LocationTypeAPIField()
 
 
 class TrackablePositionLocationSchema(TrackablePositionSchema, LocationTypeSchema):
@@ -486,7 +541,7 @@ class TrackablePositionLocationSchema(TrackablePositionSchema, LocationTypeSchem
     A trackable position for the location API.
     See TrackablePosition schema for details.
     """
-    locationtype: Literal["position"]
+    locationtype: Literal["position"] = LocationTypeAPIField()
 
 
 class SlimLocationMixin(Schema):
@@ -599,6 +654,14 @@ SlimLocationSchema = Annotated[
 ]
 
 
+listable_location_definitions = schema_definitions(
+    (LevelSchema, SpaceSchema, AreaSchema, POISchema, DynamicLocationSchema, LocationGroupSchema)
+)
+all_location_definitions = listable_location_definitions + "\n" + schema_definitions(
+    (CustomLocationSchema, TrackablePositionSchema)
+)
+
+
 class DisplayLink(Schema):
     """
     A link for the location display
@@ -612,14 +675,24 @@ class DisplayLink(Schema):
 class LocationDisplay(SerializableSchema):
     id: AnyLocationID = APIField(
         description="a numeric ID for a map location or a string ID for generated locations",
+        example=1,
     )
-    level: Optional[PositiveInt] = APIField(
+
+    level: Union[
+        Annotated[PositiveInt, APIField(title="level ID", description="ID of relevant level")],
+        Annotated[None, APIField(title="null", description="no relevant level")],
+    ] = APIField(
         None,
-        description="level ID, if applicable"
+        title="level",
+        example=2,
     )
-    space: Optional[PositiveInt] = APIField(
+    space: Union[
+        Annotated[PositiveInt, APIField(title="level ID", description="ID of relevant level")],
+        Annotated[None, APIField(title="null", description="no relevant level")],
+    ] = APIField(
         None,
-        description="space ID, if applicable"
+        description="space",
+        example=3,
     )
     display: list[
         tuple[
@@ -631,12 +704,48 @@ class LocationDisplay(SerializableSchema):
                 Annotated[None, APIField(title="no value")]
             ], APIField(title="field value", union_mode='left_to_right')]
         ]
-    ] = APIField(description="a list of human-readable display values")
-    geometry: Optional[GeometrySchema] = APIField(
+    ] = APIField(
+        title="display fields",
+        description="a list of human-readable display values",
+        example=[
+            ("Title", "Awesome location"),
+            ("Access Restriction", None),
+            ("Level", {
+                "id": 2,
+                "slug": "level0",
+                "title": "Ground Floor",
+                "can_search": True,
+            }),
+            ("Groups", [
+                {
+                    "id": 10,
+                    "slug": "entrances",
+                    "title": "Entrances",
+                    "can_search": True,
+                },
+                {
+                    "id": 11,
+                    "slug": "startswithe",
+                    "title": "Locations that Start with E",
+                    "can_search": False,
+                }
+            ])
+        ]
+    )
+    geometry: Union[
+        GeometrySchema,
+        Annotated[None, APIField(title="null", description="no geometry available")]
+    ] = APIField(
         None, description="representative geometry, if available"
     )
-    editor_url: Optional[NonEmptyStr] = APIField(
-        None, description="path to edit this object in the editor, if the user has access to it",
+    editor_url: Union[
+        Annotated[NonEmptyStr, APIField(title="path to editor")],
+        Annotated[None, APIField(title="null", description="no editor access or object is not editable")],
+    ] = APIField(
+        None,
+        title="editor URL",
+        description="path to edit this object in the editor",
+        example="/editor/spaces/2/pois/1/"
     )
 
 
