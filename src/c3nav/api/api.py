@@ -1,5 +1,6 @@
 from django.conf import settings
-from ninja import Router as APIRouter, Field as APIField
+from ninja import Field as APIField
+from ninja import Router as APIRouter
 from ninja import Schema
 
 from c3nav.api.auth import APIKeyType, auth_responses

@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import Annotated, Optional
 
 from ninja import Schema
 from pydantic import Field as APIField
@@ -12,8 +12,18 @@ class BoundsSchema(Schema):
     """
     Describing a bounding box
     """
-    bounds: tuple[tuple[float, float], tuple[float, float]] = APIField(
-        description="(x, y) to (x, y)",
+    bounds: tuple[
+        Annotated[tuple[
+            Annotated[float, APIField(title="left", description="lowest X coordindate")],
+            Annotated[float, APIField(title="bottom", description="lowest Y coordindate")]
+        ], APIField(title="(left, bottom)", description="lowest coordinates")],
+        Annotated[tuple[
+            Annotated[float, APIField(title="right", description="highest X coordindate")],
+            Annotated[float, APIField(title="top", description="highest Y coordindate")]
+        ], APIField(title="(right, top)", description="highest coordinates")]
+    ] = APIField(
+        title="boundaries",
+        description="(left, bottom) to (top, right)",
         example=((-10, -20), (20, 30)),
     )
 

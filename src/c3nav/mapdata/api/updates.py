@@ -1,8 +1,9 @@
-from typing import Optional, Union, Annotated
+from typing import Annotated, Optional, Union
 from urllib.parse import urlparse
 
 from django.http import HttpResponse
-from ninja import Router as APIRouter, Field as APIField
+from ninja import Field as APIField
+from ninja import Router as APIRouter
 from ninja import Schema
 from pydantic import PositiveInt
 
