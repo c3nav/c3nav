@@ -99,7 +99,7 @@ editor = {
                 for (var i = 0; i < sources.length; i++) {
                     source = sources[i];
                     editor.sources[source.id] = source;
-                    source.layer = L.imageOverlay('/api/sources/'+source.id+'/image/', L.GeoJSON.coordsToLatLngs(source.bounds), {opacity: 0.3});
+                    source.layer = L.imageOverlay('/editor/sourceimage/'+source.name, L.GeoJSON.coordsToLatLngs(source.bounds), {opacity: 0.3});
                     editor._sources_control.addOverlay(source.layer, source.name);
                 }
                 if (sources.length) editor._sources_control.addTo(editor.map);
