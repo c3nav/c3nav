@@ -59,6 +59,9 @@ class APIKeyAuth(APIKeyHeader):
         request.user_permissions = SimpleLazyObject(lambda: UserPermissionsMiddleware.get_user_permissions(request))
         request.user_space_accesses = lazy(UserPermissionsMiddleware.get_user_space_accesses, dict)(request)
 
+        if key is None:
+            raise APIKeyInvalid
+
         if key == "anonymous":
             return APIAuthDetails(
                 key_type=APIKeyType.ANONYMOUS,
