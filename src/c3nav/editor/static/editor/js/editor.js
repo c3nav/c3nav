@@ -752,9 +752,9 @@ editor = {
                 if (editor._editing_id !== null) {
                     for (i=0;i<geometries.length;i++) {
                         feature = geometries[i];
-                        if (feature.properties.original_type !== undefined && feature.properties.original_type+'-'+String(feature.properties.original_id) === editor._editing_id) {
+                        if (feature.properties.original_type !== null && feature.properties.original_type+'-'+String(feature.properties.original_id) === editor._editing_id) {
                             remove_feature = i;
-                        } else if (feature.original_geometry !== undefined && feature.properties.type+'-'+String(feature.properties.id) === editor._editing_id) {
+                        } else if (feature.original_geometry !== null && feature.properties.type+'-'+String(feature.properties.id) === editor._editing_id) {
                             feature.geometry = feature.original_geometry;
                             break;
                         }
@@ -867,7 +867,7 @@ editor = {
                 style.color = '#ffffff';
             }
         } else {
-            if (feature.properties.level !== undefined && editor._sublevel_control.current_level_id !== feature.properties.level) {
+            if (feature.properties.level !== null && editor._sublevel_control.current_level_id !== feature.properties.level) {
                 style.fillOpacity = 0.5;
             }
         }
