@@ -23,9 +23,9 @@ RUN --mount=type=cache,target=/var/cache/apt,id=apt_$TARGETARCH --mount=type=tmp
     # renovate: srcname=python-pip
     python3-pip=23.0.1+dfsg-1ubuntu0.2 \
     # renovate: srcname=postgresql-15
-    libpq5=15.4-0ubuntu0.23.04.1 \
+    libpq5=15.5-0ubuntu0.23.04.1 \
     # renovate: srcname=postgresql-15
-    postgresql-client-15=15.4-0ubuntu0.23.04.1 \
+    postgresql-client-15=15.5-0ubuntu0.23.04.1 \
     curl=7.88.1-8ubuntu2.4 \
     libpcre3=2:8.39-15 \
     # renovate: srcname=librsvg
@@ -46,7 +46,7 @@ RUN --mount=type=cache,target=/var/cache/apt,id=apt_$TARGETARCH --mount=type=tmp
     python3.11-dev=3.11.4-1~23.04.1 \
     libpcre3-dev=2:8.39-15 \
     # renovate: srcname=postgresql-15
-    libpq-dev=15.4-0ubuntu0.23.04.1 \
+    libpq-dev=15.5-0ubuntu0.23.04.1 \
     libgirepository1.0-dev=1.76.1-1
 
 
