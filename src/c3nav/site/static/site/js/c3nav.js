@@ -426,7 +426,7 @@ c3nav = {
                 .catch(data => {
                     var $location_details = $('#location-details');
                     $location_details.find('.details-body').text('Error ' + String(data.status));
-                    $location_details.find('.details-body').html('').append(elem);
+                    $location_details.find('.details-body').html('');
                     $location_details.find('.editor').hide();
                     $location_details.find('.report').hide();
                     $location_details.removeClass('loading');
