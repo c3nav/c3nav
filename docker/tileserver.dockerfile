@@ -22,7 +22,7 @@ RUN --mount=type=cache,target=/var/cache/apt,id=apt_$TARGETARCH --mount=type=tmp
     python3.11-venv=3.11.4-1~23.04.1 \
     # renovate: srcname=python-pip
     python3-pip=23.0.1+dfsg-1ubuntu0.2 \
-    curl=7.88.1-8ubuntu2.3 \
+    curl=7.88.1-8ubuntu2.4 \
     libpcre3=2:8.39-15 \
     tzdata=2023c-2exp1ubuntu1.1 \
     ca-certificates=20230311ubuntu0.23.04.1
