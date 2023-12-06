@@ -26,7 +26,7 @@ RUN --mount=type=cache,target=/var/cache/apt,id=apt_$TARGETARCH --mount=type=tmp
     libpq5=15.4-0ubuntu0.23.04.1 \
     # renovate: srcname=postgresql-15
     postgresql-client-15=15.4-0ubuntu0.23.04.1 \
-    curl=7.88.1-8ubuntu2.3 \
+    curl=7.88.1-8ubuntu2.4 \
     libpcre3=2:8.39-15 \
     # renovate: srcname=librsvg
     librsvg2-2=2.54.5+dfsg-1ubuntu2.1 \
