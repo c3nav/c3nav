@@ -94,13 +94,37 @@ editor = {
         editor._sources_control = L.control.layers([], [], { autoZIndex: false });
 
         c3nav_api.get('mapdata/sources')
-            .then(sources => {
-                var source;
+            .then(async sources => {
+                const svg_promises = [];
                 for (var i = 0; i < sources.length; i++) {
-                    source = sources[i];
+                    const source = sources[i];
                     editor.sources[source.id] = source;
-                    source.layer = L.imageOverlay('/editor/sourceimage/'+source.name, L.GeoJSON.coordsToLatLngs(source.bounds), {opacity: 0.3});
-                    editor._sources_control.addOverlay(source.layer, source.name);
+                    source.layer = L.imageOverlay('/editor/sourceimage/' + source.name, L.GeoJSON.coordsToLatLngs(source.bounds), {opacity: 0.3});
+                    editor._sources_control.addOverlay(source.layer, `${source.name} (image overlay)`);
+                    source.svg_el = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+                    source.svg_el.setAttribute('xmlns', "http://www.w3.org/2000/svg");
+                    source.svg_layer = L.svgOverlay(source.svg_el, L.GeoJSON.coordsToLatLngs(source.bounds), {opacity: 0.3});
+                    editor._sources_control.addOverlay(source.svg_layer, `${source.name} (svg overlay)`);
+                    source.svg_layer.on('add', async function () {
+                        let promise;
+                        if (source.svg_promise) {
+                            promise = source.svg_promise;
+                        } else {
+                            source.svg_promise = promise = fetch(`/editor/sourceimage/${source.name}`)
+                                .then(r => {
+                                    if (!r.ok) {
+                                        throw 'could not load source svg';
+                                    }
+                                    return r.text();
+                                });
+                        }
+                        let src = await promise;
+                        const root = (new DOMParser).parseFromString(src, 'image/svg+xml').documentElement;
+                        for (const attr of root.attributes) {
+                            source.svg_el.attributes.setNamedItem(attr.cloneNode(true));
+                        }
+                        source.svg_el.replaceChildren(...root.children);
+                    })
                 }
                 if (sources.length) editor._sources_control.addTo(editor.map);
             })
@@ -435,6 +459,7 @@ editor = {
             editor._source_image_layer.setBounds(bounds)
         } else {
             editor._source_image_layer = L.imageOverlay('/editor/sourceimage/'+content.find('[name=name]').val(), bounds, {opacity: 0.3, zIndex: 10000});
+            // TODO: svg support
             editor._source_image_layer.addTo(editor.map);
             if (content.find('[data-new]').length) {
                 editor.map.fitBounds(bounds, {padding: [30, 50]});
