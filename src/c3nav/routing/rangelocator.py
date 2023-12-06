@@ -23,9 +23,7 @@ class RangeLocator:
     beacon_lookup: dict[str: int]
 
     @classmethod
-    def rebuild(cls, update):
-        router = Router.load()
-
+    def rebuild(cls, update, router):
         beacons = RangingBeacon.objects.all()
 
         locator = cls(
