@@ -1275,9 +1275,12 @@ c3nav = {
             history.back();
         }
     },
+    _href_modal_open_tab: function(location) {
+        return ['/l/', '/control/', '/reports/', '/mesh/', '/positions/', '/api-secrets/', '/editor/'].some(prefix => location.startsWith(prefix));
+    },
     _modal_link_click: function(e) {
         var location = $(this).attr('href');
-        if ($(this).is('[target]') || location.startsWith('/control/')) {
+        if ($(this).is('[target]') || c3nav._href_modal_open_tab(location)) {
             $(this).attr('target', '_blank');
             return;
         }
