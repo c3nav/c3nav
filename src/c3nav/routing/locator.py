@@ -56,7 +56,7 @@ class LocatorPoint:
 class Locator:
     peers: list[LocatorPeer] = field(default_factory=list)
     peer_lookup: dict[BSSID, int] = field(default_factory=dict)
-    xyz: np.array = np.empty((0,))
+    xyz: np.array = field(default_factory=np.empty((0,)))
     spaces: dict[int, "LocatorSpace"] = field(default_factory=dict)
 
     @classmethod

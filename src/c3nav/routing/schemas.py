@@ -5,7 +5,7 @@ from pydantic import Field as APIField
 from pydantic import NegativeInt, PositiveInt
 
 from c3nav.api.utils import NonEmptyStr
-from c3nav.routing.api.positioning import BSSIDSchema
+from c3nav.routing.api.schemas import BSSIDSchema
 
 
 class LocateRequestPeerSchema(Schema):
