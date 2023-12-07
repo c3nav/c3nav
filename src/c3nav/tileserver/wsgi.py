@@ -12,6 +12,7 @@ from io import BytesIO
 
 import pylibmc
 import requests
+from pyzstd import decompress as zstd_decompress
 from requests.auth import HTTPBasicAuth
 
 from c3nav.mapdata.utils.cache import CachePackage
@@ -106,7 +107,7 @@ class TileServer:
             headers = self.auth_headers.copy()
             if self.cache_package_etag is not None:
                 headers['If-None-Match'] = self.cache_package_etag
-            r = requests.get(self.upstream_base+'/map/cache/package.tar.xz', headers=headers, auth=self.http_auth)
+            r = requests.get(self.upstream_base+'/map/cache/package.tar.zstd', headers=headers, auth=self.http_auth)
 
             if r.status_code == 403:
                 logger.error('Rejected cache package download with Error 403. Tile secret is probably incorrect.')
@@ -132,7 +133,8 @@ class TileServer:
         logger.debug('Receiving and loading new cache package...')
 
         try:
-            self.cache_package = CachePackage.read(BytesIO(r.content))
+            with BytesIO(zstd_decompress(r.content)) as f:
+                self.cache_package = CachePackage.read(f)
             self.cache_package_etag = r.headers.get('ETag', None)
         except Exception as e:
             logger.error('Cache package parsing failed: %s' % e)
