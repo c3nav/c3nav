@@ -1,5 +1,5 @@
 from enum import StrEnum
-from typing import Annotated, Union
+from typing import Annotated, Union, Optional
 
 from django.core.exceptions import ValidationError
 from django.urls import reverse
@@ -99,9 +99,9 @@ class RouteOptionsSchema(Schema):
 class RouteParametersSchema(Schema):
     origin: AnyLocationID
     destination: AnyLocationID
-    options_override: UpdateRouteOptionsSchema = APIField(
+    options_override: Optional[UpdateRouteOptionsSchema] = APIField(
+        None,
         title="override routing options",
-        default_factory=dict,
     )
 
 
