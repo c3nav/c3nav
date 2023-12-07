@@ -146,7 +146,7 @@ class Locator:
         if getattr(cls.cached, 'update', cls.NoUpdate) != update:
             cls.cached.update = update
             cls.cached.data = cls.load_nocache(update)
-        return cls.cached
+        return cls.cached.data
 
     def convert_raw_scan_data(self, raw_scan_data: list[LocateRequestPeerSchema]) -> ScanData:
         return self.convert_scan([d.dict() for d in raw_scan_data], create_peers=False)

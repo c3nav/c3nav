@@ -294,7 +294,7 @@ class Router:
         if getattr(cls.cached, 'update', cls.NoUpdate) != update:
             cls.cached.update = update
             cls.cached.data = cls.load_nocache(update)
-        return cls.cached
+        return cls.cached.data
 
     def get_locations(self, location, restrictions):
         locations = ()
