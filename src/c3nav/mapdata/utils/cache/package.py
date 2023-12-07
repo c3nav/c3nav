@@ -2,8 +2,9 @@ import os
 import struct
 from collections import namedtuple
 from io import BytesIO
+from pathlib import Path
 from tarfile import TarFile, TarInfo
-from typing import BinaryIO, Self
+from typing import BinaryIO, Self, Optional
 
 from pyzstd import CParameter, ZstdError, ZstdFile
 
@@ -107,10 +108,12 @@ class CachePackage:
         return cls(bounds, levels)
 
     @classmethod
-    def open(cls, package=None):
+    def open(cls, package:Optional[str | os.PathLike] = None):
         if package is None:
             from django.conf import settings
             package = settings.CACHE_ROOT / 'package.tar'
+        elif not hasattr(package, 'open'):
+            package = Path(package)
         return cls.read(package.open('rb'))
 
     cached = LocalContext()
