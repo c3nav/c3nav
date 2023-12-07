@@ -33,7 +33,11 @@ with suppress(ImportError):
 
     static_app = ProtocolTypeRouter({
         "http": Starlette(routes=[
-            Mount(settings.STATIC_URL, app=StaticFiles(directory=settings.STATIC_ROOT), name='static'),
-            Mount('/', app=django_asgi),
+            Mount(
+                path=settings.STATIC_URL,
+                app=StaticFiles(directory=settings.STATIC_ROOT, follow_symlink=True),
+                name='static',
+            ),
+            Mount(path='/',app=django_asgi),
         ]),
     })
