@@ -96,30 +96,28 @@ def tile(request, level, zoom, x, y, access_permissions=None):
         return HttpResponseNotModified()
 
     data = None
-    tile_dirname, last_update_filename, tile_filename, tile_cache_update_cache_key = '', '', '', ''
+    tile_directory, last_update_file, tile_file, tile_cache_update_cache_key = '', '', '', ''
 
     # get tile cache last update
     if settings.CACHE_TILES:
-        tile_dirname = settings.TILES_ROOT / str(level) / str(zoom) / str(x) / str(y)
-        last_update_filename = tile_dirname / 'last_update'
-        tile_filename = tile_dirname / (access_cache_key+'.png')
+        tile_directory = settings.TILES_ROOT / str(level) / str(zoom) / str(x) / str(y)
+        last_update_file = tile_directory / 'last_update'
+        tile_file = tile_directory / (access_cache_key+'.png')
 
         # get tile cache last update
         tile_cache_update_cache_key = 'mapdata:tile-cache-update:%d-%d-%d-%d' % (level, zoom, x, y)
         tile_cache_update = cache.get(tile_cache_update_cache_key, None)
         if tile_cache_update is None:
             try:
-                with open(last_update_filename) as f:
-                    tile_cache_update = f.read()
+                tile_cache_update = last_update_file.read_text()
             except FileNotFoundError:
                 pass
 
         if tile_cache_update != base_cache_key:
-            rmtree(tile_dirname)
+            rmtree(tile_directory)
         else:
             try:
-                with open(tile_filename, 'rb') as f:
-                    data = f.read()
+                data = tile_file.read_bytes()
             except FileNotFoundError:
                 pass
 
@@ -129,11 +127,9 @@ def tile(request, level, zoom, x, y, access_permissions=None):
         data = image.render()
 
         if settings.CACHE_TILES:
-            os.makedirs(tile_dirname, exist_ok=True)
-            with open(tile_filename, 'wb') as f:
-                f.write(data)
-            with open(last_update_filename, 'w') as f:
-                f.write(base_cache_key)
+            os.makedirs(tile_directory, exist_ok=True)
+            tile_file.write_bytes(data)
+            last_update_file.write_text(base_cache_key)
             cache.set(tile_cache_update_cache_key, base_cache_key, 60)
 
     response = HttpResponse(data, 'image/png')
