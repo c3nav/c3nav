@@ -34,7 +34,8 @@ RUN --mount=type=cache,target=/var/cache/apt,id=apt_$TARGETARCH --mount=type=tmp
     gir1.2-rsvg-2.0=2.54.5+dfsg-1ubuntu2.1 \
     libgirepository-1.0-1=1.76.1-1 \
     tzdata=2023c-2exp1ubuntu1.1 \
-    ca-certificates=20230311ubuntu0.23.04.1
+    ca-certificates=20230311ubuntu0.23.04.1 \
+    zstd=1.5.4+dfsg2-4
 ENV PATH="/usr/lib/postgresql/15/bin/:$PATH"
 
 
