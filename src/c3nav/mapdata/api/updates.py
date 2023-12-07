@@ -53,10 +53,10 @@ class UserDataSchema(Schema):
 
 
 class FetchUpdatesResponseSchema(Schema):
-    last_site_update: PositiveInt = APIField(
+    last_site_update: Optional[PositiveInt] = APIField(
         title="ID of the last site update",
-        description="If this ID changes, it means a major code change may have occured. "
-                    "A reload of all data is recommended.",
+        description="If this ID increments, it means a major code change may have occurred. "
+                    "A reload of all data is recommended. If there never has been a site update, this is `Null`.",
         example=1,
     )
     last_map_update: NonEmptyStr = APIField(
