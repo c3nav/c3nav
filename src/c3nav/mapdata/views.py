@@ -8,6 +8,7 @@ from django.core.cache import cache
 from django.core.exceptions import PermissionDenied
 from django.http import Http404, HttpResponse, HttpResponseNotModified, StreamingHttpResponse
 from django.shortcuts import get_object_or_404
+from django.utils.http import content_disposition_header
 from django.views.decorators.http import etag
 
 from c3nav.mapdata.middleware import no_language
@@ -168,15 +169,18 @@ def map_history(request, level, mode, filetype):
 def get_cache_package(request, filetype):
     enforce_tile_secret_auth(request)
 
-    filename = settings.CACHE_ROOT / ('package.'+filetype)
-    f = open(filename, 'rb')
+    filename = 'package.' + filetype
+    cache_package = settings.CACHE_ROOT / filename
+    try:
+        size = cache_package.stat().st_size
+        f = cache_package.open('rb')
+    except FileNotFoundError:
+        raise Http404
 
-    f.seek(0, os.SEEK_END)
-    size = f.tell()
-    f.seek(0)
-
-    content_type = 'application/' + {'tar': 'x-tar', 'tar.gz': 'gzip', 'tar.xz': 'x-xz'}[filetype]
-
+    content_type = 'application/' + {'tar': 'x-tar', 'tar.gz': 'gzip', 'tar.xz': 'x-xz', 'tar.zst': 'zstd'}[filetype]
     response = StreamingHttpResponse(FileWrapper(f), content_type=content_type)
+    response.file_to_stream = f  # This causes django to use the  wsgi.file_wrapper if provided by the wsgi server.
     response['Content-Length'] = size
+    if content_disposition := content_disposition_header(False, filename):
+        response["Content-Disposition"] = content_disposition
     return response
