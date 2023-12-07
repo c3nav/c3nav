@@ -4,55 +4,17 @@ from django.core.exceptions import ValidationError
 from ninja import Field as APIField
 from ninja import Router as APIRouter
 from ninja import Schema
-from pydantic import NegativeInt, PositiveInt
 
 from c3nav.api.auth import auth_responses
-from c3nav.api.utils import NonEmptyStr
 from c3nav.mapdata.models.access import AccessPermission
 from c3nav.mapdata.schemas.models import CustomLocationSchema
 from c3nav.mapdata.utils.cache.stats import increment_cache_key
 from c3nav.routing.locator import Locator
-from c3nav.routing.rangelocator import RangeLocator
+from c3nav.routing.schemas import LocateRequestPeerSchema
 
 BSSIDSchema = Annotated[str, APIField(pattern=r"^[a-z0-9]{2}(:[a-z0-9]{2}){5}$", title="BSSID")]
 
 positioning_api_router = APIRouter(tags=["positioning"])
-
-
-class LocateRequestPeerSchema(Schema):
-    bssid: BSSIDSchema = APIField(
-        title="BSSID",
-        description="BSSID of the peer",
-        example="c3:42:13:37:ac:ab",
-    )
-    ssid: NonEmptyStr = APIField(
-        title="SSID",
-        description="(E)SSID of the peer",
-        example="c3nav-locate",
-    )
-    rssi: NegativeInt = APIField(
-        title="RSSI",
-        description="RSSI in dBm",
-        example=-42,
-    )
-    frequency: Union[
-        PositiveInt,
-        Annotated[None, APIField(title="null", description="frequency not given")]
-    ] = APIField(
-        default=None,
-        title="frequency",
-        description="frequency in KHz",
-        example=2472,
-    )
-    distance: Union[
-        float,
-        Annotated[None, APIField(title="null", description="distance was not measured")]
-    ] = APIField(
-        default=None,
-        title="distance",
-        description="measured distance in meters",
-        example=8.32
-    )
 
 
 class LocateRequestSchema(Schema):
@@ -106,13 +68,18 @@ def locate_test():
         }
     msg = node.last_messages[MeshMessageType.LOCATE_RANGE_RESULTS]
 
-    locator = RangeLocator.load()
-    location = locator.locate(
-        {
-            r.peer: r.distance
+    locator = Locator.load()
+    location = locator.locate_range(
+        locator.convert_raw_scan_data([
+            {
+                "bssid": r.peer,
+                "ssid": "",
+                "rssi": r.rssi,
+                "distance": r.distance,
+            }
             for r in msg.parsed.ranges
             if r.distance != 0xFFFF
-        },
+        ]),
         None
     )
     return {
@@ -139,4 +106,4 @@ BeaconsXYZ = dict[
                             description="get xyz coordinates for all known positioning beacons",
                             response={200: BeaconsXYZ, **auth_responses})
 def beacons_xyz():
-    return RangeLocator.load().get_all_xyz()
+    return Locator.load().get_all_xyz()

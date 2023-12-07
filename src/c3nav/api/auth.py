@@ -9,7 +9,7 @@ from django.utils.functional import SimpleLazyObject, lazy
 from ninja.security import APIKeyHeader
 
 from c3nav import settings
-from c3nav.api.exceptions import APIPermissionDenied, APIKeyInvalid
+from c3nav.api.exceptions import APIKeyInvalid, APIPermissionDenied
 from c3nav.api.models import Secret
 from c3nav.api.schema import APIErrorSchema
 from c3nav.control.middleware import UserPermissionsMiddleware

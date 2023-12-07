@@ -1,5 +1,5 @@
 from enum import StrEnum
-from typing import Annotated, Optional, Union
+from typing import Annotated, Union
 
 from django.core.exceptions import ValidationError
 from django.urls import reverse

@@ -21,7 +21,7 @@ from c3nav.mesh.messages import (MESH_BROADCAST_ADDRESS, MESH_NONE_ADDRESS, MESH
                                  MeshMessage, MeshMessageType, OTAApplyMessage, OTASettingMessage)
 from c3nav.mesh.models import MeshNode, MeshUplink, NodeMessage, OTARecipientStatus, OTAUpdate, OTAUpdateRecipient
 from c3nav.mesh.utils import MESH_ALL_OTA_GROUP, MESH_ALL_UPLINKS_GROUP, UPLINK_PING, get_mesh_uplink_group
-from c3nav.routing.rangelocator import RangeLocator
+from c3nav.routing.locator import Locator
 
 
 class Unknown:
@@ -738,13 +738,18 @@ class MeshUIConsumer(AsyncJsonWebsocketConsumer):
 
     @database_sync_to_async
     def locator(self, msg, orig_addr=None):
-        locator = RangeLocator.load()
-        return locator.locate(
-            {
-                r["peer"]: r["distance"]
+        locator = Locator.load()
+        return locator.locate_range(
+            locator.convert_raw_scan_data([
+                {
+                    "bssid": r["peer"],
+                    "ssid": "",
+                    "rssi": r["rssi"],
+                    "distance": r["distance"]
+                }
                 for r in msg["ranges"]
                 if r["distance"] != 0xFFFF
-            },
+            ]),
             permissions=None,
             orig_addr=orig_addr,
         )

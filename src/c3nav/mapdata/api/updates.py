@@ -73,7 +73,8 @@ class FetchUpdatesResponseSchema(Schema):
             title="null",
             description="only for cross-origin requests",
         )],
-    ] = APIField(None,
+    ] = APIField(
+        None,
         title="user data",
         description="user data of this request. ommited for cross-origin requests.",
     )

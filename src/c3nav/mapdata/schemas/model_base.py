@@ -1,5 +1,5 @@
 import re
-from typing import Annotated, Any, Union, Optional
+from typing import Annotated, Any, Optional, Union
 
 from ninja import Schema
 from pydantic import Field as APIField

@@ -1,5 +1,5 @@
 import json
-from typing import Annotated, Optional, Union
+from typing import Annotated, Union
 
 from django.core.serializers.json import DjangoJSONEncoder
 from django.shortcuts import redirect
@@ -17,9 +17,9 @@ from c3nav.mapdata.api.base import api_etag, api_stats, can_access_geometry
 from c3nav.mapdata.models import Source
 from c3nav.mapdata.models.locations import DynamicLocation, LocationRedirect, Position
 from c3nav.mapdata.schemas.filters import BySearchableFilter, RemoveGeometryFilter
-from c3nav.mapdata.schemas.model_base import AnyLocationID, AnyPositionID, CustomLocationID, schema_definition
+from c3nav.mapdata.schemas.model_base import AnyLocationID, AnyPositionID, CustomLocationID
 from c3nav.mapdata.schemas.models import (AnyPositionStatusSchema, FullListableLocationSchema, FullLocationSchema,
-                                          LevelSchema, LocationDisplay, SlimListableLocationSchema, SlimLocationSchema,
+                                          LocationDisplay, SlimListableLocationSchema, SlimLocationSchema,
                                           all_location_definitions, listable_location_definitions)
 from c3nav.mapdata.schemas.responses import LocationGeometry, WithBoundsSchema
 from c3nav.mapdata.utils.locations import (get_location_by_id_for_request, get_location_by_slug_for_request,
@@ -273,6 +273,7 @@ def get_position_by_id(request, position_id: AnyPositionID):
         except Position.DoesNotExist:
             raise API404()
     return location.serialize_position()
+
 
 class UpdatePositionSchema(Schema):
     coordinates_id: Union[

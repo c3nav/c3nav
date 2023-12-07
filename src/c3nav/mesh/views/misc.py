@@ -19,9 +19,9 @@ class MeshRangingView(TemplateView):
     template_name = "mesh/mesh_ranging.html"
 
     def get_context_data(self, **kwargs):
-        from c3nav.routing.rangelocator import RangeLocator
+        from c3nav.routing.locator import Locator
         return {
             "ranging_form": RangingForm(self.request.GET or None),
             "node_names": get_node_names(),
-            "nodes_xyz": RangeLocator.load().get_all_xyz(),
+            "nodes_xyz": Locator.load().get_all_xyz(),
         }

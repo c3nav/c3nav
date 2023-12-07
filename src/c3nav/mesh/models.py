@@ -23,7 +23,7 @@ from c3nav.mesh.messages import ConfigFirmwareMessage, ConfigHardwareMessage
 from c3nav.mesh.messages import MeshMessage as MeshMessage
 from c3nav.mesh.messages import MeshMessageType
 from c3nav.mesh.utils import MESH_ALL_OTA_GROUP, UPLINK_TIMEOUT
-from c3nav.routing.rangelocator import RangeLocator
+from c3nav.routing.locator import Locator
 
 FirmwareLookup = namedtuple('FirmwareLookup', ('sha256_hash', 'chip', 'project_name', 'version', 'idf_version'))
 
@@ -338,7 +338,7 @@ class MeshNode(models.Model):
         return dst_node.get_uplink()
 
     def get_locator_xyz(self):
-        locator = RangeLocator.load()
+        locator = Locator.load()
         return locator.get_xyz(self.address)
 
 

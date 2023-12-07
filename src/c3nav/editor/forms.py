@@ -21,6 +21,7 @@ from c3nav.mapdata.fields import GeometryField
 from c3nav.mapdata.forms import I18nModelFormMixin
 from c3nav.mapdata.models import GraphEdge
 from c3nav.mapdata.models.access import AccessPermission
+from c3nav.routing.schemas import LocateRequestPeerSchema
 
 
 class EditorFormBase(I18nModelFormMixin, ModelForm):
@@ -244,9 +245,12 @@ class EditorFormBase(I18nModelFormMixin, ModelForm):
         except json.JSONDecodeError:
             raise ValidationError(_('Invalid JSON.'))
 
-        from c3nav.routing.locator import LocatorPoint
-        LocatorPoint.clean_scans(data)
+        if not isinstance(data, list):
+            raise ValidationError(_('Scan data is not a list.'))
 
+        for item in data:
+            # todo: catch pydantic validation error
+            LocateRequestPeerSchema.model_validate(item)
         return data
 
     def clean(self):
