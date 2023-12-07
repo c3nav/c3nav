@@ -4,11 +4,13 @@ import threading
 from collections import namedtuple
 from io import BytesIO
 from tarfile import TarFile, TarInfo
+from typing import BinaryIO
 
-from pyzstd import CParameter, ZstdFile
+from pyzstd import CParameter, ZstdError, ZstdFile
 
 from c3nav.mapdata.utils.cache import AccessRestrictionAffected, GeometryIndexed, MapHistory
 
+ZSTD_MAGIC_NUMBER = b"\x28\xb5\x2f\xfd"
 CachePackageLevel = namedtuple('CachePackageLevel', ('history', 'restrictions'))
 
 
@@ -67,7 +69,22 @@ class CachePackage:
             self.save(filename, compression)
 
     @classmethod
-    def read(cls, f):
+    def read(cls, f: BinaryIO):
+        # test if it's a zstd compressed archive
+        # read magic bytes
+        magic_number = f.read(4)
+        f.seek(0)
+        if magic_number == ZSTD_MAGIC_NUMBER:
+            # Seams to be a zstd file. To make sure we try to read the first 512 bytes.
+            _f = f
+            try:
+                f = ZstdFile(f, 'rb')
+                f.read(512)  # tar block size
+                f.seek(0)
+            except ZstdError:
+                # Not a zst file or a broken file. Let's give Tarfile a try with the original file
+                f = _f
+
         f = TarFile.open(fileobj=f)
         files = {info.name: info for info in f.getmembers()}
 
