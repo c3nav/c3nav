@@ -64,28 +64,36 @@ class LevelRenderData:
 
         package = CachePackage(bounds=tuple(chain(*Source.max_bounds())))
 
-        # first pass in reverse to collect some data that we need later
+        # todo: we should check that levels on top come before their levels as they should
+
+        """
+        first pass in reverse to collect some data that we need later
+        """
+        # level geometry for every single level
         single_level_geoms: dict[int, LevelGeometries] = {}
+        # interpolator are used to create the 3d mesh
         interpolators = {}
         last_interpolator: NearestNDInterpolator | None = None
+        # altitudeareas of levels on top are are collected on the way down to supply to the levelgeometries builder
         altitudeareas_above = []  # todo: typing
-        for level in reversed(levels):
+        for render_level in reversed(levels):
             # build level geometry for every single level
-            single_level_geoms[level.pk] = LevelGeometries.build_for_level(level, altitudeareas_above)
+            single_level_geoms[render_level.pk] = LevelGeometries.build_for_level(render_level, altitudeareas_above)
 
             # ignore intermediate levels in this pass
-            if level.on_top_of_id is not None:
-                altitudeareas_above.extend(single_level_geoms[level.pk].altitudeareas)
+            if render_level.on_top_of_id is not None:
+                # todo: shouldn't this be cleared or something?
+                altitudeareas_above.extend(single_level_geoms[render_level.pk].altitudeareas)
                 altitudeareas_above.sort(key=operator.attrgetter('altitude'))
                 continue
 
-            # create interpolator to create the pieces that fit multiple layers together
+            # create interpolator to create the pieces that fit multiple 3d layers together
             if last_interpolator is not None:
-                interpolators[level.pk] = last_interpolator
+                interpolators[render_level.pk] = last_interpolator
 
             coords = deque()
             values = deque()
-            for area in single_level_geoms[level.pk].altitudeareas:
+            for area in single_level_geoms[render_level.pk].altitudeareas:
                 new_coords = np.vstack(tuple(np.array(ring.coords) for ring in get_rings(area.geometry)))
                 coords.append(new_coords)
                 values.append(np.full((new_coords.shape[0], 1), fill_value=area.altitude))
@@ -93,43 +101,53 @@ class LevelRenderData:
             if coords:
                 last_interpolator = NearestNDInterpolator(np.vstack(coords), np.vstack(values))
             else:
-                last_interpolator = NearestNDInterpolator(np.array([[0, 0]]), np.array([float(level.base_altitude)]))
+                last_interpolator = NearestNDInterpolator(np.array([[0, 0]]), np.array([float(render_level.base_altitude)]))
 
-        for i, level in enumerate(levels):
-            if level.on_top_of_id is not None:
+        """
+        second pass, forward to create the LevelRenderData for each level
+        """
+        for render_level in levels:
+            # we don't create render data for on_top_of levels
+            if render_level.on_top_of_id is not None:
                 continue
 
-            map_history = MapHistory.open_level(level.pk, 'base')
+            map_history = MapHistory.open_level(render_level.pk, 'base')
 
-            sublevels = tuple(sublevel for sublevel in levels
-                              if sublevel.on_top_of_id == level.pk or sublevel.base_altitude <= level.base_altitude)
+            # collect potentially relevant levels for rendering this level
+            # these are all levels that are on_top_of this level or below this level
+            relevant_levels = tuple(
+                sublevel for sublevel in levels
+                if sublevel.on_top_of_id == render_level.pk or sublevel.base_altitude <= render_level.base_altitude
+            )
 
-            level_crop_to = {}
-
-            # choose a crop area for each level. non-intermediate levels (not on_top_of) below the one that we are
-            # currently rendering will be cropped to only render content that is visible through holes indoors in the
-            # levels above them.
+            """
+            choose a crop area for each level. non-intermediate levels (not on_top_of) below the one that we are
+            currently rendering will be cropped to only render content that is visible through holes indoors in the
+            levels above them.
+            """
+            # area to crop each level to, by id
+            level_crop_to: dict[int, Cropper] = {}
+            # current remaining area that we're cropping to – None means no cropping
             crop_to = None
             primary_level_count = 0
             main_level_passed = 0
             lowest_important_level = None
             last_lower_bound = None
-            for sublevel in reversed(sublevels):
-                geoms = single_level_geoms[sublevel.pk]
+            for level in reversed(relevant_levels):  # reversed means we are going down
+                geoms = single_level_geoms[level.pk]
 
                 if geoms.holes is not None:
                     primary_level_count += 1
 
                 # get lowest intermediate level directly below main level
-
                 if not main_level_passed:
-                    if geoms.pk == level.pk:
+                    if geoms.pk == render_level.pk:
                         main_level_passed = 1
                 else:
-                    if not sublevel.on_top_of_id:
+                    if not level.on_top_of_id:
                         main_level_passed += 1
                 if main_level_passed < 2:
-                    lowest_important_level = sublevel
+                    lowest_important_level = level
 
                 # make upper bounds
                 if geoms.on_top_of_id is None:
@@ -140,9 +158,9 @@ class LevelRenderData:
                     last_lower_bound = geoms.lower_bound
 
                 # set crop area if we area on the second primary layer from top or below
-                level_crop_to[sublevel.pk] = Cropper(crop_to if primary_level_count > 1 else None)
+                level_crop_to[level.pk] = Cropper(crop_to if primary_level_count > 1 else None)
 
-                if geoms.holes is not None:
+                if geoms.holes is not None:  # there area holes on this area
                     if crop_to is None:
                         crop_to = geoms.holes
                     else:
@@ -152,31 +170,31 @@ class LevelRenderData:
                         break
 
             render_data = LevelRenderData(
-                base_altitude=level.base_altitude,
+                base_altitude=render_level.base_altitude,
                 lowest_important_level=lowest_important_level.pk,
             )
             access_restriction_affected = {}
 
             # go through sublevels, get their level geometries and crop them
             lowest_important_level_passed = False
-            for sublevel in sublevels:
+            for level in relevant_levels:
                 try:
-                    crop_to = level_crop_to[sublevel.pk]
+                    crop_to = level_crop_to[level.pk]
                 except KeyError:
                     break
 
-                old_geoms = single_level_geoms[sublevel.pk]
+                old_geoms = single_level_geoms[level.pk]
 
-                if render_data.lowest_important_level == sublevel.pk:
+                if render_data.lowest_important_level == level.pk:
                     lowest_important_level_passed = True
 
                 if old_geoms.holes and render_data.darken_area is None and lowest_important_level_passed:
                     render_data.darken_area = old_geoms.holes
 
                 if crop_to.geometry is not None:
-                    map_history.composite(MapHistory.open_level(sublevel.pk, 'base'), crop_to.geometry)
-                elif level.pk != sublevel.pk:
-                    map_history.composite(MapHistory.open_level(sublevel.pk, 'base'), None)
+                    map_history.composite(MapHistory.open_level(level.pk, 'base'), crop_to.geometry)
+                elif render_level.pk != level.pk:
+                    map_history.composite(MapHistory.open_level(level.pk, 'base'), None)
 
                 new_geoms = LevelGeometries()
                 new_geoms.buildings = crop_to.intersection(old_geoms.buildings)
@@ -285,7 +303,7 @@ class LevelRenderData:
                 new_geoms.lower_bound = old_geoms.lower_bound
                 new_geoms.upper_bound = old_geoms.upper_bound
 
-                new_geoms.build_mesh(interpolators.get(level.pk) if sublevel.pk == level.pk else None)
+                new_geoms.build_mesh(interpolators.get(render_level.pk) if level.pk == render_level.pk else None)
 
                 render_data.levels.append(new_geoms)
 
@@ -295,13 +313,13 @@ class LevelRenderData:
             }
 
             access_restriction_affected = AccessRestrictionAffected.build(access_restriction_affected)
-            access_restriction_affected.save_level(level.pk, 'composite')
+            access_restriction_affected.save_level(render_level.pk, 'composite')
 
-            map_history.save_level(level.pk, 'composite')
+            map_history.save_level(render_level.pk, 'composite')
 
-            package.add_level(level.pk, map_history, access_restriction_affected)
+            package.add_level(render_level.pk, map_history, access_restriction_affected)
 
-            render_data.save(level.pk)
+            render_data.save(render_level.pk)
 
         package.save_all()
 
