@@ -115,7 +115,8 @@ def tile(request, level, zoom, x, y, access_permissions=None):
                 pass
 
         if tile_cache_update != base_cache_key:
-            rmtree(tile_directory)
+            if tile_directory.exists():
+                rmtree(tile_directory)
         else:
             try:
                 data = tile_file.read_bytes()
