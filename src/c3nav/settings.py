@@ -1,5 +1,6 @@
 # c3nav settings, mostly taken from the pretix project
 import os
+import re
 import string
 import sys
 from contextlib import suppress
@@ -248,17 +249,22 @@ if HAS_MEMCACHED:
     SESSION_ENGINE = "django.contrib.sessions.backends.cached_db"
 
 HAS_REDIS = bool(config.get('redis', 'location', fallback=None, env='C3NAV_REDIS'))
+REDIS_CONNECTION_POOL = None
 if HAS_REDIS:
+    import redis
     HAS_REAL_CACHE = True
+    REDIS_SERVERS = re.split("[;,]", config.get('redis', 'location', env='C3NAV_REDIS'))
     CACHES['redis'] = {
         "BACKEND": "django.core.cache.backends.redis.RedisCache",
-        "LOCATION": config.get('redis', 'location', env='C3NAV_REDIS'),
+        "LOCATION": REDIS_SERVERS,
     }
     if not HAS_MEMCACHED:
         CACHES['default'] = CACHES['redis']
         SESSION_ENGINE = "django.contrib.sessions.backends.cached_db"
     else:
         SESSION_CACHE_ALIAS = "redis"
+
+    REDIS_CONNECTION_POOL = redis.ConnectionPool.from_url(REDIS_SERVERS[0])
 
 HAS_CELERY = bool(config.get('celery', 'broker', fallback=None))
 if HAS_CELERY:

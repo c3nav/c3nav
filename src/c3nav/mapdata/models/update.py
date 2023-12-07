@@ -117,7 +117,8 @@ class MapUpdate(models.Model):
             if settings.HAS_REDIS:
                 import redis
                 lock_aquired = None
-                lock = redis.Redis().lock('mapupdate:process_updates:lock')
+                client = redis.Redis(connection_pool=settings.REDIS_CONNECTION_POOL)
+                lock = client.lock('mapupdate:process_updates:lock')
                 try:
                     lock_aquired = lock.acquire(blocking=False, blocking_timeout=1800)
                     if not lock_aquired:
