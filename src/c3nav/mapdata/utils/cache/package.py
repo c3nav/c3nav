@@ -74,7 +74,7 @@ class CachePackage:
             self.save(filename, compression)
 
     @classmethod
-    def read(cls, f: BinaryIO):
+    def read(cls, f: BinaryIO) -> Self:
         # test if it's a zstd compressed archive
         # read magic bytes
         magic_number = f.read(4)
@@ -108,7 +108,7 @@ class CachePackage:
         return cls(bounds, levels)
 
     @classmethod
-    def open(cls, package:Optional[str | os.PathLike] = None):
+    def open(cls, package:Optional[str | os.PathLike] = None) -> Self:
         if package is None:
             from django.conf import settings
             package = settings.CACHE_ROOT / 'package.tar'
