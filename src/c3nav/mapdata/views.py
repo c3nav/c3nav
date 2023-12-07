@@ -1,5 +1,6 @@
 import base64
 import os
+from shutil import rmtree
 from wsgiref.util import FileWrapper
 
 from django.conf import settings
@@ -114,7 +115,7 @@ def tile(request, level, zoom, x, y, access_permissions=None):
                 pass
 
         if tile_cache_update != base_cache_key:
-            os.system('rm -rf '+(tile_dirname / '*'))
+            rmtree(tile_dirname)
         else:
             try:
                 with open(tile_filename, 'rb') as f:
