@@ -18,3 +18,4 @@ scipy==1.11.4
 django_libsass==0.9
 channels==4.0.0
 daphne==4.0.0
+pyzstd==0.15.9

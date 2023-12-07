@@ -5,6 +5,8 @@ from collections import namedtuple
 from io import BytesIO
 from tarfile import TarFile, TarInfo
 
+from pyzstd import CParameter, ZstdFile
+
 from c3nav.mapdata.utils.cache import AccessRestrictionAffected, GeometryIndexed, MapHistory
 
 CachePackageLevel = namedtuple('CachePackageLevel', ('history', 'restrictions'))
@@ -27,15 +29,26 @@ class CachePackage:
                 filename = settings.CACHE_ROOT / 'package.tar'
 
         filemode = 'w'
-        if compression is not None:
+        fileobj = None
+        if compression == 'zst':
+            fileobj = ZstdFile(filename, filemode, level_or_option={
+                CParameter.compressionLevel: 9,
+                CParameter.checksumFlag: 1,
+            })
+        elif compression is not None:
             filemode += ':' + compression
 
-        with TarFile.open(filename, filemode) as f:
-            self._add_bytesio(f, 'bounds', BytesIO(struct.pack('<iiii', *(int(i*100) for i in self.bounds))))
+        try:
+            with TarFile.open(filename, filemode, fileobj=fileobj) as f:
+                self._add_bytesio(f, 'bounds',
+                                  BytesIO(struct.pack('<iiii', *(int(i*100) for i in self.bounds))))
 
-            for level_id, level_data in self.levels.items():
-                self._add_geometryindexed(f, 'history_%d' % level_id, level_data.history)
-                self._add_geometryindexed(f, 'restrictions_%d' % level_id, level_data.restrictions)
+                for level_id, level_data in self.levels.items():
+                    self._add_geometryindexed(f, 'history_%d' % level_id, level_data.history)
+                    self._add_geometryindexed(f, 'restrictions_%d' % level_id, level_data.restrictions)
+        finally:
+            if fileobj is not None:
+                fileobj.close()
 
     def _add_bytesio(self, f: TarFile, filename: str, data: BytesIO):
         data.seek(0, os.SEEK_END)
@@ -50,7 +63,7 @@ class CachePackage:
         self._add_bytesio(f, filename, data)
 
     def save_all(self, filename=None):
-        for compression in (None, 'gz', 'xz'):
+        for compression in (None, 'gz', 'xz', 'zst'):
             self.save(filename, compression)
 
     @classmethod
@@ -76,8 +89,8 @@ class CachePackage:
     def open(cls, filename=None):
         if filename is None:
             from django.conf import settings
-            filename = settings.CACHE_ROOT / 'package.tar'
-        return cls.read(open(filename, 'rb'))
+            package = settings.CACHE_ROOT / 'package.tar'
+        return cls.read(package.open('rb'))
 
     cached = None
     cache_key = None
