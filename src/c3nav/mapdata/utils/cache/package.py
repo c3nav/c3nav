@@ -107,8 +107,8 @@ class CachePackage:
         return cls(bounds, levels)
 
     @classmethod
-    def open(cls, filename=None):
-        if filename is None:
+    def open(cls, package=None):
+        if package is None:
             from django.conf import settings
             package = settings.CACHE_ROOT / 'package.tar'
         return cls.read(package.open('rb'))
