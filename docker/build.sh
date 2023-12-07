@@ -4,6 +4,13 @@ set -e
 PROJDIR="$(dirname "$(dirname "$(readlink -f "$0")")")"
 cd "$PROJDIR"
 COMMIT="$(git rev-parse HEAD)"
+CONTEXT="."
+
+if [[ "$1" == "git" ]]; then
+    git fetch origin
+    COMMIT="$(git rev-parse origin/main)"
+    CONTEXT="https://github.com/c3nav/c3nav.git#${COMMIT}"
+fi
 
 docker buildx build -f docker/Dockerfile \
     --platform linux/arm64,linux/amd64 \
@@ -15,7 +22,7 @@ docker buildx build -f docker/Dockerfile \
     --annotation org.opencontainers.image.description="Indoor navigation for the Chaos Communication Congress and other events. - Core" \
     --cache-from "type=registry,ref=ghcr.io/c3nav/c3nav_cache:main" \
     --cache-to "type=registry,ref=ghcr.io/c3nav/c3nav_cache:main,mode=max" \
-    --push .
+    --push "${CONTEXT}"
 
 docker buildx build -f docker/tileserver.dockerfile \
     --platform linux/arm64,linux/amd64 \
@@ -27,4 +34,4 @@ docker buildx build -f docker/tileserver.dockerfile \
     --annotation org.opencontainers.image.description="Indoor navigation for the Chaos Communication Congress and other events. - Tileserver" \
     --cache-from "type=registry,ref=ghcr.io/c3nav/c3nav_cache:tileserver_main" \
     --cache-to "type=registry,ref=ghcr.io/c3nav/c3nav_cache:tileserver_main,mode=max" \
-    --push .
+    --push "${CONTEXT}"
