@@ -5,7 +5,8 @@ from pydantic import Field as APIField
 from pydantic import NegativeInt, PositiveInt
 
 from c3nav.api.utils import NonEmptyStr
-from c3nav.routing.api.schemas import BSSIDSchema
+
+BSSIDSchema = Annotated[str, APIField(pattern=r"^[a-z0-9]{2}(:[a-z0-9]{2}){5}$", title="BSSID")]
 
 
 class LocateRequestPeerSchema(Schema):

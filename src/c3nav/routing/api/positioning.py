@@ -9,9 +9,8 @@ from c3nav.api.auth import auth_responses
 from c3nav.mapdata.models.access import AccessPermission
 from c3nav.mapdata.schemas.models import CustomLocationSchema
 from c3nav.mapdata.utils.cache.stats import increment_cache_key
-from c3nav.routing.api.schemas import BSSIDSchema
 from c3nav.routing.locator import Locator
-from c3nav.routing.schemas import LocateRequestPeerSchema
+from c3nav.routing.schemas import BSSIDSchema, LocateRequestPeerSchema
 
 positioning_api_router = APIRouter(tags=["positioning"])
 
