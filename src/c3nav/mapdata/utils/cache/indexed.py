@@ -1,8 +1,12 @@
 import math
 import struct
-import threading
 
 import numpy as np
+
+try:
+    from asgiref.local import Local as LocalContext
+except ImportError:
+    from threading import local as LocalContext
 
 
 class GeometryIndexed:
@@ -207,23 +211,20 @@ class LevelGeometryIndexed(GeometryIndexed):
         # noinspection PyArgumentList
         return self.save(self.level_filename(level_id, mode))
 
-    cached = {}
-    cache_key = None
-    cache_lock = threading.Lock()
+    cached = LocalContext()
 
     @classmethod
     def open_level_cached(cls, level_id, mode):
-        with cls.cache_lock:
-            from c3nav.mapdata.models import MapUpdate
-            cache_key = MapUpdate.current_processed_cache_key()
-            if cls.cache_key != cache_key:
-                cls.cache_key = cache_key
-                cls.cached = {}
-            else:
-                result = cls.cached.get((level_id, mode), None)
-                if result is not None:
-                    return result
+        from c3nav.mapdata.models import MapUpdate
+        cache_key = MapUpdate.current_processed_cache_key()
+        if getattr(cls.cached, 'cache_key', None) != cache_key:
+            cls.cached.key = cache_key
+            cls.cached.data = {}
+        else:
+            result = cls.cached.data.get((level_id, mode), None)
+            if result is not None:
+                return result
 
-            result = cls.open_level(level_id, mode)
-            cls.cached[(level_id, mode)] = result
-            return result
+        result = cls.open_level(level_id, mode)
+        cls.cached.data[(level_id, mode)] = result
+        return result

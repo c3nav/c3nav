@@ -1,6 +1,5 @@
 import operator
 import pickle
-import threading
 from dataclasses import dataclass, field
 from functools import reduce
 from pprint import pprint
@@ -16,6 +15,11 @@ from c3nav.mapdata.models.geometry.space import RangingBeacon
 from c3nav.mapdata.utils.locations import CustomLocation
 from c3nav.routing.router import Router
 from c3nav.routing.schemas import LocateRequestPeerSchema
+
+try:
+    from asgiref.local import Local as LocalContext
+except ImportError:
+    from threading import local as LocalContext
 
 BSSID: TypeAlias = str
 
@@ -130,18 +134,18 @@ class Locator:
     def load_nocache(cls, update):
         return pickle.load(open(cls.build_filename(update), 'rb'))
 
-    cached = None
-    cache_update = None
-    cache_lock = threading.Lock()
+    cached = LocalContext()
+
+    class NoUpdate:
+        pass
 
     @classmethod
     def load(cls):
         from c3nav.mapdata.models import MapUpdate
         update = MapUpdate.last_processed_update()
-        if cls.cache_update != update:
-            with cls.cache_lock:
-                cls.cache_update = update
-                cls.cached = cls.load_nocache(update)
+        if getattr(cls.cached, 'update', cls.NoUpdate) != update:
+            cls.cached.update = update
+            cls.cached.data = cls.load_nocache(update)
         return cls.cached
 
     def convert_raw_scan_data(self, raw_scan_data: list[LocateRequestPeerSchema]) -> ScanData:

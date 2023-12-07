@@ -1,7 +1,6 @@
 import logging
 import operator
 import pickle
-import threading
 from collections import deque, namedtuple
 from functools import reduce
 from itertools import chain
@@ -23,6 +22,11 @@ from c3nav.mapdata.utils.geometry import assert_multipolygon, get_rings, good_re
 from c3nav.mapdata.utils.locations import CustomLocation
 from c3nav.routing.exceptions import LocationUnreachable, NoRouteFound, NotYetRoutable
 from c3nav.routing.route import Route
+
+try:
+    from asgiref.local import Local as LocalContext
+except ImportError:
+    from threading import local as LocalContext
 
 logger = logging.getLogger('c3nav')
 
@@ -278,18 +282,18 @@ class Router:
     def load_nocache(cls, update):
         return pickle.load(open(cls.build_filename(update), 'rb'))
 
-    cached = None
-    cache_update = None
-    cache_lock = threading.Lock()
+    cached = LocalContext()
+
+    class NoUpdate:
+        pass
 
     @classmethod
     def load(cls):
         from c3nav.mapdata.models import MapUpdate
         update = MapUpdate.last_processed_update()
-        if cls.cache_update != update:
-            with cls.cache_lock:
-                cls.cache_update = update
-                cls.cached = cls.load_nocache(update)
+        if getattr(cls.cached, 'update', cls.NoUpdate) != update:
+            cls.cached.update = update
+            cls.cached.data = cls.load_nocache(update)
         return cls.cached
 
     def get_locations(self, location, restrictions):

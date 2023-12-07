@@ -199,8 +199,6 @@ class TileServer:
                 self.cache_package = pickle.load(f)
         return self.cache_package
 
-    cache_lock = multiprocessing.Lock()
-
     @property
     def cache(self):
         cache = self.get_cache_client()

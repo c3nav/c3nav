@@ -1,6 +1,5 @@
 import operator
 import pickle
-import threading
 from collections import deque
 from itertools import chain
 
@@ -16,6 +15,11 @@ from c3nav.mapdata.render.geometry import AltitudeAreaGeometries, LevelGeometrie
 from c3nav.mapdata.utils.cache import AccessRestrictionAffected, MapHistory
 from c3nav.mapdata.utils.cache.package import CachePackage
 from c3nav.mapdata.utils.geometry import get_rings, unwrap_geom
+
+try:
+    from asgiref.local import Local as LocalContext
+except ImportError:
+    from threading import local as LocalContext
 
 empty_geometry_collection = GeometryCollection()
 
@@ -292,9 +296,7 @@ class LevelRenderData:
 
         package.save_all()
 
-    cached = {}
-    cache_key = None
-    cache_lock = threading.Lock()
+    cached = LocalContext()
 
     @staticmethod
     def _level_filename(pk):
@@ -304,22 +306,21 @@ class LevelRenderData:
     def get(cls, level):
         # get the current render data from local variable if no new processed mapupdate exists.
         # this is much faster than any other possible cache
-        with cls.cache_lock:
-            cache_key = MapUpdate.current_processed_cache_key()
-            level_pk = str(level.pk if isinstance(level, Level) else level)
-            if cls.cache_key != cache_key:
-                cls.cache_key = cache_key
-                cls.cached = {}
-            else:
-                result = cls.cached.get(level_pk, None)
-                if result is not None:
-                    return result
+        cache_key = MapUpdate.current_processed_cache_key()
+        level_pk = str(level.pk if isinstance(level, Level) else level)
+        if getattr(cls.cached, 'cache_key', None) != cache_key:
+            cls.cached.key = cache_key
+            cls.cached.data = {}
+        else:
+            result = cls.cached.data.get(level_pk, None)
+            if result is not None:
+                return result
 
-            pk = level.pk if isinstance(level, Level) else level
-            result = pickle.load(open(cls._level_filename(pk), 'rb'))
+        pk = level.pk if isinstance(level, Level) else level
+        result = pickle.load(open(cls._level_filename(pk), 'rb'))
 
-            cls.cached[level_pk] = result
-            return result
+        cls.cached.data[level_pk] = result
+        return result
 
     def save(self, pk):
         return pickle.dump(self, open(self._level_filename(pk), 'wb'))

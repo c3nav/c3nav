@@ -1,14 +1,18 @@
 import os
 import struct
-import threading
 from collections import namedtuple
 from io import BytesIO
 from tarfile import TarFile, TarInfo
-from typing import BinaryIO
+from typing import BinaryIO, Self
 
 from pyzstd import CParameter, ZstdError, ZstdFile
 
 from c3nav.mapdata.utils.cache import AccessRestrictionAffected, GeometryIndexed, MapHistory
+
+try:
+    from asgiref.local import Local as LocalContext
+except ImportError:
+    from threading import local as LocalContext
 
 ZSTD_MAGIC_NUMBER = b"\x28\xb5\x2f\xfd"
 CachePackageLevel = namedtuple('CachePackageLevel', ('history', 'restrictions'))
@@ -109,23 +113,20 @@ class CachePackage:
             package = settings.CACHE_ROOT / 'package.tar'
         return cls.read(package.open('rb'))
 
-    cached = None
-    cache_key = None
-    cache_lock = threading.Lock()
+    cached = LocalContext()
 
     @classmethod
-    def open_cached(cls):
-        with cls.cache_lock:
-            from c3nav.mapdata.models import MapUpdate
-            cache_key = MapUpdate.current_processed_cache_key()
-            if cls.cache_key != cache_key:
-                cls.cache_key = cache_key
-                cls.cached = None
+    def open_cached(cls) -> Self:
+        from c3nav.mapdata.models import MapUpdate
+        cache_key = MapUpdate.current_processed_cache_key()
+        if getattr(cls.cached, 'cache_key', None) != cache_key:
+            cls.cached.key = cache_key
+            cls.cached.data = None
 
-            if cls.cached is None:
-                cls.cached = cls.open()
+        if cls.cached.data is None:
+            cls.cached.data = cls.open()
 
-            return cls.cached
+        return cls.cached.data
 
     def bounds_valid(self, minx, miny, maxx, maxy):
         return (minx <= self.bounds[2] and maxx >= self.bounds[0] and

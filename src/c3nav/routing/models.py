@@ -1,4 +1,3 @@
-import threading
 from collections import OrderedDict
 
 from django import forms
@@ -10,6 +9,11 @@ from django.utils.translation import gettext_lazy as _
 
 from c3nav.mapdata.models import MapUpdate, WayType
 
+try:
+    from asgiref.local import Local as LocalContext
+except ImportError:
+    from threading import local as LocalContext
+
 
 class RouteOptions(models.Model):
     user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, primary_key=True)
@@ -20,9 +24,7 @@ class RouteOptions(models.Model):
         verbose_name_plural = _('Route options')
         default_related_name = 'routeoptions'
 
-    fields_cached = None
-    fields_cache_key = None
-    fields_cache_lock = threading.Lock()
+    fields_cached = LocalContext()
 
     @classmethod
     def build_fields(cls):
@@ -58,11 +60,10 @@ class RouteOptions(models.Model):
     @classmethod
     def get_fields(cls):
         cache_key = MapUpdate.current_cache_key()
-        if cls.fields_cache_key != cache_key:
-            with cls.fields_cache_lock:
-                cls.fields_cache_key = cache_key
-                cls.fields_cached = cls.build_fields()
-        return cls.fields_cached
+        if getattr(cls.fields_cached, 'cache_key', None) != cache_key:
+            cls.fields_cached.key = cache_key
+            cls.fields_cached.data = cls.build_fields()
+        return cls.fields_cached.data
 
     @staticmethod
     def get_cache_key(pk):
