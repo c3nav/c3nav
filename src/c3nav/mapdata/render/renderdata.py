@@ -181,7 +181,7 @@ class LevelRenderData:
                 try:
                     crop_to = level_crop_to[level.pk]
                 except KeyError:
-                    break
+                    continue
 
                 old_geoms = single_level_geoms[level.pk]
 
