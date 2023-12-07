@@ -262,7 +262,7 @@ if HAS_REDIS:
         CACHES['default'] = CACHES['redis']
     else:
         SESSION_CACHE_ALIAS = "redis"
-    SESSION_ENGINE = "django.contrib.sessions.backends.cached"
+    SESSION_ENGINE = "django.contrib.sessions.backends.cache"
 
     REDIS_CONNECTION_POOL = redis.ConnectionPool.from_url(REDIS_SERVERS[0])
 
