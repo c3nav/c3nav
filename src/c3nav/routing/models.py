@@ -60,7 +60,7 @@ class RouteOptions(models.Model):
     @classmethod
     def get_fields(cls):
         cache_key = MapUpdate.current_cache_key()
-        if getattr(cls.fields_cached, 'cache_key', None) != cache_key:
+        if getattr(cls.fields_cached, 'key', None) != cache_key:
             cls.fields_cached.key = cache_key
             cls.fields_cached.data = cls.build_fields()
         return cls.fields_cached.data

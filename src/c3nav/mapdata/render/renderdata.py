@@ -308,7 +308,7 @@ class LevelRenderData:
         # this is much faster than any other possible cache
         cache_key = MapUpdate.current_processed_cache_key()
         level_pk = str(level.pk if isinstance(level, Level) else level)
-        if getattr(cls.cached, 'cache_key', None) != cache_key:
+        if getattr(cls.cached, 'key', None) != cache_key:
             cls.cached.key = cache_key
             cls.cached.data = {}
         else:
