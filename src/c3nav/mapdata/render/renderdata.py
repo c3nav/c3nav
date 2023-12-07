@@ -1,14 +1,17 @@
 import operator
 import pickle
 from collections import deque
+from dataclasses import dataclass, field
 from itertools import chain
+from typing import Optional
 
 import numpy as np
 from django.conf import settings
 from scipy.interpolate import NearestNDInterpolator
-from shapely import prepared
+from shapely import prepared, Geometry, MultiPolygon
 from shapely.geometry import GeometryCollection
 from shapely.ops import unary_union
+from shapely.prepared import PreparedGeometry
 
 from c3nav.mapdata.models import Level, MapUpdate, Source
 from c3nav.mapdata.render.geometry import AltitudeAreaGeometries, LevelGeometries
@@ -24,10 +27,13 @@ except ImportError:
 empty_geometry_collection = GeometryCollection()
 
 
+@dataclass
 class Cropper:
-    def __init__(self, geometry=None):
-        self.geometry = geometry
-        self.geometry_prep = None if geometry is None else prepared.prep(unwrap_geom(geometry))
+    geometry: Optional[Geometry]
+    geometry_prep: Optional[PreparedGeometry] = field(init=False, repr=False)
+
+    def __post_init__(self):
+        self.geometry_prep = None if self.geometry is None else prepared.prep(unwrap_geom(self.geometry))
 
     def intersection(self, other):
         if self.geometry is None:
@@ -37,19 +43,20 @@ class Cropper:
         return empty_geometry_collection
 
 
+@dataclass
 class LevelRenderData:
     """
     Renderdata for a level to display.
     This contains multiple LevelGeometries instances because you might to look through holes onto lower levels.
     """
-    def __init__(self):
-        self.levels = []
-        self.base_altitude = None
-        self.lowest_important_level = None
-        self.darken_area = None
+    base_altitude: float
+    lowest_important_level: int
+    levels: list[LevelGeometries] = field(default_factory=list)
+    darken_area: MultiPolygon | None = None
 
     @staticmethod
     def rebuild():
+        # Levels are automatically sorted by base_altitude, ascending
         levels = tuple(Level.objects.prefetch_related('altitudeareas', 'buildings', 'doors', 'spaces',
                                                       'spaces__holes', 'spaces__areas', 'spaces__columns',
                                                       'spaces__obstacles', 'spaces__lineobstacles',
@@ -58,11 +65,12 @@ class LevelRenderData:
         package = CachePackage(bounds=tuple(chain(*Source.max_bounds())))
 
         # first pass in reverse to collect some data that we need later
-        single_level_geoms = {}
+        single_level_geoms: dict[int, LevelGeometries] = {}
         interpolators = {}
-        last_interpolator = None
-        altitudeareas_above = []
+        last_interpolator: NearestNDInterpolator | None = None
+        altitudeareas_above = []  # todo: typing
         for level in reversed(levels):
+            # build level geometry for every single level
             single_level_geoms[level.pk] = LevelGeometries.build_for_level(level, altitudeareas_above)
 
             # ignore intermediate levels in this pass
@@ -143,9 +151,10 @@ class LevelRenderData:
                     if crop_to.is_empty:
                         break
 
-            render_data = LevelRenderData()
-            render_data.base_altitude = level.base_altitude
-            render_data.lowest_important_level = lowest_important_level.pk
+            render_data = LevelRenderData(
+                base_altitude=level.base_altitude,
+                lowest_important_level=lowest_important_level.pk,
+            )
             access_restriction_affected = {}
 
             # go through sublevels, get their level geometries and crop them
