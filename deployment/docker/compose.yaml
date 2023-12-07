@@ -1,0 +1,154 @@
+version: '3'
+name: c3nav
+
+x-restart-policy: &restart-policy
+  restart: unless-stopped
+x-depends_on-default: &depends_on
+  condition: service_started
+x-depends_on-healthy: &depends_on-healthy
+  condition: service_healthy
+x-healthcheck_defaults: &healthcheck_defaults
+  interval: 10s
+  timeout: 2s
+  retries: 5
+  start_period: 5s
+x-c3nav-defaults: &c3nav-defaults
+  build:
+    context: ../../
+    dockerfile: docker/Dockerfile
+  image: ghcr.io/c3nav/c3nav:${C3NAV_TAG}
+  depends_on:
+    redis:
+      <<: *depends_on-healthy
+    postgres:
+      <<: *depends_on-healthy
+  volumes:
+    - type: bind
+      source: ${C3NAV_DOCKER_DATA_DIR:-./data}
+      target: /data
+      bind:
+        create_host_path: true
+x-c3nav-environment: &c3nav-environment
+  C3NAV_DEBUG: false
+  C3NAV_LOGLEVEL: info
+  C3NAV_CONFIG: /data/c3nav.cfg
+  C3NAV_DATA_DIR: /data
+  C3NAV_DJANGO_ALLOWED_HOSTS: localhost,127.0.0.1,c3nav-core,c3nav-tiles,${C3NAV_DJANGO_ALLOWED_HOSTS:-""},${C3NAV_DOMAIN}
+  C3NAV_DJANGO_REVERSE_PROXY: "true"
+  UWSGI_WORKERS: ${C3NAV_CORE_WORKERS:-2}
+  C3NAV_DATABASE_BACKEND: postgresql
+  C3NAV_DATABASE_NAME: ${C3NAV_DATABASE_NAME:-c3nav}
+  C3NAV_DATABASE_USER: ${C3NAV_DATABASE_USER:-postgres}
+  C3NAV_DATABASE_HOST: postgres
+  C3NAV_REDIS: "redis://redis:6379/0"
+  C3NAV_CELERY_BROKER: "redis://redis:6379/1"
+  C3NAV_CELERY_BACKEND: "redis://redis:6379/2"
+
+x-c3nav-develop: &c3nav-develop
+  watch:
+    - path: ../../src
+      action: sync+restart
+      target: /app
+      ignore:
+        - "*.pyc"
+        - /data
+        - c3nav.cfg
+
+
+services:
+  c3nav-core:
+    <<: [*restart-policy, *c3nav-defaults]
+    command: webstatic-async
+    environment:
+      <<: *c3nav-environment
+      C3NAV_AUTOMIGRATE: yes
+    healthcheck:
+      <<: *healthcheck_defaults
+      test: curl -f http://localhost:8000/
+    labels:
+      - traefik.enable=true
+      - traefik.http.services.c3nav-core.loadbalancer.server.port=8000
+      - traefik.http.routers.c3nav.rule=PathPrefix(`/`)
+      - traefik.http.routers.c3nav.entrypoints=websecure
+      - traefik.http.routers.c3nav.middlewares=add-hsts-header
+      - traefik.http.middlewares.add-hsts-header.headers.stsseconds=63072000
+      - traefik.http.middlewares.add-hsts-header.headers.stspreload=true
+      - traefik.http.middlewares.add-hsts-header.headers.stsincludesubdomains=true
+    expose:
+      - "8000"
+      #- "5000"
+    develop:
+      <<: *c3nav-develop
+
+  c3nav-workers:
+    <<: [*restart-policy, *c3nav-defaults]
+    command: worker
+    environment:
+      <<: *c3nav-environment
+      C3NAV_AUTOMIGRATE: no
+    healthcheck:
+      interval: 30s
+      timeout: 15s
+      retries: 2
+      start_period: 5s
+      test: entrypoint worker_healthcheck
+    develop:
+      <<: *c3nav-develop
+
+  postgres:
+    image: postgres:16
+    healthcheck:
+      <<: *healthcheck_defaults
+      test: pg_isready -U postgres
+    environment:
+      POSTGRES_DB: ${C3NAV_DATABASE_NAME:-c3nav}
+      POSTGRES_HOST_AUTH_METHOD: "trust"
+    volumes:
+      - "c3nav-postgres:/var/lib/postgresql/data"
+
+  redis:
+    image: redis:7.2
+    command: redis-server --save 60 1 --loglevel warning
+    healthcheck:
+      <<: *healthcheck_defaults
+      test: redis-cli ping
+    volumes:
+      - "c3nav-redis:/data"
+    ulimits:
+      nofile:
+        soft: 10032
+        hard: 10032
+
+  traefik:
+    image: traefik:${TRAEFIK_TAG:-v2.10}
+    # Enables the web UI and tells Traefik to listen to docker
+    command:
+      - --api.insecure=true
+      - --api.dashboard=true
+      - --providers.docker
+      - --providers.docker.exposedByDefault=false
+      - --providers.docker.allowEmptyServices=true
+      - --entrypoints.web.address=:8080/tcp
+      - --entrypoints.web.http.redirections.entryPoint.to=websecure
+      - --entrypoints.web.http.redirections.entryPoint.scheme=https
+      - --entrypoints.websecure.address=:8443/tcp
+      - --entrypoints.websecure.http.tls=true
+      - --entrypoints.traefik.address=:9000/tcp
+    ports:
+      # The HTTP port
+      - "8080:8080"
+      # The HTTPS port
+      - "8443:8443"
+      # The Web UI (enabled by --api.insecure=true)
+      - "127.0.0.1:9000:9000"
+    volumes:
+      # So that Traefik can listen to the Docker events
+      - type: bind
+        source: /run/docker.sock
+        target: /var/run/docker.sock
+
+volumes:
+  c3nav-postgres:
+    external: true
+  c3nav-redis:
+    external: true
