@@ -56,7 +56,7 @@ class LocatorPoint:
 class Locator:
     peers: list[LocatorPeer] = field(default_factory=list)
     peer_lookup: dict[BSSID, int] = field(default_factory=dict)
-    xyz: np.array = field(default_factory=np.empty((0,)))
+    xyz: np.array = field(default_factory=(lambda : np.empty((0,))))
     spaces: dict[int, "LocatorSpace"] = field(default_factory=dict)
 
     @classmethod
@@ -77,7 +77,7 @@ class Locator:
         self.xyz = np.array(tuple(peer.xyz for peer in self.peers))
 
         for space in Space.objects.prefetch_related('wifi_measurements'):
-            new_space = LocatorSpace(
+            new_space = LocatorSpace.create(
                 pk=space.pk,
                 points=tuple(
                     LocatorPoint(
