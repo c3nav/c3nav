@@ -7,6 +7,7 @@ from channels.security.websocket import AllowedHostsOriginValidator
 from django.core.asgi import get_asgi_application
 
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "c3nav.settings")
+os.environ.setdefault("C3NAV_CONN_MAX_AGE", "0")
 django_asgi = get_asgi_application()
 
 from c3nav.control.middleware import UserPermissionsChannelMiddleware

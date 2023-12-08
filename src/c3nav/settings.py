@@ -190,7 +190,9 @@ for key in ('NAME', 'USER', 'PASSWORD', 'HOST', 'PORT'):
         DATABASES['default'].setdefault(key, DATA_DIR / 'db.sqlite3' if _db_backend.endswith('sqlite3')
                                         else (f'c3nav_{INSTANCE_NAME}' if INSTANCE_NAME else 'c3nav'))
 
-DATABASES['default'].setdefault('CONN_MAX_AGE', (0 if _db_backend.endswith('sqlite3') else 120))
+DATABASES['default'].setdefault('CONN_MAX_AGE',
+                                config.getint('database', 'conn_max_age',
+                                              fallback=(0 if _db_backend.endswith('sqlite3') else 120)))
 DATABASES['default'].setdefault('CONN_HEALTH_CHECKS', not _db_backend.endswith('sqlite3'))
 
 DEFAULT_AUTO_FIELD = 'django.db.models.AutoField'
