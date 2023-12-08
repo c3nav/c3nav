@@ -300,4 +300,5 @@ def editor_etag_func(request, *args, **kwargs):
             AccessPermission.cache_key_for_request(request, with_update=False) + ':' + str(request.user.pk or 0)
             + ':' + str(int(request.user_permissions.can_access_base_mapdata))
             + ':' + ','.join(str(i) for i in request.user_space_accesses)
-            + ':' + str(int(request.user.is_superuser)))
+            + ':' + str(int(request.user.is_superuser))
+            + ':' + str(int(request.headers.get('x-requested-with') == 'XMLHttpRequest' or 'ajax' in request.GET)))
