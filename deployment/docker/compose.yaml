@@ -13,9 +13,6 @@ x-healthcheck_defaults: &healthcheck_defaults
   retries: 5
   start_period: 5s
 x-c3nav-defaults: &c3nav-defaults
-  build:
-    context: ../../
-    dockerfile: docker/Dockerfile
   image: ghcr.io/c3nav/c3nav:${C3NAV_TAG}
   depends_on:
     redis:
@@ -44,16 +41,6 @@ x-c3nav-environment: &c3nav-environment
   C3NAV_CELERY_BROKER: "redis://redis:6379/1"
   C3NAV_CELERY_BACKEND: "redis://redis:6379/2"
 
-x-c3nav-develop: &c3nav-develop
-  watch:
-    - path: ../../src
-      action: sync+restart
-      target: /app
-      ignore:
-        - "*.pyc"
-        - /data
-        - c3nav.cfg
-
 
 services:
   c3nav-core:
@@ -77,8 +64,6 @@ services:
     expose:
       - "8000"
       #- "5000"
-    develop:
-      <<: *c3nav-develop
 
   c3nav-workers:
     <<: [*restart-policy, *c3nav-defaults]
@@ -92,8 +77,6 @@ services:
       retries: 2
       start_period: 5s
       test: entrypoint worker_healthcheck
-    develop:
-      <<: *c3nav-develop
 
   postgres:
     image: postgres:16
