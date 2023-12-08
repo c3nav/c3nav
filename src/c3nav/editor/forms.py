@@ -13,7 +13,7 @@ from django.db.models import Q
 from django.forms import (BooleanField, CharField, ChoiceField, DecimalField, Form, ModelChoiceField, ModelForm,
                           MultipleChoiceField, Select, ValidationError)
 from django.forms.widgets import HiddenInput
-from django.utils.translation import gettext_lazy as _
+from django.utils.translation import gettext_lazy as _, get_language
 from shapely.geometry.geo import mapping
 
 from c3nav.editor.models import ChangeSet, ChangeSetUpdate
@@ -143,7 +143,9 @@ class EditorFormBase(I18nModelFormMixin, ModelForm):
             AccessRestriction = self.request.changeset.wrap_model('AccessRestriction')
 
             self.fields['access_restriction'].label_from_instance = lambda obj: obj.title
-            self.fields['access_restriction'].queryset = AccessRestriction.qs_for_request(self.request)
+            self.fields['access_restriction'].queryset = AccessRestriction.qs_for_request(self.request).order_by(
+                "titles__"+get_language(), "titles__en"
+            )
 
         if 'base_mapdata_accessible' in self.fields:
             if not request.user.is_superuser:
