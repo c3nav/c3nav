@@ -6,7 +6,7 @@
         constructor(base ) {
             this.base = base;
             this.auth_promise = fetch(this.base+'auth/session/', {
-                credentials: 'same-origin',
+                credentials: 'include',
                 method: 'GET',
             })
                 .then(res => res.json())
@@ -33,7 +33,7 @@
 
         get(path) {
             return fetch(this.make_url(path), {
-                credentials: 'same-origin',
+                credentials: 'include',
                 method: 'GET',
                 headers: {
                     'X-API-Key': this.key,
@@ -45,7 +45,7 @@
 
         async post(path, data) {
             return fetch(this.make_url(path), {
-                credentials: 'same-origin',
+                credentials: 'include',
                 method: 'POST',
                 headers: {
                     'X-API-Key': this.key,
