@@ -59,7 +59,7 @@ class MeshConsumer(AsyncWebsocketConsumer):
 
     async def connect(self):
         self.headers = dict(self.scope["headers"])
-        if not constant_time_compare(self.headers[b"X-Mesh-Secret"].strip(),
+        if not constant_time_compare(self.headers[b"x-mesh-secret"].strip(),
                                      settings.SECRET_MESH_KEY.encode()):
             raise DenyConnection
 
