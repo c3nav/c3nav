@@ -10,8 +10,8 @@ from django.core.cache import cache
 from django.core.exceptions import FieldDoesNotExist
 from django.core.serializers.json import DjangoJSONEncoder
 from django.db.models import Q
-from django.forms import (BooleanField, CharField, ChoiceField, DecimalField, Form, ModelChoiceField, ModelForm,
-                          MultipleChoiceField, Select, ValidationError)
+from django.forms import (BooleanField, CharField, ChoiceField, DecimalField, Form, JSONField, ModelChoiceField,
+                          ModelForm, MultipleChoiceField, Select, ValidationError)
 from django.forms.widgets import HiddenInput
 from django.utils.translation import gettext_lazy as _, get_language
 from shapely.geometry.geo import mapping
@@ -354,7 +354,7 @@ class GraphEditorActionForm(Form):
         self.fields['clicked_node'] = ModelChoiceField(graph_node_qs, widget=HiddenInput(), required=False)
 
         if allow_clicked_position:
-            self.fields['clicked_position'] = CharField(widget=HiddenInput(), required=False)
+            self.fields['clicked_position'] = JSONField(widget=HiddenInput(), required=False)
 
         Space = self.request.changeset.wrap_model('Space')
         space_qs = Space.objects.all()
