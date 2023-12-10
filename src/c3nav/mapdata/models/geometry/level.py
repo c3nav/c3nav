@@ -186,6 +186,9 @@ class AltitudeArea(LevelGeometryMixin, models.Model):
         default_related_name = 'altitudeareas'
         ordering = ('altitude', )
 
+    def __str__(self):
+        return f'<Altitudearea #{self.pk} // Level #{self.level_id}, Bounds: {self.geometry.bounds}>'
+
     def get_altitudes(self, points):
         points = np.asanyarray(points).reshape((-1, 2))
         if self.altitude2 is None:
