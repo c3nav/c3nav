@@ -63,6 +63,8 @@ with suppress(ImportError):
             dsn=SENTRY_DSN,
             integrations=[CeleryIntegration(), DjangoIntegration()],
             event_scrubber=EventScrubber(denylist=denylist),
+            enable_tracing=bool(config.getfloat('sentry', 'traces_sample_rate', fallback=0.0)),
+            traces_sample_rate=config.getfloat('sentry', 'traces_sample_rate', fallback=0.0),
         )
 
 # Build paths inside the project like this: BASE_DIR / 'something'
