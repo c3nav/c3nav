@@ -43,7 +43,7 @@
                 .then(res => res.json())
         }
 
-        async post(path, data) {
+        post(path, data) {
             return fetch(this.make_url(path), {
                 credentials: 'include',
                 method: 'POST',
