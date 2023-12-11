@@ -52,7 +52,6 @@ class LocationListFilters(BySearchableFilter, RemoveGeometryFilter):
 
 
 def _location_list(request, detailed: bool, filters: LocationListFilters):
-    # todo: cache, visibility, etc…
     if filters.searchable:
         locations = searchable_locations_for_request(request)
     else:
@@ -84,8 +83,6 @@ def location_list_full(request, filters: Query[LocationListFilters]):
 
 
 def _location_retrieve(request, location, detailed: bool, geometry: bool, show_redirects: bool):
-    # todo: cache, visibility, etc…
-
     if location is None:
         raise API404()
 
@@ -105,8 +102,6 @@ def _location_retrieve(request, location, detailed: bool, geometry: bool, show_r
 
 
 def _location_display(request, location):
-    # todo: cache, visibility, etc…
-
     if location is None:
         raise API404()
 
@@ -117,8 +112,6 @@ def _location_display(request, location):
         detailed_geometry=can_access_geometry(request, location),
         editor_url=can_access_editor(request)
     )
-    from pprint import pprint
-    pprint(result)
     return json.loads(json.dumps(result, cls=DjangoJSONEncoder))  # todo: wtf?? well we need to get rid of lazy strings
 
 
