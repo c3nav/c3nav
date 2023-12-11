@@ -476,6 +476,7 @@ def list_objects(request, model=None, level=None, space=None, explicit_edit=Fals
         with suppress(FieldDoesNotExist):
             model._meta.get_field('altitude')
             add_cols.append('altitude')
+            queryset = queryset.order_by('altitude')
 
         ctx.update({
             'levels': Level.objects.filter(Level.q_for_request(request), on_top_of__isnull=True),
@@ -500,10 +501,12 @@ def list_objects(request, model=None, level=None, space=None, explicit_edit=Fals
         with suppress(FieldDoesNotExist):
             model._meta.get_field('altitude')
             add_cols.append('altitude')
+            queryset = queryset.order_by('altitude')
 
         with suppress(FieldDoesNotExist):
             model._meta.get_field('groundaltitude')
             queryset = queryset.select_related('groundaltitude')
+            queryset = queryset.order_by('groundaltitude__altitude')
 
         ctx.update({
             'back_url': reverse('editor.index'),

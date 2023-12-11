@@ -138,7 +138,7 @@ class EditorFormBase(I18nModelFormMixin, ModelForm):
             self.fields['category'].label_from_instance = attrgetter('title')
 
         if 'groundaltitude' in self.fields:
-            self.fields['groundaltitude'].label_from_instance = attrgetter('title')
+            self.fields['groundaltitude'].label_from_instance = attrgetter('choice_label')
 
         if 'label_settings' in self.fields:
             self.fields['label_settings'].label_from_instance = attrgetter('title')

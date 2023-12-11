@@ -16,4 +16,8 @@ class GroundAltitude(models.Model):
 
     @property
     def title(self):
+        return self.name
+
+    @property
+    def choice_label(self):
         return f'{self.name} ({self.altitude}m)'
