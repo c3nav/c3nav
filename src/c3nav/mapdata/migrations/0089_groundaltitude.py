@@ -9,7 +9,7 @@ def forwards_func(apps, schema_editor):
     AltitudeMarker = apps.get_model('mapdata', 'AltitudeMarker')
     grouped = {}
     for marker in AltitudeMarker.objects.select_related('space'):
-        grouped.setdefault(marker.id, []).append(marker)
+        grouped.setdefault(marker.altitude, []).append(marker)
     for altitude, markers in grouped.items():
         altitude = GroundAltitude.objects.create(
             altitude=altitude,
