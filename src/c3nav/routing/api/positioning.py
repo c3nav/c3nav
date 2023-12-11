@@ -53,7 +53,7 @@ def get_position(request, parameters: LocateRequestSchema):
 @positioning_api_router.get('/locate-test/', summary="debug position",
                             description="outputs a location for debugging purposes",
                             response={200: PositioningResult, **auth_responses})
-def locate_test():
+def locate_test(request):
     from c3nav.mesh.messages import MeshMessageType
     from c3nav.mesh.models import MeshNode
     try:
