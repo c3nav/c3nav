@@ -41,7 +41,7 @@ class SerializableSchema(Schema):
     @classmethod
     def _run_root_validator(cls, values: Any, handler: ModelWrapValidatorHandler[Schema], info: ValidationInfo) -> Any:
         """ overwriting this, we need to call serialize to get the correct data """
-        if not isinstance(values, dict):
+        if hasattr(values, 'serialize') and callable(values.serialize):
             values = values.serialize()
         return handler(values)
 
