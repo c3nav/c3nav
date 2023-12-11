@@ -15,11 +15,11 @@ ENV DEBIAN_FRONTEND noninteractive
 RUN --mount=type=cache,target=/var/cache/apt,id=apt_$TARGETARCH --mount=type=tmpfs,target=/var/lib/apt/lists \
     rm /etc/apt/apt.conf.d/docker-clean && \
     apt-get update && apt-get install -y --no-install-recommends \
-    python3.11=3.11.4-1~23.04.1 \
+    python3.11=3.11.4-1~23.04.2 \
     # renovate: srcname=python3.11
-    libpython3.11=3.11.4-1~23.04.1 \
+    libpython3.11=3.11.4-1~23.04.2 \
     # renovate: srcname=python3.11
-    python3.11-venv=3.11.4-1~23.04.1 \
+    python3.11-venv=3.11.4-1~23.04.2 \
     # renovate: srcname=python-pip
     python3-pip=23.0.1+dfsg-1ubuntu0.2 \
     curl=7.88.1-8ubuntu2.4 \
@@ -34,7 +34,7 @@ RUN --mount=type=cache,target=/var/cache/apt,id=apt_$TARGETARCH --mount=type=tmp
     apt-get update && apt-get install -y --no-install-recommends \
     build-essential=12.9ubuntu3 \
     # renovate: srcname=python3.11
-    python3.11-dev=3.11.4-1~23.04.1 \
+    python3.11-dev=3.11.4-1~23.04.2 \
     libpcre3-dev=2:8.39-15
 
 
