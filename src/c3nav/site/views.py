@@ -25,6 +25,7 @@ from django.views.decorators.cache import cache_control, never_cache
 from django.views.decorators.clickjacking import xframe_options_exempt
 from django.views.decorators.http import etag
 
+from c3nav import __version__ as c3nav_version
 from c3nav.api.models import Secret
 from c3nav.control.forms import AccessPermissionForm, SignedPermissionDataError
 from c3nav.mapdata.grid import grid
@@ -362,6 +363,7 @@ def about_view(request):
         'patrons': settings.IMPRINT_PATRONS,
         'team': settings.IMPRINT_TEAM,
         'hosting': settings.IMPRINT_HOSTING,
+        'version': c3nav_version,
     })
 
 

@@ -13,6 +13,7 @@ from django.core.exceptions import ImproperlyConfigured
 from django.utils.crypto import get_random_string
 from django.utils.translation import gettext_lazy as _
 
+from c3nav import __version__ as c3nav_version
 from c3nav.utils.config import C3navConfigParser
 from c3nav.utils.environ import Env
 
@@ -61,6 +62,7 @@ with suppress(ImportError):
         denylist = DEFAULT_DENYLIST + sensitive_env_vars + sensitive_vars
         sentry_sdk.init(
             dsn=SENTRY_DSN,
+            release=c3nav_version,
             integrations=[CeleryIntegration(), DjangoIntegration()],
             event_scrubber=EventScrubber(denylist=denylist),
             enable_tracing=bool(config.getfloat('sentry', 'traces_sample_rate', fallback=0.0)),

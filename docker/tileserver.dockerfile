@@ -50,6 +50,7 @@ RUN --mount=type=cache,target=/pip-cache \
     pip install --cache-dir /pip-cache uwsgi
 
 FROM base as final
+ARG COMMIT
 RUN groupadd -r -g 500 c3nav && useradd -r -u 500 -g 500 -G www-data c3nav
 RUN mkdir /data && chown -R c3nav:c3nav /data
 VOLUME /data
@@ -61,6 +62,7 @@ ENV C3NAV_DEBUG="" \
     C3NAV_LOGLEVEL="INFO" \
     C3NAV_DATA_DIR="/data" \
     C3NAV_RELOAD_INTERVAL="60" \
+    C3NAV_VERSION="${COMMIT}"
     UWSGI_WORKERS="4"
 
 # The following environment variables need to be set to start the tileserver

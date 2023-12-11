@@ -71,6 +71,7 @@ RUN --mount=type=cache,target=/pip-cache \
     pip install --cache-dir /pip-cache uwsgi
 
 FROM base as final
+ARG COMMIT
 RUN groupadd -r -g 500 c3nav && useradd -r -u 500 -g 500 -G www-data c3nav
 RUN mkdir /data /etc/c3nav && chown -R c3nav:c3nav /data /etc/c3nav
 VOLUME /data
@@ -83,6 +84,7 @@ ENV C3NAV_DEBUG="" \
     C3NAV_LOGLEVEL="INFO" \
     C3NAV_DATA_DIR="/data" \
     C3NAV_AUTOMIGRATE="yes" \
+    C3NAV_VERSION="${COMMIT}" \
     MPLBACKEND="agg" \
     UWSGI_WORKERS="4" \
     PATH="/app/env/bin/:$PATH"

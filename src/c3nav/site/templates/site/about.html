@@ -19,6 +19,7 @@
     {% if patrons %}
         <p>{% blocktrans %}Development of the software was supported by the following patrons on <a href="https://patreon.com/c3nav" rel="external" target="_blank">Patreon</a>:{% endblocktrans %} {{ patrons }}</p>
     {% endif %}
+    <p>Version: {{ version }}</p>
 
     {% if address %}
         <h4>{% trans 'Responsible for this website:' %}</h4>
