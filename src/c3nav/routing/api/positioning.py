@@ -3,9 +3,9 @@ from typing import Annotated, Union
 from django.core.exceptions import ValidationError
 from ninja import Field as APIField
 from ninja import Router as APIRouter
-from ninja import Schema
 
 from c3nav.api.auth import auth_responses
+from c3nav.api.schema import BaseSchema
 from c3nav.mapdata.models.access import AccessPermission
 from c3nav.mapdata.schemas.models import CustomLocationSchema
 from c3nav.mapdata.utils.cache.stats import increment_cache_key
@@ -15,13 +15,13 @@ from c3nav.routing.schemas import BSSIDSchema, LocateRequestPeerSchema
 positioning_api_router = APIRouter(tags=["positioning"])
 
 
-class LocateRequestSchema(Schema):
+class LocateRequestSchema(BaseSchema):
     peers: list[LocateRequestPeerSchema] = APIField(
         title="list of visible/measured location beacons",
     )
 
 
-class PositioningResult(Schema):
+class PositioningResult(BaseSchema):
     location: Union[
         Annotated[CustomLocationSchema, APIField(title="location")],
         Annotated[None, APIField(title="null", description="position could not be determined")]

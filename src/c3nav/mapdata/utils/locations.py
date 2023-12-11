@@ -416,7 +416,7 @@ class CustomLocation:
 
     @cached_property
     def grid_square(self):
-        return grid.get_square_for_point(self.x, self.y) or ''
+        return grid.get_square_for_point(self.x, self.y)
 
     @cached_property
     def title_subtitle(self):

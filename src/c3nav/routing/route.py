@@ -240,9 +240,7 @@ class RouteItem:
         if self.new_level:
             result['level'] = describe_location(self.level, locations)
 
-        # convert all the string proxies to strings
-        # todo: better to let the api response serializer do this somehow?
-        result['descriptions'] = [(icon, str(instruction)) for (icon, instruction) in self.descriptions]
+        result['descriptions'] = [(icon, instruction) for (icon, instruction) in self.descriptions]
         return result
 
 

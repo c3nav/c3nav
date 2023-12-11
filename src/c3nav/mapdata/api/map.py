@@ -6,12 +6,12 @@ from django.shortcuts import redirect
 from django.utils import timezone
 from ninja import Query
 from ninja import Router as APIRouter
-from ninja import Schema
 from pydantic import Field as APIField
 from pydantic import PositiveInt
 
 from c3nav.api.auth import auth_permission_responses, auth_responses, validate_responses
 from c3nav.api.exceptions import API404, APIPermissionDenied, APIRequestValidationFailed
+from c3nav.api.schema import BaseSchema
 from c3nav.api.utils import NonEmptyStr
 from c3nav.mapdata.api.base import api_etag, api_stats, can_access_geometry
 from c3nav.mapdata.models import Source
@@ -39,7 +39,7 @@ def bounds(request):
     }
 
 
-class LocationEndpointParameters(Schema):
+class LocationEndpointParameters(BaseSchema):
     searchable: bool = APIField(
         False,
         title='only list searchable locations',
@@ -133,7 +133,7 @@ def _location_geometry(request, location):
     )
 
 
-class ShowRedirects(Schema):
+class ShowRedirects(BaseSchema):
     show_redirects: bool = APIField(
         False,
         name="show redirects",
@@ -268,7 +268,7 @@ def get_position_by_id(request, position_id: AnyPositionID):
     return location.serialize_position()
 
 
-class UpdatePositionSchema(Schema):
+class UpdatePositionSchema(BaseSchema):
     coordinates_id: Union[
         Annotated[CustomLocationID, APIField(title="set coordinates")],
         Annotated[None, APIField(title="unset coordinates")],

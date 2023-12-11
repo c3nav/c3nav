@@ -1,10 +1,9 @@
 from typing import Annotated, Literal, Optional, Union
 
-from ninja import Schema
 from pydantic import Field as APIField
 from pydantic import PositiveInt
 
-from c3nav.api.schema import AnyGeometrySchema, GeometrySchema, LineSchema
+from c3nav.api.schema import AnyGeometrySchema, GeometrySchema, LineSchema, BaseSchema
 from c3nav.api.utils import NonEmptyStr
 
 GeometryStylesSchema = Annotated[
@@ -47,7 +46,7 @@ EditorGeometriesCacheReferenceElem = Annotated[
 ]
 
 
-class EditorGeometriesPropertiesSchema(Schema):
+class EditorGeometriesPropertiesSchema(BaseSchema):
     id: EditorID
     type: NonEmptyStr
     space: Union[
@@ -63,20 +62,20 @@ class EditorGeometriesPropertiesSchema(Schema):
     opacity: Optional[float] = None   # todo: range
 
 
-class EditorGeometriesGraphEdgePropertiesSchema(Schema):
+class EditorGeometriesGraphEdgePropertiesSchema(BaseSchema):
     id: EditorID
     type: Literal["graphedge"]
     from_node: EditorID
     to_node: EditorID
 
 
-class EditorGeometriesGraphEdgeElemSchema(Schema):
+class EditorGeometriesGraphEdgeElemSchema(BaseSchema):
     type: Literal["Feature"]
     properties: EditorGeometriesGraphEdgePropertiesSchema
     geometry: LineSchema
 
 
-class EditorGeometriesGeometryElemSchema(Schema):
+class EditorGeometriesGeometryElemSchema(BaseSchema):
     type: Literal["Feature"]
     geometry: AnyGeometrySchema = APIField(description="geometry, potentially modified for displaying")
     original_geometry: Optional[GeometrySchema] = APIField(

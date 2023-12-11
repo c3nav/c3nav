@@ -125,7 +125,7 @@ def get_view_as_api(request, path: str):
     resolved = resolve_editor_path_api(request, path)
 
     if not resolved:
-        raise API404(str(_('No matching editor view endpoint found.')))
+        raise API404(_('No matching editor view endpoint found.'))
 
     if not getattr(resolved.func, 'api_hybrid', False):
         raise API404(_('Matching editor view point does not provide an API.'))

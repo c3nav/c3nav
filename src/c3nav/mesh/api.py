@@ -11,6 +11,7 @@ from pydantic import PositiveInt, field_validator
 
 from c3nav.api.auth import APIKeyAuth, auth_permission_responses, auth_responses, validate_responses
 from c3nav.api.exceptions import API404, APIConflict, APIRequestValidationFailed
+from c3nav.api.schema import BaseSchema
 from c3nav.mesh.dataformats import BoardType, ChipType, FirmwareImage
 from c3nav.mesh.messages import MeshMessageType
 from c3nav.mesh.models import FirmwareBuild, FirmwareVersion, NodeMessage
@@ -18,7 +19,7 @@ from c3nav.mesh.models import FirmwareBuild, FirmwareVersion, NodeMessage
 mesh_api_router = APIRouter(tags=["mesh"], auth=APIKeyAuth(permissions={"mesh_control"}))
 
 
-class FirmwareBuildSchema(Schema):
+class FirmwareBuildSchema(BaseSchema):
     """
     A build belonging to a firmware version.
     """
@@ -53,7 +54,7 @@ class FirmwareBuildSchema(Schema):
         pass
 
 
-class FirmwareSchema(Schema):
+class FirmwareSchema(BaseSchema):
     """
     A firmware version, usually with multiple build variants.
     """
@@ -128,7 +129,7 @@ def firmware_project_description(request, firmware_id: int, variant: str):
         raise API404("Firmware or firmware build not found")
 
 
-class UploadFirmwareBuildSchema(Schema):
+class UploadFirmwareBuildSchema(BaseSchema):
     """
     A firmware build to upload, with at least one build variant
     """
@@ -138,7 +139,7 @@ class UploadFirmwareBuildSchema(Schema):
     uploaded_filename: str = APIField(..., example="firmware.bin")
 
 
-class UploadFirmwareSchema(Schema):
+class UploadFirmwareSchema(BaseSchema):
     """
     A firmware version to upload, with at least one build variant
     """
@@ -205,14 +206,14 @@ def firmware_upload(request, firmware_data: UploadFirmwareSchema, binary_files: 
 NodeAddress = Annotated[str, APIField(pattern=r"^[a-z0-9]{2}(:[a-z0-9]{2}){5}$")]
 
 
-class MessagesFilter(Schema):
+class MessagesFilter(BaseSchema):
     src_node: Optional[NodeAddress] = None
     msg_type: Optional[MeshMessageType] = None
     time_from: Optional[datetime] = None
     time_until: Optional[datetime] = None
 
 
-class NodeMessageSchema(Schema):
+class NodeMessageSchema(BaseSchema):
     id: int
     src_node: NodeAddress
     message_type: MeshMessageType

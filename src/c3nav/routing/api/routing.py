@@ -11,6 +11,7 @@ from pydantic import PositiveInt
 
 from c3nav.api.auth import APIKeyAuth, auth_responses, validate_responses
 from c3nav.api.exceptions import APIRequestValidationFailed
+from c3nav.api.schema import BaseSchema
 from c3nav.api.utils import NonEmptyStr
 from c3nav.mapdata.api.base import api_stats_clean_location_value
 from c3nav.mapdata.models.access import AccessPermission
@@ -53,7 +54,7 @@ class AltitudeWayTypeChoice(StrEnum):
     AVOID = "avoid"
 
 
-class UpdateRouteOptionsSchema(Schema):
+class UpdateRouteOptionsSchema(BaseSchema):
     # todo: default is wrong, this should be optional
     mode: Union[
         Annotated[RouteMode, APIField(title="route mode", description="routing mode to use")],
@@ -81,7 +82,7 @@ class UpdateRouteOptionsSchema(Schema):
     )
 
 
-class RouteOptionsSchema(Schema):
+class RouteOptionsSchema(BaseSchema):
     # todo: default is wrong, this should be optional
     mode: RouteMode = APIField(name="routing mode")
     walk_speed: WalkSpeed = APIField(name="walk speed")
@@ -96,7 +97,7 @@ class RouteOptionsSchema(Schema):
     )
 
 
-class RouteParametersSchema(Schema):
+class RouteParametersSchema(BaseSchema):
     origin: AnyLocationID
     destination: AnyLocationID
     options_override: Optional[UpdateRouteOptionsSchema] = APIField(
@@ -105,7 +106,7 @@ class RouteParametersSchema(Schema):
     )
 
 
-class RouteItemSchema(Schema):
+class RouteItemSchema(BaseSchema):
     id: PositiveInt
     coordinates: Coordinates3D
     waytype: Union[
@@ -132,7 +133,7 @@ class RouteItemSchema(Schema):
     ]]
 
 
-class RouteSchema(Schema):
+class RouteSchema(BaseSchema):
     origin: dict  # todo: improve this
     destination: dict  # todo: improve this
     distance: float
@@ -144,7 +145,7 @@ class RouteSchema(Schema):
     items: list[RouteItemSchema]
 
 
-class RouteResponse(Schema):
+class RouteResponse(BaseSchema):
     request: RouteParametersSchema
     options: RouteOptionsSchema
     report_issue_url: NonEmptyStr
@@ -154,7 +155,7 @@ class RouteResponse(Schema):
         title = "route found"
 
 
-class NoRouteResponse(Schema):
+class NoRouteResponse(BaseSchema):
     request: RouteParametersSchema
     options: RouteOptionsSchema
     error: NonEmptyStr = APIField(
@@ -197,19 +198,19 @@ def get_route(request, parameters: RouteParametersSchema):
         return NoRouteResponse(
             request=parameters,
             options=_new_serialize_route_options(options),
-            error=str(_('Not yet routable, try again shortly.')),
+            error=_('Not yet routable, try again shortly.'),
         )
     except LocationUnreachable:
         return NoRouteResponse(
             request=parameters,
             options=_new_serialize_route_options(options),
-            error=str(_('Unreachable location.'))
+            error=_('Unreachable location.')
         )
     except NoRouteFound:
         return NoRouteResponse(
             request=parameters,
             options=_new_serialize_route_options(options),
-            error=str(_('No route found.'))
+            error=_('No route found.')
         )
 
     origin_values = api_stats_clean_location_value(form.cleaned_data['origin'].pk)
@@ -282,12 +283,12 @@ def set_route_options(request, new_options: UpdateRouteOptionsSchema):
     return _new_serialize_route_options(options)
 
 
-class RouteOptionsFieldChoices(Schema):
+class RouteOptionsFieldChoices(BaseSchema):
     name: NonEmptyStr
     title: NonEmptyStr
 
 
-class RouteOptionsField(Schema):
+class RouteOptionsField(BaseSchema):
     name: NonEmptyStr
     type: NonEmptyStr
     label: NonEmptyStr

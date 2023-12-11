@@ -1,3 +1,5 @@
+from django.utils.functional import Promise
+
 from c3nav.api.schema import APIErrorSchema
 
 
@@ -7,7 +9,10 @@ class CustomAPIException(Exception):
 
     def __init__(self, detail=None):
         if detail is not None:
-            self.detail = detail
+            if isinstance(detail, Promise):
+                self.detail = str(detail)
+            else:
+                self.detail = detail
 
     def get_response(self, api, request):
         return api.create_response(request, {"detail": self.detail}, status=self.status_code)

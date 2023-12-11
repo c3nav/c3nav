@@ -1,15 +1,15 @@
 from typing import Annotated, Union
 
-from ninja import Schema
 from pydantic import Field as APIField
 from pydantic import NegativeInt, PositiveInt
 
+from c3nav.api.schema import BaseSchema
 from c3nav.api.utils import NonEmptyStr
 
 BSSIDSchema = Annotated[str, APIField(pattern=r"^[a-z0-9]{2}(:[a-z0-9]{2}){5}$", title="BSSID")]
 
 
-class LocateRequestPeerSchema(Schema):
+class LocateRequestPeerSchema(BaseSchema):
     bssid: BSSIDSchema = APIField(
         title="BSSID",
         description="BSSID of the peer",

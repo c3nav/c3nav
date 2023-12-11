@@ -88,7 +88,7 @@ class LocationSlug(SerializableMixin, models.Model):
 
     def details_display(self, **kwargs):
         result = super().details_display(**kwargs)
-        result['display'].insert(2, (_('Slug'), str(self.get_slug())))
+        result['display'].insert(2, (_('Slug'), self.get_slug()))
         return result
 
     @cached_property
@@ -120,7 +120,7 @@ class Location(LocationSlug, AccessRestrictionMixin, TitledMixin, models.Model):
 
     def _serialize(self, search=False, **kwargs):
         result = super()._serialize(**kwargs)
-        result['subtitle'] = str(self.subtitle)
+        result['subtitle'] = self.subtitle
         result['icon'] = self.get_icon()
         result['can_search'] = self.can_search
         result['can_describe'] = self.can_search
@@ -202,7 +202,7 @@ class SpecificLocation(Location, models.Model):
             result['label_settings'] = label_settings.serialize(detailed=False)
         if self.label_overrides:
             # todo: what if only one language is set?
-            result['label_override'] = str(self.label_override)
+            result['label_override'] = self.label_override
         return result
 
     def get_label_settings(self):
@@ -300,9 +300,9 @@ class LocationGroupCategory(SerializableMixin, models.Model):
             result['titles'] = self.titles
             result['titles_plural'] = self.titles_plural
             result['help_texts'] = self.help_texts
-        result['title'] = str(self.title)
-        result['title_plural'] = str(self.title_plural)
-        result['help_text'] = str(self.help_text)
+        result['title'] = self.title
+        result['title_plural'] = self.title_plural
+        result['help_text'] = self.help_text
         result['allow_levels'] = self.allow_levels
         result['allow_spaces'] = self.allow_spaces
         result['allow_areas'] = self.allow_areas

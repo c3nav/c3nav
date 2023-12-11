@@ -4,10 +4,10 @@ from urllib.parse import urlparse
 from django.http import HttpResponse
 from ninja import Field as APIField
 from ninja import Router as APIRouter
-from ninja import Schema
 from pydantic import PositiveInt
 
 from c3nav.api.auth import auth_responses
+from c3nav.api.schema import BaseSchema
 from c3nav.api.utils import NonEmptyStr
 from c3nav.mapdata.models import MapUpdate
 from c3nav.mapdata.utils.cache.stats import increment_cache_key
@@ -17,7 +17,7 @@ from c3nav.mapdata.views import set_tile_access_cookie
 updates_api_router = APIRouter(tags=["updates"])
 
 
-class UserDataSchema(Schema):
+class UserDataSchema(BaseSchema):
     logged_in: bool = APIField(
         title="logged in",
         description="whether a user is logged in",
@@ -52,7 +52,7 @@ class UserDataSchema(Schema):
     )
 
 
-class FetchUpdatesResponseSchema(Schema):
+class FetchUpdatesResponseSchema(BaseSchema):
     last_site_update: Optional[PositiveInt] = APIField(
         title="ID of the last site update",
         description="If this ID increments, it means a major code change may have occurred. "

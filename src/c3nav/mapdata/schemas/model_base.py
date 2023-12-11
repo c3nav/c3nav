@@ -1,13 +1,11 @@
 import re
-from typing import Annotated, Any, Optional, Union
+from typing import Annotated, Optional, Union
 
 from ninja import Schema
 from pydantic import Field as APIField
-from pydantic import PositiveInt, model_validator
-from pydantic.functional_validators import ModelWrapValidatorHandler
-from pydantic_core.core_schema import ValidationInfo
+from pydantic import PositiveInt
 
-from c3nav.api.schema import LineStringSchema, PointSchema, PolygonSchema
+from c3nav.api.schema import LineStringSchema, PointSchema, PolygonSchema, BaseSchema
 from c3nav.api.utils import NonEmptyStr
 
 
@@ -36,24 +34,14 @@ BoundsSchema = tuple[
 ]
 
 
-class SerializableSchema(Schema):
-    @model_validator(mode="wrap")  # noqa
-    @classmethod
-    def _run_root_validator(cls, values: Any, handler: ModelWrapValidatorHandler[Schema], info: ValidationInfo) -> Any:
-        """ overwriting this, we need to call serialize to get the correct data """
-        if hasattr(values, 'serialize') and callable(values.serialize):
-            values = values.serialize()
-        return handler(values)
-
-
-class DjangoModelSchema(SerializableSchema):
+class DjangoModelSchema(BaseSchema):
     id: PositiveInt = APIField(
         title="ID",
         example=1,
     )
 
 
-class LocationSlugSchema(Schema):
+class LocationSlugSchema(BaseSchema):
     slug: NonEmptyStr = APIField(
         title="location slug",
         description="a slug is a unique way to refer to a location. while locations have a shared ID space, slugs"
@@ -65,7 +53,7 @@ class LocationSlugSchema(Schema):
     )
 
 
-class WithAccessRestrictionSchema(Schema):
+class WithAccessRestrictionSchema(BaseSchema):
     access_restriction: Union[
         Annotated[PositiveInt, APIField(title="access restriction ID")],
         Annotated[None, APIField(title="null", description="no access restriction")],
@@ -76,7 +64,7 @@ class WithAccessRestrictionSchema(Schema):
     )
 
 
-class TitledSchema(Schema):
+class TitledSchema(BaseSchema):
     titles: dict[NonEmptyStr, NonEmptyStr] = APIField(
         title="title (all languages)",
         description="title in all available languages. property names are the ISO-language code. "
@@ -213,7 +201,7 @@ class SpecificLocationSchema(LocationSchema):
     )
 
 
-class WithPolygonGeometrySchema(Schema):
+class WithPolygonGeometrySchema(BaseSchema):
     geometry: Union[
         PolygonSchema,
         Annotated[None, APIField(title="null", description="geometry not available of excluded from endpoint")]
@@ -224,7 +212,7 @@ class WithPolygonGeometrySchema(Schema):
     )
 
 
-class WithLineStringGeometrySchema(Schema):
+class WithLineStringGeometrySchema(BaseSchema):
     geometry: Union[
         LineStringSchema,
         Annotated[None, APIField(title="null", description="geometry not available of excluded from endpoint")]
@@ -235,7 +223,7 @@ class WithLineStringGeometrySchema(Schema):
     )
 
 
-class WithPointGeometrySchema(Schema):
+class WithPointGeometrySchema(BaseSchema):
     geometry: Union[
         PointSchema,
         Annotated[None, APIField(title="null", description="geometry not available of excluded from endpoint")]
@@ -246,7 +234,7 @@ class WithPointGeometrySchema(Schema):
     )
 
 
-class WithLevelSchema(SerializableSchema):
+class WithLevelSchema(BaseSchema):
     level: PositiveInt = APIField(
         title="level",
         description="level id this object belongs to.",
@@ -254,7 +242,7 @@ class WithLevelSchema(SerializableSchema):
     )
 
 
-class WithSpaceSchema(SerializableSchema):
+class WithSpaceSchema(BaseSchema):
     space: PositiveInt = APIField(
         title="space",
         description="space id this object belongs to.",
@@ -262,7 +250,7 @@ class WithSpaceSchema(SerializableSchema):
     )
 
 
-class SimpleGeometryPointSchema(Schema):
+class SimpleGeometryPointSchema(BaseSchema):
     point: tuple[
         Annotated[PositiveInt, APIField(title="level ID")],
         Annotated[float, APIField(title="x coordinate")],
@@ -281,7 +269,7 @@ class SimpleGeometryPointAndBoundsSchema(SimpleGeometryPointSchema):
     )
 
 
-class SimpleGeometryLocationsSchema(Schema):
+class SimpleGeometryLocationsSchema(BaseSchema):
     locations: list[PositiveInt] = APIField(  # todo: this should be a set… but json serialization?
         description="IDs of all locations that belong to this grouo",
         example=(1, 2, 3),

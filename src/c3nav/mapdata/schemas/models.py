@@ -5,10 +5,10 @@ from pydantic import Discriminator
 from pydantic import Field as APIField
 from pydantic import NonNegativeFloat, PositiveFloat, PositiveInt
 
-from c3nav.api.schema import GeometrySchema, PointSchema
+from c3nav.api.schema import GeometrySchema, PointSchema, BaseSchema
 from c3nav.api.utils import NonEmptyStr
 from c3nav.mapdata.schemas.model_base import (AnyLocationID, AnyPositionID, CustomLocationID, DjangoModelSchema,
-                                              LabelSettingsSchema, LocationSchema, PositionID, SerializableSchema,
+                                              LabelSettingsSchema, LocationSchema, PositionID,
                                               SimpleGeometryLocationsSchema, SimpleGeometryPointAndBoundsSchema,
                                               SimpleGeometryPointSchema, SpecificLocationSchema, TitledSchema,
                                               WithAccessRestrictionSchema, WithLevelSchema,
@@ -357,7 +357,7 @@ class AccessRestrictionGroupSchema(WithAccessRestrictionSchema, DjangoModelSchem
     pass
 
 
-class CustomLocationSchema(SerializableSchema):
+class CustomLocationSchema(BaseSchema):
     """
     A custom location represents coordinates that have been put in or calculated.
 
@@ -439,7 +439,7 @@ class CustomLocationSchema(SerializableSchema):
     )
 
 
-class TrackablePositionSchema(Schema):
+class TrackablePositionSchema(BaseSchema):
     """
     A trackable position. Its position can be set or reset.
     """
@@ -468,7 +468,7 @@ class TrackablePositionSchema(Schema):
     )
 
 
-class LocationTypeSchema(Schema):
+class LocationTypeSchema(BaseSchema):
     locationtype: str = APIField(title="location type",
                                  description="indicates what kind of location is included. "
                                              "different location types have different fields.")
@@ -544,7 +544,7 @@ class TrackablePositionLocationSchema(TrackablePositionSchema, LocationTypeSchem
     locationtype: Literal["position"] = LocationTypeAPIField()
 
 
-class SlimLocationMixin(Schema):
+class SlimLocationMixin(BaseSchema):
     level: ClassVar[None]
     space: ClassVar[None]
     titles: ClassVar[None]
@@ -662,7 +662,7 @@ all_location_definitions = listable_location_definitions + "\n" + schema_definit
 )
 
 
-class DisplayLink(Schema):
+class DisplayLink(BaseSchema):
     """
     A link for the location display
     """
@@ -672,7 +672,7 @@ class DisplayLink(Schema):
     can_search: bool
 
 
-class LocationDisplay(SerializableSchema):
+class LocationDisplay(BaseSchema):
     id: AnyLocationID = APIField(
         description="a numeric ID for a map location or a string ID for generated locations",
         example=1,
@@ -749,7 +749,7 @@ class LocationDisplay(SerializableSchema):
     )
 
 
-class PositionStatusSchema(Schema):
+class PositionStatusSchema(BaseSchema):
     id: AnyPositionID = APIField(
         description="the ID of the dynamic position that has been queries",
     )
@@ -758,7 +758,7 @@ class PositionStatusSchema(Schema):
     )
 
 
-class PositionAvailabilitySchema(Schema):
+class PositionAvailabilitySchema(BaseSchema):
     available: str
 
 

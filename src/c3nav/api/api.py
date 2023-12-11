@@ -1,16 +1,16 @@
 from django.conf import settings
 from ninja import Field as APIField
 from ninja import Router as APIRouter
-from ninja import Schema
 
 from c3nav.api.auth import APIKeyType, auth_responses
+from c3nav.api.schema import BaseSchema
 from c3nav.api.utils import NonEmptyStr
 from c3nav.control.models import UserPermissions
 
 auth_api_router = APIRouter(tags=["auth"])
 
 
-class AuthStatusSchema(Schema):
+class AuthStatusSchema(BaseSchema):
     """
     Current auth state and permissions
     """
@@ -44,7 +44,7 @@ def get_status(request):
     )
 
 
-class APIKeySchema(Schema):
+class APIKeySchema(BaseSchema):
     key: NonEmptyStr = APIField(
         title="API key",
         description="API secret to be directly used with `X-API-Key` HTTP header."

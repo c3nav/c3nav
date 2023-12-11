@@ -1,14 +1,13 @@
 from typing import Annotated, Union
 
-from ninja import Schema
 from pydantic import Field as APIField
 from pydantic import PositiveInt
 
-from c3nav.api.schema import GeometrySchema
+from c3nav.api.schema import GeometrySchema, BaseSchema
 from c3nav.mapdata.schemas.model_base import AnyLocationID, BoundsSchema
 
 
-class WithBoundsSchema(Schema):
+class WithBoundsSchema(BaseSchema):
     """
     Describing a bounding box
     """
@@ -18,7 +17,7 @@ class WithBoundsSchema(Schema):
     )
 
 
-class LocationGeometry(Schema):
+class LocationGeometry(BaseSchema):
     id: AnyLocationID = APIField(
         description="ID of the location that the geometry is being queried for",
     )

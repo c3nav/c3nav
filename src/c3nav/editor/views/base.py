@@ -187,7 +187,7 @@ class APIHybridFormTemplateResponse(APIHybridResponse):
     def get_api_response(self, request):
         result = {}
         if self.error:
-            result['error'] = str(self.error.message)
+            result['error'] = self.error.message
             self.status_code = self.error.status_code
         if request.method == 'POST':
             if not self.form.is_valid():

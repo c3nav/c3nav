@@ -2,10 +2,10 @@ from typing import Literal, Optional, Type
 
 from django.core.cache import cache
 from django.db.models import Model, QuerySet
-from ninja import Schema
 from pydantic import Field as APIField
 
 from c3nav.api.exceptions import APIRequestValidationFailed
+from c3nav.api.schema import BaseSchema
 from c3nav.mapdata.models import Level, LocationGroup, LocationGroupCategory, MapUpdate, Space
 from c3nav.mapdata.models.access import AccessPermission
 
@@ -38,7 +38,7 @@ def assert_valid_value(request, model: Type[Model], key: str, values: set):
         raise APIRequestValidationFailed("Unknown %s: %r" % (model.__name__, remainder))
 
 
-class FilterSchema(Schema):
+class FilterSchema(BaseSchema):
     def filter_qs(self, qs: QuerySet) -> QuerySet:
         return qs
 

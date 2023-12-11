@@ -1,13 +1,44 @@
+from types import NoneType
 from typing import Annotated, Any, Literal, Union
 
+from django.utils.functional import Promise
 from ninja import Schema
-from pydantic import Discriminator
+from pydantic import Discriminator, model_validator
 from pydantic import Field as APIField
+from pydantic.functional_validators import ModelWrapValidatorHandler
+from pydantic_core.core_schema import ValidationInfo
 
 from c3nav.api.utils import NonEmptyStr
 
 
-class APIErrorSchema(Schema):
+class BaseSchema(Schema):
+    @model_validator(mode="wrap")  # noqa
+    @classmethod
+    def _run_root_validator(cls, values: Any, handler: ModelWrapValidatorHandler[Schema], info: ValidationInfo) -> Any:
+        """ overwriting this, we need to call serialize to get the correct data """
+        return handler(cls.convert(values))
+
+    @classmethod
+    def convert(cls, values: Any):
+        if isinstance(values, Schema):
+            return values
+        if isinstance(values, (str, bool, int, float, complex, NoneType)):
+            return values
+        if isinstance(values, dict):
+            return {
+                key: cls.convert(val)
+                for key, val in values.items()
+            }
+        if isinstance(values, (list, tuple, set, frozenset)):
+            return type(values)(cls.convert(val) for val in values)
+        if isinstance(values, Promise):
+            return str(values)
+        if hasattr(values, 'serialize') and callable(values.serialize):
+            return values.serialize()
+        return values
+
+
+class APIErrorSchema(BaseSchema):
     """
     An error has occured with this request
     """
@@ -16,7 +47,7 @@ class APIErrorSchema(Schema):
     )
 
 
-class PolygonSchema(Schema):
+class PolygonSchema(BaseSchema):
     """
     A GeoJSON Polygon
     """
@@ -29,7 +60,7 @@ class PolygonSchema(Schema):
         title = "GeoJSON Polygon"
 
 
-class LineStringSchema(Schema):
+class LineStringSchema(BaseSchema):
     """
     A GeoJSON LineString
     """
@@ -42,7 +73,7 @@ class LineStringSchema(Schema):
         title = "GeoJSON LineString"
 
 
-class LineSchema(Schema):
+class LineSchema(BaseSchema):
     """
     A GeoJSON LineString with only two points
     """
@@ -55,7 +86,7 @@ class LineSchema(Schema):
         title = "GeoJSON LineString (only two points)"
 
 
-class PointSchema(Schema):
+class PointSchema(BaseSchema):
     """
     A GeoJSON Point
     """
@@ -77,7 +108,7 @@ GeometrySchema = Annotated[
 ]
 
 
-class AnyGeometrySchema(Schema):
+class AnyGeometrySchema(BaseSchema):
     """
     A GeoJSON Geometry
     """
