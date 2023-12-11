@@ -13,7 +13,8 @@ from django.db.models import Q
 from django.forms import (BooleanField, CharField, ChoiceField, DecimalField, Form, JSONField, ModelChoiceField,
                           ModelForm, MultipleChoiceField, Select, ValidationError)
 from django.forms.widgets import HiddenInput
-from django.utils.translation import gettext_lazy as _, get_language
+from django.utils.translation import get_language
+from django.utils.translation import gettext_lazy as _
 from shapely.geometry.geo import mapping
 
 from c3nav.editor.models import ChangeSet, ChangeSetUpdate

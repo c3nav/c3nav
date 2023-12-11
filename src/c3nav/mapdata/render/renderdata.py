@@ -8,7 +8,7 @@ from typing import Optional
 import numpy as np
 from django.conf import settings
 from scipy.interpolate import NearestNDInterpolator
-from shapely import prepared, Geometry, MultiPolygon
+from shapely import Geometry, MultiPolygon, prepared
 from shapely.geometry import GeometryCollection
 from shapely.ops import unary_union
 from shapely.prepared import PreparedGeometry

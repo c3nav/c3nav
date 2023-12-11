@@ -4,7 +4,7 @@ from collections import namedtuple
 from io import BytesIO
 from pathlib import Path
 from tarfile import TarFile, TarInfo
-from typing import BinaryIO, Self, Optional
+from typing import BinaryIO, Optional, Self
 
 from pyzstd import CParameter, ZstdError, ZstdFile
 
