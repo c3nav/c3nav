@@ -99,8 +99,8 @@ class MapRenderer:
                 geometry = altitudearea.geometry.difference(crop_areas)
                 if not_full_levels:
                     geometry = geometry.filter(bottom=False)
-                engine.add_geometry(geometry, altitude=altitudearea.altitude, fill=FillAttribs(RENDER_COLOR_GROUND_FILL),
-                                    category='ground', item=i)
+                engine.add_geometry(geometry, altitude=altitudearea.altitude,
+                                    fill=FillAttribs(RENDER_COLOR_GROUND_FILL), category='ground', item=i)
 
                 j = 0
                 for (order, color), areas in altitudearea.colors.items():

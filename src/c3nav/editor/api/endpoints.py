@@ -116,7 +116,7 @@ def resolve_editor_path_api(request, path):
                        response={200: dict, **API404.dict(), **auth_permission_responses},
                        openapi_extra={"security": [{"APIKeyAuth": ["editor_access"]}]})
 @api_etag()  # todo: correct?
-def view_as_api(request, path: str):
+def get_view_as_api(request, path: str):
     """
     get editor views rendered as JSON instead of HTML.
     `path` is the path after /editor/.
@@ -138,7 +138,7 @@ def view_as_api(request, path: str):
                         response={200: dict, **API404.dict(), **auth_permission_responses},
                         openapi_extra={"security": [{"APIKeyAuth": ["editor_access", "write"]}]})
 @api_etag()  # todo: correct?
-def view_as_api(request, path: str):
+def post_view_as_api(request, path: str):
     """
     get editor views rendered as JSON instead of HTML.
     `path` is the path after /editor/.

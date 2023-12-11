@@ -12,7 +12,7 @@ def get_api_post_data(request):
         try:
             data = request.json_body
         except AttributeError:
-            pass # todo fix this raise ParseError('Invalid JSON.')
+            pass  # todo fix this raise ParseError('Invalid JSON.')
         return data
     return request.POST
 

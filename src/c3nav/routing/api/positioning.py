@@ -37,7 +37,8 @@ class PositioningResult(Schema):
                              response={200: PositioningResult, **auth_responses})
 def get_position(request, parameters: LocateRequestSchema):
     try:
-        location = Locator.load().locate(parameters.dict()["peers"], permissions=AccessPermission.get_for_request(request))
+        location = Locator.load().locate(parameters.dict()["peers"],
+                                         permissions=AccessPermission.get_for_request(request))
         if location is not None:
             # todo: this will overload us probably, group these
             increment_cache_key('apistats__locate__%s' % location.pk)

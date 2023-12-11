@@ -108,7 +108,7 @@ class CachePackage:
         return cls(bounds, levels)
 
     @classmethod
-    def open(cls, package:Optional[str | os.PathLike] = None) -> Self:
+    def open(cls, package: Optional[str | os.PathLike] = None) -> Self:
         if package is None:
             from django.conf import settings
             package = settings.CACHE_ROOT / 'package.tar'

@@ -16,7 +16,7 @@ def schema_description(schema):
 
 
 def schema_definition(schema):
-    return ("- **"+re.sub(r"([a-z])([A-Z])", r"\1 \2", schema.__name__.removesuffix("Schema")) +"**: " +
+    return ("- **"+re.sub(r"([a-z])([A-Z])", r"\1 \2", schema.__name__.removesuffix("Schema")) + "**: " +
             schema_description(schema).split("\n")[0].strip())
 
 
@@ -163,7 +163,7 @@ class SpecificLocationSchema(LocationSchema):
             Annotated[list[PositiveInt], APIField(
                 title="array of location IDs",
                 description="for categories that have `single` set to `false`. can be an empty array.",
-                example=[1,4,5],
+                example=[1, 4, 5],
             )],
             Annotated[PositiveInt, APIField(
                 title="one location ID",

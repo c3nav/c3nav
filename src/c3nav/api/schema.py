@@ -76,6 +76,7 @@ GeometrySchema = Annotated[
     Discriminator("type"),
 ]
 
+
 class AnyGeometrySchema(Schema):
     """
     A GeoJSON Geometry

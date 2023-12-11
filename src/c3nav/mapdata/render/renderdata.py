@@ -101,7 +101,8 @@ class LevelRenderData:
             if coords:
                 last_interpolator = NearestNDInterpolator(np.vstack(coords), np.vstack(values))
             else:
-                last_interpolator = NearestNDInterpolator(np.array([[0, 0]]), np.array([float(render_level.base_altitude)]))
+                last_interpolator = NearestNDInterpolator(np.array([[0, 0]]),
+                                                          np.array([float(render_level.base_altitude)]))
 
         """
         second pass, forward to create the LevelRenderData for each level

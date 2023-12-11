@@ -48,7 +48,7 @@ We provide two API documentation viewers:
 * [Swagger](/api/v2/?swagger): less good, but has a built-in API client
 
 We recommend reading the documentation using Redoc, and either using the Code examples provided next to each request,
-or switching to swagger if you want an in-browser API client. 
+or switching to swagger if you want an in-browser API client.
 
 
 """.strip()

@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 from itertools import chain
-from typing import Sequence
+from typing import TYPE_CHECKING, Sequence
 
 from django.db.models import Prefetch, Q
 from shapely import prepared
@@ -53,6 +53,10 @@ def _get_geometries_for_one_level(level):
 
     results.extend(sorted(spaces.values(), key=space_sorting_func))
     return results
+
+
+if TYPE_CHECKING:
+    from c3nav.mapdata.models import Level
 
 
 @dataclass(slots=True)
@@ -270,7 +274,7 @@ def get_space_geometries_result(request, space_id: int, update_cache_key: str, u
         graph_edges = request.changeset.wrap_model('GraphEdge').objects.all()
         space_graphnodes_ids = tuple(node.pk for node in space_graph_nodes)
         graph_edges = graph_edges.filter(Q(from_node__pk__in=space_graphnodes_ids) |
-                                       Q(to_node__pk__in=space_graphnodes_ids))
+                                         Q(to_node__pk__in=space_graphnodes_ids))
         graph_edges = graph_edges.select_related('from_node', 'to_node', 'waytype').only(
             'from_node__geometry', 'to_node__geometry', 'waytype__color'
         )

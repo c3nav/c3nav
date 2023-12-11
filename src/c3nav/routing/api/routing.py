@@ -306,4 +306,3 @@ def get_route_options_form(request):
         if option["name"].startswith("waytype_"):
             option["name"] = "way_types."+data["name"].removeprefix("waytype_")
     return data
-
