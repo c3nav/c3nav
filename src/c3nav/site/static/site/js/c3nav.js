@@ -1708,6 +1708,10 @@ c3nav = {
             });
     },
     _fetch_updates_callback: function (data) {
+        if (c3nav.resume_level !== null) {
+            c3nav._levelControl.setLevel(c3nav.state.level);
+            c3nav.resume_level = null;
+        }
         c3nav._fetch_updates_failure_count = 0;
         c3nav.schedule_fetch_updates();
         if (c3nav.last_site_update !== data.last_site_update) {
@@ -1911,7 +1915,10 @@ c3nav = {
             window.clearTimeout(c3nav._searchable_locations_timer)
             c3nav._searchable_locations_timer = null;
         }
+        c3nav.resume_level = c3nav._levelControl.currentLevel;
+        c3nav._levelControl.setLevel(null);
     },
+    resume_level: null,
     _resume: function() {
         if (c3nav._fetch_updates_timer === null) {
             console.log("c3nav._resume() -> fetch_updates");
@@ -2011,16 +2018,18 @@ LevelControl = L.Control.extend({
 
     setLevel: function (id) {
         if (id === this.currentLevel) return true;
-        if (this._tileLayers[id] === undefined) return false;
+        if (id !== null && this._tileLayers[id] === undefined) return false;
 
         if (this.currentLevel) {
             this._tileLayers[this.currentLevel].remove();
             this._overlayLayers[this.currentLevel].remove();
             L.DomUtil.removeClass(this._levelButtons[this.currentLevel], 'current');
         }
-        this._tileLayers[id].addTo(c3nav.map);
-        this._overlayLayers[id].addTo(c3nav.map);
-        L.DomUtil.addClass(this._levelButtons[id], 'current');
+        if (id !== null) {
+            this._tileLayers[id].addTo(c3nav.map);
+            this._overlayLayers[id].addTo(c3nav.map);
+            L.DomUtil.addClass(this._levelButtons[id], 'current');
+        }
         this.currentLevel = id;
         return true;
     },
@@ -2041,6 +2050,7 @@ LevelControl = L.Control.extend({
     },
 
     reloadMap: function() {
+        if (this.currentLevel === null) return;
         var old_tile_layer = this._tileLayers[this.currentLevel],
             new_tile_layer = this.createTileLayer(this.currentLevel);
         this._tileLayers[this.currentLevel] = new_tile_layer;
