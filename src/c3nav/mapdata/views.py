@@ -28,7 +28,8 @@ def set_tile_access_cookie(request, response):
         response.set_cookie(settings.TILE_ACCESS_COOKIE_NAME, cookie, max_age=60,
                             domain=settings.TILE_ACCESS_COOKIE_DOMAIN,
                             httponly=settings.TILE_ACCESS_COOKIE_HTTPONLY,
-                            secure=settings.TILE_ACCESS_COOKIE_SECURE)
+                            secure=settings.TILE_ACCESS_COOKIE_SECURE,
+                            samesite=settings.TILE_ACCESS_COOKIE_SAMESITE)
     else:
         response.delete_cookie(settings.TILE_ACCESS_COOKIE_NAME)
     response['Cache-Control'] = 'no-cache'

@@ -302,6 +302,7 @@ TILE_ACCESS_COOKIE_NAME = 'c3nav_tile_access'
 TILE_ACCESS_COOKIE_DOMAIN = config.get('c3nav', 'tile_access_cookie_domain', fallback=None)
 TILE_ACCESS_COOKIE_HTTPONLY = True
 TILE_ACCESS_COOKIE_SECURE = not DEBUG
+TILE_ACCESS_COOKIE_SAMESITE = 'strict'
 
 
 # Application definition
