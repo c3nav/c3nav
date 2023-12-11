@@ -62,7 +62,7 @@ ENV C3NAV_DEBUG="" \
     C3NAV_LOGLEVEL="INFO" \
     C3NAV_DATA_DIR="/data" \
     C3NAV_RELOAD_INTERVAL="60" \
-    C3NAV_VERSION="${COMMIT}"
+    C3NAV_VERSION="${COMMIT}" \
     UWSGI_WORKERS="4"
 
 # The following environment variables need to be set to start the tileserver
