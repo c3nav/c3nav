@@ -218,7 +218,8 @@ class AltitudeArea(LevelGeometryMixin, models.Model):
         spaces = {}
         levels = Level.objects.prefetch_related('buildings', 'doors', 'spaces', 'spaces__columns',
                                                 'spaces__obstacles', 'spaces__lineobstacles', 'spaces__holes',
-                                                'spaces__stairs', 'spaces__ramps', 'spaces__altitudemarkers')
+                                                'spaces__stairs', 'spaces__ramps',
+                                                'spaces__altitudemarkers__groundaltitude')
         logger = logging.getLogger('c3nav')
 
         for level in levels:
@@ -285,7 +286,7 @@ class AltitudeArea(LevelGeometryMixin, models.Model):
 
             # give altitudes to areas
             for space in level.spaces.all():
-                for altitudemarker in space.altitudemarkers.all():
+                for altitudemarker in space.altitudemarkers.select_related('groundaltitude').all():
                     for area in space_areas[space.pk]:
                         if area.geometry_prep.contains(unwrap_geom(altitudemarker.geometry)):
                             area.altitude = altitudemarker.altitude

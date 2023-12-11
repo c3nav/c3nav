@@ -298,7 +298,8 @@ class AltitudeMarker(SpaceGeometryMixin, models.Model):
     An altitude marker
     """
     geometry = GeometryField('point')
-    altitude = models.DecimalField(_('altitude'), null=False, max_digits=6, decimal_places=2)
+    groundaltitude = models.ForeignKey('mapdata.GroundAltitude', on_delete=models.CASCADE,
+                                       verbose_name=_('altitude'))
 
     class Meta:
         verbose_name = _('Altitude Marker')
@@ -306,8 +307,12 @@ class AltitudeMarker(SpaceGeometryMixin, models.Model):
         default_related_name = 'altitudemarkers'
 
     @property
+    def altitude(self) -> Decimal:
+        return self.groundaltitude.altitude
+
+    @property
     def title(self):
-        return '%s (%sm)' % (super().title, self.altitude)
+        return f'#{self.pk}: {self.groundaltitude.title}'
 
 
 class LeaveDescription(SerializableMixin):

@@ -1,5 +1,6 @@
 from c3nav.mapdata.models.update import MapUpdate  # noqa
 from c3nav.mapdata.models.access import AccessRestriction  # noqa
+from c3nav.mapdata.models.altitudes import GroundAltitude  # noqa
 from c3nav.mapdata.models.level import Level  # noqa
 from c3nav.mapdata.models.geometry.level import Building, Space, Door, AltitudeArea  # noqa
 from c3nav.mapdata.models.geometry.space import Area, Stair, Obstacle, LineObstacle, Hole, AltitudeMarker  # noqa

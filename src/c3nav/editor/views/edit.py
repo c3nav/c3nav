@@ -51,6 +51,7 @@ def main_index(request):
         'child_models': [
             child_model(request, 'LocationGroupCategory'),
             child_model(request, 'LocationGroup'),
+            child_model(request, 'GroundAltitude'),
             child_model(request, 'DynamicLocation'),
             child_model(request, 'WayType'),
             child_model(request, 'AccessRestriction'),
@@ -472,6 +473,10 @@ def list_objects(request, model=None, level=None, space=None, explicit_edit=Fals
             model._meta.get_field('target_space')
             queryset = queryset.select_related('target_space')
 
+        with suppress(FieldDoesNotExist):
+            model._meta.get_field('altitude')
+            add_cols.append('altitude')
+
         ctx.update({
             'levels': Level.objects.filter(Level.q_for_request(request), on_top_of__isnull=True),
             'level': space.level,
@@ -491,6 +496,14 @@ def list_objects(request, model=None, level=None, space=None, explicit_edit=Fals
             model._meta.get_field('priority')
             add_cols.append('priority')
             queryset = queryset.order_by('-priority')
+
+        with suppress(FieldDoesNotExist):
+            model._meta.get_field('altitude')
+            add_cols.append('altitude')
+
+        with suppress(FieldDoesNotExist):
+            model._meta.get_field('groundaltitude')
+            queryset = queryset.select_related('groundaltitude')
 
         ctx.update({
             'back_url': reverse('editor.index'),

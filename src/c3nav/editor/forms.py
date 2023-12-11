@@ -136,6 +136,9 @@ class EditorFormBase(I18nModelFormMixin, ModelForm):
         if 'category' in self.fields:
             self.fields['category'].label_from_instance = attrgetter('title')
 
+        if 'groundaltitude' in self.fields:
+            self.fields['groundaltitude'].label_from_instance = attrgetter('title')
+
         if 'label_settings' in self.fields:
             self.fields['label_settings'].label_from_instance = attrgetter('title')
 
@@ -289,7 +292,7 @@ def create_editor_form(editor_model):
                        'walk', 'ordering', 'category', 'width', 'groups', 'height', 'color', 'priority', 'hierarchy',
                        'icon_name', 'base_altitude', 'waytype', 'access_restriction', 'default_height', 'door_height',
                        'outside', 'can_search', 'can_describe', 'geometry', 'single', 'altitude', 'short_label',
-                       'origin_space', 'target_space', 'data', 'comment', 'slow_down_factor', ''
+                       'origin_space', 'target_space', 'data', 'comment', 'slow_down_factor', 'groundaltitude',
                        'extra_seconds', 'speed', 'description', 'speed_up', 'description_up', 'enter_description',
                        'level_change_description', 'base_mapdata_accessible', 'can_report_missing',
                        'label_settings', 'label_override', 'min_zoom', 'max_zoom', 'font_size',
