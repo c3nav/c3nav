@@ -69,7 +69,6 @@ class APIKeyAuth(APIKeyHeader):
             )
         elif key.startswith("session:"):
             session = self.SessionStore(key.removeprefix("session:"))
-            print('session is empty:', request.session.is_empty())
             user = auth_get_user(FakeRequest(session=session))
             if not user.is_authenticated:
                 raise APIKeyInvalid
