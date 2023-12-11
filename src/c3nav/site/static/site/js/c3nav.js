@@ -1846,7 +1846,7 @@ c3nav = {
             $('.locationinput .locate, .leaflet-control-user-location a').text(c3nav._map_material_icon('location_disabled'));
             $('.leaflet-control-user-location a').toggleClass('control-disabled', true);
         }
-        if (mobileclient.isCurrentLocationRequested && mobileclient.isCurrentLocationRequested()) {
+        if (typeof mobileclient !== 'undefined' && mobileclient.isCurrentLocationRequested && mobileclient.isCurrentLocationRequested()) {
             if (location) {
                 c3nav._goto_user_location_click();
             } else {
