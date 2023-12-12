@@ -109,7 +109,7 @@ class APIKeyAuth(APIKeyHeader):
             raise APIPermissionDenied('You need to have admin rights for this endpoint.')
         for permission in self.permissions:
             if not getattr(request.user_permissions, permission):
-                raise APIPermissionDenied('You need to have the "%s" permission for this endpoint.')
+                raise APIPermissionDenied('You need to have the "%s" permission for this endpoint.' % permission)
         if request.method == 'GET' and self.is_readonly:
             raise ValueError('this makes no sense for GET')
         if request.method != 'GET' and not self.is_readonly and auth_result.readonly:
