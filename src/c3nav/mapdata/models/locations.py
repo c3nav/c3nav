@@ -379,7 +379,7 @@ class LocationGroup(Location, models.Model):
         result['display'].insert(3, (_('Category'), self.category.title))
         result['display'].extend([
             (_('color'), self.color),
-            (_('priority'), self.priority),
+            (_('priority'), str(self.priority)),
         ])
         if editor_url:
             result['editor_url'] = reverse('editor.locationgroups.edit', kwargs={'pk': self.pk})
