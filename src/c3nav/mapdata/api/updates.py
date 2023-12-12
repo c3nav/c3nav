@@ -40,11 +40,14 @@ class UserDataSchema(BaseSchema):
         description="data to show in the top right corner. can be the user name or `Login` or similar",
         example="ada_lovelace",
     )
-    subtitle: NonEmptyStr = APIField(
-        title="user data subtitle",
-        description="a description of the current user data state to display below the user data title",
-        example="3 areas unlocked",
-    )
+    subtitle: Union[
+        Annotated[NonEmptyStr, APIField(
+            title="user data subtitle",
+            description="a description of the current user data state to display below the user data title",
+            example="3 areas unlocked",
+        )],
+        None
+    ]
     permissions: list[PositiveInt] = APIField(
         title="access permissions",
         description="IDs of access restrictions that this user (even if maybe not signed in) has access to",
