@@ -19,7 +19,7 @@ EditorID = Union[
         description="ID of an existing object that might have been modified in this changeset"
     )],
     Annotated[str, APIField(
-        pattern="^c:[0-9]+$",
+        pattern="^c[0-9]+$",
         title="created object",
         description="id of an object that was created in this changeset"
     )],
