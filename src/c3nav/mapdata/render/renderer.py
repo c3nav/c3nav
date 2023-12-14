@@ -113,27 +113,27 @@ class MapRenderer:
                         engine.add_geometry(hybrid_union(areas), fill=FillAttribs(color),
                                             category='ground_%s' % hexcolor, item=j)
 
-        # add obstacles after everything related to ground for the nice right order
-        for i, altitudearea in enumerate(geoms.altitudeareas):
-            for height, height_obstacles in altitudearea.obstacles.items():
-                for color, color_obstacles in height_obstacles.items():
-                    for obstacle in color_obstacles:
-                        if color:
-                            fill_rgb = color_to_rgb(color)
-                            stroke_color = rgb_to_color((*((0.75*i) for i in fill_rgb[:3]), fill_rgb[3]))
-                            engine.add_geometry(
-                                obstacle,
-                                fill=FillAttribs(color),
-                                stroke=StrokeAttribs(stroke_color, 0.05, min_px=0.2),
-                                category='obstacles'
-                            )
-                        else:
-                            engine.add_geometry(
-                                obstacle,
-                                fill=FillAttribs(RENDER_COLOR_OBSTACLES_DEFAULT_FILL),
-                                stroke=StrokeAttribs(RENDER_COLOR_OBSTACLES_DEFAULT_BORDER, 0.05, min_px=0.2),
-                                category='obstacles'
-                            )
+            # add obstacles after everything related to ground for the nice right order
+            for i, altitudearea in enumerate(geoms.altitudeareas):
+                for height, height_obstacles in altitudearea.obstacles.items():
+                    for color, color_obstacles in height_obstacles.items():
+                        for obstacle in color_obstacles:
+                            if color:
+                                fill_rgb = color_to_rgb(color)
+                                stroke_color = rgb_to_color((*((0.75*i) for i in fill_rgb[:3]), fill_rgb[3]))
+                                engine.add_geometry(
+                                    obstacle,
+                                    fill=FillAttribs(color),
+                                    stroke=StrokeAttribs(stroke_color, 0.05, min_px=0.2),
+                                    category='obstacles'
+                                )
+                            else:
+                                engine.add_geometry(
+                                    obstacle,
+                                    fill=FillAttribs(RENDER_COLOR_OBSTACLES_DEFAULT_FILL),
+                                    stroke=StrokeAttribs(RENDER_COLOR_OBSTACLES_DEFAULT_BORDER, 0.05, min_px=0.2),
+                                    category='obstacles'
+                                )
 
             # add walls, stroke_px makes sure that all walls are at least 1px thick on all zoom levels,
             walls = None
