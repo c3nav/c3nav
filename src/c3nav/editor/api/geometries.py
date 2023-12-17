@@ -219,7 +219,7 @@ def get_space_geometries_result(request, space_id: int, update_cache_key: str, u
 
     if request.user_permissions.can_access_base_mapdata:
         doors = [door for door in level.doors.filter(Door.q_for_request(request)).all()
-                 if door.geometry.wrapped_geom.intersects(space.geometry.wrapped_geom)]
+                 if unwrap_geom(door.geometry).intersects(unwrap_geom(space.geometry))]
         doors_space_geom = unary_union(
             [unwrap_geom(door.geometry) for door in doors] +
             [unwrap_geom(space.geometry)]
