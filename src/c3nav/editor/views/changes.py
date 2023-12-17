@@ -217,13 +217,23 @@ def changeset_detail(request, pk):
             continue
 
         for pk, changed_object in changed_objects.items():
-            obj = objects[model][pk]
-
-            obj_desc = format_lazy(_('{model} #{id}'), model=obj.__class__._meta.verbose_name, id=pk)
-            if is_created_pk(pk):
-                obj_still_exists = pk in changeset.created_objects.get(obj.__class__, ())
+            if pk in objects[model]:
+                obj = objects[model][pk]
+                obj_desc = format_lazy(_('{model} #{id}'), model=obj.__class__._meta.verbose_name, id=pk)
+                if is_created_pk(pk):
+                    obj_still_exists = pk in changeset.created_objects.get(obj.__class__, ())
+                else:
+                    obj_still_exists = pk not in changeset.deleted_existing.get(obj.__class__, ())
             else:
-                obj_still_exists = pk not in changeset.deleted_existing.get(obj.__class__, ())
+                obj = changed_object.obj._obj
+                obj_still_exists = False
+                if changed_object.deleted:
+                    obj_desc = format_lazy(_('{model} #{id}'), model=obj.__class__._meta.verbose_name, id=pk)
+
+                else:
+                    obj_desc = format_lazy(_('{model} #{id} (deleted outside this changeset)'),
+                                        model=obj.__class__._meta.verbose_name, id=pk)
+
 
             edit_url = None
             if obj_still_exists and can_edit and not isinstance(obj, LocationRedirect):
