@@ -4,6 +4,7 @@ from decimal import Decimal
 from itertools import chain
 
 from django.contrib.contenttypes.models import ContentType
+from django.core.serializers.json import DjangoJSONEncoder
 from django.db import models
 from django.db.models import CharField, DecimalField, Field, TextField
 from django.utils.translation import gettext_lazy as _
@@ -35,7 +36,8 @@ class ChangedObject(models.Model):
     created = models.DateTimeField(auto_now_add=True, verbose_name=_('created'))
     content_type = models.ForeignKey(ContentType, on_delete=models.CASCADE)
     existing_object_pk = models.PositiveIntegerField(null=True, verbose_name=_('id of existing object'))
-    updated_fields = models.JSONField(default=dict, verbose_name=_('updated fields'))
+    updated_fields = models.JSONField(default=dict, verbose_name=_('updated fields'),
+                                      encoder=DjangoJSONEncoder)
     m2m_added = models.JSONField(default=dict, verbose_name=_('added m2m values'))
     m2m_removed = models.JSONField(default=dict, verbose_name=_('removed m2m values'))
     deleted = models.BooleanField(default=False, verbose_name=_('object was deleted'))
