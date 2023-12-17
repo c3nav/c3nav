@@ -502,7 +502,7 @@ class LevelGeometries:
         self.walls_bottom.build_polyhedron(self._create_polyhedron, lower=0, upper=1, top=False)
 
         # unset heightareas, they are no loinger needed
-        self.all_walls = None
+        # self.all_walls = None # we don't remove all_walls because we use it for rendering tiles now
         self.ramps = None
         # self.heightareas = None
         self.vertices = None

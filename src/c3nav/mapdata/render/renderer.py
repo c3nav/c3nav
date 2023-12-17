@@ -137,8 +137,9 @@ class MapRenderer:
 
             # add walls, stroke_px makes sure that all walls are at least 1px thick on all zoom levels,
             walls = None
-            if not add_walls.is_empty or not geoms.walls.is_empty:
-                walls = geoms.walls.union(add_walls)
+            # we use all_walls instead of walls, because the short wall rendering stuff doesn't work
+            if not add_walls.is_empty or not geoms.all_walls.is_empty:
+                walls = geoms.all_walls.union(add_walls)
 
             walls_extended = geoms.walls_extended and full_levels
             if walls is not None:
