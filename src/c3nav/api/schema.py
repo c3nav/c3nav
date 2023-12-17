@@ -34,7 +34,7 @@ class BaseSchema(Schema):
         if isinstance(values, Promise):
             return str(values)
         if hasattr(values, 'serialize') and callable(values.serialize):
-            return values.serialize()
+            return cls.convert(values.serialize())
         return values
 
 
