@@ -258,7 +258,7 @@ c3nav = {
             c3nav.on_visibility_change();
         }
 
-        c3nav.test_location();
+        //c3nav.test_location();
     },
     get_csrf_token: function() {
         return document.cookie.match(new RegExp('c3nav_csrftoken=([^;]+)'))[1];
@@ -266,7 +266,6 @@ c3nav = {
     test_location: function() {
         c3nav_api.get('positioning/locate-test')
             .then(data => {
-                console.log(data);
                 window.setTimeout(c3nav.test_location, 1000);
                 c3nav._set_user_location(data.location);
             })
