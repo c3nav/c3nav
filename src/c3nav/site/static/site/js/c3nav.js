@@ -1736,6 +1736,7 @@ c3nav = {
         window.location.reload();
     },
     _set_user_data: function (data) {
+        c3nav_api.authenticate();
         c3nav.user_data = data;
         var $user = $('header #user');
         $user.find('span').text(data.title);

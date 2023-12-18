@@ -5,7 +5,11 @@
 
         constructor(base ) {
             this.base = base;
-            this.auth_promise = fetch(this.base+'auth/session/', {
+            this.auth_promise = this.authenticate();
+        }
+
+        authenticate() {
+            return fetch(this.base+'auth/session/', {
                 credentials: 'include',
                 method: 'GET',
             })
