@@ -1442,6 +1442,7 @@ c3nav = {
     _click_anywhere_popup: null,
     _click_anywhere: function(e) {
         if (e.originalEvent.target.id !== 'map') return;
+        if (c3nav.embed) return;
         var popup = L.popup(c3nav._add_map_padding({className: 'location-popup', maxWidth: 500}, 'autoPanPaddingTopLeft', 'autoPanPaddingBottomRight')),
             name = c3nav._latlng_to_name(e.latlng);
         var buttons = $('#anywhere-popup-buttons').clone();
