@@ -319,13 +319,16 @@ def changeset_detail(request, pk):
                         field = model._meta.get_field(name)
                         field_title = field.verbose_name
                         if field.related_model is not None:
-                            if issubclass(field.related_model, User):
-                                field_value = objects[field.related_model][value].username
+                            if value is None:
+                                field_value = None
                             else:
-                                field_value = objects[field.related_model][value].title
-                            change_data.update({
-                                'missing_dependency': field.name in missing_dependencies,
-                            })
+                                if issubclass(field.related_model, User):
+                                    field_value = objects[field.related_model][value].username
+                                else:
+                                    field_value = objects[field.related_model][value].title
+                                change_data.update({
+                                    'missing_dependency': field.name in missing_dependencies,
+                                })
                         else:
                             field_value = field.to_python(value)
                         if name in unique_collisions:
