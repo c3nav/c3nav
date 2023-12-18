@@ -5,6 +5,7 @@
 <main class="account">
     <div class="narrow">
     <h2>{{ title }}</h2>
+    {% if form_description %}<p>{{ form_description }}</p>{% endif %}
 
     {% include 'site/fragment_messages.html' %}
 

@@ -1,0 +1,26 @@
+{% extends 'site/base.html' %}
+{% load i18n %}
+
+{% block content %}
+<main class="account">
+    <h2>{% trans 'Manage your Account' %}</h2>
+
+    {% include 'site/fragment_messages.html' %}
+
+    <p>
+        {% with username=request.user.username %}
+            {% blocktrans %}You are logged in as <strong>{{ username }}</strong>.{% endblocktrans %}
+        {% endwith %}
+    </p>
+    <hr>
+    <p>
+        <a class="button" href="{% url 'site.account.change_password' %}">{% trans 'Change password' %}</a>
+    </p>
+    <p>
+        <a class="button" href="{% url 'site.account.delete' %}">{% trans 'Delete account' %}</a>
+    </p>
+    <p>
+        <a class="button" href="{% url 'site.logout' %}">{% trans 'Log out' %}</a>
+    </p>
+</main>
+{% endblock %}

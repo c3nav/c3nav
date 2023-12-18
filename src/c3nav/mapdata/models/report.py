@@ -31,7 +31,7 @@ class Report(models.Model):
     )
     created = models.DateTimeField(auto_now_add=True, verbose_name=_('created'))
     category = models.CharField(max_length=20, db_index=True, choices=CATEGORIES, verbose_name=_('category'))
-    author = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, on_delete=models.PROTECT, verbose_name=_('author'))
+    author = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, on_delete=models.SET_NULL, verbose_name=_('author'))
     open = models.BooleanField(default=True, verbose_name=_('open'))
     last_update = models.DateTimeField(auto_now=True, verbose_name=_('last_update'))
     title = models.CharField(max_length=100, default='', verbose_name=_('title'),

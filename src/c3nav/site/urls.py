@@ -6,7 +6,7 @@ from c3nav.site.converters import AtPositionConverter, CoordinatesConverter, IsE
 from c3nav.site.views import (about_view, access_redeem_view, account_view, api_secret_create, api_secret_list,
                               change_password_view, choose_language, login_view, logout_view, map_index,
                               position_create, position_detail, position_list, position_set, qr_code, register_view,
-                              report_create, report_detail, report_list)
+                              report_create, report_detail, report_list, delete_account_view, account_manage)
 
 register_converter(LocationConverter, 'loc')
 register_converter(CoordinatesConverter, 'coords')
@@ -41,7 +41,9 @@ urlpatterns = [
     path('logout', logout_view, name='site.logout'),
     path('register', register_view, name='site.register'),
     path('account/', account_view, name='site.account'),
-    path('account/change_password', change_password_view, name='site.account.change_password'),
+    path('account/manage/', account_manage, name='site.account.manage'),
+    path('account/change_password/', change_password_view, name='site.account.change_password'),
+    path('account/delete/', delete_account_view, name='site.account.delete'),
     path('access/<str:token>', access_redeem_view, name='site.access.redeem'),
     path('lang/', choose_language, name='site.language'),
     path('about/', about_view, name='site.about'),

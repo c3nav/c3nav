@@ -38,7 +38,7 @@ from c3nav.mapdata.utils.locations import (get_location_by_id_for_request, get_l
 from c3nav.mapdata.utils.user import can_access_editor, get_user_data
 from c3nav.mapdata.views import set_tile_access_cookie
 from c3nav.routing.models import RouteOptions
-from c3nav.site.forms import APISecretForm, PositionForm, PositionSetForm, ReportUpdateForm
+from c3nav.site.forms import APISecretForm, PositionForm, PositionSetForm, ReportUpdateForm, DeleteAccountForm
 from c3nav.site.models import Announcement, SiteUpdate
 
 
@@ -310,10 +310,37 @@ def change_password_view(request):
 
 @never_cache
 @login_required(login_url='site.login')
+def delete_account_view(request):
+    if request.method == 'POST':
+        form = DeleteAccountForm(data=request.POST)
+        if form.is_valid():
+            request.user.delete()
+            messages.success(request, _('Account successfully deleted.'))
+            return redirect('site.account')
+    else:
+        form = DeleteAccountForm()
+
+    return render(request, 'site/account_form.html', {
+        'title': _('Delete account'),
+        'form_description': _("Click the button below to instantly delete your account and all associated data. "
+                              "This process can't be reversed."),
+        'back_url': reverse('site.account'),
+        'form': form,
+    })
+
+
+@never_cache
+@login_required(login_url='site.login')
 def account_view(request):
     return render(request, 'site/account.html', {
         'user_has_reports': Report.user_has_reports(request.user),
     })
+
+
+@never_cache
+@login_required(login_url='site.login')
+def account_manage(request):
+    return render(request, 'site/account_manage.html', {})
 
 
 @never_cache

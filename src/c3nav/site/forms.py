@@ -3,7 +3,7 @@ from datetime import timedelta
 from operator import attrgetter
 
 from django.db import transaction
-from django.forms import Form, IntegerField, ModelChoiceField, ModelForm
+from django.forms import Form, IntegerField, ModelChoiceField, ModelForm, BooleanField
 from django.utils import timezone
 from django.utils.crypto import get_random_string
 from django.utils.translation import gettext_lazy as _
@@ -18,6 +18,10 @@ class ReportIssueForm(I18nModelFormMixin, ModelForm):
     class Meta:
         model = Report
         fields = ['title', 'description']
+
+
+class DeleteAccountForm(Form):
+    confirm = BooleanField(label=_('Yes, i really want to delete my account.'), required=True)
 
 
 class ReportMissingLocationForm(I18nModelFormMixin, ModelForm):
