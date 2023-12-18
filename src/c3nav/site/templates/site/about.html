@@ -21,15 +21,8 @@
     {% endif %}
     <p>Version: {{ version }}</p>
 
-    {% if address %}
-        <h4>{% trans 'Responsible for this website:' %}</h4>
-        <p>{{ address }}</p>
+    {% if imprint %}
+    <p><a href="{{ imprint }}">{% trans "Imprint" %}</a></p>
     {% endif %}
-
-    <h4>{% trans 'Data privacy' %}</h4>
-
-    <p>{% trans 'We do not collect any personal data.' %}</p>
-    <p>{% trans 'Any data that your device sends to c3nav that might be used to track you will either be discarded after processing it or saved in a way that does not allow us to connect it to you.' %}</p>
-    <p>{% trans 'If you register an account, we do not ask for personal data either.' %}</p>
 </main>
 {% endblock %}

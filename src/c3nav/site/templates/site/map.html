@@ -18,6 +18,9 @@
             <a href="https://chaos.social/@c3nav/" rel="external" target="_blank">Fediverse</a> //
             <a href="https://github.com/c3nav/c3nav/" rel="external" target="_blank">GitHub</a> //
             <a href="{% url 'site.about' %}" id="about-link">{% trans 'about c3nav' %}</a>
+            {% if imprint %}
+                // <a href="{{ imprint }}" target="_blank">{% trans 'Imprint' %}</a>
+            {% endif %}
         </section>
         {% endif %}
         <section id="map" data-bounds="{{ bounds }}"

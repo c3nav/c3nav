@@ -157,7 +157,7 @@ SVG_RENDERER = config.get('c3nav', 'svg_renderer', fallback='rsvg-convert')
 CACHE_TILES = config.getboolean('c3nav', 'cache_tiles', fallback=not DEBUG)
 CACHE_RESOLUTION = config.getint('c3nav', 'cache_resolution', fallback=4)
 
-IMPRINT_ADDRESS = config.get('c3nav', 'imprint_address', fallback=None)
+IMPRINT_LINK = config.get('c3nav', 'imprint_link', fallback=None)
 IMPRINT_PATRONS = config.get('c3nav', 'imprint_patrons', fallback=None)
 IMPRINT_TEAM = config.get('c3nav', 'imprint_team', fallback=None)
 IMPRINT_HOSTING = config.get('c3nav', 'imprint_hosting', fallback=None)

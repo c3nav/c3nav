@@ -143,6 +143,7 @@ def map_index(request, mode=None, slug=None, slug2=None, details=None, options=N
         ),
         'editor': can_access_editor(request),
         'embed': bool(embed),
+        'imprint': settings.IMPRINT_LINK,
     }
 
     if grid.enabled:
@@ -386,7 +387,7 @@ def choose_language(request):
 def about_view(request):
     return render(request, 'site/about.html', {
         'ajax': request.headers.get('x-requested-with') == 'XMLHttpRequest' or 'ajax' in request.GET,
-        'address': settings.IMPRINT_ADDRESS,
+        'imprint': settings.IMPRINT_LINK,
         'patrons': settings.IMPRINT_PATRONS,
         'team': settings.IMPRINT_TEAM,
         'hosting': settings.IMPRINT_HOSTING,
