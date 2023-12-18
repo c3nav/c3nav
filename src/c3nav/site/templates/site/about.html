@@ -28,8 +28,77 @@
 
     <h4>{% trans 'Data privacy' %}</h4>
 
-    <p>{% trans 'We do not collect any personal data.' %}</p>
-    <p>{% trans 'Any data that your device sends to c3nav that might be used to track you will either be discarded after processing it or saved in a way that does not allow us to connect it to you.' %}</p>
-    <p>{% trans 'If you register an account, we do not ask for personal data either.' %}</p>
+    {% comment %}translate to english maybe{% endcomment %}
+
+    <h5>Webserver</h5>
+
+    <p>Bei jeder Serveranfrage werden die folgenden Daten gespeichert:</p>
+
+    <ul>
+        <li>Zeitpunkt der Anfrage</li>
+        <li>Adresse/URL der Anfrage</li>
+        <li>Browser-Angabe (User-Agent-String)</li>
+        <li>Referer (verlinkende Seite laut Browser)</li>
+    </ul>
+
+    <p>
+        Diese Daten werden für X Tage gespeichert und ausschließlich für anonymisierte Statistik- und Debuggingzwecke genutzt.
+    </p>
+
+    <p>
+        IP-Addressen werden nicht gespeichert.
+    </p>
+
+    <h5>Anlegen eines Accounts</h5>
+
+    <p>
+        Beim Anlegen eines Accounts werden folgende Daten erhoben:
+    </p>
+
+    <ul>
+        <li>Gewählter Benutzername</li>
+        <li>Passwordhash</li>
+        <li>Erstellungszeitpunkt des Accounts</li>
+        <li>Zeitpunkt des letzten Logins</li>
+    </ul>
+
+    <h5>Bei Benutzung anfallende Daten</h5>
+
+    <p>
+        Bei Anfragen werden statistische Daten erhoben, indem gezählt wie oft bestimmte Anfragen insgesamt
+        (d.h. unabhängig von der Benutzer*in) getätigt werden, z.B. wie oft wenn bestimmte Orte gesucht oder
+        geroutet wurden.
+    </p>
+    <p>
+        Es besteht die Möglichkeit, Fehler auf der Karte oder bei Routen zu melden. Wenn Nutzer*innen dabei eingeloggt
+        sind, ist die Meldung mit Ihnen verknüpft. Ansonsten werden bei diesem Vorgang keine Daten bis auf die selbst  
+        angegebenen gespeichert.
+    </p>
+    <p>
+        Für eingeloggte Nutzer*innen ist es möglich, selbstdefinierte Positionen anzulegen und aktuell zu halten 
+        und über einen Link zu teilen. Diese können von Nutzer*innen selbstständig jederzeit geändert und gelöscht
+        werden. Es wird keine Historie der Werte gespeichert.
+    </p>
+    <p>
+        Es ist möglich, API-Keys zu erstellen, die mit einem Account verknüpft sind. Auch diese können von 
+        Nutzer*innen jederzeit geändert und gelöscht werden.
+    </p>
+    <p>
+        Auch sonstige Einstellungen wie z.b. Routenoptionen können von Nutzer*innen selbstständig geändert werden.
+    </p>
+
+    <h5>Weitergabe von Daten</h5>
+
+    <p>
+        Die erhobenen Daten werden nicht an Dritte weitergegeben, es sei denn, Nutzer*innen geben sie selbst weiter.
+        Unsere Server sind durch gängige Sicherheitstechniken vor Zugriff durch unbefugte Dritte geschützt.
+    </p>
+
+    <h5>Auskunft, Berichtigung und Löschung</h5>
+
+    <p>
+        Gespeicherte Daten sind über die Accountübersicht einsehbar. 
+        Dort können auch der Account und alle verknüpften Daten gelöscht werden.
+    </p>
 </main>
 {% endblock %}
