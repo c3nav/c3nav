@@ -134,7 +134,7 @@ def get_level_geometries_result(request, level_id: int, update_cache_key: str, u
     levels_for_level = LevelsForLevel.for_level(request, level)
     # don't prefetch groups for now as changesets do not yet work with m2m-prefetches
     levels = Level.objects.filter(pk__in=levels_for_level.levels).filter(Level.q_for_request(request))
-    # graphnodes_qs = request.changeset.wrap_model('GraphNode').objects.all()
+    graphnodes_qs = request.changeset.wrap_model('GraphNode').objects.all()
     levels = levels.prefetch_related(
         Prefetch('spaces', Space.objects.filter(Space.q_for_request(request)).only(
             'geometry', 'level', 'outside'
@@ -151,7 +151,7 @@ def get_level_geometries_result(request, level_id: int, update_cache_key: str, u
         Prefetch('spaces__altitudemarkers', AltitudeMarker.objects.only('geometry', 'space')),
         Prefetch('spaces__wifi_measurements', WifiMeasurement.objects.only('geometry', 'space')),
         Prefetch('spaces__ranging_beacons', RangingBeacon.objects.only('geometry', 'space')),
-        # Prefetch('spaces__graphnodes', graphnodes_qs)
+        Prefetch('spaces__graphnodes', graphnodes_qs)
     )
 
     levels = {s.pk: s for s in levels}
@@ -160,24 +160,24 @@ def get_level_geometries_result(request, level_id: int, update_cache_key: str, u
     levels_under = [levels[pk] for pk in levels_for_level.levels_under]
     levels_on_top = [levels[pk] for pk in levels_for_level.levels_on_top]
 
-    # todo: permissions
-    # graphnodes = tuple(chain(*(space.graphnodes.all()
-    #                            for space in chain(*(level.spaces.all() for level in levels.values())))))
-    # graphnodes_lookup = {node.pk: node for node in graphnodes}
+    # todo: permissions?
+    graphnodes = tuple(chain(*(space.graphnodes.all()
+                               for space in chain(*(level.spaces.all() for level in levels.values())))))
+    graphnodes_lookup = {node.pk: node for node in graphnodes}
 
-    # graphedges = request.changeset.wrap_model('GraphEdge').objects.all()
-    # graphedges = graphedges.filter(Q(from_node__in=graphnodes) | Q(to_node__in=graphnodes))
-    # graphedges = graphedges.select_related('waytype')
+    graphedges = request.changeset.wrap_model('GraphEdge').objects.all()
+    graphedges = graphedges.filter(Q(from_node__in=graphnodes) | Q(to_node__in=graphnodes))
+    graphedges = graphedges.select_related('waytype')
 
     # this is faster because we only deserialize graphnode geometries once
-    # missing_graphnodes = graphnodes_qs.filter(pk__in=set(chain(*((edge.from_node_id, edge.to_node_id)
-    #                                                              for edge in graphedges))))
-    # graphnodes_lookup.update({node.pk: node for node in missing_graphnodes})
-    # for edge in graphedges:
-    #     edge._from_node_cache = graphnodes_lookup[edge.from_node_id]
-    #     edge._to_node_cache = graphnodes_lookup[edge.to_node_id]
+    missing_graphnodes = graphnodes_qs.filter(pk__in=set(chain(*((edge.from_node_id, edge.to_node_id)
+                                                                 for edge in graphedges))))
+    graphnodes_lookup.update({node.pk: node for node in missing_graphnodes})
+    for edge in graphedges:
+        edge._from_node_cache = graphnodes_lookup[edge.from_node_id]
+        edge._to_node_cache = graphnodes_lookup[edge.to_node_id]
 
-    # graphedges = [edge for edge in graphedges if edge.from_node.space_id != edge.to_node.space_id]
+    graphedges = [edge for edge in graphedges if edge.from_node.space_id != edge.to_node.space_id]
 
     results = chain(
         *(_get_geometries_for_one_level(level) for level in levels_under),
@@ -186,8 +186,8 @@ def get_level_geometries_result(request, level_id: int, update_cache_key: str, u
         *(space.altitudemarkers.all() for space in level.spaces.all()),
         *(space.wifi_measurements.all() for space in level.spaces.all()),
         *(space.ranging_beacons.all() for space in level.spaces.all()),
-        # graphedges,
-        # graphnodes,
+        graphedges,
+        graphnodes,
     )
 
     return list(chain(
