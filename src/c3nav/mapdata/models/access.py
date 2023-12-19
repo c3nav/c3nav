@@ -53,7 +53,7 @@ class AccessRestrictionGroup(TitledMixin, models.Model):
 
     @classmethod
     def qs_for_request(cls, request):
-        return cls.objects.filter(cls.q_for_request(request))
+        return cls.objects.filter(cls.q_for_request(request)).distinct()
 
     @classmethod
     def q_for_request(cls, request):
