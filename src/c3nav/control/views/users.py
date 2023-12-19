@@ -12,7 +12,7 @@ from c3nav.control.forms import AccessPermissionForm, UserPermissionsForm, UserS
 from c3nav.control.models import UserPermissions, UserSpaceAccess
 from c3nav.control.views.base import ControlPanelMixin, control_panel_view
 from c3nav.mapdata.models import AccessRestriction
-from c3nav.mapdata.models.access import AccessPermission
+from c3nav.mapdata.models.access import AccessPermission, AccessRestrictionGroup
 
 
 class UserListView(ControlPanelMixin, ListView):
@@ -37,7 +37,9 @@ def user_detail(request, user):  # todo: make class based view
         'permissions',
     ).prefetch_related(
         Prefetch('spaceaccesses', UserSpaceAccess.objects.select_related('space')),
-        Prefetch('accesspermissions', AccessPermission.objects.select_related('access_restriction', 'author'))
+        Prefetch('accesspermissions', AccessPermission.objects.select_related(
+            'access_restriction', 'access_restriction_group', 'author'
+        ))
     )
     user = get_object_or_404(qs, pk=user)
 
@@ -99,6 +101,17 @@ def user_detail(request, user):  # todo: make class based view
                 access_restriction=restriction
             ).order_by('expire_date')
         })
+    elif restriction and restriction.startswith("g") and restriction[1:].isdigit():
+        restriction_group = get_object_or_404(AccessRestrictionGroup, pk=int(restriction[1:]))
+        permissions = user.accesspermissions.filter(access_restriction_group=restriction_group).order_by('expire_date')
+        for permission in permissions:
+            permission.expired = permission.expire_date and permission.expire_date >= now
+        ctx.update({
+            'access_restriction': restriction_group,
+            'access_permissions': user.accesspermissions.filter(
+                access_restriction_group=restriction_group
+            ).order_by('expire_date')
+        })
     else:
         if request.method == 'POST' and request.POST.get('submit_access_permissions'):
             form = AccessPermissionForm(request=request, data=request.POST)
@@ -113,11 +126,17 @@ def user_detail(request, user):  # todo: make class based view
 
         access_permissions = {}
         for permission in user.accesspermissions.all():
-            access_permissions.setdefault(permission.access_restriction_id, []).append(permission)
+            access_permissions.setdefault(
+                permission.access_restriction_id or ("g%d" % permission.access_restriction_group_id), []
+            ).append(permission)
         access_permissions = tuple(
             {
                 'pk': pk,
-                'title': permissions[0].access_restriction.title,
+                'title': (
+                    permissions[0].access_restriction.title
+                    if permissions[0].access_restriction_id
+                    else permissions[0].access_restriction_group.title
+                ),
                 'can_grant': any(item.can_grant for item in permissions),
                 'expire_date': set(item.expire_date for item in permissions),
             } for pk, permissions in access_permissions.items()
