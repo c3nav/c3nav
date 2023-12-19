@@ -49,6 +49,11 @@ class EditorFormBase(I18nModelFormMixin, ModelForm):
             if not geometry_editable:
                 # can't see this geometry in editor
                 self.fields.pop('main_point')
+            else:
+                # hide geometry widget
+                self.fields['main_point'].widget = HiddenInput()
+                if not creating:
+                    self.initial['main_point'] = mapping(self.instance.main_point) if self.instance.main_point else ""
 
         if self._meta.model.__name__ == 'Source' and self.request.user.is_superuser:
             Source = self.request.changeset.wrap_model('Source')
