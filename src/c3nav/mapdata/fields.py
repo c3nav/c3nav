@@ -34,14 +34,14 @@ shapely_logger = logging.getLogger('shapely.geos')
 class GeometryField(models.JSONField):
     default_validators = [validate_geometry]
 
-    def __init__(self, geomtype=None, default=None, null=False):
+    def __init__(self, geomtype=None, default=None, null=False, help_text=None):
         if geomtype == 'polyline':
             geomtype = 'linestring'
         if geomtype not in (None, 'polygon', 'multipolygon', 'linestring', 'point'):
             raise ValueError('GeometryField.geomtype has to be '
                              'None, "polygon", "multipolygon", "linestring" or "point"')
         self.geomtype = geomtype
-        super().__init__(default=default, null=null)
+        super().__init__(default=default, null=null, help_text=help_text)
 
     def deconstruct(self):
         name, path, args, kwargs = super().deconstruct()

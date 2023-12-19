@@ -45,6 +45,11 @@ class EditorFormBase(I18nModelFormMixin, ModelForm):
                 if not creating:
                     self.initial['geometry'] = mapping(self.instance.geometry)
 
+        if 'main_point' in self.fields:
+            if not geometry_editable:
+                # can't see this geometry in editor
+                self.fields.pop('main_point')
+
         if self._meta.model.__name__ == 'Source' and self.request.user.is_superuser:
             Source = self.request.changeset.wrap_model('Source')
 
@@ -289,7 +294,7 @@ class EditorFormBase(I18nModelFormMixin, ModelForm):
 
 def create_editor_form(editor_model):
     possible_fields = ['slug', 'name', 'title', 'title_plural', 'help_text', 'position_secret',
-                       'icon', 'join_edges', 'up_separate', 'bssid',
+                       'icon', 'join_edges', 'up_separate', 'bssid', 'main_point',
                        'walk', 'ordering', 'category', 'width', 'groups', 'height', 'color', 'priority', 'hierarchy',
                        'icon_name', 'base_altitude', 'waytype', 'access_restriction', 'default_height', 'door_height',
                        'outside', 'can_search', 'can_describe', 'geometry', 'single', 'altitude', 'short_label',
