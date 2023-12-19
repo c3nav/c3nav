@@ -125,6 +125,8 @@ class Area(SpaceGeometryMixin, SpecificLocation, models.Model):
     slow_down_factor = models.DecimalField(_('slow down factor'), max_digits=6, decimal_places=2, default=1,
                                            validators=[MinValueValidator(Decimal('0.01'))],
                                            help_text=_('values of overlapping areas get multiplied!'))
+    main_point = GeometryField('point', null=True,
+                               help_text=_('main routing point (optional)'))
 
     class Meta:
         verbose_name = _('Area')
