@@ -53,14 +53,17 @@ class AccessRestrictionGroup(TitledMixin, models.Model):
 
     @classmethod
     def qs_for_request(cls, request):
-        return cls.objects.filter(cls.q_for_request(request)).distinct()
+        return cls.objects.filter(cls.q_for_request(request))
 
     @classmethod
     def q_for_request(cls, request):
         if request.user.is_authenticated and request.user.is_superuser:
             return Q()
+        all_permissions = AccessPermission.get_all_access_restrictions()
         permissions = AccessPermission.get_for_request(request)
-        return Q(Q(accessrestrictions=None) | Q(accessrestrictions__pk__in=permissions))
+        # now we filter out groups where the user doesn't have a permission for all members
+        filter_perms = all_permissions - permissions
+        return ~Q(accessrestrictions__pk__in=filter_perms)
 
 
 def default_valid_until():
@@ -189,7 +192,7 @@ class AccessPermission(models.Model):
         return permissions
 
     @staticmethod
-    def get_all_access_restrictions():
+    def get_all_access_restrictions() -> set[int]:
         cache_key = 'all_access_restrictions:%s' % MapUpdate.current_cache_key()
         access_restriction_ids = cache.get(cache_key, None)
         if access_restriction_ids is None:
@@ -198,7 +201,7 @@ class AccessPermission(models.Model):
         return access_restriction_ids
 
     @classmethod
-    def get_for_request(cls, request):
+    def get_for_request(cls, request) -> set[int]:
         if not request or not request.user.is_authenticated:
             return set()
 
