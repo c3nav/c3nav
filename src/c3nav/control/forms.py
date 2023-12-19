@@ -6,6 +6,7 @@ import time
 from datetime import datetime, timedelta
 from datetime import timezone as dt_timezone
 from itertools import chain
+from typing import Sequence
 
 from django.contrib.auth.models import User
 from django.db.models import Prefetch
@@ -54,38 +55,52 @@ class AccessPermissionForm(Form):
             pk__in=self.author_access_permissions.keys()
         )
 
-        self.access_restrictions = {
+        self.access_restrictions: dict[int: AccessRestriction] = {
             access_restriction.pk: access_restriction
             for access_restriction in access_restrictions
         }
         access_restrictions_ids = set(self.access_restrictions.keys())
 
-        self.access_restriction_choices = {
-            'all': self.access_restrictions.values(),
-            **{str(pk): (access_restriction, ) for pk, access_restriction in self.access_restrictions.items()}
+        self.access_restriction_choices: dict[str, Sequence[int, str]] = {
+            **{str(pk): (pk, ) for pk, access_restriction in self.access_restrictions.items()}
         }
 
         # get access permission groups
         groups = AccessRestrictionGroup.qs_for_request(request).prefetch_related(
             Prefetch('accessrestrictions', AccessRestriction.objects.only('pk'))
         )
-        group_contents = {
+        self.group_contents: dict[int, set[int]] = {
             group.pk: set(r.pk for r in group.accessrestrictions.all())
             for group in groups
         }
-        group_contents = {
-            pk: restrictions for pk, restrictions in group_contents.items()
+        self.group_contents = {
+            pk: restrictions for pk, restrictions in self.group_contents.items()
             if not (restrictions - access_restrictions_ids)
         }
 
+        self.titles = {
+            **{r.pk: r.title for r in access_restrictions},
+            **{('g%d' % g.pk): g.title for g in groups},
+        }
+
         self.access_restriction_choices.update({
-            ('g%d' % pk): tuple(
-                self.access_restrictions[restriction] for restriction in restrictions
-            ) for pk, restrictions in group_contents.items()
+            ('g%d' % pk): (('g%d' % pk),)
+            for pk, restrictions in self.group_contents.items()
         })
 
+        restrictions_not_in_group: set[int] = access_restrictions_ids
+        for restrictions in self.group_contents.values():
+            restrictions_not_in_group -= restrictions
+
+        self.access_restriction_choices.update({
+            "all": tuple(('g%d' % pk) for pk in self.group_contents.keys()) + tuple(restrictions_not_in_group),
+        })
+
+        from pprint import pprint
+        pprint(self.access_restriction_choices)
+
         # construct choice field for access permissions
-        choices = [('', _('choose permissions…')),
+        choices = [('', _('choose permissions…')),  # noqa
                    ('all', ngettext_lazy('everything possible (%d permission)',
                                          'everything possible (%d permissions)',
                                          len(access_restrictions)) % len(access_restrictions))]
@@ -147,12 +162,22 @@ class AccessPermissionForm(Form):
         default_expire_date = self.expire_date or self.cleaned_data['expires']
         for restriction in self.cleaned_data['access_restrictions']:
             expire_date = default_expire_date
-            author_expire_date = self.author_access_permissions.get(restriction.pk)
+
+            if isinstance(restriction, int):
+                author_expire_date = self.author_access_permissions.get(restriction)
+            else:
+                author_expire_date = min(
+                    (d for d in (self.author_access_permissions.get(i)
+                                 for i in self.group_contents[int(restriction.removeprefix('g'))])
+                     if d is not None),
+                    default=None,
+                )
+
             # make sure that each permission is not granted for a longer time than the author has it
             if author_expire_date is not None:
                 expire_date = author_expire_date if expire_date is None else min(expire_date, author_expire_date)
-            restrictions.append(AccessPermissionTokenItem(pk=restriction.pk, expire_date=expire_date,
-                                                          title=restriction.title))
+            restrictions.append(AccessPermissionTokenItem(pk=restriction, expire_date=expire_date,
+                                                          title=self.titles[restriction]))
         return AccessPermissionToken(author=self.author,
                                      can_grant=self.cleaned_data.get('can_grant', '0') == '1',
                                      restrictions=tuple(restrictions),
@@ -160,7 +185,7 @@ class AccessPermissionForm(Form):
 
     def get_signed_data(self, key=None):
         try:
-            api_secret = self.author.api_secrets.filter(scope_grant_permission=True).valid_only().get().api_secret
+            api_secret = self.author.api_secrets.filter(scope_grant_permissions=True).valid_only().get().api_secret
         except Secret.DoesNotExist:
             raise ValueError('Author has no feasible api secret.')
         data = {
@@ -172,7 +197,7 @@ class AccessPermissionForm(Form):
         if key is not None:
             data['key'] = key
         data = json.dumps(data, separators=(',', ':'))
-        signature = hmac.new(api_secret, msg=data.encode(), digestmod=hashlib.sha256).digest()
+        signature = hmac.new(api_secret.encode(), msg=data.encode(), digestmod=hashlib.sha256).digest()
         return '%s:%s' % (data, binascii.b2a_base64(signature).strip().decode())
 
     @classmethod

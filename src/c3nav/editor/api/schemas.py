@@ -3,7 +3,7 @@ from typing import Annotated, Literal, Optional, Union
 from pydantic import Field as APIField
 from pydantic import PositiveInt
 
-from c3nav.api.schema import AnyGeometrySchema, GeometrySchema, LineSchema, BaseSchema
+from c3nav.api.schema import AnyGeometrySchema, BaseSchema, GeometrySchema, LineSchema
 from c3nav.api.utils import NonEmptyStr
 
 GeometryStylesSchema = Annotated[

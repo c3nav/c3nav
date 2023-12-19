@@ -7,7 +7,7 @@ from typing import Sequence
 from django.conf import settings
 from django.core.cache import cache
 from django.db import models, transaction
-from django.db.models import Q
+from django.db.models import CheckConstraint, Q
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 from django.utils.translation import ngettext_lazy
@@ -111,9 +111,14 @@ class AccessPermissionToken(models.Model):
                 if self.author_id and self.unique_key:
                     AccessPermission.objects.filter(author_id=self.author_id, unique_key=self.unique_key).delete()
                 for restriction in self.restrictions:
+                    to_grant = (
+                        {"access_restriction_id": restriction.pk}
+                        if isinstance(restriction.pk, int)
+                        else {"access_restriction_group_id": int(restriction.pk.removeprefix("g"))}
+                    )
                     AccessPermission.objects.create(
                         user=user,
-                        access_restriction_id=restriction.pk,
+                        **to_grant,
                         author_id=self.author_id,
                         expire_date=restriction.expire_date,
                         can_grant=self.can_grant,
@@ -135,7 +140,8 @@ class AccessPermissionToken(models.Model):
 
 class AccessPermission(models.Model):
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
-    access_restriction = models.ForeignKey(AccessRestriction, on_delete=models.CASCADE)
+    access_restriction = models.ForeignKey(AccessRestriction, on_delete=models.CASCADE, null=True)
+    access_restriction_group = models.ForeignKey(AccessRestrictionGroup, on_delete=models.CASCADE, null=True)
     expire_date = models.DateTimeField(null=True, verbose_name=_('expires'))
     can_grant = models.BooleanField(default=False, verbose_name=_('can grant'))
     author = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, on_delete=models.SET_NULL,
@@ -150,6 +156,11 @@ class AccessPermission(models.Model):
         default_related_name = 'accesspermissions'
         unique_together = (
             ('author', 'unique_key')
+        )
+        constraints = (
+            CheckConstraint(check=(~Q(access_restriction__isnull=True, access_restriction_group__isnull=True) &
+                                   ~Q(access_restriction__isnull=False, access_restriction_group__isnull=False)),
+                            name="permission_needs_restriction_or_restriction_group"),
         )
 
     @staticmethod
@@ -173,13 +184,19 @@ class AccessPermission(models.Model):
             return {pk: None for pk in cls.get_all_access_restrictions()}
 
         result = tuple(
-            cls.queryset_for_user(request.user, can_grant).values_list('access_restriction_id', 'expire_date')
+            cls.queryset_for_user(request.user, can_grant).select_related(
+                'access_restriction_group'
+            ).prefetch_related('access_restriction_group__accessrestrictions')
         )
 
         # collect permissions (can be multiple for one restriction)
         permissions = {}
-        for access_restriction_id, expire_date in result:
-            permissions.setdefault(access_restriction_id, set()).add(expire_date)
+        for permission in result:
+            if permission.access_restriction_id:
+                permissions.setdefault(permission.access_restriction_id, set()).add(permission.expire_date)
+            if permission.access_restriction_group_id:
+                for member in permission.access_restriction_group.accessrestrictions.all():
+                    permissions.setdefault(member.pk, set()).add(permission.expire_date)
 
         # get latest expire date for each permission
         permissions = {

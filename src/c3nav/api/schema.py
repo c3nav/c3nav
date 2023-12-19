@@ -3,8 +3,9 @@ from typing import Annotated, Any, Literal, Union
 
 from django.utils.functional import Promise
 from ninja import Schema
-from pydantic import Discriminator, model_validator
+from pydantic import Discriminator
 from pydantic import Field as APIField
+from pydantic import model_validator
 from pydantic.functional_validators import ModelWrapValidatorHandler
 from pydantic_core.core_schema import ValidationInfo
 
