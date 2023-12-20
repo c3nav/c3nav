@@ -50,6 +50,8 @@ class GeometryField(models.JSONField):
         return name, path, args, kwargs
 
     def from_db_value(self, value, expression, connection):
+        if value is None or value == '':
+            return None
         return WrappedGeometry(super().from_db_value(value, expression, connection))
 
     def to_python(self, value):
@@ -108,7 +110,7 @@ class GeometryField(models.JSONField):
         return format_geojson(mapping(value), rounded=False) if as_json else value
 
     def get_prep_value(self, value):
-        if value is None:
+        if value is None or value == '':
             return None
         self._validate_geomtype(value, exception=TypeError)
         if value.is_empty:
