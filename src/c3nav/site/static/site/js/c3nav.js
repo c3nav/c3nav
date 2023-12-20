@@ -525,9 +525,9 @@ c3nav = {
             return;
         }
         $('#route-details .report').attr('href', data.report_issue_url);
-        c3nav._push_state({route_result: data.result, route_options: data.options}, true);
+        c3nav._push_state({route_result: data.result, route_options: data.options_form}, true);
         c3nav._display_route_result(data.result, nofly);
-        c3nav._display_route_options(data.options);
+        c3nav._display_route_options(data.options_form);
     },
     _display_route_result: function(result, nofly) {
         var $route = $('#route-summary'),

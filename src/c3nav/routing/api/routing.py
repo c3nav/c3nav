@@ -1,5 +1,5 @@
 from enum import StrEnum
-from typing import Annotated, Optional, Union
+from typing import Annotated, Optional, Union, Any
 
 from django.core.exceptions import ValidationError
 from django.urls import reverse
@@ -148,6 +148,7 @@ class RouteSchema(BaseSchema):
 class RouteResponse(BaseSchema):
     request: RouteParametersSchema
     options: RouteOptionsSchema
+    options_form: Any
     report_issue_url: NonEmptyStr
     result: RouteSchema
 
@@ -227,10 +228,11 @@ def get_route(request, parameters: RouteParametersSchema):
     return RouteResponse(
         request=parameters,
         options=_new_serialize_route_options(options),
+        options_form=options.serialize(),
         report_issue_url=reverse('site.report_create', kwargs={
             'origin': parameters.origin,
             'destination': parameters.destination,
-            'options': options.serialize_string()
+            'options': options.serialize_string(),
         }),
         result=route.serialize(locations=visible_locations_for_request(request)),
     )
