@@ -1956,7 +1956,9 @@ c3nav = {
         }
     }
 };
-$(document).ready(c3nav.init);
+$(document).ready(() => {
+    c3nav_api.authenticated().then(c3nav.init);
+});
 
 function nearby_stations_available() {
     c3nav._wifi_scan_results(mobileclient.getNearbyStations());
