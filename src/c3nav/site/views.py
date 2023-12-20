@@ -175,7 +175,7 @@ def qr_code_etag(request, path):
 @etag(qr_code_etag)
 @cache_control(max_age=3600)
 def qr_code(request, path):
-    data = (request.build_absolute_uri('/'+path) +
+    data = (request.build_absolute_uri('/'+path.removeprefix('/')) +
             ('?'+request.META['QUERY_STRING'] if request.META['QUERY_STRING'] else ''))
     if len(data) > 256:
         return HttpResponseBadRequest()

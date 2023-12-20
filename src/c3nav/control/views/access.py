@@ -67,6 +67,6 @@ def grant_access_qr(request, token):  # todo: make class based view
     url = reverse('site.access.redeem', kwargs={'token': str(token.token)})
     return render(request, 'control/access_qr.html', {
         'url': url,
-        'url_qr': reverse('site.qr', kwargs={'path': url}),
+        'url_qr': reverse('site.qr', kwargs={'path': url.removeprefix('/')}),
         'url_absolute': request.build_absolute_uri(url),
     })
