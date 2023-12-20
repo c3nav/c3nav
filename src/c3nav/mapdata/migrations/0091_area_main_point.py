@@ -14,6 +14,7 @@ class Migration(migrations.Migration):
             model_name="area",
             name="main_point",
             field=c3nav.mapdata.fields.GeometryField(
+                blank=True,
                 default=None,
                 geomtype="point",
                 help_text="main routing point (optional)",
