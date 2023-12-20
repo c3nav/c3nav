@@ -442,6 +442,20 @@ class Router:
             if value in ('avoid', 'avoid_down'):
                 graph[tuple(waytype.nonupwards_indices.transpose().tolist())] *= 100000
 
+        # prefer/avoid restrictions
+        restrictions_setting = options.get("restrictions", "normal")
+        if restrictions_setting != "normal":
+            factor = 100000 if restrictions_setting == "avoid" else 1/100000
+            all_restrictions = RouterRestrictionSet(self.restrictions.items())
+            space_nodes = tuple(reduce(operator.or_, (self.spaces[space].nodes
+                                                      for space in all_restrictions.spaces), set()))
+            graph[space_nodes, :] *= factor
+            graph[:, space_nodes] *= factor
+            if restrictions.additional_nodes:
+                graph[tuple(restrictions.additional_nodes), :] *= factor
+                graph[:, tuple(restrictions.additional_nodes)] *= factor
+            graph[tuple(restrictions.edges.transpose().tolist())] *= factor
+
         # exclude spaces and edges
         space_nodes = tuple(reduce(operator.or_, (self.spaces[space].nodes for space in restrictions.spaces), set()))
         graph[space_nodes, :] = np.inf

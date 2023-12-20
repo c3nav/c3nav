@@ -167,12 +167,19 @@ class Route:
             }[self.options['mode']],
         ]
 
+        restrictions_option = self.options.get('restrictions', 'normal')
+        if restrictions_option == "avoid":
+            options_summary.append(_('avoid restrictions'))
+        elif restrictions_option == "prefer":
+            options_summary.append(_('prefer restrictions'))
+
         waytypes_excluded = sum((name.startswith('waytype_') and value != 'allow')
                                 for name, value in self.options.items())
 
         if waytypes_excluded:
             options_summary.append(_('some path types avoided'))
-        else:
+
+        if len(options_summary) == 1:
             options_summary.append(_('default options'))
 
         options_summary = ', '.join(str(s) for s in options_summary)
