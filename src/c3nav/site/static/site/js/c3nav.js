@@ -1633,18 +1633,22 @@ c3nav = {
 
         if (!location.point) return;
         var point = c3nav._location_point_overrides[location.id] || location.point.slice(1),
-            latlng = L.GeoJSON.coordsToLatLng(point),
-            buttons = $('#location-popup-buttons').clone();
-        if (typeof location.id == 'number') {
-            buttons.find('.report-missing').remove();
-        } else {
-            buttons.find('.report-issue').remove();
+            latlng = L.GeoJSON.coordsToLatLng(point);
+        let buttons_html = '';
+        if (!c3nav.embed) {
+            let buttons = $('#location-popup-buttons').clone();
+            if (typeof location.id == 'number') {
+                buttons.find('.report-missing').remove();
+            } else {
+                buttons.find('.report-issue').remove();
+            }
+            buttons.find('.report').attr('href', '/report/l/'+String(location.id)+'/');
+            buttons_html = buttons.html();
         }
-        buttons.find('.report').attr('href', '/report/l/'+String(location.id)+'/');
 
         L.marker(latlng, {
             icon: icon
-        }).bindPopup(location.elem+buttons.html(), c3nav._add_map_padding({
+        }).bindPopup(location.elem+buttons_html, c3nav._add_map_padding({
             className: 'location-popup',
             maxWidth: 500
         }, 'autoPanPaddingTopLeft', 'autoPanPaddingBottomRight')).addTo(c3nav._locationLayers[location.point[0]]);
