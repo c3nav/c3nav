@@ -3,12 +3,12 @@ from django.utils.functional import lazy
 from django.utils.translation import gettext_lazy as _
 from django.utils.translation import ngettext_lazy
 
-from c3nav.mapdata.models.access import AccessPermission
+from c3nav.mapdata.models.access import AccessPermission, AccessRestriction
 from c3nav.mapdata.models.locations import Position
 
 
 def get_user_data(request):
-    permissions = AccessPermission.get_for_request(request)
+    permissions = AccessPermission.get_for_request(request) - AccessRestriction.get_all_public()
     result = {
         'logged_in': bool(request.user.is_authenticated),
         'allow_editor': can_access_editor(request),

@@ -20,7 +20,7 @@ class AccessRestriction(TitledMixin, models.Model):
     """
     An access restriction
     """
-    open = models.BooleanField(default=False, verbose_name=_('open'))
+    public = models.BooleanField(default=False, verbose_name=_('public'))
     groups = models.ManyToManyField('mapdata.AccessRestrictionGroup', verbose_name=_('Groups'), blank=True)
 
     class Meta:
@@ -41,6 +41,26 @@ class AccessRestriction(TitledMixin, models.Model):
     def q_for_request(cls, request):
         return Q(pk__in=AccessPermission.get_for_request(request))
 
+    @staticmethod
+    def get_all() -> set[int]:
+        cache_key = 'all_access_restrictions:%s' % MapUpdate.current_cache_key()
+        access_restriction_ids = cache.get(cache_key, None)
+        if access_restriction_ids is None:
+            access_restriction_ids = set(AccessRestriction.objects.values_list('pk', flat=True))
+            cache.set(cache_key, access_restriction_ids, 300)
+        return access_restriction_ids
+
+    @staticmethod
+    def get_all_public() -> set[int]:
+        cache_key = 'public_access_restrictions:%s' % MapUpdate.current_cache_key()
+        access_restriction_ids = cache.get(cache_key, None)
+        if access_restriction_ids is None:
+            access_restriction_ids = set(AccessRestriction.objects.filter(public=True)
+                                         .values_list('pk', flat=True))
+            cache.set(cache_key, access_restriction_ids, 300)
+        return access_restriction_ids
+
+
 
 class AccessRestrictionGroup(TitledMixin, models.Model):
     """
@@ -59,7 +79,7 @@ class AccessRestrictionGroup(TitledMixin, models.Model):
     def q_for_request(cls, request):
         if request.user.is_authenticated and request.user.is_superuser:
             return Q()
-        all_permissions = AccessPermission.get_all_access_restrictions()
+        all_permissions = AccessRestriction.get_all()
         permissions = AccessPermission.get_for_request(request)
         # now we filter out groups where the user doesn't have a permission for all members
         filter_perms = all_permissions - permissions
@@ -184,7 +204,7 @@ class AccessPermission(models.Model):
             return {}
 
         if request.user_permissions.grant_all_access:
-            return {pk: None for pk in cls.get_all_access_restrictions()}
+            return {pk: None for pk in AccessRestriction.get_all()}
 
         result = tuple(
             cls.queryset_for_user(request.user, can_grant).select_related(
@@ -208,22 +228,13 @@ class AccessPermission(models.Model):
         }
         return permissions
 
-    @staticmethod
-    def get_all_access_restrictions() -> set[int]:
-        cache_key = 'all_access_restrictions:%s' % MapUpdate.current_cache_key()
-        access_restriction_ids = cache.get(cache_key, None)
-        if access_restriction_ids is None:
-            access_restriction_ids = set(AccessRestriction.objects.values_list('pk', flat=True))
-            cache.set(cache_key, access_restriction_ids, 300)
-        return access_restriction_ids
-
     @classmethod
     def get_for_request(cls, request) -> set[int]:
         if not request or not request.user.is_authenticated:
-            return set()
+            return AccessRestriction.get_all_public()
 
         if request.user_permissions.grant_all_access:
-            return cls.get_all_access_restrictions()
+            return AccessRestriction.get_all()
 
         cache_key = cls.user_access_permission_key(request.user.pk)
         access_restriction_ids = cache.get(cache_key, None)
@@ -234,7 +245,7 @@ class AccessPermission(models.Model):
 
             expire_date = min((e for e in permissions.values() if e), default=timezone.now()+timedelta(seconds=120))
             cache.set(cache_key, access_restriction_ids, max(0.0, (expire_date-timezone.now()).total_seconds()))
-        return set(access_restriction_ids)
+        return set(access_restriction_ids) | AccessRestriction.get_all_public()
 
     @classmethod
     def cache_key_for_request(cls, request, with_update=True):
