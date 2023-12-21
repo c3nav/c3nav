@@ -455,6 +455,8 @@ COMPRESS_CSS_FILTERS = (
     'compressor.filters.cssmin.CSSCompressorFilter',
 )
 
+COMPRESS_CSS_HASHING_METHOD = 'content'
+
 HEADER_LOGO = config.get('c3nav', 'header_logo', fallback=None)
 FAVICON = config.get('c3nav', 'favicon', fallback=None)
 FAVICON_PACKAGE = config.get('c3nav', 'favicon_package', fallback=None)
