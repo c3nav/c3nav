@@ -12,7 +12,7 @@ register_converter(ArchiveFileExtConverter, 'archive_fileext')
 
 urlpatterns = [
     path('<int:level>/<sint:zoom>/<sint:x>/<sint:y>.png', tile, name='mapdata.tile'),
-    path('<int:level>/<sint:zoom>/<sint:x>/<sint:Y>/<a_perms:access_permissions>.png', tile, name='mapdata.tile'),
+    path('<int:level>/<sint:zoom>/<sint:x>/<sint:y>/<a_perms:access_permissions>.png', tile, name='mapdata.tile'),
     path('history/<int:level>/<h_mode:mode>.<h_fileext:filetype>', map_history, name='mapdata.map_history'),
     path('cache/package.<archive_fileext:filetype>', get_cache_package, name='mapdata.cache_package'),
 ]
