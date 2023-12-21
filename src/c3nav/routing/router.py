@@ -450,7 +450,7 @@ class Router:
             else:
                 graph *= 100000
                 factor = 1/100000
-            all_restrictions = RouterRestrictionSet(self.restrictions.items())
+            all_restrictions = RouterRestrictionSet(self.restrictions)
             space_nodes = tuple(reduce(operator.or_, (self.spaces[space].nodes
                                                       for space in all_restrictions.spaces), set()))
             graph[space_nodes, :] *= factor
