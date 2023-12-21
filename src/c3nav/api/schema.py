@@ -61,6 +61,19 @@ class PolygonSchema(BaseSchema):
         title = "GeoJSON Polygon"
 
 
+class MultiPolygonSchema(BaseSchema):
+    """
+    A GeoJSON MultiPolygon
+    """
+    type: Literal["MultiPolygon"]
+    coordinates: list[list[list[tuple[float, float]]]] = APIField(
+        example=[[[[1.5, 1.5], [1.5, 2.5], [2.5, 2.5], [2.5, 2.5]]]]
+    )
+
+    class Config(Schema.Config):
+        title = "GeoJSON Polygon"
+
+
 class LineStringSchema(BaseSchema):
     """
     A GeoJSON LineString
@@ -104,7 +117,9 @@ GeometrySchema = Annotated[
     Union[
         PolygonSchema,
         LineStringSchema,
-        PointSchema,],
+        PointSchema,
+        MultiPolygonSchema,
+    ],
     Discriminator("type"),
 ]
 
