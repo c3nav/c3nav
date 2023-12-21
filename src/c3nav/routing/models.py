@@ -39,11 +39,6 @@ class RouteOptions(models.Model):
             choices=(('slow', _('slow')), ('default', _('default')), ('fast', _('fast'))),
             initial='default'
         )
-        fields['restrictions'] = forms.ChoiceField(
-            label=_('Access restrictions'),
-            choices=(('avoid', _('avoid')), ('normal', _('use normally')), ('prefer', _('prefer'))),
-            initial='normal'
-        )
 
         for waytype in WayType.objects.all():
             choices = []
@@ -59,6 +54,12 @@ class RouteOptions(models.Model):
                 choices=tuple(choices),
                 initial='allow'
             )
+
+        fields['restrictions'] = forms.ChoiceField(
+            label=_('Access restrictions'),
+            choices=(('avoid', _('avoid')), ('normal', _('use normally')), ('prefer', _('prefer'))),
+            initial='normal'
+        )
 
         return fields
 
