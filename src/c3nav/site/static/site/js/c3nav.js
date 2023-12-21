@@ -812,9 +812,17 @@ c3nav = {
     },
     _route_options_submit: function () {
         var options = {};
+        var waytypes = {};
         $('#route-options').find('.route-options-fields [name]').each(function() {
-            options[$(this).attr('name')] = $(this).val();
+            var name = $(this).attr('name');
+            var value = $(this).val();
+            if (name.startsWith('waytype_')) {
+                waytypes[name.substring('waytype_'.length)] = value;
+            } else {
+                options[name] = value;
+            }
         });
+        options.way_types = waytypes;
         if ($(this).is('.save')) {
             c3nav_api.put('routing/options', options);
         }
