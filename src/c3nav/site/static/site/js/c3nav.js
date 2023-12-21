@@ -818,7 +818,7 @@ c3nav = {
             options[$(this).attr('name')] = $(this).val();
         });
         if ($(this).is('.save')) {
-            c3nav_api.post('routing/options', options);
+            c3nav_api.put('routing/options', options);
         }
         c3nav.next_route_options = options;
         c3nav.update_state(null, null, null, false);

@@ -60,6 +60,20 @@
             })
                 .then(res => res.json())
         }
+
+        put(path, data) {
+            return fetch(this.make_url(path), {
+                credentials: 'include',
+                method: 'PUT',
+                headers: {
+                    'X-API-Key': this.key,
+                    'Accept': 'application/json',
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(data),
+            })
+                .then(res => res.json())
+        }
     }
 
     window.c3nav_api = new C3NavApi(`${window.location.origin}/api/v2/`);
