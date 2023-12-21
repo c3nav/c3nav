@@ -105,7 +105,7 @@ class GeometryMixin(SerializableMixin):
             return None
         if detailed_geometry:
             return format_geojson(smart_mapping(self.geometry), rounded=False)
-        return format_geojson(smart_mapping(box(*self.geometry.bounds)), rounded=False)
+        return format_geojson(smart_mapping(self.geometry.minimum_rotated_rectangle), rounded=False)
 
     def get_shadow_geojson(self):
         pass
