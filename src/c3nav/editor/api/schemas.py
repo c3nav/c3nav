@@ -67,6 +67,10 @@ class EditorGeometriesGraphEdgePropertiesSchema(BaseSchema):
     type: Literal["graphedge"]
     from_node: EditorID
     to_node: EditorID
+    color: Union[
+        Annotated[str, APIField(title="color")],
+        Annotated[None, APIField(title="no color")]
+    ] = None
 
 
 class EditorGeometriesGraphEdgeElemSchema(BaseSchema):
@@ -87,8 +91,8 @@ class EditorGeometriesGeometryElemSchema(BaseSchema):
 
 EditorGeometriesElemSchema = Union[
     EditorGeometriesUpdateCacheKeyElem,
-    Annotated[EditorGeometriesGeometryElemSchema, APIField(title="a geometry object")],
     Annotated[EditorGeometriesGraphEdgeElemSchema, APIField(title="a graph edge")],
+    Annotated[EditorGeometriesGeometryElemSchema, APIField(title="a geometry object")],
     EditorGeometriesCacheReferenceElem,
 ]
 
