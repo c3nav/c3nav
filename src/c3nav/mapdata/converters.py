@@ -39,7 +39,7 @@ class HistoryFileExtConverter:
 
 
 class ArchiveFileExtConverter:
-    regex = r'tar(\.(gz|xz|zstd))?'
+    regex = r'tar(\.(gz|xz|zst))?'
 
     def to_python(self, value):
         return value
