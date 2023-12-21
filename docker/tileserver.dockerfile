@@ -82,5 +82,5 @@ CMD ["/app/env/bin/uwsgi", "--master", \
      "--wsgi", "c3nav.tileserver.wsgi", \
      "--pythonpath", "/app/src", \
      "--enable-threads", "--ignore-sigpipe", "--disable-logging", "--need-app", \
-     "--stats", ":5000", \
+     "--stats", ":5000", "--stats-http", \
      "--http", "0.0.0.0:8000"]
