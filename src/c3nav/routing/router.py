@@ -445,7 +445,11 @@ class Router:
         # prefer/avoid restrictions
         restrictions_setting = options.get("restrictions", "normal")
         if restrictions_setting != "normal":
-            factor = 100000 if restrictions_setting == "avoid" else 1/100000
+            if restrictions_setting == "avoid":
+                factor = 100000
+            else:
+                graph *= 100000
+                factor = 1/100000
             all_restrictions = RouterRestrictionSet(self.restrictions.items())
             space_nodes = tuple(reduce(operator.or_, (self.spaces[space].nodes
                                                       for space in all_restrictions.spaces), set()))
