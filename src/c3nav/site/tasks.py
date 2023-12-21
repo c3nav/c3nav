@@ -13,7 +13,7 @@ logger = logging.getLogger('c3nav')
 def send_report_notification(self, pk, author, title, description, reviewers):
     subject = '[c3nav] New Report by %s: %s' % (author, title)
 
-    for user in User.objects.filter(pk=reviewers):
+    for user in User.objects.filter(pk__in=reviewers):
         if not user.email:
             continue
         text = (
