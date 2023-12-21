@@ -260,9 +260,6 @@ c3nav = {
 
         //c3nav.test_location();
     },
-    get_csrf_token: function() {
-        return document.cookie.match(new RegExp('c3nav_csrftoken=([^;]+)'))[1];
-    },
     test_location: function() {
         c3nav_api.get('positioning/locate-test')
             .then(data => {
@@ -1967,7 +1964,7 @@ c3nav = {
     }
 };
 $(document).ready(() => {
-    c3nav_api.authenticated().then(c3nav.init);
+    c3nav.init();
 });
 
 function nearby_stations_available() {

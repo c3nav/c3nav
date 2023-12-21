@@ -9,7 +9,7 @@
         }
 
         authenticate() {
-            return fetch(this.base+'auth/session/', {
+            this.auth_promise = fetch(this.base+'auth/session/', {
                 credentials: 'same-origin',
                 method: 'GET',
             })
@@ -21,6 +21,7 @@
                     throw err;
                 })
                 .then(_ => null);
+            return this.auth_promise;
         }
 
         authenticated() {
@@ -35,44 +36,33 @@
             return url;
         }
 
-        get(path) {
-            return fetch(this.make_url(path), {
+        async req(method, path, body) {
+            await this.auth_promise;
+            const init = {
                 credentials: 'include',
-                method: 'GET',
+                method: method,
                 headers: {
                     'X-API-Key': this.key,
                     'Accept': 'application/json'
                 }
-            })
-                .then(res => res.json())
+            };
+            if (typeof body !== 'undefined') {
+                init.body = JSON.stringify(body);
+            }
+            const res = await fetch(this.make_url(path), init);
+            return await res.json();
+        }
+
+        get(path) {
+            return this.req('GET', path);
         }
 
         post(path, data) {
-            return fetch(this.make_url(path), {
-                credentials: 'include',
-                method: 'POST',
-                headers: {
-                    'X-API-Key': this.key,
-                    'Accept': 'application/json',
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify(data),
-            })
-                .then(res => res.json())
+            return this.req('POST', path, data);
         }
 
         put(path, data) {
-            return fetch(this.make_url(path), {
-                credentials: 'include',
-                method: 'PUT',
-                headers: {
-                    'X-API-Key': this.key,
-                    'Accept': 'application/json',
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify(data),
-            })
-                .then(res => res.json())
+            return this.req('PUT', path, data);
         }
     }
 

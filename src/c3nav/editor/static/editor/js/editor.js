@@ -1436,5 +1436,5 @@ LevelControl = L.Control.extend({
 
 
 if ($('#sidebar').length) {
-    c3nav_api.authenticated().then(() => editor.init());
+    editor.init();
 }
