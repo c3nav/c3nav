@@ -176,6 +176,9 @@ if len(INITIAL_BOUNDS) == 4:
 else:
     INITIAL_BOUNDS = None
 
+HUB_API_BASE = config.get('c3nav', 'hub_api_base', fallback='').removesuffix('/')
+HUB_API_SECRET = config.get('c3nav', 'hub_api_secret', fallback='')
+
 _db_backend = config.get('database', 'backend', fallback='sqlite3')
 DATABASES: dict[str, dict[str, str | int | Path]] = {
     'default': env.db_url('C3NAV_DATABASE') if 'C3NAV_DATABASE' in env else {

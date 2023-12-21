@@ -13,7 +13,7 @@ from c3nav.mapdata.utils.cache.changes import changed_geometries
 
 
 class Command(BaseCommand):
-    help = 'render the map'
+    help = 'import svg file'
 
     @staticmethod
     def space_value(value):
