@@ -40,6 +40,12 @@ class WalkSpeed(StrEnum):
     FAST = "fast"
 
 
+class RestrictedAreas(StrEnum):
+    """ whether to prefer or avoid restricted areas """
+    NORMAL = "normal"
+    PREFER = "prefer"
+    AVOID = "avoid"
+
 class LevelWayTypeChoice(StrEnum):
     """ route preferences for way types that are level """
     ALLOW = "allow"
@@ -70,6 +76,11 @@ class UpdateRouteOptionsSchema(BaseSchema):
         default=None,
         title="walk speed",
     )
+    restrictions: Union[
+        Annotated[RestrictedAreas, APIField(title="restricted areas",
+                                            description="whether to route through restricted areas")],
+        Annotated[None, APIField(title="null", description="don't change restricted areas routing")],
+    ]
     way_types: dict[
         Annotated[NonEmptyStr, APIField(title="waytype")],
         Union[
@@ -86,6 +97,7 @@ class RouteOptionsSchema(BaseSchema):
     # todo: default is wrong, this should be optional
     mode: RouteMode = APIField(name="routing mode")
     walk_speed: WalkSpeed = APIField(name="walk speed")
+    restrictions: RestrictedAreas = APIField(title="restricted areas")
     way_types: dict[
         Annotated[NonEmptyStr, APIField(title="waytype")],
         Union[
