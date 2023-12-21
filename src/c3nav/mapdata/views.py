@@ -182,7 +182,9 @@ def get_cache_package(request, filetype):
 
     content_type = 'application/' + {'tar': 'x-tar', 'tar.gz': 'gzip', 'tar.xz': 'x-xz', 'tar.zst': 'zstd'}[filetype]
     response = StreamingHttpResponse(FileWrapper(f), content_type=content_type)
-    #response.file_to_stream = f  # This causes django to use the  wsgi.file_wrapper if provided by the wsgi server.
+    # The next 2 lines cause django to use the wsgi.file_wrapper if provided by the wsgi server.
+    response.file_to_stream = f
+    response.block_size = 8192
     response['Content-Length'] = size
     if content_disposition := content_disposition_header(False, filename):
         response["Content-Disposition"] = content_disposition
