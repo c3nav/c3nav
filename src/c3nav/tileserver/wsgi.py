@@ -106,7 +106,7 @@ class TileServer:
             headers = self.auth_headers.copy()
             if self.cache_package_etag is not None:
                 headers['If-None-Match'] = self.cache_package_etag
-            r = requests.get(self.upstream_base+'/map/cache/package.tar.zstd', headers=headers, auth=self.http_auth)
+            r = requests.get(self.upstream_base+'/map/cache/package.tar.zst', headers=headers, auth=self.http_auth)
 
             if r.status_code == 403:
                 logger.error('Rejected cache package download with Error 403. Tile secret is probably incorrect.')
