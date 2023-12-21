@@ -70,8 +70,6 @@ class APIKeyAuth(APIKeyHeader):
         elif key.startswith("session:"):
             session = self.SessionStore(key.removeprefix("session:"))
             user = auth_get_user(FakeRequest(session=session))
-            if not user.is_authenticated:
-                raise APIKeyInvalid
             request.user = user
             return APIAuthDetails(
                 key_type=APIKeyType.SESSION,

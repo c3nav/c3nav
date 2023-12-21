@@ -10,7 +10,7 @@
 
         authenticate() {
             return fetch(this.base+'auth/session/', {
-                credentials: 'include',
+                credentials: 'same-origin',
                 method: 'GET',
             })
                 .then(res => res.json())

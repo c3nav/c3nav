@@ -55,9 +55,10 @@ class APIKeySchema(BaseSchema):
                      summary="get session-bound key")
 def session_key(request):
     """
-    Get an API key that is bound to the transmitted session cookie.
+    Get an API key that is bound to the transmitted session cookie, or a newly created session cookie if none is sent.
 
     Keep in mind that this API key will be invalid if the session gets signed out or similar.
     """
-    session_id = request.COOKIES.get(settings.SESSION_COOKIE_NAME, None)
-    return {"key": "anonymous" if session_id is None else f"session:{session_id}"}
+    if request.session.session_key is None:
+        request.session.create()
+    return {"key": f"session:{request.session.session_key}"}
