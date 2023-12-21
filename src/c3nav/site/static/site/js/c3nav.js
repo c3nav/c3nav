@@ -506,7 +506,7 @@ c3nav = {
             c3nav_api.post('routing/route', {
                 origin: origin.id,
                 destination: destination.id,
-                ...(c3nav.next_route_options || {}),
+                options_override: c3nav.next_route_options ?? null,
             })
                 .then(data => c3nav._route_loaded(data, nofly))
                 .catch(data => c3nav._route_loaded({error: `Error ${data.status}`}));
@@ -811,9 +811,7 @@ c3nav = {
         c3nav.update_state(null, null, null, false);
     },
     _route_options_submit: function () {
-        var options = {
-            'csrfmiddlewaretoken': c3nav.get_csrf_token()
-        };
+        var options = {};
         $('#route-options').find('.route-options-fields [name]').each(function() {
             options[$(this).attr('name')] = $(this).val();
         });
