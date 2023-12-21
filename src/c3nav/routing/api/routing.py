@@ -271,7 +271,7 @@ def _new_update_route_options(options, new_options):
     convert_options.update({f"waytype_{key}": value for key, value in waytype_options.items()})
 
     try:
-        options.update(waytype_options, ignore_unknown=True)
+        options.update(convert_options, ignore_unknown=True)
     except ValidationError as e:
         raise APIRequestValidationFailed(str(e))
 
