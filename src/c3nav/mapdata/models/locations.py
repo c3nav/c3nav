@@ -657,6 +657,20 @@ class Position(CustomLocationProxyMixin, models.Model):
             'subtitle': _('Position'),
         }
 
+    def details_display(self, **kwargs):
+        return {
+            'id': self.pk,
+            'display': [
+                (_('Type'), self.__class__._meta.verbose_name),
+                (_('ID'), str(self.pk)),
+                (_('Title'), self.name),
+                (_('Slug'), self.slug),
+                (_('searchable'), _('No')),
+                (_('can describe'), _('No')),
+                (_('icon'), None),
+            ],
+        }
+
     def get_geometry(self, *args, **kwargs):
         return None
 

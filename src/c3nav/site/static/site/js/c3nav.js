@@ -1608,7 +1608,7 @@ c3nav = {
         }
         if (location.dynamic) {
             if (!('available' in location)) {
-                c3nav_api.get(`map/locations/dynamic/${location.id}/`)
+                c3nav_api.get(`map/positions/${location.id}/`)
                     .then(c3nav._dynamic_location_loaded);
                 return;
             } else if (!location.available) {
