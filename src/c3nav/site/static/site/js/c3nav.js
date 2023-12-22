@@ -443,6 +443,10 @@ c3nav = {
                 elem.append($('<dd>').text(line[1]));
             } else if (line[1] === null || line.length === 0) {
                 elem.append($('<dd>').text('-'));
+            } else if (line[1].length === undefined && line[2].url !== undefined) {
+                loclist = $('<dd>');
+                loclist.append($('<a>').attr('href', line[2].url).attr('target', '_blank').text(line[2].title));
+                elem.append(loclist);
             } else {
                 sublocations = (line[1].length === undefined) ? [line[1]] : line[1];
                 loclist = $('<dd>');

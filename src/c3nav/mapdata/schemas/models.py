@@ -672,6 +672,14 @@ class DisplayLink(BaseSchema):
     can_search: bool
 
 
+class DisplayURL(BaseSchema):
+    """
+    A URL link for the location display
+    """
+    title: NonEmptyStr
+    url: NonEmptyStr
+
+
 class LocationDisplay(BaseSchema):
     id: AnyLocationID = APIField(
         description="a numeric ID for a map location or a string ID for generated locations",
@@ -701,6 +709,7 @@ class LocationDisplay(BaseSchema):
                 Annotated[str, APIField(title="a simple string value")],
                 Annotated[DisplayLink, APIField(title="a link value")],
                 Annotated[list[DisplayLink], APIField(title="a list of link values")],
+                Annotated[DisplayURL, APIField(title="an URL value")],
                 Annotated[None, APIField(title="no value")]
             ], APIField(title="field value", union_mode='left_to_right')]
         ]
@@ -729,7 +738,11 @@ class LocationDisplay(BaseSchema):
                     "title": "Locations that Start with E",
                     "can_search": False,
                 }
-            ])
+            ]),
+            ("External URL", {
+                "title": "Open",
+                "url": "https://example.com/",
+            })
         ]
     )
     geometry: Union[

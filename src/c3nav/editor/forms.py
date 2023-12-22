@@ -299,7 +299,7 @@ class EditorFormBase(I18nModelFormMixin, ModelForm):
 
 def create_editor_form(editor_model):
     possible_fields = ['slug', 'name', 'title', 'title_plural', 'help_text', 'position_secret',
-                       'icon', 'join_edges', 'up_separate', 'bssid', 'main_point',
+                       'icon', 'join_edges', 'up_separate', 'bssid', 'main_point', 'external_url', 'hub_import_type',
                        'walk', 'ordering', 'category', 'width', 'groups', 'height', 'color', 'priority', 'hierarchy',
                        'icon_name', 'base_altitude', 'waytype', 'access_restriction', 'default_height', 'door_height',
                        'outside', 'can_search', 'can_describe', 'geometry', 'single', 'altitude', 'short_label',
@@ -308,7 +308,7 @@ def create_editor_form(editor_model):
                        'level_change_description', 'base_mapdata_accessible', 'can_report_missing',
                        'label_settings', 'label_override', 'min_zoom', 'max_zoom', 'font_size',
                        'allow_levels', 'allow_spaces', 'allow_areas', 'allow_pois', 'allow_dynamic_locations',
-                       'left', 'top', 'right', 'bottom', 'public']
+                       'left', 'top', 'right', 'bottom', 'public', 'import_tag']
     field_names = [field.name for field in editor_model._meta.get_fields() if not field.one_to_many]
     existing_fields = [name for name in possible_fields if name in field_names]
 

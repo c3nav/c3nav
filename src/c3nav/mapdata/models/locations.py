@@ -178,6 +178,7 @@ class SpecificLocation(Location, models.Model):
     label_settings = models.ForeignKey('mapdata.LabelSettings', null=True, blank=True, on_delete=models.PROTECT,
                                        verbose_name=_('label settings'))
     label_override = I18nField(_('Label override'), plural_name='label_overrides', blank=True, fallback_any=True)
+    external_url = models.URLField(_('external URL'), null=True, blank=True)
 
     class Meta:
         abstract = True
@@ -236,6 +237,12 @@ class SpecificLocation(Location, models.Model):
                     'can_search': group.can_search,
                 } for group in sorted(groups, key=attrgetter('priority'), reverse=True))
             ))
+
+        if self.external_url:
+            result['display'].insert(3, (_('External URL'), tuple({
+                'title': _('Open'),
+                'url': self.external_url,
+            })))
 
         return result
 
@@ -347,6 +354,9 @@ class LocationGroup(Location, models.Model):
     can_report_missing = models.BooleanField(default=False, verbose_name=_('for missing locations'),
                                              help_text=_('can be used when reporting a missing location'))
     color = models.CharField(null=True, blank=True, max_length=32, verbose_name=_('background color'))
+    hub_import_type = models.CharField(max_length=100, verbose_name=_('hub import type'), null=True, blank=True,
+                                       unique=True,
+                                       help_text=_('assign this group to imported hub locations of this type'))
 
     objects = LocationGroupManager()
 
