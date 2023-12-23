@@ -77,7 +77,7 @@ ENV C3NAV_DEBUG="" \
 USER c3nav
 WORKDIR /app
 EXPOSE 8000 5000
-HEALTHCHECK --start-period=10s --interval=10s --timeout=1s CMD curl -f http://localhost:8000/check || exit 1
+HEALTHCHECK --start-period=10s --interval=10s --timeout=1s CMD curl -f http://localhost:8000/health/ready || exit 1
 CMD ["/app/env/bin/uwsgi", "--master", \
      "--wsgi", "c3nav.tileserver.wsgi", \
      "--pythonpath", "/app/src", \

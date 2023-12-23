@@ -120,6 +120,7 @@ class TileServer:
                 if self.cache_package is not None:
                     logger.debug('Not modified.')
                     cache['cache_package_filename'] = self.cache_package_filename
+                    cache.set('cache_package_last_successful_check', time.time())
                     return True
                 logger.error('Unexpected not modified.')
                 return False
@@ -147,6 +148,7 @@ class TileServer:
             with open(self.cache_package_filename, 'wb') as f:
                 pickle.dump(self.cache_package, f)
             cache.set('cache_package_filename', self.cache_package_filename)
+            cache.set('cache_package_last_successful_check', time.time())
         except Exception as e:
             self.cache_package_etag = None
             logger.error('Saving pickled package failed: %s' % e)
@@ -173,10 +175,30 @@ class TileServer:
                                   ('ETag', etag)])
         return [data]
 
-    def check_response(self, start_response):
+    def liveness_check_response(self, start_response):
         self.get_cache_package()
         text = b'OK'
         start_response('200 OK', [self.get_date_header(),
+                                  ('Content-Type', 'text/plain'),
+                                  ('Content-Length', str(len(text)))])
+        return [text]
+
+    def readiness_check_response(self, start_response):
+        text = b'OK'
+        error = False
+        try:
+            last_check = self.cache.get('cache_package_last_successful_check')
+        except pylibmc.Error as e:
+            error = True
+            text = b'memcached error'
+        else:
+            if last_check is None or last_check <= (time.time() - self.reload_interval * 3):
+                error = True
+                if last_check:
+                    text = f'last successful cache package check was {time.time() - last_check}s ago.'.encode('utf-8')
+                else:
+                    text = b'last successful cache package check is unknown'
+        start_response(('500' if error else '200') + ' OK', [self.get_date_header(),
                                   ('Content-Type', 'text/plain'),
                                   ('Content-Length', str(len(text)))])
         return [text]
@@ -207,8 +229,11 @@ class TileServer:
     def __call__(self, env, start_response):
         path_info = env['PATH_INFO']
 
-        if path_info == '/check':
-            return self.check_response(start_response)
+        if path_info == '/health' or path_info == '/health/live':
+            return self.liveness_check_response(start_response)
+
+        if path_info == '/health/ready':
+            return self.readiness_check_response(start_response)
 
         match = self.path_regex.match(path_info)
         if match is None:
