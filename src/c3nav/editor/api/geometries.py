@@ -167,7 +167,7 @@ def get_level_geometries_result(request, level_id: int, update_cache_key: str, u
 
     graphedges = request.changeset.wrap_model('GraphEdge').objects.all()
     graphedges = graphedges.filter(Q(from_node__in=graphnodes) | Q(to_node__in=graphnodes))
-    graphedges = graphedges.select_related('waytype')
+    graphedges = graphedges.select_related('waytype', 'from_node', 'to_node')
 
     # this is faster because we only deserialize graphnode geometries once
     missing_graphnodes = graphnodes_qs.filter(pk__in=set(chain(*((edge.from_node_id, edge.to_node_id)
