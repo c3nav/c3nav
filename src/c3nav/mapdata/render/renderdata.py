@@ -269,7 +269,8 @@ class LevelRenderData:
 
                 new_geoms.affected_area = unary_union((
                     *(altitudearea.geometry for altitudearea in new_geoms.altitudeareas),
-                    crop_to.intersection(new_geoms.walls.buffer(1))
+                    crop_to.intersection(new_geoms.walls.buffer(1)),
+                    *((new_geoms.holes.buffer(1),) if new_geoms.holes else ()),
                 ))
 
                 for access_restriction, area in old_geoms.access_restriction_affected.items():
