@@ -28,6 +28,7 @@ class UserPermissions(models.Model):
     grant_permissions = models.BooleanField(default=False, verbose_name=_('can grant control permissions'))
     manage_announcements = models.BooleanField(default=False, verbose_name=_('manage announcements'))
     grant_all_access = models.BooleanField(default=False, verbose_name=_('can grant access to everything'))
+    grant_unlimited_access = models.BooleanField(default=False, verbose_name=_('grant unlimited access'))
     grant_space_access = models.BooleanField(default=False, verbose_name=_('can grant space access'))
 
     review_all_reports = models.BooleanField(default=False, verbose_name=_('can review all reports'))

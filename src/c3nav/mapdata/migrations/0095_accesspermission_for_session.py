@@ -26,4 +26,22 @@ class Migration(migrations.Migration):
                 to=settings.AUTH_USER_MODEL,
             ),
         ),
+        migrations.AddConstraint(
+            model_name="accesspermission",
+            constraint=models.CheckConstraint(
+                check=models.Q(
+                    models.Q(
+                        ("session_token__isnull", True),
+                        ("user__isnull", True),
+                        _negated=True,
+                    ),
+                    models.Q(
+                        ("session_token__isnull", False),
+                        ("user__isnull", False),
+                        _negated=True,
+                    ),
+                ),
+                name="permission_needs_user_or_session",
+            ),
+        ),
     ]

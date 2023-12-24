@@ -16,6 +16,11 @@
                 {{ access_permission_form.can_grant }}
             </div>
         {% endif %}
+        {% if access_permission_form.unlimited %}
+            <div class="field">
+                {{ access_permission_form.unlimited }}
+            </div>
+        {% endif %}
         <div class="field">
             <button type="submit" name="submit_access_permissions" value="1">{{ button_label }}</button>
         </div>

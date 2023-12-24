@@ -6,4 +6,24 @@
 {% block subcontent %}
     {% trans 'Generate QR Code' as button_label %}
     {% include 'control/fragment_access_permissions_form.html' with button_label=button_label %}
+    
+    {% if tokens %}
+        <h2>{% trans 'Unlimited tokens' %}</h2>
+        <table>
+            <tr>
+                <th>{% trans 'ID' %}</th>
+                <th>{% trans 'Areas' %}</th>
+                <th>{% trans 'Valid until' %}</th>
+                <th></th>
+            </tr>
+            {% for token in tokens %}
+                <tr>
+                    <td>{{ token.id }}</td>
+                    <td>{% for r in token.restrictions %}{{ r.title }}<br>{% endfor %}</td>
+                    <td>{{ token.valid_until }}</td>
+                    <td><a href="{% url "control.access.qr" token=token.token %}" class="button" style="margin: 0;">{% trans "view" %}</a></td>
+                </tr>
+            {% endfor %}
+        </table>
+    {% endif %}
 {% endblock %}

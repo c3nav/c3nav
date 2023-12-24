@@ -17,16 +17,30 @@
     <p>
         <a href="{{ url }}">{{ url_absolute }}</a>
     </p>
-    <p>
-        <em>{% trans 'Please wait. You will be redirected back when the token is redeemed.' %}</em>
-    </p>
+    {% if token.unlimited %}
+        <p>
+            <em>{% trans 'This token is valid for unlimited uses.' %}</em>
+        </p>
+        <p>
+            <strong>{% trans 'Expiry date:' %}</strong> {{ token.valid_until }}
+        </p>
+        <p>
+            <a href="{% url "control.access" %}">{% trans 'go back' %}</a>
+        </p>
+    {% else %}
+        <p>
+            <em>{% trans 'Please wait. You will be redirected back when the token is redeemed.' %}</em>
+        </p>
+    {% endif %}
     <form method="post">
         {% csrf_token %}
         <p>
             <button type="submit" name="revoke" value="1">{% trans 'Revoke Token' %}</button>
         </p>
     </form>
-    <script type="text/javascript">
-        window.setTimeout(function() { window.location.reload(); }, 3000);
-    </script>
+    {% if not token.unlimited %}
+        <script type="text/javascript">
+            window.setTimeout(function() { window.location.reload(); }, 3000);
+        </script>
+    {% endif %}
 {% endblock %}

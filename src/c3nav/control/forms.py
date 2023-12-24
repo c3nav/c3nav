@@ -141,7 +141,12 @@ class AccessPermissionForm(Form):
         # if applicable, add field to grant pass on permissions
         if author_permissions.grant_all_access:
             choices = [('0', '---')]*6 + [('1', _('can pass on'))] + [('0', '---')]*3
-            self.fields['can_grant'] = ChoiceField(required=False, initial='60', choices=choices)
+            self.fields['can_grant'] = ChoiceField(required=False, initial='0', choices=choices)
+
+        # if applicable, add field to grant pass on permissions
+        if author_permissions.grant_unlimited_access:
+            choices = [('0', '---')] * 6 + [('1', _('UNLIMITED'))] + [('0', '---')] * 3
+            self.fields['unlimited'] = ChoiceField(required=False, initial='0', choices=choices)
 
     def clean_access_restrictions(self):
         data = self.cleaned_data['access_restrictions']
@@ -178,10 +183,17 @@ class AccessPermissionForm(Form):
                 expire_date = author_expire_date if expire_date is None else min(expire_date, author_expire_date)
             restrictions.append(AccessPermissionTokenItem(pk=restriction, expire_date=expire_date,
                                                           title=self.titles[restriction]))
+        unlimited_stuff = {}
+        if self.cleaned_data.get("unlimited", "0") == "1":
+            unlimited_stuff = {
+                "valid_until": default_expire_date,
+                "unlimited": True,
+            }
         return AccessPermissionToken(author=self.author,
                                      can_grant=self.cleaned_data.get('can_grant', '0') == '1',
                                      restrictions=tuple(restrictions),
-                                     unique_key=unique_key)
+                                     unique_key=unique_key,
+                                     **unlimited_stuff)
 
     def get_signed_data(self, key=None):
         try:

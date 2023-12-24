@@ -29,7 +29,8 @@ def grant_access(request):  # todo: make class based view
         form = AccessPermissionForm(request=request)
 
     ctx = {
-        'access_permission_form': form
+        'access_permission_form': form,
+        'tokens': AccessPermissionToken.objects.filter(author=request.user, unlimited=True),
     }
 
     return render(request, 'control/access.html', ctx)
@@ -66,6 +67,7 @@ def grant_access_qr(request, token):  # todo: make class based view
 
     url = reverse('site.access.redeem', kwargs={'token': str(token.token)})
     return render(request, 'control/access_qr.html', {
+        'token': token,
         'url': url,
         'url_qr': reverse('site.qr', kwargs={'path': url.removeprefix('/')}),
         'url_absolute': request.build_absolute_uri(url),

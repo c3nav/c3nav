@@ -7,8 +7,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2023-12-23 17:47+0100\n"
-"PO-Revision-Date: 2023-12-23 17:48+0100\n"
+"POT-Creation-Date: 2023-12-24 15:59+0100\n"
+"PO-Revision-Date: 2023-12-24 16:03+0100\n"
 "Last-Translator: Laura Klünder <laura@codingcatgirl.de>\n"
 "Language-Team: \n"
 "Language: de\n"
@@ -97,7 +97,7 @@ msgstr "Zugangserlaubnisgruppen"
 
 #: c3nav/control/forms.py:112 c3nav/control/templates/control/access.html:4
 #: c3nav/control/templates/control/user.html:34
-#: c3nav/mapdata/models/access.py:178
+#: c3nav/mapdata/models/access.py:192
 msgid "Access Permissions"
 msgstr "Zugangserlaubnisse"
 
@@ -135,47 +135,51 @@ msgstr[1] "in %d Tagen"
 msgid "can pass on"
 msgstr "kann weitergeben"
 
-#: c3nav/control/forms.py:290
+#: c3nav/control/forms.py:148
+msgid "UNLIMITED"
+msgstr "UNLIMITIERT"
+
+#: c3nav/control/forms.py:302
 msgid "no"
 msgstr "nein"
 
-#: c3nav/control/forms.py:290
+#: c3nav/control/forms.py:302
 msgid "yes"
 msgstr "ja"
 
-#: c3nav/control/forms.py:310
+#: c3nav/control/forms.py:322
 msgid "any type"
 msgstr "beliebiger Typ"
 
-#: c3nav/control/forms.py:314 c3nav/control/forms.py:318
+#: c3nav/control/forms.py:326 c3nav/control/forms.py:330
 msgid "any"
 msgstr "beliebig"
 
-#: c3nav/control/forms.py:314
+#: c3nav/control/forms.py:326
 msgid "geometries changed"
 msgstr "geometrien geändert"
 
-#: c3nav/control/forms.py:314
+#: c3nav/control/forms.py:326
 msgid "no geometries changed"
 msgstr "keine geometrien geändert"
 
-#: c3nav/control/forms.py:318
+#: c3nav/control/forms.py:330
 msgid "processed"
 msgstr "verarbeitet"
 
-#: c3nav/control/forms.py:318
+#: c3nav/control/forms.py:330
 msgid "not processed"
 msgstr "nicht verarbeitet"
 
-#: c3nav/control/forms.py:325
+#: c3nav/control/forms.py:337
 msgid "user id"
 msgstr "User ID"
 
-#: c3nav/control/forms.py:338
+#: c3nav/control/forms.py:350
 msgid "message types"
 msgstr "Nachrichtentypen"
 
-#: c3nav/control/forms.py:343 c3nav/mesh/forms.py:51
+#: c3nav/control/forms.py:355 c3nav/mesh/forms.py:51
 msgid "nodes"
 msgstr "Nodes"
 
@@ -220,40 +224,73 @@ msgid "can grant access to everything"
 msgstr "kann alle Zugangserlaubnisse erteilen"
 
 #: c3nav/control/models.py:31
+msgid "grant unlimited access"
+msgstr "unlimitierte Zugangserlaubnisse erteilen"
+
+#: c3nav/control/models.py:32
 msgid "can grant space access"
 msgstr "kann Raum-Zugriffsberechtigungen erteilen"
 
-#: c3nav/control/models.py:33
+#: c3nav/control/models.py:34
 msgid "can review all reports"
 msgstr "kann alle Meldungen überprüfen"
 
-#: c3nav/control/models.py:36
+#: c3nav/control/models.py:37
 msgid "can review reports belonging to"
 msgstr "can Meldungen überprüfen die zu diesen Gruppen gehören"
 
-#: c3nav/control/models.py:38
+#: c3nav/control/models.py:39
 msgid "can access mesh control"
 msgstr "kann auf das Mesh Control Panel zugreifen"
 
-#: c3nav/control/models.py:41 c3nav/control/models.py:42
+#: c3nav/control/models.py:42 c3nav/control/models.py:43
 msgid "User Permissions"
 msgstr "Benutzerbefugnisse"
 
-#: c3nav/control/models.py:116 c3nav/control/templates/control/user.html:139
+#: c3nav/control/models.py:117 c3nav/control/templates/control/user.html:139
 msgid "can edit"
 msgstr "kann bearbeiten"
 
-#: c3nav/control/models.py:119
+#: c3nav/control/models.py:120
 msgid "user space access"
 msgstr "Benutzer-Raumzugrifsberechtigung"
 
-#: c3nav/control/models.py:120
+#: c3nav/control/models.py:121
 msgid "user space accesses"
 msgstr "Benutzer-Raumzugrifsberechtigungen"
 
 #: c3nav/control/templates/control/access.html:7
 msgid "Generate QR Code"
 msgstr "QR Code generieren"
+
+#: c3nav/control/templates/control/access.html:11
+msgid "Unlimited tokens"
+msgstr "Unlimitierte Token"
+
+#: c3nav/control/templates/control/access.html:14
+#: c3nav/control/templates/control/announcements.html:9
+#: c3nav/control/templates/control/map_updates.html:59
+#: c3nav/control/templates/control/users.html:15
+#: c3nav/mapdata/models/base.py:43 c3nav/mapdata/models/locations.py:675
+#: c3nav/mapdata/utils/locations.py:340
+#: c3nav/mesh/templates/mesh/ota_list.html:23
+#: c3nav/site/templates/site/report_list.html:18
+msgid "ID"
+msgstr "ID"
+
+#: c3nav/control/templates/control/access.html:15
+#: c3nav/mapdata/models/geometry/space.py:133
+#: c3nav/mapdata/utils/locations.py:354
+msgid "Areas"
+msgstr "Bereiche"
+
+#: c3nav/control/templates/control/access.html:16
+msgid "Valid until"
+msgstr "Gültig bis"
+
+#: c3nav/control/templates/control/access.html:24
+msgid "view"
+msgstr "Anzeigen"
 
 #: c3nav/control/templates/control/access_qr.html:4
 msgid "Access Permission QR Code"
@@ -263,12 +300,24 @@ msgstr "Zugangserlaubnis QR-Code"
 msgid "Scan this QR code to get access permissions:"
 msgstr "Scan diesen QR-Code um Zugangserlaubnisse zu erhalten:"
 
-#: c3nav/control/templates/control/access_qr.html:21
+#: c3nav/control/templates/control/access_qr.html:22
+msgid "This token is valid for unlimited uses."
+msgstr "Dieser Token kann beliebig oft genutzt werden."
+
+#: c3nav/control/templates/control/access_qr.html:25
+msgid "Expiry date:"
+msgstr "Ablaufdatum:"
+
+#: c3nav/control/templates/control/access_qr.html:28
+msgid "go back"
+msgstr "zurück"
+
+#: c3nav/control/templates/control/access_qr.html:32
 msgid "Please wait. You will be redirected back when the token is redeemed."
 msgstr ""
 "Bitte warten. Du wirst zurückgeleitet, sobald der Code eingelöst wurde."
 
-#: c3nav/control/templates/control/access_qr.html:26
+#: c3nav/control/templates/control/access_qr.html:38
 msgid "Revoke Token"
 msgstr "Code invalidieren"
 
@@ -290,23 +339,13 @@ msgstr "Speichern"
 msgid "Users"
 msgstr "Benutzer"
 
-#: c3nav/control/templates/control/announcements.html:9
-#: c3nav/control/templates/control/map_updates.html:59
-#: c3nav/control/templates/control/users.html:15
-#: c3nav/mapdata/models/base.py:43 c3nav/mapdata/models/locations.py:675
-#: c3nav/mapdata/utils/locations.py:340
-#: c3nav/mesh/templates/mesh/ota_list.html:23
-#: c3nav/site/templates/site/report_list.html:18
-msgid "ID"
-msgstr "ID"
-
 #: c3nav/control/templates/control/announcements.html:10
 #: c3nav/site/models.py:18
 msgid "Text"
 msgstr "Text"
 
 #: c3nav/control/templates/control/announcements.html:11
-#: c3nav/editor/models/changeset.py:47 c3nav/mapdata/models/access.py:171
+#: c3nav/editor/models/changeset.py:47 c3nav/mapdata/models/access.py:185
 msgid "Author"
 msgstr "Autor"
 
@@ -538,13 +577,13 @@ msgstr "Autor"
 
 #: c3nav/control/templates/control/user.html:48
 #: c3nav/control/templates/control/user.html:96
-#: c3nav/mapdata/models/access.py:168
+#: c3nav/mapdata/models/access.py:182
 msgid "expires"
 msgstr "läuft ab"
 
 #: c3nav/control/templates/control/user.html:49
 #: c3nav/control/templates/control/user.html:97
-#: c3nav/mapdata/models/access.py:105 c3nav/mapdata/models/access.py:169
+#: c3nav/mapdata/models/access.py:105 c3nav/mapdata/models/access.py:183
 msgid "can grant"
 msgstr "kann erteilen"
 
@@ -567,8 +606,8 @@ msgid "Add"
 msgstr "Hinzufügen"
 
 #: c3nav/control/templates/control/user.html:95
-#: c3nav/mapdata/models/access.py:27 c3nav/mapdata/models/access.py:274
-#: c3nav/mapdata/models/access.py:287
+#: c3nav/mapdata/models/access.py:27 c3nav/mapdata/models/access.py:322
+#: c3nav/mapdata/models/access.py:335
 msgid "Access Restriction"
 msgstr "Zugangs­beschränkung"
 
@@ -602,15 +641,15 @@ msgstr "Suchen"
 msgid "Username"
 msgstr "Benutzername"
 
-#: c3nav/control/views/access.py:44
+#: c3nav/control/views/access.py:45
 msgid "Access successfully granted."
 msgstr "Zugangserlaubnis erfolgreich erteilt."
 
-#: c3nav/control/views/access.py:48
+#: c3nav/control/views/access.py:49
 msgid "Token successfully revoked."
 msgstr "Token erfolgreich invalidiert."
 
-#: c3nav/control/views/access.py:59
+#: c3nav/control/views/access.py:60
 msgid "You can only display your most recently created token."
 msgstr "Du kannst nur deinen zuletzt erstellten Code anzeigen."
 
@@ -1089,7 +1128,7 @@ msgid "Log out"
 msgstr "Abmelden"
 
 #: c3nav/editor/templates/editor/fragment_nav.html:23
-#: c3nav/editor/views/account.py:27 c3nav/site/views.py:241
+#: c3nav/editor/views/account.py:27 c3nav/site/views.py:239
 msgid "Log in"
 msgstr "Anmelden"
 
@@ -1219,7 +1258,7 @@ msgid "Activate direct editing"
 msgstr "Direktes Bearbeiten aktivieren"
 
 #: c3nav/editor/templates/editor/user.html:54 c3nav/editor/views/account.py:85
-#: c3nav/site/templates/site/account_manage.html:17 c3nav/site/views.py:306
+#: c3nav/site/templates/site/account_manage.html:17 c3nav/site/views.py:304
 msgid "Change password"
 msgstr "Passwort ändern"
 
@@ -1240,11 +1279,11 @@ msgid "All recent change sets"
 msgstr "Alle kürzlichen Änderungssets"
 
 #: c3nav/editor/views/account.py:30 c3nav/editor/views/account.py:61
-#: c3nav/site/views.py:248 c3nav/site/views.py:283
+#: c3nav/site/views.py:246 c3nav/site/views.py:281
 msgid "Create new account"
 msgstr "Neues Konto erstellen"
 
-#: c3nav/editor/views/account.py:75 c3nav/site/views.py:297
+#: c3nav/editor/views/account.py:75 c3nav/site/views.py:295
 msgid "Password successfully changed."
 msgstr "Passwort erfolgreich geändert."
 
@@ -1706,7 +1745,7 @@ msgstr "unbeschränkt"
 msgid "redeemed"
 msgstr "eingelöst"
 
-#: c3nav/mapdata/models/access.py:106 c3nav/mapdata/models/access.py:172
+#: c3nav/mapdata/models/access.py:106 c3nav/mapdata/models/access.py:186
 msgid "unique key"
 msgstr "unique key"
 
@@ -1718,18 +1757,18 @@ msgstr "Zugangserlaubnis-Token"
 msgid "Access Permission Tokens"
 msgstr "Zugangserlaubnis-Token"
 
-#: c3nav/mapdata/models/access.py:161 c3nav/site/views.py:87
-#: c3nav/site/views.py:369
+#: c3nav/mapdata/models/access.py:174 c3nav/site/views.py:84
+#: c3nav/site/views.py:362
 msgid "Area successfully unlocked."
 msgid_plural "Areas successfully unlocked."
 msgstr[0] "Bereich erfolgreich freigeschaltet."
 msgstr[1] "Bereiche erfolgreich freigeschaltet."
 
-#: c3nav/mapdata/models/access.py:174
+#: c3nav/mapdata/models/access.py:188
 msgid "Access permission token"
 msgstr "Zugangserlaubnis-Token"
 
-#: c3nav/mapdata/models/access.py:177
+#: c3nav/mapdata/models/access.py:191
 msgid "Access Permission"
 msgstr "Zugangserlaubnis"
 
@@ -1909,11 +1948,6 @@ msgstr "Hauptroutingpunkt (optional)"
 #: c3nav/mapdata/models/geometry/space.py:132
 msgid "Area"
 msgstr "Bereich"
-
-#: c3nav/mapdata/models/geometry/space.py:133
-#: c3nav/mapdata/utils/locations.py:354
-msgid "Areas"
-msgstr "Bereiche"
 
 #: c3nav/mapdata/models/geometry/space.py:161
 msgid "Stair"
@@ -2578,9 +2612,9 @@ msgstr "Nahe %(area)s"
 msgid "In %(space)s"
 msgstr "In %(space)s"
 
-#: c3nav/mapdata/utils/user.py:20
-msgid "not logged in"
-msgstr "nicht angemeldet"
+#: c3nav/mapdata/utils/user.py:20 c3nav/mapdata/utils/user.py:26
+msgid "Login"
+msgstr "Anmelden"
 
 #: c3nav/mapdata/utils/user.py:21
 #, python-format
@@ -2588,10 +2622,6 @@ msgid "%d area unlocked"
 msgid_plural "%d areas unlocked"
 msgstr[0] "%d freigeschalteter Bereich"
 msgstr[1] "%d freigeschaltete Bereiche"
-
-#: c3nav/mapdata/utils/user.py:26
-msgid "Login"
-msgstr "Anmelden"
 
 #: c3nav/mesh/forms.py:39
 msgid "broadcast"
@@ -3390,7 +3420,7 @@ msgstr "Konto verwalten"
 msgid "Manage your Account"
 msgstr "Deinen Account verwalten"
 
-#: c3nav/site/templates/site/account_manage.html:20 c3nav/site/views.py:325
+#: c3nav/site/templates/site/account_manage.html:20 c3nav/site/views.py:323
 msgid "Delete account"
 msgstr "Account löschen"
 
@@ -3712,24 +3742,33 @@ msgstr "Alle Meldungen"
 msgid "State"
 msgstr "Status"
 
-#: c3nav/site/views.py:79 c3nav/site/views.py:361
-msgid "You need to log in to unlock areas."
-msgstr "Du musst dich anmelden um Bereiche freizuschalten."
+#: c3nav/site/views.py:75 c3nav/site/views.py:352
+msgid "This token does not exist or was already redeemed."
+msgstr "Dieser Code existiert nicht oder wurde bereits eingelöst."
 
-#: c3nav/site/views.py:220
-msgid "Areas could not be unlocked because the token has expired."
-msgstr ""
-"Zugangserlaubnis konnte nicht gewährt werden weil der Code abgelaufen ist."
+#: c3nav/site/views.py:90 c3nav/site/views.py:368
+msgid ""
+"Area successfully unlocked. If you sign in, it will also be saved to your "
+"account."
+msgid_plural ""
+"Areas successfully unlocked. If you sign in, they will also be saved to your "
+"account."
+msgstr[0] ""
+"Bereich erfolgreich freigeschaltet. Wenn Du dich einloggst, wird er auch in "
+"deinem Account hinterlegt."
+msgstr[1] ""
+"Bereiche erfolgreich freigeschaltet. Wenn Du dich einloggst, werden sie auch "
+"in deinem Account hinterlegt."
 
-#: c3nav/site/views.py:263
+#: c3nav/site/views.py:261
 msgid "account creation is currently disabled."
 msgstr "Benutzerregistrierung ist momentan deaktiviert."
 
-#: c3nav/site/views.py:319
+#: c3nav/site/views.py:317
 msgid "Account successfully deleted."
 msgstr "Account erfolgreich gelöscht."
 
-#: c3nav/site/views.py:326
+#: c3nav/site/views.py:324
 msgid ""
 "Click the button below to instantly delete your account and all associated "
 "data. This process can't be reversed."
@@ -3737,71 +3776,77 @@ msgstr ""
 "Klicke den untenstehenden Button um deinen Account und alle verknüpften "
 "Daten sofort zu löschen. Dieser Prozess kann nicht rückgängig gemacht werden."
 
-#: c3nav/site/views.py:354
-msgid "This token does not exist or was already redeemed."
-msgstr "Dieser Code existiert nicht oder wurde bereits eingelöst."
-
-#: c3nav/site/views.py:374
+#: c3nav/site/views.py:375
 msgid "Unlock area"
 msgid_plural "Unlock areas"
 msgstr[0] "Bereich freischalten"
 msgstr[1] "Bereiche freischalten"
 
-#: c3nav/site/views.py:375
+#: c3nav/site/views.py:376
 msgid "You have been invited to unlock the following area:"
 msgid_plural "You have been invited to unlock the following areas:"
 msgstr[0] "Du wurdest eingeladen, den folgenden Bereich freizuschalten:"
 msgstr[1] "Du wurdest eingeladen, die folgenden Bereiche freizuschalten:"
 
-#: c3nav/site/views.py:450
+#: c3nav/site/views.py:451
 msgid "Your report was submitted."
 msgstr "Deine Meldung wurde abgesendet."
 
-#: c3nav/site/views.py:453
+#: c3nav/site/views.py:454
 msgid "You can keep track of it from your user dashboard."
 msgstr "Du kannst sie in deinerm Benutzerdashboard verfolgen."
 
-#: c3nav/site/views.py:455
+#: c3nav/site/views.py:456
 msgid "You can keep track of it by revisiting the public URL mentioned below."
 msgstr "Du kannst sie mit dem unten angegebenen öffentlichen link verfolgen."
 
-#: c3nav/site/views.py:506
+#: c3nav/site/views.py:507
 msgid "Report updated."
 msgstr "Meldung aktualisiert."
 
-#: c3nav/site/views.py:531
+#: c3nav/site/views.py:532
 msgid "You can't create more than 20 positions."
 msgstr "Du kannst nicht mehr als 20 Positionen erstellen."
 
-#: c3nav/site/views.py:540
+#: c3nav/site/views.py:541
 msgid "Position created."
 msgstr "Position erstellt."
 
-#: c3nav/site/views.py:559
+#: c3nav/site/views.py:560
 msgid "Position deleted."
 msgstr "Position gelöscht."
 
-#: c3nav/site/views.py:572
+#: c3nav/site/views.py:573
 msgid "Position updated."
 msgstr "Position geändert."
 
-#: c3nav/site/views.py:596
+#: c3nav/site/views.py:597
 msgid "Position set."
 msgstr "Position gesetzt."
 
-#: c3nav/site/views.py:612
+#: c3nav/site/views.py:613
 msgid "API secret deleted."
 msgstr "API secret erfolgreich gelöscht."
 
-#: c3nav/site/views.py:623
+#: c3nav/site/views.py:624
 msgid "You can't create more than 20 API secrets."
 msgstr "Du kannst nicht mehr als 20 API-Secrets erstellen."
 
-#: c3nav/site/views.py:631
+#: c3nav/site/views.py:632
 msgid "API secret created. Save it now, cause it will not be shown again!"
 msgstr ""
 "API-Secret erstellt. Notier es dir sofort, denn es wird nicht erneut "
 "angezeigt!"
+
+#~ msgid "not logged in"
+#~ msgstr "nicht angemeldet"
+
+#~ msgid "You need to log in to unlock areas."
+#~ msgstr "Du musst dich anmelden um Bereiche freizuschalten."
+
+#~ msgid "Areas could not be unlocked because the token has expired."
+#~ msgstr ""
+#~ "Zugangserlaubnis konnte nicht gewährt werden weil der Code abgelaufen ist."
 
 #~ msgid "Log out first."
 #~ msgstr "Bitte zuerst abmelden."
