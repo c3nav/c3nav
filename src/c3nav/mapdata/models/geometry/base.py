@@ -4,7 +4,7 @@ from contextlib import contextmanager
 from django.db import models
 from django.utils.functional import cached_property
 from django.utils.translation import gettext_lazy as _
-from shapely.geometry import Point, box
+from shapely.geometry import Point
 from shapely.geometry.base import BaseGeometry
 from shapely.ops import unary_union
 

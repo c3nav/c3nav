@@ -232,8 +232,7 @@ def changeset_detail(request, pk):
 
                 else:
                     obj_desc = format_lazy(_('{model} #{id} (deleted outside this changeset)'),
-                                        model=obj.__class__._meta.verbose_name, id=pk)
-
+                                           model=obj.__class__._meta.verbose_name, id=pk)
 
             edit_url = None
             if obj_still_exists and can_edit and not isinstance(obj, LocationRedirect):

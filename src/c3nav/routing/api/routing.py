@@ -46,6 +46,7 @@ class RestrictedAreas(StrEnum):
     PREFER = "prefer"
     AVOID = "avoid"
 
+
 class LevelWayTypeChoice(StrEnum):
     """ route preferences for way types that are level """
     ALLOW = "allow"

@@ -1,7 +1,6 @@
 import re
 from typing import Annotated, Optional, Union
 
-from ninja import Schema
 from pydantic import Field as APIField
 from pydantic import PositiveInt
 

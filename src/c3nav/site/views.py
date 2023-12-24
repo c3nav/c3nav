@@ -8,7 +8,6 @@ from django.contrib import messages
 from django.contrib.auth import login, logout
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.forms import AuthenticationForm, PasswordChangeForm, UserCreationForm
-from django.contrib.auth.views import redirect_to_login
 from django.core.cache import cache
 from django.core.exceptions import ObjectDoesNotExist, SuspiciousOperation
 from django.core.paginator import Paginator
@@ -28,7 +27,6 @@ from django.views.decorators.http import etag
 
 from c3nav import __version__ as c3nav_version
 from c3nav.api.models import Secret
-from c3nav.control.forms import AccessPermissionForm, SignedPermissionDataError
 from c3nav.mapdata.grid import grid
 from c3nav.mapdata.models import Location, Source
 from c3nav.mapdata.models.access import AccessPermissionToken, AccessPermission

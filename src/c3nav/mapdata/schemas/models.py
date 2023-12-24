@@ -1,6 +1,5 @@
 from typing import Annotated, ClassVar, Literal, Optional, Union
 
-from ninja import Schema
 from pydantic import Discriminator
 from pydantic import Field as APIField
 from pydantic import NonNegativeFloat, PositiveFloat, PositiveInt

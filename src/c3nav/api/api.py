@@ -1,4 +1,3 @@
-from django.conf import settings
 from ninja import Field as APIField
 from ninja import Router as APIRouter
 

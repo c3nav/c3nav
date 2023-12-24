@@ -61,7 +61,6 @@ class AccessRestriction(TitledMixin, models.Model):
         return access_restriction_ids
 
 
-
 class AccessRestrictionGroup(TitledMixin, models.Model):
     """
     An access restriction group
@@ -204,7 +203,7 @@ class AccessPermission(models.Model):
         )
 
     @staticmethod
-    def build_access_permission_key(*, session_token: str|None = None, user_id: int|None = None):
+    def build_access_permission_key(*, session_token: str | None = None, user_id: int | None = None):
         if session_token:
             if user_id:
                 raise ValueError
