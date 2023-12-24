@@ -53,7 +53,11 @@ class EditorFormBase(I18nModelFormMixin, ModelForm):
                 # hide geometry widget
                 self.fields['main_point'].widget = HiddenInput()
                 if not creating:
-                    self.initial['main_point'] = mapping(self.instance.main_point) if self.instance.main_point else ""
+                    self.initial['main_point'] = (
+                        mapping(self.instance.main_point)
+                        if self.instance.main_point and not self.instance.main_point.is_empty
+                        else None
+                    )
 
         if self._meta.model.__name__ == 'Source' and self.request.user.is_superuser:
             Source = self.request.changeset.wrap_model('Source')

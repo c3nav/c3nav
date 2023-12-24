@@ -50,7 +50,7 @@ class GeometryField(models.JSONField):
         return name, path, args, kwargs
 
     def from_db_value(self, value, expression, connection):
-        if value is None or value == '':
+        if value is None or value == '' or value == "null":
             return None
         return WrappedGeometry(super().from_db_value(value, expression, connection))
 
