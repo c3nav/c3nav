@@ -100,6 +100,8 @@ c3nav = {
     init_completed: false,
     user_data: null,
     init: function () {
+        c3nav.access_query = new URLSearchParams(window.location.search).get("access");
+
         c3nav.load_material_icons_if_needed();
         c3nav.load_searchable_locations();
 
@@ -757,7 +759,7 @@ c3nav = {
             embed_link = $('.embed-link');
 
         if (embed_link.length) {
-            embed_link.attr('href', c3nav._build_state_url(state));
+            embed_link.attr('href', c3nav._build_state_url(state)+(c3nav.access_query?('?access='+c3nav.access_query):''));
         }
 
         c3nav.state = state;
