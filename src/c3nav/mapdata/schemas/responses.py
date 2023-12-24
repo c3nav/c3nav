@@ -3,7 +3,7 @@ from typing import Annotated, Union
 from pydantic import Field as APIField
 from pydantic import PositiveInt
 
-from c3nav.api.schema import GeometrySchema, BaseSchema
+from c3nav.api.schema import BaseSchema, GeometrySchema
 from c3nav.mapdata.schemas.model_base import AnyLocationID, BoundsSchema
 
 

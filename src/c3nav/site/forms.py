@@ -3,7 +3,7 @@ from datetime import timedelta
 from operator import attrgetter
 
 from django.db import transaction
-from django.forms import Form, IntegerField, ModelChoiceField, ModelForm, BooleanField
+from django.forms import BooleanField, Form, IntegerField, ModelChoiceField, ModelForm
 from django.utils import timezone
 from django.utils.crypto import get_random_string
 from django.utils.translation import gettext_lazy as _

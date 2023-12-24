@@ -39,7 +39,7 @@ from c3nav.mapdata.utils.locations import (get_location_by_id_for_request, get_l
 from c3nav.mapdata.utils.user import can_access_editor, get_user_data
 from c3nav.mapdata.views import set_tile_access_cookie
 from c3nav.routing.models import RouteOptions
-from c3nav.site.forms import APISecretForm, PositionForm, PositionSetForm, ReportUpdateForm, DeleteAccountForm
+from c3nav.site.forms import APISecretForm, DeleteAccountForm, PositionForm, PositionSetForm, ReportUpdateForm
 from c3nav.site.models import Announcement, SiteUpdate
 
 

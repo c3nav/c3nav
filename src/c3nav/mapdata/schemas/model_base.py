@@ -5,7 +5,7 @@ from ninja import Schema
 from pydantic import Field as APIField
 from pydantic import PositiveInt
 
-from c3nav.api.schema import LineStringSchema, PointSchema, PolygonSchema, BaseSchema
+from c3nav.api.schema import BaseSchema, LineStringSchema, PointSchema, PolygonSchema
 from c3nav.api.utils import NonEmptyStr
 
 

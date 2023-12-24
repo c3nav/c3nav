@@ -5,7 +5,7 @@ from pydantic import Discriminator
 from pydantic import Field as APIField
 from pydantic import NonNegativeFloat, PositiveFloat, PositiveInt
 
-from c3nav.api.schema import GeometrySchema, PointSchema, BaseSchema
+from c3nav.api.schema import BaseSchema, GeometrySchema, PointSchema
 from c3nav.api.utils import NonEmptyStr
 from c3nav.mapdata.schemas.model_base import (AnyLocationID, AnyPositionID, CustomLocationID, DjangoModelSchema,
                                               LabelSettingsSchema, LocationSchema, PositionID,

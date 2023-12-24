@@ -3,10 +3,10 @@ from itertools import chain
 from django.urls import path, register_converter
 
 from c3nav.site.converters import AtPositionConverter, CoordinatesConverter, IsEmbedConverter, LocationConverter
-from c3nav.site.views import (about_view, access_redeem_view, account_view, api_secret_create, api_secret_list,
-                              change_password_view, choose_language, login_view, logout_view, map_index,
-                              position_create, position_detail, position_list, position_set, qr_code, register_view,
-                              report_create, report_detail, report_list, delete_account_view, account_manage)
+from c3nav.site.views import (about_view, access_redeem_view, account_manage, account_view, api_secret_create,
+                              api_secret_list, change_password_view, choose_language, delete_account_view, login_view,
+                              logout_view, map_index, position_create, position_detail, position_list, position_set,
+                              qr_code, register_view, report_create, report_detail, report_list)
 
 register_converter(LocationConverter, 'loc')
 register_converter(CoordinatesConverter, 'coords')
