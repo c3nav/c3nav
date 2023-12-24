@@ -17,7 +17,7 @@ def get_user_data(request):
     }
     if permissions:
         result.update({
-            'title': _('not logged in'),
+            'title': _('Login'),
             'subtitle': ngettext_lazy('%d area unlocked', '%d areas unlocked', len(permissions)) % len(permissions),
             'permissions': tuple(permissions),
         })

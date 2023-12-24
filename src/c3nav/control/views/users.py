@@ -118,7 +118,7 @@ def user_detail(request, user):  # todo: make class based view
             if form.is_valid():
                 token = form.get_token()
                 token.save()
-                token.redeem(user)
+                token.redeem(user=user)
                 messages.success(request, _('Access permissions successfully granted.'))
                 return redirect(request.path_info)
         else:

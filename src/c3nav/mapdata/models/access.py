@@ -122,14 +122,26 @@ class AccessPermissionToken(models.Model):
     class RedeemError(Exception):
         pass
 
-    def redeem(self, user=None):
-        if (user is None and self.redeemed) or (self.accesspermissions.exists() and not self.unlimited):
+    def redeem(self, /, user=None, request=None):
+        if user is None and request is not None:
+            if request.user.is_authenticated:
+                user = request.user
+
+        grant_to = None
+        if user:
+            grant_to = {"user": user}
+        elif request:
+            grant_to = {
+                "session_token": request.session.setdefault("accesspermission_session_token", str(uuid.uuid4()))
+            }
+
+        if (grant_to is None and self.redeemed) or (self.accesspermissions.exists() and not self.unlimited):
             raise self.RedeemError('Already redeemed.')
 
         if timezone.now() > self.valid_until + timedelta(minutes=5 if self.redeemed else 0):
             raise self.RedeemError('No longer valid.')
 
-        if user:
+        if grant_to:
             with transaction.atomic():
                 if self.author_id and self.unique_key:
                     AccessPermission.objects.filter(author_id=self.author_id, unique_key=self.unique_key).delete()
@@ -140,7 +152,7 @@ class AccessPermissionToken(models.Model):
                         else {"access_restriction_group_id": int(restriction.pk.removeprefix("g"))}
                     )
                     AccessPermission.objects.create(
-                        user=user,
+                        **grant_to,
                         **to_grant,
                         author_id=self.author_id,
                         expire_date=restriction.expire_date,
@@ -162,7 +174,8 @@ class AccessPermissionToken(models.Model):
 
 
 class AccessPermission(models.Model):
-    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, on_delete=models.CASCADE)
+    session_token = models.UUIDField(null=True, editable=False)
     access_restriction = models.ForeignKey(AccessRestriction, on_delete=models.CASCADE, null=True)
     access_restriction_group = models.ForeignKey(AccessRestrictionGroup, on_delete=models.CASCADE, null=True)
     expire_date = models.DateTimeField(null=True, verbose_name=_('expires'))
@@ -184,11 +197,33 @@ class AccessPermission(models.Model):
             CheckConstraint(check=(~Q(access_restriction__isnull=True, access_restriction_group__isnull=True) &
                                    ~Q(access_restriction__isnull=False, access_restriction_group__isnull=False)),
                             name="permission_needs_restriction_or_restriction_group"),
+            CheckConstraint(check=(~Q(user__isnull=True, session_token__isnull=True) &
+                                   ~Q(user__isnull=False, session_token__isnull=False)),
+                            name="permission_needs_user_or_session"),
         )
 
     @staticmethod
-    def user_access_permission_key(user_id):
-        return 'mapdata:user_access_permission:%d' % user_id
+    def build_access_permission_key(*, session_token: str|None = None, user_id: int|None = None):
+        if session_token:
+            if user_id:
+                raise ValueError
+            return ('mapdata:session_access_permission:%s' % session_token)
+        elif user_id:
+            return 'mapdata:user_access_permission:%d' % user_id
+        raise ValueError
+
+    @staticmethod
+    def request_access_permission_key(request):
+        if request.user.is_authenticated:
+            return AccessPermission.build_access_permission_key(user_id=request.user.pk)
+        return AccessPermission.build_access_permission_key(
+            session_token=request.session.get("accesspermission_session_token", "NONE")
+        )
+
+    def access_permission_key(self):
+        if self.user_id:
+            return AccessPermission.build_access_permission_key(user_id=self.user_id)
+        return AccessPermission.build_access_permission_key(session_token=self.session_token)
 
     @classmethod
     def queryset_for_user(cls, user, can_grant=None):
@@ -199,15 +234,27 @@ class AccessPermission(models.Model):
         )
 
     @classmethod
-    def get_for_request_with_expire_date(cls, request, can_grant=None):
-        if not request.user.is_authenticated:
-            return {}
+    def queryset_for_session(cls, session):
+        session_token = session.get("accesspermission_session_token", None)
+        if not session_token:
+            return AccessPermission.objects.none()
+        return AccessPermission.objects.filter(session_token=session_token).filter(
+            Q(expire_date__isnull=True) | Q(expire_date__gt=timezone.now())
+        )
 
-        if request.user_permissions.grant_all_access:
-            return {pk: None for pk in AccessRestriction.get_all()}
+    @classmethod
+    def get_for_request_with_expire_date(cls, request, can_grant=None):
+        if request.user.is_authenticated:
+            if request.user_permissions.grant_all_access:
+                return {pk: None for pk in AccessRestriction.get_all()}
+            qs = cls.queryset_for_user(request.user, can_grant)
+        else:
+            if can_grant:
+                return {}
+            qs = cls.queryset_for_session(request.session)
 
         result = tuple(
-            cls.queryset_for_user(request.user, can_grant).select_related(
+            qs.select_related(
                 'access_restriction_group'
             ).prefetch_related('access_restriction_group__accessrestrictions')
         )
@@ -230,15 +277,15 @@ class AccessPermission(models.Model):
 
     @classmethod
     def get_for_request(cls, request) -> set[int]:
-        if not request or not request.user.is_authenticated:
+        if not request:
             return AccessRestriction.get_all_public()
 
-        if request.user_permissions.grant_all_access:
+        if request.user.is_authenticated and request.user_permissions.grant_all_access:
             return AccessRestriction.get_all()
 
-        cache_key = cls.user_access_permission_key(request.user.pk)
+        cache_key = cls.request_access_permission_key(request)
         access_restriction_ids = cache.get(cache_key, None)
-        if access_restriction_ids is None:
+        if access_restriction_ids is None or True:
             permissions = cls.get_for_request_with_expire_date(request)
 
             access_restriction_ids = set(permissions.keys())
@@ -261,12 +308,12 @@ class AccessPermission(models.Model):
     def save(self, *args, **kwargs):
         with transaction.atomic():
             super().save(*args, **kwargs)
-            transaction.on_commit(lambda: cache.delete(self.user_access_permission_key(self.user_id)))
+            transaction.on_commit(lambda: cache.delete(self.access_permission_key()))
 
     def delete(self, *args, **kwargs):
         with transaction.atomic():
             super().delete(*args, **kwargs)
-            transaction.on_commit(lambda: cache.delete(self.user_access_permission_key(self.user_id)))
+            transaction.on_commit(lambda: cache.delete(self.access_permission_key()))
 
 
 class AccessRestrictionMixin(SerializableMixin, models.Model):

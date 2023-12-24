@@ -9,6 +9,7 @@ from django.contrib.auth import login, logout
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.forms import AuthenticationForm, PasswordChangeForm, UserCreationForm
 from django.contrib.auth.views import redirect_to_login
+from django.core.cache import cache
 from django.core.exceptions import ObjectDoesNotExist, SuspiciousOperation
 from django.core.paginator import Paginator
 from django.core.serializers.json import DjangoJSONEncoder
@@ -30,7 +31,7 @@ from c3nav.api.models import Secret
 from c3nav.control.forms import AccessPermissionForm, SignedPermissionDataError
 from c3nav.mapdata.grid import grid
 from c3nav.mapdata.models import Location, Source
-from c3nav.mapdata.models.access import AccessPermissionToken
+from c3nav.mapdata.models.access import AccessPermissionToken, AccessPermission
 from c3nav.mapdata.models.locations import LocationRedirect, Position, SpecificLocation, get_position_secret
 from c3nav.mapdata.models.report import Report, ReportUpdate
 from c3nav.mapdata.utils.locations import (get_location_by_id_for_request, get_location_by_slug_for_request,
@@ -64,29 +65,35 @@ def check_location(location: Optional[str], request) -> Optional[SpecificLocatio
 def map_index(request, mode=None, slug=None, slug2=None, details=None, options=None, nearby=None, pos=None, embed=None):
 
     # check for access token
-    access_signed_data = request.GET.get('access')
-    if access_signed_data:
-        try:
-            token = AccessPermissionForm.load_signed_data(access_signed_data)
-        except SignedPermissionDataError as e:
-            return HttpResponse(str(e).encode(), content_type='text/plain', status=400)
-
-        num_restrictions = len(token.restrictions)
+    access_token = request.GET.get('access')
+    if access_token:
         with transaction.atomic():
-            token.save()
+            try:
+                token = AccessPermissionToken.objects.select_for_update().get(token=access_token, redeemed=False,
+                                                                              valid_until__gte=timezone.now())
+            except AccessPermissionToken.DoesNotExist:
+                messages.error(request, _('This token does not exist or was already redeemed.'))
+            else:
+                num_restrictions = len(token.restrictions)
+                with transaction.atomic():
+                    token.save()
+                    token.redeem(request=request)
+                    token.save()
 
-            if not request.user.is_authenticated:
-                messages.info(request, _('You need to log in to unlock areas.'))
-                request.session['redeem_token_on_login'] = str(token.token)
-                token.redeem()
-                return redirect_to_login(request.path_info, 'site.login')
-
-            token.redeem(request.user)
-            token.save()
-
-        messages.success(request, ngettext_lazy('Area successfully unlocked.',
-                                                'Areas successfully unlocked.', num_restrictions))
-        return redirect('site.index')
+                if request.user.is_authenticated:
+                    messages.success(request, ngettext_lazy('Area successfully unlocked.',
+                                                            'Areas successfully unlocked.', num_restrictions))
+                else:
+                    messages.success(
+                        request,
+                        ngettext_lazy(
+                            'Area successfully unlocked. '
+                            'If you sign in, it will also be saved to your account.',
+                            'Areas successfully unlocked. '
+                            'If you sign in, they will also be saved to your account.',
+                            num_restrictions
+                        )
+                    )
 
     origin = None
     destination = None
@@ -204,23 +211,14 @@ def close_response(request):
     return redirect(redirect_path)
 
 
-def redeem_token_after_login(request):
-    token = request.session.pop('redeem_token_on_login', None)
-    if not token:
-        return
-
-    try:
-        token = AccessPermissionToken.objects.get(token=token)
-    except AccessPermissionToken.DoesNotExist:
-        return
-
-    try:
-        token.redeem(request.user)
-    except AccessPermissionToken.RedeemError:
-        messages.error(request, _('Areas could not be unlocked because the token has expired.'))
-        return
-
-    messages.success(request, token.redeem_success_message)
+def migrate_access_permissions_after_login(request):
+    if not request.user.is_authenticated:
+        raise ValueError
+    with transaction.atomic():
+        session_token = request.session.pop("accesspermission_session_token", None)
+        if session_token:
+            AccessPermission.objects.filter(session_token=session_token).update(session_token=None, user=request.user)
+            transaction.on_commit(lambda: cache.delete(AccessPermission.request_access_permission_key(request)))
 
 
 @never_cache
@@ -232,7 +230,7 @@ def login_view(request):
         form = AuthenticationForm(request, data=request.POST)
         if form.is_valid():
             login(request, form.user_cache)
-            redeem_token_after_login(request)
+            migrate_access_permissions_after_login(request)
             return close_response(request)
     else:
         form = AuthenticationForm(request)
@@ -270,7 +268,7 @@ def register_view(request):
         if form.is_valid():
             user = form.save()
             login(request, user)
-            redeem_token_after_login(request)
+            migrate_access_permissions_after_login(request)
             return close_response(request)
     else:
         form = UserCreationForm()
@@ -357,17 +355,20 @@ def access_redeem_view(request, token):
         num_restrictions = len(token.restrictions)
 
         if request.method == 'POST':
-            if not request.user.is_authenticated:
-                messages.info(request, _('You need to log in to unlock areas.'))
-                request.session['redeem_token_on_login'] = str(token.token)
-                token.redeem()
-                return redirect('site.login')
-
-            token.redeem(request.user)
+            token.redeem(request=request)
             token.save()
 
-            messages.success(request, ngettext_lazy('Area successfully unlocked.',
-                                                    'Areas successfully unlocked.', num_restrictions))
+            if request.user.is_authenticated:
+                messages.success(request, ngettext_lazy('Area successfully unlocked.',
+                                                        'Areas successfully unlocked.', num_restrictions))
+            else:
+                messages.success(
+                    request,
+                    ngettext_lazy(
+                        'Area successfully unlocked. If you sign in, it will also be saved to your account.',
+                        'Areas successfully unlocked. If you sign in, they will also be saved to your account.',
+                        num_restrictions
+                    ))
             return redirect('site.index')
 
     return render(request, 'site/confirm.html', {
