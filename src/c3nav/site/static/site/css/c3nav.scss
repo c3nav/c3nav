@@ -75,7 +75,8 @@ header h1 a, header h1 a:hover {
 header h1 img {
     height: 50px;
     vertical-align: top;
-    margin-left: -10px;
+    // I have no idea why we did this, but it breaks the header logo, so I disabled it.
+    // margin-left: -10px;
     max-width: none;
 }
 @media (max-width: 500px) {
