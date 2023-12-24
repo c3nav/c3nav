@@ -123,7 +123,7 @@ class AccessPermissionToken(models.Model):
         pass
 
     def redeem(self, user=None):
-        if (user is None and self.redeemed) or self.accesspermissions.exists():
+        if (user is None and self.redeemed) or (self.accesspermissions.exists() and not self.unlimited):
             raise self.RedeemError('Already redeemed.')
 
         if timezone.now() > self.valid_until + timedelta(minutes=5 if self.redeemed else 0):
