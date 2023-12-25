@@ -111,7 +111,7 @@ input {
 ::-moz-placeholder {
     color: $color-placeholder;
 }
-.material-icons {
+.material-symbols {
     -webkit-user-select: none;
     -moz-user-select: none;
     -ms-user-select: none;
@@ -480,14 +480,14 @@ main:not(.show-details) #resultswrapper .details:not(#route-options),
 main:not(.show-options) #resultswrapper #route-options {
     display:none;
 }
-main .buttons .details .material-icons {
+main .buttons .details .material-symbols {
     transition: -webkit-transform 250ms;
     -webkit-transition: -webkit-transform 250ms;
     -o-transition: transform 250ms;
     transition: transform 250ms;
     transition: transform 250ms, -webkit-transform 250ms;
 }
-main.show-details .buttons .details .material-icons {
+main.show-details .buttons .details .material-symbols {
     -webkit-transform: scale(1, -1);
             -ms-transform: scale(1, -1);
         transform: scale(1, -1);
@@ -729,7 +729,7 @@ main:not([data-view=route-result]) #route-dots {
     height: 21px;
     text-align: center;
 }
-.routeitem .icon .material-icons {
+.routeitem .icon .material-symbols {
     color: $color-icon;
     font-size: 21px;
 }
@@ -776,7 +776,7 @@ main:not([data-view=route-result]) #route-dots {
             padding-right: 0;
             overflow: hidden;
         }
-        .as-location .material-icons {
+        .as-location .material-symbols {
             transform: rotate(-45deg);
         }
     }
@@ -832,7 +832,7 @@ main:not([data-view=route-result]) #route-dots {
     height: 3.3rem;
     padding: 0;
 }
-button .material-icons, .button .material-icons {
+button .material-symbols, .button .material-symbols {
     font-size: 15px;
     vertical-align: -3px;
 }
@@ -1348,7 +1348,7 @@ button + button {
 .green {
     color: #28b62c;
 }
-.material-icons {
+.material-symbols {
     text-transform: none !important;
 }
 

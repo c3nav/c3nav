@@ -102,12 +102,12 @@ c3nav = {
     init: function () {
         c3nav.access_query = new URLSearchParams(window.location.search).get("access");
 
-        c3nav.load_material_icons_if_needed();
+        c3nav.load_material_symbols_if_needed();
         c3nav.load_searchable_locations();
 
         $('#messages').find('ul.messages li').each(function() {
             $(this).prepend(
-                $('<a href="#" class="close"><i class="material-icons">close</i></a>').click(function(e) {
+                $('<a href="#" class="close"><i class="material-symbols">close</i></a>').click(function(e) {
                     e.preventDefault();
                     $(this).parent().remove();
                 })
@@ -636,7 +636,7 @@ c3nav = {
     _build_route_item: function (icon, text) {
         var elem = $('<div class="routeitem">');
         if (icon.indexOf('.') === -1) {
-            elem.append($('<span class="icon"><i class="material-icons">' + icon + '</i></span>'));
+            elem.append($('<span class="icon"><i class="material-symbols">' + icon + '</i></span>'));
         } else {
             elem.append($('<span class="icon"><img src="/static/site/img/icons/' + icon + '"></span>'));
         }
@@ -964,7 +964,7 @@ c3nav = {
     },
     _build_location_html: function(location) {
         var html = $('<div class="location">')
-            .append($('<i class="icon material-icons">').text(c3nav._map_material_icon(location.icon || 'place')))
+            .append($('<i class="icon material-symbols">').text(c3nav._map_material_icon(location.icon || 'place')))
             .append($('<span>').text(location.title))
             .append($('<small>').text(location.subtitle)).attr('data-id', location.id);
         html.attr('data-location', JSON.stringify(location));
@@ -1297,7 +1297,7 @@ c3nav = {
     _set_modal_content: function(content, no_close) {
         $('#modal').toggleClass('loading', !content)
             .find('#modal-content')
-            .html((!no_close) ? '<button class="button-clear material-icons" id="close-modal">clear</button>' :'')
+            .html((!no_close) ? '<button class="button-clear material-symbols" id="close-modal">clear</button>' :'')
             .append(content || '');
     },
     _modal_click: function(e) {
@@ -1887,8 +1887,8 @@ c3nav = {
         }
     },
 
-    _material_icons_codepoints: null,
-    load_material_icons_if_needed: function() {
+    _material_symbols_codepoints: null,
+    load_material_symbols_if_needed: function() {
         // load material icons codepoint for android 4.3.3 and other heccing old browsers
         var elem = document.createElement('span'),
             before = elem.style.fontFeatureSettings,
@@ -1898,10 +1898,10 @@ c3nav = {
             ligaturesSupported = (elem.style.fontFeatureSettings !== before);
         }
         if (!ligaturesSupported) {
-            $.get('/static/material-icons/codepoints', c3nav._material_icons_loaded);
+            $.get('/static/material-symbols/MaterialSymbolsOutlined.codepoints', c3nav._material_symbols_loaded);
         }
     },
-    _material_icons_loaded: function(data) {
+    _material_symbols_loaded: function(data) {
         var lines = data.split("\n"),
             line, result = {};
 
@@ -1911,14 +1911,14 @@ c3nav = {
                 result[line[0]] = String.fromCharCode(parseInt(line[1], 16));
             }
         }
-        c3nav._material_icons_codepoints = result;
-        $('.material-icons').each(function() {
+        c3nav._material_symbols_codepoints = result;
+        $('.material-symbols').each(function() {
             $(this).text(c3nav._map_material_icon($(this).text()));
         });
     },
     _map_material_icon: function(name) {
-        if (c3nav._material_icons_codepoints === null) return name;
-        return c3nav._material_icons_codepoints[name] || '';
+        if (c3nav._material_symbols_codepoints === null) return name;
+        return c3nav._material_symbols_codepoints[name] || '';
     },
     _pause: function() {
         if (c3nav._fetch_updates_timer !== null) {
@@ -2084,7 +2084,7 @@ UserLocationControl = L.Control.extend({
 
     onAdd: function () {
         this._container = L.DomUtil.create('div', 'leaflet-control-user-location leaflet-bar ' + this.options.addClasses);
-        this._button = L.DomUtil.create('a', 'material-icons', this._container);
+        this._button = L.DomUtil.create('a', 'material-symbols', this._container);
         this._button.innerHTML = c3nav._map_material_icon(c3nav.hasLocationPermission() ? 'location_searching' : 'location_disabled');
         this._button.classList.toggle('control-disabled', !c3nav.hasLocationPermission());
         this._button.href = '#';
@@ -2102,7 +2102,7 @@ LabelControl = L.Control.extend({
 
     onAdd: function () {
         this._container = L.DomUtil.create('div', 'leaflet-control-labels leaflet-bar ' + this.options.addClasses);
-        this._button = L.DomUtil.create('a', 'material-icons', this._container);
+        this._button = L.DomUtil.create('a', 'material-symbols', this._container);
         $(this._button).click(this.toggleLabels).dblclick(function(e) { e.stopPropagation(); });
         this._button.innerText = c3nav._map_material_icon('label');
         this._button.href = '#';
@@ -2153,7 +2153,7 @@ SquareGridControl = L.Control.extend({
 
     onAdd: function () {
         this._container = L.DomUtil.create('div', 'leaflet-control-grid-layer leaflet-bar ' + this.options.addClasses);
-        this._button = L.DomUtil.create('a', 'material-icons', this._container);
+        this._button = L.DomUtil.create('a', 'material-symbols', this._container);
         $(this._button).click(this.toggleGrid).dblclick(function(e) { e.stopPropagation(); });
         this._button.innerText = c3nav._map_material_icon('grid_off');
         this._button.href = '#';
