@@ -118,18 +118,19 @@ class MapRenderer:
                 for height, height_obstacles in altitudearea.obstacles.items():
                     for color, color_obstacles in height_obstacles.items():
                         for obstacle in color_obstacles:
+                            obstacle_geom = obstacle.difference(crop_areas)
                             if color:
                                 fill_rgb = color_to_rgb(color)
                                 stroke_color = rgb_to_color((*((0.75*i) for i in fill_rgb[:3]), fill_rgb[3]))
                                 engine.add_geometry(
-                                    obstacle,
+                                    obstacle_geom,
                                     fill=FillAttribs(color),
                                     stroke=StrokeAttribs(stroke_color, 0.05, min_px=0.2),
                                     category='obstacles'
                                 )
                             else:
                                 engine.add_geometry(
-                                    obstacle,
+                                    obstacle_geom,
                                     fill=FillAttribs(RENDER_COLOR_OBSTACLES_DEFAULT_FILL),
                                     stroke=StrokeAttribs(RENDER_COLOR_OBSTACLES_DEFAULT_BORDER, 0.05, min_px=0.2),
                                     category='obstacles'
