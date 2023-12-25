@@ -24,7 +24,7 @@ class GeometryMixin(SerializableMixin):
     geometry: BaseGeometry
     level_id: int
     subtitle: str
-    import_tag = models.CharField(_('import tag'), null=True, blank=True, max_length=32)
+    import_tag = models.CharField(_('import tag'), null=True, blank=True, max_length=64)
 
     class Meta:
         abstract = True
