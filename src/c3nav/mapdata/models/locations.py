@@ -179,6 +179,8 @@ class SpecificLocation(Location, models.Model):
                                        verbose_name=_('label settings'))
     label_override = I18nField(_('Label override'), plural_name='label_overrides', blank=True, fallback_any=True)
     external_url = models.URLField(_('external URL'), null=True, blank=True)
+    import_block_data = models.BooleanField(_('don\'t change metadata on import'), default=False)
+    import_block_geom = models.BooleanField(_('don\'t change geometry on import'), default=False)
 
     class Meta:
         abstract = True
