@@ -774,8 +774,7 @@ class PositionAvailabilitySchema(BaseSchema):
     available: str
 
 
-class PositionUnavailableStatusSchema(PositionStatusSchema, SimpleGeometryPointAndBoundsSchema,
-                                      TrackablePositionSchema, PositionAvailabilitySchema):
+class PositionUnavailableStatusSchema(PositionStatusSchema, TrackablePositionSchema, PositionAvailabilitySchema):
     """ position unavailable """
     available: Literal[False]
 
