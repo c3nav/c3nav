@@ -118,7 +118,9 @@ def tile(request, level, zoom, x, y, access_permissions: Optional[set] = None):
 
         if tile_cache_update != base_cache_key:
             if tile_directory.exists():
-                rmtree(tile_directory)
+                old_tile_directory = tile_directory.rename(tile_directory.parent /
+                                                           (tile_directory.name + '_old_tile_dir'))
+                rmtree(old_tile_directory)
         else:
             try:
                 data = tile_file.read_bytes()
