@@ -295,6 +295,7 @@ SESSION_COOKIE_NAME = 'c3nav_session'
 SESSION_COOKIE_DOMAIN = config.get('c3nav', 'session_cookie_domain', fallback=None)
 SESSION_COOKIE_HTTPONLY = True
 SESSION_COOKIE_SECURE = not DEBUG
+SESSION_COOKIE_SAMESITE = 'none'
 
 LANGUAGE_COOKIE_NAME = 'c3nav_language'
 
@@ -305,7 +306,7 @@ TILE_ACCESS_COOKIE_NAME = 'c3nav_tile_access'
 TILE_ACCESS_COOKIE_DOMAIN = config.get('c3nav', 'tile_access_cookie_domain', fallback=None)
 TILE_ACCESS_COOKIE_HTTPONLY = True
 TILE_ACCESS_COOKIE_SECURE = not DEBUG
-TILE_ACCESS_COOKIE_SAMESITE = 'strict'
+TILE_ACCESS_COOKIE_SAMESITE = 'none'
 
 
 # Application definition
