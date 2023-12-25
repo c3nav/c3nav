@@ -94,11 +94,11 @@ class RouteOptions(models.Model):
 
     @classmethod
     def get_for_request(cls, request):
-        session_options = request.session.get('route_options', None)
-        if session_options is not None:
+        if 'route_options' in request.session:
             session_options = cls(request=request)
-            session_options.update(session_options, ignore_errors=True)
-
+            session_options.update(request.session.get('route_options'), ignore_errors=True)
+        else:
+            session_options = None
         user_options = None
         if request.user.is_authenticated:
             user_options = cls.get_for_user(request.user)
