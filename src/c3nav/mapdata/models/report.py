@@ -54,6 +54,8 @@ class Report(models.Model):
                                             help_text=_('select all groups that apply, if any'), related_name='+')
     secret = models.CharField(_('secret'), max_length=32, default=get_report_secret)
 
+    import_tag = models.CharField(_('import tag'), null=True, blank=True, max_length=256)
+
     coordinates = LocationById()
     origin = LocationById()
     destination = LocationById()
@@ -116,7 +118,7 @@ class Report(models.Model):
         reviewers = tuple(self.get_reviewers_qs().values_list('pk', flat=True))
         send_report_notification.delay(pk=self.pk,
                                        title=self.title,
-                                       author=self.author.username,
+                                       author=self.author.username if self.author else "(none)",
                                        description=self.description,
                                        reviewers=reviewers)
 
