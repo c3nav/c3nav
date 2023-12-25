@@ -241,10 +241,10 @@ class SpecificLocation(Location, models.Model):
             ))
 
         if self.external_url:
-            result['display'].insert(3, (_('External URL'), tuple({
+            result['display'].insert(3, (_('External URL'), {
                 'title': _('Open'),
                 'url': self.external_url,
-            })))
+            }))
 
         return result
 

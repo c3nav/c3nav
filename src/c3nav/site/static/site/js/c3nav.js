@@ -445,9 +445,9 @@ c3nav = {
                 elem.append($('<dd>').text(line[1]));
             } else if (line[1] === null || line.length === 0) {
                 elem.append($('<dd>').text('-'));
-            } else if (line[0].length === undefined && line[1].url !== undefined) {
+            } else if (line.length === 2 && line[1].url !== undefined) {
                 loclist = $('<dd>');
-                loclist.append($('<a>').attr('href', line[2].url).attr('target', '_blank').text(line[2].title));
+                loclist.append($('<a>').attr('href', line[1].url).attr('target', '_blank').text(line[1].title));
                 elem.append(loclist);
             } else {
                 sublocations = (line[1].length === undefined) ? [line[1]] : line[1];
