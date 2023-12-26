@@ -1,5 +1,6 @@
 import base64
 import os
+from collections import Counter
 from shutil import rmtree
 from typing import Optional
 from wsgiref.util import FileWrapper
@@ -93,31 +94,37 @@ def preview_location(request, slug):
     from c3nav.site.views import check_location
     from c3nav.mapdata.utils.locations import CustomLocation
     from c3nav.mapdata.models.geometry.base import GeometryMixin
+    from c3nav.mapdata.models import LocationGroup
 
     location = check_location(slug, None)
     highlight = True
     if location is None:
         raise Http404
     if isinstance(location, CustomLocation):
-        geometry = Point(location.x, location.y)
+        geometries = [Point(location.x, location.y)]
         level = location.level.pk
     elif isinstance(location, GeometryMixin):
-        geometry = location.geometry
+        geometries = [location.geometry]
         level = location.level_id
     elif isinstance(location, Level):
         [minx, miny, maxx, maxy] = location.bounds
-        geometry = box(minx, miny, maxx, maxy)
+        geometries = [box(minx, miny, maxx, maxy)]
         level = location.pk
         highlight = False
+    elif isinstance(location, LocationGroup):
+        counts = Counter([loc.level_id for loc in location.locations])
+        level = counts.most_common(1)[0][0]
+        geometries = [loc.geometry for loc in location.locations if loc.level_id == level]
+        highlight = True
     else:
         raise NotImplementedError(f'location type {type(location)} is not supported yet')
 
     cache_package = CachePackage.open_cached()
 
-    if isinstance(geometry, Point):
-        geometry = geometry.buffer(1)
+    from c3nav.mapdata.utils.geometry import unwrap_geom
+    geometries = [geometry.buffer(1) if isinstance(geometry, Point) else unwrap_geom(geometry) for geometry in geometries]
 
-    minx, miny, maxx, maxy, img_scale = bounds_for_preview(geometry, cache_package)
+    minx, miny, maxx, maxy, img_scale = bounds_for_preview(unary_union(geometries), cache_package)
 
     level_data = cache_package.levels.get(level)
     if level_data is None:
@@ -125,9 +132,10 @@ def preview_location(request, slug):
     renderer = MapRenderer(level, minx, miny, maxx, maxy, scale=img_scale, access_permissions=set())
     image = renderer.render(ImageRenderEngine)
     if highlight:
-        image.add_geometry(geometry, fill=FillAttribs(PREVIEW_HIGHLIGHT_FILL_COLOR, PREVIEW_HIGHLIGHT_FILL_OPACITY),
-                           stroke=StrokeAttribs(PREVIEW_HIGHLIGHT_STROKE_COLOR, PREVIEW_HIGHLIGHT_STROKE_WIDTH),
-                           category='highlight')
+        for geometry in geometries:
+            image.add_geometry(geometry, fill=FillAttribs(PREVIEW_HIGHLIGHT_FILL_COLOR, PREVIEW_HIGHLIGHT_FILL_OPACITY),
+                               stroke=StrokeAttribs(PREVIEW_HIGHLIGHT_STROKE_COLOR, PREVIEW_HIGHLIGHT_STROKE_WIDTH),
+                               category='highlight')
     data = image.render()
     response = HttpResponse(data, 'image/png')
     # TODO use cache key like in tile render function, same for the routing option
