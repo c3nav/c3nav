@@ -125,6 +125,8 @@ class Command(BaseCommand):
             result = locations_so_far.pop(import_tag, None)
             result: Area | POI | None
 
+            old_result = None
+
             if result is not None:
                 # already exists
                 if not isinstance(result, target_type):
@@ -143,20 +145,19 @@ class Command(BaseCommand):
                         )
                         print(f"REPORT: {item.slug} / {item.id} needs to be switched to {target_type} but is blocked")
                         continue
-                    self.do_report(
-                        prefix='hub:switch_type',
-                        obj_id=str(item.id),
-                        obj=item,
-                        report=Report(
-                            category="location-issue",
-                            title=f"importhub: change geometry type for {result.title}, not implemented",
-                            description=f"the object has a wrong geometry type and needs to be switched to "
-                                        f"{target_type} but this is not implemented yet",
-                            location=result,
-                        )
+                    old_result = result
+                    result = target_type(
+                        import_tag=import_tag,
                     )
-                    print(f"ERROR: {item.slug} / {item.id} needs to be switched to {target_type} but not implemented")
-                    continue
+                    result.titles = old_result.other_titles
+                    result.icon = old_result.icon
+                    result.external_url = old_result.external_url
+                    result.can_search = old_result.can_search
+                    result.can_describe = old_result.can_describe
+                    result.label_overrides = old_result.label_overrides
+                    result.label_settings_id = old_result.label_settings_id
+                    result.import_block_data = old_result.import_block_data
+                    print(f"NOTE: {item.slug} / {item.id} was switched to {target_type}")
 
             hub_types = [
                 item.type,
@@ -219,7 +220,7 @@ class Command(BaseCommand):
                 if result.import_block_data:
                     print(f"NOTE: {item.slug} / {item.id} slug has changed but is blocked")
                     data_needs_change.append(f"change slug to {item.slug}")
-                else:
+                elif not old_result:
                     slug_occupied = LocationSlug.objects.filter(slug=item.slug).first()
                     if slug_occupied:
                         print(f"ERROR: {item.slug} / {item.id} slug {item.slug!r} is already occupied")
@@ -303,7 +304,15 @@ class Command(BaseCommand):
                     )
                     continue
 
+            if old_result:
+                old_group_ids = set(group.pk for group in old_result.groups.all())
+                old_redirect_slugs = set(redirect.slug for redirect in old_result.redirects.all())
+                old_result.delete()
             result.save()
+            if old_result:
+                result.groups.set(old_group_ids)
+                for slug in old_redirect_slugs:
+                    result.redirects.create(slug=slug)
             if is_new:
                 result.groups.set(new_group_ids)
             else:
