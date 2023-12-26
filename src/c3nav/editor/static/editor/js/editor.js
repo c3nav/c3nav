@@ -351,8 +351,12 @@ editor = {
         if (data_field.length) {
             data_field.hide();
             var collector = $($('body .wificollector')[0].outerHTML);
+            var existing_data = [];
             if (data_field.val()) {
-                collector.removeClass('empty').addClass('done').find('.count').text(JSON.parse(data_field.val()).length);
+                existing_data = JSON.parse(data_field.val());
+            }
+            if (existing_data.length > 0) {
+                collector.removeClass('empty').addClass('done').find('.count').text(existing_data.length);
             } else {
                 data_field.closest('form').addClass('scan-lock');
             }
