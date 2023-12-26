@@ -12,7 +12,7 @@ from django.shortcuts import get_object_or_404
 from django.utils.http import content_disposition_header
 from django.views.decorators.cache import cache_page
 from django.views.decorators.http import etag
-from shapely import Point, box
+from shapely import Point, box, LineString, unary_union
 
 from c3nav.mapdata.middleware import no_language
 from c3nav.mapdata.models import Level, MapUpdate
@@ -23,7 +23,6 @@ from c3nav.mapdata.render.renderer import MapRenderer
 from c3nav.mapdata.utils.cache import CachePackage, MapHistory
 from c3nav.mapdata.utils.tiles import (build_access_cache_key, build_base_cache_key, build_tile_access_cookie,
                                        build_tile_etag, get_tile_bounds, parse_tile_access_cookie)
-
 
 PREVIEW_HIGHLIGHT_FILL_COLOR = settings.PRIMARY_COLOR
 PREVIEW_HIGHLIGHT_FILL_OPACITY = 0.1
@@ -60,35 +59,7 @@ def enforce_tile_secret_auth(request):
         raise PermissionDenied
 
 
-@no_language()
-@cache_page(60 * 5)
-def preview_location(request, slug):
-    from c3nav.site.views import check_location
-    from c3nav.mapdata.utils.locations import CustomLocation
-    from c3nav.mapdata.models.geometry.base import GeometryMixin
-
-    location = check_location(slug, request)
-    highlight = True
-    if location is None:
-        raise Http404
-    if isinstance(location, CustomLocation):
-        geometry = Point(location.x, location.y)
-        level = location.level.pk
-    elif isinstance(location, GeometryMixin):
-        geometry = location.geometry
-        level = location.level_id
-    elif isinstance(location, Level):
-        [minx, miny, maxx, maxy] = location.bounds
-        geometry = box(minx, miny, maxx, maxy)
-        level = location.pk
-        highlight = False
-    else:
-        raise NotImplementedError(f'location type {type(location)} is not supported yet')
-    cache_package = CachePackage.open_cached()
-
-    if isinstance(geometry, Point):
-        geometry = geometry.buffer(1)
-
+def bounds_for_preview(geometry, cache_package):
     bounds = geometry.bounds
 
     if not cache_package.bounds_valid(bounds[0], bounds[1], bounds[2], bounds[3]):
@@ -107,12 +78,46 @@ def preview_location(request, slug):
 
     dx = width - bounds_width
     dy = height - bounds_height
-    minx = int(bounds[0] - dx/2)
-    maxx = int(bounds[2] + dx/2)
-    miny = int(bounds[1] - dy/2)
-    maxy = int(bounds[3] + dy/2)
+    minx = int(bounds[0] - dx / 2)
+    maxx = int(bounds[2] + dx / 2)
+    miny = int(bounds[1] - dy / 2)
+    maxy = int(bounds[3] + dy / 2)
+    img_scale = PREVIEW_IMG_HEIGHT / height
 
-    img_scale = PREVIEW_IMG_HEIGHT/height
+    return minx, miny, maxx, maxy, img_scale
+
+
+@no_language()
+@cache_page(60 * 5)
+def preview_location(request, slug):
+    from c3nav.site.views import check_location
+    from c3nav.mapdata.utils.locations import CustomLocation
+    from c3nav.mapdata.models.geometry.base import GeometryMixin
+
+    location = check_location(slug, None)
+    highlight = True
+    if location is None:
+        raise Http404
+    if isinstance(location, CustomLocation):
+        geometry = Point(location.x, location.y)
+        level = location.level.pk
+    elif isinstance(location, GeometryMixin):
+        geometry = location.geometry
+        level = location.level_id
+    elif isinstance(location, Level):
+        [minx, miny, maxx, maxy] = location.bounds
+        geometry = box(minx, miny, maxx, maxy)
+        level = location.pk
+        highlight = False
+    else:
+        raise NotImplementedError(f'location type {type(location)} is not supported yet')
+
+    cache_package = CachePackage.open_cached()
+
+    if isinstance(geometry, Point):
+        geometry = geometry.buffer(1)
+
+    minx, miny, maxx, maxy, img_scale = bounds_for_preview(geometry, cache_package)
 
     level_data = cache_package.levels.get(level)
     if level_data is None:
@@ -125,13 +130,116 @@ def preview_location(request, slug):
                            category='highlight')
     data = image.render()
     response = HttpResponse(data, 'image/png')
-    # TODO use cache key like in tile render function
+    # TODO use cache key like in tile render function, same for the routing option
     return response
 
 
 @no_language()
+@cache_page(60 * 5)
 def preview_route(request, slug, slug2):
-    raise NotImplementedError()
+    from c3nav.routing.router import Router
+    from c3nav.routing.models import RouteOptions
+    from c3nav.routing.exceptions import NotYetRoutable
+    from c3nav.routing.exceptions import LocationUnreachable
+    from c3nav.routing.exceptions import NoRouteFound
+    from c3nav.site.views import check_location
+    from c3nav.mapdata.utils.locations import CustomLocation
+    from c3nav.mapdata.utils.geometry import unwrap_geom
+    origin = check_location(slug, None)
+    destination = check_location(slug2, None)
+    try:
+        route = Router.load().get_route(origin=origin,
+                                        destination=destination,
+                                        permissions=set(),
+                                        options=RouteOptions())
+    except NotYetRoutable:
+        raise Http404()
+    except LocationUnreachable:
+        raise Http404()
+    except NoRouteFound:
+        raise Http404()
+
+    route_items = [route.router.nodes[x] for x in route.path_nodes]
+    route_points = [(item.point.x, item.point.y, route.router.spaces[item.space].level_id) for item in route_items]
+
+    from c3nav.mapdata.models.geometry.base import GeometryMixin
+    if isinstance(origin, CustomLocation):
+        origin_level = origin.level.pk
+        origin_geometry = Point(origin.x, origin.y)
+    elif isinstance(origin, GeometryMixin):
+        origin_level = origin.level_id
+        origin_geometry = origin.geometry
+    elif isinstance(origin, Level):
+        raise Http404  # preview for routes from a level don't really make sense
+    else:
+        raise NotImplementedError(f'location type {type(origin)} is not implemented')
+
+    if isinstance(origin_geometry, Point):
+        origin_geometry = origin_geometry.buffer(1)
+
+    if isinstance(destination, CustomLocation):
+        destination_level = destination.level.pk
+        destination_geometry = Point(destination.x, destination.y)
+    elif isinstance(destination, GeometryMixin):
+        destination_level = destination.level_id
+        destination_geometry = destination.geometry
+    elif isinstance(destination, Level):
+        destination_level = destination.pk
+        destination_geometry = None
+    else:
+        destination_level = origin_level  # just so that it's set to something
+        destination_geometry = None
+    if destination_level != origin_level:
+        destination_geometry = None
+
+    if isinstance(destination_geometry, Point):
+        origin_geometry = destination_geometry.buffer(1)
+
+    lines = []
+    line = None
+    for x, y, level in route_points:
+        if line is None and level == origin_level:
+            line = [(x, y)]
+        elif line is not None and level == origin_level:
+            line.append((x, y))
+        elif line is not None and level != origin_level:
+            if len(line) > 1:
+                lines.append(line)
+            line = None
+    if line is not None and len(line) > 1:
+        lines.append(line)
+
+    route_geometries = [LineString(line) for line in lines]
+
+    all_geoms = [*route_geometries, unwrap_geom(origin_geometry), unwrap_geom(destination_geometry)]
+    combined_geometry = unary_union([x for x in all_geoms if x is not None])
+
+    cache_package = CachePackage.open_cached()
+
+    minx, miny, maxx, maxy, img_scale = bounds_for_preview(combined_geometry, cache_package)
+
+    level_data = cache_package.levels.get(origin_level)
+    if level_data is None:
+        raise Http404
+    renderer = MapRenderer(origin_level, minx, miny, maxx, maxy, scale=img_scale, access_permissions=set())
+    image = renderer.render(ImageRenderEngine)
+
+    if origin_geometry is not None:
+        image.add_geometry(origin_geometry, stroke=StrokeAttribs(PREVIEW_HIGHLIGHT_STROKE_COLOR,
+                                                                 PREVIEW_HIGHLIGHT_STROKE_WIDTH),
+                           category='highlight')
+    if destination_geometry is not None:
+        image.add_geometry(destination_geometry, stroke=StrokeAttribs(PREVIEW_HIGHLIGHT_STROKE_COLOR,
+                                                                      PREVIEW_HIGHLIGHT_STROKE_WIDTH),
+                           category='highlight')
+
+    for geom in route_geometries:
+        image.add_geometry(geom, stroke=StrokeAttribs(PREVIEW_HIGHLIGHT_STROKE_COLOR, PREVIEW_HIGHLIGHT_STROKE_WIDTH),
+                           category='route')
+    data = image.render()
+    response = HttpResponse(data, 'image/png')
+    # TODO use cache key like in tile render function
+    return response
 
 
 @no_language()
@@ -191,7 +299,7 @@ def tile(request, level, zoom, x, y, access_permissions: Optional[set] = None):
     if settings.CACHE_TILES:
         tile_directory = settings.TILES_ROOT / str(level) / str(zoom) / str(x) / str(y)
         last_update_file = tile_directory / 'last_update'
-        tile_file = tile_directory / (access_cache_key+'.png')
+        tile_file = tile_directory / (access_cache_key + '.png')
 
         # get tile cache last update
         tile_cache_update_cache_key = 'mapdata:tile-cache-update:%d-%d-%d-%d' % (level, zoom, x, y)

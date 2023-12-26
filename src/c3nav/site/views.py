@@ -135,11 +135,10 @@ def map_index(request, mode=None, slug=None, slug2=None, details=None, options=N
     if origin is not None and destination is not None:
         metadata = {
             'title': _('Route from %s to %s') % (origin.title, destination.title),
-            # TODO: enable when route image generation is implemented
-            # 'preview_img_url': request.build_absolute_uri(reverse('mapdata.preview.route', kwargs={
-            #     'slug': slug,
-            #     'slug2': slug2,
-            # })),
+            'preview_img_url': request.build_absolute_uri(reverse('mapdata.preview.route', kwargs={
+                'slug': slug,
+                'slug2': slug2,
+            })),
             'canonical_url': request.build_absolute_uri(reverse('site.index', kwargs={
                 'mode': 'r',
                 'slug': slug,
