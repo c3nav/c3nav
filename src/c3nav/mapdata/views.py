@@ -11,7 +11,6 @@ from django.core.exceptions import PermissionDenied
 from django.http import Http404, HttpResponse, HttpResponseNotModified, StreamingHttpResponse
 from django.shortcuts import get_object_or_404
 from django.utils.http import content_disposition_header
-from django.views.decorators.cache import cache_page
 from django.views.decorators.http import etag
 from shapely import Point, box, LineString, unary_union
 
@@ -89,7 +88,6 @@ def bounds_for_preview(geometry, cache_package):
 
 
 @no_language()
-@cache_page(60 * 5)
 def preview_location(request, slug):
     from c3nav.site.views import check_location
     from c3nav.mapdata.utils.locations import CustomLocation
@@ -129,6 +127,16 @@ def preview_location(request, slug):
     level_data = cache_package.levels.get(level)
     if level_data is None:
         raise Http404
+    import binascii
+    import hashlib
+    last_update = level_data.history.last_update(minx, miny, maxx, maxy)
+    base_cache_key = build_base_cache_key(last_update)
+    preview_etag = '"' + binascii.b2a_base64(hashlib.sha256(
+        ('%s:%s:%s' % (slug, base_cache_key, settings.SECRET_TILE_KEY[:26])).encode()
+    ).digest()[:15], newline=False).decode() + '"'
+    if request.META.get('HTTP_IF_NONE_MATCH') == preview_etag:
+        return HttpResponseNotModified()
+
     renderer = MapRenderer(level, minx, miny, maxx, maxy, scale=img_scale, access_permissions=set())
     image = renderer.render(ImageRenderEngine)
     if highlight:
@@ -138,12 +146,13 @@ def preview_location(request, slug):
                                category='highlight')
     data = image.render()
     response = HttpResponse(data, 'image/png')
-    # TODO use cache key like in tile render function, same for the routing option
+    response['ETag'] = preview_etag
+    response['Cache-Control'] = 'no-cache'
+    response['Vary'] = 'Cookie'
     return response
 
 
 @no_language()
-@cache_page(60 * 5)
 def preview_route(request, slug, slug2):
     from c3nav.routing.router import Router
     from c3nav.routing.models import RouteOptions
@@ -229,6 +238,16 @@ def preview_route(request, slug, slug2):
     level_data = cache_package.levels.get(origin_level)
     if level_data is None:
         raise Http404
+    import binascii
+    import hashlib
+    last_update = level_data.history.last_update(minx, miny, maxx, maxy)
+    base_cache_key = build_base_cache_key(last_update)
+    preview_etag = '"' + binascii.b2a_base64(hashlib.sha256(
+        ('%s:%s:%s:%s' % (slug, slug2, base_cache_key, settings.SECRET_TILE_KEY[:26])).encode()
+    ).digest()[:15], newline=False).decode() + '"'
+    if request.META.get('HTTP_IF_NONE_MATCH') == preview_etag:
+        return HttpResponseNotModified()
+
     renderer = MapRenderer(origin_level, minx, miny, maxx, maxy, scale=img_scale, access_permissions=set())
     image = renderer.render(ImageRenderEngine)
 
@@ -246,7 +265,9 @@ def preview_route(request, slug, slug2):
                            category='route')
     data = image.render()
     response = HttpResponse(data, 'image/png')
-    # TODO use cache key like in tile render function
+    response['ETag'] = preview_etag
+    response['Cache-Control'] = 'no-cache'
+    response['Vary'] = 'Cookie'
     return response
 
 
