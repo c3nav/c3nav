@@ -1721,9 +1721,10 @@ c3nav = {
                 c3nav.schedule_fetch_updates(waittime*1000);
             });
     },
+    resume_level: null,
     _fetch_updates_callback: function (data) {
         if (c3nav.resume_level !== null) {
-            c3nav._levelControl.setLevel(c3nav.state.level);
+            c3nav._levelControl.setLevel(c3nav.resume_level);
             c3nav.resume_level = null;
         }
         c3nav._fetch_updates_failure_count = 0;
@@ -1933,7 +1934,6 @@ c3nav = {
         c3nav.resume_level = c3nav._levelControl.currentLevel;
         c3nav._levelControl.setLevel(null);
     },
-    resume_level: null,
     _resume: function() {
         if (c3nav._fetch_updates_timer === null) {
             console.log("c3nav._resume() -> fetch_updates");
