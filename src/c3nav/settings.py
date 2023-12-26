@@ -82,6 +82,7 @@ RENDER_ROOT = get_data_dir('RENDER_ROOT', DATA_DIR / 'render')
 TILES_ROOT = get_data_dir('TILES_ROOT', DATA_DIR / 'tiles')
 CACHE_ROOT = get_data_dir('CACHE_ROOT', DATA_DIR / 'cache')
 STATS_ROOT = get_data_dir('STATS_ROOT', DATA_DIR / 'stats')
+PREVIEWS_ROOT = get_data_dir('PREVIEWS_ROOT', DATA_DIR / 'previews')
 
 # override the matplotlib default config directory if it's not configured
 os.environ.setdefault('MPLCONFIGDIR', str(get_data_dir('MPLCONFIGDIR', CACHE_ROOT / 'matplotlib')))
@@ -155,6 +156,7 @@ IMAGE_RENDERER = config.get('c3nav', 'image_renderer', fallback='svg')
 SVG_RENDERER = config.get('c3nav', 'svg_renderer', fallback='rsvg-convert')
 
 CACHE_TILES = config.getboolean('c3nav', 'cache_tiles', fallback=not DEBUG)
+CACHE_PREVIEWS = config.getboolean('c3nav', 'cache_previews', fallback=not DEBUG)
 CACHE_RESOLUTION = config.getint('c3nav', 'cache_resolution', fallback=4)
 
 IMPRINT_LINK = config.get('c3nav', 'imprint_link', fallback=None)

@@ -87,6 +87,57 @@ def bounds_for_preview(geometry, cache_package):
     return minx, miny, maxx, maxy, img_scale
 
 
+def cache_preview(request, key, last_update, render_fn):
+    import binascii
+    import hashlib
+    base_cache_key = build_base_cache_key(last_update)
+    # TODO: what's SECRET_TILE_KEY for, should we also have SECRET_PREVIEW_KEY, or can we leave it out completely?
+    preview_etag = '"' + binascii.b2a_base64(hashlib.sha256(
+        ('%s:%s:%s' % (key, base_cache_key, settings.SECRET_TILE_KEY[:26])).encode()
+    ).digest()[:15], newline=False).decode() + '"'
+    if request.META.get('HTTP_IF_NONE_MATCH') == preview_etag:
+        return HttpResponseNotModified()
+
+    data = None
+    if settings.CACHE_PREVIEWS:
+        previews_directory = settings.PREVIEWS_ROOT / key
+        last_update_file = previews_directory / 'last_update'
+        preview_file = previews_directory / 'preview.png'
+
+        preview_cache_update_cache_key = 'mapdata:preview-cache-update:%s' % key
+        preview_cache_update = cache.get(preview_cache_update_cache_key, None)
+        if preview_cache_update is None:
+            try:
+                preview_cache_update = last_update_file.read_text()
+            except FileNotFoundError:
+                pass
+
+        if preview_cache_update != base_cache_key:
+            if previews_directory.exists():
+                old_previews_directory = previews_directory.rename(previews_directory.parent /
+                                                                   (previews_directory.name + '_old'))
+                rmtree(old_previews_directory)
+        else:
+            try:
+                data = preview_file.read_bytes()
+            except FileNotFoundError:
+                pass
+
+    if data is None:
+        data = render_fn()
+        if settings.CACHE_PREVIEWS:
+            os.makedirs(previews_directory, exist_ok=True)
+            preview_file.write_bytes(data)
+            last_update_file.write_text(base_cache_key)
+            cache.set(preview_cache_update_cache_key, base_cache_key, 60)
+
+    response = HttpResponse(data, 'image/png')
+    response['ETag'] = preview_etag
+    response['Cache-Control'] = 'no-cache'
+    response['Vary'] = 'Cookie'
+    return response
+
+
 @no_language()
 def preview_location(request, slug):
     from c3nav.site.views import check_location
@@ -98,6 +149,9 @@ def preview_location(request, slug):
     highlight = True
     if location is None:
         raise Http404
+
+    slug = location.get_slug()
+
     if isinstance(location, CustomLocation):
         geometries = [Point(location.x, location.y)]
         level = location.level.pk
@@ -120,36 +174,27 @@ def preview_location(request, slug):
     cache_package = CachePackage.open_cached()
 
     from c3nav.mapdata.utils.geometry import unwrap_geom
-    geometries = [geometry.buffer(1) if isinstance(geometry, Point) else unwrap_geom(geometry) for geometry in geometries]
+    geometries = [geometry.buffer(1) if isinstance(geometry, Point) else unwrap_geom(geometry) for geometry in
+                  geometries]
 
     minx, miny, maxx, maxy, img_scale = bounds_for_preview(unary_union(geometries), cache_package)
 
     level_data = cache_package.levels.get(level)
     if level_data is None:
         raise Http404
-    import binascii
-    import hashlib
-    last_update = level_data.history.last_update(minx, miny, maxx, maxy)
-    base_cache_key = build_base_cache_key(last_update)
-    preview_etag = '"' + binascii.b2a_base64(hashlib.sha256(
-        ('%s:%s:%s' % (slug, base_cache_key, settings.SECRET_TILE_KEY[:26])).encode()
-    ).digest()[:15], newline=False).decode() + '"'
-    if request.META.get('HTTP_IF_NONE_MATCH') == preview_etag:
-        return HttpResponseNotModified()
 
-    renderer = MapRenderer(level, minx, miny, maxx, maxy, scale=img_scale, access_permissions=set())
-    image = renderer.render(ImageRenderEngine)
-    if highlight:
-        for geometry in geometries:
-            image.add_geometry(geometry, fill=FillAttribs(PREVIEW_HIGHLIGHT_FILL_COLOR, PREVIEW_HIGHLIGHT_FILL_OPACITY),
-                               stroke=StrokeAttribs(PREVIEW_HIGHLIGHT_STROKE_COLOR, PREVIEW_HIGHLIGHT_STROKE_WIDTH),
-                               category='highlight')
-    data = image.render()
-    response = HttpResponse(data, 'image/png')
-    response['ETag'] = preview_etag
-    response['Cache-Control'] = 'no-cache'
-    response['Vary'] = 'Cookie'
-    return response
+    def render_preview():
+        renderer = MapRenderer(level, minx, miny, maxx, maxy, scale=img_scale, access_permissions=set())
+        image = renderer.render(ImageRenderEngine)
+        if highlight:
+            for geometry in geometries:
+                image.add_geometry(geometry,
+                                   fill=FillAttribs(PREVIEW_HIGHLIGHT_FILL_COLOR, PREVIEW_HIGHLIGHT_FILL_OPACITY),
+                                   stroke=StrokeAttribs(PREVIEW_HIGHLIGHT_STROKE_COLOR, PREVIEW_HIGHLIGHT_STROKE_WIDTH),
+                                   category='highlight')
+        return image.render()
+
+    return cache_preview(request, slug, level_data.history.last_update(minx, miny, maxx, maxy), render_preview)
 
 
 @no_language()
@@ -175,6 +220,9 @@ def preview_route(request, slug, slug2):
         raise Http404()
     except NoRouteFound:
         raise Http404()
+
+    origin = route.origin.src
+    destination = route.destination.src
 
     route_items = [route.router.nodes[x] for x in route.path_nodes]
     route_points = [(item.point.x, item.point.y, route.router.spaces[item.space].level_id) for item in route_items]
@@ -210,7 +258,7 @@ def preview_route(request, slug, slug2):
         destination_geometry = None
 
     if isinstance(destination_geometry, Point):
-        origin_geometry = destination_geometry.buffer(1)
+        destination_geometry = destination_geometry.buffer(1)
 
     lines = []
     line = None
@@ -238,37 +286,30 @@ def preview_route(request, slug, slug2):
     level_data = cache_package.levels.get(origin_level)
     if level_data is None:
         raise Http404
-    import binascii
-    import hashlib
-    last_update = level_data.history.last_update(minx, miny, maxx, maxy)
-    base_cache_key = build_base_cache_key(last_update)
-    preview_etag = '"' + binascii.b2a_base64(hashlib.sha256(
-        ('%s:%s:%s:%s' % (slug, slug2, base_cache_key, settings.SECRET_TILE_KEY[:26])).encode()
-    ).digest()[:15], newline=False).decode() + '"'
-    if request.META.get('HTTP_IF_NONE_MATCH') == preview_etag:
-        return HttpResponseNotModified()
 
-    renderer = MapRenderer(origin_level, minx, miny, maxx, maxy, scale=img_scale, access_permissions=set())
-    image = renderer.render(ImageRenderEngine)
+    def render_preview():
+        renderer = MapRenderer(origin_level, minx, miny, maxx, maxy, scale=img_scale, access_permissions=set())
+        image = renderer.render(ImageRenderEngine)
 
-    if origin_geometry is not None:
-        image.add_geometry(origin_geometry, stroke=StrokeAttribs(PREVIEW_HIGHLIGHT_STROKE_COLOR,
-                                                                 PREVIEW_HIGHLIGHT_STROKE_WIDTH),
-                           category='highlight')
-    if destination_geometry is not None:
-        image.add_geometry(destination_geometry, stroke=StrokeAttribs(PREVIEW_HIGHLIGHT_STROKE_COLOR,
-                                                                      PREVIEW_HIGHLIGHT_STROKE_WIDTH),
-                           category='highlight')
+        if origin_geometry is not None:
+            image.add_geometry(origin_geometry,
+                               fill=FillAttribs(PREVIEW_HIGHLIGHT_FILL_COLOR, PREVIEW_HIGHLIGHT_FILL_OPACITY),
+                               stroke=StrokeAttribs(PREVIEW_HIGHLIGHT_STROKE_COLOR, PREVIEW_HIGHLIGHT_STROKE_WIDTH),
+                               category='highlight')
+        if destination_geometry is not None:
+            image.add_geometry(destination_geometry,
+                               fill=FillAttribs(PREVIEW_HIGHLIGHT_FILL_COLOR, PREVIEW_HIGHLIGHT_FILL_OPACITY),
+                               stroke=StrokeAttribs(PREVIEW_HIGHLIGHT_STROKE_COLOR, PREVIEW_HIGHLIGHT_STROKE_WIDTH),
+                               category='highlight')
 
-    for geom in route_geometries:
-        image.add_geometry(geom, stroke=StrokeAttribs(PREVIEW_HIGHLIGHT_STROKE_COLOR, PREVIEW_HIGHLIGHT_STROKE_WIDTH),
-                           category='route')
-    data = image.render()
-    response = HttpResponse(data, 'image/png')
-    response['ETag'] = preview_etag
-    response['Cache-Control'] = 'no-cache'
-    response['Vary'] = 'Cookie'
-    return response
+        for geom in route_geometries:
+            image.add_geometry(geom,
+                               stroke=StrokeAttribs(PREVIEW_HIGHLIGHT_STROKE_COLOR, PREVIEW_HIGHLIGHT_STROKE_WIDTH),
+                               category='route')
+        return image.render()
+
+    return cache_preview(request, f'{slug}:{slug2}', level_data.history.last_update(minx, miny, maxx, maxy),
+                         render_preview)
 
 
 @no_language()
