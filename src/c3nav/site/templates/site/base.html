@@ -27,6 +27,8 @@
         <link href="{% static 'material-symbols/material-symbols.css' %}" rel="stylesheet">
         <link href="{% static 'site/css/c3nav.scss' %}" rel="stylesheet" type="text/x-scss">
     {% endcompress %}
+    {% block head %}
+    {% endblock %}
 </head>
 <body data-user-data="{{ user_data_json }}">
     {% if not embed and not request.mobileclient %}

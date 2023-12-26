@@ -61,7 +61,6 @@ def check_location(location: Optional[str], request) -> Optional[SpecificLocatio
 
 
 def map_index(request, mode=None, slug=None, slug2=None, details=None, options=None, nearby=None, pos=None, embed=None):
-
     # check for access token
     access_token = request.GET.get('access')
     if access_token:
@@ -133,6 +132,44 @@ def map_index(request, mode=None, slug=None, slug2=None, details=None, options=N
     if not initial_bounds:
         initial_bounds = tuple(chain(*Source.max_bounds()))
 
+    if origin is not None and destination is not None:
+        metadata = {
+            'title': _('Route from %s to %s') % (origin.title, destination.title),
+            # TODO: enable when route image generation is implemented
+            # 'preview_img_url': request.build_absolute_uri(reverse('mapdata.preview.route', kwargs={
+            #     'slug': slug,
+            #     'slug2': slug2,
+            # })),
+            'canonical_url': request.build_absolute_uri(reverse('site.index', kwargs={
+                'mode': 'r',
+                'slug': slug,
+                'slug2': slug2,
+                'details': False,
+                'options': False,
+            })),
+        }
+    elif destination is not None or origin is not None:
+        metadata = {
+            'title': destination.title,
+            'description': destination.subtitle,
+            'preview_img_url': request.build_absolute_uri(reverse('mapdata.preview.location', kwargs={'slug': slug})),
+            'canonical_url': request.build_absolute_uri(reverse('site.index', kwargs={
+                'mode': 'l',
+                'slug': slug,
+                'nearby': False,
+                'details': False,
+            })),
+        }
+    elif mode is None:
+        metadata = {
+            'title': 'c3nav',
+            # 'description': '',
+            # 'preview_img_url': '',
+            'canonical_url': request.build_absolute_uri('/'),
+        }
+    else:
+        metadata = None
+
     ctx = {
         'bounds': json.dumps(Source.max_bounds(), separators=(',', ':')),
         'levels': json.dumps(tuple((level.pk, level.short_label) for level in levels.values()), separators=(',', ':')),
@@ -149,6 +186,7 @@ def map_index(request, mode=None, slug=None, slug2=None, details=None, options=N
         'editor': can_access_editor(request),
         'embed': bool(embed),
         'imprint': settings.IMPRINT_LINK,
+        'meta': metadata,
     }
 
     if grid.enabled:

@@ -11,15 +11,26 @@ from django.http import Http404, HttpResponse, HttpResponseNotModified, Streamin
 from django.shortcuts import get_object_or_404
 from django.utils.http import content_disposition_header
 from django.views.decorators.http import etag
+from shapely import Point, Polygon
 
 from c3nav.mapdata.middleware import no_language
 from c3nav.mapdata.models import Level, MapUpdate
 from c3nav.mapdata.models.access import AccessPermission
 from c3nav.mapdata.render.engines import ImageRenderEngine
+from c3nav.mapdata.render.engines.base import FillAttribs, StrokeAttribs
 from c3nav.mapdata.render.renderer import MapRenderer
 from c3nav.mapdata.utils.cache import CachePackage, MapHistory
 from c3nav.mapdata.utils.tiles import (build_access_cache_key, build_base_cache_key, build_tile_access_cookie,
                                        build_tile_etag, get_tile_bounds, parse_tile_access_cookie)
+
+
+PREVIEW_HIGHLIGHT_FILL_COLOR = settings.PRIMARY_COLOR
+PREVIEW_HIGHLIGHT_FILL_OPACITY = 0.1
+PREVIEW_HIGHLIGHT_STROKE_COLOR = PREVIEW_HIGHLIGHT_FILL_COLOR
+PREVIEW_HIGHLIGHT_STROKE_WIDTH = 0.5
+PREVIEW_IMG_WIDTH = 1200
+PREVIEW_IMG_HEIGHT = 628
+PREVIEW_MIN_Y = 100
 
 
 def set_tile_access_cookie(request, response):
@@ -46,6 +57,78 @@ def enforce_tile_secret_auth(request):
             raise PermissionDenied
     elif not request.user.is_superuser:
         raise PermissionDenied
+
+
+@no_language()
+def preview_location(request, slug):
+    from c3nav.site.views import check_location
+    from c3nav.mapdata.utils.locations import CustomLocation
+    from c3nav.mapdata.models.geometry.base import GeometryMixin
+
+    location = check_location(slug, request)
+    highlight = True
+    if location is None:
+        raise Http404
+    if isinstance(location, CustomLocation):
+        geometry = Point(location.x, location.y)
+        level = location.level.pk
+    elif isinstance(location, GeometryMixin):
+        geometry = location.geometry
+        level = location.level_id
+    elif isinstance(location, Level):
+        [minx, miny, maxx, maxy] = location.bounds
+        geometry = Polygon([(minx, miny), (minx, maxy), (maxx, maxy), (maxx, miny), (minx, miny)])
+        level = location.pk
+        highlight = False
+    else:
+        raise NotImplementedError(f'location type {type(location)} is not supported yet')
+    cache_package = CachePackage.open_cached()
+
+    if isinstance(geometry, Point):
+        geometry = geometry.buffer(1)
+
+    bounds = geometry.bounds
+
+    if not cache_package.bounds_valid(bounds[0], bounds[1], bounds[2], bounds[3]):
+        raise Http404
+
+    bounds_width = bounds[2] - bounds[0]
+    bounds_height = bounds[3] - bounds[1]
+
+    height = PREVIEW_MIN_Y
+    if height < bounds_height:
+        height = bounds_height + 10
+    width = height * PREVIEW_IMG_WIDTH / PREVIEW_IMG_HEIGHT
+    if width < bounds_width:
+        width = bounds_width + 10
+    height = width * PREVIEW_IMG_HEIGHT / PREVIEW_IMG_WIDTH
+
+    dx = width - bounds_width
+    dy = height - bounds_height
+    minx = bounds[0] - dx/2
+    maxx = bounds[2] + dx/2
+    miny = bounds[1] - dy/2
+    maxy = bounds[3] + dy/2
+
+    img_scale = PREVIEW_IMG_HEIGHT/height
+
+    level_data = cache_package.levels.get(level)
+    if level_data is None:
+        raise Http404
+    renderer = MapRenderer(level, minx, miny, maxx, maxy, scale=img_scale, access_permissions=set())
+    image = renderer.render(ImageRenderEngine)
+    if highlight:
+        image.add_geometry(geometry, fill=FillAttribs(PREVIEW_HIGHLIGHT_FILL_COLOR, PREVIEW_HIGHLIGHT_FILL_OPACITY),
+                           stroke=StrokeAttribs(PREVIEW_HIGHLIGHT_STROKE_COLOR, PREVIEW_HIGHLIGHT_STROKE_WIDTH),
+                           category='highlight')
+    data = image.render()
+    response = HttpResponse(data, 'image/png')
+    return response
+
+
+@no_language()
+def preview_route(request, slug, slug2):
+    raise NotImplementedError()
 
 
 @no_language()

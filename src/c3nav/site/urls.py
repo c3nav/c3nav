@@ -8,7 +8,6 @@ from c3nav.site.views import (about_view, access_redeem_view, account_manage, ac
                               logout_view, map_index, position_create, position_detail, position_list, position_set,
                               qr_code, register_view, report_create, report_detail, report_list)
 
-register_converter(LocationConverter, 'loc')
 register_converter(CoordinatesConverter, 'coords')
 register_converter(AtPositionConverter, 'at_pos')
 register_converter(IsEmbedConverter, 'is_embed')
@@ -19,13 +18,13 @@ pos = '<at_pos:pos>'
 
 def index_paths(pre, suf):
     return [
-        path(f'{pre}l/<loc:slug>/{suf}', map_index, {'mode': 'l'}, name='site.index', ),
+        path(f'{pre}l/<loc:slug>/{suf}', map_index, {'mode': 'l', 'details': False, 'nearby': False}, name='site.index', ),
         path(f'{pre}l/<loc:slug>/details/{suf}', map_index, {'mode': 'l', 'details': True}, name='site.index'),
         path(f'{pre}l/<loc:slug>/nearby/{suf}', map_index, {'mode': 'l', 'nearby': True}, name='site.index'),
         path(f'{pre}o/<loc:slug>/{suf}', map_index, {'mode': 'o'}, name='site.index'),
         path(f'{pre}d/<loc:slug>/{suf}', map_index, {'mode': 'd'}, name='site.index'),
         path(f'{pre}r/{suf}', map_index, {'mode': 'r'}, name='site.index'),
-        path(f'{pre}r/<loc:slug>/<loc:slug2>/{suf}', map_index, {'mode': 'r'}, name='site.index'),
+        path(f'{pre}r/<loc:slug>/<loc:slug2>/{suf}', map_index, {'mode': 'r', 'details': False, 'options': False}, name='site.index'),
         path(f'{pre}r/<loc:slug>/<loc:slug2>/details/{suf}', map_index, {'mode': 'r', 'details': True},
              name='site.index'),
         path(f'{pre}r/<loc:slug>/<loc:slug2>/options/{suf}', map_index, {'mode': 'r', 'options': True},

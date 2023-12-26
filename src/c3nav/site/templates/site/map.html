@@ -3,6 +3,34 @@
 {% load compress %}
 {% load i18n %}
 
+{% block title %}{% if meta.title %}{{ meta.title }}{% else %}{{ block.super }}{% endif %}{% endblock %}
+
+{% block head %}
+    {% if meta %}
+        <meta property="twitter:card" content="summary_large_image"/>
+        <meta property="og:type" content="website"/>
+        <meta property="og:site_name" content="c3nav"/>
+    {% endif %}
+    {% if meta.title %}
+        <meta name="title" content="{{ meta.title }}"/>
+        <meta property="og:title" content="{{ meta.title }}"/>
+        <meta property="twitter:title" content="{{ meta.title }}"/>
+    {% endif %}
+    {% if meta.description %}
+        <meta name="description" content="{{ meta.description }}"/>
+        <meta property="og:description" content="{{ meta.description }}"/>
+        <meta property="twitter:description" content="{{ meta.description }}"/>
+    {% endif %}
+    {% if meta.preview_img_url %}
+        <meta property="og:image" content="{{ meta.preview_img_url }}"/>
+        <meta property="twitter:image" content="{{ meta.preview_img_url }}"/>
+    {% endif %}
+    {% if meta.canonical_url %}
+        <meta property="og:url" content="{{ meta.canonical_url }}"/>
+        <meta property="twitter:url" content="{{ meta.canonical_url }}"/>
+    {% endif %}
+{% endblock %}
+
 {% block content %}
     <main class="map" data-state="{{ state }}"{% if embed %} data-embed{% endif %} data-last-site-update="{{ last_site_update }}"{% if ssids %} data-ssids="{{ ssids }}"{% endif %} data-primary-color="{{ primary_color }}"{% if random_location_groups %} data-random-location-groups="{{ random_location_groups }}"{% endif %}>
         {% if not request.mobileclient %}
