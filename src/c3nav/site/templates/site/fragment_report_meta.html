@@ -18,7 +18,10 @@
         {% endif %}
     </p>
 {% elif report.category == 'route-issue' %}
-    <p><strong>{% trans 'You are reporting an issue with the following route:' %}</strong></p>
+    <p>
+        <strong>{% trans 'You are reporting an issue with the following route:' %}</strong>
+        <a href="/r/{{ report.origin.slug }}/{{ report.destination.slug }}" target="_blank">link</a>
+    </p>
 
     <label>{% trans 'Origin' %}:</label>
     {% include 'site/fragment_location.html' with form_value=1 location=report.origin %}
