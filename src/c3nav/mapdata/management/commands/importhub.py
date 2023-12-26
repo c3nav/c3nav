@@ -58,7 +58,7 @@ class Command(BaseCommand):
             report.notify_reviewers()
 
     def do_import(self, data):
-        items: list[HubImportItem] = [HubImportItem.model_validate(item) for item in data]
+        items: list[HubImportItem] = [HubImportItem.model_validate(item) for item in data if item["type"] == "assembly"]
         items_by_id = {item.id: item for item in items}
 
         spaces_for_level = {}
