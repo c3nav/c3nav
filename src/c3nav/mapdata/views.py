@@ -10,6 +10,7 @@ from django.core.exceptions import PermissionDenied
 from django.http import Http404, HttpResponse, HttpResponseNotModified, StreamingHttpResponse
 from django.shortcuts import get_object_or_404
 from django.utils.http import content_disposition_header
+from django.views.decorators.cache import cache_page
 from django.views.decorators.http import etag
 from shapely import Point, Polygon
 
@@ -60,6 +61,7 @@ def enforce_tile_secret_auth(request):
 
 
 @no_language()
+@cache_page(60 * 5)
 def preview_location(request, slug):
     from c3nav.site.views import check_location
     from c3nav.mapdata.utils.locations import CustomLocation
