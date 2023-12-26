@@ -76,6 +76,8 @@ class Command(BaseCommand):
         }
 
         for item in items:
+            item.slug = item.slug.lower()
+
             if item.polygons is None and item.location is None:
                 print(f"SKIPPING: {item.slug} / {item.id} has no polygon or location")
                 continue
