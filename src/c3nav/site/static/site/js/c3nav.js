@@ -1260,6 +1260,7 @@ c3nav = {
             for (var id of c3nav.random_location_groups) {
                 var group = c3nav.locations_by_id[id];
                 if (!group) continue;
+                if (!group.locationtype || group.locationtype !== 'locationgroup') continue;
                 group.locations.forEach(subid => {if (subid in c3nav.locations_by_id) possible_locations.add(subid)});
             }
             possible_locations = Array.from(possible_locations);
