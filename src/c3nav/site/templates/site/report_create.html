@@ -10,6 +10,9 @@
         {% csrf_token %}
         {% include 'site/fragment_report_meta.html' %}
         {{ form.as_p }}
+        <p><input type="checkbox" required="required" style="margin-bottom: 0"> I understand that if i report an issue related to an assembly,
+        all that will happen is that i owe each member on the c3nav team one bottle of mate.
+        I can avoid this by contacting the assembly team, which will actually be able to fix my issue.</p>
         <button type="submit">{% trans 'Submit' %}</button>
     </form>
 </main>
