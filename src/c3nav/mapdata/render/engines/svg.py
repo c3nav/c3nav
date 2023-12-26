@@ -15,12 +15,20 @@ from shapely.geometry import LineString, Polygon
 from shapely.ops import unary_union
 
 from c3nav.mapdata.render.engines.base import FillAttribs, RenderEngine, StrokeAttribs
+from c3nav.mapdata.utils.geometry import unwrap_geom
 
 if settings.SVG_RENDERER == 'rsvg':
     import pgi
     pgi.require_version('Rsvg', '2.0')
     import cairocffi
     from pgi.repository import Rsvg
+
+
+def unwrap_hybrid_geom(geom):
+    from c3nav.mapdata.render.geometry import HybridGeometry
+    if isinstance(geom, HybridGeometry):
+        geom = geom.geom
+    return unwrap_geom(geom)
 
 
 @checks.register()
@@ -220,7 +228,7 @@ class SVGEngine(RenderEngine):
 
     def _add_geometry(self, geometry, fill: Optional[FillAttribs], stroke: Optional[StrokeAttribs],
                       altitude=None, height=None, shape_cache_key=None, **kwargs):
-        geometry = self.buffered_bbox.intersection(geometry.geom if hasattr(geometry, 'geom') else geometry)
+        geometry = self.buffered_bbox.intersection(unwrap_hybrid_geom(geometry))
 
         if geometry.is_empty:
             return

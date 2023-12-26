@@ -12,7 +12,7 @@ from django.shortcuts import get_object_or_404
 from django.utils.http import content_disposition_header
 from django.views.decorators.cache import cache_page
 from django.views.decorators.http import etag
-from shapely import Point, Polygon
+from shapely import Point, box
 
 from c3nav.mapdata.middleware import no_language
 from c3nav.mapdata.models import Level, MapUpdate
@@ -79,7 +79,7 @@ def preview_location(request, slug):
         level = location.level_id
     elif isinstance(location, Level):
         [minx, miny, maxx, maxy] = location.bounds
-        geometry = Polygon([(minx, miny), (minx, maxy), (maxx, maxy), (maxx, miny), (minx, miny)])
+        geometry = box(minx, miny, maxx, maxy)
         level = location.pk
         highlight = False
     else:
@@ -107,10 +107,10 @@ def preview_location(request, slug):
 
     dx = width - bounds_width
     dy = height - bounds_height
-    minx = bounds[0] - dx/2
-    maxx = bounds[2] + dx/2
-    miny = bounds[1] - dy/2
-    maxy = bounds[3] + dy/2
+    minx = int(bounds[0] - dx/2)
+    maxx = int(bounds[2] + dx/2)
+    miny = int(bounds[1] - dy/2)
+    maxy = int(bounds[3] + dy/2)
 
     img_scale = PREVIEW_IMG_HEIGHT/height
 
@@ -125,6 +125,7 @@ def preview_location(request, slug):
                            category='highlight')
     data = image.render()
     response = HttpResponse(data, 'image/png')
+    # TODO use cache key like in tile render function
     return response
 
 
