@@ -178,6 +178,14 @@ else:
 
 HUB_API_BASE = config.get('c3nav', 'hub_api_base', fallback='').removesuffix('/')
 HUB_API_SECRET = config.get('c3nav', 'hub_api_secret', fallback='')
+if not HUB_API_SECRET:
+    HUB_API_SECRET_FILE = config.get('c3nav', 'hub_api_secret_file', fallback=None)
+    if HUB_API_SECRET_FILE:
+        HUB_API_SECRET_FILE = Path(HUB_API_SECRET_FILE)
+    else:
+        HUB_API_SECRET_FILE = DATA_DIR / '.hub_api_secret'
+    if HUB_API_SECRET_FILE.exists():
+        HUB_API_SECRET = HUB_API_SECRET_FILE.read_text().strip()
 
 _db_backend = config.get('database', 'backend', fallback='sqlite3')
 DATABASES: dict[str, dict[str, str | int | Path]] = {
