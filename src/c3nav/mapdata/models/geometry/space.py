@@ -403,7 +403,7 @@ class WifiMeasurement(SpaceGeometryMixin, models.Model):
     author = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True,
                                verbose_name=_('author'))
     comment = models.TextField(null=True, blank=True, verbose_name=_('comment'))
-    data = models.JSONField(_('Measurement list'))
+    data = models.JSONField(_('Measurement list'), default=[])
 
     class Meta:
         verbose_name = _('Wi-Fi Measurement')
