@@ -312,7 +312,8 @@ def create_editor_form(editor_model):
                        'level_change_description', 'base_mapdata_accessible', 'can_report_missing',
                        'label_settings', 'label_override', 'min_zoom', 'max_zoom', 'font_size',
                        'allow_levels', 'allow_spaces', 'allow_areas', 'allow_pois', 'allow_dynamic_locations',
-                       'left', 'top', 'right', 'bottom', 'public', 'import_tag']
+                       'left', 'top', 'right', 'bottom', 'public',
+                       'import_tag', 'import_block_data', 'import_block_grom']
     field_names = [field.name for field in editor_model._meta.get_fields() if not field.one_to_many]
     existing_fields = [name for name in possible_fields if name in field_names]
 
