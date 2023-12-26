@@ -457,3 +457,10 @@ class CustomLocation:
 
     def get_icon(self):
         return self.icon
+
+    def get_slug(self):
+        return self.pk
+
+    @cached_property
+    def slug(self):
+        return self.pk
