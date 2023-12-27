@@ -1931,8 +1931,10 @@ c3nav = {
             window.clearTimeout(c3nav._searchable_locations_timer)
             c3nav._searchable_locations_timer = null;
         }
-        c3nav.resume_level = c3nav._levelControl.currentLevel;
-        c3nav._levelControl.setLevel(null);
+        if (c3nav._levelControl) {
+            c3nav.resume_level = c3nav._levelControl.currentLevel;
+            c3nav._levelControl.setLevel(null);
+        }
     },
     _resume: function() {
         if (c3nav._fetch_updates_timer === null) {
@@ -2034,6 +2036,7 @@ LevelControl = L.Control.extend({
     },
 
     setLevel: function (id) {
+        console.log('setting level (from/to)', this.currentLevel, id)
         if (id === this.currentLevel) return true;
         if (id !== null && this._tileLayers[id] === undefined) return false;
 
