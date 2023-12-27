@@ -112,10 +112,12 @@ def cache_preview(request, key, last_update, render_fn):
                 pass
 
         if preview_cache_update != base_cache_key:
-            if previews_directory.exists():
+            try:
                 old_previews_directory = previews_directory.rename(previews_directory.parent /
                                                                    (previews_directory.name + '_old'))
                 rmtree(old_previews_directory)
+            except FileNotFoundError:
+                pass
         else:
             try:
                 data = preview_file.read_bytes()
@@ -387,10 +389,12 @@ def tile(request, level, zoom, x, y, access_permissions: Optional[set] = None):
                 pass
 
         if tile_cache_update != base_cache_key:
-            if tile_directory.exists():
+            try:
                 old_tile_directory = tile_directory.rename(tile_directory.parent /
                                                            (tile_directory.name + '_old_tile_dir'))
                 rmtree(old_tile_directory)
+            except FileNotFoundError:
+                pass
         else:
             try:
                 data = tile_file.read_bytes()
