@@ -1790,10 +1790,10 @@ c3nav = {
     },
 
     _no_wifi_count: 0,
-    _wifi_scan_results: function(data) {
-        data = JSON.parse(data);
+    _wifi_scan_results: function(peers) {
+        peers = JSON.parse(peers);
 
-        if (data.length) {
+        if (peers.length) {
             c3nav._hasLocationPermission = true;
         } else {
             c3nav.hasLocationPermission(true);
@@ -1803,21 +1803,22 @@ c3nav = {
         if (now-4000 < c3nav._last_wifi_scan) return;
 
         if (c3nav.ssids) {
-            var newdata = [];
-            for (var i=0; i<data.length; i++) {
-                // App version < 4.2.6 use level instead fo rssi
-                if (data[i].level !== undefined) {
-                    data[i].rssi = data[i].level;
-                    delete data[i].level
-                }
-                if (c3nav.ssids.indexOf(data[i]['ssid']) >= 0) {
-                    newdata.push(data[i]);
-                }
+            peers = peers.filter(peer => c3nav.ssids.includes(peer.ssid));
+        }
+        for (let peer of peers) {
+            if (peer.level !== undefined) {
+                peer.rssi = peer.level;
+                delete peer.level;
             }
-            data = newdata;
+            if (peer.rtt) {
+                peer.distance = peer.rtt.distance_mm / 1000;
+                peer.distance_sd = peer.rtt.distance_std_dev_mm / 1000;
+                delete peer.rtt;
+            }
         }
 
-        if (!data.length) {
+
+        if (!peers.length) {
             if (!c3nav._hasLocationPermission) {
                 c3nav._set_user_location(null);
             } else {
@@ -1832,7 +1833,7 @@ c3nav = {
         }
         c3nav._no_wifi_count = 0;
 
-        c3nav_api.post('positioning/locate/', data)
+        c3nav_api.post('positioning/locate/', {peers})
             .then(data => c3nav._set_user_location(data.location))
             .catch(() => {
                 c3nav._set_user_location(null);
