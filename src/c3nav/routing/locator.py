@@ -87,7 +87,7 @@ class Locator:
                     LocatorPoint(
                         x=measurement.geometry.x,
                         y=measurement.geometry.y,
-                        values=self.convert_scans(measurement.data),
+                        values=self.convert_scans(measurement.data, create_peers=True),
                     )
                     for measurement in space.wifi_measurements.all()
                 )
