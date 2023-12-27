@@ -85,8 +85,8 @@ class Locator:
                 pk=space.pk,
                 points=tuple(
                     LocatorPoint(
-                        x=measurement.x,
-                        y=measurement.x,
+                        x=measurement.geometry.x,
+                        y=measurement.geometry.y,
                         values=self.convert_scans(measurement.data),
                     )
                     for measurement in space.wifi_measurements.all()
