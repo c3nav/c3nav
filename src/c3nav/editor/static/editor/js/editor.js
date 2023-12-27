@@ -1304,6 +1304,13 @@ editor = {
                 item.rssi = item.level;
                 delete item.level
             }
+
+            if (item.rtt !== undefined) {
+                item.distance = item.rtt.distance_mm / 1000;
+                item.distance_sd = item.rtt.distance_std_dev_mm / 1000;
+                delete item.rtt;
+            }
+
             apid = 'ap-'+item.bssid.replace(/:/g, '-');
             line = $table.find('tr.'+apid);
             color = Math.max(0, Math.min(50, item.rssi+80));
