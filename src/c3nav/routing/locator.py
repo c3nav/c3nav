@@ -149,7 +149,7 @@ class Locator:
         return cls.cached.data
 
     def convert_raw_scan_data(self, raw_scan_data: list[LocateRequestPeerSchema]) -> ScanData:
-        return self.convert_scan([d.dict() for d in raw_scan_data], create_peers=False)
+        return self.convert_scan(raw_scan_data, create_peers=False)
 
     def get_xyz(self, address: BSSID) -> tuple[int, int, int] | None:
         i = self.get_peer_id(address)
