@@ -1368,3 +1368,19 @@ button + button {
 table td select:last-child {
     margin-bottom: 0;
 }
+
+@keyframes blinking {
+    0%, 49% {
+        color: #4000ff;
+    }
+    50%, 100% {
+        color: #d900ff;
+    }
+}
+
+blink {
+   animation-name: blinking;
+   animation-iteration-count: infinite;
+   animation-timing-function: cubic-bezier(.5, 0, 1, 1);
+   animation-duration: 1.7s;
+}

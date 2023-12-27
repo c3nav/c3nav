@@ -10,9 +10,18 @@
         {% csrf_token %}
         {% include 'site/fragment_report_meta.html' %}
         {{ form.as_p }}
-        <p><input type="checkbox" required="required" style="margin-bottom: 0"> {% blocktrans trimmed %}I understand that if i report an issue related to an assembly,
-        all that will happen is that i owe each member on the c3nav team one bottle of mate.
-        I can avoid this by contacting the assembly team, which will actually be able to fix my issue.{% endblocktrans %}</p>
+        <p>
+            <input type="checkbox" required="required" style="margin-bottom: 0" />
+            <blink>
+                <strong>
+                    {% blocktrans trimmed %}
+                        I understand that if I report an issue related to an assembly,
+                        all that will happen is that I owe each member on the c3nav team one bottle of mate.
+                        I can avoid this by contacting the assembly team, which will actually be able to fix my issue.
+                    {% endblocktrans %}
+                </strong>
+            </blink>
+        </p>
         <button type="submit">{% trans 'Submit' %}</button>
     </form>
 </main>
