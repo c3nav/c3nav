@@ -148,10 +148,17 @@ def map_index(request, mode=None, slug=None, slug2=None, details=None, options=N
             })),
         }
     elif destination is not None or origin is not None:
-        loc_slug = destination.get_slug() if destination else origin.get_slug()
+        if destination is not None:
+            loc_slug = destination.get_slug()
+            title = destination.title
+            subtitle = destination.subtitle if hasattr(destination, 'subtitle') else None
+        else:
+            loc_slug = origin.get_slug()
+            title = origin.title
+            subtitle = origin.subtitle if hasattr(origin, 'subtitle') else None
         metadata = {
-            'title': destination.title,
-            'description': destination.subtitle if hasattr(destination, 'subtitle') else None,
+            'title': title,
+            'description': subtitle,
             'preview_img_url': request.build_absolute_uri(reverse('mapdata.preview.location',
                                                                   kwargs={'slug': loc_slug})),
             'canonical_url': request.build_absolute_uri(reverse('site.index', kwargs={
