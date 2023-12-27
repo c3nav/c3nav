@@ -47,7 +47,7 @@ def get_position(request, parameters: LocateRequestSchema):
         raise
 
     return {
-        "location": location.serialize(simple_geometry=True),
+        "location": location.serialize(simple_geometry=True) if location else None,
     }
 
 
