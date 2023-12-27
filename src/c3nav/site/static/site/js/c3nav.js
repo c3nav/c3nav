@@ -305,9 +305,12 @@ c3nav = {
 
         c3nav._sidebar_state_updated(new_state);
     },
+    current_level: function() {
+        return c3nav._levelControl.currentLevel || c3nav.resume_level;
+    },
     update_map_state: function (replace, level, center, zoom) {
         var new_state = {
-            level: center ? level : c3nav._levelControl.currentLevel,
+            level: center ? level : c3nav.current_level(),
             center: L.GeoJSON.latLngToCoords(center ? center : c3nav.map.getCenter(), 2),
             zoom: Math.round((center ? zoom : c3nav.map.getZoom()) * 100) / 100
         };
@@ -388,7 +391,7 @@ c3nav = {
     update_location_labels: function() {
         if (!c3nav._labelControl.labelsActive) return;
         c3nav._labelLayer.clearLayers();
-        var labels = c3nav.labels[c3nav._levelControl.currentLevel],
+        var labels = c3nav.labels[c3nav.current_level()],
             bounds = c3nav.map.getBounds().pad(0.15),
             zoom = c3nav.map.getZoom();
         if (!labels) return;
@@ -1462,7 +1465,7 @@ c3nav = {
         popup.on('remove', function() { c3nav._click_anywhere_popup = null }).openOn(c3nav.map);
     },
     _latlng_to_name: function(latlng) {
-        var level = c3nav._levelControl.currentLevel;
+        var level = c3nav.current_level();
         return 'c:'+String(c3nav.level_labels_by_id[level])+':'+Math.round(latlng.lng*100)/100+':'+Math.round(latlng.lat*100)/100;
     },
     _click_anywhere_load: function(nearby) {
@@ -1555,7 +1558,7 @@ c3nav = {
     },
     fly_to_bounds: function(replace_state, nofly) {
         // fly to the bounds of the current overlays
-        var level = c3nav._levelControl.currentLevel,
+        var level = c3nav.current_level(),
             bounds = null;
 
         if (c3nav._firstRouteLevel) {
