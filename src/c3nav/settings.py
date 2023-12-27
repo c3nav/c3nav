@@ -170,6 +170,8 @@ INITIAL_BOUNDS = config.get('c3nav', 'initial_bounds', fallback='').split(' ')
 GRID_ROWS = config.get('c3nav', 'grid_rows', fallback=None)
 GRID_COLS = config.get('c3nav', 'grid_cols', fallback=None)
 
+MAIN_PREVIEW_SLUG = config.get('c3nav', 'main_preview_slug', fallback='level-0')
+
 if len(INITIAL_BOUNDS) == 4:
     try:
         INITIAL_BOUNDS = tuple(float(i) for i in INITIAL_BOUNDS)

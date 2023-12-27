@@ -136,25 +136,27 @@ def map_index(request, mode=None, slug=None, slug2=None, details=None, options=N
         metadata = {
             'title': _('Route from %s to %s') % (origin.title, destination.title),
             'preview_img_url': request.build_absolute_uri(reverse('mapdata.preview.route', kwargs={
-                'slug': slug,
-                'slug2': slug2,
+                'slug': origin.get_slug(),
+                'slug2': destination.get_slug(),
             })),
             'canonical_url': request.build_absolute_uri(reverse('site.index', kwargs={
                 'mode': 'r',
-                'slug': slug,
-                'slug2': slug2,
+                'slug': origin.get_slug(),
+                'slug2': destination.get_slug(),
                 'details': False,
                 'options': False,
             })),
         }
     elif destination is not None or origin is not None:
+        loc_slug = destination.get_slug() if destination else origin.get_slug()
         metadata = {
             'title': destination.title,
-            'description': destination.subtitle,
-            'preview_img_url': request.build_absolute_uri(reverse('mapdata.preview.location', kwargs={'slug': slug})),
+            'description': destination.subtitle if hasattr(destination, 'subtitle') else None,
+            'preview_img_url': request.build_absolute_uri(reverse('mapdata.preview.location',
+                                                                  kwargs={'slug': loc_slug})),
             'canonical_url': request.build_absolute_uri(reverse('site.index', kwargs={
                 'mode': 'l',
-                'slug': slug,
+                'slug': loc_slug,
                 'nearby': False,
                 'details': False,
             })),
@@ -163,7 +165,8 @@ def map_index(request, mode=None, slug=None, slug2=None, details=None, options=N
         metadata = {
             'title': 'c3nav',
             # 'description': '',
-            # 'preview_img_url': '',
+            'preview_img_url': request.build_absolute_uri(reverse('mapdata.preview.location',
+                                                                  kwargs={'slug': settings.MAIN_PREVIEW_SLUG})),
             'canonical_url': request.build_absolute_uri('/'),
         }
     else:
@@ -217,8 +220,8 @@ def qr_code_etag(request, path):
 @etag(qr_code_etag)
 @cache_control(max_age=3600)
 def qr_code(request, path):
-    data = (request.build_absolute_uri('/'+path.removeprefix('/')) +
-            ('?'+request.META['QUERY_STRING'] if request.META['QUERY_STRING'] else ''))
+    data = (request.build_absolute_uri('/' + path.removeprefix('/')) +
+            ('?' + request.META['QUERY_STRING'] if request.META['QUERY_STRING'] else ''))
     if len(data) > 256:
         return HttpResponseBadRequest()
 

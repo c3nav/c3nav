@@ -91,7 +91,6 @@ def cache_preview(request, key, last_update, render_fn):
     import binascii
     import hashlib
     base_cache_key = build_base_cache_key(last_update)
-    # TODO: what's SECRET_TILE_KEY for, should we also have SECRET_PREVIEW_KEY, or can we leave it out completely?
     preview_etag = '"' + binascii.b2a_base64(hashlib.sha256(
         ('%s:%s:%s' % (key, base_cache_key, settings.SECRET_TILE_KEY[:26])).encode()
     ).digest()[:15], newline=False).decode() + '"'
@@ -144,6 +143,7 @@ def preview_location(request, slug):
     from c3nav.mapdata.utils.locations import CustomLocation
     from c3nav.mapdata.models.geometry.base import GeometryMixin
     from c3nav.mapdata.models import LocationGroup
+    from c3nav.mapdata.models.locations import Position
 
     location = check_location(slug, None)
     highlight = True
@@ -168,6 +168,12 @@ def preview_location(request, slug):
         level = counts.most_common(1)[0][0]
         geometries = [loc.geometry for loc in location.locations if loc.level_id == level]
         highlight = True
+    elif isinstance(location, Position):
+        loc = location.get_custom_location()
+        if not loc:
+            raise Http404
+        geometries = [Point(loc.x, loc.y)]
+        level = loc.level.pk
     else:
         raise NotImplementedError(f'location type {type(location)} is not supported yet')
 

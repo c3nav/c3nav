@@ -656,8 +656,15 @@ class Position(CustomLocationProxyMixin, models.Model):
         return result
 
     @property
+    def title(self):
+        return self.name
+
+    @property
     def slug(self):
         return 'p:%s' % self.secret
+
+    def get_slug(self):
+        return self.slug
 
     def serialize(self, *args, **kwargs):
         return {
