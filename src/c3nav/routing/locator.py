@@ -365,7 +365,7 @@ class LocatorSpace:
                 penalty += (value.rssi - no_signal)**2
 
         peers = tuple(self.peer_lookup[peer_id] for peer_id in peer_ids)
-        values = np.array(tuple(scan_values[peer_id] for peer_id in peer_ids), dtype=np.int64)
+        values = np.array(tuple(scan_values[peer_id].rssi for peer_id in peer_ids), dtype=np.int64)
 
         # acceptable points need to have a value for the needed_peer_id
         points = tuple(
