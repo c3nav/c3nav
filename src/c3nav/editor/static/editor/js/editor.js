@@ -1299,17 +1299,22 @@ editor = {
         $table.find('tr').addClass('old');
         for (i=0; i < data.length; i++) {
             item = data[i];
+            // App version < 4.2.4 use level instead fo rssi
+            if (item.level !== undefined) {
+                item.rssi = item.level;
+                delete item.level
+            }
             apid = 'ap-'+item.bssid.replace(/:/g, '-');
             line = $table.find('tr.'+apid);
-            color = Math.max(0, Math.min(50, item.level+80));
+            color = Math.max(0, Math.min(50, item.rssi+80));
             color = 'rgb('+String(250-color*5)+', '+String(color*4)+', 0)';
             if (line.length) {
-                line.removeClass('old').find(':last-child').text(item.level).css('color', color);
+                line.removeClass('old').find(':last-child').text(item.rssi).css('color', color);
             } else {
                 line = $('<tr>').addClass(apid);
                 line.append($('<td>').text(item.bssid));
                 line.append($('<td>').text(item.ssid));
-                line.append($('<td>').text(item.level).css('color', color));
+                line.append($('<td>').text(item.rssi).css('color', color));
                 $table.append(line);
             }
         }

@@ -16,6 +16,7 @@ from django.forms.widgets import HiddenInput
 from django.utils.translation import get_language
 from django.utils.translation import gettext_lazy as _
 from shapely.geometry.geo import mapping
+from pydantic import ValidationError as PydanticValidationError
 
 from c3nav.editor.models import ChangeSet, ChangeSetUpdate
 from c3nav.mapdata.fields import GeometryField
@@ -221,9 +222,6 @@ class EditorFormBase(I18nModelFormMixin, ModelForm):
         if 'to_node' in self.fields:
             self.fields['to_node'].widget = HiddenInput()
 
-        if 'data' in self.fields and 'data' in self.initial:
-            self.initial['data'] = json.dumps(self.initial['data'])
-
         self.is_json = is_json
         self.missing_fields = tuple((name, field) for name, field in self.fields.items()
                                     if name not in self.data and not field.required)
@@ -260,17 +258,28 @@ class EditorFormBase(I18nModelFormMixin, ModelForm):
             )
 
     def clean_data(self):
-        try:
-            data = json.loads(self.cleaned_data['data'])
-        except json.JSONDecodeError:
-            raise ValidationError(_('Invalid JSON.'))
-
-        if not isinstance(data, list):
+        if not isinstance(self.cleaned_data['data'], list):
             raise ValidationError(_('Scan data is not a list.'))
 
-        for item in data:
-            # todo: catch pydantic validation error
-            LocateRequestPeerSchema.model_validate(item)
+        data = list()
+        for scan in self.cleaned_data['data']:
+            scan: list[dict]
+            scan_data = list()
+            for item in scan:
+                # The app might return results without an SSID, we ignore those
+                if not item.get('ssid', ''):
+                    continue
+                # App version < 4.2.4 use level instead fo rssi
+                if 'level' in item:
+                    item['rssi'] = item['level']
+                    del item['level']
+                try:
+                    LocateRequestPeerSchema.model_validate(item)
+                except PydanticValidationError as e:
+                    raise ValidationError(str(e))
+                scan_data.append(item)
+            data.append(scan_data)
+
         return data
 
     def clean(self):
