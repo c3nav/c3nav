@@ -358,14 +358,14 @@ class LocatorSpace:
             return None, None
 
         # peers that this space knows
-        peer_id = frozenset(scan_values.keys()) & self.peer_ids
+        peer_ids = frozenset(scan_values.keys()) & self.peer_ids
         penalty = 0
         for peer_id, value in scan_values.items():
             if peer_id not in self.peer_ids:
                 penalty += (value.rssi - no_signal)**2
 
-        peers = tuple(self.peer_lookup[peer_id] for peer_id in peer_id)
-        values = np.array(tuple(scan_values[peer_id] for peer_id in peer_id), dtype=np.int64)
+        peers = tuple(self.peer_lookup[peer_id] for peer_id in peer_ids)
+        values = np.array(tuple(scan_values[peer_id] for peer_id in peer_ids), dtype=np.int64)
 
         # acceptable points need to have a value for the needed_peer_id
         points = tuple(
