@@ -111,7 +111,7 @@ class Locator:
                 continue
             peer_id = self.get_peer_id(scan_value['bssid'], create=create_peers)
             if peer_id is not None:
-                result[peer_id] = ScanDataValue(rssi=scan_value["rssi"], distance=scan_value["distance"])
+                result[peer_id] = ScanDataValue(rssi=scan_value["rssi"], distance=scan_value.get("distance", None))
         return result
 
     def convert_scans(self, scans_data, create_peers=False) -> ScanData:
