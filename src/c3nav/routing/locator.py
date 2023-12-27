@@ -341,7 +341,7 @@ class LocatorSpace:
         levels = np.full((len(points), len(peers)), fill_value=no_signal, dtype=np.int64)
         for i, point in enumerate(points):
             for peer_id, value in point.values.items():
-                levels[i][peer_lookup[peer_id]] = int(value)**2
+                levels[i][peer_lookup[peer_id]] = int(value.rssi)**2
 
         return cls(
             pk=pk,
