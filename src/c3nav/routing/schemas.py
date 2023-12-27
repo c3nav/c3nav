@@ -52,3 +52,12 @@ class LocateRequestPeerSchema(BaseSchema):
         description="measured distance in meters",
         example=8.32
     )
+    distance_sd: Union[
+        float,
+        Annotated[None, APIField(title="null", description="distance standard deviation not available")]
+    ] = APIField(
+        default=None,
+        title="distance standard deviation",
+        description="standard deviation of measurements in meters",
+        example=1.23
+    )
