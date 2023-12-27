@@ -34,6 +34,15 @@ class LocateRequestPeerSchema(BaseSchema):
         description="frequency in KHz",
         example=2472,
     )
+    supports80211mc: Union[
+        bool,
+        Annotated[None, APIField(title="null", description="802.11mc support was not determined")]
+    ] = APIField(
+        default=None,
+        title="supports80211mc",
+        description="access point supports 802.11mc",
+        example=True
+    )
     distance: Union[
         float,
         Annotated[None, APIField(title="null", description="distance was not measured")]
