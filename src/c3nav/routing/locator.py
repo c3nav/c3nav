@@ -181,7 +181,7 @@ class Locator:
         spaces = tuple(space for pk, space in self.spaces.items() if pk not in restrictions.spaces)
 
         # find best point
-        best_peer_id = max(scan_data.items(), key=operator.itemgetter(1))[0]
+        best_peer_id = max(scan_data.items(), key=lambda v: v[1].rssi)[0]
         best_location = None
         best_score = float('inf')
         for space in spaces:
