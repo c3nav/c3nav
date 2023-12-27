@@ -110,7 +110,7 @@ class RouteOptions(models.Model):
                 user_options = session_options
                 user_options.user = request.user
                 user_options.save()
-                request.session.pop('session_options')
+                request.session.pop('route_options')
 
         return user_options or session_options or cls(request=request)
 
