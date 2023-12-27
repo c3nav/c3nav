@@ -1805,6 +1805,11 @@ c3nav = {
         if (c3nav.ssids) {
             var newdata = [];
             for (var i=0; i<data.length; i++) {
+                // App version < 4.2.6 use level instead fo rssi
+                if (data[i].level !== undefined) {
+                    data[i].rssi = data[i].level;
+                    delete data[i].level
+                }
                 if (c3nav.ssids.indexOf(data[i]['ssid']) >= 0) {
                     newdata.push(data[i]);
                 }
