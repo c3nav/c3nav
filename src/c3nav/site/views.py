@@ -675,7 +675,7 @@ def api_secret_create(request):
             messages.success(request, format_html(
                 '{}<br><code>{}</code>',
                 _('API secret created. Save it now, cause it will not be shown again!'),
-                secret.api_secret,
+                f'secret:{secret.api_secret}',
             ))
             return redirect(reverse('site.api_secret_list'))
     else:
