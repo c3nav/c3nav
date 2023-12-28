@@ -291,10 +291,10 @@ class UpdatePositionSchema(BaseSchema):
                     response={200: AnyPositionStatusSchema, **API404.dict(), **auth_permission_responses})
 def set_position(request, position_id: AnyPositionID, update: UpdatePositionSchema):
     # todo: may an API key do this?
-    if not update.position_id.startswith('p:'):
+    if not isinstance(position_id, str) or not position_id.startswith('p:'):
         raise API404()
     try:
-        location = Position.objects.get(secret=update.position_id[2:])
+        location = Position.objects.get(secret=position_id[2:])
     except Position.DoesNotExist:
         raise API404()
     if location.owner != request.user:
