@@ -2,6 +2,7 @@ import string
 from datetime import timedelta
 from operator import attrgetter
 
+from django.core.exceptions import ValidationError
 from django.db import transaction
 from django.forms import BooleanField, Form, IntegerField, ModelChoiceField, ModelForm
 from django.utils import timezone
@@ -93,6 +94,15 @@ class APISecretForm(ModelForm):
     class Meta:
         model = Secret
         fields = ['name', 'readonly', 'scope_grant_permissions', 'scope_editor', 'scope_mesh']
+
+    def clean(self):
+        try:
+            self.instance.user = self.request.user
+            self.instance.name = self.cleaned_data['name']
+            self.instance.validate_unique()
+        except ValidationError as e:
+            self._update_errors(e)
+        return super().clean()
 
     def save(self, *args, **kwargs):
         self.instance.valid_until = (
