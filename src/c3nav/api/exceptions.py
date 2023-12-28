@@ -50,3 +50,8 @@ class APIConflict(CustomAPIException):
 class APIRequestValidationFailed(CustomAPIException):
     status_code = 422
     detail = "Bad request body."
+
+
+class APIRequestDontUseAPIKey(CustomAPIException):
+    status_code = 422
+    detail = "The endpoint needs to be used without an API key"

@@ -1,7 +1,9 @@
+from django.core.handlers.wsgi import WSGIRequest
 from ninja import Field as APIField
 from ninja import Router as APIRouter
 
 from c3nav.api.auth import APIKeyType, auth_responses
+from c3nav.api.exceptions import APIRequestDontUseAPIKey
 from c3nav.api.schema import BaseSchema
 from c3nav.api.utils import NonEmptyStr
 from c3nav.control.models import UserPermissions
@@ -52,12 +54,14 @@ class APIKeySchema(BaseSchema):
 
 @auth_api_router.get('/session/', response=APIKeySchema, auth=None,
                      summary="get session-bound key")
-def session_key(request):
+def session_key(request: WSGIRequest):
     """
     Get an API key that is bound to the transmitted session cookie, or a newly created session cookie if none is sent.
 
     Keep in mind that this API key will be invalid if the session gets signed out or similar.
     """
+    if 'x-api-key' in request.headers:
+        raise APIRequestDontUseAPIKey()
     if request.session.session_key is None:
         request.session.create()
     return {"key": f"session:{request.session.session_key}"}
