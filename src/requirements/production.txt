@@ -11,7 +11,7 @@ MeshPy==2022.1.3
 # rtree==0.9.1
 celery==5.3.6
 requests==2.31.0
-Pillow==10.1.0
+Pillow==10.2.0
 qrcode==7.4.2
 matplotlib==3.8.2
 scipy==1.11.4
