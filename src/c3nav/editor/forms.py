@@ -416,7 +416,9 @@ def create_editor_form(editor_model):
                        'label_settings', 'label_override', 'min_zoom', 'max_zoom', 'font_size',
                        'allow_levels', 'allow_spaces', 'allow_areas', 'allow_pois', 'allow_dynamic_locations',
                        'left', 'top', 'right', 'bottom', 'public',
-                       'import_tag', 'import_block_data', 'import_block_geom']
+                       'import_tag', 'import_block_data', 'import_block_geom',
+                       'color_background', 'color_wall_fill', 'color_wall_border', 'color_door_fill',
+                       'color_ground_fill', 'color_obstacles_default_fill', 'color_obstacles_default_border', ]
     field_names = [field.name for field in editor_model._meta.get_fields() if not field.one_to_many]
     existing_fields = [name for name in possible_fields if name in field_names]
 
