@@ -13,5 +13,9 @@ class Migration(migrations.Migration):
         migrations.RemoveField(
             model_name='obstacle',
             name='color',
-        )
+        ),
+        migrations.RemoveField(
+            model_name='lineobstacle',
+            name='color',
+        ),
     ]

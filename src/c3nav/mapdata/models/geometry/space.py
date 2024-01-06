@@ -197,8 +197,10 @@ class ObstacleGroup(TitledMixin, models.Model):
         self.register_changed_geometries()
         super().delete(*args, **kwargs)
 
-    def register_changed_geometries(self, do_query=True):
+    def register_changed_geometries(self):
         for obj in self.obstacles.select_related('space'):
+            obj.register_change(force=True)
+        for obj in self.lineobstacles.select_related('space'):
             obj.register_change(force=True)
 
 
@@ -252,8 +254,6 @@ class LineObstacle(SpaceGeometryMixin, models.Model):
                                  validators=[MinValueValidator(Decimal('0'))])
     altitude = models.DecimalField(_('altitude above ground'), max_digits=6, decimal_places=2, default=0,
                                    validators=[MinValueValidator(Decimal('0'))])
-    color = models.CharField(null=True, blank=True, max_length=32, verbose_name=_('color (optional)'))
-    # TODO: migrate away from color same as for Obstacle
 
     class Meta:
         verbose_name = _('Line Obstacle')
