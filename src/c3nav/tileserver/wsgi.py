@@ -32,7 +32,7 @@ if os.environ.get('C3NAV_LOGFILE'):
 
 class TileServer:
     def __init__(self):
-        self.path_regex = re.compile(r'^/(\d+)/(-?\d+)/(-?\d+)/(-?\d+).png$')
+        self.path_regex = re.compile(r'^/(\d+)/(-?\d+)/(-?\d+)/(-?\d+)/(-?\d+).png$')
 
         self.cookie_regex = re.compile(r'(^| )c3nav_tile_access="?([^;" ]+)"?')
 
@@ -239,7 +239,7 @@ class TileServer:
         if match is None:
             return self.not_found(start_response, b'invalid tile path.')
 
-        level, zoom, x, y = match.groups()
+        level, zoom, x, y, theme = match.groups()
 
         zoom = int(zoom)
         if not (-2 <= zoom <= 5):
@@ -261,9 +261,11 @@ class TileServer:
 
         # get level
         level = int(level)
-        level_data = cache_package.levels.get(level)
+        theme_id = int(theme)
+        theme = None if theme_id == 0 else theme_id
+        level_data = cache_package.levels.get((level, theme))
         if level_data is None:
-            return self.not_found(start_response, b'invalid level.')
+            return self.not_found(start_response, b'invalid level or theme.')
 
         # build cache keys
         last_update = level_data.history.last_update(minx, miny, maxx, maxy)
@@ -284,7 +286,7 @@ class TileServer:
 
         # check browser cache
         if_none_match = env.get('HTTP_IF_NONE_MATCH')
-        tile_etag = build_tile_etag(level, zoom, x, y, base_cache_key, access_cache_key, self.tile_secret)
+        tile_etag = build_tile_etag(level, zoom, x, y, theme_id, base_cache_key, access_cache_key, self.tile_secret)
         if if_none_match == tile_etag:
             start_response('304 Not Modified', [self.get_date_header(),
                                                 ('Content-Length', '0'),
@@ -296,7 +298,7 @@ class TileServer:
         if cached_result is not None:
             return self.deliver_tile(start_response, tile_etag, cached_result)
 
-        r = requests.get('%s/map/%d/%d/%d/%d/%s.png' % (self.upstream_base, level, zoom, x, y, access_cache_key),
+        r = requests.get('%s/map/%d/%d/%d/%d/%d/%s.png' % (self.upstream_base, level, zoom, x, y, theme_id, access_cache_key),
                          headers=self.auth_headers, auth=self.http_auth)
 
         if r.status_code == 200 and r.headers['Content-Type'] == 'image/png':
