@@ -38,6 +38,8 @@ class UserPermissions(models.Model):
 
     mesh_control = models.BooleanField(default=False, verbose_name=_('can access mesh control'))
 
+    nonpublic_themes = models.BooleanField(default=False, verbose_name=_('show non-public themes in theme selector'))
+
     class Meta:
         verbose_name = _('User Permissions')
         verbose_name_plural = _('User Permissions')

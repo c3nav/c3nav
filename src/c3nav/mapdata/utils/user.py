@@ -13,6 +13,7 @@ def get_user_data(request):
         'logged_in': bool(request.user.is_authenticated),
         'allow_editor': can_access_editor(request),
         'allow_control_panel': request.user_permissions.control_panel,
+        'show_nonpublic_themes': request.user_permissions.nonpublic_themes,
         'has_positions': Position.user_has_positions(request.user)
     }
     if permissions:

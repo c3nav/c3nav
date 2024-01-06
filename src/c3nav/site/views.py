@@ -179,6 +179,7 @@ def map_index(request, mode=None, slug=None, slug2=None, details=None, options=N
     else:
         metadata = None
 
+    from c3nav.mapdata.models.theme import Theme
     ctx = {
         'bounds': json.dumps(Source.max_bounds(), separators=(',', ':')),
         'levels': json.dumps(tuple((level.pk, level.short_label) for level in levels.values()), separators=(',', ':')),
@@ -196,6 +197,10 @@ def map_index(request, mode=None, slug=None, slug2=None, details=None, options=N
         'embed': bool(embed),
         'imprint': settings.IMPRINT_LINK,
         'meta': metadata,
+        'available_themes': {
+            theme.pk: [theme.title, theme.public]
+            for theme in Theme.objects.all()
+        }
     }
 
     if grid.enabled:

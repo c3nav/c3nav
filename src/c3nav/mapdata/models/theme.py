@@ -11,7 +11,8 @@ class Theme(TitledMixin, models.Model):
     A theme
     """
     # TODO: when a theme base colors change we need to bust the cache somehow
-    description = models.TextField()
+    description = models.TextField(verbose_name=('Description'))
+    public = models.BooleanField(default=False, verbose_name=_('Public'))
     color_background = models.CharField(max_length=32, verbose_name=_('background color'))
     color_wall_fill = models.CharField(max_length=32, verbose_name=_('wall fill color'))
     color_wall_border = models.CharField(max_length=32, verbose_name=_('wall border color'))

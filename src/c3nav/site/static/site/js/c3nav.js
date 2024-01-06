@@ -135,6 +135,16 @@ c3nav = {
         if ($body.is('[data-user-data]')) {
             c3nav._set_user_data(JSON.parse($body.attr('data-user-data')));
         }
+
+
+        const theme = localStorageWrapper.getItem('c3nav-theme');
+        if (theme) {
+            c3nav.theme = parseInt(theme);
+        }
+        c3nav.themes = JSON.parse(document.getElementById('available-themes').textContent);
+        if (!(c3nav.theme in c3nav.themes)) {
+            c3nav.theme = 0;
+        }
     },
     _searchable_locations_timer: null,
     load_searchable_locations: function(firstTime) {
@@ -207,6 +217,9 @@ c3nav = {
 
         c3nav.random_location_groups = $main.is('[data-random-location-groups]') ? $main.attr('data-random-location-groups').split(',').map(id => parseInt(id)) : null;
 
+        $(document).on('click', '.theme-selection>button', c3nav.select_theme);
+        
+        
         history.replaceState(state, window.location.path);
         c3nav.load_state(state, true);
         c3nav.update_map_locations();
@@ -1411,7 +1424,7 @@ c3nav = {
         L.control.scale({imperial: false}).addTo(c3nav.map);
 
         // setup level control
-        c3nav._levelControl = new LevelControl().addTo(c3nav.map);
+        c3nav._levelControl = new LevelControl({initialTheme: c3nav.theme}).addTo(c3nav.map);
         c3nav._locationLayers = {};
         c3nav._locationLayerBounds = {};
         c3nav._detailLayers = {};
@@ -1438,8 +1451,10 @@ c3nav = {
             c3nav._gridLayer = new L.SquareGridLayer(JSON.parse($map.attr('data-grid')));
             c3nav._gridControl = new SquareGridControl().addTo(c3nav.map);
         }
-
-        new ThemeControl().addTo(c3nav.map);
+        if (Object.values(c3nav.themes)
+            .filter(([_, isPublic]) => isPublic || c3nav.user_data.show_nonpublic_themes).length > 0) {
+            new ThemeControl().addTo(c3nav.map);
+        }
 
         // setup user location control
         c3nav._userLocationControl = new UserLocationControl().addTo(c3nav.map);
@@ -1454,16 +1469,36 @@ c3nav = {
 
     },
     theme: 0,
-    show_theme_select: function() {
-        // TODO: actual theme selection
-        if (c3nav.theme === 0) {
-            c3nav.theme = 1;
-        } else {
-            c3nav.theme = 0;
-        }
+    setTheme: function(theme) {
+        if (theme === c3nav.theme) return;
+        c3nav.theme = theme;
+        localStorageWrapper.setItem('c3nav-theme', c3nav.theme);
         c3nav._levelControl.setTheme(c3nav.theme);
-        // openInModal('/theme')
     },
+    show_theme_select: function(e) {
+        e.preventDefault();
+        c3nav.open_modal(document.querySelector('main>.theme-selection').outerHTML);
+        const select = document.querySelector('#modal .theme-selection select');
+        for (const id in c3nav.themes) {
+            const [name, is_public] = c3nav.themes[id];
+            if (c3nav.user_data.show_nonpublic_themes || is_public) {
+                const option = document.createElement('option');
+                option.value = id;
+                option.innerText = name;
+                select.append(option);
+            }
+        }
+        const currentThemeOption = select.querySelector(`[value="${c3nav.theme}"]`);
+        if (currentThemeOption) {
+            currentThemeOption.selected = true;
+        }
+    },
+    select_theme: function(e) {
+        var theme = parseInt(e.target.parentElement.querySelector('select').value);
+        c3nav.setTheme(theme);
+        history.back(); // close the modal
+    },
+
     _click_anywhere_popup: null,
     _click_anywhere: function(e) {
         if (e.originalEvent.target.id !== 'map') return;
@@ -2020,7 +2055,8 @@ function mobileclientOnResume() {
 LevelControl = L.Control.extend({
     options: {
         position: 'bottomright',
-        addClasses: ''
+        addClasses: '',
+        initialTheme: 0,
     },
 
     onAdd: function () {
@@ -2029,11 +2065,12 @@ LevelControl = L.Control.extend({
         this._overlayLayers = {};
         this._levelButtons = {};
         this.currentLevel = null;
+        this.currentTheme = this.options.initialTheme;
         return this._container;
     },
 
-    createTileLayer: function(id, theme) {
-        let urlPattern = (c3nav.tile_server || '/map/') + `${id}/{z}/{x}/{y}/${theme}.png`;
+    createTileLayer: function(id) {
+        let urlPattern = (c3nav.tile_server || '/map/') + `${id}/{z}/{x}/{y}/${this.currentTheme}.png`;
         return L.tileLayer(urlPattern, {
             minZoom: -2,
             maxZoom: 5,
@@ -2041,12 +2078,14 @@ LevelControl = L.Control.extend({
         });
     },
     setTheme: function(theme) {
+        if (theme === this.currentTheme) return;
+        this.currentTheme = theme;
         if (this.currentLevel !== null) {
             this._tileLayers[this.currentLevel].remove();
         }
 
         for (const id in this._tileLayers) {
-            this._tileLayers[id] = this.createTileLayer(id, theme);
+            this._tileLayers[id] = this.createTileLayer(id);
         }
 
         if (this.currentLevel !== null) {
@@ -2054,7 +2093,7 @@ LevelControl = L.Control.extend({
         }
     },
     addLevel: function (id, title) {
-        this._tileLayers[id] = this.createTileLayer(id, 0);
+        this._tileLayers[id] = this.createTileLayer(id);
         var overlay = L.layerGroup();
         this._overlayLayers[id] = overlay;
 
@@ -2105,7 +2144,7 @@ LevelControl = L.Control.extend({
         buttons.removeClass('current');
     },
 
-    reloadMap: function() {
+    reloadMap: function() { // TODO: create fresh tile layers
         if (this.currentLevel === null) return;
         var old_tile_layer = this._tileLayers[this.currentLevel],
             new_tile_layer = this.createTileLayer(this.currentLevel);

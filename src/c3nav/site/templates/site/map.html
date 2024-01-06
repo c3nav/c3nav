@@ -29,6 +29,8 @@
         <meta property="og:url" content="{{ meta.canonical_url }}"/>
         <meta property="twitter:url" content="{{ meta.canonical_url }}"/>
     {% endif %}
+
+    {{ available_themes|json_script:"available-themes" }}
 {% endblock %}
 
 {% block content %}
@@ -247,6 +249,16 @@
                     <a href="#" class="close"><i class="material-symbols">close</i></a>
                     {% blocktrans with play_url="https://play.google.com/store/apps/details?id=de.c3nav.droid" apk_url="https://github.com/c3nav/c3nav-android/releases" %}Get the c3nav Android app on <a href="{{ play_url }}" target="_blank">Google Play</a> or <a href="{{ apk_url }}" target="_blank">download the APK!</a>{% endblocktrans %}
                 </div>
+            </div>
+            <div class="theme-selection">
+                <h2>{% trans 'Select theme' %}</h2>
+                <p>
+                    <label for="id_theme">Theme:</label>
+                    <select name="theme" required="" id="id_theme">
+                        <option value="0">{% trans 'Default theme' %}</option>
+                    </select>
+                </p>
+                <button>Save theme</button>
             </div>
         {% else %}
             <a id="embed-logo" class="embed-link" target="_blank">{% if header_logo %}<img src="{% static header_logo %}">{% else %}<span>c3nav</span>{% endif %}</a>

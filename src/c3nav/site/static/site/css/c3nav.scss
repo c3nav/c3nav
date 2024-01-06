@@ -1100,7 +1100,7 @@ body:not(.mobileclient) .share-ui p {
 body:not(.mobileclient) .locationinput.empty .locate {
     opacity: 0.4;
 }
-main > .share-ui, #reload-msg, #app-ad {
+main > .share-ui, #reload-msg, #app-ad, main > .theme-selection {
     display: none;
 }
 

@@ -30,7 +30,8 @@ class Migration(migrations.Migration):
             fields=[
                 ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
                 ('title', c3nav.mapdata.fields.I18nField(blank=True, fallback_any=True, fallback_value='{model} {pk}', plural_name='titles', verbose_name='Title')),
-                ('description', models.TextField()),
+                ('description', models.TextField(verbose_name='Description')),
+                ('public', models.BooleanField(default=False, verbose_name='Public')),
                 ('color_background', models.CharField(max_length=32, verbose_name='background color')),
                 ('color_wall_fill', models.CharField(max_length=32, verbose_name='wall fill color')),
                 ('color_wall_border', models.CharField(max_length=32, verbose_name='wall border color')),
