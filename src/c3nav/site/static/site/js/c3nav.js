@@ -1453,13 +1453,13 @@ c3nav = {
         c3nav.schedule_fetch_updates();
 
     },
-    theme: null,
+    theme: 0,
     show_theme_select: function() {
         // TODO: actual theme selection
-        if (c3nav.theme === null) {
+        if (c3nav.theme === 0) {
             c3nav.theme = 1;
         } else {
-            c3nav.theme = null;
+            c3nav.theme = 0;
         }
         c3nav._levelControl.setTheme(c3nav.theme);
         // openInModal('/theme')
@@ -2032,12 +2032,8 @@ LevelControl = L.Control.extend({
         return this._container;
     },
 
-    createTileLayer: function(id, theme = null) {
-        let urlPattern = (c3nav.tile_server || '/map/') + `${id}/{z}/{x}/{y}`;
-        if (theme) {
-            urlPattern += `/${theme}`;
-        }
-        urlPattern += '.png';
+    createTileLayer: function(id, theme) {
+        let urlPattern = (c3nav.tile_server || '/map/') + `${id}/{z}/{x}/{y}/${theme}.png`;
         return L.tileLayer(urlPattern, {
             minZoom: -2,
             maxZoom: 5,
@@ -2058,7 +2054,7 @@ LevelControl = L.Control.extend({
         }
     },
     addLevel: function (id, title) {
-        this._tileLayers[id] = this.createTileLayer(id);
+        this._tileLayers[id] = this.createTileLayer(id, 0);
         var overlay = L.layerGroup();
         this._overlayLayers[id] = overlay;
 
