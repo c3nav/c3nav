@@ -32,7 +32,7 @@ if os.environ.get('C3NAV_LOGFILE'):
 
 class TileServer:
     def __init__(self):
-        self.path_regex = re.compile(r'^/(\d+)/(-?\d+)/(-?\d+)/(-?\d+)/(-?\d+).png$')
+        self.path_regex = re.compile(r'^/(\d+)/(-?\d+)/(-?\d+)/(-?\d+)(/(-?\d+))?.png$')
 
         self.cookie_regex = re.compile(r'(^| )c3nav_tile_access="?([^;" ]+)"?')
 
@@ -239,7 +239,9 @@ class TileServer:
         if match is None:
             return self.not_found(start_response, b'invalid tile path.')
 
-        level, zoom, x, y, theme = match.groups()
+        level, zoom, x, y, _, theme = match.groups()
+        if theme is None:
+            theme = 0
 
         zoom = int(zoom)
         if not (-2 <= zoom <= 5):
