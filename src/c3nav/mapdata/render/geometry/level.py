@@ -63,7 +63,7 @@ class LevelGeometries:
         return '<LevelGeometries for Level %s (#%d)>' % (self.short_label, self.pk)
 
     @classmethod
-    def build_for_level(cls, level, altitudeareas_above):
+    def build_for_level(cls, level, color_manager: 'ThemeColorManager', altitudeareas_above):
         geoms = LevelGeometries()
         buildings_geom = unary_union([unwrap_geom(b.geometry) for b in level.buildings.all()])
         geoms.buildings = buildings_geom
@@ -128,7 +128,7 @@ class LevelGeometries:
                         buffered.difference(buildings_geom)
                     )
 
-            colors.setdefault(space.get_color_sorted(), {}).setdefault(access_restriction, []).append(
+            colors.setdefault(space.get_color_sorted(color_manager), {}).setdefault(access_restriction, []).append(
                 unwrap_geom(space.geometry)
             )
 
@@ -137,7 +137,7 @@ class LevelGeometries:
                 area.geometry = area.geometry.intersection(unwrap_geom(space.walkable_geom))
                 if access_restriction is not None:
                     access_restriction_affected.setdefault(access_restriction, []).append(area.geometry)
-                colors.setdefault(area.get_color_sorted(), {}).setdefault(access_restriction, []).append(area.geometry)
+                colors.setdefault(area.get_color_sorted(color_manager), {}).setdefault(access_restriction, []).append(area.geometry)
 
             for column in space.columns.all():
                 access_restriction = column.access_restriction_id
@@ -156,14 +156,14 @@ class LevelGeometries:
                     continue
                 obstacles.setdefault(
                     int((obstacle.height+obstacle.altitude)*1000), {}
-                ).setdefault(obstacle.color, []).append(
+                ).setdefault(obstacle.get_color(color_manager), []).append(
                     obstacle.geometry.intersection(unwrap_geom(space.walkable_geom))
                 )
 
             for lineobstacle in space.lineobstacles.all():
                 if not lineobstacle.height:
                     continue
-                obstacles.setdefault(int(lineobstacle.height*1000), {}).setdefault(lineobstacle.color, []).append(
+                obstacles.setdefault(int(lineobstacle.height*1000), {}).setdefault(lineobstacle.get_color(color_manager), []).append(
                     lineobstacle.buffered_geometry.intersection(unwrap_geom(space.walkable_geom))
                 )
 

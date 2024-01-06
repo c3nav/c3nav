@@ -14,7 +14,7 @@ from c3nav.mapdata.fields import GeometryField, I18nField
 from c3nav.mapdata.grid import grid
 from c3nav.mapdata.models import Space
 from c3nav.mapdata.models.access import AccessRestrictionMixin
-from c3nav.mapdata.models.base import SerializableMixin
+from c3nav.mapdata.models.base import SerializableMixin, TitledMixin
 from c3nav.mapdata.models.geometry.base import GeometryMixin
 from c3nav.mapdata.models.locations import SpecificLocation
 from c3nav.mapdata.utils.cache.changes import changed_geometries
@@ -38,7 +38,8 @@ class SpaceGeometryMixin(GeometryMixin):
     def get_geojson_properties(self, *args, instance=None, **kwargs) -> dict:
         result = super().get_geojson_properties(*args, **kwargs)
         if hasattr(self, 'get_color'):
-            color = self.get_color(instance=instance)
+            from c3nav.mapdata.render.theme import ColorManager
+            color = self.get_color(ColorManager.for_theme(None), instance=instance)
             if color:
                 result['color'] = color
         if hasattr(self, 'opacity'):
@@ -175,16 +176,42 @@ class Ramp(SpaceGeometryMixin, models.Model):
         default_related_name = 'ramps'
 
 
+class ObstacleGroup(TitledMixin, models.Model):
+    color = models.CharField(max_length=32, null=True, blank=True)
+
+    class Meta:
+        verbose_name = _('Obstacle Group')
+        verbose_name_plural = _('Obstacle Groups')
+        default_related_name = 'groups'
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.orig_color = self.color
+
+    def save(self, *args, **kwargs):
+        if self.pk and (self.orig_color != self.color):
+            self.register_changed_geometries()
+        super().save(*args, **kwargs)
+
+    def delete(self, *args, **kwargs):
+        self.register_changed_geometries()
+        super().delete(*args, **kwargs)
+
+    def register_changed_geometries(self, do_query=True):
+        for obj in self.obstacles.select_related('space'):
+            obj.register_change(force=True)
+
+
 class Obstacle(SpaceGeometryMixin, models.Model):
     """
     An obstacle
     """
+    group = models.ForeignKey(ObstacleGroup, null=True, blank=True, on_delete=models.SET_NULL)
     geometry = GeometryField('polygon')
     height = models.DecimalField(_('height'), max_digits=6, decimal_places=2, default=0.8,
                                  validators=[MinValueValidator(Decimal('0'))])
     altitude = models.DecimalField(_('altitude above ground'), max_digits=6, decimal_places=2, default=0,
                                    validators=[MinValueValidator(Decimal('0'))])
-    color = models.CharField(null=True, blank=True, max_length=32, verbose_name=_('color (optional)'))
 
     class Meta:
         verbose_name = _('Obstacle')
@@ -194,22 +221,31 @@ class Obstacle(SpaceGeometryMixin, models.Model):
 
     def get_geojson_properties(self, *args, instance=None, **kwargs) -> dict:
         result = super().get_geojson_properties(*args, **kwargs)
-        if self.color:
-            result['color'] = self.color
+        from c3nav.mapdata.render.theme import ColorManager
+        color = self.get_color(ColorManager.for_theme(None), instance=instance)
+        if color:
+            result['color'] = color
         return result
 
     def _serialize(self, geometry=True, **kwargs):
         result = super()._serialize(geometry=geometry, **kwargs)
         result['height'] = float(str(self.height))
         result['altitude'] = float(str(self.altitude))
-        result['color'] = self.color
+        from c3nav.mapdata.render.theme import ColorManager
+        result['color'] = self.get_color(ColorManager.for_theme(None))
         return result
+
+    def get_color(self, color_manager: 'ThemeColorManager', instance=None):
+        if instance is None:
+            instance = self
+        return color_manager.obstaclegroup_fill_color(instance.group) if instance.group is not None else color_manager.obstacles_default_fill
 
 
 class LineObstacle(SpaceGeometryMixin, models.Model):
     """
     An obstacle that is a line with a specific width
     """
+    group = models.ForeignKey(ObstacleGroup, null=True, blank=True, on_delete=models.SET_NULL)
     geometry = GeometryField('linestring')
     width = models.DecimalField(_('width'), max_digits=4, decimal_places=2, default=0.15)
     height = models.DecimalField(_('height'), max_digits=6, decimal_places=2, default=0.8,
@@ -217,6 +253,7 @@ class LineObstacle(SpaceGeometryMixin, models.Model):
     altitude = models.DecimalField(_('altitude above ground'), max_digits=6, decimal_places=2, default=0,
                                    validators=[MinValueValidator(Decimal('0'))])
     color = models.CharField(null=True, blank=True, max_length=32, verbose_name=_('color (optional)'))
+    # TODO: migrate away from color same as for Obstacle
 
     class Meta:
         verbose_name = _('Line Obstacle')
@@ -226,8 +263,10 @@ class LineObstacle(SpaceGeometryMixin, models.Model):
 
     def get_geojson_properties(self, *args, instance=None, **kwargs) -> dict:
         result = super().get_geojson_properties(*args, **kwargs)
-        if self.color:
-            result['color'] = self.color
+        from c3nav.mapdata.render.theme import ColorManager
+        color = self.get_color(ColorManager.for_theme(None), instance=instance)
+        if color:
+            result['color'] = color
         return result
 
     def _serialize(self, geometry=True, **kwargs):
@@ -235,10 +274,17 @@ class LineObstacle(SpaceGeometryMixin, models.Model):
         result['width'] = float(str(self.width))
         result['height'] = float(str(self.height))
         result['altitude'] = float(str(self.altitude))
-        result['color'] = self.color
+        from c3nav.mapdata.render.theme import ColorManager
+        result['color'] = self.get_color(ColorManager.for_theme(None))
         if geometry:
             result['buffered_geometry'] = format_geojson(mapping(self.buffered_geometry))
         return result
+
+    def get_color(self, color_manager: 'ThemeColorManager', instance=None):
+        if instance is None:
+            instance = self
+        # TODO: should line obstacles use border color?
+        return color_manager.obstaclegroup_fill_color(instance.group) if instance.group is not None else color_manager.obstacles_default_fill
 
     @property
     def buffered_geometry(self):

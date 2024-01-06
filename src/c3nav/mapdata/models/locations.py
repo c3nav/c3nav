@@ -155,18 +155,19 @@ class Location(LocationSlug, AccessRestrictionMixin, TitledMixin, models.Model):
     def grid_square(self):
         return None
 
-    def get_color(self, instance=None):
+    def get_color(self, color_manager: 'ThemeColorManager', instance=None):
         # dont filter in the query here so prefetch_related works
-        result = self.get_color_sorted(instance)
+        result = self.get_color_sorted(color_manager, instance)
         return None if result is None else result[1]
 
-    def get_color_sorted(self, instance=None):
+    def get_color_sorted(self, color_manager: 'ThemeColorManager', instance=None):
         # dont filter in the query here so prefetch_related works
         if instance is None:
             instance = self
         for group in instance.groups.all():
-            if group.color and getattr(group.category, 'allow_'+self.__class__._meta.default_related_name):
-                return (0, group.category.priority, group.hierarchy, group.priority), group.color
+            color = color_manager.locationgroup_fill_color(group)
+            if color and getattr(group.category, 'allow_'+self.__class__._meta.default_related_name):
+                return (0, group.category.priority, group.hierarchy, group.priority), color
         return None
 
     def get_icon(self):

@@ -39,7 +39,8 @@ class LevelGeometryMixin(GeometryMixin):
         result = super().get_geojson_properties(*args, **kwargs)
         result['level'] = self.level_id
         if hasattr(self, 'get_color'):
-            color = self.get_color(instance=instance)
+            from c3nav.mapdata.render.theme import ColorManager
+            color = self.get_color(ColorManager.for_theme(None), instance=instance)
             if color:
                 result['color'] = color
         if hasattr(self, 'opacity'):

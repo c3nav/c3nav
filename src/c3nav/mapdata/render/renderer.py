@@ -6,16 +6,10 @@ from c3nav.mapdata.models import Level
 from c3nav.mapdata.render.engines.base import FillAttribs, StrokeAttribs
 from c3nav.mapdata.render.geometry import hybrid_union
 from c3nav.mapdata.render.renderdata import LevelRenderData
+from c3nav.mapdata.render.theme import ColorManager
 from c3nav.mapdata.render.utils import get_full_levels, get_min_altitude
 from c3nav.mapdata.utils.color import color_to_rgb, rgb_to_color
 
-RENDER_COLOR_BACKGROUND = "#DCDCDC"
-RENDER_COLOR_WALL_FILL = "#aaaaaa"
-RENDER_COLOR_WALL_BORDER = "#666666"
-RENDER_COLOR_DOOR_FILL = "#ffffff"
-RENDER_COLOR_GROUND_FILL = "#eeeeee"
-RENDER_COLOR_OBSTACLES_DEFAULT_FILL = "#b7b7b7"
-RENDER_COLOR_OBSTACLES_DEFAULT_BORDER = "#888888"
 
 
 class MapRenderer:
@@ -38,16 +32,17 @@ class MapRenderer:
     def bbox(self):
         return box(self.minx-1, self.miny-1, self.maxx+1, self.maxy+1)
 
-    def render(self, engine_cls, center=True):
+    def render(self, engine_cls, theme, center=True):
+        color_manager = ColorManager.for_theme(theme)
         # add no access restriction to “unlocked“ access restrictions so lookup gets easier
         access_permissions = self.access_permissions | {None}
 
         bbox = prepared.prep(self.bbox)
 
-        level_render_data = LevelRenderData.get(self.level)
+        level_render_data = LevelRenderData.get(self.level, theme)
 
         engine = engine_cls(self.width, self.height, self.minx, self.miny, float(level_render_data.base_altitude),
-                            scale=self.scale, buffer=1, background=RENDER_COLOR_BACKGROUND,
+                            scale=self.scale, buffer=1, background=color_manager.background,
                             center=center, min_width=self.min_width)
 
         if hasattr(engine, 'custom_render'):
@@ -81,17 +76,17 @@ class MapRenderer:
             ).union(add_walls)
 
             if not_full_levels:
-                engine.add_geometry(geoms.walls_base, fill=FillAttribs(RENDER_COLOR_WALL_FILL), category='walls')
+                engine.add_geometry(geoms.walls_base, fill=FillAttribs(color_manager.wall_fill), category='walls')
                 engine.add_geometry(geoms.walls_bottom.fit(scale=geoms.min_altitude-min_altitude,
                                                            offset=min_altitude-int(0.7*1000)),
-                                    fill=FillAttribs(RENDER_COLOR_WALL_FILL), category='walls')
+                                    fill=FillAttribs(color_manager.wall_fill), category='walls')
                 for i, altitudearea in enumerate(geoms.altitudeareas):
                     base = altitudearea.base.difference(crop_areas)
                     bottom = altitudearea.bottom.difference(crop_areas)
-                    engine.add_geometry(base, fill=FillAttribs(RENDER_COLOR_GROUND_FILL), category='ground', item=i)
+                    engine.add_geometry(base, fill=FillAttribs(color_manager.ground_fill), category='ground', item=i)
                     engine.add_geometry(bottom.fit(scale=geoms.min_altitude - min_altitude,
                                                    offset=min_altitude - int(0.7 * 1000)),
-                                        fill=FillAttribs(RENDER_COLOR_WALL_FILL), category='ground')
+                                        fill=FillAttribs(color_manager.wall_fill), category='ground')
 
             # render altitude areas in default ground color and add ground colors to each one afterwards
             # shadows are directly calculated and added by the engine
@@ -100,7 +95,7 @@ class MapRenderer:
                 if not_full_levels:
                     geometry = geometry.filter(bottom=False)
                 engine.add_geometry(geometry, altitude=altitudearea.altitude,
-                                    fill=FillAttribs(RENDER_COLOR_GROUND_FILL), category='ground', item=i)
+                                    fill=FillAttribs(color_manager.ground_fill), category='ground', item=i)
 
                 j = 0
                 for (order, color), areas in altitudearea.colors.items():
@@ -131,8 +126,8 @@ class MapRenderer:
                             else:
                                 engine.add_geometry(
                                     obstacle_geom,
-                                    fill=FillAttribs(RENDER_COLOR_OBSTACLES_DEFAULT_FILL),
-                                    stroke=StrokeAttribs(RENDER_COLOR_OBSTACLES_DEFAULT_BORDER, 0.05, min_px=0.2),
+                                    fill=FillAttribs(color_manager.obstacles_default_fill),
+                                    stroke=StrokeAttribs(color_manager.obstacles_default_border, 0.05, min_px=0.2),
                                     category='obstacles'
                                 )
 
@@ -147,29 +142,29 @@ class MapRenderer:
                 engine.add_geometry(
                     walls.filter(bottom=not not_full_levels,
                                  top=not walls_extended),
-                    height=geoms.default_height, fill=FillAttribs(RENDER_COLOR_WALL_FILL), category='walls'
+                    height=geoms.default_height, fill=FillAttribs(color_manager.wall_fill), category='walls'
                 )
 
             for short_wall in geoms.short_walls:
                 engine.add_geometry(short_wall.filter(bottom=not not_full_levels),
-                                    fill=FillAttribs(RENDER_COLOR_WALL_FILL), category='walls')
+                                    fill=FillAttribs(color_manager.wall_fill), category='walls')
 
             if walls_extended:
-                engine.add_geometry(geoms.walls_extended, fill=FillAttribs(RENDER_COLOR_WALL_FILL), category='walls')
+                engine.add_geometry(geoms.walls_extended, fill=FillAttribs(color_manager.wall_fill), category='walls')
 
             doors_extended = geoms.doors_extended and full_levels
             if not geoms.doors.is_empty:
                 engine.add_geometry(geoms.doors.difference(add_walls).filter(top=not doors_extended),
-                                    fill=FillAttribs(RENDER_COLOR_DOOR_FILL),
-                                    stroke=StrokeAttribs(RENDER_COLOR_DOOR_FILL, 0.05, min_px=0.2),
+                                    fill=FillAttribs(color_manager.door_fill),
+                                    stroke=StrokeAttribs(color_manager.door_fill, 0.05, min_px=0.2),
                                     category='doors')
 
             if doors_extended:
-                engine.add_geometry(geoms.doors_extended, fill=FillAttribs(RENDER_COLOR_WALL_FILL), category='doors')
+                engine.add_geometry(geoms.doors_extended, fill=FillAttribs(color_manager.wall_fill), category='doors')
 
             if walls is not None:
                 engine.add_geometry(walls,
-                                    stroke=StrokeAttribs(RENDER_COLOR_WALL_BORDER, 0.1, min_px=1),
+                                    stroke=StrokeAttribs(color_manager.wall_border, 0.1, min_px=1),
                                     category='walls')
 
             if geoms.on_top_of_id is None:

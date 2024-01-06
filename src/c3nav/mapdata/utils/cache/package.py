@@ -23,9 +23,12 @@ class CachePackage:
     def __init__(self, bounds, levels=None):
         self.bounds = bounds
         self.levels = {} if levels is None else levels
+        self.theme_ids = []
 
-    def add_level(self, level_id: int, history: MapHistory, restrictions: AccessRestrictionAffected):
-        self.levels[level_id] = CachePackageLevel(history, restrictions)
+    def add_level(self, level_id: int, theme_id, history: MapHistory, restrictions: AccessRestrictionAffected):
+        self.levels[(level_id, theme_id)] = CachePackageLevel(history, restrictions)
+        if theme_id not in self.theme_ids:
+            self.theme_ids.append(theme_id)
 
     def save(self, filename=None, compression=None):
         if filename is None:
@@ -50,9 +53,13 @@ class CachePackage:
                 self._add_bytesio(f, 'bounds',
                                   BytesIO(struct.pack('<iiii', *(int(i*100) for i in self.bounds))))
 
-                for level_id, level_data in self.levels.items():
-                    self._add_geometryindexed(f, 'history_%d' % level_id, level_data.history)
-                    self._add_geometryindexed(f, 'restrictions_%d' % level_id, level_data.restrictions)
+                for (level_id, theme_id), level_data in self.levels.items():
+                    if theme_id is None:
+                        key = '%d' % level_id
+                    else:
+                        key = '%d_%d' % (level_id, theme_id)
+                    self._add_geometryindexed(f, 'history_%s' % key, level_data.history)
+                    self._add_geometryindexed(f, 'restrictions_%s' % key, level_data.restrictions)
         finally:
             if fileobj is not None:
                 fileobj.close()
@@ -99,10 +106,15 @@ class CachePackage:
         for filename in files:
             if not filename.startswith('history_'):
                 continue
-            level_id = int(filename[8:])
-            levels[level_id] = CachePackageLevel(
-                history=MapHistory.read(f.extractfile(files['history_%d' % level_id])),
-                restrictions=AccessRestrictionAffected.read(f.extractfile(files['restrictions_%d' % level_id]))
+            key = filename[8:]
+            if '_' in key:
+                [level_id, theme_id] = [int(x) for x in key.split('_', 1)]
+            else:
+                level_id = int(key)
+                theme_id = None
+            levels[(level_id, theme_id)] = CachePackageLevel(
+                history=MapHistory.read(f.extractfile(files['history_%s' % key])),
+                restrictions=AccessRestrictionAffected.read(f.extractfile(files['restrictions_%s' % key]))
             )
 
         return cls(bounds, levels)

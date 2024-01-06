@@ -51,6 +51,7 @@ def main_index(request):
         'child_models': [
             child_model(request, 'LocationGroupCategory'),
             child_model(request, 'LocationGroup'),
+            child_model(request, 'ObstacleGroup'),
             child_model(request, 'GroundAltitude'),
             child_model(request, 'DynamicLocation'),
             child_model(request, 'WayType'),
@@ -58,6 +59,7 @@ def main_index(request):
             child_model(request, 'AccessRestrictionGroup'),
             child_model(request, 'LabelSettings'),
             child_model(request, 'Source'),
+            child_model(request, 'Theme'),
         ],
     }, fields=('can_create_level', 'child_models'))
 

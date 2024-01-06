@@ -187,13 +187,15 @@ def preview_location(request, slug):
 
     minx, miny, maxx, maxy, img_scale = bounds_for_preview(unary_union(geometries), cache_package)
 
-    level_data = cache_package.levels.get(level)
+    theme = None  # previews are unthemed
+
+    level_data = cache_package.levels.get((level, theme))
     if level_data is None:
         raise Http404
 
     def render_preview():
         renderer = MapRenderer(level, minx, miny, maxx, maxy, scale=img_scale, access_permissions=set())
-        image = renderer.render(ImageRenderEngine)
+        image = renderer.render(ImageRenderEngine, theme)
         if highlight:
             for geometry in geometries:
                 image.add_geometry(geometry,
@@ -291,13 +293,15 @@ def preview_route(request, slug, slug2):
 
     minx, miny, maxx, maxy, img_scale = bounds_for_preview(combined_geometry, cache_package)
 
-    level_data = cache_package.levels.get(origin_level)
+    theme = None  # previews are unthemed
+
+    level_data = cache_package.levels.get((origin_level, theme))
     if level_data is None:
         raise Http404
 
     def render_preview():
         renderer = MapRenderer(origin_level, minx, miny, maxx, maxy, scale=img_scale, access_permissions=set())
-        image = renderer.render(ImageRenderEngine)
+        image = renderer.render(ImageRenderEngine, theme)
 
         if origin_geometry is not None:
             image.add_geometry(origin_geometry,
@@ -321,7 +325,7 @@ def preview_route(request, slug, slug2):
 
 
 @no_language()
-def tile(request, level, zoom, x, y, access_permissions: Optional[set] = None):
+def tile(request, level, zoom, x, y, theme, access_permissions: Optional[set] = None):
     if access_permissions is not None:
         enforce_tile_secret_auth(request)
     elif settings.TILE_CACHE_SERVER:
@@ -341,9 +345,12 @@ def tile(request, level, zoom, x, y, access_permissions: Optional[set] = None):
     if not cache_package.bounds_valid(minx, miny, maxx, maxy):
         raise Http404
 
+    theme = None if theme is 0 else int(theme)
+    theme_key = str(theme)
+
     # get level
     level = int(level)
-    level_data = cache_package.levels.get(level)
+    level_data = cache_package.levels.get((level, theme))
     if level_data is None:
         raise Http404
 
@@ -365,7 +372,7 @@ def tile(request, level, zoom, x, y, access_permissions: Optional[set] = None):
     access_cache_key = build_access_cache_key(access_permissions)
 
     # check browser cache
-    tile_etag = build_tile_etag(level, zoom, x, y, base_cache_key, access_cache_key, settings.SECRET_TILE_KEY)
+    tile_etag = build_tile_etag(level, zoom, x, y, theme_key, base_cache_key, access_cache_key, settings.SECRET_TILE_KEY)
     if_none_match = request.META.get('HTTP_IF_NONE_MATCH')
     if if_none_match == tile_etag:
         return HttpResponseNotModified()
@@ -375,9 +382,9 @@ def tile(request, level, zoom, x, y, access_permissions: Optional[set] = None):
 
     # get tile cache last update
     if settings.CACHE_TILES:
-        tile_directory = settings.TILES_ROOT / str(level) / str(zoom) / str(x) / str(y)
+        tile_directory = settings.TILES_ROOT / str(level) / str(zoom) / str(x) / str(y) / access_cache_key
         last_update_file = tile_directory / 'last_update'
-        tile_file = tile_directory / (access_cache_key + '.png')
+        tile_file = tile_directory / f'{theme_key}.png'
 
         # get tile cache last update
         tile_cache_update_cache_key = 'mapdata:tile-cache-update:%d-%d-%d-%d' % (level, zoom, x, y)
@@ -403,7 +410,7 @@ def tile(request, level, zoom, x, y, access_permissions: Optional[set] = None):
 
     if data is None:
         renderer = MapRenderer(level, minx, miny, maxx, maxy, scale=2 ** zoom, access_permissions=access_permissions)
-        image = renderer.render(ImageRenderEngine)
+        image = renderer.render(ImageRenderEngine, theme=theme)
         data = image.render()
 
         if settings.CACHE_TILES:

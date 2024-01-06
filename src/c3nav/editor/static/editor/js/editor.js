@@ -72,6 +72,7 @@ editor = {
 
         editor.init_geometries();
         editor.init_wificollector();
+        editor.sidebar_content_loaded();
     },
     _inform_mobile_client: function(elem) {
         if (!window.mobileclient || !elem.length) return;
@@ -199,6 +200,67 @@ editor = {
         }
         level_control.current_id = parseInt(level_list.attr('data-current-id'));
     },
+
+    sidebar_content_loaded: function() {
+        if (document.querySelector('#sidebar [data-themed-color]')) {
+            editor.theme_editor_loaded();
+        }
+    },
+    theme_editor_loaded: function() {
+        const filter_show_all = () => {
+            for (const input of document.querySelectorAll('#sidebar [data-themed-color]')) {
+                input.parentElement.classList.remove('theme-color-hidden');
+            }
+        };
+        const filter_show_base = () => {
+            for (const input of document.querySelectorAll('#sidebar [data-themed-color]')) {
+                input.parentElement.classList.toggle('theme-color-hidden',
+                    !('colorBaseTheme' in input.dataset));
+            }
+        };
+        const filter_show_any = () => {
+            for (const input of document.querySelectorAll('#sidebar [data-themed-color]')) {
+                input.parentElement.classList.toggle('theme-color-hidden',
+                    !('colorBaseTheme' in input.dataset || 'colorsOtherThemes' in input.dataset));
+            }
+        };
+
+        const filterButtons = document.querySelector('body>.theme-editor-filter').cloneNode(true);
+        const first_color_input = document.querySelector('#sidebar [data-themed-color]:first-of-type');
+        first_color_input.parentElement.before(filterButtons);
+        filterButtons.addEventListener('click', e => {
+            const btn = e.target;
+            if (btn.classList.contains('active')) return;
+            for (const b of filterButtons.querySelectorAll('button')) {
+                b.classList.remove('active');
+            }
+            btn.classList.add('active');
+            if ('all' in btn.dataset) filter_show_all();
+            else if ('baseTheme' in btn.dataset) filter_show_base();
+            else if ('anyTheme' in btn.dataset) filter_show_any();
+        });
+
+        const baseInfoElement = document.querySelector('body>.theme-color-info');
+
+        for (const color_input of document.querySelectorAll('#sidebar [data-themed-color]')) {
+            let colors = {};
+            if ('colorBaseTheme' in color_input.dataset) {
+                colors.base = color_input.dataset.colorBaseTheme;
+            }
+            if ('colorsOtherThemes' in color_input.dataset) {
+                const other_themes = JSON.parse(color_input.dataset.colorsOtherThemes);
+                colors = {...colors, ...other_themes};
+            }
+            const titleStr = Object.entries(colors).map(([theme, color]) => `${theme}: ${color}`).join('&#10;');
+            if (!titleStr) continue;
+            const infoElement = baseInfoElement.cloneNode(true);
+            infoElement.title = titleStr;
+            const label = color_input.previousElementSibling;
+            label.classList.add('theme-color-label');
+            label.appendChild(infoElement);
+        }
+    },
+
     _in_modal: false,
     _sidebar_loaded: function(data) {
         // sidebar was loaded. load the content. check if there are any redirects. call _check_start_editing.
@@ -206,6 +268,7 @@ editor = {
         if (data !== undefined) {
             var doc = (new DOMParser).parseFromString(data, 'text/html');
             content[0].replaceChildren(...doc.body.children);
+            editor.sidebar_content_loaded();
         }
 
         var redirect = content.find('span[data-redirect]');

@@ -73,6 +73,15 @@
         <table></table>
     </div>
 
+    <div class="theme-editor-filter">
+        <div class="btn-group" role="group">
+          <button type="button" class="btn btn-default active" data-all>{% trans 'All' %}</button>
+          <button type="button" class="btn btn-default" data-base-theme>{% trans 'In base theme' %}</button>
+          <button type="button" class="btn btn-default" data-any-theme>{% trans 'In any theme' %}</button>
+        </div>
+    </div>
+    <span class="theme-color-info">{% trans 'Other theme colors' %}</span>
+
     {% include 'site/fragment_fakemobileclient.html' %}
     {% compress js %}
         <script type="text/javascript" src="{% static 'jquery/jquery.js' %}"></script>

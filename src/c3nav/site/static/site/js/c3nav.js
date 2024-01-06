@@ -1439,6 +1439,8 @@ c3nav = {
             c3nav._gridControl = new SquareGridControl().addTo(c3nav.map);
         }
 
+        new ThemeControl().addTo(c3nav.map);
+
         // setup user location control
         c3nav._userLocationControl = new UserLocationControl().addTo(c3nav.map);
 
@@ -1450,6 +1452,17 @@ c3nav = {
 
         c3nav.schedule_fetch_updates();
 
+    },
+    theme: null,
+    show_theme_select: function() {
+        // TODO: actual theme selection
+        if (c3nav.theme === null) {
+            c3nav.theme = 1;
+        } else {
+            c3nav.theme = null;
+        }
+        c3nav._levelControl.setTheme(c3nav.theme);
+        // openInModal('/theme')
     },
     _click_anywhere_popup: null,
     _click_anywhere: function(e) {
@@ -2019,12 +2032,30 @@ LevelControl = L.Control.extend({
         return this._container;
     },
 
-    createTileLayer: function(id) {
-        return L.tileLayer((c3nav.tile_server || '/map/') + String(id) + '/{z}/{x}/{y}.png', {
+    createTileLayer: function(id, theme = null) {
+        let urlPattern = (c3nav.tile_server || '/map/') + `${id}/{z}/{x}/{y}`;
+        if (theme) {
+            urlPattern += `/${theme}`;
+        }
+        urlPattern += '.png';
+        return L.tileLayer(urlPattern, {
             minZoom: -2,
             maxZoom: 5,
             bounds: L.GeoJSON.coordsToLatLngs(c3nav.bounds)
         });
+    },
+    setTheme: function(theme) {
+        if (this.currentLevel !== null) {
+            this._tileLayers[this.currentLevel].remove();
+        }
+
+        for (const id in this._tileLayers) {
+            this._tileLayers[id] = this.createTileLayer(id, theme);
+        }
+
+        if (this.currentLevel !== null) {
+            this._tileLayers[this.currentLevel].addTo(c3nav.map);
+        }
     },
     addLevel: function (id, title) {
         this._tileLayers[id] = this.createTileLayer(id);
@@ -2049,7 +2080,7 @@ LevelControl = L.Control.extend({
         if (id === this.currentLevel) return true;
         if (id !== null && this._tileLayers[id] === undefined) return false;
 
-        if (this.currentLevel) {
+        if (this.currentLevel !== null) {
             this._tileLayers[this.currentLevel].remove();
             this._overlayLayers[this.currentLevel].remove();
             L.DomUtil.removeClass(this._levelButtons[this.currentLevel], 'current');
@@ -2205,6 +2236,21 @@ SquareGridControl = L.Control.extend({
         localStorageWrapper.removeItem('showGrid');
     }
 });
+
+ThemeControl = L.Control.extend({
+    options: {
+        position: 'bottomright',
+        addClasses: '',
+    },
+    onAdd: function() {
+        this._container = L.DomUtil.create('div', 'leaflet-control-theme leaflet-bar ' + this.options.addClasses);
+        this._button = L.DomUtil.create('a', 'material-symbols', this._container);
+        $(this._button).click(c3nav.show_theme_select).dblclick(function(e) { e.stopPropagation(); });
+        this._button.innerText = c3nav._map_material_icon('contrast');
+        this._button.href = '#';
+        return this._container;
+    },
+})
 
 
 L.SquareGridLayer = L.Layer.extend({

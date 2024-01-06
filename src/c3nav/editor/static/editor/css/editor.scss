@@ -459,3 +459,31 @@ body:not(.mobileclient) .wificollector .btn {
 .wificollector table tr td {
     color: #666666;
 }
+
+
+.theme-editor-filter {
+    body > & {
+        display: none;
+    }
+
+    border-top: 1px solid #e7e7e7;
+    padding-top: 12px;
+    margin-bottom: 12px;
+}
+
+body > .theme-color-info {
+    display: none;
+}
+
+label.theme-color-label {
+    display: block;
+    > .theme-color-info {
+        float: right;
+        text-decoration: underline black dotted;
+        cursor: help;
+    }
+}
+
+.theme-color-hidden {
+    display: none;
+}
