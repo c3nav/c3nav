@@ -520,7 +520,7 @@ class MeshConsumer(AsyncWebsocketConsumer):
                 ))
 
                 # wait a bit until we send more
-                await asyncio.sleep(0.05)  # 50ms
+                await asyncio.sleep(0.1)  # 100ms, todo: 50ms would be nice but the chip can't take it right now
 
             async with self.ota_chunks_available_condition:
                 if not self.ota_chunks:
