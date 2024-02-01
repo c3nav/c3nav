@@ -338,7 +338,10 @@ class MeshNode(models.Model):
         return dst_node.get_uplink()
 
     def get_locator_xyz(self):
-        locator = Locator.load()
+        try:
+            locator = Locator.load()
+        except FileNotFoundError:
+            return None
         return locator.get_xyz(self.address)
 
 
