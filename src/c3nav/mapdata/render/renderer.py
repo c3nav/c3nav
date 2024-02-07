@@ -11,7 +11,6 @@ from c3nav.mapdata.render.utils import get_full_levels, get_min_altitude
 from c3nav.mapdata.utils.color import color_to_rgb, rgb_to_color
 
 
-
 class MapRenderer:
     def __init__(self, level, minx, miny, maxx, maxy, scale=1, access_permissions=None, full_levels=False,
                  min_width=None):

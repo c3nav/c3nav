@@ -12,7 +12,7 @@ from django.http import Http404, HttpResponse, HttpResponseNotModified, Streamin
 from django.shortcuts import get_object_or_404
 from django.utils.http import content_disposition_header
 from django.views.decorators.http import etag
-from shapely import Point, box, LineString, unary_union
+from shapely import LineString, Point, box, unary_union
 
 from c3nav.mapdata.middleware import no_language
 from c3nav.mapdata.models import Level, MapUpdate
@@ -345,7 +345,7 @@ def tile(request, level, zoom, x, y, theme, access_permissions: Optional[set] = 
     if not cache_package.bounds_valid(minx, miny, maxx, maxy):
         raise Http404
 
-    theme = None if theme is 0 else int(theme)
+    theme = None if theme == 0 else int(theme)
     theme_key = str(theme)
 
     # get level
@@ -372,7 +372,8 @@ def tile(request, level, zoom, x, y, theme, access_permissions: Optional[set] = 
     access_cache_key = build_access_cache_key(access_permissions)
 
     # check browser cache
-    tile_etag = build_tile_etag(level, zoom, x, y, theme_key, base_cache_key, access_cache_key, settings.SECRET_TILE_KEY)
+    tile_etag = build_tile_etag(level, zoom, x, y, theme_key, base_cache_key, access_cache_key,
+                                settings.SECRET_TILE_KEY)
     if_none_match = request.META.get('HTTP_IF_NONE_MATCH')
     if if_none_match == tile_etag:
         return HttpResponseNotModified()

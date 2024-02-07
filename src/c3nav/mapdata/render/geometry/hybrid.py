@@ -6,8 +6,7 @@ from itertools import chain
 from typing import Literal, TypeVar
 
 import numpy as np
-from matplotlib.patches import Polygon
-from shapely.geometry import GeometryCollection, LineString, MultiLineString, MultiPolygon, Point
+from shapely.geometry import GeometryCollection, LineString, MultiLineString, MultiPolygon, Point, Polygon
 from shapely.geometry.base import BaseGeometry
 from shapely.ops import unary_union
 

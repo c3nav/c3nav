@@ -1,3 +1,4 @@
+import typing
 from decimal import Decimal
 
 from django.conf import settings
@@ -20,6 +21,9 @@ from c3nav.mapdata.models.locations import SpecificLocation
 from c3nav.mapdata.utils.cache.changes import changed_geometries
 from c3nav.mapdata.utils.geometry import unwrap_geom
 from c3nav.mapdata.utils.json import format_geojson
+
+if typing.TYPE_CHECKING:
+    from c3nav.mapdata.render.theme import ThemeColorManager
 
 
 class SpaceGeometryMixin(GeometryMixin):
@@ -240,7 +244,11 @@ class Obstacle(SpaceGeometryMixin, models.Model):
     def get_color(self, color_manager: 'ThemeColorManager', instance=None):
         if instance is None:
             instance = self
-        return color_manager.obstaclegroup_fill_color(instance.group) if instance.group is not None else color_manager.obstacles_default_fill
+        return (
+            color_manager.obstaclegroup_fill_color(instance.group)
+            if instance.group is not None
+            else color_manager.obstacles_default_fill
+        )
 
 
 class LineObstacle(SpaceGeometryMixin, models.Model):
@@ -284,7 +292,11 @@ class LineObstacle(SpaceGeometryMixin, models.Model):
         if instance is None:
             instance = self
         # TODO: should line obstacles use border color?
-        return color_manager.obstaclegroup_fill_color(instance.group) if instance.group is not None else color_manager.obstacles_default_fill
+        return (
+            color_manager.obstaclegroup_fill_color(instance.group)
+            if instance.group is not None
+            else color_manager.obstacles_default_fill
+        )
 
     @property
     def buffered_geometry(self):

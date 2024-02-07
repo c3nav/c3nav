@@ -188,7 +188,7 @@ class TileServer:
         error = False
         try:
             last_check = self.cache.get('cache_package_last_successful_check')
-        except pylibmc.Error as e:
+        except pylibmc.Error:
             error = True
             text = b'memcached error'
         else:
@@ -199,8 +199,8 @@ class TileServer:
                 else:
                     text = b'last successful cache package check is unknown'
         start_response(('500' if error else '200') + ' OK', [self.get_date_header(),
-                                  ('Content-Type', 'text/plain'),
-                                  ('Content-Length', str(len(text)))])
+                                                             ('Content-Type', 'text/plain'),
+                                                             ('Content-Length', str(len(text)))])
         return [text]
 
     def get_cache_package(self):
@@ -300,7 +300,8 @@ class TileServer:
         if cached_result is not None:
             return self.deliver_tile(start_response, tile_etag, cached_result)
 
-        r = requests.get('%s/map/%d/%d/%d/%d/%d/%s.png' % (self.upstream_base, level, zoom, x, y, theme_id, access_cache_key),
+        r = requests.get('%s/map/%d/%d/%d/%d/%d/%s.png' %
+                         (self.upstream_base, level, zoom, x, y, theme_id, access_cache_key),
                          headers=self.auth_headers, auth=self.http_auth)
 
         if r.status_code == 200 and r.headers['Content-Type'] == 'image/png':

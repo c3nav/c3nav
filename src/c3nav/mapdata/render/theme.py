@@ -24,13 +24,13 @@ class ThemeColorManager:
             self.obstacles_default_border = RENDER_COLOR_OBSTACLES_DEFAULT_BORDER
             self.location_group_border_colors = {}
             self.location_group_fill_colors = {
-                l.pk: l.color
-                for l in LocationGroup.objects.filter(color__isnull=False).all()
+                location_group.pk: location_group.color
+                for location_group in LocationGroup.objects.filter(color__isnull=False).all()
             }
             self.obstacle_group_border_colors = {}
             self.obstacle_group_fill_colors = {
-                o.pk: o.color
-                for o in ObstacleGroup.objects.filter(color__isnull=False).all()
+                obstacle_group.pk: obstacle_group.color
+                for obstacle_group in ObstacleGroup.objects.filter(color__isnull=False).all()
             }
         else:
             self.background = theme.color_background
@@ -41,20 +41,20 @@ class ThemeColorManager:
             self.obstacles_default_fill = theme.color_obstacles_default_fill
             self.obstacles_default_border = theme.color_obstacles_default_border
             self.location_group_border_colors = {
-                l.location_group_id: l.border_color
-                for l in theme.location_groups.all()
+                theme_location_group.location_group_id: theme_location_group.border_color
+                for theme_location_group in theme.location_groups.all()
             }
             self.location_group_fill_colors = {
-                l.location_group_id: l.fill_color
-                for l in theme.location_groups.all()
+                theme_location_group.location_group_id: theme_location_group.fill_color
+                for theme_location_group in theme.location_groups.all()
             }
             self.obstacle_group_border_colors = {
-                o.obstacle_group_id: o.border_color
-                for o in theme.obstacle_groups.all()
+                theme_obstacle_group.obstacle_group_id: theme_obstacle_group.border_color
+                for theme_obstacle_group in theme.obstacle_groups.all()
             }
             self.obstacle_group_fill_colors = {
-                o.obstacle_group_id: o.fill_color
-                for o in theme.obstacle_groups.all()
+                theme_obstacle.obstacle_group_id: theme_obstacle.fill_color
+                for theme_obstacle in theme.obstacle_groups.all()
             }
 
     def locationgroup_border_color(self, location_group: LocationGroup):

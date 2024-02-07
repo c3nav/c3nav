@@ -1,4 +1,5 @@
 import operator
+import typing
 from collections import Counter, deque
 from functools import reduce
 from itertools import chain
@@ -14,6 +15,9 @@ from c3nav.mapdata.render.geometry.mesh import Mesh
 from c3nav.mapdata.utils.cache import AccessRestrictionAffected
 from c3nav.mapdata.utils.geometry import get_rings, unwrap_geom
 from c3nav.mapdata.utils.mesh import triangulate_rings
+
+if typing.TYPE_CHECKING:
+    from c3nav.mapdata.render.theme import ThemeColorManager
 
 empty_geometry_collection = GeometryCollection()
 
@@ -136,7 +140,9 @@ class LevelGeometries:
                 area.geometry = area.geometry.intersection(unwrap_geom(space.walkable_geom))
                 if access_restriction is not None:
                     access_restriction_affected.setdefault(access_restriction, []).append(area.geometry)
-                colors.setdefault(area.get_color_sorted(color_manager), {}).setdefault(access_restriction, []).append(area.geometry)
+                colors.setdefault(
+                    area.get_color_sorted(color_manager), {}
+                ).setdefault(access_restriction, []).append(area.geometry)
 
             for column in space.columns.all():
                 access_restriction = column.access_restriction_id
@@ -162,7 +168,9 @@ class LevelGeometries:
             for lineobstacle in space.lineobstacles.all():
                 if not lineobstacle.height:
                     continue
-                obstacles.setdefault(int(lineobstacle.height*1000), {}).setdefault(lineobstacle.get_color(color_manager), []).append(
+                obstacles.setdefault(int(lineobstacle.height*1000), {}).setdefault(
+                    lineobstacle.get_color(color_manager), []
+                ).append(
                     lineobstacle.buffered_geometry.intersection(unwrap_geom(space.walkable_geom))
                 )
 

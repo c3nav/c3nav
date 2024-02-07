@@ -1,17 +1,15 @@
 import hashlib
-import json
 from uuid import UUID
 
 import requests
 from django.conf import settings
 from django.core.management.base import BaseCommand
-from pydantic import Field, BaseModel
-from pydantic import PositiveInt
+from pydantic import BaseModel, Field, PositiveInt
 from shapely import Point
 from shapely.geometry import shape
 
 from c3nav.api.utils import NonEmptyStr
-from c3nav.mapdata.models import Area, Space, LocationGroup, LocationSlug, MapUpdate
+from c3nav.mapdata.models import Area, LocationGroup, LocationSlug, MapUpdate, Space
 from c3nav.mapdata.models.geometry.space import POI
 from c3nav.mapdata.models.report import Report
 from c3nav.mapdata.utils.cache.changes import changed_geometries
@@ -189,7 +187,7 @@ class Command(BaseCommand):
 
             if result.geometry != new_geometry or True:
                 if result.import_block_geom:
-                    geometry_needs_change.append(f"change geometry")
+                    geometry_needs_change.append("change geometry")
                     print(f"NOTE: {item.slug} / {item.id} geometry has changed but is blocked")
                 else:
                     result.geometry = new_geometry
@@ -198,7 +196,7 @@ class Command(BaseCommand):
                 new_main_point = Point(item.location) if item.location else None
                 if result.main_point != new_main_point:
                     if result.import_block_geom:
-                        geometry_needs_change.append(f"change main point")
+                        geometry_needs_change.append("change main point")
                         print(f"NOTE: {item.slug} / {item.id} main point has changed but is blocked")
                     else:
                         result.main_point = new_main_point
@@ -210,8 +208,8 @@ class Command(BaseCommand):
                     obj=item,
                     report=Report(
                         category="location-issue",
-                        title=f"importhub: geometry is blocked but needs changing",
-                        description=f"changes needed: "+','.join(geometry_needs_change),
+                        title="importhub: geometry is blocked but needs changing",
+                        description="changes needed: "+','.join(geometry_needs_change),
                         location=result,
                     )
                 )
@@ -278,8 +276,8 @@ class Command(BaseCommand):
                     obj=item,
                     report=Report(
                         category="location-issue",
-                        title=f"importhub: data is blocked but needs changing",
-                        description=f"changes needed: "+','.join(data_needs_change),
+                        title="importhub: data is blocked but needs changing",
+                        description="changes needed: "+','.join(data_needs_change),
                         location=result,
                     )
                 )
@@ -299,8 +297,8 @@ class Command(BaseCommand):
                         obj=item,
                         report=Report(
                             category="location-issue",
-                            title=f"importhub: location no longer has any valid group ids",
-                            description=f"from the hub we would remove all groups, this seems wrong",
+                            title="importhub: location no longer has any valid group ids",
+                            description="from the hub we would remove all groups, this seems wrong",
                             location=result,
                         )
                     )
@@ -326,8 +324,8 @@ class Command(BaseCommand):
                         obj=item,
                         report=Report(
                             category="location-issue",
-                            title=f"importhub: new groups",
-                            description=(f"hub wants new groups for this, groups are now: " +
+                            title="importhub: new groups",
+                            description=("hub wants new groups for this, groups are now: " +
                                          str([group.title for group in new_groups])),
                             location=result,
                         )
@@ -343,10 +341,9 @@ class Command(BaseCommand):
                 obj=import_tag,
                 report=Report(
                     category="location-issue",
-                    title=f"importhub: delete this",
-                    description=f"hub wants to delete this",
+                    title="importhub: delete this",
+                    description="hub wants to delete this",
                     location=location,
                 )
             )
             print(f"NOTE: {location.slug} / {import_tag} should be deleted")
-

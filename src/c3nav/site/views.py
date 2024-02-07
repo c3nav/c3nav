@@ -29,7 +29,7 @@ from c3nav import __version__ as c3nav_version
 from c3nav.api.models import Secret
 from c3nav.mapdata.grid import grid
 from c3nav.mapdata.models import Location, Source
-from c3nav.mapdata.models.access import AccessPermissionToken, AccessPermission
+from c3nav.mapdata.models.access import AccessPermission, AccessPermissionToken
 from c3nav.mapdata.models.locations import LocationRedirect, Position, SpecificLocation, get_position_secret
 from c3nav.mapdata.models.report import Report, ReportUpdate
 from c3nav.mapdata.utils.locations import (get_location_by_id_for_request, get_location_by_slug_for_request,

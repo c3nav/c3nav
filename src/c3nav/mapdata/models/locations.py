@@ -1,4 +1,5 @@
 import string
+import typing
 from contextlib import suppress
 from datetime import timedelta
 from decimal import Decimal
@@ -24,6 +25,9 @@ from c3nav.mapdata.models.access import AccessRestrictionMixin
 from c3nav.mapdata.models.base import SerializableMixin, TitledMixin
 from c3nav.mapdata.utils.fields import LocationById
 from c3nav.mapdata.utils.models import get_submodels
+
+if typing.TYPE_CHECKING:
+    from c3nav.mapdata.render.theme import ThemeColorManager
 
 
 class LocationSlugManager(models.Manager):

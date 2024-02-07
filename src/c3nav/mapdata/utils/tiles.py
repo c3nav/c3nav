@@ -51,5 +51,6 @@ def build_access_cache_key(access_permissions: set):
 def build_tile_etag(level_id, zoom, x, y, theme_id, base_cache_key, access_cache_key, tile_secret):
     # we want a short etag so HTTP 304 responses are tiny
     return '"' + binascii.b2a_base64(hashlib.sha256(
-        ('%d-%d-%d-%d:%s:%s:%s:%s' % (level_id, zoom, x, y, str(theme_id), base_cache_key, access_cache_key, tile_secret[:26])).encode()
+        ('%d-%d-%d-%d:%s:%s:%s:%s' %
+         (level_id, zoom, x, y, str(theme_id), base_cache_key, access_cache_key, tile_secret[:26])).encode()
     ).digest()[:15], newline=False).decode() + '"'

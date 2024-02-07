@@ -9,14 +9,14 @@ from django.conf import settings
 from django.core.cache import cache
 from django.core.exceptions import FieldDoesNotExist
 from django.core.serializers.json import DjangoJSONEncoder
-from django.db.models import Q, Prefetch
+from django.db.models import Prefetch, Q
 from django.forms import (BooleanField, CharField, ChoiceField, DecimalField, Form, JSONField, ModelChoiceField,
                           ModelForm, MultipleChoiceField, Select, ValidationError)
 from django.forms.widgets import HiddenInput, TextInput
 from django.utils.translation import get_language
 from django.utils.translation import gettext_lazy as _
-from shapely.geometry.geo import mapping
 from pydantic import ValidationError as PydanticValidationError
+from shapely.geometry.geo import mapping
 
 from c3nav.editor.models import ChangeSet, ChangeSetUpdate
 from c3nav.mapdata.fields import GeometryField
@@ -40,12 +40,12 @@ class EditorFormBase(I18nModelFormMixin, ModelForm):
                 obstaclegroup_theme_colors = {}
             else:
                 locationgroup_theme_colors = {
-                    l.location_group_id: l
-                    for l in self.instance.location_groups.filter(theme_id=self.instance.pk)
+                    theme_location_group.location_group_id: theme_location_group
+                    for theme_location_group in self.instance.location_groups.filter(theme_id=self.instance.pk)
                 }
                 obstaclegroup_theme_colors = {
-                    o.obstacle_group_id: o
-                    for o in self.instance.obstacle_groups.filter(theme_id=self.instance.pk)
+                    theme_obstacle.obstacle_group_id: theme_obstacle
+                    for theme_obstacle in self.instance.obstacle_groups.filter(theme_id=self.instance.pk)
                 }
 
             # TODO: can we get the model class via relationships?
@@ -54,23 +54,24 @@ class EditorFormBase(I18nModelFormMixin, ModelForm):
                 related = locationgroup_theme_colors.get(locationgroup.pk, None)
                 value = related.fill_color if related is not None else None
                 other_themes_colors = {
-                    l.title: l.fill_color
-                    for l in locationgroup.theme_colors.all()
-                    if related is None or l.pk != related.pk
+                    theme_location_group.title: theme_location_group.fill_color
+                    for theme_location_group in locationgroup.theme_colors.all()
+                    if related is None or theme_location_group.pk != related.pk
                 }
                 if len(other_themes_colors) > 0:
                     other_themes_colors = json.dumps(other_themes_colors)
                 else:
                     other_themes_colors = False
-                field = CharField(max_length=32,
-                              label=locationgroup.title,
-                              required=False,
-                              initial=value,
-                              widget=TextInput(attrs={
-                                  'data-themed-color': True,
-                                  'data-color-base-theme': locationgroup.color if locationgroup.color else False,
-                                  'data-colors-other-themes': other_themes_colors,
-                              }))
+                field = CharField(
+                    max_length=32,
+                    label=locationgroup.title,
+                    required=False,
+                    initial=value,
+                    widget=TextInput(attrs={
+                        'data-themed-color': True,
+                        'data-color-base-theme': locationgroup.color if locationgroup.color else False,
+                        'data-colors-other-themes': other_themes_colors,
+                    }))
                 self.fields[f'locationgroup_{locationgroup.pk}'] = field
 
             for obstaclegroup in ObstacleGroup.objects.prefetch_related(
@@ -375,7 +376,8 @@ class EditorFormBase(I18nModelFormMixin, ModelForm):
                     self.instance.groups.set(groups)
 
         if self._meta.model.__name__ == 'Theme':
-            locationgroup_colors = {l.location_group_id: l for l in self.instance.location_groups.all()}
+            locationgroup_colors = {theme_location_group.location_group_id: theme_location_group
+                                    for theme_location_group in self.instance.location_groups.all()}
             for locationgroup in LocationGroup.objects.all():
                 value = self.cleaned_data[f'locationgroup_{locationgroup.pk}']
                 if value:

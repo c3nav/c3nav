@@ -85,7 +85,9 @@ class LevelRenderData:
             altitudeareas_above = []  # todo: typing
             for render_level in reversed(levels):
                 # build level geometry for every single level
-                single_level_geoms[render_level.pk] = LevelGeometries.build_for_level(render_level, color_manager, altitudeareas_above)
+                single_level_geoms[render_level.pk] = LevelGeometries.build_for_level(
+                    render_level, color_manager, altitudeareas_above
+                )
 
                 # ignore intermediate levels in this pass
                 if render_level.on_top_of_id is not None:

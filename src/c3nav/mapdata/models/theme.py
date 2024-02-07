@@ -54,6 +54,7 @@ class ThemeObstacleGroupBackgroundColor(models.Model):
     A background color for an ObstacleGroup in a theme
     """
     theme = models.ForeignKey(Theme, on_delete=models.CASCADE, related_name="obstacle_groups")
-    obstacle_group = models.ForeignKey(ObstacleGroup, on_delete=models.SET_NULL, null=True, blank=True, related_name="theme_colors")
+    obstacle_group = models.ForeignKey(ObstacleGroup, on_delete=models.SET_NULL, null=True, blank=True,
+                                       related_name="theme_colors")
     fill_color = models.CharField(max_length=32, null=True, blank=True)
     border_color = models.CharField(max_length=32, null=True, blank=True)

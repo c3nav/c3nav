@@ -87,8 +87,10 @@ class GeometryField(models.JSONField):
     def _validate_geomtype(self, value, exception: typing.Type[Exception] = ValidationError):
         if not isinstance(value, self.classes):
             # if you get this error with wrappedgeometry, looked into wrapped_geom
-            raise exception('Expected %s instance, got %s instead.' % (' or '.join(c.__name__ for c in self.classes),
-                                                                       repr(value)))
+            raise TypeError('Expected %s instance, got %s, %s instead.' % (
+                ' or '.join(c.__name__ for c in self.classes),
+                repr(value), value.wrapped_geom
+            ))
 
     def get_final_value(self, value, as_json=False):
         json_value = format_geojson(mapping(value))
