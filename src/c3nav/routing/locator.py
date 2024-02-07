@@ -6,7 +6,6 @@ from pprint import pprint
 from typing import Optional, Self, Sequence, TypeAlias
 
 import numpy as np
-import scipy
 from django.conf import settings
 
 from c3nav.mapdata.models import MapUpdate, Space
@@ -203,6 +202,12 @@ class Locator:
         from scipy.optimize import least_squares
         return least_squares
 
+    @cached_property
+    def norm_func(self):
+        # this is effectively a lazy import to save memory… todo: do we need that?
+        from scipy.linalg import norm
+        return norm
+
     def locate_range(self, scan_data: ScanData, permissions=None, orig_addr=None):
         pprint(scan_data)
 
@@ -238,10 +243,10 @@ class Locator:
 
         # rating the guess by calculating the distances
         def diff_func(guess):
-            result = scipy.linalg.norm(np_ranges[:, :dimensions] - guess[:dimensions], axis=1) - measured_ranges
+            result = self.norm_func(np_ranges[:, :dimensions] - guess[:dimensions], axis=1) - measured_ranges
             # print(result)
             return result
-            # factors = scipy.linalg.norm(np_ranges[:, :dimensions] - guess[:dimensions], axis=1) / measured_ranges
+            # factors = self.norm_func(np_ranges[:, :dimensions] - guess[:dimensions], axis=1) / measured_ranges
             # return factors - np.mean(factors)
 
         def cost_func(guess):
@@ -294,12 +299,12 @@ class Locator:
         print()
         print("measured ranges:", ", ".join(("%.2f" % i) for i in tuple(np_ranges[:, 3])))
         print("result ranges:", ", ".join(
-            ("%.2f" % i) for i in tuple(scipy.linalg.norm(np_ranges[:, :dimensions] - result_pos[:dimensions], axis=1))
+            ("%.2f" % i) for i in tuple(self.norm_func(np_ranges[:, :dimensions] - result_pos[:dimensions], axis=1))
         ))
         if orig_xyz is not None:
             print("correct ranges:", ", ".join(
                 ("%.2f" % i)
-                for i in tuple(scipy.linalg.norm(np_ranges[:, :dimensions] - orig_xyz[:dimensions], axis=1))
+                for i in tuple(self.norm_func(np_ranges[:, :dimensions] - orig_xyz[:dimensions], axis=1))
             ))
         print()
         print("diff result-measured:", ", ".join(
