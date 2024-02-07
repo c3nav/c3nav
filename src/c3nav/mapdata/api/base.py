@@ -1,6 +1,7 @@
 import json
 from functools import wraps
 
+from django.conf import settings
 from django.core.serializers.json import DjangoJSONEncoder
 from django.db.models import Prefetch
 from django.utils.cache import get_conditional_response
@@ -15,7 +16,7 @@ from c3nav.mapdata.models.locations import SpecificLocation
 from c3nav.mapdata.utils.cache.local import LocalCacheProxy
 from c3nav.mapdata.utils.cache.stats import increment_cache_key
 
-request_cache = LocalCacheProxy(maxsize=64)
+request_cache = LocalCacheProxy(maxsize=settings.CACHE_SIZE_API)
 
 
 def api_etag(permissions=True, etag_func=AccessPermission.etag_func, base_mapdata=False):

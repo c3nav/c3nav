@@ -155,6 +155,10 @@ ENABLE_MESH = config.getboolean('c3nav', 'enable_mesh', fallback=True, env='ENAB
 SERVE_ANYTHING = config.getboolean('c3nav', 'serve_anything', fallback=True, env='SERVE_ANYTHING')
 SERVE_API = config.getboolean('c3nav', 'serve_api', fallback=SERVE_ANYTHING, env='SERVE_API')
 
+# how many location lookups to cache in each worker's in-memory LRU cache proxy
+CACHE_SIZE_LOCATIONS = config.getint('c3nav', 'cache_size_locations', fallback=128)
+CACHE_SIZE_API = config.getint('c3nav', 'cache_size_api', fallback=64)
+
 RENDER_SCALE = config.getfloat('c3nav', 'render_scale', fallback=20.0)
 IMAGE_RENDERER = config.get('c3nav', 'image_renderer', fallback='svg')
 SVG_RENDERER = config.get('c3nav', 'svg_renderer', fallback='rsvg-convert')
