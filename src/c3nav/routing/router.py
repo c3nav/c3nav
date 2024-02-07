@@ -401,7 +401,7 @@ class Router:
     @cached_property
     def shortest_path_func(self):
         # this is effectively a lazy import to save memory… todo: do we need that?
-        from scipy.sparse.csgraph._shortest_path import shortest_path
+        from scipy.sparse.csgraph import shortest_path
         return shortest_path
 
     def shortest_path(self, restrictions, options):
