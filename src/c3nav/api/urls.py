@@ -1,3 +1,4 @@
+from django.conf import settings
 from django.urls import path
 from django.views.generic.base import RedirectView
 
@@ -21,7 +22,8 @@ ninja_api.add_router("/routing/", routing_api_router)
 ninja_api.add_router("/positioning/", positioning_api_router)
 ninja_api.add_router("/mapdata/", mapdata_api_router)
 ninja_api.add_router("/editor/", editor_api_router)
-ninja_api.add_router("/mesh/", mesh_api_router)
+if settings.ENABLE_MESH:
+    ninja_api.add_router("/mesh/", mesh_api_router)
 
 
 urlpatterns = [
