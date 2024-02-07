@@ -8,7 +8,6 @@ from typing import Optional
 import numpy as np
 from django.conf import settings
 from django.core import checks
-from PIL import Image
 from shapely.affinity import translate
 from shapely.geometry import LineString, Polygon
 # import gobject-inspect, cairo and rsvg if the native rsvg SVG_RENDERER should be used
@@ -22,6 +21,8 @@ if settings.SVG_RENDERER == 'rsvg':
     pgi.require_version('Rsvg', '2.0')
     import cairocffi
     from pgi.repository import Rsvg
+elif settings.SVG_RENDERER == 'rsvg-convert':
+    from PIL import Image
 
 
 def unwrap_hybrid_geom(geom):
