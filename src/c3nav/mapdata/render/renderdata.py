@@ -7,7 +7,6 @@ from typing import Optional
 
 import numpy as np
 from django.conf import settings
-from scipy.interpolate import NearestNDInterpolator
 from shapely import Geometry, MultiPolygon, prepared
 from shapely.geometry import GeometryCollection
 from shapely.ops import unary_union
@@ -68,6 +67,8 @@ class LevelRenderData:
         # todo: we should check that levels on top come before their levels as they should
 
         themes = [None, *Theme.objects.values_list('pk', flat=True)]
+        from scipy.interpolate import NearestNDInterpolator  # moved in here to save memory
+
         from c3nav.mapdata.render.theme import ColorManager
 
         for theme in themes:

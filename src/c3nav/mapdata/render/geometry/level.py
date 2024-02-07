@@ -4,7 +4,6 @@ from functools import reduce
 from itertools import chain
 
 import numpy as np
-from scipy.interpolate import NearestNDInterpolator
 from shapely import prepared
 from shapely.geometry import GeometryCollection
 from shapely.ops import unary_union
@@ -308,6 +307,8 @@ class LevelGeometries:
             i_vertices = np.unique(self.faces[np.array(tuple(chain(*faces)))].flatten())
             vertex_values[i_vertices] = value_func(item, i_vertices)
             vertex_value_mask[i_vertices] = True
+
+        from scipy.interpolate import NearestNDInterpolator  # moved in here to save memory
 
         if np.any(vertex_value_mask) and not np.all(vertex_value_mask):
             interpolate = NearestNDInterpolator(self.vertices[vertex_value_mask],

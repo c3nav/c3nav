@@ -10,7 +10,7 @@ from asgiref.sync import async_to_sync
 from django import forms
 from django.core.exceptions import ValidationError
 from django.db import transaction
-from django.forms import BooleanField, ChoiceField, Form
+from django.forms import BooleanField, ChoiceField, Form, ModelMultipleChoiceField, MultipleChoiceField
 from django.http import Http404
 from django.utils.translation import gettext_lazy as _
 
@@ -18,7 +18,7 @@ from c3nav.mesh.dataformats import BoardConfig, BoardType, LedType, SerialLedTyp
 from c3nav.mesh.messages import MESH_BROADCAST_ADDRESS, MESH_ROOT_ADDRESS, MeshMessage, MeshMessageType
 from c3nav.mesh.models import (FirmwareBuild, HardwareDescription, MeshNode, OTARecipientStatus, OTAUpdate,
                                OTAUpdateRecipient)
-from c3nav.mesh.utils import MESH_ALL_OTA_GROUP
+from c3nav.mesh.utils import MESH_ALL_OTA_GROUP, group_msg_type_choices
 
 
 class MeshMessageForm(forms.Form):
@@ -400,3 +400,16 @@ class OTACreateForm(Form):
             "addresses": addresses,
         })
         return updates
+
+
+class MeshMessageFilterForm(Form):
+    message_types = MultipleChoiceField(
+        choices=group_msg_type_choices(list(MeshMessageType)),
+        required=False,
+        label=_('message types'),
+    )
+    src_nodes = ModelMultipleChoiceField(
+        queryset=MeshNode.objects.all(),
+        required=False,
+        label=_('nodes'),
+    )

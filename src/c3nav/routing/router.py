@@ -10,7 +10,6 @@ import numpy as np
 from django.conf import settings
 from django.core.cache import cache
 from django.utils.functional import cached_property
-from scipy.sparse.csgraph._shortest_path import shortest_path
 from shapely import prepared
 from shapely.geometry import LineString, Point
 from shapely.ops import unary_union
@@ -399,6 +398,12 @@ class Router:
         return CustomLocationDescription(space=space, altitude=altitude,
                                          areas=areas, near_area=near_area, near_poi=near_poi, nearby=nearby)
 
+    @cached_property
+    def shortest_path_func(self):
+        # this is effectively a lazy import to save memory… todo: do we need that?
+        from scipy.sparse.csgraph._shortest_path import shortest_path
+        return shortest_path
+
     def shortest_path(self, restrictions, options):
         options_key = options.serialize_string()
         cache_key = 'router:shortest_path:%s:%s:%s' % (MapUpdate.current_processed_cache_key(),
@@ -469,7 +474,7 @@ class Router:
             graph[:, tuple(restrictions.additional_nodes)] = np.inf
         graph[tuple(restrictions.edges.transpose().tolist())] = np.inf
 
-        distances, predecessors = shortest_path(graph, directed=True, return_predecessors=True)
+        distances, predecessors = self.shortest_path_func(graph, directed=True, return_predecessors=True)
         cache.set(cache_key, (distances.astype(np.float64).tobytes(),
                               predecessors.astype(np.int32).tobytes()), 600)
         return distances, predecessors

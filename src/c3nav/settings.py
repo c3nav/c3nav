@@ -151,6 +151,10 @@ if not SECRET_MESH_KEY:
 debug_fallback = "runserver" in sys.argv
 DEBUG = config.getboolean('django', 'debug', fallback=debug_fallback, env='C3NAV_DEBUG')
 
+ENABLE_MESH = config.getboolean('django', 'enable_mesh', fallback=True, env='ENABLE_MESH')
+SERVE_API = config.getboolean('django', 'serve_api', fallback=True, env='SERVE_API')
+SERVE_ANYTHING = config.getboolean('django', 'serve_anything', fallback=True, env='SERVE_ANYTHING')
+
 RENDER_SCALE = config.getfloat('c3nav', 'render_scale', fallback=20.0)
 IMAGE_RENDERER = config.get('c3nav', 'image_renderer', fallback='svg')
 SVG_RENDERER = config.get('c3nav', 'svg_renderer', fallback='rsvg-convert')
@@ -324,7 +328,7 @@ TILE_ACCESS_COOKIE_SAMESITE = 'none' if SESSION_COOKIE_SECURE else 'lax'
 # Application definition
 
 INSTALLED_APPS = [
-    "daphne",
+    *(["daphne"] if DEBUG else []),
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -334,13 +338,13 @@ INSTALLED_APPS = [
     'channels',
     'compressor',
     'bootstrap3',
-    'ninja',
+    *(["ninja"] if SERVE_API else []),
     'c3nav.api',
     'c3nav.mapdata',
     'c3nav.routing',
     'c3nav.site',
     'c3nav.control',
-    'c3nav.mesh',
+    *(["c3nav.mesh"] if ENABLE_MESH else []),
     'c3nav.editor',
 ]
 
@@ -357,7 +361,7 @@ MIDDLEWARE = [
     'c3nav.mapdata.middleware.UserDataMiddleware',
     'c3nav.site.middleware.MobileclientMiddleware',
     'c3nav.control.middleware.UserPermissionsMiddleware',
-    'c3nav.api.middleware.JsonRequestBodyMiddleware',
+    #'c3nav.api.middleware.JsonRequestBodyMiddleware',  # might still be needed in editor
 ]
 
 with suppress(ImportError):

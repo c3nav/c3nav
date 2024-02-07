@@ -11,7 +11,6 @@ from django.urls import reverse
 from django.utils.functional import cached_property
 from django.utils.text import format_lazy
 from django.utils.translation import gettext_lazy as _
-from scipy.sparse.csgraph._shortest_path import dijkstra
 from shapely import prepared
 from shapely.affinity import scale
 from shapely.geometry import JOIN_STYLE, LineString, MultiPolygon
@@ -352,6 +351,7 @@ class AltitudeArea(LevelGeometryMixin, models.Model):
 
         repeat = True
 
+        from scipy.sparse.csgraph._shortest_path import dijkstra
         while repeat:
             repeat = False
             # noinspection PyTupleAssignmentBalance

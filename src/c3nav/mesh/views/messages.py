@@ -8,8 +8,7 @@ from django.urls import reverse
 from django.utils.translation import gettext_lazy as _
 from django.views.generic import FormView, ListView, TemplateView
 
-from c3nav.control.forms import MeshMessageFilterForm
-from c3nav.mesh.forms import MeshMessageForm
+from c3nav.mesh.forms import MeshMessageFilterForm, MeshMessageForm
 from c3nav.mesh.messages import MeshMessage, MeshMessageType
 from c3nav.mesh.models import MeshNode, NodeMessage
 from c3nav.mesh.utils import get_node_names, group_msg_type_choices

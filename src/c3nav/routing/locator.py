@@ -1,14 +1,13 @@
 import operator
 import pickle
 from dataclasses import dataclass, field
-from functools import reduce
+from functools import cached_property, reduce
 from pprint import pprint
 from typing import Optional, Self, Sequence, TypeAlias
 
 import numpy as np
 import scipy
 from django.conf import settings
-from scipy.optimize import least_squares
 
 from c3nav.mapdata.models import MapUpdate, Space
 from c3nav.mapdata.models.geometry.space import RangingBeacon
@@ -198,6 +197,12 @@ class Locator:
 
         return best_location
 
+    @cached_property
+    def least_squares_func(self):
+        # this is effectively a lazy import to save memory… todo: do we need that?
+        from scipy.optimize import least_squares
+        return least_squares
+
     def locate_range(self, scan_data: ScanData, permissions=None, orig_addr=None):
         pprint(scan_data)
 
@@ -248,7 +253,7 @@ class Locator:
         initial_guess = np.average(np_ranges[:, :dimensions], axis=0)
 
         # here the magic happens
-        results = least_squares(
+        results = self.least_squares_func(
             fun=cost_func,
             # jac="3-point",
             loss="linear",

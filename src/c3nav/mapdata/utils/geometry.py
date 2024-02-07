@@ -3,11 +3,8 @@ from collections import deque, namedtuple
 from itertools import chain
 from typing import List, Sequence, Union
 
-import matplotlib.pyplot as plt
 from django.core import checks
 from django.utils.functional import cached_property
-from matplotlib.patches import PathPatch
-from matplotlib.path import Path
 from shapely import prepared, speedups
 from shapely.geometry import GeometryCollection, LinearRing, LineString, MultiLineString, MultiPolygon, Point, Polygon
 from shapely.geometry import mapping as shapely_mapping
@@ -120,6 +117,11 @@ def good_representative_point(geometry):
 
 
 def plot_geometry(geom, title=None, bounds=None):
+    # these imports live here so they are only imported when needed
+    import matplotlib.pyplot as plt
+    from matplotlib.patches import PathPatch
+    from matplotlib.path import Path
+
     fig = plt.figure()
     axes = fig.add_subplot(111)
     if bounds is None:
