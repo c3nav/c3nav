@@ -8,7 +8,6 @@ from c3nav.editor.api.endpoints import editor_api_router
 from c3nav.mapdata.api.map import map_api_router
 from c3nav.mapdata.api.mapdata import mapdata_api_router
 from c3nav.mapdata.api.updates import updates_api_router
-from c3nav.mesh.api import mesh_api_router
 from c3nav.routing.api.positioning import positioning_api_router
 from c3nav.routing.api.routing import routing_api_router
 
@@ -23,6 +22,7 @@ ninja_api.add_router("/positioning/", positioning_api_router)
 ninja_api.add_router("/mapdata/", mapdata_api_router)
 ninja_api.add_router("/editor/", editor_api_router)
 if settings.ENABLE_MESH:
+    from c3nav.mesh.api import mesh_api_router
     ninja_api.add_router("/mesh/", mesh_api_router)
 
 
