@@ -1,116 +1,191 @@
-from dataclasses import fields
-
 from django.core.management.base import BaseCommand
+from django.utils.translation import gettext_lazy as _
 
-from c3nav.mesh.baseformats import StructType, normalize_name
-from c3nav.mesh.messages import MeshMessage
-from c3nav.mesh.utils import indent_c
+from c3nav.mesh.models import MeshNode
+
+names = {
+    1: "Alpheratz",
+    2: "Ankaa",
+    3: "Schedar",
+    4: "Diphda",
+    5: "Achernar",
+    6: "Hamal",
+    7: "Acamar",
+    8: "Menkar",
+    9: "Mirfak",
+    10: "Aldebaran",
+    11: "Rigel",
+    12: "Capella",
+    13: "Bellatrix",
+    14: "Elnath",
+    15: "Alnilam",
+    16: "Betelgeuse",
+    17: "Canopus",
+    18: "Sirius",
+    19: "Adhara",
+    20: "Procyon",
+    21: "Pollux",
+    22: "Avior",
+    23: "Suhail",
+    24: "Miaplacidus",
+    25: "Alphard",
+    26: "Regulus",
+    27: "Dubhe",
+    28: "Denebola",
+    29: "Gienah",
+    30: "Acrux",
+    31: "Gacrux",
+    32: "Alioth",
+    33: "Spica",
+    34: "Alkaid",
+    35: "Hadar",
+    36: "Menkent",
+    37: "Arcturus",
+    38: "Rigil Kentaurus",
+    39: "Zubenelgenubi",
+    40: "Kochab",
+    41: "Alphecca",
+    42: "Antares",
+    43: "Atria",
+    44: "Sabik",
+    45: "Shaula",
+    46: "Rasalgethi",
+    47: "Eltanin",
+    48: "Kaus Australis",
+    49: "Vega",
+    50: "Nunki",
+    51: "Altair",
+    52: "Peacock",
+    53: "Deneb",
+    54: "Enif",
+    55: "Alnair",
+    56: "Fomalhaut",
+    57: "Markab",
+    58: "Mimosa",
+    59: "Toliman",
+    60: "Alnitak",
+    61: "Wezen",
+    62: "Sargas",
+    63: "Menkalinan",
+    64: "Alhena",
+    65: "Polaris",
+    66: "Castor",
+    67: "Mirzam",
+    68: "Alsephina",
+    69: "Saiph",
+    70: "Rasalhague",
+    71: "Algol",
+    72: "Almach",
+    73: "Tiaki",
+    74: "Aspidiske",
+    75: "Naos",
+    76: "Mizar",
+    77: "Sadr",
+    78: "Mintaka",
+    79: "Caph",
+    80: "Dschubba",
+    81: "Larawag",
+    82: "Merak",
+    83: "Izar",
+    84: "Phecda",
+    85: "Scheat",
+    86: "Alderamin",
+    87: "Aludra",
+    88: "Acrab",
+    89: "Markeb",
+    90: "Zosma",
+    91: "Arneb",
+    92: "Ascella",
+    93: "Algieba",
+    94: "Zubeneschamali",
+    95: "Unukalhai",
+    96: "Sheratan",
+    97: "Kraz",
+    98: "Mahasim",
+    99: "Phact",
+    100: "Ruchbah",
+    101: "Muphrid",
+    102: "Hassaleh",
+    103: "Lesath",
+    104: "Kaus Media",
+    105: "Tarazed",
+    106: "Athebyne",
+    107: "Yed Prior",
+    108: "Porrima",
+    109: "Imai",
+    110: "Zubenelhakrabi",
+    111: "Cebalrai",
+    112: "Cursa",
+    113: "Kornephoros",
+    114: "Rastaban",
+    115: "Hatysa",
+    116: "Nihal",
+    117: "Paikauhale",
+    118: "Kaus Borealis",
+    119: "Algenib",
+    120: "Tureis",
+    121: "Alcyone",
+    122: "Deneb Algedi",
+    123: "Vindemiatrix",
+    124: "Tejat",
+    125: "Albaldah",
+    126: "Cor Caroli",
+    127: "Fang",
+    128: "Gomeisa",
+    129: "Fawaris",
+    130: "Alniyat",
+    131: "Sadalsuud",
+    132: "Matar",
+    133: "Algorab",
+    134: "Sadalmelik",
+    135: "Tianguan",
+    136: "Zaurak",
+    137: "Alnasl",
+    138: "Okab",
+    139: "Aldhanab",
+    140: "Pherkad",
+    141: "Xamidimura",
+    142: "Furud",
+    143: "Almaaz",
+    144: "Seginus",
+    145: "Albireo",
+    146: "Dabih",
+    147: "Mebsuta",
+    148: "Tania Australis",
+    149: "Altais",
+    150: "Sarin",
+}
 
 
 class Command(BaseCommand):
-    help = 'export mesh message structs for c code'
+    help = 'set node number of non-named node'
+
+    def add_arguments(self, parser):
+        parser.add_argument('number', type=int, help=_('number to set'))
 
     def handle(self,  *args, **options):
-        done_struct_names = set()
-        nodata = set()
-        struct_lines = {}
-        struct_sizes = []
-        struct_max_sizes = []
-        done_definitions = set()
+        number = options["number"]
+        try:
+            name = names[options["number"]]
+        except KeyError:
+            print('number without name')
+            return
 
-        for include in StructType.c_includes:
-            print(f'#include {include}')
+        if MeshNode.objects.filter(name__startswith=f"{number} – ").exists():
+            print('number is already taken')
+            return
 
-        ignore_names = set(field_.name for field_ in fields(MeshMessage))
-        for msg_type, msg_class in MeshMessage.get_types().items():
-            if msg_class.c_struct_name:
-                if msg_class.c_struct_name in done_struct_names:
-                    continue
-                done_struct_names.add(msg_class.c_struct_name)
-                if MeshMessage.c_structs[msg_class.c_struct_name] != msg_class:
-                    # the purpose of MeshMessage.c_structs is unclear, currently this never triggers
-                    # todo get rid of the whole c_structs thing if it doesn't turn out to be useful for anything
-                    raise ValueError('what happened?')
+        unnamed_nodes = list(MeshNode.objects.filter(name__isnull=True))
 
-            base_name = (msg_class.c_struct_name or normalize_name(
-                getattr(msg_type, 'name', msg_class.__name__)
-            ))
-            name = "mesh_msg_%s_t" % base_name
+        if not unnamed_nodes:
+            print('no unnamed nodes')
+            return
 
-            for definition_name, definition in msg_class.get_c_definitions().items():
-                if definition_name not in done_definitions:
-                    done_definitions.add(definition_name)
-                    print(definition)
-                    print()
+        if len(unnamed_nodes) > 1:
+            print('more than on unnamed node')
+            return
 
-            code = msg_class.get_c_code(name, ignore_fields=ignore_names, no_empty=True)
-            if code:
-                size = msg_class.get_size(no_inherited_fields=True, calculate_max=False)
-                max_size = msg_class.get_size(no_inherited_fields=True, calculate_max=True)
-                struct_lines[base_name] = "%s %s;" % (name, base_name.replace('_announce', ''))
-                struct_sizes.append(size)
-                struct_max_sizes.append(max_size)
-                print(code)
-                print("static_assert(sizeof(%s) == %d, \"size of generated message structs is calculated wrong\");" %
-                      (name, size))
-                print()
-            else:
-                nodata.add(msg_class)
-
-        print("/** union between all message data structs */")
-        print("typedef union __packed {")
-        for line in struct_lines.values():
-            print(indent_c(line))
-        print("} mesh_msg_data_t; ")
-        print(
-            "static_assert(sizeof(mesh_msg_data_t) == %d, \"size of generated message structs is calculated wrong\");"
-            % max(struct_sizes)
-        )
-
-        print()
-        print('#define MESH_MSG_MAX_LENGTH (%d)' % max(struct_max_sizes))
-
-        print()
-
-        max_msg_type = max(MeshMessage.get_types().keys())
-        macro_data = []
-        for i in range(((max_msg_type//16)+1)*16):
-            msg_class = MeshMessage.get_types().get(i, None)
-            if msg_class:
-                name = (msg_class.c_struct_name or normalize_name(
-                    getattr(msg_class.msg_type, 'name', msg_class.__name__)
-                ))
-                macro_data.append((
-                    msg_class.get_c_enum_name(),
-                    ("nodata" if msg_class in nodata else name),
-                    msg_class.get_var_num(),
-                    msg_class.get_size(no_inherited_fields=True, calculate_max=True),
-                    msg_class.__doc__.strip(),
-                ))
-            else:
-                macro_data.append((
-                    "RESERVED_%02X" % i,
-                    "nodata",
-                    0,
-                    0,
-                    "",
-                ))
-
-        max0 = max(len(d[0]) for d in macro_data)
-        max1 = max(len(d[1]) for d in macro_data)
-        max2 = max(len(str(d[2])) for d in macro_data)
-        max3 = max(len(str(d[3])) for d in macro_data)
-        lines = []
-        for i, (macro_name, struct_name, num_len, max_len, comment) in enumerate(macro_data):
-            lines.append(indent_c(
-                "FN(%s %s %s %s)  /** 0x%02X %s*/" % (
-                    f'{macro_name},'.ljust(max0+1),
-                    f'{struct_name},'.ljust(max1+1),
-                    f'{num_len},'.rjust(max2+1),
-                    f'{max_len}'.rjust(max3),
-                    i,
-                    comment+(" " if comment else ""),
-                )
-            ))
-        print("#define FOR_ALL_MESH_MSG_TYPES(FN)  \\")
-        print("  \\\n".join(lines))
+        node = unnamed_nodes[0]
+        node.name = f"{number} – {name}"
+        node.save()
+        print('done')
