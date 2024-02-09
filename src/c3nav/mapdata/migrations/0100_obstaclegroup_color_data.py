@@ -2,47 +2,32 @@
 
 from django.db import migrations
 
-sql_up = '''
--- create an obstacle group for every distinct obstacle color
-insert into mapdata_obstaclegroup (color, titles)
-select color as color,
-       json_build_object('en', concat('Color ', color)) as titles
-from
-                          (select distinct color
-                            from mapdata_obstacle
-                            where color is not null
-                            union 
-                            select distinct color
-                            from mapdata_lineobstacle
-                            where color is not null) as obstacle_colors;
+def forwards_func(apps, schema_editor):
+    ObstacleGroup = apps.get_model('mapdata', 'ObstacleGroup')
+    Obstacle = apps.get_model('mapdata', 'Obstacle')
+    LineObstacle = apps.get_model('mapdata', 'LineObstacle')
 
--- set the groups for colored obstacles to the previously created group with that color
-update mapdata_obstacle as o
-set group_id = g.id
-from mapdata_obstaclegroup g
-where g.color = o.color;
+    grouped = {}
 
-update mapdata_lineobstacle as o
-set group_id = g.id
-from mapdata_obstaclegroup g
-where g.color = o.color;
-'''
+    for obstacle in Obstacle.objects.filter(color__isnull=False):
+        grouped.setdefault(obstacle.color, []).append(obstacle)
 
-sql_down = '''
--- set obstacle color from associated group color and remove group
-update mapdata_obstacle as o
-set color = g.color, group_id = null
-from mapdata_obstaclegroup g
-where g.id = o.group_id;
+    for lineobstacle in LineObstacle.objects.filter(color__isnull=False):
+        grouped.setdefault(lineobstacle.color, []).append(lineobstacle)
 
-update mapdata_lineobstacle as o
-set color = g.color, group_id = null
-from mapdata_obstaclegroup g
-where g.id = o.group_id;
+    for color, obstacles in grouped.items():
+        group = ObstacleGroup.objects.create(
+            color=color,
+            titles={"en": f"Color {color}"}
+        )
+        for obstacle in obstacles:
+            obstacle.group = group
+            obstacle.save()
 
--- delete groups
-delete from mapdata_obstaclegroup where true;
-'''
+
+def backwards_func(apps, schema_editor):
+    ObstacleGroup = apps.get_model('mapdata', 'ObstacleGroup')
+    ObstacleGroup.objects.all().delete()
 
 
 class Migration(migrations.Migration):
@@ -52,5 +37,5 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
-        migrations.RunSQL(sql_up, sql_down)
+        migrations.RunPython(forwards_func, backwards_func)
     ]
