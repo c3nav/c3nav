@@ -785,8 +785,8 @@ def normalize_name(name):
         name = name.lower()
     else:
         name = re.sub(
-            r"([a-zA-Z])([A-Z][a-z])",
-            r"\1_\2",
+            r"(([a-z])([A-Z]))|(([a-zA-Z])([A-Z][a-z]))",
+            r"\2\5_\3\6",
             name
         ).lower()
 

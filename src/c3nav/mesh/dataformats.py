@@ -62,19 +62,37 @@ class MultipinLedConfig(LedConfig, led_type=LedType.MULTIPIN):
 
 
 @dataclass
+class BoardSPIConfig(StructType):
+    """
+    configuration for spi bus used for ETH or UWB
+    """
+    gpio_miso: int = field(metadata={"format": SimpleFormat('B')})
+    gpio_mosi: int = field(metadata={"format": SimpleFormat('B')})
+    gpio_clk: int = field(metadata={"format": SimpleFormat('B')})
+
+
+@dataclass
 class UWBConfig(StructType):
     """
     configuration for the connection to the UWB module
     """
     enable: bool = field(metadata={"format": BoolFormat()})
-    gpio_miso: int = field(metadata={"format": SimpleFormat('B')})
-    gpio_mosi: int = field(metadata={"format": SimpleFormat('B')})
-    gpio_clk: int = field(metadata={"format": SimpleFormat('B')})
     gpio_cs: int = field(metadata={"format": SimpleFormat('B')})
     gpio_irq: int = field(metadata={"format": SimpleFormat('B')})
     gpio_rst: int = field(metadata={"format": SimpleFormat('B')})
     gpio_wakeup: int = field(metadata={"format": SimpleFormat('B')})
     gpio_exton: int = field(metadata={"format": SimpleFormat('B')})
+
+
+@dataclass
+class UplinkEthConfig(StructType):
+    """
+    configuration for the connection to the ETH module
+    """
+    enable: bool = field(metadata={"format": BoolFormat()})
+    gpio_cs: int = field(metadata={"format": SimpleFormat('B')})
+    gpio_int: int = field(metadata={"format": SimpleFormat('B')})
+    gpio_rst: int = field(metadata={"format": SimpleFormat('b')})
 
 
 @unique
@@ -110,33 +128,39 @@ class BoardConfig(StructType, union_type_field="board"):
 
 @dataclass
 class CustomBoardConfig(BoardConfig, board=BoardType.CUSTOM):
+    spi: BoardSPIConfig = field(metadata={"as_definition": True})
     uwb: UWBConfig = field(metadata={"as_definition": True})
+    eth: UplinkEthConfig = field(metadata={"as_definition": True})
     led: LedConfig = field(metadata={"as_definition": True})
 
 
 @dataclass
 class DevkitMBoardConfig(BoardConfig, board=BoardType.ESP32_C3_DEVKIT_M_1):
+    spi: BoardSPIConfig = field(metadata={"as_definition": True})
     uwb: UWBConfig = field(metadata={"as_definition": True})
+    eth: UplinkEthConfig = field(metadata={"as_definition": True})
 
 
 @dataclass
 class Esp32SBoardConfig(BoardConfig, board=BoardType.ESP32_C3_32S):
+    spi: BoardSPIConfig = field(metadata={"as_definition": True})
     uwb: UWBConfig = field(metadata={"as_definition": True})
+    eth: UplinkEthConfig = field(metadata={"as_definition": True})
 
 
 @dataclass
 class UwbBoardConfig(BoardConfig, board=BoardType.C3NAV_UWB_BOARD):
-    pass
+    eth: UplinkEthConfig = field(metadata={"as_definition": True})
 
 
 @dataclass
 class LocationPCBRev0Dot1BoardConfig(BoardConfig, board=BoardType.C3NAV_LOCATION_PCB_REV_0_1):
-    pass
+    eth: UplinkEthConfig = field(metadata={"as_definition": True})
 
 
 @dataclass
 class LocationPCBRev0Dot2BoardConfig(BoardConfig, board=BoardType.C3NAV_LOCATION_PCB_REV_0_2):
-    pass
+    eth: UplinkEthConfig = field(metadata={"as_definition": True})
 
 
 @dataclass
