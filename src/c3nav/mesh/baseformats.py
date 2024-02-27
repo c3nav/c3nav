@@ -453,7 +453,15 @@ class StructType:
 
             new_field_format = None
 
-            if type_base is int:
+            if typing.get_origin(type_) is typing.Literal:
+                literal_val = typing.get_args(type_base)[0]
+                if not isinstance(literal_val, int):
+                    raise ValueError()
+                int_type = cls.get_int_type(literal_val, literal_val)
+                if int_type is None:
+                    raise ValueError('invalid range:', attr_name)
+                new_field_format = SimpleConstFormat(int_type, const_value=literal_val)
+            elif type_base is int:
                 min_ = -(2**63)
                 max_ = 2**63-1
                 for m in type_metadata:
