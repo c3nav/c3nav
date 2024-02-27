@@ -4,9 +4,11 @@ import typing
 from abc import ABC, abstractmethod
 from dataclasses import Field, dataclass
 from dataclasses import fields as dataclass_fields
+from enum import IntEnum
 from typing import Any, Self, Sequence
 
 from pydantic import create_model
+from pydantic.fields import FieldInfo
 
 from c3nav.mesh.utils import indent_c
 
@@ -358,21 +360,102 @@ class StructType:
     existing_c_struct = None
     c_includes = set()
 
+    @staticmethod
+    def get_int_type(min_, max_) -> str | None:
+        if min_ < 0:
+            if min_ < -(2 ** 63) or max_ > 2 ** 63 - 1:
+                return None
+            elif min_ < -(2 ** 31) or max_ > 2 ** 31 - 1:
+                return "q"
+            elif min_ < -(2 ** 15) or max_ > 2 ** 15 - 1:
+                return "i"
+            elif min_ < -(2 ** 7) or max_ > 2 ** 7 - 1:
+                return "h"
+            else:
+                return "b"
+
+        if max_ > 2 ** 64 - 1:
+            return None
+        elif max_ > 2 ** 32 - 1:
+            return "Q"
+        elif max_ > 2 ** 16 - 1:
+            return "I"
+        elif max_ > 2 ** 8 - 1:
+            return "H"
+        else:
+            return "B"
+
     @classmethod
     def get_field_format(cls, attr_name):
-        attr = getattr(cls, attr_name, None)
         fields = [f for f in dataclass_fields(cls) if f.name == attr_name]
         if not fields:
             raise TypeError(f"{cls}.{attr_name} not a field")
         field = fields[0]
-        type_ = typing.get_type_hints(cls)[attr_name]
         if "format" in field.metadata:
             field_format = field.metadata["format"]
-            field_format.set_field_type(type_)
+            field_format.set_field_type(field.type)
+
+            type_ = typing.get_type_hints(cls, include_extras=True)[attr_name]
+            if typing.get_origin(type_) is typing.Annotated:
+                type_base = typing.get_args(type_)[0]
+                field_infos = tuple(m for m in type_.__metadata__ if isinstance(m, FieldInfo))
+                type_metadata = (
+                    *(m for m in type_.__metadata__ if not isinstance(m, FieldInfo)),
+                    *(tuple(field_infos[0].metadata) if field_infos else ())
+                )
+            elif isinstance(type_, FieldInfo):
+                type_base = type_.annotation
+                type_metadata = tuple(type_.metadata)
+            else:
+                type_base = type_
+                type_metadata = ()
+
+            #print(attr_name, type_base, type_metadata)
+
+            new_field_format = None
+
+            if type_base is int:
+                min_ = -(2**63)
+                max_ = 2**63-1
+                for m in type_metadata:
+                    gt = getattr(m, 'gt', None)
+                    if gt is not None:
+                        min_ = max(min_, gt+1)
+                    ge = getattr(m, 'ge', None)
+                    if ge is not None:
+                        min_ = max(min_, ge)
+                    lt = getattr(m, 'lt', None)
+                    if lt is not None:
+                        max_ = min(max_, lt - 1)
+                    le = getattr(m, 'le', None)
+                    if le is not None:
+                        max_ = min(max_, le)
+                int_type = cls.get_int_type(min_, max_)
+                if int_type is None:
+                    raise ValueError('invalid range:', attr_name)
+                new_field_format = SimpleFormat(int_type)
+            elif issubclass(type_base, IntEnum):
+                # todo: c_definition / as_hex
+                int_type = cls.get_int_type(min(type_base), max(type_base))
+                if int_type is None:
+                    raise ValueError('invalid range:', attr_name)
+                new_field_format = EnumFormat(fmt=int_type)
+
+            if new_field_format is None:
+                print('UNKNOWN', attr_name, type_base, type_metadata)
+            else:
+                new_field_format.set_field_type(type_base)
+                code_old = field_format.get_c_code(name=attr_name)
+                code_new = new_field_format.get_c_code(name=attr_name)
+                if code_old == code_new:
+                    pass#print('SAME', attr_name, type_base, type_metadata, code_old, code_new)
+                else:
+                    print('DIFFERENT', attr_name, type_base, type_metadata, code_old, code_new)
+
             return field_format
 
-        if issubclass(type_, StructType):
-            return type_
+        if issubclass(field.type, StructType):
+            return field.type
         raise TypeError('field %s.%s has no format and is no StructType' %
                         (cls.__class__.__name__, attr_name))
 

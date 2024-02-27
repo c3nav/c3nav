@@ -1,7 +1,10 @@
 import re
 from dataclasses import dataclass, field
 from enum import IntEnum, unique
-from typing import BinaryIO, Self
+from typing import BinaryIO, Self, Annotated, Literal
+
+from pydantic import Field as APIField
+from pydantic import NegativeInt, PositiveInt
 
 from c3nav.api.utils import EnumSchemaByNameMixin
 from c3nav.mesh.baseformats import (BoolFormat, ChipRevFormat, EnumFormat, FixedHexFormat, FixedStrFormat,
@@ -51,14 +54,14 @@ class NoLedConfig(LedConfig, led_type=LedType.NONE):
 @dataclass
 class SerialLedConfig(LedConfig, led_type=LedType.SERIAL):
     serial_led_type: SerialLedType = field(metadata={"format": EnumFormat(), "c_name": "type"})
-    gpio: int = field(metadata={"format": SimpleFormat('B')})
+    gpio: Annotated[PositiveInt, APIField(lt=2**8)] = field(metadata={"format": SimpleFormat('B')})
 
 
 @dataclass
 class MultipinLedConfig(LedConfig, led_type=LedType.MULTIPIN):
-    gpio_red: int = field(metadata={"format": SimpleFormat('B')})
-    gpio_green: int = field(metadata={"format": SimpleFormat('B')})
-    gpio_blue: int = field(metadata={"format": SimpleFormat('B')})
+    gpio_red: Annotated[PositiveInt, APIField(lt=2**8)] = field(metadata={"format": SimpleFormat('B')})
+    gpio_green: Annotated[PositiveInt, APIField(lt=2**8)] = field(metadata={"format": SimpleFormat('B')})
+    gpio_blue: Annotated[PositiveInt, APIField(lt=2**8)] = field(metadata={"format": SimpleFormat('B')})
 
 
 @dataclass
@@ -66,9 +69,9 @@ class BoardSPIConfig(StructType):
     """
     configuration for spi bus used for ETH or UWB
     """
-    gpio_miso: int = field(metadata={"format": SimpleFormat('B')})
-    gpio_mosi: int = field(metadata={"format": SimpleFormat('B')})
-    gpio_clk: int = field(metadata={"format": SimpleFormat('B')})
+    gpio_miso: Annotated[PositiveInt, APIField(lt=2**8)] = field(metadata={"format": SimpleFormat('B')})
+    gpio_mosi: Annotated[PositiveInt, APIField(lt=2**8)] = field(metadata={"format": SimpleFormat('B')})
+    gpio_clk: Annotated[PositiveInt, APIField(lt=2**8)] = field(metadata={"format": SimpleFormat('B')})
 
 
 @dataclass
@@ -77,11 +80,11 @@ class UWBConfig(StructType):
     configuration for the connection to the UWB module
     """
     enable: bool = field(metadata={"format": BoolFormat()})
-    gpio_cs: int = field(metadata={"format": SimpleFormat('B')})
-    gpio_irq: int = field(metadata={"format": SimpleFormat('B')})
-    gpio_rst: int = field(metadata={"format": SimpleFormat('B')})
-    gpio_wakeup: int = field(metadata={"format": SimpleFormat('B')})
-    gpio_exton: int = field(metadata={"format": SimpleFormat('B')})
+    gpio_cs: Annotated[PositiveInt, APIField(lt=2**8)] = field(metadata={"format": SimpleFormat('B')})
+    gpio_irq: Annotated[PositiveInt, APIField(lt=2**8)] = field(metadata={"format": SimpleFormat('B')})
+    gpio_rst: Annotated[PositiveInt, APIField(lt=2**8)] = field(metadata={"format": SimpleFormat('B')})
+    gpio_wakeup: Annotated[PositiveInt, APIField(lt=2**8)] = field(metadata={"format": SimpleFormat('B')})
+    gpio_exton: Annotated[PositiveInt, APIField(lt=2**8)] = field(metadata={"format": SimpleFormat('B')})
 
 
 @dataclass
@@ -90,9 +93,9 @@ class UplinkEthConfig(StructType):
     configuration for the connection to the ETH module
     """
     enable: bool = field(metadata={"format": BoolFormat()})
-    gpio_cs: int = field(metadata={"format": SimpleFormat('B')})
-    gpio_int: int = field(metadata={"format": SimpleFormat('B')})
-    gpio_rst: int = field(metadata={"format": SimpleFormat('b')})
+    gpio_cs: Annotated[PositiveInt, APIField(lt=2**8)] = field(metadata={"format": SimpleFormat('B')})
+    gpio_int: Annotated[PositiveInt, APIField(lt=2**8)] = field(metadata={"format": SimpleFormat('B')})
+    gpio_rst: Annotated[int, APIField(ge=-1, lt=2**7)] = field(metadata={"format": SimpleFormat('b')})
 
 
 @unique
@@ -166,25 +169,25 @@ class LocationPCBRev0Dot2BoardConfig(BoardConfig, board=BoardType.C3NAV_LOCATION
 @dataclass
 class RangeResultItem(StructType):
     peer: str = field(metadata={"format": MacAddressFormat()})
-    rssi: int = field(metadata={"format": SimpleFormat('b')})
-    distance: int = field(metadata={"format": SimpleFormat('h')})
+    rssi: Annotated[NegativeInt, APIField(gt=-100)] = field(metadata={"format": SimpleFormat('b')})
+    distance: Annotated[int, APIField(gt=-32000, lt=32000)] = field(metadata={"format": SimpleFormat('h')})
 
 
 @dataclass
 class RawFTMEntry(StructType):
-    dlog_token: int = field(metadata={"format": SimpleFormat('B')})
-    rssi: int = field(metadata={"format": SimpleFormat('b')})
-    rtt: int = field(metadata={"format": SimpleFormat('I')})
-    t1: int = field(metadata={"format": SimpleFormat('Q')})
-    t2: int = field(metadata={"format": SimpleFormat('Q')})
-    t3: int = field(metadata={"format": SimpleFormat('Q')})
-    t4: int = field(metadata={"format": SimpleFormat('Q')})
+    dlog_token: Annotated[PositiveInt, APIField(lt=255)] = field(metadata={"format": SimpleFormat('B')})
+    rssi: Annotated[NegativeInt, APIField(gt=-100)] = field(metadata={"format": SimpleFormat('b')})
+    rtt: Annotated[PositiveInt, APIField(lt=2**32)] = field(metadata={"format": SimpleFormat('I')})
+    t1: Annotated[PositiveInt, APIField(lt=2**64)] = field(metadata={"format": SimpleFormat('Q')})
+    t2: Annotated[PositiveInt, APIField(lt=2**64)] = field(metadata={"format": SimpleFormat('Q')})
+    t3: Annotated[PositiveInt, APIField(lt=2**64)] = field(metadata={"format": SimpleFormat('Q')})
+    t4: Annotated[PositiveInt, APIField(lt=2**64)] = field(metadata={"format": SimpleFormat('Q')})
 
 
 @dataclass
 class FirmwareAppDescription(StructType, existing_c_struct="esp_app_desc_t", c_includes=['<esp_app_desc.h>']):
-    magic_word: int = field(metadata={"format": SimpleConstFormat('I', 0xAB_CD_54_32)}, repr=False)
-    secure_version: int = field(metadata={"format": SimpleFormat('I')})
+    magic_word: Literal[0xAB_CD_54_32] = field(metadata={"format": SimpleConstFormat('I', 0xAB_CD_54_32)}, repr=False)
+    secure_version: Annotated[PositiveInt, APIField(lt=2**32)] = field(metadata={"format": SimpleFormat('I')})
     reserv1: list[int] = field(metadata={"format": SimpleFormat('2I')}, repr=False)
     version: str = field(metadata={"format": FixedStrFormat(32)})
     project_name: str = field(metadata={"format": FixedStrFormat(32)})
@@ -253,7 +256,7 @@ class ChipType(EnumSchemaByNameMixin, IntEnum):
 
 @dataclass
 class FirmwareImageFileHeader(StructType):
-    magic_word: int = field(metadata={"format": SimpleConstFormat('B', 0xE9)}, repr=False)
+    magic_word: Literal[0xE9] = field(metadata={"format": SimpleConstFormat('B', 0xE9)}, repr=False)
     num_segments: int = field(metadata={"format": SimpleFormat('B')})
     spi_flash_mode: SPIFlashMode = field(metadata={"format": EnumFormat()})
     flash_stuff: FlashSettings = field(metadata={"format": TwoNibblesEnumFormat()})

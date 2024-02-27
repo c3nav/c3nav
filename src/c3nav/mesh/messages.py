@@ -1,9 +1,11 @@
 from dataclasses import dataclass, field
 from enum import IntEnum, unique
-from typing import TypeVar
+from typing import TypeVar, Annotated
 
 import channels
 from channels.db import database_sync_to_async
+from pydantic import Field as APIField
+from pydantic import PositiveInt
 
 from c3nav.api.utils import EnumSchemaByNameMixin
 from c3nav.mesh.baseformats import (BoolFormat, EnumFormat, FixedStrFormat, SimpleFormat, StructType, VarArrayFormat,
@@ -156,7 +158,7 @@ class MeshSigninMessage(MeshMessage, msg_type=MeshMessageType.MESH_SIGNIN):
 @dataclass
 class MeshLayerAnnounceMessage(MeshMessage, msg_type=MeshMessageType.MESH_LAYER_ANNOUNCE):
     """ upstream node announces layer number """
-    layer: int = field(metadata={
+    layer: Annotated[PositiveInt, APIField(lt=2**8)] = field(metadata={
         "format": SimpleFormat('B'),
         "doc": "mesh layer that the sending node is on",
     })
@@ -183,7 +185,7 @@ class MeshRemoveDestinationsMessage(MeshMessage, msg_type=MeshMessageType.MESH_R
 @dataclass
 class MeshRouteRequestMessage(MeshMessage, msg_type=MeshMessageType.MESH_ROUTE_REQUEST):
     """ request routing information for node """
-    request_id: int = field(metadata={"format": SimpleFormat('I')})
+    request_id: Annotated[PositiveInt, APIField(lt=2**32)] = field(metadata={"format": SimpleFormat('I')})
     address: str = field(metadata={
         "format": MacAddressFormat(),
         "doc": "target address for the route"
@@ -193,7 +195,7 @@ class MeshRouteRequestMessage(MeshMessage, msg_type=MeshMessageType.MESH_ROUTE_R
 @dataclass
 class MeshRouteResponseMessage(MeshMessage, msg_type=MeshMessageType.MESH_ROUTE_RESPONSE):
     """ reporting the routing table entry to the given address """
-    request_id: int = field(metadata={"format": SimpleFormat('I')})
+    request_id: Annotated[PositiveInt, APIField(lt=2**32)] = field(metadata={"format": SimpleFormat('I')})
     route: str = field(metadata={
         "format": MacAddressFormat(),
         "doc": "routing table entry or 00:00:00:00:00:00"
@@ -203,7 +205,7 @@ class MeshRouteResponseMessage(MeshMessage, msg_type=MeshMessageType.MESH_ROUTE_
 @dataclass
 class MeshRouteTraceMessage(MeshMessage, msg_type=MeshMessageType.MESH_ROUTE_TRACE):
     """ special message, collects all hop adresses on its way """
-    request_id: int = field(metadata={"format": SimpleFormat('I')})
+    request_id: Annotated[PositiveInt, APIField(lt=2**32)] = field(metadata={"format": SimpleFormat('I')})
     trace: list[str] = field(default_factory=list, metadata={
         "format": MacAddressesListFormat(max_num=16),
         "doc": "addresses encountered by this message",
@@ -229,8 +231,8 @@ class ConfigHardwareMessage(MeshMessage, msg_type=MeshMessageType.CONFIG_HARDWAR
         "format": EnumFormat("H", c_definition=False),
         "c_name": "chip_id",
     })
-    revision_major: int = field(metadata={"format": SimpleFormat('B')})
-    revision_minor: int = field(metadata={"format": SimpleFormat('B')})
+    revision_major: Annotated[PositiveInt, APIField(lt=2**8)] = field(metadata={"format": SimpleFormat('B')})
+    revision_minor: Annotated[PositiveInt, APIField(lt=2**8)] = field(metadata={"format": SimpleFormat('B')})
 
     def get_chip_display(self):
         return ChipType(self.chip).name.replace('_', '-')
@@ -251,9 +253,9 @@ class ConfigFirmwareMessage(MeshMessage, msg_type=MeshMessageType.CONFIG_FIRMWAR
 @dataclass
 class ConfigPositionMessage(MeshMessage, msg_type=MeshMessageType.CONFIG_POSITION):
     """ set/respond position config """
-    x_pos: int = field(metadata={"format": SimpleFormat('i')})
-    y_pos: int = field(metadata={"format": SimpleFormat('i')})
-    z_pos: int = field(metadata={"format": SimpleFormat('h')})
+    x_pos: Annotated[int, APIField(ge=-2**31, lt=2**31)] = field(metadata={"format": SimpleFormat('i')})
+    y_pos: Annotated[int, APIField(ge=-2**31, lt=2**31)] = field(metadata={"format": SimpleFormat('i')})
+    z_pos: Annotated[int, APIField(ge=-2**15, lt=2**15)] = field(metadata={"format": SimpleFormat('h')})
 
 
 @dataclass
@@ -262,11 +264,11 @@ class ConfigUplinkMessage(MeshMessage, msg_type=MeshMessageType.CONFIG_UPLINK):
     enabled: bool = field(metadata={"format": BoolFormat()})
     ssid: str = field(metadata={"format": FixedStrFormat(32)})
     password: str = field(metadata={"format": FixedStrFormat(64)})
-    channel: int = field(metadata={"format": SimpleFormat('B')})
+    channel: Annotated[PositiveInt, APIField(le=15)] = field(metadata={"format": SimpleFormat('B')})
     udp: bool = field(metadata={"format": BoolFormat()})
     ssl: bool = field(metadata={"format": BoolFormat()})
     host: str = field(metadata={"format": FixedStrFormat(64)})
-    port: int = field(metadata={"format": SimpleFormat('H')})
+    port: Annotated[PositiveInt, APIField(lt=2**16)] = field(metadata={"format": SimpleFormat('H')})
 
 
 @unique
@@ -294,9 +296,9 @@ class OTADeviceStatus(EnumSchemaByNameMixin, IntEnum):
 @dataclass
 class OTAStatusMessage(MeshMessage, msg_type=MeshMessageType.OTA_STATUS):
     """ report OTA status """
-    update_id: int = field(metadata={"format": SimpleFormat('I')})
-    received_bytes: int = field(metadata={"format": SimpleFormat('I')})
-    next_expected_chunk: int = field(metadata={"format": SimpleFormat('H')})
+    update_id: Annotated[PositiveInt, APIField(lt=2**32)] = field(metadata={"format": SimpleFormat('I')})
+    received_bytes: Annotated[PositiveInt, APIField(lt=2**32)] = field(metadata={"format": SimpleFormat('I')})
+    next_expected_chunk: Annotated[PositiveInt, APIField(lt=2**16)] = field(metadata={"format": SimpleFormat('H')})
     auto_apply: bool = field(metadata={"format": BoolFormat()})
     auto_reboot: bool = field(metadata={"format": BoolFormat()})
     status: OTADeviceStatus = field(metadata={"format": EnumFormat('B')})
@@ -311,8 +313,8 @@ class OTARequestStatusMessage(MeshMessage, msg_type=MeshMessageType.OTA_REQUEST_
 @dataclass
 class OTAStartMessage(MeshMessage, msg_type=MeshMessageType.OTA_START):
     """ instruct node to start OTA """
-    update_id: int = field(metadata={"format": SimpleFormat('I')})
-    total_bytes: int = field(metadata={"format": SimpleFormat('I')})
+    update_id: Annotated[PositiveInt, APIField(lt=2**32)] = field(metadata={"format": SimpleFormat('I')})
+    total_bytes: Annotated[PositiveInt, APIField(lt=2**32)] = field(metadata={"format": SimpleFormat('I')})
     auto_apply: bool = field(metadata={"format": BoolFormat()})
     auto_reboot: bool = field(metadata={"format": BoolFormat()})
 
@@ -320,7 +322,7 @@ class OTAStartMessage(MeshMessage, msg_type=MeshMessageType.OTA_START):
 @dataclass
 class OTAURLMessage(MeshMessage, msg_type=MeshMessageType.OTA_URL):
     """ supply download URL for OTA update and who to distribute it to """
-    update_id: int = field(metadata={"format": SimpleFormat('I')})
+    update_id: Annotated[PositiveInt, APIField(lt=2**32)] = field(metadata={"format": SimpleFormat('I')})
     distribute_to: str = field(metadata={"format": MacAddressFormat()})
     url: str = field(metadata={"format": VarStrFormat(max_len=255)})
 
@@ -328,22 +330,22 @@ class OTAURLMessage(MeshMessage, msg_type=MeshMessageType.OTA_URL):
 @dataclass
 class OTAFragmentMessage(MeshMessage, msg_type=MeshMessageType.OTA_FRAGMENT):
     """ supply OTA fragment """
-    update_id: int = field(metadata={"format": SimpleFormat('I')})
-    chunk: int = field(metadata={"format": SimpleFormat('H')})
+    update_id: Annotated[PositiveInt, APIField(lt=2**32)] = field(metadata={"format": SimpleFormat('I')})
+    chunk: Annotated[PositiveInt, APIField(lt=2**16)] = field(metadata={"format": SimpleFormat('H')})
     data: bytes = field(metadata={"format": VarBytesFormat(max_size=OTA_CHUNK_SIZE)})
 
 
 @dataclass
 class OTARequestFragmentsMessage(MeshMessage, msg_type=MeshMessageType.OTA_REQUEST_FRAGMENTS):
     """ request missing fragments """
-    update_id: int = field(metadata={"format": SimpleFormat('I')})
+    update_id: Annotated[PositiveInt, APIField(lt=2**32)] = field(metadata={"format": SimpleFormat('I')})
     chunks: list[int] = field(metadata={"format": VarArrayFormat(SimpleFormat('H'), max_num=128)})
 
 
 @dataclass
 class OTASettingMessage(MeshMessage, msg_type=MeshMessageType.OTA_SETTING):
     """ configure whether to automatically apply and reboot when update is completed """
-    update_id: int = field(metadata={"format": SimpleFormat('I')})
+    update_id: Annotated[PositiveInt, APIField(lt=2**32)] = field(metadata={"format": SimpleFormat('I')})
     auto_apply: bool = field(metadata={"format": BoolFormat()})
     auto_reboot: bool = field(metadata={"format": BoolFormat()})
 
@@ -351,14 +353,14 @@ class OTASettingMessage(MeshMessage, msg_type=MeshMessageType.OTA_SETTING):
 @dataclass
 class OTAApplyMessage(MeshMessage, msg_type=MeshMessageType.OTA_APPLY):
     """ apply OTA and optionally reboot """
-    update_id: int = field(metadata={"format": SimpleFormat('I')})
+    update_id: Annotated[PositiveInt, APIField(lt=2**32)] = field(metadata={"format": SimpleFormat('I')})
     reboot: bool = field(metadata={"format": BoolFormat()})
 
 
 @dataclass
 class OTAAbortMessage(MeshMessage, msg_type=MeshMessageType.OTA_ABORT):
     """ announcing OTA abort """
-    update_id: int = field(metadata={"format": SimpleFormat('I')})
+    update_id: Annotated[PositiveInt, APIField(lt=2**32)] = field(metadata={"format": SimpleFormat('I')})
 
 
 @dataclass
