@@ -17,6 +17,7 @@ from django.utils import timezone
 from django.utils.crypto import constant_time_compare
 
 from c3nav.mesh import messages
+from c3nav.mesh.cformats import CFormat
 from c3nav.mesh.messages import (MESH_BROADCAST_ADDRESS, MESH_NONE_ADDRESS, MESH_ROOT_ADDRESS, OTA_CHUNK_SIZE,
                                  MeshMessage, MeshMessageType, OTAApplyMessage, OTASettingMessage)
 from c3nav.mesh.models import MeshNode, MeshUplink, NodeMessage, OTARecipientStatus, OTAUpdate, OTAUpdateRecipient
@@ -46,6 +47,7 @@ class NodeState:
 
 
 class MeshConsumer(AsyncWebsocketConsumer):
+    mesh_msg_format = CFormat.from_annotation(MeshMessage)
     def __init__(self):
         super().__init__()
         self.uplink = None
@@ -56,6 +58,7 @@ class MeshConsumer(AsyncWebsocketConsumer):
         self.ota_send_task = None
         self.ota_chunks: dict[int, set[int]] = {}  # keys are update IDs, values are a list of chunk IDs
         self.ota_chunks_available_condition = asyncio.Condition()
+        self.accepted = None
 
     async def connect(self):
         self.headers = dict(self.scope["headers"])
@@ -68,13 +71,16 @@ class MeshConsumer(AsyncWebsocketConsumer):
         self.ping_task = get_event_loop().create_task(self.ping_regularly())
         self.check_node_state_task = get_event_loop().create_task(self.check_node_states())
         self.ota_send_task = get_event_loop().create_task(self.ota_send())
+        self.accepted = True
 
     async def disconnect(self, close_code):
+        if not self.accepted:
+            return
         self.ping_task.cancel()
         self.check_node_state_task.cancel()
         self.ota_send_task.cancel()
-        await self.log_text(self.uplink.node, "mesh websocket disconnected")
         if self.uplink is not None:
+            await self.log_text(self.uplink.node, "mesh websocket disconnected")
             # leave broadcast group
             await self.channel_layer.group_discard("mesh_comm_broadcast", self.channel_name)
 
@@ -91,10 +97,10 @@ class MeshConsumer(AsyncWebsocketConsumer):
                 end_reason=MeshUplink.EndReason.CLOSED
             )
 
-    async def send_msg(self, msg, sender=None, exclude_uplink_address=None):
+    async def send_msg(self, msg: MeshMessage, sender=None, exclude_uplink_address=None):
         # print("sending", msg, MeshMessage.encode(msg).hex(' ', 1))
-        # self.log_text(msg.dst, "sending %s" % msg)
-        await self.send(bytes_data=MeshMessage.encode(msg))
+        # self.log_text(msg_envelope.dst, "sending %s" % msg)
+        await self.send(bytes_data=self.mesh_msg_format.encode(msg))
         await self.channel_layer.group_send("mesh_msg_sent", {
             "type": "mesh.msg_sent",
             "timestamp": timezone.now().strftime("%d.%m.%y %H:%M:%S.%f"),
@@ -113,18 +119,20 @@ class MeshConsumer(AsyncWebsocketConsumer):
         if bytes_data is None:
             return
         try:
-            msg, data = messages.MeshMessage.decode(bytes_data)
+            msg, data = self.mesh_msg_format.decode(bytes_data)
+            msg: MeshMessage
         except Exception:
-            print("Unable to decode: ")
+            print("Unable to decode: msg_type=", hex(bytes_data[12]))
             print(bytes_data)
             traceback.print_exc()
             return
+        msg.content = msg.content
 
         # print(msg)
 
         if msg.dst != messages.MESH_ROOT_ADDRESS and msg.dst != messages.MESH_PARENT_ADDRESS:
             # message not adressed to us, forward it
-            print('Received message for forwarding:', msg)
+            print('Received message for forwarding:', msg.content)
 
             if not self.uplink:
                 await self.log_text(None, "received message not for us before sign in message, ignoring...")
@@ -132,12 +140,12 @@ class MeshConsumer(AsyncWebsocketConsumer):
                 return
 
             # trace messages collect node adresses before forwarding
-            if isinstance(msg, messages.MeshRouteTraceMessage):
+            if isinstance(msg.content, messages.MeshRouteTraceMessage):
                 print('adding ourselves to trace message before forwarding')
                 await self.log_text(MESH_ROOT_ADDRESS, "adding ourselves to trace message before forwarding")
-                msg.trace.append(MESH_ROOT_ADDRESS)
+                msg.content.trace.append(MESH_ROOT_ADDRESS)
 
-            result = await msg.send(exclude_uplink_address=self.uplink.node.address)
+            result = await msg.content.send(exclude_uplink_address=self.uplink.node.address)
 
             if not result:
                 print('message had no route')
@@ -154,7 +162,7 @@ class MeshConsumer(AsyncWebsocketConsumer):
 
         src_node, created = await MeshNode.objects.aget_or_create(address=msg.src)
 
-        if isinstance(msg, messages.MeshSigninMessage):
+        if isinstance(msg.content, messages.MeshSigninMessage):
             if not self.check_valid_address(msg.src):
                 print('reject node with invalid address address')
                 await self.close()
@@ -172,10 +180,12 @@ class MeshConsumer(AsyncWebsocketConsumer):
             await self.log_received_message(src_node, msg)
 
             # inform signed in uplink node about its layer
-            await self.send_msg(messages.MeshLayerAnnounceMessage(
+            await self.send_msg(messages.MeshMessage(
                 src=messages.MESH_ROOT_ADDRESS,
                 dst=msg.src,
-                layer=messages.NO_LAYER
+                content=messages.MeshLayerAnnounceMessage(
+                    layer=messages.NO_LAYER
+                )
             ))
 
             # add signed in uplink node to broadcast group
@@ -186,7 +196,7 @@ class MeshConsumer(AsyncWebsocketConsumer):
 
             # add this node as a destination that this uplink handles (duh)
             await self.add_dst_nodes(nodes=(src_node, ))
-            self.dst_nodes[msg.src].last_msg[MeshMessageType.MESH_SIGNIN] = msg
+            self.dst_nodes[msg.src].last_msg[MeshMessageType.MESH_SIGNIN] = msg.content
 
             return
 
@@ -202,38 +212,42 @@ class MeshConsumer(AsyncWebsocketConsumer):
         except KeyError:
             print('unexpected message from', msg.src)
             return
-        node_status.last_msg[msg.msg_type] = msg
+        node_status.last_msg[msg.content.msg_type] = msg.content
 
-        if isinstance(msg, messages.MeshAddDestinationsMessage):
-            result = await self.add_dst_nodes(addresses=msg.addresses)
+        if isinstance(msg.content, messages.MeshAddDestinationsMessage):
+            result = await self.add_dst_nodes(addresses=msg.content.addresses)
             if not result:
-                print('disconnecting node that send invalid destinations', msg)
+                print('disconnecting node that send invalid destinations', msg.content)
                 await self.close()
 
-        if isinstance(msg, messages.MeshRemoveDestinationsMessage):
-            await self.remove_dst_nodes(addresses=msg.addresses)
+        if isinstance(msg.content, messages.MeshRemoveDestinationsMessage):
+            await self.remove_dst_nodes(addresses=msg.content.addresses)
 
-        if isinstance(msg, messages.MeshRouteRequestMessage):
-            if msg.address == MESH_ROOT_ADDRESS:
+        if isinstance(msg.content, messages.MeshRouteRequestMessage):
+            if msg.content.address == MESH_ROOT_ADDRESS:
                 await self.log_text(MESH_ROOT_ADDRESS, "route request about us, start a trace")
-                await self.send_msg(messages.MeshRouteTraceMessage(
+                await self.send_msg(messages.MeshMessage(
                     src=MESH_ROOT_ADDRESS,
                     dst=msg.src,
-                    request_id=msg.request_id,
-                    trace=[MESH_ROOT_ADDRESS],
+                    content=messages.MeshRouteTraceMessage(
+                        request_id=msg.content.request_id,
+                        trace=[MESH_ROOT_ADDRESS],
+                    )
                 ))
             else:
                 await self.log_text(MESH_ROOT_ADDRESS, "route request about someone else, sending response")
-                self.open_requests.add(msg.request_id)
-                uplink = database_sync_to_async(MeshNode.get_node_and_uplink)(msg.address)
-                await self.send_msg(messages.MeshRouteResponseMessage(
+                self.open_requests.add(msg.content.request_id)
+                uplink = database_sync_to_async(MeshNode.get_node_and_uplink)(msg.content.address)
+                await self.send_msg(messages.MeshMessage(
                     src=MESH_ROOT_ADDRESS,
                     dst=msg.src,
-                    request_id=msg.request_id,
-                    route=uplink.node_id if uplink else MESH_NONE_ADDRESS,
+                    content=messages.MeshRouteResponseMessage(
+                        request_id=msg.content.request_id,
+                        route=uplink.node_id if uplink else MESH_NONE_ADDRESS,
+                    )
                 ))
 
-        if isinstance(msg, (messages.ConfigHardwareMessage,
+        if isinstance(msg.content, (messages.ConfigHardwareMessage,
                             messages.ConfigFirmwareMessage,
                             messages.ConfigBoardMessage)):
             if (node_status.waiting_for == NodeWaitingFor.CONFIG and
@@ -243,16 +257,16 @@ class MeshConsumer(AsyncWebsocketConsumer):
                 print('got all config, checking ota')
                 await self.check_ota([msg.src], first_time=True)
 
-        if isinstance(msg, messages.OTAStatusMessage):
-            print('got OTA status', msg)
-            node_status.reported_ota_update = msg.update_id
+        if isinstance(msg.content, messages.OTAStatusMessage):
+            print('got OTA status', msg.content)
+            node_status.reported_ota_update = msg.content.update_id
             if node_status.waiting_for == NodeWaitingFor.OTA_START_STOP:
                 update_id = node_status.ota_recipient.update_id if node_status.ota_recipient else 0
-                if update_id == msg.update_id:
+                if update_id == msg.content.update_id:
                     print('start/cancel confirmed!')
                     node_status.waiting_for = NodeWaitingFor.NOTHING
                     if update_id:
-                        if msg.status.is_failed:
+                        if msg.content.status.is_failed:
                             print('ota failed')
                             node_status.ota_recipient.status = OTARecipientStatus.FAILED
                             await node_status.ota_recipient.send_status()
@@ -263,14 +277,14 @@ class MeshConsumer(AsyncWebsocketConsumer):
                         else:
                             print('queue chunk sending')
                             await self.ota_set_chunks(node_status.ota_recipient.update,
-                                                      min_chunk=msg.next_expected_chunk)
+                                                      min_chunk=msg.content.next_expected_chunk)
 
-        if isinstance(msg, messages.OTARequestFragmentsMessage):
-            print('got OTA fragment request', msg)
+        if isinstance(msg.content, messages.OTARequestFragmentsMessage):
+            print('got OTA fragment request', msg.content)
             desired_update_id = node_status.ota_recipient.update_id if node_status.ota_recipient else 0
-            if desired_update_id and msg.update_id == desired_update_id:
+            if desired_update_id and msg.content.update_id == desired_update_id:
                 print('queue requested chunk sending')
-                await self.ota_set_chunks(node_status.ota_recipient.update, chunks=set(msg.chunks))
+                await self.ota_set_chunks(node_status.ota_recipient.update, chunks=set(msg.content.chunks))
 
     @database_sync_to_async
     def create_uplink_in_database(self, address):
@@ -334,7 +348,7 @@ class MeshConsumer(AsyncWebsocketConsumer):
                     self.uplink.node.address, "we're the route for this message but it came from here so... no"
                 )
             return
-        await self.send_msg(MeshMessage.fromjson(data["msg"]), data["sender"])
+        await self.send_msg(MeshMessage.model_validate(data["msg"]), data["sender"])
 
     async def mesh_ota_recipients_changed(self, data):
         addresses = set(data["addresses"]) & set(self.dst_nodes.keys())
@@ -349,7 +363,7 @@ class MeshConsumer(AsyncWebsocketConsumer):
     """
 
     async def log_received_message(self, src_node: MeshNode, msg: messages.MeshMessage):
-        as_json = MeshMessage.tojson(msg)
+        as_json = msg.model_dump()
         await self.channel_layer.group_send("mesh_msg_received", {
             "type": "mesh.msg_received",
             "timestamp": timezone.now().strftime("%d.%m.%y %H:%M:%S.%f"),
@@ -360,7 +374,7 @@ class MeshConsumer(AsyncWebsocketConsumer):
         await NodeMessage.objects.acreate(
             uplink=self.uplink,
             src_node=src_node,
-            message_type=msg.msg_type.name,
+            message_type=msg.content.msg_type.name,
             data=as_json,
         )
 
@@ -435,29 +449,34 @@ class MeshConsumer(AsyncWebsocketConsumer):
                 node_state.last_sent = timezone.now()
                 print('request config dump, attempt #%d' % node_state.attempt)
                 node_state.attempt += 1
-                await self.send_msg(messages.ConfigDumpMessage(
+                await self.send_msg(messages.MeshMessage(
                     src=MESH_ROOT_ADDRESS,
                     dst=address,
+                    content=messages.ConfigDumpMessage()
                 ))
 
             case NodeWaitingFor.OTA_START_STOP:
                 node_state.last_sent = timezone.now()
                 if node_state.ota_recipient:
                     print('starting ota, attempt #%d' % node_state.attempt)
-                    await self.send_msg(messages.OTAStartMessage(
+                    await self.send_msg(messages.MeshMessage(
                         src=MESH_ROOT_ADDRESS,
                         dst=address,
-                        update_id=node_state.ota_recipient.update_id,  # noqa
-                        total_bytes=node_state.ota_recipient.update.build.binary.size,
-                        auto_apply=False,
-                        auto_reboot=False,
+                        content=messages.OTAStartMessage(
+                            update_id=node_state.ota_recipient.update_id,  # noqa
+                            total_bytes=node_state.ota_recipient.update.build.binary.size,
+                            auto_apply=False,
+                            auto_reboot=False,
+                        )
                     ))
                 else:
                     print('canceling ota, attempt #%d' % node_state.attempt)
-                    await self.send_msg(messages.OTAAbortMessage(
+                    await self.send_msg(messages.MeshMessage(
                         src=MESH_ROOT_ADDRESS,
                         dst=address,
-                        update_id=0,
+                        content=messages.OTAAbortMessage(
+                            update_id=0,
+                        )
                     ))
 
     async def check_node_states(self):
@@ -511,12 +530,14 @@ class MeshConsumer(AsyncWebsocketConsumer):
                 with self.dst_nodes[recipients[0]].ota_recipient.update.build.binary.open('rb') as f:
                     f.seek(chunk * OTA_CHUNK_SIZE)
                     data = f.read(OTA_CHUNK_SIZE)
-                await self.send_msg(messages.OTAFragmentMessage(
+                await self.send_msg(messages.MeshMessage(
                     src=MESH_ROOT_ADDRESS,
                     dst=recipients[0] if len(recipients) == 1 else MESH_BROADCAST_ADDRESS,
-                    update_id=update_id,
-                    chunk=chunk,
-                    data=data,
+                    content=messages.OTAFragmentMessage(
+                        update_id=update_id,
+                        chunk=chunk,
+                        data=data,
+                    )
                 ))
 
                 # wait a bit until we send more
@@ -681,7 +702,7 @@ class MeshUIConsumer(AsyncJsonWebsocketConsumer):
                 self.msg_received_filter = {"request_id": msg_to_send["msg_data"]["request_id"]}
 
             for recipient in msg_to_send["recipients"]:
-                await MeshMessage.fromjson({
+                await MeshMessage.model_validate({
                     'dst': recipient,
                     **msg_to_send["msg_data"],
                 }).send(sender=self.channel_name)

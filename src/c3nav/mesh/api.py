@@ -12,8 +12,8 @@ from pydantic import PositiveInt, field_validator
 from c3nav.api.auth import APIKeyAuth, auth_permission_responses, auth_responses, validate_responses
 from c3nav.api.exceptions import API404, APIConflict, APIRequestValidationFailed
 from c3nav.api.schema import BaseSchema
-from c3nav.mesh.dataformats import BoardType, ChipType, FirmwareImage
-from c3nav.mesh.messages import MeshMessageType
+from c3nav.mesh.schemas import BoardType, ChipType, FirmwareImage
+from c3nav.mesh.messages import MeshMessageType, MeshMessage
 from c3nav.mesh.models import FirmwareBuild, FirmwareVersion, NodeMessage
 
 mesh_api_router = APIRouter(tags=["mesh"], auth=APIKeyAuth(permissions={"mesh_control"}))
@@ -93,7 +93,7 @@ def firmware_by_id(request, firmware_id: int):
 @mesh_api_router.get('/firmwares/{firmware_id}/{variant}/image_data',
                      summary="firmware image header",
                      description="get firmware image header for specific firmware build",
-                     response={200: FirmwareImage.schema, **API404.dict(), **auth_responses},
+                     response={200: FirmwareImage, **API404.dict(), **auth_responses},
                      openapi_extra={
                          "externalDocs": {
                              'description': 'esp-idf docs',
@@ -105,7 +105,7 @@ def firmware_by_id(request, firmware_id: int):
 def firmware_build_image(request, firmware_id: int, variant: str):
     try:
         build = FirmwareBuild.objects.get(version_id=firmware_id, variant=variant)
-        return FirmwareImage.tojson(build.firmware_image)
+        return build.firmware_image.model_dump()
     except FirmwareVersion.DoesNotExist:
         raise API404("Firmware or firmware build not found")
 
@@ -218,7 +218,7 @@ class NodeMessageSchema(BaseSchema):
     src_node: NodeAddress
     message_type: MeshMessageType
     datetime: datetime
-    data: dict
+    data: MeshMessage
 
     @staticmethod
     def resolve_src_node(obj):

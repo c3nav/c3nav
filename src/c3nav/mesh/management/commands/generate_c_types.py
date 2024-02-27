@@ -1,52 +1,47 @@
-from dataclasses import fields
-
 from django.core.management.base import BaseCommand
 
-from c3nav.mesh.baseformats import StructType, normalize_name
-from c3nav.mesh.messages import MeshMessage
+from c3nav.mesh.cformats import UnionFormat, normalize_name, CFormat
+from c3nav.mesh.messages import MeshMessageContent
 from c3nav.mesh.utils import indent_c
 
 
 class Command(BaseCommand):
     help = 'export mesh message structs for c code'
 
+    @staticmethod
+    def get_msg_c_enum_name(msg_type):
+        return normalize_name(msg_type.__name__.removeprefix('Mesh').removesuffix('Message')).upper()
+
     def handle(self,  *args, **options):
-        done_struct_names = set()
         nodata = set()
         struct_lines = {}
         struct_sizes = []
         struct_max_sizes = []
         done_definitions = set()
 
-        for include in StructType.c_includes:
+        mesh_msg_content_format = CFormat.from_annotation(MeshMessageContent)
+        if not isinstance(mesh_msg_content_format, UnionFormat):
+            raise Exception('wuah')
+        discriminator_size = mesh_msg_content_format.discriminator_format.get_size()
+        for include in mesh_msg_content_format.get_c_includes():
             print(f'#include {include}')
 
-        ignore_names = set(field_.name for field_ in fields(MeshMessage))
-        for msg_type, msg_class in MeshMessage.get_types().items():
-            if msg_class.c_struct_name:
-                if msg_class.c_struct_name in done_struct_names:
-                    continue
-                done_struct_names.add(msg_class.c_struct_name)
-                if MeshMessage.c_structs[msg_class.c_struct_name] != msg_class:
-                    # the purpose of MeshMessage.c_structs is unclear, currently this never triggers
-                    # todo get rid of the whole c_structs thing if it doesn't turn out to be useful for anything
-                    raise ValueError('what happened?')
-
-            base_name = (msg_class.c_struct_name or normalize_name(
-                getattr(msg_type, 'name', msg_class.__name__)
-            ))
+        for msg_type, msg_content_format in mesh_msg_content_format.models.items():
+            base_name = normalize_name(mesh_msg_content_format.key_to_name[msg_type])
             name = "mesh_msg_%s_t" % base_name
 
-            for definition_name, definition in msg_class.get_c_definitions().items():
+            for definition_name, definition in msg_content_format.get_c_definitions().items():
                 if definition_name not in done_definitions:
                     done_definitions.add(definition_name)
                     print(definition)
                     print()
 
-            code = msg_class.get_c_code(name, ignore_fields=ignore_names, no_empty=True)
+            code = msg_content_format.get_c_code(name, ignore_fields=('msg_type', ), no_empty=True)
             if code:
-                size = msg_class.get_size(no_inherited_fields=True, calculate_max=False)
-                max_size = msg_class.get_size(no_inherited_fields=True, calculate_max=True)
+                size = msg_content_format.get_size(calculate_max=False)
+                max_size = msg_content_format.get_size(calculate_max=True)
+                size -= discriminator_size
+                max_size -= discriminator_size
                 struct_lines[base_name] = "%s %s;" % (name, base_name.replace('_announce', ''))
                 struct_sizes.append(size)
                 struct_max_sizes.append(max_size)
@@ -55,13 +50,13 @@ class Command(BaseCommand):
                       (name, size))
                 print()
             else:
-                nodata.add(msg_class)
+                nodata.add(msg_content_format.model)
 
         print("/** union between all message data structs */")
         print("typedef union __packed {")
         for line in struct_lines.values():
             print(indent_c(line))
-        print("} mesh_msg_data_t; ")
+        print("} mesh_msg_data_t;")
         print(
             "static_assert(sizeof(mesh_msg_data_t) == %d, \"size of generated message structs is calculated wrong\");"
             % max(struct_sizes)
@@ -72,20 +67,18 @@ class Command(BaseCommand):
 
         print()
 
-        max_msg_type = max(MeshMessage.get_types().keys())
+        max_msg_type = max(mesh_msg_content_format.models.keys())
         macro_data = []
         for i in range(((max_msg_type//16)+1)*16):
-            msg_class = MeshMessage.get_types().get(i, None)
-            if msg_class:
-                name = (msg_class.c_struct_name or normalize_name(
-                    getattr(msg_class.msg_type, 'name', msg_class.__name__)
-                ))
+            msg_content_format = mesh_msg_content_format.models.get(i, None)
+            if msg_content_format:
+                name = normalize_name(mesh_msg_content_format.key_to_name[i])
                 macro_data.append((
-                    msg_class.get_c_enum_name(),
-                    ("nodata" if msg_class in nodata else name),
-                    msg_class.get_var_num(),
-                    msg_class.get_size(no_inherited_fields=True, calculate_max=True),
-                    msg_class.__doc__.strip(),
+                    self.get_msg_c_enum_name(msg_content_format.model),
+                    ("nodata" if msg_content_format.model in nodata else name),
+                    msg_content_format.get_var_num(), # todo: uh?
+                    msg_content_format.get_size(calculate_max=True) - discriminator_size,
+                    msg_content_format.model.__doc__.strip(),
                 ))
             else:
                 macro_data.append((

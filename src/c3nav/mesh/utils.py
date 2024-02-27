@@ -12,7 +12,7 @@ UPLINK_TIMEOUT = UPLINK_PING+5
 
 
 def indent_c(code):
-    return "    "+code.replace("\n", "\n    ")
+    return "    "+code.replace("\n", "\n    ").replace("\n    \n", "\n\n")
 
 
 def get_node_names():
