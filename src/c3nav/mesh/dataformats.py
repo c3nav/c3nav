@@ -3,6 +3,7 @@ from dataclasses import dataclass, field
 from enum import IntEnum, unique
 from typing import BinaryIO, Self, Annotated, Literal
 
+from annotated_types import MaxLen
 from pydantic import Field as APIField
 from pydantic import NegativeInt, PositiveInt
 from pydantic_extra_types.mac_address import MacAddress
@@ -190,14 +191,14 @@ class RawFTMEntry(StructType):
 class FirmwareAppDescription(StructType, existing_c_struct="esp_app_desc_t", c_includes=['<esp_app_desc.h>']):
     magic_word: Literal[0xAB_CD_54_32] = field(metadata={"format": SimpleConstFormat('I', 0xAB_CD_54_32)}, repr=False)
     secure_version: Annotated[PositiveInt, APIField(lt=2**32)] = field(metadata={"format": SimpleFormat('I')})
-    reserv1: tuple[int, int] = field(metadata={"format": SimpleFormat('2I')}, repr=False)
+    reserv1: Annotated[bytes, MaxLen(8)] = field(metadata={"format": SimpleFormat('2I')}, repr=False)
     version: Annotated[str, APIField(max_length=32)] = field(metadata={"format": FixedStrFormat(32)})
     project_name: Annotated[str, APIField(max_length=32)] = field(metadata={"format": FixedStrFormat(32)})
     compile_time: Annotated[str, APIField(max_length=16)] = field(metadata={"format": FixedStrFormat(16)})
     compile_date: Annotated[str, APIField(max_length=16)] = field(metadata={"format": FixedStrFormat(16)})
     idf_version: Annotated[str, APIField(max_length=32)] = field(metadata={"format": FixedStrFormat(32)})
     app_elf_sha256: Annotated[str, APIField(max_length=32), AsHex()] = field(metadata={"format": FixedHexFormat(32)})
-    reserv2: tuple[int, int] = field(metadata={"format": SimpleFormat('20I')}, repr=False)
+    reserv2: Annotated[bytes, MaxLen(20*4)] = field(metadata={"format": SimpleFormat('20I')}, repr=False)
 
 
 @unique

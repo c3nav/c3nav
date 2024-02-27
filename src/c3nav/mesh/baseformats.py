@@ -255,6 +255,18 @@ class FixedStrFormat(SimpleFormat):
         return data[:self.num].rstrip(bytes((0,))).decode(), data[self.num:]
 
 
+class FixedBytesFormat(SimpleFormat):
+    def __init__(self, num):
+        self.num = num
+        super().__init__('%dB' % self.num)
+
+    def encode(self, value: str):
+        return super().encode(tuple(value))
+
+    def decode(self, data: bytes) -> tuple[bytes, bytes]:
+        return data[:self.num], data[self.num:]
+
+
 class FixedHexFormat(SimpleFormat):
     def __init__(self, num, sep=''):
         self.num = num
@@ -509,8 +521,9 @@ class StructType:
                         new_field_format = FixedHexFormat(max_length) if as_hex else FixedStrFormat(max_length)
                 else:
                     if var_len_name is None:
-                        raise ValueError()
-                    new_field_format = VarBytesFormat(max_size=max_length)
+                         new_field_format = FixedBytesFormat(num=max_length)
+                    else:
+                        new_field_format = VarBytesFormat(max_size=max_length)
             elif type_base is MacAddress:
                 from c3nav.mesh.dataformats import MacAddressFormat
                 new_field_format = MacAddressFormat()
@@ -537,7 +550,7 @@ class StructType:
                 new_field_format = type_base
 
             if new_field_format is None:
-                print('UNKNOWN', attr_name, type_base, type_metadata)
+                raise ValueError('Uknown type annotation for c structs')
             else:
                 if outer_base is list:
                     max_length = None
@@ -559,13 +572,6 @@ class StructType:
                     else:
                         raise ValueError('fixed-len list not implemented:', attr_name)
                     new_field_format.set_field_type(orig_type_base)
-
-                code_old = field_format.get_c_code(name=attr_name)
-                code_new = new_field_format.get_c_code(name=attr_name)
-                if code_old == code_new:
-                    pass#print('SAME', attr_name, type_base, type_metadata, code_old, code_new)
-                else:
-                    print('DIFFERENT', attr_name, type_base, type_metadata, 'OLD', code_old, 'NEW', code_new)
 
             return field_format
 
