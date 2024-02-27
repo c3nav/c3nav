@@ -341,7 +341,7 @@ class OTAFragmentMessage(MeshMessage, msg_type=MeshMessageType.OTA_FRAGMENT):
 class OTARequestFragmentsMessage(MeshMessage, msg_type=MeshMessageType.OTA_REQUEST_FRAGMENTS):
     """ request missing fragments """
     update_id: Annotated[PositiveInt, APIField(lt=2**32)] = field(metadata={"format": SimpleFormat('I')})
-    chunks: Annotated[list[Annotated[PositiveInt, Lt(2**16)]], MaxLen(16), VarLen()] = field(metadata={"format": VarArrayFormat(SimpleFormat('H'), max_num=128)})
+    chunks: Annotated[list[Annotated[PositiveInt, Lt(2**16)]], MaxLen(128), VarLen()] = field(metadata={"format": VarArrayFormat(SimpleFormat('H'), max_num=128)})
 
 
 @dataclass
