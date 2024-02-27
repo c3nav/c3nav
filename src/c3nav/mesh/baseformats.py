@@ -9,6 +9,7 @@ from typing import Any, Self, Sequence
 
 from pydantic import create_model
 from pydantic.fields import FieldInfo
+from pydantic_extra_types.mac_address import MacAddress
 
 from c3nav.mesh.utils import indent_c
 
@@ -434,7 +435,10 @@ class StructType:
                 if int_type is None:
                     raise ValueError('invalid range:', attr_name)
                 new_field_format = SimpleFormat(int_type)
-            elif issubclass(type_base, IntEnum):
+            elif type_base is MacAddress:
+                from c3nav.mesh.dataformats import MacAddressFormat
+                new_field_format = MacAddressFormat()
+            elif isinstance(type_base, type) and issubclass(type_base, IntEnum):
                 # todo: c_definition / as_hex
                 int_type = cls.get_int_type(min(type_base), max(type_base))
                 if int_type is None:

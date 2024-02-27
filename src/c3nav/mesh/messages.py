@@ -6,6 +6,7 @@ import channels
 from channels.db import database_sync_to_async
 from pydantic import Field as APIField
 from pydantic import PositiveInt
+from pydantic_extra_types.mac_address import MacAddress
 
 from c3nav.api.utils import EnumSchemaByNameMixin
 from c3nav.mesh.baseformats import (BoolFormat, EnumFormat, FixedStrFormat, SimpleFormat, StructType, VarArrayFormat,
@@ -79,8 +80,8 @@ M = TypeVar('M', bound='MeshMessage')
 
 @dataclass
 class MeshMessage(StructType, union_type_field="msg_type"):
-    dst: str = field(metadata={"format": MacAddressFormat()})
-    src: str = field(metadata={"format": MacAddressFormat()})
+    dst: MacAddress = field(metadata={"format": MacAddressFormat()})
+    src: MacAddress = field(metadata={"format": MacAddressFormat()})
     msg_type: MeshMessageType = field(metadata={"format": EnumFormat('B', c_definition=False)}, init=False, repr=False)
     c_structs = {}
     c_struct_name = None
@@ -186,7 +187,7 @@ class MeshRemoveDestinationsMessage(MeshMessage, msg_type=MeshMessageType.MESH_R
 class MeshRouteRequestMessage(MeshMessage, msg_type=MeshMessageType.MESH_ROUTE_REQUEST):
     """ request routing information for node """
     request_id: Annotated[PositiveInt, APIField(lt=2**32)] = field(metadata={"format": SimpleFormat('I')})
-    address: str = field(metadata={
+    address: MacAddress = field(metadata={
         "format": MacAddressFormat(),
         "doc": "target address for the route"
     })
@@ -196,7 +197,7 @@ class MeshRouteRequestMessage(MeshMessage, msg_type=MeshMessageType.MESH_ROUTE_R
 class MeshRouteResponseMessage(MeshMessage, msg_type=MeshMessageType.MESH_ROUTE_RESPONSE):
     """ reporting the routing table entry to the given address """
     request_id: Annotated[PositiveInt, APIField(lt=2**32)] = field(metadata={"format": SimpleFormat('I')})
-    route: str = field(metadata={
+    route: MacAddress = field(metadata={
         "format": MacAddressFormat(),
         "doc": "routing table entry or 00:00:00:00:00:00"
     })
@@ -215,7 +216,7 @@ class MeshRouteTraceMessage(MeshMessage, msg_type=MeshMessageType.MESH_ROUTE_TRA
 @dataclass
 class MeshRoutingFailedMessage(MeshMessage, msg_type=MeshMessageType.MESH_ROUTING_FAILED):
     """ TODO description"""
-    address: str = field(metadata={"format": MacAddressFormat()})
+    address: MacAddress = field(metadata={"format": MacAddressFormat()})
 
 
 @dataclass
@@ -323,7 +324,7 @@ class OTAStartMessage(MeshMessage, msg_type=MeshMessageType.OTA_START):
 class OTAURLMessage(MeshMessage, msg_type=MeshMessageType.OTA_URL):
     """ supply download URL for OTA update and who to distribute it to """
     update_id: Annotated[PositiveInt, APIField(lt=2**32)] = field(metadata={"format": SimpleFormat('I')})
-    distribute_to: str = field(metadata={"format": MacAddressFormat()})
+    distribute_to: MacAddress = field(metadata={"format": MacAddressFormat()})
     url: str = field(metadata={"format": VarStrFormat(max_len=255)})
 
 
@@ -378,7 +379,7 @@ class LocateRangeResults(MeshMessage, msg_type=MeshMessageType.LOCATE_RANGE_RESU
 @dataclass
 class LocateRawFTMResults(MeshMessage, msg_type=MeshMessageType.LOCATE_RAW_FTM_RESULTS):
     """ reports distance to given nodes """
-    peer: str = field(metadata={"format": MacAddressFormat()})
+    peer: MacAddress = field(metadata={"format": MacAddressFormat()})
     results: list[RawFTMEntry] = field(metadata={"format": VarArrayFormat(RawFTMEntry, max_num=16)})
 
 

@@ -5,6 +5,7 @@ from typing import BinaryIO, Self, Annotated, Literal
 
 from pydantic import Field as APIField
 from pydantic import NegativeInt, PositiveInt
+from pydantic_extra_types.mac_address import MacAddress
 
 from c3nav.api.utils import EnumSchemaByNameMixin
 from c3nav.mesh.baseformats import (BoolFormat, ChipRevFormat, EnumFormat, FixedHexFormat, FixedStrFormat,
@@ -168,7 +169,7 @@ class LocationPCBRev0Dot2BoardConfig(BoardConfig, board=BoardType.C3NAV_LOCATION
 
 @dataclass
 class RangeResultItem(StructType):
-    peer: str = field(metadata={"format": MacAddressFormat()})
+    peer: MacAddress = field(metadata={"format": MacAddressFormat()})
     rssi: Annotated[NegativeInt, APIField(gt=-100)] = field(metadata={"format": SimpleFormat('b')})
     distance: Annotated[int, APIField(gt=-32000, lt=32000)] = field(metadata={"format": SimpleFormat('h')})
 

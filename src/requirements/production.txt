@@ -3,6 +3,7 @@ django-bootstrap3==23.6
 django-compressor==4.4
 csscompressor==0.9.5
 django-ninja==1.1.0
+pydantic-extra-types==2.5.0
 django-filter==23.5
 django-environ==0.11.2
 shapely==2.0.2
