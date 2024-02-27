@@ -7,7 +7,7 @@ from dataclasses import fields as dataclass_fields
 from enum import IntEnum
 from typing import Any, Self, Sequence
 
-from annotated_types import BaseMetadata, SLOTS, Ge
+from annotated_types import SLOTS, BaseMetadata, Ge
 from pydantic import create_model
 from pydantic.fields import FieldInfo
 from pydantic_extra_types.mac_address import MacAddress
@@ -393,6 +393,7 @@ class StructType:
     _union_options = {}
     union_type_field = None
     existing_c_struct = None
+    _defining_classes = {}
     c_includes = set()
 
     @staticmethod
@@ -590,13 +591,10 @@ class StructType:
             f.repr = False
             f.init = False
 
-        for attr_name in cls.__dict__.keys():
-            attr = getattr(cls, attr_name)
-            if isinstance(attr, Field):
-                metadata = dict(attr.metadata)
-                if "defining_class" not in metadata:
-                    metadata["defining_class"] = cls
-                attr.metadata = metadata
+        cls._defining_classes = getattr(cls, '_defining_classes', {}).copy()
+
+        for attr_name in typing.get_type_hints(cls, include_extras=True).keys():
+            cls._defining_classes.setdefault(attr_name, cls)
 
         for key, values in cls._union_options.items():
             value = kwargs.pop(key, None)
@@ -797,13 +795,13 @@ class StructType:
         for field_ in dataclass_fields(cls):
             if field_.name in ignore_fields:
                 continue
-            if in_union and field_.metadata["defining_class"] != cls:
+            if in_union and cls._defining_classes[field_.name] != cls:
                 continue
 
             name = field_.metadata.get("c_name", field_.name)
             field_format = cls.get_field_format(field_.name)
             if not (isinstance(field_format, type) and issubclass(field_format, StructType)):
-                if not field_.metadata.get("union_discriminator") or field_.metadata.get("defining_class") == cls:
+                if not field_.metadata.get("union_discriminator") or cls._defining_classes[field_.name] == cls:
                     items.append((
                         (
                             ("%(typedef_name)s %(name)s;" % {
@@ -958,7 +956,7 @@ class StructType:
                 [0] + [option.get_min_size(True) for option in cls._union_options[cls.union_type_field].values()])
             return own_size + union_size
         if no_inherited_fields:
-            relevant_fields = [f for f in dataclass_fields(cls) if f.metadata["defining_class"] == cls]
+            relevant_fields = [f for f in dataclass_fields(cls) if cls._defining_classes[f.name] == cls]
         else:
             relevant_fields = [f for f in dataclass_fields(cls) if not f.metadata.get("union_discriminator")]
         return sum((cls.get_field_format(f.name).get_min_size() for f in relevant_fields), start=0)
@@ -973,7 +971,7 @@ class StructType:
                        cls._union_options[cls.union_type_field].values()])
             return own_size + union_size
         if no_inherited_fields:
-            relevant_fields = [f for f in dataclass_fields(cls) if f.metadata["defining_class"] == cls]
+            relevant_fields = [f for f in dataclass_fields(cls) if cls._defining_classes[f.name] == cls]
         else:
             relevant_fields = [f for f in dataclass_fields(cls) if not f.metadata.get("union_discriminator")]
         return sum((cls.get_field_format(f.name).get_size(calculate_max=calculate_max) for f in relevant_fields),
