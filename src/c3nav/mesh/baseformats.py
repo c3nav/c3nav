@@ -7,11 +7,33 @@ from dataclasses import fields as dataclass_fields
 from enum import IntEnum
 from typing import Any, Self, Sequence
 
+from annotated_types import BaseMetadata, SLOTS, Ge
 from pydantic import create_model
 from pydantic.fields import FieldInfo
 from pydantic_extra_types.mac_address import MacAddress
 
+from c3nav.api.utils import NonEmptyStr
 from c3nav.mesh.utils import indent_c
+
+
+@dataclass(frozen=True, **SLOTS)
+class VarLen(BaseMetadata):
+    var_len_name: NonEmptyStr = "num"
+
+
+@dataclass(frozen=True, **SLOTS)
+class NoDef(BaseMetadata):
+    no_def: bool = True
+
+
+@dataclass(frozen=True, **SLOTS)
+class AsHex(BaseMetadata):
+    as_hex: bool = True
+
+
+@dataclass(frozen=True, **SLOTS)
+class LenBytes(BaseMetadata):
+    len_bytes: typing.Annotated[int, Ge(1)]
 
 
 class BaseFormat(ABC):
@@ -394,7 +416,6 @@ class StructType:
         field = fields[0]
         if "format" in field.metadata:
             field_format = field.metadata["format"]
-            field_format.set_field_type(field.type)
 
             type_ = typing.get_type_hints(cls, include_extras=True)[attr_name]
             if typing.get_origin(type_) is typing.Annotated:
@@ -410,6 +431,23 @@ class StructType:
             else:
                 type_base = type_
                 type_metadata = ()
+
+            orig_type_base = type_base
+
+            outer_base = None
+            outer_metadata = None
+            if typing.get_origin(type_base) is list:
+                outer_base = list
+                outer_metadata = type_metadata
+
+                type_base = typing.get_args(type_base)[0]
+                type_metadata = ()
+                if typing.get_origin(type_base) is typing.Annotated:
+                    type_metadata = tuple(type_base.__metadata__)
+                    type_base = typing.get_args(type_base)[0]
+                #print('LIST', attr_name, type_base, type_metadata)
+
+            field_format.set_field_type(orig_type_base)
 
             #print(attr_name, type_base, type_metadata)
 
@@ -435,26 +473,91 @@ class StructType:
                 if int_type is None:
                     raise ValueError('invalid range:', attr_name)
                 new_field_format = SimpleFormat(int_type)
+            elif type_base is bool:
+                new_field_format = BoolFormat()
+            elif type_base in (str, bytes):
+                max_length = None
+                var_len_name = None
+                as_hex = False
+                for m in type_metadata:
+                    as_hex = getattr(m, 'as_hex', as_hex)
+
+                    ml = getattr(m, 'max_length', None)
+                    if ml is not None:
+                        max_length = ml if max_length is None else min(max_length, ml)
+
+                    vl = getattr(m, 'var_len_name', None)
+                    if vl is not None:
+                        if var_len_name is not None:
+                            raise ValueError('can\'t set variable length name twice')
+                        var_len_name = vl
+                if max_length is None:
+                    raise ValueError('missing str max_length:', attr_name)
+
+                if type_base is str:
+                    if var_len_name is not None:
+                        new_field_format = VarStrFormat(max_len=max_length)
+                    else:
+                        new_field_format = FixedHexFormat(max_length) if as_hex else FixedStrFormat(max_length)
+                else:
+                    if var_len_name is None:
+                        raise ValueError()
+                    new_field_format = VarBytesFormat(max_size=max_length)
             elif type_base is MacAddress:
                 from c3nav.mesh.dataformats import MacAddressFormat
                 new_field_format = MacAddressFormat()
             elif isinstance(type_base, type) and issubclass(type_base, IntEnum):
-                # todo: c_definition / as_hex
-                int_type = cls.get_int_type(min(type_base), max(type_base))
-                if int_type is None:
-                    raise ValueError('invalid range:', attr_name)
-                new_field_format = EnumFormat(fmt=int_type)
+                no_def = False
+                as_hex = False
+                len_bytes = None
+                for m in type_metadata:
+                    no_def = getattr(m, 'no_def', no_def)
+                    as_hex = getattr(m, 'as_hex', as_hex)
+                    len_bytes = getattr(m, 'len_bytes', len_bytes)
+
+                if len_bytes:
+                    int_type = cls.get_int_type(0, 2**(8*len_bytes-1))
+                else:
+                    int_type = cls.get_int_type(min(type_base), max(type_base))
+                    if int_type is None:
+                        raise ValueError('invalid range:', attr_name)
+                new_field_format = EnumFormat(fmt=int_type, as_hex=as_hex, c_definition=not no_def)
+
+            if new_field_format is not None:
+                new_field_format.set_field_type(type_base)
+            elif isinstance(type_base, type) and issubclass(type_base, StructType):
+                new_field_format = type_base
 
             if new_field_format is None:
                 print('UNKNOWN', attr_name, type_base, type_metadata)
             else:
-                new_field_format.set_field_type(type_base)
+                if outer_base is list:
+                    max_length = None
+                    var_len_name = None
+                    for m in outer_metadata:
+                        ml = getattr(m, 'max_length', None)
+                        if ml is not None:
+                            max_length = ml if max_length is None else min(max_length, ml)
+
+                        vl = getattr(m, 'var_len_name', None)
+                        if vl is not None:
+                            if var_len_name is not None:
+                                raise ValueError('can\'t set variable length name twice')
+                            var_len_name = vl
+                    if max_length is None:
+                        raise ValueError('missing str max_length:', attr_name)
+                    if var_len_name:
+                        new_field_format = VarArrayFormat(new_field_format, max_num=max_length)
+                    else:
+                        raise ValueError('fixed-len list not implemented:', attr_name)
+                    new_field_format.set_field_type(orig_type_base)
+
                 code_old = field_format.get_c_code(name=attr_name)
                 code_new = new_field_format.get_c_code(name=attr_name)
                 if code_old == code_new:
                     pass#print('SAME', attr_name, type_base, type_metadata, code_old, code_new)
                 else:
-                    print('DIFFERENT', attr_name, type_base, type_metadata, code_old, code_new)
+                    print('DIFFERENT', attr_name, type_base, type_metadata, 'OLD', code_old, 'NEW', code_new)
 
             return field_format
 

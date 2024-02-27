@@ -9,7 +9,8 @@ from pydantic_extra_types.mac_address import MacAddress
 
 from c3nav.api.utils import EnumSchemaByNameMixin
 from c3nav.mesh.baseformats import (BoolFormat, ChipRevFormat, EnumFormat, FixedHexFormat, FixedStrFormat,
-                                    SimpleConstFormat, SimpleFormat, StructType, TwoNibblesEnumFormat, VarArrayFormat)
+                                    SimpleConstFormat, SimpleFormat, StructType, TwoNibblesEnumFormat, VarArrayFormat,
+                                    AsHex)
 
 
 class MacAddressFormat(FixedHexFormat):
@@ -127,7 +128,7 @@ class BoardType(EnumSchemaByNameMixin, IntEnum):
 
 @dataclass
 class BoardConfig(StructType, union_type_field="board"):
-    board: BoardType = field(metadata={"format": EnumFormat(as_hex=True)})
+    board: Annotated[BoardType, AsHex()] = field(metadata={"format": EnumFormat(as_hex=True)})
 
 
 @dataclass
@@ -189,14 +190,14 @@ class RawFTMEntry(StructType):
 class FirmwareAppDescription(StructType, existing_c_struct="esp_app_desc_t", c_includes=['<esp_app_desc.h>']):
     magic_word: Literal[0xAB_CD_54_32] = field(metadata={"format": SimpleConstFormat('I', 0xAB_CD_54_32)}, repr=False)
     secure_version: Annotated[PositiveInt, APIField(lt=2**32)] = field(metadata={"format": SimpleFormat('I')})
-    reserv1: list[int] = field(metadata={"format": SimpleFormat('2I')}, repr=False)
-    version: str = field(metadata={"format": FixedStrFormat(32)})
-    project_name: str = field(metadata={"format": FixedStrFormat(32)})
-    compile_time: str = field(metadata={"format": FixedStrFormat(16)})
-    compile_date: str = field(metadata={"format": FixedStrFormat(16)})
-    idf_version: str = field(metadata={"format": FixedStrFormat(32)})
-    app_elf_sha256: str = field(metadata={"format": FixedHexFormat(32)})
-    reserv2: list[int] = field(metadata={"format": SimpleFormat('20I')}, repr=False)
+    reserv1: tuple[int, int] = field(metadata={"format": SimpleFormat('2I')}, repr=False)
+    version: Annotated[str, APIField(max_length=32)] = field(metadata={"format": FixedStrFormat(32)})
+    project_name: Annotated[str, APIField(max_length=32)] = field(metadata={"format": FixedStrFormat(32)})
+    compile_time: Annotated[str, APIField(max_length=16)] = field(metadata={"format": FixedStrFormat(16)})
+    compile_date: Annotated[str, APIField(max_length=16)] = field(metadata={"format": FixedStrFormat(16)})
+    idf_version: Annotated[str, APIField(max_length=32)] = field(metadata={"format": FixedStrFormat(32)})
+    app_elf_sha256: Annotated[str, APIField(max_length=32), AsHex()] = field(metadata={"format": FixedHexFormat(32)})
+    reserv2: tuple[int, int] = field(metadata={"format": SimpleFormat('20I')}, repr=False)
 
 
 @unique
