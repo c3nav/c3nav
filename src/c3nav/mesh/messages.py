@@ -139,13 +139,13 @@ class NoopMessage(MeshMessage, msg_type=MeshMessageType.NOOP):
 @dataclass
 class EchoRequestMessage(MeshMessage, msg_type=MeshMessageType.ECHO_REQUEST):
     """ repeat back string """
-    content: Annotated[str, MaxLen(255), VarLen()] = field(default='', metadata={'format': VarStrFormat(max_len=255)})
+    content: Annotated[str, MaxLen(255), VarLen()] = ""
 
 
 @dataclass
 class EchoResponseMessage(MeshMessage, msg_type=MeshMessageType.ECHO_RESPONSE):
     """ repeat back string """
-    content: Annotated[str, MaxLen(255), VarLen()] = field(default='', metadata={'format': VarStrFormat(max_len=255)})
+    content: Annotated[str, MaxLen(255), VarLen()] = ""
 
 
 @dataclass

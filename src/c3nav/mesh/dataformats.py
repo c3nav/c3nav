@@ -8,7 +8,7 @@ from pydantic import NegativeInt, PositiveInt
 from pydantic_extra_types.mac_address import MacAddress
 
 from c3nav.api.utils import EnumSchemaByNameMixin, TwoNibblesEncodable
-from c3nav.mesh.baseformats import AsHex, FixedHexFormat, StructType
+from c3nav.mesh.baseformats import AsHex, FixedHexFormat, StructType, AsDefinition
 
 
 class MacAddressFormat(FixedHexFormat):
@@ -126,39 +126,39 @@ class BoardConfig(StructType, union_type_field="board"):
 
 @dataclass
 class CustomBoardConfig(BoardConfig, board=BoardType.CUSTOM):
-    spi: BoardSPIConfig = field(metadata={"as_definition": True})
-    uwb: UWBConfig = field(metadata={"as_definition": True})
-    eth: UplinkEthConfig = field(metadata={"as_definition": True})
-    led: LedConfig = field(metadata={"as_definition": True})
+    spi: Annotated[BoardSPIConfig, AsDefinition()]
+    uwb: Annotated[UWBConfig, AsDefinition()]
+    eth: Annotated[UplinkEthConfig, AsDefinition()]
+    led: Annotated[LedConfig, AsDefinition()]
 
 
 @dataclass
 class DevkitMBoardConfig(BoardConfig, board=BoardType.ESP32_C3_DEVKIT_M_1):
-    spi: BoardSPIConfig = field(metadata={"as_definition": True})
-    uwb: UWBConfig = field(metadata={"as_definition": True})
-    eth: UplinkEthConfig = field(metadata={"as_definition": True})
+    spi: Annotated[BoardSPIConfig, AsDefinition()]
+    uwb: Annotated[UWBConfig, AsDefinition()]
+    eth: Annotated[UplinkEthConfig, AsDefinition()]
 
 
 @dataclass
 class Esp32SBoardConfig(BoardConfig, board=BoardType.ESP32_C3_32S):
-    spi: BoardSPIConfig = field(metadata={"as_definition": True})
-    uwb: UWBConfig = field(metadata={"as_definition": True})
-    eth: UplinkEthConfig = field(metadata={"as_definition": True})
+    spi: Annotated[BoardSPIConfig, AsDefinition()]
+    uwb: Annotated[UWBConfig, AsDefinition()]
+    eth: Annotated[UplinkEthConfig, AsDefinition()]
 
 
 @dataclass
 class UwbBoardConfig(BoardConfig, board=BoardType.C3NAV_UWB_BOARD):
-    eth: UplinkEthConfig = field(metadata={"as_definition": True})
+    eth: Annotated[UplinkEthConfig, AsDefinition()]
 
 
 @dataclass
 class LocationPCBRev0Dot1BoardConfig(BoardConfig, board=BoardType.C3NAV_LOCATION_PCB_REV_0_1):
-    eth: UplinkEthConfig = field(metadata={"as_definition": True})
+    eth: Annotated[UplinkEthConfig, AsDefinition()]
 
 
 @dataclass
 class LocationPCBRev0Dot2BoardConfig(BoardConfig, board=BoardType.C3NAV_LOCATION_PCB_REV_0_2):
-    eth: UplinkEthConfig = field(metadata={"as_definition": True})
+    eth: Annotated[UplinkEthConfig, AsDefinition()]
 
 
 @dataclass

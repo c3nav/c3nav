@@ -36,6 +36,11 @@ class LenBytes(BaseMetadata):
     len_bytes: typing.Annotated[int, Ge(1)]
 
 
+@dataclass(frozen=True, **SLOTS)
+class AsDefinition(BaseMetadata):
+    as_definition: bool = True
+
+
 class BaseFormat(ABC):
 
     def get_var_num(self):
@@ -426,6 +431,7 @@ class StructType:
     union_type_field = None
     existing_c_struct = None
     _defining_classes = {}
+    _as_definition = set()
     c_includes = set()
 
     @staticmethod
@@ -469,6 +475,10 @@ class StructType:
         else:
             type_base = type_
             type_metadata = ()
+
+        # todo: move this to init_subclass
+        if any(getattr(m, "as_definition", False) for m in type_metadata):
+            cls._as_definition.add(attr_name)
 
         orig_type_base = type_base
 
@@ -621,6 +631,7 @@ class StructType:
             f.init = False
 
         cls._defining_classes = getattr(cls, '_defining_classes', {}).copy()
+        cls._as_definition = getattr(cls, '_as_definition', set()).copy()
 
         for attr_name in typing.get_type_hints(cls, include_extras=True).keys():
             cls._defining_classes.setdefault(attr_name, cls)
@@ -808,7 +819,7 @@ class StructType:
                                 "typedef_name": field_format.get_typedef_name(),
                                 "name": name,
                             })
-                            if field_.metadata.get("as_definition")
+                            if field_.name in cls._as_definition
                             else field_format.get_c_code(name)
                         ),
                         field_.metadata.get("doc", None),
@@ -824,7 +835,7 @@ class StructType:
                                 "typedef_name": field_.type.get_typedef_name(),
                                 "name": name,
                             })
-                            if field_.metadata.get("as_definition")
+                            if field_.name in cls._as_definition
                             else field_.type.get_c_code(name, typedef=False)
                         ),
                         field_.metadata.get("doc", None),
@@ -851,7 +862,7 @@ class StructType:
         for field_ in dataclass_fields(cls):
             field_format = cls.get_field_format(field_.name)
             definitions.update(field_format.get_c_definitions())
-            if field_.metadata.get("as_definition"):
+            if field_.name in cls._as_definition:
                 typedef_name = field_format.get_typedef_name()
                 if not isinstance(field_format, StructFormat):
                     definitions[typedef_name] = 'typedef %(code)s %(name)s;' % {
