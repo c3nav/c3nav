@@ -12,7 +12,7 @@ from pydantic import create_model
 from pydantic.fields import FieldInfo
 from pydantic_extra_types.mac_address import MacAddress
 
-from c3nav.api.utils import NonEmptyStr
+from c3nav.api.utils import NonEmptyStr, TwoNibblesEncodable
 from c3nav.mesh.utils import indent_c
 
 
@@ -217,18 +217,6 @@ class TwoNibblesEnumFormat(SimpleFormat):
         }
 
 
-class ChipRevFormat(SimpleFormat):
-    def __init__(self):
-        super().__init__('H')
-
-    def decode(self, data: bytes) -> tuple[tuple[int, int], bytes]:
-        value, data = super().decode(data)
-        return (value // 100, value % 100), data
-
-    def encode(self, value):
-        return value[0] * 100 + value[1]
-
-
 class BoolFormat(SimpleFormat):
     def __init__(self):
         super().__init__('B')
@@ -388,6 +376,50 @@ class VarBytesFormat(BaseVarFormat):
         return super().get_num_c_code() + "\n" + "uint8_t", "[0]"
 
 
+T = typing.TypeVar('T', bound="StructType")
+
+
+class StructFormat(ABC):
+    def __init__(self, model: typing.Type[T]):
+        self.model = model
+
+    def get_var_num(self):
+        return self.model.get_var_num()
+
+    def encode(self, instance: T) -> bytes:
+        return self.model.encode(instance)
+
+    def decode(self, data: bytes) -> tuple[T, bytes]:
+        return self.model.decode(data)
+
+    def fromjson(self, data) -> T:
+        return self.model.fromjson(data)
+
+    def tojson(self, instance: T):
+        return self.model.tojson(instance)
+
+    def get_min_size(self) -> int:
+        return self.model.get_min_size()
+
+    def get_max_size(self) -> int:
+        raise ValueError
+
+    def get_size(self, calculate_max=False):
+        return self.model.get_size()
+
+    def get_c_parts(self) -> tuple[str, str]:
+        return self.model.get_c_parts()
+
+    def get_c_code(self, name) -> str:
+        return self.model.get_c_code(name)
+
+    def get_c_definitions(self) -> dict[str, str]:
+        return self.model.get_c_definitions()
+
+    def get_typedef_name(self):
+        return self.model.get_typedef_name()
+
+
 @dataclass
 class StructType:
     _union_options = {}
@@ -422,12 +454,7 @@ class StructType:
             return "B"
 
     @classmethod
-    def get_field_format(cls, attr_name):
-        fields = [f for f in dataclass_fields(cls) if f.name == attr_name]
-        if not fields:
-            raise TypeError(f"{cls}.{attr_name} not a field")
-        field = fields[0]
-
+    def get_field_format(cls, attr_name) -> BaseFormat:
         type_ = typing.get_type_hints(cls, include_extras=True)[attr_name]
         if typing.get_origin(type_) is typing.Annotated:
             type_base = typing.get_args(type_)[0]
@@ -539,14 +566,16 @@ class StructType:
                 if int_type is None:
                     raise ValueError('invalid range:', attr_name)
             field_format = EnumFormat(fmt=int_type, as_hex=as_hex, c_definition=not no_def)
+        elif isinstance(type_base, type) and issubclass(type_base, TwoNibblesEncodable):
+            field_format = TwoNibblesEnumFormat()
 
         if field_format is not None:
             field_format.set_field_type(type_base)
         elif isinstance(type_base, type) and issubclass(type_base, StructType):
-            field_format = type_base
+            field_format = StructFormat(model=type_base)
 
         if field_format is None:
-            raise ValueError('Uknown type annotation for c structs')
+            raise ValueError('Uknown type annotation for c structs', type_base)
         else:
             if outer_base is list:
                 max_length = None
@@ -604,7 +633,7 @@ class StructType:
                 values[value] = cls
                 setattr(cls, key, value)
 
-        # pydantic model
+        # pydantic model – todo: we should be able to get rid of this eventually
         cls._pydantic_fields = getattr(cls, '_pydantic_fields', {}).copy()
         fields = []
         for field_ in dataclass_fields(cls):
@@ -624,13 +653,10 @@ class StructType:
             except TypeError:
                 # todo: in case of not a field, ignore it?
                 continue
-            if not (isinstance(field_format, type) and issubclass(field_format, StructType)):
+            if not isinstance(field_format, StructFormat):
                 cls._pydantic_fields[name] = (type_, ...)
             else:
-                if metadata.get("json_embed"):
-                    cls._pydantic_fields.update(type_._pydantic_fields)
-                else:
-                    cls._pydantic_fields[name] = (type_.schema, ...)
+                cls._pydantic_fields[name] = (type_.schema, ...)
         cls.schema = create_model(cls.__name__ + 'Schema', **cls._pydantic_fields)
         super().__init_subclass__(**kwargs)
 
@@ -669,13 +695,7 @@ class StructType:
                 continue
             value = getattr(instance, field_.name)
             field_format = cls.get_field_format(field_.name)
-            if not (isinstance(field_format, type) and issubclass(field_format, StructType)):
-                data += field_format.encode(value)
-            else:
-                if not isinstance(value, field_.type):
-                    raise ValueError('expected value of type %r for %s.%s, got %r' %
-                                     (field_.type, cls.__name__, field_.name, value))
-                data += value.encode(value)
+            data += field_format.encode(value)
         return data
 
     @classmethod
@@ -685,10 +705,7 @@ class StructType:
         no_init_data = {}
         for field_ in dataclass_fields(cls):
             field_format = cls.get_field_format(field_.name)
-            if not (isinstance(field_format, type) and issubclass(field_format, StructType)):
-                value, data = field_format.decode(data)
-            else:
-                value, data = field_.type.decode(data)
+            value, data = field_format.decode(data)
             if field_.init:
                 kwargs[field_.name] = value
             else:
@@ -729,18 +746,7 @@ class StructType:
         for field_ in dataclass_fields(cls):
             value = getattr(instance, field_.name)
             field_format = cls.get_field_format(field_.name)
-            if not (isinstance(field_format, type) and issubclass(field_format, StructType)):
-                result[field_.name] = field_format.tojson(value)
-            else:
-                if not isinstance(value, field_.type):
-                    raise ValueError('expected value of type %r for %s.%s, got %r' %
-                                     (field_.type, cls.__name__, field_.name, value))
-                json_val = value.tojson(value)
-                if field_.metadata.get("json_embed"):
-                    for k, v in json_val.items():
-                        result[k] = v
-                else:
-                    result[field_.name] = value.tojson(value)
+            result[field_.name] = field_format.tojson(value)
         return result
 
     @classmethod
@@ -759,13 +765,7 @@ class StructType:
         for field_ in dataclass_fields(cls):
             raw_value = data.get(field_.name, None)
             field_format = cls.get_field_format(field_.name)
-            if not (isinstance(field_format, type) and issubclass(field_format, StructType)):
-                value = field_format.fromjson(raw_value)
-            else:
-                if field_.metadata.get("json_embed"):
-                    value = field_.type.fromjson(data)
-                else:
-                    value = field_.type.fromjson(raw_value)
+            value = field_format.fromjson(raw_value)
             if field_.init:
                 kwargs[field_.name] = value
             else:
@@ -800,7 +800,7 @@ class StructType:
 
             name = field_.metadata.get("c_name", field_.name)
             field_format = cls.get_field_format(field_.name)
-            if not (isinstance(field_format, type) and issubclass(field_format, StructType)):
+            if not isinstance(field_format, StructFormat):
                 if not field_.metadata.get("union_discriminator") or cls._defining_classes[field_.name] == cls:
                     items.append((
                         (
@@ -850,18 +850,15 @@ class StructType:
         definitions = {}
         for field_ in dataclass_fields(cls):
             field_format = cls.get_field_format(field_.name)
-            if not (isinstance(field_format, type) and issubclass(field_format, StructType)):
-                definitions.update(field_format.get_c_definitions())
-                if field_.metadata.get("as_definition"):
-                    typedef_name = field_format.get_typedef_name()
+            definitions.update(field_format.get_c_definitions())
+            if field_.metadata.get("as_definition"):
+                typedef_name = field_format.get_typedef_name()
+                if not isinstance(field_format, StructFormat):
                     definitions[typedef_name] = 'typedef %(code)s %(name)s;' % {
                         "code": ''.join(field_format.get_c_parts()),
                         "name": typedef_name,
                     }
-            else:
-                definitions.update(field_.type.get_c_definitions())
-                if field_.metadata.get("as_definition"):
-                    typedef_name = field_.type.get_typedef_name()
+                else:
                     definitions[typedef_name] = field_.type.get_c_code(name=typedef_name, typedef=True)
         if cls.union_type_field:
             for key, option in cls._union_options[cls.union_type_field].items():

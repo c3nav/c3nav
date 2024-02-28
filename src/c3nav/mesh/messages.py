@@ -233,13 +233,13 @@ class ConfigHardwareMessage(MeshMessage, msg_type=MeshMessageType.CONFIG_HARDWAR
 @dataclass
 class ConfigBoardMessage(MeshMessage, msg_type=MeshMessageType.CONFIG_BOARD):
     """ set/respond board config """
-    board_config: BoardConfig = field(metadata={"c_embed": True, "json_embed": True})
+    board_config: BoardConfig = field(metadata={"c_embed": True})
 
 
 @dataclass
 class ConfigFirmwareMessage(MeshMessage, msg_type=MeshMessageType.CONFIG_FIRMWARE):
     """ respond firmware info """
-    app_desc: FirmwareAppDescription = field(metadata={'json_embed': True})
+    app_desc: FirmwareAppDescription
 
 
 @dataclass

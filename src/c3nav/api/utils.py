@@ -17,6 +17,10 @@ def get_api_post_data(request):
     return request.POST
 
 
+class TwoNibblesEncodable:
+    pass
+
+
 class EnumSchemaByNameMixin:
     @classmethod
     def __get_pydantic_json_schema__(

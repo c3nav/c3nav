@@ -3,12 +3,12 @@ from dataclasses import dataclass, field
 from enum import IntEnum, unique
 from typing import Annotated, BinaryIO, Literal, Self
 
-from annotated_types import Gt, Lt, MaxLen
+from annotated_types import Gt, Lt, MaxLen, Le
 from pydantic import NegativeInt, PositiveInt
 from pydantic_extra_types.mac_address import MacAddress
 
-from c3nav.api.utils import EnumSchemaByNameMixin
-from c3nav.mesh.baseformats import AsHex, ChipRevFormat, FixedHexFormat, SimpleFormat, StructType, TwoNibblesEnumFormat
+from c3nav.api.utils import EnumSchemaByNameMixin, TwoNibblesEncodable
+from c3nav.mesh.baseformats import AsHex, FixedHexFormat, StructType
 
 
 class MacAddressFormat(FixedHexFormat):
@@ -230,7 +230,7 @@ class FlashFrequency(EnumSchemaByNameMixin, IntEnum):
 
 
 @dataclass
-class FlashSettings:
+class FlashSettings(TwoNibblesEncodable):
     size: FlashSize
     frequency: FlashFrequency
 
@@ -254,7 +254,17 @@ class FirmwareImageFileHeader(StructType):
     magic_word: Literal[0xE9] = field(repr=False)
     num_segments: Annotated[PositiveInt, Lt(2**8)]
     spi_flash_mode: SPIFlashMode
-    flash_stuff: FlashSettings = field(metadata={"format": TwoNibblesEnumFormat()})  # todo: implement
+    flash_stuff: FlashSettings
+    entry_point: Annotated[PositiveInt, Lt(2**32)]
+
+
+@dataclass
+class FirmwareImageFileHeader(StructType):
+    major: int
+    minor: int
+    num_segments: Annotated[PositiveInt, Lt(2**8)]
+    spi_flash_mode: SPIFlashMode
+    flash_stuff: FlashSettings
     entry_point: Annotated[PositiveInt, Lt(2**32)]
 
 
@@ -263,9 +273,9 @@ class FirmwareImageExtendedFileHeader(StructType):
     wp_pin: Annotated[PositiveInt, Lt(2**8)]
     drive_settings: Annotated[bytes, MaxLen(3)]
     chip: ChipType  # todo: 2 bytes
-    min_chip_rev_old: int = field(metadata={"format": SimpleFormat('B')})  # todo: implement
-    min_chip_rev: tuple[int, int] = field(metadata={"format": ChipRevFormat()})  # todo: implement
-    max_chip_rev: tuple[int, int] = field(metadata={"format": ChipRevFormat()})  # todo: implement
+    min_chip_rev_old: int
+    min_chip_rev: Annotated[PositiveInt, Le(9999)]
+    max_chip_rev: Annotated[PositiveInt, Le(9999)]
     reserv: Annotated[bytes, MaxLen(4)] = field(repr=False)
     hash_appended: bool
 
@@ -274,7 +284,7 @@ class FirmwareImageExtendedFileHeader(StructType):
 class FirmwareImage(StructType):
     header: FirmwareImageFileHeader
     ext_header: FirmwareImageExtendedFileHeader
-    first_segment_headers: tuple[int, int] = field(repr=False)  # todo: implement
+    first_segment_headers: Annotated[bytes, MaxLen(2)] = field(repr=False)  # todo: implement
     app_desc: FirmwareAppDescription
 
     @classmethod
