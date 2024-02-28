@@ -2,6 +2,7 @@ import re
 import struct
 import typing
 from abc import ABC, abstractmethod
+from contextlib import suppress
 from dataclasses import Field, dataclass
 from dataclasses import fields as dataclass_fields
 from enum import IntEnum
@@ -39,6 +40,16 @@ class LenBytes(BaseMetadata):
 @dataclass(frozen=True, **SLOTS)
 class AsDefinition(BaseMetadata):
     as_definition: bool = True
+
+
+@dataclass(frozen=True, **SLOTS)
+class CEmbed(BaseMetadata):
+    c_embed: bool = True
+
+
+@dataclass(frozen=True, **SLOTS)
+class CName(BaseMetadata):
+    c_name: NonEmptyStr
 
 
 class BaseFormat(ABC):
@@ -432,7 +443,9 @@ class StructType:
     existing_c_struct = None
     _defining_classes = {}
     _as_definition = set()
+    _c_embed = set()
     c_includes = set()
+    c_names = {}
 
     @staticmethod
     def get_int_type(min_, max_) -> str | None:
@@ -479,6 +492,12 @@ class StructType:
         # todo: move this to init_subclass
         if any(getattr(m, "as_definition", False) for m in type_metadata):
             cls._as_definition.add(attr_name)
+        if any(getattr(m, "c_embed", False) for m in type_metadata):
+            cls._c_embed.add(attr_name)
+        for m in type_metadata:
+            with suppress(AttributeError):
+                cls.c_names[attr_name] = m.c_name
+                break
 
         orig_type_base = type_base
 
@@ -809,7 +828,7 @@ class StructType:
             if in_union and cls._defining_classes[field_.name] != cls:
                 continue
 
-            name = field_.metadata.get("c_name", field_.name)
+            name = cls.c_names.get(field_.name, field_.name)
             field_format = cls.get_field_format(field_.name)
             if not isinstance(field_format, StructFormat):
                 if not field_.metadata.get("union_discriminator") or cls._defining_classes[field_.name] == cls:
@@ -825,7 +844,7 @@ class StructType:
                         field_.metadata.get("doc", None),
                     )),
             else:
-                if field_.metadata.get("c_embed"):
+                if field_.name in cls._c_embed:
                     embedded_items = field_.type.get_c_struct_items(ignore_fields, no_empty, top_level, union_only)
                     items.extend(embedded_items)
                 else:

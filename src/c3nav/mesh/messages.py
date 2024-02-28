@@ -9,7 +9,7 @@ from pydantic import PositiveInt
 from pydantic_extra_types.mac_address import MacAddress
 
 from c3nav.api.utils import EnumSchemaByNameMixin
-from c3nav.mesh.baseformats import LenBytes, NoDef, StructType, VarLen, VarStrFormat, normalize_name
+from c3nav.mesh.baseformats import LenBytes, NoDef, StructType, VarLen, VarStrFormat, normalize_name, CEmbed
 from c3nav.mesh.dataformats import BoardConfig, ChipType, FirmwareAppDescription, RangeResultItem, RawFTMEntry
 from c3nav.mesh.utils import MESH_ALL_UPLINKS_GROUP
 
@@ -233,7 +233,7 @@ class ConfigHardwareMessage(MeshMessage, msg_type=MeshMessageType.CONFIG_HARDWAR
 @dataclass
 class ConfigBoardMessage(MeshMessage, msg_type=MeshMessageType.CONFIG_BOARD):
     """ set/respond board config """
-    board_config: BoardConfig = field(metadata={"c_embed": True})
+    board_config: Annotated[BoardConfig, CEmbed]
 
 
 @dataclass

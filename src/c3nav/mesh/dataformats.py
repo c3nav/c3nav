@@ -8,7 +8,7 @@ from pydantic import NegativeInt, PositiveInt
 from pydantic_extra_types.mac_address import MacAddress
 
 from c3nav.api.utils import EnumSchemaByNameMixin, TwoNibblesEncodable
-from c3nav.mesh.baseformats import AsHex, FixedHexFormat, StructType, AsDefinition
+from c3nav.mesh.baseformats import AsHex, FixedHexFormat, StructType, AsDefinition, CName
 
 
 class MacAddressFormat(FixedHexFormat):
@@ -38,7 +38,7 @@ class LedConfig(StructType, union_type_field="led_type"):
     """
     configuration for an optional connected status LED
     """
-    led_type: LedType = field(metadata={"c_name": "type"})
+    led_type: Annotated[LedType, CName("type")] = field()  # todo: we need a way to remove this field()
 
 
 @dataclass
@@ -48,7 +48,7 @@ class NoLedConfig(LedConfig, led_type=LedType.NONE):
 
 @dataclass
 class SerialLedConfig(LedConfig, led_type=LedType.SERIAL):
-    serial_led_type: SerialLedType = field(metadata={"c_name": "type"})
+    serial_led_type: Annotated[SerialLedType, CName("type")] = field()  # todo: we need a way to remove this field()
     gpio: Annotated[PositiveInt, Lt(2**8)]
 
 
