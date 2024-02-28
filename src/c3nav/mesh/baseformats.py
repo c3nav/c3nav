@@ -52,6 +52,13 @@ class CName(BaseMetadata):
     c_name: NonEmptyStr
 
 
+@dataclass
+class ExistingCStruct():
+    name: NonEmptyStr
+    includes: list[str]
+
+
+
 class BaseFormat(ABC):
 
     def get_var_num(self):
@@ -440,7 +447,7 @@ class StructFormat(ABC):
 class StructType:
     _union_options = {}
     union_type_field = None
-    existing_c_struct = None
+    _existing_c_struct_name = None
     _defining_classes = {}
     _as_definition = set()
     _c_embed = set()
@@ -630,14 +637,17 @@ class StructType:
         return field_format
 
     # noinspection PyMethodOverriding
-    def __init_subclass__(cls, /, union_type_field=None, existing_c_struct=None, c_includes=None, **kwargs):
+    def __init_subclass__(cls, /, union_type_field=None, **kwargs):
         cls.union_type_field = union_type_field
-        if c_includes is not None:
-            cls.c_includes |= set(c_includes)
-        if cls.existing_c_struct is not None:
+
+        existing_c_struct: ExistingCStruct | None = getattr(cls, "existing_c_struct", None)
+        if existing_c_struct is not None:
+            cls.c_includes |= set(existing_c_struct.includes)
+        if cls._existing_c_struct_name is not None:
             # TODO: can we make it possible? does it even make sense?
             raise TypeError('subclassing an external c struct is not possible')
-        cls.existing_c_struct = existing_c_struct
+        if existing_c_struct:
+            cls._existing_c_struct_name = existing_c_struct.name
         if union_type_field:
             if union_type_field in cls._union_options:
                 raise TypeError('Duplicate union_type_field: %s', union_type_field)
@@ -913,8 +923,8 @@ class StructType:
 
     @classmethod
     def get_c_parts(cls, ignore_fields=None, no_empty=False, top_level=False, union_only=False, in_union=False):
-        if cls.existing_c_struct is not None:
-            return (cls.existing_c_struct, "")
+        if cls._existing_c_struct_name is not None:
+            return (cls._existing_c_struct_name, "")
 
         ignore_fields = set() if not ignore_fields else set(ignore_fields)
 

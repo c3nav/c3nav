@@ -8,7 +8,7 @@ from pydantic import NegativeInt, PositiveInt
 from pydantic_extra_types.mac_address import MacAddress
 
 from c3nav.api.utils import EnumSchemaByNameMixin, TwoNibblesEncodable
-from c3nav.mesh.baseformats import AsHex, FixedHexFormat, StructType, AsDefinition, CName
+from c3nav.mesh.baseformats import AsHex, FixedHexFormat, StructType, AsDefinition, CName, ExistingCStruct
 
 
 class MacAddressFormat(FixedHexFormat):
@@ -180,7 +180,9 @@ class RawFTMEntry(StructType):
 
 
 @dataclass
-class FirmwareAppDescription(StructType, existing_c_struct="esp_app_desc_t", c_includes=['<esp_app_desc.h>']):
+class FirmwareAppDescription(StructType):
+    existing_c_struct = ExistingCStruct(name="esp_app_desc_t", includes=['<esp_app_desc.h>'])
+
     magic_word: Literal[0xAB_CD_54_32] = field(repr=False)
     secure_version: Annotated[PositiveInt, Lt(2**32)]
     reserv1: Annotated[bytes, MaxLen(8)] = field(repr=False)
