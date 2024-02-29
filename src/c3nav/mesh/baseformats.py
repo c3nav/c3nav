@@ -434,7 +434,7 @@ class StructFormat(ABC):
         self.model = model
 
     def get_var_num(self):
-        return self.model.get_var_num()
+        return sum([self.model.get_field_format(f.name).get_var_num() for f in dataclass_fields(self.model)], start=0)
 
     def encode(self, instance: T, ignore_fields=()) -> bytes:
         # todo: remove ignore_fields? is it needed?
@@ -485,10 +485,56 @@ class StructFormat(ABC):
         return self.model(**kwargs), data
 
     def fromjson(self, data) -> T:
-        return self.model.fromjson(data)
+        data = data.copy()
+
+        kwargs = {}
+        no_init_data = {}
+        for field_ in dataclass_fields(self.model):
+            raw_value = data.get(field_.name, None)
+            field_format = self.model.get_field_format(field_.name)
+            value = field_format.fromjson(raw_value)
+            if field_.init:
+                kwargs[field_.name] = value
+            else:
+                no_init_data[field_.name] = value
+
+        if self.model.union_type_field:
+            try:
+                type_value = no_init_data.pop(self.model.union_type_field)
+            except KeyError:
+                raise TypeError('union_type_field %s.%s is missing' %
+                                (self.model.__name__, self.model.union_type_field))
+            try:
+                klass = self.model.get_type(type_value)
+            except KeyError:
+                raise TypeError('union_type_field %s.%s value 0x%02x no known' %
+                                (self.model.__name__, self.model.union_type_field, type_value))
+            return klass.fromjson(data)
+
+        return self.model(**kwargs)
 
     def tojson(self, instance: T):
-        return self.model.tojson(instance)
+        result = {}
+
+        if self.model.union_type_field and type(instance) is not self.model:
+            if not isinstance(instance, self.model):
+                raise ValueError('expected value of type %r, got %r' % (self.model, instance))
+
+            for field_ in dataclass_fields(instance):
+                if field_.name is self.model.union_type_field:
+                    result[field_.name] = self.model.get_field_format(field_.name).tojson(getattr(instance, field_.name))
+                    break
+            else:
+                raise TypeError('couldn\'t find %s value' % self.model.union_type_field)
+
+            result.update(instance.tojson(instance))
+            return result
+
+        for field_ in dataclass_fields(self.model):
+            value = getattr(instance, field_.name)
+            field_format = self.model.get_field_format(field_.name)
+            result[field_.name] = field_format.tojson(value)
+        return result
 
     def get_min_size(self) -> int:
         return self.model.get_min_size()
@@ -621,10 +667,6 @@ class StructType:
         super().__init_subclass__(**kwargs)
 
     @classmethod
-    def get_var_num(cls):
-        return sum([cls.get_field_format(f.name).get_var_num() for f in dataclass_fields(cls)], start=0)
-
-    @classmethod
     def get_types(cls):
         if not cls.union_type_field:
             raise TypeError('Not a union class')
@@ -635,67 +677,6 @@ class StructType:
         if not cls.union_type_field:
             raise TypeError('Not a union class')
         return cls.get_types()[type_id]
-
-    @classmethod
-    def tojson(cls, instance) -> dict:
-        result = {}
-
-        if cls.union_type_field and type(instance) is not cls:
-            if not isinstance(instance, cls):
-                raise ValueError('expected value of type %r, got %r' % (cls, instance))
-
-            for field_ in dataclass_fields(instance):
-                if field_.name is cls.union_type_field:
-                    result[field_.name] = cls.get_field_format(field_.name).tojson(getattr(instance, field_.name))
-                    break
-            else:
-                raise TypeError('couldn\'t find %s value' % cls.union_type_field)
-
-            result.update(instance.tojson(instance))
-            return result
-
-        for field_ in dataclass_fields(cls):
-            value = getattr(instance, field_.name)
-            field_format = cls.get_field_format(field_.name)
-            result[field_.name] = field_format.tojson(value)
-        return result
-
-    @classmethod
-    def upgrade_json(cls, data):
-        return data
-
-    @classmethod
-    def fromjson(cls, data: dict) -> Self:
-        data = data.copy()
-
-        # todo: upgrade_json
-        cls.upgrade_json(data)
-
-        kwargs = {}
-        no_init_data = {}
-        for field_ in dataclass_fields(cls):
-            raw_value = data.get(field_.name, None)
-            field_format = cls.get_field_format(field_.name)
-            value = field_format.fromjson(raw_value)
-            if field_.init:
-                kwargs[field_.name] = value
-            else:
-                no_init_data[field_.name] = value
-
-        if cls.union_type_field:
-            try:
-                type_value = no_init_data.pop(cls.union_type_field)
-            except KeyError:
-                raise TypeError('union_type_field %s.%s is missing' %
-                                (cls.__name__, cls.union_type_field))
-            try:
-                klass = cls.get_type(type_value)
-            except KeyError:
-                raise TypeError('union_type_field %s.%s value 0x%02x no known' %
-                                (cls.__name__, cls.union_type_field, type_value))
-            return klass.fromjson(data)
-
-        return cls(**kwargs)
 
     @classmethod
     def get_c_struct_items(cls, ignore_fields=None, no_empty=False, top_level=False, union_only=False, in_union=False):

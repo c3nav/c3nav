@@ -83,7 +83,7 @@ class Command(BaseCommand):
                 macro_data.append((
                     msg_class.get_c_enum_name(),
                     ("nodata" if msg_class in nodata else name),
-                    msg_class.get_var_num(),
+                    StructFormat(msg_class).get_var_num(), # todo: uh?
                     msg_class.get_size(no_inherited_fields=True, calculate_max=True),
                     msg_class.__doc__.strip(),
                 ))
