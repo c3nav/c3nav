@@ -43,7 +43,7 @@ class Command(BaseCommand):
                     print(definition)
                     print()
 
-            code = msg_class.get_c_code(name, ignore_fields=ignore_names, no_empty=True)
+            code = StructFormat(msg_class).get_c_code(name, ignore_fields=ignore_names, no_empty=True)
             if code:
                 size = StructFormat(msg_class).get_size(no_inherited_fields=True, calculate_max=False)
                 max_size = StructFormat(msg_class).get_size(no_inherited_fields=True, calculate_max=True)

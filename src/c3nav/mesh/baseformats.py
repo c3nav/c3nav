@@ -536,8 +536,22 @@ class StructFormat(ABC):
             result[field_.name] = field_format.tojson(value)
         return result
 
-    def get_min_size(self) -> int:
-        return self.model.get_min_size()
+    def get_min_size(self, no_inherited_fields=False) -> int:
+        if self.model.union_type_field:
+            own_size = sum([self.model.get_field_format(f.name).get_min_size() for f in dataclass_fields(self.model)])
+            union_size = max([0] + [
+                StructFormat(option).get_min_size(True)
+                for option in self.model._union_options[self.model.union_type_field].values()
+            ])
+            return own_size + union_size
+        if no_inherited_fields:
+            relevant_fields = [
+                f for f in dataclass_fields(self.model)
+                if self.model._defining_classes[f.name] == self.model
+            ]
+        else:
+            relevant_fields = [f for f in dataclass_fields(self.model) if not f.metadata.get("union_discriminator")]
+        return sum((self.model.get_field_format(f.name).get_min_size() for f in relevant_fields), start=0)
 
     def get_max_size(self) -> int:
         raise ValueError
@@ -564,11 +578,60 @@ class StructFormat(ABC):
             start=0
         )
 
-    def get_c_parts(self) -> tuple[str, str]:
-        return self.model.get_c_parts()
+    def get_c_parts(self, ignore_fields=None, no_empty=False, top_level=False, union_only=False, in_union=False) -> tuple[str, str]:
+        # todo: parameters needed?
+        if self.model._existing_c_struct_name is not None:
+            return (self.model._existing_c_struct_name, "")
 
-    def get_c_code(self, name) -> str:
-        return self.model.get_c_code(name)
+        ignore_fields = set() if not ignore_fields else set(ignore_fields)
+
+        if union_only:
+            if self.model.union_type_field:
+                union_code = self.model.get_c_union_code(ignore_fields)
+                return "typedef union __packed %s" % union_code, ""
+            else:
+                return "", ""
+
+        pre = ""
+
+        items = self.model.get_c_struct_items(ignore_fields=ignore_fields,
+                                              no_empty=no_empty,
+                                              top_level=top_level,
+                                              union_only=union_only,
+                                              in_union=in_union)
+
+        if no_empty and not items:
+            return "", ""
+
+        # todo: struct comment
+        if top_level:
+            comment = self.model.__doc__.strip()
+            if comment:
+                pre += "/** %s */\n" % comment
+            pre += "typedef struct __packed "
+        else:
+            pre += "struct __packed "
+
+        pre += "{\n%(elements)s\n}" % {
+            "elements": indent_c(
+                "\n".join(
+                    code + ("" if not comment else (" /** %s */" % comment))
+                    for code, comment in items
+                )
+            ),
+        }
+        return pre, ""
+
+    def get_c_code(self, name=None, ignore_fields=None, no_empty=False, typedef=True, union_only=False,
+                   in_union=False) -> str:
+        pre, post = self.get_c_parts(ignore_fields=ignore_fields,
+                                     no_empty=no_empty,
+                                     top_level=typedef,
+                                     union_only=union_only,
+                                     in_union=in_union)
+        if no_empty and not pre and not post:
+            return ""
+        return "%s %s%s;" % (pre, name, post)
 
     def get_c_definitions(self) -> dict[str, str]:
         definitions = {}
@@ -583,7 +646,7 @@ class StructFormat(ABC):
                         "name": typedef_name,
                     }
                 else:
-                    definitions[typedef_name] = field_.type.get_c_code(name=typedef_name, typedef=True)
+                    definitions[typedef_name] = StructFormat(field_.type).get_c_code(name=typedef_name, typedef=True)
         if self.model.union_type_field:
             for key, option in self.model._union_options[self.model.union_type_field].items():
                 # todo: get rid of this too, old union code
@@ -736,7 +799,7 @@ class StructType:
                                 "name": name,
                             })
                             if field_.name in cls._as_definition
-                            else field_.type.get_c_code(name, typedef=False)
+                            else StructFormat(field_.type).get_c_code(name, typedef=False)
                         ),
                         field_.metadata.get("doc", None),
                     ))
@@ -751,7 +814,7 @@ class StructType:
     @classmethod
     def get_c_union_size(cls):
         return max(
-            (option.get_min_size(no_inherited_fields=True) for option in
+            (StructFormat(option).get_min_size(no_inherited_fields=True) for option in
              cls._union_options[cls.union_type_field].values()),
             default=0,
         )
@@ -761,7 +824,7 @@ class StructType:
         union_items = []
         for key, option in cls._union_options[cls.union_type_field].items():
             base_name = normalize_name(getattr(key, 'name', option.__name__))
-            item_c_code = option.get_c_code(
+            item_c_code = StructFormat(option).get_c_code(
                 base_name, ignore_fields=ignore_fields, typedef=False, in_union=True, no_empty=True
             )
             if item_c_code:
@@ -771,79 +834,6 @@ class StructType:
             "uint8_t bytes[%0d]; " % size
         )
         return "{\n" + indent_c("\n".join(union_items)) + "\n}"
-
-    @classmethod
-    def get_c_parts(cls, ignore_fields=None, no_empty=False, top_level=False, union_only=False, in_union=False):
-        if cls._existing_c_struct_name is not None:
-            return (cls._existing_c_struct_name, "")
-
-        ignore_fields = set() if not ignore_fields else set(ignore_fields)
-
-        if union_only:
-            if cls.union_type_field:
-                union_code = cls.get_c_union_code(ignore_fields)
-                return "typedef union __packed %s" % union_code, ""
-            else:
-                return "", ""
-
-        pre = ""
-
-        items = cls.get_c_struct_items(ignore_fields=ignore_fields,
-                                       no_empty=no_empty,
-                                       top_level=top_level,
-                                       union_only=union_only,
-                                       in_union=in_union)
-
-        if no_empty and not items:
-            return "", ""
-
-        # todo: struct comment
-        if top_level:
-            comment = cls.__doc__.strip()
-            if comment:
-                pre += "/** %s */\n" % comment
-            pre += "typedef struct __packed "
-        else:
-            pre += "struct __packed "
-
-        pre += "{\n%(elements)s\n}" % {
-            "elements": indent_c(
-                "\n".join(
-                    code + ("" if not comment else (" /** %s */" % comment))
-                    for code, comment in items
-                )
-            ),
-        }
-        return pre, ""
-
-    @classmethod
-    def get_c_code(cls, name=None, ignore_fields=None, no_empty=False, typedef=True, union_only=False,
-                   in_union=False) -> str:
-        pre, post = cls.get_c_parts(ignore_fields=ignore_fields,
-                                    no_empty=no_empty,
-                                    top_level=typedef,
-                                    union_only=union_only,
-                                    in_union=in_union)
-        if no_empty and not pre and not post:
-            return ""
-        return "%s %s%s;" % (pre, name, post)
-
-    @classmethod
-    def get_variable_name(cls, base_name):
-        return base_name
-
-    @classmethod
-    def get_min_size(cls, no_inherited_fields=False) -> int:
-        if cls.union_type_field:
-            own_size = sum([cls.get_field_format(f.name).get_min_size() for f in dataclass_fields(cls)])
-            union_size = max(
-                [0] + [option.get_min_size(True) for option in cls._union_options[cls.union_type_field].values()])
-            return own_size + union_size
-        if no_inherited_fields:
-            relevant_fields = [f for f in dataclass_fields(cls) if cls._defining_classes[f.name] == cls]
-        else:
-            relevant_fields = [f for f in dataclass_fields(cls) if not f.metadata.get("union_discriminator")]
-        return sum((cls.get_field_format(f.name).get_min_size() for f in relevant_fields), start=0)
 
 
 SplitTypeHint = namedtuple("SplitTypeHint", ("base", "metadata"))

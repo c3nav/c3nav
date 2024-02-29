@@ -122,10 +122,6 @@ class MeshMessage(StructType, union_type_field="msg_type"):
         return ()
 
     @classmethod
-    def get_variable_name(cls, base_name):
-        return cls.c_struct_name or base_name
-
-    @classmethod
     def get_c_enum_name(cls):
         return normalize_name(cls.__name__.removeprefix('Mesh').removesuffix('Message')).upper()
 
