@@ -542,8 +542,27 @@ class StructFormat(ABC):
     def get_max_size(self) -> int:
         raise ValueError
 
-    def get_size(self, calculate_max=False):
-        return self.model.get_size()
+    def get_size(self, no_inherited_fields=False, calculate_max=False):
+        # todo: remove no_inherited fields? still needed?
+        if self.model.union_type_field:
+            own_size = sum(
+                [self.model.get_field_format(f.name).get_size(calculate_max=calculate_max)
+                 for f in dataclass_fields(self.model)])
+            union_size = max(
+                [0] + [StructFormat(option).get_size(no_inherited_fields=True, calculate_max=calculate_max)
+                       for option in self.model._union_options[self.model.union_type_field].values()]
+            )
+            return own_size + union_size
+        if no_inherited_fields:
+            relevant_fields = [f for f in dataclass_fields(self.model)
+                               if self.model._defining_classes[f.name] == self.model]
+        else:
+            relevant_fields = [f for f in dataclass_fields(self.model)
+                               if not f.metadata.get("union_discriminator")]
+        return sum(
+            (self.model.get_field_format(f.name).get_size(calculate_max=calculate_max) for f in relevant_fields),
+            start=0
+        )
 
     def get_c_parts(self) -> tuple[str, str]:
         return self.model.get_c_parts()
@@ -572,7 +591,7 @@ class StructFormat(ABC):
         return definitions
 
     def get_typedef_name(self):
-        return self.model.get_typedef_name()
+        return "%s_t" % normalize_name(self.model.__name__)
 
 
 @dataclass
@@ -713,7 +732,7 @@ class StructType:
                     items.append((
                         (
                             ("%(typedef_name)s %(name)s;" % {
-                                "typedef_name": field_.type.get_typedef_name(),
+                                "typedef_name": StructFormat(field_.type).get_typedef_name(),
                                 "name": name,
                             })
                             if field_.name in cls._as_definition
@@ -814,10 +833,6 @@ class StructType:
         return base_name
 
     @classmethod
-    def get_typedef_name(cls):
-        return "%s_t" % normalize_name(cls.__name__)
-
-    @classmethod
     def get_min_size(cls, no_inherited_fields=False) -> int:
         if cls.union_type_field:
             own_size = sum([cls.get_field_format(f.name).get_min_size() for f in dataclass_fields(cls)])
@@ -830,24 +845,9 @@ class StructType:
             relevant_fields = [f for f in dataclass_fields(cls) if not f.metadata.get("union_discriminator")]
         return sum((cls.get_field_format(f.name).get_min_size() for f in relevant_fields), start=0)
 
-    @classmethod
-    def get_size(cls, no_inherited_fields=False, calculate_max=False) -> int:
-        if cls.union_type_field:
-            own_size = sum(
-                [cls.get_field_format(f.name).get_size(calculate_max=calculate_max) for f in dataclass_fields(cls)])
-            union_size = max(
-                [0] + [option.get_size(no_inherited_fields=True, calculate_max=calculate_max) for option in
-                       cls._union_options[cls.union_type_field].values()])
-            return own_size + union_size
-        if no_inherited_fields:
-            relevant_fields = [f for f in dataclass_fields(cls) if cls._defining_classes[f.name] == cls]
-        else:
-            relevant_fields = [f for f in dataclass_fields(cls) if not f.metadata.get("union_discriminator")]
-        return sum((cls.get_field_format(f.name).get_size(calculate_max=calculate_max) for f in relevant_fields),
-                   start=0)
-
 
 SplitTypeHint = namedtuple("SplitTypeHint", ("base", "metadata"))
+
 
 def split_type_hint(type_hint) -> SplitTypeHint:
     if typing.get_origin(type_hint) is typing.Annotated:

@@ -45,8 +45,8 @@ class Command(BaseCommand):
 
             code = msg_class.get_c_code(name, ignore_fields=ignore_names, no_empty=True)
             if code:
-                size = msg_class.get_size(no_inherited_fields=True, calculate_max=False)
-                max_size = msg_class.get_size(no_inherited_fields=True, calculate_max=True)
+                size = StructFormat(msg_class).get_size(no_inherited_fields=True, calculate_max=False)
+                max_size = StructFormat(msg_class).get_size(no_inherited_fields=True, calculate_max=True)
                 struct_lines[base_name] = "%s %s;" % (name, base_name.replace('_announce', ''))
                 struct_sizes.append(size)
                 struct_max_sizes.append(max_size)
@@ -84,7 +84,7 @@ class Command(BaseCommand):
                     msg_class.get_c_enum_name(),
                     ("nodata" if msg_class in nodata else name),
                     StructFormat(msg_class).get_var_num(), # todo: uh?
-                    msg_class.get_size(no_inherited_fields=True, calculate_max=True),
+                    StructFormat(msg_class).get_size(no_inherited_fields=True, calculate_max=True),
                     msg_class.__doc__.strip(),
                 ))
             else:
