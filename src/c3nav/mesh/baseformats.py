@@ -578,6 +578,57 @@ class StructFormat(ABC):
             start=0
         )
 
+    def get_c_struct_items(self, ignore_fields=None, no_empty=False, top_level=False, union_only=False, in_union=False):
+        ignore_fields = set() if not ignore_fields else set(ignore_fields)
+
+        items = []
+
+        for field_ in dataclass_fields(self.model):
+            if field_.name in ignore_fields:
+                continue
+            if in_union and self.model._defining_classes[field_.name] != self.model:
+                continue
+
+            name = self.model.c_names.get(field_.name, field_.name)
+            field_format = self.model.get_field_format(field_.name)
+            if not isinstance(field_format, StructFormat):
+                if (not field_.metadata.get("union_discriminator") or
+                        self.model._defining_classes[field_.name] == self.model):
+                    items.append((
+                        (
+                            ("%(typedef_name)s %(name)s;" % {
+                                "typedef_name": field_format.get_typedef_name(),
+                                "name": name,
+                            })
+                            if field_.name in self.model._as_definition
+                            else field_format.get_c_code(name)
+                        ),
+                        field_.metadata.get("doc", None),
+                    )),
+            else:
+                if field_.name in self.model._c_embed:
+                    embedded_items = field_format.get_c_struct_items(ignore_fields, no_empty, top_level, union_only)
+                    items.extend(embedded_items)
+                else:
+                    items.append((
+                        (
+                            ("%(typedef_name)s %(name)s;" % {
+                                "typedef_name": field_format.get_typedef_name(),
+                                "name": name,
+                            })
+                            if field_.name in self.model._as_definition
+                            else field_format.get_c_code(name, typedef=False)
+                        ),
+                        field_.metadata.get("doc", None),
+                    ))
+
+        if self.model.union_type_field:
+            if not union_only:
+                union_code = self.model.get_c_union_code(ignore_fields)
+                items.append(("union __packed %s;" % union_code, ""))
+
+        return items
+
     def get_c_parts(self, ignore_fields=None, no_empty=False, top_level=False, union_only=False, in_union=False) -> tuple[str, str]:
         # todo: parameters needed?
         if self.model._existing_c_struct_name is not None:
@@ -594,11 +645,11 @@ class StructFormat(ABC):
 
         pre = ""
 
-        items = self.model.get_c_struct_items(ignore_fields=ignore_fields,
-                                              no_empty=no_empty,
-                                              top_level=top_level,
-                                              union_only=union_only,
-                                              in_union=in_union)
+        items = self.get_c_struct_items(ignore_fields=ignore_fields,
+                                        no_empty=no_empty,
+                                        top_level=top_level,
+                                        union_only=union_only,
+                                        in_union=in_union)
 
         if no_empty and not items:
             return "", ""
@@ -646,7 +697,7 @@ class StructFormat(ABC):
                         "name": typedef_name,
                     }
                 else:
-                    definitions[typedef_name] = StructFormat(field_.type).get_c_code(name=typedef_name, typedef=True)
+                    definitions[typedef_name] = field_format.get_c_code(name=typedef_name, typedef=True)
         if self.model.union_type_field:
             for key, option in self.model._union_options[self.model.union_type_field].items():
                 # todo: get rid of this too, old union code
@@ -759,57 +810,6 @@ class StructType:
         if not cls.union_type_field:
             raise TypeError('Not a union class')
         return cls.get_types()[type_id]
-
-    @classmethod
-    def get_c_struct_items(cls, ignore_fields=None, no_empty=False, top_level=False, union_only=False, in_union=False):
-        ignore_fields = set() if not ignore_fields else set(ignore_fields)
-
-        items = []
-
-        for field_ in dataclass_fields(cls):
-            if field_.name in ignore_fields:
-                continue
-            if in_union and cls._defining_classes[field_.name] != cls:
-                continue
-
-            name = cls.c_names.get(field_.name, field_.name)
-            field_format = cls.get_field_format(field_.name)
-            if not isinstance(field_format, StructFormat):
-                if not field_.metadata.get("union_discriminator") or cls._defining_classes[field_.name] == cls:
-                    items.append((
-                        (
-                            ("%(typedef_name)s %(name)s;" % {
-                                "typedef_name": field_format.get_typedef_name(),
-                                "name": name,
-                            })
-                            if field_.name in cls._as_definition
-                            else field_format.get_c_code(name)
-                        ),
-                        field_.metadata.get("doc", None),
-                    )),
-            else:
-                if field_.name in cls._c_embed:
-                    embedded_items = field_.type.get_c_struct_items(ignore_fields, no_empty, top_level, union_only)
-                    items.extend(embedded_items)
-                else:
-                    items.append((
-                        (
-                            ("%(typedef_name)s %(name)s;" % {
-                                "typedef_name": StructFormat(field_.type).get_typedef_name(),
-                                "name": name,
-                            })
-                            if field_.name in cls._as_definition
-                            else StructFormat(field_.type).get_c_code(name, typedef=False)
-                        ),
-                        field_.metadata.get("doc", None),
-                    ))
-
-        if cls.union_type_field:
-            if not union_only:
-                union_code = cls.get_c_union_code(ignore_fields)
-                items.append(("union __packed %s;" % union_code, ""))
-
-        return items
 
     @classmethod
     def get_c_union_size(cls):
