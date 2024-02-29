@@ -103,6 +103,7 @@ class BaseFormat(ABC):
         return "%s %s%s;" % (pre, name, post)
 
     def set_field_type(self, field_type):
+        # todo: when is this even needed, could we just initialize it?
         self.field_type = field_type
 
     def get_c_definitions(self) -> dict[str, str]:
@@ -435,11 +436,53 @@ class StructFormat(ABC):
     def get_var_num(self):
         return self.model.get_var_num()
 
-    def encode(self, instance: T) -> bytes:
-        return self.model.encode(instance)
+    def encode(self, instance: T, ignore_fields=()) -> bytes:
+        # todo: remove ignore_fields? is it needed?
+        data = bytes()
+        if self.model.union_type_field and type(instance) is not self.model:
+            if not isinstance(instance, self.model):
+                raise ValueError('expected value of type %r, got %r' % (self.model, instance))
+
+            for field_ in dataclass_fields(self.model):
+                data += self.model.get_field_format(field_.name).encode(getattr(instance, field_.name))
+
+            # todo: instance.encode… well i mean this code shall disappear completely anyway
+            data += instance.encode(instance, ignore_fields=set(f.name for f in dataclass_fields(self.model)))
+            return data
+
+        for field_ in dataclass_fields(self.model):
+            if field_.name in ignore_fields:
+                continue
+            value = getattr(instance, field_.name)
+            field_format = self.model.get_field_format(field_.name)
+            data += field_format.encode(value)
+        return data
 
     def decode(self, data: bytes) -> tuple[T, bytes]:
-        return self.model.decode(data)
+        orig_data = data
+        kwargs = {}
+        no_init_data = {}
+        for field_ in dataclass_fields(self.model):
+            field_format = self.model.get_field_format(field_.name)
+            value, data = field_format.decode(data)
+            if field_.init:
+                kwargs[field_.name] = value
+            else:
+                no_init_data[field_.name] = value
+
+        if self.model.union_type_field:
+            try:
+                type_value = no_init_data[self.model.union_type_field]
+            except KeyError:
+                raise TypeError('union_type_field %s.%s is missing' %
+                                (self.model.__name__, self.model.union_type_field))
+            try:
+                klass = self.model.get_type(type_value)
+            except KeyError:
+                raise TypeError('union_type_field %s.%s value %r no known' %
+                                (self.model.__name__, self.model.union_type_field, type_value))
+            return klass.decode(orig_data)
+        return self.model(**kwargs), data
 
     def fromjson(self, data) -> T:
         return self.model.fromjson(data)
@@ -463,7 +506,24 @@ class StructFormat(ABC):
         return self.model.get_c_code(name)
 
     def get_c_definitions(self) -> dict[str, str]:
-        return self.model.get_c_definitions()
+        definitions = {}
+        for field_ in dataclass_fields(self.model):
+            field_format = self.model.get_field_format(field_.name)
+            definitions.update(field_format.get_c_definitions())
+            if field_.name in self.model._as_definition:
+                typedef_name = field_format.get_typedef_name()
+                if not isinstance(field_format, StructFormat):
+                    definitions[typedef_name] = 'typedef %(code)s %(name)s;' % {
+                        "code": ''.join(field_format.get_c_parts()),
+                        "name": typedef_name,
+                    }
+                else:
+                    definitions[typedef_name] = field_.type.get_c_code(name=typedef_name, typedef=True)
+        if self.model.union_type_field:
+            for key, option in self.model._union_options[self.model.union_type_field].items():
+                # todo: get rid of this too, old union code
+                definitions.update(StructFormat(option).get_c_definitions())
+        return definitions
 
     def get_typedef_name(self):
         return self.model.get_typedef_name()
@@ -575,55 +635,6 @@ class StructType:
         if not cls.union_type_field:
             raise TypeError('Not a union class')
         return cls.get_types()[type_id]
-
-    @classmethod
-    def encode(cls, instance, ignore_fields=()) -> bytes:
-        data = bytes()
-        if cls.union_type_field and type(instance) is not cls:
-            if not isinstance(instance, cls):
-                raise ValueError('expected value of type %r, got %r' % (cls, instance))
-
-            for field_ in dataclass_fields(cls):
-                data += cls.get_field_format(field_.name).encode(getattr(instance, field_.name))
-
-            # todo: better
-            data += instance.encode(instance, ignore_fields=set(f.name for f in dataclass_fields(cls)))
-            return data
-
-        for field_ in dataclass_fields(cls):
-            if field_.name in ignore_fields:
-                continue
-            value = getattr(instance, field_.name)
-            field_format = cls.get_field_format(field_.name)
-            data += field_format.encode(value)
-        return data
-
-    @classmethod
-    def decode(cls, data: bytes) -> tuple[Self, bytes]:
-        orig_data = data
-        kwargs = {}
-        no_init_data = {}
-        for field_ in dataclass_fields(cls):
-            field_format = cls.get_field_format(field_.name)
-            value, data = field_format.decode(data)
-            if field_.init:
-                kwargs[field_.name] = value
-            else:
-                no_init_data[field_.name] = value
-
-        if cls.union_type_field:
-            try:
-                type_value = no_init_data[cls.union_type_field]
-            except KeyError:
-                raise TypeError('union_type_field %s.%s is missing' %
-                                (cls.__name__, cls.union_type_field))
-            try:
-                klass = cls.get_type(type_value)
-            except KeyError:
-                raise TypeError('union_type_field %s.%s value %r no known' %
-                                (cls.__name__, cls.union_type_field, type_value))
-            return klass.decode(orig_data)
-        return cls(**kwargs), data
 
     @classmethod
     def tojson(cls, instance) -> dict:
@@ -744,26 +755,6 @@ class StructType:
              cls._union_options[cls.union_type_field].values()),
             default=0,
         )
-
-    @classmethod
-    def get_c_definitions(cls) -> dict[str, str]:
-        definitions = {}
-        for field_ in dataclass_fields(cls):
-            field_format = cls.get_field_format(field_.name)
-            definitions.update(field_format.get_c_definitions())
-            if field_.name in cls._as_definition:
-                typedef_name = field_format.get_typedef_name()
-                if not isinstance(field_format, StructFormat):
-                    definitions[typedef_name] = 'typedef %(code)s %(name)s;' % {
-                        "code": ''.join(field_format.get_c_parts()),
-                        "name": typedef_name,
-                    }
-                else:
-                    definitions[typedef_name] = field_.type.get_c_code(name=typedef_name, typedef=True)
-        if cls.union_type_field:
-            for key, option in cls._union_options[cls.union_type_field].items():
-                definitions.update(option.get_c_definitions())
-        return definitions
 
     @classmethod
     def get_c_union_code(cls, ignore_fields=None):

@@ -2,7 +2,7 @@ from dataclasses import fields
 
 from django.core.management.base import BaseCommand
 
-from c3nav.mesh.baseformats import StructType, normalize_name
+from c3nav.mesh.baseformats import StructType, normalize_name, StructFormat
 from c3nav.mesh.messages import MeshMessage
 from c3nav.mesh.utils import indent_c
 
@@ -37,7 +37,7 @@ class Command(BaseCommand):
             ))
             name = "mesh_msg_%s_t" % base_name
 
-            for definition_name, definition in msg_class.get_c_definitions().items():
+            for definition_name, definition in StructFormat(msg_class).get_c_definitions().items():
                 if definition_name not in done_definitions:
                     done_definitions.add(definition_name)
                     print(definition)
