@@ -2,6 +2,7 @@ import re
 import struct
 import typing
 from abc import ABC, abstractmethod
+from collections import namedtuple
 from contextlib import suppress
 from dataclasses import Field, dataclass
 from dataclasses import fields as dataclass_fields
@@ -109,6 +110,31 @@ class BaseFormat(ABC):
 
     def get_typedef_name(self):
         return '%s_t' % normalize_name(self.field_type.__name__)
+
+
+def get_int_type(min_: int, max_: int) -> str | None:
+    if min_ < 0:
+        if min_ < -(2 ** 63) or max_ > 2 ** 63 - 1:
+            return None
+        elif min_ < -(2 ** 31) or max_ > 2 ** 31 - 1:
+            return "q"
+        elif min_ < -(2 ** 15) or max_ > 2 ** 15 - 1:
+            return "i"
+        elif min_ < -(2 ** 7) or max_ > 2 ** 7 - 1:
+            return "h"
+        else:
+            return "b"
+
+    if max_ > 2 ** 64 - 1:
+        return None
+    elif max_ > 2 ** 32 - 1:
+        return "Q"
+    elif max_ > 2 ** 16 - 1:
+        return "I"
+    elif max_ > 2 ** 8 - 1:
+        return "H"
+    else:
+        return "B"
 
 
 class SimpleFormat(BaseFormat):
@@ -454,187 +480,21 @@ class StructType:
     c_includes = set()
     c_names = {}
 
-    @staticmethod
-    def get_int_type(min_, max_) -> str | None:
-        if min_ < 0:
-            if min_ < -(2 ** 63) or max_ > 2 ** 63 - 1:
-                return None
-            elif min_ < -(2 ** 31) or max_ > 2 ** 31 - 1:
-                return "q"
-            elif min_ < -(2 ** 15) or max_ > 2 ** 15 - 1:
-                return "i"
-            elif min_ < -(2 ** 7) or max_ > 2 ** 7 - 1:
-                return "h"
-            else:
-                return "b"
-
-        if max_ > 2 ** 64 - 1:
-            return None
-        elif max_ > 2 ** 32 - 1:
-            return "Q"
-        elif max_ > 2 ** 16 - 1:
-            return "I"
-        elif max_ > 2 ** 8 - 1:
-            return "H"
-        else:
-            return "B"
-
     @classmethod
     def get_field_format(cls, attr_name) -> BaseFormat:
-        type_ = typing.get_type_hints(cls, include_extras=True)[attr_name]
-        if typing.get_origin(type_) is typing.Annotated:
-            type_base = typing.get_args(type_)[0]
-            field_infos = tuple(m for m in type_.__metadata__ if isinstance(m, FieldInfo))
-            type_metadata = (
-                *(m for m in type_.__metadata__ if not isinstance(m, FieldInfo)),
-                *(tuple(field_infos[0].metadata) if field_infos else ())
-            )
-        elif isinstance(type_, FieldInfo):
-            type_base = type_.annotation
-            type_metadata = tuple(type_.metadata)
-        else:
-            type_base = type_
-            type_metadata = ()
+        type_hint = split_type_hint(typing.get_type_hints(cls, include_extras=True)[attr_name])
 
         # todo: move this to init_subclass
-        if any(getattr(m, "as_definition", False) for m in type_metadata):
+        if any(getattr(m, "as_definition", False) for m in type_hint.metadata):
             cls._as_definition.add(attr_name)
-        if any(getattr(m, "c_embed", False) for m in type_metadata):
+        if any(getattr(m, "c_embed", False) for m in type_hint.metadata):
             cls._c_embed.add(attr_name)
-        for m in type_metadata:
+        for m in type_hint.metadata:
             with suppress(AttributeError):
                 cls.c_names[attr_name] = m.c_name
                 break
 
-        orig_type_base = type_base
-
-        outer_base = None
-        outer_metadata = None
-        if typing.get_origin(type_base) is list:
-            outer_base = list
-            outer_metadata = type_metadata
-
-            type_base = typing.get_args(type_base)[0]
-            type_metadata = ()
-            if typing.get_origin(type_base) is typing.Annotated:
-                type_metadata = tuple(type_base.__metadata__)
-                type_base = typing.get_args(type_base)[0]
-
-        #print(attr_name, type_base, type_metadata)
-
-        field_format = None
-
-        if typing.get_origin(type_) is typing.Literal:
-            literal_val = typing.get_args(type_base)[0]
-            if not isinstance(literal_val, int):
-                raise ValueError()
-            int_type = cls.get_int_type(literal_val, literal_val)
-            if int_type is None:
-                raise ValueError('invalid range:', attr_name)
-            field_format = SimpleConstFormat(int_type, const_value=literal_val)
-        elif type_base is int:
-            min_ = -(2**63)
-            max_ = 2**63-1
-            for m in type_metadata:
-                gt = getattr(m, 'gt', None)
-                if gt is not None:
-                    min_ = max(min_, gt+1)
-                ge = getattr(m, 'ge', None)
-                if ge is not None:
-                    min_ = max(min_, ge)
-                lt = getattr(m, 'lt', None)
-                if lt is not None:
-                    max_ = min(max_, lt - 1)
-                le = getattr(m, 'le', None)
-                if le is not None:
-                    max_ = min(max_, le)
-            int_type = cls.get_int_type(min_, max_)
-            if int_type is None:
-                raise ValueError('invalid range:', attr_name)
-            field_format = SimpleFormat(int_type)
-        elif type_base is bool:
-            field_format = BoolFormat()
-        elif type_base in (str, bytes):
-            max_length = None
-            var_len_name = None
-            as_hex = False
-            for m in type_metadata:
-                as_hex = getattr(m, 'as_hex', as_hex)
-
-                ml = getattr(m, 'max_length', None)
-                if ml is not None:
-                    max_length = ml if max_length is None else min(max_length, ml)
-
-                vl = getattr(m, 'var_len_name', None)
-                if vl is not None:
-                    if var_len_name is not None:
-                        raise ValueError('can\'t set variable length name twice')
-                    var_len_name = vl
-            if max_length is None:
-                raise ValueError('missing str max_length:', attr_name)
-
-            if type_base is str:
-                if var_len_name is not None:
-                    field_format = VarStrFormat(max_len=max_length)
-                else:
-                    field_format = FixedHexFormat(max_length) if as_hex else FixedStrFormat(max_length)
-            else:
-                if var_len_name is None:
-                     field_format = FixedBytesFormat(num=max_length)
-                else:
-                    field_format = VarBytesFormat(max_size=max_length)
-        elif type_base is MacAddress:
-            from c3nav.mesh.dataformats import MacAddressFormat
-            field_format = MacAddressFormat()
-        elif isinstance(type_base, type) and issubclass(type_base, IntEnum):
-            no_def = False
-            as_hex = False
-            len_bytes = None
-            for m in type_metadata:
-                no_def = getattr(m, 'no_def', no_def)
-                as_hex = getattr(m, 'as_hex', as_hex)
-                len_bytes = getattr(m, 'len_bytes', len_bytes)
-
-            if len_bytes:
-                int_type = cls.get_int_type(0, 2**(8*len_bytes-1))
-            else:
-                int_type = cls.get_int_type(min(type_base), max(type_base))
-                if int_type is None:
-                    raise ValueError('invalid range:', attr_name)
-            field_format = EnumFormat(fmt=int_type, as_hex=as_hex, c_definition=not no_def)
-        elif isinstance(type_base, type) and issubclass(type_base, TwoNibblesEncodable):
-            field_format = TwoNibblesEnumFormat()
-
-        if field_format is not None:
-            field_format.set_field_type(type_base)
-        elif isinstance(type_base, type) and issubclass(type_base, StructType):
-            field_format = StructFormat(model=type_base)
-
-        if field_format is None:
-            raise ValueError('Uknown type annotation for c structs', type_base)
-        else:
-            if outer_base is list:
-                max_length = None
-                var_len_name = None
-                for m in outer_metadata:
-                    ml = getattr(m, 'max_length', None)
-                    if ml is not None:
-                        max_length = ml if max_length is None else min(max_length, ml)
-
-                    vl = getattr(m, 'var_len_name', None)
-                    if vl is not None:
-                        if var_len_name is not None:
-                            raise ValueError('can\'t set variable length name twice')
-                        var_len_name = vl
-                if max_length is None:
-                    raise ValueError('missing str max_length:', attr_name)
-                if var_len_name:
-                    field_format = VarArrayFormat(field_format, max_num=max_length)
-                else:
-                    raise ValueError('fixed-len list not implemented:', attr_name)
-                field_format.set_field_type(orig_type_base)
-
-        return field_format
+        return get_type_hint_format(type_hint, attr_name=attr_name)
 
     # noinspection PyMethodOverriding
     def __init_subclass__(cls, /, union_type_field=None, **kwargs):
@@ -1013,6 +873,167 @@ class StructType:
             relevant_fields = [f for f in dataclass_fields(cls) if not f.metadata.get("union_discriminator")]
         return sum((cls.get_field_format(f.name).get_size(calculate_max=calculate_max) for f in relevant_fields),
                    start=0)
+
+
+SplitTypeHint = namedtuple("SplitTypeHint", ("base", "metadata"))
+
+def split_type_hint(type_hint) -> SplitTypeHint:
+    if typing.get_origin(type_hint) is typing.Annotated:
+        field_infos = tuple(m for m in type_hint.__metadata__ if isinstance(m, FieldInfo))
+        return SplitTypeHint(
+            base=typing.get_args(type_hint)[0],
+            metadata=(
+                *(m for m in type_hint.__metadata__ if not isinstance(m, FieldInfo)),
+                *(tuple(field_infos[0].metadata) if field_infos else ())
+            )
+        )
+
+    if isinstance(type_hint, FieldInfo):
+        return SplitTypeHint(
+            base=type_hint.annotation,
+            metadata=tuple(type_hint.metadata)
+        )
+
+    return SplitTypeHint(
+        base=type_hint,
+        metadata=()
+    )
+
+
+# todo: move this somewhere?
+def get_type_hint_format(type_hint: SplitTypeHint, attr_name=None) -> BaseFormat:
+    # todo: attr_name nicer?
+    orig_type_base = type_hint.base
+
+    outer_type_hint = None
+    if typing.get_origin(type_hint.base) is list:
+        outer_type_hint = SplitTypeHint(
+            base=list,
+            metadata=type_hint.metadata
+        )
+        type_hint = SplitTypeHint(
+            base=typing.get_args(type_hint.base)[0],
+            metadata=()
+        )
+        if typing.get_origin(type_hint.base) is typing.Annotated:
+            type_hint = SplitTypeHint(
+                base=typing.get_args(type_hint.base)[0],
+                metadata=tuple(type_hint.base.__metadata__)
+            )
+
+    field_format = None
+
+    if typing.get_origin(type_hint.base) is typing.Literal:
+        literal_val = typing.get_args(type_hint.base)[0]
+        if not isinstance(literal_val, int):
+            raise ValueError()
+        int_type = get_int_type(literal_val, literal_val)
+        if int_type is None:
+            raise ValueError('invalid range:', attr_name)
+        field_format = SimpleConstFormat(int_type, const_value=literal_val)
+    elif type_hint.base is int:
+        min_ = -(2**63)
+        max_ = 2**63-1
+        for m in type_hint.metadata:
+            gt = getattr(m, 'gt', None)
+            if gt is not None:
+                min_ = max(min_, gt+1)
+            ge = getattr(m, 'ge', None)
+            if ge is not None:
+                min_ = max(min_, ge)
+            lt = getattr(m, 'lt', None)
+            if lt is not None:
+                max_ = min(max_, lt - 1)
+            le = getattr(m, 'le', None)
+            if le is not None:
+                max_ = min(max_, le)
+        int_type = get_int_type(min_, max_)
+        if int_type is None:
+            raise ValueError('invalid range:', attr_name)
+        field_format = SimpleFormat(int_type)
+    elif type_hint.base is bool:
+        field_format = BoolFormat()
+    elif type_hint.base in (str, bytes):
+        max_length = None
+        var_len_name = None
+        as_hex = False
+        for m in type_hint.metadata:
+            as_hex = getattr(m, 'as_hex', as_hex)
+
+            ml = getattr(m, 'max_length', None)
+            if ml is not None:
+                max_length = ml if max_length is None else min(max_length, ml)
+
+            vl = getattr(m, 'var_len_name', None)
+            if vl is not None:
+                if var_len_name is not None:
+                    raise ValueError('can\'t set variable length name twice')
+                var_len_name = vl
+        if max_length is None:
+            raise ValueError('missing str max_length:', attr_name)
+
+        if type_hint.base is str:
+            if var_len_name is not None:
+                field_format = VarStrFormat(max_len=max_length)
+            else:
+                field_format = FixedHexFormat(max_length) if as_hex else FixedStrFormat(max_length)
+        else:
+            if var_len_name is None:
+                 field_format = FixedBytesFormat(num=max_length)
+            else:
+                field_format = VarBytesFormat(max_size=max_length)
+    elif type_hint.base is MacAddress:
+        from c3nav.mesh.dataformats import MacAddressFormat
+        field_format = MacAddressFormat()
+    elif isinstance(type_hint.base, type) and issubclass(type_hint.base, IntEnum):
+        no_def = False
+        as_hex = False
+        len_bytes = None
+        for m in type_hint.metadata:
+            no_def = getattr(m, 'no_def', no_def)
+            as_hex = getattr(m, 'as_hex', as_hex)
+            len_bytes = getattr(m, 'len_bytes', len_bytes)
+
+        if len_bytes:
+            int_type = get_int_type(0, 2**(8*len_bytes-1))
+        else:
+            int_type = get_int_type(min(type_hint.base), max(type_hint.base))
+            if int_type is None:
+                raise ValueError('invalid range:', attr_name)
+        field_format = EnumFormat(fmt=int_type, as_hex=as_hex, c_definition=not no_def)
+    elif isinstance(type_hint.base, type) and issubclass(type_hint.base, TwoNibblesEncodable):
+        field_format = TwoNibblesEnumFormat()
+
+    if field_format is not None:
+        field_format.set_field_type(type_hint.base)
+    elif isinstance(type_hint.base, type) and issubclass(type_hint.base, StructType):
+        field_format = StructFormat(model=type_hint.base)
+
+    if field_format is None:
+        raise ValueError('Uknown type annotation for c structs', type_hint.base)
+    else:
+        if outer_type_hint is not None and outer_type_hint.base is list:
+            max_length = None
+            var_len_name = None
+            for m in outer_type_hint.metadata:
+                ml = getattr(m, 'max_length', None)
+                if ml is not None:
+                    max_length = ml if max_length is None else min(max_length, ml)
+
+                vl = getattr(m, 'var_len_name', None)
+                if vl is not None:
+                    if var_len_name is not None:
+                        raise ValueError('can\'t set variable length name twice')
+                    var_len_name = vl
+            if max_length is None:
+                raise ValueError('missing str max_length:', attr_name)
+            if var_len_name:
+                field_format = VarArrayFormat(field_format, max_num=max_length)
+            else:
+                raise ValueError('fixed-len list not implemented:', attr_name)
+            field_format.set_field_type(orig_type_base)
+
+    return field_format
 
 
 def normalize_name(name):
