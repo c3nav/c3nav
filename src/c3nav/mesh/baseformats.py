@@ -117,6 +117,9 @@ class BaseFormat(ABC):
     def get_typedef_name(self):
         return '%s_t' % normalize_name(self.field_type.__name__)
 
+    def get_c_includes(self) -> set:
+        return set()
+
 
 def get_int_type(min_: int, max_: int) -> str | None:
     if min_ < 0:
@@ -665,8 +668,8 @@ class StructFormat(ABC):
 
     def get_c_parts(self, ignore_fields=None, no_empty=False, top_level=False, union_only=False, in_union=False) -> tuple[str, str]:
         # todo: parameters needed?
-        if self.model._existing_c_struct_name is not None:
-            return (self.model._existing_c_struct_name, "")
+        with suppress(AttributeError):
+            return (self.model.existing_c_struct.name, "")
 
         ignore_fields = set() if not ignore_fields else set(ignore_fields)
 
@@ -740,12 +743,19 @@ class StructFormat(ABC):
     def get_typedef_name(self):
         return "%s_t" % normalize_name(self.model.__name__)
 
+    def get_c_includes(self) -> set:
+        result = set()
+        with suppress(AttributeError):
+            result.update(self.model.existing_c_struct.includes)
+        for field_format in self._field_formats.values():
+            result.update(field_format.get_c_includes())
+        return result
+
 
 @dataclass
 class StructType:
     _union_options = {}
     union_type_field = None
-    _existing_c_struct_name = None
     _defining_classes = {}
     c_includes = set()
     union_discriminators = set()
@@ -760,14 +770,6 @@ class StructType:
     def __init_subclass__(cls, /, union_type_field=None, **kwargs):
         cls.union_type_field = union_type_field
 
-        existing_c_struct: ExistingCStruct | None = getattr(cls, "existing_c_struct", None)
-        if existing_c_struct is not None:
-            cls.c_includes |= set(existing_c_struct.includes)
-        if cls._existing_c_struct_name is not None:
-            # TODO: can we make it possible? does it even make sense?
-            raise TypeError('subclassing an external c struct is not possible')
-        if existing_c_struct:
-            cls._existing_c_struct_name = existing_c_struct.name
         cls.union_discriminators = getattr(cls, 'union_discriminators', set()).copy()
         if union_type_field:
             if union_type_field in cls._union_options:

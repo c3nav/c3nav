@@ -18,7 +18,11 @@ class Command(BaseCommand):
         struct_max_sizes = []
         done_definitions = set()
 
-        for include in StructType.c_includes:
+        includes = set()
+        for msg_type, msg_class in MeshMessage.get_types().items():
+            # todo: run this on the union
+            includes.update(StructFormat(msg_class).get_c_includes())
+        for include in includes:
             print(f'#include {include}')
 
         ignore_names = set(field_.name for field_ in fields(MeshMessage))
