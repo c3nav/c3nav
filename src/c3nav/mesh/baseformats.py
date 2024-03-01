@@ -455,38 +455,18 @@ class StructFormat(BaseFormat):
             #    no_init_data[field_.name] = value
         return self.model(**kwargs), data
 
-    def get_min_size(self, no_inherited_fields=False) -> int:
-        if no_inherited_fields:
-            # todo: is this needed?
-            relevant_fields = set(
-                name for name in self._field_formats.keys()
-            )
-        else:
-            relevant_fields = set(name for name in self._field_formats.keys())
-        # todo: time to get rid of a thing here!!
+    def get_min_size(self) -> int:
         return sum((
-            field_format.get_min_size()
-            for name, field_format in self._field_formats.items()
-            if name in relevant_fields
+            field_format.get_min_size() for field_format in self._field_formats.values()
         ), start=0)
 
     def get_max_size(self) -> int:
         raise ValueError
 
-    def get_size(self, no_inherited_fields=False, calculate_max=False):
+    def get_size(self, calculate_max=False):
         # todo: remove no_inherited fields? still needed?
-        if no_inherited_fields:
-            # todo: is this needed?
-            relevant_fields = set(
-                name for name in self._field_formats.keys()
-
-            )
-        else:
-            relevant_fields = set(name for name in self._field_formats.keys())
         return sum((
-            field_format.get_size(calculate_max=calculate_max)
-            for name, field_format in self._field_formats.items()
-            if name in relevant_fields
+            field_format.get_size(calculate_max=calculate_max) for field_format in self._field_formats.values()
         ), start=0)
 
     def get_c_struct_items(self, ignore_fields=None, no_empty=False, top_level=False, union_only=False, in_union=False):
@@ -643,7 +623,7 @@ class UnionFormat(BaseFormat):
         discriminator_value, remaining_data = self.discriminator_format.decode(data)
         return self.models[discriminator_value].decode(data)
 
-    def get_min_size(self, no_inherited_fields=False) -> int:
+    def get_min_size(self) -> int:
         return max([0] + [
             model_format.get_min_size()
             for model_format in self.models.values()
@@ -652,8 +632,7 @@ class UnionFormat(BaseFormat):
     def get_max_size(self) -> int:
         raise ValueError
 
-    def get_size(self, no_inherited_fields=False, calculate_max=False):
-        # todo: remove no_inherited fields? still needed?
+    def get_size(self=False, calculate_max=False):
         return max([0] + [
             field_format.get_size(calculate_max=calculate_max)
             for field_format in self.models.values()
@@ -673,7 +652,7 @@ class UnionFormat(BaseFormat):
 
     def get_c_union_size(self):
         return max(
-            (model_format.get_min_size(no_inherited_fields=True) for model_format in self.models.values()),
+            (model_format.get_min_size() for model_format in self.models.values()),
             default=0,
         )
 
@@ -806,14 +785,6 @@ class StructType:
         if not cls.union_type_field:
             raise TypeError('Not a union class')
         return cls.get_types()[type_id]
-
-    @classmethod
-    def get_c_union_size(cls):
-        return max(
-            (StructFormat(option).get_min_size(no_inherited_fields=True) for option in
-             cls._union_options[cls.union_type_field].values()),
-            default=0,
-        )
 
 
 SplitTypeHint = namedtuple("SplitTypeHint", ("base", "metadata"))

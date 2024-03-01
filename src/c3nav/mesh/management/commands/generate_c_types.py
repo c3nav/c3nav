@@ -38,8 +38,8 @@ class Command(BaseCommand):
 
             code = msg_content_format.get_c_code(name, ignore_fields=('msg_type', ), no_empty=True)
             if code:
-                size = msg_content_format.get_size(no_inherited_fields=True, calculate_max=False)
-                max_size = msg_content_format.get_size(no_inherited_fields=True, calculate_max=True)
+                size = msg_content_format.get_size(calculate_max=False)
+                max_size = msg_content_format.get_size(calculate_max=True)
                 size -= discriminator_size
                 max_size -= discriminator_size
                 struct_lines[base_name] = "%s %s;" % (name, base_name.replace('_announce', ''))
@@ -78,7 +78,7 @@ class Command(BaseCommand):
                     msg_content_format.model.get_c_enum_name(),
                     ("nodata" if msg_content_format.model in nodata else name),
                     msg_content_format.get_var_num(), # todo: uh?
-                    msg_content_format.get_size(no_inherited_fields=True, calculate_max=True) - discriminator_size,
+                    msg_content_format.get_size(calculate_max=True) - discriminator_size,
                     msg_content_format.model.__doc__.strip(),
                 ))
             else:
