@@ -53,6 +53,11 @@ class CName(BaseMetadata):
     c_name: NonEmptyStr
 
 
+@dataclass(frozen=True, **SLOTS)
+class CDoc(BaseMetadata):
+    c_doc: NonEmptyStr
+
+
 @dataclass
 class ExistingCStruct():
     name: NonEmptyStr
@@ -430,11 +435,34 @@ T = typing.TypeVar('T', bound="StructType")
 
 
 class StructFormat(ABC):
+    _format_cache: dict[typing.Type["StructType"], dict[str, BaseFormat]]
+
     def __init__(self, model: typing.Type[T]):
+        # todo: only one instance per model
         self.model = model
 
+        self._field_formats = {}
+        self._as_definition = set()
+        self._c_embed = set()
+        self._c_names = {}
+        self._c_docs= {}
+        for name, type_hint in typing.get_type_hints(self.model, include_extras=True).items():
+            type_hint = split_type_hint(type_hint)
+
+            if any(getattr(m, "as_definition", False) for m in type_hint.metadata):
+                self._as_definition.add(name)
+            if any(getattr(m, "c_embed", False) for m in type_hint.metadata):
+                self._c_embed.add(name)
+            for m in type_hint.metadata:
+                with suppress(AttributeError):
+                    self._c_names[name] = m.c_name
+                with suppress(AttributeError):
+                    self._c_docs[name] = m.c_doc
+
+            self._field_formats[name] = get_type_hint_format(type_hint, attr_name=name)
+
     def get_var_num(self):
-        return sum([self.model.get_field_format(f.name).get_var_num() for f in dataclass_fields(self.model)], start=0)
+        return sum([field_format.get_var_num() for name, field_format in self._field_formats.items()], start=0)
 
     def encode(self, instance: T, ignore_fields=()) -> bytes:
         # todo: remove ignore_fields? is it needed?
@@ -443,18 +471,17 @@ class StructFormat(ABC):
             if not isinstance(instance, self.model):
                 raise ValueError('expected value of type %r, got %r' % (self.model, instance))
 
-            for field_ in dataclass_fields(self.model):
-                data += self.model.get_field_format(field_.name).encode(getattr(instance, field_.name))
+            for name, field_format in self._field_formats.items():
+                data += field_format.encode(getattr(instance, name))
 
             # todo: instance.encode… well i mean this code shall disappear completely anyway
-            data += instance.encode(instance, ignore_fields=set(f.name for f in dataclass_fields(self.model)))
+            data += instance.encode(instance, ignore_fields=set(self._field_formats.keys()))
             return data
 
-        for field_ in dataclass_fields(self.model):
-            if field_.name in ignore_fields:
+        for name, field_format in self._field_formats.items():
+            if name in ignore_fields:
                 continue
-            value = getattr(instance, field_.name)
-            field_format = self.model.get_field_format(field_.name)
+            value = getattr(instance, name)
             data += field_format.encode(value)
         return data
 
@@ -462,13 +489,12 @@ class StructFormat(ABC):
         orig_data = data
         kwargs = {}
         no_init_data = {}
-        for field_ in dataclass_fields(self.model):
-            field_format = self.model.get_field_format(field_.name)
+        for name, field_format in self._field_formats.items():
             value, data = field_format.decode(data)
-            if field_.init:
-                kwargs[field_.name] = value
-            else:
-                no_init_data[field_.name] = value
+            #if field_.init:  # todo: what abot no_init_data?
+            kwargs[name] = value
+            #else:
+            #    no_init_data[field_.name] = value
 
         if self.model.union_type_field:
             try:
@@ -489,14 +515,13 @@ class StructFormat(ABC):
 
         kwargs = {}
         no_init_data = {}
-        for field_ in dataclass_fields(self.model):
-            raw_value = data.get(field_.name, None)
-            field_format = self.model.get_field_format(field_.name)
+        for name, field_format in self._field_formats.items():
+            raw_value = data.get(name, None)
             value = field_format.fromjson(raw_value)
-            if field_.init:
-                kwargs[field_.name] = value
-            else:
-                no_init_data[field_.name] = value
+            #if field_.init:  # todo: what abot no_init_data?
+            kwargs[name] = value
+            #else:
+            #    no_init_data[field_.name] = value
 
         if self.model.union_type_field:
             try:
@@ -520,9 +545,9 @@ class StructFormat(ABC):
             if not isinstance(instance, self.model):
                 raise ValueError('expected value of type %r, got %r' % (self.model, instance))
 
-            for field_ in dataclass_fields(instance):
-                if field_.name is self.model.union_type_field:
-                    result[field_.name] = self.model.get_field_format(field_.name).tojson(getattr(instance, field_.name))
+            for name, field_format in self._field_formats.items():
+                if name is self.model.union_type_field:
+                    result[name] = field_format.tojson(getattr(instance, name))
                     break
             else:
                 raise TypeError('couldn\'t find %s value' % self.model.union_type_field)
@@ -530,28 +555,34 @@ class StructFormat(ABC):
             result.update(instance.tojson(instance))
             return result
 
-        for field_ in dataclass_fields(self.model):
-            value = getattr(instance, field_.name)
-            field_format = self.model.get_field_format(field_.name)
-            result[field_.name] = field_format.tojson(value)
+        for name, field_format in self._field_formats.items():
+            value = getattr(instance, name)
+            result[name] = field_format.tojson(value)
         return result
 
     def get_min_size(self, no_inherited_fields=False) -> int:
         if self.model.union_type_field:
-            own_size = sum([self.model.get_field_format(f.name).get_min_size() for f in dataclass_fields(self.model)])
+            own_size = sum([field_format.get_min_size() for field_format in self._field_formats.values()])
             union_size = max([0] + [
                 StructFormat(option).get_min_size(True)
                 for option in self.model._union_options[self.model.union_type_field].values()
             ])
             return own_size + union_size
         if no_inherited_fields:
-            relevant_fields = [
-                f for f in dataclass_fields(self.model)
-                if self.model._defining_classes[f.name] == self.model
-            ]
+            # todo: is this needed?
+            relevant_fields = set(
+                name for name in self._field_formats.keys()
+                if self.model._defining_classes[name] == self.model
+            )
         else:
-            relevant_fields = [f for f in dataclass_fields(self.model) if not f.metadata.get("union_discriminator")]
-        return sum((self.model.get_field_format(f.name).get_min_size() for f in relevant_fields), start=0)
+            relevant_fields = set(name for name in self._field_formats.keys()
+                                  if name not in self.model.union_discriminators)
+        # todo: time to get rid of a thing here!!
+        return sum((
+            field_format.get_min_size()
+            for name, field_format in self._field_formats.items()
+            if name in relevant_fields
+        ), start=0)
 
     def get_max_size(self) -> int:
         raise ValueError
@@ -560,53 +591,56 @@ class StructFormat(ABC):
         # todo: remove no_inherited fields? still needed?
         if self.model.union_type_field:
             own_size = sum(
-                [self.model.get_field_format(f.name).get_size(calculate_max=calculate_max)
-                 for f in dataclass_fields(self.model)])
+                [field_format.get_size(calculate_max=calculate_max) for field_format in self._field_formats.values()]
+            )
             union_size = max(
                 [0] + [StructFormat(option).get_size(no_inherited_fields=True, calculate_max=calculate_max)
                        for option in self.model._union_options[self.model.union_type_field].values()]
             )
             return own_size + union_size
         if no_inherited_fields:
-            relevant_fields = [f for f in dataclass_fields(self.model)
-                               if self.model._defining_classes[f.name] == self.model]
+            # todo: is this needed?
+            relevant_fields = set(
+                name for name in self._field_formats.keys()
+                if self.model._defining_classes[name] == self.model
+            )
         else:
-            relevant_fields = [f for f in dataclass_fields(self.model)
-                               if not f.metadata.get("union_discriminator")]
-        return sum(
-            (self.model.get_field_format(f.name).get_size(calculate_max=calculate_max) for f in relevant_fields),
-            start=0
-        )
+            relevant_fields = set(name for name in self._field_formats.keys()
+                                  if name not in self.model.union_discriminators)
+        return sum((
+            field_format.get_size(calculate_max=calculate_max)
+            for name, field_format in self._field_formats.items()
+            if name in relevant_fields
+        ), start=0)
 
     def get_c_struct_items(self, ignore_fields=None, no_empty=False, top_level=False, union_only=False, in_union=False):
         ignore_fields = set() if not ignore_fields else set(ignore_fields)
 
         items = []
 
-        for field_ in dataclass_fields(self.model):
-            if field_.name in ignore_fields:
+        for name, field_format in self._field_formats.items():
+            if name in ignore_fields:
                 continue
-            if in_union and self.model._defining_classes[field_.name] != self.model:
+            if in_union and self.model._defining_classes[name] != self.model:
                 continue
 
-            name = self.model.c_names.get(field_.name, field_.name)
-            field_format = self.model.get_field_format(field_.name)
+            c_name = self._c_names.get(name, name)
             if not isinstance(field_format, StructFormat):
-                if (not field_.metadata.get("union_discriminator") or
-                        self.model._defining_classes[field_.name] == self.model):
+                if (name not in self.model.union_discriminators or
+                        self.model._defining_classes[name] == self.model):
                     items.append((
                         (
                             ("%(typedef_name)s %(name)s;" % {
                                 "typedef_name": field_format.get_typedef_name(),
-                                "name": name,
+                                "name": c_name,
                             })
-                            if field_.name in self.model._as_definition
-                            else field_format.get_c_code(name)
+                            if name in self._as_definition
+                            else field_format.get_c_code(c_name)
                         ),
-                        field_.metadata.get("doc", None),
+                        self._c_docs.get(name, None),
                     )),
             else:
-                if field_.name in self.model._c_embed:
+                if name in self._c_embed:
                     embedded_items = field_format.get_c_struct_items(ignore_fields, no_empty, top_level, union_only)
                     items.extend(embedded_items)
                 else:
@@ -614,12 +648,12 @@ class StructFormat(ABC):
                         (
                             ("%(typedef_name)s %(name)s;" % {
                                 "typedef_name": field_format.get_typedef_name(),
-                                "name": name,
+                                "name": c_name,
                             })
-                            if field_.name in self.model._as_definition
-                            else field_format.get_c_code(name, typedef=False)
+                            if name in self._as_definition
+                            else field_format.get_c_code(c_name, typedef=False)
                         ),
-                        field_.metadata.get("doc", None),
+                        self._c_docs.get(name, None),
                     ))
 
         if self.model.union_type_field:
@@ -686,10 +720,9 @@ class StructFormat(ABC):
 
     def get_c_definitions(self) -> dict[str, str]:
         definitions = {}
-        for field_ in dataclass_fields(self.model):
-            field_format = self.model.get_field_format(field_.name)
+        for name, field_format in self._field_formats.items():
             definitions.update(field_format.get_c_definitions())
-            if field_.name in self.model._as_definition:
+            if name in self._as_definition:
                 typedef_name = field_format.get_typedef_name()
                 if not isinstance(field_format, StructFormat):
                     definitions[typedef_name] = 'typedef %(code)s %(name)s;' % {
@@ -714,24 +747,12 @@ class StructType:
     union_type_field = None
     _existing_c_struct_name = None
     _defining_classes = {}
-    _as_definition = set()
-    _c_embed = set()
     c_includes = set()
-    c_names = {}
+    union_discriminators = set()
 
     @classmethod
     def get_field_format(cls, attr_name) -> BaseFormat:
         type_hint = split_type_hint(typing.get_type_hints(cls, include_extras=True)[attr_name])
-
-        # todo: move this to init_subclass
-        if any(getattr(m, "as_definition", False) for m in type_hint.metadata):
-            cls._as_definition.add(attr_name)
-        if any(getattr(m, "c_embed", False) for m in type_hint.metadata):
-            cls._c_embed.add(attr_name)
-        for m in type_hint.metadata:
-            with suppress(AttributeError):
-                cls.c_names[attr_name] = m.c_name
-                break
 
         return get_type_hint_format(type_hint, attr_name=attr_name)
 
@@ -747,16 +768,13 @@ class StructType:
             raise TypeError('subclassing an external c struct is not possible')
         if existing_c_struct:
             cls._existing_c_struct_name = existing_c_struct.name
+        cls.union_discriminators = getattr(cls, 'union_discriminators', set()).copy()
         if union_type_field:
             if union_type_field in cls._union_options:
                 raise TypeError('Duplicate union_type_field: %s', union_type_field)
             cls._union_options[union_type_field] = {}
             f = getattr(cls, union_type_field)
-            metadata = dict(f.metadata)
-            metadata['union_discriminator'] = True
-            f.metadata = metadata
-            f.repr = False
-            f.init = False
+            cls.union_discriminators.add(f.name)
 
         cls._defining_classes = getattr(cls, '_defining_classes', {}).copy()
         cls._as_definition = getattr(cls, '_as_definition', set()).copy()

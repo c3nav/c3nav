@@ -5,11 +5,11 @@ from typing import Annotated, TypeVar
 import channels
 from annotated_types import Ge, Le, Lt, MaxLen
 from channels.db import database_sync_to_async
-from pydantic import PositiveInt
+from pydantic import PositiveInt, Field
 from pydantic_extra_types.mac_address import MacAddress
 
 from c3nav.api.utils import EnumSchemaByNameMixin
-from c3nav.mesh.baseformats import LenBytes, NoDef, StructType, VarLen, VarStrFormat, normalize_name, CEmbed
+from c3nav.mesh.baseformats import LenBytes, NoDef, StructType, VarLen, VarStrFormat, normalize_name, CEmbed, CDoc
 from c3nav.mesh.dataformats import BoardConfig, ChipType, FirmwareAppDescription, RangeResultItem, RawFTMEntry
 from c3nav.mesh.utils import MESH_ALL_UPLINKS_GROUP
 
@@ -153,52 +153,40 @@ class MeshSigninMessage(MeshMessage, msg_type=MeshMessageType.MESH_SIGNIN):
 @dataclass
 class MeshLayerAnnounceMessage(MeshMessage, msg_type=MeshMessageType.MESH_LAYER_ANNOUNCE):
     """ upstream node announces layer number """
-    layer: Annotated[PositiveInt, Lt(2**8)] = field(metadata={
-        "doc": "mesh layer that the sending node is on",
-    })
+    layer: Annotated[PositiveInt, Lt(2 ** 8), CDoc("mesh layer that the sending node is on")]
 
 
 @dataclass
 class MeshAddDestinationsMessage(MeshMessage, msg_type=MeshMessageType.MESH_ADD_DESTINATIONS):
     """ downstream node announces served destination """
-    addresses: Annotated[list[MacAddress], MaxLen(16), VarLen()] = field(default_factory=list, metadata={
-        "doc": "adresses of the added destinations",
-    })
+    addresses: Annotated[list[MacAddress], MaxLen(16), VarLen(), CDoc("adresses of the added destinations",)]
 
 
 @dataclass
 class MeshRemoveDestinationsMessage(MeshMessage, msg_type=MeshMessageType.MESH_REMOVE_DESTINATIONS):
     """ downstream node announces no longer served destination """
-    addresses: Annotated[list[MacAddress], MaxLen(16), VarLen()] = field(default_factory=list, metadata={
-        "doc": "adresses of the removed destinations",
-    })
+    addresses: Annotated[list[MacAddress], MaxLen(16), VarLen(), CDoc("adresses of the removed destinations",)]
 
 
 @dataclass
 class MeshRouteRequestMessage(MeshMessage, msg_type=MeshMessageType.MESH_ROUTE_REQUEST):
     """ request routing information for node """
     request_id: Annotated[PositiveInt, Lt(2**32)]
-    address: MacAddress = field(metadata={
-        "doc": "target address for the route"
-    })
+    address: Annotated[MacAddress, CDoc("target address for the route")]
 
 
 @dataclass
 class MeshRouteResponseMessage(MeshMessage, msg_type=MeshMessageType.MESH_ROUTE_RESPONSE):
     """ reporting the routing table entry to the given address """
     request_id: Annotated[PositiveInt, Lt(2**32)]
-    route: MacAddress = field(metadata={
-        "doc": "routing table entry or 00:00:00:00:00:00"
-    })
+    route: Annotated[MacAddress, CDoc("routing table entry or 00:00:00:00:00:00")]
 
 
 @dataclass
 class MeshRouteTraceMessage(MeshMessage, msg_type=MeshMessageType.MESH_ROUTE_TRACE):
     """ special message, collects all hop adresses on its way """
     request_id: Annotated[PositiveInt, Lt(2**32)]
-    trace: Annotated[list[MacAddress], MaxLen(16), VarLen()] = field(default_factory=list, metadata={
-        "doc": "addresses encountered by this message",
-    })
+    trace: Annotated[list[MacAddress], MaxLen(16), VarLen(), CDoc("addresses encountered by this message")]
 
 
 @dataclass
