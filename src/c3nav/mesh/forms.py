@@ -14,6 +14,7 @@ from django.forms import BooleanField, ChoiceField, Form, ModelMultipleChoiceFie
 from django.http import Http404
 from django.utils.translation import gettext_lazy as _
 
+from c3nav.mesh.baseformats import UnionFormat, get_format
 from c3nav.mesh.dataformats import BoardConfig, BoardType, LedType, SerialLedType
 from c3nav.mesh.messages import MESH_BROADCAST_ADDRESS, MESH_ROOT_ADDRESS, MeshMessage, MeshMessageType
 from c3nav.mesh.models import (FirmwareBuild, HardwareDescription, MeshNode, OTARecipientStatus, OTAUpdate,
@@ -173,8 +174,8 @@ class ConfigBoardMessageForm(MeshMessageForm):
             "prefix": "led_",
             "field": "board",
             "values": tuple(
-                cfg.board.name for cfg in BoardConfig._union_options["board"].values()
-                if "led" in cfg.__dataclass_fields__
+                board_type.name for board_type, cfg_format in get_format(BoardConfig).models.items()
+                if "led" in cfg_format._field_formats
             ),
         },
         {
@@ -191,8 +192,8 @@ class ConfigBoardMessageForm(MeshMessageForm):
             "prefix": "uwb_",
             "field": "board",
             "values": tuple(
-                cfg.board.name for cfg in BoardConfig._union_options["board"].values()
-                if "uwb" in cfg.__dataclass_fields__
+                board_type.name for board_type, cfg_format in get_format(BoardConfig).models.items()
+                if "uwb" in cfg_format._field_formats
             ),
         },
         {

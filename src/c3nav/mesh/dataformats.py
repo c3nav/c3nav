@@ -132,12 +132,12 @@ class BoardType(EnumSchemaByNameMixin, IntEnum):
 
 
 @dataclass
-class BoardConfig(StructType, union_type_field="board"):
+class BaseBoardConfig(StructType, union_type_field="board"):
     board: Annotated[BoardType, AsHex()] = field()  # todo: fix code so this field() isn't needed
 
 
 @dataclass
-class CustomBoardConfig(BoardConfig, board=BoardType.CUSTOM):
+class CustomBoardConfig(BaseBoardConfig, board=BoardType.CUSTOM):
     spi: Annotated[BoardSPIConfig, AsDefinition()]
     uwb: Annotated[UWBConfig, AsDefinition()]
     eth: Annotated[UplinkEthConfig, AsDefinition()]
@@ -145,32 +145,45 @@ class CustomBoardConfig(BoardConfig, board=BoardType.CUSTOM):
 
 
 @dataclass
-class DevkitMBoardConfig(BoardConfig, board=BoardType.ESP32_C3_DEVKIT_M_1):
+class DevkitMBoardConfig(BaseBoardConfig, board=BoardType.ESP32_C3_DEVKIT_M_1):
     spi: Annotated[BoardSPIConfig, AsDefinition()]
     uwb: Annotated[UWBConfig, AsDefinition()]
     eth: Annotated[UplinkEthConfig, AsDefinition()]
 
 
 @dataclass
-class Esp32SBoardConfig(BoardConfig, board=BoardType.ESP32_C3_32S):
+class Esp32SBoardConfig(BaseBoardConfig, board=BoardType.ESP32_C3_32S):
     spi: Annotated[BoardSPIConfig, AsDefinition()]
     uwb: Annotated[UWBConfig, AsDefinition()]
     eth: Annotated[UplinkEthConfig, AsDefinition()]
 
 
 @dataclass
-class UwbBoardConfig(BoardConfig, board=BoardType.C3NAV_UWB_BOARD):
+class UwbBoardConfig(BaseBoardConfig, board=BoardType.C3NAV_UWB_BOARD):
     eth: Annotated[UplinkEthConfig, AsDefinition()]
 
 
 @dataclass
-class LocationPCBRev0Dot1BoardConfig(BoardConfig, board=BoardType.C3NAV_LOCATION_PCB_REV_0_1):
+class LocationPCBRev0Dot1BoardConfig(BaseBoardConfig, board=BoardType.C3NAV_LOCATION_PCB_REV_0_1):
     eth: Annotated[UplinkEthConfig, AsDefinition()]
 
 
 @dataclass
-class LocationPCBRev0Dot2BoardConfig(BoardConfig, board=BoardType.C3NAV_LOCATION_PCB_REV_0_2):
+class LocationPCBRev0Dot2BoardConfig(BaseBoardConfig, board=BoardType.C3NAV_LOCATION_PCB_REV_0_2):
     eth: Annotated[UplinkEthConfig, AsDefinition()]
+
+
+BoardConfig = Annotated[
+    Union[
+        CustomBoardConfig,
+        DevkitMBoardConfig,
+        Esp32SBoardConfig,
+        UwbBoardConfig,
+        LocationPCBRev0Dot1BoardConfig,
+        LocationPCBRev0Dot2BoardConfig,
+    ],
+    Discriminator("board")
+]
 
 
 @dataclass

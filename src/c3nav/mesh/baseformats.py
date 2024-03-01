@@ -859,6 +859,11 @@ def split_type_hint(type_hint) -> SplitTypeHint:
     )
 
 
+def get_format(type_, attr_name=None) -> BaseFormat:
+    # todo: move this somewhere?
+    return get_type_hint_format(split_type_hint(type_))
+
+
 # todo: move this somewhere?
 def get_type_hint_format(type_hint: SplitTypeHint, attr_name=None) -> BaseFormat:
     # todo: attr_name nicer?
