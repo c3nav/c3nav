@@ -460,11 +460,9 @@ class StructFormat(BaseFormat):
             # todo: is this needed?
             relevant_fields = set(
                 name for name in self._field_formats.keys()
-                if self.model._defining_classes[name] == self.model
             )
         else:
-            relevant_fields = set(name for name in self._field_formats.keys()
-                                  if name not in self.model.union_discriminators)
+            relevant_fields = set(name for name in self._field_formats.keys())
         # todo: time to get rid of a thing here!!
         return sum((
             field_format.get_min_size()
@@ -481,11 +479,10 @@ class StructFormat(BaseFormat):
             # todo: is this needed?
             relevant_fields = set(
                 name for name in self._field_formats.keys()
-                if self.model._defining_classes[name] == self.model
+
             )
         else:
-            relevant_fields = set(name for name in self._field_formats.keys()
-                                  if name not in self.model.union_discriminators)
+            relevant_fields = set(name for name in self._field_formats.keys())
         return sum((
             field_format.get_size(calculate_max=calculate_max)
             for name, field_format in self._field_formats.items()
@@ -500,24 +497,20 @@ class StructFormat(BaseFormat):
         for name, field_format in self._field_formats.items():
             if name in ignore_fields:
                 continue
-            if in_union and self.model._defining_classes[name] != self.model:
-                continue
 
             c_name = self._c_names.get(name, name)
             if not isinstance(field_format, (StructFormat, UnionFormat)):
-                if (name not in self.model.union_discriminators or
-                        self.model._defining_classes[name] == self.model):
-                    items.append((
-                        (
-                            ("%(typedef_name)s %(name)s;" % {
-                                "typedef_name": field_format.get_typedef_name(),
-                                "name": c_name,
-                            })
-                            if name in self._as_definition
-                            else field_format.get_c_code(c_name)
-                        ),
-                        self._c_docs.get(name, None),
-                    )),
+                items.append((
+                    (
+                        ("%(typedef_name)s %(name)s;" % {
+                            "typedef_name": field_format.get_typedef_name(),
+                            "name": c_name,
+                        })
+                        if name in self._as_definition
+                        else field_format.get_c_code(c_name)
+                    ),
+                    self._c_docs.get(name, None),
+                )),
             else:
                 if name in self._c_embed:
                     embedded_items = field_format.get_c_struct_items(ignore_fields, no_empty, top_level, union_only)
@@ -652,9 +645,9 @@ class UnionFormat(BaseFormat):
 
     def get_min_size(self, no_inherited_fields=False) -> int:
         return max([0] + [
-            field_format.get_min_size()
-            for field_format in self.models.values()
-        ])
+            model_format.get_min_size()
+            for model_format in self.models.values()
+        ]) - self.discriminator_format.get_min_size()
 
     def get_max_size(self) -> int:
         raise ValueError
@@ -689,7 +682,7 @@ class UnionFormat(BaseFormat):
         for key, model_format in self.models.items():
             base_name = normalize_name(getattr(key, 'name', model_format.model.__name__))  # todo: better?
             item_c_code = model_format.get_c_code(
-                base_name, ignore_fields=ignore_fields, typedef=False, in_union=True, no_empty=True
+                base_name, ignore_fields=(self.discriminator, ), typedef=False, in_union=True, no_empty=True
             )
             if item_c_code:
                 union_items.append(item_c_code)
@@ -781,26 +774,16 @@ class UnionFormat(BaseFormat):
 class StructType:
     _union_options = {}
     union_type_field = None
-    _defining_classes = {}
-    union_discriminators = set()
 
     # noinspection PyMethodOverriding
     def __init_subclass__(cls, /, union_type_field=None, **kwargs):
         cls.union_type_field = union_type_field
 
-        cls.union_discriminators = getattr(cls, 'union_discriminators', set()).copy()
         if union_type_field:
             if union_type_field in cls._union_options:
                 raise TypeError('Duplicate union_type_field: %s', union_type_field)
             cls._union_options[union_type_field] = {}
             f = getattr(cls, union_type_field)
-            cls.union_discriminators.add(f.name)
-
-        cls._defining_classes = getattr(cls, '_defining_classes', {}).copy()
-        cls._as_definition = getattr(cls, '_as_definition', set()).copy()
-
-        for attr_name in typing.get_type_hints(cls, include_extras=True).keys():
-            cls._defining_classes.setdefault(attr_name, cls)
 
         for key, values in cls._union_options.items():
             value = kwargs.pop(key, None)

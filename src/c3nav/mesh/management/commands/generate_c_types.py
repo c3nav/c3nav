@@ -2,7 +2,7 @@ from dataclasses import fields
 
 from django.core.management.base import BaseCommand
 
-from c3nav.mesh.baseformats import StructType, normalize_name, StructFormat, get_format
+from c3nav.mesh.baseformats import StructType, normalize_name, StructFormat, get_format, UnionFormat
 from c3nav.mesh.messages import MeshMessage, MeshMessageContent
 from c3nav.mesh.utils import indent_c
 
@@ -18,13 +18,15 @@ class Command(BaseCommand):
         done_definitions = set()
 
         includes = set()
-        for msg_type, msg_content_format in get_format(MeshMessageContent).models.items():
+        mesh_msg_content_format: UnionFormat = get_format(MeshMessageContent)
+        discriminator_size = mesh_msg_content_format.discriminator_format.get_size()
+        for msg_type, msg_content_format in mesh_msg_content_format.models.items():
             # todo: run this on the union
             includes.update(msg_content_format.get_c_includes())
         for include in includes:
             print(f'#include {include}')
 
-        for msg_type, msg_content_format in get_format(MeshMessageContent).models.items():
+        for msg_type, msg_content_format in mesh_msg_content_format.models.items():
             base_name = normalize_name(getattr(msg_type, 'name', msg_content_format.model.__name__))
             name = "mesh_msg_%s_t" % base_name
 
@@ -38,6 +40,8 @@ class Command(BaseCommand):
             if code:
                 size = msg_content_format.get_size(no_inherited_fields=True, calculate_max=False)
                 max_size = msg_content_format.get_size(no_inherited_fields=True, calculate_max=True)
+                size -= discriminator_size
+                max_size -= discriminator_size
                 struct_lines[base_name] = "%s %s;" % (name, base_name.replace('_announce', ''))
                 struct_sizes.append(size)
                 struct_max_sizes.append(max_size)
@@ -63,10 +67,10 @@ class Command(BaseCommand):
 
         print()
 
-        max_msg_type = max(get_format(MeshMessageContent).models.keys())
+        max_msg_type = max(mesh_msg_content_format.models.keys())
         macro_data = []
         for i in range(((max_msg_type//16)+1)*16):
-            msg_content_format = get_format(MeshMessageContent).models.get(i, None)
+            msg_content_format = mesh_msg_content_format.models.get(i, None)
             if msg_content_format:
                 name = normalize_name(getattr(msg_content_format.model.msg_type, 'name',
                                               msg_content_format.model.__name__))
@@ -74,7 +78,7 @@ class Command(BaseCommand):
                     msg_content_format.model.get_c_enum_name(),
                     ("nodata" if msg_content_format.model in nodata else name),
                     msg_content_format.get_var_num(), # todo: uh?
-                    msg_content_format.get_size(no_inherited_fields=True, calculate_max=True),
+                    msg_content_format.get_size(no_inherited_fields=True, calculate_max=True) - discriminator_size,
                     msg_content_format.model.__doc__.strip(),
                 ))
             else:
