@@ -4,13 +4,12 @@ import typing
 from abc import ABC, abstractmethod
 from collections import namedtuple
 from contextlib import suppress
-from dataclasses import Field, dataclass
+from dataclasses import dataclass
 from dataclasses import fields as dataclass_fields
 from enum import IntEnum
 from typing import Any, Self, Sequence
 
 from annotated_types import SLOTS, BaseMetadata, Ge
-from pydantic import create_model
 from pydantic.fields import FieldInfo
 from pydantic_extra_types.mac_address import MacAddress
 

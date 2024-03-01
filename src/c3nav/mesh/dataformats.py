@@ -9,8 +9,7 @@ from pydantic.types import Discriminator
 from pydantic_extra_types.mac_address import MacAddress
 
 from c3nav.api.utils import EnumSchemaByNameMixin, TwoNibblesEncodable
-from c3nav.mesh.baseformats import AsHex, FixedHexFormat, StructType, AsDefinition, CName, ExistingCStruct, UnionFormat, \
-    StructFormat
+from c3nav.mesh.baseformats import AsHex, FixedHexFormat, StructType, AsDefinition, CName, ExistingCStruct
 
 
 class MacAddressFormat(FixedHexFormat):
