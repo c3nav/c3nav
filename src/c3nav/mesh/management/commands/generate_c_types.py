@@ -11,7 +11,6 @@ class Command(BaseCommand):
     help = 'export mesh message structs for c code'
 
     def handle(self,  *args, **options):
-        done_struct_names = set()
         nodata = set()
         struct_lines = {}
         struct_sizes = []
@@ -27,18 +26,7 @@ class Command(BaseCommand):
 
         ignore_names = set(field_.name for field_ in fields(MeshMessage))
         for msg_type, msg_class in MeshMessage.get_types().items():
-            if msg_class.c_struct_name:
-                if msg_class.c_struct_name in done_struct_names:
-                    continue
-                done_struct_names.add(msg_class.c_struct_name)
-                if MeshMessage.c_structs[msg_class.c_struct_name] != msg_class:
-                    # the purpose of MeshMessage.c_structs is unclear, currently this never triggers
-                    # todo get rid of the whole c_structs thing if it doesn't turn out to be useful for anything
-                    raise ValueError('what happened?')
-
-            base_name = (msg_class.c_struct_name or normalize_name(
-                getattr(msg_type, 'name', msg_class.__name__)
-            ))
+            base_name = normalize_name(getattr(msg_type, 'name', msg_class.__name__))
             name = "mesh_msg_%s_t" % base_name
 
             for definition_name, definition in StructFormat(msg_class).get_c_definitions().items():
@@ -81,9 +69,7 @@ class Command(BaseCommand):
         for i in range(((max_msg_type//16)+1)*16):
             msg_class = MeshMessage.get_types().get(i, None)
             if msg_class:
-                name = (msg_class.c_struct_name or normalize_name(
-                    getattr(msg_class.msg_type, 'name', msg_class.__name__)
-                ))
+                name = normalize_name(getattr(msg_class.msg_type, 'name', msg_class.__name__))
                 macro_data.append((
                     msg_class.get_c_enum_name(),
                     ("nodata" if msg_class in nodata else name),

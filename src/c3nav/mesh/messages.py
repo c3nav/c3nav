@@ -81,17 +81,6 @@ class MeshMessage(StructType, union_type_field="msg_type"):
     dst: MacAddress
     src: MacAddress
     msg_type: Annotated[MeshMessageType, NoDef()] = field(init=False, repr=False)
-    c_structs = {}
-    c_struct_name = None
-
-    # noinspection PyMethodOverriding
-    def __init_subclass__(cls, /, c_struct_name=None, **kwargs):
-        super().__init_subclass__(**kwargs)
-        if c_struct_name:
-            cls.c_struct_name = c_struct_name
-            if c_struct_name in MeshMessage.c_structs:
-                raise TypeError('duplicate use of c_struct_name %s' % c_struct_name)
-            MeshMessage.c_structs[c_struct_name] = cls
 
     async def send(self, sender=None, exclude_uplink_address=None) -> bool:
         data = {
