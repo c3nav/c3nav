@@ -79,12 +79,6 @@ class BaseFormat(ABC):
     def decode(cls, data) -> tuple[Any, bytes]:
         pass
 
-    def fromjson(self, data):
-        return data
-
-    def tojson(self, data):
-        return data
-
     @abstractmethod
     def get_min_size(self):
         pass
@@ -218,12 +212,6 @@ class EnumFormat(SimpleFormat):
             return super().get_c_parts()
         return self.c_struct_name, ""
 
-    def fromjson(self, data):
-        return self.field_type[data]
-
-    def tojson(self, data):
-        return data.name
-
     def get_c_definitions(self) -> dict[str, str]:
         if not self.c_definition:
             return {}
@@ -263,16 +251,6 @@ class TwoNibblesEnumFormat(SimpleFormat):
             getattr(value, fields[0].name).value * 2 ** 4 +
             getattr(value, fields[1].name).value * 2 ** 4
         )
-
-    def fromjson(self, data):
-        fields = dataclass_fields(self.field_type)
-        return self.field_type(*(field.type[data[field.name]] for field in fields))
-
-    def tojson(self, data):
-        fields = dataclass_fields(self.field_type)
-        return {
-            field.name: getattr(data, field.name).name for field in fields
-        }
 
 
 class BoolFormat(SimpleFormat):
@@ -373,16 +351,6 @@ class VarArrayFormat(BaseVarFormat):
             result.append(item)
         return result, data
 
-    def fromjson(self, data):
-        return [
-            self.child_type.fromjson(item) for item in data
-        ]
-
-    def tojson(self, data):
-        return [
-            self.child_type.tojson(item) for item in data
-        ]
-
     def get_c_parts(self):
         pre, post = self.child_type.get_c_parts()
         return super().get_num_c_code() + "\n" + pre, "[0]" + post
@@ -437,7 +405,7 @@ class VarBytesFormat(BaseVarFormat):
 T = typing.TypeVar('T', bound="StructType")
 
 
-class StructFormat(ABC):
+class StructFormat(BaseFormat):
     _format_cache: dict[typing.Type["StructType"], dict[str, BaseFormat]]
 
     def __init__(self, model: typing.Type[T]):
@@ -470,22 +438,10 @@ class StructFormat(ABC):
     def encode(self, instance: T, ignore_fields=()) -> bytes:
         # todo: remove ignore_fields? is it needed?
         data = bytes()
-        if self.model.union_type_field and type(instance) is not self.model:
-            if not isinstance(instance, self.model):
-                raise ValueError('expected value of type %r, got %r' % (self.model, instance))
-
-            for name, field_format in self._field_formats.items():
-                data += field_format.encode(getattr(instance, name))
-
-            # todo: instance.encode… well i mean this code shall disappear completely anyway
-            data += instance.encode(instance, ignore_fields=set(self._field_formats.keys()))
-            return data
-
         for name, field_format in self._field_formats.items():
             if name in ignore_fields:
                 continue
-            value = getattr(instance, name)
-            data += field_format.encode(value)
+            data += field_format.encode(getattr(instance, name))
         return data
 
     def decode(self, data: bytes) -> tuple[T, bytes]:
@@ -498,79 +454,9 @@ class StructFormat(ABC):
             kwargs[name] = value
             #else:
             #    no_init_data[field_.name] = value
-
-        if self.model.union_type_field:
-            try:
-                type_value = no_init_data[self.model.union_type_field]
-            except KeyError:
-                raise TypeError('union_type_field %s.%s is missing' %
-                                (self.model.__name__, self.model.union_type_field))
-            try:
-                klass = self.model.get_type(type_value)
-            except KeyError:
-                raise TypeError('union_type_field %s.%s value %r no known' %
-                                (self.model.__name__, self.model.union_type_field, type_value))
-            return klass.decode(orig_data)
         return self.model(**kwargs), data
 
-    def fromjson(self, data) -> T:
-        data = data.copy()
-
-        kwargs = {}
-        no_init_data = {}
-        for name, field_format in self._field_formats.items():
-            raw_value = data.get(name, None)
-            value = field_format.fromjson(raw_value)
-            #if field_.init:  # todo: what abot no_init_data?
-            kwargs[name] = value
-            #else:
-            #    no_init_data[field_.name] = value
-
-        if self.model.union_type_field:
-            try:
-                type_value = no_init_data.pop(self.model.union_type_field)
-            except KeyError:
-                raise TypeError('union_type_field %s.%s is missing' %
-                                (self.model.__name__, self.model.union_type_field))
-            try:
-                klass = self.model.get_type(type_value)
-            except KeyError:
-                raise TypeError('union_type_field %s.%s value 0x%02x no known' %
-                                (self.model.__name__, self.model.union_type_field, type_value))
-            return klass.fromjson(data)
-
-        return self.model(**kwargs)
-
-    def tojson(self, instance: T):
-        result = {}
-
-        if self.model.union_type_field and type(instance) is not self.model:
-            if not isinstance(instance, self.model):
-                raise ValueError('expected value of type %r, got %r' % (self.model, instance))
-
-            for name, field_format in self._field_formats.items():
-                if name is self.model.union_type_field:
-                    result[name] = field_format.tojson(getattr(instance, name))
-                    break
-            else:
-                raise TypeError('couldn\'t find %s value' % self.model.union_type_field)
-
-            result.update(instance.tojson(instance))
-            return result
-
-        for name, field_format in self._field_formats.items():
-            value = getattr(instance, name)
-            result[name] = field_format.tojson(value)
-        return result
-
     def get_min_size(self, no_inherited_fields=False) -> int:
-        if self.model.union_type_field:
-            own_size = sum([field_format.get_min_size() for field_format in self._field_formats.values()])
-            union_size = max([0] + [
-                StructFormat(option).get_min_size(True)
-                for option in self.model._union_options[self.model.union_type_field].values()
-            ])
-            return own_size + union_size
         if no_inherited_fields:
             # todo: is this needed?
             relevant_fields = set(
@@ -592,15 +478,6 @@ class StructFormat(ABC):
 
     def get_size(self, no_inherited_fields=False, calculate_max=False):
         # todo: remove no_inherited fields? still needed?
-        if self.model.union_type_field:
-            own_size = sum(
-                [field_format.get_size(calculate_max=calculate_max) for field_format in self._field_formats.values()]
-            )
-            union_size = max(
-                [0] + [StructFormat(option).get_size(no_inherited_fields=True, calculate_max=calculate_max)
-                       for option in self.model._union_options[self.model.union_type_field].values()]
-            )
-            return own_size + union_size
         if no_inherited_fields:
             # todo: is this needed?
             relevant_fields = set(
@@ -628,7 +505,7 @@ class StructFormat(ABC):
                 continue
 
             c_name = self._c_names.get(name, name)
-            if not isinstance(field_format, StructFormat):
+            if not isinstance(field_format, (StructFormat, UnionFormat)):
                 if (name not in self.model.union_discriminators or
                         self.model._defining_classes[name] == self.model):
                     items.append((
@@ -674,11 +551,7 @@ class StructFormat(ABC):
         ignore_fields = set() if not ignore_fields else set(ignore_fields)
 
         if union_only:
-            if self.model.union_type_field:
-                union_code = self.model.get_c_union_code(ignore_fields)
-                return "typedef union __packed %s" % union_code, ""
-            else:
-                return "", ""
+            return "", ""
 
         pre = ""
 
@@ -734,10 +607,6 @@ class StructFormat(ABC):
                     }
                 else:
                     definitions[typedef_name] = field_format.get_c_code(name=typedef_name, typedef=True)
-        if self.model.union_type_field:
-            for key, option in self.model._union_options[self.model.union_type_field].items():
-                # todo: get rid of this too, old union code
-                definitions.update(StructFormat(option).get_c_definitions())
         return definitions
 
     def get_typedef_name(self):
@@ -752,18 +621,169 @@ class StructFormat(ABC):
         return result
 
 
+class UnionFormat(BaseFormat):
+    def __init__(self, model_formats: Sequence[StructFormat], discriminator: str):
+        self.discriminator = discriminator
+        self.models = {
+            getattr(model_format.model, discriminator): model_format for model_format in model_formats
+        }
+        if len(self.models) != len(model_formats):
+            raise ValueError
+        types = set(type(value) for value in self.models.keys())
+        if len(types) != 1:
+            raise ValueError
+        type_ = tuple(types)[0]
+        if not issubclass(type_, IntEnum):
+            raise ValueError
+        self.discriminator_format = get_type_hint_format(split_type_hint(type_))
+
+    def get_var_num(self):
+        return 0  # todo: is this always correct?
+
+    def encode(self, instance, ignore_fields=()) -> bytes:
+        # todo: remove ignore_fields? is it needed?
+        # todo: make sure instance is valid
+        discriminator_value = getattr(instance, self.discriminator)
+        self.discriminator_format.encode(discriminator_value)
+        return self.models[discriminator_value].encode(instance, ignore_fields=(self.discriminator, ))
+
+    def decode(self, data: bytes) -> tuple[T, bytes]:
+        discriminator_value, remaining_data = self.discriminator_format.decode(data)
+        return self.models[discriminator_value].decode(data)
+
+    def get_min_size(self, no_inherited_fields=False) -> int:
+        return max([0] + [
+            field_format.get_min_size()
+            for field_format in self.models.values()
+        ])
+
+    def get_max_size(self) -> int:
+        raise ValueError
+
+    def get_size(self, no_inherited_fields=False, calculate_max=False):
+        # todo: remove no_inherited fields? still needed?
+        return max([0] + [
+            field_format.get_size(calculate_max=calculate_max)
+            for field_format in self.models.values()
+        ])
+
+    def get_c_struct_items(self, ignore_fields=None, no_empty=False, top_level=False, union_only=False, in_union=False):
+        items = [(
+            self.discriminator_format.get_c_code(self.discriminator),
+            None,
+        )]
+
+        if not union_only:
+            union_code = self.get_c_union_code(ignore_fields)
+            items.append(("union __packed %s;" % union_code, ""))
+
+        return items
+
+    def get_c_union_size(self):
+        return max(
+            (model_format.get_min_size(no_inherited_fields=True) for model_format in self.models.values()),
+            default=0,
+        )
+
+    def get_c_union_code(self, ignore_fields=None):
+        union_items = []
+        for key, model_format in self.models.items():
+            base_name = normalize_name(getattr(key, 'name', model_format.model.__name__))  # todo: better?
+            item_c_code = model_format.get_c_code(
+                base_name, ignore_fields=ignore_fields, typedef=False, in_union=True, no_empty=True
+            )
+            if item_c_code:
+                union_items.append(item_c_code)
+        size = self.get_c_union_size()
+        union_items.append(
+            "uint8_t bytes[%0d]; " % size
+        )
+        return "{\n" + indent_c("\n".join(union_items)) + "\n}"
+
+    def get_c_parts(self, ignore_fields=None, no_empty=False, top_level=False, union_only=False, in_union=False) -> tuple[str, str]:
+        # todo: parameters needed?
+        ignore_fields = set() if not ignore_fields else set(ignore_fields)
+
+        if union_only:
+            union_code = self.model.get_c_union_code(ignore_fields)
+            return "typedef union __packed %s" % union_code, ""
+
+        pre = ""
+
+        # todo: we should be able to shorten this considerably
+
+        items = self.get_c_struct_items(ignore_fields=ignore_fields,
+                                        no_empty=no_empty,
+                                        top_level=top_level,
+                                        union_only=union_only,
+                                        in_union=in_union)
+
+        if no_empty and not items:
+            return "", ""
+
+        if top_level:
+            pre += "typedef struct __packed "
+        else:
+            pre += "struct __packed "
+
+        pre += "{\n%(elements)s\n}" % {
+            "elements": indent_c(
+                "\n".join(
+                    code + ("" if not comment else (" /** %s */" % comment))
+                    for code, comment in items
+                )
+            ),
+        }
+        return pre, ""
+
+    def get_c_code(self, name=None, ignore_fields=None, no_empty=False, typedef=True, union_only=False,
+                   in_union=False) -> str:
+        pre, post = self.get_c_parts(ignore_fields=ignore_fields,
+                                     no_empty=no_empty,
+                                     top_level=typedef,
+                                     union_only=union_only,
+                                     in_union=in_union)
+        if no_empty and not pre and not post:
+            return ""
+        return "%s %s%s;" % (pre, name, post)
+
+    def get_c_definitions(self) -> dict[str, str]:
+        definitions = {}
+        for model_format in self.models.values():
+            definitions.update(model_format.get_c_definitions())
+        return definitions
+
+    def get_typedef_name(self):
+        names = [model_format.model.__name__ for model_format in self.models.values()]
+        min_len = min(len(name) for name in names)
+        longest_prefix = ''
+        longest_suffix = ''
+        for i in reversed(range(min_len)):
+            a = set(name[:i] for name in names)
+            if len(a) == 1:
+                longest_prefix = tuple(a)[0]
+                break
+        for i in reversed(range(min_len)):
+            a = set(name[-i:] for name in names)
+            if len(a) == 1:
+                longest_suffix = tuple(a)[0]
+                break
+        return "%s_t" % normalize_name(longest_prefix if len(longest_prefix) > len(longest_suffix) else longest_suffix)
+
+    def get_c_includes(self) -> set:
+        result = set()
+        result.update(self.discriminator_format.get_c_includes())
+        for model_format in self.models.values():
+            result.update(model_format.get_c_includes())
+        return result
+
+
 @dataclass
 class StructType:
     _union_options = {}
     union_type_field = None
     _defining_classes = {}
     union_discriminators = set()
-
-    @classmethod
-    def get_field_format(cls, attr_name) -> BaseFormat:
-        type_hint = split_type_hint(typing.get_type_hints(cls, include_extras=True)[attr_name])
-
-        return get_type_hint_format(type_hint, attr_name=attr_name)
 
     # noinspection PyMethodOverriding
     def __init_subclass__(cls, /, union_type_field=None, **kwargs):
@@ -812,22 +832,6 @@ class StructType:
              cls._union_options[cls.union_type_field].values()),
             default=0,
         )
-
-    @classmethod
-    def get_c_union_code(cls, ignore_fields=None):
-        union_items = []
-        for key, option in cls._union_options[cls.union_type_field].items():
-            base_name = normalize_name(getattr(key, 'name', option.__name__))
-            item_c_code = StructFormat(option).get_c_code(
-                base_name, ignore_fields=ignore_fields, typedef=False, in_union=True, no_empty=True
-            )
-            if item_c_code:
-                union_items.append(item_c_code)
-        size = cls.get_c_union_size()
-        union_items.append(
-            "uint8_t bytes[%0d]; " % size
-        )
-        return "{\n" + indent_c("\n".join(union_items)) + "\n}"
 
 
 SplitTypeHint = namedtuple("SplitTypeHint", ("base", "metadata"))
@@ -963,7 +967,12 @@ def get_type_hint_format(type_hint: SplitTypeHint, attr_name=None) -> BaseFormat
     if field_format is not None:
         field_format.set_field_type(type_hint.base)
     elif isinstance(type_hint.base, type) and issubclass(type_hint.base, StructType):
-        field_format = StructFormat(model=type_hint.base)
+        if type_hint.base.union_type_field:
+            # todo: get rid of this, backwards compatibility
+            field_format = UnionFormat(model_formats=[StructFormat(s) for s in type_hint.base.get_types().values()],
+                                       discriminator=type_hint.base.union_type_field)
+        else:
+            field_format = StructFormat(model=type_hint.base)
 
     if field_format is None:
         raise ValueError('Uknown type annotation for c structs', type_hint.base)
