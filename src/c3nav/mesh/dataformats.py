@@ -1,10 +1,11 @@
 import re
 from dataclasses import dataclass, field
 from enum import IntEnum, unique
-from typing import Annotated, BinaryIO, Literal, Self
+from typing import Annotated, BinaryIO, Literal, Self, Union
 
 from annotated_types import Gt, Lt, MaxLen, Le
 from pydantic import NegativeInt, PositiveInt
+from pydantic.types import Discriminator
 from pydantic_extra_types.mac_address import MacAddress
 
 from c3nav.api.utils import EnumSchemaByNameMixin, TwoNibblesEncodable
@@ -35,7 +36,8 @@ class SerialLedType(IntEnum):
 
 
 @dataclass
-class LedConfig(StructType, union_type_field="led_type"):
+class LedConfigBase(StructType, union_type_field="led_type"):
+    # todo: remove eventually
     """
     configuration for an optional connected status LED
     """
@@ -43,21 +45,31 @@ class LedConfig(StructType, union_type_field="led_type"):
 
 
 @dataclass
-class NoLedConfig(LedConfig, led_type=LedType.NONE):
+class NoLedConfig(LedConfigBase, led_type=LedType.NONE):
     pass
 
 
 @dataclass
-class SerialLedConfig(LedConfig, led_type=LedType.SERIAL):
+class SerialLedConfig(LedConfigBase, led_type=LedType.SERIAL):
     serial_led_type: Annotated[SerialLedType, CName("type")] = field()  # todo: we need a way to remove this field()
     gpio: Annotated[PositiveInt, Lt(2**8)]
 
 
 @dataclass
-class MultipinLedConfig(LedConfig, led_type=LedType.MULTIPIN):
+class MultipinLedConfig(LedConfigBase, led_type=LedType.MULTIPIN):
     gpio_red: Annotated[PositiveInt, Lt(2**8)]
     gpio_green: Annotated[PositiveInt, Lt(2**8)]
     gpio_blue: Annotated[PositiveInt, Lt(2**8)]
+
+
+LedConfig = Annotated[
+    Union[
+        NoLedConfig,
+        SerialLedConfig,
+        MultipinLedConfig,
+    ],
+    Discriminator("led_type")
+]
 
 
 @dataclass

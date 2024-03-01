@@ -891,6 +891,16 @@ def get_type_hint_format(type_hint: SplitTypeHint, attr_name=None) -> BaseFormat
         if int_type is None:
             raise ValueError('invalid range:', attr_name)
         field_format = SimpleConstFormat(int_type, const_value=literal_val)
+    elif typing.get_origin(type_hint.base) is typing.Union:
+        discriminator = None
+        for m in type_hint.metadata:
+            discriminator = getattr(m, 'discriminator', discriminator)
+        if discriminator is None:
+            raise ValueError('no discriminator')
+        field_format = UnionFormat(
+            model_formats=[StructFormat(type_) for type_ in typing.get_args(type_hint.base)],
+            discriminator=discriminator,
+        )
     elif type_hint.base is int:
         min_ = -(2**63)
         max_ = 2**63-1
@@ -975,7 +985,7 @@ def get_type_hint_format(type_hint: SplitTypeHint, attr_name=None) -> BaseFormat
             field_format = StructFormat(model=type_hint.base)
 
     if field_format is None:
-        raise ValueError('Uknown type annotation for c structs', type_hint.base)
+        raise ValueError('Unknown type annotation for c structs', type_hint.base)
     else:
         if outer_type_hint is not None and outer_type_hint.base is list:
             max_length = None
