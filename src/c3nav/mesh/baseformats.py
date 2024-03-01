@@ -757,7 +757,6 @@ class StructType:
     _union_options = {}
     union_type_field = None
     _defining_classes = {}
-    c_includes = set()
     union_discriminators = set()
 
     @classmethod
@@ -792,31 +791,6 @@ class StructType:
                 values[value] = cls
                 setattr(cls, key, value)
 
-        # pydantic model – todo: we should be able to get rid of this eventually
-        cls._pydantic_fields = getattr(cls, '_pydantic_fields', {}).copy()
-        fields = []
-        for field_ in dataclass_fields(cls):
-            fields.append((field_.name, field_.type, field_.metadata))
-        for attr_name in tuple(cls.__annotations__.keys()):
-            attr = getattr(cls, attr_name, None)
-            metadata = attr.metadata if isinstance(attr, Field) else {}
-            try:
-                type_ = cls.__annotations__[attr_name]
-            except KeyError:
-                # print('nope', cls, attr_name)
-                continue
-            fields.append((attr_name, type_, metadata))
-        for name, type_, metadata in fields:
-            try:
-                field_format = cls.get_field_format(name)
-            except TypeError:
-                # todo: in case of not a field, ignore it?
-                continue
-            if not isinstance(field_format, StructFormat):
-                cls._pydantic_fields[name] = (type_, ...)
-            else:
-                cls._pydantic_fields[name] = (type_.schema, ...)
-        cls.schema = create_model(cls.__name__ + 'Schema', **cls._pydantic_fields)
         super().__init_subclass__(**kwargs)
 
     @classmethod

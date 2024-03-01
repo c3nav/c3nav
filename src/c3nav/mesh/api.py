@@ -93,7 +93,7 @@ def firmware_by_id(request, firmware_id: int):
 @mesh_api_router.get('/firmwares/{firmware_id}/{variant}/image_data',
                      summary="firmware image header",
                      description="get firmware image header for specific firmware build",
-                     response={200: FirmwareImage.schema, **API404.dict(), **auth_responses},
+                     response={200: FirmwareImage, **API404.dict(), **auth_responses},
                      openapi_extra={
                          "externalDocs": {
                              'description': 'esp-idf docs',
