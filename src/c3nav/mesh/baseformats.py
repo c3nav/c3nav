@@ -964,12 +964,7 @@ def get_type_hint_format(type_hint: SplitTypeHint, attr_name=None) -> BaseFormat
     if field_format is not None:
         field_format.set_field_type(type_hint.base)
     elif isinstance(type_hint.base, type) and issubclass(type_hint.base, StructType):
-        if type_hint.base.union_type_field:
-            # todo: get rid of this, backwards compatibility
-            field_format = UnionFormat(model_formats=[StructFormat(s) for s in type_hint.base.get_types().values()],
-                                       discriminator=type_hint.base.union_type_field)
-        else:
-            field_format = StructFormat(model=type_hint.base)
+        field_format = StructFormat(model=type_hint.base)
 
     if field_format is None:
         raise ValueError('Unknown type annotation for c structs', type_hint.base)
