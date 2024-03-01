@@ -2,8 +2,8 @@ from dataclasses import fields
 
 from django.core.management.base import BaseCommand
 
-from c3nav.mesh.baseformats import StructType, normalize_name, StructFormat
-from c3nav.mesh.messages import MeshMessage
+from c3nav.mesh.baseformats import StructType, normalize_name, StructFormat, get_format
+from c3nav.mesh.messages import MeshMessage, MeshMessageContent
 from c3nav.mesh.utils import indent_c
 
 
@@ -18,27 +18,26 @@ class Command(BaseCommand):
         done_definitions = set()
 
         includes = set()
-        for msg_type, msg_class in MeshMessage.get_types().items():
+        for msg_type, msg_content_format in get_format(MeshMessageContent).models.items():
             # todo: run this on the union
-            includes.update(StructFormat(msg_class).get_c_includes())
+            includes.update(msg_content_format.get_c_includes())
         for include in includes:
             print(f'#include {include}')
 
-        ignore_names = set(field_.name for field_ in fields(MeshMessage))
-        for msg_type, msg_class in MeshMessage.get_types().items():
-            base_name = normalize_name(getattr(msg_type, 'name', msg_class.__name__))
+        for msg_type, msg_content_format in get_format(MeshMessageContent).models.items():
+            base_name = normalize_name(getattr(msg_type, 'name', msg_content_format.model.__name__))
             name = "mesh_msg_%s_t" % base_name
 
-            for definition_name, definition in StructFormat(msg_class).get_c_definitions().items():
+            for definition_name, definition in msg_content_format.get_c_definitions().items():
                 if definition_name not in done_definitions:
                     done_definitions.add(definition_name)
                     print(definition)
                     print()
 
-            code = StructFormat(msg_class).get_c_code(name, ignore_fields=ignore_names, no_empty=True)
+            code = msg_content_format.get_c_code(name, ignore_fields=('msg_type', ), no_empty=True)
             if code:
-                size = StructFormat(msg_class).get_size(no_inherited_fields=True, calculate_max=False)
-                max_size = StructFormat(msg_class).get_size(no_inherited_fields=True, calculate_max=True)
+                size = msg_content_format.get_size(no_inherited_fields=True, calculate_max=False)
+                max_size = msg_content_format.get_size(no_inherited_fields=True, calculate_max=True)
                 struct_lines[base_name] = "%s %s;" % (name, base_name.replace('_announce', ''))
                 struct_sizes.append(size)
                 struct_max_sizes.append(max_size)
@@ -47,7 +46,7 @@ class Command(BaseCommand):
                       (name, size))
                 print()
             else:
-                nodata.add(msg_class)
+                nodata.add(msg_content_format.model)
 
         print("/** union between all message data structs */")
         print("typedef union __packed {")
@@ -64,18 +63,19 @@ class Command(BaseCommand):
 
         print()
 
-        max_msg_type = max(MeshMessage.get_types().keys())
+        max_msg_type = max(get_format(MeshMessageContent).models.keys())
         macro_data = []
         for i in range(((max_msg_type//16)+1)*16):
-            msg_class = MeshMessage.get_types().get(i, None)
-            if msg_class:
-                name = normalize_name(getattr(msg_class.msg_type, 'name', msg_class.__name__))
+            msg_content_format = get_format(MeshMessageContent).models.get(i, None)
+            if msg_content_format:
+                name = normalize_name(getattr(msg_content_format.model.msg_type, 'name',
+                                              msg_content_format.model.__name__))
                 macro_data.append((
-                    msg_class.get_c_enum_name(),
-                    ("nodata" if msg_class in nodata else name),
-                    StructFormat(msg_class).get_var_num(), # todo: uh?
-                    StructFormat(msg_class).get_size(no_inherited_fields=True, calculate_max=True),
-                    msg_class.__doc__.strip(),
+                    msg_content_format.model.get_c_enum_name(),
+                    ("nodata" if msg_content_format.model in nodata else name),
+                    msg_content_format.get_var_num(), # todo: uh?
+                    msg_content_format.get_size(no_inherited_fields=True, calculate_max=True),
+                    msg_content_format.model.__doc__.strip(),
                 ))
             else:
                 macro_data.append((

@@ -1,11 +1,12 @@
 from dataclasses import dataclass, field
 from enum import IntEnum, unique
-from typing import Annotated, TypeVar
+from typing import Annotated, TypeVar, Union
 
 import channels
 from annotated_types import Ge, Le, Lt, MaxLen
 from channels.db import database_sync_to_async
 from pydantic import PositiveInt, Field
+from pydantic.types import Discriminator
 from pydantic_extra_types.mac_address import MacAddress
 
 from c3nav.api.utils import EnumSchemaByNameMixin
@@ -73,125 +74,93 @@ class MeshMessageType(EnumSchemaByNameMixin, IntEnum):
         return name
 
 
-M = TypeVar('M', bound='MeshMessage')
-
-
 @dataclass
-class MeshMessage(StructType, union_type_field="msg_type"):
-    dst: MacAddress
-    src: MacAddress
-    msg_type: Annotated[MeshMessageType, NoDef()] = field(init=False, repr=False)
-
-    async def send(self, sender=None, exclude_uplink_address=None) -> bool:
-        data = {
-            "type": "mesh.send",
-            "sender": sender,
-            "exclude_uplink_address": exclude_uplink_address,
-            "msg": MeshMessage.tojson(self),
-        }
-
-        if self.dst in (MESH_CHILDREN_ADDRESS, MESH_BROADCAST_ADDRESS):
-            await channels.layers.get_channel_layer().group_send(MESH_ALL_UPLINKS_GROUP, data)
-            return True
-
-        from c3nav.mesh.models import MeshNode
-        uplink = await database_sync_to_async(MeshNode.get_node_and_uplink)(self.dst)
-        if not uplink:
-            return False
-        if uplink.node_id == exclude_uplink_address:
-            return False
-        await channels.layers.get_channel_layer().send(uplink.name, data)
-
-    @classmethod
-    def get_ignore_c_fields(self):
-        return set()
-
-    @classmethod
-    def get_additional_c_fields(self):
-        return ()
+class BaseMeshMessageContent(StructType, union_type_field="msg_type"):
+    msg_type: Annotated[MeshMessageType, NoDef()] = field()
 
     @classmethod
     def get_c_enum_name(cls):
+        # todo: remove this
         return normalize_name(cls.__name__.removeprefix('Mesh').removesuffix('Message')).upper()
 
 
 @dataclass
-class NoopMessage(MeshMessage, msg_type=MeshMessageType.NOOP):
+class NoopMessage(BaseMeshMessageContent, msg_type=MeshMessageType.NOOP):
     """ noop """
     pass
 
 
 @dataclass
-class EchoRequestMessage(MeshMessage, msg_type=MeshMessageType.ECHO_REQUEST):
+class EchoRequestMessage(BaseMeshMessageContent, msg_type=MeshMessageType.ECHO_REQUEST):
     """ repeat back string """
     content: Annotated[str, MaxLen(255), VarLen()] = ""
 
 
 @dataclass
-class EchoResponseMessage(MeshMessage, msg_type=MeshMessageType.ECHO_RESPONSE):
+class EchoResponseMessage(BaseMeshMessageContent, msg_type=MeshMessageType.ECHO_RESPONSE):
     """ repeat back string """
     content: Annotated[str, MaxLen(255), VarLen()] = ""
 
 
 @dataclass
-class MeshSigninMessage(MeshMessage, msg_type=MeshMessageType.MESH_SIGNIN):
+class MeshSigninMessage(BaseMeshMessageContent, msg_type=MeshMessageType.MESH_SIGNIN):
     """ node says hello to upstream node """
     pass
 
 
 @dataclass
-class MeshLayerAnnounceMessage(MeshMessage, msg_type=MeshMessageType.MESH_LAYER_ANNOUNCE):
+class MeshLayerAnnounceMessage(BaseMeshMessageContent, msg_type=MeshMessageType.MESH_LAYER_ANNOUNCE):
     """ upstream node announces layer number """
     layer: Annotated[PositiveInt, Lt(2 ** 8), CDoc("mesh layer that the sending node is on")]
 
 
 @dataclass
-class MeshAddDestinationsMessage(MeshMessage, msg_type=MeshMessageType.MESH_ADD_DESTINATIONS):
+class MeshAddDestinationsMessage(BaseMeshMessageContent, msg_type=MeshMessageType.MESH_ADD_DESTINATIONS):
     """ downstream node announces served destination """
     addresses: Annotated[list[MacAddress], MaxLen(16), VarLen(), CDoc("adresses of the added destinations",)]
 
 
 @dataclass
-class MeshRemoveDestinationsMessage(MeshMessage, msg_type=MeshMessageType.MESH_REMOVE_DESTINATIONS):
+class MeshRemoveDestinationsMessage(BaseMeshMessageContent, msg_type=MeshMessageType.MESH_REMOVE_DESTINATIONS):
     """ downstream node announces no longer served destination """
     addresses: Annotated[list[MacAddress], MaxLen(16), VarLen(), CDoc("adresses of the removed destinations",)]
 
 
 @dataclass
-class MeshRouteRequestMessage(MeshMessage, msg_type=MeshMessageType.MESH_ROUTE_REQUEST):
+class MeshRouteRequestMessage(BaseMeshMessageContent, msg_type=MeshMessageType.MESH_ROUTE_REQUEST):
     """ request routing information for node """
     request_id: Annotated[PositiveInt, Lt(2**32)]
     address: Annotated[MacAddress, CDoc("target address for the route")]
 
 
 @dataclass
-class MeshRouteResponseMessage(MeshMessage, msg_type=MeshMessageType.MESH_ROUTE_RESPONSE):
+class MeshRouteResponseMessage(BaseMeshMessageContent, msg_type=MeshMessageType.MESH_ROUTE_RESPONSE):
     """ reporting the routing table entry to the given address """
     request_id: Annotated[PositiveInt, Lt(2**32)]
     route: Annotated[MacAddress, CDoc("routing table entry or 00:00:00:00:00:00")]
 
 
 @dataclass
-class MeshRouteTraceMessage(MeshMessage, msg_type=MeshMessageType.MESH_ROUTE_TRACE):
+class MeshRouteTraceMessage(BaseMeshMessageContent, msg_type=MeshMessageType.MESH_ROUTE_TRACE):
     """ special message, collects all hop adresses on its way """
     request_id: Annotated[PositiveInt, Lt(2**32)]
     trace: Annotated[list[MacAddress], MaxLen(16), VarLen(), CDoc("addresses encountered by this message")]
 
 
 @dataclass
-class MeshRoutingFailedMessage(MeshMessage, msg_type=MeshMessageType.MESH_ROUTING_FAILED):
+class MeshRoutingFailedMessage(BaseMeshMessageContent, msg_type=MeshMessageType.MESH_ROUTING_FAILED):
     """ TODO description"""
     address: MacAddress
 
 
 @dataclass
-class ConfigDumpMessage(MeshMessage, msg_type=MeshMessageType.CONFIG_DUMP):
+class ConfigDumpMessage(BaseMeshMessageContent, msg_type=MeshMessageType.CONFIG_DUMP):
     """ request for the node to dump its config """
     pass
 
 
 @dataclass
-class ConfigHardwareMessage(MeshMessage, msg_type=MeshMessageType.CONFIG_HARDWARE):
+class ConfigHardwareMessage(BaseMeshMessageContent, msg_type=MeshMessageType.CONFIG_HARDWARE):
     """ respond hardware/chip info """
     chip: Annotated[ChipType, NoDef(), LenBytes(2)] = field(metadata={
         "c_name": "chip_id",
@@ -204,19 +173,19 @@ class ConfigHardwareMessage(MeshMessage, msg_type=MeshMessageType.CONFIG_HARDWAR
 
 
 @dataclass
-class ConfigBoardMessage(MeshMessage, msg_type=MeshMessageType.CONFIG_BOARD):
+class ConfigBoardMessage(BaseMeshMessageContent, msg_type=MeshMessageType.CONFIG_BOARD):
     """ set/respond board config """
     board_config: Annotated[BoardConfig, CEmbed]
 
 
 @dataclass
-class ConfigFirmwareMessage(MeshMessage, msg_type=MeshMessageType.CONFIG_FIRMWARE):
+class ConfigFirmwareMessage(BaseMeshMessageContent, msg_type=MeshMessageType.CONFIG_FIRMWARE):
     """ respond firmware info """
     app_desc: FirmwareAppDescription
 
 
 @dataclass
-class ConfigPositionMessage(MeshMessage, msg_type=MeshMessageType.CONFIG_POSITION):
+class ConfigPositionMessage(BaseMeshMessageContent, msg_type=MeshMessageType.CONFIG_POSITION):
     """ set/respond position config """
     x_pos: Annotated[int, Ge(-2**31), Lt(2**31)]
     y_pos: Annotated[int, Ge(-2**31), Lt(2**31)]
@@ -224,7 +193,7 @@ class ConfigPositionMessage(MeshMessage, msg_type=MeshMessageType.CONFIG_POSITIO
 
 
 @dataclass
-class ConfigUplinkMessage(MeshMessage, msg_type=MeshMessageType.CONFIG_UPLINK):
+class ConfigUplinkMessage(BaseMeshMessageContent, msg_type=MeshMessageType.CONFIG_UPLINK):
     """ set/respond uplink config """
     enabled: bool
     ssid: Annotated[str, MaxLen(32)]
@@ -259,7 +228,7 @@ class OTADeviceStatus(EnumSchemaByNameMixin, IntEnum):
 
 
 @dataclass
-class OTAStatusMessage(MeshMessage, msg_type=MeshMessageType.OTA_STATUS):
+class OTAStatusMessage(BaseMeshMessageContent, msg_type=MeshMessageType.OTA_STATUS):
     """ report OTA status """
     update_id: Annotated[PositiveInt, Lt(2**32)]
     received_bytes: Annotated[PositiveInt, Lt(2**32)]
@@ -270,13 +239,13 @@ class OTAStatusMessage(MeshMessage, msg_type=MeshMessageType.OTA_STATUS):
 
 
 @dataclass
-class OTARequestStatusMessage(MeshMessage, msg_type=MeshMessageType.OTA_REQUEST_STATUS):
+class OTARequestStatusMessage(BaseMeshMessageContent, msg_type=MeshMessageType.OTA_REQUEST_STATUS):
     """ request OTA status """
     pass
 
 
 @dataclass
-class OTAStartMessage(MeshMessage, msg_type=MeshMessageType.OTA_START):
+class OTAStartMessage(BaseMeshMessageContent, msg_type=MeshMessageType.OTA_START):
     """ instruct node to start OTA """
     update_id: Annotated[PositiveInt, Lt(2**32)]
     total_bytes: Annotated[PositiveInt, Lt(2**32)]
@@ -285,7 +254,7 @@ class OTAStartMessage(MeshMessage, msg_type=MeshMessageType.OTA_START):
 
 
 @dataclass
-class OTAURLMessage(MeshMessage, msg_type=MeshMessageType.OTA_URL):
+class OTAURLMessage(BaseMeshMessageContent, msg_type=MeshMessageType.OTA_URL):
     """ supply download URL for OTA update and who to distribute it to """
     update_id: Annotated[PositiveInt, Lt(2**32)]
     distribute_to: MacAddress
@@ -293,7 +262,7 @@ class OTAURLMessage(MeshMessage, msg_type=MeshMessageType.OTA_URL):
 
 
 @dataclass
-class OTAFragmentMessage(MeshMessage, msg_type=MeshMessageType.OTA_FRAGMENT):
+class OTAFragmentMessage(BaseMeshMessageContent, msg_type=MeshMessageType.OTA_FRAGMENT):
     """ supply OTA fragment """
     update_id: Annotated[PositiveInt, Lt(2**32)]
     chunk: Annotated[PositiveInt, Lt(2**16)]
@@ -301,14 +270,14 @@ class OTAFragmentMessage(MeshMessage, msg_type=MeshMessageType.OTA_FRAGMENT):
 
 
 @dataclass
-class OTARequestFragmentsMessage(MeshMessage, msg_type=MeshMessageType.OTA_REQUEST_FRAGMENTS):
+class OTARequestFragmentsMessage(BaseMeshMessageContent, msg_type=MeshMessageType.OTA_REQUEST_FRAGMENTS):
     """ request missing fragments """
     update_id: Annotated[PositiveInt, Lt(2**32)]
     chunks: Annotated[list[Annotated[PositiveInt, Lt(2**16)]], MaxLen(128), VarLen()]
 
 
 @dataclass
-class OTASettingMessage(MeshMessage, msg_type=MeshMessageType.OTA_SETTING):
+class OTASettingMessage(BaseMeshMessageContent, msg_type=MeshMessageType.OTA_SETTING):
     """ configure whether to automatically apply and reboot when update is completed """
     update_id: Annotated[PositiveInt, Lt(2**32)]
     auto_apply: bool
@@ -316,44 +285,109 @@ class OTASettingMessage(MeshMessage, msg_type=MeshMessageType.OTA_SETTING):
 
 
 @dataclass
-class OTAApplyMessage(MeshMessage, msg_type=MeshMessageType.OTA_APPLY):
+class OTAApplyMessage(BaseMeshMessageContent, msg_type=MeshMessageType.OTA_APPLY):
     """ apply OTA and optionally reboot """
     update_id: Annotated[PositiveInt, Lt(2**32)]
     reboot: bool
 
 
 @dataclass
-class OTAAbortMessage(MeshMessage, msg_type=MeshMessageType.OTA_ABORT):
+class OTAAbortMessage(BaseMeshMessageContent, msg_type=MeshMessageType.OTA_ABORT):
     """ announcing OTA abort """
     update_id: Annotated[PositiveInt, Lt(2**32)]
 
 
 @dataclass
-class LocateRequestRangeMessage(MeshMessage, msg_type=MeshMessageType.LOCATE_REQUEST_RANGE):
+class LocateRequestRangeMessage(BaseMeshMessageContent, msg_type=MeshMessageType.LOCATE_REQUEST_RANGE):
     """ request to report distance to all nearby nodes """
     pass
 
 
 @dataclass
-class LocateRangeResults(MeshMessage, msg_type=MeshMessageType.LOCATE_RANGE_RESULTS):
+class LocateRangeResults(BaseMeshMessageContent, msg_type=MeshMessageType.LOCATE_RANGE_RESULTS):
     """ reports distance to given nodes """
     ranges: Annotated[list[RangeResultItem], MaxLen(16), VarLen()]
 
 
 @dataclass
-class LocateRawFTMResults(MeshMessage, msg_type=MeshMessageType.LOCATE_RAW_FTM_RESULTS):
+class LocateRawFTMResults(BaseMeshMessageContent, msg_type=MeshMessageType.LOCATE_RAW_FTM_RESULTS):
     """ reports distance to given nodes """
     peer: MacAddress
     results: Annotated[list[RawFTMEntry], MaxLen(16), VarLen()]
 
 
 @dataclass
-class Reboot(MeshMessage, msg_type=MeshMessageType.REBOOT):
+class Reboot(BaseMeshMessageContent, msg_type=MeshMessageType.REBOOT):
     """ reboot the device """
     pass
 
 
 @dataclass
-class ReportError(MeshMessage, msg_type=MeshMessageType.REPORT_ERROR):
+class ReportError(BaseMeshMessageContent, msg_type=MeshMessageType.REPORT_ERROR):
     """ report a critical error to upstream """
     message: Annotated[str, MaxLen(255), VarLen()]
+
+
+MeshMessageContent = Annotated[
+    Union[
+        NoopMessage,
+        EchoRequestMessage,
+        EchoResponseMessage,
+        MeshSigninMessage,
+        MeshLayerAnnounceMessage,
+        MeshAddDestinationsMessage,
+        MeshRemoveDestinationsMessage,
+        MeshRouteRequestMessage,
+        MeshRouteResponseMessage,
+        MeshRouteTraceMessage,
+        MeshRoutingFailedMessage,
+        ConfigDumpMessage,
+        ConfigHardwareMessage,
+        ConfigBoardMessage,
+        ConfigFirmwareMessage,
+        ConfigPositionMessage,
+        ConfigUplinkMessage,
+        OTAStatusMessage,
+        OTARequestStatusMessage,
+        OTAStartMessage,
+        OTAURLMessage,
+        OTAFragmentMessage,
+        OTARequestFragmentsMessage,
+        OTASettingMessage,
+        OTAApplyMessage,
+        OTAAbortMessage,
+        LocateRequestRangeMessage,
+        LocateRangeResults,
+        LocateRawFTMResults,
+        Reboot,
+        ReportError,
+    ],
+    Discriminator("msg_type")
+]
+
+
+@dataclass
+class MeshMessage(StructType):
+    dst: MacAddress
+    src: MacAddress
+    content: MeshMessageContent
+
+    async def send(self, sender=None, exclude_uplink_address=None) -> bool:
+        data = {
+            "type": "mesh.send",
+            "sender": sender,
+            "exclude_uplink_address": exclude_uplink_address,
+            "msg": MeshMessage.tojson(self),
+        }
+
+        if self.dst in (MESH_CHILDREN_ADDRESS, MESH_BROADCAST_ADDRESS):
+            await channels.layers.get_channel_layer().group_send(MESH_ALL_UPLINKS_GROUP, data)
+            return True
+
+        from c3nav.mesh.models import MeshNode
+        uplink = await database_sync_to_async(MeshNode.get_node_and_uplink)(self.dst)
+        if not uplink:
+            return False
+        if uplink.node_id == exclude_uplink_address:
+            return False
+        await channels.layers.get_channel_layer().send(uplink.name, data)

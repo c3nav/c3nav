@@ -16,7 +16,8 @@ from django.utils.translation import gettext_lazy as _
 
 from c3nav.mesh.baseformats import UnionFormat, get_format
 from c3nav.mesh.dataformats import BoardConfig, BoardType, LedType, SerialLedType
-from c3nav.mesh.messages import MESH_BROADCAST_ADDRESS, MESH_ROOT_ADDRESS, MeshMessage, MeshMessageType
+from c3nav.mesh.messages import MESH_BROADCAST_ADDRESS, MESH_ROOT_ADDRESS, MeshMessage, MeshMessageType, \
+    MeshMessageContent
 from c3nav.mesh.models import (FirmwareBuild, HardwareDescription, MeshNode, OTARecipientStatus, OTAUpdate,
                                OTAUpdateRecipient)
 from c3nav.mesh.utils import MESH_ALL_OTA_GROUP, group_msg_type_choices
@@ -65,7 +66,7 @@ class MeshMessageForm(forms.Form):
         if cls.msg_type in MeshMessageForm.msg_types:
             raise TypeError('duplicate use of msg %s' % cls.msg_type)
         MeshMessageForm.msg_types[cls.msg_type] = cls
-        cls.msg_type_class = MeshMessage.get_type(cls.msg_type)
+        cls.msg_type_class = get_format(MeshMessageContent).models.get(cls.msg_type).model
 
     @classmethod
     def get_form_for_type(cls, msg_type):
