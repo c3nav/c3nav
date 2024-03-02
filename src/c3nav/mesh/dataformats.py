@@ -3,7 +3,7 @@ from dataclasses import dataclass, field
 from enum import IntEnum, unique
 from typing import Annotated, BinaryIO, ClassVar, Literal, Self, Union
 
-from annotated_types import Gt, Le, Lt, MaxLen
+from annotated_types import Gt, Le, Lt, MaxLen, Ge
 from pydantic import NegativeInt, PositiveInt
 from pydantic.main import BaseModel
 from pydantic.types import Discriminator
@@ -88,7 +88,7 @@ class UplinkEthConfig(BaseModel):
     enable: bool
     gpio_cs: Annotated[PositiveInt, Lt(2**8)]
     gpio_int: Annotated[PositiveInt, Lt(2**8)]
-    gpio_rst: Annotated[int, Gt(-1), Lt(2**7)]
+    gpio_rst: Annotated[int, Ge(-1), Lt(2**7)]
 
 
 @unique
