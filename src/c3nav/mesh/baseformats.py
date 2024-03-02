@@ -621,7 +621,7 @@ class UnionFormat(BaseFormat):
         return max([0] + [
             model_format.get_min_size()
             for model_format in self.models.values()
-        ]) - self.discriminator_format.get_min_size()
+        ])
 
     def get_max_size(self) -> int:
         raise ValueError
@@ -642,7 +642,7 @@ class UnionFormat(BaseFormat):
         return max(
             (model_format.get_min_size() for model_format in self.models.values()),
             default=0,
-        )
+        ) - self.discriminator_format.get_min_size()
 
     def get_c_union_code(self, ignore_fields=None):
         union_items = []
