@@ -699,6 +699,7 @@ class UnionFormat(BaseFormat):
 
     def get_c_definitions(self) -> dict[str, str]:
         definitions = {}
+        definitions.update(self.discriminator_format.get_c_definitions())
         for model_format in self.models.values():
             definitions.update(model_format.get_c_definitions())
         return definitions
