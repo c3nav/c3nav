@@ -7,7 +7,7 @@ from contextlib import suppress
 from dataclasses import dataclass
 from dataclasses import fields as dataclass_fields
 from enum import IntEnum
-from typing import Any, Self, Sequence
+from typing import Any, Sequence
 
 from annotated_types import SLOTS, BaseMetadata, Ge
 from pydantic.fields import Field, FieldInfo
@@ -424,7 +424,8 @@ class StructFormat(BaseFormat):
         self._as_definition = set()
         self._c_embed = set()
         self._c_names = {}
-        self._c_docs= {}
+        self._c_docs = {}
+        self._no_init_data = set()
         for name, type_hint in typing.get_type_hints(self.model, include_extras=True).items():
             if type_hint is typing.ClassVar:
                 continue  # todo: nicer?
@@ -434,6 +435,8 @@ class StructFormat(BaseFormat):
                 self._as_definition.add(name)
             if any(getattr(m, "c_embed", False) for m in type_hint.metadata):
                 self._c_embed.add(name)
+            if not all(getattr(m, "init", True) for m in type_hint.metadata):
+                self._no_init_data.add(name)
             for m in type_hint.metadata:
                 with suppress(AttributeError):
                     self._c_names[name] = m.c_name
@@ -446,7 +449,6 @@ class StructFormat(BaseFormat):
         return sum([field_format.get_var_num() for name, field_format in self._field_formats.items()], start=0)
 
     def encode(self, instance: T, ignore_fields=()) -> bytes:
-        # todo: remove ignore_fields? is it needed?
         data = bytes()
         for name, field_format in self._field_formats.items():
             if name in ignore_fields:
@@ -455,15 +457,11 @@ class StructFormat(BaseFormat):
         return data
 
     def decode(self, data: bytes) -> tuple[T, bytes]:
-        orig_data = data
         kwargs = {}
-        no_init_data = {}
         for name, field_format in self._field_formats.items():
             value, data = field_format.decode(data)
-            #if field_.init:  # todo: what abot no_init_data?
-            kwargs[name] = value
-            #else:
-            #    no_init_data[field_.name] = value
+            if name not in self._no_init_data:
+                kwargs[name] = value
         return self.model(**kwargs), data
 
     def get_min_size(self) -> int:
@@ -609,8 +607,7 @@ class UnionFormat(BaseFormat):
     def get_var_num(self):
         return 0  # todo: is this always correct?
 
-    def encode(self, instance, ignore_fields=()) -> bytes:
-        # todo: remove ignore_fields? is it needed?
+    def encode(self, instance) -> bytes:
         # todo: make sure instance is valid
         discriminator_value = getattr(instance, self.discriminator)
         self.discriminator_format.encode(discriminator_value)
