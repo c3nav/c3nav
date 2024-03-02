@@ -655,7 +655,7 @@ class UnionFormat(BaseFormat):
                 union_items.append(item_c_code)
         size = self.get_c_union_size()
         union_items.append(
-            "uint8_t bytes[%0d]; " % size
+            "uint8_t bytes[%0d];" % size
         )
         return "{\n" + indent_c("\n".join(union_items)) + "\n}"
 

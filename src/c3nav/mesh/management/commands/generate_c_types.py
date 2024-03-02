@@ -58,7 +58,7 @@ class Command(BaseCommand):
         print("typedef union __packed {")
         for line in struct_lines.values():
             print(indent_c(line))
-        print("} mesh_msg_data_t; ")
+        print("} mesh_msg_data_t;")
         print(
             "static_assert(sizeof(mesh_msg_data_t) == %d, \"size of generated message structs is calculated wrong\");"
             % max(struct_sizes)
