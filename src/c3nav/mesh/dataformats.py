@@ -97,7 +97,7 @@ class BoardType(EnumSchemaByNameMixin, IntEnum):
 
     # devboards
     ESP32_C3_DEVKIT_M_1 = 0x01
-    ESP32_C3_32S = 2
+    ESP32_C3_32S = 0x02
 
     # custom boards
     C3NAV_UWB_BOARD = 0x10
@@ -157,7 +157,8 @@ BoardConfig = Annotated[
         LocationPCBRev0Dot1BoardConfig,
         LocationPCBRev0Dot2BoardConfig,
     ],
-    Discriminator("board")
+    Discriminator("board"),
+    AsHex(),
 ]
 
 

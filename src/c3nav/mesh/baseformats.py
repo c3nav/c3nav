@@ -589,7 +589,7 @@ class StructFormat(BaseFormat):
 
 
 class UnionFormat(BaseFormat):
-    def __init__(self, model_formats: Sequence[StructFormat], discriminator: str):
+    def __init__(self, model_formats: Sequence[StructFormat], discriminator: str, discriminator_as_hex: bool = False):
         self.discriminator = discriminator
         self.models = {
             getattr(model_format.model, discriminator): model_format for model_format in model_formats
@@ -602,6 +602,9 @@ class UnionFormat(BaseFormat):
         type_ = tuple(types)[0]
         if not issubclass(type_, IntEnum):
             raise ValueError
+        if discriminator_as_hex:
+            # todo: nicer?
+            type_ = typing.Annotated[type_, AsHex()]
         self.discriminator_format = get_type_hint_format(split_type_hint(type_))
 
     def get_var_num(self):
@@ -797,9 +800,11 @@ def get_type_hint_format(type_hint: SplitTypeHint, attr_name=None) -> BaseFormat
             discriminator = getattr(m, 'discriminator', discriminator)
         if discriminator is None:
             raise ValueError('no discriminator')
+        discriminator_as_hex = any(getattr(m, "as_hex", False) for m in type_hint.metadata)
         field_format = UnionFormat(
             model_formats=[StructFormat(type_) for type_ in typing.get_args(type_hint.base)],
             discriminator=discriminator,
+            discriminator_as_hex=discriminator_as_hex,
         )
     elif type_hint.base is int:
         min_ = -(2**63)
