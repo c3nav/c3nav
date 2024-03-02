@@ -312,7 +312,6 @@ class FixedHexFormat(SimpleFormat):
         return self.sep.join(('%02x' % i) for i in data[:self.num]), data[self.num:]
 
 
-@abstractmethod
 class BaseVarFormat(BaseFormat, ABC):
     def __init__(self, max_num):
         self.num_fmt = 'H'
