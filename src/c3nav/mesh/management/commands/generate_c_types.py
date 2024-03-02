@@ -1,14 +1,16 @@
-from dataclasses import fields
-
 from django.core.management.base import BaseCommand
 
-from c3nav.mesh.baseformats import StructType, normalize_name, StructFormat, get_format, UnionFormat
-from c3nav.mesh.messages import MeshMessage, MeshMessageContent
+from c3nav.mesh.baseformats import UnionFormat, get_format, normalize_name
+from c3nav.mesh.messages import MeshMessageContent
 from c3nav.mesh.utils import indent_c
 
 
 class Command(BaseCommand):
     help = 'export mesh message structs for c code'
+
+    @staticmethod
+    def get_msg_c_enum_name(msg_type):
+        return normalize_name(msg_type.__name__.removeprefix('Mesh').removesuffix('Message')).upper()
 
     def handle(self,  *args, **options):
         nodata = set()
@@ -75,7 +77,7 @@ class Command(BaseCommand):
                 name = normalize_name(getattr(msg_content_format.model.msg_type, 'name',
                                               msg_content_format.model.__name__))
                 macro_data.append((
-                    msg_content_format.model.get_c_enum_name(),
+                    self.get_msg_c_enum_name(msg_content_format.model),
                     ("nodata" if msg_content_format.model in nodata else name),
                     msg_content_format.get_var_num(), # todo: uh?
                     msg_content_format.get_size(calculate_max=True) - discriminator_size,

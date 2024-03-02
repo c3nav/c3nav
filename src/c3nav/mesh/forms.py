@@ -16,8 +16,8 @@ from django.utils.translation import gettext_lazy as _
 
 from c3nav.mesh.baseformats import UnionFormat, get_format
 from c3nav.mesh.dataformats import BoardConfig, BoardType, LedType, SerialLedType
-from c3nav.mesh.messages import MESH_BROADCAST_ADDRESS, MESH_ROOT_ADDRESS, MeshMessage, MeshMessageType, \
-    MeshMessageContent
+from c3nav.mesh.messages import (MESH_BROADCAST_ADDRESS, MESH_ROOT_ADDRESS, MeshMessage, MeshMessageContent,
+                                 MeshMessageType)
 from c3nav.mesh.models import (FirmwareBuild, HardwareDescription, MeshNode, OTARecipientStatus, OTAUpdate,
                                OTAUpdateRecipient)
 from c3nav.mesh.utils import MESH_ALL_OTA_GROUP, group_msg_type_choices

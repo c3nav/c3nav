@@ -10,7 +10,7 @@ from enum import IntEnum
 from typing import Any, Self, Sequence
 
 from annotated_types import SLOTS, BaseMetadata, Ge
-from pydantic.fields import FieldInfo
+from pydantic.fields import Field, FieldInfo
 from pydantic_extra_types.mac_address import MacAddress
 
 from c3nav.api.utils import NonEmptyStr, TwoNibblesEncodable
@@ -62,6 +62,15 @@ class ExistingCStruct():
     name: NonEmptyStr
     includes: list[str]
 
+
+def discriminator_value(**kwargs):
+    return type('DiscriminatorValue', (), {
+        **{name: value for name, value in kwargs.items()},
+        '__annotations__': {
+            name: typing.Annotated[typing.Literal[value], Field(init=False)]
+            for name, value in kwargs.items()
+        }
+    })
 
 
 class BaseFormat(ABC):
@@ -401,11 +410,11 @@ class VarBytesFormat(BaseVarFormat):
         return super().get_num_c_code() + "\n" + "uint8_t", "[0]"
 
 
-T = typing.TypeVar('T', bound="StructType")
+T = typing.TypeVar('T', bound="type")
 
 
 class StructFormat(BaseFormat):
-    _format_cache: dict[typing.Type["StructType"], dict[str, BaseFormat]]
+    _format_cache: dict[typing.Type, dict[str, BaseFormat]]
 
     def __init__(self, model: typing.Type[T]):
         # todo: only one instance per model
@@ -417,6 +426,8 @@ class StructFormat(BaseFormat):
         self._c_names = {}
         self._c_docs= {}
         for name, type_hint in typing.get_type_hints(self.model, include_extras=True).items():
+            if type_hint is typing.ClassVar:
+                continue  # todo: nicer?
             type_hint = split_type_hint(type_hint)
 
             if any(getattr(m, "as_definition", False) for m in type_hint.metadata):
@@ -507,11 +518,6 @@ class StructFormat(BaseFormat):
                         ),
                         self._c_docs.get(name, None),
                     ))
-
-        if self.model.union_type_field:
-            if not union_only:
-                union_code = self.model.get_c_union_code(ignore_fields)
-                items.append(("union __packed %s;" % union_code, ""))
 
         return items
 
@@ -749,44 +755,6 @@ class UnionFormat(BaseFormat):
         return result
 
 
-@dataclass
-class StructType:
-    _union_options = {}
-    union_type_field = None
-
-    # noinspection PyMethodOverriding
-    def __init_subclass__(cls, /, union_type_field=None, **kwargs):
-        cls.union_type_field = union_type_field
-
-        if union_type_field:
-            if union_type_field in cls._union_options:
-                raise TypeError('Duplicate union_type_field: %s', union_type_field)
-            cls._union_options[union_type_field] = {}
-            f = getattr(cls, union_type_field)
-
-        for key, values in cls._union_options.items():
-            value = kwargs.pop(key, None)
-            if value is not None:
-                if value in values:
-                    raise TypeError('Duplicate %s: %s', (key, value))
-                values[value] = cls
-                setattr(cls, key, value)
-
-        super().__init_subclass__(**kwargs)
-
-    @classmethod
-    def get_types(cls):
-        if not cls.union_type_field:
-            raise TypeError('Not a union class')
-        return cls._union_options[cls.union_type_field]
-
-    @classmethod
-    def get_type(cls, type_id) -> Self:
-        if not cls.union_type_field:
-            raise TypeError('Not a union class')
-        return cls.get_types()[type_id]
-
-
 SplitTypeHint = namedtuple("SplitTypeHint", ("base", "metadata"))
 
 
@@ -934,7 +902,7 @@ def get_type_hint_format(type_hint: SplitTypeHint, attr_name=None) -> BaseFormat
 
     if field_format is not None:
         field_format.set_field_type(type_hint.base)
-    elif isinstance(type_hint.base, type) and issubclass(type_hint.base, StructType):
+    elif isinstance(type_hint.base, type) and typing.get_type_hints(type_hint.base):
         field_format = StructFormat(model=type_hint.base)
 
     if field_format is None:

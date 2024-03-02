@@ -1,15 +1,16 @@
 import re
 from dataclasses import dataclass, field
 from enum import IntEnum, unique
-from typing import Annotated, BinaryIO, Literal, Self, Union
+from typing import Annotated, BinaryIO, ClassVar, Literal, Self, Union
 
-from annotated_types import Gt, Lt, MaxLen, Le
+from annotated_types import Gt, Le, Lt, MaxLen
 from pydantic import NegativeInt, PositiveInt
+from pydantic.main import BaseModel
 from pydantic.types import Discriminator
 from pydantic_extra_types.mac_address import MacAddress
 
 from c3nav.api.utils import EnumSchemaByNameMixin, TwoNibblesEncodable
-from c3nav.mesh.baseformats import AsHex, FixedHexFormat, StructType, AsDefinition, CName, ExistingCStruct
+from c3nav.mesh.baseformats import AsDefinition, AsHex, CName, ExistingCStruct, FixedHexFormat, discriminator_value
 
 
 class MacAddressFormat(FixedHexFormat):
@@ -34,28 +35,16 @@ class SerialLedType(IntEnum):
     SK6812 = 2
 
 
-@dataclass
-class LedConfigBase(StructType, union_type_field="led_type"):
-    # todo: remove eventually
-    """
-    configuration for an optional connected status LED
-    """
-    led_type: Annotated[LedType, CName("type")] = field()  # todo: we need a way to remove this field()
-
-
-@dataclass
-class NoLedConfig(LedConfigBase, led_type=LedType.NONE):
+class NoLedConfig(discriminator_value(led_type=LedType.NONE), BaseModel):
     pass
 
 
-@dataclass
-class SerialLedConfig(LedConfigBase, led_type=LedType.SERIAL):
+class SerialLedConfig(discriminator_value(led_type=LedType.SERIAL), BaseModel):
     serial_led_type: Annotated[SerialLedType, CName("type")] = field()  # todo: we need a way to remove this field()
     gpio: Annotated[PositiveInt, Lt(2**8)]
 
 
-@dataclass
-class MultipinLedConfig(LedConfigBase, led_type=LedType.MULTIPIN):
+class MultipinLedConfig(discriminator_value(led_type=LedType.MULTIPIN), BaseModel):
     gpio_red: Annotated[PositiveInt, Lt(2**8)]
     gpio_green: Annotated[PositiveInt, Lt(2**8)]
     gpio_blue: Annotated[PositiveInt, Lt(2**8)]
@@ -71,8 +60,7 @@ LedConfig = Annotated[
 ]
 
 
-@dataclass
-class BoardSPIConfig(StructType):
+class BoardSPIConfig(BaseModel):
     """
     configuration for spi bus used for ETH or UWB
     """
@@ -81,8 +69,7 @@ class BoardSPIConfig(StructType):
     gpio_clk: Annotated[PositiveInt, Lt(2**8)]
 
 
-@dataclass
-class UWBConfig(StructType):
+class UWBConfig(BaseModel):
     """
     configuration for the connection to the UWB module
     """
@@ -94,8 +81,7 @@ class UWBConfig(StructType):
     gpio_exton: Annotated[PositiveInt, Lt(2**8)]
 
 
-@dataclass
-class UplinkEthConfig(StructType):
+class UplinkEthConfig(BaseModel):
     """
     configuration for the connection to the ETH module
     """
@@ -131,45 +117,34 @@ class BoardType(EnumSchemaByNameMixin, IntEnum):
         return self.name
 
 
-@dataclass
-class BaseBoardConfig(StructType, union_type_field="board"):
-    board: Annotated[BoardType, AsHex()] = field()  # todo: fix code so this field() isn't needed
-
-
-@dataclass
-class CustomBoardConfig(BaseBoardConfig, board=BoardType.CUSTOM):
+class CustomBoardConfig(discriminator_value(board=BoardType.CUSTOM), BaseModel):
     spi: Annotated[BoardSPIConfig, AsDefinition()]
     uwb: Annotated[UWBConfig, AsDefinition()]
     eth: Annotated[UplinkEthConfig, AsDefinition()]
     led: Annotated[LedConfig, AsDefinition()]
 
 
-@dataclass
-class DevkitMBoardConfig(BaseBoardConfig, board=BoardType.ESP32_C3_DEVKIT_M_1):
+class DevkitMBoardConfig(discriminator_value(board=BoardType.ESP32_C3_DEVKIT_M_1), BaseModel):
     spi: Annotated[BoardSPIConfig, AsDefinition()]
     uwb: Annotated[UWBConfig, AsDefinition()]
     eth: Annotated[UplinkEthConfig, AsDefinition()]
 
 
-@dataclass
-class Esp32SBoardConfig(BaseBoardConfig, board=BoardType.ESP32_C3_32S):
+class Esp32SBoardConfig(discriminator_value(board=BoardType.ESP32_C3_32S), BaseModel):
     spi: Annotated[BoardSPIConfig, AsDefinition()]
     uwb: Annotated[UWBConfig, AsDefinition()]
     eth: Annotated[UplinkEthConfig, AsDefinition()]
 
 
-@dataclass
-class UwbBoardConfig(BaseBoardConfig, board=BoardType.C3NAV_UWB_BOARD):
+class UwbBoardConfig(discriminator_value(board=BoardType.C3NAV_UWB_BOARD), BaseModel):
     eth: Annotated[UplinkEthConfig, AsDefinition()]
 
 
-@dataclass
-class LocationPCBRev0Dot1BoardConfig(BaseBoardConfig, board=BoardType.C3NAV_LOCATION_PCB_REV_0_1):
+class LocationPCBRev0Dot1BoardConfig(discriminator_value(board=BoardType.C3NAV_LOCATION_PCB_REV_0_1), BaseModel):
     eth: Annotated[UplinkEthConfig, AsDefinition()]
 
 
-@dataclass
-class LocationPCBRev0Dot2BoardConfig(BaseBoardConfig, board=BoardType.C3NAV_LOCATION_PCB_REV_0_2):
+class LocationPCBRev0Dot2BoardConfig(discriminator_value(board=BoardType.C3NAV_LOCATION_PCB_REV_0_2), BaseModel):
     eth: Annotated[UplinkEthConfig, AsDefinition()]
 
 
@@ -186,15 +161,13 @@ BoardConfig = Annotated[
 ]
 
 
-@dataclass
-class RangeResultItem(StructType):
+class RangeResultItem(BaseModel):
     peer: MacAddress
     rssi: Annotated[NegativeInt, Gt(-100)]
     distance: Annotated[int, Gt(-32000), Lt(32000)]
 
 
-@dataclass
-class RawFTMEntry(StructType):
+class RawFTMEntry(BaseModel):
     dlog_token: Annotated[PositiveInt, Lt(255)]
     rssi: Annotated[NegativeInt, Gt(-100)]
     rtt: Annotated[PositiveInt, Lt(2**32)]
@@ -204,9 +177,8 @@ class RawFTMEntry(StructType):
     t4: Annotated[PositiveInt, Lt(2**64)]
 
 
-@dataclass
-class FirmwareAppDescription(StructType):
-    existing_c_struct = ExistingCStruct(name="esp_app_desc_t", includes=['<esp_app_desc.h>'])
+class FirmwareAppDescription(BaseModel):
+    existing_c_struct: ClassVar = ExistingCStruct(name="esp_app_desc_t", includes=['<esp_app_desc.h>'])
 
     magic_word: Literal[0xAB_CD_54_32] = field(repr=False)
     secure_version: Annotated[PositiveInt, Lt(2**32)]
@@ -276,8 +248,7 @@ class ChipType(EnumSchemaByNameMixin, IntEnum):
         return self.name.replace('_', '-')
 
 
-@dataclass
-class FirmwareImageFileHeader(StructType):
+class FirmwareImageFileHeader(BaseModel):
     magic_word: Literal[0xE9] = field(repr=False)
     num_segments: Annotated[PositiveInt, Lt(2**8)]
     spi_flash_mode: SPIFlashMode
@@ -285,8 +256,7 @@ class FirmwareImageFileHeader(StructType):
     entry_point: Annotated[PositiveInt, Lt(2**32)]
 
 
-@dataclass
-class FirmwareImageFileHeader(StructType):
+class FirmwareImageFileHeader(BaseModel):
     major: int
     minor: int
     num_segments: Annotated[PositiveInt, Lt(2**8)]
@@ -295,8 +265,7 @@ class FirmwareImageFileHeader(StructType):
     entry_point: Annotated[PositiveInt, Lt(2**32)]
 
 
-@dataclass
-class FirmwareImageExtendedFileHeader(StructType):
+class FirmwareImageExtendedFileHeader(BaseModel):
     wp_pin: Annotated[PositiveInt, Lt(2**8)]
     drive_settings: Annotated[bytes, MaxLen(3)]
     chip: ChipType  # todo: 2 bytes
@@ -307,8 +276,7 @@ class FirmwareImageExtendedFileHeader(StructType):
     hash_appended: bool
 
 
-@dataclass
-class FirmwareImage(StructType):
+class FirmwareImage(BaseModel):
     header: FirmwareImageFileHeader
     ext_header: FirmwareImageExtendedFileHeader
     first_segment_headers: Annotated[bytes, MaxLen(2)] = field(repr=False)  # todo: implement

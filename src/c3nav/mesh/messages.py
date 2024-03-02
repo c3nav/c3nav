@@ -1,16 +1,16 @@
-from dataclasses import dataclass, field
 from enum import IntEnum, unique
-from typing import Annotated, TypeVar, Union
+from typing import Annotated, Union
 
 import channels
 from annotated_types import Ge, Le, Lt, MaxLen
 from channels.db import database_sync_to_async
-from pydantic import PositiveInt, Field
+from pydantic import PositiveInt
+from pydantic.main import BaseModel
 from pydantic.types import Discriminator
 from pydantic_extra_types.mac_address import MacAddress
 
 from c3nav.api.utils import EnumSchemaByNameMixin
-from c3nav.mesh.baseformats import LenBytes, NoDef, StructType, VarLen, VarStrFormat, normalize_name, CEmbed, CDoc
+from c3nav.mesh.baseformats import CDoc, CEmbed, CName, LenBytes, NoDef, VarLen, discriminator_value, normalize_name
 from c3nav.mesh.dataformats import BoardConfig, ChipType, FirmwareAppDescription, RangeResultItem, RawFTMEntry
 from c3nav.mesh.utils import MESH_ALL_UPLINKS_GROUP
 
@@ -74,97 +74,72 @@ class MeshMessageType(EnumSchemaByNameMixin, IntEnum):
         return name
 
 
-@dataclass
-class BaseMeshMessageContent(StructType, union_type_field="msg_type"):
-    msg_type: Annotated[MeshMessageType, NoDef()] = field()
-
-    @classmethod
-    def get_c_enum_name(cls):
-        # todo: remove this
-        return normalize_name(cls.__name__.removeprefix('Mesh').removesuffix('Message')).upper()
-
-
-@dataclass
-class NoopMessage(BaseMeshMessageContent, msg_type=MeshMessageType.NOOP):
+class NoopMessage(discriminator_value(msg_type=MeshMessageType.NOOP), BaseModel):
     """ noop """
     pass
 
 
-@dataclass
-class EchoRequestMessage(BaseMeshMessageContent, msg_type=MeshMessageType.ECHO_REQUEST):
+class EchoRequestMessage(discriminator_value(msg_type=MeshMessageType.ECHO_REQUEST), BaseModel):
     """ repeat back string """
     content: Annotated[str, MaxLen(255), VarLen()] = ""
 
 
-@dataclass
-class EchoResponseMessage(BaseMeshMessageContent, msg_type=MeshMessageType.ECHO_RESPONSE):
+class EchoResponseMessage(discriminator_value(msg_type=MeshMessageType.ECHO_RESPONSE), BaseModel):
     """ repeat back string """
     content: Annotated[str, MaxLen(255), VarLen()] = ""
 
 
-@dataclass
-class MeshSigninMessage(BaseMeshMessageContent, msg_type=MeshMessageType.MESH_SIGNIN):
+class MeshSigninMessage(discriminator_value(msg_type=MeshMessageType.MESH_SIGNIN), BaseModel):
     """ node says hello to upstream node """
     pass
 
 
-@dataclass
-class MeshLayerAnnounceMessage(BaseMeshMessageContent, msg_type=MeshMessageType.MESH_LAYER_ANNOUNCE):
+class MeshLayerAnnounceMessage(discriminator_value(msg_type=MeshMessageType.MESH_LAYER_ANNOUNCE), BaseModel):
     """ upstream node announces layer number """
     layer: Annotated[PositiveInt, Lt(2 ** 8), CDoc("mesh layer that the sending node is on")]
 
 
-@dataclass
-class MeshAddDestinationsMessage(BaseMeshMessageContent, msg_type=MeshMessageType.MESH_ADD_DESTINATIONS):
+class MeshAddDestinationsMessage(discriminator_value(msg_type=MeshMessageType.MESH_ADD_DESTINATIONS), BaseModel):
     """ downstream node announces served destination """
     addresses: Annotated[list[MacAddress], MaxLen(16), VarLen(), CDoc("adresses of the added destinations",)]
 
 
-@dataclass
-class MeshRemoveDestinationsMessage(BaseMeshMessageContent, msg_type=MeshMessageType.MESH_REMOVE_DESTINATIONS):
+class MeshRemoveDestinationsMessage(discriminator_value(msg_type=MeshMessageType.MESH_REMOVE_DESTINATIONS), BaseModel):
     """ downstream node announces no longer served destination """
     addresses: Annotated[list[MacAddress], MaxLen(16), VarLen(), CDoc("adresses of the removed destinations",)]
 
 
-@dataclass
-class MeshRouteRequestMessage(BaseMeshMessageContent, msg_type=MeshMessageType.MESH_ROUTE_REQUEST):
+class MeshRouteRequestMessage(discriminator_value(msg_type=MeshMessageType.MESH_ROUTE_REQUEST), BaseModel):
     """ request routing information for node """
     request_id: Annotated[PositiveInt, Lt(2**32)]
     address: Annotated[MacAddress, CDoc("target address for the route")]
 
 
-@dataclass
-class MeshRouteResponseMessage(BaseMeshMessageContent, msg_type=MeshMessageType.MESH_ROUTE_RESPONSE):
+class MeshRouteResponseMessage(discriminator_value(msg_type=MeshMessageType.MESH_ROUTE_RESPONSE), BaseModel):
     """ reporting the routing table entry to the given address """
     request_id: Annotated[PositiveInt, Lt(2**32)]
     route: Annotated[MacAddress, CDoc("routing table entry or 00:00:00:00:00:00")]
 
 
-@dataclass
-class MeshRouteTraceMessage(BaseMeshMessageContent, msg_type=MeshMessageType.MESH_ROUTE_TRACE):
+class MeshRouteTraceMessage(discriminator_value(msg_type=MeshMessageType.MESH_ROUTE_TRACE), BaseModel):
     """ special message, collects all hop adresses on its way """
     request_id: Annotated[PositiveInt, Lt(2**32)]
     trace: Annotated[list[MacAddress], MaxLen(16), VarLen(), CDoc("addresses encountered by this message")]
 
 
-@dataclass
-class MeshRoutingFailedMessage(BaseMeshMessageContent, msg_type=MeshMessageType.MESH_ROUTING_FAILED):
+class MeshRoutingFailedMessage(discriminator_value(msg_type=MeshMessageType.MESH_ROUTING_FAILED), BaseModel):
     """ TODO description"""
     address: MacAddress
 
 
-@dataclass
-class ConfigDumpMessage(BaseMeshMessageContent, msg_type=MeshMessageType.CONFIG_DUMP):
+class ConfigDumpMessage(discriminator_value(msg_type=MeshMessageType.CONFIG_DUMP), BaseModel):
     """ request for the node to dump its config """
     pass
 
 
-@dataclass
-class ConfigHardwareMessage(BaseMeshMessageContent, msg_type=MeshMessageType.CONFIG_HARDWARE):
+class ConfigHardwareMessage(discriminator_value(msg_type=MeshMessageType.CONFIG_HARDWARE), BaseModel):
     """ respond hardware/chip info """
-    chip: Annotated[ChipType, NoDef(), LenBytes(2)] = field(metadata={
-        "c_name": "chip_id",
-    })
+    chip: Annotated[ChipType, NoDef(), LenBytes(2), CName("chip_id")]
     revision_major: Annotated[PositiveInt, Lt(2**8)]
     revision_minor: Annotated[PositiveInt, Lt(2**8)]
 
@@ -172,28 +147,24 @@ class ConfigHardwareMessage(BaseMeshMessageContent, msg_type=MeshMessageType.CON
         return ChipType(self.chip).name.replace('_', '-')
 
 
-@dataclass
-class ConfigBoardMessage(BaseMeshMessageContent, msg_type=MeshMessageType.CONFIG_BOARD):
+class ConfigBoardMessage(discriminator_value(msg_type=MeshMessageType.CONFIG_BOARD), BaseModel):
     """ set/respond board config """
     board_config: Annotated[BoardConfig, CEmbed]
 
 
-@dataclass
-class ConfigFirmwareMessage(BaseMeshMessageContent, msg_type=MeshMessageType.CONFIG_FIRMWARE):
+class ConfigFirmwareMessage(discriminator_value(msg_type=MeshMessageType.CONFIG_FIRMWARE), BaseModel):
     """ respond firmware info """
     app_desc: FirmwareAppDescription
 
 
-@dataclass
-class ConfigPositionMessage(BaseMeshMessageContent, msg_type=MeshMessageType.CONFIG_POSITION):
+class ConfigPositionMessage(discriminator_value(msg_type=MeshMessageType.CONFIG_POSITION), BaseModel):
     """ set/respond position config """
     x_pos: Annotated[int, Ge(-2**31), Lt(2**31)]
     y_pos: Annotated[int, Ge(-2**31), Lt(2**31)]
     z_pos: Annotated[int, Ge(-2**15), Lt(2**15)]
 
 
-@dataclass
-class ConfigUplinkMessage(BaseMeshMessageContent, msg_type=MeshMessageType.CONFIG_UPLINK):
+class ConfigUplinkMessage(discriminator_value(msg_type=MeshMessageType.CONFIG_UPLINK), BaseModel):
     """ set/respond uplink config """
     enabled: bool
     ssid: Annotated[str, MaxLen(32)]
@@ -227,8 +198,7 @@ class OTADeviceStatus(EnumSchemaByNameMixin, IntEnum):
         return self >= self.START_FAILED
 
 
-@dataclass
-class OTAStatusMessage(BaseMeshMessageContent, msg_type=MeshMessageType.OTA_STATUS):
+class OTAStatusMessage(discriminator_value(msg_type=MeshMessageType.OTA_STATUS), BaseModel):
     """ report OTA status """
     update_id: Annotated[PositiveInt, Lt(2**32)]
     received_bytes: Annotated[PositiveInt, Lt(2**32)]
@@ -238,14 +208,12 @@ class OTAStatusMessage(BaseMeshMessageContent, msg_type=MeshMessageType.OTA_STAT
     status: OTADeviceStatus
 
 
-@dataclass
-class OTARequestStatusMessage(BaseMeshMessageContent, msg_type=MeshMessageType.OTA_REQUEST_STATUS):
+class OTARequestStatusMessage(discriminator_value(msg_type=MeshMessageType.OTA_REQUEST_STATUS), BaseModel):
     """ request OTA status """
     pass
 
 
-@dataclass
-class OTAStartMessage(BaseMeshMessageContent, msg_type=MeshMessageType.OTA_START):
+class OTAStartMessage(discriminator_value(msg_type=MeshMessageType.OTA_START), BaseModel):
     """ instruct node to start OTA """
     update_id: Annotated[PositiveInt, Lt(2**32)]
     total_bytes: Annotated[PositiveInt, Lt(2**32)]
@@ -253,77 +221,66 @@ class OTAStartMessage(BaseMeshMessageContent, msg_type=MeshMessageType.OTA_START
     auto_reboot: bool
 
 
-@dataclass
-class OTAURLMessage(BaseMeshMessageContent, msg_type=MeshMessageType.OTA_URL):
+class OTAURLMessage(discriminator_value(msg_type=MeshMessageType.OTA_URL), BaseModel):
     """ supply download URL for OTA update and who to distribute it to """
     update_id: Annotated[PositiveInt, Lt(2**32)]
     distribute_to: MacAddress
     url: Annotated[str, MaxLen(255), VarLen()]
 
 
-@dataclass
-class OTAFragmentMessage(BaseMeshMessageContent, msg_type=MeshMessageType.OTA_FRAGMENT):
+class OTAFragmentMessage(discriminator_value(msg_type=MeshMessageType.OTA_FRAGMENT), BaseModel):
     """ supply OTA fragment """
     update_id: Annotated[PositiveInt, Lt(2**32)]
     chunk: Annotated[PositiveInt, Lt(2**16)]
     data: Annotated[bytes, MaxLen(OTA_CHUNK_SIZE), VarLen()]
 
 
-@dataclass
-class OTARequestFragmentsMessage(BaseMeshMessageContent, msg_type=MeshMessageType.OTA_REQUEST_FRAGMENTS):
+class OTARequestFragmentsMessage(discriminator_value(msg_type=MeshMessageType.OTA_REQUEST_FRAGMENTS), BaseModel):
     """ request missing fragments """
     update_id: Annotated[PositiveInt, Lt(2**32)]
     chunks: Annotated[list[Annotated[PositiveInt, Lt(2**16)]], MaxLen(128), VarLen()]
 
 
-@dataclass
-class OTASettingMessage(BaseMeshMessageContent, msg_type=MeshMessageType.OTA_SETTING):
+class OTASettingMessage(discriminator_value(msg_type=MeshMessageType.OTA_SETTING), BaseModel):
     """ configure whether to automatically apply and reboot when update is completed """
     update_id: Annotated[PositiveInt, Lt(2**32)]
     auto_apply: bool
     auto_reboot: bool
 
 
-@dataclass
-class OTAApplyMessage(BaseMeshMessageContent, msg_type=MeshMessageType.OTA_APPLY):
+class OTAApplyMessage(discriminator_value(msg_type=MeshMessageType.OTA_APPLY), BaseModel):
     """ apply OTA and optionally reboot """
     update_id: Annotated[PositiveInt, Lt(2**32)]
     reboot: bool
 
 
-@dataclass
-class OTAAbortMessage(BaseMeshMessageContent, msg_type=MeshMessageType.OTA_ABORT):
+class OTAAbortMessage(discriminator_value(msg_type=MeshMessageType.OTA_ABORT), BaseModel):
     """ announcing OTA abort """
     update_id: Annotated[PositiveInt, Lt(2**32)]
 
 
-@dataclass
-class LocateRequestRangeMessage(BaseMeshMessageContent, msg_type=MeshMessageType.LOCATE_REQUEST_RANGE):
+class LocateRequestRangeMessage(discriminator_value(msg_type=MeshMessageType.LOCATE_REQUEST_RANGE), BaseModel):
     """ request to report distance to all nearby nodes """
     pass
 
 
-@dataclass
-class LocateRangeResults(BaseMeshMessageContent, msg_type=MeshMessageType.LOCATE_RANGE_RESULTS):
+class LocateRangeResults(discriminator_value(msg_type=MeshMessageType.LOCATE_RANGE_RESULTS), BaseModel):
     """ reports distance to given nodes """
     ranges: Annotated[list[RangeResultItem], MaxLen(16), VarLen()]
 
 
-@dataclass
-class LocateRawFTMResults(BaseMeshMessageContent, msg_type=MeshMessageType.LOCATE_RAW_FTM_RESULTS):
+class LocateRawFTMResults(discriminator_value(msg_type=MeshMessageType.LOCATE_RAW_FTM_RESULTS), BaseModel):
     """ reports distance to given nodes """
     peer: MacAddress
     results: Annotated[list[RawFTMEntry], MaxLen(16), VarLen()]
 
 
-@dataclass
-class Reboot(BaseMeshMessageContent, msg_type=MeshMessageType.REBOOT):
+class Reboot(discriminator_value(msg_type=MeshMessageType.REBOOT), BaseModel):
     """ reboot the device """
     pass
 
 
-@dataclass
-class ReportError(BaseMeshMessageContent, msg_type=MeshMessageType.REPORT_ERROR):
+class ReportError(discriminator_value(msg_type=MeshMessageType.REPORT_ERROR), BaseModel):
     """ report a critical error to upstream """
     message: Annotated[str, MaxLen(255), VarLen()]
 
@@ -366,8 +323,7 @@ MeshMessageContent = Annotated[
 ]
 
 
-@dataclass
-class MeshMessage(StructType):
+class MeshMessage(BaseModel):
     dst: MacAddress
     src: MacAddress
     content: MeshMessageContent
@@ -377,7 +333,7 @@ class MeshMessage(StructType):
             "type": "mesh.send",
             "sender": sender,
             "exclude_uplink_address": exclude_uplink_address,
-            "msg": MeshMessage.tojson(self),
+            "msg": MeshMessage.tojson(self),  # todo: remove tojson!
         }
 
         if self.dst in (MESH_CHILDREN_ADDRESS, MESH_BROADCAST_ADDRESS):
