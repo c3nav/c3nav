@@ -633,10 +633,10 @@ class UnionFormat(BaseFormat):
         ])
 
     def get_c_struct_items(self, ignore_fields=None, no_empty=False, top_level=False):
-        return [(
-            self.discriminator_format.get_c_code(self.discriminator),
-            None,
-        )]
+        return [
+            (self.discriminator_format.get_c_code(self.discriminator), None),
+            ("union __packed %s;" % self.get_c_union_code(ignore_fields), None),
+        ]
 
     def get_c_union_size(self):
         return max(
