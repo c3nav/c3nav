@@ -475,12 +475,11 @@ class StructFormat(BaseFormat):
         raise ValueError
 
     def get_size(self, calculate_max=False):
-        # todo: remove no_inherited fields? still needed?
         return sum((
             field_format.get_size(calculate_max=calculate_max) for field_format in self._field_formats.values()
         ), start=0)
 
-    def get_c_struct_items(self, ignore_fields=None, no_empty=False, top_level=False, union_only=False, in_union=False):
+    def get_c_struct_items(self, ignore_fields=None, no_empty=False, top_level=False, in_union=False):
         ignore_fields = set() if not ignore_fields else set(ignore_fields)
 
         items = []
@@ -504,7 +503,7 @@ class StructFormat(BaseFormat):
                 )),
             else:
                 if name in self._c_embed:
-                    embedded_items = field_format.get_c_struct_items(ignore_fields, no_empty, top_level, union_only)
+                    embedded_items = field_format.get_c_struct_items(ignore_fields, no_empty, top_level)
                     items.extend(embedded_items)
                 else:
                     items.append((
@@ -521,22 +520,18 @@ class StructFormat(BaseFormat):
 
         return items
 
-    def get_c_parts(self, ignore_fields=None, no_empty=False, top_level=False, union_only=False, in_union=False) -> tuple[str, str]:
+    def get_c_parts(self, ignore_fields=None, no_empty=False, top_level=False, in_union=False) -> tuple[str, str]:
         # todo: parameters needed?
         with suppress(AttributeError):
             return (self.model.existing_c_struct.name, "")
 
         ignore_fields = set() if not ignore_fields else set(ignore_fields)
 
-        if union_only:
-            return "", ""
-
         pre = ""
 
         items = self.get_c_struct_items(ignore_fields=ignore_fields,
                                         no_empty=no_empty,
                                         top_level=top_level,
-                                        union_only=union_only,
                                         in_union=in_union)
 
         if no_empty and not items:
@@ -561,12 +556,10 @@ class StructFormat(BaseFormat):
         }
         return pre, ""
 
-    def get_c_code(self, name=None, ignore_fields=None, no_empty=False, typedef=True, union_only=False,
-                   in_union=False) -> str:
+    def get_c_code(self, name=None, ignore_fields=None, no_empty=False, typedef=True, in_union=False) -> str:
         pre, post = self.get_c_parts(ignore_fields=ignore_fields,
                                      no_empty=no_empty,
                                      top_level=typedef,
-                                     union_only=union_only,
                                      in_union=in_union)
         if no_empty and not pre and not post:
             return ""
@@ -644,17 +637,11 @@ class UnionFormat(BaseFormat):
             for field_format in self.models.values()
         ])
 
-    def get_c_struct_items(self, ignore_fields=None, no_empty=False, top_level=False, union_only=False, in_union=False):
-        items = [(
+    def get_c_struct_items(self, ignore_fields=None, no_empty=False, top_level=False, in_union=False):
+        return [(
             self.discriminator_format.get_c_code(self.discriminator),
             None,
         )]
-
-        if not union_only:
-            union_code = self.get_c_union_code(ignore_fields)
-            items.append(("union __packed %s;" % union_code, ""))
-
-        return items
 
     def get_c_union_size(self):
         return max(
@@ -677,13 +664,9 @@ class UnionFormat(BaseFormat):
         )
         return "{\n" + indent_c("\n".join(union_items)) + "\n}"
 
-    def get_c_parts(self, ignore_fields=None, no_empty=False, top_level=False, union_only=False, in_union=False) -> tuple[str, str]:
+    def get_c_parts(self, ignore_fields=None, no_empty=False, top_level=False, in_union=False) -> tuple[str, str]:
         # todo: parameters needed?
         ignore_fields = set() if not ignore_fields else set(ignore_fields)
-
-        if union_only:
-            union_code = self.model.get_c_union_code(ignore_fields)
-            return "typedef union __packed %s" % union_code, ""
 
         pre = ""
 
@@ -692,7 +675,6 @@ class UnionFormat(BaseFormat):
         items = self.get_c_struct_items(ignore_fields=ignore_fields,
                                         no_empty=no_empty,
                                         top_level=top_level,
-                                        union_only=union_only,
                                         in_union=in_union)
 
         if no_empty and not items:
@@ -713,12 +695,10 @@ class UnionFormat(BaseFormat):
         }
         return pre, ""
 
-    def get_c_code(self, name=None, ignore_fields=None, no_empty=False, typedef=True, union_only=False,
-                   in_union=False) -> str:
+    def get_c_code(self, name=None, ignore_fields=None, no_empty=False, typedef=True, in_union=False) -> str:
         pre, post = self.get_c_parts(ignore_fields=ignore_fields,
                                      no_empty=no_empty,
                                      top_level=typedef,
-                                     union_only=union_only,
                                      in_union=in_union)
         if no_empty and not pre and not post:
             return ""
