@@ -892,7 +892,7 @@ def get_type_hint_format(type_hint: SplitTypeHint, attr_name=None) -> BaseFormat
         raise ValueError('Unknown type annotation for c structs', type_hint.base)
     else:
         if outer_type_hint is not None and outer_type_hint.base is list:
-            max_length, var_len_name = get_type_len_meta(max_length, outer_type_hint, var_len_name)
+            max_length, var_len_name = get_type_len_meta(outer_type_hint)
             if max_length is None:
                 raise ValueError('missing list max_length:', attr_name)
             if var_len_name:
