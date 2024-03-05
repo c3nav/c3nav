@@ -415,8 +415,14 @@ T = typing.TypeVar('T', bound="type")
 class StructFormat(BaseFormat):
     _format_cache: dict[typing.Type, dict[str, BaseFormat]]
 
+    def __new__(cls, model: typing.Type[T]):
+        result = cls._format_cache.get(model, None)
+        if not result:
+            result = super().__new__(model)
+            cls._format_cache.get(model, result)
+        return result
+
     def __init__(self, model: typing.Type[T]):
-        # todo: only one instance per model
         self.model = model
 
         self._field_formats = {}
