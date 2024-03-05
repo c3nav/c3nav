@@ -109,15 +109,11 @@ class BaseFormat(ABC):
         pre, post = self.get_c_parts()
         return "%s %s%s;" % (pre, name, post)
 
-    def set_field_type(self, field_type):
-        # todo: when is this even needed, could we just initialize it?
-        self.field_type = field_type
-
     def get_c_definitions(self) -> dict[str, str]:
         return {}
 
     def get_typedef_name(self):
-        return '%s_t' % normalize_name(self.field_type.__name__)
+        raise TypeError('no typedef for %r' % self)
 
     def get_c_includes(self) -> set:
         return set()
@@ -202,18 +198,20 @@ class SimpleConstFormat(SimpleFormat):
 
 
 class EnumFormat(SimpleFormat):
-    def __init__(self, fmt="B", *, as_hex=False, c_definition=True):
+    def __init__(self, enum_cls: typing.Type[IntEnum], fmt="B", *, as_hex=False, c_definition=True):
         super().__init__(fmt)
+        self.enum_cls = enum_cls
         self.as_hex = as_hex
         self.c_definition = c_definition
 
-    def set_field_type(self, field_type):
-        super().set_field_type(field_type)
-        self.c_struct_name = normalize_name(field_type.__name__) + '_t'
+        self.c_struct_name = normalize_name(enum_cls.__name__) + '_t'
 
     def decode(self, data: bytes) -> tuple[Any, bytes]:
         value, out_data = super().decode(data)
-        return self.field_type(value), out_data
+        return self.enum_cls(value), out_data
+
+    def get_typedef_name(self):
+        return '%s_t' % normalize_name(self.enum_cls.__name__)
 
     def get_c_parts(self):
         if not self.c_definition:
@@ -223,10 +221,10 @@ class EnumFormat(SimpleFormat):
     def get_c_definitions(self) -> dict[str, str]:
         if not self.c_definition:
             return {}
-        prefix = normalize_name(self.field_type.__name__).upper()
+        prefix = normalize_name(self.enum_cls.__name__).upper()
         options = []
         last_value = None
-        for item in self.field_type:
+        for item in self.enum_cls:
             if last_value is not None and item.value != last_value + 1:
                 options.append('')
             last_value = item.value
@@ -245,16 +243,17 @@ class EnumFormat(SimpleFormat):
 
 
 class TwoNibblesEnumFormat(SimpleFormat):
-    def __init__(self):
+    def __init__(self, data_cls):
+        self.data_cls = data_cls
         super().__init__('B')
 
     def decode(self, data: bytes) -> tuple[bool, bytes]:
-        fields = dataclass_fields(self.field_type)
+        fields = dataclass_fields(self.data_cls)
         value, data = super().decode(data)
-        return self.field_type(fields[0].type(value // 2 ** 4), fields[1].type(value // 2 ** 4)), data
+        return self.data_cls(fields[0].type(value // 2 ** 4), fields[1].type(value // 2 ** 4)), data
 
     def encode(self, value):
-        fields = dataclass_fields(self.field_type)
+        fields = dataclass_fields(self.data_cls)
         return super().encode(
             getattr(value, fields[0].name).value * 2 ** 4 +
             getattr(value, fields[1].name).value * 2 ** 4
@@ -409,7 +408,7 @@ class VarBytesFormat(BaseVarFormat):
         return super().get_num_c_code() + "\n" + "uint8_t", "[0]"
 
 
-T = typing.TypeVar('T', bound="type")
+T = typing.TypeVar('T')
 
 
 class StructFormat(BaseFormat):
@@ -883,9 +882,6 @@ def get_type_hint_format(type_hint: SplitTypeHint, attr_name=None) -> BaseFormat
         field_format = EnumFormat(fmt=int_type, as_hex=as_hex, c_definition=not no_def)
     elif isinstance(type_hint.base, type) and issubclass(type_hint.base, TwoNibblesEncodable):
         field_format = TwoNibblesEnumFormat()
-
-    if field_format is not None:
-        field_format.set_field_type(type_hint.base)
     elif isinstance(type_hint.base, type) and typing.get_type_hints(type_hint.base):
         field_format = StructFormat(model=type_hint.base)
 
@@ -911,7 +907,6 @@ def get_type_hint_format(type_hint: SplitTypeHint, attr_name=None) -> BaseFormat
                 field_format = VarArrayFormat(field_format, max_num=max_length)
             else:
                 raise ValueError('fixed-len list not implemented:', attr_name)
-            field_format.set_field_type(orig_type_base)
 
     return field_format
 
