@@ -811,22 +811,7 @@ def get_type_hint_format(type_hint: SplitTypeHint, attr_name=None) -> BaseFormat
             discriminator_as_hex=discriminator_as_hex,
         )
     elif type_hint.base is int:
-        min_ = -(2**63)
-        max_ = 2**63-1
-        for m in type_hint.metadata:
-            gt = getattr(m, 'gt', None)
-            if gt is not None:
-                min_ = max(min_, gt+1)
-            ge = getattr(m, 'ge', None)
-            if ge is not None:
-                min_ = max(min_, ge)
-            lt = getattr(m, 'lt', None)
-            if lt is not None:
-                max_ = min(max_, lt - 1)
-            le = getattr(m, 'le', None)
-            if le is not None:
-                max_ = min(max_, le)
-        int_type = get_int_type(min_, max_)
+        int_type = get_int_type(*get_int_min_max(type_hint))
         if int_type is None:
             raise ValueError('invalid range:', attr_name)
         field_format = SimpleFormat(int_type)
@@ -858,7 +843,7 @@ def get_type_hint_format(type_hint: SplitTypeHint, attr_name=None) -> BaseFormat
                 field_format = FixedHexFormat(max_length) if as_hex else FixedStrFormat(max_length)
         else:
             if var_len_name is None:
-                 field_format = FixedBytesFormat(num=max_length)
+                field_format = FixedBytesFormat(num=max_length)
             else:
                 field_format = VarBytesFormat(max_size=max_length)
     elif type_hint.base is MacAddress:
@@ -902,13 +887,32 @@ def get_type_hint_format(type_hint: SplitTypeHint, attr_name=None) -> BaseFormat
                         raise ValueError('can\'t set variable length name twice')
                     var_len_name = vl
             if max_length is None:
-                raise ValueError('missing str max_length:', attr_name)
+                raise ValueError('missing list max_length:', attr_name)
             if var_len_name:
                 field_format = VarArrayFormat(field_format, max_num=max_length)
             else:
                 raise ValueError('fixed-len list not implemented:', attr_name)
 
     return field_format
+
+
+def get_int_min_max(type_hint):
+    min_ = -(2 ** 63)
+    max_ = 2 ** 63 - 1
+    for m in type_hint.metadata:
+        gt = getattr(m, 'gt', None)
+        if gt is not None:
+            min_ = max(min_, gt + 1)
+        ge = getattr(m, 'ge', None)
+        if ge is not None:
+            min_ = max(min_, ge)
+        lt = getattr(m, 'lt', None)
+        if lt is not None:
+            max_ = min(max_, lt - 1)
+        le = getattr(m, 'le', None)
+        if le is not None:
+            max_ = min(max_, le)
+    return max_, min_
 
 
 def normalize_name(name):
