@@ -767,11 +767,44 @@ def get_format(type_, attr_name=None) -> BaseFormat:
     return get_type_hint_format(split_type_hint(type_))
 
 
+def get_type_len_meta(outer_type_hint):
+    max_length = None
+    var_len_name = None
+    for m in outer_type_hint.metadata:
+        ml = getattr(m, 'max_length', None)
+        if ml is not None:
+            max_length = ml if max_length is None else min(max_length, ml)
+
+        vl = getattr(m, 'var_len_name', None)
+        if vl is not None:
+            if var_len_name is not None:
+                raise ValueError('can\'t set variable length name twice')
+            var_len_name = vl
+    return max_length, var_len_name
+
+
+def get_int_min_max(type_hint):
+    min_ = -(2 ** 63)
+    max_ = 2 ** 63 - 1
+    for m in type_hint.metadata:
+        gt = getattr(m, 'gt', None)
+        if gt is not None:
+            min_ = max(min_, gt + 1)
+        ge = getattr(m, 'ge', None)
+        if ge is not None:
+            min_ = max(min_, ge)
+        lt = getattr(m, 'lt', None)
+        if lt is not None:
+            max_ = min(max_, lt - 1)
+        le = getattr(m, 'le', None)
+        if le is not None:
+            max_ = min(max_, le)
+    return max_, min_
+
+
 # todo: move this somewhere?
 def get_type_hint_format(type_hint: SplitTypeHint, attr_name=None) -> BaseFormat:
     # todo: attr_name nicer?
-    orig_type_base = type_hint.base
-
     outer_type_hint = None
     if typing.get_origin(type_hint.base) is list:
         outer_type_hint = SplitTypeHint(
@@ -818,21 +851,8 @@ def get_type_hint_format(type_hint: SplitTypeHint, attr_name=None) -> BaseFormat
     elif type_hint.base is bool:
         field_format = BoolFormat()
     elif type_hint.base in (str, bytes):
-        max_length = None
-        var_len_name = None
-        as_hex = False
-        for m in type_hint.metadata:
-            as_hex = getattr(m, 'as_hex', as_hex)
-
-            ml = getattr(m, 'max_length', None)
-            if ml is not None:
-                max_length = ml if max_length is None else min(max_length, ml)
-
-            vl = getattr(m, 'var_len_name', None)
-            if vl is not None:
-                if var_len_name is not None:
-                    raise ValueError('can\'t set variable length name twice')
-                var_len_name = vl
+        as_hex = any(getattr(m, 'as_hex', False) for m in type_hint.metadata)
+        max_length, var_len_name = get_type_len_meta(type_hint)
         if max_length is None:
             raise ValueError('missing str max_length:', attr_name)
 
@@ -850,12 +870,10 @@ def get_type_hint_format(type_hint: SplitTypeHint, attr_name=None) -> BaseFormat
         from c3nav.mesh.dataformats import MacAddressFormat
         field_format = MacAddressFormat()
     elif isinstance(type_hint.base, type) and issubclass(type_hint.base, IntEnum):
-        no_def = False
-        as_hex = False
+        no_def = any(getattr(m, 'no_def', False) for m in type_hint.metadata)
+        as_hex = any(getattr(m, 'as_hex', False) for m in type_hint.metadata)
         len_bytes = None
         for m in type_hint.metadata:
-            no_def = getattr(m, 'no_def', no_def)
-            as_hex = getattr(m, 'as_hex', as_hex)
             len_bytes = getattr(m, 'len_bytes', len_bytes)
 
         if len_bytes:
@@ -874,18 +892,7 @@ def get_type_hint_format(type_hint: SplitTypeHint, attr_name=None) -> BaseFormat
         raise ValueError('Unknown type annotation for c structs', type_hint.base)
     else:
         if outer_type_hint is not None and outer_type_hint.base is list:
-            max_length = None
-            var_len_name = None
-            for m in outer_type_hint.metadata:
-                ml = getattr(m, 'max_length', None)
-                if ml is not None:
-                    max_length = ml if max_length is None else min(max_length, ml)
-
-                vl = getattr(m, 'var_len_name', None)
-                if vl is not None:
-                    if var_len_name is not None:
-                        raise ValueError('can\'t set variable length name twice')
-                    var_len_name = vl
+            max_length, var_len_name = get_type_len_meta(max_length, outer_type_hint, var_len_name)
             if max_length is None:
                 raise ValueError('missing list max_length:', attr_name)
             if var_len_name:
@@ -894,25 +901,6 @@ def get_type_hint_format(type_hint: SplitTypeHint, attr_name=None) -> BaseFormat
                 raise ValueError('fixed-len list not implemented:', attr_name)
 
     return field_format
-
-
-def get_int_min_max(type_hint):
-    min_ = -(2 ** 63)
-    max_ = 2 ** 63 - 1
-    for m in type_hint.metadata:
-        gt = getattr(m, 'gt', None)
-        if gt is not None:
-            min_ = max(min_, gt + 1)
-        ge = getattr(m, 'ge', None)
-        if ge is not None:
-            min_ = max(min_, ge)
-        lt = getattr(m, 'lt', None)
-        if lt is not None:
-            max_ = min(max_, lt - 1)
-        le = getattr(m, 'le', None)
-        if le is not None:
-            max_ = min(max_, le)
-    return max_, min_
 
 
 def normalize_name(name):
