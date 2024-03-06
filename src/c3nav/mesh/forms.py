@@ -69,7 +69,7 @@ class MeshMessageForm(forms.Form):
         if cls.msg_type in MeshMessageForm.msg_types:
             raise TypeError('duplicate use of msg %s' % cls.msg_type)
         MeshMessageForm.msg_types[cls.msg_type] = cls
-        cls.msg_type_class = get_format(MeshMessageContent).models.get(cls.msg_type).model
+        cls.msg_type_class = get_format(MeshMessageContent).models.get(cls.msg_type.c_value).model
 
     @classmethod
     def get_form_for_type(cls, msg_type):
@@ -180,8 +180,8 @@ class ConfigBoardMessageForm(MeshMessageForm):
             "prefix": "led_",
             "field": "board",
             "values": tuple(
-                board_type.name for board_type, cfg_format in get_format(BoardConfig).models.items()
-                if "led" in cfg_format._field_formats
+                board_type.name for board_type in BoardType
+                if "led" in get_format(BoardConfig).models[board_type.c_value]._field_formats
             ),
         },
         {
@@ -198,8 +198,8 @@ class ConfigBoardMessageForm(MeshMessageForm):
             "prefix": "uwb_",
             "field": "board",
             "values": tuple(
-                board_type.name for board_type, cfg_format in get_format(BoardConfig).models.items()
-                if "uwb" in cfg_format._field_formats
+                board_type.name for board_type in BoardType
+                if "uwb" in get_format(BoardConfig).models[board_type.c_value]._field_formats
             ),
         },
         {

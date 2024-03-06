@@ -35,7 +35,7 @@ class NoLedConfig(discriminator_value(led_type=LedType.NONE), BaseModel):
 
 
 class SerialLedConfig(discriminator_value(led_type=LedType.SERIAL), BaseModel):
-    serial_led_type: Annotated[SerialLedType, CName("type")] = field()  # todo: we need a way to remove this field()
+    serial_led_type: Annotated[SerialLedType, CName("type")]
     gpio: Annotated[PositiveInt, Lt(2**8)]
 
 
@@ -275,7 +275,7 @@ class FirmwareImageExtendedFileHeader(BaseModel):
 class FirmwareImage(BaseModel):
     header: FirmwareImageFileHeader
     ext_header: FirmwareImageExtendedFileHeader
-    first_segment_headers: Annotated[bytes, MaxLen(2)] = field(repr=False)  # todo: implement
+    first_segment_headers: Annotated[bytes, MaxLen(2)] = field(repr=False)
     app_desc: FirmwareAppDescription
 
     @classmethod

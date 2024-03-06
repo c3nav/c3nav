@@ -242,13 +242,13 @@ class EnumFormat(SimpleFormat):
         options = []
         last_value = None
         for item in self.enum_cls:
-            if last_value is not None and item.value != last_value + 1:
+            if last_value is not None and item.c_value != last_value + 1:
                 options.append('')
-            last_value = item.value
+            last_value = item.c_value
             options.append("%(prefix)s_%(name)s = %(value)s," % {
                 "prefix": prefix,
                 "name": normalize_name(item.name).upper(),
-                "value": ("0x%02x" if self.as_hex else "%d") % item.value
+                "value": ("0x%02x" if self.as_hex else "%d") % item.c_value
             })
 
         return {
@@ -617,21 +617,20 @@ class StructFormat(BaseFormat):
 class UnionFormat(BaseFormat):
     def __init__(self, model_formats: Sequence[StructFormat], discriminator: str, discriminator_as_hex: bool = False):
         self.discriminator = discriminator
-        self.models = {
+        models = {
             getattr(model_format.model, discriminator): model_format for model_format in model_formats
         }
-        if len(self.models) != len(model_formats):
+        if len(models) != len(model_formats):
             raise ValueError
-        types = set(type(value) for value in self.models.keys())
+        types = set(type(value) for value in models.keys())
         if len(types) != 1:
             raise ValueError
         type_ = tuple(types)[0]
-        if not issubclass(type_, CEnum):
-            raise ValueError
         if discriminator_as_hex:
             # todo: nicer?
             type_ = typing.Annotated[type_, AsHex()]
         self.discriminator_format = get_type_hint_format(split_type_hint(type_))
+        self.models = {value.c_value: model_format for value, model_format in models.items()}
 
     def get_var_num(self):
         return 0  # todo: is this always correct?
@@ -691,11 +690,6 @@ class UnionFormat(BaseFormat):
     def get_c_parts(self, ignore_fields=None, no_empty=False, top_level=False) -> tuple[str, str]:
         # todo: parameters needed?
         ignore_fields = set() if not ignore_fields else set(ignore_fields)
-
-        pre = ""
-
-        # todo: we should be able to shorten this considerably
-
         items = self.get_c_struct_items(ignore_fields=ignore_fields,
                                         no_empty=no_empty,
                                         top_level=top_level)
@@ -704,9 +698,9 @@ class UnionFormat(BaseFormat):
             return "", ""
 
         if top_level:
-            pre += "typedef struct __packed "
+            pre = "typedef struct __packed "
         else:
-            pre += "struct __packed "
+            pre = "struct __packed "
 
         pre += "{\n%(elements)s\n}" % {
             "elements": indent_c(
@@ -805,9 +799,9 @@ def get_type_len_meta(outer_type_hint):
     return max_length, var_len_name
 
 
-def get_int_min_max(type_hint):
-    min_ = -(2 ** 63)
-    max_ = 2 ** 63 - 1
+def get_int_min_max(type_hint, default_min=-(2 ** 63), default_max=2 ** 63 - 1):
+    min_ = default_min
+    max_ = default_max
     for m in type_hint.metadata:
         gt = getattr(m, 'gt', None)
         if gt is not None:
@@ -850,7 +844,7 @@ def get_type_hint_format(type_hint: SplitTypeHint, attr_name=None) -> BaseFormat
         if isinstance(literal_val, CEnum):
             options = [v.c_value for v in type(literal_val)]
             literal_val = literal_val.c_value
-            int_type = get_int_type(min(options), max(options))
+            int_type = get_int_type(*get_int_min_max(type_hint, default_min=min(options), default_max=max(options)))
         elif isinstance(literal_val, int):
             int_type = get_int_type(literal_val, literal_val)
         else:
