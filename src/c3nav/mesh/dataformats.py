@@ -9,8 +9,8 @@ from pydantic.main import BaseModel
 from pydantic.types import Discriminator
 from pydantic_extra_types.mac_address import MacAddress
 
-from c3nav.api.utils import EnumSchemaByNameMixin, TwoNibblesEncodable
-from c3nav.mesh.baseformats import AsDefinition, AsHex, CName, ExistingCStruct, FixedHexFormat, discriminator_value
+from c3nav.mesh.baseformats import AsDefinition, AsHex, CName, ExistingCStruct, FixedHexFormat, discriminator_value, \
+    CEnum, TwoNibblesEncodable
 
 
 class MacAddressFormat(FixedHexFormat):
@@ -19,10 +19,10 @@ class MacAddressFormat(FixedHexFormat):
 
 
 @unique
-class LedType(EnumSchemaByNameMixin, IntEnum):
-    NONE = 0
-    SERIAL = 1
-    MULTIPIN = 2
+class LedType(CEnum):
+    NONE = "NONE", 0
+    SERIAL = "SERIAL", 1
+    MULTIPIN = "MULTIPIN", 2
 
     @property
     def pretty_name(self):
@@ -30,9 +30,9 @@ class LedType(EnumSchemaByNameMixin, IntEnum):
 
 
 @unique
-class SerialLedType(EnumSchemaByNameMixin, IntEnum):
-    WS2812 = 1
-    SK6812 = 2
+class SerialLedType(CEnum):
+    WS2812 = "WS2812", 1
+    SK6812 = "SK6812", 2
 
 
 class NoLedConfig(discriminator_value(led_type=LedType.NONE), BaseModel):
@@ -92,17 +92,17 @@ class UplinkEthConfig(BaseModel):
 
 
 @unique
-class BoardType(EnumSchemaByNameMixin, IntEnum):
-    CUSTOM = 0x00
+class BoardType(CEnum):
+    CUSTOM = "CUSTOM", 0x00
 
     # devboards
-    ESP32_C3_DEVKIT_M_1 = 0x01
-    ESP32_C3_32S = 0x02
+    ESP32_C3_DEVKIT_M_1 = "ESP32_C3_DEVKIT_M_1", 0x01
+    ESP32_C3_32S = "ESP32_C3_32S", 0x02
 
     # custom boards
-    C3NAV_UWB_BOARD = 0x10
-    C3NAV_LOCATION_PCB_REV_0_1 = 0x11
-    C3NAV_LOCATION_PCB_REV_0_2 = 0x12
+    C3NAV_UWB_BOARD = "C3NAV_UWB_BOARD", 0x10
+    C3NAV_LOCATION_PCB_REV_0_1 = "C3NAV_LOCATION_PCB_REV_0_1", 0x11
+    C3NAV_LOCATION_PCB_REV_0_2 = "C3NAV_LOCATION_PCB_REV_0_2", 0x12
 
     @property
     def pretty_name(self):
@@ -194,23 +194,23 @@ class FirmwareAppDescription(BaseModel):
 
 
 @unique
-class SPIFlashMode(EnumSchemaByNameMixin, IntEnum):
-    QIO = 0
-    QOUT = 1
-    DIO = 2
-    DOUT = 3
+class SPIFlashMode(CEnum):
+    QIO = "QID", 0
+    QOUT = "QOUT", 1
+    DIO = "DIO", 2
+    DOUT = "DOUT", 3
 
 
 @unique
-class FlashSize(EnumSchemaByNameMixin, IntEnum):
-    SIZE_1MB = 0
-    SIZE_2MB = 1
-    SIZE_4MB = 2
-    SIZE_8MB = 3
-    SIZE_16MB = 4
-    SIZE_32MB = 5
-    SIZE_64MB = 6
-    SIZE_128MB = 7
+class FlashSize(CEnum):
+    SIZE_1MB = "SIZE_1MB", 0
+    SIZE_2MB = "SIZE_2MB", 1
+    SIZE_4MB = "SIZE_4MB", 2
+    SIZE_8MB = "SIZE_8MB", 3
+    SIZE_16MB = "SIZE_16MB", 4
+    SIZE_32MB = "SIZE_32MB", 5
+    SIZE_64MB = "SIZE_64MB", 6
+    SIZE_128MB = "SIZE_128MB", 7
 
     @property
     def pretty_name(self):
@@ -218,11 +218,11 @@ class FlashSize(EnumSchemaByNameMixin, IntEnum):
 
 
 @unique
-class FlashFrequency(EnumSchemaByNameMixin, IntEnum):
-    FREQ_40MHZ = 0
-    FREQ_26MHZ = 1
-    FREQ_20MHZ = 2
-    FREQ_80MHZ = 0xf
+class FlashFrequency(CEnum):
+    FREQ_40MHZ = "FREQ_40MHZ", 0
+    FREQ_26MHZ = "FREQ_26MHZ", 1
+    FREQ_20MHZ = "FREQ_20MHZ", 2
+    FREQ_80MHZ = "FREQ_80MHZ", 0xf
 
     @property
     def pretty_name(self):
@@ -240,9 +240,9 @@ class FlashSettings(TwoNibblesEncodable):
 
 
 @unique
-class ChipType(EnumSchemaByNameMixin, IntEnum):
-    ESP32_S2 = 2
-    ESP32_C3 = 5
+class ChipType(CEnum):
+    ESP32_S2 = "ESP32_S2", 2
+    ESP32_C3 = "ESP32_C3", 5
 
     @property
     def pretty_name(self):

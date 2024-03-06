@@ -1,4 +1,4 @@
-from enum import IntEnum, unique
+from enum import unique
 from typing import Annotated, Union
 
 import channels
@@ -9,8 +9,7 @@ from pydantic.main import BaseModel
 from pydantic.types import Discriminator
 from pydantic_extra_types.mac_address import MacAddress
 
-from c3nav.api.utils import EnumSchemaByNameMixin
-from c3nav.mesh.baseformats import CDoc, CEmbed, CName, LenBytes, NoDef, VarLen, discriminator_value, normalize_name
+from c3nav.mesh.baseformats import CDoc, CEmbed, CName, LenBytes, NoDef, VarLen, discriminator_value, CEnum
 from c3nav.mesh.dataformats import BoardConfig, ChipType, FirmwareAppDescription, RangeResultItem, RawFTMEntry
 from c3nav.mesh.utils import MESH_ALL_UPLINKS_GROUP
 
@@ -19,51 +18,51 @@ MESH_NONE_ADDRESS = '00:00:00:00:00:00'
 MESH_PARENT_ADDRESS = '00:00:00:ff:ff:ff'
 MESH_CHILDREN_ADDRESS = '00:00:00:00:ff:ff'
 MESH_BROADCAST_ADDRESS = 'ff:ff:ff:ff:ff:ff'
-NO_LAYER = 0xFF
+NO_LAYER = "NO_LAYER", 0xFF
 
 OTA_CHUNK_SIZE = 512
 
 
 @unique
-class MeshMessageType(EnumSchemaByNameMixin, IntEnum):
-    NOOP = 0x00
+class MeshMessageType(CEnum):
+    NOOP = "NOOP", 0x00
 
-    ECHO_REQUEST = 0x01
-    ECHO_RESPONSE = 0x02
+    ECHO_REQUEST = "ECHO_REQUEST", 0x01
+    ECHO_RESPONSE = "ECHO_RESPONSE", 0x02
 
-    MESH_SIGNIN = 0x03
-    MESH_LAYER_ANNOUNCE = 0x04
-    MESH_ADD_DESTINATIONS = 0x05
-    MESH_REMOVE_DESTINATIONS = 0x06
-    MESH_ROUTE_REQUEST = 0x07
-    MESH_ROUTE_RESPONSE = 0x08
-    MESH_ROUTE_TRACE = 0x09
-    MESH_ROUTING_FAILED = 0x0a
+    MESH_SIGNIN = "MESH_SIGNIN", 0x03
+    MESH_LAYER_ANNOUNCE = "MESH_LAYER_ANNOUNCE", 0x04
+    MESH_ADD_DESTINATIONS = "MESH_ADD_DESTINATIONS", 0x05
+    MESH_REMOVE_DESTINATIONS = "MESH_REMOVE_DESTINATIONS", 0x06
+    MESH_ROUTE_REQUEST = "MESH_ROUTE_REQUEST", 0x07
+    MESH_ROUTE_RESPONSE = "MESH_ROUTE_RESPONSE", 0x08
+    MESH_ROUTE_TRACE = "MESH_ROUTE_TRACE", 0x09
+    MESH_ROUTING_FAILED = "MESH_ROUTING_FAILED", 0x0a
 
-    CONFIG_DUMP = 0x10
-    CONFIG_HARDWARE = 0x11
-    CONFIG_BOARD = 0x12
-    CONFIG_FIRMWARE = 0x13
-    CONFIG_UPLINK = 0x14
-    CONFIG_POSITION = 0x15
+    CONFIG_DUMP = "CONFIG_DUMP", 0x10
+    CONFIG_HARDWARE = "CONFIG_HARDWARE", 0x11
+    CONFIG_BOARD = "CONFIG_BOARD", 0x12
+    CONFIG_FIRMWARE = "CONFIG_FIRMWARE", 0x13
+    CONFIG_UPLINK = "CONFIG_UPLINK", 0x14
+    CONFIG_POSITION = "CONFIG_POSITION", 0x15
 
-    OTA_STATUS = 0x20
-    OTA_REQUEST_STATUS = 0x21
-    OTA_START = 0x22
-    OTA_URL = 0x23
-    OTA_FRAGMENT = 0x24
-    OTA_REQUEST_FRAGMENTS = 0x25
-    OTA_SETTING = 0x26
-    OTA_APPLY = 0x27
-    OTA_ABORT = 0x28
+    OTA_STATUS = "OTA_STATUS", 0x20
+    OTA_REQUEST_STATUS = "OTA_REQUEST_STATUS", 0x21
+    OTA_START = "OTA_START", 0x22
+    OTA_URL = "OTA_URL", 0x23
+    OTA_FRAGMENT = "OTA_FRAGMENT", 0x24
+    OTA_REQUEST_FRAGMENTS = "OTA_REQUEST_FRAGMENTS", 0x25
+    OTA_SETTING = "OTA_SETTING", 0x26
+    OTA_APPLY = "OTA_APPLY", 0x27
+    OTA_ABORT = "OTA_ABORT", 0x28
 
-    LOCATE_REQUEST_RANGE = 0x30
-    LOCATE_RANGE_RESULTS = 0x31
-    LOCATE_RAW_FTM_RESULTS = 0x32
+    LOCATE_REQUEST_RANGE = "LOCATE_REQUEST_RANGE", 0x30
+    LOCATE_RANGE_RESULTS = "LOCATE_RANGE_RESULTS", 0x31
+    LOCATE_RAW_FTM_RESULTS = "LOCATE_RAW_FTM_RESULTS", 0x32
 
-    REBOOT = 0x40
+    REBOOT = "REBOOT", 0x40
 
-    REPORT_ERROR = 0x50
+    REPORT_ERROR = "REPORT_ERROR", 0x50
 
     @property
     def pretty_name(self):
@@ -177,17 +176,17 @@ class ConfigUplinkMessage(discriminator_value(msg_type=MeshMessageType.CONFIG_UP
 
 
 @unique
-class OTADeviceStatus(EnumSchemaByNameMixin, IntEnum):
+class OTADeviceStatus(CEnum):
     """ ota status, the ones >= 0x10 denote a permanent failure """
-    NONE = 0x00
+    NONE = "NONE", 0x00
 
-    STARTED = 0x01
-    APPLIED = 0x02
+    STARTED = "STARTED", 0x01
+    APPLIED = "APPLIED", 0x02
 
-    START_FAILED = 0x10
-    WRITE_FAILED = 0x12
-    APPLY_FAILED = 0x13
-    ROLLED_BACK = 0x14
+    START_FAILED = "START_FAILED", 0x10
+    WRITE_FAILED = "WRITE_FAILED", 0x12
+    APPLY_FAILED = "APPLY_FAILED", 0x13
+    ROLLED_BACK = "ROLLED_BACK", 0x14
 
     @property
     def pretty_name(self):

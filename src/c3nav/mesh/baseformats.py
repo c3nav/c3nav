@@ -6,14 +6,14 @@ from collections import namedtuple
 from contextlib import suppress
 from dataclasses import dataclass
 from dataclasses import fields as dataclass_fields
-from enum import IntEnum
+from enum import IntEnum, StrEnum, Enum
 from typing import Any, Sequence
 
 from annotated_types import SLOTS, BaseMetadata, Ge
 from pydantic.fields import Field, FieldInfo
 from pydantic_extra_types.mac_address import MacAddress
 
-from c3nav.api.utils import NonEmptyStr, TwoNibblesEncodable
+from c3nav.api.utils import NonEmptyStr
 from c3nav.mesh.utils import indent_c
 
 
@@ -63,6 +63,17 @@ class ExistingCStruct():
     includes: list[str]
 
 
+class CEnum(str, Enum):
+    def __new__(cls, value, c_value):
+        obj = str.__new__(cls)
+        obj._value_ = value
+        obj.c_value = c_value
+        return obj
+
+    def __hash__(self):
+        return hash(self.value)
+
+
 def discriminator_value(**kwargs):
     return type('DiscriminatorValue', (), {
         **{name: value for name, value in kwargs.items()},
@@ -71,6 +82,10 @@ def discriminator_value(**kwargs):
             for name, value in kwargs.items()
         }
     })
+
+
+class TwoNibblesEncodable:
+    pass
 
 
 class BaseFormat(ABC):
@@ -201,6 +216,9 @@ class EnumFormat(SimpleFormat):
     def __init__(self, enum_cls: typing.Type[IntEnum], fmt="B", *, as_hex=False, c_definition=True):
         super().__init__(fmt)
         self.enum_cls = enum_cls
+        self.enum_lookup = {v.c_value: v for v in enum_cls}
+        if len(self.enum_cls) != len(self.enum_lookup):
+            raise ValueError
         self.as_hex = as_hex
         self.c_definition = c_definition
 
@@ -208,7 +226,7 @@ class EnumFormat(SimpleFormat):
 
     def decode(self, data: bytes) -> tuple[Any, bytes]:
         value, out_data = super().decode(data)
-        return self.enum_cls(value), out_data
+        return self.enum_lookup[value], out_data
 
     def get_typedef_name(self):
         return '%s_t' % normalize_name(self.enum_cls.__name__)
@@ -604,7 +622,7 @@ class UnionFormat(BaseFormat):
         if len(types) != 1:
             raise ValueError
         type_ = tuple(types)[0]
-        if not issubclass(type_, IntEnum):
+        if not issubclass(type_, CEnum):
             raise ValueError
         if discriminator_as_hex:
             # todo: nicer?
@@ -825,9 +843,14 @@ def get_type_hint_format(type_hint: SplitTypeHint, attr_name=None) -> BaseFormat
 
     if typing.get_origin(type_hint.base) is typing.Literal:
         literal_val = typing.get_args(type_hint.base)[0]
-        if not isinstance(literal_val, int):
+        if isinstance(literal_val, CEnum):
+            options = [v.c_value for v in type(literal_val)]
+            literal_val = literal_val.c_value
+            int_type = get_int_type(min(options), max(options))
+        elif isinstance(literal_val, int):
+            int_type = get_int_type(literal_val, literal_val)
+        else:
             raise ValueError()
-        int_type = get_int_type(literal_val, literal_val)
         if int_type is None:
             raise ValueError('invalid range:', attr_name)
         field_format = SimpleConstFormat(int_type, const_value=literal_val)
@@ -869,7 +892,7 @@ def get_type_hint_format(type_hint: SplitTypeHint, attr_name=None) -> BaseFormat
     elif type_hint.base is MacAddress:
         from c3nav.mesh.dataformats import MacAddressFormat
         field_format = MacAddressFormat()
-    elif isinstance(type_hint.base, type) and issubclass(type_hint.base, IntEnum):
+    elif isinstance(type_hint.base, type) and issubclass(type_hint.base, CEnum):
         no_def = any(getattr(m, 'no_def', False) for m in type_hint.metadata)
         as_hex = any(getattr(m, 'as_hex', False) for m in type_hint.metadata)
         len_bytes = None
@@ -879,7 +902,8 @@ def get_type_hint_format(type_hint: SplitTypeHint, attr_name=None) -> BaseFormat
         if len_bytes:
             int_type = get_int_type(0, 2**(8*len_bytes-1))
         else:
-            int_type = get_int_type(min(type_hint.base), max(type_hint.base))
+            options = [v.c_value for v in type_hint.base]
+            int_type = get_int_type(min(options), max(options))
             if int_type is None:
                 raise ValueError('invalid range:', attr_name)
         field_format = EnumFormat(enum_cls=type_hint.base, fmt=int_type, as_hex=as_hex, c_definition=not no_def)
