@@ -88,9 +88,11 @@ class MeshMessageForm(forms.Form):
             raise Exception('nope')
 
         return {
-            'msg_type': self.msg_type.name,
-            'src': MESH_ROOT_ADDRESS,
-            **self.get_cleaned_msg_data(),
+            "src": MESH_ROOT_ADDRESS,
+            "content": {
+               "msg_type": self.msg_type.name,
+               **self.get_cleaned_msg_data(),
+            }
         }
 
     def get_recipients(self):
