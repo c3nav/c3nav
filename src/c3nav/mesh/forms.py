@@ -14,6 +14,9 @@ from django.forms import BooleanField, ChoiceField, Form, ModelMultipleChoiceFie
 from django.http import Http404
 from django.utils.translation import gettext_lazy as _
 
+from pydantic import ValidationError as PydanticValidationError
+from pydantic.type_adapter import TypeAdapter
+
 from c3nav.mesh.baseformats import UnionFormat, get_format
 from c3nav.mesh.dataformats import BoardConfig, BoardType, LedType, SerialLedType
 from c3nav.mesh.messages import (MESH_BROADCAST_ADDRESS, MESH_ROOT_ADDRESS, MeshMessage, MeshMessageContent,
@@ -98,7 +101,7 @@ class MeshMessageForm(forms.Form):
         recipients = self.get_recipients()
         for recipient in recipients:
             print('sending to ', recipient)
-            async_to_sync(MeshMessage.fromjson({
+            async_to_sync(MeshMessage.model_validate({
                 'dst': recipient,
                 **msg_data,
             }).send)()
@@ -206,10 +209,7 @@ class ConfigBoardMessageForm(MeshMessageForm):
 
     def clean(self):
         cleaned_data = super().clean()
-
-        board_cfg = BoardConfig._union_options["board"][BoardType[cleaned_data["board"]]]
-        has_led = "led" in board_cfg.__dataclass_fields__
-        has_uwb = "uwb" in board_cfg.__dataclass_fields__
+        orig_cleaned_keys = set(cleaned_data.keys())
 
         led_values = {
             "led_type": cleaned_data.pop("led_type"),
@@ -219,43 +219,29 @@ class ConfigBoardMessageForm(MeshMessageForm):
                 if name.startswith('led_')
             }
         }
+        if led_values:
+            cleaned_data["led"] = led_values
+
         uwb_values = {
             name.removeprefix('uwb_'): cleaned_data.pop(name)
             for name in tuple(cleaned_data.keys())
             if name.startswith('uwb_')
         }
-
-        errors = {}
-
-        if has_led:
-            prefix = led_values["led_type"].lower()+'_'
-            cleaned_data["led"] = {
-                "led_type": led_values["led_type"],
-                **{
-                    name.removeprefix(prefix): value
-                    for name, value in led_values.items()
-                    if name.startswith(prefix)
-                }
-            }
-            for key, value in tuple(cleaned_data["led"].items()):
-                if value is None:
-                    field_name = f'led_{prefix}{key}'
-                    if self.fields[field_name].min_value == -1:
-                        cleaned_data[key] = -1
-                    else:
-                        errors[field_name] = _('this field is required')
-
-        if has_uwb:
+        if uwb_values:
             cleaned_data["uwb"] = uwb_values
-            for key, value in tuple(cleaned_data["uwb"].items()):
-                if value is None:
-                    field_name = f'uwb_{key}'
-                    if self.fields[field_name].min_value == -1 or not cleaned_data["uwb"]["enable"]:
-                        cleaned_data[key] = -1
-                    else:
-                        errors[field_name] = _('this field is required')
 
-        if errors:
+        try:
+            TypeAdapter(BoardConfig).validate_python(cleaned_data)
+        except PydanticValidationError as e:
+            from pprint import pprint
+            pprint(e.errors())
+            errors = {}
+            for error in e.errors():
+                loc = "_".join(s for s in error["loc"] if not s.isupper())
+                if loc in orig_cleaned_keys:
+                    errors.setdefault(loc, []).append(error["msg"])
+                else:
+                    errors.setdefault("__all__", []).append(f"{loc}: {error['msg']}")
             raise ValidationError(errors)
 
         return cleaned_data

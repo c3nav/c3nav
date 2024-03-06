@@ -19,7 +19,7 @@ class MacAddressFormat(FixedHexFormat):
 
 
 @unique
-class LedType(IntEnum):
+class LedType(EnumSchemaByNameMixin, IntEnum):
     NONE = 0
     SERIAL = 1
     MULTIPIN = 2
@@ -30,7 +30,7 @@ class LedType(IntEnum):
 
 
 @unique
-class SerialLedType(IntEnum):
+class SerialLedType(EnumSchemaByNameMixin, IntEnum):
     WS2812 = 1
     SK6812 = 2
 

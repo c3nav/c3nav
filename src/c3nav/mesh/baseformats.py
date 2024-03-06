@@ -412,12 +412,12 @@ T = typing.TypeVar('T')
 
 
 class StructFormat(BaseFormat):
-    _format_cache: dict[typing.Type, dict[str, BaseFormat]]
+    _format_cache: dict[typing.Type, dict[str, BaseFormat]] = {}
 
     def __new__(cls, model: typing.Type[T]):
         result = cls._format_cache.get(model, None)
         if not result:
-            result = super().__new__(model)
+            result = super().__new__(cls)
             cls._format_cache.get(model, result)
         return result
 

@@ -383,7 +383,7 @@ class NodeMessage(models.Model):
 
     @cached_property
     def parsed(self) -> Self:
-        return MeshMessage.fromjson(self.data)
+        return MeshMessage.model_validate(self.data)
 
 
 class FirmwareVersion(models.Model):

@@ -52,5 +52,13 @@ class EnumSchemaByNameMixin:
             pass
         return cls(v)
 
+    def __eq__(self, other):
+        if other == self.name:
+            return True
+        return super().__eq__(other)
+
+    def __hash__(self):
+        return hash(self.name)
+
 
 NonEmptyStr = Annotated[str, annotated_types.MinLen(1)]

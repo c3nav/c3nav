@@ -105,7 +105,7 @@ def firmware_by_id(request, firmware_id: int):
 def firmware_build_image(request, firmware_id: int, variant: str):
     try:
         build = FirmwareBuild.objects.get(version_id=firmware_id, variant=variant)
-        return FirmwareImage.tojson(build.firmware_image)
+        return build.firmware_image.model_dump()
     except FirmwareVersion.DoesNotExist:
         raise API404("Firmware or firmware build not found")
 

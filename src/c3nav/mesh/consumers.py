@@ -334,7 +334,7 @@ class MeshConsumer(AsyncWebsocketConsumer):
                     self.uplink.node.address, "we're the route for this message but it came from here so... no"
                 )
             return
-        await self.send_msg(MeshMessage.fromjson(data["msg"]), data["sender"])
+        await self.send_msg(MeshMessage.model_validate(data["msg"]), data["sender"])
 
     async def mesh_ota_recipients_changed(self, data):
         addresses = set(data["addresses"]) & set(self.dst_nodes.keys())
@@ -349,7 +349,7 @@ class MeshConsumer(AsyncWebsocketConsumer):
     """
 
     async def log_received_message(self, src_node: MeshNode, msg: messages.MeshMessage):
-        as_json = MeshMessage.tojson(msg)
+        as_json = msg.model_dump()
         await self.channel_layer.group_send("mesh_msg_received", {
             "type": "mesh.msg_received",
             "timestamp": timezone.now().strftime("%d.%m.%y %H:%M:%S.%f"),
@@ -681,7 +681,7 @@ class MeshUIConsumer(AsyncJsonWebsocketConsumer):
                 self.msg_received_filter = {"request_id": msg_to_send["msg_data"]["request_id"]}
 
             for recipient in msg_to_send["recipients"]:
-                await MeshMessage.fromjson({
+                await MeshMessage.model_validate({
                     'dst': recipient,
                     **msg_to_send["msg_data"],
                 }).send(sender=self.channel_name)

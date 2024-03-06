@@ -82,7 +82,7 @@ def locate_test(request):
         None
     )
     return {
-        "ranges": msg.parsed.tojson(msg.parsed)["ranges"],
+        "ranges": msg.parsed.model_dump()["ranges"],
         "datetime": msg.datetime,
         "location": location.serialize(simple_geometry=True) if location else None
     }

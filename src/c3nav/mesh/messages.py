@@ -333,7 +333,7 @@ class MeshMessage(BaseModel):
             "type": "mesh.send",
             "sender": sender,
             "exclude_uplink_address": exclude_uplink_address,
-            "msg": MeshMessage.tojson(self),  # todo: remove tojson!
+            "msg": self.model_dump(),
         }
 
         if self.dst in (MESH_CHILDREN_ADDRESS, MESH_BROADCAST_ADDRESS):
