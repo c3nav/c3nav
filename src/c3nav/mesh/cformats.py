@@ -630,6 +630,7 @@ class UnionFormat(BaseFormat):
             # todo: nicer?
             type_ = typing.Annotated[type_, AsHex()]
         self.discriminator_format = get_type_hint_format(split_type_hint(type_))
+        self.key_to_name = {value.c_value: value.name for value in models.keys()}
         self.models = {value.c_value: model_format for value, model_format in models.items()}
 
     def get_var_num(self):
@@ -675,7 +676,7 @@ class UnionFormat(BaseFormat):
     def get_c_union_code(self, ignore_fields=None):
         union_items = []
         for key, model_format in self.models.items():
-            base_name = normalize_name(getattr(key, 'name', model_format.model.__name__))  # todo: better?
+            base_name = normalize_name(self.key_to_name[key])  # todo: better?
             item_c_code = model_format.get_c_code(
                 base_name, ignore_fields=(self.discriminator, ), typedef=False, no_empty=True
             )
@@ -815,7 +816,7 @@ def get_int_min_max(type_hint, default_min=-(2 ** 63), default_max=2 ** 63 - 1):
         le = getattr(m, 'le', None)
         if le is not None:
             max_ = min(max_, le)
-    return max_, min_
+    return min_, max_
 
 
 # todo: move this somewhere?

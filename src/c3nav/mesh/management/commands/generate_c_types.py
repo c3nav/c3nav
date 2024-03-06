@@ -29,7 +29,7 @@ class Command(BaseCommand):
             print(f'#include {include}')
 
         for msg_type, msg_content_format in mesh_msg_content_format.models.items():
-            base_name = normalize_name(getattr(msg_type, 'name', msg_content_format.model.__name__))
+            base_name = normalize_name(mesh_msg_content_format.key_to_name[msg_type])
             name = "mesh_msg_%s_t" % base_name
 
             for definition_name, definition in msg_content_format.get_c_definitions().items():
@@ -74,8 +74,7 @@ class Command(BaseCommand):
         for i in range(((max_msg_type//16)+1)*16):
             msg_content_format = mesh_msg_content_format.models.get(i, None)
             if msg_content_format:
-                name = normalize_name(getattr(msg_content_format.model.msg_type, 'name',
-                                              msg_content_format.model.__name__))
+                name = normalize_name(mesh_msg_content_format.key_to_name[i])
                 macro_data.append((
                     self.get_msg_c_enum_name(msg_content_format.model),
                     ("nodata" if msg_content_format.model in nodata else name),
