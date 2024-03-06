@@ -1,6 +1,6 @@
 from django.core.management.base import BaseCommand
 
-from c3nav.mesh.baseformats import UnionFormat, get_format, normalize_name
+from c3nav.mesh.cformats import UnionFormat, get_format, normalize_name
 from c3nav.mesh.messages import MeshMessageContent
 from c3nav.mesh.utils import indent_c
 

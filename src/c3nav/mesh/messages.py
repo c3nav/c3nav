@@ -9,8 +9,8 @@ from pydantic.main import BaseModel
 from pydantic.types import Discriminator
 from pydantic_extra_types.mac_address import MacAddress
 
-from c3nav.mesh.baseformats import CDoc, CEmbed, CName, LenBytes, NoDef, VarLen, discriminator_value, CEnum
-from c3nav.mesh.dataformats import BoardConfig, ChipType, FirmwareAppDescription, RangeResultItem, RawFTMEntry
+from c3nav.mesh.cformats import CDoc, CEmbed, CName, LenBytes, NoDef, VarLen, discriminator_value, CEnum
+from c3nav.mesh.schemas import BoardConfig, ChipType, FirmwareAppDescription, RangeResultItem, RawFTMEntry
 from c3nav.mesh.utils import MESH_ALL_UPLINKS_GROUP
 
 MESH_ROOT_ADDRESS = '00:00:00:00:00:00'

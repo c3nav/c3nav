@@ -6,20 +6,19 @@ from collections import namedtuple
 from contextlib import suppress
 from dataclasses import dataclass
 from dataclasses import fields as dataclass_fields
-from enum import IntEnum, StrEnum, Enum
+from enum import IntEnum, Enum
 from typing import Any, Sequence
 
 from annotated_types import SLOTS, BaseMetadata, Ge
 from pydantic.fields import Field, FieldInfo
 from pydantic_extra_types.mac_address import MacAddress
 
-from c3nav.api.utils import NonEmptyStr
 from c3nav.mesh.utils import indent_c
 
 
 @dataclass(frozen=True, **SLOTS)
 class VarLen(BaseMetadata):
-    var_len_name: NonEmptyStr = "num"
+    var_len_name: str = "num"
 
 
 @dataclass(frozen=True, **SLOTS)
@@ -49,17 +48,17 @@ class CEmbed(BaseMetadata):
 
 @dataclass(frozen=True, **SLOTS)
 class CName(BaseMetadata):
-    c_name: NonEmptyStr
+    c_name: str
 
 
 @dataclass(frozen=True, **SLOTS)
 class CDoc(BaseMetadata):
-    c_doc: NonEmptyStr
+    c_doc: str
 
 
 @dataclass
 class ExistingCStruct():
-    name: NonEmptyStr
+    name: str
     includes: list[str]
 
 
@@ -327,6 +326,11 @@ class FixedHexFormat(SimpleFormat):
 
     def decode(self, data: bytes) -> tuple[str, bytes]:
         return self.sep.join(('%02x' % i) for i in data[:self.num]), data[self.num:]
+
+
+class MacAddressFormat(FixedHexFormat):
+    def __init__(self):
+        super().__init__(num=6, sep=':')
 
 
 class BaseVarFormat(BaseFormat, ABC):
@@ -890,7 +894,6 @@ def get_type_hint_format(type_hint: SplitTypeHint, attr_name=None) -> BaseFormat
             else:
                 field_format = VarBytesFormat(max_size=max_length)
     elif type_hint.base is MacAddress:
-        from c3nav.mesh.dataformats import MacAddressFormat
         field_format = MacAddressFormat()
     elif isinstance(type_hint.base, type) and issubclass(type_hint.base, CEnum):
         no_def = any(getattr(m, 'no_def', False) for m in type_hint.metadata)

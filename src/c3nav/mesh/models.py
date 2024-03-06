@@ -18,7 +18,7 @@ from django.utils.text import slugify
 from django.utils.translation import gettext_lazy as _
 
 from c3nav.mapdata.models.geometry.space import RangingBeacon
-from c3nav.mesh.dataformats import BoardType, ChipType, FirmwareImage
+from c3nav.mesh.schemas import BoardType, ChipType, FirmwareImage
 from c3nav.mesh.messages import ConfigFirmwareMessage, ConfigHardwareMessage
 from c3nav.mesh.messages import MeshMessage as MeshMessage
 from c3nav.mesh.messages import MeshMessageType

@@ -1,6 +1,6 @@
 import re
 from dataclasses import dataclass, field
-from enum import IntEnum, unique
+from enum import unique
 from typing import Annotated, BinaryIO, ClassVar, Literal, Self, Union
 
 from annotated_types import Gt, Le, Lt, MaxLen, Ge
@@ -9,13 +9,8 @@ from pydantic.main import BaseModel
 from pydantic.types import Discriminator
 from pydantic_extra_types.mac_address import MacAddress
 
-from c3nav.mesh.baseformats import AsDefinition, AsHex, CName, ExistingCStruct, FixedHexFormat, discriminator_value, \
+from c3nav.mesh.cformats import AsDefinition, AsHex, CName, ExistingCStruct, discriminator_value, \
     CEnum, TwoNibblesEncodable
-
-
-class MacAddressFormat(FixedHexFormat):
-    def __init__(self):
-        super().__init__(num=6, sep=':')
 
 
 @unique

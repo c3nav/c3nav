@@ -12,7 +12,7 @@ from pydantic import PositiveInt, field_validator
 from c3nav.api.auth import APIKeyAuth, auth_permission_responses, auth_responses, validate_responses
 from c3nav.api.exceptions import API404, APIConflict, APIRequestValidationFailed
 from c3nav.api.schema import BaseSchema
-from c3nav.mesh.dataformats import BoardType, ChipType, FirmwareImage
+from c3nav.mesh.schemas import BoardType, ChipType, FirmwareImage
 from c3nav.mesh.messages import MeshMessageType, MeshMessage
 from c3nav.mesh.models import FirmwareBuild, FirmwareVersion, NodeMessage
 

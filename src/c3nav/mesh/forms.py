@@ -17,8 +17,8 @@ from django.utils.translation import gettext_lazy as _
 from pydantic import ValidationError as PydanticValidationError
 from pydantic.type_adapter import TypeAdapter
 
-from c3nav.mesh.baseformats import UnionFormat, get_format
-from c3nav.mesh.dataformats import BoardConfig, BoardType, LedType, SerialLedType
+from c3nav.mesh.cformats import UnionFormat, get_format
+from c3nav.mesh.schemas import BoardConfig, BoardType, LedType, SerialLedType
 from c3nav.mesh.messages import (MESH_BROADCAST_ADDRESS, MESH_ROOT_ADDRESS, MeshMessage, MeshMessageContent,
                                  MeshMessageType)
 from c3nav.mesh.models import (FirmwareBuild, HardwareDescription, MeshNode, OTARecipientStatus, OTAUpdate,
