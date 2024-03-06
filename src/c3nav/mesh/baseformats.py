@@ -882,9 +882,9 @@ def get_type_hint_format(type_hint: SplitTypeHint, attr_name=None) -> BaseFormat
             int_type = get_int_type(min(type_hint.base), max(type_hint.base))
             if int_type is None:
                 raise ValueError('invalid range:', attr_name)
-        field_format = EnumFormat(fmt=int_type, as_hex=as_hex, c_definition=not no_def)
+        field_format = EnumFormat(enum_cls=type_hint.base, fmt=int_type, as_hex=as_hex, c_definition=not no_def)
     elif isinstance(type_hint.base, type) and issubclass(type_hint.base, TwoNibblesEncodable):
-        field_format = TwoNibblesEnumFormat()
+        field_format = TwoNibblesEnumFormat(type_hint.base)
     elif isinstance(type_hint.base, type) and typing.get_type_hints(type_hint.base):
         field_format = StructFormat(model=type_hint.base)
 
