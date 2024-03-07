@@ -741,7 +741,6 @@ class StructFormat(CFormat):
         return items
 
     def get_c_parts(self, ignore_fields=None, no_empty=False, top_level=False) -> tuple[str, str]:
-        # todo: parameters needed?
         with suppress(AttributeError):
             return (self.model.existing_c_struct.name, "")
 
@@ -756,7 +755,6 @@ class StructFormat(CFormat):
         if no_empty and not items:
             return "", ""
 
-        # todo: struct comment
         if top_level:
             comment = self.model.__doc__.strip()
             if comment:
@@ -891,7 +889,6 @@ class UnionFormat(CFormat):
         return "{\n" + indent_c("\n".join(union_items)) + "\n}"
 
     def get_c_parts(self, ignore_fields=None, no_empty=False, top_level=False) -> tuple[str, str]:
-        # todo: parameters needed?
         items = self.get_c_struct_items(no_empty=no_empty,
                                         top_level=top_level)
 
