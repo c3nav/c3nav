@@ -866,7 +866,7 @@ class UnionFormat(CFormat):
     def get_c_struct_items(self, ignore_fields=None, no_empty=False, top_level=False):
         return [
             (self.discriminator_format.get_c_code(self.discriminator), None),
-            ("union __packed %s;" % self.get_c_union_code(ignore_fields), None),
+            ("union __packed %s;" % self.get_c_union_code(), None),
         ]
 
     def get_c_union_size(self):
@@ -875,7 +875,7 @@ class UnionFormat(CFormat):
             default=0,
         ) - self.discriminator_format.get_min_size()
 
-    def get_c_union_code(self, ignore_fields=None):
+    def get_c_union_code(self):
         union_items = []
         for key, model_format in self.models.items():
             base_name = normalize_name(self.key_to_name[key])
@@ -892,9 +892,7 @@ class UnionFormat(CFormat):
 
     def get_c_parts(self, ignore_fields=None, no_empty=False, top_level=False) -> tuple[str, str]:
         # todo: parameters needed?
-        ignore_fields = set() if not ignore_fields else set(ignore_fields)
-        items = self.get_c_struct_items(ignore_fields=ignore_fields,
-                                        no_empty=no_empty,
+        items = self.get_c_struct_items(no_empty=no_empty,
                                         top_level=top_level)
 
         if no_empty and not items:
