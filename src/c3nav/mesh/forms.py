@@ -13,16 +13,15 @@ from django.db import transaction
 from django.forms import BooleanField, ChoiceField, Form, ModelMultipleChoiceField, MultipleChoiceField
 from django.http import Http404
 from django.utils.translation import gettext_lazy as _
-
 from pydantic import ValidationError as PydanticValidationError
 from pydantic.type_adapter import TypeAdapter
 
-from c3nav.mesh.cformats import UnionFormat, get_format
-from c3nav.mesh.schemas import BoardConfig, BoardType, LedType, SerialLedType
+from c3nav.mesh.cformats import CFormat
 from c3nav.mesh.messages import (MESH_BROADCAST_ADDRESS, MESH_ROOT_ADDRESS, MeshMessage, MeshMessageContent,
                                  MeshMessageType)
 from c3nav.mesh.models import (FirmwareBuild, HardwareDescription, MeshNode, OTARecipientStatus, OTAUpdate,
                                OTAUpdateRecipient)
+from c3nav.mesh.schemas import BoardConfig, BoardType, LedType, SerialLedType
 from c3nav.mesh.utils import MESH_ALL_OTA_GROUP, group_msg_type_choices
 
 
@@ -69,7 +68,7 @@ class MeshMessageForm(forms.Form):
         if cls.msg_type in MeshMessageForm.msg_types:
             raise TypeError('duplicate use of msg %s' % cls.msg_type)
         MeshMessageForm.msg_types[cls.msg_type] = cls
-        cls.msg_type_class = get_format(MeshMessageContent).models.get(cls.msg_type.c_value).model
+        cls.msg_type_class = CFormat.from_annotation(MeshMessageContent).models.get(cls.msg_type.c_value).model
 
     @classmethod
     def get_form_for_type(cls, msg_type):
@@ -181,7 +180,7 @@ class ConfigBoardMessageForm(MeshMessageForm):
             "field": "board",
             "values": tuple(
                 board_type.name for board_type in BoardType
-                if "led" in get_format(BoardConfig).models[board_type.c_value]._field_formats
+                if "led" in CFormat.from_annotation(BoardConfig).models[board_type.c_value]._field_formats
             ),
         },
         {
@@ -199,7 +198,7 @@ class ConfigBoardMessageForm(MeshMessageForm):
             "field": "board",
             "values": tuple(
                 board_type.name for board_type in BoardType
-                if "uwb" in get_format(BoardConfig).models[board_type.c_value]._field_formats
+                if "uwb" in CFormat.from_annotation(BoardConfig).models[board_type.c_value]._field_formats
             ),
         },
         {

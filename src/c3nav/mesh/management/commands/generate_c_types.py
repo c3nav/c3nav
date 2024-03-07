@@ -1,6 +1,6 @@
 from django.core.management.base import BaseCommand
 
-from c3nav.mesh.cformats import UnionFormat, get_format, normalize_name
+from c3nav.mesh.cformats import UnionFormat, normalize_name, CFormat
 from c3nav.mesh.messages import MeshMessageContent
 from c3nav.mesh.utils import indent_c
 
@@ -20,7 +20,7 @@ class Command(BaseCommand):
         done_definitions = set()
 
         includes = set()
-        mesh_msg_content_format: UnionFormat = get_format(MeshMessageContent)
+        mesh_msg_content_format: UnionFormat = CFormat.from_annotation(MeshMessageContent)
         discriminator_size = mesh_msg_content_format.discriminator_format.get_size()
         for msg_type, msg_content_format in mesh_msg_content_format.models.items():
             # todo: run this on the union

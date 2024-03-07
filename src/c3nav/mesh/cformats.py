@@ -7,7 +7,7 @@ from contextlib import suppress
 from dataclasses import dataclass
 from dataclasses import fields as dataclass_fields
 from enum import IntEnum, Enum
-from typing import Any, Sequence
+from typing import Any, Sequence, Self, Annotated, Literal, Union, Type, TypeVar, ClassVar
 
 from annotated_types import SLOTS, BaseMetadata, Ge
 from pydantic.fields import Field, FieldInfo
@@ -33,7 +33,7 @@ class AsHex(BaseMetadata):
 
 @dataclass(frozen=True, **SLOTS)
 class LenBytes(BaseMetadata):
-    len_bytes: typing.Annotated[int, Ge(1)]
+    len_bytes: Annotated[int, Ge(1)]
 
 
 @dataclass(frozen=True, **SLOTS)
@@ -77,7 +77,7 @@ def discriminator_value(**kwargs):
     return type('DiscriminatorValue', (), {
         **{name: value for name, value in kwargs.items()},
         '__annotations__': {
-            name: typing.Annotated[typing.Literal[value], Field(init=False)]
+            name: Annotated[Literal[value], Field(init=False)]
             for name, value in kwargs.items()
         }
     })
@@ -87,7 +87,89 @@ class TwoNibblesEncodable:
     pass
 
 
-class BaseFormat(ABC):
+class SplitTypeHint(namedtuple("SplitTypeHint", ("base", "metadata"))):
+    @classmethod
+    def from_annotation(cls, type_hint) -> Self:
+        if typing.get_origin(type_hint) is Annotated:
+            field_infos = tuple(m for m in type_hint.__metadata__ if isinstance(m, FieldInfo))
+            return cls(
+                base=typing.get_args(type_hint)[0],
+                metadata=(
+                    *(m for m in type_hint.__metadata__ if not isinstance(m, FieldInfo)),
+                    *(tuple(field_infos[0].metadata) if field_infos else ())
+                )
+            )
+
+        if isinstance(type_hint, FieldInfo):
+            return cls(
+                base=type_hint.annotation,
+                metadata=tuple(type_hint.metadata)
+            )
+
+        return cls(
+            base=type_hint,
+            metadata=()
+        )
+
+    def get_len_metadata(self):
+        max_length = None
+        var_len_name = None
+        for m in self.metadata:
+            ml = getattr(m, 'max_length', None)
+            if ml is not None:
+                max_length = ml if max_length is None else min(max_length, ml)
+
+            vl = getattr(m, 'var_len_name', None)
+            if vl is not None:
+                if var_len_name is not None:
+                    raise ValueError('can\'t set variable length name twice')
+                var_len_name = vl
+        return max_length, var_len_name
+
+    def get_min_max_metadata(self, default_min=-(2 ** 63), default_max=2 ** 63 - 1):
+        min_ = default_min
+        max_ = default_max
+        for m in self.metadata:
+            gt = getattr(m, 'gt', None)
+            if gt is not None:
+                min_ = max(min_, gt + 1)
+            ge = getattr(m, 'ge', None)
+            if ge is not None:
+                min_ = max(min_, ge)
+            lt = getattr(m, 'lt', None)
+            if lt is not None:
+                max_ = min(max_, lt - 1)
+            le = getattr(m, 'le', None)
+            if le is not None:
+                max_ = min(max_, le)
+        return min_, max_
+
+
+def normalize_name(name):
+    if '_' in name:
+        name = name.lower()
+    else:
+        name = re.sub(
+            r"(([a-z])([A-Z]))|(([a-zA-Z])([A-Z][a-z]))",
+            r"\2\5_\3\6",
+            name
+        ).lower()
+
+    name = re.sub(
+        r"(ota)([a-z])",
+        r"\1_\2",
+        name
+    ).lower()
+
+    name = name.replace('config', 'cfg')
+    name = name.replace('position', 'pos')
+    name = name.replace('mesh_', '')
+    name = name.replace('firmware', 'fw')
+    name = name.replace('hardware', 'hw')
+    return name
+
+
+class CFormat(ABC):
 
     def get_var_num(self):
         return 0
@@ -132,6 +214,120 @@ class BaseFormat(ABC):
     def get_c_includes(self) -> set:
         return set()
 
+    @classmethod
+    def from_annotation(cls, annotation, attr_name=None) -> Self:
+        if cls is not CFormat:
+            raise TypeError('call on CFormat!')
+        return cls.from_split_type_hint(SplitTypeHint.from_annotation(annotation), attr_name=attr_name)
+
+    @classmethod
+    def from_split_type_hint(cls, type_hint: SplitTypeHint, attr_name=None) -> Self:
+        if cls is not CFormat:
+            raise TypeError('call on CFormat!')
+        outer_type_hint = None
+        if typing.get_origin(type_hint.base) is list:
+            outer_type_hint = SplitTypeHint(
+                base=list,
+                metadata=type_hint.metadata
+            )
+            type_hint = SplitTypeHint(
+                base=typing.get_args(type_hint.base)[0],
+                metadata=()
+            )
+            if typing.get_origin(type_hint.base) is Annotated:
+                type_hint = SplitTypeHint(
+                    base=typing.get_args(type_hint.base)[0],
+                    metadata=tuple(type_hint.base.__metadata__)
+                )
+
+        field_format = None
+
+        if typing.get_origin(type_hint.base) is Literal:
+            literal_val = typing.get_args(type_hint.base)[0]
+            if isinstance(literal_val, CEnum):
+                options = [v.c_value for v in type(literal_val)]
+                literal_val = literal_val.c_value
+                int_type = get_int_type(
+                    *type_hint.get_min_max_metadata(default_min=min(options), default_max=max(options))
+                )
+            elif isinstance(literal_val, int):
+                int_type = get_int_type(literal_val, literal_val)
+            else:
+                raise ValueError()
+            if int_type is None:
+                raise ValueError('invalid range:', attr_name)
+            field_format = SimpleConstFormat(int_type, const_value=literal_val)
+        elif typing.get_origin(type_hint.base) is Union:
+            discriminator = None
+            for m in type_hint.metadata:
+                discriminator = getattr(m, 'discriminator', discriminator)
+            if discriminator is None:
+                raise ValueError('no discriminator')
+            discriminator_as_hex = any(getattr(m, "as_hex", False) for m in type_hint.metadata)
+            field_format = UnionFormat(
+                model_formats=[StructFormat(type_) for type_ in typing.get_args(type_hint.base)],
+                discriminator=discriminator,
+                discriminator_as_hex=discriminator_as_hex,
+            )
+        elif type_hint.base is int:
+            int_type = get_int_type(*type_hint.get_min_max_metadata())
+            if int_type is None:
+                raise ValueError('invalid range:', attr_name)
+            field_format = SimpleFormat(int_type)
+        elif type_hint.base is bool:
+            field_format = BoolFormat()
+        elif type_hint.base in (str, bytes):
+            as_hex = any(getattr(m, 'as_hex', False) for m in type_hint.metadata)
+            max_length, var_len_name = type_hint.get_len_metadata()
+            if max_length is None:
+                raise ValueError('missing str max_length:', attr_name)
+
+            if type_hint.base is str:
+                if var_len_name is not None:
+                    field_format = VarStrFormat(max_len=max_length)
+                else:
+                    field_format = FixedHexFormat(max_length) if as_hex else FixedStrFormat(max_length)
+            else:
+                if var_len_name is None:
+                    field_format = FixedBytesFormat(num=max_length)
+                else:
+                    field_format = VarBytesFormat(max_size=max_length)
+        elif type_hint.base is MacAddress:
+            field_format = MacAddressFormat()
+        elif isinstance(type_hint.base, type) and issubclass(type_hint.base, CEnum):
+            no_def = any(getattr(m, 'no_def', False) for m in type_hint.metadata)
+            as_hex = any(getattr(m, 'as_hex', False) for m in type_hint.metadata)
+            len_bytes = None
+            for m in type_hint.metadata:
+                len_bytes = getattr(m, 'len_bytes', len_bytes)
+
+            if len_bytes:
+                int_type = get_int_type(0, 2 ** (8 * len_bytes - 1))
+            else:
+                options = [v.c_value for v in type_hint.base]
+                int_type = get_int_type(min(options), max(options))
+                if int_type is None:
+                    raise ValueError('invalid range:', attr_name)
+            field_format = EnumFormat(enum_cls=type_hint.base, fmt=int_type, as_hex=as_hex, c_definition=not no_def)
+        elif isinstance(type_hint.base, type) and issubclass(type_hint.base, TwoNibblesEncodable):
+            field_format = TwoNibblesEnumFormat(type_hint.base)
+        elif isinstance(type_hint.base, type) and typing.get_type_hints(type_hint.base):
+            field_format = StructFormat(model=type_hint.base)
+
+        if field_format is None:
+            raise ValueError('Unknown type annotation for c structs', type_hint.base)
+        else:
+            if outer_type_hint is not None and outer_type_hint.base is list:
+                max_length, var_len_name = outer_type_hint.get_len_metadata()
+                if max_length is None:
+                    raise ValueError('missing list max_length:', attr_name)
+                if var_len_name:
+                    field_format = VarArrayFormat(field_format, max_num=max_length)
+                else:
+                    raise ValueError('fixed-len list not implemented:', attr_name)
+
+        return field_format
+
 
 def get_int_type(min_: int, max_: int) -> str | None:
     if min_ < 0:
@@ -158,7 +354,7 @@ def get_int_type(min_: int, max_: int) -> str | None:
         return "B"
 
 
-class SimpleFormat(BaseFormat):
+class SimpleFormat(CFormat):
     def __init__(self, fmt):
         self.fmt = fmt
         self.size = struct.calcsize(fmt)
@@ -212,7 +408,7 @@ class SimpleConstFormat(SimpleFormat):
 
 
 class EnumFormat(SimpleFormat):
-    def __init__(self, enum_cls: typing.Type[IntEnum], fmt="B", *, as_hex=False, c_definition=True):
+    def __init__(self, enum_cls: Type[CEnum], fmt="B", *, as_hex=False, c_definition=True):
         super().__init__(fmt)
         self.enum_cls = enum_cls
         self.enum_lookup = {v.c_value: v for v in enum_cls}
@@ -333,7 +529,7 @@ class MacAddressFormat(FixedHexFormat):
         super().__init__(num=6, sep=':')
 
 
-class BaseVarFormat(BaseFormat, ABC):
+class BaseVarFormat(CFormat, ABC):
     def __init__(self, max_num):
         self.num_fmt = 'H'
         self.num_size = struct.calcsize(self.num_fmt)
@@ -430,20 +626,20 @@ class VarBytesFormat(BaseVarFormat):
         return super().get_num_c_code() + "\n" + "uint8_t", "[0]"
 
 
-T = typing.TypeVar('T')
+T = TypeVar('T')
 
 
-class StructFormat(BaseFormat):
-    _format_cache: dict[typing.Type, dict[str, BaseFormat]] = {}
+class StructFormat(CFormat):
+    _format_cache: dict[Type, dict[str, CFormat]] = {}
 
-    def __new__(cls, model: typing.Type[T]):
+    def __new__(cls, model: Type[T]):
         result = cls._format_cache.get(model, None)
         if not result:
             result = super().__new__(cls)
             cls._format_cache.get(model, result)
         return result
 
-    def __init__(self, model: typing.Type[T]):
+    def __init__(self, model: Type[T]):
         self.model = model
 
         self._field_formats = {}
@@ -453,9 +649,9 @@ class StructFormat(BaseFormat):
         self._c_docs = {}
         self._no_init_data = set()
         for name, type_hint in typing.get_type_hints(self.model, include_extras=True).items():
-            if type_hint is typing.ClassVar:
-                continue  # todo: nicer?
-            type_hint = split_type_hint(type_hint)
+            if type_hint is ClassVar:
+                continue
+            type_hint = SplitTypeHint.from_annotation(type_hint)
 
             if any(getattr(m, "as_definition", False) for m in type_hint.metadata):
                 self._as_definition.add(name)
@@ -469,7 +665,7 @@ class StructFormat(BaseFormat):
                 with suppress(AttributeError):
                     self._c_docs[name] = m.c_doc
 
-            self._field_formats[name] = get_type_hint_format(type_hint, attr_name=name)
+            self._field_formats[name] = CFormat.from_split_type_hint(type_hint, attr_name=name)
 
     def get_var_num(self):
         return sum([field_format.get_var_num() for name, field_format in self._field_formats.items()], start=0)
@@ -614,7 +810,7 @@ class StructFormat(BaseFormat):
         return result
 
 
-class UnionFormat(BaseFormat):
+class UnionFormat(CFormat):
     def __init__(self, model_formats: Sequence[StructFormat], discriminator: str, discriminator_as_hex: bool = False):
         self.discriminator = discriminator
         models = {
@@ -625,11 +821,10 @@ class UnionFormat(BaseFormat):
         types = set(type(value) for value in models.keys())
         if len(types) != 1:
             raise ValueError
-        type_ = tuple(types)[0]
+        discriminator_annotation = tuple(types)[0]
         if discriminator_as_hex:
-            # todo: nicer?
-            type_ = typing.Annotated[type_, AsHex()]
-        self.discriminator_format = get_type_hint_format(split_type_hint(type_))
+            discriminator_annotation = Annotated[discriminator_annotation, AsHex()]
+        self.discriminator_format = CFormat.from_annotation(discriminator_annotation)
         self.key_to_name = {value.c_value: value.name for value in models.keys()}
         self.models = {value.c_value: model_format for value, model_format in models.items()}
 
@@ -637,10 +832,17 @@ class UnionFormat(BaseFormat):
         return 0  # todo: is this always correct?
 
     def encode(self, instance) -> bytes:
-        # todo: make sure instance is valid
         discriminator_value = getattr(instance, self.discriminator)
-        self.discriminator_format.encode(discriminator_value)
-        return self.models[discriminator_value].encode(instance, ignore_fields=(self.discriminator, ))
+        try:
+            model_format = self.models[discriminator_value]
+        except KeyError:
+            raise ValueError('Unknown discriminator value for Union: %r' % discriminator_value)
+        if not isinstance(instance, model_format.model):
+            raise ValueError('Unknown value for Union discriminator %r: %r' % (discriminator_value, instance))
+        return (
+            self.discriminator_format.encode(discriminator_value)
+            + model_format.encode(instance, ignore_fields=(self.discriminator, ))
+        )
 
     def decode(self, data: bytes) -> tuple[T, bytes]:
         discriminator_value, remaining_data = self.discriminator_format.decode(data)
@@ -676,7 +878,7 @@ class UnionFormat(BaseFormat):
     def get_c_union_code(self, ignore_fields=None):
         union_items = []
         for key, model_format in self.models.items():
-            base_name = normalize_name(self.key_to_name[key])  # todo: better?
+            base_name = normalize_name(self.key_to_name[key])
             item_c_code = model_format.get_c_code(
                 base_name, ignore_fields=(self.discriminator, ), typedef=False, no_empty=True
             )
@@ -751,199 +953,3 @@ class UnionFormat(BaseFormat):
         for model_format in self.models.values():
             result.update(model_format.get_c_includes())
         return result
-
-
-SplitTypeHint = namedtuple("SplitTypeHint", ("base", "metadata"))
-
-
-def split_type_hint(type_hint) -> SplitTypeHint:
-    if typing.get_origin(type_hint) is typing.Annotated:
-        field_infos = tuple(m for m in type_hint.__metadata__ if isinstance(m, FieldInfo))
-        return SplitTypeHint(
-            base=typing.get_args(type_hint)[0],
-            metadata=(
-                *(m for m in type_hint.__metadata__ if not isinstance(m, FieldInfo)),
-                *(tuple(field_infos[0].metadata) if field_infos else ())
-            )
-        )
-
-    if isinstance(type_hint, FieldInfo):
-        return SplitTypeHint(
-            base=type_hint.annotation,
-            metadata=tuple(type_hint.metadata)
-        )
-
-    return SplitTypeHint(
-        base=type_hint,
-        metadata=()
-    )
-
-
-def get_format(type_, attr_name=None) -> BaseFormat:
-    # todo: move this somewhere?
-    return get_type_hint_format(split_type_hint(type_))
-
-
-def get_type_len_meta(outer_type_hint):
-    max_length = None
-    var_len_name = None
-    for m in outer_type_hint.metadata:
-        ml = getattr(m, 'max_length', None)
-        if ml is not None:
-            max_length = ml if max_length is None else min(max_length, ml)
-
-        vl = getattr(m, 'var_len_name', None)
-        if vl is not None:
-            if var_len_name is not None:
-                raise ValueError('can\'t set variable length name twice')
-            var_len_name = vl
-    return max_length, var_len_name
-
-
-def get_int_min_max(type_hint, default_min=-(2 ** 63), default_max=2 ** 63 - 1):
-    min_ = default_min
-    max_ = default_max
-    for m in type_hint.metadata:
-        gt = getattr(m, 'gt', None)
-        if gt is not None:
-            min_ = max(min_, gt + 1)
-        ge = getattr(m, 'ge', None)
-        if ge is not None:
-            min_ = max(min_, ge)
-        lt = getattr(m, 'lt', None)
-        if lt is not None:
-            max_ = min(max_, lt - 1)
-        le = getattr(m, 'le', None)
-        if le is not None:
-            max_ = min(max_, le)
-    return min_, max_
-
-
-# todo: move this somewhere?
-def get_type_hint_format(type_hint: SplitTypeHint, attr_name=None) -> BaseFormat:
-    # todo: attr_name nicer?
-    outer_type_hint = None
-    if typing.get_origin(type_hint.base) is list:
-        outer_type_hint = SplitTypeHint(
-            base=list,
-            metadata=type_hint.metadata
-        )
-        type_hint = SplitTypeHint(
-            base=typing.get_args(type_hint.base)[0],
-            metadata=()
-        )
-        if typing.get_origin(type_hint.base) is typing.Annotated:
-            type_hint = SplitTypeHint(
-                base=typing.get_args(type_hint.base)[0],
-                metadata=tuple(type_hint.base.__metadata__)
-            )
-
-    field_format = None
-
-    if typing.get_origin(type_hint.base) is typing.Literal:
-        literal_val = typing.get_args(type_hint.base)[0]
-        if isinstance(literal_val, CEnum):
-            options = [v.c_value for v in type(literal_val)]
-            literal_val = literal_val.c_value
-            int_type = get_int_type(*get_int_min_max(type_hint, default_min=min(options), default_max=max(options)))
-        elif isinstance(literal_val, int):
-            int_type = get_int_type(literal_val, literal_val)
-        else:
-            raise ValueError()
-        if int_type is None:
-            raise ValueError('invalid range:', attr_name)
-        field_format = SimpleConstFormat(int_type, const_value=literal_val)
-    elif typing.get_origin(type_hint.base) is typing.Union:
-        discriminator = None
-        for m in type_hint.metadata:
-            discriminator = getattr(m, 'discriminator', discriminator)
-        if discriminator is None:
-            raise ValueError('no discriminator')
-        discriminator_as_hex = any(getattr(m, "as_hex", False) for m in type_hint.metadata)
-        field_format = UnionFormat(
-            model_formats=[StructFormat(type_) for type_ in typing.get_args(type_hint.base)],
-            discriminator=discriminator,
-            discriminator_as_hex=discriminator_as_hex,
-        )
-    elif type_hint.base is int:
-        int_type = get_int_type(*get_int_min_max(type_hint))
-        if int_type is None:
-            raise ValueError('invalid range:', attr_name)
-        field_format = SimpleFormat(int_type)
-    elif type_hint.base is bool:
-        field_format = BoolFormat()
-    elif type_hint.base in (str, bytes):
-        as_hex = any(getattr(m, 'as_hex', False) for m in type_hint.metadata)
-        max_length, var_len_name = get_type_len_meta(type_hint)
-        if max_length is None:
-            raise ValueError('missing str max_length:', attr_name)
-
-        if type_hint.base is str:
-            if var_len_name is not None:
-                field_format = VarStrFormat(max_len=max_length)
-            else:
-                field_format = FixedHexFormat(max_length) if as_hex else FixedStrFormat(max_length)
-        else:
-            if var_len_name is None:
-                field_format = FixedBytesFormat(num=max_length)
-            else:
-                field_format = VarBytesFormat(max_size=max_length)
-    elif type_hint.base is MacAddress:
-        field_format = MacAddressFormat()
-    elif isinstance(type_hint.base, type) and issubclass(type_hint.base, CEnum):
-        no_def = any(getattr(m, 'no_def', False) for m in type_hint.metadata)
-        as_hex = any(getattr(m, 'as_hex', False) for m in type_hint.metadata)
-        len_bytes = None
-        for m in type_hint.metadata:
-            len_bytes = getattr(m, 'len_bytes', len_bytes)
-
-        if len_bytes:
-            int_type = get_int_type(0, 2**(8*len_bytes-1))
-        else:
-            options = [v.c_value for v in type_hint.base]
-            int_type = get_int_type(min(options), max(options))
-            if int_type is None:
-                raise ValueError('invalid range:', attr_name)
-        field_format = EnumFormat(enum_cls=type_hint.base, fmt=int_type, as_hex=as_hex, c_definition=not no_def)
-    elif isinstance(type_hint.base, type) and issubclass(type_hint.base, TwoNibblesEncodable):
-        field_format = TwoNibblesEnumFormat(type_hint.base)
-    elif isinstance(type_hint.base, type) and typing.get_type_hints(type_hint.base):
-        field_format = StructFormat(model=type_hint.base)
-
-    if field_format is None:
-        raise ValueError('Unknown type annotation for c structs', type_hint.base)
-    else:
-        if outer_type_hint is not None and outer_type_hint.base is list:
-            max_length, var_len_name = get_type_len_meta(outer_type_hint)
-            if max_length is None:
-                raise ValueError('missing list max_length:', attr_name)
-            if var_len_name:
-                field_format = VarArrayFormat(field_format, max_num=max_length)
-            else:
-                raise ValueError('fixed-len list not implemented:', attr_name)
-
-    return field_format
-
-
-def normalize_name(name):
-    if '_' in name:
-        name = name.lower()
-    else:
-        name = re.sub(
-            r"(([a-z])([A-Z]))|(([a-zA-Z])([A-Z][a-z]))",
-            r"\2\5_\3\6",
-            name
-        ).lower()
-
-    name = re.sub(
-        r"(ota)([a-z])",
-        r"\1_\2",
-        name
-    ).lower()
-
-    name = name.replace('config', 'cfg')
-    name = name.replace('position', 'pos')
-    name = name.replace('mesh_', '')
-    name = name.replace('firmware', 'fw')
-    name = name.replace('hardware', 'hw')
-    return name
