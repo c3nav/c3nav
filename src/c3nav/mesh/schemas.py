@@ -264,7 +264,7 @@ class FirmwareImageFileHeader(BaseModel):
 class FirmwareImageExtendedFileHeader(BaseModel):
     wp_pin: Annotated[PositiveInt, Lt(2**8)]
     drive_settings: Annotated[bytes, MaxLen(3)]
-    chip: ChipType  # todo: 2 bytes
+    chip: Annotated[ChipType, Lt(2**16)]
     min_chip_rev_old: int
     min_chip_rev: Annotated[PositiveInt, Le(9999)]
     max_chip_rev: Annotated[PositiveInt, Le(9999)]
