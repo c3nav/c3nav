@@ -6,7 +6,7 @@ from annotated_types import Ge, Le, Lt, MaxLen
 from channels.db import database_sync_to_async
 from pydantic import PositiveInt
 from pydantic.main import BaseModel
-from pydantic.types import Discriminator
+from pydantic.types import Discriminator, NonNegativeInt
 from pydantic_extra_types.mac_address import MacAddress
 
 from c3nav.mesh.cformats import CDoc, CEmbed, CName, LenBytes, NoDef, VarLen, discriminator_value, CEnum
@@ -139,8 +139,8 @@ class ConfigDumpMessage(discriminator_value(msg_type=MeshMessageType.CONFIG_DUMP
 class ConfigHardwareMessage(discriminator_value(msg_type=MeshMessageType.CONFIG_HARDWARE), BaseModel):
     """ respond hardware/chip info """
     chip: Annotated[ChipType, NoDef(), LenBytes(2), CName("chip_id")]
-    revision_major: Annotated[int, Lt(2**8)]
-    revision_minor: Annotated[int, Lt(2**8)]
+    revision_major: Annotated[NonNegativeInt, Lt(2**8)]
+    revision_minor: Annotated[NonNegativeInt, Lt(2**8)]
 
     def get_chip_display(self):
         return ChipType(self.chip).name.replace('_', '-')
