@@ -689,6 +689,8 @@ class StructFormat(CFormat):
                 value, data = field_format.decode(data)
             except (struct.error, UnicodeDecodeError, ValueError) as e:
                 raise CFormatDecodeError(f"failed to decode model={self.model}, field={name}, e={e}")
+            if isinstance(value, CEnum):
+                value = value.value
             if name not in self._no_init_data:
                 decoded[name] = value
         return self.model.model_validate(decoded), data
