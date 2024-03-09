@@ -6,7 +6,7 @@ from typing import Annotated, BinaryIO, ClassVar, Literal, Self, Union
 from annotated_types import Gt, Le, Lt, MaxLen, Ge
 from pydantic import NegativeInt, PositiveInt
 from pydantic.main import BaseModel
-from pydantic.types import Discriminator
+from pydantic.types import Discriminator, NonNegativeInt
 from pydantic_extra_types.mac_address import MacAddress
 
 from c3nav.mesh.cformats import AsDefinition, AsHex, CName, ExistingCStruct, discriminator_value, \
@@ -177,7 +177,7 @@ class FirmwareAppDescription(BaseModel):
     existing_c_struct: ClassVar = ExistingCStruct(name="esp_app_desc_t", includes=['<esp_app_desc.h>'])
 
     magic_word: Literal[0xAB_CD_54_32] = field(repr=False)
-    secure_version: Annotated[int, Lt(2**32)]
+    secure_version: Annotated[NonNegativeInt, Lt(2**32)]
     reserv1: Annotated[bytes, MaxLen(8)] = field(repr=False)
     version: Annotated[str, MaxLen(32)]
     project_name: Annotated[str, MaxLen(32)]
