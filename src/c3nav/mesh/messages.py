@@ -199,9 +199,9 @@ class OTADeviceStatus(CEnum):
 
 class OTAStatusMessage(discriminator_value(msg_type=MeshMessageType.OTA_STATUS), BaseModel):
     """ report OTA status """
-    update_id: Annotated[PositiveInt, Lt(2**32)]
-    received_bytes: Annotated[PositiveInt, Lt(2**32)]
-    next_expected_chunk: Annotated[PositiveInt, Lt(2**16)]
+    update_id: Annotated[NonNegativeInt, Lt(2**32)]
+    received_bytes: Annotated[NonNegativeInt, Lt(2**32)]
+    next_expected_chunk: Annotated[NonNegativeInt, Lt(2**16)]
     auto_apply: bool
     auto_reboot: bool
     status: OTADeviceStatus
@@ -255,7 +255,7 @@ class OTAApplyMessage(discriminator_value(msg_type=MeshMessageType.OTA_APPLY), B
 
 class OTAAbortMessage(discriminator_value(msg_type=MeshMessageType.OTA_ABORT), BaseModel):
     """ announcing OTA abort """
-    update_id: Annotated[PositiveInt, Lt(2**32)]
+    update_id: Annotated[NonNegativeInt, Lt(2**32)]
 
 
 class LocateRequestRangeMessage(discriminator_value(msg_type=MeshMessageType.LOCATE_REQUEST_RANGE), BaseModel):
