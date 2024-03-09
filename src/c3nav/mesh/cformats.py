@@ -95,7 +95,7 @@ class SplitTypeHint(namedtuple("SplitTypeHint", ("base", "metadata"))):
             return cls(
                 base=typing.get_args(type_hint)[0],
                 metadata=(
-                    *(m for m in type_hint.__metadata__ if not isinstance(m, FieldInfo)),
+                    *(m for m in type_hint.__metadata__),
                     *(tuple(field_infos[0].metadata) if field_infos else ())
                 )
             )
@@ -832,19 +832,19 @@ class UnionFormat(CFormat):
     def encode(self, instance) -> bytes:
         discriminator_value = getattr(instance, self.discriminator)
         try:
-            model_format = self.models[discriminator_value]
+            model_format = self.models[discriminator_value.c_value]
         except KeyError:
             raise ValueError('Unknown discriminator value for Union: %r' % discriminator_value)
         if not isinstance(instance, model_format.model):
             raise ValueError('Unknown value for Union discriminator %r: %r' % (discriminator_value, instance))
         return (
-            self.discriminator_format.encode(discriminator_value)
+            self.discriminator_format.encode(discriminator_value.c_value)
             + model_format.encode(instance, ignore_fields=(self.discriminator, ))
         )
 
     def decode(self, data: bytes) -> tuple[T, bytes]:
         discriminator_value, remaining_data = self.discriminator_format.decode(data)
-        return self.models[discriminator_value].decode(data)
+        return self.models[discriminator_value.c_value].decode(data)
 
     def get_min_size(self) -> int:
         return max([0] + [

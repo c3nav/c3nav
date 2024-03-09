@@ -177,14 +177,14 @@ class FirmwareAppDescription(BaseModel):
     existing_c_struct: ClassVar = ExistingCStruct(name="esp_app_desc_t", includes=['<esp_app_desc.h>'])
 
     magic_word: Literal[0xAB_CD_54_32] = field(repr=False)
-    secure_version: Annotated[PositiveInt, Lt(2**32)]
+    secure_version: Annotated[int, Lt(2**32)]
     reserv1: Annotated[bytes, MaxLen(8)] = field(repr=False)
     version: Annotated[str, MaxLen(32)]
     project_name: Annotated[str, MaxLen(32)]
     compile_time: Annotated[str, MaxLen(16)]
     compile_date: Annotated[str, MaxLen(16)]
     idf_version: Annotated[str, MaxLen(32)]
-    app_elf_sha256: Annotated[str, MaxLen(32), AsHex()]
+    app_elf_sha256: Annotated[str, MaxLen(64), AsHex()]
     reserv2: Annotated[bytes, MaxLen(20*4)] = field(repr=False)
 
 

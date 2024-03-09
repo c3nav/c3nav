@@ -18,7 +18,7 @@ MESH_NONE_ADDRESS = '00:00:00:00:00:00'
 MESH_PARENT_ADDRESS = '00:00:00:ff:ff:ff'
 MESH_CHILDREN_ADDRESS = '00:00:00:00:ff:ff'
 MESH_BROADCAST_ADDRESS = 'ff:ff:ff:ff:ff:ff'
-NO_LAYER = "NO_LAYER", 0xFF
+NO_LAYER = 0xFF
 
 OTA_CHUNK_SIZE = 512
 
@@ -139,8 +139,8 @@ class ConfigDumpMessage(discriminator_value(msg_type=MeshMessageType.CONFIG_DUMP
 class ConfigHardwareMessage(discriminator_value(msg_type=MeshMessageType.CONFIG_HARDWARE), BaseModel):
     """ respond hardware/chip info """
     chip: Annotated[ChipType, NoDef(), LenBytes(2), CName("chip_id")]
-    revision_major: Annotated[PositiveInt, Lt(2**8)]
-    revision_minor: Annotated[PositiveInt, Lt(2**8)]
+    revision_major: Annotated[int, Lt(2**8)]
+    revision_minor: Annotated[int, Lt(2**8)]
 
     def get_chip_display(self):
         return ChipType(self.chip).name.replace('_', '-')
