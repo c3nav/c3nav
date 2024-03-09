@@ -56,6 +56,7 @@ class MeshConsumer(AsyncWebsocketConsumer):
         self.ota_send_task = None
         self.ota_chunks: dict[int, set[int]] = {}  # keys are update IDs, values are a list of chunk IDs
         self.ota_chunks_available_condition = asyncio.Condition()
+        self.accepted = None
 
     async def connect(self):
         self.headers = dict(self.scope["headers"])
@@ -68,13 +69,16 @@ class MeshConsumer(AsyncWebsocketConsumer):
         self.ping_task = get_event_loop().create_task(self.ping_regularly())
         self.check_node_state_task = get_event_loop().create_task(self.check_node_states())
         self.ota_send_task = get_event_loop().create_task(self.ota_send())
+        self.accepted = True
 
     async def disconnect(self, close_code):
+        if not self.accepted:
+            return
         self.ping_task.cancel()
         self.check_node_state_task.cancel()
         self.ota_send_task.cancel()
-        await self.log_text(self.uplink.node, "mesh websocket disconnected")
         if self.uplink is not None:
+            await self.log_text(self.uplink.node, "mesh websocket disconnected")
             # leave broadcast group
             await self.channel_layer.group_discard("mesh_comm_broadcast", self.channel_name)
 
