@@ -286,7 +286,7 @@ class CFormat(ABC):
                 if var_len_name is not None:
                     field_format = VarStrFormat(max_len=max_length)
                 else:
-                    field_format = FixedHexFormat(max_length) if as_hex else FixedStrFormat(max_length)
+                    field_format = FixedHexFormat(max_length//2) if as_hex else FixedStrFormat(max_length)
             else:
                 if var_len_name is None:
                     field_format = FixedBytesFormat(num=max_length)
