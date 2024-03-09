@@ -19,7 +19,9 @@ class Command(BaseCommand):
         struct_max_sizes = []
         done_definitions = set()
 
-        mesh_msg_content_format: UnionFormat = CFormat.from_annotation(MeshMessageContent)
+        mesh_msg_content_format = CFormat.from_annotation(MeshMessageContent)
+        if not isinstance(mesh_msg_content_format, UnionFormat):
+            raise Exception('wuah')
         discriminator_size = mesh_msg_content_format.discriminator_format.get_size()
         for include in mesh_msg_content_format.get_c_includes():
             print(f'#include {include}')
