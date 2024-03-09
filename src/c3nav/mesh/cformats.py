@@ -629,6 +629,10 @@ class VarBytesFormat(BaseVarFormat):
 T = TypeVar('T')
 
 
+class CFormatDecodeError(Exception):
+    pass
+
+
 class StructFormat(CFormat):
     _format_cache: dict[Type, dict[str, CFormat]] = {}
 
@@ -681,7 +685,10 @@ class StructFormat(CFormat):
     def decode(self, data: bytes) -> tuple[T, bytes]:
         kwargs = {}
         for name, field_format in self._field_formats.items():
-            value, data = field_format.decode(data)
+            try:
+                value, data = field_format.decode(data)
+            except (struct.error, UnicodeDecodeError, ValueError) as e:
+                raise CFormatDecodeError(f"failed to decode model={self.model}, field={name}, e={e}")
             if name not in self._no_init_data:
                 kwargs[name] = value
         return self.model(**kwargs), data
