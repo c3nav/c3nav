@@ -177,7 +177,7 @@ class MeshConsumer(AsyncWebsocketConsumer):
             })
 
             # log message, since we will not log it further down
-            await self.log_received_message(src_node, msg.content)
+            await self.log_received_message(src_node, msg)
 
             # inform signed in uplink node about its layer
             await self.send_msg(messages.MeshMessage(
@@ -205,7 +205,7 @@ class MeshConsumer(AsyncWebsocketConsumer):
             await self.close()
             return
 
-        await self.log_received_message(src_node, msg.content)
+        await self.log_received_message(src_node, msg)
 
         try:
             node_status = self.dst_nodes[msg.src]
@@ -374,7 +374,7 @@ class MeshConsumer(AsyncWebsocketConsumer):
         await NodeMessage.objects.acreate(
             uplink=self.uplink,
             src_node=src_node,
-            message_type=msg.msg_type.name,
+            message_type=msg.content.msg_type.name,
             data=as_json,
         )
 
