@@ -178,14 +178,14 @@ class FirmwareAppDescription(BaseModel):
 
     magic_word: Literal[0xAB_CD_54_32] = field(repr=False)
     secure_version: Annotated[NonNegativeInt, Lt(2**32)]
-    reserv1: Annotated[bytes, MaxLen(8)] = field(repr=False)
+    reserv1: Annotated[str, MaxLen(8*2), AsHex()] = field(repr=False)
     version: Annotated[str, MaxLen(32)]
     project_name: Annotated[str, MaxLen(32)]
     compile_time: Annotated[str, MaxLen(16)]
     compile_date: Annotated[str, MaxLen(16)]
     idf_version: Annotated[str, MaxLen(32)]
     app_elf_sha256: Annotated[str, MaxLen(64), AsHex()]
-    reserv2: Annotated[bytes, MaxLen(20*4)] = field(repr=False)
+    reserv2: Annotated[str, MaxLen(20*4*2), AsHex()] = field(repr=False)
 
 
 @unique
