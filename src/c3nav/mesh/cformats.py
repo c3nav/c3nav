@@ -75,6 +75,7 @@ class CEnum(str, Enum):
 
 def discriminator_value(**kwargs):
     return type('DiscriminatorValue', (), {
+        # todo: make this so pydantic doesn't throw a warning
         **{name: value for name, value in kwargs.items()},
         '__annotations__': {
             name: Annotated[Literal[value], Field(init=False)]
@@ -170,6 +171,7 @@ def normalize_name(name):
 
 
 class CFormat(ABC):
+    # todo: make this some cool generic with a TypeVar
 
     def get_var_num(self):
         return 0
