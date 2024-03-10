@@ -482,12 +482,40 @@ class RangingBeacon(SpaceGeometryMixin, models.Model):
     A ranging beacon
     """
     geometry = GeometryField('point')
-    bssid = models.CharField(_('BSSID'), max_length=17, unique=True,
-                             validators=[RegexValidator(
-                                 regex='^([a-f0-9]{2}:){5}[a-f0-9]{2}$',
-                                 message='Must be a lower-case bssid',
-                                 code='invalid_bssid'
-                             )])
+
+    node_number = models.PositiveSmallIntegerField(_('Node Number'), unique=True, null=True, blank=True)
+
+    wifi_bssid = models.CharField(_('WiFi BSSID'), unique=True, null=True, blank=True,
+                                  max_length=17,
+                                  validators=[RegexValidator(
+                                      regex='^([a-f0-9]{2}:){5}[a-f0-9]{2}$',
+                                      message='Must be a lower-case bssid',
+                                      code='invalid_bssid'
+                                  )],
+                                  help_text=_("uses node's value if not set"))
+    bluetooth_address = models.CharField(_('Bluetooth Address'), unique=True, null=True, blank=True,
+                                         max_length=17,
+                                         validators=[RegexValidator(
+                                             regex='^([a-f0-9]{2}:){5}[a-f0-9]{2}$',
+                                             message='Must be a lower-case mac address',
+                                             code='invalid_bluetooth_address'
+                                         )],
+                                         help_text=_("uses node's value if not set"))
+    ibeacon_uuid = models.UUIDField(_('iBeacon UUID'), null=True, blank=True,
+                                    help_text=_("uses node's value if not set"))
+    ibeacon_major = models.PositiveIntegerField(_('iBeacon major value'), null=True, blank=True,
+                                    help_text=_("uses node's value if not set"))
+    ibeacon_minor = models.PositiveIntegerField(_('iBeacon minor value'), null=True, blank=True,
+                                                help_text=_("uses node's value if not set"))
+    uwb_address = models.CharField(_('UWB Address'), unique=True, null=True, blank=True,
+                                   max_length=23,
+                                   validators=[RegexValidator(
+                                       regex='^([a-f0-9]{2}:){7}[a-f0-9]{2}$',
+                                       message='Must be a lower-case 8-byte UWB address',
+                                       code='invalid_uwb_address'
+                                   )],
+                                   help_text=_("uses node's value if not set"))
+
     altitude = models.DecimalField(_('altitude above ground'), max_digits=6, decimal_places=2, default=0,
                                    validators=[MinValueValidator(Decimal('0'))])
     comment = models.TextField(null=True, blank=True, verbose_name=_('comment'))
@@ -508,5 +536,5 @@ class RangingBeacon(SpaceGeometryMixin, models.Model):
     @property
     def title(self):
         if self.comment:
-            return f'{self.bssid} ({self.comment})'
-        return self.bssid
+            return f'{self.wifi_bssid} ({self.comment})'
+        return self.wifi_bssid

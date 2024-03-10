@@ -17,7 +17,7 @@ class Command(BaseCommand):
                         found_beacons.setdefault(measurement["bssid"], []).append((wifi_measurement, measurement))
 
         # put in the ones we know
-        known = {r.bssid: r for r in RangingBeacon.objects.all()}
+        known = {r.wifi_bssid: r for r in RangingBeacon.objects.all()}
 
         # lets go through them
         for bssid, measurements in found_beacons.items():

@@ -70,7 +70,7 @@ class Locator:
 
     def _rebuild(self, router):
         for beacon in RangingBeacon.objects.all():
-            peer_id = self.get_peer_id(beacon.bssid, create=True)
+            peer_id = self.get_peer_id(beacon.wifi_bssid, create=True)
             self.peers[peer_id].xyz = (
                 int(beacon.geometry.x * 100),
                 int(beacon.geometry.y * 100),

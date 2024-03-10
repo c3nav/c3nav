@@ -189,7 +189,7 @@ def firmware_upload(request, firmware_data: UploadFirmwareSchema, binary_files: 
 
                 build = version.builds.create(
                     variant=build_data.variant,
-                    chip=image.ext_header.chip,
+                    chip=image.ext_header.chip.c_value,
                     sha256_hash=image.app_desc.app_elf_sha256,
                     project_description=build_data.project_description,
                     binary=binary_files_by_name[build_data.uploaded_filename],

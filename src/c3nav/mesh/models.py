@@ -186,7 +186,7 @@ class MeshNodeQuerySet(models.QuerySet):
             try:
                 for ranging_beacon in RangingBeacon.objects.filter(bssid__in=nodes.keys()).select_related('space'):
                     # noinspection PyUnresolvedReferences
-                    nodes[ranging_beacon.bssid]._ranging_beacon = ranging_beacon
+                    nodes[ranging_beacon.wifi_bssid]._ranging_beacon = ranging_beacon
                 for node in nodes.values():
                     if not hasattr(node, "_ranging_beacon"):
                         node._ranging_beacon = None
@@ -415,7 +415,7 @@ def firmware_upload_path(instance, filename):
 
 
 class FirmwareBuild(models.Model):
-    CHIPS = [(chiptype.value, chiptype.pretty_name) for chiptype in ChipType]
+    CHIPS = [(chiptype.c_value, chiptype.pretty_name) for chiptype in ChipType]
 
     version = models.ForeignKey(FirmwareVersion, related_name='builds', on_delete=models.CASCADE)
     variant = models.CharField(_('variant name'), max_length=64)
