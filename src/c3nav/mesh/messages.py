@@ -1,5 +1,6 @@
 from enum import unique
 from typing import Annotated, Union
+from uuid import UUID
 
 import channels
 from annotated_types import Ge, Le, Lt, MaxLen
@@ -45,6 +46,8 @@ class MeshMessageType(CEnum):
     CONFIG_FIRMWARE = "CONFIG_FIRMWARE", 0x13
     CONFIG_UPLINK = "CONFIG_UPLINK", 0x14
     CONFIG_POSITION = "CONFIG_POSITION", 0x15
+    CONFIG_NODE = "CONFIG_NODE", 0x16
+    CONFIG_IBEACON = "CONFIG_IBEACON", 0x17
 
     OTA_STATUS = "OTA_STATUS", 0x20
     OTA_REQUEST_STATUS = "OTA_REQUEST_STATUS", 0x21
@@ -161,6 +164,19 @@ class ConfigPositionMessage(discriminator_value(msg_type=MeshMessageType.CONFIG_
     x_pos: Annotated[int, Ge(-2**31), Lt(2**31)]
     y_pos: Annotated[int, Ge(-2**31), Lt(2**31)]
     z_pos: Annotated[int, Ge(-2**15), Lt(2**15)]
+
+
+class ConfigNodeMessage(discriminator_value(msg_type=MeshMessageType.CONFIG_NODE), BaseModel):
+    """ set/respond node config """
+    number: Annotated[NonNegativeInt, Lt(2**16)]
+    name: Annotated[str, MaxLen(32)]
+
+
+class ConfigIBeaconMessage(discriminator_value(msg_type=MeshMessageType.CONFIG_IBEACON), BaseModel):
+    """ set/respond ibeacon config """
+    uuid: UUID
+    major: Annotated[NonNegativeInt, Lt(2**32)]
+    minor: Annotated[NonNegativeInt, Lt(2**32)]
 
 
 class ConfigUplinkMessage(discriminator_value(msg_type=MeshMessageType.CONFIG_UPLINK), BaseModel):
@@ -303,6 +319,8 @@ MeshMessageContent = Annotated[
         ConfigFirmwareMessage,
         ConfigPositionMessage,
         ConfigUplinkMessage,
+        ConfigNodeMessage,
+        ConfigIBeaconMessage,
         OTAStatusMessage,
         OTARequestStatusMessage,
         OTAStartMessage,

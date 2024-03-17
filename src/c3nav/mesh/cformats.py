@@ -8,6 +8,7 @@ from dataclasses import dataclass
 from dataclasses import fields as dataclass_fields
 from enum import IntEnum, Enum
 from typing import Any, Sequence, Self, Annotated, Literal, Union, Type, TypeVar, ClassVar
+from uuid import UUID
 
 from annotated_types import SLOTS, BaseMetadata, Ge
 from pydantic.fields import Field, FieldInfo
@@ -278,6 +279,8 @@ class CFormat(ABC):
             field_format = SimpleFormat(int_type)
         elif type_hint.base is bool:
             field_format = BoolFormat()
+        elif type_hint.base is UUID:
+            field_format = UUIDFormat()
         elif type_hint.base in (str, bytes):
             as_hex = any(getattr(m, 'as_hex', False) for m in type_hint.metadata)
             max_length, var_len_name = type_hint.get_len_metadata()
@@ -511,6 +514,17 @@ class FixedBytesFormat(SimpleFormat):
 
     def decode(self, data: bytes) -> tuple[bytes, bytes]:
         return data[:self.num], data[self.num:]
+
+
+class UUIDFormat(SimpleFormat):
+    def __init__(self):
+        super().__init__("16B")
+
+    def encode(self, value: str | UUID):
+        return super().encode(UUID(value).bytes)
+
+    def decode(self, data: bytes) -> tuple[UUID, bytes]:
+        return UUID(bytes=data[:16]), data[16:]
 
 
 class FixedHexFormat(SimpleFormat):
