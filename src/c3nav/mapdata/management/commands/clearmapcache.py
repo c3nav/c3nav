@@ -38,10 +38,7 @@ class Command(BaseCommand):
 
         if not settings.HAS_CELERY and not options['no_process']:
             print(_('You don\'t have celery installed, so we will run processupdates now...'))
-            try:
-                process_map_updates()
-            except DatabaseError:
-                logger.error('Didn\'t work, there is already map update processing in progress.')
+            process_map_updates()
 
         if not settings.HAS_REAL_CACHE:
             print(_('You have no external cache configured, so don\'t forget to restart your c3nav instance!'))
