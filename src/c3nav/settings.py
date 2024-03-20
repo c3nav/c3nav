@@ -109,7 +109,10 @@ if not SECRET_KEY:
         SECRET_KEY = get_random_string(50, string.printable)
         with open(SECRET_FILE, 'w') as f:
             os.chmod(SECRET_FILE, 0o600)
-            os.chown(SECRET_FILE, os.getuid(), os.getgid())
+            try:
+                os.chown(SECRET_FILE, os.getuid(), os.getgid())
+            except AttributeError:
+                pass
             f.write(SECRET_KEY)
 
 SECRET_TILE_KEY = config.get('c3nav', 'tile_secret', fallback=None)
@@ -126,7 +129,10 @@ if not SECRET_TILE_KEY:
         SECRET_TILE_KEY = get_random_string(50, string.printable)
         with open(SECRET_TILE_FILE, 'w') as f:
             os.chmod(SECRET_TILE_FILE, 0o600)
-            os.chown(SECRET_TILE_FILE, os.getuid(), os.getgid())
+            try:
+                os.chown(SECRET_TILE_FILE, os.getuid(), os.getgid())
+            except AttributeError:
+                pass
             f.write(SECRET_TILE_KEY)
 
 SECRET_MESH_KEY = config.get('c3nav', 'mesh_secret', fallback=None)
@@ -143,7 +149,10 @@ if not SECRET_MESH_KEY:
         SECRET_MESH_KEY = get_random_string(50, string.printable)
         with open(SECRET_MESH_FILE, 'w') as f:
             os.chmod(SECRET_MESH_FILE, 0o600)
-            os.chown(SECRET_MESH_FILE, os.getuid(), os.getgid())
+            try:
+                os.chown(SECRET_MESH_FILE, os.getuid(), os.getgid())
+            except AttributeError:
+                pass
             f.write(SECRET_MESH_KEY)
 
 # Adjustable settings
