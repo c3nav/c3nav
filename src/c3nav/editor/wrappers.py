@@ -786,6 +786,9 @@ class BaseQueryWrapper(BaseWrapper):
     def get_prefetch_queryset(self, *args, **kwargs):
         return self._obj.get_prefetch_queryset(*args, **kwargs)
 
+    def get_prefetch_querysets(self, *args, **kwargs):
+        return self._obj.get_prefetch_querysets(*args, **kwargs)
+
     def _apply_rel_filters(self, *args, **kwargs):
         return self._obj._apply_rel_filters(*args, **kwargs)
 
