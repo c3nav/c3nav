@@ -11,7 +11,7 @@ from django.utils.translation import gettext_lazy as _
 
 from c3nav.api.models import Secret
 from c3nav.mapdata.forms import I18nModelFormMixin
-from c3nav.mapdata.models.locations import Position
+from c3nav.mapdata.models.locations import Position, LocationGroup
 from c3nav.mapdata.models.report import Report, ReportUpdate
 
 
@@ -26,8 +26,22 @@ class DeleteAccountForm(Form):
 
 
 class ReportMissingLocationForm(I18nModelFormMixin, ModelForm):
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
+    def __init__(self, *args, group=None, request=None, **kwargs):
+        super().__init__(*args, initial={"created_groups": [group] if group else []}, **kwargs)
+        if group:
+            self.fields['created_groups'].disabled = True
+            self.fields['created_groups'].queryset = LocationGroup.objects.filter(pk=group.pk)
+        else:
+            exists = LocationGroup.qs_for_request(request).filter(
+                can_report_missing=LocationGroup.CanReportMissing.MULTIPLE
+            ).exists()
+            if exists:
+                self.fields['created_groups'].queryset = LocationGroup.qs_for_request(request).filter(
+                    can_report_missing=LocationGroup.CanReportMissing.MULTIPLE
+                )
+            else:
+                self.fields['created_groups'].queryset = LocationGroup.objects.none()
+                self.fields['created_groups'].widget = self.fields['created_groups'].hidden_widget()
         self.fields['created_groups'].label_from_instance = lambda obj: obj.title
 
     class Meta:

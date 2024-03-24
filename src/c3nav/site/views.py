@@ -30,7 +30,8 @@ from c3nav.api.models import Secret
 from c3nav.mapdata.grid import grid
 from c3nav.mapdata.models import Location, Source
 from c3nav.mapdata.models.access import AccessPermission, AccessPermissionToken
-from c3nav.mapdata.models.locations import LocationRedirect, Position, SpecificLocation, get_position_secret
+from c3nav.mapdata.models.locations import LocationRedirect, Position, SpecificLocation, get_position_secret, \
+    LocationGroup
 from c3nav.mapdata.models.report import Report, ReportUpdate
 from c3nav.mapdata.utils.locations import (get_location_by_id_for_request, get_location_by_slug_for_request,
                                            levels_by_short_label_for_request)
@@ -454,14 +455,133 @@ def get_report_location_for_request(pk, request):
 
 
 @never_cache
+def report_start_coordinates(request, coordinates):
+    return render(request, 'site/report_question.html', {
+        'question': _('What\'s wrong here?'),
+        'answers': [
+            {
+                'url': reverse('site.report_missing_check', kwargs={'coordinates': coordinates}),
+                'text': _('A location is missing'),
+            },
+            {
+                'url': reverse('site.report_select_location', kwargs={'coordinates': coordinates}),
+                'text': _('A location is there, but wrong'),
+            },
+        ]
+    })
+
+
+@never_cache
+def report_missing_check(request, coordinates):
+    nearby = get_location_by_id_for_request(coordinates, request).nearby
+    if not nearby:
+        return redirect(reverse('site.report_missing_choose', kwargs={"coordinates": coordinates}))
+    return render(request, 'site/report_question.html', {
+        'question': _('Are you sure it\'s not one of these?'),
+        'locations': [
+            {
+                'location': get_location_by_id_for_request(location.id, request),  # todo: correct subtitle w/o this
+            }
+            for location in nearby
+        ],
+        'answers': [
+            {
+                'url': reverse('site.report_missing_choose', kwargs={"coordinates": coordinates}),
+                'text': _('Yeah, it\'s not in there'),
+            },
+        ]
+    })
+
+
+@never_cache
+def report_select_location(request, coordinates):
+    location = get_location_by_id_for_request(coordinates, request)
+    nearby = list(location.nearby)
+    if location.space:
+        nearby.append(location.space)
+    if not nearby:
+        messages.error(request, _('There are no locations nearby.'))
+        return render(request, 'site/report_question.html', {})
+    return render(request, 'site/report_question.html', {
+        'question': _('Which one is it?'),
+        'locations': [
+            {
+                'url': reverse('site.report_create', kwargs={"location": location.id}),
+                'location': get_location_by_id_for_request(location.id, request),  # todo: correct subtitle w/o this
+            }
+            for location in nearby
+        ],
+    })
+
+
+@never_cache
+def report_missing_choose(request, coordinates):
+    groups = LocationGroup.qs_for_request(request).filter(can_report_missing__in=(
+        LocationGroup.CanReportMissing.SINGLE,
+        LocationGroup.CanReportMissing.REJECT,
+    ))
+    if not groups.exists():
+        return redirect(reverse('site.report_create', kwargs={"coordinates": coordinates}))
+    return render(request, 'site/report_question.html', {
+        'question': _('Does one of these describe your missing location?'),
+        'locations': [
+            {
+                "url": reverse('site.report_create',
+                               kwargs={"coordinates": coordinates, "group": group.get_slug()}),
+                "location": group,
+                "replace_subtitle": group.description
+            }
+            for group in groups
+        ],
+        'answers': [
+            {
+                'url': reverse('site.report_create', kwargs={"coordinates": coordinates}),
+                'text': _('None of these fit'),
+            },
+        ]
+    })
+
+
+@never_cache
+def report_start_location(request, location):
+    return redirect(reverse('site.report_create',
+                            kwargs={"location": location}))
+
+
+@never_cache
+def report_start_route(request, origin, destination, options):
+    return redirect(reverse('site.report_create',
+                            kwargs={"origin": origin, "destination": destination, "options": options}))
+
+
+@never_cache
 @login_required(login_url='site.login')
-def report_create(request, coordinates=None, location=None, origin=None, destination=None, options=None):
+def report_create(request, coordinates=None, location=None, origin=None, destination=None, options=None, group=None):
     report = Report()
     report.request = request
+
+    form_kwargs = {}
+    help_text = None
 
     if coordinates:
         report.category = 'missing-location'
         report.coordinates_id = coordinates
+        form_kwargs["request"] = request
+        if group:
+            group = get_location_by_slug_for_request(group, request)
+            if not isinstance(group, LocationGroup):
+                raise Http404
+            if group.can_report_missing == LocationGroup.CanReportMissing.REJECT:
+                messages.error(request, format_html(
+                    '{}<br><br>{}',
+                    _('We do not accept reports for this type of location.'),
+                    group.report_help_text,
+                ))
+                return render(request, 'site/report_question.html', {})
+            if group.can_report_missing != LocationGroup.CanReportMissing.SINGLE:
+                raise Http404
+            help_text = group.report_help_text
+            form_kwargs["group"] = group
         try:
             report.coordinates
         except ObjectDoesNotExist:
@@ -491,7 +611,7 @@ def report_create(request, coordinates=None, location=None, origin=None, destina
         report.options = options.serialize_string()
 
     if request.method == 'POST':
-        form = report.form_cls(instance=report, data=request.POST)
+        form = report.form_cls(instance=report, data=request.POST, **form_kwargs)
         if form.is_valid():
             report = form.instance
             if request.user.is_authenticated:
@@ -508,12 +628,13 @@ def report_create(request, coordinates=None, location=None, origin=None, destina
             messages.success(request, ' '.join(str(s) for s in success_messages))
             return redirect(reverse('site.report_detail', kwargs=success_kwargs))
     else:
-        form = report.form_cls(instance=report)
+        form = report.form_cls(instance=report, **form_kwargs)
 
     return render(request, 'site/report_create.html', {
         'report': report,
         'options': options,
         'form': form,
+        "help_text": help_text,
     })
 
 

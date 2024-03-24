@@ -5,23 +5,15 @@
 <main class="account">
     <h2>{% trans 'Report issue' %}</h2>
     {% include 'site/fragment_messages.html' %}
-
     <form method="post" action="{{ request.path_info }}?{{ request.META.QUERY_STRING }}">
         {% csrf_token %}
         {% include 'site/fragment_report_meta.html' %}
+        {% if help_text %}
+            <ul class="messages">
+                <li class="alert-info">{{ help_text }}</li>
+            </ul>
+        {% endif %}
         {{ form.as_p }}
-        <p>
-            <input type="checkbox" required="required" style="margin-bottom: 0" />
-            <blink>
-                <strong>
-                    {% blocktrans trimmed %}
-                        I understand that if I report an issue related to an assembly,
-                        all that will happen is that I owe each member on the c3nav team one bottle of mate.
-                        I can avoid this by contacting the assembly team, which will actually be able to fix my issue.
-                    {% endblocktrans %}
-                </strong>
-            </blink>
-        </p>
         <button type="submit">{% trans 'Submit' %}</button>
     </form>
 </main>

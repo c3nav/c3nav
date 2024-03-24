@@ -242,7 +242,7 @@ def get_route(request, parameters: RouteParametersSchema):
         request=parameters,
         options=_new_serialize_route_options(options),
         options_form=options.serialize(),
-        report_issue_url=reverse('site.report_create', kwargs={
+        report_issue_url=reverse('site.report_start', kwargs={
             'origin': parameters.origin,
             'destination': parameters.destination,
             'options': options.serialize_string(),

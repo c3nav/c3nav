@@ -368,9 +368,9 @@ class LocationGroup(Location, models.Model):
                                           default=CanReportMissing.DONT_OFFER, max_length=16)
 
     description = I18nField(_('description'), plural_name='descriptions', blank=True, fallback_any=True,
-                            help_text=_('to aid with selection in the report form'))
+                            fallback_value="", help_text=_('to aid with selection in the report form'))
     report_help_text = I18nField(_('report help text'), plural_name='report_help_texts', blank=True, fallback_any=True,
-                                 help_text=_('to explain the report form or rejection'))
+                                 fallback_value="", help_text=_('to explain the report form or rejection'))
 
     color = models.CharField(null=True, blank=True, max_length=32, verbose_name=_('background color'))
     hub_import_type = models.CharField(max_length=100, verbose_name=_('hub import type'), null=True, blank=True,

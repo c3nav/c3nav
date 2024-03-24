@@ -152,7 +152,7 @@ main.map {
 main.account form {
     max-width: 400px;
 }
-#modal-content form button[type=submit] {
+#modal-content form button[type=submit], #modal-content .answers .button {
     display: block;
     width: 100%;
 }
@@ -550,6 +550,14 @@ main.show-options #resultswrapper #route-options {
 }
 .location.location-form-value {
     margin: -10px -10px 5px -10px;
+}
+.location-answers .location.location-form-value, .location-answers a {
+    margin-bottom: 5px;
+    color: $color-secondary;
+    display: block;
+}
+.location-answers {
+    margin-bottom: 10px;
 }
 .location .icon {
     font-size: 36px;

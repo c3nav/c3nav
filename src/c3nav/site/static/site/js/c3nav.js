@@ -496,8 +496,6 @@ c3nav = {
             var custom_location = typeof data.id !== 'number',
                 report_url = '/report/l/'+String(data.id)+'/';
             $location_details.find('.report').attr('href', report_url);
-            $location_details.find('.report-issue').toggle(!custom_location);
-            $location_details.find('.report-missing').toggle(custom_location);
         } else {
             $location_details.find('.report').hide();
         }
@@ -1538,7 +1536,6 @@ c3nav = {
                         maxWidth: 500
                     }, 'autoPanPaddingTopLeft', 'autoPanPaddingBottomRight'));
                     var buttons = $('#location-popup-buttons').clone();
-                    buttons.find('.report-issue').remove();
                     buttons.find('.report').attr('href', '/report/l/' + String(data.id) + '/');
                     newpopup.setLatLng(latlng).setContent(c3nav._build_location_html(data) + buttons.html());
                     c3nav._click_anywhere_popup = newpopup;
@@ -1698,11 +1695,6 @@ c3nav = {
         let buttons_html = '';
         if (!c3nav.embed) {
             let buttons = $('#location-popup-buttons').clone();
-            if (typeof location.id == 'number') {
-                buttons.find('.report-missing').remove();
-            } else {
-                buttons.find('.report-issue').remove();
-            }
             buttons.find('.report').attr('href', '/report/l/'+String(location.id)+'/');
             buttons_html = buttons.html();
         }

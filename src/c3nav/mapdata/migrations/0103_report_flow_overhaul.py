@@ -29,7 +29,7 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name='locationgroup',
             name='description',
-            field=c3nav.mapdata.fields.I18nField(blank=True, fallback_any=True, help_text='to aid with selection in the report form', plural_name='descriptions', verbose_name='description'),
+            field=c3nav.mapdata.fields.I18nField(blank=True, fallback_any=True, fallback_value="", help_text='to aid with selection in the report form', plural_name='descriptions', verbose_name='description'),
         ),
         migrations.AddField(
             model_name='locationgroup',
@@ -39,7 +39,7 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name='locationgroup',
             name='report_help_text',
-            field=c3nav.mapdata.fields.I18nField(blank=True, fallback_any=True, help_text='to explain the report form or rejection', plural_name='report_help_texts', verbose_name='report help text'),
+            field=c3nav.mapdata.fields.I18nField(blank=True, fallback_any=True, fallback_value="", help_text='to explain the report form or rejection', plural_name='report_help_texts', verbose_name='report help text'),
         ),
         migrations.RunPython(forwards_func, backwards_func),
         migrations.RemoveField(

@@ -1,0 +1,29 @@
+{% extends 'site/base.html' %}
+{% load i18n %}
+
+{% block content %}
+<main class="account">
+    <h2>{% trans 'Report issue' %}</h2>
+    {% include 'site/fragment_messages.html' %}
+    {% include 'site/fragment_report_meta.html' %}
+    <p>{{ question }}</p>
+    {% if locations %}
+        <div class="location-answers">
+            {% for location in locations %}
+                {% if location.url %}
+                    <a href="{{ location.url }}">
+                {% endif %}
+                {% include 'site/fragment_location.html' with form_value=1 location=location.location replace_subtitle=location.replace_subtitle %}
+                {% if location.url %}
+                    </a>
+                {% endif %}
+            {% endfor %}
+        </div>
+    {% endif %}
+    <div class="answers">
+        {% for answer in answers %}
+            <p><a class="button" href="{{ answer.url }}">{{ answer.text }}</a></p>
+        {% endfor %}
+    </div>
+</main>
+{% endblock %}

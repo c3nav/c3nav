@@ -1,5 +1,5 @@
 <div class="location{% if form_value %} location-form-value{% endif %}">
     <i class="icon material-symbols">{% if location.get_icon %}{{ location.get_icon }}{% else %}place{% endif %}</i>
     <span>{{ location.title }}</span>
-    <small>{% if add_subtitle %}{{ add_subtitle }}, {% endif %}{{ location.subtitle }}</small>
+    <small>{% if replace_subtitle %}{{ replace_subtitle }}{% else %}{% if add_subtitle %}{{ add_subtitle }}, {% endif %}{{ location.subtitle }}{% endif %}</small>
 </div>
