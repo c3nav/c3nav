@@ -6,6 +6,7 @@ from pydantic import NonNegativeFloat, PositiveFloat, PositiveInt
 
 from c3nav.api.schema import BaseSchema, GeometrySchema, PointSchema
 from c3nav.api.utils import NonEmptyStr
+from c3nav.mapdata.models import LocationGroup
 from c3nav.mapdata.schemas.model_base import (AnyLocationID, AnyPositionID, CustomLocationID, DjangoModelSchema,
                                               LabelSettingsSchema, LocationSchema, PositionID,
                                               SimpleGeometryLocationsSchema, SimpleGeometryPointAndBoundsSchema,
@@ -238,9 +239,9 @@ class LocationGroupSchema(LocationSchema, DjangoModelSchema):
                 "\n\nlocations can override this setting"
         )
     )
-    can_report_missing: bool = APIField(
+    can_report_missing: LocationGroup.CanReportMissing = APIField(
         title="report missing locations",
-        description="can be used in form for reporting missing locations",
+        description="whether this location group can be used to report missing locations",
     )
     color: Union[
         Annotated[NonEmptyStr, APIField(title="color", description="a valid CSS color expression")],

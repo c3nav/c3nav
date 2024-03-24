@@ -351,6 +351,12 @@ class LocationGroupManager(models.Manager):
 
 
 class LocationGroup(Location, models.Model):
+    class CanReportMissing(models.TextChoices):
+        DONT_OFFER = "dont_offer", _("don't offer")
+        REJECT = "reject", _("offer in first step, then reject")
+        SINGLE = "single", _("offer in first step, exclusive choice")
+        MULTIPLE = "multiple", _("offer if nothing in the first step matches, multiple choice")
+
     category = models.ForeignKey(LocationGroupCategory, related_name='groups', on_delete=models.PROTECT,
                                  verbose_name=_('Category'))
     priority = models.IntegerField(default=0, db_index=True)
@@ -358,8 +364,14 @@ class LocationGroup(Location, models.Model):
     label_settings = models.ForeignKey('mapdata.LabelSettings', null=True, blank=True, on_delete=models.PROTECT,
                                        verbose_name=_('label settings'),
                                        help_text=_('unless location specifies otherwise'))
-    can_report_missing = models.BooleanField(default=False, verbose_name=_('for missing locations'),
-                                             help_text=_('can be used when reporting a missing location'))
+    can_report_missing = models.CharField(_('report missing location'), choices=CanReportMissing.choices,
+                                          default=CanReportMissing.DONT_OFFER, max_length=16)
+
+    description = I18nField(_('description'), plural_name='descriptions', blank=True, fallback_any=True,
+                            help_text=_('to aid with selection in the report form'))
+    report_help_text = I18nField(_('report help text'), plural_name='report_help_texts', blank=True, fallback_any=True,
+                                 help_text=_('to explain the report form or rejection'))
+
     color = models.CharField(null=True, blank=True, max_length=32, verbose_name=_('background color'))
     hub_import_type = models.CharField(max_length=100, verbose_name=_('hub import type'), null=True, blank=True,
                                        unique=True,
