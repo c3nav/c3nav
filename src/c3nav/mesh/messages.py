@@ -175,8 +175,8 @@ class ConfigNodeMessage(discriminator_value(msg_type=MeshMessageType.CONFIG_NODE
 class ConfigIBeaconMessage(discriminator_value(msg_type=MeshMessageType.CONFIG_IBEACON), BaseModel):
     """ set/respond ibeacon config """
     uuid: UUID
-    major: Annotated[NonNegativeInt, Lt(2**32)]
-    minor: Annotated[NonNegativeInt, Lt(2**32)]
+    major: Annotated[NonNegativeInt, Lt(2**16)]
+    minor: Annotated[NonNegativeInt, Lt(2**16)]
 
 
 class ConfigUplinkMessage(discriminator_value(msg_type=MeshMessageType.CONFIG_UPLINK), BaseModel):
