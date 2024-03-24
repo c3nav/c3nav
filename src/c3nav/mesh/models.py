@@ -184,7 +184,7 @@ class MeshNodeQuerySet(models.QuerySet):
             if nodes is None:
                 nodes: dict[str, MeshNode] = {node.pk: node for node in self._result_cache}
             try:
-                for ranging_beacon in RangingBeacon.objects.filter(bssid__in=nodes.keys()).select_related('space'):
+                for ranging_beacon in RangingBeacon.objects.filter(wifi_bssid__in=nodes.keys()).select_related('space'):
                     # noinspection PyUnresolvedReferences
                     nodes[ranging_beacon.wifi_bssid]._ranging_beacon = ranging_beacon
                 for node in nodes.values():
