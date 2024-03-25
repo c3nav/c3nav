@@ -3863,11 +3863,11 @@ msgstr "Es gibt keine Orte in der Nähe."
 
 #: c3nav/site/views.py
 msgid "Which one is it?"
-msgstr "Im welchen Ort geht es?"
+msgstr "Um welchen Ort geht es?"
 
 #: c3nav/site/views.py
 msgid "Does one of these describe your missing location?"
-msgstr "Beschreibt einer dieser Begriffe den Fehlenden Ort?"
+msgstr "Beschreibt einer dieser Begriffe den fehlenden Ort?"
 
 #: c3nav/site/views.py
 msgid "None of these fit"
