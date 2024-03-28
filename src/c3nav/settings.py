@@ -575,7 +575,7 @@ BASE_THEME = {
     'css': {
         'initial': config.get('theme', 'css_initial', fallback='#ffffff'),
         'primary': config.get('theme', 'css_primary', fallback='#9b4dca'),
-        'logo': config.get('theme', 'css_logo', fallback='#9b4dca'),
+        'logo': config.get('theme', 'css_logo', fallback=None),
         'secondary': config.get('theme', 'css_secondary', fallback='#525862'),
         'tertiary': config.get('theme', 'css_tertiary', fallback='#f0f0f0'),
         'quaternary': config.get('theme', 'css_quaternary', fallback='#767676'),

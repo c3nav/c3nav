@@ -31,6 +31,12 @@ def modify_vars(css_vars):
         css_vars[key] = fn(rgb)
     for key in remove:
         del css_vars[key]
+    falsy_vars = []
+    for key, val in css_vars.items():
+        if not val:
+            falsy_vars.append(key)
+    for key in falsy_vars:
+        del css_vars[key]
 
 
 def make_themes(theme_models):
