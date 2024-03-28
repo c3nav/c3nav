@@ -64,6 +64,7 @@ class MeshConsumer(AsyncWebsocketConsumer):
         self.headers = dict(self.scope["headers"])
         if not constant_time_compare(self.headers[b"x-mesh-secret"].strip(),
                                      settings.SECRET_MESH_KEY.encode()):
+            print("denying websocket connection with wrong mesh key")
             raise DenyConnection
 
         # await self.log_text(None, "new mesh websocket connection")
