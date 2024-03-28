@@ -1,3 +1,4 @@
-starlette==0.32.0.post1
-uvicorn==0.24.0.post1
+starlette==0.37.2
+uvicorn==0.29.0
 gunicorn==21.2.0
+daphne==4.1.0
