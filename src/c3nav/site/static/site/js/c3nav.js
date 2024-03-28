@@ -1554,16 +1554,11 @@ c3nav = {
         c3nav.update_map_state();
         c3nav.update_location_labels();
     },
-    _add_icon: async function (name) {
-        var [markerSrc, shadowSrc] = await Promise.all([
-            fetch(`/static/img/marker.svg`).then(r => r.text()),
-            fetch(`/static/img/marker.svg`).then(r => r.text())
-        ]);
-
-        c3nav[name+'Icon'] = new SvgIcon({
-            className: `leaflet-marker-${name}`,
-            iconSvg: markerSrc,
-            shadowSvg: shadowSrc,
+    _add_icon: function (name) {
+        c3nav[name+'Icon'] = new L.Icon({
+            iconUrl: '/static/img/marker-icon-'+name+'.png',
+            iconRetinaUrl: '/static/img/marker-icon-'+name+'-2x.png',
+            shadowUrl: '/static/leaflet/images/marker-shadow.png',
             iconSize: [25, 41],
             iconAnchor: [12, 41],
             popupAnchor: [1, -34],
