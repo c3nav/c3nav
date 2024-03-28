@@ -6,7 +6,7 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('mapdata', '0102_rename_bssid_rangingbeacon_wifi_bssid_and_more'),
+        ('mapdata', '0103_report_flow_overhaul'),
     ]
 
     operations = [
