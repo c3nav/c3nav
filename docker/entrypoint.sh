@@ -41,11 +41,11 @@ webstatic)
   ;;
 web-async)
   automigrate
-  exec gunicorn -k uvicorn.workers.UvicornWorker --bind 0.0.0.0:8000 ${*:2} c3nav.asgi:application
+  exec daphne -b 0.0.0.0 -p 8000 --no-server-name ${*:2} c3nav.asgi:application
   ;;
 webstatic-async)
   automigrate
-  exec gunicorn -k uvicorn.workers.UvicornWorker --bind 0.0.0.0:8000 ${*:2}  c3nav.asgi:static_app
+  exec daphne -b 0.0.0.0 -p 8000 --no-server-name ${*:2} c3nav.asgi:static_app
   ;;
 worker)
   exec celery -A c3nav worker --max-tasks-per-child 300 --concurrency 2 -l INFO -E
