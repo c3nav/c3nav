@@ -24,9 +24,7 @@ from c3nav.mapdata.utils.cache import CachePackage, MapHistory
 from c3nav.mapdata.utils.tiles import (build_access_cache_key, build_base_cache_key, build_tile_access_cookie,
                                        build_tile_etag, get_tile_bounds, parse_tile_access_cookie)
 
-PREVIEW_HIGHLIGHT_FILL_COLOR = settings.PRIMARY_COLOR
 PREVIEW_HIGHLIGHT_FILL_OPACITY = 0.1
-PREVIEW_HIGHLIGHT_STROKE_COLOR = PREVIEW_HIGHLIGHT_FILL_COLOR
 PREVIEW_HIGHLIGHT_STROKE_WIDTH = 0.5
 PREVIEW_IMG_WIDTH = 1200
 PREVIEW_IMG_HEIGHT = 628
@@ -197,10 +195,12 @@ def preview_location(request, slug):
         renderer = MapRenderer(level, minx, miny, maxx, maxy, scale=img_scale, access_permissions=set())
         image = renderer.render(ImageRenderEngine, theme)
         if highlight:
+            from c3nav.mapdata.render.theme import ColorManager
+            color_manager = ColorManager.for_theme(theme)
             for geometry in geometries:
                 image.add_geometry(geometry,
-                                   fill=FillAttribs(PREVIEW_HIGHLIGHT_FILL_COLOR, PREVIEW_HIGHLIGHT_FILL_OPACITY),
-                                   stroke=StrokeAttribs(PREVIEW_HIGHLIGHT_STROKE_COLOR, PREVIEW_HIGHLIGHT_STROKE_WIDTH),
+                                   fill=FillAttribs(color_manager.highlight, PREVIEW_HIGHLIGHT_FILL_OPACITY),
+                                   stroke=StrokeAttribs(color_manager.highlight, PREVIEW_HIGHLIGHT_STROKE_WIDTH),
                                    category='highlight')
         return image.render()
 
@@ -302,21 +302,22 @@ def preview_route(request, slug, slug2):
     def render_preview():
         renderer = MapRenderer(origin_level, minx, miny, maxx, maxy, scale=img_scale, access_permissions=set())
         image = renderer.render(ImageRenderEngine, theme)
-
+        from c3nav.mapdata.render.theme import ColorManager
+        color_manager = ColorManager.for_theme(theme)
         if origin_geometry is not None:
             image.add_geometry(origin_geometry,
-                               fill=FillAttribs(PREVIEW_HIGHLIGHT_FILL_COLOR, PREVIEW_HIGHLIGHT_FILL_OPACITY),
-                               stroke=StrokeAttribs(PREVIEW_HIGHLIGHT_STROKE_COLOR, PREVIEW_HIGHLIGHT_STROKE_WIDTH),
+                               fill=FillAttribs(color_manager.highlight, PREVIEW_HIGHLIGHT_FILL_OPACITY),
+                               stroke=StrokeAttribs(color_manager.highlight, PREVIEW_HIGHLIGHT_STROKE_WIDTH),
                                category='highlight')
         if destination_geometry is not None:
             image.add_geometry(destination_geometry,
-                               fill=FillAttribs(PREVIEW_HIGHLIGHT_FILL_COLOR, PREVIEW_HIGHLIGHT_FILL_OPACITY),
-                               stroke=StrokeAttribs(PREVIEW_HIGHLIGHT_STROKE_COLOR, PREVIEW_HIGHLIGHT_STROKE_WIDTH),
+                               fill=FillAttribs(color_manager.highlight, PREVIEW_HIGHLIGHT_FILL_OPACITY),
+                               stroke=StrokeAttribs(color_manager.highlight, PREVIEW_HIGHLIGHT_STROKE_WIDTH),
                                category='highlight')
 
         for geom in route_geometries:
             image.add_geometry(geom,
-                               stroke=StrokeAttribs(PREVIEW_HIGHLIGHT_STROKE_COLOR, PREVIEW_HIGHLIGHT_STROKE_WIDTH),
+                               stroke=StrokeAttribs(color_manager.highlight, PREVIEW_HIGHLIGHT_STROKE_WIDTH),
                                category='route')
         return image.render()
 

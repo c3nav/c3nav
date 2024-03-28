@@ -29,12 +29,11 @@
         <meta property="og:url" content="{{ meta.canonical_url }}"/>
         <meta property="twitter:url" content="{{ meta.canonical_url }}"/>
     {% endif %}
-
-    {{ available_themes|json_script:"available-themes" }}
 {% endblock %}
 
 {% block content %}
-    <main class="map" data-state="{{ state }}"{% if embed %} data-embed{% endif %} data-last-site-update="{{ last_site_update }}"{% if ssids %} data-ssids="{{ ssids }}"{% endif %} data-primary-color="{{ primary_color }}"{% if random_location_groups %} data-random-location-groups="{{ random_location_groups }}"{% endif %}>
+    <main class="map" data-state="{{ state }}"{% if embed %} data-embed{% endif %} data-last-site-update="{{ last_site_update }}"{% if ssids %} data-ssids="{{ ssids }}"{% endif %} {% if random_location_groups %} data-random-location-groups="{{ random_location_groups }}"{% endif %}>
+        <div class="loader"></div>
         {% if not request.mobileclient %}
         <section id="attributions">
             {% if not embed %}
@@ -136,6 +135,7 @@
             </section>
             <section id="sidebar">
                 <section id="search" class="loading">
+                    <div class="loader"></div>
                     <div class="location locationinput empty" id="origin-input">
                         <i class="icon material-symbols">place</i>
                         <input type="text" autocomplete="off" spellcheck="false" placeholder="{% trans 'Search any location…' %}">
@@ -167,6 +167,7 @@
                         </button>
                     </div>
                     <div id="route-summary">
+                        <div class="loader"></div>
                         <i class="icon material-symbols">directions</i>
                         <span></span>
                         <small><em></em></small>
@@ -196,6 +197,7 @@
                 <div id="resultswrapper">
                     <section id="autocomplete"></section>
                     <section id="location-details" class="details">
+                        <div class="loader"></div>
                         <div class="details-head">
                             <button class="button close button-clear material-symbols float-right">close</button>
                             <h2>{% trans 'Details' %}</h2>
@@ -251,7 +253,6 @@
                 <p>
                     <label for="id_theme">Theme:</label>
                     <select name="theme" required="" id="id_theme">
-                        <option value="0">{% trans 'Default theme' %}</option>
                     </select>
                 </p>
                 <button>Save theme</button>

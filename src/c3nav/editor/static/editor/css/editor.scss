@@ -1,32 +1,3 @@
-//noinspection CssInvalidFunction
-@if primary_color() != "" {
-    $color-primary: primary_color() !global;
-    $color-header-primary: primary_color() !global;
-}
-//noinspection CssInvalidFunction
-@if header_background_color() != "" {
-    $color-header-background: header_background_color() !global;
-}
-//noinspection CssInvalidFunction
-@if header_text_color() != "" {
-    $color-header-text: header_text_color() !global;
-}
-//noinspection CssInvalidFunction
-@if header_text_hover_color() != "" {
-    $color-header-text-hover: header_text_hover_color() !global;
-}
-
-$color-initial: #fff !default
-$color-primary: #9b4dca !default
-$color-secondary: #606c76 !default
-$color-header-background: #ffffff !default;
-$color-header-primary: $color-secondary !default;
-$color-header-text: $color-primary !default;
-$color-header-text-hover: $color-secondary !default;
-
-$color-test: $color-primary;
-
-
 /* bootstrap overrides so it looks like the rest of the site */
 body {
     font-size:16px;
@@ -62,40 +33,40 @@ body {
     display: inline-block;
 }
 .navbar-default, .navbar-default .navbar-toggle:hover, .navbar-default .navbar-toggle:focus, .navbar-default .navbar-collapse {
-    background-color: $color-header-background;
+    background-color: var(--color-header-background);
 }
 .navbar-default .navbar-toggle {
-    border-color: $color-header-text;
+    border-color: var(--color-header-text);
 }
 .navbar-default .navbar-brand, .navbar-default .navbar-brand:hover, .navbar-default .navbar-brand:focus {
-    color: $color-header-primary;
+    color: var(--color-primary);
 }
 .navbar-default .navbar-nav > li > a {
-    color: $color-header-text;
+    color: var(--color-header-text);
 }
 .navbar-default .navbar-nav > li > a:hover,
 .navbar-default .navbar-nav > li > a:focus{
-    color: $color-header-text-hover;
+    color: var(--color-header-text-hover);
 }
 .navbar-collapse {
     border-width: 0;
 }
 a, a.list-group-item, a.list-group-item:hover, a.list-group-item:focus {
-    color: $color-primary;
+    color: var(--color-primary);
 }
 a:hover, a:focus {
-    color: $color-secondary;
+    color: var(--color-secondary);
 }
 .badge {
-    background-color: $color-primary;
+    background-color: var(--color-primary);
 }
 .btn-primary, .btn-primary:hover, .btn-primary:focus, .btn-group.open .dropdown-toggle.btn-primary {
-    background-color: $color-primary;
-    border-color: darken($color-primary, 5%);
+    background-color: var(--color-primary);
+    border-color:color-mix(in oklab, var(--color-primary), black 5%);
 }
-.btn-primary:active:hover, .btn-primary.active:hover, .open > .dropdown-toggle.btn-primary:hover, .btn-primary:active:focus, .btn-primary.active:focus, .open > .dropdown-toggle.btn-primary:focus, .btn-primary:active.focus, .btn-primary.active.focus, .open > .dropdown-toggle.btn-primary.focus {
-    background-color: darken($color-primary, 17%);
-    border-color: darken($color-primary, 30%);
+.btn-primary:active, .btn-primary.active, .btn-primary:active:hover, .btn-primary.active:hover, .open > .dropdown-toggle.btn-primary:hover, .btn-primary:active:focus, .btn-primary.active:focus, .open > .dropdown-toggle.btn-primary:focus, .btn-primary:active.focus, .btn-primary.active.focus, .open > .dropdown-toggle.btn-primary.focus {
+    background-color:color-mix(in oklab, var(--color-primary), black 17%);
+    border-color: color-mix(in oklab, var(--color-primary), black 30%);
 }
 
 

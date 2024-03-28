@@ -11,6 +11,7 @@ import sass
 from django.contrib.messages import constants as messages
 from django.core.exceptions import ImproperlyConfigured
 from django.utils.crypto import get_random_string
+from django.utils.dateparse import parse_duration
 from django.utils.translation import gettext_lazy as _
 
 from c3nav import __version__ as c3nav_version
@@ -453,8 +454,9 @@ TEMPLATES = [
                 'django.template.context_processors.request',
                 'django.contrib.messages.context_processors.messages',
                 'c3nav.site.context_processors.logos',
-                'c3nav.site.context_processors.colors',
                 'c3nav.site.context_processors.user_data_json',
+                'c3nav.site.context_processors.theme',
+                'c3nav.site.context_processors.header_logo_mask',
             ],
             'loaders': template_loaders
         },
@@ -491,37 +493,108 @@ COMPRESS_CSS_FILTERS = (
 COMPRESS_CSS_HASHING_METHOD = 'content'
 
 HEADER_LOGO = config.get('c3nav', 'header_logo', fallback=None)
+HEADER_LOGO_MASK_MODE = config.get('c3nav', 'header_logo_mask_mode', fallback=None)
 FAVICON = config.get('c3nav', 'favicon', fallback=None)
 FAVICON_PACKAGE = config.get('c3nav', 'favicon_package', fallback=None)
 
-PRIMARY_COLOR = config.get('c3nav', 'primary_color', fallback='')
-HEADER_BACKGROUND_COLOR = config.get('c3nav', 'header_background_color', fallback='')
-HEADER_TEXT_COLOR = config.get('c3nav', 'header_text_color', fallback='')
-HEADER_TEXT_HOVER_COLOR = config.get('c3nav', 'header_text_hover_color', fallback='')
-SAFARI_MASK_ICON_COLOR = config.get('c3nav', 'safari_mask_icon_color', fallback=PRIMARY_COLOR)
-MSAPPLICATION_TILE_COLOR = config.get('c3nav', 'msapplication_tile_color', fallback='')
+PRIMARY_COLOR_RANDOMISATION = {
+    'mode': config.get('primary_color_randomization', 'mode', fallback='off'),
+    'duration': parse_duration(config.get('primary_color_randomization', 'duration', fallback='1:00')),
+    'chroma': float(config.get('primary_color_randomization', 'chroma', fallback='0.5')),
+    'lightness': float(config.get('primary_color_randomization', 'lightness', fallback='0.3')),
+}
+
+
+def oklch_to_oklab(L, C, h):
+    from math import cos, sin
+    a = C * cos(h)
+    b = C * sin(h)
+    return L, a, b
+
+
+def clamp(x, low, high):
+    return min(max(x, low), high)
+
+
+def oklab_to_linear_rgb(L, a, b):
+    """
+    see https://bottosson.github.io/posts/oklab/
+    """
+    l_ = L + 0.3963377774 * a + 0.2158037573 * b
+    m_ = L - 0.1055613458 * a - 0.0638541728 * b
+    s_ = L - 0.0894841775 * a - 1.2914855480 * b
+
+    l = l_ * l_ * l_
+    m = m_ * m_ * m_
+    s = s_ * s_ * s_
+
+    return (
+        clamp(+4.0767416621 * l - 3.3077115913 * m + 0.2309699292 * s, 0, 1),
+        clamp(-1.2684380046 * l + 2.6097574011 * m - 0.3413193965 * s, 0, 1),
+        clamp(-0.0041960863 * l - 0.7034186147 * m + 1.7076147010 * s, 0, 1),
+    )
+
+
+def linear_to_s(linear):
+    if linear <= 0.0031308:
+        return linear * 12.92
+    else:
+        return 1.055 * pow(linear, 1.0 / 2.4) - 0.055
+
+
+def linear_rgb_to_srgb(r, g, b):
+    return linear_to_s(r), linear_to_s(g), linear_to_s(b)
+
+
+def hex_from_oklch(L, C, h):
+    oklab = oklch_to_oklab(L, C, h)
+    linear_rgb = oklab_to_linear_rgb(*oklab)
+    srgb = linear_rgb_to_srgb(*linear_rgb)
+    srgb255 = tuple(int(round(x * 255, 0)) for x in srgb)
+    hex = '#%0.2X%0.2X%0.2X' % srgb255
+    return hex
+
+
+RANDOM_PRIMARY_COLOR_LIST = [hex_from_oklch(PRIMARY_COLOR_RANDOMISATION['lightness'],
+                                            PRIMARY_COLOR_RANDOMISATION['chroma'],
+                                            x) for x in range(0, 360)]
+
+BASE_THEME = {
+    'is_dark': config.get('theme', 'is_dark', fallback=False),
+    'randomize_primary_color': config.get('theme', 'randomize_primary_color', fallback=False),
+    'map': {
+        'background': config.get('theme', 'map_background', fallback='#dcdcdc'),
+        'wall_fill': config.get('theme', 'map_wall_fill', fallback='#aaaaaa'),
+        'wall_border': config.get('theme', 'map_wall_border', fallback='#666666'),
+        'door_fill': config.get('theme', 'map_door_fill', fallback='#ffffff'),
+        'ground_fill': config.get('theme', 'map_ground_fill', fallback='#eeeeee'),
+        'obstacles_default_fill': config.get('theme', 'map_obstacles_default_fill', fallback='#b7b7b7'),
+        'obstacles_default_border': config.get('theme', 'map_obstacles_default_border', fallback='#888888'),
+        'highlight': config.get('theme', 'css_primary', fallback='#9b4dca'),
+    },
+    'css': {
+        'initial': config.get('theme', 'css_initial', fallback='#ffffff'),
+        'primary': config.get('theme', 'css_primary', fallback='#9b4dca'),
+        'logo': config.get('theme', 'css_logo', fallback='#9b4dca'),
+        'secondary': config.get('theme', 'css_secondary', fallback='#525862'),
+        'tertiary': config.get('theme', 'css_tertiary', fallback='#f0f0f0'),
+        'quaternary': config.get('theme', 'css_quaternary', fallback='#767676'),
+        'quinary': config.get('theme', 'css_quinary', fallback='#cccccc'),
+        'header-text': config.get('theme', 'css_header_text', fallback='#ffffff'),
+        'header-text-hover': config.get('theme', 'css_header_text_hover', fallback='#eeeeee'),
+        'header-background': config.get('theme', 'css_header_background', fallback='#000000'),
+        'shadow': config.get('theme', 'css_shadow', fallback='#000000'),
+        'overlay-background': config.get('theme', 'css_overlay_background', fallback='#ffffff'),
+        'grid': config.get('theme', 'css_grid', fallback='#000000'),
+        'modal-backdrop': config.get('theme', 'css_modal_backdrop', fallback='#000000'),
+        'route-dots-shadow': config.get('theme', 'css_route_dots_shadow', fallback='#ffffff'),
+        'leaflet-background': config.get('theme', 'map_background', fallback='#dcdcdc'),
+    }
+}
 
 WIFI_SSIDS = [n for n in config.get('c3nav', 'wifi_ssids', fallback='').split(',') if n]
 
 USER_REGISTRATION = config.getboolean('c3nav', 'user_registration', fallback=True)
-
-
-def return_sass_color(color):
-    if not color:
-        return lambda: color
-
-    if not color.startswith('#') or len(color) != 7 or any((i not in '0123456789abcdef') for i in color[1:]):
-        raise ValueError('custom color is not a hex color!')
-
-    return lambda: sass.SassColor(int(color[1:3], 16), int(color[3:5], 16), int(color[5:7], 16), 1)
-
-
-LIBSASS_CUSTOM_FUNCTIONS = {
-    'primary_color': return_sass_color(PRIMARY_COLOR),
-    'header_background_color': return_sass_color(HEADER_BACKGROUND_COLOR),
-    'header_text_color': return_sass_color(HEADER_TEXT_COLOR),
-    'header_text_hover_color': return_sass_color(HEADER_TEXT_HOVER_COLOR),
-}
 
 INTERNAL_IPS = ('127.0.0.1', '::1')
 

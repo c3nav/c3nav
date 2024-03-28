@@ -1,3 +1,4 @@
+from c3nav import settings
 from c3nav.mapdata.models import LocationGroup
 from c3nav.mapdata.models.geometry.space import ObstacleGroup
 from c3nav.mapdata.models.theme import Theme
@@ -15,13 +16,14 @@ class ThemeColorManager:
     # TODO: border colors are not implemented yet?
     def __init__(self, theme: Theme = None):
         if theme is None:
-            self.background = RENDER_COLOR_BACKGROUND
-            self.wall_fill = RENDER_COLOR_WALL_FILL
-            self.wall_border = RENDER_COLOR_WALL_BORDER
-            self.door_fill = RENDER_COLOR_DOOR_FILL
-            self.ground_fill = RENDER_COLOR_GROUND_FILL
-            self.obstacles_default_fill = RENDER_COLOR_OBSTACLES_DEFAULT_FILL
-            self.obstacles_default_border = RENDER_COLOR_OBSTACLES_DEFAULT_BORDER
+            self.background = settings.BASE_THEME['map']['background']
+            self.wall_fill = settings.BASE_THEME['map']['wall_fill']
+            self.wall_border = settings.BASE_THEME['map']['wall_border']
+            self.door_fill = settings.BASE_THEME['map']['door_fill']
+            self.ground_fill = settings.BASE_THEME['map']['ground_fill']
+            self.obstacles_default_fill = settings.BASE_THEME['map']['obstacles_default_fill']
+            self.obstacles_default_border = settings.BASE_THEME['map']['obstacles_default_border']
+            self.highlight = settings.BASE_THEME['map']['highlight']
             self.location_group_border_colors = {}
             self.location_group_fill_colors = {
                 location_group.pk: location_group.color
@@ -40,6 +42,7 @@ class ThemeColorManager:
             self.ground_fill = theme.color_ground_fill
             self.obstacles_default_fill = theme.color_obstacles_default_fill
             self.obstacles_default_border = theme.color_obstacles_default_border
+            self.highlight = theme.color_css_primary
             self.location_group_border_colors = {
                 theme_location_group.location_group_id: theme_location_group.border_color
                 for theme_location_group in theme.location_groups.all()

@@ -137,14 +137,8 @@ c3nav = {
         }
 
 
-        const theme = localStorageWrapper.getItem('c3nav-theme');
-        if (theme) {
-            c3nav.theme = parseInt(theme);
-        }
-        c3nav.themes = JSON.parse(document.getElementById('available-themes').textContent);
-        if (!(c3nav.theme in c3nav.themes)) {
-            c3nav.theme = 0;
-        }
+        c3nav.theme = JSON.parse(document.getElementById('c3nav-active-theme').textContent);
+        c3nav.themes = JSON.parse(document.getElementById('c3nav-themes').textContent);
     },
     _searchable_locations_timer: null,
     load_searchable_locations: function(firstTime) {
@@ -210,8 +204,6 @@ c3nav = {
 
         c3nav.last_site_update = JSON.parse($main.attr('data-last-site-update'));
         c3nav.new_site_update = false;
-
-        c3nav._primary_color = $main.attr('data-primary-color') || L.polyline([0, 0]).options.color;
 
         c3nav.ssids = $main.is('[data-ssids]') ? JSON.parse($main.attr('data-ssids')) : null;
 
@@ -503,7 +495,7 @@ c3nav = {
         if (data.geometry && data.level) {
             L.geoJSON(data.geometry, {
                 style: {
-                    color: c3nav._primary_color,
+                    color: 'var(--color-primary)',
                     fillOpacity: 0.1,
                 }
             }).addTo(c3nav._routeLayers[data.level]);
@@ -669,7 +661,7 @@ c3nav = {
         var latlngs = L.GeoJSON.coordsToLatLngs(c3nav._smooth_line(coords)),
             routeLayer = c3nav._routeLayers[level];
             line = L.polyline(latlngs, {
-                color: gray ? '#888888': c3nav._primary_color,
+                color: gray ? '#888888': 'var(--color-primary)',
                 dashArray: (gray || link_to_level) ? '7' : null,
                 interactive: false,
                 smoothFactor: 0.5
@@ -1247,7 +1239,7 @@ c3nav = {
         $cover = $('<div>').css({
             'width': width+'px',
             'height': height+'px',
-            'background-color': '#ffffff',
+            'background-color': 'var(--color-background)',
             'position': 'absolute',
             'top': 0,
             'left': $button.position().left+$button.width()/2+'px',
@@ -1259,12 +1251,12 @@ c3nav = {
         }, 300, 'swing');
         $button.css({
             'left': $button.position().left,
-            'background-color': '#ffffff',
+            'background-color': 'var(--color-background)',
             'right': null,
             'z-index': 201,
             'opacity': 1,
             'transform': 'scale(1)',
-            'color': c3nav._primary_color,
+            'color': 'var(--color-primary)',
             'pointer-events': 'none'
         }).animate({
             left: 5,
@@ -1313,7 +1305,7 @@ c3nav = {
         $('#modal').toggleClass('loading', !content)
             .find('#modal-content')
             .html((!no_close) ? '<button class="button-clear material-symbols" id="close-modal">clear</button>' :'')
-            .append(content || '');
+            .append(content || '<div class="loader"></div>');
     },
     _modal_click: function(e) {
         if (!c3nav.modal_noclose && (e.target.id === 'modal' || e.target.id === 'close-modal')) {
@@ -1449,8 +1441,7 @@ c3nav = {
             c3nav._gridLayer = new L.SquareGridLayer(JSON.parse($map.attr('data-grid')));
             c3nav._gridControl = new SquareGridControl().addTo(c3nav.map);
         }
-        if (Object.values(c3nav.themes)
-            .filter(([_, isPublic]) => isPublic || c3nav.user_data.show_nonpublic_themes).length > 0) {
+        if (Object.values(c3nav.themes).length > 1) {
             new ThemeControl().addTo(c3nav.map);
         }
 
@@ -1467,24 +1458,31 @@ c3nav = {
 
     },
     theme: 0,
-    setTheme: function(theme) {
-        if (theme === c3nav.theme) return;
-        c3nav.theme = theme;
-        localStorageWrapper.setItem('c3nav-theme', c3nav.theme);
-        c3nav._levelControl.setTheme(c3nav.theme);
+    setTheme: function(id) {
+        if (id === c3nav.theme) return;
+        c3nav.theme = id;
+        const theme = c3nav.themes[id];
+        if (!theme.funky) {
+            c3nav_api.post('settings/theme/?id='+id);
+            localStorageWrapper.setItem('c3nav-theme', c3nav.theme); // TODO: instead (or additionally?) do a request to save it in the session!
+        }
+        document.querySelector('#c3nav-theme-vars').innerText = theme.css;
+
+        document.querySelector('#theme-color-meta-dark').content = theme.theme_color_dark;
+        document.querySelector('#theme-color-meta-light').content = theme.theme_color_light;
+
+        c3nav._levelControl.setTheme(id);
     },
     show_theme_select: function(e) {
         e.preventDefault();
         c3nav.open_modal(document.querySelector('main>.theme-selection').outerHTML);
         const select = document.querySelector('#modal .theme-selection select');
-        for (const id in c3nav.themes) {
-            const [name, is_public] = c3nav.themes[id];
-            if (c3nav.user_data.show_nonpublic_themes || is_public) {
-                const option = document.createElement('option');
-                option.value = id;
-                option.innerText = name;
-                select.append(option);
-            }
+        for (const id of Object.keys(c3nav.themes).toSorted()) {
+            const theme = c3nav.themes[id];
+            const option = document.createElement('option');
+            option.value = id;
+            option.innerText = theme.name;
+            select.append(option);
         }
         const currentThemeOption = select.querySelector(`[value="${c3nav.theme}"]`);
         if (currentThemeOption) {
@@ -1492,8 +1490,8 @@ c3nav = {
         }
     },
     select_theme: function(e) {
-        var theme = parseInt(e.target.parentElement.querySelector('select').value);
-        c3nav.setTheme(theme);
+        const themeId = e.target.parentElement.querySelector('select').value;
+        c3nav.setTheme(themeId);
         history.back(); // close the modal
     },
 
@@ -1556,11 +1554,16 @@ c3nav = {
         c3nav.update_map_state();
         c3nav.update_location_labels();
     },
-    _add_icon: function (name) {
-        c3nav[name+'Icon'] = new L.Icon({
-            iconUrl: '/static/img/marker-icon-'+name+'.png',
-            iconRetinaUrl: '/static/img/marker-icon-'+name+'-2x.png',
-            shadowUrl: '/static/leaflet/images/marker-shadow.png',
+    _add_icon: async function (name) {
+        var [markerSrc, shadowSrc] = await Promise.all([
+            fetch(`/static/img/marker.svg`).then(r => r.text()),
+            fetch(`/static/img/marker.svg`).then(r => r.text())
+        ]);
+
+        c3nav[name+'Icon'] = new SvgIcon({
+            className: `leaflet-marker-${name}`,
+            iconSvg: markerSrc,
+            shadowSvg: shadowSrc,
             iconSize: [25, 41],
             iconAnchor: [12, 41],
             popupAnchor: [1, -34],
@@ -1739,7 +1742,7 @@ c3nav = {
         if (data.geometry.type === "Point") return;
         L.geoJSON(data.geometry, {
             style: {
-                color: c3nav._primary_color,
+                color: 'var(--color-primary)',
                 fillOpacity: 0.2,
                 interactive: false,
             }
@@ -2377,4 +2380,63 @@ L.SquareGridLayer = L.Layer.extend({
             lastCoord = coord;
         }
     }
+});
+
+
+var SvgIcon = L.Icon.extend({
+	options: {
+		// @section
+		// @aka DivIcon options
+		iconSize: [12, 12], // also can be set through CSS
+
+		// iconAnchor: (Point),
+		// popupAnchor: (Point),
+
+		// @option html: String|SVGElement = ''
+		// Custom HTML code to put inside the div element, empty by default. Alternatively,
+		// an instance of `SVGElement`.
+		iconSvg: null,
+		shadowSvg: null,
+
+		// @option bgPos: Point = [0, 0]
+		// Optional relative position of the background, in pixels
+		bgPos: null,
+
+		className: 'leaflet-svg-icon'
+	},
+
+    // @method createIcon(oldIcon?: HTMLElement): HTMLElement
+	// Called internally when the icon has to be shown, returns a `<img>` HTML element
+	// styled according to the options.
+	createIcon: function (oldIcon) {
+		return this._createIcon('icon', oldIcon);
+	},
+
+	// @method createShadow(oldIcon?: HTMLElement): HTMLElement
+	// As `createIcon`, but for the shadow beneath it.
+	createShadow: function (oldIcon) {
+		return this._createIcon('shadow', oldIcon);
+	},
+
+	_createIcon: function (name, oldIcon) {
+        var src = this.options[`${name}Svg`];
+
+		if (!src) {
+			if (name === 'icon') {
+				throw new Error('iconSvg not set in Icon options (see the docs).');
+			}
+			return null;
+		}
+
+        var svgEl;
+        if (src instanceof SVGElement) {
+            svgEl = src;
+        } else {
+            svgEl = (new DOMParser()).parseFromString(src, 'image/svg+xml').documentElement;
+        }
+
+		this._setIconStyles(svgEl, name);
+
+		return svgEl;
+	},
 });

@@ -187,7 +187,6 @@ def map_index(request, mode=None, slug=None, slug2=None, details=None, options=N
         'state': json.dumps(state, separators=(',', ':'), cls=DjangoJSONEncoder),
         'tile_cache_server': settings.TILE_CACHE_SERVER,
         'initial_level': settings.INITIAL_LEVEL,
-        'primary_color': settings.PRIMARY_COLOR,
         'initial_bounds': json.dumps(initial_bounds, separators=(',', ':')) if initial_bounds else None,
         'last_site_update': json.dumps(SiteUpdate.last_update()),
         'ssids': json.dumps(settings.WIFI_SSIDS, separators=(',', ':')) if settings.WIFI_SSIDS else None,

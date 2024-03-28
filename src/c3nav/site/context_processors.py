@@ -30,14 +30,36 @@ def user_data_json(request):
     }
 
 
-def colors(request):
+def header_logo_mask(request):
     return {
-        'colors': {
-            'primary_color': settings.PRIMARY_COLOR,
-            'header_background_color': settings.HEADER_BACKGROUND_COLOR,
-            'header_text_color': settings.HEADER_TEXT_COLOR,
-            'header_text_hover_color': settings.HEADER_TEXT_HOVER_COLOR,
-            'safari_mask_icon_color': settings.SAFARI_MASK_ICON_COLOR,
-            'msapplication_tile_color': settings.MSAPPLICATION_TILE_COLOR,
-        }
+        'header_logo_mask_mode': settings.HEADER_LOGO_MASK_MODE,
+    }
+
+
+def theme(request):
+    from c3nav.site.themes import css_themes_all, css_themes_public
+    if request.user_permissions.nonpublic_themes:
+        themes = css_themes_all()
+    else:
+        themes = css_themes_public()
+    active_theme_id = request.session.get('theme', 0)
+    if active_theme_id in themes:
+        active_theme = themes[active_theme_id]
+    else:
+        active_theme_id = 0
+        active_theme = themes[0]
+        request.session['theme'] = active_theme_id
+
+    if active_theme['randomize_primary_color']:
+        from c3nav.site.themes import get_random_primary_color
+        primary_color = get_random_primary_color(request)
+    else:
+        primary_color = active_theme['primary_color']
+
+    return {
+        'active_theme_id': active_theme_id,
+        'active_theme': active_theme,
+        'themes': themes,
+        'randomize_primary_color': active_theme['randomize_primary_color'],
+        'primary_color': primary_color,
     }

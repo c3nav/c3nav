@@ -417,10 +417,16 @@ def create_editor_form(editor_model):
                        'report_help_text', 'enter_description', 'level_change_description', 'base_mapdata_accessible',
                        'label_settings', 'label_override', 'min_zoom', 'max_zoom', 'font_size',
                        'allow_levels', 'allow_spaces', 'allow_areas', 'allow_pois', 'allow_dynamic_locations',
-                       'left', 'top', 'right', 'bottom', 'public',
-                       'import_tag', 'import_block_data', 'import_block_geom',
+                       'left', 'top', 'right', 'bottom', 'import_tag', 'import_block_data', 'import_block_geom',
+                       'public', 'high_contrast', 'funky', 'randomize_primary_color', 'color_logo',
+                       'color_css_initial', 'color_css_primary', 'color_css_secondary', 'color_css_tertiary',
+                       'color_css_quaternary', 'color_css_quinary', 'color_css_header_background',
+                       'color_css_header_text', 'color_css_header_text_hover',
+                       'color_css_shadow', 'color_css_overlay_background', 'color_css_grid',
+                       'color_css_modal_backdrop', 'color_css_route_dots_shadow', 'extra_css',
                        'color_background', 'color_wall_fill', 'color_wall_border', 'color_door_fill',
-                       'color_ground_fill', 'color_obstacles_default_fill', 'color_obstacles_default_border', ]
+                       'color_ground_fill', 'color_obstacles_default_fill', 'color_obstacles_default_border',
+                       ]
     field_names = [field.name for field in editor_model._meta.get_fields() if not field.one_to_many]
     existing_fields = [name for name in possible_fields if name in field_names]
 
