@@ -54,7 +54,7 @@ class EditorFormBase(I18nModelFormMixin, ModelForm):
                 related = locationgroup_theme_colors.get(locationgroup.pk, None)
                 value = related.fill_color if related is not None else None
                 other_themes_colors = {
-                    theme_location_group.title: theme_location_group.fill_color
+                    str(theme_location_group.theme.title): theme_location_group.fill_color
                     for theme_location_group in locationgroup.theme_colors.all()
                     if related is None or theme_location_group.pk != related.pk
                 }
