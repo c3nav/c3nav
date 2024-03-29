@@ -45,6 +45,7 @@
     {% endblock %}
     {% if header_logo and header_logo_mask_mode %}
         <style>
+        @supports (mask-mode: {{ header_logo_mask_mode }}) and (mask-repeat: no-repeat) and (mask-size: contain) {
             #header-logo-link {
                 mask-image: url('{% static header_logo %}');
                 mask-mode: {{ header_logo_mask_mode }};
@@ -56,6 +57,7 @@
             #header-logo-link > img {
                 visibility: hidden;
             }
+        }
         </style>
     {% endif %}
 </head>
