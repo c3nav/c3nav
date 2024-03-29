@@ -13,6 +13,8 @@ django_asgi = get_asgi_application()
 from c3nav.control.middleware import UserPermissionsChannelMiddleware  # noqa
 from c3nav.urls import websocket_urlpatterns  # noqa
 
+from c3nav import settings
+
 
 class OriginValidatorWithAllowNone(OriginValidator):
     def valid_origin(self, parsed_origin):
