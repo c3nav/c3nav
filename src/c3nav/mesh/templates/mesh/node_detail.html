@@ -117,8 +117,8 @@
             <h4>iBeacon configuration</h4>
             <p>
                 <strong>UUID:</strong> {{ node.last_messages.CONFIG_IBEACON.parsed.content.uuid }}<br>
-                <strong>Major:</strong> {{ node.last_messages.CONFIG_UPLINK.parsed.content.major }}<br>
-                <strong>Minor:</strong> {{ node.last_messages.CONFIG_UPLINK.parsed.content.minor }}
+                <strong>Major:</strong> {{ node.last_messages.CONFIG_IBEACON.parsed.content.major }}<br>
+                <strong>Minor:</strong> {{ node.last_messages.CONFIG_IBEACON.parsed.content.minor }}
             </p>
             <p>
                 <a class="button" href="{% url "mesh.send" recipient=node.address msg_type="CONFIG_IBEACON" %}">
