@@ -35,14 +35,14 @@ class ThemeColorManager:
                 for obstacle_group in ObstacleGroup.objects.filter(color__isnull=False).all()
             }
         else:
-            self.background = theme.color_background
-            self.wall_fill = theme.color_wall_fill
-            self.wall_border = theme.color_wall_border
-            self.door_fill = theme.color_door_fill
-            self.ground_fill = theme.color_ground_fill
-            self.obstacles_default_fill = theme.color_obstacles_default_fill
-            self.obstacles_default_border = theme.color_obstacles_default_border
-            self.highlight = theme.color_css_primary
+            self.background = theme.color_background or settings.BASE_THEME['map']['background']
+            self.wall_fill = theme.color_wall_fill or settings.BASE_THEME['map']['wall_fill']
+            self.wall_border = theme.color_wall_border or settings.BASE_THEME['map']['wall_border']
+            self.door_fill = theme.color_door_fill or settings.BASE_THEME['map']['door_fill']
+            self.ground_fill = theme.color_ground_fill or settings.BASE_THEME['map']['ground_fill']
+            self.obstacles_default_fill = theme.color_obstacles_default_fill or settings.BASE_THEME['map']['obstacles_default_fill']
+            self.obstacles_default_border = theme.color_obstacles_default_border or settings.BASE_THEME['map']['obstacles_default_border']
+            self.highlight = theme.color_css_primary or settings.BASE_THEME['map']['highlight']
             self.location_group_border_colors = {
                 theme_location_group.location_group_id: theme_location_group.border_color
                 for theme_location_group in theme.location_groups.all()

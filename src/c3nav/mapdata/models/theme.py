@@ -45,13 +45,13 @@ class Theme(TitledMixin, models.Model):
                                                    verbose_name=_('CSS route dots shadow color'))
     extra_css = models.TextField(default='', blank=True, verbose_name=_('Extra CSS'))
 
-    color_background = models.CharField(max_length=32, verbose_name=_('background color'))
-    color_wall_fill = models.CharField(max_length=32, verbose_name=_('wall fill color'))
-    color_wall_border = models.CharField(max_length=32, verbose_name=_('wall border color'))
-    color_door_fill = models.CharField(max_length=32, verbose_name=_('door fill color'))
-    color_ground_fill = models.CharField(max_length=32, verbose_name=_('ground fill color'))
-    color_obstacles_default_fill = models.CharField(max_length=32, verbose_name=_('default fill color for obstacles'))
-    color_obstacles_default_border = models.CharField(max_length=32,
+    color_background = models.CharField(max_length=32, blank=True, verbose_name=_('background color'))
+    color_wall_fill = models.CharField(max_length=32, blank=True, verbose_name=_('wall fill color'))
+    color_wall_border = models.CharField(max_length=32, blank=True, verbose_name=_('wall border color'))
+    color_door_fill = models.CharField(max_length=32, blank=True, verbose_name=_('door fill color'))
+    color_ground_fill = models.CharField(max_length=32, blank=True, verbose_name=_('ground fill color'))
+    color_obstacles_default_fill = models.CharField(max_length=32, blank=True, verbose_name=_('default fill color for obstacles'))
+    color_obstacles_default_border = models.CharField(max_length=32, blank=True,
                                                       verbose_name=_('default border color for obstacles'))
 
     last_updated = models.DateTimeField(auto_now=True)
