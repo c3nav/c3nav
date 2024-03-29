@@ -262,7 +262,7 @@ class ConfigNodeMessageForm(MeshMessageForm):
     msg_type = MeshMessageType.CONFIG_NODE
 
     number = forms.IntegerField(min_value=0, max_value=2 ** 16 - 1, label=_('node number'))
-    name = forms.CharField(max_length=31, label=_('node name'))
+    name = forms.CharField(max_length=15, label=_('node name'))
 
 
 class ConfigIBeaconMessageForm(MeshMessageForm):

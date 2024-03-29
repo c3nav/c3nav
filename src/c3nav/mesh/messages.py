@@ -169,7 +169,7 @@ class ConfigPositionMessage(discriminator_value(msg_type=MeshMessageType.CONFIG_
 class ConfigNodeMessage(discriminator_value(msg_type=MeshMessageType.CONFIG_NODE), BaseModel):
     """ set/respond node config """
     number: Annotated[NonNegativeInt, Lt(2**16)]
-    name: Annotated[str, MaxLen(32)]
+    name: Annotated[str, MaxLen(16)]
 
 
 class ConfigIBeaconMessage(discriminator_value(msg_type=MeshMessageType.CONFIG_IBEACON), BaseModel):
