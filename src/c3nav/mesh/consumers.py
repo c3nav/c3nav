@@ -364,7 +364,7 @@ class MeshConsumer(AsyncWebsocketConsumer):
     """
 
     async def log_received_message(self, src_node: MeshNode, msg: messages.MeshMessage):
-        as_json = msg.model_dump()
+        as_json = msg.model_dump(mode="json")
         await self.channel_layer.group_send("mesh_msg_received", {
             "type": "mesh.msg_received",
             "timestamp": timezone.now().strftime("%d.%m.%y %H:%M:%S.%f"),
