@@ -25,8 +25,8 @@
                     {% endif %}
                 </td>
                 <td>
-                    {{ node.last_messages.CONFIG_BOARD.parsed.board_config.board.pretty_name }}<br>
-                    <small>({{ node.last_messages.CONFIG_HARDWARE.parsed.chip.pretty_name }} rev{{ node.last_messages.CONFIG_HARDWARE.parsed.revision_major }}.{{ node.last_messages.CONFIG_HARDWARE.parsed.revision_minor }})</small>
+                    {{ node.last_messages.CONFIG_BOARD.parsed.content.board_config.board.pretty_name }}<br>
+                    <small>({{ node.last_messages.CONFIG_HARDWARE.parsed.content.chip.pretty_name }} rev{{ node.last_messages.CONFIG_HARDWARE.parsed.content.revision_major }}.{{ node.last_messages.CONFIG_HARDWARE.parsed.content.revision_minor }})</small>
                 </td>
                 <td>
                     {% include "mesh/fragment_firmware_cell.html" with firmware_desc=node.firmware_description %}

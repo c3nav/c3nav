@@ -54,17 +54,17 @@
 
             <h4>Hardware</h4>
             <p>
-                <strong>Board:</strong> {{ node.last_messages.CONFIG_BOARD.parsed.board_config.board.pretty_name }}
-                (with {{ node.last_messages.CONFIG_HARDWARE.parsed.chip.pretty_name }} rev{{ node.last_messages.CONFIG_HARDWARE.parsed.revision_major }}.{{ node.last_messages.CONFIG_HARDWARE.parsed.revision_minor }})
+                <strong>Board:</strong> {{ node.last_messages.CONFIG_BOARD.parsed.content.board_config.board.pretty_name }}
+                (with {{ node.last_messages.CONFIG_HARDWARE.parsed.content.chip.pretty_name }} rev{{ node.last_messages.CONFIG_HARDWARE.parsed.content.revision_major }}.{{ node.last_messages.CONFIG_HARDWARE.parsed.revision_minor }})
 
-                {% if node.last_messages.CONFIG_BOARD.parsed.led %}
+                {% if node.last_messages.CONFIG_BOARD.parsed.content.led %}
                 <br>
-                <strong>Status LED:</strong> {{ node.last_messages.CONFIG_BOARD.parsed.led }}
+                <strong>Status LED:</strong> {{ node.last_messages.CONFIG_BOARD.parsed.content.led }}
                 {% endif %}
 
-                {% if node.last_messages.CONFIG_BOARD.parsed.uwb %}
+                {% if node.last_messages.CONFIG_BOARD.parsed.content.uwb %}
                 <br>
-                <strong>UWB:</strong> {{ node.last_messages.CONFIG_BOARD.parsed.led }}
+                <strong>UWB:</strong> {{ node.last_messages.CONFIG_BOARD.parsed.content.led }}
                 {% endif %}
 
             </p>
@@ -89,13 +89,13 @@
         <div>
             <h4>Uplink configuration</h4>
             <p>
-                <strong>Enabled:</strong> {{ node.last_messages.CONFIG_UPLINK.parsed.enabled }},
-                <strong>SSID:</strong> {{ node.last_messages.CONFIG_UPLINK.parsed.ssid }},
-                <strong>Channel:</strong> {{ node.last_messages.CONFIG_UPLINK.parsed.channel }}<br>
-                <strong>Host:</strong> {{ node.last_messages.CONFIG_UPLINK.parsed.host }},
-                <strong>Port:</strong> {{ node.last_messages.CONFIG_UPLINK.parsed.port }},
-                <strong>UDP:</strong> {{ node.last_messages.CONFIG_UPLINK.parsed.udp }},
-                <strong>SSL:</strong> {{ node.last_messages.CONFIG_UPLINK.parsed.ssl }}<br>
+                <strong>Enabled:</strong> {{ node.last_messages.CONFIG_UPLINK.parsed.content.enabled }},
+                <strong>SSID:</strong> {{ node.last_messages.CONFIG_UPLINK.parsed.content.ssid }},
+                <strong>Channel:</strong> {{ node.last_messages.CONFIG_UPLINK.parsed.content.channel }}<br>
+                <strong>Host:</strong> {{ node.last_messages.CONFIG_UPLINK.parsed.content.host }},
+                <strong>Port:</strong> {{ node.last_messages.CONFIG_UPLINK.parsed.content.port }},
+                <strong>UDP:</strong> {{ node.last_messages.CONFIG_UPLINK.parsed.content.udp }},
+                <strong>SSL:</strong> {{ node.last_messages.CONFIG_UPLINK.parsed.content.ssl }}<br>
             </p>
             <p>
                 <a class="button" href="{% url "mesh.send" recipient=node.address msg_type="CONFIG_UPLINK" %}">
@@ -106,9 +106,9 @@
             <h4>Position configuration</h4>
             <p>
                 <strong>On Device:</strong>
-                X={{ node.last_messages.CONFIG_POSITION.parsed.x_pos | cm_to_m }}
-                Y={{ node.last_messages.CONFIG_POSITION.parsed.y_pos | cm_to_m }}
-                Z={{ node.last_messages.CONFIG_POSITION.parsed.z_pos | cm_to_m }}
+                X={{ node.last_messages.CONFIG_POSITION.parsed.content.x_pos | cm_to_m }}
+                Y={{ node.last_messages.CONFIG_POSITION.parsed.content.y_pos | cm_to_m }}
+                Z={{ node.last_messages.CONFIG_POSITION.parsed.content.z_pos | cm_to_m }}
             </p>
             {% with locator_xyz=node.get_locator_xyz %}
                 {% if locator_xyz %}
