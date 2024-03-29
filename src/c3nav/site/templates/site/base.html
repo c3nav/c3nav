@@ -31,7 +31,7 @@
             }
         </style>
     {% endif %}
-    <style id="c3nav-theme-vars">{{ active_theme.css }}</style>
+    <style id="c3nav-theme-vars">{{ active_theme.css | striptags | safe }}</style>
     {{ themes|json_script:"c3nav-themes" }}
     {{ active_theme_id|json_script:"c3nav-active-theme" }}
     {% compress css %}

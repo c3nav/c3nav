@@ -28,7 +28,7 @@
             }
         </style>
     {% endif %}
-    <style>{{ active_theme.css }}</style>
+    <style>{{ active_theme.css | striptags | safe }}</style>
     {% compress css %}
         <link href="{% static 'fonts/fonts.css' %}" rel="stylesheet">
         <link href="{% static 'bootstrap/css/bootstrap.css' %}" rel="stylesheet">
