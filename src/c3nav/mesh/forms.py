@@ -120,10 +120,11 @@ class MeshRouteRequestForm(MeshMessageForm):
         self.fields["address"].choices = (('', '------'), )+self.node_choices
 
     def get_msg_data(self):
-        return {
+        data = {
             **super().get_msg_data(),
-            "request_id": int(time.time()*100000) % 2**32,
         }
+        data["content"]["request_id"] = int(time.time() * 100000) % 2 ** 32
+        return data
 
 
 class ConfigUplinkMessageForm(MeshMessageForm):
