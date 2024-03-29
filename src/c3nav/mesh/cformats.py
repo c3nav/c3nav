@@ -65,7 +65,7 @@ class ExistingCStruct():
 
 class CEnum(str, Enum):
     def __new__(cls, value, c_value):
-        obj = str.__new__(cls)
+        obj = str.__new__(cls, value)
         obj._value_ = value
         obj.c_value = c_value
         return obj
