@@ -80,6 +80,8 @@ class MeshMessageForm(forms.Form):
     def get_cleaned_msg_data(self):
         msg_data = self.cleaned_data.copy()
         msg_data.pop('recipients', None)
+        if "uuid" in msg_data:
+            msg_data["uuid"] = str(msg_data["uuid"])
         return msg_data
 
     def get_msg_data(self):

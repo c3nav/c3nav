@@ -103,7 +103,7 @@ class MeshMessageSendView(MeshControlMixin, FormView):
         if 'noscript' in self.request.POST:
             form.send()
             messages.success(self.request, _('Message sent successfully(?)'))
-            super().form_valid(form)
+            return super().form_valid(form)
         uuid = uuid4()
         self.request.session["mesh_msg_%s" % uuid] = {
             "success_url": self.get_success_url(),
