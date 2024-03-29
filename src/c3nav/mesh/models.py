@@ -190,6 +190,7 @@ class MeshNodeQuerySet(models.QuerySet):
             nodes_by_id: dict[int, MeshNode] = {
                 node.last_messages[MeshMessageType.CONFIG_NODE].parsed.content.number: node
                 for node in self._result_cache
+                if node.last_messages[MeshMessageType.CONFIG_NODE]
             }
             try:
                 for ranging_beacon in RangingBeacon.objects.filter(Q(wifi_bssid__in=nodes_by_bssid.keys()) |
