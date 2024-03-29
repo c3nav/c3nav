@@ -80,9 +80,7 @@ class MeshMessageSendView(MeshControlMixin, FormView):
             except MeshNode.DoesNotExist:
                 pass
             else:
-                initial = MeshMessage.get_type(self.msg_type).tojson(
-                    node.last_messages[self.msg_type].parsed
-                )
+                initial = node.last_messages[self.msg_type].parsed.content.model_dump(mode="json")
                 while keys := tuple(key for key, value in initial.items() if isinstance(value, dict)):
                     for key in keys:
                         subdict = initial.pop(key)
