@@ -497,8 +497,8 @@ class FixedStrFormat(SimpleFormat):
         self.num = num
         super().__init__('%ds' % self.num)
 
-    def encode(self, value: str):
-        return value.encode()[:self.num].ljust(self.num, bytes((0,))),
+    def encode(self, value: str) -> bytes:
+        return value.encode()[:self.num].ljust(self.num, bytes((0,)))
 
     def decode(self, data: bytes) -> tuple[str, bytes]:
         return data[:self.num].rstrip(bytes((0,))).decode(), data[self.num:]
