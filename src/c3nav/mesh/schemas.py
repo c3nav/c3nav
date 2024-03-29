@@ -59,9 +59,9 @@ class BoardSPIConfig(BaseModel):
     """
     configuration for spi bus used for ETH or UWB
     """
-    gpio_miso: Annotated[PositiveInt, Lt(2**8)]
-    gpio_mosi: Annotated[PositiveInt, Lt(2**8)]
-    gpio_clk: Annotated[PositiveInt, Lt(2**8)]
+    gpio_miso: Annotated[NonNegativeInt, Lt(2**8)]
+    gpio_mosi: Annotated[NonNegativeInt, Lt(2**8)]
+    gpio_clk: Annotated[NonNegativeInt, Lt(2**8)]
 
 
 class UWBConfig(BaseModel):
@@ -69,11 +69,11 @@ class UWBConfig(BaseModel):
     configuration for the connection to the UWB module
     """
     enable: bool
-    gpio_cs: Annotated[PositiveInt, Lt(2**8)]
-    gpio_irq: Annotated[PositiveInt, Lt(2**8)]
-    gpio_rst: Annotated[PositiveInt, Lt(2**8)]
-    gpio_wakeup: Annotated[PositiveInt, Lt(2**8)]
-    gpio_exton: Annotated[PositiveInt, Lt(2**8)]
+    gpio_cs: Annotated[NonNegativeInt, Lt(2**8)]
+    gpio_irq: Annotated[NonNegativeInt, Lt(2**8)]
+    gpio_rst: Annotated[NonNegativeInt, Lt(2**8)]
+    gpio_wakeup: Annotated[NonNegativeInt, Lt(2**8)]
+    gpio_exton: Annotated[NonNegativeInt, Lt(2**8)]
 
 
 class UplinkEthConfig(BaseModel):

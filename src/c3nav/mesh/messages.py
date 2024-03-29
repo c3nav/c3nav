@@ -184,7 +184,7 @@ class ConfigUplinkMessage(discriminator_value(msg_type=MeshMessageType.CONFIG_UP
     enabled: bool
     ssid: Annotated[str, MaxLen(32)]
     password: Annotated[str, MaxLen(64)]
-    channel: Annotated[PositiveInt, Le(15)]
+    channel: Annotated[NonNegativeInt, Le(15)]
     udp: bool
     ssl: bool
     host: Annotated[str, MaxLen(64)]
