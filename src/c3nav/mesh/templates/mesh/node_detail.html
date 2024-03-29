@@ -87,6 +87,17 @@
             </p>
         </div>
         <div>
+            <h4>Node configuration</h4>
+            <p>
+                <strong>Number:</strong> {{ node.last_messages.CONFIG_NODE.parsed.content.number }}<br>
+                <strong>Name:</strong> {{ node.last_messages.CONFIG_NODE.parsed.content.name }}
+            </p>
+            <p>
+                <a class="button" href="{% url "mesh.send" recipient=node.address msg_type="CONFIG_NODE" %}">
+                    {% trans 'Change' %}
+                </a>
+            </p>
+
             <h4>Uplink configuration</h4>
             <p>
                 <strong>Enabled:</strong> {{ node.last_messages.CONFIG_UPLINK.parsed.content.enabled }},
@@ -99,6 +110,18 @@
             </p>
             <p>
                 <a class="button" href="{% url "mesh.send" recipient=node.address msg_type="CONFIG_UPLINK" %}">
+                    {% trans 'Change' %}
+                </a>
+            </p>
+
+            <h4>iBeacon configuration</h4>
+            <p>
+                <strong>UUID:</strong> {{ node.last_messages.CONFIG_IBEACON.parsed.content.uuid }}<br>
+                <strong>Major:</strong> {{ node.last_messages.CONFIG_UPLINK.parsed.content.major }}<br>
+                <strong>Minor:</strong> {{ node.last_messages.CONFIG_UPLINK.parsed.content.minor }}
+            </p>
+            <p>
+                <a class="button" href="{% url "mesh.send" recipient=node.address msg_type="CONFIG_IBEACON" %}">
                     {% trans 'Change' %}
                 </a>
             </p>
