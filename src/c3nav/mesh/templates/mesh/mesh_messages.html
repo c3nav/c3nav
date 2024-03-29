@@ -56,19 +56,19 @@
                 <td>
 
                     {% if msg.message_type == "CONFIG_HARDWARE" %}
-                        <strong>Chip:</strong> {{ msg.parsed.chip.pretty_name }} rev{{ msg.parsed.revision_major }}.{{ msg.parsed.revision_minor }}
+                        <strong>Chip:</strong> {{ msg.parsed.content.chip.pretty_name }} rev{{ msg.parsed.content.revision_major }}.{{ msg.parsed.content.revision_minor }}
 
                     {% elif msg.message_type == "CONFIG_BOARD" %}
-                        <strong>Board:</strong> {{ msg.parsed.board_config.board.pretty_name }}
+                        <strong>Board:</strong> {{ msg.parsed.content.board_config.board.pretty_name }}
 
-                        {% if msg.parsed.led %}
+                        {% if msg.parsed.content.led %}
                         <br>
-                        <strong>Status LED:</strong> {{ msg.parsed.led }}
+                        <strong>Status LED:</strong> {{ msg.parsed.content.led }}
                         {% endif %}
 
-                        {% if msg.parsed.uwb %}
+                        {% if msg.parsed.content.uwb %}
                         <br>
-                        <strong>UWB:</strong> {{ msg.parsed.led }}
+                        <strong>UWB:</strong> {{ msg.parsed.content.led }}
                         {% endif %}
 
                     {% elif msg.message_type == "CONFIG_FIRMWARE" %}
@@ -79,24 +79,24 @@
                         <strong>SHA256:</strong> <small>{{ msg.parsed.content.app_desc.app_elf_sha256 }}</small>
 
                     {% elif msg.message_type == "CONFIG_UPLINK" %}
-                        <strong>Enabled:</strong> {{ msg.parsed.enabled }},
-                        <strong>SSID:</strong> {{ msg.parsed.ssid }},
-                        <strong>Channel:</strong> {{ msg.parsed.channel }}<br>
-                        <strong>Host:</strong> {{ msg.parsed.host }},
-                        <strong>Port:</strong> {{ msg.parsed.port }},
-                        <strong>UDP:</strong> {{ msg.parsed.udp }},
-                        <strong>SSL:</strong> {{ msg.parsed.ssl }}
+                        <strong>Enabled:</strong> {{ msg.parsed.content.enabled }},
+                        <strong>SSID:</strong> {{ msg.parsed.content.ssid }},
+                        <strong>Channel:</strong> {{ msg.parsed.content.channel }}<br>
+                        <strong>Host:</strong> {{ msg.parsed.content.host }},
+                        <strong>Port:</strong> {{ msg.parsed.content.port }},
+                        <strong>UDP:</strong> {{ msg.parsed.content.udp }},
+                        <strong>SSL:</strong> {{ msg.parsed.content.ssl }}
 
                     {% elif msg.message_type == "CONFIG_LED" %}
                         <strong>LED config:</strong> {{ msg.parsed.led_config }}
 
                     {% elif msg.message_type == "CONFIG_POSITION" %}
-                        <strong>X=</strong>{{ msg.parsed.x_pos }}, <strong>Y=</strong>{{ msg.parsed.y_pos }}, <strong>Z=</strong>{{ msg.parsed.z_pos }}
+                        <strong>X=</strong>{{ msg.parsed.content.x_pos }}, <strong>Y=</strong>{{ msg.parsed.content.y_pos }}, <strong>Z=</strong>{{ msg.parsed.content.z_pos }}
 
                     {% elif msg.message_type == "MESH_ADD_DESTINATIONS" or msg.message_type == "MESH_REMOVE_DESTINATIONS" %}
                         <strong>adresses:</strong><br>
                         <ul style="margin: 0;">
-                            {% for address in msg.parsed.addresses %}
+                            {% for address in msg.parsed.content.addresses %}
                                 <li style="margin: 0;">{{ address }}</li>
                             {% endfor %}
                         </ul>
@@ -108,7 +108,7 @@
                                 <th>RSSI</th>
                                 <th>distance</th>
                             </tr>
-                            {% for entry in msg.parsed.ranges %}
+                            {% for entry in msg.parsed.content.ranges %}
                                 <tr>
                                     <td>{% mesh_node entry.peer %}</td>
                                     <td>{{ entry.rssi }}</td>
@@ -124,7 +124,7 @@
                         </table>
 
                     {% elif msg.message_type == "LOCATE_RAW_FTM_RESULTS" %}
-                        <p><strong>peer:</strong> {% mesh_node msg.parsed.peer %}</p>
+                        <p><strong>peer:</strong> {% mesh_node msg.parsed.content.peer %}</p>
                         <table class="smalltable">
                             <tr>
                                 <th>token</th>
@@ -135,7 +135,7 @@
                                 <th>t3</th>
                                 <th>t4</th>
                             </tr>
-                            {% for entry in msg.parsed.results %}
+                            {% for entry in msg.parsed.content.results %}
                                 <tr>
                                     <td>{{ entry.dlog_token }}</td>
                                     <td>{{ entry.rssi }}</td>
