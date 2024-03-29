@@ -698,9 +698,9 @@ class MeshUIConsumer(AsyncJsonWebsocketConsumer):
             await self.channel_layer.group_add("mesh_msg_sent", self.channel_name)
             self.msg_sent_filter = {"sender": self.channel_name}
 
-            if msg_to_send["msg_data"]["msg_type"] == MeshMessageType.MESH_ROUTE_REQUEST.name:
+            if msg_to_send["msg_data"]["content"]["msg_type"] == MeshMessageType.MESH_ROUTE_REQUEST.name:
                 await self.channel_layer.group_add("mesh_msg_received", self.channel_name)
-                self.msg_received_filter = {"request_id": msg_to_send["msg_data"]["request_id"]}
+                self.msg_received_filter = {"request_id": msg_to_send["msg_data"]["content"]["request_id"]}
 
             for recipient in msg_to_send["recipients"]:
                 await MeshMessage.model_validate({
