@@ -130,3 +130,10 @@ class AnyGeometrySchema(BaseSchema):
     """
     type: NonEmptyStr
     coordinates: Any
+
+
+class StatsSchema(BaseSchema):
+    users_total: int
+    reports_total: int
+    reports_today: int
+    reports_open: int
