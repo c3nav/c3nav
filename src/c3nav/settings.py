@@ -7,7 +7,6 @@ from contextlib import suppress
 from pathlib import Path
 from typing import Optional
 
-import sass
 from django.contrib.messages import constants as messages
 from django.core.exceptions import ImproperlyConfigured
 from django.utils.crypto import get_random_string
@@ -393,6 +392,19 @@ with suppress(ImportError):
 with suppress(ImportError):
     import django_extensions  # noqa
     INSTALLED_APPS.append('django_extensions')
+
+METRCIS = config.getboolean('c3nav', 'metrics', fallback=False)
+if METRCIS:
+    try:
+        import django_prometheus  # noqa
+        INSTALLED_APPS.append('django_prometheus')
+        MIDDLEWARE = [
+            'django_prometheus.middleware.PrometheusBeforeMiddleware',
+            *MIDDLEWARE,
+            'django_prometheus.middleware.PrometheusAfterMiddleware',
+        ]
+    except ImportError:
+        METRCIS = False
 
 # Security settings
 X_FRAME_OPTIONS = 'DENY'

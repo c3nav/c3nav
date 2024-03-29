@@ -67,6 +67,7 @@ RUN --mount=type=cache,target=/pip-cache \
     -r requirements/memcached.txt \
     -r requirements/rsvg.txt \
     -r requirements/sentry.txt \
+    -r requirements/metrics.txt \
     -r requirements/server-asgi.txt && \
     pip install --cache-dir /pip-cache uwsgi
 
