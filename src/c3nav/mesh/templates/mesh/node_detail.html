@@ -35,7 +35,7 @@
 
                 <strong>Last Message:</strong>
                 {{ node.last_messages.any.datetime.date }} {{ node.last_messages.any.datetime|date:"H:i:s" }}
-                ({% blocktrans trimmed with timesince=node.last_msg|timesince %}
+                ({% blocktrans trimmed with timesince=node.last_messages.any.datetime|timesince %}
                     {{ timesince }} ago
                 {% endblocktrans %})
                 <br>
