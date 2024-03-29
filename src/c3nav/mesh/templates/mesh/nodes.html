@@ -17,6 +17,7 @@
             <tr>
                 <td>
                     <a href="{% url "mesh.node.detail" pk=node.address %}">{{ node }}</a>
+                    <br>{{ node.last_messages.CONFIG_NODE.parsed.content.number }} – {{ node.last_messages.CONFIG_NODE.parsed.content.name }}
                     {% if node.ranging_beacon %}
                         <br>
                         <a href="{% url "editor.ranging_beacons.edit" space=node.ranging_beacon.space_id pk=node.ranging_beacon.pk %}">Ranging Beacon #{{ node.ranging_beacon.pk }}</a>
