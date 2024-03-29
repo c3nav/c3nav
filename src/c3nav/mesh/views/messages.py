@@ -127,7 +127,7 @@ class MeshMessageSendingView(MeshControlMixin, TemplateView):
             "node_names": node_names,
             "send_uuid": uuid,
             **data,
-            "node_name": node_names.get(data["msg_data"].get("address"), ""),
+            "node_name": node_names.get(data["msg_data"]["content"].get("address"), ""),
             "recipients": [(address, node_names[address]) for address in data["recipients"]],
-            "msg_type": MeshMessageType[data["msg_data"]["msg_type"]].pretty_name,
+            "msg_type": MeshMessageType[data["msg_data"]["content"]["msg_type"]].pretty_name,
         }
