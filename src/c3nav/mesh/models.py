@@ -92,22 +92,22 @@ class MeshNodeQuerySet(models.QuerySet):
         return clone
 
     def prefetch_ranging_beacon(self):
-        clone = self._chain()
+        clone = self.prefetch_last_messages(MeshMessageType.CONFIG_NODE)
         clone._prefetch_ranging_beacon = True
         return clone
 
     def _fetch_all(self):
         super()._fetch_all()
-        nodes = None
+        nodes_by_bssid = None
         if self._prefetch_last_messages and not self._prefetch_last_messages_done:
-            nodes: dict[str, MeshNode] = {node.pk: node for node in self._result_cache}
+            nodes_by_bssid: dict[str, MeshNode] = {node.pk: node for node in self._result_cache}
             try:
                 for message in NodeMessage.objects.order_by('message_type', 'src_node', '-datetime', '-pk').filter(
                         message_type__in=(t.name for t in self._prefetch_last_messages),
-                        src_node__in=nodes.keys(),
+                        src_node__in=nodes_by_bssid.keys(),
                 ).prefetch_related("uplink").distinct('message_type', 'src_node'):
-                    nodes[message.src_node_id].last_messages[message.message_type] = message
-                for node in nodes.values():
+                    nodes_by_bssid[message.src_node_id].last_messages[message.message_type] = message
+                for node in nodes_by_bssid.values():
                     node.last_messages["any"] = (
                         max(node.last_messages.values(), key=attrgetter("datetime"))
                         if node.last_messages else None
@@ -130,7 +130,7 @@ class MeshNodeQuerySet(models.QuerySet):
                 }
 
                 # assign firmware descriptions
-                for node in nodes.values():
+                for node in nodes_by_bssid.values():
                     firmware_desc = node.firmware_description
                     node._firmware_description = (
                         firmwares.get(firmware_desc.get_lookup(), firmware_desc)
@@ -139,7 +139,7 @@ class MeshNodeQuerySet(models.QuerySet):
 
                 # get date of first appearance
                 nodes_to_complete = tuple(
-                    node for node in nodes.values()
+                    node for node in nodes_by_bssid.values()
                     if node._firmware_description and node._firmware_description.build is None
                 )
                 try:
@@ -165,16 +165,16 @@ class MeshNodeQuerySet(models.QuerySet):
                     node._firmware_description.created = created_lookup[node._firmware_description.sha256_hash]
 
         if self._prefetch_ota and not self._prefetch_ota_done:
-            if nodes is None:
-                nodes: dict[str, MeshNode] = {node.pk: node for node in self._result_cache}
+            if nodes_by_bssid is None:
+                nodes_by_bssid: dict[str, MeshNode] = {node.pk: node for node in self._result_cache}
             try:
                 for ota in OTAUpdateRecipient.objects.filter(
-                        node__in=nodes.keys(),
+                        node__in=nodes_by_bssid.keys(),
                         status=OTARecipientStatus.RUNNING,
                 ).select_related("update", "update__build"):
                     # noinspection PyUnresolvedReferences
-                    nodes[ota.node_id]._current_ota = ota
-                for node in nodes.values():
+                    nodes_by_bssid[ota.node_id]._current_ota = ota
+                for node in nodes_by_bssid.values():
                     if not hasattr(node, "_current_ota"):
                         node._current_ota = None
                 self._prefetch_ota_done = True
@@ -182,13 +182,25 @@ class MeshNodeQuerySet(models.QuerySet):
                 pass
 
         if self._prefetch_ranging_beacon and not self._prefetch_ranging_beacon_done:
-            if nodes is None:
-                nodes: dict[str, MeshNode] = {node.pk: node for node in self._result_cache}
+            if nodes_by_bssid is None:
+                nodes_by_bssid: dict[str, MeshNode] = {
+                    node.pk: node
+                    for node in self._result_cache
+                }
+            nodes_by_id: dict[int, MeshNode] = {
+                node.last_messages[MeshMessageType.CONFIG_NODE].parsed.content.number: node
+                for node in self._result_cache
+            }
             try:
-                for ranging_beacon in RangingBeacon.objects.filter(wifi_bssid__in=nodes.keys()).select_related('space'):
+                for ranging_beacon in RangingBeacon.objects.filter(Q(wifi_bssid__in=nodes_by_bssid.keys()) |
+                                                                   Q(node__in=nodes_by_id.keys())).select_related('space'):
                     # noinspection PyUnresolvedReferences
-                    nodes[ranging_beacon.wifi_bssid]._ranging_beacon = ranging_beacon
-                for node in nodes.values():
+                    with suppress(KeyError):
+                        nodes_by_bssid[ranging_beacon.wifi_bssid]._ranging_beacon = ranging_beacon
+                    with suppress(KeyError):
+                        nodes_by_id[ranging_beacon.node_number]._ranging_beacon = ranging_beacon
+                    # todo: detect and warn about conflicts
+                for node in nodes_by_bssid.values():
                     if not hasattr(node, "_ranging_beacon"):
                         node._ranging_beacon = None
                 self._prefetch_ranging_beacon_done = True
