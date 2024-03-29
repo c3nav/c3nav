@@ -71,7 +71,7 @@ with suppress(ImportError):
             ),
             Mount(path='/', app=django_asgi),
         ]),
-        "websocket": AllowedHostsOriginValidator(
+        "websocket": AllowedHostsOriginValidatorWithAllowNone(
             AuthMiddlewareStack(
                 UserPermissionsChannelMiddleware(
                     URLRouter(websocket_urlpatterns),
