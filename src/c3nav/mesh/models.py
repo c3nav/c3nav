@@ -147,16 +147,17 @@ class MeshNodeQuerySet(models.QuerySet):
                         msg.parsed.content.app_desc.app_elf_sha256: msg.datetime
                         for msg in NodeMessage.objects.filter(
                             message_type=MeshMessageType.CONFIG_FIRMWARE.name,
-                            data__app_elf_sha256__in=(node._firmware_description.sha256_hash
-                                                      for node in nodes_to_complete)
-                        ).order_by('data__app_elf_sha256', 'datetime').distinct('data__app_elf_sha256')
+                            data__content__app_elf_sha256__in=(node._firmware_description.sha256_hash
+                                                               for node in nodes_to_complete)
+                        ).order_by('data__content__app_elf_sha256',
+                                   'datetime').distinct('data__content__app_elf_sha256')
                     }
                     print(created_lookup)
                 except NotSupportedError:
                     created_lookup = {
                         app_elf_sha256: NodeMessage.objects.filter(
                             message_type=MeshMessageType.CONFIG_FIRMWARE.name,
-                            data__app_elf_sha256=app_elf_sha256
+                            data__content__app_elf_sha256=app_elf_sha256
                         ).order_by('datetime').first()
                         for app_elf_sha256 in {node._firmware_description.sha256_hash for node in nodes_to_complete}
                     }
