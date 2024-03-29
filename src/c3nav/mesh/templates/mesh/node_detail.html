@@ -55,7 +55,7 @@
             <h4>Hardware</h4>
             <p>
                 <strong>Board:</strong> {{ node.last_messages.CONFIG_BOARD.parsed.content.board_config.board.pretty_name }}
-                (with {{ node.last_messages.CONFIG_HARDWARE.parsed.content.chip.pretty_name }} rev{{ node.last_messages.CONFIG_HARDWARE.parsed.content.revision_major }}.{{ node.last_messages.CONFIG_HARDWARE.parsed.revision_minor }})
+                (with {{ node.last_messages.CONFIG_HARDWARE.parsed.content.chip.pretty_name }} rev{{ node.last_messages.CONFIG_HARDWARE.parsed.content.revision_major }}.{{ node.last_messages.CONFIG_HARDWARE.parsed.content.revision_minor }})
 
                 {% if node.last_messages.CONFIG_BOARD.parsed.content.led %}
                 <br>
