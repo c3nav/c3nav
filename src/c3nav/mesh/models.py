@@ -147,7 +147,7 @@ class MeshNodeQuerySet(models.QuerySet):
                         msg.parsed.content.app_desc.app_elf_sha256: msg.datetime
                         for msg in NodeMessage.objects.filter(
                             message_type=MeshMessageType.CONFIG_FIRMWARE.name,
-                            data__content__app_elf_sha256__in=(node._firmware_description.sha256_hash
+                            data__content__app_desc__app_elf_sha256__in=(node._firmware_description.sha256_hash
                                                                for node in nodes_to_complete)
                         ).order_by('data__content__app_elf_sha256',
                                    'datetime').distinct('data__content__app_elf_sha256')
@@ -157,16 +157,12 @@ class MeshNodeQuerySet(models.QuerySet):
                     created_lookup = {
                         app_elf_sha256: NodeMessage.objects.filter(
                             message_type=MeshMessageType.CONFIG_FIRMWARE.name,
-                            data__content__app_elf_sha256=app_elf_sha256
+                            data__content__app_desc__app_elf_sha256=app_elf_sha256
                         ).order_by('datetime').first().datetime
                         for app_elf_sha256 in {node._firmware_description.sha256_hash for node in nodes_to_complete}
                     }
                 for node in nodes_to_complete:
-                    try:
-                        node._firmware_description.created = created_lookup[node._firmware_description.sha256_hash]
-                    except KeyError:
-                        # todo: this shouldn't happen?!
-                        node._firmware_description.created = datetime.now()
+                    node._firmware_description.created = created_lookup[node._firmware_description.sha256_hash]
 
         if self._prefetch_ota and not self._prefetch_ota_done:
             if nodes is None:
