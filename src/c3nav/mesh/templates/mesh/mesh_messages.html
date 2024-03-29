@@ -72,11 +72,11 @@
                         {% endif %}
 
                     {% elif msg.message_type == "CONFIG_FIRMWARE" %}
-                        <strong>Firmware:</strong> {{ msg.parsed.app_desc.project_name }} {{ msg.parsed.app_desc.version }} (IDF {{ msg.parsed.app_desc.idf_version }})
+                        <strong>Firmware:</strong> {{ msg.parsed.content.app_desc.project_name }} {{ msg.parsed.content.app_desc.version }} (IDF {{ msg.parsed.content.app_desc.idf_version }})
                         <br>
-                        <strong>Compile Date:</strong> {{ msg.parsed.app_desc.compile_date }} {{ msg.parsed.app_desc.compile_time }}
+                        <strong>Compile Date:</strong> {{ msg.parsed.content.app_desc.compile_date }} {{ msg.parsed.content.app_desc.compile_time }}
                         <br>
-                        <strong>SHA256:</strong> <small>{{ msg.parsed.app_desc.app_elf_sha256 }}</small>
+                        <strong>SHA256:</strong> <small>{{ msg.parsed.content.app_desc.app_elf_sha256 }}</small>
 
                     {% elif msg.message_type == "CONFIG_UPLINK" %}
                         <strong>Enabled:</strong> {{ msg.parsed.enabled }},

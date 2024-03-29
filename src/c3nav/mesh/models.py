@@ -122,7 +122,7 @@ class MeshNodeQuerySet(models.QuerySet):
                     fw_desc.get_lookup(): fw_desc for fw_desc in
                     (build.firmware_description for build in FirmwareBuild.objects.filter(
                         sha256_hash__in=set(
-                            node.last_messages[MeshMessageType.CONFIG_FIRMWARE].parsed.app_desc.app_elf_sha256
+                            node.last_messages[MeshMessageType.CONFIG_FIRMWARE].parsed.content.app_desc.app_elf_sha256
                             for node in self._result_cache
                             if node.last_messages[MeshMessageType.CONFIG_FIRMWARE]
                         )
@@ -144,7 +144,7 @@ class MeshNodeQuerySet(models.QuerySet):
                 )
                 try:
                     created_lookup = {
-                        msg.parsed.app_desc.app_elf_sha256: msg.datetime
+                        msg.parsed.content.app_desc.app_elf_sha256: msg.datetime
                         for msg in NodeMessage.objects.filter(
                             message_type=MeshMessageType.CONFIG_FIRMWARE.name,
                             data__app_elf_sha256__in=(node._firmware_description.sha256_hash
@@ -382,7 +382,7 @@ class NodeMessage(models.Model):
         return '(#%d) %s at %s' % (self.pk, self.get_message_type_display(), self.datetime)
 
     @cached_property
-    def parsed(self) -> Self:
+    def parsed(self) -> MeshMessage:
         return MeshMessage.model_validate(self.data)
 
 
