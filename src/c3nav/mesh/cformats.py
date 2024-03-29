@@ -521,7 +521,7 @@ class UUIDFormat(SimpleFormat):
         super().__init__("16B")
 
     def encode(self, value: str | UUID):
-        return super().encode(UUID(value).bytes)
+        return super().encode((value if isinstance(value, UUID) else UUID(hex=value)).bytes)
 
     def decode(self, data: bytes) -> tuple[UUID, bytes]:
         return UUID(bytes=data[:16]), data[16:]
