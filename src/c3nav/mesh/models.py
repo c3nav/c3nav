@@ -292,11 +292,11 @@ class MeshNode(models.Model):
         # noinspection PyTypeChecker
         hardware_msg: ConfigHardwareMessage = hw_msg.parsed
         return FirmwareDescription(
-            chip=hardware_msg.chip,
-            project_name=firmware_msg.app_desc.project_name,
-            version=firmware_msg.app_desc.version,
-            idf_version=firmware_msg.app_desc.idf_version,
-            sha256_hash=firmware_msg.app_desc.app_elf_sha256,
+            chip=hardware_msg.content.chip,
+            project_name=firmware_msg.content.app_desc.project_name,
+            version=firmware_msg.content.app_desc.version,
+            idf_version=firmware_msg.content.app_desc.idf_version,
+            sha256_hash=firmware_msg.content.app_desc.app_elf_sha256,
         )
 
     @cached_property
@@ -306,8 +306,8 @@ class MeshNode(models.Model):
         hw_msg = self.last_messages[MeshMessageType.CONFIG_HARDWARE]
         board_msg = self.last_messages[MeshMessageType.CONFIG_BOARD]
         return HardwareDescription(
-            chip=hw_msg.parsed.chip if hw_msg else None,
-            board=board_msg.parsed.board_config.board if board_msg else None,
+            chip=hw_msg.parsed.content.chip if hw_msg else None,
+            board=board_msg.parsed.content.board_config.board if board_msg else None,
         )
 
     # overriden by prefetch_firmwares()
