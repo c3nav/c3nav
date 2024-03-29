@@ -418,7 +418,7 @@ def create_editor_form(editor_model):
                        'label_settings', 'label_override', 'min_zoom', 'max_zoom', 'font_size',
                        'allow_levels', 'allow_spaces', 'allow_areas', 'allow_pois', 'allow_dynamic_locations',
                        'left', 'top', 'right', 'bottom', 'import_tag', 'import_block_data', 'import_block_geom',
-                       'public', 'high_contrast', 'funky', 'randomize_primary_color', 'color_logo',
+                       'public', 'default', 'dark', 'high_contrast', 'funky', 'randomize_primary_color', 'color_logo',
                        'color_css_initial', 'color_css_primary', 'color_css_secondary', 'color_css_tertiary',
                        'color_css_quaternary', 'color_css_quinary', 'color_css_header_background',
                        'color_css_header_text', 'color_css_header_text_hover',

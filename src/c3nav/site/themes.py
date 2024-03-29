@@ -81,18 +81,16 @@ def make_themes(theme_models):
             'primary_color': primary_color,
         }
         if theme.default:
+            default_theme = {
+                    'css_code': css_code,
+                    'theme_color': css_vars['header-background'],
+                    'randomize_primary_color': theme.randomize_primary_color,
+                    'primary_color': primary_color,
+                }
             if theme.dark:
-                default_dark = {
-                    'css_code': css_code,
-                    'theme_color': css_vars['header-background'],
-                    'primary_color': primary_color,
-                }
+                default_dark = default_theme
             else:
-                default_light = {
-                    'css_code': css_code,
-                    'theme_color': css_vars['header-background'],
-                    'primary_color': primary_color,
-                }
+                default_light = default_theme
 
     if default_dark is not None and default_light is not None:
         name = _('Automatic')
@@ -118,13 +116,13 @@ def make_themes(theme_models):
     return themes
 
 
-@mapdata_cache
+# @mapdata_cache
 def css_themes_all():
     from c3nav.mapdata.models.theme import Theme
     return make_themes(Theme.objects.all())
 
 
-@mapdata_cache
+# @mapdata_cache
 def css_themes_public():
     from c3nav.mapdata.models.theme import Theme
     return make_themes(Theme.objects.filter(public=True))

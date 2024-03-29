@@ -560,8 +560,8 @@ RANDOM_PRIMARY_COLOR_LIST = [hex_from_oklch(PRIMARY_COLOR_RANDOMISATION['lightne
                                             x) for x in range(0, 360)]
 
 BASE_THEME = {
-    'is_dark': config.get('theme', 'is_dark', fallback=False),
-    'randomize_primary_color': config.get('theme', 'randomize_primary_color', fallback=False),
+    'is_dark': config.getboolean('theme', 'is_dark', fallback=False),
+    'randomize_primary_color': config.getboolean('theme', 'randomize_primary_color', fallback=False),
     'map': {
         'background': config.get('theme', 'map_background', fallback='#dcdcdc'),
         'wall_fill': config.get('theme', 'map_wall_fill', fallback='#aaaaaa'),
