@@ -149,8 +149,8 @@ class MeshNodeQuerySet(models.QuerySet):
                             message_type=MeshMessageType.CONFIG_FIRMWARE.name,
                             data__content__app_desc__app_elf_sha256__in=(node._firmware_description.sha256_hash
                                                                for node in nodes_to_complete)
-                        ).order_by('data__content__app_elf_sha256',
-                                   'datetime').distinct('data__content__app_elf_sha256')
+                        ).order_by('data__content__app_desc__app_elf_sha256',
+                                   'datetime').distinct('data__content__app_desc__app_elf_sha256')
                     }
                     print(created_lookup)
                 except NotSupportedError:
