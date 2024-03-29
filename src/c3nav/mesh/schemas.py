@@ -6,7 +6,7 @@ from typing import Annotated, BinaryIO, ClassVar, Literal, Self, Union
 from annotated_types import Gt, Le, Lt, MaxLen, Ge
 from pydantic import NegativeInt, PositiveInt
 from pydantic.main import BaseModel
-from pydantic.types import Discriminator, NonNegativeInt
+from pydantic.types import Discriminator, NonNegativeInt, NonPositiveInt
 from pydantic_extra_types.mac_address import MacAddress
 
 from c3nav.mesh.cformats import AsDefinition, AsHex, CName, ExistingCStruct, discriminator_value, \
@@ -159,7 +159,7 @@ BoardConfig = Annotated[
 
 class RangeResultItem(BaseModel):
     peer: MacAddress
-    rssi: Annotated[NegativeInt, Gt(-100)]
+    rssi: Annotated[NonPositiveInt, Gt(-100)]
     distance: Annotated[int, Gt(-32000), Lt(32000)]
 
 
