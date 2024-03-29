@@ -256,6 +256,21 @@ class ConfigPositionMessageForm(MeshMessageForm):
     z_pos = forms.IntegerField(min_value=0, max_value=2 ** 16 - 1, label=_('Z'))
 
 
+class ConfigNodeMessageForm(MeshMessageForm):
+    msg_type = MeshMessageType.CONFIG_NODE
+
+    numer = forms.IntegerField(min_value=0, max_value=2 ** 16 - 1, label=_('node number'))
+    name = forms.CharField(max_length=31, label=_('node name'))
+
+
+class ConfigIBeaconMessageForm(MeshMessageForm):
+    msg_type = MeshMessageType.CONFIG_IBEACON
+
+    uuid = forms.UUIDField(label=_('UUID'))
+    major = forms.IntegerField(min_value=0, max_value=2 ** 16 - 1, label=_('major value'))
+    minor = forms.IntegerField(min_value=0, max_value=2 ** 16 - 1, label=_('minor value'))
+
+
 class LocateRequestRangeMessageForm(MeshMessageForm):
     msg_type = MeshMessageType.LOCATE_REQUEST_RANGE
 
