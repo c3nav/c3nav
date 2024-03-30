@@ -403,7 +403,7 @@ class MeshConsumer(AsyncWebsocketConsumer):
             "node": address,
             "text": text,
         })
-        print("MESH %s: [%s] %s" % (self.uplink.node, address, text))
+        print("MESH %s: [%s] %s" % (self.uplink.node.address, address, text))
 
     """ connection state machine """
 
