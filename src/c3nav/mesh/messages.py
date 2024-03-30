@@ -133,7 +133,7 @@ class MeshRouteTraceMessage(discriminator_value(msg_type=MeshMessageType.MESH_RO
 
 
 class MeshRoutingFailedMessage(discriminator_value(msg_type=MeshMessageType.MESH_ROUTING_FAILED), BaseModel):
-    """ TODO description"""
+    """ indicates that a message to the given address couldn't be routed """
     address: MacAddress
 
 
