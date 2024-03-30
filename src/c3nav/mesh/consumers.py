@@ -364,6 +364,16 @@ class MeshConsumer(AsyncWebsocketConsumer):
                     )
                 ))
 
+        if isinstance(msg.content, messages.MeshRoutingFailedMessage):
+            await self.log_text(msg.content.address, "got a complaint that this message couldn't be routed, resetting")
+            await self.send_msg(messages.MeshMessage(
+                src=MESH_ROOT_ADDRESS,
+                dst=MESH_BROADCAST_ADDRESS,
+                content=messages.MeshResetMessage(
+                    address=msg.content.address,
+                )
+            ))
+
         if isinstance(msg.content, (messages.ConfigHardwareMessage,
                             messages.ConfigFirmwareMessage,
                             messages.ConfigBoardMessage)):
