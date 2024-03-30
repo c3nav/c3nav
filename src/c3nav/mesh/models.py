@@ -260,6 +260,8 @@ class MeshNode(models.Model):
     first_seen = models.DateTimeField(_('first seen'), auto_now_add=True)
     uplink = models.ForeignKey('MeshUplink', models.PROTECT, null=True,
                                related_name='routed_nodes', verbose_name=_('uplink'))
+    upstream = models.ForeignKey('MeshNode', models.SET_NULL, null=True,
+                                 related_name='downstream', verbose_name=_('parent node'))
     last_signin = models.DateTimeField(_('last signin'), null=True)
     objects = models.Manager.from_queryset(MeshNodeQuerySet)()
 

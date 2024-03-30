@@ -33,12 +33,13 @@ class MeshMessageType(CEnum):
 
     MESH_SIGNIN = "MESH_SIGNIN", 0x03
     MESH_LAYER_ANNOUNCE = "MESH_LAYER_ANNOUNCE", 0x04
-    MESH_ADD_DESTINATIONS = "MESH_ADD_DESTINATIONS", 0x05
+    MESH_ADD_DESTINATION = "MESH_ADD_DESTINATION", 0x05
     MESH_REMOVE_DESTINATIONS = "MESH_REMOVE_DESTINATIONS", 0x06
     MESH_ROUTE_REQUEST = "MESH_ROUTE_REQUEST", 0x07
     MESH_ROUTE_RESPONSE = "MESH_ROUTE_RESPONSE", 0x08
     MESH_ROUTE_TRACE = "MESH_ROUTE_TRACE", 0x09
     MESH_ROUTING_FAILED = "MESH_ROUTING_FAILED", 0x0a
+    MESH_SIGNIN_CONFIRM = "MESH_SIGNIN_CONFIRM", 0x0b
 
     CONFIG_DUMP = "CONFIG_DUMP", 0x10
     CONFIG_HARDWARE = "CONFIG_HARDWARE", 0x11
@@ -101,9 +102,9 @@ class MeshLayerAnnounceMessage(discriminator_value(msg_type=MeshMessageType.MESH
     layer: Annotated[PositiveInt, Lt(2 ** 8), CDoc("mesh layer that the sending node is on")]
 
 
-class MeshAddDestinationsMessage(discriminator_value(msg_type=MeshMessageType.MESH_ADD_DESTINATIONS), BaseModel):
+class MeshAddDestinationMessage(discriminator_value(msg_type=MeshMessageType.MESH_ADD_DESTINATION), BaseModel):
     """ downstream node announces served destination """
-    addresses: Annotated[list[MacAddress], MaxLen(16), VarLen(), CDoc("adresses of the added destinations",)]
+    address: Annotated[MacAddress, CDoc("address of the added destination",)]
 
 
 class MeshRemoveDestinationsMessage(discriminator_value(msg_type=MeshMessageType.MESH_REMOVE_DESTINATIONS), BaseModel):
@@ -131,6 +132,11 @@ class MeshRouteTraceMessage(discriminator_value(msg_type=MeshMessageType.MESH_RO
 
 class MeshRoutingFailedMessage(discriminator_value(msg_type=MeshMessageType.MESH_ROUTING_FAILED), BaseModel):
     """ TODO description"""
+    address: MacAddress
+
+
+class MeshSigninConfirmMessage(discriminator_value(msg_type=MeshMessageType.MESH_SIGNIN_CONFIRM), BaseModel):
+    """ Confirm signin from root node """
     address: MacAddress
 
 
@@ -307,12 +313,13 @@ MeshMessageContent = Annotated[
         EchoResponseMessage,
         MeshSigninMessage,
         MeshLayerAnnounceMessage,
-        MeshAddDestinationsMessage,
+        MeshAddDestinationMessage,
         MeshRemoveDestinationsMessage,
         MeshRouteRequestMessage,
         MeshRouteResponseMessage,
         MeshRouteTraceMessage,
         MeshRoutingFailedMessage,
+        MeshSigninConfirmMessage,
         ConfigDumpMessage,
         ConfigHardwareMessage,
         ConfigBoardMessage,

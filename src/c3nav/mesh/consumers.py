@@ -15,6 +15,7 @@ from django.conf import settings
 from django.db import transaction
 from django.utils import timezone
 from django.utils.crypto import constant_time_compare
+from pydantic_extra_types.mac_address import MacAddress
 
 from c3nav.mesh import messages
 from c3nav.mesh.cformats import CFormat
@@ -196,7 +197,7 @@ class MeshConsumer(AsyncWebsocketConsumer):
             await self.channel_layer.group_add(MESH_ALL_OTA_GROUP, self.channel_name)
 
             # add this node as a destination that this uplink handles (duh)
-            await self.add_dst_nodes(nodes=(src_node, ))
+            await self.add_dst_node(src_node, parent=None)
             self.dst_nodes[msg.src].last_msg[MeshMessageType.MESH_SIGNIN] = msg.content
 
             return
@@ -215,11 +216,21 @@ class MeshConsumer(AsyncWebsocketConsumer):
             return
         node_status.last_msg[msg.content.msg_type] = msg.content
 
-        if isinstance(msg.content, messages.MeshAddDestinationsMessage):
-            result = await self.add_dst_nodes(addresses=msg.content.addresses)
+        if isinstance(msg.content, messages.MeshAddDestinationMessage):
+            result = await self.add_dst_node(
+                node=await MeshNode.objects.aget_or_create(address=msg.content.address),
+                parent_address=msg.src,
+            )
             if not result:
                 print('disconnecting node that send invalid destinations', msg.content)
                 await self.close()
+            await self.send_msg(messages.MeshMessage(
+                src=MESH_ROOT_ADDRESS,
+                dst=msg.src,
+                content=messages.MeshSigninConfirmMessage(
+                    address=msg.content.address
+                )
+            ))
 
         if isinstance(msg.content, messages.MeshRemoveDestinationsMessage):
             await self.remove_dst_nodes(addresses=msg.content.addresses)
@@ -554,44 +565,25 @@ class MeshConsumer(AsyncWebsocketConsumer):
     def check_valid_address(address):
         return not (address.startswith('00:00:00') or address.startswith('ff:ff:ff'))
 
-    async def add_dst_nodes(self, nodes=None, addresses=None):
-        nodes = list(nodes) if nodes else []
-        addresses = set(addresses) if addresses else set()
+    async def add_dst_node(self, node: MeshNode, parent_address: MacAddress | None):
+        await self.log_text(node.address, "destination added")
 
-        if not all(self.check_valid_address(a) for a in addresses):
-            return False
+        # add ourselves as uplink
+        await self._add_destination(node.address, parent_address)
 
-        node_addresses = set(node.address for node in nodes)
-        missing_addresses = addresses - set(node.address for node in nodes)
+        # if we aren't handling this address yet, write it down
+        if node.address not in self.dst_nodes:
+            self.dst_nodes[node.address] = NodeState()
 
-        if missing_addresses:
-            await MeshNode.objects.abulk_create(
-                [MeshNode(address=address) for address in missing_addresses],
-                ignore_conflicts=True
-            )
-
-        addresses |= node_addresses
-        addresses |= missing_addresses
-
-        for address in addresses:
-            await self.log_text(address, "destination added")
-
-            # add ourselves as uplink
-            await self._add_destination(address)
-
-            # if we aren't handling this address yet, write it down
-            if address not in self.dst_nodes:
-                self.dst_nodes[address] = NodeState()
-
-            await self.node_resend_ask(address)
-        return True
+        await self.node_resend_ask(node.address)
 
     @database_sync_to_async
-    def _add_destination(self, address):
+    def _add_destination(self, address, parent_address: MacAddress | None):
         with transaction.atomic():
             node = MeshNode.objects.select_for_update().get(address=address)
             # update database
             node.uplink = self.uplink
+            node.upstream_id = parent_address
             node.last_signin = timezone.now()
             node.save()
 
