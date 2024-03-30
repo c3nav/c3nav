@@ -9,7 +9,7 @@ from pydantic.main import BaseModel
 from pydantic.types import Discriminator, NonNegativeInt, NonPositiveInt
 from pydantic_extra_types.mac_address import MacAddress
 
-from c3nav.api.schema import BaseSchema, PointSchema
+from c3nav.api.schema import BaseSchema, PointSchema, LineSchema
 from c3nav.mesh.cformats import AsDefinition, AsHex, CName, ExistingCStruct, discriminator_value, \
     CEnum, TwoNibblesEncodable
 
@@ -301,3 +301,19 @@ class RangingBeaconGeoFeature(BaseSchema):
     type: Literal["Feature"]
     geometry: PointSchema
     properties: RangingBeaconGeoFeatureProperties
+
+
+class MeshConnectionGeoFeatureProperties(BaseSchema):
+    sta: MacAddress
+    ap: MacAddress
+
+
+class MeshConnectionGeoFeature(BaseSchema):
+    type: Literal["Feature"]
+    geometry: LineSchema
+    properties: MeshConnectionGeoFeatureProperties
+
+
+class RangingMapData(BaseSchema):
+    connections: list[MeshConnectionGeoFeature]
+    ranging_beacons: list[RangingBeaconGeoFeature]

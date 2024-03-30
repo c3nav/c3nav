@@ -9,6 +9,7 @@ from ninja import Schema, UploadedFile
 from ninja.pagination import paginate
 from pydantic import PositiveInt, field_validator
 from shapely.geometry.geo import mapping
+from shapely.geometry import LineString
 
 from c3nav.api.auth import APIKeyAuth, auth_permission_responses, auth_responses, validate_responses
 from c3nav.api.exceptions import API404, APIConflict, APIRequestValidationFailed
@@ -16,7 +17,8 @@ from c3nav.api.schema import BaseSchema
 from c3nav.mapdata.models.geometry.space import RangingBeacon
 from c3nav.mesh.messages import MeshMessageType, MeshMessage
 from c3nav.mesh.models import FirmwareBuild, FirmwareVersion, NodeMessage, MeshNode
-from c3nav.mesh.schemas import BoardType, ChipType, FirmwareImage, RangingBeaconGeoFeature
+from c3nav.mesh.schemas import BoardType, ChipType, FirmwareImage, RangingBeaconGeoFeature, MeshConnectionGeoFeature, \
+    RangingMapData
 
 mesh_api_router = APIRouter(tags=["mesh"], auth=APIKeyAuth(permissions={"mesh_control"}))
 
@@ -250,24 +252,32 @@ def messages_list(request, filters: Query[MessagesFilter]):
 @mesh_api_router.get(
     '/map/{level_id}/', summary="ranging beacons map",
     description="query and filter all received mesh messages",
-    response={200: list[RangingBeaconGeoFeature], **auth_permission_responses},
+    response={200: RangingMapData, **auth_permission_responses},
     openapi_extra={"security": [{"APIKeyAuth": ["mesh_control"]}]}
 )
 def mesh_map(request, level_id: int):
-    beacons = RangingBeacon.objects.filter(space__level__id=level_id)
+    beacons = RangingBeacon.objects.all().select_related("space")
     beacon_ids = set(beacon.id for beacon in beacons)
 
+    nodes = {
+        node.address: node
+        for node in MeshNode.objects.all().prefetch_last_messages().prefetch_ranging_beacon()
+    }
     nodes_for_beacons = {
         node.ranging_beacon.id: node
-        for node in MeshNode.objects.all().prefetch_last_messages().prefetch_ranging_beacon()
+        for node in nodes.values()
         if node.ranging_beacon and node.ranging_beacon.id in beacon_ids
     }
 
-    result = []
-    for beacon in RangingBeacon.objects.filter(space__level__id=level_id):
+    mesh_connection_result = []
+    ranging_beacon_result = []
+    for beacon in beacons:
+        if beacon.space.level_id != level_id:
+            continue
         node = nodes_for_beacons.get(beacon.id, None)
         node_uplink = None if node is None else node.get_uplink()
-        result.append({
+
+        ranging_beacon_result.append({
             "type": "Feature",
             "geometry": mapping(beacon.geometry),
             "properties": {
@@ -281,4 +291,21 @@ def mesh_map(request, level_id: int):
             }
         })
 
-    return result
+        if node_uplink:
+            uplink_node = nodes[node_uplink.node_id]
+            if uplink_node.ranging_beacon:
+                mesh_connection_result.append({
+                    "type": "Feature",
+                    "geometry": mapping(LineString(
+                        list(beacon.geometry.coords) + list(uplink_node.ranging_beacon.geometry.coords)
+                    )),
+                    "properties": {
+                       "ap": uplink_node.address,
+                       "sta": node.address,
+                    }
+                })
+
+    return RangingMapData(
+        connections=mesh_connection_result,
+        ranging_beacons=ranging_beacon_result,
+    )
