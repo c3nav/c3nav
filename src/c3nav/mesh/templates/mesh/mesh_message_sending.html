@@ -9,8 +9,9 @@
 
 {% block subcontent %}
     <p><a class="button" href="{{ success_url }}">Go back</a></p>
-    {% if msg_type == "MESH_ROUTE_REQUEST" %}
-        <p>Route to <a href="{% url "mesh.node.detail" pk=msg_data.address %}">{{ msg_data.address }} {% if node_name %} ({{ node_name }}){% endif %}</a></p>
+    {{ msg_type_raw }}
+    {% if msg_type_raw == "MESH_ROUTE_REQUEST" %}
+        <p>Route to <a href="{% url "mesh.node.detail" pk=msg_data.content.address %}">{{ msg_data.content.address }} {% if node_name %} ({{ node_name }}){% endif %}</a></p>
     {% endif %}
     <div class="columns">
         <div>
@@ -32,7 +33,7 @@
                 {% endfor %}
             </table>
         </div>
-        {% if msg_type == "MESH_ROUTE_REQUEST" %}
+        {% if msg_type_raw == "MESH_ROUTE_REQUEST" %}
             <div style="min-width: 12vw;">
                 <h4>Routes</h4>
                 <table>
