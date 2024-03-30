@@ -113,6 +113,14 @@
                             {% endfor %}
                         </ul>
 
+                    {% elif msg.message_type == "OTA_STATUS" %}
+                        <strong>OTA Status:</strong> {{ msg.parsed.content.status }},
+                        <strong>Update ID:</strong> {{ msg.parsed.content.update_id }},
+                        <strong>Recv Bytes:</strong> {{ msg.parsed.content.received_bytes }},
+                        <strong>Next Chunk:</strong> {{ msg.parsed.content.next_expected_chunk }},<br>
+                        <strong>Auto Apply:</strong> {{ msg.parsed.content.auto_apply }},
+                        <strong>Auto Reboot:</strong> {{ msg.parsed.content.auto_reboot }},
+
                     {% elif msg.message_type == "LOCATE_RANGE_RESULTS" %}
                         <table>
                             <tr>
