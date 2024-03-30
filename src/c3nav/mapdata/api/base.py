@@ -81,6 +81,8 @@ def api_etag(permissions=True, etag_func=AccessPermission.etag_func, base_mapdat
 
 
 def api_stats(stat_name):
+    from c3nav.mapdata.metrics import APIStatsCollector
+    APIStatsCollector.add_stat(stat_name, ['by', 'query'])
     def wrapper(func):
         @wraps(func)
         def wrapped_func(request, *args, **kwargs):

@@ -6,6 +6,7 @@ from ninja import Router as APIRouter
 
 from c3nav.api.auth import auth_responses
 from c3nav.api.schema import BaseSchema
+from c3nav.mapdata.metrics import APIStatsCollector
 from c3nav.mapdata.models.access import AccessPermission
 from c3nav.mapdata.schemas.models import CustomLocationSchema
 from c3nav.mapdata.utils.cache.stats import increment_cache_key
@@ -49,6 +50,9 @@ def get_position(request, parameters: LocateRequestSchema):
     return {
         "location": location.serialize(simple_geometry=True) if location else None,
     }
+
+
+APIStatsCollector.add_stat('locate', 'location')
 
 
 @positioning_api_router.get('/locate-test/', summary="debug position",
