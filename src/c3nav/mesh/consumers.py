@@ -47,6 +47,108 @@ class NodeState:
     ota_recipient: Optional[OTAUpdateRecipient] = None
 
 
+node_assignments = {'54:32:04:b6:fc:cd': (1, 'Alpheratz'),
+ '54:32:04:b7:e2:35': (2, 'Ankaa'),
+ '54:32:04:b7:8a:4d': (3, 'Schedar'),
+ '54:32:04:b5:29:21': (4, 'Diphda'),
+ '54:32:04:b8:51:05': (5, 'Achernar'),
+ '54:32:04:b8:b8:05': (6, 'Hamal'),
+ '54:32:04:b7:40:01': (7, 'Acamar'),
+ '54:32:04:b6:ec:fd': (8, 'Menkar'),
+ '54:32:04:b5:e6:f5': (9, 'Mirfak'),
+ '54:32:04:b7:47:d9': (10, 'Aldebaran'),
+ '54:32:04:b7:7c:f1': (11, 'Rigel'),
+ '54:32:04:b5:d3:d1': (12, 'Capella'),
+ '54:32:04:b6:17:f1': (13, 'Bellatrix'),
+ '30:30:f9:c3:70:15': (14, 'Elnath'),
+ '54:32:04:b5:2e:31': (15, 'Alnilam'),
+ '54:32:04:b5:c4:d5': (16, 'Betelgeuse'),
+ '54:32:04:b7:72:39': (17, 'Canopus'),
+ '54:32:04:b7:75:05': (18, 'Sirius'),
+ '54:32:04:b7:3d:59': (19, 'Adhara'),
+ '54:32:04:b8:ac:31': (20, 'Procyon'),
+ '54:32:04:b7:46:89': (21, 'Pollux'),
+ '54:32:04:b7:83:e5': (22, 'Avior'),
+ '54:32:04:b7:1b:ed': (23, 'Suhail'),
+ '54:32:04:b7:84:99': (24, 'Miaplacidus'),
+ '54:32:04:b6:cf:c1': (25, 'Alphard'),
+ '48:31:b7:aa:57:c9': (26, 'Regulus'),
+ '54:32:04:b7:cb:f5': (27, 'Dubhe'),
+ '54:32:04:b5:67:b1': (28, 'Denebola'),
+ '48:31:b7:ac:ad:71': (29, 'Gienah'),
+ '54:32:04:b6:9a:71': (30, 'Acrux'),
+ '54:32:04:b7:61:95': (31, 'Gacrux'),
+ '54:32:04:b8:6f:49': (32, 'Alioth'),
+ '30:30:f9:c3:9c:f9': (33, 'Spica'),
+ '48:31:b7:ac:c7:f1': (34, 'Alkaid'),
+ '54:32:04:b5:5f:8d': (35, 'Hadar'),
+ '54:32:04:b7:1c:61': (36, 'Menkent'),
+ '54:32:04:b8:78:69': (37, 'Arcturus'),
+ '48:31:b7:ac:a6:89': (38, 'Rigil Kentaurus'),
+ '54:32:04:b7:3e:89': (39, 'Zubenelgenubi'),
+ '48:31:b7:aa:34:05': (40, 'Kochab'),
+ '54:32:04:b7:0d:b9': (41, 'Alphecca'),
+ '54:32:04:b5:a3:7d': (42, 'Antares'),
+ '54:32:04:b7:f7:39': (43, 'Atria'),
+ '54:32:04:b5:a9:79': (44, 'Sabik'),
+ '54:32:04:b7:25:49': (45, 'Shaula'),
+ '54:32:04:b7:3d:f9': (46, 'Rasalgethi'),
+ '54:32:04:b6:fc:c5': (47, 'Eltanin'),
+ '48:31:b7:aa:1a:25': (48, 'Kaus Australis'),
+ '48:31:b7:aa:49:85': (49, 'Vega'),
+ '48:31:b7:aa:66:01': (50, 'Nunki'),
+ '48:31:b7:aa:36:7d': (51, 'Altair'),
+ '48:31:b7:aa:3e:01': (52, 'Peacock'),
+ '54:32:04:b6:ef:4d': (53, 'Deneb'),
+ '54:32:04:b5:cc:a1': (54, 'Enif'),
+ '48:31:b7:aa:b4:35': (55, 'Alnair'),
+ '48:31:b7:ac:8a:a5': (56, 'Fomalhaut'),
+ '48:31:b7:ab:98:6d': (57, 'Markab'),
+ '54:32:04:b6:e9:e1': (58, 'Mimosa'),
+ '54:32:04:b6:fe:01': (59, 'Toliman'),
+ '54:32:04:b7:4b:2d': (60, 'Alnitak'),
+ '48:31:b7:ac:2d:9d': (61, 'Wezen'),
+ '48:31:b7:ab:d9:3d': (62, 'Sargas'),
+ '48:31:b7:aa:24:81': (63, 'Menkalinan'),
+ '54:32:04:b5:95:4d': (65, 'Polaris'),
+ '54:32:04:b5:30:7d': (66, 'Castor'),
+ '54:32:04:b7:db:ed': (67, 'Mirzam'),
+ '48:31:b7:ac:c2:d1': (68, 'Alsephina'),
+ '48:31:b7:aa:21:45': (69, 'Saiph'),
+ '48:31:b7:ac:c1:7d': (70, 'Rasalhague'),
+ '48:31:b7:aa:1a:7d': (71, 'Algol'),
+ '30:30:f9:c3:7c:dd': (72, 'Almach'),
+ '54:32:04:b6:19:25': (73, 'Tiaki'),
+ '48:31:b7:aa:c4:45': (74, 'Aspidiske'),
+ '48:31:b7:ac:35:05': (75, 'Naos'),
+ '30:30:f9:c3:7c:d1': (76, 'Mizar'),
+ '54:32:04:b7:04:41': (77, 'Sadr'),
+ '54:32:04:b5:c3:19': (78, 'Mintaka'),
+ '54:32:04:b5:66:19': (79, 'Caph'),
+ '48:31:b7:ac:a4:11': (80, 'Dschubba'),
+ '54:32:04:b5:31:fd': (81, 'Larawag'),
+ '54:32:04:b8:1f:d9': (82, 'Merak'),
+ '30:30:f9:c3:82:0d': (83, 'Izar'),
+ '54:32:04:b5:b0:79': (84, 'Phecda'),
+ '54:32:04:b6:fb:8d': (85, 'Scheat'),
+ '54:32:04:b8:b5:61': (86, 'Alderamin'),
+ '54:32:04:b7:3b:a9': (87, 'Aludra'),
+ '54:32:04:b6:df:41': (88, 'Acrab'),
+ '54:32:04:b7:d0:05': (89, 'Markeb'),
+ '54:32:04:b7:cc:65': (90, 'Zosma'),
+ '54:32:04:b7:4e:25': (91, 'Arneb'),
+ '54:32:04:b8:8c:29': (92, 'Ascella'),
+ '54:32:04:b7:3d:25': (93, 'Algieba'),
+ '54:32:04:b8:72:29': (94, 'Zubeneschamali'),
+ '54:32:04:b8:8a:a5': (95, 'Unukalhai'),
+ '54:32:04:b8:b8:7d': (96, 'Sheratan'),
+ '54:32:04:b8:aa:95': (97, 'Kraz'),
+ '54:32:04:b5:4e:99': (98, 'Mahasim'),
+ '54:32:04:b7:86:05': (99, 'Phact'),
+ '54:32:04:b7:8b:d5': (100, 'Ruchbah')}
+
+
+
 class MeshConsumer(AsyncWebsocketConsumer):
     mesh_msg_format = CFormat.from_annotation(MeshMessage)
     def __init__(self):
@@ -300,6 +402,32 @@ class MeshConsumer(AsyncWebsocketConsumer):
             if desired_update_id and msg.content.update_id == desired_update_id:
                 print('queue requested chunk sending')
                 await self.ota_set_chunks(node_status.ota_recipient.update, chunks=set(msg.content.chunks))
+
+        if isinstance(msg.content, messages.ConfigNodeMessage):
+            # todo: this could be nice if it was configurable
+            if msg.content.number == 0:
+                node_assignment = node_assignments.get(msg.src)
+                if node_assignment:
+                    number, name = node_assignment
+                    await self.send_msg(messages.MeshMessage(
+                        src=MESH_ROOT_ADDRESS,
+                        dst=msg.src,
+                        content=messages.ConfigNodeMessage(
+                            number=number,
+                            name=name,
+                        )
+                    ))
+            else:
+                await self.send_msg(messages.MeshMessage(
+                    src=MESH_ROOT_ADDRESS,
+                    dst=msg.src,
+                    content=messages.ConfigIBeaconMessage(
+                        uuid="a142621a-2f42-09b3-245b-e1ac6356e9b0",
+                        major=1337,
+                        minor=msg.content.number,
+                    )
+                ))
+
 
     @database_sync_to_async
     def create_uplink_in_database(self, address):
