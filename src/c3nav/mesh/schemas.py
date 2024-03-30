@@ -281,7 +281,8 @@ class FirmwareImage(BaseModel):
 
     @classmethod
     def from_file(cls, file: BinaryIO) -> Self:
-        result, data = cls.decode(file.read(FirmwareImage.get_min_size()))
+        firmware_format = FirmwareImage.from_annotation(cls)
+        result, data = firmware_format.decode(file.read(firmware_format.get_min_size()))
         return result
 
 
