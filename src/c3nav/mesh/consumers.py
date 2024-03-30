@@ -700,7 +700,10 @@ class MeshUIConsumer(AsyncJsonWebsocketConsumer):
 
             if msg_to_send["msg_data"]["content"]["msg_type"] == MeshMessageType.MESH_ROUTE_REQUEST.name:
                 await self.channel_layer.group_add("mesh_msg_received", self.channel_name)
-                self.msg_received_filter = {"request_id": msg_to_send["msg_data"]["content"]["request_id"]}
+                try:
+                    self.msg_received_filter = {"request_id": msg_to_send["msg_data"]["content"]["request_id"]}
+                except KeyError:
+                    pass
 
             for recipient in msg_to_send["recipients"]:
                 await MeshMessage.model_validate({
