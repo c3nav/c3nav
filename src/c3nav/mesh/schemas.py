@@ -314,6 +314,20 @@ class MeshConnectionGeoFeature(BaseSchema):
     properties: MeshConnectionGeoFeatureProperties
 
 
+class MeshRangeResultGeoFeatureProperties(BaseSchema):
+    observer: MacAddress
+    peer: MacAddress
+    rssi: Annotated[NonPositiveInt, Gt(-100)]
+    distance: Annotated[int, Gt(-32000), Lt(32000)]
+
+
+class MeshRangeResultGeoFeature(BaseSchema):
+    type: Literal["Feature"]
+    geometry: LineSchema
+    properties: MeshRangeResultGeoFeatureProperties
+
+
 class RangingMapData(BaseSchema):
     connections: list[MeshConnectionGeoFeature]
     ranging_beacons: list[RangingBeaconGeoFeature]
+    ranges: list[MeshRangeResultGeoFeature]

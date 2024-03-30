@@ -15,7 +15,7 @@ from c3nav.api.auth import APIKeyAuth, auth_permission_responses, auth_responses
 from c3nav.api.exceptions import API404, APIConflict, APIRequestValidationFailed
 from c3nav.api.schema import BaseSchema
 from c3nav.mapdata.models.geometry.space import RangingBeacon
-from c3nav.mesh.messages import MeshMessageType, MeshMessage
+from c3nav.mesh.messages import MeshMessageType, MeshMessage, LocateRangeResults
 from c3nav.mesh.models import FirmwareBuild, FirmwareVersion, NodeMessage, MeshNode
 from c3nav.mesh.schemas import BoardType, ChipType, FirmwareImage, RangingBeaconGeoFeature, MeshConnectionGeoFeature, \
     RangingMapData
@@ -269,8 +269,10 @@ def mesh_map(request, level_id: int):
         if node.ranging_beacon and node.ranging_beacon.id in beacon_ids
     }
 
-    mesh_connection_result = []
     ranging_beacon_result = []
+    mesh_connection_result = []
+    locate_range_result = []
+
     for beacon in beacons:
         if beacon.space.level_id != level_id:
             continue
@@ -305,7 +307,32 @@ def mesh_map(request, level_id: int):
                     }
                 })
 
+        if node:
+            locate_range_results_msg = node.last_messages[MeshMessageType.LOCATE_RANGE_RESULTS]
+            if locate_range_results_msg:
+                locate_range_results_msg: LocateRangeResults
+                for range_result in locate_range_results_msg.parsed.content.ranges:
+                    try:
+                        peer_node = nodes[range_result.peer]
+                    except KeyError:
+                        continue
+                    if peer_node.ranging_beacon:
+                        locate_range_result.append({
+                            "type": "Feature",
+                            "geometry": mapping(LineString(
+                                list(beacon.geometry.coords) + list(peer_node.ranging_beacon.geometry.coords)
+                            )),
+                            "properties": {
+                                "observer": node.address,
+                                "peer": peer_node.address,
+                                "rssi": range_result.rssi,
+                                "distance": range_result.distance,
+                            }
+                        })
+
+
     return RangingMapData(
         connections=mesh_connection_result,
         ranging_beacons=ranging_beacon_result,
+        ranges=locate_range_result,
     )
