@@ -1,7 +1,7 @@
 import re
 from dataclasses import dataclass, field
 from enum import unique
-from typing import Annotated, BinaryIO, ClassVar, Literal, Self, Union
+from typing import Annotated, BinaryIO, ClassVar, Literal, Self, Union, Optional
 
 from annotated_types import Gt, Le, Lt, MaxLen, Ge
 from pydantic import NegativeInt, PositiveInt
@@ -9,6 +9,7 @@ from pydantic.main import BaseModel
 from pydantic.types import Discriminator, NonNegativeInt, NonPositiveInt
 from pydantic_extra_types.mac_address import MacAddress
 
+from c3nav.api.schema import BaseSchema, PointSchema
 from c3nav.mesh.cformats import AsDefinition, AsHex, CName, ExistingCStruct, discriminator_value, \
     CEnum, TwoNibblesEncodable
 
@@ -282,3 +283,21 @@ class FirmwareImage(BaseModel):
     def from_file(cls, file: BinaryIO) -> Self:
         result, data = cls.decode(file.read(FirmwareImage.get_min_size()))
         return result
+
+
+class MeshNodeGeoFeatureProperties(BaseSchema):
+    address: MacAddress
+    uplink: Optional[MacAddress]
+
+
+class RangingBeaconGeoFeatureProperties(BaseSchema):
+    node_number: Optional[int]
+    wifi_bssid: Optional[MacAddress]
+    comment: Optional[str]
+    mesh_node: Optional[MeshNodeGeoFeatureProperties]
+
+
+class RangingBeaconGeoFeature(BaseSchema):
+    type: Literal["Feature"]
+    geometry: PointSchema
+    properties: RangingBeaconGeoFeatureProperties
