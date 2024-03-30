@@ -31,6 +31,10 @@ class UserDataSchema(BaseSchema):
         title="control panel access",
         description="whether the user signed in can access the control panel.",
     )
+    mesh_control: bool = APIField(
+        title="mesh control permission",
+        description="whether the user signed in can manage the mesh.",
+    )
     has_positions: bool = APIField(
         title="user has positions",
         description="whether the user signed in has created any positions",
