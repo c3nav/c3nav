@@ -40,6 +40,7 @@ class MeshMessageType(CEnum):
     MESH_ROUTE_TRACE = "MESH_ROUTE_TRACE", 0x09
     MESH_ROUTING_FAILED = "MESH_ROUTING_FAILED", 0x0a
     MESH_SIGNIN_CONFIRM = "MESH_SIGNIN_CONFIRM", 0x0b
+    MESH_RESET = "MESH_RESET", 0x0c
 
     CONFIG_DUMP = "CONFIG_DUMP", 0x10
     CONFIG_HARDWARE = "CONFIG_HARDWARE", 0x11
@@ -138,6 +139,11 @@ class MeshRoutingFailedMessage(discriminator_value(msg_type=MeshMessageType.MESH
 
 class MeshSigninConfirmMessage(discriminator_value(msg_type=MeshMessageType.MESH_SIGNIN_CONFIRM), BaseModel):
     """ Confirm signin from root node """
+    address: MacAddress
+
+
+class MeshResetMessage(discriminator_value(msg_type=MeshMessageType.MESH_RESET), BaseModel):
+    """ tell nodes with a matching address to leave and re-join the mesh """
     address: MacAddress
 
 
