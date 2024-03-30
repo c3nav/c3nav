@@ -327,6 +327,7 @@ MeshMessageContent = Annotated[
         MeshRouteTraceMessage,
         MeshRoutingFailedMessage,
         MeshSigninConfirmMessage,
+        MeshResetMessage,
         ConfigDumpMessage,
         ConfigHardwareMessage,
         ConfigBoardMessage,
