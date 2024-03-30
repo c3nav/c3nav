@@ -55,7 +55,19 @@
                 <td>{{ msg.get_message_type_display }}</td>
                 <td>
 
-                    {% if msg.message_type == "CONFIG_HARDWARE" %}
+                    {% if msg.message_type == "ECHO_RESPONSE" %}
+                        <strong>Content:</strong> {{ msg.parsed.content.content }}
+
+                    {% elif msg.message_type == "CONFIG_NODE" %}
+                        <strong>Number:</strong> {{ msg.parsed.content.number }},
+                        <strong>Name:</strong> {{ msg.parsed.content.name }}
+
+                    {% elif msg.message_type == "CONFIG_IBEACON" %}
+                        <strong>UUID:</strong> {{ msg.parsed.content.uuid }}<br>
+                        <strong>Major:</strong> {{ msg.parsed.content.major }},
+                        <strong>Minor:</strong> {{ msg.parsed.content.minor }}
+
+                    {% elif msg.message_type == "CONFIG_HARDWARE" %}
                         <strong>Chip:</strong> {{ msg.parsed.content.chip.pretty_name }} rev{{ msg.parsed.content.revision_major }}.{{ msg.parsed.content.revision_minor }}
 
                     {% elif msg.message_type == "CONFIG_BOARD" %}
