@@ -289,12 +289,6 @@ class OTAApplyMessageForm(MeshMessageForm):
     reboot = forms.BooleanField(required=False, label=_('reboot'))
 
 
-class MeshNodeForm(forms.ModelForm):
-    class Meta:
-        model = MeshNode
-        fields = ["name"]
-
-
 class RangingForm(forms.Form):
     msg_types = {}
 

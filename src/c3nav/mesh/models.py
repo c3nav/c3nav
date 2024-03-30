@@ -256,7 +256,6 @@ class MeshNode(models.Model):
                                    code='invalid_macaddress'
                                )])
 
-    name = models.CharField(_('name'), max_length=32, null=True, blank=True)
     first_seen = models.DateTimeField(_('first seen'), auto_now_add=True)
     uplink = models.ForeignKey('MeshUplink', models.PROTECT, null=True,
                                related_name='routed_nodes', verbose_name=_('uplink'))
@@ -264,6 +263,12 @@ class MeshNode(models.Model):
                                  related_name='downstream', verbose_name=_('parent node'))
     last_signin = models.DateTimeField(_('last signin'), null=True)
     objects = models.Manager.from_queryset(MeshNodeQuerySet)()
+
+    @property
+    def name(self):
+        node_message = self.last_messages[MeshMessageType.CONFIG_NODE]
+        if node_message:
+            return f"{node_message.parsed.content.number} {node_message.parsed.content.name}".strip()
 
     def __str__(self):
         if self.name:

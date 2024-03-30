@@ -45,9 +45,6 @@
                 <br>
             </p>
             <p>
-                <a class="button" href="{% url "mesh.node.edit" pk=node.pk %}">
-                    {% trans 'Edit' %}
-                </a>
                 <a class="button" href="{% url "mesh.messages" %}?src_nodes={{ node.address }}">
                     {% trans 'View messages' %}
                 </a>

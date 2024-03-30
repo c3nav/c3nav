@@ -17,8 +17,9 @@ def indent_c(code):
 
 def get_node_names():
     from c3nav.mesh.models import MeshNode
+    from c3nav.mesh.messages import MeshMessageType
     return {
-        **{node.address: node.name for node in MeshNode.objects.all()},
+        **{node.address: node.name for node in MeshNode.objects.prefetch_last_messages(MeshMessageType.CONFIG_NODE)},
         'ff:ff:ff:ff:ff:ff': "broadcast",
         '00:00:00:ff:ff:ff': "direct parent",
         '00:00:00:00:00:00': "root",

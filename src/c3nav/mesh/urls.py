@@ -5,7 +5,7 @@ from c3nav.mesh.views.firmware import (FirmwareBuildDetailView, FirmwareDetailVi
                                        FirmwaresListView, OTADetailView, OTAListView)
 from c3nav.mesh.views.messages import MeshMessageListView, MeshMessageSendingView, MeshMessageSendView
 from c3nav.mesh.views.misc import MeshLogView, MeshRangingView
-from c3nav.mesh.views.nodes import NodeDetailView, NodeEditView, NodeListView
+from c3nav.mesh.views.nodes import NodeDetailView, NodeListView
 
 urlpatterns = [
     path('', NodeListView.as_view(), name='mesh.nodes'),
@@ -19,7 +19,6 @@ urlpatterns = [
     path('ota/all/', OTAListView.as_view(all=True), name='mesh.ota.list.all'),
     path('ota/<int:pk>/', OTADetailView.as_view(), name='mesh.ota.detail'),
     path('nodes/<str:pk>/', NodeDetailView.as_view(), name='mesh.node.detail'),
-    path('nodes/<str:pk>/edit/', NodeEditView.as_view(), name='mesh.node.edit'),
     path('message/sending/<uuid:uuid>/', MeshMessageSendingView.as_view(), name='mesh.sending'),
     path('message/<str:recipient>/<str:msg_type>/', MeshMessageSendView.as_view(), name='mesh.send'),
     path('message/<str:msg_type>/', MeshMessageSendView.as_view(), name='mesh.send'),
