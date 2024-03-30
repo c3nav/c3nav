@@ -167,7 +167,7 @@ class RangeResultItem(BaseModel):
 class RawFTMEntry(BaseModel):
     dlog_token: Annotated[PositiveInt, Lt(255)]
     rssi: Annotated[NegativeInt, Gt(-100)]
-    rtt: Annotated[PositiveInt, Lt(2**32)]
+    rtt: Annotated[NonNegativeInt, Lt(2**32)]
     t1: Annotated[PositiveInt, Lt(2**64)]
     t2: Annotated[PositiveInt, Lt(2**64)]
     t3: Annotated[PositiveInt, Lt(2**64)]
