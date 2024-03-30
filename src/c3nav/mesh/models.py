@@ -268,7 +268,7 @@ class MeshNode(models.Model):
     def name(self):
         node_message = self.last_messages[MeshMessageType.CONFIG_NODE]
         if node_message:
-            return f"{node_message.parsed.content.number} {node_message.parsed.content.name}".strip()
+            return f"{node_message.parsed.content.number} – {node_message.parsed.content.name}".strip()
 
     def __str__(self):
         if self.name:
