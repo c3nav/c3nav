@@ -197,7 +197,7 @@ class MeshConsumer(AsyncWebsocketConsumer):
             await self.channel_layer.group_add(MESH_ALL_OTA_GROUP, self.channel_name)
 
             # add this node as a destination that this uplink handles (duh)
-            await self.add_dst_node(src_node, parent=None)
+            await self.add_dst_node(src_node, parent_address=None)
             self.dst_nodes[msg.src].last_msg[MeshMessageType.MESH_SIGNIN] = msg.content
 
             return
@@ -217,18 +217,21 @@ class MeshConsumer(AsyncWebsocketConsumer):
         node_status.last_msg[msg.content.msg_type] = msg.content
 
         if isinstance(msg.content, messages.MeshAddDestinationMessage):
-            result = await self.add_dst_node(
-                node=await MeshNode.objects.aget_or_create(address=msg.content.address),
-                parent_address=msg.src,
-            )
-            if not result:
-                print('disconnecting node that send invalid destinations', msg.content)
+            try:
+                node_status = self.dst_nodes[msg.content.via]
+            except KeyError:
+                print('unexpected AddDestinations message with via not served by us:', msg.content.via)
                 await self.close()
+
+            await self.add_dst_node(
+                node=await MeshNode.objects.aget_or_create(address=msg.content.destination),
+                parent_address=msg.content.via,
+            )
             await self.send_msg(messages.MeshMessage(
                 src=MESH_ROOT_ADDRESS,
-                dst=msg.src,
+                dst=msg.content.via,
                 content=messages.MeshSigninConfirmMessage(
-                    address=msg.content.address
+                    address=msg.content.destination
                 )
             ))
 
