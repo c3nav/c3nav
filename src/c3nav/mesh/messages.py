@@ -104,7 +104,8 @@ class MeshLayerAnnounceMessage(discriminator_value(msg_type=MeshMessageType.MESH
 
 class MeshAddDestinationMessage(discriminator_value(msg_type=MeshMessageType.MESH_ADD_DESTINATION), BaseModel):
     """ downstream node announces served destination """
-    address: Annotated[MacAddress, CDoc("address of the added destination",)]
+    destination: Annotated[MacAddress, CDoc("address of the added destination",)]
+    via: Annotated[MacAddress, CDoc("address of the added destination's upstream",)]
 
 
 class MeshRemoveDestinationsMessage(discriminator_value(msg_type=MeshMessageType.MESH_REMOVE_DESTINATIONS), BaseModel):
