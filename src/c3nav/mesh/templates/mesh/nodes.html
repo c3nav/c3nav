@@ -1,5 +1,6 @@
 {% extends 'mesh/base.html' %}
 {% load i18n %}
+{% load mesh_node %}
 
 {% block heading %}{% trans 'Mesh Nodes' %}{% endblock %}
 
@@ -45,7 +46,14 @@
                 <td>
                     {% with uplink=node.get_uplink %}
                         {% if uplink %}
-                            <a href="{% url "mesh.node.detail" pk=uplink.node_id %}">{{ node.uplink.node }}</a>
+                            {% mesh_node uplink.node %}<br>
+                            {% if uplink.node == node %}
+                                {% trans '(is an uplink)' %}
+                            {% elif node.upstream %}
+                                {% trans 'via:' %} {% mesh_node node.upstream %}
+                            {% else %}
+                                {% trans '(direct)' %}
+                            {% endif %}
                         {% else %}
                             <em>offline</em>
                         {% endif %}

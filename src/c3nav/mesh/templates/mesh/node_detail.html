@@ -16,9 +16,13 @@
                 <strong>Uplink:</strong>
                 {% with uplink=node.get_uplink %}
                     {% if uplink %}
-                        <a href="{% url "mesh.node.detail" pk=uplink.node_id %}">{{ uplink.node }}</a>
+                        {% mesh_node uplink.node %}<br>
                         {% if uplink.node == node %}
-                            <em>(direct)</em>
+                            {% trans '(is an uplink)' %}
+                        {% elif node.upstream %}
+                            {% trans 'via:' %} {% mesh_node node.upstream %}
+                        {% else %}
+                            {% trans '(direct)' %}
                         {% endif %}
                     {% else %}
                         <em>offline</em>
