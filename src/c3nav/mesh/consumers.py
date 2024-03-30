@@ -326,7 +326,7 @@ class MeshConsumer(AsyncWebsocketConsumer):
                 await self.close()
 
             await self.add_dst_node(
-                node=await MeshNode.objects.aget_or_create(address=msg.content.destination)[0],
+                node=(await MeshNode.objects.aget_or_create(address=msg.content.destination))
                 parent_address=msg.content.via,
             )
             await self.send_msg(messages.MeshMessage(
