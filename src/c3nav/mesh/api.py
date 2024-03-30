@@ -291,16 +291,16 @@ def mesh_map(request, level_id: int):
             }
         })
 
-        if node_uplink:
-            uplink_node = nodes[node_uplink.node_id]
-            if uplink_node.ranging_beacon:
+        if node_uplink and node.upstream_id:
+            upstream_node = nodes[node.upstream_id]
+            if upstream_node.ranging_beacon:
                 mesh_connection_result.append({
                     "type": "Feature",
                     "geometry": mapping(LineString(
-                        list(beacon.geometry.coords) + list(uplink_node.ranging_beacon.geometry.coords)
+                        list(beacon.geometry.coords) + list(upstream_node.ranging_beacon.geometry.coords)
                     )),
                     "properties": {
-                       "ap": uplink_node.address,
+                       "ap": upstream_node.address,
                        "sta": node.address,
                     }
                 })
