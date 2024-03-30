@@ -186,7 +186,7 @@ def location_by_id_display(request, location_id: AnyLocationID):
 @map_api_router.get('/locations/{location_id}/geometry/', summary="location geometry by id",
                     description="Get location geometry (if available) by ID",
                     response={200: LocationGeometry, **API404.dict(), **auth_responses})
-@api_stats('location_geometery')
+@api_stats('location_geometry')
 @api_etag(base_mapdata=True)
 def location_by_id_geometry(request, location_id: AnyLocationID):
     return _location_geometry(
