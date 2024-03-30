@@ -1,3 +1,4 @@
+import re
 from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.core.cache import cache
@@ -22,6 +23,7 @@ if settings.METRCIS:
                 client = cache._cache.get_client()
                 for key in client.keys(f"*{settings.CACHES['default'].get('KEY_PREFIX', '')}apistats__*"):
                     key = key.decode('utf-8').split(':', 2)[2]
+                    key = re.sub(r'[^a-zA-Z0-9_]', '_', key)
                     yield CounterMetricFamily(f'c3nav_{key}', key, value=cache.get(key))
 
         def describe(self):
