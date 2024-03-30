@@ -393,8 +393,8 @@ with suppress(ImportError):
     import django_extensions  # noqa
     INSTALLED_APPS.append('django_extensions')
 
-METRCIS = config.getboolean('c3nav', 'metrics', fallback=False)
-if METRCIS:
+METRICS = config.getboolean('c3nav', 'metrics', fallback=False)
+if METRICS:
     try:
         import django_prometheus  # noqa
         INSTALLED_APPS.append('django_prometheus')
@@ -404,7 +404,7 @@ if METRCIS:
             'django_prometheus.middleware.PrometheusAfterMiddleware',
         ]
     except ImportError:
-        METRCIS = False
+        METRICS = False
 
 # Security settings
 X_FRAME_OPTIONS = 'DENY'

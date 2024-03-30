@@ -7,7 +7,7 @@ from django.core.cache import cache
 
 from c3nav.mapdata.models.report import Report
 
-if settings.METRCIS:
+if settings.METRICS:
     from prometheus_client import Gauge
     from prometheus_client.core import REGISTRY, CounterMetricFamily
     from prometheus_client.registry import Collector

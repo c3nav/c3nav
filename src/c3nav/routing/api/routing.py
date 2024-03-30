@@ -2,6 +2,7 @@ from enum import StrEnum
 from typing import Annotated, Any, Optional, Union
 
 from django.core.exceptions import ValidationError
+from django.conf import settings
 from django.urls import reverse
 from django.utils.translation import gettext_lazy as _
 from ninja import Field as APIField
@@ -14,7 +15,6 @@ from c3nav.api.exceptions import APIRequestValidationFailed
 from c3nav.api.schema import BaseSchema
 from c3nav.api.utils import NonEmptyStr
 from c3nav.mapdata.api.base import api_stats_clean_location_value
-from c3nav.mapdata.metrics import APIStatsCollector
 from c3nav.mapdata.models.access import AccessPermission
 from c3nav.mapdata.models.locations import Position
 from c3nav.mapdata.schemas.model_base import AnyLocationID, Coordinates3D
@@ -252,10 +252,12 @@ def get_route(request, parameters: RouteParametersSchema):
     )
 
 
-APIStatsCollector.add_stat('route')
-APIStatsCollector.add_stat('route_tuple', ['origin', 'destination'])
-APIStatsCollector.add_stat('route_origin', ['origin'])
-APIStatsCollector.add_stat('route_destination', ['destination'])
+if settings.METRICS:
+    from c3nav.mapdata.metrics import APIStatsCollector
+    APIStatsCollector.add_stat('route')
+    APIStatsCollector.add_stat('route_tuple', ['origin', 'destination'])
+    APIStatsCollector.add_stat('route_origin', ['origin'])
+    APIStatsCollector.add_stat('route_destination', ['destination'])
 
 
 def _new_serialize_route_options(options):

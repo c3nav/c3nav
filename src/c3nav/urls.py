@@ -48,7 +48,7 @@ if settings.SERVE_ANYTHING:
             import debug_toolbar
             urlpatterns.insert(0, path('__debug__/', include(debug_toolbar.urls)))
 
-    if settings.METRCIS:
+    if settings.METRICS:
         with suppress(ImportError):
             import django_prometheus  # noqu
             urlpatterns.insert(0, path('prometheus/', include('django_prometheus.urls')))
