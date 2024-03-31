@@ -192,6 +192,7 @@ class Locator:
         }
 
     def locate(self, raw_scan_data: list[LocateRequestWifiPeerSchema], permissions=None):
+        # todo: support for ibeacons
         scan_data = self.convert_raw_scan_data(raw_scan_data)
         if not scan_data:
             return None
