@@ -3,8 +3,6 @@ from operator import attrgetter
 
 from c3nav.mapdata.models.geometry.space import RangingBeacon
 
-from c3nav.mesh.models import MeshNode
-
 
 def get_mesh_uplink_group(address):
     return 'mesh_uplink_%s' % address.replace(':', '-')
@@ -45,6 +43,7 @@ NodesAndBeacons = namedtuple("NodesAndBeacons", ("beacons", "nodes", "nodes_for_
 
 
 def get_nodes_and_ranging_beacons():
+    from c3nav.mesh.models import MeshNode
     beacons = {beacon.id: beacon for beacon in RangingBeacon.objects.all().select_related("space")}
     nodes = {
         node.address: node
