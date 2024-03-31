@@ -119,7 +119,7 @@ def get_level_geometries_result(request, level_id: int, update_cache_key: str, u
     Building = request.changeset.wrap_model('Building')
     Door = request.changeset.wrap_model('Door')
     LocationGroup = request.changeset.wrap_model('LocationGroup')
-    WifiMeasurement = request.changeset.wrap_model('WifiMeasurement')
+    BeaconMeasurement = request.changeset.wrap_model('BeaconMeasurement')
     RangingBeacon = request.changeset.wrap_model('RangingBeacon')
 
     try:
@@ -149,7 +149,7 @@ def get_level_geometries_result(request, level_id: int, update_cache_key: str, u
         Prefetch('buildings', Building.objects.only('geometry', 'level')),
         Prefetch('spaces__holes', Hole.objects.only('geometry', 'space')),
         Prefetch('spaces__altitudemarkers', AltitudeMarker.objects.only('geometry', 'space')),
-        Prefetch('spaces__wifi_measurements', WifiMeasurement.objects.only('geometry', 'space')),
+        Prefetch('spaces__beacon_measurements', BeaconMeasurement.objects.only('geometry', 'space')),
         Prefetch('spaces__ranging_beacons', RangingBeacon.objects.only('geometry', 'space')),
         Prefetch('spaces__graphnodes', graphnodes_qs)
     )
@@ -184,7 +184,7 @@ def get_level_geometries_result(request, level_id: int, update_cache_key: str, u
         _get_geometries_for_one_level(level),
         *(_get_geometries_for_one_level(level) for level in levels_on_top),
         *(space.altitudemarkers.all() for space in level.spaces.all()),
-        *(space.wifi_measurements.all() for space in level.spaces.all()),
+        *(space.beacon_measurements.all() for space in level.spaces.all()),
         *(space.ranging_beacons.all() for space in level.spaces.all()),
         graphedges,
         graphnodes,
@@ -309,7 +309,7 @@ def get_space_geometries_result(request, space_id: int, update_cache_key: str, u
         space.lineobstacles.all().only('geometry', 'width', 'space').prefetch_related('group'),
         space.columns.all().only('geometry', 'space'),
         space.altitudemarkers.all().only('geometry', 'space'),
-        space.wifi_measurements.all().only('geometry', 'space'),
+        space.beacon_measurements.all().only('geometry', 'space'),
         space.ranging_beacons.all().only('geometry', 'space'),
         space.pois.filter(POI.q_for_request(request)).only('geometry', 'space').prefetch_related(
             Prefetch('groups', LocationGroup.objects.only(

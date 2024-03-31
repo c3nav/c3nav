@@ -8,7 +8,7 @@ from kombu.utils import cached_property
 from c3nav.control.models import UserPermissions
 from c3nav.mapdata.grid import grid
 from c3nav.mapdata.models import Level, LocationGroup, LocationSlug, Space
-from c3nav.mapdata.models.geometry.space import POI, Area, WifiMeasurement
+from c3nav.mapdata.models.geometry.space import POI, Area, BeaconMeasurement
 from c3nav.mapdata.models.locations import LocationRedirect
 from c3nav.mapdata.utils.locations import CustomLocation, get_location_by_id_for_request
 
@@ -87,7 +87,7 @@ def convert_locate(data):
         'by_level': {},
     }
     measurement_lookup = {}
-    for measurement in WifiMeasurement.objects.all().select_related('space', 'space__level'):
+    for measurement in BeaconMeasurement.objects.all().select_related('space', 'space__level'):
         pos = CustomLocation(measurement.space.level, measurement.geometry.x, measurement.geometry.y,
                              permissions=set())
         space_slug = measurement.space.get_slug()

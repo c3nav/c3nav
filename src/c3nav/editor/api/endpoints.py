@@ -48,7 +48,7 @@ def geometrystyles(request):
         'graphnode': '#009900',
         'graphedge': '#00CC00',
         'altitudemarker': '#0000FF',
-        'wifimeasurement': '#DDDD00',
+        'beaconmeasurement': '#DDDD00',
         'rangingbeacon': '#CC00CC',
     }
 

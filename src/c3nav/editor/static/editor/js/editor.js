@@ -71,7 +71,7 @@ editor = {
         editor._sublevel_control_container = $(editor._sublevel_control._container);
 
         editor.init_geometries();
-        editor.init_wificollector();
+        editor.init_scancollector();
         editor.sidebar_content_loaded();
     },
     _inform_mobile_client: function(elem) {
@@ -175,7 +175,7 @@ editor = {
             editor._fixed_point_layer = null;
         }
 
-        if (window.mobileclient && mobileclient.wificollectorStop && $('#sidebar').find('.wificollector.running').length) {
+        if (window.mobileclient && mobileclient.wificollectorStop && $('#sidebar').find('.scancollector.running').length) {
             mobileclient.wificollectorStop();
         }
 
@@ -413,13 +413,13 @@ editor = {
         var data_field = $('form [name=data]');
         if (data_field.length) {
             data_field.hide();
-            var collector = $($('body .wificollector')[0].outerHTML);
+            var collector = $($('body .scancollector')[0].outerHTML);
             var existing_data = [];
             if (data_field.val()) {
                 existing_data = JSON.parse(data_field.val());
             }
             if (existing_data.length > 0) {
-                collector.removeClass('empty').addClass('done').find('.count').text(existing_data.length);
+                collector.removeClass('empty').addClass('done').find('.wifi-count').text(existing_data.length);
             } else {
                 data_field.closest('form').addClass('scan-lock');
             }
@@ -1304,50 +1304,58 @@ editor = {
         }
     },
 
-    init_wificollector: function () {
+    init_scancollector: function () {
         // init geometries and edit listeners
         editor._highlight_layer = L.layerGroup().addTo(editor.map);
 
-        $('#sidebar').on('click', '.wificollector .start', editor._wificollector_start)
-                     .on('click', '.wificollector .stop', editor._wificollector_stop)
-                     .on('click', '.wificollector .reset', editor._wificollector_reset);
-        window.setInterval(editor._wificollector_scan_perhaps, 1000);
+        $('#sidebar').on('click', '.scancollector .start', editor._scancollector_start)
+                     .on('click', '.scancollector .stop', editor._scancollector_stop)
+                     .on('click', '.scancollector .reset', editor._scancollector_reset);
+        window.setInterval(editor._scancollector_wifi_scan_perhaps, 1000);
     },
-    _wificollector_data: [],
-    _wificollector_start: function () {
-        var $collector = $('#sidebar').find('.wificollector');
+    _scancollector_data: {
+        wifi: [],
+        ibeacon: [],
+    },
+    _scancollector_start: function () {
+        var $collector = $('#sidebar').find('.scancollector');
         $collector.removeClass('empty').addClass('running');
-        editor._wificollector_data = [];
-        $collector.find('.count').text(0);
+        editor._scancollector_data.wifi = [];
+        editor._scancollector_data.ibeacon = [];
+        $collector.find('.wifi-count').text(0);
+        $collector.find('.ibeacon-count').text(0);
         if (mobileclient.wificollectorStart) mobileclient.wificollectorStart();
+        if (mobileclient.registerBeaconUuid) mobileclient.registerBeaconUuid("a142621a-2f42-09b3-245b-e1ac6356e9b0");
     },
-    _wificollector_stop: function () {
+    _scancollector_stop: function () {
         if (mobileclient.wificollectorStop) mobileclient.wificollectorStop();
-        if (!editor._wificollector_data.length) return editor._wificollector_reset();
-        var $collector = $('#sidebar').find('.wificollector');
+        if (mobileclient.unregisterBeaconUuid) mobileclient.unregisterBeaconUuid("a142621a-2f42-09b3-245b-e1ac6356e9b0");
+        // todo: maybe reset if either is empty?
+        if (!editor._scancollector_data.wifi.length && editor._scancollector_data.ibeacon.length) return editor._scancollector_reset();
+        var $collector = $('#sidebar').find('.scancollector');
         $collector.removeClass('running').delay(1000).queue(function(n) {
             $(this).addClass('done');
             n();
         });
         $collector.closest('form').removeClass('scan-lock');
     },
-    _wificollector_reset: function () {
-        var $collector = $('#sidebar').find('.wificollector');
-        $collector.removeClass('done').removeClass('running').addClass('empty').find('table').html('');
+    _scancollector_reset: function () {
+        var $collector = $('#sidebar').find('.scancollector');
+        $collector.removeClass('done').removeClass('running').addClass('empty').find('table').forEach(function(elem) {elem.html('');});
         $collector.siblings('[name=data]').val('');
         $collector.closest('form').addClass('scan-lock');
     },
-    _wificollector_last_max_last: 0,
-    _wificollector_last_result: 0,
-    _wificollector_result: function(data) {
-        var $collector = $('#sidebar').find('.wificollector.running'),
-            $table = $collector.find('table'),
+    _scancollector_wifi_last_max_last: 0,
+    _scancollector_wifi_last_result: 0,
+    _scancollector_wifi_result: function(data) {
+        var $collector = $('#sidebar').find('.scancollector.running'),
+            $table = $collector.find('.wifi-table'),
             item, i, line, apid, color, max_last = 0, now = Date.now();
-        editor._scan_waits = false;
+        editor._wifi_scan_waits = false;
 
         if (!data.length) return;
-        if (now-2000 < editor._wificollector_last_result) return;
-        editor._wificollector_last_result = now;
+        if (now-2000 < editor._scancollector_wifi_last_result) return;
+        editor._scancollector_wifi_last_result = now;
 
         // ignore this scan?
         for (i=0; i < data.length; i++) {
@@ -1356,8 +1364,8 @@ editor = {
                 max_last = Math.max(max_last, item.last);
             }
         }
-        if (max_last && editor._wificollector_last_max_last && max_last === editor._max_last_max) return;
-        editor._wificollector_last_max_last = max_last;
+        if (max_last && editor._scancollector_wifi_last_max_last && max_last === editor._max_last_max) return;
+        editor._scancollector_wifi_last_max_last = max_last;
 
         $table.find('tr').addClass('old');
         for (i=0; i < data.length; i++) {
@@ -1388,23 +1396,55 @@ editor = {
                 $table.append(line);
             }
         }
-        editor._wificollector_data.push(data);
-        $collector.find('.count').text(editor._wificollector_data.length);
-        $collector.siblings('[name=data]').val(JSON.stringify(editor._wificollector_data));
+        editor._scancollector_data.wifi.push(data);
+        $collector.find('.wifi-count').text(editor._scancollector_data.wifi.length);
+        $collector.siblings('[name=data]').val(JSON.stringify(editor._scancollector_data));
     },
-    _scan_waits: false,
-    _wificollector_scan_perhaps: function() {
-        if (!editor._scan_waits && $('#sidebar').find('.wificollector.running').length) {
-            editor._scan_waits = true;
+    _scancollector_ibeacon_result: function(data) {
+        var $collector = $('#sidebar').find('.scancollector.running'),
+            $table = $collector.find('.ibeacon-table'),
+            item, i, line, beaconid, color = Date.now();
+
+        if (!data.length) return;
+
+        $table.find('tr').addClass('old');
+        for (i=0; i < data.length; i++) {
+            item = data[i];
+
+            beaconid = 'beacon-'+item.uuid+'-'+item.major+'-'+item-minor;
+            line = $table.find('tr.'+beaconid);
+            color = Math.max(0, Math.min(50, item.distance));
+            color = 'rgb('+String(color*5)+', '+String(200-color*4)+', 0)';
+            if (line.length) {
+                line.removeClass('old').find(':last-child').text(item.distance).css('color', color);
+            } else {
+                line = $('<tr>').addClass(beaconid);
+                line.append($('<td>').text(item.major));
+                line.append($('<td>').text(item.minor));
+                line.append($('<td>').text(item.distance).css('color', color));
+                $table.append(line);
+            }
+        }
+        editor._scancollector_data.ibeacon.push(data);
+        $collector.find('.ibeacon-count').text(editor._scancollector_data.ibeacon.length);
+        $collector.siblings('[name=data]').val(JSON.stringify(editor._scancollector_data));
+    },
+    _wifi_scan_waits: false,
+    _scancollector_wifi_scan_perhaps: function() {
+        if (!editor._wifi_scan_waits && $('#sidebar').find('.scancollector.running').length) {
+            editor._wifi_scan_waits = true;
             mobileclient.scanNow();
         }
     }
 };
 
 function nearby_stations_available() {
-    editor._wificollector_result(JSON.parse(mobileclient.getNearbyStations()));
+    editor._scancollector_wifi_result(JSON.parse(mobileclient.getNearbyStations()));
 }
 
+function ibeacon_results_available() {
+    c3nav._scancollector_ibeacon_result(mobileclient.getNearbyBeacons());
+}
 
 LevelControl = L.Control.extend({
     options: {

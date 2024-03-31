@@ -108,7 +108,7 @@ def space_detail(request, level, pk):
     if edit_utils.can_access_child_base_mapdata:
         submodels = ('POI', 'Area', 'Obstacle', 'LineObstacle', 'Stair', 'Ramp', 'Column',
                      'Hole', 'AltitudeMarker', 'LeaveDescription', 'CrossDescription',
-                     'WifiMeasurement', 'RangingBeacon')
+                     'BeaconMeasurement', 'RangingBeacon')
     else:
         submodels = ('POI', 'Area', 'AltitudeMarker', 'LeaveDescription', 'CrossDescription')
 
@@ -281,9 +281,9 @@ def edit(request, pk=None, model=None, level=None, space=None, on_top_of=None, e
             'nozoom': True
         })
 
-    if new and model.__name__ == 'WifiMeasurement' and not request.user.is_authenticated:
+    if new and model.__name__ == 'BeaconMeasurement' and not request.user.is_authenticated:
         return APIHybridLoginRequiredResponse(next=request.path_info, login_url='editor.login', level='info',
-                                              message=_('You need to log in to create Wifi Measurements.'))
+                                              message=_('You need to log in to create Beacon Measurements.'))
 
     error = None
     delete = getattr(request, 'is_delete', None)

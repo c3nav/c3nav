@@ -12,7 +12,7 @@ class Command(BaseCommand):
 
     def add_arguments(self, parser):
         parser.add_argument('--yes', action='store_true', help='really delete it')
-        parser.add_argument('--wifi-measurements', action='store_true', help='delete wifi measurements')
+        parser.add_argument('--beacon-measurements', action='store_true', help='delete beacon measurements')
 
     def handle(self, *args, **options):
         from django.contrib.auth import get_user_model
@@ -21,7 +21,7 @@ class Command(BaseCommand):
         from c3nav.editor.models import ChangeSet
         from c3nav.mapdata.models import MapUpdate
         from c3nav.mapdata.models.access import AccessPermissionToken
-        from c3nav.mapdata.models.geometry.space import WifiMeasurement
+        from c3nav.mapdata.models.geometry.space import BeaconMeasurement
         from c3nav.site.models import Announcement
 
         logger = logging.getLogger('c3nav')
@@ -46,9 +46,9 @@ class Command(BaseCommand):
             UserPermissions.objects.filter(user__is_superuser=False).delete()
             logger.info('Deleted all UserPermissions not attached to a super user')
 
-            if options['wifi_measurements']:
-                WifiMeasurement.objects.all().delete()
-                logger.info('Deleted all WifiMeasurements')
+            if options['beacon_measurements']:
+                BeaconMeasurement.objects.all().delete()
+                logger.info('Deleted all BeaconMeasurements')
 
             get_user_model().objects.filter(is_superuser=False).delete()
             logger.info('Deleted all Users who are not a super user')

@@ -78,16 +78,16 @@ class Locator:
             )
         self.xyz = np.array(tuple(peer.xyz for peer in self.peers))
 
-        for space in Space.objects.prefetch_related('wifi_measurements'):
+        for space in Space.objects.prefetch_related('beacon_measurements'):
             new_space = LocatorSpace.create(
                 pk=space.pk,
                 points=tuple(
                     LocatorPoint(
                         x=measurement.geometry.x,
                         y=measurement.geometry.y,
-                        values=self.convert_scans(measurement.data, create_peers=True),
+                        values=self.convert_scans(measurement.data["wifi"], create_peers=True),
                     )
-                    for measurement in space.wifi_measurements.all()
+                    for measurement in space.beacon_measurements.all()
                 )
             )
             if new_space.points:

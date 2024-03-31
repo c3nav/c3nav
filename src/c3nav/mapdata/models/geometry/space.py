@@ -453,20 +453,20 @@ class CrossDescription(SerializableMixin):
         )
 
 
-class WifiMeasurement(SpaceGeometryMixin, models.Model):
+class BeaconMeasurement(SpaceGeometryMixin, models.Model):
     """
-    A Wi-Fi measurement
+    A Beacon (WiFI / iBeacon) measurement
     """
     geometry = GeometryField('point')
     author = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True,
                                verbose_name=_('author'))
     comment = models.TextField(null=True, blank=True, verbose_name=_('comment'))
-    data = models.JSONField(_('Measurement list'), default=list)
+    data = models.JSONField(_('Measurement list'), default=list)  # would be nice if this used pydantic
 
     class Meta:
-        verbose_name = _('Wi-Fi Measurement')
-        verbose_name_plural = _('Wi-Fi Measurements')
-        default_related_name = 'wifi_measurements'
+        verbose_name = _('Beacon Measurement')
+        verbose_name_plural = _('Beacon Measurements')
+        default_related_name = 'beacon_measurements'
 
     @property
     def all_geometry_changed(self):
