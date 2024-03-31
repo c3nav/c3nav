@@ -79,9 +79,15 @@
             {% trans 'mobileclient not found. Please install the c3nav app for wifi scanning support.' %}
         </em></p>
         <p><span class="count-line"><span class="wifi-count">0</span> WiFi scans</span></p>
-        <table class="wifi-table"></table>
+        <table class="wifi-table">
+            <thead><tr><th>BSSID</th><th>SSID</th><th>RSSI</th></tr></thead>
+            <tbody></tbody>
+        </table>
         <p><span class="count-line"><span class="ibeacon-count">0</span> iBeacon scans</span></p>
-        <table class="ibeacon-table"></table>
+        <table class="ibeacon-table">
+            <thead><tr><th>Major</th><th>Minor</th><th>Dist</th></tr></thead>
+            <tbody></tbody>
+        </table>
     </div>
 
     <div class="theme-editor-filter">

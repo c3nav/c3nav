@@ -407,24 +407,32 @@ body > .scancollector {
 .scancollector:not(.running) .btn.stop,
 .scancollector:not(.done) .btn.reset,
 .scancollector.empty .count-line,
+.scancollector.empty table,
+.abcdefg,
 body:not(.mobileclient) .scancollector .btn {
     display: none;
+}
+.scancollector .count-line {
+    font-style: italic;
 }
 .scancollector .btn {
     margin: 0 5px 0 0;
 }
 .scancollector p:first-child {
     height: 26px;
-    margin: 0;
 }
 .scancollector table {
     width: 100%;
-    border-style: solid;
-    border-width: 0 0 1px;
-    border-color: #666666;
+    margin-top: -8px;
+    &:not(:last-child) {
+        margin-bottom: 15px;
+    }
+}
+.scancollector table {
+
 }
 .scancollector table td {
-    padding: 5px 5px 0 0;
+    padding: 2px 2px 0 0;
 }
 .scancollector table td:last-child {
     padding-right: 0;

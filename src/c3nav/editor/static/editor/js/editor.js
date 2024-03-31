@@ -1341,7 +1341,7 @@ editor = {
     },
     _scancollector_reset: function () {
         var $collector = $('#sidebar').find('.scancollector');
-        $collector.removeClass('done').removeClass('running').addClass('empty').find('table').forEach(function(elem) {elem.html('');});
+        $collector.removeClass('done').removeClass('running').addClass('empty').find('table tbody').each(function(elem) {elem.html('');});
         $collector.siblings('[name=data]').val('');
         $collector.closest('form').addClass('scan-lock');
     },
@@ -1349,7 +1349,7 @@ editor = {
     _scancollector_wifi_last_result: 0,
     _scancollector_wifi_result: function(data) {
         var $collector = $('#sidebar').find('.scancollector.running'),
-            $table = $collector.find('.wifi-table'),
+            $table = $collector.find('.wifi-table tbody'),
             item, i, line, apid, color, max_last = 0, now = Date.now();
         editor._wifi_scan_waits = false;
 
@@ -1402,7 +1402,7 @@ editor = {
     },
     _scancollector_ibeacon_result: function(data) {
         var $collector = $('#sidebar').find('.scancollector.running'),
-            $table = $collector.find('.ibeacon-table'),
+            $table = $collector.find('.ibeacon-table tbody'),
             item, i, line, beaconid, color = Date.now();
 
         if (!data.length) return;
@@ -1410,8 +1410,7 @@ editor = {
         $table.find('tr').addClass('old');
         for (i=0; i < data.length; i++) {
             item = data[i];
-
-            beaconid = 'beacon-'+item.uuid+'-'+item.major+'-'+item-minor;
+            beaconid = 'beacon-'+item.uuid+'-'+item.major+'-'+item.minor;
             line = $table.find('tr.'+beaconid);
             color = Math.max(0, Math.min(50, item.distance));
             color = 'rgb('+String(color*5)+', '+String(200-color*4)+', 0)';
@@ -1443,7 +1442,7 @@ function nearby_stations_available() {
 }
 
 function ibeacon_results_available() {
-    c3nav._scancollector_ibeacon_result(mobileclient.getNearbyBeacons());
+    editor._scancollector_ibeacon_result(JSON.parse(mobileclient.getNearbyBeacons()));
 }
 
 LevelControl = L.Control.extend({
