@@ -252,7 +252,6 @@ def messages_list(request, filters: Query[MessagesFilter]):
     '/map/{level_id}/', summary="ranging beacons map",
     description="query and filter all received mesh messages",
     response={200: RangingMapData, **auth_permission_responses},
-    auth=None,
     openapi_extra={"security": [{"APIKeyAuth": ["mesh_control"]}]}
 )
 def mesh_map(request, level_id: int):
