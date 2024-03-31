@@ -374,6 +374,15 @@ class MeshConsumer(AsyncWebsocketConsumer):
                 )
             ))
 
+        if isinstance(msg.content, messages.EchoRequestMessage):
+            await self.send_msg(messages.MeshMessage(
+                src=MESH_ROOT_ADDRESS,
+                dst=msg.src,
+                content=messages.EchoResponseMessage(
+                    content=msg.content.content,
+                )
+            ))
+
         if isinstance(msg.content, (messages.ConfigHardwareMessage,
                             messages.ConfigFirmwareMessage,
                             messages.ConfigBoardMessage)):
