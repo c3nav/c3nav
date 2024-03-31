@@ -1,9 +1,19 @@
 {% extends 'mesh/base.html' %}
+{% load static %}
 {% load i18n mesh_node %}
 
 {% block heading %}{% trans 'Mesh messages' %}{% endblock %}
 
 {% block subcontent %}
+    <style>
+        .mesh-message-filter .field > select[multiple] {
+            width: 100%;
+        }
+
+        .mesh-message-filter .field > input.mesh-message-search {
+            margin-bottom: 2px;
+        }
+    </style>
     <div class="columns">
         <div>
             <h4>Send messages</h4>
@@ -25,11 +35,15 @@
     </div>
     <form>
         <h4>Filter</h4>
-        <div class="fields">
+        <div class="fields mesh-message-filter">
             <div class="field">
+                <input type="text" placeholder="search" class="mesh-message-search" id="mesh-message-type-search"
+                       aria-label="search message types"/>
                 {{ form.message_types }}
             </div>
             <div class="field">
+                <input type="text" placeholder="search" class="mesh-message-search" id="mesh-message-node-search"
+                       aria-label="search nodes"/>
                 {{ form.src_nodes }}
             </div>
             <div class="field">
@@ -37,6 +51,15 @@
             </div>
         </div>
     </form>
+    <script type="text/javascript" src="{% static 'mesh/js/searchable-select.js' %}"></script>
+    <script type="text/javascript">
+        (function () {
+            const typeSearch = document.getElementById('mesh-message-type-search');
+            const nodeSearch = document.getElementById('mesh-message-node-search');
+            SearchableSelect(typeSearch.nextElementSibling, typeSearch);
+            SearchableSelect(nodeSearch.nextElementSibling, nodeSearch);
+        })();
+    </script>
 
     {% include 'control/fragment_pagination.html' %}
 
@@ -68,25 +91,28 @@
                         <strong>Minor:</strong> {{ msg.parsed.content.minor }}
 
                     {% elif msg.message_type == "CONFIG_HARDWARE" %}
-                        <strong>Chip:</strong> {{ msg.parsed.content.chip.pretty_name }} rev{{ msg.parsed.content.revision_major }}.{{ msg.parsed.content.revision_minor }}
+                        <strong>Chip:</strong> {{ msg.parsed.content.chip.pretty_name }} rev
+                        {{ msg.parsed.content.revision_major }}.{{ msg.parsed.content.revision_minor }}
 
                     {% elif msg.message_type == "CONFIG_BOARD" %}
                         <strong>Board:</strong> {{ msg.parsed.content.board_config.board.pretty_name }}
 
                         {% if msg.parsed.content.led %}
-                        <br>
-                        <strong>Status LED:</strong> {{ msg.parsed.content.led }}
+                            <br>
+                            <strong>Status LED:</strong> {{ msg.parsed.content.led }}
                         {% endif %}
 
                         {% if msg.parsed.content.uwb %}
-                        <br>
-                        <strong>UWB:</strong> {{ msg.parsed.content.led }}
+                            <br>
+                            <strong>UWB:</strong> {{ msg.parsed.content.led }}
                         {% endif %}
 
                     {% elif msg.message_type == "CONFIG_FIRMWARE" %}
-                        <strong>Firmware:</strong> {{ msg.parsed.content.app_desc.project_name }} {{ msg.parsed.content.app_desc.version }} (IDF {{ msg.parsed.content.app_desc.idf_version }})
+                        <strong>Firmware:</strong> {{ msg.parsed.content.app_desc.project_name }}
+                        {{ msg.parsed.content.app_desc.version }} (IDF {{ msg.parsed.content.app_desc.idf_version }})
                         <br>
-                        <strong>Compile Date:</strong> {{ msg.parsed.content.app_desc.compile_date }} {{ msg.parsed.content.app_desc.compile_time }}
+                        <strong>Compile Date:</strong> {{ msg.parsed.content.app_desc.compile_date }}
+                        {{ msg.parsed.content.app_desc.compile_time }}
                         <br>
                         <strong>SHA256:</strong> <small>{{ msg.parsed.content.app_desc.app_elf_sha256 }}</small>
 
@@ -103,7 +129,8 @@
                         <strong>LED config:</strong> {{ msg.parsed.led_config }}
 
                     {% elif msg.message_type == "CONFIG_POSITION" %}
-                        <strong>X=</strong>{{ msg.parsed.content.x_pos }}, <strong>Y=</strong>{{ msg.parsed.content.y_pos }}, <strong>Z=</strong>{{ msg.parsed.content.z_pos }}
+                        <strong>X=</strong>{{ msg.parsed.content.x_pos }}, <strong>Y=</strong>
+                        {{ msg.parsed.content.y_pos }}, <strong>Z=</strong>{{ msg.parsed.content.z_pos }}
 
                     {% elif msg.message_type == "MESH_ADD_DESTINATIONS" or msg.message_type == "MESH_REMOVE_DESTINATIONS" %}
                         <strong>adresses:</strong><br>
@@ -171,9 +198,9 @@
                     {% else %}
                         {% for key, value in msg.data.items %}
                             {% if key != "src" and key != "dst" and key != "msg_type" %}
-                            <div class="mesh-msg-data mesh-msg-type-{{ key }}">
-                                <strong>{{ key }}</strong>: {{ value }}
-                            </div>
+                                <div class="mesh-msg-data mesh-msg-type-{{ key }}">
+                                    <strong>{{ key }}</strong>: {{ value }}
+                                </div>
                             {% endif %}
                         {% endfor %}
                     {% endif %}

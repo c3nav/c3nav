@@ -1,4 +1,5 @@
 {% extends 'mesh/base.html' %}
+{% load static %}
 {% load i18n %}
 
 {% block heading %}
@@ -14,11 +15,28 @@
 {% endblock %}
 
 {% block subcontent %}
+    <style>
+    #id_recipients {
+        width: 100%;
+    }
+    </style>
     <form method="POST" style="max-width:400px;">
         {% csrf_token %}
         {{ form.as_div }}
         {{ form.conditionals | json_script:"form-conditionals" }}
         <noscript><input type="hidden" name="noscript" value="1"></noscript>
+
+        <script type="text/javascript" src="{% static 'mesh/js/searchable-select.js' %}"></script>
+        <script type="text/javascript">
+            (function () {
+                const select = document.getElementById('id_recipients');
+                const searchInput = document.createElement('input');
+                searchInput.type = 'text';
+                select.parentElement.insertBefore(searchInput, select);
+                SearchableSelect(select, searchInput);
+            })();
+        </script>
+
         <script>
             var form_conditionals = JSON.parse(document.getElementById('form-conditionals').innerHTML)
             function update_form() {
