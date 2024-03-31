@@ -249,7 +249,7 @@ class MeshConsumer(AsyncWebsocketConsumer):
                 await self.log_text(MESH_ROOT_ADDRESS, "adding ourselves to trace message before forwarding")
                 msg.content.trace.append(MESH_ROOT_ADDRESS)
 
-            result = await msg.content.send(exclude_uplink_address=self.uplink.node.address)
+            result = await msg.send(exclude_uplink_address=self.uplink.node.address)
 
             if not result:
                 print('message had no route')
