@@ -177,7 +177,7 @@ class Locator:
         return cls.cached.data
 
     def convert_raw_scan_data(self, raw_scan_data: list[LocateRequestWifiPeerSchema]) -> ScanData:
-        return self.convert_scan(raw_scan_data, create_peers=False)
+        return self.convert_wifi_scan(raw_scan_data, create_peers=False)
 
     def get_xyz(self, identifier: LocatorPeerIdentifier) -> tuple[int, int, int] | None:
         i = self.get_peer_id(identifier)
