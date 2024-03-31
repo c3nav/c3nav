@@ -18,7 +18,7 @@ class LocateRequestWifiPeerSchema(BaseSchema):
         description="BSSID of the peer",
         example="c3:42:13:37:ac:ab",
     )
-    ssid: NonEmptyStr = APIField(
+    ssid: str = APIField(
         title="SSID",
         description="(E)SSID of the peer",
         example="c3nav-locate",
