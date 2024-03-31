@@ -1,7 +1,10 @@
 from typing import Annotated, Union
+from uuid import UUID
 
+from annotated_types import Lt
 from pydantic import Field as APIField
 from pydantic import NegativeInt, PositiveInt
+from pydantic.types import NonNegativeInt, PositiveFloat, NonNegativeFloat
 
 from c3nav.api.schema import BaseSchema
 from c3nav.api.utils import NonEmptyStr
@@ -9,7 +12,7 @@ from c3nav.api.utils import NonEmptyStr
 BSSIDSchema = Annotated[str, APIField(pattern=r"^[a-z0-9]{2}(:[a-z0-9]{2}){5}$", title="BSSID")]
 
 
-class LocateRequestPeerSchema(BaseSchema):
+class LocateRequestWifiPeerSchema(BaseSchema):
     bssid: BSSIDSchema = APIField(
         title="BSSID",
         description="BSSID of the peer",
@@ -60,4 +63,24 @@ class LocateRequestPeerSchema(BaseSchema):
         title="distance standard deviation",
         description="standard deviation of measurements in meters",
         example=1.23
+    )
+
+
+class LocateRequestIBeaconPeerSchema(BaseSchema):
+    uuid: UUID = APIField(
+        title="UUID",
+        description="UUID of the iBeacon",
+        example="a142621a-2f42-09b3-245b-e1ac6356e9b0",
+    )
+    major: Annotated[NonNegativeInt, Lt(2 ** 16)] = APIField(
+        title="major value of the iBeacon",
+    )
+    minor: Annotated[NonNegativeInt, Lt(2 ** 16)] = APIField(
+        title="minor value of the iBeacon",
+    )
+    distance: NonNegativeFloat = APIField(
+        title="determined iBeacon distance",
+    )
+    last_seen_ago: NonNegativeInt = APIField(
+        title="how many milliseconds ago this beacon was last seen"
     )

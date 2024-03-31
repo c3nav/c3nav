@@ -12,7 +12,7 @@ from c3nav.mapdata.models import MapUpdate, Space
 from c3nav.mapdata.models.geometry.space import RangingBeacon
 from c3nav.mapdata.utils.locations import CustomLocation
 from c3nav.routing.router import Router
-from c3nav.routing.schemas import LocateRequestPeerSchema
+from c3nav.routing.schemas import LocateRequestWifiPeerSchema
 
 try:
     from asgiref.local import Local as LocalContext
@@ -146,7 +146,7 @@ class Locator:
             cls.cached.data = cls.load_nocache(update)
         return cls.cached.data
 
-    def convert_raw_scan_data(self, raw_scan_data: list[LocateRequestPeerSchema]) -> ScanData:
+    def convert_raw_scan_data(self, raw_scan_data: list[LocateRequestWifiPeerSchema]) -> ScanData:
         return self.convert_scan(raw_scan_data, create_peers=False)
 
     def get_xyz(self, address: BSSID) -> tuple[int, int, int] | None:
@@ -160,7 +160,7 @@ class Locator:
             peer: peer.xyz for peer in self.peers[:len(self.xyz)]
         }
 
-    def locate(self, raw_scan_data: list[LocateRequestPeerSchema], permissions=None):
+    def locate(self, raw_scan_data: list[LocateRequestWifiPeerSchema], permissions=None):
         scan_data = self.convert_raw_scan_data(raw_scan_data)
         if not scan_data:
             return None

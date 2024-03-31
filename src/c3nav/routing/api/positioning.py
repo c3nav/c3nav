@@ -11,14 +11,17 @@ from c3nav.mapdata.models.access import AccessPermission
 from c3nav.mapdata.schemas.models import CustomLocationSchema
 from c3nav.mapdata.utils.cache.stats import increment_cache_key
 from c3nav.routing.locator import Locator
-from c3nav.routing.schemas import BSSIDSchema, LocateRequestPeerSchema
+from c3nav.routing.schemas import BSSIDSchema, LocateRequestWifiPeerSchema, LocateRequestIBeaconPeerSchema
 
 positioning_api_router = APIRouter(tags=["positioning"])
 
 
 class LocateRequestSchema(BaseSchema):
-    peers: list[LocateRequestPeerSchema] = APIField(
-        title="list of visible/measured location beacons",
+    wifi_peers: list[LocateRequestWifiPeerSchema] = APIField(
+        title="list of visible/measured wifi location beacons",
+    )
+    ibeacon_peers: list[LocateRequestIBeaconPeerSchema] = APIField(
+        title="list of visible/measured location iBeacons",
     )
 
 

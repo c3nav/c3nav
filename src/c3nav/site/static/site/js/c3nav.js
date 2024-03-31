@@ -258,6 +258,7 @@ c3nav = {
 
         if (window.mobileclient) {
             c3nav.startWifiScanning();
+            c3nav.startBLEScanning();
         }
 
         c3nav.init_completed = true;
@@ -1830,18 +1831,18 @@ c3nav = {
         }
     },
 
-    _no_wifi_count: 0,
+    startBLEScanning: function() {
+        if (mobileclient.registerBeaconUuid) {
+            mobileclient.registerBeaconUuid("a142621a-2f42-09b3-245b-e1ac6356e9b0");
+        }
+    },
+
+    _last_scan: 0,
+    _last_wifi_peers: [],
+    _last_ibeacon_peers: [],
+    _no_scan_count: 0,
     _wifi_scan_results: function(peers) {
         peers = JSON.parse(peers);
-
-        if (peers.length) {
-            c3nav._hasLocationPermission = true;
-        } else {
-            c3nav.hasLocationPermission(true);
-        }
-
-        var now = Date.now();
-        if (now-4000 < c3nav._last_wifi_scan) return;
 
         if (c3nav.ssids) {
             peers = peers.filter(peer => c3nav.ssids.includes(peer.ssid));
@@ -1857,28 +1858,53 @@ c3nav = {
                 delete peer.rtt;
             }
         }
+        c3nav._last_wifi_peers = peers;
+        c3nav._after_scan_results();
+    },
+    _ibeacon_scan_results: function(peers) {
+        peers = JSON.parse(peers);
+        c3nav._last_ibeacon_peers = peers;
+        c3nav._after_scan_results();
+    },
+    _after_scan_results: function() {
+        has_peers = c3nav._last_wifi_peers.length || c3nav._last_ibeacon_peers.length;
+        if (has_peers) {
+            c3nav._hasLocationPermission = true;
+        } else {
+            c3nav.hasLocationPermission(true);
+        }
 
+        var now = Date.now();
+        if (now-4000 < c3nav._last_scan) return;
 
-        if (!peers.length) {
+        if (!has_peers) {
             if (!c3nav._hasLocationPermission) {
                 c3nav._set_user_location(null);
             } else {
-                if (c3nav._no_wifi_count > 5) {
-                    c3nav._no_wifi_count = 0;
+                if (c3nav._no_scan_count > 5) {
+                    c3nav._no_scan_count = 0;
                     c3nav._set_user_location(null);
                 } else {
-                    c3nav._no_wifi_count++;
+                    c3nav._no_scan_count++;
                 }
             }
             return;
         }
-        c3nav._no_wifi_count = 0;
+        c3nav._no_scan_count = 0;
 
-        c3nav_api.post('positioning/locate/', {peers})
+        let ibeacon_peers = c3nav._last_ibeacon_peers.map(p => ({...p}));
+        for (let peer of ibeacon_peers) {
+           peer.last_seen_ago = Math.max(0, now - peer.last_seen);
+        }
+
+        c3nav_api.post('positioning/locate/', {
+            wifi_peers: c3nav._last_wifi_peers,
+            ibeacon_peers: ibeacon_peers,
+        })
             .then(data => c3nav._set_user_location(data.location))
             .catch(() => {
                 c3nav._set_user_location(null);
-                c3nav._last_wifi_scan = Date.now() + 20000
+                c3nav._last_scan = Date.now() + 20000
             });
     },
     _current_user_location: null,
@@ -2025,6 +2051,10 @@ $(document).ready(() => {
 
 function nearby_stations_available() {
     c3nav._wifi_scan_results(mobileclient.getNearbyStations());
+}
+
+function ibeacon_results_available() {
+    c3nav._ibeacon_scan_results(mobileclient.getNearbyBeacons());
 }
 
 function openInModal(location) {

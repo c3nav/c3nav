@@ -25,7 +25,7 @@ from c3nav.mapdata.models import GraphEdge, LocationGroup
 from c3nav.mapdata.models.access import AccessPermission
 from c3nav.mapdata.models.geometry.space import ObstacleGroup
 from c3nav.mapdata.models.theme import ThemeLocationGroupBackgroundColor, ThemeObstacleGroupBackgroundColor
-from c3nav.routing.schemas import LocateRequestPeerSchema
+from c3nav.routing.schemas import LocateRequestWifiPeerSchema
 
 
 class EditorFormBase(I18nModelFormMixin, ModelForm):
@@ -340,7 +340,7 @@ class EditorFormBase(I18nModelFormMixin, ModelForm):
                     item['rssi'] = item['level']
                     del item['level']
                 try:
-                    LocateRequestPeerSchema.model_validate(item)
+                    LocateRequestWifiPeerSchema.model_validate(item)
                 except PydanticValidationError as e:
                     raise ValidationError(str(e))
                 scan_data.append(item)
