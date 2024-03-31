@@ -4,6 +4,7 @@ from django.conf import settings
 from django.core.exceptions import ValidationError
 from ninja import Field as APIField
 from ninja import Router as APIRouter
+from pydantic_extra_types.mac_address import MacAddress
 
 from c3nav.api.auth import auth_responses
 from c3nav.api.schema import BaseSchema
@@ -11,7 +12,7 @@ from c3nav.mapdata.models.access import AccessPermission
 from c3nav.mapdata.schemas.models import CustomLocationSchema
 from c3nav.mapdata.utils.cache.stats import increment_cache_key
 from c3nav.routing.locator import Locator
-from c3nav.routing.schemas import BSSIDSchema, LocateRequestWifiPeerSchema, LocateRequestIBeaconPeerSchema
+from c3nav.routing.schemas import LocateRequestWifiPeerSchema, LocateRequestIBeaconPeerSchema
 
 positioning_api_router = APIRouter(tags=["positioning"])
 
@@ -98,7 +99,7 @@ def locate_test(request):
 
 
 BeaconsXYZ = dict[
-    BSSIDSchema,
+    MacAddress,
     Annotated[
         tuple[
             Annotated[int, APIField(title="X (in cm)")],
@@ -108,11 +109,3 @@ BeaconsXYZ = dict[
         APIField(title="global XYZ coordinates")
     ]
 ]
-
-
-@positioning_api_router.get('/beacons-xyz/', summary="get beacon coordinates",
-                            description="get xyz coordinates for all known positioning beacons",
-                            response={200: BeaconsXYZ, **auth_responses})
-def beacons_xyz():
-    # todo: update with more details? todo permission?
-    return Locator.load().get_all_xyz()

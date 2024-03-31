@@ -4,16 +4,14 @@ from uuid import UUID
 from annotated_types import Lt
 from pydantic import Field as APIField
 from pydantic import NegativeInt, PositiveInt
-from pydantic.types import NonNegativeInt, PositiveFloat, NonNegativeFloat
+from pydantic.types import NonNegativeInt, NonNegativeFloat
+from pydantic_extra_types.mac_address import MacAddress
 
 from c3nav.api.schema import BaseSchema
-from c3nav.api.utils import NonEmptyStr
-
-BSSIDSchema = Annotated[str, APIField(pattern=r"^[a-z0-9]{2}(:[a-z0-9]{2}){5}$", title="BSSID")]
 
 
 class LocateRequestWifiPeerSchema(BaseSchema):
-    bssid: BSSIDSchema = APIField(
+    bssid: MacAddress = APIField(
         title="BSSID",
         description="BSSID of the peer",
         example="c3:42:13:37:ac:ab",

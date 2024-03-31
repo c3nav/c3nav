@@ -23,5 +23,5 @@ class MeshRangingView(TemplateView):
         return {
             "ranging_form": RangingForm(self.request.GET or None),
             "node_names": get_node_names(),
-            "nodes_xyz": Locator.load().get_all_xyz(),
+            "nodes_xyz": Locator.load().get_all_nodes_xyz(),
         }
