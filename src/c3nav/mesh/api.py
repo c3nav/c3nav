@@ -14,11 +14,10 @@ from shapely.geometry import LineString
 from c3nav.api.auth import APIKeyAuth, auth_permission_responses, auth_responses, validate_responses
 from c3nav.api.exceptions import API404, APIConflict, APIRequestValidationFailed
 from c3nav.api.schema import BaseSchema
-from c3nav.mapdata.models.geometry.space import RangingBeacon
 from c3nav.mesh.messages import MeshMessageType, MeshMessage, LocateRangeResults
-from c3nav.mesh.models import FirmwareBuild, FirmwareVersion, NodeMessage, MeshNode
-from c3nav.mesh.schemas import BoardType, ChipType, FirmwareImage, RangingBeaconGeoFeature, MeshConnectionGeoFeature, \
-    RangingMapData
+from c3nav.mesh.models import FirmwareBuild, FirmwareVersion, NodeMessage
+from c3nav.mesh.schemas import BoardType, ChipType, FirmwareImage, RangingMapData
+from c3nav.mesh.utils import get_nodes_and_ranging_beacons
 
 mesh_api_router = APIRouter(tags=["mesh"], auth=APIKeyAuth(permissions={"mesh_control"}))
 
@@ -253,30 +252,20 @@ def messages_list(request, filters: Query[MessagesFilter]):
     '/map/{level_id}/', summary="ranging beacons map",
     description="query and filter all received mesh messages",
     response={200: RangingMapData, **auth_permission_responses},
+    auth=None,
     openapi_extra={"security": [{"APIKeyAuth": ["mesh_control"]}]}
 )
 def mesh_map(request, level_id: int):
-    beacons = RangingBeacon.objects.all().select_related("space")
-    beacon_ids = set(beacon.id for beacon in beacons)
-
-    nodes = {
-        node.address: node
-        for node in MeshNode.objects.all().prefetch_last_messages().prefetch_ranging_beacon()
-    }
-    nodes_for_beacons = {
-        node.ranging_beacon.id: node
-        for node in nodes.values()
-        if node.ranging_beacon and node.ranging_beacon.id in beacon_ids
-    }
+    collected = get_nodes_and_ranging_beacons()
 
     ranging_beacon_result = []
     mesh_connection_result = []
     locate_range_result = []
 
-    for beacon in beacons:
+    for beacon in collected.beacons.values():
         if beacon.space.level_id != level_id:
             continue
-        node = nodes_for_beacons.get(beacon.id, None)
+        node = collected.nodes_for_beacons.get(beacon.id, None)
         node_uplink = None if node is None else node.get_uplink()
 
         ranging_beacon_result.append({
@@ -294,7 +283,7 @@ def mesh_map(request, level_id: int):
         })
 
         if node_uplink and node.upstream_id:
-            upstream_node = nodes[node.upstream_id]
+            upstream_node = collected.nodes[node.upstream_id]
             if upstream_node.ranging_beacon:
                 mesh_connection_result.append({
                     "type": "Feature",
@@ -313,7 +302,7 @@ def mesh_map(request, level_id: int):
                 locate_range_results_msg: LocateRangeResults
                 for range_result in locate_range_results_msg.parsed.content.ranges:
                     try:
-                        peer_node = nodes[range_result.peer]
+                        peer_node = collected.nodes[range_result.peer]
                     except KeyError:
                         continue
                     if peer_node.ranging_beacon:

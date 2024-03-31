@@ -1,4 +1,9 @@
+from collections import namedtuple
 from operator import attrgetter
+
+from c3nav.mapdata.models.geometry.space import RangingBeacon
+
+from c3nav.mesh.models import MeshNode
 
 
 def get_mesh_uplink_group(address):
@@ -34,3 +39,24 @@ def group_msg_type_choices(msg_types):
             (msg_type.name, msg_type.pretty_name)
         )
     return tuple(choices.items())
+
+
+NodesAndBeacons = namedtuple("NodesAndBeacons", ("beacons", "nodes", "nodes_for_beacons"))
+
+
+def get_nodes_and_ranging_beacons():
+    beacons = {beacon.id: beacon for beacon in RangingBeacon.objects.all().select_related("space")}
+    nodes = {
+        node.address: node
+        for node in MeshNode.objects.all().prefetch_last_messages().prefetch_ranging_beacon()
+    }
+    nodes_for_beacons = {
+        node.ranging_beacon.id: node
+        for node in nodes.values()
+        if node.ranging_beacon and node.ranging_beacon.id in beacons
+    }
+    return NodesAndBeacons(
+        beacons=beacons,
+        nodes=nodes,
+        nodes_for_beacons=nodes_for_beacons
+    )
