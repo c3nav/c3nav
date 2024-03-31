@@ -423,7 +423,6 @@ editor = {
                 existing_data = JSON.parse(data_field.val());
             }
             if (existing_data?.wifi?.length || existing_data?.ibeacon?.length > 0) {
-                // todo: fix this to work with ibeacons
                 collector.removeClass('empty').addClass('done');
                 collector.find('.wifi-count').text(existing_data?.wifi?.length);
                 collector.find('.ibeacon-count').text(existing_data?.ibeacon?.length);
