@@ -44,6 +44,7 @@ NodesAndBeacons = namedtuple("NodesAndBeacons", ("beacons", "nodes", "nodes_for_
 
 def get_nodes_and_ranging_beacons():
     from c3nav.mesh.models import MeshNode
+    from c3nav.mesh.messages import MeshMessageType
     beacons = {beacon.id: beacon for beacon in RangingBeacon.objects.all().select_related("space")}
     nodes = {
         node.address: node
@@ -54,6 +55,31 @@ def get_nodes_and_ranging_beacons():
         for node in nodes.values()
         if node.ranging_beacon and node.ranging_beacon.id in beacons
     }
+    # todo: throw warnings if duplicates somewhere
+    for ranging_beacon_id, node in nodes_for_beacons.items():
+        ranging_beacon = beacons[ranging_beacon_id]
+        ranging_beacon.save = None
+
+        if not ranging_beacon.wifi_bssid:
+            ranging_beacon.wifi_bssid = node.address
+        if not ranging_beacon.bluetooth_address:
+            ranging_beacon.bluetooth_address = node.address[:-2] + hex(int(node.address[-2:], 16)+1)[2:]
+
+        ibeacon_msg = node.last_messages[MeshMessageType.CONFIG_IBEACON]
+        if ibeacon_msg:
+            if not ranging_beacon.ibeacon_uuid:
+                ranging_beacon.ibeacon_uuid = ibeacon_msg.parsed.content.uuid
+            if not ranging_beacon.ibeacon_major:
+                ranging_beacon.ibeacon_major = ibeacon_msg.parsed.content.major
+            if not ranging_beacon.ibeacon_uuid:
+                ranging_beacon.ibeacon_minor = ibeacon_msg.parsed.content.minor
+
+        node_msg = node.last_messages[MeshMessageType.CONFIG_NODE]
+        if node_msg:
+            if not ranging_beacon.node_number:
+                ranging_beacon.node_number = node_msg.parsed.content.number
+            ranging_beacon.node_name = node_msg.parsed.content.name
+
     return NodesAndBeacons(
         beacons=beacons,
         nodes=nodes,

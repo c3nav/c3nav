@@ -1,9 +1,13 @@
 from typing import Annotated, Literal, Optional, Union
+from uuid import UUID
 
+from annotated_types import Lt
 from pydantic import Field as APIField
 from pydantic import PositiveInt
+from pydantic.types import NonNegativeInt
+from pydantic_extra_types.mac_address import MacAddress
 
-from c3nav.api.schema import AnyGeometrySchema, BaseSchema, GeometrySchema, LineSchema
+from c3nav.api.schema import AnyGeometrySchema, BaseSchema, GeometrySchema, LineSchema, PointSchema
 from c3nav.api.utils import NonEmptyStr
 
 GeometryStylesSchema = Annotated[
@@ -100,3 +104,22 @@ UpdateCacheKey = Annotated[
     Optional[NonEmptyStr],
     APIField(default=None, title="the cache key under which you have cached objects"),
 ]
+
+
+class EditorBeacon(BaseSchema):
+    name: NonEmptyStr
+    point: Optional[PointSchema]
+
+
+class EditorBeaconsLookup(BaseSchema):
+    wifi_beacons: dict[Annotated[MacAddress, APIField(title="WiFi beacon BSSID")], EditorBeacon]
+    ibeacons: dict[
+        Annotated[str, APIField(title="iBeacon UUID")],  # todo: nice to use UUID but django json encoder fails
+        dict[
+            Annotated[NonNegativeInt, Lt(2 ** 16), APIField(title="iBeacon major value")],
+            dict[
+                Annotated[NonNegativeInt, Lt(2 ** 16), APIField(title="iBeacon minor value")],
+                EditorBeacon
+            ]
+        ]
+    ]

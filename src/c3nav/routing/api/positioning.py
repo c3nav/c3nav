@@ -114,4 +114,5 @@ BeaconsXYZ = dict[
                             description="get xyz coordinates for all known positioning beacons",
                             response={200: BeaconsXYZ, **auth_responses})
 def beacons_xyz():
+    # todo: update with more details? todo permission?
     return Locator.load().get_all_xyz()

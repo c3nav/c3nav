@@ -1,16 +1,19 @@
 from django.urls import Resolver404, resolve
 from django.utils.translation import gettext_lazy as _
 from ninja import Router as APIRouter
+from shapely.geometry.geo import mapping
 
 from c3nav.api.auth import APIKeyAuth, auth_permission_responses
 from c3nav.api.exceptions import API404
 from c3nav.editor.api.base import api_etag_with_update_cache_key
 from c3nav.editor.api.geometries import get_level_geometries_result, get_space_geometries_result
-from c3nav.editor.api.schemas import EditorGeometriesElemSchema, EditorID, GeometryStylesSchema, UpdateCacheKey
+from c3nav.editor.api.schemas import EditorGeometriesElemSchema, EditorID, GeometryStylesSchema, UpdateCacheKey, \
+    EditorBeaconsLookup
 from c3nav.editor.views.base import editor_etag_func
 from c3nav.mapdata.api.base import api_etag
 from c3nav.mapdata.models import Source
 from c3nav.mapdata.schemas.responses import WithBoundsSchema
+from c3nav.mesh.utils import get_nodes_and_ranging_beacons
 
 editor_api_router = APIRouter(tags=["editor"], auth=APIKeyAuth(permissions={"editor_access"}))
 
@@ -145,3 +148,54 @@ def post_view_as_api(request, path: str):
     this is a mess. good luck. if you actually want to use this, poke us so we might add better documentation.
     """
     raise NotImplementedError
+
+
+@editor_api_router.get('/beacons-lookup/', summary="get beacon coordinates",
+                       description="get xyz coordinates for all known positioning beacons",
+                       response={200: EditorBeaconsLookup, **auth_permission_responses},
+                       openapi_extra={"security": [{"APIKeyAuth": ["editor_access", "write"]}]})
+def beacons_lookup(request):
+    # todo: update with more details? todo permission?
+    from c3nav.mesh.messages import MeshMessageType
+    calculated = get_nodes_and_ranging_beacons()
+
+    wifi_beacons = {}
+    ibeacons = {}
+    for beacon in calculated.beacons.values():
+        node = calculated.nodes_for_beacons.get(beacon.id, None)
+        beacon_data = {
+            "name": node.name if node else ("Beacon #%d" % beacon.pk),
+            "point": mapping(beacon.geometry),
+        }
+        if beacon.wifi_bssid:
+            wifi_beacons[beacon.wifi_bssid] = beacon_data
+        if beacon.ibeacon_uuid and beacon.ibeacon_major is not None and beacon.ibeacon_minor is not None:
+            ibeacons.setdefault(
+                str(beacon.ibeacon_uuid), {}
+            ).setdefault(
+                beacon.ibeacon_major, {}
+            )[beacon.ibeacon_minor] = beacon_data
+
+    for node in calculated.nodes.values():
+        beacon_data = {
+            "name": node.name,
+            "point": None,
+        }
+        ibeacon_msg = node.last_messages[MeshMessageType.CONFIG_IBEACON]
+        if ibeacon_msg:
+            ibeacons.setdefault(
+                str(ibeacon_msg.parsed.content.uuid), {}
+            ).setdefault(
+                ibeacon_msg.parsed.content.major, {}
+            ).setdefault(
+                ibeacon_msg.parsed.content.minor, beacon_data
+            )
+
+        node_msg = node.last_messages[MeshMessageType.CONFIG_NODE]
+        if node_msg:
+            wifi_beacons.setdefault(node.address, beacon_data)
+
+    return EditorBeaconsLookup(
+        wifi_beacons=wifi_beacons,
+        ibeacons=ibeacons,
+    ).model_dump(mode="json")

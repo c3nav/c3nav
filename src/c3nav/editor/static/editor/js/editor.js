@@ -284,6 +284,8 @@ editor = {
 
         editor._inform_mobile_client(content.find('[data-user-data]'));
 
+        editor._beacon_layer.clearLayers();
+
         var group;
         if (content.find('[name=fixed_x]').length) {
             $('[name=name]').change(editor._source_name_selected).change();
@@ -414,12 +416,17 @@ editor = {
         if (data_field.length) {
             data_field.hide();
             var collector = $($('body .scancollector')[0].outerHTML);
+            editor.load_scancollector_lookup();
+
             var existing_data = [];
             if (data_field.val()) {
                 existing_data = JSON.parse(data_field.val());
             }
-            if (existing_data.length > 0) {
-                collector.removeClass('empty').addClass('done').find('.wifi-count').text(existing_data.length);
+            if (existing_data?.wifi?.length || existing_data?.ibeacon?.length > 0) {
+                // todo: fix this to work with ibeacons
+                collector.removeClass('empty').addClass('done');
+                collector.find('.wifi-count').text(existing_data?.wifi?.length);
+                collector.find('.ibeacon-count').text(existing_data?.ibeacon?.length);
             } else {
                 data_field.closest('form').addClass('scan-lock');
             }
@@ -657,6 +664,7 @@ editor = {
     _geometries_layer: null,
     _line_geometries: [],
     _highlight_layer: null,
+    _beacon_layer: null,
     _highlight_type: null,
     _editing_id: null,
     _editing_layer: null,
@@ -775,6 +783,8 @@ editor = {
             })
 
         editor.get_sources();
+
+        editor._beacon_layer = L.layerGroup().addTo(editor.map);
     },
     _set_max_bounds: function(bounds) {
         bounds = bounds ? L.latLngBounds(editor._max_bounds[0], editor._max_bounds[1]).extend(bounds) : editor._max_bounds;
@@ -1313,6 +1323,13 @@ editor = {
                      .on('click', '.scancollector .reset', editor._scancollector_reset);
         window.setInterval(editor._scancollector_wifi_scan_perhaps, 1000);
     },
+    _scancollector_lookup: {},
+    load_scancollector_lookup: function () {
+        c3nav_api.get('editor/beacons-lookup')
+                    .then(data => {
+                        editor._scancollector_lookup = data;
+                    })
+    },
     _scancollector_data: {
         wifi: [],
         ibeacon: [],
@@ -1341,16 +1358,17 @@ editor = {
     },
     _scancollector_reset: function () {
         var $collector = $('#sidebar').find('.scancollector');
-        $collector.removeClass('done').removeClass('running').addClass('empty').find('table tbody').each(function(elem) {elem.html('');});
+        $collector.removeClass('done').removeClass('running').addClass('empty').find('table tbody').each(function(elem) {elem.innerHTML = "";});
         $collector.siblings('[name=data]').val('');
         $collector.closest('form').addClass('scan-lock');
+        editor._beacon_layer.clearLayers();
     },
     _scancollector_wifi_last_max_last: 0,
     _scancollector_wifi_last_result: 0,
     _scancollector_wifi_result: function(data) {
         var $collector = $('#sidebar').find('.scancollector.running'),
             $table = $collector.find('.wifi-table tbody'),
-            item, i, line, apid, color, max_last = 0, now = Date.now();
+            item, i, line, apid, color, max_last = 0, now = Date.now(), match;
         editor._wifi_scan_waits = false;
 
         if (!data.length) return;
@@ -1389,9 +1407,22 @@ editor = {
             if (line.length) {
                 line.removeClass('old').find(':last-child').text(item.rssi).css('color', color);
             } else {
+                match = editor._scancollector_lookup.wifi_beacons?.[item.bssid];
+                if (match && match.point) {
+                    L.geoJson(match.point, {
+                        pointToLayer: function (feature, latlng) {
+                            return L.circleMarker(latlng, {});
+                        }
+                    }).addTo(editor._beacon_layer);
+                }
+                shortened_ssid = item.ssid;
+                if (shortened_ssid.length > 20) {
+                    shortened_ssid = shortened_ssid.slice(0, 20)+'…';
+                }
                 line = $('<tr>').addClass(apid);
                 line.append($('<td>').text(item.bssid));
-                line.append($('<td>').text(item.ssid));
+                line.append($('<td>').text(shortened_ssid));
+                line.append($('<td>').text(match ? match.name : ''));
                 line.append($('<td>').text(item.rssi).css('color', color));
                 $table.append(line);
             }
@@ -1403,7 +1434,7 @@ editor = {
     _scancollector_ibeacon_result: function(data) {
         var $collector = $('#sidebar').find('.scancollector.running'),
             $table = $collector.find('.ibeacon-table tbody'),
-            item, i, line, beaconid, color = Date.now();
+            item, i, line, beaconid, color = Date.now(), match;
 
         if (!data.length) return;
 
@@ -1415,12 +1446,21 @@ editor = {
             color = Math.max(0, Math.min(50, item.distance));
             color = 'rgb('+String(color*5)+', '+String(200-color*4)+', 0)';
             if (line.length) {
-                line.removeClass('old').find(':last-child').text(item.distance).css('color', color);
+                line.removeClass('old').find(':last-child').text(Math.round(item.distance*100)/100).css('color', color);
             } else {
+                match = editor._scancollector_lookup.ibeacons?.[item.uuid]?.[item.major]?.[item.minor];
+                if (match && match.point) {
+                    L.geoJson(match.point, {
+                        pointToLayer: function (feature, latlng) {
+                            return L.circleMarker(latlng, {});
+                        }
+                    }).addTo(editor._beacon_layer);
+                }
                 line = $('<tr>').addClass(beaconid);
                 line.append($('<td>').text(item.major));
                 line.append($('<td>').text(item.minor));
-                line.append($('<td>').text(item.distance).css('color', color));
+                line.append($('<td>').text(match ? match.name : ''));
+                line.append($('<td>').text(Math.round(item.distance*100)/100).css('color', color));
                 $table.append(line);
             }
         }
