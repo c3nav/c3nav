@@ -79,6 +79,7 @@ services:
       test: entrypoint worker_healthcheck
 
   postgres:
+    <<: *restart-policy
     image: postgres:16
     healthcheck:
       <<: *healthcheck_defaults
@@ -90,6 +91,7 @@ services:
       - "c3nav-postgres:/var/lib/postgresql/data"
 
   redis:
+    <<: *restart-policy
     image: redis:7.2
     command: redis-server --save 60 1 --loglevel warning
     healthcheck:
