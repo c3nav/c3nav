@@ -21,6 +21,7 @@ class UserPermissions(models.Model):
     direct_edit = models.BooleanField(default=False, verbose_name=_('can activate direct editing'))
     max_changeset_changes = models.PositiveSmallIntegerField(default=10, verbose_name=_('max changes per changeset'))
     editor_access = models.BooleanField(default=False, verbose_name=_('can always access editor'))
+    sources_access = models.BooleanField(default=False, verbose_name=_('can access sources in editor'))
     base_mapdata_access = models.BooleanField(default=False, verbose_name=_('can always access base map data'))
     manage_map_updates = models.BooleanField(default=False, verbose_name=_('manage map updates'))
 

@@ -749,7 +749,7 @@ def graph_edit(request, level=None, space=None):
 
 
 def sourceimage(request, filename):
-    if not request.user.is_superuser:
+    if not request.user_permissions.sources_access:
         raise PermissionDenied
 
     if not can_access_editor(request):
