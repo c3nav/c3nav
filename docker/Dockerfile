@@ -52,10 +52,10 @@ RUN --mount=type=cache,target=/var/cache/apt,id=apt_$TARGETARCH --mount=type=tmp
 
 
 RUN mkdir /app
-COPY /src/requirements /app/requirements
 WORKDIR /app
 
 RUN --mount=type=cache,target=/pip-cache \
+    --mount=type=bind,source=/src/requirements,target=/app/requirements \
     python3.11 -m venv env && \
     . /app/env/bin/activate && \
     pip install --cache-dir /pip-cache --upgrade pip wheel && \
