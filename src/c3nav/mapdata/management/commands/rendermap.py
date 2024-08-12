@@ -6,6 +6,7 @@ from django.utils.translation import gettext_lazy as _
 from django.utils.translation import ngettext_lazy
 
 from c3nav.mapdata.models import AccessRestriction, Level, Source
+from c3nav.mapdata.models.theme import Theme
 from c3nav.mapdata.render.engines import get_engine, get_engine_filetypes
 from c3nav.mapdata.render.renderer import MapRenderer
 
@@ -28,6 +29,18 @@ class Command(BaseCommand):
             )
 
         return levels
+
+    @staticmethod
+    def theme_value(value):
+        if value in ('0', 'none', 'default'):
+            return None
+
+        try:
+            return Theme.objects.get(pk=int(value))
+        except Theme.DoesNotExist:
+            raise argparse.ArgumentTypeError(
+                _('Unknown theme: %s') % value
+            )
 
     @staticmethod
     def permissions_value(value):
@@ -65,6 +78,8 @@ class Command(BaseCommand):
                             help=_('filetype to render'))
         parser.add_argument('--levels', default='*', type=self.levels_value,
                             help=_('levels to render, e.g. 0,1,2 or * for all levels (default)'))
+        parser.add_argument('--theme', default=None, type=self.theme_value,
+                            help=_('theme to use, e.g. 2 or 0 for the default theme (default)'))
         parser.add_argument('--permissions', default='0', type=self.permissions_value,
                             help=_('permissions, e.g. 2,3 or * for all permissions or 0 for none (default)'))
         parser.add_argument('--full-levels', action='store_const', const=True, default=False,
@@ -110,7 +125,7 @@ class Command(BaseCommand):
             name = options['name'] or ('level_%s' % level.short_label)
             filename = settings.RENDER_ROOT / ('%s.%s' % (name, options['filetype']))
 
-            render = renderer.render(get_engine(options['filetype']), center=not options['no_center'])
+            render = renderer.render(get_engine(options['filetype']), options['theme'], center=not options['no_center'])
             data = render.render(filename)
             if isinstance(data, tuple):
                 other_data = data[1:]
