@@ -74,7 +74,7 @@ class Command(BaseCommand):
         return value
 
     def add_arguments(self, parser):
-        parser.add_argument('filetype', type=str, choices=get_engine_filetypes(),
+        parser.add_argument('filetype', type=str, choices=(get_engine_filetypes() + ('svg',)),
                             help=_('filetype to render'))
         parser.add_argument('--levels', default='*', type=self.levels_value,
                             help=_('levels to render, e.g. 0,1,2 or * for all levels (default)'))
@@ -125,8 +125,13 @@ class Command(BaseCommand):
             name = options['name'] or ('level_%s' % level.short_label)
             filename = settings.RENDER_ROOT / ('%s.%s' % (name, options['filetype']))
 
-            render = renderer.render(get_engine(options['filetype']), options['theme'], center=not options['no_center'])
-            data = render.render(filename)
+            if options['filetype'] == 'svg':
+                render = renderer.render(get_engine('png'), options['theme'], center=not options['no_center'])
+                data = render.get_xml().encode()
+            else:
+                render = renderer.render(get_engine(options['filetype']), options['theme'],
+                                         center=not options['no_center'])
+                data = render.render(filename)
             if isinstance(data, tuple):
                 other_data = data[1:]
                 data = data[0]
