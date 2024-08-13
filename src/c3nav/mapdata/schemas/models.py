@@ -793,3 +793,46 @@ AnyPositionStatusSchema = Annotated[
     ],
     Discriminator("available"),
 ]
+
+
+class ProjectionPipelineSchema(BaseSchema):
+    pipeline: Union[
+        Annotated[NonEmptyStr, APIField(title='proj4 string')],
+        Annotated[None, APIField(title='null', description='projection not available')]
+    ] = APIField(
+        title='proj4 string',
+        description='proj4 string for converting WGS84 coordinates to c3nav coordinates if available',
+        example='+proj=utm +zone=33 +ellps=GRS80 +units=m +no_defs'
+    )
+
+class ProjectionSchema(ProjectionPipelineSchema):
+    proj4: NonEmptyStr = APIField(
+        title='proj4 string',
+        description='proj4 string for converting WGS84 coordinates to c3nav coordinates without offset and rotation',
+        example='+proj=utm +zone=33 +ellps=GRS80 +units=m +no_defs'
+    )
+    zero_point: tuple[float, float] = APIField(
+        title='zero point',
+        description='coordinates of the zero point of the c3nav coordinate system',
+        example=(0.0, 0.0),
+    )
+    rotation: float = APIField(
+        title='rotation',
+        description='rotational offset of the c3nav coordinate system',
+        example=0.0,
+    )
+    rotation_matrix: Optional[tuple[
+        float, float, float, float,
+        float, float, float, float,
+        float, float, float, float,
+        float, float, float, float,
+    ]] = APIField(
+        title='rotation matrix',
+        description='rotation matrix for rotational offset of the c3nav coordinate system',
+        example=[
+            1, 0, 0, 0,
+            0, 1, 0, 0,
+            0, 0, 1, 0,
+            0, 0, 0, 1
+        ]
+    )

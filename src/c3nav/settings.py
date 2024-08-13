@@ -1,4 +1,5 @@
 # c3nav settings, mostly taken from the pretix project
+import math
 import os
 import re
 import string
@@ -12,6 +13,7 @@ from django.core.exceptions import ImproperlyConfigured
 from django.utils.crypto import get_random_string
 from django.utils.dateparse import parse_duration
 from django.utils.translation import gettext_lazy as _
+from pyproj import Proj, Transformer
 
 from c3nav import __version__ as c3nav_version
 from c3nav.utils.config import C3navConfigParser
@@ -605,6 +607,68 @@ BASE_THEME = {
 }
 
 WIFI_SSIDS = [n for n in config.get('c3nav', 'wifi_ssids', fallback='').split(',') if n]
+
+
+# Projection
+PROJECTION_PROJ4 = config.get('projection', 'proj4', fallback=None)
+PROJECTION_ZERO_POINT = config.get('projection', 'zero_point', fallback=None)
+PROJECTION_ZERO_POINT_IS_WGS84 = '°' in PROJECTION_ZERO_POINT if PROJECTION_ZERO_POINT else False
+PROJECTION_ROTATION = config.getfloat('projection', 'rotation', fallback=0.0)
+PROJECTION_ROTATION_MATRIX = config.get('projection', 'rotation_matrix', fallback=None)
+PROJECTION_TRANSFORMER: Optional[Transformer] = None
+PROJECTION_TRANSFORMER_STRING: Optional[str] = None
+
+if PROJECTION_PROJ4:
+    if '+units=m' not in PROJECTION_PROJ4:
+        PROJECTION_PROJ4 += ' +units=m'
+    PROJECTION_TRANSFORMER_STRING = re.sub(r'\s?\+no_defs', '', PROJECTION_PROJ4)
+
+    if (PROJECTION_ZERO_POINT or PROJECTION_ROTATION) and 'pipeline' not in PROJECTION_TRANSFORMER_STRING:
+        PROJECTION_TRANSFORMER_STRING = f'+proj=pipeline +step {PROJECTION_TRANSFORMER_STRING}'
+
+    if PROJECTION_ZERO_POINT:
+        PROJECTION_ZERO_POINT = tuple((float(i) for i in PROJECTION_ZERO_POINT.split(',')))
+        if len(PROJECTION_ZERO_POINT) != 2:
+            raise ImproperlyConfigured(f'invalid projection zero point "{PROJECTION_ZERO_POINT!r}"')
+        if PROJECTION_ZERO_POINT_IS_WGS84:
+            PROJECTION_ZERO_POINT = Proj.from_pipeline(PROJECTION_PROJ4).transform(PROJECTION_ZERO_POINT[0],
+                                                                                   PROJECTION_ZERO_POINT[1])
+        PROJECTION_TRANSFORMER_STRING += (f' +step +proj=affine +xoff=-{PROJECTION_ZERO_POINT[0]} '
+                                          f'+yoff=-{PROJECTION_ZERO_POINT[1]}')
+
+    if PROJECTION_ROTATION != 0:
+        PROJECTION_ROTATION_MATRIX = (
+            math.cos(math.radians(PROJECTION_ROTATION)), math.sin(math.radians(PROJECTION_ROTATION)), 0, 0,
+            -math.sin(math.radians(PROJECTION_ROTATION)), math.cos(math.radians(PROJECTION_ROTATION)), 0, 0,
+            0, 0, 1, 0,
+            0, 0, 0, 1
+        )
+    elif PROJECTION_ROTATION_MATRIX:
+        PROJECTION_ROTATION_MATRIX = tuple((float(i) for i in PROJECTION_ROTATION_MATRIX.split(',')))
+        if len(PROJECTION_ROTATION_MATRIX) != 16:
+            raise ImproperlyConfigured(f'invalid rotation matrix "{PROJECTION_ROTATION_MATRIX!r}"')
+
+    if PROJECTION_ROTATION_MATRIX:
+        PROJECTION_TRANSFORMER_STRING += (
+            f' +step +proj=affine '
+            f'+s11={PROJECTION_ROTATION_MATRIX[0]} +s12={PROJECTION_ROTATION_MATRIX[1]}'
+        )
+        if PROJECTION_ROTATION_MATRIX[2] != 0:
+            PROJECTION_TRANSFORMER_STRING += f' +s13={PROJECTION_ROTATION_MATRIX[2]}'
+        PROJECTION_TRANSFORMER_STRING += f' +s21={PROJECTION_ROTATION_MATRIX[4]} +s22={PROJECTION_ROTATION_MATRIX[5]}'
+        if PROJECTION_ROTATION_MATRIX[6] != 0:
+            PROJECTION_TRANSFORMER_STRING += ' +s23={PROJECTION_ROTATION_MATRIX[6]}'
+        if PROJECTION_ROTATION_MATRIX[8] != 0:
+            PROJECTION_TRANSFORMER_STRING += f' +s31={PROJECTION_ROTATION_MATRIX[8]}'
+        if PROJECTION_ROTATION_MATRIX[9] != 0:
+            PROJECTION_TRANSFORMER_STRING += f' +s32={PROJECTION_ROTATION_MATRIX[9]}'
+        if PROJECTION_ROTATION_MATRIX[10] != 1:
+            PROJECTION_TRANSFORMER_STRING += f' +s33={PROJECTION_ROTATION_MATRIX[10]}'
+        if PROJECTION_ROTATION_MATRIX[15] != 1:
+            PROJECTION_TRANSFORMER_STRING += f' +tscale={PROJECTION_ROTATION_MATRIX[15]}'
+
+    PROJECTION_TRANSFORMER_STRING += ' +no_defs'
+    PROJECTION_TRANSFORMER = Proj.from_pipeline(PROJECTION_TRANSFORMER_STRING)
 
 USER_REGISTRATION = config.getboolean('c3nav', 'user_registration', fallback=True)
 

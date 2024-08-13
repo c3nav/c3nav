@@ -9,6 +9,7 @@ from ninja import Router as APIRouter
 from pydantic import Field as APIField
 from pydantic import PositiveInt
 
+from c3nav import settings
 from c3nav.api.auth import auth_permission_responses, auth_responses, validate_responses
 from c3nav.api.exceptions import API404, APIPermissionDenied, APIRequestValidationFailed
 from c3nav.api.schema import BaseSchema
@@ -19,8 +20,9 @@ from c3nav.mapdata.models.locations import DynamicLocation, LocationRedirect, Po
 from c3nav.mapdata.schemas.filters import BySearchableFilter, RemoveGeometryFilter
 from c3nav.mapdata.schemas.model_base import AnyLocationID, AnyPositionID, CustomLocationID
 from c3nav.mapdata.schemas.models import (AnyPositionStatusSchema, FullListableLocationSchema, FullLocationSchema,
-                                          LocationDisplay, SlimListableLocationSchema, SlimLocationSchema,
-                                          all_location_definitions, listable_location_definitions)
+                                          LocationDisplay, ProjectionPipelineSchema, ProjectionSchema,
+                                          SlimListableLocationSchema, SlimLocationSchema, all_location_definitions,
+                                          listable_location_definitions)
 from c3nav.mapdata.schemas.responses import LocationGeometry, WithBoundsSchema
 from c3nav.mapdata.utils.locations import (get_location_by_id_for_request, get_location_by_slug_for_request,
                                            searchable_locations_for_request, visible_locations_for_request)
@@ -310,3 +312,20 @@ def set_position(request, position_id: AnyPositionID, update: UpdatePositionSche
     location.save()
 
     return location.serialize_position()
+
+
+@map_api_router.get('/projection/', summary='get proj4 string',
+                    description="get proj4 string for converting WGS84 coordinates to c3nva coordinates",
+                    response={200: Union[ProjectionSchema, ProjectionPipelineSchema], **auth_responses})
+def get_projection(request):
+    obj = {
+        "pipeline": settings.PROJECTION_TRANSFORMER_STRING
+    }
+    if True:
+        obj.update({
+            'proj4': settings.PROJECTION_PROJ4,
+            'zero_point': settings.PROJECTION_ZERO_POINT,
+            'rotation': settings.PROJECTION_ROTATION,
+            'rotation_matrix': settings.PROJECTION_ROTATION_MATRIX,
+        })
+    return obj

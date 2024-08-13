@@ -20,3 +20,4 @@ django_libsass==0.9
 channels==4.0.0
 daphne==4.1.0
 pyzstd==0.15.9
+pyproj==3.6.1
