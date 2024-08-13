@@ -17,10 +17,16 @@ from c3nav.mapdata.render.engines.base import FillAttribs, RenderEngine, StrokeA
 from c3nav.mapdata.utils.geometry import unwrap_geom
 
 if settings.SVG_RENDERER == 'rsvg':
-    import pgi
-    pgi.require_version('Rsvg', '2.0')
-    import cairocffi
-    from pgi.repository import Rsvg
+    try:
+        import pgi
+        pgi.require_version('Rsvg', '2.0')
+        from pgi.repository import Rsvg
+        import cairocffi as cairo
+    except ImportError:
+        import gi
+        gi.require_version('Rsvg', '2.0')
+        import cairo
+        from gi.repository import Rsvg
 elif settings.SVG_RENDERER == 'rsvg-convert':
     from PIL import Image
 
@@ -106,8 +112,8 @@ class SVGEngine(RenderEngine):
 
         if settings.SVG_RENDERER == 'rsvg':
             # create buffered surfaces
-            buffered_surface = cairocffi.SVGSurface(None, self.buffered_width, self.buffered_height)
-            buffered_context = cairocffi.Context(buffered_surface)
+            buffered_surface = cairo.SVGSurface(None, self.buffered_width, self.buffered_height)
+            buffered_context = cairo.Context(buffered_surface)
 
             # draw svg with rsvg
             handle = Rsvg.Handle()
@@ -115,18 +121,21 @@ class SVGEngine(RenderEngine):
             svg.render_cairo(buffered_context)
 
             # create cropped image
-            surface = buffered_surface.create_similar(cairocffi.CONTENT_COLOR, self.width, self.height)
-            context = cairocffi.Context(surface)
+            surface = buffered_surface.create_similar(cairo.CONTENT_COLOR, self.width, self.height)
+            context = cairo.Context(surface)
 
             # set background color
-            context.set_source(cairocffi.SolidPattern(*self.background_rgb))
+            context.set_source(cairo.SolidPattern(*self.background_rgb))
             context.paint()
 
             # paste buffered immage with offset
             context.set_source_surface(buffered_surface, -self.buffer, -self.buffer)
             context.paint()
 
-            return surface.write_to_png()
+            f = io.BytesIO()
+            surface.write_to_png(f)
+            f.seek(0)
+            return f.read()
 
         elif settings.SVG_RENDERER == 'rsvg-convert':
             p = subprocess.run(('rsvg-convert', '-b', self.background, '--format', 'png'),
