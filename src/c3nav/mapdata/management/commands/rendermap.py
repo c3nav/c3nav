@@ -43,16 +43,16 @@ class Command(BaseCommand):
             )
 
     @staticmethod
-    def permissions_value(value):
+    def permissions_value(value) -> set[int]:
         if value == '*':
-            return AccessRestriction.objects.all()
+            return AccessRestriction.get_all()
         if value == '0':
-            return ()
+            return AccessRestriction.get_all_public()
 
         values = set(v for v in value.split(',') if v)
-        permissions = AccessRestriction.objects.all().filter(pk__in=values)
+        permissions = set(permission.pk for permission in AccessRestriction.objects.all().filter(pk__in=values))
 
-        not_found = values - set(str(permission.pk) for permission in permissions)
+        not_found = values - set(map(str, permissions))
         if not_found:
             raise argparse.ArgumentTypeError(
                 ngettext_lazy('Unknown access restriction: %s',
@@ -81,7 +81,7 @@ class Command(BaseCommand):
         parser.add_argument('--theme', default=None, type=self.theme_value,
                             help=_('theme to use, e.g. 2 or 0 for the default theme (default)'))
         parser.add_argument('--permissions', default='0', type=self.permissions_value,
-                            help=_('permissions, e.g. 2,3 or * for all permissions or 0 for none (default)'))
+                            help=_('permissions, e.g. 2,3 or * for all permissions or 0 for public (default)'))
         parser.add_argument('--full-levels', action='store_const', const=True, default=False,
                             help=_('render all levels completely'))
         parser.add_argument('--no-center', action='store_const', const=True, default=False,
