@@ -6,6 +6,8 @@ from django.core.serializers.json import DjangoJSONEncoder
 
 from c3nav.site.finders import favicon_package_files, logo_paths
 
+from c3nav.settings import ENABLE_MESH
+
 logos_result = {
     prefix: os.path.join(prefix, os.path.basename(path)) if path else None
     for prefix, path in logo_paths.items()
@@ -18,7 +20,6 @@ if settings.FAVICON_PACKAGE:
     }
 else:
     logos_result['favicon_package'] = None
-
 
 def logos(request):
     return logos_result
@@ -62,4 +63,9 @@ def theme(request):
         'themes': themes,
         'randomize_primary_color': active_theme['randomize_primary_color'],
         'primary_color': primary_color,
+    }
+
+def meshEnabled(request):
+    return {
+        'meshEnabled': ENABLE_MESH
     }

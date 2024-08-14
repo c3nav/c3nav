@@ -471,6 +471,7 @@ TEMPLATES = [
                 'c3nav.site.context_processors.user_data_json',
                 'c3nav.site.context_processors.theme',
                 'c3nav.site.context_processors.header_logo_mask',
+                'c3nav.site.context_processors.meshEnabled',
             ],
             'loaders': template_loaders
         },

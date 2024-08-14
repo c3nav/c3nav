@@ -24,7 +24,9 @@
             {% if request.user_permissions.manage_map_updates %}
                 <a href="{% url 'control.map_updates' %}">{% trans 'Map Updates' %}</a> &middot;
             {% endif %}
+            {% if meshEnabled and request.user_permissions.mesh_control %}
             <a href="{% url 'mesh.nodes' %}">{% trans 'Mesh' %}</a> &middot;
+            {% endif %}
             <a href="{% url 'control.users.detail' user=request.user.pk %}">{{ request.user.username }}</a>
         </p>
     </nav>
