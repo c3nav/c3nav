@@ -84,6 +84,20 @@ class AccessRestrictionGroup(TitledMixin, models.Model):
         filter_perms = all_permissions - permissions
         return ~Q(accessrestrictions__pk__in=filter_perms)
 
+    @classmethod
+    def qs_for_user(cls, user):
+        return cls.objects.filter(cls.q_for_user(user))
+
+    @classmethod
+    def q_for_user(cls, user):
+        if user.is_authenticated and user.is_superuser:
+            return Q()
+        all_permissions = AccessRestriction.get_all()
+        permissions = AccessPermission.get_for_user(user)
+        # now we filter out groups where the user doesn't have a permission for all members
+        filter_perms = all_permissions - permissions
+        return ~Q(accessrestrictions__pk__in=filter_perms)
+
 
 def default_valid_until():
     return timezone.now()+timedelta(seconds=20)
@@ -134,7 +148,7 @@ class AccessPermissionToken(models.Model):
                 "session_token": request.session.setdefault("accesspermission_session_token", str(uuid.uuid4()))
             }
 
-        if (grant_to is None and self.redeemed) or (self.accesspermissions.exists() and not self.unlimited):
+        if (grant_to is None and self.redeemed) or (self.pk and self.accesspermissions.exists() and not self.unlimited):
             raise self.RedeemError('Already redeemed.')
 
         if timezone.now() > self.valid_until + timedelta(minutes=5 if self.redeemed else 0):
@@ -287,6 +301,55 @@ class AccessPermission(models.Model):
         access_restriction_ids = cache.get(cache_key, None)
         if access_restriction_ids is None or True:
             permissions = cls.get_for_request_with_expire_date(request)
+
+            access_restriction_ids = set(permissions.keys())
+
+            expire_date = min((e for e in permissions.values() if e), default=timezone.now() + timedelta(seconds=120))
+            cache.set(cache_key, access_restriction_ids, max(0.0, (expire_date - timezone.now()).total_seconds()))
+        return set(access_restriction_ids) | AccessRestriction.get_all_public()
+
+    @classmethod
+    def get_for_user_with_expire_date(cls, user, can_grant=None):
+        from c3nav.control.models import UserPermissions
+        if UserPermissions.get_for_user(user).grant_all_access:
+            return {pk: None for pk in AccessRestriction.get_all()}
+        qs = cls.queryset_for_user(user, can_grant)
+
+        result = tuple(
+            qs.select_related(
+                'access_restriction_group'
+            ).prefetch_related('access_restriction_group__accessrestrictions')
+        )
+
+        # collect permissions (can be multiple for one restriction)
+        permissions = {}
+        for permission in result:
+            if permission.access_restriction_id:
+                permissions.setdefault(permission.access_restriction_id, set()).add(permission.expire_date)
+            if permission.access_restriction_group_id:
+                for member in permission.access_restriction_group.accessrestrictions.all():
+                    permissions.setdefault(member.pk, set()).add(permission.expire_date)
+
+        # get latest expire date for each permission
+        permissions = {
+            access_restriction_id: None if None in expire_dates else max(expire_dates)
+            for access_restriction_id, expire_dates in permissions.items()
+        }
+        return permissions
+
+    @classmethod
+    def get_for_user(cls, user) -> set[int]:
+        from c3nav.control.models import UserPermissions
+        if not user or not user.is_authenticated:
+            return AccessRestriction.get_all_public()
+
+        if UserPermissions.get_for_user(user).grant_all_access:
+            return AccessRestriction.get_all()
+
+        cache_key = cls.build_access_permission_key(user_id=user.pk)
+        access_restriction_ids = cache.get(cache_key, None)
+        if access_restriction_ids is None or True:
+            permissions = cls.get_for_user_with_expire_date(user)
 
             access_restriction_ids = set(permissions.keys())
 

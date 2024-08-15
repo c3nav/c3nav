@@ -9,7 +9,7 @@ from django.contrib.auth import login, logout
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.forms import AuthenticationForm, PasswordChangeForm, UserCreationForm
 from django.core.cache import cache
-from django.core.exceptions import ObjectDoesNotExist, SuspiciousOperation
+from django.core.exceptions import ObjectDoesNotExist, SuspiciousOperation, ValidationError
 from django.core.paginator import Paginator
 from django.core.serializers.json import DjangoJSONEncoder
 from django.db import transaction
@@ -27,6 +27,7 @@ from django.views.decorators.http import etag
 
 from c3nav import __version__ as c3nav_version
 from c3nav.api.models import Secret
+from c3nav.control.forms import AccessPermissionForm, SignedPermissionDataError
 from c3nav.mapdata.grid import grid
 from c3nav.mapdata.models import Location, Source
 from c3nav.mapdata.models.access import AccessPermission, AccessPermissionToken
@@ -67,16 +68,21 @@ def map_index(request, mode=None, slug=None, slug2=None, details=None, options=N
     if access_token:
         with transaction.atomic():
             try:
-                token = AccessPermissionToken.objects.select_for_update().get(token=access_token, redeemed=False,
-                                                                              valid_until__gte=timezone.now())
-            except AccessPermissionToken.DoesNotExist:
+                if ':' in access_token:
+                    token = AccessPermissionForm.load_signed_data(access_token)
+                else:
+                    token = AccessPermissionToken.objects.select_for_update().get(token=access_token, redeemed=False,
+                                                                                  valid_until__gte=timezone.now())
+            except (AccessPermissionToken.DoesNotExist, ValueError, ValidationError, SignedPermissionDataError):
                 messages.error(request, _('This token does not exist or was already redeemed.'))
             else:
                 num_restrictions = len(token.restrictions)
                 with transaction.atomic():
-                    token.save()
+                    if token.pk:
+                        token.save()
                     token.redeem(request=request)
-                    token.save()
+                    if token.pk:
+                        token.save()
 
                 if request.user.is_authenticated:
                     messages.success(request, ngettext_lazy('Area successfully unlocked.',

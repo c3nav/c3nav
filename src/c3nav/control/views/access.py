@@ -1,3 +1,4 @@
+from contextlib import suppress
 from urllib.parse import urlencode
 
 from django.conf import settings
@@ -22,8 +23,9 @@ def grant_access(request):  # todo: make class based view
             token = form.get_token()
             token.save()
             if settings.DEBUG:
-                signed_data = form.get_signed_data()
-                print('/?'+urlencode({'access': signed_data}))
+                with suppress(ValueError):
+                    signed_data = form.get_signed_data()
+                    print('/?'+urlencode({'access': signed_data}))
             return redirect(reverse('control.access.qr', kwargs={'token': token.token}))
     else:
         form = AccessPermissionForm(request=request)

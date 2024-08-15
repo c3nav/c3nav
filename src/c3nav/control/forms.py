@@ -40,12 +40,15 @@ class AccessPermissionForm(Form):
 
         # remember author if this form is saved
         self.author = author or request.user
-        author_permissions = request.user_permissions if request else author.permissions
+        author_permissions = request.user_permissions if request else UserPermissions.get_for_user(author)
 
         self.expire_date = expire_date
 
         # determine which access permissions the author can grant
-        self.author_access_permissions = AccessPermission.get_for_request_with_expire_date(request, can_grant=True)
+        if request:
+            self.author_access_permissions = AccessPermission.get_for_request_with_expire_date(request, can_grant=True)
+        else:
+            self.author_access_permissions = AccessPermission.get_for_user_with_expire_date(author, can_grant=True)
 
         access_restrictions = AccessRestriction.objects.filter(
             pk__in=self.author_access_permissions.keys()
@@ -62,7 +65,11 @@ class AccessPermissionForm(Form):
         }
 
         # get access permission groups
-        groups = AccessRestrictionGroup.qs_for_request(request).prefetch_related(
+        if request:
+            groups = AccessRestrictionGroup.qs_for_request(request)
+        else:
+            groups = AccessRestrictionGroup.qs_for_user(author)
+        groups = groups.prefetch_related(
             Prefetch('accessrestrictions', AccessRestriction.objects.only('pk'))
         )
         self.group_contents: dict[int, set[int]] = {
@@ -199,7 +206,7 @@ class AccessPermissionForm(Form):
         data = {
             'id': self.data['access_restrictions'],
             'time': int(time.time()),
-            'valid_until': int(self.cleaned_data['expires'].strftime('%s')),
+            'valid_until': int(self.cleaned_data['expires'].strftime('%s')) if self.cleaned_data['expires'] else None,
             'author': self.author.pk,
         }
         if key is not None:
@@ -265,7 +272,7 @@ class AccessPermissionForm(Form):
             raise SignedPermissionDataError('Author does not exist.')
 
         api_secrets = author.api_secrets.filter(
-            scope_grant_permission=True
+            scope_grant_permissions=True
         ).valid_only().values_list('api_secret', flat=True)
         if not api_secrets:
             raise SignedPermissionDataError('Author has no API secret.')
