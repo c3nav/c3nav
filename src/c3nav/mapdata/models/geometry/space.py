@@ -461,7 +461,7 @@ class BeaconMeasurement(SpaceGeometryMixin, models.Model):
     author = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True,
                                verbose_name=_('author'))
     comment = models.TextField(null=True, blank=True, verbose_name=_('comment'))
-    data = models.JSONField(_('Measurement list'), default=dict)  # would be nice if this used pydantic
+    data = models.JSONField(_('Measurement list'), default=dict)  # todo: would be nice if this used pydantic
 
     class Meta:
         verbose_name = _('Beacon Measurement')
