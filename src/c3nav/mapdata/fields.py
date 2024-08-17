@@ -32,6 +32,7 @@ shapely_logger = logging.getLogger('shapely.geos')
 
 
 class GeometryField(models.JSONField):
+    # todo: could this use django-pydantic-field? should it?
     default_validators = [validate_geometry]
 
     def __init__(self, geomtype=None, default=None, null=False, blank=False, help_text=None):
