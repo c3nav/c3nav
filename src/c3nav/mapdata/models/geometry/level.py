@@ -208,23 +208,29 @@ class AltitudeArea(LevelGeometryMixin, models.Model):
 
     def get_altitudes(self, points):
         points = np.asanyarray(points).reshape((-1, 2))
-        if self.altitude2 is None:
-            return np.full((points.shape[0], ), fill_value=float(self.altitude))
+        if self.altitude is not None:
+            return np.full((points.shape[0],), fill_value=float(self.altitude))
 
-        slope = np.array(self.point2.coords) - np.array(self.point1.coords)
-        distances = (np.sum(((points - np.array(self.point1.coords)) * slope), axis=1) / (slope ** 2).sum()).clip(0, 1)
+        if len(self.points) == 1:
+            raise ValueError
 
-        if self.altitude2 < self.altitude:
-            min_altitude = float(self.altitude2)
-            max_altitude = float(self.altitude)
+        max_altitude = max(p.altitude for p in self.points)
+        min_altitude = min(p.altitude for p in self.points)
+
+        if len(self.points) == 2:
+            slope = np.array(self.points[1].coordinates) - np.array(self.points[0].coordinates)
+            distances = (
+                (np.sum(((points - np.array(self.points[0].coordinates)) * slope), axis=1)
+                / (slope ** 2).sum()).clip(0, 1)
+            )
+            altitudes = self.points[0].altitude + distances*(self.points[1].altitude-self.points[0].altitude)
         else:
-            min_altitude = float(self.altitude)
-            max_altitude = float(self.altitude2)
+            altitudes = RBFInterpolator(
+                np.array([p.coordinates for p in self.points]),
+                np.array([p.altitude for p in self.points])
+            )(points)
 
-        return np.clip(
-            float(self.altitude) + distances*(float(self.altitude2)-float(self.altitude)),
-            a_min=min_altitude, a_max=max_altitude
-        )
+        return np.clip(altitudes, a_min=min_altitude, a_max=max_altitude)
 
     @classmethod
     def recalculate(cls):
