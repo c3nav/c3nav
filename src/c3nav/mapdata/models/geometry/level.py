@@ -3,20 +3,26 @@ from collections import deque
 from decimal import Decimal
 from itertools import chain, combinations
 from operator import attrgetter, itemgetter
+from typing import Sequence, Optional
 
 import numpy as np
 from django.core.validators import MinValueValidator
 from django.db import models
+from django.db.models import CheckConstraint, Q
 from django.urls import reverse
 from django.utils.functional import cached_property
 from django.utils.text import format_lazy
 from django.utils.translation import gettext_lazy as _
+from pydantic import Field as APIField
+from scipy.interpolate._rbfinterp import RBFInterpolator
 from shapely import prepared
 from shapely.affinity import scale
-from shapely.geometry import JOIN_STYLE, LineString, MultiPolygon
+from shapely.geometry import JOIN_STYLE, LineString, MultiPolygon, Point
 from shapely.geometry.polygon import orient
+from django_pydantic_field import SchemaField
 from shapely.ops import unary_union
 
+from c3nav.api.schema import BaseSchema
 from c3nav.mapdata.fields import GeometryField, I18nField
 from c3nav.mapdata.grid import grid
 from c3nav.mapdata.models import Level
@@ -170,15 +176,26 @@ class ItemWithValue:
         return self._func()
 
 
+class AltitudeAreaPoint(BaseSchema):
+    coordinates: tuple[float, float] = APIField(
+        example=[1, 2.5]
+    )
+    altitude: float
+
+
 class AltitudeArea(LevelGeometryMixin, models.Model):
     """
     An altitude area
     """
-    geometry = GeometryField('multipolygon')
-    altitude = models.DecimalField(_('altitude'), null=False, max_digits=6, decimal_places=2)
-    altitude2 = models.DecimalField(_('second altitude'), null=True, max_digits=6, decimal_places=2)
-    point1 = GeometryField('point', null=True)
-    point2 = GeometryField('point', null=True)
+    geometry: MultiPolygon = GeometryField('multipolygon')
+    altitude = models.DecimalField(_('altitude'), null=True, max_digits=6, decimal_places=2)
+    points: Sequence[AltitudeAreaPoint] = SchemaField(schema=list[AltitudeAreaPoint], null=True)
+
+    constraints = (
+        CheckConstraint(check=(Q(points__isnull=True, altitude__isnull=False) |
+                               Q(points__isnull=False, altitude__isnull=True)),
+                        name="altitudearea_needs_precisely_one_of_altitude_or_points"),
+    )
 
     class Meta:
         verbose_name = _('Altitude Area')
