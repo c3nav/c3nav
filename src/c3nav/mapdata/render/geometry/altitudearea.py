@@ -12,15 +12,11 @@ class AltitudeAreaGeometries:
         if altitudearea is not None:
             self.geometry = altitudearea.geometry
             self.altitude = int(altitudearea.altitude * 1000)
-            self.altitude2 = None if altitudearea.altitude2 is None else int(altitudearea.altitude2 * 1000)
-            self.point1 = altitudearea.point1
-            self.point2 = altitudearea.point2
+            self.points = altitudearea.points
         else:
             self.geometry = None
             self.altitude = None
-            self.altitude2 = None
-            self.point1 = None
-            self.point2 = None
+            self.points = None
         self.base = None
         self.bottom = None
         self.colors = colors

@@ -479,13 +479,17 @@ class AltitudeArea(LevelGeometryMixin, models.Model):
                 ramp.altitude = ramp.connected_to[0][0].altitude
                 continue
 
+            # todo: implement multiple points
+
             if len(ramp.connected_to) > 2:
                 ramp.connected_to = sorted(ramp.connected_to, key=lambda item: item[1].area)[-2:]
 
-            ramp.point1 = ramp.connected_to[0][1].centroid
-            ramp.point2 = ramp.connected_to[1][1].centroid
-            ramp.altitude = ramp.connected_to[0][0].altitude
-            ramp.altitude2 = ramp.connected_to[1][0].altitude
+            ramp.points = [
+                AltitudeAreaPoint(coordinates=ramp.connected_to[0][1].centroid.coords,
+                                  altitude=float(ramp.connected_to[0][0].altitude)),
+                AltitudeAreaPoint(coordinates=ramp.connected_to[1][1].centroid.coords,
+                                  altitude=float(ramp.connected_to[1][0].altitude)),
+            ]
 
             ramp.tmpid = len(areas)
             areas.append(ramp)
@@ -582,13 +586,15 @@ class AltitudeArea(LevelGeometryMixin, models.Model):
                         area = touches[0].obj
                     elif touches:
                         min_touches = sum((t.value for t in touches), 0)/4
-                        area = max(touches, key=lambda item: (item.value > min_touches,
-                                                              item.obj.altitude2 is not None,
-                                                              item.obj.altitude,
-                                                              item.value)).obj
+                        area = max(touches, key=lambda item: (
+                            item.value > min_touches,
+                            item.obj.points is not None,
+                            item.obj.altitude or max(p.altitude for p in item.obj.points),
+                            item.value
+                        )).obj
                     else:
                         area = min(our_areas,
-                                   key=lambda a: a.orig_geometry.distance(center)-(0 if a.altitude2 is None else 0.6))
+                                   key=lambda a: a.orig_geometry.distance(center)-(0 if a.points is None else 0.6))
                     area.polygons_to_add.append(polygon)
 
             for i_area, area in enumerate(our_areas):
@@ -617,17 +623,16 @@ class AltitudeArea(LevelGeometryMixin, models.Model):
         for candidate in all_candidates:
             new_area = None
 
-            if candidate.altitude2 is None:
+            if candidate.points is None:
                 for tmpid in level_areas.get(candidate.level, set()):
                     area = areas[tmpid]
-                    if area.altitude2 is None and area.altitude == candidate.altitude:
+                    if area.points is None and area.altitude == candidate.altitude:
                         new_area = area
                         break
             else:
                 potential_areas = [areas[tmpid] for tmpid in level_areas.get(candidate.level, set())]
                 potential_areas = [area for area in potential_areas
-                                   if (candidate.altitude, candidate.altitude2) in ((area.altitude, area.altitude2),
-                                                                                    (area.altitude2, area.altitude))]
+                                   if set(p.altitude for p in candidate.points) == set(p.altitude for p in area.points)]
                 potential_areas = [(area, area.geometry.intersection(unwrap_geom(candidate.geometry)).area)
                                    for area in potential_areas
                                    if candidate.geometry_prep.intersects(unwrap_geom(area.geometry))]
@@ -644,9 +649,7 @@ class AltitudeArea(LevelGeometryMixin, models.Model):
 
             candidate.geometry = new_area.geometry
             candidate.altitude = new_area.altitude
-            candidate.altitude2 = new_area.altitude2
-            candidate.point1 = new_area.point1
-            candidate.point2 = new_area.point2
+            candidate.points = new_area.points
             candidate.save()
             areas_to_save.discard(new_area.tmpid)
             level_areas[new_area.level].discard(new_area.tmpid)

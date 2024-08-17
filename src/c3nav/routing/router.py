@@ -135,7 +135,7 @@ class Router:
                         if area_clear_geom.is_empty:
                             continue
                         area = RouterAltitudeArea(subgeom, area_clear_geom,
-                                                  area.altitude, area.altitude2, area.point1, area.point2)
+                                                  area.altitude, area.points)
                         area_nodes = tuple(node for node in space_nodes if area.geometry_prep.intersects(node.point))
                         area.nodes = set(node.i for node in area_nodes)
                         for node in area_nodes:
@@ -625,13 +625,11 @@ class RouterPoint(BaseRouterProxy):
 
 
 class RouterAltitudeArea:
-    def __init__(self, geometry, clear_geometry, altitude, altitude2, point1, point2):
+    def __init__(self, geometry, clear_geometry, altitude, points):
         self.geometry = geometry
         self.clear_geometry = clear_geometry
         self.altitude = altitude
-        self.altitude2 = altitude2
-        self.point1 = point1
-        self.point2 = point2
+        self.points = points
         self.nodes = frozenset()
         self.fallback_nodes = {}
 

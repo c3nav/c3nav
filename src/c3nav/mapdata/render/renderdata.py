@@ -227,9 +227,7 @@ class LevelRenderData:
                         new_altitudearea = AltitudeAreaGeometries()
                         new_altitudearea.geometry = new_geometry
                         new_altitudearea.altitude = altitudearea.altitude
-                        new_altitudearea.altitude2 = altitudearea.altitude2
-                        new_altitudearea.point1 = altitudearea.point1
-                        new_altitudearea.point2 = altitudearea.point2
+                        new_altitudearea.points = altitudearea.points
 
                         new_colors = {}
                         for color, areas in altitudearea.colors.items():
