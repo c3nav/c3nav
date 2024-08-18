@@ -85,7 +85,10 @@
                 </td>
                 <td>
                     {% if update.geometries_changed %}
-                        <strong class="green">{% trans 'Yes' %}</strong>
+                        <strong class="green">{% trans 'Yes' %}</strong> ({{ update.changed_geometries_summary.area|floatformat:3 }}m² total)<br>
+                        {% for area_of_level in update.changed_geometries_summary.area_by_level %}
+                            <strong>{{ area_of_level.level }}:</strong> {{ area_of_level.area|floatformat:3 }}m²
+                        {% endfor %}
                     {% else %}
                         {% trans 'No' %}
                     {% endif %}

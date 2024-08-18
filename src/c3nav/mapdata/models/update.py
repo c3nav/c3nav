@@ -3,6 +3,7 @@ import os
 import pickle
 import time
 from contextlib import contextmanager, suppress
+from functools import cached_property
 from sqlite3 import DatabaseError
 
 from django.conf import settings
@@ -11,8 +12,10 @@ from django.db import models, transaction
 from django.utils.http import int_to_base36
 from django.utils.timezone import make_naive
 from django.utils.translation import gettext_lazy as _
+from shapely.ops import unary_union
 
 from c3nav.mapdata.tasks import process_map_updates
+from c3nav.mapdata.utils.cache.changes import GeometryChangeTracker
 
 
 class MapUpdate(models.Model):
@@ -106,6 +109,34 @@ class MapUpdate(models.Model):
     def _changed_geometries_filename(self):
         return settings.CACHE_ROOT / 'changed_geometries' / ('update_%d.pickle' % self.pk)
 
+    def get_changed_geometries(self) -> GeometryChangeTracker | None:
+        try:
+            return pickle.load(open(self._changed_geometries_filename(), 'rb'))
+        except FileNotFoundError:
+            return None
+
+    @cached_property
+    def changed_geometries_summary(self):
+        if self.pk is None:
+            return None
+        cache_key = f"mapdata:changed_geometries_summary:{self.pk}"
+        result = cache.get(cache_key, None)
+        if result is None:
+            changes = self.get_changed_geometries()
+            from c3nav.mapdata.models import Level
+            level_titles = dict(Level.objects.all().values_list('pk', 'short_label'))
+            result = {
+                "area": changes.area,
+                "area_by_level": [
+                    {
+                        "level": level_titles.get(level_id, f"(unknown level #{level_id}"),
+                        "area": unary_union(geometries).area,
+                    } for level_id, geometries in changes._geometries_by_level.items()
+                ]
+            }
+            cache.set(cache_key, result, 86400)
+        return result
+
     class ProcessUpdatesAlreadyRunning(Exception):
         pass
 
@@ -158,9 +189,8 @@ class MapUpdate(models.Model):
                 for new_update in new_updates:
                     logger.info('Applying changed geometries from MapUpdate #%(id)s (%(type)s)...' %
                                 {'id': new_update.pk, 'type': new_update.type})
-                    try:
-                        new_changes = pickle.load(open(new_update._changed_geometries_filename(), 'rb'))
-                    except FileNotFoundError:
+                    new_changes = new_update.get_changed_geometries()
+                    if new_changes is None:
                         logger.warning('changed_geometries pickle file not found.')
                     else:
                         logger.info('%.3f m² affected by this update.' % new_changes.area)
