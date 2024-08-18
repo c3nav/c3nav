@@ -744,6 +744,49 @@ class LocationDisplay(BaseSchema):
                 "url": "https://example.com/",
             })
         ]
+    ),
+    display_extended: list[
+        tuple[
+            Annotated[NonEmptyStr, APIField(title="field title")],
+            Annotated[Union[
+                Annotated[str, APIField(title="a simple string value")],
+                Annotated[DisplayLink, APIField(title="a link value")],
+                Annotated[list[DisplayLink], APIField(title="a list of link values")],
+                Annotated[DisplayURL, APIField(title="an URL value")],
+                Annotated[None, APIField(title="no value")]
+            ], APIField(title="field value", union_mode='left_to_right')]
+        ]
+    ] = APIField(
+        title="display fields",
+        description="a list of human-readable display values, extended view",
+        example=[
+            ("Title", "Awesome location"),
+            ("Access Restriction", None),
+            ("Level", {
+                "id": 2,
+                "slug": "level0",
+                "title": "Ground Floor",
+                "can_search": True,
+            }),
+            ("Groups", [
+                {
+                    "id": 10,
+                    "slug": "entrances",
+                    "title": "Entrances",
+                    "can_search": True,
+                },
+                {
+                    "id": 11,
+                    "slug": "startswithe",
+                    "title": "Locations that Start with E",
+                    "can_search": False,
+                }
+            ]),
+            ("External URL", {
+                "title": "Open",
+                "url": "https://example.com/",
+            })
+        ]
     )
     geometry: Union[
         GeometrySchema,

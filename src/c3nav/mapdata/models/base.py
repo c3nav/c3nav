@@ -40,6 +40,9 @@ class SerializableMixin(models.Model):
             'id': self.pk,
             'display': [
                 (_('Type'), str(self.__class__._meta.verbose_name)),
+
+            ],
+            'display_extended': [
                 (_('ID'), str(self.pk)),
             ]
         }

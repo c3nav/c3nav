@@ -89,7 +89,7 @@ class SpaceGeometryMixin(GeometryMixin):
 
     def details_display(self, **kwargs):
         result = super().details_display(**kwargs)
-        result['display'].insert(3, (
+        result['display_extended'].insert(2, (
             _('Space'),
             {
                 'id': self.space_id,

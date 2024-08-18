@@ -92,7 +92,7 @@ class LocationSlug(SerializableMixin, models.Model):
 
     def details_display(self, **kwargs):
         result = super().details_display(**kwargs)
-        result['display'].insert(2, (_('Slug'), self.get_slug()))
+        result['display_extended'].insert(1, (_('Slug'), self.get_slug()))
         return result
 
     @cached_property
@@ -137,7 +137,7 @@ class Location(LocationSlug, AccessRestrictionMixin, TitledMixin, models.Model):
 
     def details_display(self, **kwargs):
         result = super().details_display(**kwargs)
-        result['display'].extend([
+        result['display_extended'].extend([
             (_('searchable'), _('Yes') if self.can_search else _('No')),
             (_('can describe'), _('Yes') if self.can_describe else _('No')),
             (_('icon'), self.get_icon()),
@@ -238,9 +238,13 @@ class SpecificLocation(Location, models.Model):
             result['display'].insert(3, (
                 category.title if category.single else category.title_plural,
                 tuple({
+                    'title': group.title,
+                } for group in sorted(groups, key=attrgetter('priority'), reverse=True))
+            ))
+            result['display_extended'].insert(3, (
+                tuple({
                     'id': group.pk,
                     'slug': group.get_slug(),
-                    'title': group.title,
                     'can_search': group.can_search,
                 } for group in sorted(groups, key=attrgetter('priority'), reverse=True))
             ))
@@ -406,7 +410,7 @@ class LocationGroup(Location, models.Model):
     def details_display(self, editor_url=True, **kwargs):
         result = super().details_display(**kwargs)
         result['display'].insert(3, (_('Category'), self.category.title))
-        result['display'].extend([
+        result['display_extended'].extend([
             (_('color'), self.color),
             (_('priority'), str(self.priority)),
         ])
@@ -698,13 +702,15 @@ class Position(CustomLocationProxyMixin, models.Model):
             'id': self.pk,
             'display': [
                 (_('Type'), self.__class__._meta.verbose_name),
+            ],
+            'display_extended': [
                 (_('ID'), str(self.pk)),
                 (_('Title'), self.name),
                 (_('Slug'), self.slug),
                 (_('searchable'), _('No')),
                 (_('can describe'), _('No')),
                 (_('icon'), None),
-            ],
+            ]
         }
 
     def get_geometry(self, *args, **kwargs):

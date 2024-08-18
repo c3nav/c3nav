@@ -338,8 +338,6 @@ class CustomLocation:
             'id': self.pk,
             'display': [
                 (_('Type'), _('Coordinates')),
-                (_('ID'), self.pk),
-                (_('Slug'), self.pk),
                 (_('Level'), {
                     'id': self.level.pk,
                     'slug': self.level.get_slug(),
@@ -374,13 +372,17 @@ class CustomLocation:
                 (_('X Coordinate'), str(self.x)),
                 (_('Y Coordinate'), str(self.y)),
                 (_('Altitude'), None if self.altitude is None else str(round(self.altitude, 2))),
+            ],
+            'display_extended': [
+                (_('ID'), self.pk),
+                (_('Slug'), self.pk),
                 (_('Title'), self.title),
                 (_('Subtitle'), self.subtitle),
             ],
             'geometry': self.serialized_geometry,
         }
         if not grid.enabled:
-            result['display'].pop(6)
+            result['display'].pop(4)
         return result
 
     def get_geometry(self, detailed_geometry=True):

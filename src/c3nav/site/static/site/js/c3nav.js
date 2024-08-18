@@ -440,15 +440,11 @@ c3nav = {
                 })
         }
     },
-    _location_details_loaded: function(data) {
-        var $location_details = $('#location-details');
-        if ($location_details.attr('data-id') !== String(data.id)) {
-            // loaded too late, information no longer needed
-            return;
-        }
-        var line, sublocations, loc, loclist, elem = $('<dl>');
-        for (var i = 0; i < data.display.length; i++) {
-            line = data.display[i];
+
+    _details_convertToDisplay: function(arr) {
+        let line, sublocations, loc, loclist, elem = $('<dl>');
+        for (let i = 0; i < arr.length; i++) {
+            line = arr[i];
             elem.append($('<dt>').text(line[0]));
             if (typeof line[1] === 'string') {
                 elem.append($('<dd>').text(line[1]));
@@ -461,7 +457,7 @@ c3nav = {
             } else {
                 sublocations = (line[1].length === undefined) ? [line[1]] : line[1];
                 loclist = $('<dd>');
-                for (var j = 0; j < sublocations.length; j++) {
+                for (let j = 0; j < sublocations.length; j++) {
                     loc = sublocations[j];
                     if (loc.can_search) {
                         loclist.append($('<a>').attr('href', '/l/' + loc.slug + '/details/').attr('data-id', loc.id).click(function (e) {
@@ -476,9 +472,39 @@ c3nav = {
                 elem.append(loclist);
             }
         }
-        $location_details.find('.details-body').html('').append(elem);
+        return elem;
+    },
 
-        var $editor = $location_details.find('.editor');
+    _location_details_loaded: function(data) {
+        const $location_details = $('#location-details');
+        if ($location_details.attr('data-id') !== String(data.id)) {
+            // loaded too late, information no longer needed
+            return;
+        }
+        const $location_details_body = $location_details.find('.details-body')
+        const $details = $('<div>');
+        $details.append(c3nav._details_convertToDisplay(data.display))
+
+        if (data.display_extended) {
+            const $extended = $('<div class="extended-details">')
+            $extended.append([
+                $('<hr>'),
+                c3nav._details_convertToDisplay(data.display_extended)
+            ]);
+            $extended.hide();
+            const $extended_button = $('<a class="button button-clear extended-details">' +
+                '<i class="material-symbols">code</i> ' +
+                $location_details_body.attr("data-trans-moredetails") +
+                '</a>')
+            $extended_button.on("click", ()=>{$extended.show(); $extended_button.hide(); });
+            $details.append([
+                $extended_button,
+                $extended
+            ]);
+        }
+        $location_details_body.html('').append($details);
+
+        const $editor = $location_details.find('.editor');
         if (data.editor_url) {
             $editor.attr('href', data.editor_url).show();
         } else {

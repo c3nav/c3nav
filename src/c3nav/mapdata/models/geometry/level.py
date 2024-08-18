@@ -54,7 +54,7 @@ class LevelGeometryMixin(GeometryMixin):
 
     def details_display(self, **kwargs):
         result = super().details_display(**kwargs)
-        result['display'].insert(3, (
+        result['display_extended'].insert(1, (
             _('Level'),
             {
                 'id': self.level_id,
@@ -139,7 +139,7 @@ class Space(LevelGeometryMixin, SpecificLocation, models.Model):
 
     def details_display(self, editor_url=True, **kwargs):
         result = super().details_display(**kwargs)
-        result['display'].extend([
+        result['display_extended'].extend([
             (_('height'), self.height),
             (_('outside only'), _('Yes') if self.outside else _('No')),
         ])
