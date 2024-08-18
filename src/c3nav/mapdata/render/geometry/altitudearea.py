@@ -64,7 +64,7 @@ class AltitudeAreaGeometries:
                 area.remove_faces(faces)
 
     def create_polyhedrons(self, create_polyhedron, altitudes, min_altitude, crops):
-        if self.altitude2 is None:
+        if self.points is None:
             altitudes = self.altitude
 
         self.base = HybridGeometry(self.geometry.geom, self.geometry.faces)
