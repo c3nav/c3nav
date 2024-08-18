@@ -1,4 +1,5 @@
 import mimetypes
+import pickle
 import typing
 from contextlib import suppress
 
@@ -19,6 +20,7 @@ from c3nav.editor.utils import DefaultEditUtils, LevelChildEditUtils, SpaceChild
 from c3nav.editor.views.base import (APIHybridError, APIHybridFormTemplateResponse, APIHybridLoginRequiredResponse,
                                      APIHybridMessageRedirectResponse, APIHybridTemplateContextResponse,
                                      editor_etag_func, sidebar_view)
+from c3nav.mapdata.models import MapUpdate
 from c3nav.mapdata.models.access import AccessPermission
 from c3nav.mapdata.utils.user import can_access_editor
 
@@ -760,3 +762,42 @@ def sourceimage(request, filename):
                             content_type=mimetypes.guess_type(filename)[0])
     except FileNotFoundError:
         raise Http404
+
+
+@etag(editor_etag_func)
+@sidebar_view
+def mapupdate_viz(request, level, pk):
+    if not request.user_permissions.can_access_base_mapdata:
+        raise PermissionDenied
+    if not request.user.is_superuser:
+        raise PermissionDenied
+
+    Level = request.changeset.wrap_model('Level')
+    update = get_object_or_404(MapUpdate, pk=pk)
+
+    ctx = {
+        'path': request.path,
+        'levels': Level.objects.filter(Level.q_for_request(request), on_top_of__isnull=True),
+        'level_url': 'editor.levels.mapupdate',
+        "pk": pk,
+        "level_with_pk": True,
+        "update": update,
+    }
+
+    level = get_object_or_404(Level.objects.filter(Level.q_for_request(request)), pk=level)
+    ctx.update({
+        'level': level,
+        'geometry_url': '/api/v2/editor/geometries/level/'+str(level.primary_level_pk),
+    })
+
+    try:
+        new_changes = pickle.load(open(update._changed_geometries_filename(), 'rb'))
+    except FileNotFoundError:
+        pass
+    else:
+        ctx.update({
+            "area": new_changes.area,
+            "by_level": new_changes._geometries_by_level
+        })
+
+    return render(request, 'editor/mapupdate.html', ctx)

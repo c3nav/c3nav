@@ -2,14 +2,14 @@
     <ul data-levels>
         {% for l in levels %}
             <li>
-                <a data-id="{{ l.pk }}" href="{% if level_as_pk %}{% url level_url pk=l.id %}{% else %}{% url level_url level=l.id %}{% endif %}"{% if level.primary_level == l %} class="current"{% endif %}>{{ l.title }}</a>
+                <a data-id="{{ l.pk }}" href="{% if level_as_pk %}{% url level_url pk=l.id %}{% elif level_with_pk %}{% url level_url level=l.id pk=pk %}{% else %}{% url level_url level=l.id %}{% endif %}"{% if level.primary_level == l %} class="current"{% endif %}>{{ l.title }}</a>
             </li>
         {% endfor %}
     </ul>
     <ul data-sublevels>
         {% for l in level.primary_level.sublevels %}
             <li>
-                <a data-id="{{ l.pk }}" href="{% if level_as_pk %}{% url level_url pk=l.id %}{% else %}{% url level_url level=l.id %}{% endif %}"{% if level == l %} class="current"{% endif %}>{{ l.sublevel_title }}</a>
+                <a data-id="{{ l.pk }}" href="{% if level_as_pk %}{% url level_url pk=l.id %}{% elif level_with_pk %}{% url level_url level=l.id pk=pk %}{% else %}{% url level_url level=l.id %}{% endif %}"{% if level == l %} class="current"{% endif %}>{{ l.sublevel_title }}</a>
             </li>
         {% endfor %}
     </ul>

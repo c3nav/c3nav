@@ -4,7 +4,7 @@ from django.urls import path, register_converter
 from c3nav.editor.converters import EditPkConverter
 from c3nav.editor.views.account import change_password_view, login_view, logout_view, register_view
 from c3nav.editor.views.changes import changeset_detail, changeset_edit, changeset_redirect
-from c3nav.editor.views.edit import edit, graph_edit, level_detail, list_objects, main_index, sourceimage, space_detail
+from c3nav.editor.views.edit import edit, graph_edit, level_detail, list_objects, main_index, sourceimage, space_detail, mapupdate_viz
 from c3nav.editor.views.users import user_detail, user_redirect
 
 register_converter(EditPkConverter, 'editpk')
@@ -41,6 +41,7 @@ urlpatterns = [
     path('levels/<editpk:on_top_of>/levels_on_top/create', edit, {'model': 'Level'},
          name='editor.levels_on_top.create'),
     path('levels/<editpk:level>/graph/', graph_edit, name='editor.levels.graph'),
+    path('levels/<editpk:level>/mapupdate/<int:pk>/', mapupdate_viz, name='editor.levels.mapupdate'),
     path('spaces/<editpk:space>/graph/', graph_edit, name='editor.spaces.graph'),
     path('changeset/', changeset_redirect, name='editor.changesets.current'),
     path('changesets/<editpk:pk>/', changeset_detail, name='editor.changesets.detail'),
