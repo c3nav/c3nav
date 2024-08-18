@@ -159,13 +159,13 @@ class Location(LocationSlug, AccessRestrictionMixin, TitledMixin, models.Model):
     def grid_square(self):
         return None
 
-    def get_color(self, color_manager: 'ThemeColorManager', instance=None):
-        # dont filter in the query here so prefetch_related works
+    def get_color(self, color_manager: 'ThemeColorManager', instance=None) -> str | None:
+        # don't filter in the query here so prefetch_related works
         result = self.get_color_sorted(color_manager, instance)
         return None if result is None else result[1]
 
-    def get_color_sorted(self, color_manager: 'ThemeColorManager', instance=None):
-        # dont filter in the query here so prefetch_related works
+    def get_color_sorted(self, color_manager: 'ThemeColorManager', instance=None) -> tuple[tuple, str] | None:
+        # don't filter in the query here so prefetch_related works
         if instance is None:
             instance = self
         for group in instance.groups.all():

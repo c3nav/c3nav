@@ -1,14 +1,17 @@
 import operator
 import typing
 from collections import Counter, deque
+from dataclasses import dataclass
 from functools import reduce
 from itertools import chain
 
 import numpy as np
+from django.db.backends.ddl_references import Columns
 from shapely import prepared
-from shapely.geometry import GeometryCollection
+from shapely.geometry import GeometryCollection, Polygon, MultiPolygon
 from shapely.ops import unary_union
 
+from c3nav.mapdata.models import Area, Space
 from c3nav.mapdata.render.geometry.altitudearea import AltitudeAreaGeometries
 from c3nav.mapdata.render.geometry.hybrid import HybridGeometry
 from c3nav.mapdata.render.geometry.mesh import Mesh
@@ -20,6 +23,9 @@ if typing.TYPE_CHECKING:
     from c3nav.mapdata.render.theme import ThemeColorManager
 
 empty_geometry_collection = GeometryCollection()
+
+
+ZeroOrMorePolygons: typing.TypeAlias = GeometryCollection | Polygon | MultiPolygon
 
 
 class LevelGeometries:
@@ -65,15 +71,19 @@ class LevelGeometries:
     def __repr__(self):
         return '<LevelGeometries for Level %s (#%d)>' % (self.short_label, self.pk)
 
-    @classmethod
-    def build_for_level(cls, level, color_manager: 'ThemeColorManager', altitudeareas_above):
-        geoms = LevelGeometries()
-        buildings_geom = unary_union([unwrap_geom(b.geometry) for b in level.buildings.all()])
-        geoms.buildings = buildings_geom
-        buildings_geom_prep = prepared.prep(buildings_geom)
+    @dataclass
+    class SpaceGeometries:
+        geometry: ZeroOrMorePolygons
+        holes_geom: ZeroOrMorePolygons
+        walkable_geom: ZeroOrMorePolygons
 
-        # remove columns and holes from space areas
+        instance: Space
+
+    @classmethod
+    def spaces_for_level(cls, level, buildings_geom) -> list[SpaceGeometries]:
+        spaces: list[cls.SpaceGeometries] = []
         for space in level.spaces.all():
+            geometry = space.geometry
             subtract = []
             if space.outside:
                 subtract.append(buildings_geom)
@@ -81,44 +91,65 @@ class LevelGeometries:
             if columns:
                 subtract.extend(columns)
             if subtract:
-                space.geometry = space.geometry.difference(unary_union([unwrap_geom(geom) for geom in subtract]))
+                geometry = geometry.difference(unary_union([unwrap_geom(geom) for geom in subtract]))
 
             holes = tuple(h.geometry for h in space.holes.all())
             if holes:
-                space.holes_geom = unary_union([unwrap_geom(h.geometry) for h in space.holes.all()])
-                space.walkable_geom = space.geometry.difference(space.holes_geom)
-                space.holes_geom = space.geometry.intersection(space.holes_geom)
+                holes_geom = unary_union([unwrap_geom(h.geometry) for h in space.holes.all()])
+                walkable_geom = space.geometry.difference(holes_geom)
+                holes_geom = space.geometry.intersection(holes_geom)
             else:
-                space.holes_geom = empty_geometry_collection
-                space.walkable_geom = space.geometry
+                holes_geom = empty_geometry_collection
+                walkable_geom = geometry
+            spaces.append(cls.SpaceGeometries(
+                geometry=geometry,
+                holes_geom=holes_geom,
+                walkable_geom=walkable_geom,
 
-        spaces_geom = unary_union([unwrap_geom(s.geometry) for s in level.spaces.all()])
-        doors_geom = unary_union([unwrap_geom(d.geometry) for d in level.doors.all()])
-        doors_geom = doors_geom.intersection(buildings_geom)
-        walkable_spaces_geom = unary_union([unwrap_geom(s.walkable_geom) for s in level.spaces.all()])
-        geoms.doors = doors_geom.difference(walkable_spaces_geom)
-        if level.on_top_of_id is None:
-            geoms.holes = unary_union([s.holes_geom for s in level.spaces.all()])
+                instance=space,
+            ))
+        return spaces
+
+    @dataclass
+    class Analysis:
+        access_restriction_affected: dict[int, list[ZeroOrMorePolygons]]
+
+        restricted_spaces_indoors: dict[int, list[ZeroOrMorePolygons]]
+        restricted_spaces_outdoors: dict[int, list[ZeroOrMorePolygons]]
+
+        colors: dict[tuple, dict[int, ZeroOrMorePolygons]]
+        obstacles: dict[int, dict[str | None, list[ZeroOrMorePolygons]]]
+        heightareas: dict[int, list[ZeroOrMorePolygons]]
+
+        ramps: list[ZeroOrMorePolygons]
+
+    @classmethod
+    def analyze_spaces(cls, level, spaces: list[SpaceGeometries], walkable_spaces_geom: ZeroOrMorePolygons,
+                       buildings_geom: ZeroOrMorePolygons, color_manager: 'ThemeColorManager') -> Analysis:
+        buildings_geom_prep = prepared.prep(buildings_geom)
 
         # keep track which areas are affected by access restrictions
-        access_restriction_affected = {}
+        access_restriction_affected: dict[int, list[ZeroOrMorePolygons]] = {}
 
         # keep track wich spaces to hide
-        restricted_spaces_indoors = {}
-        restricted_spaces_outdoors = {}
+        restricted_spaces_indoors: dict[int, list[ZeroOrMorePolygons]] = {}
+        restricted_spaces_outdoors: dict[int, list[ZeroOrMorePolygons]] = {}
 
         # go through spaces and their areas for access control, ground colors, height areas and obstacles
-        colors = {}
-        obstacles = {}
-        heightareas = {}
-        for space in level.spaces.all():
+        colors: dict[tuple | None, dict[int, list[ZeroOrMorePolygons]]] = {}
+        obstacles: dict[int, dict[str | None, list[ZeroOrMorePolygons]]] = {}
+        heightareas: dict[int, list[ZeroOrMorePolygons]] = {}
+
+        ramps: list[ZeroOrMorePolygons] = []
+
+        for space in spaces:
             buffered = space.geometry.buffer(0.01).union(unary_union(tuple(
                 unwrap_geom(door.geometry)
                 for door in level.doors.all() if door.geometry.intersects(unwrap_geom(space.geometry))
             )).difference(walkable_spaces_geom))
             intersects = buildings_geom_prep.intersects(buffered)
 
-            access_restriction = space.access_restriction_id
+            access_restriction: int = space.instance.access_restriction_id  # noqa
             if access_restriction is not None:
                 access_restriction_affected.setdefault(access_restriction, []).append(space.geometry)
 
@@ -131,12 +162,13 @@ class LevelGeometries:
                         buffered.difference(buildings_geom)
                     )
 
-            colors.setdefault(space.get_color_sorted(color_manager), {}).setdefault(access_restriction, []).append(
+            colors.setdefault(space.instance.get_color_sorted(color_manager), {}).setdefault(access_restriction,
+                                                                                             []).append(
                 unwrap_geom(space.geometry)
             )
 
-            for area in space.areas.all():
-                access_restriction = area.access_restriction_id or space.access_restriction_id
+            for area in space.instance.areas.all():  # noqa
+                access_restriction = area.access_restriction_id or space.instance.access_restriction_id
                 area.geometry = area.geometry.intersection(unwrap_geom(space.walkable_geom))
                 if access_restriction is not None:
                     access_restriction_affected.setdefault(access_restriction, []).append(area.geometry)
@@ -144,7 +176,7 @@ class LevelGeometries:
                     area.get_color_sorted(color_manager), {}
                 ).setdefault(access_restriction, []).append(area.geometry)
 
-            for column in space.columns.all():
+            for column in space.instance.columns.all():  # noqa
                 access_restriction = column.access_restriction_id
                 if access_restriction is None:
                     continue
@@ -156,37 +188,81 @@ class LevelGeometries:
                     restricted_spaces_outdoors.setdefault(access_restriction, []).append(buffered_column)
                 access_restriction_affected.setdefault(access_restriction, []).append(column.geometry)
 
-            for obstacle in sorted(space.obstacles.all(), key=lambda o: o.height+o.altitude):
+            for obstacle in sorted(space.instance.obstacles.all(), key=lambda o: o.height + o.altitude):  # noqa
                 if not obstacle.height:
                     continue
                 obstacles.setdefault(
-                    int((obstacle.height+obstacle.altitude)*1000), {}
+                    int((obstacle.height + obstacle.altitude) * 1000), {}
                 ).setdefault(obstacle.get_color(color_manager), []).append(
                     obstacle.geometry.intersection(unwrap_geom(space.walkable_geom))
                 )
 
-            for lineobstacle in space.lineobstacles.all():
+            for lineobstacle in space.instance.lineobstacles.all():  # noqa
                 if not lineobstacle.height:
                     continue
-                obstacles.setdefault(int(lineobstacle.height*1000), {}).setdefault(
+                obstacles.setdefault(int(lineobstacle.height * 1000), {}).setdefault(
                     lineobstacle.get_color(color_manager), []
                 ).append(
                     lineobstacle.buffered_geometry.intersection(unwrap_geom(space.walkable_geom))
                 )
 
-            geoms.ramps.extend(ramp.geometry for ramp in space.ramps.all())
+            ramps.extend(ramp.geometry for ramp in space.instance.ramps.all())  # noqa
 
-            heightareas.setdefault(int((space.height or level.default_height)*1000), []).append(
+            heightareas.setdefault(int((space.instance.height or level.default_height) * 1000), []).append(
                 unwrap_geom(space.geometry)
             )
         colors.pop(None, None)
 
+        new_colors: dict[tuple, dict[int, ZeroOrMorePolygons]] = {}
+
         # merge ground colors
         for color, color_group in colors.items():
+            new_color_group = {}
+            new_colors[color] = new_color_group
             for access_restriction, areas in tuple(color_group.items()):
-                color_group[access_restriction] = unary_union(areas)
+                new_color_group[access_restriction] = unary_union(areas)
 
-        colors = {color: geometry for color, geometry in sorted(colors.items(), key=lambda v: v[0][0])}
+        new_colors = {color: geometry for color, geometry in sorted(new_colors.items(), key=lambda v: v[0][0])}
+
+        return cls.Analysis(
+            access_restriction_affected=access_restriction_affected,
+
+            restricted_spaces_indoors=restricted_spaces_indoors,
+            restricted_spaces_outdoors=restricted_spaces_outdoors,
+
+            colors=new_colors,
+            obstacles=obstacles,
+            heightareas=heightareas,
+
+            ramps=ramps,
+        )
+
+    @classmethod
+    def build_for_level(cls, level, color_manager: 'ThemeColorManager', altitudeareas_above):
+        geoms = LevelGeometries()
+        buildings_geom = unary_union([unwrap_geom(b.geometry) for b in level.buildings.all()])
+
+        # remove columns and holes from space areas
+        spaces = cls.spaces_for_level(level, buildings_geom)
+
+        spaces_geom = unary_union([unwrap_geom(space.geometry) for space in spaces])
+        doors_geom = unary_union([unwrap_geom(d.geometry) for d in level.doors.all()])
+        doors_geom = doors_geom.intersection(buildings_geom)
+        walkable_spaces_geom = unary_union([unwrap_geom(space.walkable_geom) for space in spaces])
+        doors_geom = doors_geom.difference(walkable_spaces_geom)
+        if level.on_top_of_id is None:
+            geoms.holes = unary_union([s.holes_geom for s in spaces])
+
+        analysis = cls.analyze_spaces(
+            level=level,
+            spaces=spaces,
+            walkable_spaces_geom=walkable_spaces_geom,
+            buildings_geom=buildings_geom,
+            color_manager=color_manager
+        )
+
+        geoms.buildings = buildings_geom
+        geoms.doors = doors_geom
 
         # add altitudegroup geometries and split ground colors into them
         for altitudearea in level.altitudeareas.all():
@@ -194,11 +270,11 @@ class LevelGeometries:
             altitudearea_colors = {color: {access_restriction: area.intersection(unwrap_geom(altitudearea.geometry))
                                            for access_restriction, area in areas.items()
                                            if altitudearea_prep.intersects(area)}
-                                   for color, areas in colors.items()}
+                                   for color, areas in analysis.colors.items()}
             altitudearea_colors = {color: areas for color, areas in altitudearea_colors.items() if areas}
 
             altitudearea_obstacles = {}
-            for height, height_obstacles in obstacles.items():
+            for height, height_obstacles in analysis.obstacles.items():
                 new_height_obstacles = {}
                 for color, color_obstacles in height_obstacles.items():
                     new_color_obstacles = []
@@ -216,15 +292,21 @@ class LevelGeometries:
 
         # merge height areas
         geoms.heightareas = tuple((unary_union(geoms), height)
-                                  for height, geoms in sorted(heightareas.items(), key=operator.itemgetter(0)))
+                                  for height, geoms in sorted(analysis.heightareas.items(), key=operator.itemgetter(0)))
 
         # merge access restrictions
-        geoms.access_restriction_affected = {access_restriction: unary_union([unwrap_geom(geom) for geom in areas])
-                                             for access_restriction, areas in access_restriction_affected.items()}
-        geoms.restricted_spaces_indoors = {access_restriction: unary_union(spaces)
-                                           for access_restriction, spaces in restricted_spaces_indoors.items()}
-        geoms.restricted_spaces_outdoors = {access_restriction: unary_union(spaces)
-                                            for access_restriction, spaces in restricted_spaces_outdoors.items()}
+        geoms.access_restriction_affected = {
+            access_restriction: unary_union([unwrap_geom(geom) for geom in areas])
+            for access_restriction, areas in analysis.access_restriction_affected.items()
+        }
+        geoms.restricted_spaces_indoors = {
+            access_restriction: unary_union(spaces)
+            for access_restriction, spaces in analysis.restricted_spaces_indoors.items()
+        }
+        geoms.restricted_spaces_outdoors = {
+            access_restriction: unary_union(spaces)
+            for access_restriction, spaces in analysis.restricted_spaces_outdoors.items()
+        }
 
         AccessRestrictionAffected.build(geoms.access_restriction_affected).save_level(level.pk, 'base')
 
