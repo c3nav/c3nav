@@ -123,6 +123,8 @@ class MapUpdate(models.Model):
         result = cache.get(cache_key, None)
         if result is None:
             changes = self.get_changed_geometries()
+            if changes is None:
+                return None
             from c3nav.mapdata.models import Level
             level_titles = dict(Level.objects.all().values_list('pk', 'short_label'))
             result = {

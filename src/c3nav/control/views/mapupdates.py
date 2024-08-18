@@ -59,7 +59,7 @@ def map_updates(request):  # todo: make class based view
             queryset = queryset.filter(user_id=request.GET['user_id'])
 
     paginator = Paginator(queryset, 20)
-    users = paginator.page(page)
+    updates = paginator.page(page)
 
     last_processed, last_processed_success = cache.get('mapdata:last_process_updates_run', (None, None))
     if last_processed:
@@ -76,5 +76,5 @@ def map_updates(request):  # todo: make class based view
         'auto_process_updates': settings.AUTO_PROCESS_UPDATES,
         'map_update_form': map_update_form,
         'filter_form': filter_form,
-        'updates': users,
+        'updates': updates,
     })
