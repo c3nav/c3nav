@@ -37,7 +37,7 @@ class FirmwaresCurrentListView(MeshControlMixin, TemplateView):
         }
 
 
-class OTACreateMixin(SuccessMessageMixin, FormMixin):
+class OTACreateMixin(SuccessMessageMixin, MeshControlMixin, FormMixin):
     form_class = OTACreateForm
     success_message = 'OTA have been created'
 
@@ -89,7 +89,7 @@ class FirmwareBuildDetailView(OTACreateMixin, MeshControlMixin, DetailView):
         }
 
 
-class OTAListView(ListView):
+class OTAListView(MeshControlMixin, ListView):
     model = OTAUpdate
     template_name = "mesh/ota_list.html"
     ordering = "-created"
