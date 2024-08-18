@@ -4,7 +4,7 @@ from c3nav.mapdata.render.renderdata import LevelRenderData
 
 
 def get_min_altitude(levels, default):
-    min_altitude = min(chain(*(tuple(area.altitude for area in geoms.altitudeareas)
+    min_altitude = min(chain(*(tuple(area.min_altitude for area in geoms.altitudeareas)
                                for geoms in levels)),
                        default=None)
     if min_altitude is None:

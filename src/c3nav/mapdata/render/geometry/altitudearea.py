@@ -4,6 +4,7 @@ from itertools import chain
 import numpy as np
 
 from c3nav.mapdata.models import AltitudeArea
+from c3nav.mapdata.models.geometry.level import AltitudeAreaPoint
 from c3nav.mapdata.render.geometry.hybrid import HybridGeometry
 
 
@@ -11,8 +12,10 @@ class AltitudeAreaGeometries:
     def __init__(self, altitudearea=None, colors=None, obstacles=None):
         if altitudearea is not None:
             self.geometry = altitudearea.geometry
-            self.altitude = int(altitudearea.altitude * 1000)
-            self.points = altitudearea.points
+            self.altitude = None if altitudearea.altitude is None else int(altitudearea.altitude * 1000)
+            self.points = None if altitudearea.points is None else [AltitudeAreaPoint(coordinates=p.coordinates,
+                                                                                      altitude=int(p.altitude*2))
+                                                                    for p in altitudearea.points]
         else:
             self.geometry = None
             self.altitude = None
@@ -21,6 +24,14 @@ class AltitudeAreaGeometries:
         self.bottom = None
         self.colors = colors
         self.obstacles = obstacles
+
+    @property
+    def min_altitude(self):
+        return self.altitude if self.altitude is not None else min(p.altitude for p in self.points)
+
+    @property
+    def max_altitude(self):
+        return self.altitude if self.altitude is not None else max(p.altitude for p in self.points)
 
     def get_altitudes(self, points):
         # noinspection PyCallByClass,PyTypeChecker

@@ -303,9 +303,9 @@ class LevelRenderData:
                     new_geoms.base_altitude = old_geoms.base_altitude
                     new_geoms.default_height = old_geoms.default_height
                     new_geoms.door_height = old_geoms.door_height
-                    new_geoms.min_altitude = (min(area.altitude for area in new_geoms.altitudeareas)
+                    new_geoms.min_altitude = (min(area.min_altitude for area in new_geoms.altitudeareas)
                                               if new_geoms.altitudeareas else new_geoms.base_altitude)
-                    new_geoms.max_altitude = (max(area.altitude for area in new_geoms.altitudeareas)
+                    new_geoms.max_altitude = (max(area.max_altitude for area in new_geoms.altitudeareas)
                                               if new_geoms.altitudeareas else new_geoms.base_altitude)
                     new_geoms.max_height = (min(height for area, height in new_geoms.heightareas)
                                             if new_geoms.heightareas else new_geoms.default_height)

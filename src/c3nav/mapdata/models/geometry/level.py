@@ -269,9 +269,9 @@ class AltitudeArea(LevelGeometryMixin, models.Model):
                         tuple(unwrap_geom(h.geometry) for h in space.holes.all()))
                 )
 
-                space_ramps = unary_union(tuple(unwrap_geom(r.geometry) for r in space.ramps.all()))
-                areas.append(space_accessible.difference(space_ramps))
-                for geometry in assert_multipolygon(space_accessible.intersection(space_ramps)):
+                space_ramps_geom = unary_union(tuple(unwrap_geom(r.geometry) for r in space.ramps.all()))
+                areas.append(space_accessible.difference(space_ramps_geom))
+                for geometry in assert_multipolygon(space_accessible.intersection(space_ramps_geom)):
                     ramp = AltitudeArea(geometry=geometry, level=level)
                     ramp.geometry_prep = prepared.prep(geometry)
                     ramp.space = space.pk
@@ -644,7 +644,8 @@ class AltitudeArea(LevelGeometryMixin, models.Model):
             else:
                 potential_areas = [areas[tmpid] for tmpid in level_areas.get(candidate.level, set())]
                 potential_areas = [area for area in potential_areas
-                                   if set(p.altitude for p in candidate.points) == set(p.altitude for p in area.points)]
+                                   if ((candidate.altitude, set(p.altitude for p in (candidate.points or ()))) ==
+                                       (area.altitude, set(p.altitude for p in (area.points or ()))))]
                 potential_areas = [(area, area.geometry.intersection(unwrap_geom(candidate.geometry)).area)
                                    for area in potential_areas
                                    if candidate.geometry_prep.intersects(unwrap_geom(area.geometry))]

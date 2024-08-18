@@ -16,8 +16,8 @@ def forwards_func(apps, schema_editor):
     for area in AltitudeArea.objects.all():
         if area.point1 is not None:
             area.points = [
-                AltitudeAreaPoint(coordinates=[area.point1.x, area.point1.y], altitude=float(area.altitude1)),
-                AltitudeAreaPoint(coordinates=[area.point2.x, area.point2.y], altitude=float(area.altitude))
+                AltitudeAreaPoint(coordinates=[area.point1.x, area.point1.y], altitude=float(area.altitude)),
+                AltitudeAreaPoint(coordinates=[area.point2.x, area.point2.y], altitude=float(area.altitude2))
             ]
             area.altitude = None
             area.save()
