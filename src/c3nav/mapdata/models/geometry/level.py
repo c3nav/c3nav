@@ -1,5 +1,5 @@
 import logging
-from collections import deque
+from collections import deque, namedtuple
 from decimal import Decimal
 from itertools import chain, combinations
 from operator import attrgetter, itemgetter
@@ -183,6 +183,9 @@ class AltitudeAreaPoint(BaseSchema):
     altitude: float
 
 
+RampConnectedTo = namedtuple('RampConnectedTo', ('area', 'intersections'))
+
+
 class AltitudeArea(LevelGeometryMixin, models.Model):
     """
     An altitude area
@@ -235,10 +238,11 @@ class AltitudeArea(LevelGeometryMixin, models.Model):
     @classmethod
     def recalculate(cls):
         # collect location areas
-        all_areas = []
-        all_ramps = []
-        space_areas = {}
-        spaces = {}
+        all_areas: list[AltitudeArea] = []  # all non-ramp altitude areas of the entire map
+        all_ramps: list[AltitudeArea] = []  # all ramp altitude areas of the entire map
+        space_areas: dict[int, list[AltitudeArea]] = {}  # all non-ramp altitude areas present in the given space
+        space_ramps: dict[int, list[AltitudeArea]] = {}  # all ramp altitude areas present in the given space
+        spaces: dict[int, list[Space]] = {}  # all spaces by space id
         levels = Level.objects.prefetch_related('buildings', 'doors', 'spaces', 'spaces__columns',
                                                 'spaces__obstacles', 'spaces__lineobstacles', 'spaces__holes',
                                                 'spaces__stairs', 'spaces__ramps',
@@ -246,9 +250,9 @@ class AltitudeArea(LevelGeometryMixin, models.Model):
         logger = logging.getLogger('c3nav')
 
         for level in levels:
-            areas = []
-            ramps = []
-            stairs = []
+            areas = []  # all altitude areas on this level that aren't ramps
+            ramps = []  # all altitude areas on this level that are ramps
+            stairs = []  # all stairs on this level
 
             # collect all accessible areas on this level
             buildings_geom = unary_union(tuple(unwrap_geom(building.geometry) for building in level.buildings.all()))
@@ -271,7 +275,9 @@ class AltitudeArea(LevelGeometryMixin, models.Model):
                     ramp = AltitudeArea(geometry=geometry, level=level)
                     ramp.geometry_prep = prepared.prep(geometry)
                     ramp.space = space.pk
+                    ramp.markers = []
                     ramps.append(ramp)
+                    space_ramps.setdefault(space.pk, []).append(ramp)
 
             areas = tuple(orient(polygon) for polygon in assert_multipolygon(
                 unary_union(areas+list(unwrap_geom(door.geometry) for door in level.doors.all()))
@@ -315,11 +321,16 @@ class AltitudeArea(LevelGeometryMixin, models.Model):
                             area.altitude = altitudemarker.altitude
                             break
                     else:
-                        logger.error(
-                            _('AltitudeMarker #%(marker_id)d in Space #%(space_id)d on Level %(level_label)s '
-                              'is not placed in an accessible area') % {'marker_id': altitudemarker.pk,
-                                                                        'space_id': space.pk,
-                                                                        'level_label': level.short_label})
+                        for ramp in space_ramps[space.pk]:
+                            if ramp.geometry_prep.contains(unwrap_geom(altitudemarker.geometry)):
+                                ramp.markers.append(altitudemarker)
+                                break
+                        else:
+                            logger.error(
+                                _('AltitudeMarker #%(marker_id)d in Space #%(space_id)d on Level %(level_label)s '
+                                  'is not placed in an accessible area') % {'marker_id': altitudemarker.pk,
+                                                                            'space_id': space.pk,
+                                                                            'level_label': level.short_label})
 
             # determine altitude area connections
             for area in areas:
@@ -335,15 +346,18 @@ class AltitudeArea(LevelGeometryMixin, models.Model):
                 buffered = ramp.geometry.buffer(0.001)
                 for area in areas:
                     if area.geometry_prep.intersects(buffered):
-                        intersection = area.geometry.intersection(buffered)
-                        ramp.connected_to.append((area, intersection))
-                if len(ramp.connected_to) != 2:
-                    if len(ramp.connected_to) == 0:
-                        logger.warning('A ramp in space #%d has no connections!' % ramp.space)
-                    elif len(ramp.connected_to) == 1:
-                        logger.warning('A ramp in space #%d has only one connection!' % ramp.space)
-                    else:
-                        logger.warning('A ramp in space #%d has more than two connections!' % ramp.space)
+                        intersections = []
+                        for area_polygon in assert_multipolygon(area.geometry):
+                            for ring in chain([area_polygon.exterior], area_polygon.interiors):
+                                if ring.intersects(buffered):
+                                    intersections.append(ring.intersection(buffered))
+                        ramp.connected_to.append(RampConnectedTo(area, intersections))
+                num_altitudes = len(ramp.connected_to) + len(ramp.markers)
+                if num_altitudes != 2:
+                    if num_altitudes == 0:
+                        logger.warning('A ramp in space #%d has no altitudes!' % ramp.space)
+                    elif num_altitudes == 1:
+                        logger.warning('A ramp in space #%d has only one altitude!' % ramp.space)
 
             # add areas to global areas
             all_areas.extend(areas)
@@ -476,20 +490,17 @@ class AltitudeArea(LevelGeometryMixin, models.Model):
                 continue
 
             if len(ramp.connected_to) == 1:
-                ramp.altitude = ramp.connected_to[0][0].altitude
+                ramp.altitude = ramp.connected_to[0].area.altitude
                 continue
 
-            # todo: implement multiple points
-
-            if len(ramp.connected_to) > 2:
-                ramp.connected_to = sorted(ramp.connected_to, key=lambda item: item[1].area)[-2:]
-
-            ramp.points = [
-                AltitudeAreaPoint(coordinates=ramp.connected_to[0][1].centroid.coords,
-                                  altitude=float(ramp.connected_to[0][0].altitude)),
-                AltitudeAreaPoint(coordinates=ramp.connected_to[1][1].centroid.coords,
-                                  altitude=float(ramp.connected_to[1][0].altitude)),
-            ]
+            points = []
+            for connected_to in ramp.connected_to:
+                for intersection in connected_to.intersections:
+                    points.extend([AltitudeAreaPoint(coordinates=coords, altitude=float(connected_to.area.altitude))
+                                   for coords in intersection.coords])
+            points.extend([AltitudeAreaPoint(coordinates=marker.geometry.coords, altitude=float(marker.altitude))
+                           for marker in ramp.markers])
+            ramp.points = points
 
             ramp.tmpid = len(areas)
             areas.append(ramp)
@@ -589,7 +600,8 @@ class AltitudeArea(LevelGeometryMixin, models.Model):
                         area = max(touches, key=lambda item: (
                             item.value > min_touches,
                             item.obj.points is not None,
-                            item.obj.altitude or max(p.altitude for p in item.obj.points),
+                            (max(p.altitude for p in item.obj.points)
+                             if item.obj.altitude is None else item.obj.altitude),
                             item.value
                         )).obj
                     else:
