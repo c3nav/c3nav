@@ -21,10 +21,8 @@ from shapely.geometry.geo import mapping
 from c3nav.editor.models import ChangeSet, ChangeSetUpdate
 from c3nav.mapdata.fields import GeometryField
 from c3nav.mapdata.forms import I18nModelFormMixin
-from c3nav.mapdata.models import GraphEdge, LocationGroup
+from c3nav.mapdata.models import GraphEdge
 from c3nav.mapdata.models.access import AccessPermission
-from c3nav.mapdata.models.geometry.space import ObstacleGroup
-from c3nav.mapdata.models.theme import ThemeLocationGroupBackgroundColor, ThemeObstacleGroupBackgroundColor
 from c3nav.routing.schemas import LocateRequestWifiPeerSchema
 
 
@@ -33,6 +31,11 @@ class EditorFormBase(I18nModelFormMixin, ModelForm):
         self.request = request
         super().__init__(*args, **kwargs)
         creating = not self.instance.pk
+
+        LocationGroup = request.changeset.wrap_model('LocationGroup')
+        ThemeLocationGroupBackgroundColor = request.changeset.wrap_model('ThemeLocationGroupBackgroundColor')
+        ThemeObstacleGroupBackgroundColor = request.changeset.wrap_model('ThemeObstacleGroupBackgroundColor')
+        ObstacleGroup = request.changeset.wrap_model('ObstacleGroup')
 
         if self._meta.model.__name__ == 'Theme':
             if creating:
@@ -374,6 +377,11 @@ class EditorFormBase(I18nModelFormMixin, ModelForm):
                                   if name.startswith('group_') and value)
                     groups = tuple((int(val) if val.isdigit() else val) for val in groups)
                     self.instance.groups.set(groups)
+
+        LocationGroup = self.request.changeset.wrap_model('LocationGroup')
+        ThemeLocationGroupBackgroundColor = self.request.changeset.wrap_model('ThemeLocationGroupBackgroundColor')
+        ThemeObstacleGroupBackgroundColor = self.request.changeset.wrap_model('ThemeObstacleGroupBackgroundColor')
+        ObstacleGroup = self.request.changeset.wrap_model('ObstacleGroup')
 
         if self._meta.model.__name__ == 'Theme':
             locationgroup_colors = {theme_location_group.location_group_id: theme_location_group
