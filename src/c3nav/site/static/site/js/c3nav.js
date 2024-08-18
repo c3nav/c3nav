@@ -432,8 +432,8 @@ c3nav = {
             c3nav_api.get(`map/locations/${location.id}/display`).then(c3nav._location_details_loaded)
                 .catch(data => {
                     var $location_details = $('#location-details');
-                    $location_details.find('.details-body').text('Error ' + String(data.status));
                     $location_details.find('.details-body').html('');
+                    $location_details.find('.details-body').text('Error ' + data.status + ' ' + data.message);
                     $location_details.find('.editor').hide();
                     $location_details.find('.report').hide();
                     $location_details.removeClass('loading');
