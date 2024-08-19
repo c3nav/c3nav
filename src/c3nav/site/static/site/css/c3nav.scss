@@ -380,6 +380,12 @@ section.details {
         display: block;
         mask-position: right 2px top 2px;
     }
+
+    .button.extended-details {
+        display: block;
+        margin-left: auto;
+        margin-right: auto;
+    }
 }
 
 #sidebar section.details.loading > .details-head {
