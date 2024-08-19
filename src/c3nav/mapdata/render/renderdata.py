@@ -206,18 +206,20 @@ class LevelRenderData:
                     elif render_level.pk != level.pk:
                         map_history.composite(MapHistory.open_level(level.pk, 'base'), None)
 
-                    new_geoms = LevelGeometries()
-                    new_geoms.buildings = crop_to.intersection(old_geoms.buildings)
+                    new_buildings_geoms = crop_to.intersection(old_geoms.buildings)
                     if old_geoms.on_top_of_id is None:
-                        new_geoms.holes = crop_to.intersection(old_geoms.holes)
-                    new_geoms.doors = crop_to.intersection(old_geoms.doors)
-                    new_geoms.walls = crop_to.intersection(old_geoms.walls)
-                    new_geoms.all_walls = crop_to.intersection(old_geoms.all_walls)
-                    new_geoms.short_walls = tuple((altitude, geom) for altitude, geom in tuple(
+                        new_holes_geoms = crop_to.intersection(old_geoms.holes)
+                    else:
+                        new_holes_geoms = None
+                    new_doors_geoms = crop_to.intersection(old_geoms.doors)
+                    new_walls_geoms = crop_to.intersection(old_geoms.walls)
+                    new_all_walls_geoms = crop_to.intersection(old_geoms.all_walls)
+                    new_short_walls_geoms = tuple((altitude, geom) for altitude, geom in tuple(
                         (altitude, crop_to.intersection(geom))
                         for altitude, geom in old_geoms.short_walls
                     ) if not geom.is_empty)
 
+                    new_altitudeareas = []
                     for altitudearea in old_geoms.altitudeareas:
                         new_geometry = crop_to.intersection(unwrap_geom(altitudearea.geometry))
                         if new_geometry.is_empty:
@@ -258,59 +260,81 @@ class LevelRenderData:
                                 new_altitudearea_obstacles[height] = new_height_obstacles
                         new_altitudearea.obstacles = new_altitudearea_obstacles
 
-                        new_geoms.altitudeareas.append(new_altitudearea)
+                        new_altitudeareas.append(new_altitudearea)
 
-                    if new_geoms.walls.is_empty and not new_geoms.altitudeareas:
+                    if new_walls_geoms.is_empty and not new_altitudeareas:
                         continue
 
-                    new_geoms.ramps = tuple(
-                        ramp for ramp in (crop_to.intersection(unwrap_geom(ramp)) for ramp in old_geoms.ramps)
-                        if not ramp.is_empty
-                    )
-
-                    new_geoms.heightareas = tuple(
+                    new_heightareas = tuple(
                         (area, height) for area, height in ((crop_to.intersection(unwrap_geom(area)), height)
                                                             for area, height in old_geoms.heightareas)
                         if not area.is_empty
                     )
-
-                    new_geoms.affected_area = unary_union((
-                        *(altitudearea.geometry for altitudearea in new_geoms.altitudeareas),
-                        crop_to.intersection(new_geoms.walls.buffer(1)),
-                        *((new_geoms.holes.buffer(1),) if new_geoms.holes else ()),
-                    ))
 
                     for access_restriction, area in old_geoms.access_restriction_affected.items():
                         new_area = crop_to.intersection(area)
                         if not new_area.is_empty:
                             access_restriction_affected.setdefault(access_restriction, []).append(new_area)
 
-                    new_geoms.restricted_spaces_indoors = {}
+                    new_restricted_spaces_indoors = {}
                     for access_restriction, area in old_geoms.restricted_spaces_indoors.items():
                         new_area = crop_to.intersection(area)
                         if not new_area.is_empty:
-                            new_geoms.restricted_spaces_indoors[access_restriction] = new_area
+                            new_restricted_spaces_indoors[access_restriction] = new_area
 
-                    new_geoms.restricted_spaces_outdoors = {}
+                    new_restricted_spaces_outdoors = {}
                     for access_restriction, area in old_geoms.restricted_spaces_outdoors.items():
                         new_area = crop_to.intersection(area)
                         if not new_area.is_empty:
-                            new_geoms.restricted_spaces_outdoors[access_restriction] = new_area
+                            new_restricted_spaces_outdoors[access_restriction] = new_area
 
-                    new_geoms.pk = old_geoms.pk
-                    new_geoms.on_top_of_id = old_geoms.on_top_of_id
-                    new_geoms.short_label = old_geoms.short_label
-                    new_geoms.base_altitude = old_geoms.base_altitude
-                    new_geoms.default_height = old_geoms.default_height
-                    new_geoms.door_height = old_geoms.door_height
-                    new_geoms.min_altitude = (min(area.min_altitude for area in new_geoms.altitudeareas)
-                                              if new_geoms.altitudeareas else new_geoms.base_altitude)
-                    new_geoms.max_altitude = (max(area.max_altitude for area in new_geoms.altitudeareas)
-                                              if new_geoms.altitudeareas else new_geoms.base_altitude)
-                    new_geoms.max_height = (min(height for area, height in new_geoms.heightareas)
-                                            if new_geoms.heightareas else new_geoms.default_height)
-                    new_geoms.lower_bound = old_geoms.lower_bound
-                    new_geoms.upper_bound = old_geoms.upper_bound
+                    new_geoms = LevelGeometries(
+                        pk=old_geoms.pk,
+                        on_top_of_id=old_geoms.on_top_of_id,
+                        short_label=old_geoms.short_label,
+                        base_altitude=old_geoms.base_altitude,
+                        default_height=old_geoms.default_height,
+                        door_height=old_geoms.door_height,
+                        min_altitude=(min(area.min_altitude for area in new_altitudeareas)
+                                                  if new_altitudeareas else old_geoms.base_altitude),
+                        max_altitude=(max(area.max_altitude for area in new_altitudeareas)
+                                                  if new_altitudeareas else old_geoms.base_altitude),
+                        max_height=(min(height for area, height in new_heightareas)
+                                                if new_heightareas else old_geoms.default_height),
+                        lower_bound=old_geoms.lower_bound,
+                        upper_bound=old_geoms.upper_bound,
+                        heightareas=new_heightareas,
+                        altitudeareas=new_altitudeareas,
+
+                        buildings=new_buildings_geoms,
+                        holes=new_holes_geoms,
+                        doors=new_doors_geoms,
+                        walls=new_walls_geoms,
+                        all_walls=new_all_walls_geoms,
+                        short_walls=new_short_walls_geoms,
+
+                        restricted_spaces_indoors=new_restricted_spaces_indoors,
+                        restricted_spaces_outdoors=new_restricted_spaces_outdoors,
+
+                        ramps=tuple(
+                            ramp for ramp in (crop_to.intersection(unwrap_geom(ramp)) for ramp in old_geoms.ramps)
+                            if not ramp.is_empty
+                        ),
+
+                        affected_area=unary_union((
+                            *(altitudearea.geometry for altitudearea in new_altitudeareas),
+                            crop_to.intersection(new_walls_geoms.buffer(1)),
+                            *((new_holes_geoms.buffer(1),) if new_holes_geoms else ()),
+                        )),
+
+                        access_restriction_affected=None,
+                        doors_extended=None,
+                        faces=None,
+                        vertices=None,
+                        walls_base=None,
+                        walls_bottom=None,
+                        walls_extended=None,
+                    )
 
                     new_geoms.build_mesh(interpolators.get(render_level.pk) if level.pk == render_level.pk else None)
 

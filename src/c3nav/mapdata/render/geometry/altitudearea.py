@@ -26,11 +26,11 @@ class AltitudeAreaGeometries:
         self.obstacles = obstacles
 
     @property
-    def min_altitude(self):
+    def min_altitude(self) -> float:
         return self.altitude if self.altitude is not None else min(p.altitude for p in self.points)
 
     @property
-    def max_altitude(self):
+    def max_altitude(self) -> float:
         return self.altitude if self.altitude is not None else max(p.altitude for p in self.points)
 
     def get_altitudes(self, points):
