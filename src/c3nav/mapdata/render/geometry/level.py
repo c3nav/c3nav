@@ -28,32 +28,22 @@ ZeroOrMorePolygons: typing.TypeAlias = GeometryCollection | Polygon | MultiPolyg
 
 
 @dataclass
-class LevelGeometries:
+class BaseLevelGeometries:
     """
-    Store geometries for a Level.
+    Geometries for a Level.
     """
     # todo: split into the two versions of this
     buildings: ZeroOrMorePolygons
     altitudeareas: list[AltitudeAreaGeometries]
     heightareas: typing.Sequence[tuple[ZeroOrMorePolygons, float]]
     walls: ZeroOrMorePolygons
-    walls_extended: None | HybridGeometry
     all_walls: ZeroOrMorePolygons
     short_walls: list[tuple[AltitudeArea, ZeroOrMorePolygons]] | typing.Sequence[ZeroOrMorePolygons]
     doors: ZeroOrMorePolygons | None
-    doors_extended: HybridGeometry | None
-    holes: None
-    access_restriction_affected: dict[int, ZeroOrMorePolygons] | None
+    holes: ZeroOrMorePolygons | None
     restricted_spaces_indoors: dict[int, ZeroOrMorePolygons]
     restricted_spaces_outdoors: dict[int, ZeroOrMorePolygons]
-    affected_area: ZeroOrMorePolygons | None
     ramps: typing.Sequence[ZeroOrMorePolygons]
-
-    vertices: None | np.ndarray
-    faces: None | np.ndarray
-
-    walls_base: None | HybridGeometry
-    walls_bottom: None | HybridGeometry
 
     pk: int
     on_top_of_id: int | None
@@ -66,10 +56,17 @@ class LevelGeometries:
     max_height: int
 
     lower_bound: int
-    upper_bound: None
 
     def __repr__(self):
         return '<LevelGeometries for Level %s (#%d)>' % (self.short_label, self.pk)
+
+
+@dataclass(slots=True)
+class SingleLevelGeometries(BaseLevelGeometries):
+    """
+    Geometries for a level, base calculation on the way to LevelRenderData
+    """
+    access_restriction_affected: dict[int, ZeroOrMorePolygons]
 
     @dataclass
     class SpaceGeometries:
@@ -365,28 +362,35 @@ class LevelGeometries:
             max_height=(min(height for area, height in heightareas_geom)
                         if analysis.heightareas else default_height),
             lower_bound=min_altitude-700,
-
-            affected_area=None,
-            doors_extended=None,
-            faces=None,
-            upper_bound=None,
-            vertices=None,
-            walls_base=None,
-            walls_bottom=None,
-            walls_extended=None,
         )
         
         AccessRestrictionAffected.build(geoms.access_restriction_affected).save_level(level.pk, 'base')
 
         return geoms
 
-    def get_geometries(self):
+
+@dataclass(slots=True)
+class CompositeLevelGeometries(BaseLevelGeometries):
+    """
+    Geometries for a level, as a member of a composite level rendering, the final type in LevelRenderData
+    """
+
+    affected_area: ZeroOrMorePolygons
+    doors_extended: HybridGeometry | None
+    vertices: None | np.ndarray
+    faces: None | np.ndarray
+    upper_bound: int
+    walls_base: None | HybridGeometry
+    walls_bottom: None | HybridGeometry
+    walls_extended: None | HybridGeometry
+
+    def get_geometries(self):  # called on the final thing
         # omit heightareas as these are never drawn
         return chain((area.geometry for area in self.altitudeareas), (self.walls, self.doors,),
                      self.restricted_spaces_indoors.values(), self.restricted_spaces_outdoors.values(), self.ramps,
                      (geom for altitude, geom in self.short_walls))
 
-    def create_hybrid_geometries(self, face_centers):
+    def create_hybrid_geometries(self, face_centers):  # called on the final thing
         vertices_offset = self.vertices.shape[0]
         faces_offset = self.faces.shape[0]
         new_vertices = deque()

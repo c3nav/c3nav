@@ -14,7 +14,7 @@ from shapely.prepared import PreparedGeometry
 
 from c3nav.mapdata.models import Level, MapUpdate, Source
 from c3nav.mapdata.models.theme import Theme
-from c3nav.mapdata.render.geometry import AltitudeAreaGeometries, LevelGeometries
+from c3nav.mapdata.render.geometry import AltitudeAreaGeometries, SingleLevelGeometries, CompositeLevelGeometries
 from c3nav.mapdata.utils.cache import AccessRestrictionAffected, MapHistory
 from c3nav.mapdata.utils.cache.package import CachePackage
 from c3nav.mapdata.utils.geometry import get_rings, unwrap_geom
@@ -51,7 +51,7 @@ class LevelRenderData:
     """
     base_altitude: float
     lowest_important_level: int
-    levels: list[LevelGeometries] = field(default_factory=list)
+    levels: list[CompositeLevelGeometries] = field(default_factory=list)
     darken_area: MultiPolygon | None = None
 
     @staticmethod
@@ -77,15 +77,15 @@ class LevelRenderData:
             first pass in reverse to collect some data that we need later
             """
             # level geometry for every single level
-            single_level_geoms: dict[int, LevelGeometries] = {}
+            single_level_geoms: dict[int, SingleLevelGeometries] = {}
             # interpolator are used to create the 3d mesh
             interpolators = {}
             last_interpolator: NearestNDInterpolator | None = None
-            # altitudeareas of levels on top are are collected on the way down to supply to the levelgeometries builder
+            # altitudeareas of levels on top are collected on the way down to supply to the levelgeometries builder
             altitudeareas_above = []  # todo: typing
             for render_level in reversed(levels):
                 # build level geometry for every single level
-                single_level_geoms[render_level.pk] = LevelGeometries.build_for_level(
+                single_level_geoms[render_level.pk] = SingleLevelGeometries.build_for_level(
                     render_level, color_manager, altitudeareas_above
                 )
 
@@ -116,6 +116,7 @@ class LevelRenderData:
             """
             second pass, forward to create the LevelRenderData for each level
             """
+            upper_bounds: dict[int, int] = {}
             for render_level in levels:
                 # we don't create render data for on_top_of levels
                 if render_level.on_top_of_id is not None:
@@ -162,9 +163,9 @@ class LevelRenderData:
                     # make upper bounds
                     if geoms.on_top_of_id is None:
                         if last_lower_bound is None:
-                            geoms.upper_bound = geoms.max_altitude+geoms.max_height
+                            upper_bounds[geoms.pk] = geoms.max_altitude+geoms.max_height
                         else:
-                            geoms.upper_bound = last_lower_bound
+                            upper_bounds[geoms.pk] = last_lower_bound
                         last_lower_bound = geoms.lower_bound
 
                     # set crop area if we area on the second primary layer from top or below
@@ -193,34 +194,34 @@ class LevelRenderData:
                     except KeyError:
                         continue
 
-                    old_geoms = single_level_geoms[level.pk]
+                    single_geoms = single_level_geoms[level.pk]
 
                     if render_data.lowest_important_level == level.pk:
                         lowest_important_level_passed = True
 
-                    if old_geoms.holes and render_data.darken_area is None and lowest_important_level_passed:
-                        render_data.darken_area = old_geoms.holes
+                    if single_geoms.holes and render_data.darken_area is None and lowest_important_level_passed:
+                        render_data.darken_area = single_geoms.holes
 
                     if crop_to.geometry is not None:
                         map_history.composite(MapHistory.open_level(level.pk, 'base'), crop_to.geometry)
                     elif render_level.pk != level.pk:
                         map_history.composite(MapHistory.open_level(level.pk, 'base'), None)
 
-                    new_buildings_geoms = crop_to.intersection(old_geoms.buildings)
-                    if old_geoms.on_top_of_id is None:
-                        new_holes_geoms = crop_to.intersection(old_geoms.holes)
+                    new_buildings_geoms = crop_to.intersection(single_geoms.buildings)
+                    if single_geoms.on_top_of_id is None:
+                        new_holes_geoms = crop_to.intersection(single_geoms.holes)
                     else:
                         new_holes_geoms = None
-                    new_doors_geoms = crop_to.intersection(old_geoms.doors)
-                    new_walls_geoms = crop_to.intersection(old_geoms.walls)
-                    new_all_walls_geoms = crop_to.intersection(old_geoms.all_walls)
+                    new_doors_geoms = crop_to.intersection(single_geoms.doors)
+                    new_walls_geoms = crop_to.intersection(single_geoms.walls)
+                    new_all_walls_geoms = crop_to.intersection(single_geoms.all_walls)
                     new_short_walls_geoms = tuple((altitude, geom) for altitude, geom in tuple(
                         (altitude, crop_to.intersection(geom))
-                        for altitude, geom in old_geoms.short_walls
+                        for altitude, geom in single_geoms.short_walls
                     ) if not geom.is_empty)
 
                     new_altitudeareas = []
-                    for altitudearea in old_geoms.altitudeareas:
+                    for altitudearea in single_geoms.altitudeareas:
                         new_geometry = crop_to.intersection(unwrap_geom(altitudearea.geometry))
                         if new_geometry.is_empty:
                             continue
@@ -267,42 +268,42 @@ class LevelRenderData:
 
                     new_heightareas = tuple(
                         (area, height) for area, height in ((crop_to.intersection(unwrap_geom(area)), height)
-                                                            for area, height in old_geoms.heightareas)
+                                                            for area, height in single_geoms.heightareas)
                         if not area.is_empty
                     )
 
-                    for access_restriction, area in old_geoms.access_restriction_affected.items():
+                    for access_restriction, area in single_geoms.access_restriction_affected.items():
                         new_area = crop_to.intersection(area)
                         if not new_area.is_empty:
                             access_restriction_affected.setdefault(access_restriction, []).append(new_area)
 
                     new_restricted_spaces_indoors = {}
-                    for access_restriction, area in old_geoms.restricted_spaces_indoors.items():
+                    for access_restriction, area in single_geoms.restricted_spaces_indoors.items():
                         new_area = crop_to.intersection(area)
                         if not new_area.is_empty:
                             new_restricted_spaces_indoors[access_restriction] = new_area
 
                     new_restricted_spaces_outdoors = {}
-                    for access_restriction, area in old_geoms.restricted_spaces_outdoors.items():
+                    for access_restriction, area in single_geoms.restricted_spaces_outdoors.items():
                         new_area = crop_to.intersection(area)
                         if not new_area.is_empty:
                             new_restricted_spaces_outdoors[access_restriction] = new_area
 
-                    new_geoms = LevelGeometries(
-                        pk=old_geoms.pk,
-                        on_top_of_id=old_geoms.on_top_of_id,
-                        short_label=old_geoms.short_label,
-                        base_altitude=old_geoms.base_altitude,
-                        default_height=old_geoms.default_height,
-                        door_height=old_geoms.door_height,
+                    composite_geoms = CompositeLevelGeometries(
+                        pk=single_geoms.pk,
+                        on_top_of_id=single_geoms.on_top_of_id,
+                        short_label=single_geoms.short_label,
+                        base_altitude=single_geoms.base_altitude,
+                        default_height=single_geoms.default_height,
+                        door_height=single_geoms.door_height,
                         min_altitude=(min(area.min_altitude for area in new_altitudeareas)
-                                                  if new_altitudeareas else old_geoms.base_altitude),
+                                                  if new_altitudeareas else single_geoms.base_altitude),
                         max_altitude=(max(area.max_altitude for area in new_altitudeareas)
-                                                  if new_altitudeareas else old_geoms.base_altitude),
+                                                  if new_altitudeareas else single_geoms.base_altitude),
                         max_height=(min(height for area, height in new_heightareas)
-                                                if new_heightareas else old_geoms.default_height),
-                        lower_bound=old_geoms.lower_bound,
-                        upper_bound=old_geoms.upper_bound,
+                                                if new_heightareas else single_geoms.default_height),
+                        lower_bound=single_geoms.lower_bound,
+                        upper_bound=upper_bounds[single_geoms.pk],
                         heightareas=new_heightareas,
                         altitudeareas=new_altitudeareas,
 
@@ -317,7 +318,7 @@ class LevelRenderData:
                         restricted_spaces_outdoors=new_restricted_spaces_outdoors,
 
                         ramps=tuple(
-                            ramp for ramp in (crop_to.intersection(unwrap_geom(ramp)) for ramp in old_geoms.ramps)
+                            ramp for ramp in (crop_to.intersection(unwrap_geom(ramp)) for ramp in single_geoms.ramps)
                             if not ramp.is_empty
                         ),
 
@@ -327,7 +328,6 @@ class LevelRenderData:
                             *((new_holes_geoms.buffer(1),) if new_holes_geoms else ()),
                         )),
 
-                        access_restriction_affected=None,
                         doors_extended=None,
                         faces=None,
                         vertices=None,
@@ -336,9 +336,9 @@ class LevelRenderData:
                         walls_extended=None,
                     )
 
-                    new_geoms.build_mesh(interpolators.get(render_level.pk) if level.pk == render_level.pk else None)
+                    composite_geoms.build_mesh(interpolators.get(render_level.pk) if level.pk == render_level.pk else None)
 
-                    render_data.levels.append(new_geoms)
+                    render_data.levels.append(composite_geoms)
 
                 access_restriction_affected = {
                     access_restriction: unary_union(areas)
