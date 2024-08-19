@@ -86,9 +86,10 @@ class TitledMixin(SerializableMixin, models.Model):
 
     def details_display(self, **kwargs):
         result = super().details_display(**kwargs)
-        for lang, title in sorted(self.titles.items(), key=lambda item: item[0] != get_language()):
+        titles = sorted(self.titles.items(), key=lambda item: item[0] != get_language())
+        for lang, title in titles:
             language = _('Title ({lang})').format(lang=get_language_info(lang)['name_translated'])
-            result['display'].append((language, title))
+            result['display' if len(titles) != 1 else 'display_extended'].append((language, title))
         return result
 
 
