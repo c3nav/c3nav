@@ -369,8 +369,7 @@ class CustomLocation:
                     'title': self.near_poi.title,
                     'can_search': self.near_poi.can_search,
                 } if self.near_poi else None),
-                (_('X Coordinate'), str(self.x)),
-                (_('Y Coordinate'), str(self.y)),
+                (_('XY Coordinates'), str(self.x) + ' ' + str(self.y)),
                 (_('Altitude'), None if self.altitude is None else str(round(self.altitude, 2))),
             ],
             'display_extended': [
