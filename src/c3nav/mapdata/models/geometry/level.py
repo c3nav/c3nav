@@ -496,8 +496,9 @@ class AltitudeArea(LevelGeometryMixin, models.Model):
             points = []
             for connected_to in ramp.connected_to:
                 for intersection in connected_to.intersections:
-                    points.extend([AltitudeAreaPoint(coordinates=coords, altitude=float(connected_to.area.altitude))
-                                   for coords in intersection.coords])
+                    for linestring in assert_multilinestring(intersection):
+                        points.extend([AltitudeAreaPoint(coordinates=coords, altitude=float(connected_to.area.altitude))
+                                       for coords in linestring.coords])
             points.extend([AltitudeAreaPoint(coordinates=marker.geometry.coords, altitude=float(marker.altitude))
                            for marker in ramp.markers])
             ramp.points = points
