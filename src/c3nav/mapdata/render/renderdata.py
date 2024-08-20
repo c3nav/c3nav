@@ -93,7 +93,7 @@ class LevelRenderData:
                 if render_level.on_top_of_id is not None:
                     # todo: shouldn't this be cleared or something?
                     altitudeareas_above.extend(single_level_geoms[render_level.pk].altitudeareas)
-                    altitudeareas_above.sort(key=operator.attrgetter('altitude'))
+                    altitudeareas_above.sort(key=operator.attrgetter('max_altitude'))
                     continue
 
                 # create interpolator to create the pieces that fit multiple 3d layers together
