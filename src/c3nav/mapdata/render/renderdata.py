@@ -303,7 +303,7 @@ class LevelRenderData:
                         max_height=(min(height for area, height in new_heightareas)
                                                 if new_heightareas else single_geoms.default_height),
                         lower_bound=single_geoms.lower_bound,
-                        upper_bound=upper_bounds[single_geoms.pk],
+                        upper_bound=upper_bounds.get(single_geoms.pk, 0),  # might be wrong but only needed for 3d
                         heightareas=new_heightareas,
                         altitudeareas=new_altitudeareas,
 
