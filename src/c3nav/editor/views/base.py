@@ -15,7 +15,7 @@ from django.utils.cache import patch_vary_headers
 from django.utils.translation import get_language
 from django.utils.translation import gettext_lazy as _
 
-from c3nav.editor.intercept import enable_changeset_overlay
+from c3nav.editor.changes import enable_changeset_overlay
 from c3nav.editor.models import ChangeSet
 from c3nav.mapdata.models.access import AccessPermission
 from c3nav.mapdata.models.base import SerializableMixin
