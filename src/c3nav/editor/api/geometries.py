@@ -8,6 +8,9 @@ from shapely.ops import unary_union
 
 from c3nav.api.exceptions import API404, APIPermissionDenied
 from c3nav.editor.utils import LevelChildEditUtils, SpaceChildEditUtils
+from c3nav.mapdata.models import Level, Space, GraphNode, Door, LocationGroup, Building, GraphEdge, DataOverlayFeature
+from c3nav.mapdata.models.geometry.space import Column, Hole, AltitudeMarker, BeaconMeasurement, RangingBeacon, Area, \
+    POI
 from c3nav.mapdata.utils.geometry import unwrap_geom
 
 
@@ -58,10 +61,6 @@ def _get_geometries_for_one_level(level):
     return results
 
 
-if TYPE_CHECKING:
-    from c3nav.mapdata.models import Level
-
-
 @dataclass(slots=True)
 class LevelsForLevel:
     levels: Sequence[int]  # IDs of all levels to render for this level, in order, including the level itself
@@ -69,9 +68,8 @@ class LevelsForLevel:
     levels_under: Sequence[int]  # IDs of the level below this level plus levels on top of it (on_top_of field)
 
     @classmethod
-    def for_level(cls, request, level: "Level", special_if_on_top=False):  # add typing
+    def for_level(cls, request, level: Level, special_if_on_top=False):  # add typing
         # noinspection PyPep8Naming
-        Level = request.changeset.wrap_model('Level')
         levels_under = ()
         levels_on_top = ()
         lower_level = level.lower(Level).first()
@@ -114,18 +112,6 @@ def conditional_geojson(obj, update_cache_key_match):
 
 # noinspection PyPep8Naming
 def get_level_geometries_result(request, level_id: int, update_cache_key: str, update_cache_key_match: True):
-    Level = request.changeset.wrap_model('Level')
-    Space = request.changeset.wrap_model('Space')
-    Column = request.changeset.wrap_model('Column')
-    Hole = request.changeset.wrap_model('Hole')
-    AltitudeMarker = request.changeset.wrap_model('AltitudeMarker')
-    Building = request.changeset.wrap_model('Building')
-    Door = request.changeset.wrap_model('Door')
-    LocationGroup = request.changeset.wrap_model('LocationGroup')
-    BeaconMeasurement = request.changeset.wrap_model('BeaconMeasurement')
-    RangingBeacon = request.changeset.wrap_model('RangingBeacon')
-    DataOverlayFeature = request.changeset.wrap_model('DataOverlayFeature')
-
     try:
         level = Level.objects.filter(Level.q_for_request(request)).get(pk=level_id)
     except Level.DoesNotExist:
@@ -138,7 +124,7 @@ def get_level_geometries_result(request, level_id: int, update_cache_key: str, u
     levels_for_level = LevelsForLevel.for_level(request, level)
     # don't prefetch groups for now as changesets do not yet work with m2m-prefetches
     levels = Level.objects.filter(pk__in=levels_for_level.levels).filter(Level.q_for_request(request))
-    graphnodes_qs = request.changeset.wrap_model('GraphNode').objects.all()
+    graphnodes_qs = GraphNode.objects.all()
     levels = levels.prefetch_related(
         Prefetch('spaces', Space.objects.filter(Space.q_for_request(request)).only(
             'geometry', 'level', 'outside'
@@ -170,7 +156,7 @@ def get_level_geometries_result(request, level_id: int, update_cache_key: str, u
                                for space in chain(*(level.spaces.all() for level in levels.values())))))
     graphnodes_lookup = {node.pk: node for node in graphnodes}
 
-    graphedges = request.changeset.wrap_model('GraphEdge').objects.all()
+    graphedges = GraphEdge.objects.all()
     graphedges = graphedges.filter(Q(from_node__in=graphnodes) | Q(to_node__in=graphnodes))
     graphedges = graphedges.select_related('waytype', 'from_node', 'to_node')
 
@@ -202,12 +188,6 @@ def get_level_geometries_result(request, level_id: int, update_cache_key: str, u
 
 
 def get_space_geometries_result(request, space_id: int, update_cache_key: str, update_cache_key_match: bool):
-    Space = request.changeset.wrap_model('Space')
-    Area = request.changeset.wrap_model('Area')
-    POI = request.changeset.wrap_model('POI')
-    Door = request.changeset.wrap_model('Door')
-    LocationGroup = request.changeset.wrap_model('LocationGroup')
-
     space_q_for_request = Space.q_for_request(request)
     qs = Space.objects.filter(space_q_for_request)
 
@@ -271,12 +251,12 @@ def get_space_geometries_result(request, space_id: int, update_cache_key: str, u
 
     # todo: permissions
     if request.user_permissions.can_access_base_mapdata:
-        graph_nodes = request.changeset.wrap_model('GraphNode').objects.all()
+        graph_nodes = GraphNode.objects.all()
         graph_nodes = graph_nodes.filter((Q(space__in=all_other_spaces)) | Q(space__pk=space.pk))
 
         space_graph_nodes = tuple(node for node in graph_nodes if node.space_id == space.pk)
 
-        graph_edges = request.changeset.wrap_model('GraphEdge').objects.all()
+        graph_edges = GraphEdge.objects.all()
         space_graphnodes_ids = tuple(node.pk for node in space_graph_nodes)
         graph_edges = graph_edges.filter(Q(from_node__pk__in=space_graphnodes_ids) |
                                          Q(to_node__pk__in=space_graphnodes_ids))

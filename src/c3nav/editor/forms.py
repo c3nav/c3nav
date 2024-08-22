@@ -21,8 +21,11 @@ from shapely.geometry.geo import mapping
 from c3nav.editor.models import ChangeSet, ChangeSetUpdate
 from c3nav.mapdata.fields import GeometryField
 from c3nav.mapdata.forms import I18nModelFormMixin
-from c3nav.mapdata.models import GraphEdge
-from c3nav.mapdata.models.access import AccessPermission
+from c3nav.mapdata.models import GraphEdge, LocationGroup, Source, LocationGroupCategory, GraphNode, Space, \
+    LocationSlug, WayType
+from c3nav.mapdata.models.access import AccessPermission, AccessRestrictionGroup, AccessRestriction
+from c3nav.mapdata.models.geometry.space import ObstacleGroup
+from c3nav.mapdata.models.theme import ThemeLocationGroupBackgroundColor, ThemeObstacleGroupBackgroundColor
 from c3nav.routing.schemas import LocateRequestWifiPeerSchema
 
 
@@ -31,11 +34,6 @@ class EditorFormBase(I18nModelFormMixin, ModelForm):
         self.request = request
         super().__init__(*args, **kwargs)
         creating = not self.instance.pk
-
-        LocationGroup = request.changeset.wrap_model('LocationGroup')
-        ThemeLocationGroupBackgroundColor = request.changeset.wrap_model('ThemeLocationGroupBackgroundColor')
-        ThemeObstacleGroupBackgroundColor = request.changeset.wrap_model('ThemeObstacleGroupBackgroundColor')
-        ObstacleGroup = request.changeset.wrap_model('ObstacleGroup')
 
         if self._meta.model.__name__ == 'Theme':
             if creating:
@@ -130,8 +128,6 @@ class EditorFormBase(I18nModelFormMixin, ModelForm):
                     )
 
         if self._meta.model.__name__ == 'Source' and self.request.user.is_superuser:
-            Source = self.request.changeset.wrap_model('Source')
-
             sources = {s['name']: s for s in Source.objects.all().values('name', 'access_restriction_id',
                                                                          'left', 'bottom', 'right', 'top')}
             used_names = set(sources.keys())
@@ -176,14 +172,10 @@ class EditorFormBase(I18nModelFormMixin, ModelForm):
             self.fields.move_to_end('name', last=False)
 
         if self._meta.model.__name__ == 'AccessRestriction':
-            AccessRestrictionGroup = self.request.changeset.wrap_model('AccessRestrictionGroup')
-
             self.fields['groups'].label_from_instance = lambda obj: obj.title
             self.fields['groups'].queryset = AccessRestrictionGroup.qs_for_request(self.request)
 
         elif 'groups' in self.fields:
-            LocationGroupCategory = self.request.changeset.wrap_model('LocationGroupCategory')
-
             kwargs = {'allow_'+self._meta.model._meta.default_related_name: True}
             categories = LocationGroupCategory.objects.filter(**kwargs).prefetch_related('groups')
             if self.instance.pk:
@@ -228,8 +220,6 @@ class EditorFormBase(I18nModelFormMixin, ModelForm):
             self.fields['label_settings'].label_from_instance = attrgetter('title')
 
         if 'access_restriction' in self.fields:
-            AccessRestriction = self.request.changeset.wrap_model('AccessRestriction')
-
             self.fields['access_restriction'].label_from_instance = lambda obj: obj.title
             self.fields['access_restriction'].queryset = AccessRestriction.qs_for_request(self.request).order_by(
                 "titles__"+get_language(), "titles__en"
@@ -240,11 +230,6 @@ class EditorFormBase(I18nModelFormMixin, ModelForm):
                 self.fields['base_mapdata_accessible'].disabled = True
 
         if space_id and 'target_space' in self.fields:
-            Space = self.request.changeset.wrap_model('Space')
-
-            GraphNode = self.request.changeset.wrap_model('GraphNode')
-            GraphEdge = self.request.changeset.wrap_model('GraphEdge')
-
             cache_key = 'editor:neighbor_spaces:%s:%s%d' % (
                 self.request.changeset.raw_cache_key_by_changes,
                 AccessPermission.cache_key_for_request(request, with_update=False),
@@ -311,7 +296,6 @@ class EditorFormBase(I18nModelFormMixin, ModelForm):
             self.fields['slug'].run_validators(slug)
             model_slug_field.run_validators(slug)
 
-        LocationSlug = self.request.changeset.wrap_model('LocationSlug')
         qs = LocationSlug.objects.filter(slug__in=self.add_redirect_slugs)
 
         if 'slug' in self.cleaned_data and self.cleaned_data['slug'] in self.add_redirect_slugs:
@@ -379,11 +363,6 @@ class EditorFormBase(I18nModelFormMixin, ModelForm):
                                   if name.startswith('group_') and value)
                     groups = tuple((int(val) if val.isdigit() else val) for val in groups)
                     self.instance.groups.set(groups)
-
-        LocationGroup = self.request.changeset.wrap_model('LocationGroup')
-        ThemeLocationGroupBackgroundColor = self.request.changeset.wrap_model('ThemeLocationGroupBackgroundColor')
-        ThemeObstacleGroupBackgroundColor = self.request.changeset.wrap_model('ThemeObstacleGroupBackgroundColor')
-        ObstacleGroup = self.request.changeset.wrap_model('ObstacleGroup')
 
         if self._meta.model.__name__ == 'Theme':
             locationgroup_colors = {theme_location_group.location_group_id: theme_location_group
@@ -454,6 +433,15 @@ def create_editor_form(editor_model):
     return EditorForm
 
 
+editor_form_cache = {}
+def get_editor_form(model):
+    form = editor_form_cache.get(model, None)
+    if form is None:
+        form = create_editor_form(model)
+        editor_form_cache[model] = form
+    return form
+
+
 class ChangeSetForm(ModelForm):
     class Meta:
         model = ChangeSet
@@ -480,12 +468,10 @@ class GraphEdgeSettingsForm(ModelForm):
         self.request = request
         super().__init__(*args, **kwargs)
 
-        WayType = self.request.changeset.wrap_model('WayType')
         self.fields['waytype'].label_from_instance = lambda obj: obj.title
         self.fields['waytype'].queryset = WayType.objects.all()
         self.fields['waytype'].to_field_name = None
 
-        AccessRestriction = self.request.changeset.wrap_model('AccessRestriction')
         self.fields['access_restriction'].label_from_instance = lambda obj: obj.title
         self.fields['access_restriction'].queryset = AccessRestriction.qs_for_request(self.request)
 
@@ -495,7 +481,6 @@ class GraphEditorActionForm(Form):
         self.request = request
         super().__init__(*args, **kwargs)
 
-        GraphNode = self.request.changeset.wrap_model('GraphNode')
         graph_node_qs = GraphNode.objects.all()
         self.fields['active_node'] = ModelChoiceField(graph_node_qs, widget=HiddenInput(), required=False)
         self.fields['clicked_node'] = ModelChoiceField(graph_node_qs, widget=HiddenInput(), required=False)
@@ -503,7 +488,6 @@ class GraphEditorActionForm(Form):
         if allow_clicked_position:
             self.fields['clicked_position'] = JSONField(widget=HiddenInput(), required=False)
 
-        Space = self.request.changeset.wrap_model('Space')
         space_qs = Space.objects.all()
         self.fields['goto_space'] = ModelChoiceField(space_qs, widget=HiddenInput(), required=False)
 

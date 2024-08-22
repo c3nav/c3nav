@@ -2,6 +2,7 @@ import mimetypes
 import typing
 from contextlib import suppress
 
+from django.apps import apps
 from django.conf import settings
 from django.contrib import messages
 from django.core.cache import cache
@@ -14,17 +15,19 @@ from django.urls import reverse
 from django.utils.translation import gettext_lazy as _
 from django.views.decorators.http import etag
 
-from c3nav.editor.forms import GraphEdgeSettingsForm, GraphEditorActionForm
+from c3nav.editor.forms import GraphEdgeSettingsForm, GraphEditorActionForm, get_editor_form
 from c3nav.editor.utils import DefaultEditUtils, LevelChildEditUtils, SpaceChildEditUtils
 from c3nav.editor.views.base import (APIHybridError, APIHybridFormTemplateResponse, APIHybridLoginRequiredResponse,
                                      APIHybridMessageRedirectResponse, APIHybridTemplateContextResponse,
                                      editor_etag_func, sidebar_view)
+from c3nav.mapdata.models import Level, Space, LocationGroupCategory, GraphNode, GraphEdge
 from c3nav.mapdata.models.access import AccessPermission
 from c3nav.mapdata.utils.user import can_access_editor
 
 
 def child_model(request, model: typing.Union[str, models.Model], kwargs=None, parent=None):
-    model = request.changeset.wrap_model(model)
+    if isinstance(model, str):
+        model = apps.get_model(app_label="mapdata", model_name=model)
     related_name = model._meta.default_related_name
     if parent is not None:
         qs = getattr(parent, related_name)
@@ -43,7 +46,6 @@ def child_model(request, model: typing.Union[str, models.Model], kwargs=None, pa
 @etag(editor_etag_func)
 @sidebar_view(api_hybrid=True)
 def main_index(request):
-    Level = request.changeset.wrap_model('Level')
     return APIHybridTemplateContextResponse('editor/index.html', {
         'levels': Level.objects.filter(Level.q_for_request(request), on_top_of__isnull=True),
         'can_create_level': (request.user_permissions.can_access_base_mapdata and
@@ -68,7 +70,6 @@ def main_index(request):
 @etag(editor_etag_func)
 @sidebar_view(api_hybrid=True)
 def level_detail(request, pk):
-    Level = request.changeset.wrap_model('Level')
     qs = Level.objects.filter(Level.q_for_request(request))
     level = get_object_or_404(qs.select_related('on_top_of').prefetch_related('levels_on_top'), pk=pk)
 
@@ -97,9 +98,6 @@ def level_detail(request, pk):
 @etag(editor_etag_func)
 @sidebar_view(api_hybrid=True)
 def space_detail(request, level, pk):
-    Level = request.changeset.wrap_model('Level')
-    Space = request.changeset.wrap_model('Space')
-
     # todo: HOW TO GET DATA
     qs = Space.objects.filter(Space.q_for_request(request))
     space = get_object_or_404(qs.select_related('level'), level__pk=level, pk=pk)
@@ -133,16 +131,15 @@ def get_changeset_exceeded(request):
 @etag(editor_etag_func)
 @sidebar_view(api_hybrid=True)
 def edit(request, pk=None, model=None, level=None, space=None, on_top_of=None, explicit_edit=False):
+    if isinstance(model, str):
+        model = apps.get_model(app_label="mapdata", model_name=model)
+
     changeset_exceeded = get_changeset_exceeded(request)
     model_changes = {}
     if changeset_exceeded:
         model_changes = request.changeset.get_changed_objects_by_model(model)
 
-    model = request.changeset.wrap_model(model)
     related_name = model._meta.default_related_name
-
-    Level = request.changeset.wrap_model('Level')
-    Space = request.changeset.wrap_model('Space')
 
     can_edit_changeset = request.changeset.can_edit(request)
 
@@ -343,9 +340,9 @@ def edit(request, pk=None, model=None, level=None, space=None, on_top_of=None, e
 
         json_body = getattr(request, 'json_body', None)
         data = json_body if json_body is not None else request.POST
-        form = model.EditorForm(instance=model() if new else obj, data=data, is_json=json_body is not None,
-                                request=request, space_id=space_id,
-                                geometry_editable=edit_utils.can_access_child_base_mapdata)
+        form = get_editor_form(model)(instance=model() if new else obj, data=data, is_json=json_body is not None,
+                                      request=request, space_id=space_id,
+                                      geometry_editable=edit_utils.can_access_child_base_mapdata)
         if form.is_valid():
             # Update/create objects
             obj = form.save(commit=False)
@@ -383,8 +380,8 @@ def edit(request, pk=None, model=None, level=None, space=None, on_top_of=None, e
                     error = APIHybridError(status_code=403, message=_('You can not edit changes on this changeset.'))
 
     else:
-        form = model.EditorForm(instance=obj, request=request, space_id=space_id,
-                                geometry_editable=edit_utils.can_access_child_base_mapdata)
+        form = get_editor_form(model)(instance=obj, request=request, space_id=space_id,
+                                      geometry_editable=edit_utils.can_access_child_base_mapdata)
 
     ctx.update({
         'form': form,
@@ -400,7 +397,6 @@ def get_visible_spaces(request):
     )
     visible_spaces = cache.get(cache_key, None)
     if visible_spaces is None:
-        Space = request.changeset.wrap_model('Space')
         visible_spaces = tuple(Space.qs_for_request(request).values_list('pk', flat=True))
         cache.set(cache_key, visible_spaces, 900)
     return visible_spaces
@@ -419,14 +415,12 @@ def get_visible_spaces_kwargs(model, request):
 @etag(editor_etag_func)
 @sidebar_view(api_hybrid=True)
 def list_objects(request, model=None, level=None, space=None, explicit_edit=False):
+    if isinstance(model, str):
+        model = apps.get_model(app_label="mapdata", model_name=model)
+
     resolver_match = getattr(request, 'sub_resolver_match', request.resolver_match)
     if not resolver_match.url_name.endswith('.list'):
         raise ValueError('url_name does not end with .list')
-
-    model = request.changeset.wrap_model(model)
-
-    Level = request.changeset.wrap_model('Level')
-    Space = request.changeset.wrap_model('Space')
 
     can_edit = request.changeset.can_edit(request)
 
@@ -524,7 +518,6 @@ def list_objects(request, model=None, level=None, space=None, explicit_edit=Fals
     reverse_kwargs.pop('pk', None)
 
     if model.__name__ == 'LocationGroup':
-        LocationGroupCategory = request.changeset.wrap_model('LocationGroupCategory')
         grouped_objects = tuple(
             {
                 'title': category.title_plural,
@@ -592,11 +585,6 @@ def connect_nodes(request, active_node, clicked_node, edge_settings_form):
 def graph_edit(request, level=None, space=None):
     if not request.user_permissions.can_access_base_mapdata:
         raise PermissionDenied
-
-    Level = request.changeset.wrap_model('Level')
-    Space = request.changeset.wrap_model('Space')
-    GraphNode = request.changeset.wrap_model('GraphNode')
-    GraphEdge = request.changeset.wrap_model('GraphEdge')
 
     can_edit = request.changeset.can_edit(request)
 
