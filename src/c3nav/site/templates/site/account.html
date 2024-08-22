@@ -24,7 +24,7 @@
             {% if request.user_permissions.can_review_reports %}
                 <a class="button" href="{% url 'site.report_list' %}">{% trans 'reports' %}</a>
             {% endif %}
-            {% if request.user_permissions.mesh_control %}
+            {% if request.user_permissions.can_manage_mesh %}
                 <a class="button" href="{% url 'mesh.nodes' %}">{% trans 'mesh' %}</a>
             {% endif %}
         </p>

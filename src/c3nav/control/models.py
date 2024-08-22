@@ -107,6 +107,10 @@ class UserPermissions(models.Model):
     def can_access_base_mapdata(self):
         return settings.PUBLIC_BASE_MAPDATA or self.base_mapdata_access
 
+    @property
+    def can_manage_mesh(self):
+        return settings.ENABLE_MESH or self.mesh_control
+
 
 get_permissions_for_user_lazy = lazy(UserPermissions.get_for_user, UserPermissions)
 
