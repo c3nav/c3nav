@@ -75,10 +75,10 @@ class LocationSlug(SerializableMixin, models.Model):
 
     objects = LocationSlugManager()
 
-    def get_child(self, instance=None):
+    def get_child(self):
         for model in get_submodels(Location)+[LocationRedirect]:
             with suppress(AttributeError):
-                return getattr(instance or self, model._meta.default_related_name)
+                return getattr(self, model._meta.default_related_name)
         return None
 
     def get_slug(self):
@@ -159,16 +159,14 @@ class Location(LocationSlug, AccessRestrictionMixin, TitledMixin, models.Model):
     def grid_square(self):
         return None
 
-    def get_color(self, color_manager: 'ThemeColorManager', instance=None) -> str | None:
+    def get_color(self, color_manager: 'ThemeColorManager') -> str | None:
         # don't filter in the query here so prefetch_related works
-        result = self.get_color_sorted(color_manager, instance)
+        result = self.get_color_sorted(color_manager)
         return None if result is None else result[1]
 
-    def get_color_sorted(self, color_manager: 'ThemeColorManager', instance=None) -> tuple[tuple, str] | None:
+    def get_color_sorted(self, color_manager: 'ThemeColorManager') -> tuple[tuple, str] | None:
         # don't filter in the query here so prefetch_related works
-        if instance is None:
-            instance = self
-        for group in instance.groups.all():
+        for group in self.groups.all():
             color = color_manager.locationgroup_fill_color(group)
             if color and getattr(group.category, 'allow_'+self.__class__._meta.default_related_name):
                 return (0, group.category.priority, group.hierarchy, group.priority), color

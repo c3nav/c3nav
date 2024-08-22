@@ -39,11 +39,11 @@ class SpaceGeometryMixin(GeometryMixin):
         except ObjectDoesNotExist:
             return None
 
-    def get_geojson_properties(self, *args, instance=None, **kwargs) -> dict:
+    def get_geojson_properties(self, *args, **kwargs) -> dict:
         result = super().get_geojson_properties(*args, **kwargs)
         if hasattr(self, 'get_color'):
             from c3nav.mapdata.render.theme import ColorManager
-            color = self.get_color(ColorManager.for_theme(None), instance=instance)
+            color = self.get_color(ColorManager.for_theme(None))
             if color:
                 result['color'] = color
         if hasattr(self, 'opacity'):
@@ -226,10 +226,10 @@ class Obstacle(SpaceGeometryMixin, models.Model):
         default_related_name = 'obstacles'
         ordering = ('altitude', 'height')
 
-    def get_geojson_properties(self, *args, instance=None, **kwargs) -> dict:
+    def get_geojson_properties(self, *args, **kwargs) -> dict:
         result = super().get_geojson_properties(*args, **kwargs)
         from c3nav.mapdata.render.theme import ColorManager
-        color = self.get_color(ColorManager.for_theme(None), instance=instance)
+        color = self.get_color(ColorManager.for_theme(None))
         if color:
             result['color'] = color
         return result
@@ -242,12 +242,10 @@ class Obstacle(SpaceGeometryMixin, models.Model):
         result['color'] = self.get_color(ColorManager.for_theme(None))
         return result
 
-    def get_color(self, color_manager: 'ThemeColorManager', instance=None):
-        if instance is None:
-            instance = self
+    def get_color(self, color_manager: 'ThemeColorManager'):
         return (
-            color_manager.obstaclegroup_fill_color(instance.group)
-            if instance.group is not None
+            color_manager.obstaclegroup_fill_color(self.group)
+            if self.group is not None
             else color_manager.obstacles_default_fill
         )
 
@@ -270,10 +268,10 @@ class LineObstacle(SpaceGeometryMixin, models.Model):
         default_related_name = 'lineobstacles'
         ordering = ('altitude', 'height')
 
-    def get_geojson_properties(self, *args, instance=None, **kwargs) -> dict:
+    def get_geojson_properties(self, *args, **kwargs) -> dict:
         result = super().get_geojson_properties(*args, **kwargs)
         from c3nav.mapdata.render.theme import ColorManager
-        color = self.get_color(ColorManager.for_theme(None), instance=instance)
+        color = self.get_color(ColorManager.for_theme(None))
         if color:
             result['color'] = color
         return result
@@ -289,13 +287,11 @@ class LineObstacle(SpaceGeometryMixin, models.Model):
             result['buffered_geometry'] = format_geojson(mapping(self.buffered_geometry))
         return result
 
-    def get_color(self, color_manager: 'ThemeColorManager', instance=None):
-        if instance is None:
-            instance = self
+    def get_color(self, color_manager: 'ThemeColorManager'):
         # TODO: should line obstacles use border color?
         return (
-            color_manager.obstaclegroup_fill_color(instance.group)
-            if instance.group is not None
+            color_manager.obstaclegroup_fill_color(self.group)
+            if self.group is not None
             else color_manager.obstacles_default_fill
         )
 

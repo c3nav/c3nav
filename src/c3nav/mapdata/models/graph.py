@@ -73,7 +73,7 @@ class GraphEdge(AccessRestrictionMixin, models.Model):
         default_related_name = 'graphedges'
         unique_together = (('from_node', 'to_node'), )
 
-    def to_geojson(self, instance=None) -> dict:
+    def to_geojson(self) -> dict:
         result = {
             'type': 'Feature',
             'properties': {

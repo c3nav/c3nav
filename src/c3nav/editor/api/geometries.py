@@ -105,7 +105,7 @@ def conditional_geojson(obj, update_cache_key_match):
     if update_cache_key_match and not obj._affected_by_changeset:
         return obj.get_geojson_key()
 
-    result = obj.to_geojson(instance=obj)
+    result = obj.to_geojson()
     result['properties']['changed'] = obj._affected_by_changeset
     return result
 
