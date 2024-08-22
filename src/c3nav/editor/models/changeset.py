@@ -1,27 +1,105 @@
-import operator
-import typing
+import datetime
 from collections import OrderedDict
 from contextlib import contextmanager
-from functools import reduce
-from itertools import chain
+from enum import StrEnum
+from typing import Literal, TypeAlias, Union, Annotated
 
 from django.apps import apps
 from django.conf import settings
 from django.core.cache import cache
 from django.core.exceptions import FieldDoesNotExist
 from django.db import models, transaction
-from django.db.models import Q
 from django.urls import reverse
 from django.utils.http import int_to_base36
 from django.utils.timezone import make_naive
 from django.utils.translation import gettext_lazy as _
 from django.utils.translation import ngettext_lazy
+from django_pydantic_field import SchemaField
+from pydantic.config import ConfigDict
+from pydantic.fields import Field
+from pydantic.types import Discriminator
 
+from c3nav.api.schema import BaseSchema
 from c3nav.editor.tasks import send_changeset_proposed_notification
-from c3nav.editor.wrappers import is_created_pk
 from c3nav.mapdata.models import LocationSlug, MapUpdate
 from c3nav.mapdata.models.locations import LocationRedirect
 from c3nav.mapdata.utils.cache.changes import changed_geometries
+
+FieldValuesDict: TypeAlias = dict[int, str]
+ExistingOrCreatedID: TypeAlias = int  # negative = temporary ID of created object
+
+
+class ObjectReferenceType(StrEnum):
+    EXISTING = "existing"
+    CREATED = "created"
+
+
+class ObjectReference(BaseSchema):
+    model_config = ConfigDict(frozen=True)
+    model: str
+    id: ExistingOrCreatedID
+
+
+class BaseChange(BaseSchema):
+    obj: ObjectReference
+    datetime: datetime.datetime
+
+
+class CreateObjectChange(BaseChange):
+    type: Literal["create"]
+    fields: FieldValuesDict
+
+
+class UpdateObjectChange(BaseChange):
+    type: Literal["update"]
+    fields: FieldValuesDict
+
+
+class DeleteObjectChange(BaseChange):
+    type: Literal["delete"]
+
+
+class AddManyToManyChange(BaseSchema):
+    type: Literal["m2m_add"]
+    field: str
+    values: list[int]
+
+
+class RemoveManyToManyChange(BaseSchema):
+    type: Literal["m2m_remove"]
+    field: str
+    values: list[int]
+
+
+class ClearManyToManyChange(BaseSchema):
+    type: Literal["m2m_clear"]
+    field: str
+
+
+ChangeSetChange = Annotated[
+    Union[
+        CreateObjectChange,
+        UpdateObjectChange,
+        DeleteObjectChange,
+        AddManyToManyChange,
+        RemoveManyToManyChange,
+        ClearManyToManyChange,
+    ],
+    Discriminator("type"),
+]
+
+
+class ChangeSetChanges(BaseSchema):
+    prev_reprs: dict[ObjectReference, str] = {}
+    prev_values: dict[ObjectReference, FieldValuesDict] = {}
+    prev_m2m: dict[ObjectReference, dict[str, list[int]]] = {}
+    changes: list[ChangeSetChange] = []
+
+    # maps negative IDs of created objects to the ID during the current transaction
+    mapped_ids: Annotated[dict[ObjectReference, int], Field(exclude=True)] = {}
+
+    # maps IDs as used during the current transaction to the negative IDs
+    reverse_mapped_ids: Annotated[dict[ObjectReference, int], Field(exclude=True)] = {}
 
 
 class ChangeSet(models.Model):
@@ -49,8 +127,7 @@ class ChangeSet(models.Model):
                                     related_name='assigned_changesets', verbose_name=_('assigned to'))
     map_update = models.OneToOneField(MapUpdate, null=True, related_name='changeset',
                                       verbose_name=_('map update'), on_delete=models.PROTECT)
-    last_cleaned_with = models.ForeignKey(MapUpdate, null=True, related_name='checked_changesets',
-                                          on_delete=models.PROTECT)
+    changes: ChangeSetChanges = SchemaField(schema=ChangeSetChanges, default=ChangeSetChanges)
 
     class Meta:
         verbose_name = _('Change Set')
@@ -72,14 +149,6 @@ class ChangeSet(models.Model):
         self._original_state = self.state
 
         self.direct_editing = False
-
-        self._wrapped_model_cache = {}
-
-    def __getstate__(self):
-        return {
-            **self.__dict__,
-            '_wrapped_model_cache': {}
-        }
 
     """
     Get Changesets for Request/Session/User
