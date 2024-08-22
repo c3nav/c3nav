@@ -19,7 +19,7 @@ from c3nav.editor.forms import GraphEdgeSettingsForm, GraphEditorActionForm, get
 from c3nav.editor.utils import DefaultEditUtils, LevelChildEditUtils, SpaceChildEditUtils
 from c3nav.editor.views.base import (APIHybridError, APIHybridFormTemplateResponse, APIHybridLoginRequiredResponse,
                                      APIHybridMessageRedirectResponse, APIHybridTemplateContextResponse,
-                                     editor_etag_func, sidebar_view)
+                                     editor_etag_func, sidebar_view, use_changeset_mapdata)
 from c3nav.mapdata.models import Level, Space, LocationGroupCategory, GraphNode, GraphEdge
 from c3nav.mapdata.models.access import AccessPermission
 from c3nav.mapdata.utils.user import can_access_editor
@@ -44,6 +44,7 @@ def child_model(request, model: typing.Union[str, models.Model], kwargs=None, pa
 
 
 @etag(editor_etag_func)
+@use_changeset_mapdata
 @sidebar_view(api_hybrid=True)
 def main_index(request):
     return APIHybridTemplateContextResponse('editor/index.html', {
@@ -68,6 +69,7 @@ def main_index(request):
 
 
 @etag(editor_etag_func)
+@use_changeset_mapdata
 @sidebar_view(api_hybrid=True)
 def level_detail(request, pk):
     qs = Level.objects.filter(Level.q_for_request(request))
@@ -96,6 +98,7 @@ def level_detail(request, pk):
 
 
 @etag(editor_etag_func)
+@use_changeset_mapdata
 @sidebar_view(api_hybrid=True)
 def space_detail(request, level, pk):
     # todo: HOW TO GET DATA
@@ -129,6 +132,7 @@ def get_changeset_exceeded(request):
 
 
 @etag(editor_etag_func)
+@use_changeset_mapdata
 @sidebar_view(api_hybrid=True)
 def edit(request, pk=None, model=None, level=None, space=None, on_top_of=None, explicit_edit=False):
     if isinstance(model, str):
@@ -581,6 +585,7 @@ def connect_nodes(request, active_node, clicked_node, edge_settings_form):
 
 
 @etag(editor_etag_func)
+@use_changeset_mapdata
 @sidebar_view
 def graph_edit(request, level=None, space=None):
     if not request.user_permissions.can_access_base_mapdata:
