@@ -493,15 +493,22 @@ class AltitudeArea(LevelGeometryMixin, models.Model):
                 ramp.altitude = ramp.connected_to[0].area.altitude
                 continue
 
-            points = []
+            # collecting this as a dict to ensure that there are no duplicate coordinates
+            points = {}
             for connected_to in ramp.connected_to:
                 for intersection in connected_to.intersections:
                     for linestring in assert_multilinestring(intersection):
-                        points.extend([AltitudeAreaPoint(coordinates=coords, altitude=float(connected_to.area.altitude))
-                                       for coords in linestring.coords])
-            points.extend([AltitudeAreaPoint(coordinates=marker.geometry.coords, altitude=float(marker.altitude))
-                           for marker in ramp.markers])
-            ramp.points = points
+                        points.update({
+                            coords: AltitudeAreaPoint(coordinates=coords,
+                                                      altitude=float(connected_to.area.altitude))
+                            for coords in linestring.coords
+                        })
+            points.update({
+                marker.geometry.coords: AltitudeAreaPoint(coordinates=marker.geometry.coords,
+                                                          altitude=float(marker.altitude))
+                for marker in ramp.markers
+            })
+            ramp.points = list(points.values())
 
             ramp.tmpid = len(areas)
             areas.append(ramp)
