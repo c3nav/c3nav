@@ -15,10 +15,24 @@ from django.utils.cache import patch_vary_headers
 from django.utils.translation import get_language
 from django.utils.translation import gettext_lazy as _
 
+from c3nav.editor.intercept import enable_changeset_overlay
 from c3nav.editor.models import ChangeSet
 from c3nav.mapdata.models.access import AccessPermission
 from c3nav.mapdata.models.base import SerializableMixin
 from c3nav.mapdata.utils.user import can_access_editor
+
+
+def use_changeset_mapdata(func):
+    @wraps(func)
+    def wrapped(request, *args, **kwargs):
+        print('USE CHANGESET MAPDATA')
+        if request.changeset.direct_editing:
+            return func(request, *args, **kwargs)
+
+        with enable_changeset_overlay(request.changeset):
+            return func(request, *args, **kwargs)
+
+    return wrapped
 
 
 def sidebar_view(func=None, select_related=None, api_hybrid=False):

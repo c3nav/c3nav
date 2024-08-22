@@ -17,13 +17,11 @@ from django.utils.timezone import make_naive
 from django.utils.translation import gettext_lazy as _
 from django.utils.translation import ngettext_lazy
 
-from c3nav.editor.models.changedobject import ApplyToInstanceError, ChangedObject, NoopChangedObject
 from c3nav.editor.tasks import send_changeset_proposed_notification
 from c3nav.editor.wrappers import is_created_pk
 from c3nav.mapdata.models import LocationSlug, MapUpdate
 from c3nav.mapdata.models.locations import LocationRedirect
 from c3nav.mapdata.utils.cache.changes import changed_geometries
-from c3nav.mapdata.utils.models import get_submodels
 
 
 class ChangeSet(models.Model):
@@ -139,10 +137,6 @@ class ChangeSet(models.Model):
     """
     Wrap Objects
     """
-
-    def relevant_changed_objects(self) -> typing.Iterable[ChangedObject]:
-        return self.changed_objects_set.exclude(existing_object_pk__isnull=True, deleted=True)
-
     def fill_changes_cache(self):
         """
         Get all changed objects and fill this ChangeSet's changes cache.
@@ -181,97 +175,6 @@ class ChangeSet(models.Model):
                               self.deleted_existing, self.m2m_added, self.m2m_removed), 300)
 
         return True
-
-    def iter_changed_objects(self) -> typing.Iterable[ChangedObject]:
-        return chain(*(changed_objects.values() for changed_objects in self.changed_objects.values()))
-
-    def _clean_changes(self):
-        if self.direct_editing:
-            return
-        with self.lock_to_edit() as changeset:
-            last_map_update_pk = MapUpdate.last_update()[0]
-            if changeset.last_cleaned_with_id == last_map_update_pk:
-                return
-
-            changed_objects = changeset.changed_objects_set.all()
-
-            # delete changed objects that refer in some way to deleted objects and clean up m2m changes
-            object_pks = {}
-            for changed_object in changed_objects:
-                changed_object.add_relevant_object_pks(object_pks)
-
-            to_save = set()
-
-            deleted_object_pks = {}
-            for model, pks in object_pks.items():
-                pks = set(pk for pk in pks if not is_created_pk(pk))
-                deleted_object_pks[model] = pks - set(model.objects.filter(pk__in=pks).values_list('pk', flat=True))
-
-            repeat = True
-            while repeat:
-                repeat = False
-                for changed_object in changed_objects:
-                    if changed_object.handle_deleted_object_pks(deleted_object_pks):
-                        to_save.add(changed_object)
-                    if changed_object.pk is None:
-                        repeat = True
-
-                # remove deleted objects
-                changed_objects = [obj for obj in changed_objects if obj.pk is not None]
-
-            # clean updated fields
-            objects = changeset.get_objects(many=False, changed_objects=changed_objects, prefetch_related=('groups', ))
-            for changed_object in changed_objects:
-                if changed_object.clean_updated_fields(objects):
-                    to_save.add(changed_object)
-
-            # clean m2m
-            for changed_object in changed_objects:
-                if changed_object.clean_m2m(objects):
-                    to_save.add(changed_object)
-
-            # remove duplicate slugs
-            slugs = set()
-            for changed_object in changed_objects:
-                if issubclass(changed_object.model_class, LocationSlug):
-                    slug = changed_object.updated_fields.get('slug', None)
-                    if slug is not None:
-                        slugs.add(slug)
-
-            qs = LocationSlug.objects.filter(slug__in=slugs)
-            if slugs:
-                qs = qs.filter(reduce(operator.or_, (Q(slug__startswith=slug+'__') for slug in slugs)))
-            existing_slugs = dict(qs.values_list('slug', 'redirect__target_id'))
-
-            slug_length = LocationSlug._meta.get_field('slug').max_length
-            for changed_object in changed_objects:
-                if issubclass(changed_object.model_class, LocationSlug):
-                    slug = changed_object.updated_fields.get('slug', None)
-                    if slug is None:
-                        continue
-                    if slug in existing_slugs:
-                        redirect_to = existing_slugs[slug]
-                        if issubclass(changed_object.model_class, LocationRedirect) and redirect_to is not None:
-                            to_save.discard(changed_object)
-                            changed_object.delete()
-                            continue
-                        new_slug = slug
-                        i = 0
-                        while new_slug in existing_slugs:
-                            suffix = '__'+str(i)
-                            new_slug = slug[:slug_length-len(suffix)]+suffix
-                            i += 1
-                        slug = new_slug
-                        changed_object.updated_fields['slug'] = new_slug
-                        to_save.add(changed_object)
-                    existing_slugs[slug] = (None if not issubclass(changed_object.model_class, LocationRedirect)
-                                            else changed_object.updated_fields['target'])
-
-            for changed_object in to_save:
-                changed_object.save(standalone=True)
-
-            changeset.last_cleaned_with_id = last_map_update_pk
-            changeset.save()
 
     """
     Analyse Changes
@@ -312,16 +215,6 @@ class ChangeSet(models.Model):
     @_object_changed.setter
     def _object_changed(self, value):
         self.object_changed_cache[self.pk] = value
-
-    cleaning_changes_cache = {}
-
-    @property
-    def _cleaning_changes(self):
-        return self.cleaning_changes_cache.get(self.pk, None)
-
-    @_cleaning_changes.setter
-    def _cleaning_changes(self, value):
-        self.cleaning_changes_cache[self.pk] = value
 
     objects_changed_count = 0
 
