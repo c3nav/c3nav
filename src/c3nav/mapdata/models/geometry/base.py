@@ -58,10 +58,10 @@ class GeometryMixin(SerializableMixin):
     def get_geojson_key(self):
         return (self.__class__.__name__.lower(), self.id)
 
-    def to_geojson(self, instance=None) -> dict:
+    def to_geojson(self) -> dict:
         result = {
             'type': 'Feature',
-            'properties': self.get_geojson_properties(instance=instance),
+            'properties': self.get_geojson_properties(),
             'geometry': format_geojson(smart_mapping(self.geometry), rounded=False),
         }
         original_geometry = getattr(self, 'original_geometry', None)
