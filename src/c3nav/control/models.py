@@ -109,7 +109,7 @@ class UserPermissions(models.Model):
 
     @property
     def can_manage_mesh(self):
-        return settings.ENABLE_MESH or self.mesh_control
+        return settings.ENABLE_MESH and self.mesh_control
 
 
 get_permissions_for_user_lazy = lazy(UserPermissions.get_for_user, UserPermissions)
