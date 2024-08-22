@@ -12,7 +12,7 @@ from django.utils.text import format_lazy
 from django.utils.translation import get_language_info
 from django.utils.translation import gettext_lazy as _
 
-from c3nav.editor.forms import ChangeSetForm, RejectForm
+from c3nav.editor.forms import ChangeSetForm, RejectForm, get_editor_form
 from c3nav.editor.models import ChangeSet
 from c3nav.editor.views.base import sidebar_view
 from c3nav.editor.wrappers import is_created_pk
@@ -265,7 +265,7 @@ def changeset_detail(request, pk):
             }
             changed_objects_data.append(changed_object_data)
 
-            form_fields = changeset.wrap_model(type(obj)).EditorForm._meta.fields
+            form_fields = get_editor_form(model)._meta.fields
 
             if changed_object.is_created:
                 changes.append({

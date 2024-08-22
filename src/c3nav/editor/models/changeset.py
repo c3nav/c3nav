@@ -19,7 +19,7 @@ from django.utils.translation import ngettext_lazy
 
 from c3nav.editor.models.changedobject import ApplyToInstanceError, ChangedObject, NoopChangedObject
 from c3nav.editor.tasks import send_changeset_proposed_notification
-from c3nav.editor.wrappers import ModelInstanceWrapper, ModelWrapper, is_created_pk
+from c3nav.editor.wrappers import is_created_pk
 from c3nav.mapdata.models import LocationSlug, MapUpdate
 from c3nav.mapdata.models.locations import LocationRedirect
 from c3nav.mapdata.utils.cache.changes import changed_geometries
@@ -139,27 +139,6 @@ class ChangeSet(models.Model):
     """
     Wrap Objects
     """
-    def wrap_model(self, model):
-        if isinstance(model, str):
-            model = apps.get_model('mapdata', model)
-        assert isinstance(model, type) and issubclass(model, models.Model)
-        if self.direct_editing:
-            model.EditorForm = ModelWrapper(self, model).EditorForm
-            return model
-        return self._get_wrapped_model(model)
-
-    def _get_wrapped_model(self, model):
-        wrapped = self._wrapped_model_cache.get(model, None)
-        if wrapped is None:
-            wrapped = ModelWrapper(self, model)
-            self._wrapped_model_cache[model] = wrapped
-        return wrapped
-
-    def wrap_instance(self, instance):
-        assert isinstance(instance, models.Model)
-        if self.direct_editing:
-            return instance
-        return self.wrap_model(instance.__class__).wrapped_model_class(self, instance)
 
     def relevant_changed_objects(self) -> typing.Iterable[ChangedObject]:
         return self.changed_objects_set.exclude(existing_object_pk__isnull=True, deleted=True)
@@ -298,133 +277,8 @@ class ChangeSet(models.Model):
     Analyse Changes
     """
     def get_objects(self, many=True, changed_objects=None, prefetch_related=()):
-        if changed_objects is None:
-            if self.changed_objects is None:
-                raise TypeError
-            changed_objects = self.iter_changed_objects()
-
-        # collect pks of relevant objects
-        object_pks = {}
-        for change in changed_objects:
-            change.add_relevant_object_pks(object_pks, many=many)
-
-        # create dummy objects for deleted ones
-        objects = {}
-        for model, pks in object_pks.items():
-            objects[model] = {pk: model(pk=pk) for pk in pks}
-
-        slug_submodels = tuple(model for model in object_pks.keys()
-                               if model is not LocationSlug and issubclass(model, LocationSlug))
-        if slug_submodels:
-            object_pks[LocationSlug] = reduce(operator.or_, (object_pks[model] for model in slug_submodels))
-        for model in slug_submodels:
-            object_pks.pop(model)
-
-        # retrieve relevant objects
-        for model, pks in object_pks.items():
-            if not pks:
-                continue
-            created_pks = set(pk for pk in pks if is_created_pk(pk))
-            existing_pks = pks - created_pks
-            model_objects = {}
-            if existing_pks:
-                qs = model.objects
-                if model is LocationSlug:
-                    qs = qs.select_related_target()
-                qs = qs.filter(pk__in=existing_pks)
-                for prefetch in prefetch_related:
-                    try:
-                        model._meta.get_field(prefetch)
-                    except FieldDoesNotExist:
-                        pass
-                    else:
-                        qs = qs.prefetch_related(prefetch)
-                for obj in qs:
-                    if model == LocationSlug:
-                        obj = obj.get_child()
-                    model_objects[obj.pk] = obj
-            if created_pks:
-                for pk in created_pks:
-                    model_objects[pk] = self.get_created_object(model, pk, allow_deleted=True)._obj
-            objects[model] = model_objects
-
-        # add LocationSlug objects as their correct model
-        for pk, obj in objects.get(LocationSlug, {}).items():
-            objects.setdefault(obj.__class__, {})[pk] = obj
-
-        for pk, obj in objects.get(LocationRedirect, {}).items():
-            try:
-                target = obj.target.get_child(obj.target)
-            except FieldDoesNotExist:
-                # todo: fix this
-                continue
-            # todo: why is it sometimes wrapped and sometimes not?
-            objects.setdefault(LocationSlug, {})[target.pk] = getattr(target, '_obj', target)
-            objects.setdefault(target.__class__, {})[target.pk] = getattr(target, '_obj', target)
-
-        return objects
-
-    def get_changed_values(self, model: models.Model, name: str) -> tuple:
-        """
-        Get all changes values for a specific field on existing models
-        :param model: model class
-        :param name: field name
-        :return: returns a dictionary with primary keys as keys and new values as values
-        """
-        r = tuple((pk, values[name]) for pk, values in self.updated_existing.get(model, {}).items() if name in values)
-        return r
-
-    def get_changed_object(self, obj, allow_noop=False) -> typing.Union[ChangedObject, typing.Type[NoopChangedObject]]:
-        if isinstance(obj, ModelInstanceWrapper):
-            obj = obj._obj
-        model = obj.__class__
-        pk = obj.pk
-        if pk is None:
-            return ChangedObject(changeset=self, model_class=model)
-
-        self.fill_changes_cache()
-
-        objects = tuple(obj for obj in ((submodel, self.changed_objects.get(submodel, {}).get(pk, None))
-                                        for submodel in get_submodels(model)) if obj[1] is not None)
-        if len(objects) > 1:
-            raise model.MultipleObjectsReturned
-        if objects:
-            return objects[0][1]
-
-        if is_created_pk(pk):
-            raise model.DoesNotExist
-
-        if allow_noop:
-            return NoopChangedObject
-
-        return ChangedObject(changeset=self, model_class=model, existing_object_pk=pk)
-
-    def get_created_object(self, model, pk, get_foreign_objects=False, allow_deleted=False):
-        """
-        Gets a created model instance.
-        :param model: model class
-        :param pk: primary key
-        :param get_foreign_objects: whether to fetch foreign objects and not just set their id to field.attname
-        :param allow_deleted: return created objects that have already been deleted (needs get_history=True)
-        :return: a wrapped model instance
-        """
-        self.fill_changes_cache()
-        if issubclass(model, ModelWrapper):
-            model = model._obj
-
-        obj = self.get_changed_object(model(pk=pk))
-        if obj.deleted and not allow_deleted:
-            raise model.DoesNotExist
-        return obj.get_obj(get_foreign_objects=get_foreign_objects)
-
-    def get_created_pks(self, model) -> set:
-        """
-        Returns a set with the primary keys of created objects from this model
-        """
-        self.fill_changes_cache()
-        if issubclass(model, ModelWrapper):
-            model = model._obj
-        return set(self.created_objects.get(model, {}).keys())
+        # todo: reimplement, maybe
+        pass
 
     """
     Permissions
@@ -677,85 +531,7 @@ class ChangeSet(models.Model):
 
     def apply(self, user):
         with MapUpdate.lock():
-            changed_geometries.reset()
-
-            self._clean_changes()
-            changed_objects = self.relevant_changed_objects()
-            created_objects = []
-            existing_objects = []
-            for changed_object in changed_objects:
-                (created_objects if changed_object.is_created else existing_objects).append(changed_object)
-
-            objects = self.get_objects(changed_objects=changed_objects)
-
-            # remove slugs on all changed existing objects
-            slugs_updated = set(changed_object.obj_pk for changed_object in existing_objects
-                                if (issubclass(changed_object.model_class, LocationSlug) and
-                                    'slug' in changed_object.updated_fields))
-            LocationSlug.objects.filter(pk__in=slugs_updated).update(slug=None)
-
-            redirects_deleted = set(changed_object.obj_pk for changed_object in existing_objects
-                                    if (issubclass(changed_object.model_class, LocationRedirect) and
-                                        changed_object.deleted))
-            LocationRedirect.objects.filter(pk__in=redirects_deleted).delete()
-
-            # create created objects
-            created_pks = {}
-            objects_to_create = set(created_objects)
-            while objects_to_create:
-                created_in_last_run = set()
-                for created_object in objects_to_create:
-                    model = created_object.model_class
-                    pk = created_object.obj_pk
-
-                    # lets try to create this object
-                    obj = model()
-                    try:
-                        created_object.apply_to_instance(obj, created_pks=created_pks)
-                    except ApplyToInstanceError:
-                        continue
-
-                    obj.save()
-                    created_in_last_run.add(created_object)
-                    created_pks.setdefault(model, {})[pk] = obj.pk
-                    objects.setdefault(model, {})[pk] = obj
-                    if issubclass(model, LocationSlug):
-                        # todo: make this generic
-                        created_pks.setdefault(LocationSlug, {})[pk] = obj.pk
-                        objects.setdefault(LocationSlug, {})[pk] = obj
-
-                objects_to_create -= created_in_last_run
-
-            # update existing objects
-            for existing_object in existing_objects:
-                if existing_object.deleted:
-                    continue
-                model = existing_object.model_class
-                pk = existing_object.obj_pk
-
-                obj = objects[model][pk]
-                existing_object.apply_to_instance(obj, created_pks=created_pks)
-                obj.save()
-
-            # delete existing objects
-            for existing_object in existing_objects:
-                if not existing_object.deleted and not issubclass(existing_object.model_class, LocationRedirect):
-                    continue
-                model = existing_object.model_class
-                pk = existing_object.obj_pk
-
-                obj = objects[model][pk]
-                obj.delete()
-
-            # update m2m
-            for changed_object in changed_objects:
-                obj = objects[changed_object.model_class][changed_object.obj_pk]
-                for mode, updates in (('remove', changed_object.m2m_removed), ('add', changed_object.m2m_added)):
-                    for name, pks in updates.items():
-                        field = changed_object.model_class._meta.get_field(name)
-                        pks = tuple(objects[field.related_model][pk].pk for pk in pks)
-                        getattr(getattr(obj, name), mode)(*pks)
-
+            # todo: reimplement
             update = self.updates.create(user=user, state='applied')
             map_update = MapUpdate.objects.create(user=user, type='changeset')
             self.state = 'applied'
