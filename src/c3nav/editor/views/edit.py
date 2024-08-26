@@ -415,6 +415,7 @@ def get_visible_spaces_kwargs(model, request):
 
 
 @etag(editor_etag_func)
+@accesses_mapdata
 @sidebar_view(api_hybrid=True)
 def list_objects(request, model=None, level=None, space=None, explicit_edit=False):
     if isinstance(model, str):
