@@ -111,6 +111,21 @@ DatabaseOperation = Annotated[
 ]
 
 
+class ChangedManyToMany(BaseSchema):
+    cleared: bool = False
+    added: list[str] = []
+    removed: list[str] = []
+
+
+class ChangedObject(BaseSchema):
+    obj: ObjectReference
+    repr: str
+    created: bool = False
+    deleted: bool = False
+    fields: FieldValuesDict = {}
+    m2m_changes: dict[str, ChangedManyToMany] = {}
+
+
 class CollectedChanges(BaseSchema):
     prev_reprs: dict[str, dict[int, str]] = {}
     prev_values: dict[str, dict[int, FieldValuesDict]] = {}
@@ -127,6 +142,38 @@ class CollectedChanges(BaseSchema):
                                   for instance in model.objects.filter(pk__in=ids)))
 
         return CollectedChangesPrefetch(changes=self, instances=instances)
+
+    @property
+    def changed_objects(self) -> list[ChangedObject]:
+        objects = {}
+        for operation in self.operations:
+            changed_object = objects.get(operation.obj, None)
+            if changed_object is None:
+                changed_object = ChangedObject(obj=operation.obj,
+                                               repr=self.prev_reprs[operation.obj.model][operation.obj.id])
+                objects[operation.obj] = changed_object
+            if isinstance(operation, CreateObjectOperation):
+                changed_object.created = True
+                changed_object.fields.update(operation.fields)
+            elif isinstance(operation, UpdateObjectOperation):
+                changed_object.fields.update(operation.fields)
+            elif isinstance(operation, DeleteObjectOperation):
+                changed_object.deleted = False
+            else:
+                changed_m2m = changed_object.m2m_changes.get(operation.field, None)
+                if changed_m2m is None:
+                    changed_m2m = ChangedManyToMany()
+                    changed_object.m2m_changes[operation.field] = changed_m2m
+                if isinstance(operation, ClearManyToManyOperation):
+                    changed_m2m.cleared = True
+                    changed_m2m.added = []
+                    changed_m2m.removed = []
+                else:
+                    changed_m2m.added = sorted((set(changed_m2m.added) | operation.add_values)
+                                               - operation.remove_values)
+                    changed_m2m.removed = sorted((set(changed_m2m.removed) - operation.add_values)
+                                                 | operation.remove_values)
+        return list(objects.values())
 
 
 @dataclass
