@@ -85,8 +85,8 @@ class GeometryField(models.JSONField):
         if value is None or value == '':
             return None
         if isinstance(value, str):
-            raise ValueError('got a string in GeometryField.to_python()')
-            # todo: not a todo, hopefully
+            # todo: would be nice to not need this oh god
+            value = json.loads(value)
         try:
             geometry = shape(value)
         except Exception:
