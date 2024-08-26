@@ -1,14 +1,12 @@
-from itertools import chain
 from operator import itemgetter
 
 from django.apps import apps
 from django.conf import settings
 from django.contrib import messages
-from django.contrib.auth.models import User
 from django.core.cache import cache
 from django.http import Http404
 from django.shortcuts import get_object_or_404, redirect, render
-from django.urls import NoReverseMatch, reverse
+from django.urls import reverse
 from django.utils.text import format_lazy
 from django.utils.translation import get_language_info, get_language
 from django.utils.translation import gettext_lazy as _
@@ -16,9 +14,7 @@ from django.utils.translation import gettext_lazy as _
 from c3nav.editor.forms import ChangeSetForm, RejectForm, get_editor_form
 from c3nav.editor.models import ChangeSet
 from c3nav.editor.views.base import sidebar_view
-from c3nav.editor.wrappers import is_created_pk
 from c3nav.mapdata.fields import I18nField
-from c3nav.mapdata.models.locations import LocationRedirect, LocationSlug
 
 
 @sidebar_view(select_related=('last_update', 'last_state_update', 'last_change', 'author'))
