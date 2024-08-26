@@ -213,7 +213,8 @@ def changeset_detail(request, pk):
         if changed_object.titles:
             if current_lang in changed_object.titles:
                 title = changed_object.titles[current_lang]
-            title = next(iter(changed_object.titles.values()))
+            else:
+                title = next(iter(changed_object.titles.values()))
 
         changed_object_data = {
             'model': model,
