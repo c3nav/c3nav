@@ -125,6 +125,7 @@ class ChangeSet(models.Model):
     Wrap Objects
     """
     def fill_changes_cache(self):
+        return
         """
         Get all changed objects and fill this ChangeSet's changes cache.
         Only executable once, if something is changed later the cache will be automatically updated.
@@ -213,24 +214,9 @@ class ChangeSet(models.Model):
     @contextmanager
     def lock_to_edit(self, request=None):
         with transaction.atomic():
-            user = request.user if request is not None and request.user.is_authenticated else None
             if self.pk is not None:
                 changeset = ChangeSet.objects.select_for_update().get(pk=self.pk)
-
-                self._object_changed = False
                 yield changeset
-                if self._object_changed:
-                    update = changeset.updates.create(user=user, objects_changed=True)
-                    changeset.last_update = update
-                    changeset.last_change = update
-                    changeset.save()
-            elif self.direct_editing:
-                with MapUpdate.lock():
-                    changed_geometries.reset()
-                    ChangeSet.objects_changed_count = 0
-                    yield self
-                    if ChangeSet.objects_changed_count:
-                        MapUpdate.objects.create(user=user, type='direct_edit')
             else:
                 yield self
 
@@ -460,6 +446,7 @@ class ChangeSet(models.Model):
             if self.direct_editing:
                 return _('Direct editing active')
             return _('No objects changed')
+        return 'something was changed'  # todo: make this nice again
         return (ngettext_lazy('%(num)d object changed', '%(num)d objects changed', 'num') %
                 {'num': self.changed_objects_count})
 

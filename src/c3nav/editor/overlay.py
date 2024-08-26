@@ -40,8 +40,8 @@ class DatabaseOverlayManager:
         try:
             with transaction.atomic():
                 manager = DatabaseOverlayManager(changes)
+                manager.changes.prefetch().apply()
                 overlay_state.manager = manager
-                # todo: apply changes so far
                 yield manager
                 if not commit:
                     raise InterceptAbortTransaction
@@ -49,6 +49,9 @@ class DatabaseOverlayManager:
             pass
         finally:
             overlay_state.manager = None
+
+    def save_new_operations(self):
+        self.changes.operations.extend(self.new_operations)
 
     @staticmethod
     def get_model_field_values(instance: Model) -> FieldValuesDict:
@@ -59,8 +62,8 @@ class DatabaseOverlayManager:
 
         pre_change_values = self.pre_change_values.pop(ref, None)
         if pre_change_values:
-            self.changes.prev_values[ref] = pre_change_values
-        self.changes.prev_reprs[ref] = str(instance)
+            self.changes.prev_values.setdefault(ref.model, {})[ref.id] = pre_change_values
+        self.changes.prev_reprs.setdefault(ref.model, {})[ref.id] = str(instance)
 
         return ref
 
@@ -68,7 +71,7 @@ class DatabaseOverlayManager:
         if instance.pk is None:
             return
         ref = ObjectReference.from_instance(instance)
-        if ref not in self.pre_change_values and ref not in self.changes.prev_values:
+        if ref not in self.pre_change_values and ref.id not in self.changes.prev_values.get(ref.model, {}):
             self.pre_change_values[ref] = self.get_model_field_values(
                 instance._meta.model.objects.get(pk=instance.pk)
             )

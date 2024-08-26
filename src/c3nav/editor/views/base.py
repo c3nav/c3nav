@@ -1,5 +1,6 @@
 from abc import ABC, abstractmethod
 from collections import OrderedDict
+from contextlib import contextmanager
 from functools import wraps
 from typing import Optional
 
@@ -17,19 +18,52 @@ from django.utils.translation import gettext_lazy as _
 
 from c3nav.editor.models import ChangeSet
 from c3nav.editor.overlay import DatabaseOverlayManager
+from c3nav.mapdata.models import MapUpdate
 from c3nav.mapdata.models.access import AccessPermission
 from c3nav.mapdata.models.base import SerializableMixin
+from c3nav.mapdata.utils.cache.changes import changed_geometries
 from c3nav.mapdata.utils.user import can_access_editor
+
+
+@contextmanager
+def maybe_lock_changeset_to_edit(request):
+    if request.changeset.pk:
+        with request.changeset.lock_to_edit(request=request) as changeset:
+            request.changeset = changeset
+            yield
+    else:
+        yield
 
 
 def accesses_mapdata(func):
     @wraps(func)
     def wrapped(request, *args, **kwargs):
-        changes = None if request.changeset.direct_editing is None else request.changeset.changes
-        with DatabaseOverlayManager.enable(changes, commit=request.changeset.direct_editing) as manager:
-            result = func(request, *args, **kwargs)
-            print("operations", manager.new_operations)
-            return result
+        writable_method = request.method in ("POST", "PUT")
+
+        if request.changeset.direct_editing:
+            with MapUpdate.lock():
+                changed_geometries.reset()
+                with DatabaseOverlayManager.enable(changes=None, commit=writable_method) as manager:
+                    result = func(request, *args, **kwargs)
+                if manager.new_operations:
+                    if writable_method:
+                        MapUpdate.objects.create(user=request.user, type='direct_edit')
+                    else:
+                        raise ValueError  # todo: good error message, but this shouldn't happen
+        else:
+            with maybe_lock_changeset_to_edit(request=request):
+                with DatabaseOverlayManager.enable(changes=request.changeset.changes, commit=False) as manager:
+                    result = func(request, *args, **kwargs)
+                if manager.new_operations:
+                    manager.save_new_operations()
+                    print(request.changeset.changes)
+                    print('saving to changeset!!')
+                    request.changeset.save()
+                    update = request.changeset.updates.create(user=request.user, objects_changed=True)
+                    request.changeset.last_update = update
+                    request.changeset.last_change = update
+                    request.changeset.save()
+        return result
 
     return wrapped
 
@@ -48,7 +82,8 @@ def sidebar_view(func=None, select_related=None, api_hybrid=False):
         if not can_access_editor(request):
             raise PermissionDenied
 
-        request.changeset = ChangeSet.get_for_request(request, select_related)
+        if getattr(request, "changeset", None) is None:
+            request.changeset = ChangeSet.get_for_request(request, select_related)
 
         if api:
             request.is_delete = request.method == 'DELETE'

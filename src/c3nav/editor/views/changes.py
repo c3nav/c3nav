@@ -38,24 +38,24 @@ def changeset_detail(request, pk):
     if request.method == 'POST':
         restore = request.POST.get('restore')
         if restore and restore.isdigit():
-            with changeset.lock_to_edit(request) as changeset:
-                if changeset.can_edit(request):
-                    try:
-                        changed_object = changeset.changed_objects_set.get(pk=restore)
-                    except Exception:
-                        pass
-                    else:
-                        try:
-                            changed_object.restore()
-                            messages.success(request, _('Object has been successfully restored.'))
-                        except PermissionError:
-                            messages.error(request, _('You cannot restore this object, because it depends on '
-                                                      'a deleted object or it would violate a unique contraint.'))
-
-                else:
-                    messages.error(request, _('You can not edit changes on this change set.'))
-
-            return redirect(reverse('editor.changesets.detail', kwargs={'pk': changeset.pk}))
+            raise NotImplementedError  # todo: restore (no pun intended) this feature
+            # if request.changeset.can_edit(request):
+            #     try:
+            #         changed_object = changeset.changed_objects_set.get(pk=restore)
+            #     except Exception:
+            #         pass
+            #     else:
+            #         try:
+            #             changed_object.restore()
+            #             messages.success(request, _('Object has been successfully restored.'))
+            #         except PermissionError:
+            #             messages.error(request, _('You cannot restore this object, because it depends on '
+            #                                       'a deleted object or it would violate a unique contraint.'))
+            #
+            # else:
+            #     messages.error(request, _('You can not edit changes on this change set.'))
+            #
+            # return redirect(reverse('editor.changesets.detail', kwargs={'pk': changeset.pk}))
 
         elif request.POST.get('activate') == '1':
             with changeset.lock_to_edit(request) as changeset:
