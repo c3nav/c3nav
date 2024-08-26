@@ -1,6 +1,7 @@
 from itertools import chain
 from operator import itemgetter
 
+from django.apps import apps
 from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth.models import User
@@ -16,6 +17,7 @@ from c3nav.editor.forms import ChangeSetForm, RejectForm, get_editor_form
 from c3nav.editor.models import ChangeSet
 from c3nav.editor.views.base import sidebar_view
 from c3nav.editor.wrappers import is_created_pk
+from c3nav.mapdata.fields import I18nField
 from c3nav.mapdata.models.locations import LocationRedirect, LocationSlug
 
 
@@ -193,156 +195,90 @@ def changeset_detail(request, pk):
 
     changed_objects_data = []
 
-    added_redirects = {}
-    removed_redirects = {}
-    for changed_object in changeset.changed_objects.get(LocationRedirect, {}).values():
-        if changed_object.is_created == changed_object.deleted:
-            continue
-        obj = objects[LocationRedirect][changed_object.obj_pk]
-        redirect_list = (removed_redirects if changed_object.deleted else added_redirects)
-        redirect_list.setdefault(obj.target_id, []).append(obj.slug)
+    # added_redirects = {}
+    # removed_redirects = {}
+    # for changed_object in changeset.changed_objects.get(LocationRedirect, {}).values():
+    #     if changed_object.is_created == changed_object.deleted:
+    #         continue
+    #     obj = objects[LocationRedirect][changed_object.obj_pk]
+    #     redirect_list = (removed_redirects if changed_object.deleted else added_redirects)
+    #     redirect_list.setdefault(obj.target_id, []).append(obj.slug)
+    #
+    # redirect_changed_objects = []
+    # todo: display redirects nicely
 
-    redirect_changed_objects = []
+    for changed_object in changeset.changes.changed_objects:
+        model = apps.get_model("mapdata", changed_object.obj.model)
+        changes = []
+        changed_object_data = {
+            'model': model,
+            'model_title': model._meta.verbose_name,
+            'pk': changed_object.obj.id,
+            'desc': changed_object.repr,
+            'title': 'TITLE',
+            'changes': changes,
+            'edit_url': None,
+            'deleted': changed_object.deleted,
+        }
 
-    for pk in set(added_redirects.keys()) | set(removed_redirects.keys()):
-        obj = objects[LocationSlug][pk]
-        model = obj.__class__
-        try:
-            changeset.changed_objects[model][pk]
-        except KeyError:
-            redirect_changed_objects.append((model, {pk: changeset.get_changed_object(obj)}))
+        form_fields = get_editor_form(model)._meta.fields
 
-    for model, changed_objects in chain(changeset.changed_objects.items(), redirect_changed_objects):
-        if model == LocationRedirect:
-            continue
+        if changed_object.created:
+            changes.append({
+                'icon': 'plus',
+                'class': 'success',
+                'empty': True,
+                'title': _('created'),
+            })
 
-        for pk, changed_object in changed_objects.items():
-            if pk in objects[model]:
-                obj = objects[model][pk]
-                obj_desc = format_lazy(_('{model} #{id}'), model=obj.__class__._meta.verbose_name, id=pk)
-                if is_created_pk(pk):
-                    obj_still_exists = pk in changeset.created_objects.get(obj.__class__, ())
-                else:
-                    obj_still_exists = pk not in changeset.deleted_existing.get(obj.__class__, ())
-            else:
-                obj = changed_object.obj._obj
-                obj_still_exists = False
-                if changed_object.deleted:
-                    obj_desc = format_lazy(_('{model} #{id}'), model=obj.__class__._meta.verbose_name, id=pk)
-
-                else:
-                    obj_desc = format_lazy(_('{model} #{id} (deleted outside this changeset)'),
-                                           model=obj.__class__._meta.verbose_name, id=pk)
-
-            edit_url = None
-            if obj_still_exists and can_edit and not isinstance(obj, LocationRedirect):
-                reverse_kwargs = {'pk': obj.pk}
-                if hasattr(obj, 'space_id'):
-                    reverse_kwargs['space'] = obj.space_id
-                elif hasattr(obj, 'level_id'):
-                    reverse_kwargs['level'] = obj.level_id
-                try:
-                    edit_url = reverse('editor.' + obj.__class__._meta.default_related_name + '.edit',
-                                       kwargs=reverse_kwargs)
-                except NoReverseMatch:
-                    pass
-
-            changes = []
-            missing_dependencies = changed_object.get_missing_dependencies()
-            unique_collisions = changed_object.get_unique_collisions()
-            changed_object_data = {
-                'model': obj.__class__,
-                'model_title': obj.__class__._meta.verbose_name,
-                'pk': changed_object.pk,
-                'desc': obj_desc,
-                'title': obj.title if getattr(obj, 'titles', None) else None,
-                'changes': changes,
-                'edit_url': edit_url,
-                'deleted': changed_object.deleted,
-                'missing_dependencies': missing_dependencies,
-                'unique_collisions': unique_collisions,
-                'order': (changed_object.deleted and changed_object.is_created, not changed_object.is_created),
+        update_changes = []
+        for name, value in changed_object.fields.items():
+            change_data = {
+                'icon': 'option-vertical',
+                'class': 'muted',
             }
-            changed_objects_data.append(changed_object_data)
-
-            form_fields = get_editor_form(model)._meta.fields
-
-            if changed_object.is_created:
-                changes.append({
-                    'icon': 'plus',
-                    'class': 'success',
+            if name == 'geometry':
+                change_data.update({
+                    'icon': 'map-marker',
+                    'class': 'info',
                     'empty': True,
-                    'title': _('created'),
+                    'title': _('created geometry') if changed_object.created else _('edited geometry'),
+                    'order': (8,),
                 })
-
-            update_changes = []
-
-            for name, value in changed_object.updated_fields.items():
-                change_data = {
-                    'icon': 'option-vertical',
-                    'class': 'muted',
-                }
-                if name == 'geometry':
-                    change_data.update({
-                        'icon': 'map-marker',
-                        'class': 'info',
-                        'empty': True,
-                        'title': _('created geometry') if changed_object.is_created else _('edited geometry'),
-                        'order': (8,),
-                    })
-                elif name == 'data':
-                    change_data.update({
-                        'icon': 'signal',
-                        'class': 'info',
-                        'empty': True,
-                        'title': _('created scan data') if changed_object.is_created else _('edited scan data'),
-                        'order': (9,),
-                    })
-                else:
-                    if '__i18n__' in name:
-                        orig_name, i18n, lang = name.split('__')
+            elif name == 'data':
+                change_data.update({
+                    'icon': 'signal',
+                    'class': 'info',
+                    'empty': True,
+                    'title': _('created scan data') if changed_object.created else _('edited scan data'),
+                    'order': (9,),
+                })
+            else:
+                field = model._meta.get_field(name)
+                field_title = field.verbose_name
+                if isinstance(field, I18nField):
+                    for lang, subvalue in value.items():
+                        sub_change_data = change_data.copy()
                         lang_info = get_language_info(lang)
-                        field = model._meta.get_field(orig_name)
                         field_title = format_lazy(_('{field_name} ({lang})'),
                                                   field_name=field.verbose_name,
                                                   lang=lang_info['name_translated'])
-                        field_value = str(value)
-                        if field_value:
-                            getattr(obj, field.attname)[lang] = field_value
+                        if subvalue == '' or subvalue is None:
+                            sub_change_data.update({
+                                'empty': True,
+                                'title': format_lazy(_('remove {field_title}'), field_title=field_title),
+                            })
                         else:
-                            getattr(obj, field.attname).pop(lang, None)
-                        change_data.update({
+                            sub_change_data.update({
+                                'title': field_title,
+                                'value': subvalue,
+                            })
+                        sub_change_data.update({
                             'order': (4, tuple(code for code, title in settings.LANGUAGES).index(lang)),
                         })
-                    else:
-                        field = model._meta.get_field(name)
-                        field_title = field.verbose_name
-                        if field.related_model is not None:
-                            if value is None:
-                                field_value = None
-                            else:
-                                if issubclass(field.related_model, User):
-                                    field_value = objects[field.related_model][value].username
-                                else:
-                                    field_value = objects[field.related_model][value].title
-                                change_data.update({
-                                    'missing_dependency': field.name in missing_dependencies,
-                                })
-                        else:
-                            field_value = field.to_python(value)
-                        if name in unique_collisions:
-                            change_data.update({
-                                'unique_collision': field.name in unique_collisions,
-                            })
-                        order = 5
-                        if name == 'slug':
-                            order = 1
-                        if name not in form_fields:
-                            order = 0
-                        change_data.update({
-                            'order': (order, form_fields.index(name) if order else 1),
-                        })
-                    if field_value == '' or field_value is None:
+                        update_changes.append(sub_change_data)
+                else:
+                    if value == '' or value is None:
                         change_data.update({
                             'empty': True,
                             'title': format_lazy(_('remove {field_title}'), field_title=field_title),
@@ -350,50 +286,45 @@ def changeset_detail(request, pk):
                     else:
                         change_data.update({
                             'title': field_title,
-                            'value': field_value,
+                            'value': value,
                         })
-                update_changes.append(change_data)
-
-            changes.extend(sorted(update_changes, key=itemgetter('order')))
-
-            for m2m_mode in ('m2m_added', 'm2m_removed'):
-                m2m_list = getattr(changed_object, m2m_mode).items()
-                for name, values in sorted(m2m_list, key=lambda nv: form_fields.index(nv[0])):
-                    field = model._meta.get_field(name)
-                    for value in values:
-                        changes.append({
-                            'icon': 'chevron-right' if m2m_mode == 'm2m_added' else 'chevron-left',
-                            'class': 'info',
-                            'title': field.verbose_name,
-                            'value': objects[field.related_model][value].title,
-                        })
-
-            if isinstance(obj, LocationSlug):
-                for slug in added_redirects.get(obj.pk, ()):
-                    changes.append({
-                        'icon': 'chevron-right',
-                        'class': 'info',
-                        'title': _('Redirect slugs'),
-                        'value': slug,
+                    order = 5
+                    if name == 'slug':
+                        order = 1
+                    if name not in form_fields:
+                        order = 0
+                    change_data.update({
+                        'order': (order, form_fields.index(name) if order else 1),
                     })
-                for slug in removed_redirects.get(obj.pk, ()):
-                    changes.append({
-                        'icon': 'chevron-left',
-                        'class': 'info',
-                        'title': _('Redirect slugs'),
-                        'value': slug,
-                    })
+                    update_changes.append(change_data)
+        changes.extend(sorted(update_changes, key=itemgetter('order')))
 
-            if changed_object.deleted:
+        for name, m2m_changes in changed_object.m2m_changes.items():
+            field = model._meta.get_field(name)
+            for item in m2m_changes.added:
                 changes.append({
-                    'icon': 'minus',
-                    'class': 'danger',
-                    'empty': True,
-                    'title': _('deleted'),
-                    'order': (9,),
+                    'icon': 'chevron-right',
+                    'class': 'info',
+                    'title': field.verbose_name,
+                    'value': item,
+                })
+            for item in m2m_changes.removed:
+                changes.append({
+                    'icon': 'chevron-left',
+                    'class': 'info',
+                    'title': field.verbose_name,
+                    'value': item,
                 })
 
-    changed_objects_data = sorted(changed_objects_data, key=itemgetter('order'))
+        if changed_object.deleted:
+            changes.append({
+                'icon': 'minus',
+                'class': 'danger',
+                'empty': True,
+                'title': _('deleted'),
+            })
+
+        changed_objects_data.append(changed_object_data)
 
     cache.set(cache_key, changed_objects_data, 300)
     ctx['changed_objects'] = changed_objects_data

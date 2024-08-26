@@ -124,44 +124,7 @@ class ChangeSet(models.Model):
     Wrap Objects
     """
     def fill_changes_cache(self):
-        return
-        """
-        Get all changed objects and fill this ChangeSet's changes cache.
-        Only executable once, if something is changed later the cache will be automatically updated.
-        This method gets called automatically when the cache is needed.
-        Only call it if you need to set include_deleted_created to True.
-        :rtype: True if the method was executed, else False
-        """
-        if self.changed_objects is not None:
-            return False
-
-        if self.pk is None:
-            self.changed_objects = {}
-            return False
-
-        cache_key = self.cache_key_by_changes + ':cache'
-
-        cached_cache = cache.get(cache_key)
-        if cached_cache is not None:
-            (self.changed_objects, self.created_objects, self.updated_existing,
-             self.deleted_existing, self.m2m_added, self.m2m_removed) = cached_cache
-            return True
-
-        self.changed_objects = {}
-        for change in self.changed_objects_set.all():
-            change.update_changeset_cache()
-
-        if self.state != 'applied' and not self._cleaning_changes:
-            self._cleaning_changes = True
-            try:
-                self._clean_changes()
-            finally:
-                self._cleaning_changes = False
-
-        cache.set(cache_key, (self.changed_objects, self.created_objects, self.updated_existing,
-                              self.deleted_existing, self.m2m_added, self.m2m_removed), 300)
-
-        return True
+        return  # todo: remove
 
     """
     Analyse Changes
