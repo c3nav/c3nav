@@ -13,7 +13,7 @@ from django.utils.translation import gettext_lazy as _
 from django.utils.translation import ngettext_lazy
 from django_pydantic_field import SchemaField
 
-from c3nav.editor.changes import ChangeSetChanges
+from c3nav.editor.operations import CollectedChanges
 from c3nav.editor.tasks import send_changeset_proposed_notification
 from c3nav.mapdata.models import LocationSlug, MapUpdate
 from c3nav.mapdata.models.locations import LocationRedirect
@@ -45,7 +45,7 @@ class ChangeSet(models.Model):
                                     related_name='assigned_changesets', verbose_name=_('assigned to'))
     map_update = models.OneToOneField(MapUpdate, null=True, related_name='changeset',
                                       verbose_name=_('map update'), on_delete=models.PROTECT)
-    changes: ChangeSetChanges = SchemaField(schema=ChangeSetChanges, default=ChangeSetChanges)
+    changes: CollectedChanges = SchemaField(schema=CollectedChanges, default=CollectedChanges)
 
     class Meta:
         verbose_name = _('Change Set')

@@ -9,7 +9,7 @@ from c3nav.editor.api.base import api_etag_with_update_cache_key
 from c3nav.editor.api.geometries import get_level_geometries_result, get_space_geometries_result
 from c3nav.editor.api.schemas import EditorGeometriesElemSchema, EditorID, GeometryStylesSchema, UpdateCacheKey, \
     EditorBeaconsLookup
-from c3nav.editor.views.base import editor_etag_func, use_changeset_mapdata
+from c3nav.editor.views.base import editor_etag_func, accesses_mapdata
 from c3nav.mapdata.api.base import api_etag
 from c3nav.mapdata.models import Source
 from c3nav.mapdata.schemas.responses import WithBoundsSchema
@@ -63,7 +63,7 @@ def geometrystyles(request):
                                  **auth_permission_responses},
                        openapi_extra={"security": [{"APIKeyAuth": ["editor_access"]}]})
 @api_etag_with_update_cache_key(etag_func=editor_etag_func)
-@use_changeset_mapdata
+@accesses_mapdata
 def space_geometries(request, space_id: EditorID, update_cache_key: UpdateCacheKey = None, **kwargs):
     # newapi_etag_with_update_cache_key does the following, don't let it confuse you:
     # - update_cache_key becomes the actual update_cache_key, not the one supplied be the user
@@ -83,7 +83,7 @@ def space_geometries(request, space_id: EditorID, update_cache_key: UpdateCacheK
                                  **auth_permission_responses},
                        openapi_extra={"security": [{"APIKeyAuth": ["editor_access"]}]})
 @api_etag_with_update_cache_key(etag_func=editor_etag_func)
-@use_changeset_mapdata
+@accesses_mapdata
 def level_geometries(request, level_id: EditorID, update_cache_key: UpdateCacheKey = None, **kwargs):
     # newapi_etag_with_update_cache_key does the following, don't let it confuse you:
     # - update_cache_key becomes the actual update_cache_key, not the one supplied be the user
