@@ -26,9 +26,6 @@ class ObjectReference(BaseSchema):
 
     @classmethod
     def from_instance(cls, instance: Model):
-        """
-        This method will not convert the ID yet!
-        """
         return cls(model=instance._meta.model_name, id=instance.pk)
 
 
