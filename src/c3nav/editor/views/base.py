@@ -15,22 +15,21 @@ from django.utils.cache import patch_vary_headers
 from django.utils.translation import get_language
 from django.utils.translation import gettext_lazy as _
 
-from c3nav.editor.changes import enable_changeset_overlay
 from c3nav.editor.models import ChangeSet
+from c3nav.editor.overlay import DatabaseOverlayManager
 from c3nav.mapdata.models.access import AccessPermission
 from c3nav.mapdata.models.base import SerializableMixin
 from c3nav.mapdata.utils.user import can_access_editor
 
 
-def use_changeset_mapdata(func):
+def accesses_mapdata(func):
     @wraps(func)
     def wrapped(request, *args, **kwargs):
-        print('USE CHANGESET MAPDATA')
-        if request.changeset.direct_editing:
-            return func(request, *args, **kwargs)
-
-        with enable_changeset_overlay(request.changeset):
-            return func(request, *args, **kwargs)
+        changes = None if request.changeset.direct_editing is None else request.changeset.changes
+        with DatabaseOverlayManager.enable(changes, commit=request.changeset.direct_editing) as manager:
+            result = func(request, *args, **kwargs)
+            print("operations", manager.new_operations)
+            return result
 
     return wrapped
 

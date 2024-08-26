@@ -1,88 +1,20 @@
-import datetime
 import json
 from contextlib import contextmanager
 from dataclasses import dataclass, field
-from typing import TypeAlias, Literal, Annotated, Union, Type, Any
+from typing import Type
 
 from django.core import serializers
 from django.db import transaction
 from django.db.models import Model
-from django.db.models.fields.related import OneToOneField, ForeignKey, ManyToManyField
-from django.utils import timezone
-from pydantic import ConfigDict, Discriminator
-from pydantic.fields import Field
+from django.db.models.fields.related import ManyToManyField
 
-from c3nav.api.schema import BaseSchema
+from c3nav.editor.operations import DatabaseOperation, ObjectReference, FieldValuesDict, CreateObjectOperation, \
+    UpdateObjectOperation, DeleteObjectOperation, ClearManyToManyOperation, UpdateManyToManyOperation, CollectedChanges
 
 try:
     from asgiref.local import Local as LocalContext
 except ImportError:
     from threading import local as LocalContext
-
-
-FieldValuesDict: TypeAlias = dict[str, Any]
-
-
-class ObjectReference(BaseSchema):
-    model_config = ConfigDict(frozen=True)
-    model: str
-    id: int
-
-    @classmethod
-    def from_instance(cls, instance: Model):
-        """
-        This method will not convert the ID yet!
-        """
-        return cls(model=instance._meta.model_name, id=instance.pk)
-
-
-class BaseChange(BaseSchema):
-    obj: ObjectReference
-    datetime: Annotated[datetime.datetime, Field(default_factory=timezone.now)]
-
-
-class CreateObjectChange(BaseChange):
-    type: Literal["create"] = "create"
-    fields: FieldValuesDict
-
-
-class UpdateObjectChange(BaseChange):
-    type: Literal["update"] = "update"
-    fields: FieldValuesDict
-
-
-class DeleteObjectChange(BaseChange):
-    type: Literal["delete"] = "delete"
-
-
-class UpdateManyToManyChange(BaseSchema):
-    type: Literal["m2m_add"] = "m2m_update"
-    field: str
-    add_values: set[int] = set()
-    remove_values: set[int] = set()
-
-
-class ClearManyToManyChange(BaseSchema):
-    type: Literal["m2m_clear"] = "m2m_clear"
-    field: str
-
-
-ChangeSetChange = Annotated[
-    Union[
-        CreateObjectChange,
-        UpdateObjectChange,
-        DeleteObjectChange,
-        UpdateManyToManyChange,
-        ClearManyToManyChange,
-    ],
-    Discriminator("type"),
-]
-
-
-class ChangeSetChanges(BaseSchema):
-    prev_reprs: dict[ObjectReference, str] = {}
-    prev_values: dict[ObjectReference, FieldValuesDict] = {}
-    changes: list[ChangeSetChange] = []
 
 
 overlay_state = LocalContext()
@@ -92,27 +24,31 @@ class InterceptAbortTransaction(Exception):
     pass
 
 
-@contextmanager
-def enable_changeset_overlay(changeset):
-    try:
-        with transaction.atomic():
-            manager = ChangesetOverlayManager(changeset.changes)
-            overlay_state.manager = manager
-            # todo: apply changes so far
-            yield
-            raise InterceptAbortTransaction
-    except InterceptAbortTransaction:
-        if manager:
-            print(manager.new_changes)
-    finally:
-        overlay_state.manager = None
-
-
 @dataclass
-class ChangesetOverlayManager:
-    changes: ChangeSetChanges
-    new_changes: list[ChangeSetChange] = field(default_factory=list)
+class DatabaseOverlayManager:
+    changes: CollectedChanges
+    new_operations: list[DatabaseOperation] = field(default_factory=list)
     pre_change_values: dict[ObjectReference, FieldValuesDict] = field(default_factory=dict)
+
+    @classmethod
+    @contextmanager
+    def enable(cls, changes: CollectedChanges | None, commit: bool):
+        if getattr(overlay_state, 'manager', None) is not None:
+            raise TypeError
+        if changes is None:
+            changes = CollectedChanges()
+        try:
+            with transaction.atomic():
+                manager = DatabaseOverlayManager(changes)
+                overlay_state.manager = manager
+                # todo: apply changes so far
+                yield manager
+                if not commit:
+                    raise InterceptAbortTransaction
+        except InterceptAbortTransaction:
+            pass
+        finally:
+            overlay_state.manager = None
 
     @staticmethod
     def get_model_field_values(instance: Model) -> FieldValuesDict:
@@ -143,17 +79,17 @@ class ChangesetOverlayManager:
         ref = self.get_ref_and_pre_change_values(instance)
 
         if created:
-            self.new_changes.append(CreateObjectChange(obj=ref, fields=field_values))
+            self.new_operations.append(CreateObjectOperation(obj=ref, fields=field_values))
             return
 
         if update_fields:
             field_values = {name: value for name, value in field_values.items() if name in update_fields}
 
-        self.new_changes.append(UpdateObjectChange(obj=ref, fields=field_values))
+        self.new_operations.append(UpdateObjectOperation(obj=ref, fields=field_values))
 
     def handle_post_delete(self, instance: Model, **kwargs):
         ref = self.get_ref_and_pre_change_values(instance)
-        self.new_changes.append(DeleteObjectChange(obj=ref))
+        self.new_operations.append(DeleteObjectOperation(obj=ref))
 
     def handle_m2m_changed(self, sender: Type[Model], instance: Model, action: str, model: Type[Model],
                            pk_set: set | None, reverse: bool, **kwargs):
@@ -165,7 +101,6 @@ class ChangesetOverlayManager:
 
         for field in instance._meta.get_fields():
             if isinstance(field, ManyToManyField) and field.remote_field.through == sender:
-                print("this is it!", field)
                 break
         else:
             raise ValueError
@@ -173,12 +108,12 @@ class ChangesetOverlayManager:
         ref = self.get_ref_and_pre_change_values(instance)
 
         if action == "post_clear":
-            self.new_changes.append(ClearManyToManyChange(obj=ref, field=field.name))
+            self.new_operations.append(ClearManyToManyOperation(obj=ref, field=field.name))
             return
 
-        if self.new_changes:
-            last_change = self.new_changes[-1]
-            if isinstance(last_change, UpdateManyToManyChange) and last_change == ref and last_change == field.name:
+        if self.new_operations:
+            last_change = self.new_operations[-1]
+            if isinstance(last_change, UpdateManyToManyOperation) and last_change == ref and last_change == field.name:
                 if action == "post_add":
                     last_change.add_values.update(pk_set)
                     last_change.remove_values.difference_update(pk_set)
@@ -188,15 +123,15 @@ class ChangesetOverlayManager:
                 return
 
         if action == "post_add":
-            self.new_changes.append(UpdateManyToManyChange(obj=ref, field=field.name, add_values=list(pk_set)))
+            self.new_operations.append(UpdateManyToManyOperation(obj=ref, field=field.name, add_values=list(pk_set)))
         else:
-            self.new_changes.append(UpdateManyToManyChange(obj=ref, field=field.name, remove_values=list(pk_set)))
+            self.new_operations.append(UpdateManyToManyOperation(obj=ref, field=field.name, remove_values=list(pk_set)))
 
 
 def handle_pre_change_instance(sender: Type[Model], **kwargs):
     if sender._meta.app_label != 'mapdata':
         return
-    manager: ChangesetOverlayManager = getattr(overlay_state, 'manager', None)
+    manager: DatabaseOverlayManager = getattr(overlay_state, 'manager', None)
     if manager:
         manager.handle_pre_change_instance(sender=sender, **kwargs)
 
@@ -204,7 +139,7 @@ def handle_pre_change_instance(sender: Type[Model], **kwargs):
 def handle_post_save(sender: Type[Model], **kwargs):
     if sender._meta.app_label != 'mapdata':
         return
-    manager: ChangesetOverlayManager = getattr(overlay_state, 'manager', None)
+    manager: DatabaseOverlayManager = getattr(overlay_state, 'manager', None)
     if manager:
         manager.handle_post_save(sender=sender, **kwargs)
 
@@ -212,7 +147,7 @@ def handle_post_save(sender: Type[Model], **kwargs):
 def handle_post_delete(sender: Type[Model], **kwargs):
     if sender._meta.app_label != 'mapdata':
         return
-    manager: ChangesetOverlayManager = getattr(overlay_state, 'manager', None)
+    manager: DatabaseOverlayManager = getattr(overlay_state, 'manager', None)
     if manager:
         manager.handle_post_delete(sender=sender, **kwargs)
 
@@ -220,6 +155,6 @@ def handle_post_delete(sender: Type[Model], **kwargs):
 def handle_m2m_changed(sender: Type[Model], **kwargs):
     if sender._meta.app_label != 'mapdata':
         return
-    manager: ChangesetOverlayManager = getattr(overlay_state, 'manager', None)
+    manager: DatabaseOverlayManager = getattr(overlay_state, 'manager', None)
     if manager:
         manager.handle_m2m_changed(sender=sender, **kwargs)
