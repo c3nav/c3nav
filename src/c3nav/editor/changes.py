@@ -102,7 +102,8 @@ def enable_changeset_overlay(changeset):
             yield
             raise InterceptAbortTransaction
     except InterceptAbortTransaction:
-        pass
+        if manager:
+            print(manager.new_changes)
     finally:
         overlay_state.manager = None
 
@@ -163,9 +164,8 @@ class ChangesetOverlayManager:
             return self.handle_pre_change_instance(sender=instance._meta.model, instance=instance)
 
         for field in instance._meta.get_fields():
-            if isinstance(field, ManyToManyField):
-                # todo: actually identify field!!
-                raise NotImplementedError
+            if isinstance(field, ManyToManyField) and field.remote_field.through == sender:
+                print("this is it!", field)
                 break
         else:
             raise ValueError
