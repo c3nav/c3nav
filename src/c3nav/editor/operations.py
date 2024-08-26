@@ -120,7 +120,7 @@ class ChangedManyToMany(BaseSchema):
 
 class ChangedObject(BaseSchema):
     obj: ObjectReference
-    repr: str
+    titles: dict[str, str]
     created: bool = False
     deleted: bool = False
     fields: FieldValuesDict = {}
@@ -128,7 +128,7 @@ class ChangedObject(BaseSchema):
 
 
 class CollectedChanges(BaseSchema):
-    prev_reprs: dict[str, dict[int, str]] = {}
+    prev_titles: dict[str, dict[int, dict[str, str]]] = {}
     prev_values: dict[str, dict[int, FieldValuesDict]] = {}
     operations: list[DatabaseOperation] = []
 
@@ -151,7 +151,7 @@ class CollectedChanges(BaseSchema):
             changed_object = objects.get(operation.obj, None)
             if changed_object is None:
                 changed_object = ChangedObject(obj=operation.obj,
-                                               repr=self.prev_reprs[operation.obj.model][operation.obj.id])
+                                               titles=self.prev_titles[operation.obj.model][operation.obj.id])
                 objects[operation.obj] = changed_object
             if isinstance(operation, CreateObjectOperation):
                 changed_object.created = True

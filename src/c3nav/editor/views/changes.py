@@ -10,7 +10,7 @@ from django.http import Http404
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import NoReverseMatch, reverse
 from django.utils.text import format_lazy
-from django.utils.translation import get_language_info
+from django.utils.translation import get_language_info, get_language
 from django.utils.translation import gettext_lazy as _
 
 from c3nav.editor.forms import ChangeSetForm, RejectForm, get_editor_form
@@ -207,15 +207,24 @@ def changeset_detail(request, pk):
     # redirect_changed_objects = []
     # todo: display redirects nicely
 
+    current_lang = get_language()
+
     for changed_object in changeset.changes.changed_objects:
         model = apps.get_model("mapdata", changed_object.obj.model)
         changes = []
+
+        title = None
+        if changed_object.titles:
+            if current_lang in changed_object.titles:
+                title = changed_object.titles[current_lang]
+            title = next(iter(changed_object.titles.values()))
+
         changed_object_data = {
             'model': model,
             'model_title': model._meta.verbose_name,
             'pk': changed_object.obj.id,
-            'desc': changed_object.repr,
-            'title': 'TITLE',
+            'desc': format_lazy(_('{model} #{id}'), model=model._meta.verbose_name, id=changed_object.obj.id),
+            'title': title,
             'changes': changes,
             'edit_url': None,
             'deleted': changed_object.deleted,
