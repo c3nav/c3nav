@@ -4,9 +4,11 @@ from django.apps import apps
 from django.conf import settings
 from django.contrib import messages
 from django.core.cache import cache
+from django.db.models.fields.related import ManyToManyField
 from django.http import Http404
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
+from django.urls.exceptions import NoReverseMatch
 from django.utils.text import format_lazy
 from django.utils.translation import get_language_info, get_language
 from django.utils.translation import gettext_lazy as _
@@ -189,21 +191,7 @@ def changeset_detail(request, pk):
         ctx['changed_objects'] = changed_objects_data
         return render(request, 'editor/changeset.html', ctx)
 
-    objects = changeset.get_objects()
-
     changed_objects_data = []
-
-    # added_redirects = {}
-    # removed_redirects = {}
-    # for changed_object in changeset.changed_objects.get(LocationRedirect, {}).values():
-    #     if changed_object.is_created == changed_object.deleted:
-    #         continue
-    #     obj = objects[LocationRedirect][changed_object.obj_pk]
-    #     redirect_list = (removed_redirects if changed_object.deleted else added_redirects)
-    #     redirect_list.setdefault(obj.target_id, []).append(obj.slug)
-    #
-    # redirect_changed_objects = []
-    # todo: display redirects nicely
 
     added_redirects = {}
     removed_redirects = {}
@@ -232,6 +220,21 @@ def changeset_detail(request, pk):
             else:
                 title = next(iter(changed_object.titles.values()))
 
+        prev_values = changeset.changes.prev_values[changed_object.obj.model][changed_object.obj.id]
+
+        edit_url = None
+        if not changed_object.deleted:
+            # todo: only if it's active
+            reverse_kwargs = {'pk': changed_object.obj.id}
+            if "space" in prev_values:
+                reverse_kwargs["space"] = changed_object.fields.get("space", prev_values["space"])
+            elif "level" in prev_values:
+                reverse_kwargs["level"] = changed_object.fields.get("level", prev_values["level"])
+            try:
+                edit_url = reverse('editor.' + model._meta.default_related_name + '.edit', kwargs=reverse_kwargs)
+            except NoReverseMatch:
+                pass
+
         changed_object_data = {
             'model': model,
             'model_title': model._meta.verbose_name,
@@ -239,7 +242,7 @@ def changeset_detail(request, pk):
             'desc': format_lazy(_('{model} #{id}'), model=model._meta.verbose_name, id=changed_object.obj.id),
             'title': title,
             'changes': changes,
-            'edit_url': None,
+            'edit_url': edit_url,
             'deleted': changed_object.deleted,
         }
 
@@ -267,6 +270,7 @@ def changeset_detail(request, pk):
                     'title': _('created geometry') if changed_object.created else _('edited geometry'),
                     'order': (8,),
                 })
+                update_changes.append(change_data)
             elif name == 'data':
                 change_data.update({
                     'icon': 'signal',
@@ -275,6 +279,7 @@ def changeset_detail(request, pk):
                     'title': _('created scan data') if changed_object.created else _('edited scan data'),
                     'order': (9,),
                 })
+                update_changes.append(change_data)
             else:
                 field = model._meta.get_field(name)
                 field_title = field.verbose_name
@@ -299,8 +304,12 @@ def changeset_detail(request, pk):
                             'order': (4, tuple(code for code, title in settings.LANGUAGES).index(lang)),
                         })
                         update_changes.append(sub_change_data)
+                elif isinstance(field, ManyToManyField):
+                    continue
                 else:
                     if value == '' or value is None:
+                        if changed_object.created:
+                            continue
                         change_data.update({
                             'empty': True,
                             'title': format_lazy(_('remove {field_title}'), field_title=field_title),
