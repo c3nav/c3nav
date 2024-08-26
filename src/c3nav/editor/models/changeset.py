@@ -379,7 +379,8 @@ class ChangeSet(models.Model):
         """
         Get the number of changed objects.
         """
-        return len(self.changes.changed_objects)
+        return len([changed_object for changed_object in self.changes.changed_objects
+                    if changed_object.obj.model != "locationredirect"])
 
     def get_changed_objects_by_model(self, model):
         if isinstance(model, str):
