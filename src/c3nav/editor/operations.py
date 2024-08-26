@@ -13,6 +13,7 @@ from pydantic.fields import Field
 from pydantic.types import Discriminator
 
 from c3nav.api.schema import BaseSchema
+from c3nav.mapdata.fields import I18nField
 
 FieldValuesDict: TypeAlias = dict[str, Any]
 
@@ -61,7 +62,7 @@ class UpdateObjectOperation(BaseOperation):
         instance = list(serializers.deserialize("json", json.dumps([{
             "model": f"mapdata.{self.obj.model}",
             "pk": self.obj.id,
-            "fields": self.fields,
+            "fields": values,
         }])))[0]
         instance.save(save_m2m=False)
         return instance.object
@@ -156,7 +157,14 @@ class CollectedChanges(BaseSchema):
                 changed_object.created = True
                 changed_object.fields.update(operation.fields)
             elif isinstance(operation, UpdateObjectOperation):
-                changed_object.fields.update(operation.fields)
+                model = apps.get_model('mapdata', operation.obj.model)
+                for field_name, value in operation.fields.items():
+                    field = model._meta.get_field(field_name)
+                    if isinstance(field, I18nField) and field_name in changed_object.fields:
+                        changed_object.fields[field_name] = {lang: val
+                                                             for lang, val in field[field_name].update(value).items()}
+                    else:
+                        changed_object.fields[field_name] = value
             elif isinstance(operation, DeleteObjectOperation):
                 changed_object.deleted = False
             else:

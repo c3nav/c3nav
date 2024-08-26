@@ -10,6 +10,7 @@ from django.db.models.fields.related import ManyToManyField
 
 from c3nav.editor.operations import DatabaseOperation, ObjectReference, FieldValuesDict, CreateObjectOperation, \
     UpdateObjectOperation, DeleteObjectOperation, ClearManyToManyOperation, UpdateManyToManyOperation, CollectedChanges
+from c3nav.mapdata.fields import I18nField
 
 try:
     from asgiref.local import Local as LocalContext
@@ -57,7 +58,7 @@ class DatabaseOverlayManager:
     def get_model_field_values(instance: Model) -> FieldValuesDict:
         return json.loads(serializers.serialize("json", [instance]))[0]["fields"]
 
-    def get_ref_and_pre_change_values(self, instance: Model) -> ObjectReference:
+    def get_ref_and_pre_change_values(self, instance: Model) -> tuple[ObjectReference, FieldValuesDict]:
         ref = ObjectReference.from_instance(instance)
 
         pre_change_values = self.pre_change_values.pop(ref, None)
@@ -65,7 +66,7 @@ class DatabaseOverlayManager:
             self.changes.prev_values.setdefault(ref.model, {})[ref.id] = pre_change_values
         self.changes.prev_reprs.setdefault(ref.model, {})[ref.id] = str(instance)
 
-        return ref
+        return ref, pre_change_values
 
     def handle_pre_change_instance(self, instance: Model, **kwargs):
         if instance.pk is None:
@@ -79,7 +80,7 @@ class DatabaseOverlayManager:
     def handle_post_save(self, instance: Model, created: bool, update_fields: set | None, **kwargs):
         field_values = self.get_model_field_values(instance)
 
-        ref = self.get_ref_and_pre_change_values(instance)
+        ref, pre_change_values = self.get_ref_and_pre_change_values(instance)
 
         if created:
             self.new_operations.append(CreateObjectOperation(obj=ref, fields=field_values))
@@ -88,10 +89,24 @@ class DatabaseOverlayManager:
         if update_fields:
             field_values = {name: value for name, value in field_values.items() if name in update_fields}
 
+        field_values = {name: value for name, value in field_values.items() if value != pre_change_values[name]}
+
+        # special diffing within the i18n fields
+        for field_name in tuple(field_values):
+            if isinstance(instance._meta.get_field(field_name), I18nField):
+                before_val = pre_change_values[field_name]
+                after_val = field_values[field_name]
+
+                diff_val = {}
+                for lang in (set(before_val) | set(after_val)):
+                    if before_val.get(lang, None) != after_val.get(lang, None):
+                        diff_val[lang] = after_val.get(lang, None)
+                field_values[field_name] = diff_val
+
         self.new_operations.append(UpdateObjectOperation(obj=ref, fields=field_values))
 
     def handle_post_delete(self, instance: Model, **kwargs):
-        ref = self.get_ref_and_pre_change_values(instance)
+        ref, pre_change_values = self.get_ref_and_pre_change_values(instance)
         self.new_operations.append(DeleteObjectOperation(obj=ref))
 
     def handle_m2m_changed(self, sender: Type[Model], instance: Model, action: str, model: Type[Model],
@@ -108,7 +123,7 @@ class DatabaseOverlayManager:
         else:
             raise ValueError
 
-        ref = self.get_ref_and_pre_change_values(instance)
+        ref, pre_change_values = self.get_ref_and_pre_change_values(instance)
 
         if action == "post_clear":
             self.new_operations.append(ClearManyToManyOperation(obj=ref, field=field.name))
