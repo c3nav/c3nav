@@ -93,19 +93,20 @@ class DatabaseOverlayManager:
         if update_fields:
             field_values = {name: value for name, value in field_values.items() if name in update_fields}
 
-        field_values = {name: value for name, value in field_values.items() if value != pre_change_values[name]}
+        if pre_change_values is not None:
+            field_values = {name: value for name, value in field_values.items() if value != pre_change_values[name]}
 
-        # special diffing within the i18n fields
-        for field_name in tuple(field_values):
-            if isinstance(instance._meta.get_field(field_name), I18nField):
-                before_val = pre_change_values[field_name]
-                after_val = field_values[field_name]
+            # special diffing within the i18n fields
+            for field_name in tuple(field_values):
+                if isinstance(instance._meta.get_field(field_name), I18nField):
+                    before_val = pre_change_values[field_name]
+                    after_val = field_values[field_name]
 
-                diff_val = {}
-                for lang in (set(before_val) | set(after_val)):
-                    if before_val.get(lang, None) != after_val.get(lang, None):
-                        diff_val[lang] = after_val.get(lang, None)
-                field_values[field_name] = diff_val
+                    diff_val = {}
+                    for lang in (set(before_val) | set(after_val)):
+                        if before_val.get(lang, None) != after_val.get(lang, None):
+                            diff_val[lang] = after_val.get(lang, None)
+                    field_values[field_name] = diff_val
 
         self.new_operations.append(UpdateObjectOperation(obj=ref, fields=field_values))
 
