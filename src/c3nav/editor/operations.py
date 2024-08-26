@@ -182,6 +182,7 @@ class CollectedChangesPrefetch:
     instances: dict[ObjectReference, Model]
 
     def apply(self):
+        # todo: what if unique constraint error occurs?
         prev_values = copy.deepcopy(self.changes.prev_values)
         for operation in self.changes.operations:
             if isinstance(operation, CreateObjectOperation):
