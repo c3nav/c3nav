@@ -15,6 +15,8 @@ from c3nav.editor.forms import ChangeSetForm, RejectForm, get_editor_form
 from c3nav.editor.models import ChangeSet
 from c3nav.editor.views.base import sidebar_view
 from c3nav.mapdata.fields import I18nField
+from c3nav.mapdata.models import LocationSlug
+from c3nav.mapdata.models.locations import LocationRedirect
 
 
 @sidebar_view(select_related=('last_update', 'last_state_update', 'last_change', 'author'))
@@ -203,10 +205,24 @@ def changeset_detail(request, pk):
     # redirect_changed_objects = []
     # todo: display redirects nicely
 
+    added_redirects = {}
+    removed_redirects = {}
+    for changed_object in changeset.changes.changed_objects:
+        if changed_object.obj.model == "locationredirect":
+            if changed_object.created and not changed_object.deleted:
+                added_redirects.setdefault(changed_object.fields["target"], set()).add(changed_object.fields["slug"])
+            elif changed_object.deleted:
+                orig_values = changeset.changes.prev_values["locationredirect"][changed_object.obj.id]
+                removed_redirects.setdefault(orig_values["target"], set()).add(orig_values["slug"])
+            else:
+                raise ValueError  # dafuq? not possibile through the editor
+
     current_lang = get_language()
 
     for changed_object in changeset.changes.changed_objects:
         model = apps.get_model("mapdata", changed_object.obj.model)
+        if model == LocationRedirect:
+            continue
         changes = []
 
         title = None
@@ -320,6 +336,22 @@ def changeset_detail(request, pk):
                     'class': 'info',
                     'title': field.verbose_name,
                     'value': item,
+                })
+
+        if issubclass(model, LocationSlug):
+            for slug in added_redirects.get(changed_object.obj.id, ()):
+                changes.append({
+                    'icon': 'chevron-right',
+                    'class': 'info',
+                    'title': _('Redirect slugs'),
+                    'value': slug,
+                })
+            for slug in removed_redirects.get(changed_object.obj.id, ()):
+                changes.append({
+                    'icon': 'chevron-left',
+                    'class': 'info',
+                    'title': _('Redirect slugs'),
+                    'value': slug,
                 })
 
         if changed_object.deleted:
