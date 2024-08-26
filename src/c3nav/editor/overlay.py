@@ -11,6 +11,7 @@ from django.db.models.fields.related import ManyToManyField
 from c3nav.editor.operations import DatabaseOperation, ObjectReference, FieldValuesDict, CreateObjectOperation, \
     UpdateObjectOperation, DeleteObjectOperation, ClearManyToManyOperation, UpdateManyToManyOperation, CollectedChanges
 from c3nav.mapdata.fields import I18nField
+from c3nav.mapdata.models import LocationSlug
 
 try:
     from asgiref.local import Local as LocalContext
@@ -56,7 +57,10 @@ class DatabaseOverlayManager:
 
     @staticmethod
     def get_model_field_values(instance: Model) -> FieldValuesDict:
-        return json.loads(serializers.serialize("json", [instance]))[0]["fields"]
+        values = json.loads(serializers.serialize("json", [instance]))[0]["fields"]
+        if issubclass(instance._meta.model, LocationSlug):
+            values["slug"] = instance.slug
+        return values
 
     def get_ref_and_pre_change_values(self, instance: Model) -> tuple[ObjectReference, FieldValuesDict]:
         ref = ObjectReference.from_instance(instance)

@@ -14,6 +14,7 @@ from pydantic.types import Discriminator
 
 from c3nav.api.schema import BaseSchema
 from c3nav.mapdata.fields import I18nField
+from c3nav.mapdata.models import LocationSlug
 
 FieldValuesDict: TypeAlias = dict[str, Any]
 
@@ -44,13 +45,28 @@ class CreateObjectOperation(BaseOperation):
     fields: FieldValuesDict
 
     def apply_create(self) -> Model:
-        instance = list(serializers.deserialize("json", json.dumps([{
+        model = apps.get_model('mapdata', self.obj.model)
+        data = []
+        if issubclass(model, LocationSlug):
+            data.append({
+                "model": f"mapdata.locationslug",
+                "pk": self.obj.id,
+                "fields": {
+                    "slug": self.fields.get("slug", None)
+                },
+            })
+            values = {key: val for key, val in self.fields.items() if key != "slug"}
+        else:
+            values = self.fields
+        data.append({
             "model": f"mapdata.{self.obj.model}",
             "pk": self.obj.id,
-            "fields": self.fields,
-        }])))[0]
-        instance.save(save_m2m=False)
-        return instance.object
+            "fields": values,
+        })
+        instances = list(serializers.deserialize("json", json.dumps(data)))
+        for instance in instances:
+            instance.save(save_m2m=False)
+        return instances[-1].object
 
 
 class UpdateObjectOperation(BaseOperation):
@@ -66,13 +82,25 @@ class UpdateObjectOperation(BaseOperation):
                                       if val is not None}
             else:
                 values[field_name] = value
-        instance = list(serializers.deserialize("json", json.dumps([{
+        data = []
+        if issubclass(model, LocationSlug) and "slug" in values:
+            data.append({
+                "model": f"mapdata.locationslug",
+                "pk": self.obj.id,
+                "fields": {
+                    "slug": values["slug"],
+                },
+            })
+            values = {key: val for key, val in values.items() if key != "slug"}
+        data.append({
             "model": f"mapdata.{self.obj.model}",
             "pk": self.obj.id,
             "fields": values,
-        }])))[0]
-        instance.save(save_m2m=False)
-        return instance.object
+        })
+        instances = list(serializers.deserialize("json", json.dumps(data)))
+        for instance in instances:
+            instance.save(save_m2m=False)
+        return instances[-1].object
 
 
 class DeleteObjectOperation(BaseOperation):
