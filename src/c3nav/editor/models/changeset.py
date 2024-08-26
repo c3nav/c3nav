@@ -54,7 +54,6 @@ class ChangeSet(models.Model):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.changed_objects = None
 
         self.created_objects = {}
         self.updated_existing = {}
@@ -234,7 +233,7 @@ class ChangeSet(models.Model):
         return self.can_edit(request) and self.state == 'unproposed'
 
     def can_propose(self, request):
-        return self.can_edit(request) and not self.proposed and self.changed_objects_count
+        return self.can_edit(request) and not self.proposed and self.changes.operations
 
     def can_unpropose(self, request):
         return self.author_id == request.user.pk and self.state in ('proposed', 'reproposed')
@@ -417,19 +416,7 @@ class ChangeSet(models.Model):
         """
         Get the number of changed objects.
         """
-        self.fill_changes_cache()
-        count = 0
-        changed_locationslug_pks = set()
-        for model, objects in self.changed_objects.items():
-            if issubclass(model, LocationSlug):
-                if model == LocationRedirect:
-                    continue
-                changed_locationslug_pks.update(objects.keys())
-            count += sum(1 for obj in objects.values() if not obj.is_created or not obj.deleted)
-
-        count += len(set(obj.obj.target_id
-                         for obj in self.changed_objects.get(LocationRedirect, {}).values()) - changed_locationslug_pks)
-        return count
+        return len(self.changes.changed_objects)
 
     def get_changed_objects_by_model(self, model):
         if isinstance(model, str):
@@ -446,7 +433,6 @@ class ChangeSet(models.Model):
             if self.direct_editing:
                 return _('Direct editing active')
             return _('No objects changed')
-        return 'something was changed'  # todo: make this nice again
         return (ngettext_lazy('%(num)d object changed', '%(num)d objects changed', 'num') %
                 {'num': self.changed_objects_count})
 
