@@ -58,7 +58,14 @@ class UpdateObjectOperation(BaseOperation):
     fields: FieldValuesDict
 
     def apply(self, values: FieldValuesDict, instance: Model) -> Model:
-        values.update(self.fields)
+        model = apps.get_model('mapdata', self.obj.model)
+        for field_name, value in self.fields.items():
+            field = model._meta.get_field(field_name)
+            if isinstance(field, I18nField) and field_name in self.fields:
+                values[field_name] = {lang: val for lang, val in values[field_name].update(value).items()
+                                             if val is not None}
+            else:
+                values[field_name] = value
         instance = list(serializers.deserialize("json", json.dumps([{
             "model": f"mapdata.{self.obj.model}",
             "pk": self.obj.id,
