@@ -155,7 +155,7 @@ class ChangedManyToMany(BaseSchema):
 
 class ChangedObject(BaseSchema):
     obj: ObjectReference
-    titles: dict[str, str]
+    titles: dict[str, str] | None
     created: bool = False
     deleted: bool = False
     fields: FieldValuesDict = {}
@@ -163,7 +163,7 @@ class ChangedObject(BaseSchema):
 
 
 class CollectedChanges(BaseSchema):
-    prev_titles: dict[str, dict[int, dict[str, str]]] = {}
+    prev_titles: dict[str, dict[int, dict[str, str] | None]] = {}
     prev_values: dict[str, dict[int, FieldValuesDict]] = {}
     operations: list[DatabaseOperation] = []
 
