@@ -62,8 +62,8 @@ class UpdateObjectOperation(BaseOperation):
         for field_name, value in self.fields.items():
             field = model._meta.get_field(field_name)
             if isinstance(field, I18nField) and field_name in self.fields:
-                values[field_name] = {lang: val for lang, val in values[field_name].update(value).items()
-                                             if val is not None}
+                values[field_name] = {lang: val for lang, val in {**values[field_name], **value}.items()
+                                      if val is not None}
             else:
                 values[field_name] = value
         instance = list(serializers.deserialize("json", json.dumps([{
@@ -168,8 +168,9 @@ class CollectedChanges(BaseSchema):
                 for field_name, value in operation.fields.items():
                     field = model._meta.get_field(field_name)
                     if isinstance(field, I18nField) and field_name in changed_object.fields:
-                        changed_object.fields[field_name] = {lang: val
-                                                             for lang, val in field[field_name].update(value).items()}
+                        changed_object.fields[field_name] = {
+                            lang: val for lang, val in {**changed_object.fields[field_name], **value}.items()
+                        }
                     else:
                         changed_object.fields[field_name] = value
             elif isinstance(operation, DeleteObjectOperation):
