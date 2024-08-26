@@ -169,8 +169,6 @@ def changeset_detail(request, pk):
                     'obj_title': changeset.title,
                 })
 
-    changeset.fill_changes_cache()
-
     ctx = {
         'changeset': changeset,
         'can_edit': can_edit,
