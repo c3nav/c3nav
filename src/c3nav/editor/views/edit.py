@@ -128,7 +128,7 @@ def space_detail(request, level, pk):
 
 
 def get_changeset_exceeded(request):
-    return request.user_permissions.max_changeset_changes <= request.changeset.changed_objects_count
+    return request.user_permissions.max_changeset_changes <= len(request.changeset.changes.operations)
 
 
 @etag(editor_etag_func)
@@ -315,15 +315,14 @@ def edit(request, pk=None, model=None, level=None, space=None, on_top_of=None, e
                 )
 
             if request.POST.get('delete_confirm') == '1' or delete:
-                with request.changeset.lock_to_edit(request) as changeset:
-                    if changeset.can_edit(request):
-                        obj.delete()
-                    else:
-                        return APIHybridMessageRedirectResponse(
-                            level='error',
-                            message=_('You can not edit changes on this changeset.'),
-                            redirect_to=request.path, status_code=403,
-                        )
+                if request.changeset.can_edit(request):  # todo: move this somewhere else
+                    obj.delete()
+                else:
+                    return APIHybridMessageRedirectResponse(
+                        level='error',
+                        message=_('You can not edit changes on this changeset.'),
+                        redirect_to=request.path, status_code=403,
+                    )
 
                 if model == Level:
                     if obj.on_top_of_id is not None:
@@ -360,28 +359,27 @@ def edit(request, pk=None, model=None, level=None, space=None, on_top_of=None, e
             if on_top_of is not None:
                 obj.on_top_of = on_top_of
 
-            with request.changeset.lock_to_edit(request) as changeset:
-                if changeset.can_edit(request):
-                    try:
-                        obj.save()
-                    except IntegrityError:
-                        error = APIHybridError(status_code=400, message=_('Duplicate entry.'))
-                    else:
-                        if form.redirect_slugs is not None:
-                            for slug in form.add_redirect_slugs:
-                                obj.redirects.create(slug=slug)
-
-                            for slug in form.remove_redirect_slugs:
-                                obj.redirects.filter(slug=slug).delete()
-
-                        form.save_m2m()
-                        return APIHybridMessageRedirectResponse(
-                            level='success',
-                            message=_('Object was successfully saved.'),
-                            redirect_to=ctx['back_url']
-                        )
+            if request.changeset.can_edit(request):  # todo: move this somewhere else
+                try:
+                    obj.save()
+                except IntegrityError:
+                    error = APIHybridError(status_code=400, message=_('Duplicate entry.'))
                 else:
-                    error = APIHybridError(status_code=403, message=_('You can not edit changes on this changeset.'))
+                    if form.redirect_slugs is not None:
+                        for slug in form.add_redirect_slugs:
+                            obj.redirects.create(slug=slug)
+
+                        for slug in form.remove_redirect_slugs:
+                            obj.redirects.filter(slug=slug).delete()
+
+                    form.save_m2m()
+                    return APIHybridMessageRedirectResponse(
+                        level='success',
+                        message=_('Object was successfully saved.'),
+                        redirect_to=ctx['back_url']
+                    )
+            else:
+                error = APIHybridError(status_code=403, message=_('You can not edit changes on this changeset.'))
 
     else:
         form = get_editor_form(model)(instance=obj, request=request, space_id=space_id,
@@ -640,14 +638,13 @@ def graph_edit(request, level=None, space=None):
                 return redirect(request.path)
 
             if request.POST.get('delete_confirm') == '1':
-                with request.changeset.lock_to_edit(request) as changeset:
-                    if changeset.can_edit(request):
-                        node.edges_from_here.all().delete()
-                        node.edges_to_here.all().delete()
-                        node.delete()
-                    else:
-                        messages.error(request, _('You can not edit changes on this changeset.'))
-                        return redirect(request.path)
+                if request.changeset.can_edit(request):  # todo: move this somewhere else
+                    node.edges_from_here.all().delete()
+                    node.edges_to_here.all().delete()
+                    node.delete()
+                else:
+                    messages.error(request, _('You can not edit changes on this changeset.'))
+                    return redirect(request.path)
                 messages.success(request, _('Graph Node was successfully deleted.'))
                 return redirect(request.path)
             return render(request, 'editor/delete.html', {
@@ -677,13 +674,12 @@ def graph_edit(request, level=None, space=None):
                     active_node = None
                     set_active_node = True
                 else:
-                    with request.changeset.lock_to_edit(request) as changeset:
-                        if changeset.can_edit(request):
-                            connect_nodes(request, active_node, clicked_node, edge_settings_form)
-                            active_node = clicked_node if edge_settings_form.cleaned_data['activate_next'] else None
-                            set_active_node = True
-                        else:
-                            messages.error(request, _('You can not edit changes on this changeset.'))
+                    if request.changeset.can_edit(request):  # todo: move this somewhere else
+                        connect_nodes(request, active_node, clicked_node, edge_settings_form)
+                        active_node = clicked_node if edge_settings_form.cleaned_data['activate_next'] else None
+                        set_active_node = True
+                    else:
+                        messages.error(request, _('You can not edit changes on this changeset.'))
 
             elif (clicked_node is None and clicked_position is not None and
                   active_node is None and space.geometry.contains(clicked_position)):
@@ -692,16 +688,15 @@ def graph_edit(request, level=None, space=None):
                     messages.error(request, _('You can not add graph nodes because your changeset is full.'))
                     return redirect(request.path)
 
-                with request.changeset.lock_to_edit(request) as changeset:
-                    if changeset.can_edit(request):
-                        node = GraphNode(space=space, geometry=clicked_position)
-                        node.save()
-                        messages.success(request, _('New graph node created.'))
+                if request.changeset.can_edit(request):  # todo: move this somewhere else
+                    node = GraphNode(space=space, geometry=clicked_position)
+                    node.save()
+                    messages.success(request, _('New graph node created.'))
 
-                        active_node = None
-                        set_active_node = True
-                    else:
-                        messages.error(request, _('You can not edit changes on this changeset.'))
+                    active_node = None
+                    set_active_node = True
+                else:
+                    messages.error(request, _('You can not edit changes on this changeset.'))
 
             if set_active_node:
                 connections = {}
