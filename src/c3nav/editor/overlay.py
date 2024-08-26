@@ -64,7 +64,7 @@ class DatabaseOverlayManager:
         pre_change_values = self.pre_change_values.pop(ref, None)
         if pre_change_values:
             self.changes.prev_values.setdefault(ref.model, {})[ref.id] = pre_change_values
-        self.changes.prev_reprs.setdefault(ref.model, {})[ref.id] = str(instance)
+        self.changes.prev_titles.setdefault(ref.model, {})[ref.id] = getattr(instance, 'titles', None)
 
         return ref, pre_change_values
 
