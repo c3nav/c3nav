@@ -56,8 +56,6 @@ def accesses_mapdata(func):
                     result = func(request, *args, **kwargs)
                 if manager.new_operations:
                     manager.save_new_operations()
-                    print(request.changeset.changes)
-                    print('saving to changeset!!')
                     request.changeset.save()
                     update = request.changeset.updates.create(user=request.user, objects_changed=True)
                     request.changeset.last_update = update
