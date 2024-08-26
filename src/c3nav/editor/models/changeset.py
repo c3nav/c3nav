@@ -3,7 +3,6 @@ from contextlib import contextmanager
 
 from django.apps import apps
 from django.conf import settings
-from django.core.cache import cache
 from django.core.exceptions import FieldDoesNotExist
 from django.db import models, transaction
 from django.urls import reverse
@@ -17,7 +16,6 @@ from c3nav.editor.operations import CollectedChanges
 from c3nav.editor.tasks import send_changeset_proposed_notification
 from c3nav.mapdata.models import LocationSlug, MapUpdate
 from c3nav.mapdata.models.locations import LocationRedirect
-from c3nav.mapdata.utils.cache.changes import changed_geometries
 
 
 class ChangeSet(models.Model):
@@ -121,19 +119,6 @@ class ChangeSet(models.Model):
         return changeset
 
     """
-    Wrap Objects
-    """
-    def fill_changes_cache(self):
-        return  # todo: remove
-
-    """
-    Analyse Changes
-    """
-    def get_objects(self, many=True, changed_objects=None, prefetch_related=()):
-        # todo: reimplement, maybe
-        pass
-
-    """
     Permissions
     """
     @property
@@ -155,23 +140,6 @@ class ChangeSet(models.Model):
 
     def can_see(self, request):
         return self.is_author(request) or self.can_review(request)
-
-    object_changed_cache = {}
-
-    @property
-    def _object_changed(self):
-        return self.object_changed_cache.get(self.pk, None)
-
-    @_object_changed.setter
-    def _object_changed(self, value):
-        self.object_changed_cache[self.pk] = value
-
-    objects_changed_count = 0
-
-    @classmethod
-    def object_changed_handler(cls, sender, instance, **kwargs):
-        if sender._meta.app_label == 'mapdata':
-            cls.objects_changed_count += 1
 
     @contextmanager
     def lock_to_edit(self, request=None):
@@ -202,6 +170,7 @@ class ChangeSet(models.Model):
         return self.author_id == request.user.pk and self.state in ('proposed', 'reproposed')
 
     def has_space_access_on_all_objects(self, request, force=False):
+        # todo: reimplement this
         if not request.user.is_authenticated:
             return False
 
@@ -221,7 +190,6 @@ class ChangeSet(models.Model):
             except KeyError:
                 pass
 
-        self.fill_changes_cache()
         for model in self.changed_objects.keys():
             if issubclass(model, LocationRedirect):
                 continue
