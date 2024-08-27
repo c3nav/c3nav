@@ -182,6 +182,7 @@ IMPRINT_LINK = config.get('c3nav', 'imprint_link', fallback=None)
 IMPRINT_PATRONS = config.get('c3nav', 'imprint_patrons', fallback=None)
 IMPRINT_TEAM = config.get('c3nav', 'imprint_team', fallback=None)
 IMPRINT_HOSTING = config.get('c3nav', 'imprint_hosting', fallback=None)
+ABOUT_EXTRA = config.get('c3nav', 'about_extra', fallback=None)
 
 INITIAL_LEVEL = config.get('c3nav', 'initial_level', fallback=None)
 INITIAL_BOUNDS = config.get('c3nav', 'initial_bounds', fallback='').split(' ')

@@ -9,6 +9,9 @@
     <h2>{% trans 'About c3nav' %}</h2>
 
     <p>{% blocktrans %}c3nav is open source software, find out more about it on <a href="https://github.com/c3nav" rel="external" target="_blank">GitHub</a>.{% endblocktrans %}</p>
+    {% if about_extra %}
+        <p>{{ about_extra }}</p>
+    {% endif %}
     <p>{% blocktrans %}Keep yourself up to date on c3nav by following us on <a href="https://chaos.social/@c3nav" rel="external" target="_blank">the fediverse</a>.{% endblocktrans %}</p>
     {% if team %}
         <p>{% trans 'The c3nav team at this event:' %} {{ team }}</p>

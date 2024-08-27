@@ -448,6 +448,7 @@ def about_view(request):
         'patrons': settings.IMPRINT_PATRONS,
         'team': settings.IMPRINT_TEAM,
         'hosting': settings.IMPRINT_HOSTING,
+        'about_extra': settings.ABOUT_EXTRA,
         'version': c3nav_version,
     })
 
