@@ -50,11 +50,13 @@ header h1 {
     margin: 0;
 }
 
-header h1 a, header h1 a:hover {
-    color: var(--color-primary);
+header h1 a {
     line-height: 50px;
     display: block;
     height: 50px;
+}
+header h1 a, header h1 a:hover {
+    color: var(--color-primary);
 }
 
 header h1 img {
@@ -157,6 +159,7 @@ main.map {
 main.account form {
     max-width: 400px;
 }
+
 #modal-content form button[type=submit], #modal-content .answers .button {
     display: block;
     width: 100%;
@@ -526,11 +529,13 @@ main.show-options #resultswrapper #route-options {
 .location.location-form-value {
     margin: -10px -10px 5px -10px;
 }
+
 .location-answers .location.location-form-value, .location-answers a {
     margin-bottom: 5px;
     color: var(--color-secondary);
     display: block;
 }
+
 .location-answers {
     margin-bottom: 10px;
 }
@@ -1460,4 +1465,94 @@ blink {
     animation-iteration-count: infinite;
     animation-timing-function: cubic-bezier(.5, 0, 1, 1);
     animation-duration: 1.7s;
+}
+
+.leaflet-control-container {
+    .leaflet-bottom.leaflet-right {
+        max-height: 100%;
+        display: flex;
+        flex-direction: column;
+        flex-wrap: wrap-reverse;
+        align-items: end;
+        justify-content: end;
+    }
+}
+
+@media screen and (max-width: 320px) {
+    .leaflet-control-container > .leaflet-bottom.leaflet-right {
+        max-height: calc(100% - 60px);
+    }
+    header {
+        height: 40px;
+    }
+
+    header h1 a {
+        height: 30px;
+    }
+
+    header #user {
+        font-size: 0.8em;
+    }
+
+    .leaflet-touch .leaflet-control-levels a, .leaflet-touch .leaflet-control-levels a:hover, .leaflet-touch .leaflet-bar a, .leaflet-touch .leaflet-bar a:hover {
+        width: 22px;
+        height: 22px;
+        line-height: 22px;
+        min-width: 22px;
+        max-width: 22px;
+    }
+
+    #sidebar #search {
+        min-height: 40px;
+        min-width: 40px;
+    }
+
+    .location {
+        height: 40px;
+    }
+
+    main:not([data-view^="route"]) #origin-input, #search.loading #destination-input {
+        margin-bottom: -40px;
+    }
+
+    .locationinput input {
+        height: 40px;
+        padding-left: 40px;
+    }
+
+    .locationinput small {
+        left: 40px;
+        top: 22px;
+    }
+
+    #search .locationinput button {
+        top: 4px;
+        font-size: 32px;
+        width: 32px;
+        height: 32px;
+    }
+
+    .location .icon {
+        font-size: 32px;
+        top: 5px;
+        left: 5px;
+    }
+
+    #autocomplete .location span {
+        line-height: 1;
+    }
+
+    section.details > .details-head {
+        padding: 7px 6px 4px;
+    }
+
+    #search button, .leaflet-popup button, .details-head .button, .buttons.details-buttons button, .buttons.details-buttons .button {
+        font-size: 1rem;
+    }
+
+    #route-dots {
+        font-size: 20px;
+        top: 40px;
+        left: 21px;
+    }
 }
