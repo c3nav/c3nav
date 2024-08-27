@@ -1,6 +1,7 @@
 import json
 from itertools import chain
 from typing import Optional
+from urllib.parse import urlparse
 
 import qrcode
 from django.conf import settings
@@ -226,8 +227,19 @@ def map_index(request, mode=None, slug=None, slug2=None, details=None, options=N
 
     response = render(request, 'site/map.html', ctx)
     set_tile_access_cookie(request, response)
+
     if embed:
         xframe_options_exempt(lambda: response)()
+        cross_origin = request.META.get('HTTP_ORIGIN')
+        if cross_origin is not None:
+            try:
+                if request.META['HTTP_HOST'] == urlparse(cross_origin).hostname:
+                    cross_origin = None
+            except ValueError:
+                pass
+        if cross_origin is not None:
+            response['Access-Control-Allow-Origin'] = cross_origin
+
     return response
 
 
