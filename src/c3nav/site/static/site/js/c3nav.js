@@ -968,6 +968,7 @@ c3nav = {
             .on('click', '.location', c3nav._locationinput_click_suggestion);
         $('html').on('focus', '*', c3nav._locationinput_global_focuschange)
             .on('mousedown', '*', c3nav._locationinput_global_focuschange);
+        $('html').on('keydown', c3nav._global_keydown);
     },
     _build_location_html: function(location) {
         var html = $('<div class="location">')
@@ -1142,6 +1143,31 @@ c3nav = {
             c3nav.update_state();
             c3nav.fly_to_bounds(true);
         }
+    },
+    _global_keydown: function (e) {
+        if (e.originalEvent.key === 'PageUp') {
+            c3nav._level_up();
+            e.preventDefault();
+            e.stopPropagation();
+        } else if (e.originalEvent.key === 'PageDown') {
+            c3nav._level_down();
+            e.preventDefault();
+            e.stopPropagation();
+        }
+    },
+    _level_up() {
+        let levelIdx = this.levels.findIndex(x => x[0] === c3nav._levelControl.currentLevel);
+        if (levelIdx === -1) return;
+        levelIdx += 1;
+        if (levelIdx >= c3nav.levels.length) return;
+        c3nav._levelControl.setLevel(c3nav.levels[levelIdx][0]);
+    },
+    _level_down() {
+        let levelIdx = this.levels.findIndex(x => x[0] === c3nav._levelControl.currentLevel);
+        if (levelIdx === -1) return;
+        levelIdx -= 1;
+        if (levelIdx < 0) return;
+        c3nav._levelControl.setLevel(c3nav.levels[levelIdx][0]);
     },
     _locationinput_hover_suggestion: function () {
         $(this).addClass('focus').siblings().removeClass('focus');
@@ -2129,9 +2155,7 @@ LevelControl = L.Control.extend({
         this._levelButtons[id] = link;
         return overlay;
     },
-
     setLevel: function (id) {
-        console.log('setting level (from/to)', this.currentLevel, id)
         if (id === this.currentLevel) return true;
         if (id !== null && this._tileLayers[id] === undefined) return false;
 
