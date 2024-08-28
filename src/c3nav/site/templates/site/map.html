@@ -61,41 +61,15 @@
         </section>
         {% if not embed %}
             <section id="messages">{% include 'site/fragment_messages.html' %}</section>
-            <section id="anywhere-popup-buttons">
-                <div class="buttons">
-                    <button class="button-clear select-point">
-                        <i class="material-symbols">pin_drop</i>
-                        {% trans 'Show this point' %}
-                    </button>
-                </div>
-                <div class="buttons">
-                    <button class="button-clear show-nearby">
-                        <i class="material-symbols">search</i>
-                        {% trans 'Show nearby locations' %}
-                    </button>
-                </div>
-                <div class="buttons position-buttons">
-                    <a class="button button-clear set-position">
-                        <i class="material-symbols">my_location</i>
-                        {% trans 'Set my position' %}
-                    </a>
-                </div>
-                <div class="buttons">
-                    <a class="button button-clear report report-missing">
-                        <i class="material-symbols">feedback</i>
-                        {% trans 'Report issue' %}
-                    </a>
-                </div>
-            </section>
             <section id="location-popup-buttons">
                 <div class="buttons">
                     <button class="button-clear as-location">
                         <i class="material-symbols">arrow_upward</i>
                         {% trans 'Select' %}
                     </button>
-                    <button class="button-clear share">
-                        <i class="material-symbols">share</i>
-                        {% trans 'Share' %}
+                    <button class="button-clear show-nearby">
+                        <i class="material-symbols">search</i>
+                        {% trans 'Nearby' %}
                     </button>
                 </div>
                 <div class="buttons">
@@ -103,10 +77,10 @@
                     <button class="button-clear as-destination"><i class="material-symbols">directions</i> {% trans 'to here' %}</button>
                 </div>
                 <div class="buttons">
-                    <a class="button button-clear report report-issue">
-                        <i class="material-symbols">feedback</i>
-                        {% trans 'Report issue' %}
-                    </a>
+                    <button class="button-clear share">
+                        <i class="material-symbols">share</i>
+                        {% trans 'Share' %}
+                    </button>
                     <a class="button button-clear report report-missing">
                         <i class="material-symbols">feedback</i>
                         {% trans 'Report issue' %}

@@ -1526,23 +1526,16 @@ c3nav = {
     _click_anywhere: function(e) {
         if (e.originalEvent.target.id !== 'map') return;
         if (c3nav.embed) return;
-        var popup = L.popup(c3nav._add_map_padding({className: 'location-popup', maxWidth: 500}, 'autoPanPaddingTopLeft', 'autoPanPaddingBottomRight')),
-            name = c3nav._latlng_to_name(e.latlng);
-        var buttons = $('#anywhere-popup-buttons').clone();
-        buttons.find('.report').attr('href', '/report/l/' + name + '/');
-        buttons.find('.set-position').attr('href', '/positions/set/' + name + '/');
-        popup.setLatLng(e.latlng).setContent(buttons.html());
-        c3nav._click_anywhere_popup = popup;
-        popup.on('remove', function() { c3nav._click_anywhere_popup = null }).openOn(c3nav.map);
+        c3nav._click_anywhere_load(false, e.latlng);
     },
     _latlng_to_name: function(latlng) {
         var level = c3nav.current_level();
         return 'c:'+String(c3nav.level_labels_by_id[level])+':'+Math.round(latlng.lng*100)/100+':'+Math.round(latlng.lat*100)/100;
     },
-    _click_anywhere_load: function(nearby) {
-        if (!c3nav._click_anywhere_popup) return;
-        var latlng = c3nav._click_anywhere_popup.getLatLng();
-        c3nav._click_anywhere_popup.remove();
+    _click_anywhere_load: function(nearby, latlng) {
+        if (!c3nav._click_anywhere_popup && !latlng) return;
+        if (latlng === undefined) latlng = c3nav._click_anywhere_popup.getLatLng();
+        if (c3nav._click_anywhere_popup) c3nav._click_anywhere_popup.remove();
         var popup = L.popup().setLatLng(latlng).setContent('<div class="loader"></div>'),
             name = c3nav._latlng_to_name(latlng);
         c3nav._click_anywhere_popup = popup;
