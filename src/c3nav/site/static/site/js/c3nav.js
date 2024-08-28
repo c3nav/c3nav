@@ -890,9 +890,7 @@ c3nav = {
             }
             if (c3nav._click_anywhere_popup) c3nav._click_anywhere_popup.remove();
         } else {
-            if ($(this).is('.select-point')) {
-                c3nav._click_anywhere_load(false);
-            } else if ($(this).is('.show-nearby')) {
+            if ($(this).is('.show-nearby')) {
                 c3nav._click_anywhere_load(true);
             } else if ($(this).is('a')) {
                 c3nav._modal_link_click.call(this, e);
