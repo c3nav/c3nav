@@ -140,10 +140,10 @@ class Locator:
 
     def convert_scans(self, scans_data, create_peers=False) -> ScanData:
         converted = []
-        for scan in scans_data["wifi"]:
+        for scan in scans_data.get("wifi", []):
             converted.append(self.convert_wifi_scan(scan, create_peers=create_peers))
 
-        for scan in scans_data["ibeacon"]:
+        for scan in scans_data.get("ibeacon", []):
             converted.append(self.convert_ibeacon_scan(scan, create_peers=create_peers))
 
         peer_ids = reduce(operator.or_, (frozenset(values.keys()) for values in converted), frozenset())
