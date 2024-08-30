@@ -327,11 +327,13 @@ class EditorFormBase(I18nModelFormMixin, ModelForm):
             )
 
     def clean_data(self):
-        if not isinstance(self.cleaned_data['data'], list):
-            raise ValidationError(_('Scan data is not a list.'))
+        if 'wifi' not in self.cleaned_data['data']:
+            raise ValidationError(_('WiFi scan data is missing.'))
+        if not isinstance(self.cleaned_data['data']["wifi"], list):
+            raise ValidationError(_('WiFi scan data is not a list.'))
 
         data = list()
-        for scan in self.cleaned_data['data']:
+        for scan in self.cleaned_data['data']["wifi"]:
             scan: list[dict]
             scan_data = list()
             for item in scan:
