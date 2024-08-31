@@ -35,13 +35,18 @@ def maybe_lock_changeset_to_edit(request):
         yield
 
 
+@contextmanager
+def noctx():
+    yield
+
+
 def accesses_mapdata(func):
     @wraps(func)
     def wrapped(request, *args, **kwargs):
         writable_method = request.method in ("POST", "PUT")
 
         if request.changeset.direct_editing:
-            with MapUpdate.lock():
+            with (MapUpdate.lock() if writable_method else noctx()):
                 changed_geometries.reset()
                 with DatabaseOverlayManager.enable(changes=None, commit=writable_method) as manager:
                     result = func(request, *args, **kwargs)
