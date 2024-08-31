@@ -72,7 +72,7 @@ class GeometryChangeTracker:
         self.reset()
 
 
-changed_geometries = GeometryChangeTracker()
+changed_geometries = GeometryChangeTracker()  # todo: no longer needed if we use the overlay stuff
 
 
 def geometry_deleted(sender, instance, **kwargs):
