@@ -876,6 +876,8 @@ c3nav = {
                 c3nav.update_state(false);
             } else if ($(this).is('.share')) {
                 c3nav._buttons_share_click(location);
+            } else if ($(this).is('.show-nearby')) {
+                c3nav._click_anywhere_load(true);
             } else if ($(this).is('a')) {
                 c3nav._modal_link_click.call(this, e);
             } else {
@@ -889,12 +891,6 @@ c3nav = {
                 c3nav.update_state(true);
             }
             if (c3nav._click_anywhere_popup) c3nav._click_anywhere_popup.remove();
-        } else {
-            if ($(this).is('.show-nearby')) {
-                c3nav._click_anywhere_load(true);
-            } else if ($(this).is('a')) {
-                c3nav._modal_link_click.call(this, e);
-            }
         }
     },
 
