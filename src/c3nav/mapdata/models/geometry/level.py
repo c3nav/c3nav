@@ -3,7 +3,7 @@ from collections import deque, namedtuple
 from decimal import Decimal
 from itertools import chain, combinations
 from operator import attrgetter, itemgetter
-from typing import Sequence, Optional
+from typing import Sequence
 
 import numpy as np
 from django.core.validators import MinValueValidator
@@ -13,13 +13,13 @@ from django.urls import reverse
 from django.utils.functional import cached_property
 from django.utils.text import format_lazy
 from django.utils.translation import gettext_lazy as _
+from django_pydantic_field import SchemaField
 from pydantic import Field as APIField
 from scipy.interpolate._rbfinterp import RBFInterpolator
 from shapely import prepared
 from shapely.affinity import scale
-from shapely.geometry import JOIN_STYLE, LineString, MultiPolygon, Point
+from shapely.geometry import JOIN_STYLE, LineString, MultiPolygon
 from shapely.geometry.polygon import orient
-from django_pydantic_field import SchemaField
 from shapely.ops import unary_union
 
 from c3nav.api.schema import BaseSchema
