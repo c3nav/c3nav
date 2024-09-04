@@ -158,9 +158,9 @@ class EditorFormBase(I18nModelFormMixin, ModelForm):
             self.fields['fixed_y'] = DecimalField(label='fixed y', required=False,
                                                   max_digits=7, decimal_places=3, initial=0)
             self.fields['scale_x'] = DecimalField(label='scale x (m/px)', required=False,
-                                                  max_digits=7, decimal_places=3, initial=1)
+                                                  max_digits=7, decimal_places=6, initial=1)
             self.fields['scale_y'] = DecimalField(label='scale y (m/px)', required=False,
-                                                  max_digits=7, decimal_places=3, initial=1)
+                                                  max_digits=7, decimal_places=6, initial=1)
             self.fields['lock_aspect'] = BooleanField(label='lock aspect ratio', required=False, initial=True)
             self.fields['lock_scale'] = BooleanField(label='lock scale (for moving)', required=False, initial=True)
 
