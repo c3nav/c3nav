@@ -3,6 +3,7 @@ import datetime
 import json
 from dataclasses import dataclass
 from typing import TypeAlias, Any, Annotated, Literal, Union
+from uuid import UUID, uuid4
 
 from django.apps import apps
 from django.core import serializers
@@ -31,6 +32,7 @@ class ObjectReference(BaseSchema):
 
 class BaseOperation(BaseSchema):
     obj: ObjectReference
+    uuid: UUID = Field(default_factory=uuid4)
     datetime: Annotated[datetime.datetime, Field(default_factory=timezone.now)]
 
     def apply(self, values: FieldValuesDict, instance: Model) -> Model:
@@ -132,6 +134,11 @@ class ClearManyToManyOperation(BaseOperation):
         return instance
 
 
+class RevertOperation(BaseOperation):
+    type: Literal["revert"] = "revert"
+    reverts: UUID
+
+
 DatabaseOperation = Annotated[
     Union[
         CreateObjectOperation,
@@ -160,6 +167,7 @@ class ChangedObject(BaseSchema):
 
 
 class CollectedChanges(BaseSchema):
+    uuid: UUID = Field(default_factory=uuid4)
     prev_titles: dict[str, dict[int, dict[str, str] | None]] = {}
     prev_values: dict[str, dict[int, FieldValuesDict]] = {}
     operations: list[DatabaseOperation] = []
@@ -179,7 +187,11 @@ class CollectedChanges(BaseSchema):
     @property
     def changed_objects(self) -> list[ChangedObject]:
         objects = {}
+        reverted_uuids = frozenset(operation.reverts for operation in self.operationsy
+                                   if isinstance(operation, RevertOperation))
         for operation in self.operations:
+            if operation.uuid in reverted_uuids:
+                continue
             changed_object = objects.get(operation.obj, None)
             if changed_object is None:
                 changed_object = ChangedObject(obj=operation.obj,
