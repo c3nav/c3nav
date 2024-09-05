@@ -89,50 +89,52 @@ editor = {
     },
 
     // sources
-    sources: {},
     get_sources: function () {
         // load sources
-        editor._sources_control = L.control.layers([], [], { autoZIndex: false });
-
         c3nav_api.get('mapdata/sources')
-            .then(async sources => {
-                for (var i = 0; i < sources.length; i++) {
-                    const source = sources[i];
-                    editor.sources[source.id] = source;
-                    const bounds = L.GeoJSON.coordsToLatLngs(source.bounds);
-                    options = {opacity: 0.3};
-                    source.layer = L.imageOverlay('/editor/sourceimage/' + source.name, bounds, options);
-                    const is_svg = source.name.endsWith('.svg');
-                    editor._sources_control.addOverlay(source.layer, is_svg ? `${source.name} (image overlay)` : source.name);
+            .then(sources => Object.groupBy(sources, s => s.group ?? 'Ungrouped'))
+            .then(async sourceGroups => {
+                const control = new OverlayControl();
+                for (const key in sourceGroups) {
+                    const sources = sourceGroups[key];
+                    for (var i = 0; i < sources.length; i++) {
+                        const source = sources[i];
+                        editor.sources[source.id] = source;
+                        const bounds = L.GeoJSON.coordsToLatLngs(source.bounds);
+                        options = {opacity: 0.3};
+                        source.layer = L.imageOverlay('/editor/sourceimage/' + source.name, bounds, options);
+                        const is_svg = source.name.endsWith('.svg');
+                        control.addOverlay(source.layer, is_svg ? `${source.name} (image overlay)` : source.name, key);
 
-                    if (is_svg) {
-                        source.svg_el = document.createElementNS("http://www.w3.org/2000/svg", "svg");
-                        source.svg_el.setAttribute('xmlns', "http://www.w3.org/2000/svg");
-                        source.svg_layer = L.svgOverlay(source.svg_el, bounds, options);
-                        editor._sources_control.addOverlay(source.svg_layer, `${source.name} (svg overlay)`);
-                        source.svg_layer.on('add', function () {
-                            if (source.svg_promise) return;
-                            source.svg_promise = fetch(`/editor/sourceimage/${source.name}`)
-                                .then(r => {
-                                    if (!r.ok) {
-                                        throw 'could not load source svg';
-                                    }
-                                    return r.text();
-                                })
-                                .then(src => {
-                                    const root = (new DOMParser).parseFromString(src, 'image/svg+xml').documentElement;
-                                    for (const attr of root.attributes) {
-                                        source.svg_el.attributes.setNamedItem(attr.cloneNode(true));
-                                    }
-                                    source.svg_el.replaceChildren(...root.children);
-                                });
-                        })
+                        if (is_svg) {
+                            source.svg_el = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+                            source.svg_el.setAttribute('xmlns', "http://www.w3.org/2000/svg");
+                            source.svg_layer = L.svgOverlay(source.svg_el, bounds, options);
+                            control.addOverlay(source.svg_layer, `${source.name} (svg overlay)`, key);
+                            source.svg_layer.on('add', function () {
+                                if (source.svg_promise) return;
+                                source.svg_promise = fetch(`/editor/sourceimage/${source.name}`)
+                                    .then(r => {
+                                        if (!r.ok) {
+                                            throw 'could not load source svg';
+                                        }
+                                        return r.text();
+                                    })
+                                    .then(src => {
+                                        const root = (new DOMParser).parseFromString(src, 'image/svg+xml').documentElement;
+                                        for (const attr of root.attributes) {
+                                            source.svg_el.attributes.setNamedItem(attr.cloneNode(true));
+                                        }
+                                        source.svg_el.replaceChildren(...root.children);
+                                    });
+                            })
+                        }
+
+
                     }
-
-
                 }
-                if (sources.length) editor._sources_control.addTo(editor.map);
-            })
+                control.addTo(editor.map);
+            });
     },
 
     // sidebar
@@ -1591,6 +1593,163 @@ LevelControl = L.Control.extend({
 	}
 });
 
+OverlayControl = L.Control.extend({
+    options: {position: 'topright', addClasses: ''},
+    _overlays: {},
+    _groups: {},
+    _initialActiveOverlays: null,
+    _initialCollapsedGroups: null,
+
+    onAdd: function () {
+        this._initialActiveOverlays = JSON.parse(localStorage.getItem('c3nav.editor.overlays.active-overlays') ?? '[]');
+        this._initialCollapsedGroups = JSON.parse(localStorage.getItem('c3nav.editor.overlays.collapsedGroups') ?? '[]');
+        const pinned = JSON.parse(localStorage.getItem('c3nav.editor.overlays.pinned') ?? 'false');
+
+        this._container = L.DomUtil.create('div', 'leaflet-control-overlays ' + this.options.addClasses);
+        this._container.classList.toggle('leaflet-control-overlays-expanded', pinned);
+        this._content = L.DomUtil.create('div', 'content');
+        const collapsed = L.DomUtil.create('div', 'collapsed-toggle leaflet-control-layers-toggle');
+        this._pin = L.DomUtil.create('div', 'pin-toggle');
+        this._pin.classList.toggle('active', pinned);
+        this._pin.innerText = '🖈';
+        this._container.append(this._pin, this._content, collapsed);
+        this._expanded = pinned;
+        this._pinned = pinned;
+
+        if (!L.Browser.android) {
+            L.DomEvent.on(this._container, {
+                mouseenter: this.expand,
+                mouseleave: this.collapse
+            }, this);
+        }
+
+        if (!L.Browser.touch) {
+            L.DomEvent.on(this._container, 'focus', this.expand, this);
+            L.DomEvent.on(this._container, 'blur', this.collapse, this);
+        }
+
+        for (const overlay of this._initialActiveOverlays) {
+            if (overlay in this._overlays) {
+                this._overlays[overlay].visible = true;
+                this._overlays[overlay].layer.addTo(this._map);
+            }
+        }
+
+        for (const group of this._initialCollapsedGroups) {
+           if (group in this._groups) {
+               this._groups[group].expanded = false;
+           }
+        }
+
+        this.render();
+
+        $(this._container).on('change', 'input[type=checkbox]', e => {
+            this._overlays[e.target.dataset.source].visible = e.target.checked;
+            this.updateOverlay(e.target.dataset.source);
+        });
+        $(this._container).on('click', 'div.pin-toggle', e => {
+            this.togglePinned();
+        });
+        $(this._container).on('click', '.content h4', e => {
+            this.toggleGroup(e.target.parentElement.dataset.group);
+        });
+        $(this._container).on('mousedown pointerdown wheel', e => {
+            e.stopPropagation();
+        });
+        return this._container;
+    },
+
+    addOverlay: function (layer, name, group) {
+        const l = {
+            layer,
+            name,
+            group,
+            visible: this._initialActiveOverlays !== null && this._initialActiveOverlays.includes(name),
+        };
+        this._overlays[name] = l;
+        if (group in this._groups) {
+            this._groups[group].overlays.push(l);
+        } else {
+            this._groups[group] = {
+                expanded: this._initialCollapsedGroups === null || !this._initialCollapsedGroups.includes(group),
+                overlays: [l],
+            };
+        }
+        this.render();
+    },
+
+    updateOverlay: function(id) {
+        const overlay = this._overlays[id];
+        if (overlay.visible) {
+            overlay.layer.addTo(this._map);
+        } else {
+            this._map.removeLayer(overlay.layer);
+        }
+        const activeOverlays = Object.keys(this._overlays).filter(k => this._overlays[k].visible);
+        localStorage.setItem('c3nav.editor.overlays.active-overlays', JSON.stringify(activeOverlays));
+    },
+
+    render: function () {
+        if (!this._content) return;
+        const groups = document.createDocumentFragment();
+        for (const group in this._groups) {
+            const group_container = document.createElement('div');
+            group_container.classList.add('overlay-group');
+            if (this._groups[group].expanded) {
+                group_container.classList.add('expanded');
+            }
+            this._groups[group].el = group_container;
+            group_container.dataset.group = group;
+            const title = document.createElement('h4');
+            title.innerText = group;
+            group_container.append(title);
+            for (const overlay of this._groups[group].overlays) {
+                const label = document.createElement('label');
+                const checkbox = document.createElement('input');
+                checkbox.type = 'checkbox';
+                checkbox.dataset.source = overlay.name;
+                if (overlay.visible) {
+                    checkbox.checked = true;
+                }
+                label.append(checkbox, overlay.name);
+                group_container.append(label);
+            }
+            groups.append(group_container);
+        }
+        this._content.replaceChildren(...groups.children);
+    },
+
+    expand: function () {
+        if (this._pinned) return;
+        this._expanded = true;
+        this._container.classList.add('leaflet-control-overlays-expanded');
+        return this;
+    },
+
+    collapse: function () {
+        if (this._pinned) return;
+        this._expanded = false;
+        this._container.classList.remove('leaflet-control-overlays-expanded');
+        return this;
+    },
+
+    toggleGroup: function(name) {
+        const group = this._groups[name];
+        group.expanded = !group.expanded;
+        group.el.classList.toggle('expanded', group.expanded);
+        const collapsedGroups = Object.keys(this._groups).filter(k => !this._groups[k].expanded);
+        localStorage.setItem('c3nav.editor.overlays.collapsed-groups', JSON.stringify(collapsedGroups));
+    },
+
+    togglePinned: function() {
+        this._pinned = !this._pinned;
+        if (this._pinned) {
+            this._expanded = true;
+        }
+        this._pin.classList.toggle('active', this._pinned);
+        localStorage.setItem('c3nav.editor.overlays.pinned', JSON.stringify(this._pinned));
+    },
+});
 
 if ($('#sidebar').length) {
     editor.init();
