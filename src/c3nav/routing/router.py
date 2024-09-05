@@ -198,7 +198,7 @@ class Router:
                 for column in space_obj.columns.all():
                     if column.access_restriction_id is None:
                         continue
-                    column.geometry_prep = prepared.prep(column.geometry)
+                    column.geometry_prep = prepared.prep(unwrap_geom(column.geometry))
                     column_nodes = tuple(node for node in space_nodes if column.geometry_prep.intersects(node.point))
                     column_nodes = set(node.i for node in column_nodes)
                     restrictions.setdefault(column.access_restriction_id,
