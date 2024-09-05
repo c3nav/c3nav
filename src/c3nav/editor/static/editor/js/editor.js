@@ -99,7 +99,6 @@ editor = {
                     const sources = sourceGroups[key];
                     for (var i = 0; i < sources.length; i++) {
                         const source = sources[i];
-                        editor.sources[source.id] = source;
                         const bounds = L.GeoJSON.coordsToLatLngs(source.bounds);
                         options = {opacity: 0.3};
                         source.layer = L.imageOverlay('/editor/sourceimage/' + source.name, bounds, options);
