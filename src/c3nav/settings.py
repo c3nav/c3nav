@@ -444,10 +444,27 @@ LOCALE_PATHS = (
     PROJECT_DIR / 'locale',
 )
 
-LANGUAGES = [
+EXTRA_LANG_INFO = {
+    'en-UW': {
+        'bidi': False,
+        'code': 'en-UW',
+        'name': 'Engwish UwU',
+        'name_local': u'Engwish UwU', #unicode codepoints here
+    },
+}
+
+# Add custom languages not provided by Django
+import django.conf.locale
+LANG_INFO = dict(django.conf.locale.LANG_INFO, **EXTRA_LANG_INFO)
+django.conf.locale.LANG_INFO = LANG_INFO
+
+SELECTED_LANGUAGES = frozenset(config.get('c3nav', 'languages', fallback='en,de').split(','))
+LANGUAGES = [(code, name) for code, name in [
     ('en', _('English')),
+    ('en-UW', _('Engwish UwU')),
     ('de', _('German')),
-]
+] if code in SELECTED_LANGUAGES]
+TILE_CACHE_SERVER = config.get('c3nav', 'languagestile_cache_server', fallback=None)
 
 template_loaders = (
     'django.template.loaders.filesystem.Loader',

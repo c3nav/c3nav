@@ -1,6 +1,8 @@
 import json
 import logging
+import re
 import typing
+from itertools import chain
 
 from django.conf import settings
 from django.core.exceptions import ValidationError
@@ -18,6 +20,30 @@ from c3nav.mapdata.utils.geometry import WrappedGeometry, clean_geometry
 from c3nav.mapdata.utils.json import format_geojson
 
 logger = logging.getLogger('c3nav')
+
+if "en-UW" in settings.SELECTED_LANGUAGES:
+    from uwuipy import Uwuipy
+    uwu = Uwuipy(
+        stutter_chance=0,
+        face_chance=0,
+        action_chance=0,
+        exclamation_chance=0,
+        nsfw_actions=False,
+        power=4,
+    )
+    uwu_more = Uwuipy(
+        stutter_chance=0,
+        action_chance=0,
+        exclamation_chance=0,
+        power=4,
+    )
+    uwu_most = Uwuipy(
+        stutter_chance=0,
+        action_chance=0.05,
+        face_chance=0.1,
+        nsfw_actions=False,
+        power=4,
+    )
 
 
 def validate_geometry(geometry: BaseGeometry):
@@ -145,11 +171,29 @@ class JSONField(models.TextField):
         return self.get_prep_value(value)
 
 
+special_pattern = r'(%%|%(\([^)]*\))?[^a-z]*[a-z]|<[^>]*>|\{[^}]*\})'
+
+
 def get_i18n_value(i18n_dict, fallback_language, fallback_any, fallback_value):
     lang = get_language()
     if i18n_dict:
         if lang in i18n_dict:
             return i18n_dict[lang]
+        if lang == "en-uw" and "en" in i18n_dict:
+            owiginal = i18n_dict["en"]
+            stripped_owiginal = re.sub(special_pattern, '{}', owiginal)
+            specials = [item[0] for item in re.findall(special_pattern, owiginal)]
+            num_wowds = len(stripped_owiginal.split("(")[0].split())
+            if num_wowds >= 8:
+                twanslated = uwu_most.uwuify(stripped_owiginal)
+            elif num_wowds >= 3:
+                twanslated = uwu_more.uwuify(stripped_owiginal)
+            else:
+                twanslated = uwu.uwuify(stripped_owiginal)
+            twanslated = twanslated.replace('***', '*').replace(r'\<', '<').replace(r'\>', '>')
+            if specials:
+                twanslated = ''.join(chain(*zip(twanslated.split('{}'), specials + [""])))
+            return twanslated
         if fallback_language in i18n_dict:
             return i18n_dict[fallback_language]
         if fallback_any:

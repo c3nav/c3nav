@@ -69,6 +69,7 @@ RUN --mount=type=cache,target=/pip-cache \
     -r requirements/rsvg.txt \
     -r requirements/sentry.txt \
     -r requirements/metrics.txt \
+    -r requirements/uwu.txt \
     -r requirements/server-asgi.txt && \
     pip install --cache-dir /pip-cache uwsgi
 
@@ -94,7 +95,9 @@ ENV C3NAV_DEBUG="" \
 USER c3nav
 WORKDIR /app
 
-RUN /app/env/bin/python manage.py compilemessages && \
+RUN /app/env/bin/python manage.py makemessages -l en_UW && \
+    /app/env/bin/python genuwu.py && \
+    /app/env/bin/python manage.py compilemessages && \
     /app/env/bin/python manage.py collectstatic -l --no-input && \
     /app/env/bin/python manage.py compress && \
     rm -r /data/*
