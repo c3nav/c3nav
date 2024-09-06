@@ -2468,9 +2468,9 @@ KeyControl = L.Control.extend({
         this._container.classList.toggle('leaflet-control-key-expanded', pinned);
         this._content = L.DomUtil.create('div', 'content');
         const collapsed = L.DomUtil.create('div', 'collapsed-toggle leaflet-control-key-toggle');
-        this._pin = L.DomUtil.create('div', 'pin-toggle');
+        this._pin = L.DomUtil.create('div', 'pin-toggle material-symbols');
         this._pin.classList.toggle('active', pinned);
-        this._pin.innerText = '🖈';
+        this._pin.innerText = 'push_pin';
         this._container.append(this._pin, this._content, collapsed);
         this._expanded = pinned;
         this._pinned = pinned;

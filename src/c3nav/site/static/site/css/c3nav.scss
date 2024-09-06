@@ -1574,7 +1574,10 @@ blink {
         line-height: 26px;
         text-align: center;
         &::before {
-            content: '🔑';
+            font-family: 'Material Symbols Outlined';
+            content: 'legend_toggle';
+            font-size: 26px;
+            line-height: 26px;
         }
     }
 
