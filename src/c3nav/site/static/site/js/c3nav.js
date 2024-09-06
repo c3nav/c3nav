@@ -955,7 +955,7 @@ c3nav = {
             .on('blur', c3nav._locationinput_blur)
             .on('keydown', c3nav._locationinput_keydown);
         $('.locationinput .clear').on('click', c3nav._locationinput_clear);
-        $('.locationinput .locate').on('click', c3nav._locationinput_locate);
+        $('.locationinput .locate').toggle(c3nav.ssids).on('click', c3nav._locationinput_locate);
         $('.locationinput .random').on('click', c3nav._random_location_click);
         $('.leaflet-control-user-location a').on('click', c3nav._goto_user_location_click).dblclick(function (e) {
             e.stopPropagation();
