@@ -114,7 +114,7 @@ c3nav = {
             );
         });
 
-        if (!window.mobileclient && !localStorageWrapper.getItem('hideAppAds') && navigator.userAgent.toLowerCase().indexOf("android") > -1) {
+        if (!window.mobileclient && !localStorageWrapper.getItem('hideAppAds') && navigator.userAgent.toLowerCase().indexOf("android") > -1 && c3nav.ssids.length) {
             $('.app-ads').show();
             $('.app-ads .close').click(function() {
                 localStorageWrapper.setItem('hideAppAds', true);
@@ -1467,7 +1467,7 @@ c3nav = {
         }
 
         // setup user location control
-        c3nav._userLocationControl = new UserLocationControl().addTo(c3nav.map);
+        if (c3nav.ssids.length) c3nav._userLocationControl = new UserLocationControl().addTo(c3nav.map);
 
         L.control.zoom({
             position: 'bottomright'
