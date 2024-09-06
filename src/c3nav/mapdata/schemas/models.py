@@ -805,6 +805,7 @@ class ProjectionPipelineSchema(BaseSchema):
         example='+proj=utm +zone=33 +ellps=GRS80 +units=m +no_defs'
     )
 
+
 class ProjectionSchema(ProjectionPipelineSchema):
     proj4: NonEmptyStr = APIField(
         title='proj4 string',
@@ -836,3 +837,15 @@ class ProjectionSchema(ProjectionPipelineSchema):
             0, 0, 0, 1
         ]
     )
+
+
+class LegendItemSchema(BaseSchema):
+    title: NonEmptyStr = APIField()
+    fill: str | None
+    border: str | None
+
+
+class LegendSchema(BaseSchema):
+    base: list[LegendItemSchema]
+    groups: list[LegendItemSchema]
+    obstacles: list[LegendItemSchema]

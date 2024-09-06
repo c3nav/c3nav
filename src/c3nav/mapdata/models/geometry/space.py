@@ -13,7 +13,7 @@ from shapely.geometry import CAP_STYLE, JOIN_STYLE, mapping
 
 from c3nav.mapdata.fields import GeometryField, I18nField
 from c3nav.mapdata.grid import grid
-from c3nav.mapdata.models import Space
+from c3nav.mapdata.models import Space, Level
 from c3nav.mapdata.models.access import AccessRestrictionMixin
 from c3nav.mapdata.models.base import SerializableMixin, TitledMixin
 from c3nav.mapdata.models.geometry.base import GeometryMixin
@@ -182,6 +182,7 @@ class Ramp(SpaceGeometryMixin, models.Model):
 
 class ObstacleGroup(TitledMixin, models.Model):
     color = models.CharField(max_length=32, null=True, blank=True)
+    in_legend = models.BooleanField(default=False, verbose_name=_('show in legend (if color set)'))
 
     class Meta:
         verbose_name = _('Obstacle Group')

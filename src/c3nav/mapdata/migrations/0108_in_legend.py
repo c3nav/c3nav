@@ -8,6 +8,8 @@ def forwards_func(apps, schema_editor):
     for group in LocationGroup.objects.all():
         group.in_legend = bool(group.color and (group.can_describe or group.can_search))
         group.save()
+    ObstacleGroup = apps.get_model('mapdata', 'ObstacleGroup')
+    ObstacleGroup.objects.filter(color__isnull=False).update(in_legend=True)
 
 
 class Migration(migrations.Migration):
@@ -26,6 +28,11 @@ class Migration(migrations.Migration):
             model_name='beaconmeasurement',
             name='data',
             field=models.JSONField(default=dict, verbose_name='Measurement list'),
+        ),
+        migrations.AddField(
+            model_name='obstaclegroup',
+            name='in_legend',
+            field=models.BooleanField(default=False, verbose_name='show in legend (if color set)'),
         ),
         migrations.RunPython(forwards_func, migrations.RunPython.noop),
     ]

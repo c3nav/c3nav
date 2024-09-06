@@ -2,6 +2,7 @@ import json
 from typing import Annotated, Union
 
 from django.core.serializers.json import DjangoJSONEncoder
+from django.db.models import Prefetch
 from django.shortcuts import redirect
 from django.utils import timezone
 from ninja import Query
@@ -15,14 +16,16 @@ from c3nav.api.exceptions import API404, APIPermissionDenied, APIRequestValidati
 from c3nav.api.schema import BaseSchema
 from c3nav.api.utils import NonEmptyStr
 from c3nav.mapdata.api.base import api_etag, api_stats, can_access_geometry
-from c3nav.mapdata.models import Source
-from c3nav.mapdata.models.locations import DynamicLocation, LocationRedirect, Position
+from c3nav.mapdata.models import Source, Theme, Area, Space
+from c3nav.mapdata.models.geometry.space import ObstacleGroup, Obstacle
+from c3nav.mapdata.models.locations import DynamicLocation, LocationRedirect, Position, LocationGroup
+from c3nav.mapdata.render.theme import ColorManager
 from c3nav.mapdata.schemas.filters import BySearchableFilter, RemoveGeometryFilter
 from c3nav.mapdata.schemas.model_base import AnyLocationID, AnyPositionID, CustomLocationID
 from c3nav.mapdata.schemas.models import (AnyPositionStatusSchema, FullListableLocationSchema, FullLocationSchema,
                                           LocationDisplay, ProjectionPipelineSchema, ProjectionSchema,
                                           SlimListableLocationSchema, SlimLocationSchema, all_location_definitions,
-                                          listable_location_definitions)
+                                          listable_location_definitions, LegendSchema, LegendItemSchema)
 from c3nav.mapdata.schemas.responses import LocationGeometry, WithBoundsSchema
 from c3nav.mapdata.utils.locations import (get_location_by_id_for_request, get_location_by_slug_for_request,
                                            searchable_locations_for_request, visible_locations_for_request)
@@ -329,3 +332,40 @@ def get_projection(request):
             'rotation_matrix': settings.PROJECTION_ROTATION_MATRIX,
         })
     return obj
+
+
+"""
+Legend
+"""
+
+
+@map_api_router.get('/legend/{theme_id}/', summary="get legend",
+                        description="Get legend / color key fo theme",
+                        response={200: LegendSchema, **API404.dict(), **auth_responses})
+@api_etag(permissions=True)
+def legend_for_theme(request, theme_id: int):
+    try:
+        manager = ColorManager.for_theme(theme_id or None)
+    except Theme.DoesNotExist:
+        raise API404()
+    locationgroups = LocationGroup.qs_for_request(request).filter(in_legend=True).prefetch_related(
+        Prefetch('areas', Area.qs_for_request(request))
+    ).prefetch_related(
+        Prefetch('spaces', Space.qs_for_request(request))
+    )
+    obstaclegroups = ObstacleGroup.objects.filter(
+        pk__in=set(Obstacle.qs_for_request(request).filter(group__isnull=False).values_list('group', flat=True)),
+    )
+    return LegendSchema(
+        base=[],
+        groups=[item for item in (LegendItemSchema(title=group.title,
+                                                   fill=manager.locationgroup_fill_color(group),
+                                                   border=manager.locationgroup_border_color(group))
+                                  for group in locationgroups if group.areas.all() or group.spaces.all())
+                if item.fill or item.border],
+        obstacles=[item for item in (LegendItemSchema(title=group.title,
+                                                      fill=manager.obstaclegroup_fill_color(group),
+                                                      border=manager.obstaclegroup_border_color(group))
+                                     for group in obstaclegroups)
+                   if item.fill or item.border],
+    )
