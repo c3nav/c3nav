@@ -1556,3 +1556,75 @@ blink {
         left: 21px;
     }
 }
+
+
+.leaflet-control-key {
+    background-color: white;
+    border-radius: 0.5rem;
+    border: 2px solid rgba(0, 0, 0, 0.2);
+    background-clip: padding-box;
+
+    &.leaflet-control-key-expanded > .collapsed-toggle {
+        display: none;
+    }
+
+    > .collapsed-toggle {
+        width: 26px;
+        height: 26px;
+        line-height: 26px;
+        text-align: center;
+        &::before {
+            content: '🔑';
+        }
+    }
+
+    > .pin-toggle {
+        display: none;
+        position: absolute;
+        right: 0.5rem;
+        color: black;
+        font-size: 1.5rem;
+        top: 0.5rem;
+        width: 2.5rem;
+        height: 2.5rem;
+        border: 1px solid #DCDCDC;
+        border-radius: 0.5rem;
+        text-align: center;
+        cursor: pointer;
+
+        &:hover {
+            box-shadow: inset 0 0 2px black;
+        }
+
+        &.active {
+            border-color: black;
+            background: #DCDCDC;
+            box-shadow: inset 0 0 2px black;
+        }
+    }
+
+    &.leaflet-control-key-expanded > .pin-toggle {
+        display: block;
+    }
+
+    > .content {
+        display: none;
+        padding: 1rem;
+        gap: 1rem;
+        grid-template-columns: 26px 1fr;
+
+        > .key {
+            display: grid;
+            grid-column: span 2;
+            grid-template-columns: subgrid;
+            > .key-color {
+                width: 100%;
+                height: 100%;
+            }
+        }
+    }
+
+    &.leaflet-control-key-expanded > .content {
+        display: grid;
+    }
+}

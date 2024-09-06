@@ -30,15 +30,15 @@
     /*
      * Polyfill for Math.Log2 because Internet Explorer sucks
      */
-    Math.log2 = Math.log2 || function(x) {
+    Math.log2 = Math.log2 || function (x) {
         return Math.log(x) * Math.LOG2E;
     };
 
     var originalGetIconBox = L.LayerGroup.Collision.prototype._getIconBox;
-    L.LayerGroup.Collision.prototype._getIconBox = function(el) {
+    L.LayerGroup.Collision.prototype._getIconBox = function (el) {
         var result = originalGetIconBox(el);
-        var offsetX = (result[2]-result[0]/2),
-            offsetY = (result[3]-result[1]/2);
+        var offsetX = (result[2] - result[0] / 2),
+            offsetY = (result[3] - result[1] / 2);
         result[0] -= offsetX;
         result[1] -= offsetY;
         result[2] -= offsetX;
@@ -57,41 +57,41 @@ localStorageWrapper = {
     get length() {
         try {
             return localStorage.length;
-        } catch(e) {
+        } catch (e) {
             return 0;
         }
     },
-    key: function(key) {
+    key: function (key) {
         try {
             return localStorage.key(key);
-        } catch(e) {
+        } catch (e) {
             return null;
         }
     },
-    getItem: function(keyName) {
+    getItem: function (keyName) {
         try {
             return localStorage.getItem(keyName)
-        } catch(e) {
+        } catch (e) {
             return null;
         }
     },
-    setItem: function(keyName, keyValue) {
+    setItem: function (keyName, keyValue) {
         try {
             localStorage.setItem(keyName, keyValue)
-        } catch(e) {
-            console.log("can't set localstorage preference for "+ keyName);
+        } catch (e) {
+            console.log("can't set localstorage preference for " + keyName);
         }
     },
-    removeItem: function(keyName) {
+    removeItem: function (keyName) {
         try {
             localStorage.removeItem(keyName)
-        } catch(e) {
+        } catch (e) {
         }
     },
-    clear: function() {
+    clear: function () {
         try {
             localStorage.clear()
-        } catch(e) {
+        } catch (e) {
         }
     },
 };
@@ -105,9 +105,9 @@ c3nav = {
         c3nav.load_material_symbols_if_needed();
         c3nav.load_searchable_locations();
 
-        $('#messages').find('ul.messages li').each(function() {
+        $('#messages').find('ul.messages li').each(function () {
             $(this).prepend(
-                $('<a href="#" class="close"><i class="material-symbols">close</i></a>').click(function(e) {
+                $('<a href="#" class="close"><i class="material-symbols">close</i></a>').click(function (e) {
                     e.preventDefault();
                     $(this).parent().remove();
                 })
@@ -116,7 +116,7 @@ c3nav = {
 
         if (!window.mobileclient && !localStorageWrapper.getItem('hideAppAds') && navigator.userAgent.toLowerCase().indexOf("android") > -1 && c3nav.ssids) {
             $('.app-ads').show();
-            $('.app-ads .close').click(function() {
+            $('.app-ads .close').click(function () {
                 localStorageWrapper.setItem('hideAppAds', true);
                 $('.app-ads').remove();
             });
@@ -141,7 +141,7 @@ c3nav = {
         c3nav.themes = JSON.parse(document.getElementById('c3nav-themes').textContent);
     },
     _searchable_locations_timer: null,
-    load_searchable_locations: function(firstTime) {
+    load_searchable_locations: function (firstTime) {
         c3nav._searchable_locations_timer = null;
         c3nav_api.get('map/locations?searchable=true')
             .then(c3nav._searchable_locations_loaded)
@@ -151,14 +151,14 @@ c3nav = {
                 }
             });
     },
-    _sort_labels: function(a, b) {
+    _sort_labels: function (a, b) {
         var result = (a[0].label_settings.min_zoom || -10) - (b[0].label_settings.min_zoom || -10);
         if (result === 0) result = b[0].label_settings.font_size - a[0].label_settings.font_size;
         return result;
     },
     _last_time_searchable_locations_loaded: null,
     _searchable_locations_interval: 120000,
-    _searchable_locations_loaded: function(data) {
+    _searchable_locations_loaded: function (data) {
         c3nav._last_time_searchable_locations_loaded = Date.now();
         if (data !== undefined) {
             var locations = [],
@@ -193,7 +193,7 @@ c3nav = {
             c3nav._searchable_locations_timer = window.setTimeout(c3nav.load_searchable_locations, c3nav._searchable_locations_interval);
         }
     },
-    continue_init: function() {
+    continue_init: function () {
         c3nav.init_map();
 
         $('.locationinput').data('location', null);
@@ -210,8 +210,8 @@ c3nav = {
         c3nav.random_location_groups = $main.is('[data-random-location-groups]') ? $main.attr('data-random-location-groups').split(',').map(id => parseInt(id)) : null;
 
         $(document).on('click', '.theme-selection>button', c3nav.select_theme);
-        
-        
+
+
         history.replaceState(state, window.location.path);
         c3nav.load_state(state, true);
         c3nav.update_map_locations();
@@ -268,7 +268,7 @@ c3nav = {
 
         //c3nav.test_location();
     },
-    test_location: function() {
+    test_location: function () {
         c3nav_api.get('positioning/locate-test')
             .then(data => {
                 window.setTimeout(c3nav.test_location, 1000);
@@ -281,7 +281,7 @@ c3nav = {
     },
 
     state: {},
-    update_state: function(routing, replace, details, options, nearby) {
+    update_state: function (routing, replace, details, options, nearby) {
         if (typeof routing !== "boolean") routing = c3nav.state.routing;
 
         if (details) {
@@ -311,7 +311,7 @@ c3nav = {
 
         c3nav._sidebar_state_updated(new_state);
     },
-    current_level: function() {
+    current_level: function () {
         return c3nav._levelControl.currentLevel || c3nav.resume_level;
     },
     update_map_state: function (replace, level, center, zoom) {
@@ -381,20 +381,20 @@ c3nav = {
 
         c3nav.update_map_locations();
     },
-    _clear_route_layers: function() {
+    _clear_route_layers: function () {
         c3nav._firstRouteLevel = null;
         c3nav._routeLayerBounds = {};
         for (var id in c3nav._routeLayers) {
             c3nav._routeLayers[id].clearLayers();
         }
     },
-    _clear_detail_layers: function() {
+    _clear_detail_layers: function () {
         for (var id in c3nav._detailLayers) {
             c3nav._detailLayers[id].clearLayers();
         }
     },
 
-    update_location_labels: function() {
+    update_location_labels: function () {
         if (!c3nav._labelControl.labelsActive) return;
         c3nav._labelLayer.clearLayers();
         var labels = c3nav.labels[c3nav.current_level()],
@@ -440,7 +440,7 @@ c3nav = {
                 })
         }
     },
-    _location_details_loaded: function(data) {
+    _location_details_loaded: function (data) {
         var $location_details = $('#location-details');
         if ($location_details.attr('data-id') !== String(data.id)) {
             // loaded too late, information no longer needed
@@ -487,7 +487,7 @@ c3nav = {
 
         if (data.geometry) {
             var custom_location = typeof data.id !== 'number',
-                report_url = '/report/l/'+String(data.id)+'/';
+                report_url = '/report/l/' + String(data.id) + '/';
             $location_details.find('.report').attr('href', report_url);
         } else {
             $location_details.find('.report').hide();
@@ -523,7 +523,7 @@ c3nav = {
         }
         c3nav.next_route_options = null;
     },
-    _route_loaded: function(data, nofly) {
+    _route_loaded: function (data, nofly) {
         var $route = $('#route-summary');
         if (data.error && $route.is('.loading')) {
             $route.find('span').text(data.error);
@@ -539,7 +539,7 @@ c3nav = {
         c3nav._display_route_result(data.result, nofly);
         c3nav._display_route_options(data.options_form);
     },
-    _display_route_result: function(result, nofly) {
+    _display_route_result: function (result, nofly) {
         var $route = $('#route-summary'),
             $details_wrapper = $('#route-details'),
             $details = $details_wrapper.find('.details-body'),
@@ -556,10 +556,10 @@ c3nav = {
         $details.html('');
         $details.append(c3nav._build_location_html(result.origin));
 
-        for (var i=0; i < result.items.length; i++) {
+        for (var i = 0; i < result.items.length; i++) {
             item = result.items[i];
 
-            for (var j=0; j < item.descriptions.length; j++) {
+            for (var j = 0; j < item.descriptions.length; j++) {
                 description = item.descriptions[j];
                 $details.append(c3nav._build_route_item(description[0], description[1]));
             }
@@ -650,24 +650,24 @@ c3nav = {
         elem.append($('<span>').text(text));
         return elem;
     },
-    _add_intermediate_point: function(origin, destination, next) {
-        var angle = Math.atan2(destination[1]-next[1], destination[0]-next[0]),
-            distance = Math.sqrt(Math.pow(origin[0]-destination[0], 2) + Math.pow(origin[1]-destination[1], 2)),
-            offset = Math.min(1.5, distance/4),
-            point = [destination[0]+Math.cos(angle)*offset, destination[1]+Math.sin(angle)*offset];
+    _add_intermediate_point: function (origin, destination, next) {
+        var angle = Math.atan2(destination[1] - next[1], destination[0] - next[0]),
+            distance = Math.sqrt(Math.pow(origin[0] - destination[0], 2) + Math.pow(origin[1] - destination[1], 2)),
+            offset = Math.min(1.5, distance / 4),
+            point = [destination[0] + Math.cos(angle) * offset, destination[1] + Math.sin(angle) * offset];
         return [origin, point, destination];
     },
-    _add_line_to_route: function(level, coords, gray, link_to_level) {
+    _add_line_to_route: function (level, coords, gray, link_to_level) {
         if (coords.length < 2) return;
         var latlngs = L.GeoJSON.coordsToLatLngs(c3nav._smooth_line(coords)),
             routeLayer = c3nav._routeLayers[level];
-            line = L.polyline(latlngs, {
-                color: gray ? '#888888': 'var(--color-primary)',
-                dashArray: (gray || link_to_level) ? '7' : null,
-                interactive: false,
-                smoothFactor: 0.5
-            }).addTo(routeLayer);
-            bounds = {};
+        line = L.polyline(latlngs, {
+            color: gray ? '#888888' : 'var(--color-primary)',
+            dashArray: (gray || link_to_level) ? '7' : null,
+            interactive: false,
+            smoothFactor: 0.5
+        }).addTo(routeLayer);
+        bounds = {};
         bounds[level] = line.getBounds();
 
         c3nav._merge_bounds(c3nav._routeLayerBounds, bounds);
@@ -677,43 +677,43 @@ c3nav = {
                 opacity: 0,
                 weight: 15,
                 interactive: true
-            }).addTo(routeLayer).on('click', function() {
+            }).addTo(routeLayer).on('click', function () {
                 c3nav._levelControl.setLevel(link_to_level);
             });
         }
     },
-    _smooth_line: function(coords) {
+    _smooth_line: function (coords) {
         if (coords.length > 2) {
-            for (var i=0; i<4; i++) {
+            for (var i = 0; i < 4; i++) {
                 coords = c3nav._smooth_line_iteration(coords);
             }
         }
         return coords
     },
-    _smooth_line_iteration: function(coords) {
+    _smooth_line_iteration: function (coords) {
         // Chaikin'S Corner Cutting Algorithm
         var new_coords = [coords[0]];
-        for (var i=1; i<coords.length-1; i++) {
-            new_coords.push([(coords[i][0]*5+coords[i-1][0])/6, (coords[i][1]*5+coords[i-1][1])/6]);
-            new_coords.push([(coords[i][0]*5+coords[i+1][0])/6, (coords[i][1]*5+coords[i+1][1])/6]);
+        for (var i = 1; i < coords.length - 1; i++) {
+            new_coords.push([(coords[i][0] * 5 + coords[i - 1][0]) / 6, (coords[i][1] * 5 + coords[i - 1][1]) / 6]);
+            new_coords.push([(coords[i][0] * 5 + coords[i + 1][0]) / 6, (coords[i][1] * 5 + coords[i + 1][1]) / 6]);
         }
-        new_coords.push(coords[coords.length-1]);
+        new_coords.push(coords[coords.length - 1]);
         return new_coords
     },
-    _display_route_options: function(options) {
+    _display_route_options: function (options) {
         var $options_wrapper = $('#route-options'),
             $options = $options_wrapper.find('.route-options-fields'),
             option, field, field_id, choice;
         $options.html('');
-        for (var i=0; i<options.length; i++) {
+        for (var i = 0; i < options.length; i++) {
             option = options[i];
-            field_id = 'option_id_'+option.name;
-            $options.append($('<label for="'+field_id+'">').text(option.label));
+            field_id = 'option_id_' + option.name;
+            $options.append($('<label for="' + field_id + '">').text(option.label));
             if (option.type === 'select') {
-                field = $('<select name="'+option.name+'" id="'+field_id+'">');
-                for (j=0; j<option.choices.length; j++) {
+                field = $('<select name="' + option.name + '" id="' + field_id + '">');
+                for (j = 0; j < option.choices.length; j++) {
                     choice = option.choices[j];
-                    field.append($('<option value="'+choice.name+'">').text(choice.title));
+                    field.append($('<option value="' + choice.name + '">').text(choice.title));
                 }
             }
             field.val(option.value);
@@ -735,12 +735,12 @@ c3nav = {
         var url = embed ? '/embed' : '';
         if (state.routing) {
             if (state.origin) {
-                url += (state.destination) ? '/r/'+state.origin.slug+'/'+state.destination.slug+'/' : '/o/'+state.origin.slug+'/';
+                url += (state.destination) ? '/r/' + state.origin.slug + '/' + state.destination.slug + '/' : '/o/' + state.origin.slug + '/';
             } else {
-                url += (state.destination) ? '/d/'+state.destination.slug+'/' : '/r/';
+                url += (state.destination) ? '/d/' + state.destination.slug + '/' : '/r/';
             }
         } else {
-            url += state.destination?('/l/'+state.destination.slug+'/'):'/';
+            url += state.destination ? ('/l/' + state.destination.slug + '/') : '/';
         }
         if (state.details && (url.startsWith('/l/') || url.startsWith('/r/'))) {
             url += 'details/'
@@ -752,7 +752,7 @@ c3nav = {
             url += 'options/'
         }
         if (state.center) {
-            url += '@'+String(c3nav.level_labels_by_id[state.level])+','+String(state.center[0])+','+String(state.center[1])+','+String(state.zoom);
+            url += '@' + String(c3nav.level_labels_by_id[state.level]) + ',' + String(state.center[0]) + ',' + String(state.center[1]) + ',' + String(state.zoom);
         }
         return url
     },
@@ -766,7 +766,7 @@ c3nav = {
             embed_link = $('.embed-link');
 
         if (embed_link.length) {
-            embed_link.attr('href', c3nav._build_state_url(state)+(c3nav.access_query?('?access='+c3nav.access_query):''));
+            embed_link.attr('href', c3nav._build_state_url(state) + (c3nav.access_query ? ('?access=' + c3nav.access_query) : ''));
         }
 
         c3nav.state = state;
@@ -823,7 +823,7 @@ c3nav = {
     _route_options_submit: function () {
         var options = {};
         var waytypes = {};
-        $('#route-options').find('.route-options-fields [name]').each(function() {
+        $('#route-options').find('.route-options-fields [name]').each(function () {
             var name = $(this).attr('name');
             var value = $(this).val();
             if (name.startsWith('waytype_')) {
@@ -957,14 +957,16 @@ c3nav = {
         $('.locationinput .clear').on('click', c3nav._locationinput_clear);
         $('.locationinput .locate').on('click', c3nav._locationinput_locate);
         $('.locationinput .random').on('click', c3nav._random_location_click);
-        $('.leaflet-control-user-location a').on('click', c3nav._goto_user_location_click).dblclick(function(e) { e.stopPropagation(); });
+        $('.leaflet-control-user-location a').on('click', c3nav._goto_user_location_click).dblclick(function (e) {
+            e.stopPropagation();
+        });
         $('#autocomplete').on('mouseover', '.location', c3nav._locationinput_hover_suggestion)
             .on('click', '.location', c3nav._locationinput_click_suggestion);
         $('html').on('focus', '*', c3nav._locationinput_global_focuschange)
             .on('mousedown', '*', c3nav._locationinput_global_focuschange);
         $('html').on('keydown', c3nav._global_keydown);
     },
-    _build_location_html: function(location) {
+    _build_location_html: function (location) {
         var html = $('<div class="location">')
             .append($('<i class="icon material-symbols">').text(c3nav._map_material_icon(location.icon || 'place')))
             .append($('<span>').text(location.title))
@@ -972,8 +974,9 @@ c3nav = {
         html.attr('data-location', JSON.stringify(location));
         return html[0].outerHTML;
     },
-    _build_location_label: function(location) {
-        var text = location.label_override || location.title, segments = [''], new_segments=[], new_text = [''], len=0, since_last=0;
+    _build_location_label: function (location) {
+        var text = location.label_override || location.title, segments = [''], new_segments = [], new_text = [''],
+            len = 0, since_last = 0;
         segments = text.split(' ');
         for (var segment of segments) {
             if (segment.length > 12) {
@@ -987,23 +990,23 @@ c3nav = {
                 }
                 new_segments[new_segments.length - 1] += ' ';
             } else {
-                new_segments.push(segment+' ');
+                new_segments.push(segment + ' ');
             }
         }
         for (var segment of new_segments) {
-            if (len === 0 || len+segment.length < 12) {
-                new_text[new_text.length-1] += $('<div>').text(segment).html();
+            if (len === 0 || len + segment.length < 12) {
+                new_text[new_text.length - 1] += $('<div>').text(segment).html();
                 len += segment.length;
             } else {
                 new_text.push(segment);
                 len = segment.length;
             }
         }
-        for (var i=0;i<new_text.length;i++) {
+        for (var i = 0; i < new_text.length; i++) {
             new_text[i] = new_text[i].trim();
         }
-        var html = $('<div class="location-label-text">').append($('<span>').html('&#8239;'+new_text.join('&#8239;<br>&#8239;')+'&#8239;'));
-        html.css('font-size', location.label_settings.font_size+'px');
+        var html = $('<div class="location-label-text">').append($('<span>').html('&#8239;' + new_text.join('&#8239;<br>&#8239;') + '&#8239;'));
+        html.css('font-size', location.label_settings.font_size + 'px');
         return L.marker(L.GeoJSON.coordsToLatLng(location.point.slice(1)), {
             icon: L.divIcon({
                 html: html[0].outerHTML,
@@ -1251,24 +1254,24 @@ c3nav = {
         }
     },
 
-    _random_location_click: function() {
+    _random_location_click: function () {
         var $button = $('button.random'),
             parent = $button.parent(),
             width = parent.width(),
             height = parent.height();
 
         $cover = $('<div>').css({
-            'width': width+'px',
-            'height': height+'px',
+            'width': width + 'px',
+            'height': height + 'px',
             'background-color': 'var(--color-background)',
             'position': 'absolute',
             'top': 0,
-            'left': $button.position().left+$button.width()/2+'px',
+            'left': $button.position().left + $button.width() / 2 + 'px',
             'z-index': 200,
         }).appendTo(parent);
 
         $cover.animate({
-            left: 5+$button.width()/2+'px'
+            left: 5 + $button.width() / 2 + 'px'
         }, 300, 'swing');
         $button.css({
             'left': $button.position().left,
@@ -1281,31 +1284,33 @@ c3nav = {
             'pointer-events': 'none'
         }).animate({
             left: 5,
-        }, 300, 'swing').queue(function(d) {
+        }, 300, 'swing').queue(function (d) {
             d();
             var possible_locations = new Set();
             for (var id of c3nav.random_location_groups) {
                 var group = c3nav.locations_by_id[id];
                 if (!group) continue;
                 if (!group.locationtype || group.locationtype !== 'locationgroup') continue;
-                group.locations.forEach(subid => {if (subid in c3nav.locations_by_id) possible_locations.add(subid)});
+                group.locations.forEach(subid => {
+                    if (subid in c3nav.locations_by_id) possible_locations.add(subid)
+                });
             }
             possible_locations = Array.from(possible_locations);
-            var location = c3nav.locations_by_id[possible_locations[Math.floor(Math.random()*possible_locations.length)]];
+            var location = c3nav.locations_by_id[possible_locations[Math.floor(Math.random() * possible_locations.length)]];
             c3nav._locationinput_set($('#destination-input'), location);
             c3nav.update_state(false);
             c3nav.fly_to_bounds(true);
             $cover.animate({
-                left: width+$button.width()/2+'px'
+                left: width + $button.width() / 2 + 'px'
             }, 300, 'swing');
             $button.animate({
                 left: width,
-            }, 300, 'swing').queue(function(d) {
+            }, 300, 'swing').queue(function (d) {
                 d();
                 $button.attr('style', 'display: none;');
                 $cover.remove();
                 // give the css transition some time
-            }).delay(300).queue(function(d) {
+            }).delay(300).queue(function (d) {
                 d();
                 $button.attr('style', '');
             });
@@ -1322,21 +1327,21 @@ c3nav = {
             $modal.addClass('show');
         }
     },
-    _set_modal_content: function(content, no_close) {
+    _set_modal_content: function (content, no_close) {
         $('#modal').toggleClass('loading', !content)
             .find('#modal-content')
-            .html((!no_close) ? '<button class="button-clear material-symbols" id="close-modal">clear</button>' :'')
+            .html((!no_close) ? '<button class="button-clear material-symbols" id="close-modal">clear</button>' : '')
             .append(content || '<div class="loader"></div>');
     },
-    _modal_click: function(e) {
+    _modal_click: function (e) {
         if (!c3nav.modal_noclose && (e.target.id === 'modal' || e.target.id === 'close-modal')) {
             history.back();
         }
     },
-    _href_modal_open_tab: function(location) {
+    _href_modal_open_tab: function (location) {
         return ['/l/', '/control/', '/reports/', '/mesh/', '/api-secrets/', '/editor/'].some(prefix => location.startsWith(prefix));
     },
-    _modal_link_click: function(e) {
+    _modal_link_click: function (e) {
         var location = $(this).attr('href');
         if ($(this).is('[target]') || c3nav._href_modal_open_tab(location)) {
             $(this).attr('target', '_blank');
@@ -1347,25 +1352,25 @@ c3nav = {
         c3nav.open_modal();
         $.get(location, c3nav._modal_loaded).fail(c3nav._modal_error);
     },
-    _modal_submit: function(e) {
+    _modal_submit: function (e) {
         e.preventDefault();
         $.post($(this).attr('action'), $(this).serialize(), c3nav._modal_loaded).fail(c3nav._modal_error);
     },
-    _modal_loaded: function(data) {
+    _modal_loaded: function (data) {
         if (data.startsWith('{')) {
             c3nav._set_user_data(JSON.parse(data));
             history.back();
             return;
         }
-        var html = $('<div>'+data.replace('<body', '<div')+'</div>');
+        var html = $('<div>' + data.replace('<body', '<div') + '</div>');
         var user_data = html.find('[data-user-data]');
         if (user_data.length) {
             c3nav._set_user_data(JSON.parse(user_data.attr('data-user-data')));
         }
         c3nav._set_modal_content(html.find('main').html());
     },
-    _modal_error: function(data) {
-        $('#modal').removeClass('loading').find('#modal-content').html('<h3>Error '+data.status+'</h3>');
+    _modal_error: function (data) {
+        $('#modal').removeClass('loading').find('#modal-content').html('<h3>Error ' + data.status + '</h3>');
     },
 
     // map
@@ -1419,6 +1424,8 @@ c3nav = {
         if (!('ontouchstart' in window || navigator.maxTouchPoints)) {
             $('.leaflet-touch').removeClass('leaflet-touch');
         }
+
+        c3nav.create_key(c3nav.theme);
 
         c3nav.map.fitBounds(L.GeoJSON.coordsToLatLngs(c3nav.initial_bounds), c3nav._add_map_padding({}));
 
@@ -1479,12 +1486,12 @@ c3nav = {
 
     },
     theme: 0,
-    setTheme: function(id) {
+    setTheme: function (id) {
         if (id === c3nav.theme) return;
         c3nav.theme = id;
         const theme = c3nav.themes[id];
         if (!theme.funky) {
-            c3nav_api.post('settings/theme/?id='+id);
+            c3nav_api.post('settings/theme/?id=' + id);
             localStorageWrapper.setItem('c3nav-theme', c3nav.theme); // TODO: instead (or additionally?) do a request to save it in the session!
         }
         document.querySelector('#c3nav-theme-vars').innerText = theme.css;
@@ -1493,8 +1500,9 @@ c3nav = {
         document.querySelector('#theme-color-meta-light').content = theme.theme_color_light;
 
         c3nav._levelControl.setTheme(id);
+        c3nav.create_key(id);
     },
-    show_theme_select: function(e) {
+    show_theme_select: function (e) {
         e.preventDefault();
         c3nav.open_modal(document.querySelector('main>.theme-selection').outerHTML);
         const select = document.querySelector('#modal .theme-selection select');
@@ -1510,30 +1518,51 @@ c3nav = {
             currentThemeOption.selected = true;
         }
     },
-    select_theme: function(e) {
+    select_theme: function (e) {
         const themeId = e.target.parentElement.querySelector('select').value;
         c3nav.setTheme(themeId);
         history.back(); // close the modal
     },
 
+    key_control: null,
+    create_key: function (theme_id) {
+        c3nav_api.get(`map/legend/${theme_id}/`)
+            .then(key => {
+                const entries = [...key.base, ...key.groups, ...key.obstacles];
+                const key_control = new KeyControl();
+                for (let entry of entries) {
+                    key_control.addKey(entry.title, entry.fill, entry.border);
+                }
+                if (c3nav.key_control !== null) {
+                    c3nav.map.removeControl(c3nav.key_control);
+                }
+                if (entries.length > 0) {
+                    c3nav.key_control = key_control;
+                    key_control.addTo(c3nav.map);
+                }
+            });
+    },
+
     _click_anywhere_popup: null,
-    _click_anywhere: function(e) {
+    _click_anywhere: function (e) {
         if (e.originalEvent.target.id !== 'map') return;
         if (c3nav.embed) return;
         c3nav._click_anywhere_load(false, e.latlng);
     },
-    _latlng_to_name: function(latlng) {
+    _latlng_to_name: function (latlng) {
         var level = c3nav.current_level();
-        return 'c:'+String(c3nav.level_labels_by_id[level])+':'+Math.round(latlng.lng*100)/100+':'+Math.round(latlng.lat*100)/100;
+        return 'c:' + String(c3nav.level_labels_by_id[level]) + ':' + Math.round(latlng.lng * 100) / 100 + ':' + Math.round(latlng.lat * 100) / 100;
     },
-    _click_anywhere_load: function(nearby, latlng) {
+    _click_anywhere_load: function (nearby, latlng) {
         if (!c3nav._click_anywhere_popup && !latlng) return;
         if (latlng === undefined) latlng = c3nav._click_anywhere_popup.getLatLng();
         if (c3nav._click_anywhere_popup) c3nav._click_anywhere_popup.remove();
         var popup = L.popup().setLatLng(latlng).setContent('<div class="loader"></div>'),
             name = c3nav._latlng_to_name(latlng);
         c3nav._click_anywhere_popup = popup;
-        popup.on('remove', function() { c3nav._click_anywhere_popup = null }).openOn(c3nav.map);
+        popup.on('remove', function () {
+            c3nav._click_anywhere_popup = null
+        }).openOn(c3nav.map);
         c3nav_api.get(`map/locations/${name}/`)
             .then(data => {
                 if (c3nav._click_anywhere_popup !== popup || !popup.isOpen()) return;
@@ -1556,7 +1585,7 @@ c3nav = {
                     }).openOn(c3nav.map);
                 }
             })
-            .catch(function() {
+            .catch(function () {
                 popup.remove();
             });
     },
@@ -1569,9 +1598,9 @@ c3nav = {
         c3nav.update_location_labels();
     },
     _add_icon: function (name) {
-        c3nav[name+'Icon'] = new L.Icon({
-            iconUrl: '/static/img/marker-icon-'+name+'.png',
-            iconRetinaUrl: '/static/img/marker-icon-'+name+'-2x.png',
+        c3nav[name + 'Icon'] = new L.Icon({
+            iconUrl: '/static/img/marker-icon-' + name + '.png',
+            iconRetinaUrl: '/static/img/marker-icon-' + name + '-2x.png',
             shadowUrl: '/static/leaflet/images/marker-shadow.png',
             iconSize: [25, 41],
             iconAnchor: [12, 41],
@@ -1613,7 +1642,7 @@ c3nav = {
         }
         c3nav._locationLayerBounds = bounds;
     },
-    fly_to_bounds: function(replace_state, nofly) {
+    fly_to_bounds: function (replace_state, nofly) {
         // fly to the bounds of the current overlays
         var level = c3nav.current_level(),
             bounds = null;
@@ -1636,9 +1665,9 @@ c3nav = {
             var target = c3nav.map._getBoundsCenterZoom(bounds, c3nav._add_map_padding({}));
             var center = c3nav.map._limitCenter(target.center, target.zoom, c3nav.map.options.maxBounds);
             if (nofly) {
-                c3nav.map.flyTo(center, target.zoom, { animate: false });
+                c3nav.map.flyTo(center, target.zoom, {animate: false});
             } else {
-                c3nav.map.flyTo(center, target.zoom, { duration: 1 });
+                c3nav.map.flyTo(center, target.zoom, {duration: 1});
             }
 
             if (replace_state) {
@@ -1646,7 +1675,7 @@ c3nav = {
             }
         }
     },
-    _add_map_padding: function(options, topleft, bottomright) {
+    _add_map_padding: function (options, topleft, bottomright) {
         // add padding information for the current ui layout to fitBounds options
         var $search = $('#search'),
             $main = $('main'),
@@ -1654,26 +1683,26 @@ c3nav = {
                 $main.width() > 1000 &&
                 ($main.height() < 250 || c3nav.state.details || c3nav.state.options)
             ),
-            left = padBesideSidebar ? ($search.width() || 0)+10 : 0,
-            top = padBesideSidebar ? 10 : ($search.height() || 0)+10;
+            left = padBesideSidebar ? ($search.width() || 0) + 10 : 0,
+            top = padBesideSidebar ? 10 : ($search.height() || 0) + 10;
         if ('maxWidth' in options) {
-            options.maxWidth = Math.min(options.maxWidth, $main.width()-left-13-50)
+            options.maxWidth = Math.min(options.maxWidth, $main.width() - left - 13 - 50)
         }
-        options[topleft || 'paddingTopLeft'] = L.point(left+13, top+41);
+        options[topleft || 'paddingTopLeft'] = L.point(left + 13, top + 41);
         options[bottomright || 'paddingBottomRight'] = L.point(50, 20);
         return options;
     },
-    _get_padded_max_bounds: function(zoom) {
+    _get_padded_max_bounds: function (zoom) {
         if (zoom === undefined) zoom = c3nav.map.getZoom();
         var bounds = c3nav.bounds,
             factor = Math.pow(2, zoom);
         return [
-            [bounds[0][0]-600/factor, bounds[0][1]-200/factor],
-            [bounds[1][0]+600/factor, bounds[1][1]+200/factor]
+            [bounds[0][0] - 600 / factor, bounds[0][1] - 200 / factor],
+            [bounds[1][0] + 600 / factor, bounds[1][1] + 200 / factor]
         ];
     },
     _location_point_overrides: {},
-    _add_location_to_map: function(location, icon, no_geometry) {
+    _add_location_to_map: function (location, icon, no_geometry) {
         if (!location) {
             // if location is not in the searchable list...
             return
@@ -1707,13 +1736,13 @@ c3nav = {
         let buttons_html = '';
         if (!c3nav.embed) {
             let buttons = $('#location-popup-buttons').clone();
-            buttons.find('.report').attr('href', '/report/l/'+String(location.id)+'/');
+            buttons.find('.report').attr('href', '/report/l/' + String(location.id) + '/');
             buttons_html = buttons.html();
         }
 
         L.marker(latlng, {
             icon: icon
-        }).bindPopup(location.elem+buttons_html, c3nav._add_map_padding({
+        }).bindPopup(location.elem + buttons_html, c3nav._add_map_padding({
             className: 'location-popup',
             maxWidth: 500
         }, 'autoPanPaddingTopLeft', 'autoPanPaddingBottomRight')).addTo(c3nav._locationLayers[location.point[0]]);
@@ -1724,18 +1753,18 @@ c3nav = {
         );
         return result
     },
-    _merge_bounds: function(bounds, new_bounds) {
+    _merge_bounds: function (bounds, new_bounds) {
         for (var level_id in new_bounds) {
             bounds[level_id] = bounds[level_id] ? bounds[level_id].extend(new_bounds[level_id]) : new_bounds[level_id];
         }
     },
-    _dynamic_location_loaded: function(data) {
+    _dynamic_location_loaded: function (data) {
         if (c3nav._maybe_update_dynamic_location($('#origin-input'), data) || c3nav._maybe_update_dynamic_location($('#destination-input'), data)) {
             c3nav.update_state();
             c3nav.fly_to_bounds(true);
         }
     },
-    _maybe_update_dynamic_location: function(elem, location) {
+    _maybe_update_dynamic_location: function (elem, location) {
         if (elem.is('.empty')) return false;
         var orig_location = elem.data('location');
         if (orig_location.id !== location.id) return false;
@@ -1745,7 +1774,7 @@ c3nav = {
         return true;
     },
 
-    _location_geometry_loaded: function(data) {
+    _location_geometry_loaded: function (data) {
         if (c3nav._visible_map_locations.indexOf(data.id) === -1 || data.geometry === null || data.level === null) return;
 
         if (data.geometry.type === "Point") return;
@@ -1773,7 +1802,7 @@ c3nav = {
                 c3nav._fetch_updates_failure_count++;
                 waittime = Math.min(5 + c3nav._fetch_updates_failure_count * 5, 120);
                 // console.log('fetch updates failed, retying in ' + waittime + 'sec');
-                c3nav.schedule_fetch_updates(waittime*1000);
+                c3nav.schedule_fetch_updates(waittime * 1000);
             });
     },
     resume_level: null,
@@ -1791,12 +1820,12 @@ c3nav = {
         }
         c3nav._set_user_data(data.user_data);
     },
-    _maybe_load_site_update: function(state) {
+    _maybe_load_site_update: function (state) {
         if (c3nav.new_site_update && !state.modal && (!state.routing || !state.origin || !state.destination)) {
             c3nav._load_site_update();
         }
     },
-    _load_site_update: function() {
+    _load_site_update: function () {
         $('#modal-content').css({
             width: 'auto',
             minHeight: 0
@@ -1815,14 +1844,14 @@ c3nav = {
     },
 
     _hasLocationPermission: undefined,
-    hasLocationPermission: function(nocache) {
+    hasLocationPermission: function (nocache) {
         if (c3nav._hasLocationPermission === undefined || (nocache !== undefined && nocache === true)) {
             c3nav._hasLocationPermission = window.mobileclient && (typeof window.mobileclient.hasLocationPermission !== 'function' || window.mobileclient.hasLocationPermission())
         }
         return c3nav._hasLocationPermission;
     },
 
-    getWifiScanRate: function() {
+    getWifiScanRate: function () {
         if (mobileclient.getWifiScanRate) {
             return mobileclient.getWifiScanRate() * 1000;
         }
@@ -1831,20 +1860,22 @@ c3nav = {
 
     },
     _wifiScanningTimer: null,
-    startWifiScanning: function() {
+    startWifiScanning: function () {
         if (c3nav._wifiScanningTimer == null) {
             console.log("started wifi scanning with interval of " + c3nav.getWifiScanRate());
-            c3nav._wifiScanningTimer = window.setInterval(function() { mobileclient.scanNow(); }, c3nav.getWifiScanRate());
+            c3nav._wifiScanningTimer = window.setInterval(function () {
+                mobileclient.scanNow();
+            }, c3nav.getWifiScanRate());
         }
     },
-    stopWifiScanning: function() {
+    stopWifiScanning: function () {
         if (c3nav._wifiScanningTimer !== null) {
             window.clearInterval(c3nav._wifiScanningTimer);
             c3nav._wifiScanningTimer = null;
         }
     },
 
-    startBLEScanning: function() {
+    startBLEScanning: function () {
         if (mobileclient.registerBeaconUuid) {
             mobileclient.registerBeaconUuid("a142621a-2f42-09b3-245b-e1ac6356e9b0");
         }
@@ -1854,7 +1885,7 @@ c3nav = {
     _last_wifi_peers: [],
     _last_ibeacon_peers: [],
     _no_scan_count: 0,
-    _wifi_scan_results: function(peers) {
+    _wifi_scan_results: function (peers) {
         peers = JSON.parse(peers);
 
         if (c3nav.ssids) {
@@ -1874,12 +1905,12 @@ c3nav = {
         c3nav._last_wifi_peers = peers;
         c3nav._after_scan_results();
     },
-    _ibeacon_scan_results: function(peers) {
+    _ibeacon_scan_results: function (peers) {
         peers = JSON.parse(peers);
         c3nav._last_ibeacon_peers = peers;
         c3nav._after_scan_results();
     },
-    _after_scan_results: function() {
+    _after_scan_results: function () {
         has_peers = c3nav._last_wifi_peers.length || c3nav._last_ibeacon_peers.length;
         if (has_peers) {
             c3nav._hasLocationPermission = true;
@@ -1888,7 +1919,7 @@ c3nav = {
         }
 
         var now = Date.now();
-        if (now-4000 < c3nav._last_scan) return;
+        if (now - 4000 < c3nav._last_scan) return;
 
         if (!has_peers) {
             if (!c3nav._hasLocationPermission) {
@@ -1907,7 +1938,7 @@ c3nav = {
 
         let ibeacon_peers = c3nav._last_ibeacon_peers.map(p => ({...p}));
         for (let peer of ibeacon_peers) {
-           peer.last_seen_ago = Math.max(0, now - peer.last_seen);
+            peer.last_seen_ago = Math.max(0, now - peer.last_seen);
         }
 
         c3nav_api.post('positioning/locate/', {
@@ -1921,7 +1952,7 @@ c3nav = {
             });
     },
     _current_user_location: null,
-    _set_user_location: function(location) {
+    _set_user_location: function (location) {
         c3nav._current_user_location = location;
         for (var id in c3nav._userLocationLayers) {
             c3nav._userLocationLayers[id].clearLayers();
@@ -1971,12 +2002,12 @@ c3nav = {
         }
         if (c3nav._current_user_location) {
             c3nav._levelControl.setLevel(c3nav._current_user_location.level);
-            c3nav.map.flyTo(L.GeoJSON.coordsToLatLng(c3nav._current_user_location.geometry.coordinates), 3, { duration: 1 });
+            c3nav.map.flyTo(L.GeoJSON.coordsToLatLng(c3nav._current_user_location.geometry.coordinates), 3, {duration: 1});
         }
     },
 
     _material_symbols_codepoints: null,
-    load_material_symbols_if_needed: function() {
+    load_material_symbols_if_needed: function () {
         // load material icons codepoint for android 4.3.3 and other heccing old browsers
         var elem = document.createElement('span'),
             before = elem.style.fontFeatureSettings,
@@ -1989,26 +2020,26 @@ c3nav = {
             $.get('/static/material-symbols/MaterialSymbolsOutlined.codepoints', c3nav._material_symbols_loaded);
         }
     },
-    _material_symbols_loaded: function(data) {
+    _material_symbols_loaded: function (data) {
         var lines = data.split("\n"),
             line, result = {};
 
-        for (var i=0;i<lines.length;i++) {
+        for (var i = 0; i < lines.length; i++) {
             line = lines[i].split(' ');
             if (line.length === 2) {
                 result[line[0]] = String.fromCharCode(parseInt(line[1], 16));
             }
         }
         c3nav._material_symbols_codepoints = result;
-        $('.material-symbols').each(function() {
+        $('.material-symbols').each(function () {
             $(this).text(c3nav._map_material_icon($(this).text()));
         });
     },
-    _map_material_icon: function(name) {
+    _map_material_icon: function (name) {
         if (c3nav._material_symbols_codepoints === null) return name;
         return c3nav._material_symbols_codepoints[name] || '';
     },
-    _pause: function() {
+    _pause: function () {
         if (c3nav._fetch_updates_timer !== null) {
             window.clearTimeout(c3nav._fetch_updates_timer);
             c3nav._fetch_updates_timer = null;
@@ -2022,7 +2053,7 @@ c3nav = {
             c3nav._levelControl.setLevel(null);
         }
     },
-    _resume: function() {
+    _resume: function () {
         if (c3nav._fetch_updates_timer === null) {
             console.log("c3nav._resume() -> fetch_updates");
             c3nav.fetch_updates();
@@ -2042,9 +2073,9 @@ c3nav = {
         }
     },
     _visibility_hidden_timer: null,
-    on_visibility_change: function() {
+    on_visibility_change: function () {
         if (document.visibilityState === "hidden") {
-            c3nav._visibility_hidden_timer = window.setTimeout( function () {
+            c3nav._visibility_hidden_timer = window.setTimeout(function () {
                 c3nav._visibility_hidden_timer = null;
                 if (document.visibilityState === "hidden") {
                     c3nav._pause();
@@ -2102,7 +2133,7 @@ LevelControl = L.Control.extend({
         return this._container;
     },
 
-    createTileLayer: function(id) {
+    createTileLayer: function (id) {
         let urlPattern = (c3nav.tile_server || '/map/') + `${id}/{z}/{x}/{y}/${this.currentTheme}.png`;
         return L.tileLayer(urlPattern, {
             minZoom: -2,
@@ -2110,7 +2141,7 @@ LevelControl = L.Control.extend({
             bounds: L.GeoJSON.coordsToLatLngs(c3nav.bounds)
         });
     },
-    setTheme: function(theme) {
+    setTheme: function (theme) {
         if (theme === this.currentTheme) return;
         this.currentTheme = theme;
         if (this.currentLevel !== null) {
@@ -2175,13 +2206,15 @@ LevelControl = L.Control.extend({
         buttons.removeClass('current');
     },
 
-    reloadMap: function() { // TODO: create fresh tile layers
+    reloadMap: function () { // TODO: create fresh tile layers
         if (this.currentLevel === null) return;
         var old_tile_layer = this._tileLayers[this.currentLevel],
             new_tile_layer = this.createTileLayer(this.currentLevel);
         this._tileLayers[this.currentLevel] = new_tile_layer;
         new_tile_layer.addTo(c3nav.map);
-        window.setTimeout(function() { old_tile_layer.remove(); }, 2000);
+        window.setTimeout(function () {
+            old_tile_layer.remove();
+        }, 2000);
     }
 });
 
@@ -2213,7 +2246,9 @@ LabelControl = L.Control.extend({
     onAdd: function () {
         this._container = L.DomUtil.create('div', 'leaflet-control-labels leaflet-bar ' + this.options.addClasses);
         this._button = L.DomUtil.create('a', 'material-symbols', this._container);
-        $(this._button).click(this.toggleLabels).dblclick(function(e) { e.stopPropagation(); });
+        $(this._button).click(this.toggleLabels).dblclick(function (e) {
+            e.stopPropagation();
+        });
         this._button.innerText = c3nav._map_material_icon('label');
         this._button.href = '#';
         this._button.classList.toggle('control-disabled', false);
@@ -2224,8 +2259,8 @@ LabelControl = L.Control.extend({
         return this._container;
     },
 
-    toggleLabels: function(e) {
-        if(e) e.preventDefault();
+    toggleLabels: function (e) {
+        if (e) e.preventDefault();
         if (c3nav._labelControl.labelsActive) {
             c3nav._labelControl.hideLabels();
         } else {
@@ -2233,7 +2268,7 @@ LabelControl = L.Control.extend({
         }
     },
 
-    showLabels: function() {
+    showLabels: function () {
         if (this.labelsActive) return;
         c3nav._labelLayer.addTo(c3nav.map);
         this._button.innerText = c3nav._map_material_icon('label');
@@ -2243,7 +2278,7 @@ LabelControl = L.Control.extend({
         c3nav.update_location_labels();
     },
 
-    hideLabels: function() {
+    hideLabels: function () {
         if (!this.labelsActive) return;
         c3nav._labelLayer.clearLayers();
         c3nav._labelLayer.remove();
@@ -2264,7 +2299,9 @@ SquareGridControl = L.Control.extend({
     onAdd: function () {
         this._container = L.DomUtil.create('div', 'leaflet-control-grid-layer leaflet-bar ' + this.options.addClasses);
         this._button = L.DomUtil.create('a', 'material-symbols', this._container);
-        $(this._button).click(this.toggleGrid).dblclick(function(e) { e.stopPropagation(); });
+        $(this._button).click(this.toggleGrid).dblclick(function (e) {
+            e.stopPropagation();
+        });
         this._button.innerText = c3nav._map_material_icon('grid_off');
         this._button.href = '#';
         this._button.classList.toggle('control-disabled', true);
@@ -2275,8 +2312,8 @@ SquareGridControl = L.Control.extend({
         return this._container;
     },
 
-    toggleGrid: function(e) {
-        if(e) e.preventDefault();
+    toggleGrid: function (e) {
+        if (e) e.preventDefault();
         if (c3nav._gridControl.gridActive) {
             c3nav._gridControl.hideGrid();
         } else {
@@ -2284,7 +2321,7 @@ SquareGridControl = L.Control.extend({
         }
     },
 
-    showGrid: function() {
+    showGrid: function () {
         if (this.gridActive) return;
         c3nav._gridLayer.addTo(c3nav.map);
         this._button.innerText = c3nav._map_material_icon('grid_on');
@@ -2293,7 +2330,7 @@ SquareGridControl = L.Control.extend({
         localStorageWrapper.setItem('showGrid', true);
     },
 
-    hideGrid: function() {
+    hideGrid: function () {
         if (!this.gridActive) return;
         c3nav._gridLayer.remove();
         this._button.innerText = c3nav._map_material_icon('grid_off');
@@ -2308,10 +2345,12 @@ ThemeControl = L.Control.extend({
         position: 'bottomright',
         addClasses: '',
     },
-    onAdd: function() {
+    onAdd: function () {
         this._container = L.DomUtil.create('div', 'leaflet-control-theme leaflet-bar ' + this.options.addClasses);
         this._button = L.DomUtil.create('a', 'material-symbols', this._container);
-        $(this._button).click(c3nav.show_theme_select).dblclick(function(e) { e.stopPropagation(); });
+        $(this._button).click(c3nav.show_theme_select).dblclick(function (e) {
+            e.stopPropagation();
+        });
         this._button.innerText = c3nav._map_material_icon('contrast');
         this._button.href = '#';
         return this._container;
@@ -2322,29 +2361,29 @@ ThemeControl = L.Control.extend({
 L.SquareGridLayer = L.Layer.extend({
     initialize: function (config) {
         this.config = config;
-	},
+    },
 
-    onAdd: function(map) {
+    onAdd: function (map) {
         this._container = L.DomUtil.create('div', 'leaflet-pane c3nav-grid');
         this.getPane().appendChild(this._container);
 
         this.cols = [];
         this.rows = [];
         var i, elem, label;
-        for(i=0;i<this.config.cols.length;i++) {
+        for (i = 0; i < this.config.cols.length; i++) {
             elem = L.DomUtil.create('div', 'c3nav-grid-column');
-            label = String.fromCharCode(65+(this.config.invert_x ? (this.config.cols.length-i-2) : i));
-            if (i<this.config.cols.length-1) {
-                elem.innerHTML = '<span>'+label+'</span><span>'+label+'</span>';
+            label = String.fromCharCode(65 + (this.config.invert_x ? (this.config.cols.length - i - 2) : i));
+            if (i < this.config.cols.length - 1) {
+                elem.innerHTML = '<span>' + label + '</span><span>' + label + '</span>';
             }
             this._container.appendChild(elem);
             this.cols.push(elem);
         }
-        for(i=0;i<this.config.rows.length;i++) {
+        for (i = 0; i < this.config.rows.length; i++) {
             elem = L.DomUtil.create('div', 'c3nav-grid-row');
-            label = (this.config.invert_y ? (this.config.rows.length-i) : i);
-            if (i>0) {
-                elem.innerHTML = '<span>'+label+'</span><span>'+label+'</span>';
+            label = (this.config.invert_y ? (this.config.rows.length - i) : i);
+            if (i > 0) {
+                elem.innerHTML = '<span>' + label + '</span><span>' + label + '</span>';
             }
             this._container.appendChild(elem);
             this.rows.push(elem);
@@ -2355,18 +2394,18 @@ L.SquareGridLayer = L.Layer.extend({
         map.on('viewreset zoom move zoomend moveend', this._update, this);
     },
 
-    onRemove: function(map) {
+    onRemove: function (map) {
         L.DomUtil.remove(this._container);
         this.cols = [];
         this.rows = [];
         map.off('viewreset zoom move zoomend moveend', this._update, this);
     },
 
-    _update: function(e) {
+    _update: function (e) {
         this._updateGrid(e.target);
     },
 
-    _updateGrid: function(map) {
+    _updateGrid: function (map) {
         if (!this.cols || this.cols.length === 0) return;
         var mapSize = map.getSize(),
             panePos = map._getMapPanePos(),
@@ -2376,39 +2415,39 @@ L.SquareGridLayer = L.Layer.extend({
             attributionStart = mapSize.x - $('.leaflet-control-attribution').outerWidth() - 16,
             bottomRightStart = mapSize.y - $('.leaflet-bottom.leaflet-right').outerHeight() - 24,
             coord = null, lastCoord = null, size, center;
-        this._container.style.width = mapSize.x+'px';
-        this._container.style.height = mapSize.y+'px';
-        this._container.style.left = (-panePos.x)+'px';
-        this._container.style.top = (-panePos.y)+'px';
-        for(i=0;i<this.config.cols.length;i++) {
+        this._container.style.width = mapSize.x + 'px';
+        this._container.style.height = mapSize.y + 'px';
+        this._container.style.left = (-panePos.x) + 'px';
+        this._container.style.top = (-panePos.y) + 'px';
+        for (i = 0; i < this.config.cols.length; i++) {
             coord = map.latLngToContainerPoint([0, this.config.cols[i]], map.getZoom()).x;
             coord = Math.min(mapSize.x, Math.max(-1, coord));
-            this.cols[i].style.left = coord+'px';
-            if (i>0) {
-                size = coord-lastCoord;
-                center = (lastCoord+coord)/2;
+            this.cols[i].style.left = coord + 'px';
+            if (i > 0) {
+                size = coord - lastCoord;
+                center = (lastCoord + coord) / 2;
                 if (size > 0) {
                     this.cols[i - 1].style.display = '';
                     this.cols[i - 1].style.width = size + 'px';
-                    this.cols[i - 1].style.paddingTop = Math.max(0, Math.min(searchHeight, (sidebarStart-center)/15*searchHeight)) + 'px';
-                    this.cols[i - 1].style.paddingBottom = Math.max(0, Math.min(16, (center-attributionStart))) + 'px';
+                    this.cols[i - 1].style.paddingTop = Math.max(0, Math.min(searchHeight, (sidebarStart - center) / 15 * searchHeight)) + 'px';
+                    this.cols[i - 1].style.paddingBottom = Math.max(0, Math.min(16, (center - attributionStart))) + 'px';
                 } else {
                     this.cols[i - 1].style.display = 'none';
                 }
             }
             lastCoord = coord;
         }
-        for(i=0;i<this.config.rows.length;i++) {
+        for (i = 0; i < this.config.rows.length; i++) {
             coord = map.latLngToContainerPoint([this.config.rows[i], 0], map.getZoom()).y;
             coord = Math.min(mapSize.y, Math.max(-1, coord));
-            this.rows[i].style.top = coord+'px';
-            if (i>0) {
-                size = lastCoord-coord;
-                center = (lastCoord+coord)/2;
+            this.rows[i].style.top = coord + 'px';
+            if (i > 0) {
+                size = lastCoord - coord;
+                center = (lastCoord + coord) / 2;
                 if (size > 0) {
                     this.rows[i].style.display = '';
-                    this.rows[i].style.height = size+'px';
-                    this.rows[i].style.paddingRight = Math.max(0, Math.min(controlsWidth, (center-bottomRightStart)/16*controlsWidth)) + 'px';
+                    this.rows[i].style.height = size + 'px';
+                    this.rows[i].style.paddingRight = Math.max(0, Math.min(controlsWidth, (center - bottomRightStart) / 16 * controlsWidth)) + 'px';
                 } else {
                     this.rows[i].style.display = 'none';
                 }
@@ -2418,51 +2457,148 @@ L.SquareGridLayer = L.Layer.extend({
     }
 });
 
+KeyControl = L.Control.extend({
+    options: {position: 'topright', addClasses: ''},
+    _keys: [],
+
+    onAdd: function () {
+        const pinned = JSON.parse(localStorage.getItem('c3nav.key.pinned') ?? 'false');
+
+        this._container = L.DomUtil.create('div', 'leaflet-control-key ' + this.options.addClasses);
+        this._container.classList.toggle('leaflet-control-key-expanded', pinned);
+        this._content = L.DomUtil.create('div', 'content');
+        const collapsed = L.DomUtil.create('div', 'collapsed-toggle leaflet-control-key-toggle');
+        this._pin = L.DomUtil.create('div', 'pin-toggle');
+        this._pin.classList.toggle('active', pinned);
+        this._pin.innerText = '🖈';
+        this._container.append(this._pin, this._content, collapsed);
+        this._expanded = pinned;
+        this._pinned = pinned;
+
+        if (!L.Browser.android) {
+            L.DomEvent.on(this._container, {
+                mouseenter: this.expand,
+                mouseleave: this.collapse
+            }, this);
+        }
+
+        if (!L.Browser.touch) {
+            L.DomEvent.on(this._container, 'focus', this.expand, this);
+            L.DomEvent.on(this._container, 'blur', this.collapse, this);
+        }
+
+        this.render();
+
+        $(this._container).on('click', 'div.pin-toggle', e => {
+            this.togglePinned();
+        });
+        $(this._container).on('mousedown pointerdown wheel', e => {
+            e.stopPropagation();
+        });
+        return this._container;
+    },
+
+    addKey: function (name, background, border) {
+        this._keys.push({
+            name,
+            background,
+            border,
+        });
+        this.render();
+    },
+
+    render: function () {
+        if (!this._content) return;
+        const fragment = document.createDocumentFragment();
+        for (const key of this._keys) {
+            const key_container = document.createElement('div');
+            key_container.classList.add('key');
+            const color = document.createElement('div');
+            color.classList.add('key-color');
+            if (key.background !== null) {
+                color.style.backgroundColor = key.background;
+            }
+            if (key.border !== null) {
+                color.style.borderColor = key.border;
+            }
+
+            const name = document.createElement('div');
+            name.innerText = key.name;
+            key_container.append(color, name);
+            fragment.append(key_container);
+        }
+        this._content.replaceChildren(...fragment.children);
+    },
+
+    expand: function () {
+        if (this._pinned) return;
+        this._expanded = true;
+        this._container.classList.add('leaflet-control-key-expanded');
+        return this;
+    },
+
+    collapse: function () {
+        if (this._pinned) return;
+        this._expanded = false;
+        this._container.classList.remove('leaflet-control-key-expanded');
+        return this;
+    },
+
+    togglePinned: function () {
+        this._pinned = !this._pinned;
+        if (this._pinned) {
+            this._expanded = true;
+        }
+        this._pin.classList.toggle('active', this._pinned);
+        localStorage.setItem('c3nav.key.pinned', JSON.stringify(this._pinned));
+    },
+});
+
 
 var SvgIcon = L.Icon.extend({
-	options: {
-		// @section
-		// @aka DivIcon options
-		iconSize: [12, 12], // also can be set through CSS
+    options: {
+        // @section
+        // @aka DivIcon options
+        iconSize: [12, 12], // also can be set through CSS
 
-		// iconAnchor: (Point),
-		// popupAnchor: (Point),
+        // iconAnchor: (Point),
+        // popupAnchor: (Point),
 
-		// @option html: String|SVGElement = ''
-		// Custom HTML code to put inside the div element, empty by default. Alternatively,
-		// an instance of `SVGElement`.
-		iconSvg: null,
-		shadowSvg: null,
+        // @option html: String|SVGElement = ''
+        // Custom HTML code to put inside the div element, empty by default. Alternatively,
+        // an instance of `SVGElement`.
+        iconSvg: null,
+        shadowSvg: null,
 
-		// @option bgPos: Point = [0, 0]
-		// Optional relative position of the background, in pixels
-		bgPos: null,
+        // @option bgPos: Point = [0, 0]
+        // Optional relative position of the background, in pixels
+        bgPos: null,
 
-		className: 'leaflet-svg-icon'
-	},
+        className: 'leaflet-svg-icon'
+    },
 
     // @method createIcon(oldIcon?: HTMLElement): HTMLElement
-	// Called internally when the icon has to be shown, returns a `<img>` HTML element
-	// styled according to the options.
-	createIcon: function (oldIcon) {
-		return this._createIcon('icon', oldIcon);
-	},
+    // Called internally when the icon has to be shown, returns a `<img>` HTML element
+    // styled according to the options.
+    createIcon: function (oldIcon) {
+        return this._createIcon('icon', oldIcon);
+    },
 
-	// @method createShadow(oldIcon?: HTMLElement): HTMLElement
-	// As `createIcon`, but for the shadow beneath it.
-	createShadow: function (oldIcon) {
-		return this._createIcon('shadow', oldIcon);
-	},
+    // @method createShadow(oldIcon?: HTMLElement): HTMLElement
+    // As `createIcon`, but for the shadow beneath it.
+    createShadow: function (oldIcon) {
+        return this._createIcon('shadow', oldIcon);
+    },
 
-	_createIcon: function (name, oldIcon) {
+    _createIcon: function (name, oldIcon) {
         var src = this.options[`${name}Svg`];
 
-		if (!src) {
-			if (name === 'icon') {
-				throw new Error('iconSvg not set in Icon options (see the docs).');
-			}
-			return null;
-		}
+        if (!src) {
+            if (name === 'icon') {
+                throw new Error('iconSvg not set in Icon options (see the docs).');
+            }
+            return null;
+        }
 
         var svgEl;
         if (src instanceof SVGElement) {
@@ -2471,8 +2607,8 @@ var SvgIcon = L.Icon.extend({
             svgEl = (new DOMParser()).parseFromString(src, 'image/svg+xml').documentElement;
         }
 
-		this._setIconStyles(svgEl, name);
+        this._setIconStyles(svgEl, name);
 
-		return svgEl;
-	},
+        return svgEl;
+    },
 });
