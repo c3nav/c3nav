@@ -80,7 +80,7 @@ class Level(SpecificLocation, models.Model):
     def details_display(self, editor_url=True, **kwargs):
         result = super().details_display(**kwargs)
         result['display'].insert(3, (_('short label'), self.short_label))
-        result['display'].extend([
+        result['display_extended'].extend([
             (_('outside only'), self.base_altitude),
             (_('default height'), self.default_height),
         ])
