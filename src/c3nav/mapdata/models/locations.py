@@ -373,6 +373,7 @@ class LocationGroup(Location, models.Model):
                                  fallback_value="", help_text=_('to explain the report form or rejection'))
 
     color = models.CharField(null=True, blank=True, max_length=32, verbose_name=_('background color'))
+    in_legend = models.BooleanField(default=False, verbose_name=_('show in legend (if color set)'))
     hub_import_type = models.CharField(max_length=100, verbose_name=_('hub import type'), null=True, blank=True,
                                        unique=True,
                                        help_text=_('assign this group to imported hub locations of this type'))

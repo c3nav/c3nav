@@ -417,9 +417,9 @@ class EditorFormBase(I18nModelFormMixin, ModelForm):
 
 
 def create_editor_form(editor_model):
-    possible_fields = ['slug', 'name', 'title', 'title_plural', 'help_text', 'position_secret',
-                       'icon', 'join_edges', 'up_separate', 'bssid', 'main_point', 'external_url', 'hub_import_type',
-                       'walk', 'ordering', 'category', 'width', 'groups', 'height', 'color', 'priority', 'hierarchy',
+    possible_fields = ['slug', 'name', 'title', 'title_plural', 'help_text', 'position_secret', 'icon', 'join_edges',
+                       'up_separate', 'bssid', 'main_point', 'external_url', 'hub_import_type', 'walk', 'ordering',
+                       'category', 'width', 'groups', 'height', 'color', 'in_legend', 'priority', 'hierarchy',
                        'icon_name', 'base_altitude', 'waytype', 'access_restriction', 'default_height', 'door_height',
                        'outside', 'can_search', 'can_describe', 'geometry', 'single', 'altitude', 'short_label',
                        'origin_space', 'target_space', 'data', 'comment', 'slow_down_factor', 'groundaltitude',
