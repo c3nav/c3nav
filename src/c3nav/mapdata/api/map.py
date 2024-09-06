@@ -354,6 +354,7 @@ def legend_for_theme(request, theme_id: int):
         Prefetch('spaces', Space.qs_for_request(request))
     )
     obstaclegroups = ObstacleGroup.objects.filter(
+        in_legend=True,
         pk__in=set(Obstacle.qs_for_request(request).filter(group__isnull=False).values_list('group', flat=True)),
     )
     return LegendSchema(
