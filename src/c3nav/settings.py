@@ -464,7 +464,6 @@ LANGUAGES = [(code, name) for code, name in [
     ('en-UW', _('Engwish UwU')),
     ('de', _('German')),
 ] if code in SELECTED_LANGUAGES]
-TILE_CACHE_SERVER = config.get('c3nav', 'languagestile_cache_server', fallback=None)
 
 template_loaders = (
     'django.template.loaders.filesystem.Loader',
