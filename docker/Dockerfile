@@ -95,9 +95,9 @@ ENV C3NAV_DEBUG="" \
 USER c3nav
 WORKDIR /app
 
-RUN /app/env/bin/python manage.py makemessages -l en_UW && \
+RUN /app/env/bin/python manage.py makemessages --ignore "site-packages" -l en_UW && \
     /app/env/bin/python genuwu.py && \
-    /app/env/bin/python manage.py compilemessages && \
+    /app/env/bin/python manage.py compilemessages --ignore "site-packages" && \
     /app/env/bin/python manage.py collectstatic -l --no-input && \
     /app/env/bin/python manage.py compress && \
     rm -r /data/*
