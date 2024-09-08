@@ -151,9 +151,9 @@ class MapUpdate(models.Model):
                 import redis
                 lock_aquired = None
                 client = redis.Redis(connection_pool=settings.REDIS_CONNECTION_POOL)
-                lock = client.lock('mapupdate:process_updates:lock')
+                lock = client.lock('mapupdate:process_updates:lock', timeout=1800)
                 try:
-                    lock_aquired = lock.acquire(blocking=False, blocking_timeout=1800)
+                    lock_aquired = lock.acquire(blocking=False)
                     if not lock_aquired:
                         raise cls.ProcessUpdatesAlreadyRunning
                     cache.set('mapdata:last_process_updates_start', int(time.time()), None)
