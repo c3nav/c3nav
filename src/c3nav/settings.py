@@ -8,6 +8,7 @@ from contextlib import suppress
 from pathlib import Path
 from typing import Optional
 
+import django.conf.locale
 from django.contrib.messages import constants as messages
 from django.core.exceptions import ImproperlyConfigured
 from django.utils.crypto import get_random_string
@@ -37,7 +38,7 @@ def get_data_dir(setting: str, fallback: Path, create: bool = True, parents: boo
 
 
 env = Env()
-config = C3navConfigParser(env=env)
+C3NAV_CONFIG = config = C3navConfigParser(env=env)
 if 'C3NAV_CONFIG' in env:
     # if a config file is explicitly defined, make sure we can read it.
     env.path('C3NAV_CONFIG').open('r')
@@ -341,6 +342,9 @@ TILE_ACCESS_COOKIE_SECURE = not DEBUG
 TILE_ACCESS_COOKIE_SAMESITE = 'none' if SESSION_COOKIE_SECURE else 'lax'
 
 
+SSO_ENABLED = config.getboolean('sso', 'enabled', fallback=False)
+
+
 # Application definition
 
 INSTALLED_APPS = [
@@ -354,6 +358,7 @@ INSTALLED_APPS = [
     'channels',
     'compressor',
     'bootstrap3',
+    *(['social_django'] if SSO_ENABLED else []),
     *(["ninja"] if SERVE_API else []),
     'c3nav.api',
     'c3nav.mapdata',
@@ -454,7 +459,6 @@ EXTRA_LANG_INFO = {
 }
 
 # Add custom languages not provided by Django
-import django.conf.locale
 LANG_INFO = dict(django.conf.locale.LANG_INFO, **EXTRA_LANG_INFO)
 django.conf.locale.LANG_INFO = LANG_INFO
 
@@ -772,3 +776,37 @@ AUTH_PASSWORD_VALIDATORS = [
         'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator',
     },
 ]
+
+
+# SSO
+
+SOCIAL_AUTH_STRATEGY = 'c3nav.control.sso.C3navStrategy'
+SOCIAL_AUTH_JSONFIELD_ENABLED = DATABASES['default']['ENGINE'] == 'django.db.backends.postgresql'
+
+AUTHENTICATION_BACKENDS = (
+    'django.contrib.auth.backends.ModelBackend',
+)
+
+if SSO_ENABLED:
+    # add the enabled authentication backends to AUTHENTICATION_BACKENDS
+    # we need this despite our own strategy looking it up directly because the backends context processor of
+    # social_django directly uses the django setting without asking the normal config pipeline
+    AUTHENTICATION_BACKENDS = (
+        * (
+            backend.strip()
+            for backend in config.get('sso', 'authentication_backends', fallback='').split(',')
+        ),
+        *AUTHENTICATION_BACKENDS,
+    )
+
+SOCIAL_AUTH_PIPELINE = (
+    'social_core.pipeline.social_auth.social_details',
+    'social_core.pipeline.social_auth.social_uid',
+    'social_core.pipeline.social_auth.auth_allowed',
+    'social_core.pipeline.social_auth.social_user',
+    'social_core.pipeline.user.get_username',
+    'social_core.pipeline.user.create_user',
+    'social_core.pipeline.social_auth.associate_user',
+    'social_core.pipeline.social_auth.load_extra_data',
+    'social_core.pipeline.user.user_details',
+)

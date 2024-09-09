@@ -52,3 +52,8 @@ if settings.SERVE_ANYTHING:
         with suppress(ImportError):
             import django_prometheus  # noqu
             urlpatterns.insert(0, path('prometheus/', include('django_prometheus.urls')))
+
+    if settings.SSO_ENABLED:
+        urlpatterns += [
+            path('sso/', include('social_django.urls', namespace='social'))
+        ]

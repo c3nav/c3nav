@@ -1344,7 +1344,7 @@ c3nav = {
     _modal_link_click: function (e) {
         var location = $(this).attr('href');
         if ($(this).is('[target]') || c3nav._href_modal_open_tab(location)) {
-            $(this).attr('target', '_blank');
+            if(!$(this).is('[target]')) $(this).attr('target', '_blank');
             return;
         }
         e.preventDefault();

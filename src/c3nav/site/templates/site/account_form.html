@@ -17,6 +17,11 @@
         {% csrf_token %}
         {{ form.as_p }}
         <button type="submit">{{ title }}</button>
+        {% if sso_services %}
+        {% for sso_service_id, sso_service_name in sso_services.items %}
+            <a href="{% url "social:begin" sso_service_id %}?{{ redirect_query }}" class="button sso" target="_self">Login with {{ sso_service_name }}</a>
+        {% endfor %}
+        {% endif %}
         {% if bottom_link_url %}
             <a href="{{ bottom_link_url }}?{{ request.META.QUERY_STRING }}">{{ bottom_link_text }}</a>
         {% endif %}

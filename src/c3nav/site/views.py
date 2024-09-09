@@ -6,7 +6,7 @@ from urllib.parse import urlparse
 import qrcode
 from django.conf import settings
 from django.contrib import messages
-from django.contrib.auth import login, logout
+from django.contrib.auth import REDIRECT_FIELD_NAME, login, logout
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.forms import AuthenticationForm, PasswordChangeForm, UserCreationForm
 from django.core.cache import cache
@@ -14,7 +14,7 @@ from django.core.exceptions import ObjectDoesNotExist, SuspiciousOperation, Vali
 from django.core.paginator import Paginator
 from django.core.serializers.json import DjangoJSONEncoder
 from django.db import transaction
-from django.http import Http404, HttpResponse, HttpResponseBadRequest
+from django.http import Http404, HttpResponse, HttpResponseBadRequest, QueryDict
 from django.middleware import csrf
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
@@ -32,8 +32,8 @@ from c3nav.control.forms import AccessPermissionForm, SignedPermissionDataError
 from c3nav.mapdata.grid import grid
 from c3nav.mapdata.models import Location, Source
 from c3nav.mapdata.models.access import AccessPermission, AccessPermissionToken
-from c3nav.mapdata.models.locations import LocationRedirect, Position, SpecificLocation, get_position_secret, \
-    LocationGroup
+from c3nav.mapdata.models.locations import (LocationGroup, LocationRedirect, Position, SpecificLocation,
+                                            get_position_secret)
 from c3nav.mapdata.models.report import Report, ReportUpdate
 from c3nav.mapdata.utils.locations import (get_location_by_id_for_request, get_location_by_slug_for_request,
                                            levels_by_short_label_for_request)
@@ -303,9 +303,19 @@ def login_view(request):
     else:
         form = AuthenticationForm(request)
 
+    redirect_path = request.GET.get(REDIRECT_FIELD_NAME, '/account/')
+    if referer := request.headers.get('Referer', None):
+        referer = urlparse(referer)
+        if referer.netloc == request.META['HTTP_HOST']:
+            redirect_path = f'{referer.path}?{referer.query}' if referer.query else referer.path
+    redirect_query = QueryDict(mutable=True)
+    redirect_query[REDIRECT_FIELD_NAME] = redirect_path
+
     ctx = {
         'title': _('Log in'),
         'form': form,
+        'redirect_path': redirect_path,
+        'redirect_query': redirect_query.urlencode(safe="/")
     }
 
     if settings.USER_REGISTRATION:
@@ -313,6 +323,10 @@ def login_view(request):
             'bottom_link_url': reverse('site.register'),
             'bottom_link_text': _('Create new account')
         })
+
+    if settings.SSO_ENABLED:
+        from c3nav.control.sso import get_sso_services
+        ctx['sso_services'] = get_sso_services()
 
     return render(request, 'site/account_form.html', ctx)
 

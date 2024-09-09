@@ -160,7 +160,7 @@ main.account form {
     max-width: 400px;
 }
 
-#modal-content form button[type=submit], #modal-content .answers .button {
+#modal-content form button[type=submit], #modal-content form .button.sso, #modal-content .answers .button {
     display: block;
     width: 100%;
 }
@@ -1343,7 +1343,7 @@ main .narrow p, main .narrow form, main .narrow button {
     margin-bottom: 1.0rem;
 }
 
-main .narrow form button {
+main .narrow form button, main .narrow form .button {
     width: 100%;
 }
 
