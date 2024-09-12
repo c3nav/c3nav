@@ -30,6 +30,27 @@ class ObjectReference(BaseSchema):
         return cls(model=instance._meta.model_name, id=instance.pk)
 
 
+class PreviousObject(BaseSchema):
+    titles: dict[str, str] | None
+    values: FieldValuesDict
+
+
+class PreviousObjects(BaseSchema):
+    objects: dict[str, dict[int, PreviousObject]] = {}
+
+    def get(self, ref: ObjectReference) -> PreviousObject | None:
+        return self.objects.get(ref.model, {}).get(ref.id, None)
+
+    def set(self, ref: ObjectReference, values: FieldValuesDict, titles: dict | None):
+        self.objects.setdefault(ref.model, {})[ref.id] = PreviousObject(
+            values=values,
+            titles=titles,
+        )
+
+    def get_ids(self) -> dict[str, set[int]]:
+        return {model: set(objs.keys()) for model, objs in self.objects.items()}
+
+
 class BaseOperation(BaseSchema):
     obj: ObjectReference
     uuid: UUID = Field(default_factory=uuid4)
@@ -168,13 +189,11 @@ class ChangedObject(BaseSchema):
 
 class CollectedChanges(BaseSchema):
     uuid: UUID = Field(default_factory=uuid4)
-    prev_titles: dict[str, dict[int, dict[str, str] | None]] = {}
-    prev_values: dict[str, dict[int, FieldValuesDict]] = {}
+    prev: PreviousObjects = PreviousObjects()
     operations: list[DatabaseOperation] = []
 
     def prefetch(self) -> "CollectedChangesPrefetch":
-        ids_to_query: dict[str, set[int]] = {model_name: set(val.keys())
-                                             for model_name, val in self.prev_values.items()}
+        ids_to_query: dict[str, set[int]] = self.prev.get_ids()
 
         instances: dict[ObjectReference, Model] = {}
         for model_name, ids in ids_to_query.items():
@@ -236,19 +255,18 @@ class CollectedChangesPrefetch:
 
     def apply(self):
         # todo: what if unique constraint error occurs?
-        prev_values = copy.deepcopy(self.changes.prev_values)
         for operation in self.changes.operations:
             if isinstance(operation, CreateObjectOperation):
                 self.instances[operation.obj] = operation.apply_create()
             else:
-                in_prev_values = operation.obj.id in prev_values.get(operation.obj.model, {})
-                if not in_prev_values:
+                prev_obj = self.changes.prev.get(operation.obj)
+                if prev_obj is None:
                     print('WARN WARN WARN')
-                values = prev_values.setdefault(operation.obj.model, {}).setdefault(operation.obj.id, {})
+                values = prev_obj.values
                 try:
                     instance = self.instances[operation.obj]
                 except KeyError:
-                    if not in_prev_values:
+                    if prev_obj is None:
                         instance = apps.get_model("mapdata", operation.obj.model).filter(pk=operation.obj.id).first()
                     else:
                         instance = None

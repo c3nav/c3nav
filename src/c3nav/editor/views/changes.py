@@ -198,7 +198,7 @@ def changeset_detail(request, pk):
             if changed_object.created and not changed_object.deleted:
                 added_redirects.setdefault(changed_object.fields["target"], set()).add(changed_object.fields["slug"])
             elif changed_object.deleted:
-                orig_values = changeset.changes.prev_values["locationredirect"][changed_object.obj.id]
+                orig_values = changeset.changes.prev.get(changed_object.obj).values
                 removed_redirects.setdefault(orig_values["target"], set()).add(orig_values["slug"])
             else:
                 raise ValueError  # dafuq? not possibile through the editor
@@ -218,7 +218,7 @@ def changeset_detail(request, pk):
             else:
                 title = next(iter(changed_object.titles.values()))
 
-        prev_values = changeset.changes.prev_values[changed_object.obj.model][changed_object.obj.id]
+        prev_values = changeset.changes.prev.get(changed_object.obj).values
 
         edit_url = None
         if not changed_object.deleted:

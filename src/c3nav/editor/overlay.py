@@ -65,18 +65,15 @@ class DatabaseOverlayManager:
     def get_ref_and_pre_change_values(self, instance: Model) -> tuple[ObjectReference, FieldValuesDict]:
         ref = ObjectReference.from_instance(instance)
 
-        pre_change_values = self.pre_change_values.pop(ref, None)
-        if pre_change_values:
-            self.changes.prev_values.setdefault(ref.model, {})[ref.id] = pre_change_values
-        self.changes.prev_titles.setdefault(ref.model, {})[ref.id] = getattr(instance, 'titles', None)
-
+        pre_change_values = self.pre_change_values.pop(ref)
+        self.changes.prev.set(ref, values=pre_change_values, titles=getattr(instance, 'titles', None))
         return ref, pre_change_values
 
     def handle_pre_change_instance(self, instance: Model, **kwargs):
         if instance.pk is None:
             return
         ref = ObjectReference.from_instance(instance)
-        if ref not in self.pre_change_values and ref.id not in self.changes.prev_values.get(ref.model, {}):
+        if ref not in self.pre_change_values and self.changes.prev.get(ref) is None:
             self.pre_change_values[ref] = self.get_model_field_values(
                 instance._meta.model.objects.get(pk=instance.pk)
             )
