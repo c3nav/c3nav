@@ -12,7 +12,7 @@ def access_permissions(backend, response, user=None, *args, **kwargs):
     if not groups:
         return
 
-    existing_grants = set(AccessPermission.objects.filter(sso_grant__provider=backend.name)
+    existing_grants = set(user.accesspermissions.filter(sso_grant__provider=backend.name)
                           .values_list('sso_grant_id', flat=True))
     new_grants = AccessPermissionSSOGrant.objects.filter(provider=backend.name, group__in=groups) \
         .exclude(id__in=existing_grants)
