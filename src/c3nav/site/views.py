@@ -178,7 +178,7 @@ def map_index(request, mode=None, slug=None, slug2=None, details=None, options=N
         }
     elif mode is None:
         metadata = {
-            'title': 'c3nav',
+            'title': settings.BRANDING,
             # 'description': '',
             'preview_img_url': request.build_absolute_uri(reverse('mapdata.preview.location',
                                                                   kwargs={'slug': settings.MAIN_PREVIEW_SLUG})),
