@@ -4119,16 +4119,6 @@ msgstr ""
 "API-Secret erstellt. Notier es dir sofort, denn es wird nicht erneut "
 "angezeigt!"
 
-#, fuzzy
-#~| msgid "Map update"
-#~ msgid "Mapupdate"
-#~ msgstr "Kartenänderung"
-
-#, fuzzy, python-format
-#~| msgid "on level %(level_title)s"
-#~ msgid "changes on level %(level_title)s"
-#~ msgstr "in der Etage %(level_title)s"
-
 #~ msgid "about c3nav"
 #~ msgstr "über c3nav"
 
