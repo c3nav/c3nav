@@ -878,6 +878,7 @@ c3nav = {
                 c3nav._buttons_share_click(location);
             } else if ($(this).is('.show-nearby')) {
                 c3nav._click_anywhere_load(true);
+                return;
             } else if ($(this).is('a')) {
                 c3nav._modal_link_click.call(this, e);
             } else {
