@@ -62,4 +62,7 @@ def theme(request):
         'themes': themes,
         'randomize_primary_color': active_theme['randomize_primary_color'],
         'primary_color': primary_color,
+
+        'branding': settings.BRANDING,
+        'app_enabled': settings.APP_ENABLED,
     }
