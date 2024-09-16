@@ -20,7 +20,7 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name='changeset',
             name='changes',
-            field=django_pydantic_field.fields.PydanticSchemaField(config=None, default=c3nav.editor.operations.CollectedChanges, encoder=django.core.serializers.json.DjangoJSONEncoder, schema=c3nav.editor.operations.CollectedChanges),
+            field=django_pydantic_field.fields.PydanticSchemaField(config=None, default=c3nav.editor.operations.CollectedOperations, encoder=django.core.serializers.json.DjangoJSONEncoder, schema=c3nav.editor.operations.CollectedOperations),
         ),
         migrations.DeleteModel(
             name='ChangedObject',

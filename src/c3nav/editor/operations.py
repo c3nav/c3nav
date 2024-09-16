@@ -187,7 +187,7 @@ class ChangedObject(BaseSchema):
     m2m_changes: dict[str, ChangedManyToMany] = {}
 
 
-class CollectedChanges(BaseSchema):
+class CollectedOperations(BaseSchema):
     uuid: UUID = Field(default_factory=uuid4)
     prev: PreviousObjects = PreviousObjects()
     operations: list[DatabaseOperation] = []
@@ -250,7 +250,7 @@ class CollectedChanges(BaseSchema):
 
 @dataclass
 class CollectedChangesPrefetch:
-    changes: CollectedChanges
+    changes: CollectedOperations
     instances: dict[ObjectReference, Model]
 
     def apply(self):
