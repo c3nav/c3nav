@@ -458,7 +458,7 @@ def get_cache_package(request, filetype):
     enforce_tile_secret_auth(request)
 
     filename = 'package.' + filetype
-    cache_package = settings.CACHE_ROOT / filename
+    cache_package = CachePackage.get_filename(MapUpdate.current_processed_cache_key())
     try:
         size = cache_package.stat().st_size
         f = cache_package.open('rb')

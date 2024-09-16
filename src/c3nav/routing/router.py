@@ -275,7 +275,7 @@ class Router:
 
     @classmethod
     def build_filename(cls, update):
-        return settings.CACHE_ROOT / ('router_%s.pickle' % MapUpdate.build_cache_key(*update))
+        return settings.CACHE_ROOT / MapUpdate.build_cache_key(*update) / 'router.pickle'
 
     @classmethod
     def load_nocache(cls, update):

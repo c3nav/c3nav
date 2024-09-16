@@ -30,13 +30,17 @@ class CachePackage:
         if theme_id not in self.theme_ids:
             self.theme_ids.append(theme_id)
 
-    def save(self, filename=None, compression=None):
+    @staticmethod
+    def get_filename(update_cache_key, compression=None):
+        from django.conf import settings
+        if compression is not None:
+            return settings.CACHE_ROOT / update_cache_key / f'package.tar.{compression}'
+        else:
+            return settings.CACHE_ROOT / update_cache_key / 'package.tar'
+
+    def save(self, update_cache_key, filename=None, compression=None):
         if filename is None:
-            from django.conf import settings
-            if compression is not None:
-                filename = settings.CACHE_ROOT / f'package.tar.{compression}'
-            else:
-                filename = settings.CACHE_ROOT / 'package.tar'
+            filename = self.get_filename(update_cache_key, compression=compression)
 
         filemode = 'w'
         fileobj = None
@@ -76,9 +80,9 @@ class CachePackage:
         obj.write(data)
         self._add_bytesio(f, filename, data)
 
-    def save_all(self, filename=None):
+    def save_all(self, update_cache_key, filename=None):
         for compression in (None, 'gz', 'xz', 'zst'):
-            self.save(filename, compression)
+            self.save(update_cache_key, filename, compression)
 
     @classmethod
     def read(cls, f: BinaryIO) -> Self:
@@ -120,10 +124,11 @@ class CachePackage:
         return cls(bounds, levels)
 
     @classmethod
-    def open(cls, package: Optional[str | os.PathLike] = None) -> Self:
+    def open(cls, update_cache_key=None, package: Optional[str | os.PathLike] = None) -> Self:
         if package is None:
-            from django.conf import settings
-            package = settings.CACHE_ROOT / 'package.tar'
+            if update_cache_key is None:
+                raise ValueError
+            package = cls.get_filename(update_cache_key)
         elif not hasattr(package, 'open'):
             package = Path(package)
         return cls.read(package.open('rb'))
@@ -139,7 +144,7 @@ class CachePackage:
             cls.cached.data = None
 
         if cls.cached.data is None:
-            cls.cached.data = cls.open()
+            cls.cached.data = cls.open(update_cache_key=cache_key)
 
         return cls.cached.data
 

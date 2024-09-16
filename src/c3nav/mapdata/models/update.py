@@ -179,6 +179,9 @@ class MapUpdate(models.Model):
                 from c3nav.mapdata.utils.cache.changes import changed_geometries
                 changed_geometries.reset()
 
+                update_cache_key = MapUpdate.build_cache_key(*new_updates[-1].to_tuple)
+                (settings.CACHE_ROOT / update_cache_key).mkdir()
+
                 logger.info('Recalculating altitude areas...')
 
                 from c3nav.mapdata.models import AltitudeArea
@@ -205,7 +208,7 @@ class MapUpdate(models.Model):
                 logger.info('Rebuilding level render data...')
 
                 from c3nav.mapdata.render.renderdata import LevelRenderData
-                LevelRenderData.rebuild()
+                LevelRenderData.rebuild(update_cache_key)
             else:
                 logger.info('No geometries affected.')
 

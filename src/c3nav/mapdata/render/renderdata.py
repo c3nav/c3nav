@@ -55,7 +55,7 @@ class LevelRenderData:
     darken_area: MultiPolygon | None = None
 
     @staticmethod
-    def rebuild():
+    def rebuild(update_cache_key):
         # Levels are automatically sorted by base_altitude, ascending
         levels = tuple(Level.objects.prefetch_related('altitudeareas', 'buildings', 'doors', 'spaces',
                                                       'spaces__holes', 'spaces__areas', 'spaces__columns',
@@ -352,19 +352,19 @@ class LevelRenderData:
 
                 package.add_level(render_level.pk, theme, map_history, access_restriction_affected)
 
-                render_data.save(render_level.pk, theme)
+                render_data.save(update_cache_key, render_level.pk, theme)
 
-        package.save_all()
+        package.save_all(update_cache_key)
 
     cached = LocalContext()
 
     @staticmethod
-    def _level_filename(level_pk, theme_pk):
+    def _level_filename(update_cache_key, level_pk, theme_pk):
         if theme_pk is None:
             name = 'render_data_level_%d.pickle' % level_pk
         else:
             name = 'render_data_level_%d_theme_%d.pickle' % (level_pk, theme_pk)
-        return settings.CACHE_ROOT / name
+        return settings.CACHE_ROOT / update_cache_key / name
 
     @classmethod
     def get(cls, level, theme):
@@ -382,10 +382,10 @@ class LevelRenderData:
             if result is not None:
                 return result
 
-        result = pickle.load(open(cls._level_filename(level_pk, theme_pk), 'rb'))
+        result = pickle.load(open(cls._level_filename(cache_key, level_pk, theme_pk), 'rb'))
 
         cls.cached.data[key] = result
         return result
 
-    def save(self, level_pk, theme_pk):
-        return pickle.dump(self, open(self._level_filename(level_pk, theme_pk), 'wb'))
+    def save(self, update_cache_key, level_pk, theme_pk):
+        return pickle.dump(self, open(self._level_filename(update_cache_key, level_pk, theme_pk), 'wb'))

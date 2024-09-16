@@ -156,7 +156,7 @@ class Locator:
 
     @classmethod
     def build_filename(cls, update):
-        return settings.CACHE_ROOT / ('locator_%s.pickle' % MapUpdate.build_cache_key(*update))
+        return settings.CACHE_ROOT / MapUpdate.build_cache_key(*update) / 'locator.pickle'
 
     @classmethod
     def load_nocache(cls, update):
