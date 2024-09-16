@@ -597,6 +597,7 @@ RANDOM_PRIMARY_COLOR_LIST = [hex_from_oklch(PRIMARY_COLOR_RANDOMISATION['lightne
                                             PRIMARY_COLOR_RANDOMISATION['chroma'],
                                             x) for x in range(0, 360)]
 
+DEFAULT_THEME = config.getint('c3nav', 'default_theme', fallback=0)
 BASE_THEME = {
     'is_dark': config.getboolean('theme', 'is_dark', fallback=False),
     'randomize_primary_color': config.getboolean('theme', 'randomize_primary_color', fallback=False),

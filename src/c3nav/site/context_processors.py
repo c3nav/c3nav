@@ -42,13 +42,12 @@ def theme(request):
         themes = css_themes_all()
     else:
         themes = css_themes_public()
-    active_theme_id = request.session.get('theme', 0)
-    if active_theme_id in themes:
-        active_theme = themes[active_theme_id]
-    else:
-        active_theme_id = 0
-        active_theme = themes[0]
-        request.session['theme'] = active_theme_id
+    default_theme_id = settings.DEFAULT_THEME if settings.DEFAULT_THEME in themes else 0
+    active_theme_id = request.session.get('theme', default_theme_id)
+    if active_theme_id not in themes:
+        active_theme_id = default_theme_id
+
+    active_theme = themes[active_theme_id]
 
     if active_theme['randomize_primary_color']:
         from c3nav.site.themes import get_random_primary_color
