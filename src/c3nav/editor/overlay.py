@@ -9,7 +9,7 @@ from django.db.models import Model
 from django.db.models.fields.related import ManyToManyField
 
 from c3nav.editor.operations import DatabaseOperation, ObjectReference, FieldValuesDict, CreateObjectOperation, \
-    UpdateObjectOperation, DeleteObjectOperation, ClearManyToManyOperation, UpdateManyToManyOperation, CollectedChanges
+    UpdateObjectOperation, DeleteObjectOperation, ClearManyToManyOperation, UpdateManyToManyOperation, CollectedOperations
 from c3nav.mapdata.fields import I18nField
 from c3nav.mapdata.models import LocationSlug
 
@@ -28,17 +28,17 @@ class InterceptAbortTransaction(Exception):
 
 @dataclass
 class DatabaseOverlayManager:
-    changes: CollectedChanges
+    changes: CollectedOperations
     new_operations: list[DatabaseOperation] = field(default_factory=list)
     pre_change_values: dict[ObjectReference, FieldValuesDict] = field(default_factory=dict)
 
     @classmethod
     @contextmanager
-    def enable(cls, changes: CollectedChanges | None, commit: bool):
+    def enable(cls, changes: CollectedOperations | None, commit: bool):
         if getattr(overlay_state, 'manager', None) is not None:
             raise TypeError
         if changes is None:
-            changes = CollectedChanges()
+            changes = CollectedOperations()
         try:
             with transaction.atomic():
                 manager = DatabaseOverlayManager(changes)
