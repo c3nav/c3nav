@@ -88,6 +88,9 @@ class TitledMixin(SerializableMixin, models.Model):
             result['display'].append((language, title))
         return result
 
+    def __str__(self):
+        return str(self.title)
+
 
 class BoundsMixin(SerializableMixin, models.Model):
     bottom = models.DecimalField(_('bottom coordinate'), max_digits=6, decimal_places=2)
