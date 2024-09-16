@@ -72,7 +72,7 @@ RUN --mount=type=cache,target=/pip-cache \
     -r requirements/uwu.txt \
     -r requirements/sso.txt \
     -r requirements/server-asgi.txt && \
-    pip install --cache-dir /pip-cache uwsgi
+    pip install --cache-dir /pip-cache uwsgi django_extensions
 
 FROM base as final
 ARG COMMIT

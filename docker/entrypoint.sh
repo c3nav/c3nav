@@ -59,6 +59,9 @@ beat)
 manage)
   exec python manage.py ${*:2}
   ;;
+shell)
+  exec python manage.py shell_plus ${*:2}
+  ;;
 migrate)
   exec python manage.py migrate ${*:2}
   ;;
