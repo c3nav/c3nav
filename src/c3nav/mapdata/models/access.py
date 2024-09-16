@@ -187,6 +187,28 @@ class AccessPermissionToken(models.Model):
         return ngettext_lazy('Area successfully unlocked.', 'Areas successfully unlocked.', len(self.restrictions))
 
 
+class AccessPermissionSSOGrant(models.Model):
+
+    provider = models.CharField(max_length=32, verbose_name=_('SSO Backend'))
+    group = models.CharField(max_length=64, verbose_name=_('SSO Group'))
+    access_restriction = models.ForeignKey(AccessRestriction, on_delete=models.CASCADE, null=True, blank=True)
+    access_restriction_group = models.ForeignKey(AccessRestrictionGroup, on_delete=models.CASCADE, null=True,
+                                                 blank=True)
+
+    class Meta:
+        verbose_name = _('Access Permission SSO Grant')
+        verbose_name_plural = _('Access Permission SSO Grants')
+        default_related_name = 'accesspermission_sso_grants'
+        unique_together = (
+            ('provider', 'group', 'access_restriction', 'access_restriction_group')
+        )
+        constraints = (
+            CheckConstraint(check=(~Q(access_restriction__isnull=True, access_restriction_group__isnull=True) &
+                                   ~Q(access_restriction__isnull=False, access_restriction_group__isnull=False)),
+                            name="sso_permission_grant_needs_restriction_or_restriction_group"),
+        )
+
+
 class AccessPermission(models.Model):
     user = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, on_delete=models.CASCADE)
     session_token = models.UUIDField(null=True, editable=False)
@@ -199,6 +221,8 @@ class AccessPermission(models.Model):
     unique_key = models.CharField(max_length=32, null=True, verbose_name=_('unique key'))
     token = models.ForeignKey(AccessPermissionToken, null=True, on_delete=models.CASCADE,
                               verbose_name=_('Access permission token'))
+    sso_grant = models.ForeignKey(AccessPermissionSSOGrant, null=True, on_delete=models.CASCADE,
+                                  verbose_name=_('Access Permission SSO Grant'))
 
     class Meta:
         verbose_name = _('Access Permission')

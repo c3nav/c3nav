@@ -5,6 +5,7 @@ from django.urls import reverse
 from django.utils.translation import gettext_lazy as _
 
 from c3nav.control.models import UserPermissions
+from c3nav.mapdata.models.access import AccessPermissionSSOGrant
 
 
 class UserPermissionsInline(admin.StackedInline):
@@ -27,3 +28,8 @@ class UserAdmin(BaseUserAdmin):
 
 admin.site.unregister(User)
 admin.site.register(User, UserAdmin)
+
+
+@admin.register(AccessPermissionSSOGrant)
+class AccessPermissionSSOGrantAdmin(admin.ModelAdmin):
+    model = AccessPermissionSSOGrant
