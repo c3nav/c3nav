@@ -7,8 +7,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2024-08-28 15:02+0200\n"
-"PO-Revision-Date: 2024-03-24 17:46+0100\n"
+"POT-Creation-Date: 2024-09-16 18:01+0200\n"
+"PO-Revision-Date: 2024-09-16 18:02+0200\n"
 "Last-Translator: Laura Klünder <laura@codingcatgirl.de>\n"
 "Language-Team: \n"
 "Language: de\n"
@@ -3595,7 +3595,7 @@ msgstr ""
 "auf <a href=\"https://patreon.com/c3nav\" rel=\"external\" "
 "target=\"_blank\">Patreon</a>:"
 
-#: c3nav/site/templates/site/about.html c3nav/site/templates/site/map.html
+#: c3nav/site/templates/site/about.html
 msgid "Imprint"
 msgstr "Impressum"
 
@@ -3682,7 +3682,6 @@ msgid "You are reporting an issue with the following location:"
 msgstr "Du meldest einen Fehler beim folgenden Ort:"
 
 #: c3nav/site/templates/site/fragment_report_meta.html
-#: c3nav/site/templates/site/map.html
 msgid "open in c3nav"
 msgstr "in c3nav öffnen"
 
@@ -3723,8 +3722,13 @@ msgid "API"
 msgstr "API"
 
 #: c3nav/site/templates/site/map.html
-msgid "about c3nav"
-msgstr "über c3nav"
+#, python-format
+msgid "about %(branding)s"
+msgstr "über %(branding)s"
+
+#: c3nav/site/templates/site/map.html
+msgid "Legal notice"
+msgstr "Impressum"
 
 #: c3nav/site/templates/site/map.html
 msgid "Select"
@@ -3813,6 +3817,11 @@ msgstr ""
 #: c3nav/site/templates/site/map.html
 msgid "Select theme"
 msgstr "Theme wählen"
+
+#: c3nav/site/templates/site/map.html
+#, python-format
+msgid "open in %(branding)s"
+msgstr "in %(branding)s öffnen"
 
 #: c3nav/site/templates/site/position_create.html
 #: c3nav/site/templates/site/position_list.html
@@ -4109,6 +4118,19 @@ msgid "API secret created. Save it now, cause it will not be shown again!"
 msgstr ""
 "API-Secret erstellt. Notier es dir sofort, denn es wird nicht erneut "
 "angezeigt!"
+
+#, fuzzy
+#~| msgid "Map update"
+#~ msgid "Mapupdate"
+#~ msgstr "Kartenänderung"
+
+#, fuzzy, python-format
+#~| msgid "on level %(level_title)s"
+#~ msgid "changes on level %(level_title)s"
+#~ msgstr "in der Etage %(level_title)s"
+
+#~ msgid "about c3nav"
+#~ msgstr "über c3nav"
 
 #~ msgid "second altitude"
 #~ msgstr "zweite Bodenhöhe"

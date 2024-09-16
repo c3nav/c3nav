@@ -163,6 +163,9 @@ if not SECRET_MESH_KEY:
 debug_fallback = "runserver" in sys.argv
 DEBUG = config.getboolean('django', 'debug', fallback=debug_fallback, env='C3NAV_DEBUG')
 
+BRANDING = config.get('c3nav', 'branding', fallback='c3nav')
+APP_ENABLED = config.getboolean('c3nav', 'app_enabled', fallback=False)
+
 ENABLE_MESH = config.getboolean('c3nav', 'enable_mesh', fallback=True, env='ENABLE_MESH')
 SERVE_ANYTHING = config.getboolean('c3nav', 'serve_anything', fallback=True, env='SERVE_ANYTHING')
 SERVE_API = config.getboolean('c3nav', 'serve_api', fallback=SERVE_ANYTHING, env='SERVE_API')

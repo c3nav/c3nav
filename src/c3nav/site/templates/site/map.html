@@ -9,7 +9,7 @@
     {% if meta %}
         <meta property="twitter:card" content="summary_large_image"/>
         <meta property="og:type" content="website"/>
-        <meta property="og:site_name" content="c3nav"/>
+        <meta property="og:site_name" content="{{ branding }}"/>
     {% endif %}
     {% if meta.title %}
         <meta name="title" content="{{ meta.title }}"/>
@@ -46,9 +46,9 @@
             <a href="/api/" target="_blank">{% trans 'API' %}</a> //
             <a href="https://chaos.social/@c3nav/" rel="external" target="_blank">Fediverse</a> //
             <a href="https://github.com/c3nav/c3nav/" rel="external" target="_blank">GitHub</a> //
-            <a href="{% url 'site.about' %}" id="about-link">{% trans 'about c3nav' %}</a>
+            <a href="{% url 'site.about' %}" id="about-link">{% blocktrans with branding=branding %}about {{ branding }}{% endblocktrans %}</a>
             {% if imprint %}
-                // <a href="{{ imprint }}" target="_blank">{% trans 'Imprint' %}</a>
+                // <a href="{{ imprint }}" target="_blank">{% trans 'Legal notice' %}</a>
             {% endif %}
         </section>
         {% endif %}
@@ -96,6 +96,7 @@
                     <button class="mobileclient-shortcut">{% trans 'create shortcut' %}</button>
                 </p>
             </section>
+            {% if app_enabled %}
             <section id="app-ad">
                 <h3>{% trans 'Wifi-based location' %}</h3>
                 <p>{% trans 'Get the c3nav app for Android to see your location on the map.' %}</p>
@@ -105,6 +106,7 @@
                     <a class="button" href="https://github.com/c3nav/c3nav-android/releases" target="_blank">{% trans 'APK' %}</a>
                 </p>
             </section>
+            {% endif %}
             <section id="reload-msg">
                 <img src="{% static 'img/loader.gif' %}">
             </section>
@@ -217,12 +219,14 @@
                     </section>
                 </div>
             </section>
+            {% if app_enabled %}
             <div class="app-ads">
                 <div id="android-app-ad">
                     <a href="#" class="close"><i class="material-symbols">close</i></a>
                     {% blocktrans with play_url="https://play.google.com/store/apps/details?id=de.c3nav.droid" apk_url="https://github.com/c3nav/c3nav-android/releases" %}Get the c3nav Android app on <a href="{{ play_url }}" target="_blank">Google Play</a> or <a href="{{ apk_url }}" target="_blank">download the APK!</a>{% endblocktrans %}
                 </div>
             </div>
+            {% endif %}
             <div class="theme-selection">
                 <h2>{% trans 'Select theme' %}</h2>
                 <p>
@@ -233,8 +237,8 @@
                 <button>Save theme</button>
             </div>
         {% else %}
-            <a id="embed-logo" class="embed-link" target="_blank">{% if header_logo %}<img src="{% static header_logo %}">{% else %}<span>c3nav</span>{% endif %}</a>
-            <a id="embed-open" class="embed-link" target="_blank">{% trans 'open in c3nav' %}</a>
+            <a id="embed-logo" class="embed-link" target="_blank">{% if header_logo %}<img src="{% static header_logo %}" alt="{{ branding }}">{% else %}<span>{{ branding }}</span>{% endif %}</a>
+            <a id="embed-open" class="embed-link" target="_blank">{% blocktrans with branding=branding %}open in {{ branding }}{% endblocktrans %}</a>
             <section id="popup-buttons"></section>
             <section id="search">
                 <input type="hidden" id="origin-input">
