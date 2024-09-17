@@ -82,6 +82,10 @@ def make_themes(theme_models):
             'randomize_primary_color': theme.randomize_primary_color,
             'primary_color': primary_color,
         }
+        if theme.icon_path:
+            themes[theme.pk]['icon_path'] = theme.icon_path
+        if theme.leaflet_marker_config:
+            themes[theme.pk]['marker_config'] = theme.leaflet_marker_config
         if theme.default:
             default_theme = {
                     'css_vars': css_code,

@@ -45,6 +45,9 @@ class Theme(TitledMixin, models.Model):
                                                    verbose_name=_('CSS route dots shadow color'))
     extra_css = models.TextField(default='', blank=True, verbose_name=_('Extra CSS'))
 
+    icon_path = models.CharField(default='', blank=True, max_length=255, verbose_name=_('Root path for icon images'))
+    leaflet_marker_config = models.TextField(default='', blank=True, verbose_name=_('Leaflet marker config override'))
+
     color_background = models.CharField(max_length=32, blank=True, verbose_name=_('background color'))
     color_wall_fill = models.CharField(max_length=32, blank=True, verbose_name=_('wall fill color'))
     color_wall_border = models.CharField(max_length=32, blank=True, verbose_name=_('wall border color'))

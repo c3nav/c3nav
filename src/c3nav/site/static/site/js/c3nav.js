@@ -1346,7 +1346,7 @@ c3nav = {
     _modal_link_click: function (e) {
         var location = $(this).attr('href');
         if ($(this).is('[target]') || c3nav._href_modal_open_tab(location)) {
-            if(!$(this).is('[target]')) $(this).attr('target', '_blank');
+            if (!$(this).is('[target]')) $(this).attr('target', '_blank');
             return;
         }
         e.preventDefault();
@@ -1436,9 +1436,7 @@ c3nav = {
 
         // set up icons
         L.Icon.Default.imagePath = '/static/leaflet/images/';
-        c3nav._add_icon('origin');
-        c3nav._add_icon('destination');
-        c3nav._add_icon('nearby');
+        c3nav.create_icons();
 
         // setup scale control
         L.control.scale({imperial: false}).addTo(c3nav.map);
@@ -1501,6 +1499,8 @@ c3nav = {
 
         document.querySelector('#theme-color-meta-dark').content = theme.theme_color_dark;
         document.querySelector('#theme-color-meta-light').content = theme.theme_color_light;
+
+        c3nav.create_icons();
 
         c3nav._levelControl.setTheme(id);
         c3nav.create_key(id);
@@ -1601,17 +1601,32 @@ c3nav = {
         c3nav.update_map_state();
         c3nav.update_location_labels();
     },
-    _add_icon: function (name) {
-        c3nav[name + 'Icon'] = new L.Icon({
-            iconUrl: '/static/img/marker-icon-' + name + '.png',
-            iconRetinaUrl: '/static/img/marker-icon-' + name + '-2x.png',
-            shadowUrl: '/static/leaflet/images/marker-shadow.png',
-            iconSize: [25, 41],
-            iconAnchor: [12, 41],
-            popupAnchor: [1, -34],
-            tooltipAnchor: [16, -28],
-            shadowSize: [41, 41]
-        });
+    icons: {},
+    create_icons: function () {
+        const theme = c3nav.themes[c3nav.theme];
+        let rootPath = theme.icon_path;
+        let config = theme.marker_config ? JSON.parse(theme.marker_config) : null;
+        if (!rootPath) {
+            rootPath = '/static/img/';
+        }
+        if (!config) {
+            config = {};
+        }
+        c3nav.icons = {};
+        for (const name of ['default', 'origin', 'destination', 'nearby']) {
+            c3nav.icons[name] = new L.Icon({
+                iconUrl: rootPath + 'marker-icon-' + name + '.png',
+                iconRetinaUrl: rootPath + 'marker-icon-' + name + '-2x.png',
+                shadowUrl: rootPath + 'marker-shadow.png',
+                iconSize: [25, 41],
+                iconAnchor: [12, 41],
+                popupAnchor: [1, -34],
+                tooltipAnchor: [16, -28],
+                shadowSize: [41, 41],
+                ...config,
+            });
+        }
+
     },
     visible_map_locations: [],
     update_map_locations: function () {
@@ -1624,24 +1639,24 @@ c3nav = {
             c3nav._locationLayers[level_id].clearLayers()
         }
         c3nav._visible_map_locations = [];
-        if (origin) c3nav._merge_bounds(bounds, c3nav._add_location_to_map(origin, single ? new L.Icon.Default() : c3nav.originIcon));
-        if (destination) c3nav._merge_bounds(bounds, c3nav._add_location_to_map(destination, single ? new L.Icon.Default() : c3nav.destinationIcon));
+        if (origin) c3nav._merge_bounds(bounds, c3nav._add_location_to_map(origin, single ? c3nav.icons.default : c3nav.icons.origin));
+        if (destination) c3nav._merge_bounds(bounds, c3nav._add_location_to_map(destination, single ? c3nav.icons.default : c3nav.icons.destination));
         var done = [];
         if (c3nav.state.nearby && destination && 'areas' in destination) {
             if (destination.space) {
-                c3nav._merge_bounds(bounds, c3nav._add_location_to_map(c3nav.locations_by_id[destination.space], c3nav.nearbyIcon, true));
+                c3nav._merge_bounds(bounds, c3nav._add_location_to_map(c3nav.locations_by_id[destination.space], c3nav.icons.nearby, true));
             }
             if (destination.near_area) {
                 done.push(destination.near_area);
-                c3nav._merge_bounds(bounds, c3nav._add_location_to_map(c3nav.locations_by_id[destination.near_area], c3nav.nearbyIcon, true));
+                c3nav._merge_bounds(bounds, c3nav._add_location_to_map(c3nav.locations_by_id[destination.near_area], c3nav.icons.nearby, true));
             }
             for (var area of destination.areas) {
                 done.push(area);
-                c3nav._merge_bounds(bounds, c3nav._add_location_to_map(c3nav.locations_by_id[area], c3nav.nearbyIcon, true));
+                c3nav._merge_bounds(bounds, c3nav._add_location_to_map(c3nav.locations_by_id[area], c3nav.icons.nearby, true));
             }
             for (var location of destination.nearby) {
                 if (location in done) continue;
-                c3nav._merge_bounds(bounds, c3nav._add_location_to_map(c3nav.locations_by_id[location], c3nav.nearbyIcon, true));
+                c3nav._merge_bounds(bounds, c3nav._add_location_to_map(c3nav.locations_by_id[location], c3nav.icons.nearby, true));
             }
         }
         c3nav._locationLayerBounds = bounds;

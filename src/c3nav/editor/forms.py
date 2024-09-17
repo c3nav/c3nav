@@ -436,6 +436,7 @@ def create_editor_form(editor_model):
                        'color_css_header_text', 'color_css_header_text_hover',
                        'color_css_shadow', 'color_css_overlay_background', 'color_css_grid',
                        'color_css_modal_backdrop', 'color_css_route_dots_shadow', 'extra_css',
+                       'icon_path', 'leaflet_marker_config',
                        'color_background', 'color_wall_fill', 'color_wall_border', 'color_door_fill',
                        'color_ground_fill', 'color_obstacles_default_fill', 'color_obstacles_default_border',
                        ]
