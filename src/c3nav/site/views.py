@@ -20,6 +20,7 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.utils import timezone
 from django.utils.html import format_html
+from django.utils.http import url_has_allowed_host_and_scheme
 from django.utils.translation import gettext_lazy as _
 from django.utils.translation import ngettext_lazy
 from django.views.decorators.cache import cache_control, never_cache
@@ -475,12 +476,19 @@ if settings.METRICS:
 
 
 def choose_language(request):
+    next_url = request.GET.get("next", request.META.get("HTTP_REFERER"))
+    if not url_has_allowed_host_and_scheme(
+            url=next_url,
+            allowed_hosts={request.get_host()},
+            require_https=request.is_secure(),
+    ):
+        next_url = reverse('site.index')
     if request.method == 'POST':
         lang_code = request.POST.get(LANGUAGE_QUERY_PARAMETER)
         if language_change_counter:
             language_change_counter.labels(lang_code).inc()
         return set_language(request)
-    return render(request, 'site/language.html', {})
+    return render(request, 'site/language.html', {'next_url': next_url})
 
 
 @never_cache

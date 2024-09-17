@@ -8,7 +8,7 @@
 
         <form action="{{ request.path }}" method="post">
             {% csrf_token %}
-            <input name="next" type="hidden" value="{% url 'site.index' %}" />
+            <input name="next" type="hidden" value="{{ next_url }}" />
             {% get_current_language as CURRENT_LANGUAGE %}
             {% get_available_languages as LANGUAGES %}
             <select name="language">
