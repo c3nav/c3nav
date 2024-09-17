@@ -25,6 +25,7 @@ from django.utils.translation import ngettext_lazy
 from django.views.decorators.cache import cache_control, never_cache
 from django.views.decorators.clickjacking import xframe_options_exempt
 from django.views.decorators.http import etag
+from django.views.i18n import LANGUAGE_QUERY_PARAMETER, set_language
 
 from c3nav import __version__ as c3nav_version
 from c3nav.api.models import Secret
@@ -42,6 +43,10 @@ from c3nav.mapdata.views import set_tile_access_cookie
 from c3nav.routing.models import RouteOptions
 from c3nav.site.forms import APISecretForm, DeleteAccountForm, PositionForm, PositionSetForm, ReportUpdateForm
 from c3nav.site.models import Announcement, SiteUpdate
+
+
+if settings.METRICS:
+    from prometheus_client import Counter
 
 
 def check_location(location: Optional[str], request) -> Optional[SpecificLocation]:
@@ -462,7 +467,19 @@ def access_redeem_view(request, token):
     })
 
 
+language_change_counter = None
+if settings.METRICS:
+    language_change_counter = Counter('language_change', 'Language changes', ['language'])
+    for lang_code, lang_name in settings.LANGUAGES:
+        language_change_counter.labels(lang_code)
+
+
 def choose_language(request):
+    if request.method == 'POST':
+        lang_code = request.POST.get(LANGUAGE_QUERY_PARAMETER)
+        if language_change_counter:
+            language_change_counter.labels(lang_code).inc()
+        return set_language(request)
     return render(request, 'site/language.html', {})
 
 
