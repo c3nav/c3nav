@@ -185,7 +185,7 @@ def preview_location(request, slug):
 
     minx, miny, maxx, maxy, img_scale = bounds_for_preview(unary_union(geometries), cache_package)
 
-    theme = None  # previews are unthemed
+    theme = None if settings.DEFAULT_THEME == 0 else settings.DEFAULT_THEME  # previews use the default theme
 
     level_data = cache_package.levels.get((level, theme))
     if level_data is None:
