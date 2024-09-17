@@ -55,7 +55,7 @@ class LevelRenderData:
     darken_area: MultiPolygon | None = None
 
     @staticmethod
-    def rebuild(update_cache_key, geometry_update_cache_key):
+    def rebuild(update_cache_key):
         # Levels are automatically sorted by base_altitude, ascending
         levels = tuple(Level.objects.prefetch_related('altitudeareas', 'buildings', 'doors', 'spaces',
                                                       'spaces__holes', 'spaces__areas', 'spaces__columns',
@@ -352,9 +352,9 @@ class LevelRenderData:
 
                 package.add_level(render_level.pk, theme, map_history, access_restriction_affected)
 
-                render_data.save(geometry_update_cache_key, render_level.pk, theme)
+                render_data.save(update_cache_key, render_level.pk, theme)
 
-        package.save_all(geometry_update_cache_key)
+        package.save_all(update_cache_key)
 
     cached = LocalContext()
 
