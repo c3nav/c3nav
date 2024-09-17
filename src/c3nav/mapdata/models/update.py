@@ -175,12 +175,12 @@ class MapUpdate(models.Model):
             if not new_updates:
                 return ()
 
+            update_cache_key = MapUpdate.build_cache_key(*new_updates[-1].to_tuple)
+            (settings.CACHE_ROOT / update_cache_key).mkdir()
+
             if any(update.geometries_changed for update in new_updates):
                 from c3nav.mapdata.utils.cache.changes import changed_geometries
                 changed_geometries.reset()
-
-                update_cache_key = MapUpdate.build_cache_key(*new_updates[-1].to_tuple)
-                (settings.CACHE_ROOT / update_cache_key).mkdir()
 
                 logger.info('Recalculating altitude areas...')
 
