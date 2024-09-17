@@ -198,9 +198,10 @@ class TileServer:
                     text = f'last successful cache package check was {time.time() - last_check}s ago.'.encode('utf-8')
                 else:
                     text = b'last successful cache package check is unknown'
-        start_response(('500' if error else '200') + ' OK', [self.get_date_header(),
-                                                             ('Content-Type', 'text/plain'),
-                                                             ('Content-Length', str(len(text)))])
+        start_response(('500 Internal Server Error' if error else '200 OK'),
+                       [self.get_date_header(),
+                        ('Content-Type', 'text/plain'),
+                        ('Content-Length', str(len(text)))])
         return [text]
 
     def get_cache_package(self):
