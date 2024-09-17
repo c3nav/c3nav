@@ -496,7 +496,7 @@ c3nav = {
         if (data.geometry && data.level) {
             L.geoJSON(data.geometry, {
                 style: {
-                    color: 'var(--color-primary)',
+                    color: 'var(--color-map-overlay)',
                     fillOpacity: 0.1,
                 }
             }).addTo(c3nav._routeLayers[data.level]);
@@ -657,13 +657,14 @@ c3nav = {
             point = [destination[0] + Math.cos(angle) * offset, destination[1] + Math.sin(angle) * offset];
         return [origin, point, destination];
     },
-    _add_line_to_route: function (level, coords, gray, link_to_level) {
+    _add_line_to_route: function (level, coords, dots, link_to_level) {
         if (coords.length < 2) return;
         var latlngs = L.GeoJSON.coordsToLatLngs(c3nav._smooth_line(coords)),
             routeLayer = c3nav._routeLayers[level];
         line = L.polyline(latlngs, {
-            color: gray ? '#888888' : 'var(--color-primary)',
-            dashArray: (gray || link_to_level) ? '7' : null,
+            className: dots ? 'c3nav-route-dashes' : 'c3nav-route-line',
+            color: dots ? 'var(--color-route-dashes)' : 'var(--color-map-overlay)',
+            dashArray: (dots || link_to_level) ? '7' : null,
             interactive: false,
             smoothFactor: 0.5
         }).addTo(routeLayer);
@@ -1495,7 +1496,8 @@ c3nav = {
             c3nav_api.post('settings/theme/?id=' + id);
             localStorageWrapper.setItem('c3nav-theme', c3nav.theme); // TODO: instead (or additionally?) do a request to save it in the session!
         }
-        document.querySelector('#c3nav-theme-vars').innerText = theme.css;
+        document.querySelector('#c3nav-theme-css-vars').innerText = theme.css_vars;
+        document.querySelector('#c3nav-theme-css-extra').innerText = theme.css_extra;
 
         document.querySelector('#theme-color-meta-dark').content = theme.theme_color_dark;
         document.querySelector('#theme-color-meta-light').content = theme.theme_color_light;
@@ -1782,7 +1784,7 @@ c3nav = {
         if (data.geometry.type === "Point") return;
         L.geoJSON(data.geometry, {
             style: {
-                color: 'var(--color-primary)',
+                color: 'var(--color-map-overlay)',
                 fillOpacity: 0.2,
                 interactive: false,
             }

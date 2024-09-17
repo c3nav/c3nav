@@ -5,7 +5,8 @@ from c3nav.mapdata.utils.cache.cache_decorator import mapdata_cache
 def css_vars_as_str(vars):
     css_str = ''
     for name, value in vars.items():
-        css_str += f'--color-{name}: {value};'
+        if name is not None and name != '':
+            css_str += f'--color-{name}: {value};'
     return css_str
 
 
@@ -44,14 +45,14 @@ def make_themes(theme_models):
     from django.utils.translation import gettext_lazy as _
 
     themes = {}
-    base_css_vars = settings.BASE_THEME['css'].copy()
+    base_css_vars = settings.BASE_THEME['css_vars'].copy()
     modify_vars(base_css_vars)
     primary_color = base_css_vars['primary']
     if settings.BASE_THEME['randomize_primary_color']:
         del base_css_vars['primary']
     base_theme_vars_str = css_vars_as_str(base_css_vars)
     base_theme = {
-        'css_code': ':root{%s}' % base_theme_vars_str,
+        'css_vars': ':root{%s}' % base_theme_vars_str,
         'theme_color': base_css_vars['header-background'],
         'randomize_primary_color': settings.BASE_THEME['randomize_primary_color'],
         'primary_color': primary_color,
@@ -66,14 +67,15 @@ def make_themes(theme_models):
     for theme in theme_models:
         css_vars = theme.css_vars()
         modify_vars(css_vars)
-        primary_color = css_vars['primary']
+        primary_color = css_vars['primary'] if 'primary' in css_vars else base_theme['primary_color']
         if theme.randomize_primary_color:
             del css_vars['primary']
         css_vars_str = css_vars_as_str(css_vars)
-        css_code = (':root{%s}' % css_vars_str) + theme.extra_css
+        css_code = (':root{%s}' % css_vars_str)
         themes[theme.pk] = {
             'name': theme.title,
-            'css': css_code,
+            'css_vars': css_code,
+            'css_extra': theme.extra_css,
             'funky': theme.funky,
             'theme_color_dark': theme.color_css_header_background,
             'theme_color_light': theme.color_css_header_background,
@@ -82,7 +84,8 @@ def make_themes(theme_models):
         }
         if theme.default:
             default_theme = {
-                    'css_code': css_code,
+                    'css_vars': css_code,
+                    'css_extra': theme.extra_css,
                     'theme_color': css_vars['header-background'],
                     'randomize_primary_color': theme.randomize_primary_color,
                     'primary_color': primary_color,
@@ -95,17 +98,18 @@ def make_themes(theme_models):
     if default_dark is not None and default_light is not None:
         name = _('Automatic')
         css_code = ('@media(prefers-color-scheme:light){%s@media(prefers-color-scheme:dark){%s}'
-                    % (default_light['css_code'], default_dark['css_code']))
+                    % (default_light['css_vars'], default_dark['css_vars']))
         randomize_primary_color = default_dark['randomize_primary_color'] or default_light['randomize_primary_color']
     else:
         name = _('Default')
         default_theme = default_light or default_dark
-        css_code = default_theme['css_code']
+        css_code = default_theme['css_vars']
         randomize_primary_color = default_theme['randomize_primary_color']
 
     themes[0] = {
         'name': name,
-        'css': css_code,
+        'css_vars': css_code,
+        'css_extra': '',
         'funky': False,
         'theme_color_dark': default_dark['theme_color'] if default_dark is not None else default_light['theme_color'],
         'theme_color_light': default_light['theme_color'] if default_light is not None else default_dark['theme_color'],
@@ -135,7 +139,7 @@ def random_color():
 
 def get_random_primary_color(request):
     if settings.PRIMARY_COLOR_RANDOMISATION['mode'] == 'off':
-        return settings.BASE_THEME['css']['primary']
+        return settings.BASE_THEME['css_vars']['primary']
     elif settings.PRIMARY_COLOR_RANDOMISATION['mode'] == 'request':
         return random_color()
     elif settings.PRIMARY_COLOR_RANDOMISATION['mode'] == 'session':

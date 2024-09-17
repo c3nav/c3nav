@@ -28,13 +28,14 @@
             }
         </style>
     {% endif %}
-    <style>{{ active_theme.css | striptags | safe }}</style>
+    <style>{{ active_theme.css_vars | striptags | safe }}</style>
     {% compress css %}
         <link href="{% static 'fonts/fonts.css' %}" rel="stylesheet">
         <link href="{% static 'bootstrap/css/bootstrap.css' %}" rel="stylesheet">
         <link href="{% static 'leaflet/leaflet.css' %}" rel="stylesheet">
         <link href="{% static 'editor/css/editor.scss' %}" rel="stylesheet" type="text/x-scss">
     {% endcompress %}
+  <style>{{ active_theme.css_extra | striptags | safe }}</style>
   </head>
   <body{% if request.mobileclient %} data-user-data="{{ user_data_json }}" data-count-display="{{ request.changeset.count_display }}"{% if request.changeset.pk%} data-has-changeset{% endif %}{% if request.changeset.direct_editing%} data-direct-editing{% endif %}{% endif %}>
 

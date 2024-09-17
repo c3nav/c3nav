@@ -611,7 +611,7 @@ BASE_THEME = {
         'obstacles_default_border': config.get('theme', 'map_obstacles_default_border', fallback='#888888'),
         'highlight': config.get('theme', 'css_primary', fallback='#9b4dca'),
     },
-    'css': {
+    'css_vars': {
         'initial': config.get('theme', 'css_initial', fallback='#ffffff'),
         'primary': config.get('theme', 'css_primary', fallback='#9b4dca'),
         'logo': config.get('theme', 'css_logo', fallback=None),

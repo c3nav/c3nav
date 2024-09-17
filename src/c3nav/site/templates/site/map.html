@@ -118,7 +118,6 @@
             </section>
             <section id="sidebar">
                 <section id="search" class="loading">
-                    <div class="loader"></div>
                     <div class="location locationinput empty" id="origin-input">
                         <i class="icon material-symbols">place</i>
                         <input type="text" autocomplete="off" spellcheck="false" placeholder="{% trans 'Search any location…' %}">
@@ -150,11 +149,11 @@
                         </button>
                     </div>
                     <div id="route-summary">
-                        <div class="loader"></div>
                         <i class="icon material-symbols">directions</i>
                         <span></span>
                         <small><em></em></small>
                         <button class="button-clear options material-symbols">settings</button>
+                        <div class="loader"></div>
                     </div>
                     <div class="buttons" id="route-search-buttons">
                         <button class="button-clear swap">
@@ -176,11 +175,11 @@
                             {% trans 'Details' %}
                         </button>
                     </div>
+                    <div class="loader"></div>
                 </section>
                 <div id="resultswrapper">
                     <section id="autocomplete"></section>
                     <section id="location-details" class="details">
-                        <div class="loader"></div>
                         <div class="details-head">
                             <button class="button close button-clear material-symbols float-right">close</button>
                             <h2>{% trans 'Details' %}</h2>
@@ -196,6 +195,7 @@
                                 {% trans 'Open in Editor' %}
                             </a>
                         </div>
+                        <div class="loader"></div>
                     </section>
                     <section id="route-details" class="details">
                         <div class="details-head">

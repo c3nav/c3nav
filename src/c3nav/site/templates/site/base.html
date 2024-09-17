@@ -31,7 +31,7 @@
             }
         </style>
     {% endif %}
-    <style id="c3nav-theme-vars">{{ active_theme.css | striptags | safe }}</style>
+    <style id="c3nav-theme-css-vars">{{ active_theme.css_vars | striptags | safe }}</style>
     {{ themes|json_script:"c3nav-themes" }}
     {{ active_theme_id|json_script:"c3nav-active-theme" }}
     {% compress css %}
@@ -41,6 +41,7 @@
         <link href="{% static 'material-symbols/material-symbols.css' %}" rel="stylesheet">
         <link href="{% static 'site/css/c3nav.scss' %}" rel="stylesheet" type="text/x-scss">
     {% endcompress %}
+    <style id="c3nav-theme-css-extra">{{ active_theme.css_extra | striptags | safe }}</style>
     {% block head %}
     {% endblock %}
     {% if header_logo and header_logo_mask_mode %}

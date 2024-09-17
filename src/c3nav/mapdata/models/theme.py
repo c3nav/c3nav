@@ -58,22 +58,22 @@ class Theme(TitledMixin, models.Model):
 
     def css_vars(self):
         return {
-            'initial': self.color_css_initial or settings.BASE_THEME['css']['initial'],
-            'primary': self.color_css_primary or settings.BASE_THEME['css']['primary'],
-            'secondary': self.color_css_secondary or settings.BASE_THEME['css']['secondary'],
-            'tertiary': self.color_css_tertiary or settings.BASE_THEME['css']['tertiary'],
-            'quaternary': self.color_css_quaternary or settings.BASE_THEME['css']['quaternary'],
-            'quinary': self.color_css_quinary or settings.BASE_THEME['css']['quinary'],
-            'header-background': self.color_css_header_background or settings.BASE_THEME['css']['header-background'],
-            'header-text': self.color_css_header_text or settings.BASE_THEME['css']['header-text'],
-            'header-text-hover': self.color_css_header_text_hover or settings.BASE_THEME['css']['header-text-hover'],
-            'shadow': self.color_css_shadow or settings.BASE_THEME['css']['shadow'],
-            'overlay-background': self.color_css_overlay_background or settings.BASE_THEME['css']['overlay-background'],
-            'grid': self.color_css_grid or settings.BASE_THEME['css']['grid'],
-            'modal-backdrop': self.color_css_modal_backdrop or settings.BASE_THEME['css']['modal-backdrop'],
-            'route-dots-shadow': self.color_css_route_dots_shadow or settings.BASE_THEME['css']['route-dots-shadow'],
-            'leaflet-background': self.color_background or settings.BASE_THEME['css']['leaflet-background'],
-            'logo': self.color_logo or settings.BASE_THEME['css']['logo'],
+            'initial': self.color_css_initial,
+            'primary': self.color_css_primary,
+            'secondary': self.color_css_secondary,
+            'tertiary': self.color_css_tertiary,
+            'quaternary': self.color_css_quaternary,
+            'quinary': self.color_css_quinary,
+            'header-background': self.color_css_header_background,
+            'header-text': self.color_css_header_text,
+            'header-text-hover': self.color_css_header_text_hover,
+            'shadow': self.color_css_shadow,
+            'overlay-background': self.color_css_overlay_background,
+            'grid': self.color_css_grid,
+            'modal-backdrop': self.color_css_modal_backdrop,
+            'route-dots-shadow': self.color_css_route_dots_shadow,
+            'leaflet-background': self.color_background,
+            'logo': self.color_logo,
         }
 
     class Meta:

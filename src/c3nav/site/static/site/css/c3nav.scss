@@ -10,18 +10,44 @@
     --color-control: var(--color-secondary);
     --color-control-background: var(--color-initial);
     --color-control-background-hover: var(--color-tertiary);
+    --color-control-hover: var(--color-foreground);
     --color-control-active: var(--color-tertiary);
     --color-control-divider: var(--color-quaternary);
     --color-control-disabled: var(--color-quaternary);
     --color-icon: var(--color-secondary);
     --color-icon-light: var(--color-quaternary);
     --color-button: var(--color-quaternary);
+    --color-primary-button: var(--color-primary);
     --color-button-border-hover: var(--color-quaternary);
     --color-button-hover: var(--color-quinary);
+    --color-focus: var(--color-foreground);
+
+    --color-map-overlay: var(--color-primary);
+    --color-route-dashes: #888888;
+
+
+    --color-pin: var(--color-foreground);
+    --color-pin-background: transparent;
+    --color-pin-background-active: var(--color-quinary);
+    --color-pin-active: var(--color-foreground);
+    --color-pin-hover: var(--color-foreground);
+    --color-pin-background-hover: var(--color-tertiary);
+
+    --color-shadow: var(--color-quaternary);
+
+    --shadow-size: 4px;
+
+    --border-radius: 2px;
+    --border-radius-small: 2px;
+    --border-radius-leaflet-control: 4px;
 }
 
-
 @import 'milligram/milligram.sass';
+
+::selection {
+    background-color: var(--color-primary);
+    color: white;
+}
 
 body {
     font-weight: normal;
@@ -34,6 +60,7 @@ body {
     bottom: 0;
     right: 0;
 }
+
 
 header {
     padding: 10px;
@@ -55,6 +82,7 @@ header h1 a {
     display: block;
     height: 50px;
 }
+
 header h1 a, header h1 a:hover {
     color: var(--color-primary);
 }
@@ -93,7 +121,7 @@ header #user:hover {
     color: var(--color-header-text-hover);
 }
 
-input {
+input, textarea, select {
     font-family: inherit;
     color: inherit;
 }
@@ -196,6 +224,7 @@ main.account form {
     max-width: 420px;
     pointer-events: none;
     display: flex;
+    gap: 1.5rem;
     flex-direction: column;
     overflow: hidden;
 }
@@ -207,23 +236,28 @@ main.account form {
 }
 
 #sidebar section {
+    position: relative;
     pointer-events: auto;
     background-color: var(--color-background);
-    box-shadow: 1px 1px 3px var(--color-shadow);
-    border-radius: 2px;
+    border-radius: var(--border-radius);
     overflow: hidden;
-    margin-bottom: 10px;
+}
+
+#sidebar section:not(:empty) {
+    border: 2px solid var(--color-control-border);
+    box-shadow: var(--color-shadow) 0 0 var(--shadow-size);
 }
 
 #sidebar section > div {
     border: 0 var(--color-sidebar-border) solid;
     border-top-width: 1px;
-    transition: margin-bottom 150ms, opacity 150ms;
+    transition: margin-bottom 150ms, opacity 150ms, background-color 150ms ease-in-out, color 150ms ease-in-out;
+
     overflow: hidden;
 }
 
 #sidebar section > div:first-child {
-    margin-top: -1px;
+    border-top-width: 0;
 }
 
 #search {
@@ -305,6 +339,10 @@ main:not([data-view^=route]) #origin-input,
     margin-bottom: -55px;
     pointer-events: none;
     opacity: 0;
+}
+
+main:not([data-view^=route]) #destination-input {
+    border-top-width: 0;
 }
 
 main:not([data-view=location]) #location-buttons,
@@ -532,7 +570,7 @@ main.show-options #resultswrapper #route-options {
 
 .location-answers .location.location-form-value, .location-answers a {
     margin-bottom: 5px;
-    color: var(--color-secondary);
+    color: var(--color-foreground);
     display: block;
 }
 
@@ -562,6 +600,11 @@ main.show-options #resultswrapper #route-options {
 
 .location.focus {
     background-color: var(--color-tertiary);
+    color: var(--color-focus);
+
+    .icon {
+        color: var(--color-focus);
+    }
 }
 
 #autocomplete .location {
@@ -574,13 +617,14 @@ main.show-options #resultswrapper #route-options {
 
 .location-label-text {
     line-height: 100%;
-    border-radius: 2px;
+    border-radius: var(--border-radius-small);
     white-space: nowrap;
     transform: translateX(-50%) translateY(-50%);
     text-align: center;
 
     span {
         line-height: 100%;
+        color: var(--color-overlay-text);
         background-color: var(--color-overlay-background);
         vertical-align: 12%;
     }
@@ -623,7 +667,7 @@ main.show-options #resultswrapper #route-options {
     position: absolute;
     top: 0;
     left: 1px;
-    content: "\e8b6"; /* unicode code point for the "seach" ligature, so android 4.3.3 gets it */
+    content: "\e8b6"; /* unicode code point for the "search" ligature, so android 4.3.3 gets it */
     color: var(--color-icon-light);
     transition: color 150ms;
 }
@@ -681,9 +725,9 @@ main[data-view^=route] button.random, .locationinput:not(.empty) button.random {
 
 #route-dots {
     position: absolute;
-    top: 53px;
-    left: 25px;
-    text-shadow: 2px 0 1px var(--color-route-dots-shadow), -2px 0 1px var(--color-route-dots-shadow);
+    top: 43px;
+    left: 15px;
+    text-shadow: 2px 0 1px var(--color-route-dashes-shadow), -2px 0 1px var(--color-route-dashes-shadow);
     transition: top 150ms, opacity 150ms, color 150ms, transform 150ms;
     color: var(--color-route-dots);
     pointer-events: none;
@@ -734,7 +778,7 @@ main:not([data-view=route-result]) #route-dots {
 
 .location-popup .leaflet-popup-content {
     font-size: 16px;
-    color: var(--color-secondary);
+    color: var(--color-foreground);
     overflow: hidden;
     line-height: 1.6;
     margin: 15px 10px 10px;
@@ -743,9 +787,50 @@ main:not([data-view=route-result]) #route-dots {
 
 .leaflet-popup-content-wrapper, .leaflet-popup-tip {
     background-color: var(--color-background);
-    box-shadow: 1px 1px 3px var(--color-shadow);
-    border-radius: 2px;
+    box-shadow: var(--color-shadow) 0 0 var(--shadow-size);
 }
+
+.leaflet-popup-content-wrapper {
+    border-radius: var(--border-radius-small);
+}
+
+button, .button {
+    color: var(--color-background);
+    background-color: var(--color-primary-button);
+    border-color: var(--color-primary-button);
+
+    &:hover, &:active {
+        background-color: var(--color-button-hover);
+        border-color: var(--color-button-hover);
+        color: var(--color-background);
+    }
+
+    &.button-clear {
+        color: var(--color-primary-button);
+        background-color: transparent;
+        border-color: transparent;
+
+        &:hover, &:active {
+            color: var(--color-button-hover);
+            background-color: transparent;
+            border-color: transparent;
+        }
+    }
+
+    &.button-outline {
+        color: var(--color-primary-button);
+        background-color: transparent;
+        border-color: var(--color-primary-button);
+
+        &:hover, &:active {
+            color: var(--color-button-hover);
+            background-color: transparent;
+            border-color: var(--color-button-hover);
+        }
+    }
+
+}
+
 
 .location-popup {
     .leaflet-popup-content-wrapper {
@@ -891,8 +976,12 @@ main:not([data-view=route-result]) #route-summary {
     height: 37px;
     border-width: 0;
     font-size: 36px;
-    color: var(--color-button);
     line-height: 1;
+    color: var(--color-button);
+
+    &:hover {
+        color: var(--color-button-hover);
+    }
 }
 
 @media not all and (min-height: 700px) and (min-width: 1100px) {
@@ -941,7 +1030,8 @@ main:not([data-view=route-result]) #route-summary {
 
 .leaflet-control-levels a.current {
     font-weight: bold;
-    background-color: var(--color-control-active);
+    color: var(--color-control-active);
+    background-color: var(--color-control-background-active);
 }
 
 .leaflet-container {
@@ -950,14 +1040,14 @@ main:not([data-view=route-result]) #route-summary {
 
 .leaflet-container .leaflet-control-attribution {
     background-color: var(--color-overlay-background);
-    color: var(--color-secondary);
+    color: var(--color-foreground);
 
     a {
         color: var(--color-primary);
     }
 
     a:hover {
-        color: var(--color-secondary);
+        color: var(--color-foreground);
         text-decoration: none;
     }
 }
@@ -966,8 +1056,12 @@ main:not([data-view=route-result]) #route-summary {
     font-size: 20px;
 }
 
-.leaflet-bar {
-    box-shadow: 0 1px 5px var(--color-control-shadow);
+.leaflet-bar, .leaflet-control-key {
+    overflow: hidden;
+    background-color: var(--color-control-background);
+    border-radius: var(--border-radius-leaflet-control);
+    border: 2px solid var(--color-control-border);
+    box-shadow: var(--color-control-shadow) 0 0 var(--shadow-size);
 }
 
 .leaflet-bar a {
@@ -976,9 +1070,13 @@ main:not([data-view=route-result]) #route-summary {
     border-bottom-color: var(--color-control-divider);
 }
 
+.leaflet-bar a:first-child, .leaflet-bar a:last-child {
+    border-radius: 0;
+}
+
 .leaflet-bar a:hover {
     background-color: var(--color-control-background-hover);
-    color: var(--color-control);
+    color: var(--color-control-hover);
     border-bottom-color: var(--color-control-divider);
 }
 
@@ -986,12 +1084,12 @@ main:not([data-view=route-result]) #route-summary {
     color: var(--color-control);
 }
 
-.leaflet-bar a.leaflet-disabled {
+.leaflet-bar a.leaflet-disabled,  {
     color: var(--color-control-disabled);
     background-color: var(--color-control-background); // todo: special disabled background color #f4f4f4 ?
 }
 
-.leaflet-bar .control-disabled, .leaflet-bar .control-disabled:hover, .leaflet-bar .control-disabled:focus {
+.leaflet-bar .control-disabled, .leaflet-bar .control-disabled:focus {
     color: var(--color-control-disabled);
     // TODO: is this even used?
 }
@@ -1086,8 +1184,9 @@ main:not([data-view=route-result]) #route-summary {
 }
 
 #modal-content {
-    box-shadow: 1px 1px 3px var(--color-shadow);
-    border-radius: 2px;
+    box-shadow: var(--color-shadow) 0 0 var(--shadow-size);
+    border: 2px solid var(--color-modal-border);
+    border-radius: var(--border-radius);
     background-color: var(--color-background);
     width: 380px;
     min-height: 150px;
@@ -1169,34 +1268,34 @@ ul.messages {
 
 ul.messages li {
     padding: 1.0rem;
-    border-radius: .4rem;
-    border: 0.1rem solid #666666;
-    background-color: #EEEEEE;
+    border-radius: var(--border-radius);
     pointer-events: auto;
+
+    --message-color-bg: var(--color-background);
+    --message-color-fg: var(--color-foreground);
+    --message-color-border: var(--message-color-fg);
+    --message-color-shadow: var(--message-color-fg);
+
+    color: var(--message-color-fg);
+    box-shadow: var(--message-color-shadow) 0 0 calc(var(--shadow-size) * 3), inset var(--message-color-shadow) 0 0 var(--shadow-size);
+    border: 2px solid var(--message-color-border);
+    background-color: var(--message-color-bg);
 }
 
 ul.messages li.alert-info {
-    color: #006688;
-    border-color: #006688;
-    background-color: #DDE4FF;
+    --message-color-fg: #00dbff;
 }
 
 ul.messages li.alert-success {
-    color: #338800;
-    border-color: #339900;
-    background-color: #E4FFDD;
+    --message-color-fg: #56ff27;
 }
 
 ul.messages li.alert-warning {
-    color: #CC6600;
-    border-color: #FF9900;
-    background-color: #FFFFDD;
+    --message-color-fg: #ff8f3f;
 }
 
 ul.messages li.alert-danger {
-    color: #CC0000;
-    border-color: #CC0000;
-    background-color: #FFEEEE;
+    --message-color-fg: #ff4677;
 }
 
 .app-ads {
@@ -1212,8 +1311,8 @@ ul.messages li.alert-danger {
 
 .app-ads div {
     background-color: var(--color-background);
-    box-shadow: 1px 1px 3px var(--color-shadow);
-    border-radius: 2px;
+    box-shadow: 0 0 var(--shadow-size) var(--color-shadow);
+    border-radius: var(--border-radius-small);
     overflow: hidden;
     display: inline-block;
     margin: 0 10px 25px;
@@ -1347,11 +1446,13 @@ main .narrow form button, main .narrow form .button {
     width: 100%;
 }
 
-main form > p, #modal form > p {
-    margin-bottom: 15px;
+main form, #modal form {
+    > p {
+        margin-bottom: 15px;
 
-    > :last-child {
-        margin-bottom: 0;
+        > :last-child {
+            margin-bottom: 0;
+        }
     }
 
     .helptext {
@@ -1361,9 +1462,14 @@ main form > p, #modal form > p {
         color: var(--color-helptext);
     }
 
+    input[type=text], textarea {
+        border: 1px solid var(--color-border);
+    }
+
     textarea {
         resize: none;
         height: 100px;
+        color: var(--color-foreground);
     }
 
     select[multiple] {
@@ -1374,6 +1480,7 @@ main form > p, #modal form > p {
         }
     }
 }
+
 
 .user-permissions-form label {
     font-weight: 400;
@@ -1562,9 +1669,6 @@ blink {
 }
 
 .leaflet-control-key {
-    background-color: white;
-    border-radius: 0.5rem;
-    box-shadow: 0 1px 5px var(--color-control-shadow);
     background-clip: padding-box;
 
     &.leaflet-control-key-expanded > .collapsed-toggle {
@@ -1576,6 +1680,7 @@ blink {
         height: 26px;
         line-height: 26px;
         text-align: center;
+
         &::before {
             font-family: 'Material Symbols Outlined';
             content: 'legend_toggle';
@@ -1587,24 +1692,32 @@ blink {
     > .pin-toggle {
         display: none;
         position: absolute;
-        right: 0.5rem;
-        color: black;
-        font-size: 1.5rem;
         top: 0.5rem;
+        right: 0.5rem;
+        color: var(--color-pin);
+        font-size: 1.5rem;
         width: 2.5rem;
         height: 2.5rem;
         line-height: 2.2rem;
-        box-shadow: inset 0 0 2px black;
-        border-radius: 0.5rem;
+        border-radius: var(--border-radius-leaflet-control);
         text-align: center;
         cursor: pointer;
+        background: var(--color-pin-background);
+        border: 1px solid var(--color-pin-border);
+        box-shadow: inset 0 0 2px black;
+
 
         &.active {
-            background: #DCDCDC;
+            background: var(--color-pin-background-active);
+            color: var(--color-pin-active);
+            border-color: var(--color-pin-border-active);
+            box-shadow: inset var(--color-shadow) 0 0 var(--shadow-size);
         }
 
         &:hover {
-            background: #D0D0D0;
+            color: var(--color-pin-hover);
+            background: var(--color-pin-background-hover);
+            border-color: var(--color-pin-border-hover);
         }
     }
 
@@ -1614,17 +1727,21 @@ blink {
 
     > .content {
         display: none;
-        padding: 1rem;
+        padding: 1rem 3rem 1rem 1rem;
         gap: 1rem;
-        grid-template-columns: 26px 1fr;
+        grid-template-columns: 2rem 1fr;
 
         > .key {
             display: grid;
             grid-column: span 2;
             grid-template-columns: subgrid;
+            line-height: 2rem;
+
             > .key-color {
-                width: 100%;
-                height: 100%;
+                border-radius: var(--border-radius-small);
+                width: 2rem;
+                height: 2rem;
+                box-shadow: var(--color-foreground) 0 0 var(var(--shadow-size) / 2), inset var(--color-foreground) 0 0 2px;
             }
         }
     }
