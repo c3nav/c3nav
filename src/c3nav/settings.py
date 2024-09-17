@@ -465,7 +465,8 @@ EXTRA_LANG_INFO = {
 LANG_INFO = dict(django.conf.locale.LANG_INFO, **EXTRA_LANG_INFO)
 django.conf.locale.LANG_INFO = LANG_INFO
 
-SELECTED_LANGUAGES = frozenset(config.getlist('c3nav', 'languages', fallback='en,de'))
+SELECTED_LANGUAGES = frozenset(config.getlist('locale', 'languages', fallback='en,de',
+                                              env='C3NAV_LANGUAGES'))
 LANGUAGES = [(code, name) for code, name in [
     ('en', _('English')),
     ('en-UW', _('Engwish UwU')),

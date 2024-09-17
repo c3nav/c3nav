@@ -7,6 +7,7 @@ cd /app
 
 # number of workers for guicorn, we coppy the value of UWSGI_WORKERS if it is not set
 export WEB_CONCURRENCY="${WEB_CONCURRENCY:-$UWSGI_WORKERS}"
+export PROMETHEUS_MULTIPROC_DIR="/tmp/prometheus_multiproc"
 
 automigrate() {
   AUTOMIGRATE="${C3NAV_AUTOMIGRATE:no}"
@@ -16,9 +17,15 @@ automigrate() {
   fi
 }
 
+setup_prometheus_multiproc() {
+  rm -rf "${PROMETHEUS_MULTIPROC_DIR}" || true
+  mkdir "PROMETHEUS_MULTIPROC_DIR"
+}
+
 case "$1" in
 web)
   automigrate
+  setup_prometheus_multiproc
   exec /app/env/bin/uwsgi --master \
     --wsgi "c3nav.wsgi" \
     --pythonpath "/app/src" \
@@ -29,6 +36,7 @@ web)
   ;;
 webstatic)
   automigrate
+  setup_prometheus_multiproc
   exec /app/env/bin/uwsgi --master \
     --wsgi "c3nav.wsgi" \
     --pythonpath "/app" \
@@ -41,13 +49,16 @@ webstatic)
   ;;
 web-async)
   automigrate
+  setup_prometheus_multiproc
   exec daphne -b 0.0.0.0 -p 8000 --no-server-name ${*:2} c3nav.asgi:application
   ;;
 webstatic-async)
   automigrate
+  setup_prometheus_multiproc
   exec daphne -b 0.0.0.0 -p 8000 --no-server-name ${*:2} c3nav.asgi:static_app
   ;;
 worker)
+  setup_prometheus_multiproc
   exec celery -A c3nav worker --max-tasks-per-child 300 --concurrency 2 -l INFO -E
   ;;
 worker_healthcheck)
