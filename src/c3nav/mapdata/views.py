@@ -425,6 +425,8 @@ def tile(request, level, zoom, x, y, theme, access_permissions: Optional[set] = 
     response['ETag'] = tile_etag
     response['Cache-Control'] = 'no-cache'
     response['Vary'] = 'Cookie'
+    if access_permissions is not None:
+        response['X-Processed-Geometry-Update'] = str(MapUpdate.last_processed_geometry_update()[0])
 
     return response
 
@@ -474,4 +476,5 @@ def get_cache_package(request, filetype):
     response['Content-Length'] = size
     if content_disposition := content_disposition_header(False, filename):
         response["Content-Disposition"] = content_disposition
+    response['X-Processed-Geometry-Update'] = str(MapUpdate.last_processed_geometry_update()[0])
     return response

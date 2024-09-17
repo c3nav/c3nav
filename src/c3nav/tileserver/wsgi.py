@@ -68,6 +68,7 @@ class TileServer:
 
         self.auth_headers = {'X-Tile-Secret': base64.b64encode(self.tile_secret.encode()).decode()}
 
+        self.processed_geometry_update = None
         self.cache_package = None
         self.cache_package_etag = None
         self.cache_package_filename = None
@@ -136,6 +137,7 @@ class TileServer:
             with BytesIO(zstd_decompress(r.content)) as f:
                 self.cache_package = CachePackage.read(f)
             self.cache_package_etag = r.headers.get('ETag', None)
+            self.processed_geometry_update = int(r.headers['X-Processed-Geometry-Update'])
         except Exception as e:
             logger.error('Cache package parsing failed: %s' % e)
             return False
@@ -305,8 +307,8 @@ class TileServer:
                          (self.upstream_base, level, zoom, x, y, theme_id, access_cache_key),
                          headers=self.auth_headers, auth=self.http_auth)
         if r.status_code == 200 and r.headers['Content-Type'] == 'image/png':
-            if r.headers['ETag'] != tile_etag:
-                error = b'outdated tile from upstream'
+            if int(r.headers.get('X-Processed-Geometry-Update', 0)) < self.processed_geometry_update:
+                error = b'upstream is outdated'
                 start_response('503 Service Unavailable', [self.get_date_header(),
                                                            ('Content-Length', len(error)),
                                                            ('ETag', tile_etag)])
