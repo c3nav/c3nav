@@ -333,6 +333,8 @@ def tile(request, level, zoom, x, y, theme, access_permissions: Optional[set] = 
         return HttpResponse('use %s instead of /map/' % settings.TILE_CACHE_SERVER,
                             status=400, content_type='text/plain')
 
+    processed_geometry_update = str(MapUpdate.last_processed_geometry_update()[0])
+
     zoom = int(zoom)
     if not (-2 <= zoom <= 5):
         raise Http404
@@ -426,7 +428,7 @@ def tile(request, level, zoom, x, y, theme, access_permissions: Optional[set] = 
     response['Cache-Control'] = 'no-cache'
     response['Vary'] = 'Cookie'
     if access_permissions is not None:
-        response['X-Processed-Geometry-Update'] = str(MapUpdate.last_processed_geometry_update()[0])
+        response['X-Processed-Geometry-Update'] = processed_geometry_update
 
     return response
 
@@ -457,6 +459,8 @@ def map_history(request, level, mode, filetype):
 @etag(lambda *args, **kwargs: MapUpdate.current_processed_geometry_cache_key())
 @no_language()
 def get_cache_package(request, filetype):
+    processed_geometry_update = str(MapUpdate.last_processed_geometry_update()[0])
+
     enforce_tile_secret_auth(request)
 
     filename = 'package.' + filetype
@@ -476,5 +480,5 @@ def get_cache_package(request, filetype):
     response['Content-Length'] = size
     if content_disposition := content_disposition_header(False, filename):
         response["Content-Disposition"] = content_disposition
-    response['X-Processed-Geometry-Update'] = str(MapUpdate.last_processed_geometry_update()[0])
+    response['X-Processed-Geometry-Update'] = processed_geometry_update
     return response
