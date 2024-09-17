@@ -121,7 +121,7 @@ class SVGEngine(RenderEngine):
             svg.render_cairo(buffered_context)
 
             # create cropped image
-            surface = buffered_surface.create_similar(cairo.CONTENT_COLOR, self.width, self.height)
+            surface = buffered_surface.create_similar(cairo.CONTENT_COLOR_ALPHA, self.width, self.height)
             context = cairo.Context(surface)
 
             # set background color
