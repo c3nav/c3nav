@@ -304,8 +304,13 @@ class TileServer:
         r = requests.get('%s/map/%d/%d/%d/%d/%d/%s.png' %
                          (self.upstream_base, level, zoom, x, y, theme_id, access_cache_key),
                          headers=self.auth_headers, auth=self.http_auth)
-
         if r.status_code == 200 and r.headers['Content-Type'] == 'image/png':
+            if r.headers['ETag'] != tile_etag:
+                error = b'outdated tile from upstream'
+                start_response('503 Service Unavailable', [self.get_date_header(),
+                                                           ('Content-Length', len(error)),
+                                                           ('ETag', tile_etag)])
+                return [error]
             self.cache.set(cache_key, r.content)
             return self.deliver_tile(start_response, tile_etag, r.content)
 
