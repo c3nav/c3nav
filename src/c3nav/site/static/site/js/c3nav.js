@@ -1579,6 +1579,7 @@ c3nav = {
                     }, 'autoPanPaddingTopLeft', 'autoPanPaddingBottomRight'));
                     var buttons = $('#location-popup-buttons').clone();
                     buttons.find('.report').attr('href', '/report/l/' + String(data.id) + '/');
+                    buttons.find('.set-position').attr('href', '/positions/set/' + name + '/');
                     newpopup.setLatLng(latlng).setContent(c3nav._build_location_html(data) + buttons.html());
                     c3nav._click_anywhere_popup = newpopup;
                     newpopup.on('remove', function () {
