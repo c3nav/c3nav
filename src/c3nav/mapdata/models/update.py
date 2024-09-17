@@ -236,7 +236,7 @@ class MapUpdate(models.Model):
                 LevelRenderData.rebuild(geometry_update_cache_key)
 
                 transaction.on_commit(
-                    lambda: cache.set('mapdata:last_processed_geometries_update', last_geometry_update.to_tuple, None)
+                    lambda: cache.set('mapdata:last_processed_geometry_update', last_geometry_update.to_tuple, None)
                 )
             else:
                 logger.info('No geometries affected.')
