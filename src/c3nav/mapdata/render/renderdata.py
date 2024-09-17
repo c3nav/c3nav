@@ -55,7 +55,7 @@ class LevelRenderData:
     darken_area: MultiPolygon | None = None
 
     @staticmethod
-    def rebuild(update_cache_key):
+    def rebuild(update_cache_key, geometry_update_cache_key):
         # Levels are automatically sorted by base_altitude, ascending
         levels = tuple(Level.objects.prefetch_related('altitudeareas', 'buildings', 'doors', 'spaces',
                                                       'spaces__holes', 'spaces__areas', 'spaces__columns',
@@ -352,9 +352,9 @@ class LevelRenderData:
 
                 package.add_level(render_level.pk, theme, map_history, access_restriction_affected)
 
-                render_data.save(update_cache_key, render_level.pk, theme)
+                render_data.save(geometry_update_cache_key, render_level.pk, theme)
 
-        package.save_all(update_cache_key)
+        package.save_all(geometry_update_cache_key)
 
     cached = LocalContext()
 
@@ -370,7 +370,7 @@ class LevelRenderData:
     def get(cls, level, theme):
         # get the current render data from local variable if no new processed mapupdate exists.
         # this is much faster than any other possible cache
-        cache_key = MapUpdate.current_processed_cache_key()
+        cache_key = MapUpdate.current_processed_geometry_cache_key()
         level_pk = level.pk if isinstance(level, Level) else level
         theme_pk = theme.pk if isinstance(theme, Theme) else theme
         key = f'{level_pk}_{theme_pk}'

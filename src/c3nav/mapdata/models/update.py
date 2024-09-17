@@ -75,6 +75,22 @@ class MapUpdate(models.Model):
             cache.set('mapdata:last_processed_update', last_processed_update, None)
         return last_processed_update
 
+    @classmethod
+    def last_processed_geometry_update(cls, force=False):
+        if not force:
+            last_processed_geometry_update = cache.get('mapdata:last_processed_geometry_update', None)
+            if last_processed_geometry_update is not None:
+                return last_processed_geometry_update
+        try:
+            with cls.lock():
+                last_processed_geometry_update = cls.objects.filter(processed=True,
+                                                                    geometries_changed=True).latest().to_tuple
+                cache.set('mapdata:last_processed_geometry_update', last_processed_geometry_update, None)
+        except cls.DoesNotExist:
+            last_processed_geometry_update = (0, 0)
+            cache.set('mapdata:last_processed_geometry_update', last_processed_geometry_update, None)
+        return last_processed_geometry_update
+
     @property
     def to_tuple(self):
         return self.pk, int(make_naive(self.datetime).timestamp())
@@ -90,6 +106,10 @@ class MapUpdate(models.Model):
     @classmethod
     def current_processed_cache_key(cls, request=None):
         return cls.build_cache_key(*cls.last_processed_update())
+
+    @classmethod
+    def current_processed_geometry_cache_key(cls, request=None):
+        return cls.build_cache_key(*cls.last_processed_geometry_update())
 
     @staticmethod
     def build_cache_key(pk, timestamp):
@@ -178,7 +198,9 @@ class MapUpdate(models.Model):
             update_cache_key = MapUpdate.build_cache_key(*new_updates[-1].to_tuple)
             (settings.CACHE_ROOT / update_cache_key).mkdir()
 
-            if any(update.geometries_changed for update in new_updates):
+            last_geometry_update = ([None] + [update.geometries_changed for update in new_updates])[-1]
+
+            if last_geometry_update is not None:
                 from c3nav.mapdata.utils.cache.changes import changed_geometries
                 changed_geometries.reset()
 
@@ -209,6 +231,10 @@ class MapUpdate(models.Model):
 
                 from c3nav.mapdata.render.renderdata import LevelRenderData
                 LevelRenderData.rebuild(update_cache_key)
+
+                transaction.on_commit(
+                    lambda: cache.set('mapdata:last_processed_geometries_update', last_geometry_update.to_tuple, None)
+                )
             else:
                 logger.info('No geometries affected.')
 
