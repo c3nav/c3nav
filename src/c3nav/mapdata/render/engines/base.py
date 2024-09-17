@@ -68,7 +68,7 @@ class RenderEngine(ABC):
         pass
 
     def add_geometry(self, geometry, fill: Optional[FillAttribs] = None, stroke: Optional[StrokeAttribs] = None,
-                     altitude=None, height=None, shape_cache_key=None, category=None, item=None):
+                     altitude=None, height=None, shadow_color=None, shape_cache_key=None, category=None, item=None):
         # draw a shapely geometry with a given style
         # altitude is the absolute altitude of the upper bound of the element
         # height is the height of the element
@@ -78,12 +78,12 @@ class RenderEngine(ABC):
         if geometry.is_empty:
             return
 
-        self._add_geometry(geometry=geometry, fill=fill, stroke=stroke, altitude=altitude, height=height,
+        self._add_geometry(geometry=geometry, fill=fill, stroke=stroke, altitude=altitude, height=height, shadow_color=shadow_color,
                            shape_cache_key=shape_cache_key, category=category, item=item)
 
     @abstractmethod
     def _add_geometry(self, geometry, fill: Optional[FillAttribs], stroke: Optional[StrokeAttribs],
-                      altitude=None, height=None, shape_cache_key=None, category=None, item=None):
+                      altitude=None, height=None, shadow_color=None, shape_cache_key=None, category=None, item=None):
         pass
 
     def set_mesh_lookup_data(self, data):

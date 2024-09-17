@@ -196,7 +196,7 @@ class SVGEngine(RenderEngine):
         self.clip_path_i += 1
         return defid
 
-    def add_shadow(self, geometry, elevation, clip_path=None):
+    def add_shadow(self, geometry, elevation, color, clip_path=None):
         # add a shadow for the given geometry with the given elevation and, optionally, a clip path
         elevation = float(min(elevation, 2))
         blur_radius = elevation / 3 * 0.25
@@ -215,7 +215,7 @@ class SVGEngine(RenderEngine):
                           '</filter>')
             self.blurs.add(elevation)
 
-        attribs = ' filter="url(#'+blur_id+')" fill="#000" fill-opacity="0.2"'
+        attribs = ' filter="url(#'+blur_id+')" fill="'+(color or '#000')+'" fill-opacity="0.2"'
         if clip_path:
             attribs += ' clip-path="url(#'+self.register_clip_path(clip_path)+')"'
         shadow = self._create_geometry(shadow_geom, attribs)
@@ -237,7 +237,7 @@ class SVGEngine(RenderEngine):
             self.add_geometry(geometry=area, fill=FillAttribs('#000000', 0.1), category='darken')
 
     def _add_geometry(self, geometry, fill: Optional[FillAttribs], stroke: Optional[StrokeAttribs],
-                      altitude=None, height=None, shape_cache_key=None, **kwargs):
+                      altitude=None, height=None, shadow_color=None, shape_cache_key=None, **kwargs):
         geometry = self.buffered_bbox.intersection(unwrap_hybrid_geom(geometry))
 
         if geometry.is_empty:
@@ -268,15 +268,15 @@ class SVGEngine(RenderEngine):
                 if altitude is not None or height is not None:
                     if height is not None:
                         if height:
-                            self.add_shadow(geometry, height)
+                            self.add_shadow(geometry, height, '#000')
                     else:
                         for other_altitude, other_geom in self.altitudes.items():
                             self.add_shadow(geometry, altitude-other_altitude, clip_path=other_geom)
 
-                    self.clip_altitudes(geometry, altitude)
+                    self.clip_altitudes(geometry, altitude, '#000')
             else:
                 if height is not None:
-                    self.add_shadow(geometry, height)
+                    self.add_shadow(geometry, height, shadow_color)
 
             element = self._create_geometry(geometry, attribs, cache_key=shape_cache_key)
 

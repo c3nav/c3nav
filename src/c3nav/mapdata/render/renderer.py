@@ -141,7 +141,7 @@ class MapRenderer:
                 engine.add_geometry(
                     walls.filter(bottom=not not_full_levels,
                                  top=not walls_extended),
-                    height=geoms.default_height, fill=FillAttribs(color_manager.wall_fill), category='walls'
+                    height=geoms.default_height, shadow_color=color_manager.wall_border, fill=FillAttribs(color_manager.wall_fill), category='walls'
                 )
 
             for short_wall in geoms.short_walls:
