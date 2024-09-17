@@ -515,6 +515,7 @@ BOOTSTRAP3 = {
 
 STATICFILES_DIRS = [
     BASE_DIR / 'c3nav' / 'static',
+    *config.get('c3nav', 'extra_static_dirs', fallback=''),
 ]
 
 COMPRESS_PRECOMPILERS = (
