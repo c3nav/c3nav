@@ -452,13 +452,13 @@ def map_history(request, level, mode, filetype):
     return response
 
 
-@etag(lambda *args, **kwargs: MapUpdate.current_processed_cache_key())
+@etag(lambda *args, **kwargs: MapUpdate.current_processed_geometry_cache_key())
 @no_language()
 def get_cache_package(request, filetype):
     enforce_tile_secret_auth(request)
 
     filename = 'package.' + filetype
-    cache_package = CachePackage.get_filename(MapUpdate.current_processed_cache_key(),
+    cache_package = CachePackage.get_filename(MapUpdate.current_processed_geometry_cache_key(),
                                               filetype[4:] if filetype != 'tar' else None)
     try:
         size = cache_package.stat().st_size
