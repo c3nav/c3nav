@@ -310,8 +310,7 @@ class TileServer:
             if int(r.headers.get('X-Processed-Geometry-Update', 0)) < self.processed_geometry_update:
                 error = b'upstream is outdated'
                 start_response('503 Service Unavailable', [self.get_date_header(),
-                                                           ('Content-Length', len(error)),
-                                                           ('ETag', tile_etag)])
+                                                           ('Content-Length', len(error))])
                 return [error]
             self.cache.set(cache_key, r.content)
             return self.deliver_tile(start_response, tile_etag, r.content)
