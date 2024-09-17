@@ -198,7 +198,7 @@ class MapUpdate(models.Model):
             update_cache_key = MapUpdate.build_cache_key(*new_updates[-1].to_tuple)
             (settings.CACHE_ROOT / update_cache_key).mkdir()
 
-            last_geometry_update = ([None] + [update.geometries_changed for update in new_updates])[-1]
+            last_geometry_update = ([None] + [update for update in new_updates if update.geometries_changed])[-1]
 
             if last_geometry_update is not None:
                 geometry_update_cache_key = MapUpdate.build_cache_key(last_geometry_update.to_tuple)
