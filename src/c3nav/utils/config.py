@@ -1,3 +1,4 @@
+import re
 from configparser import _UNSET, NoOptionError, NoSectionError, RawConfigParser
 from contextlib import contextmanager
 
@@ -8,6 +9,7 @@ from c3nav.utils.environ import Env
 
 class C3navConfigParser(RawConfigParser):
     env: Env
+    LIST_PATTERN = re.compile(r"[;,]")
 
     def __init__(self, env: Env = None, **kwargs):
         if env is None:
@@ -69,3 +71,11 @@ class C3navConfigParser(RawConfigParser):
             return value
         with self._error_wrapper(section, option, env):
             return super().getboolean(section, option, raw=raw, vars=vars, fallback=fallback)
+
+    def getlist(self, section: str, option: str, *, raw=False, vars=None, fallback=_UNSET,
+                   env: bool | str = True, **kwargs) -> tuple[str] | None:
+        value = self.env.str(self.get_env_key(section, option, env), default=None) if env else None
+        if value is None:
+            with self._error_wrapper(section, option, env):
+                value = super().get(section, option, raw=raw, vars=vars, fallback=fallback)
+        return tuple(i.strip() for i in self.LIST_PATTERN.split(value) if i) if value is not None else value

@@ -94,9 +94,9 @@ PUBLIC_EDITOR = config.getboolean('c3nav', 'editor', fallback=True)
 PUBLIC_BASE_MAPDATA = config.getboolean('c3nav', 'public_base_mapdata', fallback=False)
 AUTO_PROCESS_UPDATES = config.getboolean('c3nav', 'auto_process_updates', fallback=True)
 
-RANDOM_LOCATION_GROUPS = config.get('c3nav', 'random_location_groups', fallback=None)
+RANDOM_LOCATION_GROUPS = config.getlist('c3nav', 'random_location_groups', fallback=None)
 if RANDOM_LOCATION_GROUPS:
-    RANDOM_LOCATION_GROUPS = tuple(int(i) for i in RANDOM_LOCATION_GROUPS.split(','))
+    RANDOM_LOCATION_GROUPS = tuple(int(i) for i in RANDOM_LOCATION_GROUPS)
 
 SECRET_KEY = config.get('django', 'secret', fallback=None)
 if not SECRET_KEY:
@@ -243,7 +243,7 @@ DEFAULT_AUTO_FIELD = 'django.db.models.AutoField'
 STATIC_URL = config.get('django', 'static_url', fallback='/static/', env='C3NAV_STATIC_URL')
 MEDIA_URL = config.get('django', 'media_url', fallback='/media/', env='C3NAV_MEDIA_URL')
 
-ALLOWED_HOSTS = [n for n in config.get('django', 'allowed_hosts', fallback='*').split(',') if n]
+ALLOWED_HOSTS = config.getlist('django', 'allowed_hosts', fallback='*')
 
 if config.getboolean('django', 'reverse_proxy', fallback=False):
     SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
@@ -269,7 +269,7 @@ EMAIL_SUBJECT_PREFIX = ('[c3nav-%s] ' % INSTANCE_NAME) if INSTANCE_NAME else '[c
 if config.has_section('mail'):
     raise ImproperlyConfigured('mail config section got renamed to email. Please fix your config file.')
 
-ADMINS = [('Admin', n) for n in config.get('mail', 'admins', fallback='').split(",") if n]
+ADMINS = [('Admin', n) for n in config.getlist('mail', 'admins', fallback='')]
 
 CACHES = {
     'default': {
@@ -299,7 +299,7 @@ REDIS_CONNECTION_POOL = None
 if HAS_REDIS:
     import redis
     HAS_REAL_CACHE = True
-    REDIS_SERVERS = re.split("[;,]", config.get('redis', 'location', env='C3NAV_REDIS'))
+    REDIS_SERVERS = config.getlist('redis', 'location', env='C3NAV_REDIS')
     CACHES['redis'] = {
         "BACKEND": "django.core.cache.backends.redis.RedisCache",
         "LOCATION": REDIS_SERVERS,
@@ -431,7 +431,7 @@ if HAS_REDIS:
         'default': {
             'BACKEND': 'channels_redis.core.RedisChannelLayer',
             'CONFIG': {
-                "hosts": config.get('redis', 'location', env='C3NAV_REDIS').split(','),
+                "hosts": config.getlist('redis', 'location', env='C3NAV_REDIS'),
             },
         },
     }
@@ -465,7 +465,7 @@ EXTRA_LANG_INFO = {
 LANG_INFO = dict(django.conf.locale.LANG_INFO, **EXTRA_LANG_INFO)
 django.conf.locale.LANG_INFO = LANG_INFO
 
-SELECTED_LANGUAGES = frozenset(config.get('c3nav', 'languages', fallback='en,de').split(','))
+SELECTED_LANGUAGES = frozenset(config.getlist('c3nav', 'languages', fallback='en,de'))
 LANGUAGES = [(code, name) for code, name in [
     ('en', _('English')),
     ('en-UW', _('Engwish UwU')),
@@ -631,7 +631,7 @@ BASE_THEME = {
     }
 }
 
-WIFI_SSIDS = [n for n in config.get('c3nav', 'wifi_ssids', fallback='').split(',') if n]
+WIFI_SSIDS = config.getlist('c3nav', 'wifi_ssids', fallback='')
 
 
 # Projection
@@ -796,10 +796,7 @@ if SSO_ENABLED:
     # we need this despite our own strategy looking it up directly because the backends context processor of
     # social_django directly uses the django setting without asking the normal config pipeline
     AUTHENTICATION_BACKENDS = (
-        * (
-            backend.strip()
-            for backend in config.get('sso', 'authentication_backends', fallback='').split(',')
-        ),
+        * config.getlist('sso', 'authentication_backends', fallback=''),
         *AUTHENTICATION_BACKENDS,
     )
 
