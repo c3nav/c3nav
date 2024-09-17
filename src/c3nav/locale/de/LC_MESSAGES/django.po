@@ -7,8 +7,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2024-09-16 18:01+0200\n"
-"PO-Revision-Date: 2024-09-16 18:02+0200\n"
+"POT-Creation-Date: 2024-09-17 14:37+0200\n"
+"PO-Revision-Date: 2024-09-17 14:45+0200\n"
 "Last-Translator: Laura Klünder <laura@codingcatgirl.de>\n"
 "Language-Team: \n"
 "Language: de\n"
@@ -189,10 +189,8 @@ msgid "can always access editor"
 msgstr "kann immer auf den Editor zugreifen"
 
 #: c3nav/control/models.py
-#, fuzzy
-#| msgid "can access mesh control"
 msgid "can access sources in editor"
-msgstr "kann auf das Mesh Control Panel zugreifen"
+msgstr "kann Vorlagen im Editor anzeigen"
 
 #: c3nav/control/models.py
 msgid "can always access base map data"
@@ -703,8 +701,12 @@ msgstr ""
 "anderer Stelle verwendet."
 
 #: c3nav/editor/forms.py
-msgid "Scan data is not a list."
-msgstr "Scanliste ist keine Liste."
+msgid "WiFi scan data is missing."
+msgstr "WiFI Scandaten fehlen"
+
+#: c3nav/editor/forms.py
+msgid "WiFi scan data is not a list."
+msgstr "WifFi Scandaten sind keine Liste"
 
 #: c3nav/editor/forms.py
 msgid "Final rejection"
@@ -1175,18 +1177,6 @@ msgstr "Karte zeigen"
 msgid "Show details"
 msgstr "Details anzeigen"
 
-#: c3nav/editor/templates/editor/mapupdate.html
-#, fuzzy
-#| msgid "Map update"
-msgid "Mapupdate"
-msgstr "Kartenänderung"
-
-#: c3nav/editor/templates/editor/mapupdate.html
-#, fuzzy, python-format
-#| msgid "on level %(level_title)s"
-msgid "changes on level %(level_title)s"
-msgstr "in der Etage %(level_title)s"
-
 #: c3nav/editor/templates/editor/user.html
 msgid "That's you!"
 msgstr "Das bist du!"
@@ -1422,10 +1412,8 @@ msgid "You can not edit this object because your changeset is full."
 msgstr "Du kannst diese Objekt nicht löschen weil dein Änderungsset voll ist."
 
 #: c3nav/editor/views/edit.py
-#, fuzzy
-#| msgid "You need to log in to create Wifi Measurements."
 msgid "You need to log in to create Beacon Measurements."
-msgstr "Du musst dich anmelden um WLAN Messungen zu erstellen."
+msgstr "Du musst dich anmelden um Beacon Messungen zu erstellen."
 
 #: c3nav/editor/views/edit.py
 msgid "You can not edit changes on this changeset."
@@ -1638,11 +1626,9 @@ msgstr[0] "Unbekannte Etage: %s"
 msgstr[1] "Unbekannte Etagen: %s"
 
 #: c3nav/mapdata/management/commands/rendermap.py
-#, fuzzy, python-format
-#| msgid "Unknown level: %s"
-#| msgid_plural "Unknown levels: %s"
+#, python-format
 msgid "Unknown theme: %s"
-msgstr "Unbekannte Etage: %s"
+msgstr "Unbekanntes Theme: %s"
 
 #: c3nav/mapdata/management/commands/rendermap.py
 #, python-format
@@ -1670,17 +1656,11 @@ msgstr ""
 "(Vorgabe)"
 
 #: c3nav/mapdata/management/commands/rendermap.py
-#, fuzzy
-#| msgid "levels to render, e.g. 0,1,2 or * for all levels (default)"
 msgid "theme to use, e.g. 2 or 0 for the default theme (default)"
 msgstr ""
-"Etagen, die gerendert werden sollen, z.b. 0,1,2 oder * für alle Etagen "
-"(Vorgabe)"
+"Theme das benutzt werden soll, z.B. 2 oder 0 für das Standardtheme (Vorgabe)"
 
 #: c3nav/mapdata/management/commands/rendermap.py
-#, fuzzy
-#| msgid ""
-#| "permissions, e.g. 2,3 or * for all permissions or 0 for none (default)"
 msgid ""
 "permissions, e.g. 2,3 or * for all permissions or 0 for public (default)"
 msgstr ""
@@ -1764,6 +1744,22 @@ msgid "Area successfully unlocked."
 msgid_plural "Areas successfully unlocked."
 msgstr[0] "Bereich erfolgreich freigeschaltet."
 msgstr[1] "Bereiche erfolgreich freigeschaltet."
+
+#: c3nav/mapdata/models/access.py
+msgid "SSO Backend"
+msgstr "SSO Backend"
+
+#: c3nav/mapdata/models/access.py
+msgid "SSO Group"
+msgstr "SSO Gruppe"
+
+#: c3nav/mapdata/models/access.py
+msgid "Access Permission SSO Grant"
+msgstr "Zugangserlaubnis SSO Erteilung"
+
+#: c3nav/mapdata/models/access.py
+msgid "Access Permission SSO Grants"
+msgstr "Zugangserlaubnis SSO Erteilungen"
 
 #: c3nav/mapdata/models/access.py
 msgid "Access permission token"
@@ -1957,6 +1953,10 @@ msgstr "Rampe"
 msgid "Ramps"
 msgstr "Rampen"
 
+#: c3nav/mapdata/models/geometry/space.py c3nav/mapdata/models/locations.py
+msgid "show in legend (if color set)"
+msgstr "in Legende zeigen (falls Farbe gesetzt)"
+
 #: c3nav/mapdata/models/geometry/space.py
 msgid "Obstacle Group"
 msgstr "Hindernisgruppe"
@@ -2051,16 +2051,12 @@ msgid "Measurement list"
 msgstr "Messungsliste"
 
 #: c3nav/mapdata/models/geometry/space.py
-#, fuzzy
-#| msgid "Wi-Fi Measurement"
 msgid "Beacon Measurement"
-msgstr "WLAN Messung"
+msgstr "Beacon Messung"
 
 #: c3nav/mapdata/models/geometry/space.py
-#, fuzzy
-#| msgid "Wi-Fi Measurements"
 msgid "Beacon Measurements"
-msgstr "WLAN Messungen"
+msgstr "Beacon Messungen"
 
 #: c3nav/mapdata/models/geometry/space.py
 msgid "Node Number"
@@ -2581,101 +2577,87 @@ msgstr "öffentlich"
 
 #: c3nav/mapdata/models/theme.py
 msgid "This is a high-contrast theme"
-msgstr ""
+msgstr "Dies ist eine Hochkontrasttheme"
 
 #: c3nav/mapdata/models/theme.py
 msgid "This is a dark theme"
-msgstr ""
+msgstr "Dies ist ein Dark-Mode Theeme"
 
 #: c3nav/mapdata/models/theme.py
-#, fuzzy
-#| msgid "Default theme"
 msgid "This is a default theme"
-msgstr "Standardtheme"
+msgstr "Dies ist das Standardtheme"
 
 #: c3nav/mapdata/models/theme.py
 msgid "Funky (do not persist through a reload when uses chooses this theme)"
-msgstr ""
+msgstr "Funky (überlebt keinen Seitenreload wenn gewählt)"
 
 #: c3nav/mapdata/models/theme.py
 msgid "Use random primary color"
-msgstr ""
+msgstr "Nutze zufällige Primärfarbe"
 
 #: c3nav/mapdata/models/theme.py
 msgid "Logo color (can be a CSS gradient if you really want it to)"
-msgstr ""
+msgstr "Logofarbe (kann ein CSS Farbverlauf sein wenn Du wirklich willst)"
 
 #: c3nav/mapdata/models/theme.py
-#, fuzzy
-#| msgid "background color"
 msgid "CSS initial/background color"
-msgstr "Hintergrundfarbe"
+msgstr "CSS Initial/Hintergrundfarbe"
 
 #: c3nav/mapdata/models/theme.py
 msgid "CSS primary/accent color"
-msgstr ""
+msgstr "CSS Primär/Akzentfarbe"
 
 #: c3nav/mapdata/models/theme.py
 msgid "CSS secondary/foreground color"
-msgstr ""
+msgstr "CSS Sekundär/Vordergrundfarbe"
 
 #: c3nav/mapdata/models/theme.py
 msgid "CSS tertiary color"
-msgstr ""
+msgstr "CSS Tertiärfarbe"
 
 #: c3nav/mapdata/models/theme.py
 msgid "CSS quaternary color"
-msgstr ""
+msgstr "CSS Quartärfarbe"
 
 #: c3nav/mapdata/models/theme.py
 msgid "CSS quinary color"
-msgstr ""
+msgstr "CSS Quintärfarbe"
 
 #: c3nav/mapdata/models/theme.py
-#, fuzzy
-#| msgid "background color"
 msgid "CSS header background color"
-msgstr "Hintergrundfarbe"
+msgstr "CSS Header Hintergrundfarbe"
 
 #: c3nav/mapdata/models/theme.py
-#, fuzzy
-#| msgid "Other theme colors"
 msgid "CSS header text color"
-msgstr "Andere Themefarben"
+msgstr "CSS Header Textfarbe"
 
 #: c3nav/mapdata/models/theme.py
 msgid "CSS header text hover color"
-msgstr ""
+msgstr "CSS Headertext Hoverfarbe"
 
 #: c3nav/mapdata/models/theme.py
 msgid "CSS shadow color"
-msgstr ""
+msgstr "CSS Schattenfarbe"
 
 #: c3nav/mapdata/models/theme.py
-#, fuzzy
-#| msgid "background color"
 msgid "CSS overlay/label background color"
-msgstr "Hintergrundfarbe"
+msgstr "CSS Overlay/Label Hintergrundfarbe"
 
 #: c3nav/mapdata/models/theme.py
-#, fuzzy
-#| msgid "background color"
 msgid "CSS grid color"
-msgstr "Hintergrundfarbe"
+msgstr "CSS Gitterfarbe"
 
 #: c3nav/mapdata/models/theme.py
-#, fuzzy
-#| msgid "background color"
 msgid "CSS modal backdrop color"
-msgstr "Hintergrundfarbe"
+msgstr "CSS Modal Hintergrundfarbe"
 
 #: c3nav/mapdata/models/theme.py
 msgid "CSS route dots shadow color"
-msgstr ""
+msgstr "CSS Route-punkte Schattenfarbe"
 
 #: c3nav/mapdata/models/theme.py
 msgid "Extra CSS"
-msgstr ""
+msgstr "Extra CSS"
 
 #: c3nav/mapdata/models/theme.py
 msgid "wall fill color"
@@ -2935,32 +2917,24 @@ msgid "Z"
 msgstr "Z"
 
 #: c3nav/mesh/forms.py
-#, fuzzy
-#| msgid "Node Number"
 msgid "node number"
-msgstr "Node Nummer"
+msgstr "Nodenummer"
 
 #: c3nav/mesh/forms.py
-#, fuzzy
-#| msgid "(no name)"
 msgid "node name"
-msgstr "(kein Name)"
+msgstr "Nodename"
 
 #: c3nav/mesh/forms.py
 msgid "UUID"
-msgstr ""
+msgstr "UUID"
 
 #: c3nav/mesh/forms.py
-#, fuzzy
-#| msgid "iBeacon major value"
 msgid "major value"
-msgstr "iBeacon major value"
+msgstr "major value"
 
 #: c3nav/mesh/forms.py
-#, fuzzy
-#| msgid "iBeacon minor value"
 msgid "minor value"
-msgstr "iBeacon minor value"
+msgstr "minor value"
 
 #: c3nav/mesh/forms.py
 msgid "content"
@@ -2995,10 +2969,8 @@ msgid "uplink"
 msgstr "Uplink"
 
 #: c3nav/mesh/models.py
-#, fuzzy
-#| msgid "to node"
 msgid "parent node"
-msgstr "Zielknoten"
+msgstr "Elternnode"
 
 #: c3nav/mesh/models.py
 msgid "last signin"
@@ -3280,22 +3252,18 @@ msgstr "Mesh Node"
 
 #: c3nav/mesh/templates/mesh/node_detail.html
 #: c3nav/mesh/templates/mesh/nodes.html
-#, fuzzy
-#| msgid "uplink"
 msgid "(is an uplink)"
-msgstr "Uplink"
+msgstr "(ist ein Uplink)"
 
 #: c3nav/mesh/templates/mesh/node_detail.html
 #: c3nav/mesh/templates/mesh/nodes.html
 msgid "via:"
-msgstr ""
+msgstr "via:"
 
 #: c3nav/mesh/templates/mesh/node_detail.html
 #: c3nav/mesh/templates/mesh/nodes.html
-#, fuzzy
-#| msgid "direct edit"
 msgid "(direct)"
-msgstr "direktes Bearbeiten"
+msgstr "(direkt)"
 
 #: c3nav/mesh/templates/mesh/node_detail.html
 #: c3nav/mesh/templates/mesh/nodes.html
@@ -3312,8 +3280,6 @@ msgid "Find route"
 msgstr "Route finden"
 
 #: c3nav/mesh/templates/mesh/node_detail.html
-#, fuzzy
-#| msgid "Chaange board settings"
 msgid "Change board settings"
 msgstr "Boardeinstellungen ändern"
 
@@ -3334,10 +3300,8 @@ msgid "Last signin"
 msgstr "Letzte Anmeldung"
 
 #: c3nav/mesh/templates/mesh/nodes.html
-#, fuzzy
-#| msgid "Connections:"
 msgid "Connection"
-msgstr "Verbindungen:"
+msgstr "Verbindung"
 
 #: c3nav/mesh/templates/mesh/ota_detail.html
 msgid "OTA Update"
@@ -3511,6 +3475,10 @@ msgstr "Standardoptionen"
 #: c3nav/settings.py
 msgid "English"
 msgstr "Englisch"
+
+#: c3nav/settings.py
+msgid "Engwish UwU"
+msgstr "Engwish UwU"
 
 #: c3nav/settings.py
 msgid "German"
@@ -3757,6 +3725,10 @@ msgid "Report issue"
 msgstr "Fehler melden"
 
 #: c3nav/site/templates/site/map.html
+msgid "Set my position"
+msgstr "Meine Position setzen"
+
+#: c3nav/site/templates/site/map.html
 msgid "share"
 msgstr "Teilen"
 
@@ -3774,10 +3746,8 @@ msgstr ""
 "Hole dir die c3nav-App für Android um deine Position auf der Karte zu sehen."
 
 #: c3nav/site/templates/site/map.html
-#, fuzzy
-#| msgid "API"
 msgid "APK"
-msgstr "API"
+msgstr "APK"
 
 #: c3nav/site/templates/site/map.html
 msgid "Search any location…"
@@ -3970,13 +3940,11 @@ msgstr "Status"
 
 #: c3nav/site/themes.py
 msgid "Automatic"
-msgstr ""
+msgstr "Automatisch"
 
 #: c3nav/site/themes.py
-#, fuzzy
-#| msgid "default"
 msgid "Default"
-msgstr "standard"
+msgstr "Standard"
 
 #: c3nav/site/views.py
 msgid "This token does not exist or was already redeemed."
@@ -4047,7 +4015,7 @@ msgstr "Bist du sicher, dass es keiner dieser Orte ist?"
 
 #: c3nav/site/views.py
 msgid "Yeah, it's not in there"
-msgstr "Ja, es ist keiner davon."
+msgstr "Ja, es ist keiner davon"
 
 #: c3nav/site/views.py
 msgid "There are no locations nearby."
@@ -4119,6 +4087,16 @@ msgstr ""
 "API-Secret erstellt. Notier es dir sofort, denn es wird nicht erneut "
 "angezeigt!"
 
+#, fuzzy
+#~| msgid "Map update"
+#~ msgid "Mapupdate"
+#~ msgstr "Kartenänderung"
+
+#, fuzzy, python-format
+#~| msgid "on level %(level_title)s"
+#~ msgid "changes on level %(level_title)s"
+#~ msgstr "in der Etage %(level_title)s"
+
 #~ msgid "about c3nav"
 #~ msgstr "über c3nav"
 
@@ -4137,9 +4115,6 @@ msgstr ""
 
 #~ msgid "Show nearby locations"
 #~ msgstr "Nahegelegene Orte zeigen"
-
-#~ msgid "Set my position"
-#~ msgstr "Meine Position setzen"
 
 #~ msgid "Download APK"
 #~ msgstr "APK herunterladen"
