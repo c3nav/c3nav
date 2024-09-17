@@ -196,12 +196,13 @@ class MapUpdate(models.Model):
                 return ()
 
             update_cache_key = MapUpdate.build_cache_key(*new_updates[-1].to_tuple)
-            (settings.CACHE_ROOT / update_cache_key).mkdir()
+            (settings.CACHE_ROOT / update_cache_key).mkdir(exist_ok=True)
 
             last_geometry_update = ([None] + [update for update in new_updates if update.geometries_changed])[-1]
 
             if last_geometry_update is not None:
                 geometry_update_cache_key = MapUpdate.build_cache_key(*last_geometry_update.to_tuple)
+                (settings.CACHE_ROOT / geometry_update_cache_key).mkdir(exist_ok=True)
 
                 from c3nav.mapdata.utils.cache.changes import changed_geometries
                 changed_geometries.reset()
