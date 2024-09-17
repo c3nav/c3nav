@@ -21,6 +21,7 @@
     --color-button-border-hover: var(--color-quaternary);
     --color-button-hover: var(--color-quinary);
     --color-focus: var(--color-foreground);
+    --color-attribution-background: var(--color-overlay-background);
 
     --color-map-overlay: var(--color-primary);
     --color-route-dashes: #888888;
@@ -1039,7 +1040,7 @@ main:not([data-view=route-result]) #route-summary {
 }
 
 .leaflet-container .leaflet-control-attribution {
-    background-color: var(--color-overlay-background);
+    background-color: var(--color-attribution-background);
     color: var(--color-foreground);
 
     a {
@@ -1056,7 +1057,7 @@ main:not([data-view=route-result]) #route-summary {
     font-size: 20px;
 }
 
-.leaflet-bar, .leaflet-control-key {
+.leaflet-bar, .leaflet-touch .leaflet-bar, .leaflet-control-key {
     overflow: hidden;
     background-color: var(--color-control-background);
     border-radius: var(--border-radius-leaflet-control);
@@ -1099,7 +1100,7 @@ main:not([data-view=route-result]) #route-summary {
     margin-left: 10px;
 
     > .leaflet-control-scale-line {
-        background-color: var(--color-overlay-background);
+        background-color: var(--color-attribution-background);
         color: var(--color-foreground);
         border-color: var(--color-foreground);
     }
@@ -1584,7 +1585,7 @@ blink {
 }
 
 .leaflet-control-container {
-    .leaflet-bottom.leaflet-right {
+    > .leaflet-bottom.leaflet-right {
         max-height: 100%;
         display: flex;
         flex-direction: column;
@@ -1595,9 +1596,6 @@ blink {
 }
 
 @media screen and (max-width: 320px) {
-    .leaflet-control-container > .leaflet-bottom.leaflet-right {
-        max-height: calc(100% - 60px);
-    }
     header {
         height: 40px;
     }
@@ -1685,10 +1683,18 @@ blink {
     }
 
     > .collapsed-toggle {
+        display: block;
         width: 26px;
         height: 26px;
         line-height: 26px;
         text-align: center;
+
+        color: var(--color-control);
+
+        .leaflet-touch & {
+            width: 30px;
+            height: 30px;
+        }
 
         &::before {
             font-family: 'Material Symbols Outlined';
@@ -1731,13 +1737,21 @@ blink {
 
     &.leaflet-control-key-expanded > .pin-toggle {
         display: block;
+        .leaflet-touch & {
+            display: none;
+        }
     }
+
 
     > .content {
         display: none;
         padding: 1rem 3rem 1rem 1rem;
         gap: 1rem;
         grid-template-columns: 2rem 1fr;
+
+        .leaflet-touch & {
+            padding: 1rem;
+        }
 
         > .key {
             display: grid;
@@ -1756,5 +1770,31 @@ blink {
 
     &.leaflet-control-key-expanded > .content {
         display: grid;
+    }
+}
+
+.leaflet-top.leaflet-right {
+    z-index: 2000;
+}
+
+
+@media (max-width: 500px) {
+    :root {
+        --control-container-minus-size: 100px;
+    }
+    main[data-view=search] {
+        --control-container-minus-size: 70px;
+    }
+    main[data-view^=route] {
+        --control-container-minus-size: 160px;
+    }
+
+
+    .leaflet-control-container > .leaflet-bottom.leaflet-right {
+        max-height: calc(100% - var(--control-container-minus-size) - 50px);
+    }
+
+    .leaflet-top.leaflet-right {
+        margin-top: var(--control-container-minus-size);
     }
 }
