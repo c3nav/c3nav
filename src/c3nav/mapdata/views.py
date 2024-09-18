@@ -169,7 +169,7 @@ def preview_location(request, slug):
         geometries = [loc.geometry for loc in location.locations if loc.level_id == level]
         highlight = True
     elif isinstance(location, Position):
-        loc = location.get_custom_location()
+        loc = location.get_custom_location(request=request)
         if not loc:
             raise Http404
         geometries = [Point(loc.x, loc.y)]

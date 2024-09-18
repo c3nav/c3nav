@@ -515,7 +515,9 @@ class LabelSettings(SerializableMixin, models.Model):
 
 
 class CustomLocationProxyMixin:
-    def get_custom_location(self):
+    request = None
+
+    def get_custom_location(self, request=None):
         raise NotImplementedError
 
     @property
@@ -534,7 +536,7 @@ class CustomLocationProxyMixin:
     def level(self):
         return self.get_custom_location().level
 
-    def serialize_position(self):
+    def serialize_position(self, request=None):
         raise NotImplementedError
 
 
@@ -560,8 +562,8 @@ class DynamicLocation(CustomLocationProxyMixin, SpecificLocation, models.Model):
     def register_change(self, force=False):
         pass
 
-    def serialize_position(self):
-        custom_location = self.get_custom_location()
+    def serialize_position(self, request=None):
+        custom_location = self.get_custom_location(request=request)
         if custom_location is None:
             return {
                 'available': False,
@@ -587,11 +589,13 @@ class DynamicLocation(CustomLocationProxyMixin, SpecificLocation, models.Model):
         })
         return result
 
-    def get_custom_location(self):
+    def get_custom_location(self, request=None):
         if not self.position_secret:
             return None
         try:
-            return Position.objects.get(secret=self.position_secret).get_custom_location()
+            return Position.objects.get(secret=self.position_secret).get_custom_location(
+                requests=request if request is not None else self.request
+            )
         except Position.DoesNotExist:
             return None
 
@@ -633,7 +637,9 @@ class Position(CustomLocationProxyMixin, models.Model):
                 self.coordinates = None
                 self.last_coordinates_update = end_time
 
-    def get_custom_location(self):
+    def get_custom_location(self, request=None):
+        if request is not None:
+            self.request = request  # todo: this is ugly, yes
         return self.coordinates
 
     @classmethod
@@ -647,8 +653,8 @@ class Position(CustomLocationProxyMixin, models.Model):
             cache.set(cache_key, result, 600)
         return result
 
-    def serialize_position(self):
-        custom_location = self.get_custom_location()
+    def serialize_position(self, request=None):
+        custom_location = self.get_custom_location(request=request)
         if custom_location is None:
             return {
                 'id': 'p:%s' % self.secret,

@@ -270,7 +270,8 @@ def get_position_by_id(request, position_id: AnyPositionID):
             location = Position.objects.get(secret=position_id[2:])
         except Position.DoesNotExist:
             raise API404()
-    return location.serialize_position()
+
+    return location.serialize_position(request=request)
 
 
 class UpdatePositionSchema(BaseSchema):
@@ -314,7 +315,7 @@ def set_position(request, position_id: AnyPositionID, update: UpdatePositionSche
     location.last_coordinates_update = timezone.now()
     location.save()
 
-    return location.serialize_position()
+    return location.serialize_position(request=request)
 
 
 @map_api_router.get('/projection/', summary='get proj4 string',
