@@ -7,7 +7,6 @@ cd /app
 
 # number of workers for guicorn, we coppy the value of UWSGI_WORKERS if it is not set
 export WEB_CONCURRENCY="${WEB_CONCURRENCY:-$UWSGI_WORKERS}"
-export PROMETHEUS_MULTIPROC_DIR="/tmp/prometheus_multiproc"
 
 automigrate() {
   AUTOMIGRATE="${C3NAV_AUTOMIGRATE:no}"
@@ -18,6 +17,7 @@ automigrate() {
 }
 
 setup_prometheus_multiproc() {
+  export PROMETHEUS_MULTIPROC_DIR="/tmp/prometheus_multiproc"
   rm -rf "${PROMETHEUS_MULTIPROC_DIR}" || true
   mkdir "PROMETHEUS_MULTIPROC_DIR"
 }
