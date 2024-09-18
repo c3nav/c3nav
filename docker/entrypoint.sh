@@ -19,7 +19,7 @@ automigrate() {
 setup_prometheus_multiproc() {
   export PROMETHEUS_MULTIPROC_DIR="/tmp/prometheus_multiproc"
   rm -rf "${PROMETHEUS_MULTIPROC_DIR}" || true
-  mkdir "PROMETHEUS_MULTIPROC_DIR"
+  mkdir "${PROMETHEUS_MULTIPROC_DIR}"
 }
 
 case "$1" in
