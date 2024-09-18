@@ -594,7 +594,7 @@ class DynamicLocation(CustomLocationProxyMixin, SpecificLocation, models.Model):
             return None
         try:
             return Position.objects.get(secret=self.position_secret).get_custom_location(
-                requests=request if request is not None else self.request
+                request=request if request is not None else self.request
             )
         except Position.DoesNotExist:
             return None
