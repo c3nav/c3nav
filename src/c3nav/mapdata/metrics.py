@@ -9,14 +9,15 @@ from c3nav.mapdata.models.report import Report
 
 if settings.METRICS:
     from prometheus_client import Gauge
-    from prometheus_client.core import REGISTRY, CounterMetricFamily
-    from prometheus_client.registry import Collector
+    from prometheus_client.core import CounterMetricFamily
+    from prometheus_client.registry import Collector, CollectorRegistry
 
-    users_total = Gauge('c3nav_users_total', 'Total number of users')
+    REGISTRY = CollectorRegistry(auto_describe=True)
+    users_total = Gauge('c3nav_users_total', 'Total number of users', registry=REGISTRY)
     users_total.set_function(lambda: get_user_model().objects.count())
-    reports_total = Gauge('c3nav_reports_total', 'Total number of reports')
+    reports_total = Gauge('c3nav_reports_total', 'Total number of reports', registry=REGISTRY)
     reports_total.set_function(lambda: Report.objects.count())
-    reports_open = Gauge('c3nav_reports_open', 'Number of open reports')
+    reports_open = Gauge('c3nav_reports_open', 'Number of open reports', registry=REGISTRY)
     reports_open.set_function(lambda: Report.objects.filter(open=True).count()),
 
     class APIStatsCollector(Collector):

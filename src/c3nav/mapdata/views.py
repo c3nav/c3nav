@@ -482,3 +482,12 @@ def get_cache_package(request, filetype):
         response["Content-Disposition"] = content_disposition
     response['X-Processed-Geometry-Update'] = processed_geometry_update
     return response
+
+
+def api_stats_exporter(request):
+    """Exports the API metrics for Prometheus"""
+
+    import prometheus_client
+    from c3nav.mapdata.metrics import REGISTRY
+    metrics_page = prometheus_client.generate_latest(REGISTRY)
+    return HttpResponse(metrics_page, content_type=prometheus_client.CONTENT_TYPE_LATEST)
