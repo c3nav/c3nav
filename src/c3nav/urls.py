@@ -50,11 +50,10 @@ if settings.SERVE_ANYTHING:
 
     if settings.METRICS:
         with suppress(ImportError):
-            import django_prometheus.urls  # noqu
-            from c3nav.mapdata.views import api_stats_exporter
+            import django_prometheus  # noqu
+            from c3nav.mapdata.views import prometheus_exporter
             urlpatterns += [
-                path('prometheus/api_metrics', api_stats_exporter),
-                path('prometheus/', include(django_prometheus.urls)),
+                path('prometheus/metrics', prometheus_exporter, name='prometheus-exporter'),
             ]
 
     if settings.SSO_ENABLED:

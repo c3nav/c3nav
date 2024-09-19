@@ -484,10 +484,13 @@ def get_cache_package(request, filetype):
     return response
 
 
-def api_stats_exporter(request):
+def prometheus_exporter(request):
     """Exports the API metrics for Prometheus"""
 
     import prometheus_client
+    from django_prometheus.exports import ExportToDjangoView
     from c3nav.mapdata.metrics import REGISTRY
     metrics_page = prometheus_client.generate_latest(REGISTRY)
-    return HttpResponse(metrics_page, content_type=prometheus_client.CONTENT_TYPE_LATEST)
+    response = ExportToDjangoView(request)
+    response.content += metrics_page
+    return response
