@@ -1085,7 +1085,7 @@ main:not([data-view=route-result]) #route-summary {
     color: var(--color-control);
 }
 
-.leaflet-bar a.leaflet-disabled,  {
+.leaflet-bar a.leaflet-disabled {
     color: var(--color-control-disabled);
     background-color: var(--color-control-background); // todo: special disabled background color #f4f4f4 ?
 }
@@ -1472,7 +1472,7 @@ main form, #modal form {
         color: var(--color-helptext);
     }
 
-    input[type=text], textarea {
+    input, textarea {
         border: 1px solid var(--color-border);
     }
 
@@ -1672,7 +1672,7 @@ blink {
 }
 
 [data-embed] .leaflet-top.leaflet-right {
-  margin-top: 48px;
+    margin-top: 48px;
 }
 
 .leaflet-control-key {
