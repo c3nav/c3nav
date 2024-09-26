@@ -1,3 +1,4 @@
+import copy
 import json
 from contextlib import contextmanager
 from dataclasses import dataclass, field
@@ -8,8 +9,10 @@ from django.db import transaction
 from django.db.models import Model
 from django.db.models.fields.related import ManyToManyField
 
-from c3nav.editor.operations import DatabaseOperation, ObjectReference, FieldValuesDict, CreateObjectOperation, \
-    UpdateObjectOperation, DeleteObjectOperation, ClearManyToManyOperation, UpdateManyToManyOperation, CollectedOperations
+from c3nav.editor.changes import ChangedObjectCollection
+from c3nav.editor.operations import DatabaseOperation, CreateObjectOperation, \
+    UpdateObjectOperation, DeleteObjectOperation, ClearManyToManyOperation, UpdateManyToManyOperation, \
+    DatabaseOperationCollection, FieldValuesDict, ObjectReference, PreviousObjectCollection
 from c3nav.mapdata.fields import I18nField
 from c3nav.mapdata.models import LocationSlug
 
@@ -28,21 +31,31 @@ class InterceptAbortTransaction(Exception):
 
 @dataclass
 class DatabaseOverlayManager:
-    changes: CollectedOperations
-    new_operations: list[DatabaseOperation] = field(default_factory=list)
-    pre_change_values: dict[ObjectReference, FieldValuesDict] = field(default_factory=dict)
+    """
+    This class handles the currently active database overlay and will apply and/or intercept changes.
+    """
+    prev: PreviousObjectCollection = PreviousObjectCollection()
+    operations: list[DatabaseOperation] = field(default_factory=list)
+    pre_change_values: dict[ObjectReference, FieldValuesDict] = field(default_factory=dict, init=False, repr=False)
 
     @classmethod
     @contextmanager
-    def enable(cls, changes: CollectedOperations | None, commit: bool):
-        if getattr(overlay_state, 'manager', None) is not None:
-            raise TypeError
-        if changes is None:
-            changes = CollectedOperations()
+    def enable(cls, operations: DatabaseOperationCollection | None = None, commit: bool = False):
+        """
+        Context manager to enable the database overlay, optionally pre-applying the given changes.
+        Only one overlay can be active at the same type, or else you get a TypeError.
+
+        :param operations: what operations to pre-apply
+        :param commit: whether to actually commit operations to the database or revert them at the end
+        """
+        if getattr(overlay_state, "manager", None) is not None:
+            raise TypeError("Only one overlay can be active at the same time")
+        if operations is None:
+            operations = DatabaseOperationCollection()
         try:
             with transaction.atomic():
-                manager = DatabaseOverlayManager(changes)
-                manager.changes.prefetch().apply()
+                manager = DatabaseOverlayManager(prev=copy.deepcopy(operations.prev))
+                operations.prefetch().apply()
                 overlay_state.manager = manager
                 yield manager
                 if not commit:
@@ -51,9 +64,6 @@ class DatabaseOverlayManager:
             pass
         finally:
             overlay_state.manager = None
-
-    def save_new_operations(self):
-        self.changes.operations.extend(self.new_operations)
 
     @staticmethod
     def get_model_field_values(instance: Model) -> FieldValuesDict:
@@ -66,14 +76,14 @@ class DatabaseOverlayManager:
         ref = ObjectReference.from_instance(instance)
 
         pre_change_values = self.pre_change_values.pop(ref)
-        self.changes.prev.set(ref, values=pre_change_values, titles=getattr(instance, 'titles', None))
+        self.operations.prev.set(ref, values=pre_change_values, titles=getattr(instance, 'titles', None))
         return ref, pre_change_values
 
     def handle_pre_change_instance(self, instance: Model, **kwargs):
         if instance.pk is None:
             return
         ref = ObjectReference.from_instance(instance)
-        if ref not in self.pre_change_values and self.changes.prev.get(ref) is None:
+        if ref not in self.pre_change_values and self.operations.prev.get(ref) is None:
             self.pre_change_values[ref] = self.get_model_field_values(
                 instance._meta.model.objects.get(pk=instance.pk)
             )
@@ -84,7 +94,7 @@ class DatabaseOverlayManager:
         ref, pre_change_values = self.get_ref_and_pre_change_values(instance)
 
         if created:
-            self.new_operations.append(CreateObjectOperation(obj=ref, fields=field_values))
+            self.operations.append(CreateObjectOperation(obj=ref, fields=field_values))
             return
 
         if update_fields:
@@ -105,11 +115,11 @@ class DatabaseOverlayManager:
                             diff_val[lang] = after_val.get(lang, None)
                     field_values[field_name] = diff_val
 
-        self.new_operations.append(UpdateObjectOperation(obj=ref, fields=field_values))
+        self.operations.append(UpdateObjectOperation(obj=ref, fields=field_values))
 
     def handle_post_delete(self, instance: Model, **kwargs):
         ref, pre_change_values = self.get_ref_and_pre_change_values(instance)
-        self.new_operations.append(DeleteObjectOperation(obj=ref))
+        self.operations.append(DeleteObjectOperation(obj=ref))
 
     def handle_m2m_changed(self, sender: Type[Model], instance: Model, action: str, model: Type[Model],
                            pk_set: set | None, reverse: bool, **kwargs):
@@ -128,11 +138,11 @@ class DatabaseOverlayManager:
         ref, pre_change_values = self.get_ref_and_pre_change_values(instance)
 
         if action == "post_clear":
-            self.new_operations.append(ClearManyToManyOperation(obj=ref, field=field.name))
+            self.operations.append(ClearManyToManyOperation(obj=ref, field=field.name))
             return
 
-        if self.new_operations:
-            last_change = self.new_operations[-1]
+        if self.operations:
+            last_change = self.operations[-1]
             if isinstance(last_change, UpdateManyToManyOperation) and last_change == ref and last_change == field.name:
                 if action == "post_add":
                     last_change.add_values.update(pk_set)
@@ -143,9 +153,9 @@ class DatabaseOverlayManager:
                 return
 
         if action == "post_add":
-            self.new_operations.append(UpdateManyToManyOperation(obj=ref, field=field.name, add_values=list(pk_set)))
+            self.operations.append(UpdateManyToManyOperation(obj=ref, field=field.name, add_values=list(pk_set)))
         else:
-            self.new_operations.append(UpdateManyToManyOperation(obj=ref, field=field.name, remove_values=list(pk_set)))
+            self.operations.append(UpdateManyToManyOperation(obj=ref, field=field.name, remove_values=list(pk_set)))
 
 
 def handle_pre_change_instance(sender: Type[Model], **kwargs):
