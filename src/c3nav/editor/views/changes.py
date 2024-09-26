@@ -193,7 +193,7 @@ def changeset_detail(request, pk):
 
     added_redirects = {}
     removed_redirects = {}
-    for changed_object in changeset.changes.changed_objects:
+    for changed_object in changeset.changes:
         if changed_object.obj.model == "locationredirect":
             if changed_object.created and not changed_object.deleted:
                 added_redirects.setdefault(changed_object.fields["target"], set()).add(changed_object.fields["slug"])
@@ -205,7 +205,7 @@ def changeset_detail(request, pk):
 
     current_lang = get_language()
 
-    for changed_object in changeset.changes.changed_objects:
+    for changed_object in changeset.changes:
         model = apps.get_model("mapdata", changed_object.obj.model)
         if model == LocationRedirect:
             continue
@@ -218,7 +218,7 @@ def changeset_detail(request, pk):
             else:
                 title = next(iter(changed_object.titles.values()))
 
-        prev_values = changeset.changes.prev.get(changed_object.obj).values
+        prev_values = changeset.operations.prev.get(changed_object.obj).values
 
         edit_url = None
         if not changed_object.deleted:

@@ -48,7 +48,7 @@ def accesses_mapdata(func):
         if request.changeset.direct_editing:
             with (MapUpdate.lock() if writable_method else noctx()):
                 changed_geometries.reset()
-                with DatabaseOverlayManager.enable(changes=None, commit=writable_method) as manager:
+                with DatabaseOverlayManager.enable(operations=None, commit=writable_method) as manager:
                     result = func(request, *args, **kwargs)
                 if manager.new_operations:
                     if writable_method:
@@ -57,10 +57,11 @@ def accesses_mapdata(func):
                         raise ValueError  # todo: good error message, but this shouldn't happen
         else:
             with maybe_lock_changeset_to_edit(request=request):
-                with DatabaseOverlayManager.enable(changes=request.changeset.changes, commit=False) as manager:
+                operations = request.changeset.changes.as_operations  # todo: cache this
+                with DatabaseOverlayManager.enable(operations=operations, commit=False) as manager:
                     result = func(request, *args, **kwargs)
-                if manager.new_operations:
-                    manager.save_new_operations()
+                if manager.operations:
+                    request.changeset.changes.add_operations(manager.operations)
                     request.changeset.save()
                     update = request.changeset.updates.create(user=request.user, objects_changed=True)
                     request.changeset.last_update = update
