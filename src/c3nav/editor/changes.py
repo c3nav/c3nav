@@ -1,18 +1,19 @@
 from itertools import chain
+from typing import Type
 
 from django.apps import apps
+from django.db.models import Model, OneToOneField, ForeignKey
 
 from c3nav.api.schema import BaseSchema
 from c3nav.editor.operations import DatabaseOperationCollection, CreateObjectOperation, UpdateObjectOperation, \
-    DeleteObjectOperation, ClearManyToManyOperation, FieldValuesDict, ObjectReference, PreviousObjectCollection, \
-    DatabaseOperation
+    DeleteObjectOperation, ClearManyToManyOperation, FieldValuesDict, ObjectReference, PreviousObjectCollection
 from c3nav.mapdata.fields import I18nField
 
 
 class ChangedManyToMany(BaseSchema):
     cleared: bool = False
-    added: list[str] = []
-    removed: list[str] = []
+    added: list[int] = []
+    removed: list[int] = []
 
 
 class ChangedObject(BaseSchema):
@@ -81,7 +82,26 @@ class ChangedObjectCollection(BaseSchema):
                     changed_m2m.removed = sorted((set(changed_m2m.removed) - operation.add_values)
                                                  | operation.remove_values)
 
+    def clean_and_complete_prev(self):
+        ids: dict[str, set[int]] = {}
+        for model_name, changed_objects in self.objects.items():
+            ids.setdefault(model_name, set()).update(set(changed_objects.keys()))
+            model = apps.get_model("mapdata", model_name)
+            relations: dict[str, Type[Model]] = {field.name: field.related_model
+                                                 for field in model.get_fields() if field.is_relation}
+            for obj in changed_objects.values():
+                for field_name, value in obj.fields.items():
+                    related_model = relations.get(field_name, None)
+                    if related_model is None or value is None:
+                        continue
+                    ids.setdefault(related_model._meta.model_name, set()).add(value)
+                for field_name, field_changes in obj.m2m_changes.items():
+                    related_model = relations[field_name]
+                    if field_changes.added or field_changes.removed:
+                        ids.setdefault(related_model._meta.model_name, set()).update(field_changes.added)
+                        ids.setdefault(related_model._meta.model_name, set()).update(field_changes.removed)
+        # todo: move this to some kind of "usage explanation" function, implement rest of this
+
     @property
     def as_operations(self) -> DatabaseOperationCollection:
-
         pass  # todo: implement
