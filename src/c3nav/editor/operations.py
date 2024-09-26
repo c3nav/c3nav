@@ -1,7 +1,7 @@
 import datetime
 import json
 from dataclasses import dataclass
-from typing import Annotated, Literal, Union, TypeAlias, Any
+from typing import Annotated, Literal, Union, TypeAlias, Any, Self
 from uuid import UUID, uuid4
 
 from django.apps import apps
@@ -69,6 +69,10 @@ class PreviousObjectCollection(BaseSchema):
             values=values,
             titles=titles,
         )
+
+    def add_other(self, other: Self):
+        for key in set(self.objects.keys()) | set(other.objects.keys()):
+            self.objects[key] = {**other.objects.get(key, {}), **self.objects.get(key, {})}
 
 
 class BaseOperation(BaseSchema):
@@ -194,10 +198,16 @@ class DatabaseOperationCollection(BaseSchema):
     Iterable as a list of DatabaseOperation instances.
     """
     prev: PreviousObjectCollection = PreviousObjectCollection()
-    operations: list[DatabaseOperation] = []
+    _operations: list[DatabaseOperation] = []
 
     def __iter__(self):
-        yield from self.operations
+        yield from self._operations
+
+    def __len__(self):
+        return len(self._operations)
+
+    def append(self, item: DatabaseOperation):
+        self._operations.append(item)
 
     def prefetch(self) -> "PrefetchedDatabaseOperationCollection":
         return PrefetchedDatabaseOperationCollection(operations=self, instances=self.prev.get_instances())
@@ -210,7 +220,7 @@ class PrefetchedDatabaseOperationCollection:
 
     def apply(self):
         # todo: what if unique constraint error occurs?
-        for operation in self.operations.operations:
+        for operation in self.operations:
             if isinstance(operation, CreateObjectOperation):
                 self.instances[operation.obj] = operation.apply_create()
             else:

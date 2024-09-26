@@ -218,7 +218,7 @@ def changeset_detail(request, pk):
             else:
                 title = next(iter(changed_object.titles.values()))
 
-        prev_values = changeset.operations.prev.get(changed_object.obj).values
+        prev_values = changeset.changes.prev.get(changed_object.obj).values
 
         edit_url = None
         if not changed_object.deleted:

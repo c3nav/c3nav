@@ -50,7 +50,7 @@ def accesses_mapdata(func):
                 changed_geometries.reset()
                 with DatabaseOverlayManager.enable(operations=None, commit=writable_method) as manager:
                     result = func(request, *args, **kwargs)
-                if manager.new_operations:
+                if manager.operations:
                     if writable_method:
                         MapUpdate.objects.create(user=request.user, type='direct_edit')
                     else:

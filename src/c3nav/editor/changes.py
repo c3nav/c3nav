@@ -4,7 +4,8 @@ from django.apps import apps
 
 from c3nav.api.schema import BaseSchema
 from c3nav.editor.operations import DatabaseOperationCollection, CreateObjectOperation, UpdateObjectOperation, \
-    DeleteObjectOperation, ClearManyToManyOperation, FieldValuesDict, ObjectReference, PreviousObjectCollection
+    DeleteObjectOperation, ClearManyToManyOperation, FieldValuesDict, ObjectReference, PreviousObjectCollection, \
+    DatabaseOperation
 from c3nav.mapdata.fields import I18nField
 
 
@@ -33,14 +34,18 @@ class ChangedObjectCollection(BaseSchema):
     objects: dict[str, dict[int, ChangedObject]] = {}
 
     def __iter__(self):
-        yield from chain(*(objects.keys() for model, objects in self.objects.items()))
+        yield from chain(*(objects.values() for model, objects in self.objects.items()))
+
+    def __len__(self):
+        return sum(len(v) for v in self.objects.values())
 
     def add_operations(self, operations: DatabaseOperationCollection):
         """
         Add the given operations, creating/updating changed objects to represent the resulting state.
         """
-        # todo: merge prev
-        for operation in operations.operations:
+        # todo: if something is being changed back, remove it from thingy?
+        self.prev.add_other(operations.prev)
+        for operation in operations:
             changed_object = self.objects.setdefault(operation.obj.model, {}).get(operation.obj.id, None)
             if changed_object is None:
                 changed_object = ChangedObject(obj=operation.obj,
