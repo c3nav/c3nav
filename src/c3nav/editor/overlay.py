@@ -34,8 +34,7 @@ class DatabaseOverlayManager:
     """
     This class handles the currently active database overlay and will apply and/or intercept changes.
     """
-    prev: PreviousObjectCollection = PreviousObjectCollection()
-    operations: list[DatabaseOperation] = field(default_factory=list)
+    operations: DatabaseOperationCollection = field(default_factory=DatabaseOperationCollection)
     pre_change_values: dict[ObjectReference, FieldValuesDict] = field(default_factory=dict, init=False, repr=False)
 
     @classmethod
@@ -54,7 +53,7 @@ class DatabaseOverlayManager:
             operations = DatabaseOperationCollection()
         try:
             with transaction.atomic():
-                manager = DatabaseOverlayManager(prev=copy.deepcopy(operations.prev))
+                manager = DatabaseOverlayManager(operations=DatabaseOperationCollection(prev=operations.prev))
                 operations.prefetch().apply()
                 overlay_state.manager = manager
                 yield manager

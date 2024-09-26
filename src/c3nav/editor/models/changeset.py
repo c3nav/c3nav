@@ -43,7 +43,8 @@ class ChangeSet(models.Model):
                                     related_name='assigned_changesets', verbose_name=_('assigned to'))
     map_update = models.OneToOneField(MapUpdate, null=True, related_name='changeset',
                                       verbose_name=_('map update'), on_delete=models.PROTECT)
-    changes: ChangedObjectCollection = SchemaField(schema=ChangedObjectCollection, default=ChangedObjectCollection)
+    changes: ChangedObjectCollection = SchemaField(schema=ChangedObjectCollection,
+                                                   default=lambda: ChangedObjectCollection)
 
     class Meta:
         verbose_name = _('Change Set')
@@ -164,7 +165,7 @@ class ChangeSet(models.Model):
         return self.can_edit(request) and self.state == 'unproposed'
 
     def can_propose(self, request):
-        return self.can_edit(request) and not self.proposed and self.changes.operations
+        return self.can_edit(request) and not self.proposed and self.changes
 
     def can_unpropose(self, request):
         return self.author_id == request.user.pk and self.state in ('proposed', 'reproposed')
@@ -347,8 +348,7 @@ class ChangeSet(models.Model):
         """
         Get the number of changed objects.
         """
-        return len([changed_object for changed_object in self.changes.changed_objects
-                    if changed_object.obj.model != "locationredirect"])
+        return len(self.changes)
 
     def get_changed_objects_by_model(self, model):
         if isinstance(model, str):
