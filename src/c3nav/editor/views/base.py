@@ -27,6 +27,7 @@ from c3nav.mapdata.utils.user import can_access_editor
 
 @contextmanager
 def maybe_lock_changeset_to_edit(request):
+    """ Lock the changeset of the given request, if it can be locked (= has ever been saved to the database)"""
     if request.changeset.pk:
         with request.changeset.lock_to_edit(request=request) as changeset:
             request.changeset = changeset
@@ -41,28 +42,49 @@ def noctx():
 
 
 def accesses_mapdata(func):
+    """
+    Decorator for editor views that access map data, will honor changesets etc
+    """
     @wraps(func)
     def wrapped(request, *args, **kwargs):
+        # Omly POST and PUT methods may actually commit changes to the database
         writable_method = request.method in ("POST", "PUT")
 
         if request.changeset.direct_editing:
+            # For direct editing, a mapupdate is created if any changes are made
+            # So, if this request may commit changes, lock the MapUpdate system, which also starts a transaction.
             with (MapUpdate.lock() if writable_method else noctx()):
+                # Reset the changed geometries tracker, this will be read when a MapUpdate is created.
                 changed_geometries.reset()
+
+                # Enable the overlay manager to monitor changes, so we know if any changes even happened
+                # If this request may commit changes, commit is set to True, so everything will be commited.
                 with DatabaseOverlayManager.enable(operations=None, commit=writable_method) as manager:
                     result = func(request, *args, **kwargs)
+
+                # If any operations took place, we create a MapUpdate
                 if manager.operations:
                     if writable_method:
                         MapUpdate.objects.create(user=request.user, type='direct_edit')
                     else:
+                        # todo: time for a good error message, even though this case should not be possible
                         raise ValueError  # todo: good error message, but this shouldn't happen
         else:
+            # For non-direct editing, we will interact with the changeset
             with maybe_lock_changeset_to_edit(request=request):
+                # Turn the changes from the changeset into a list of operations
                 operations = request.changeset.changes.as_operations  # todo: cache this
+
+                # Enable the overlay manager, temporarily applying the changeset changes
+                # commit is set to false, meaning all changes will be reset once we leave the manager
                 with DatabaseOverlayManager.enable(operations=operations, commit=False) as manager:
                     result = func(request, *args, **kwargs)
                 if manager.operations:
+                    # Add new operations to changeset
                     request.changeset.changes.add_operations(manager.operations)
                     request.changeset.save()
+
+                    # Add new changeset update
                     update = request.changeset.updates.create(user=request.user, objects_changed=True)
                     request.changeset.last_update = update
                     request.changeset.last_change = update

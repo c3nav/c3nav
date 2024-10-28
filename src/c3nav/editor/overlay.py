@@ -41,7 +41,7 @@ class DatabaseOverlayManager:
     @contextmanager
     def enable(cls, operations: DatabaseOperationCollection | None = None, commit: bool = False):
         """
-        Context manager to enable the database overlay, optionally pre-applying the given changes.
+        Context manager to enable the database overlay, optionally <pre-applying the given changes.
         Only one overlay can be active at the same type, or else you get a TypeError.
 
         :param operations: what operations to pre-apply
