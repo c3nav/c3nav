@@ -1,3 +1,5 @@
+import operator
+from functools import reduce
 from itertools import chain
 from typing import Type, Any, Optional, Annotated, Union
 
@@ -61,6 +63,10 @@ class SingleOperationWithDependencies(BaseSchema):
 
 class MergableOperationsWithDependencies(BaseSchema):
     children: list[SingleOperationWithDependencies]
+
+    @property
+    def dependencies(self) -> set[OperationDependency]:
+        return reduce(operator.or_, (c.dependencies for c in self.children), set())
 
 
 OperationWithDependencies = Union[
