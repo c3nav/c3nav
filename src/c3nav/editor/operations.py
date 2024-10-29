@@ -77,8 +77,6 @@ class PreviousObjectCollection(BaseSchema):
 
 class BaseOperation(BaseSchema):
     obj: ObjectReference
-    uuid: UUID = Field(default_factory=uuid4)
-    datetime: Annotated[datetime.datetime, Field(default_factory=timezone.now)]
 
     def apply(self, values: FieldValuesDict, instance: Model) -> Model:
         raise NotImplementedError

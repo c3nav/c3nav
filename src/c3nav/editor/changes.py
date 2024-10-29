@@ -1,12 +1,14 @@
 from itertools import chain
-from typing import Type
+from typing import Type, Any, Optional, Annotated, Union
 
 from django.apps import apps
 from django.db.models import Model, OneToOneField, ForeignKey
+from pydantic.config import ConfigDict
 
 from c3nav.api.schema import BaseSchema
 from c3nav.editor.operations import DatabaseOperationCollection, CreateObjectOperation, UpdateObjectOperation, \
-    DeleteObjectOperation, ClearManyToManyOperation, FieldValuesDict, ObjectReference, PreviousObjectCollection
+    DeleteObjectOperation, ClearManyToManyOperation, FieldValuesDict, ObjectReference, PreviousObjectCollection, \
+    DatabaseOperation
 from c3nav.mapdata.fields import I18nField
 
 
@@ -23,6 +25,52 @@ class ChangedObject(BaseSchema):
     deleted: bool = False
     fields: FieldValuesDict = {}
     m2m_changes: dict[str, ChangedManyToMany] = {}
+
+
+class OperationDependencyObjectExists(BaseSchema):
+    obj: ObjectReference
+    nullable: bool
+
+
+class OperationDependencyUniqueValue(BaseSchema):
+    model_config = ConfigDict(frozen=True)
+
+    model: str
+    field: str
+    value: Any
+    nullable: bool
+
+
+class OperationDependencyNoProtectedReference(BaseSchema):
+    model_config = ConfigDict(frozen=True)
+
+    obj: ObjectReference
+
+
+OperationDependency = Union[
+    OperationDependencyObjectExists,
+    OperationDependencyNoProtectedReference,
+    OperationDependencyUniqueValue,
+]
+
+
+class SingleOperationWithDependencies(BaseSchema):
+    operation: DatabaseOperation
+    dependencies: set[OperationDependency] = set()
+
+
+class MergableOperationsWithDependencies(BaseSchema):
+    children: list[SingleOperationWithDependencies]
+
+
+OperationWithDependencies = Union[
+    SingleOperationWithDependencies,
+    MergableOperationsWithDependencies,
+]
+
+
+class DummyValue:
+    pass
 
 
 class ChangedObjectCollection(BaseSchema):
@@ -104,4 +152,73 @@ class ChangedObjectCollection(BaseSchema):
 
     @property
     def as_operations(self) -> DatabaseOperationCollection:
-        pass  # todo: implement
+        current_objects = {}
+        for model_name, changed_objects in self.objects.items():
+            model = apps.get_model("mapdata", model_name)
+            current_objects[model_name] = {obj.pk: obj for obj in model.objects.filter(pk__in=changed_objects.keys())}
+
+        operations_with_dependencies: list[OperationWithDependencies] = []
+        for model_name, changed_objects in self.objects.items():
+            model = apps.get_model("mapdata", model_name)
+
+            for changed_obj in changed_objects.values():
+                if changed_obj.deleted:
+                    if changed_obj.created:
+                        continue
+                    operations_with_dependencies.append(
+                        SingleOperationWithDependencies(
+                            operation=DeleteObjectOperation(obj=changed_obj.obj),
+                            dependencies={OperationDependencyNoProtectedReference(obj=changed_obj.obj)}
+                        ),
+                    )
+                    continue
+
+                initial_fields = dict()
+                obj_operations: list[OperationWithDependencies] = []
+                for name, value in changed_obj.fields.items():
+                    if value is None:
+                        initial_fields[name] = None
+                        continue
+                    field = model._meta.get_field(name)
+                    dependencies = set()
+                    # todo: prev
+                    if field.is_relation:
+                        dependencies.add(OperationDependencyObjectExists(obj=ObjectReference(
+                            model=field.related_model._meta.model_name,
+                            id=value,
+                        )))
+                    if field.unique:
+                        dependencies.add(OperationDependencyUniqueValue(obj=ObjectReference(
+                            model=model._meta.model_name,
+                            field=name,
+                            value=value,
+                        )))
+
+                    if not dependencies:
+                        initial_fields[name] = None
+                        continue
+
+                    initial_fields[name] = DummyValue
+                    obj_operations.append(SingleOperationWithDependencies(
+                        operation=UpdateObjectOperation(obj=changed_obj.obj, fields={name: value}),
+                        dependencies=dependencies
+                    ))
+
+                obj_operations.insert(0, SingleOperationWithDependencies(
+                    operation=(CreateObjectOperation if changed_obj.created else UpdateObjectOperation)(
+                        obj=changed_obj.obj,
+                        fields=initial_fields,
+                    )
+                ))
+
+                if len(obj_operations) == 1:
+                    operations_with_dependencies.append(obj_operations[0])
+                else:
+                    operations_with_dependencies.append(MergableOperationsWithDependencies(operations=obj_operations))
+
+        from pprint import pprint
+        pprint(operations_with_dependencies)
+
+        # todo: continue here
+
+        return DatabaseOperationCollection()
