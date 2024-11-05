@@ -1,23 +1,22 @@
-import datetime
 import json
 from dataclasses import dataclass
-from typing import Annotated, Literal, Union, TypeAlias, Any, Self
-from uuid import UUID, uuid4
+from typing import Annotated, Literal, Union, TypeAlias, Any, Self, Iterator
 
 from django.apps import apps
 from django.core import serializers
 from django.db.models import Model
-from django.utils import timezone
 from pydantic import ConfigDict
-from pydantic.fields import Field
 from pydantic.types import Discriminator
 
 from c3nav.api.schema import BaseSchema
 from c3nav.mapdata.fields import I18nField
 from c3nav.mapdata.models import LocationSlug
 
+ModelName: TypeAlias = str
+ObjectID: TypeAlias = int
+FieldName: TypeAlias = str
 
-FieldValuesDict: TypeAlias = dict[str, Any]
+FieldValuesDict: TypeAlias = dict[FieldName, Any]
 
 
 class ObjectReference(BaseSchema):
@@ -25,8 +24,8 @@ class ObjectReference(BaseSchema):
     Reference to an object based on model name and ID.
     """
     model_config = ConfigDict(frozen=True)
-    model: str
-    id: int
+    model: ModelName
+    id: ObjectID
 
     @classmethod
     def from_instance(cls, instance: Model):
@@ -42,12 +41,12 @@ class PreviousObject(BaseSchema):
 
 
 class PreviousObjectCollection(BaseSchema):
-    objects: dict[str, dict[int, PreviousObject]] = {}
+    objects: dict[ModelName, dict[ObjectID, PreviousObject]] = {}
 
     def get(self, ref: ObjectReference) -> PreviousObject | None:
         return self.objects.get(ref.model, {}).get(ref.id, None)
 
-    def get_ids(self) -> dict[str, set[int]]:
+    def get_ids(self) -> dict[ModelName, set[ObjectID]]:
         """
         :return: all referenced IDs sorted by model
         """
@@ -155,9 +154,9 @@ class DeleteObjectOperation(BaseOperation):
 
 class UpdateManyToManyOperation(BaseOperation):
     type: Literal["m2m_add"] = "m2m_update"
-    field: str
-    add_values: set[int] = set()
-    remove_values: set[int] = set()
+    field: FieldName
+    add_values: set[ObjectID] = set()
+    remove_values: set[ObjectID] = set()
 
     def apply(self, values: FieldValuesDict, instance: Model) -> Model:
         values[self.field] = sorted((set(values[self.field]) | self.add_values) - self.remove_values)
@@ -169,7 +168,7 @@ class UpdateManyToManyOperation(BaseOperation):
 
 class ClearManyToManyOperation(BaseOperation):
     type: Literal["m2m_clear"] = "m2m_clear"
-    field: str
+    field: FieldName
 
     def apply(self, values: FieldValuesDict, instance: Model) -> Model:
         values[self.field] = []
@@ -198,7 +197,7 @@ class DatabaseOperationCollection(BaseSchema):
     prev: PreviousObjectCollection = PreviousObjectCollection()
     _operations: list[DatabaseOperation] = []
 
-    def __iter__(self):
+    def __iter__(self) -> Iterator[DatabaseOperation]:
         yield from self._operations
 
     def __len__(self):

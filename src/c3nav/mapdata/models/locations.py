@@ -177,7 +177,7 @@ class Location(LocationSlug, AccessRestrictionMixin, TitledMixin, models.Model):
 
 
 class SpecificLocation(Location, models.Model):
-    groups = models.ManyToManyField('mapdata.LocationGroup', verbose_name=_('Location Groups'), blank=True)
+    groups = models.ManyToManyField('mapdata.LocationGroup', verbose_name__=_('Location Groups'), blank=True)
     label_settings = models.ForeignKey('mapdata.LabelSettings', null=True, blank=True, on_delete=models.PROTECT,
                                        verbose_name=_('label settings'))
     label_override = I18nField(_('Label override'), plural_name='label_overrides', blank=True, fallback_any=True)
