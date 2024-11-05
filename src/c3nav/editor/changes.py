@@ -244,8 +244,8 @@ class ChangedObjectCollection(BaseSchema):
 
         # time to check which stuff cannot be done
         objects_to_delete: dict[ModelName, set[ObjectID]] = {}  # objects that will be deleted [find references!]
-        objects_to_exist_before: dict[ModelName, set[ObjectID]] = {}  # objects that need to exist before [won't be created!]
-        objects_to_create: dict[ModelName, set[ObjectID]] = {}  # objects that will be created [needed to create the previous var]
+        objects_to_exist_before: dict[ModelName, set[ObjectID]] = {}  # objects that need to exist before
+        objects_to_create: dict[ModelName, set[ObjectID]] = {}  # objects that will be created
         for operation in operations_with_dependencies:
             main_operation = operation.main_operation
             if isinstance(main_operation, DeleteObjectOperation):
