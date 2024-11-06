@@ -242,10 +242,11 @@ class ChangedObjectCollection(BaseSchema):
         from pprint import pprint
         pprint(operations_with_dependencies)
 
-        # time to check which stuff cannot be done
+        # categorize operations to collect data for simulation/solving and problem detection
         objects_to_delete: dict[ModelName, set[ObjectID]] = {}  # objects that will be deleted [find references!]
         objects_to_exist_before: dict[ModelName, set[ObjectID]] = {}  # objects that need to exist before
         objects_to_create: dict[ModelName, set[ObjectID]] = {}  # objects that will be created
+        values_to_clear: dict[ModelName, dict[FieldName: set]]
         for operation in operations_with_dependencies:
             main_operation = operation.main_operation
             if isinstance(main_operation, DeleteObjectOperation):
@@ -260,6 +261,9 @@ class ChangedObjectCollection(BaseSchema):
             for dependency in operation.dependencies:
                 if isinstance(dependency, OperationDependencyObjectExists):
                     objects_to_exist_before.setdefault(dependency.obj.model, set()).add(dependency.obj.id)
+                elif isinstance(dependency, OperationDependencyUniqueValue):
+                    values_to_clear.setdefault(dependency.obj.model, {}).setdefault(dependency.field, set()).add(dependency.value)
+                    # todo: check for duplicate unique values
 
         # objects that we create do not need to exist before
         for model, ids in objects_to_create.items():
@@ -301,7 +305,11 @@ class ChangedObjectCollection(BaseSchema):
                                              on_delete=model_cls._meta.get_field(field).on_delete.__name__)
                     )
 
+        errors = []
 
+        old_operations_with_dependencies = operations_with_dependencies
+        for operation_with_dependencies in old_operations_with_dependencies:
+            pass
 
         # todo: continue here
 
