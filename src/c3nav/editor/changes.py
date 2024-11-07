@@ -96,6 +96,23 @@ class DummyValue:
     pass
 
 
+class OperationSituation(BaseSchema):
+    # operations done so far
+    operations: list[DatabaseOperation] = []
+
+    # remaining operations still to do
+    remaining_operations_with_dependencies: list[OperationWithDependencies] = []
+
+    # objects that still need to be created before some remaining operation (or that were simply deleted in this run)
+    missing_objects: dict[ModelName, set[ObjectID]] = {}
+
+    # unique values relevant for these operations that are currently not free
+    values_to_clear: dict[ModelName, dict[FieldName: set]] = {}
+
+    # references to objects that need to be removed for in this run
+    obj_references: dict[ModelName, dict[ObjectID, set[FoundObjectReference]]] = {}
+
+
 class ChangedObjectCollection(BaseSchema):
     """
     A collection of ChangedObject instances, sorted by model and id.
@@ -242,43 +259,38 @@ class ChangedObjectCollection(BaseSchema):
         from pprint import pprint
         pprint(operations_with_dependencies)
 
+        start_situation = OperationSituation(
+            remaining_operations_with_dependencies = operations_with_dependencies,
+        )
+
         # categorize operations to collect data for simulation/solving and problem detection
-        objects_to_delete: dict[ModelName, set[ObjectID]] = {}  # objects that will be deleted [find references!]
-        objects_to_exist_before: dict[ModelName, set[ObjectID]] = {}  # objects that need to exist before
-        objects_to_create: dict[ModelName, set[ObjectID]] = {}  # objects that will be created
-        values_to_clear: dict[ModelName, dict[FieldName: set]]
+        missing_objects: dict[ModelName, set[ObjectID]] = {}  # objects that need to exist before
         for operation in operations_with_dependencies:
             main_operation = operation.main_operation
             if isinstance(main_operation, DeleteObjectOperation):
-                objects_to_delete.setdefault(main_operation.obj.model, set()).add(main_operation.obj.id)
-                objects_to_exist_before.setdefault(main_operation.obj.model, set()).add(main_operation.obj.id)
+                missing_objects.setdefault(main_operation.obj.model, set()).add(main_operation.obj.id)
 
             if isinstance(main_operation, UpdateObjectOperation):
-                objects_to_exist_before.setdefault(main_operation.obj.model, set()).add(main_operation.obj.id)
-            else:
-                objects_to_create.setdefault(main_operation.obj.model, set()).add(main_operation.obj.id)
+                missing_objects.setdefault(main_operation.obj.model, set()).add(main_operation.obj.id)
 
             for dependency in operation.dependencies:
                 if isinstance(dependency, OperationDependencyObjectExists):
-                    objects_to_exist_before.setdefault(dependency.obj.model, set()).add(dependency.obj.id)
+                    missing_objects.setdefault(dependency.obj.model, set()).add(dependency.obj.id)
                 elif isinstance(dependency, OperationDependencyUniqueValue):
-                    values_to_clear.setdefault(dependency.obj.model, {}).setdefault(dependency.field, set()).add(dependency.value)
+                    start_situation.values_to_clear.setdefault(
+                        dependency.obj.model, {}
+                    ).setdefault(dependency.field, set()).add(dependency.value)
                     # todo: check for duplicate unique values
 
-        # objects that we create do not need to exist before
-        for model, ids in objects_to_create.items():
-            objects_to_exist_before.get(model, set()).difference_update(ids)
-
         # let's find which objects that need to exist before actually exist
-        objects_exist_before: dict[ModelName, dict[ObjectID, bool]] = {}
-        for model, ids in objects_to_exist_before.items():
+        for model, ids in missing_objects.items():
             model_cls = apps.get_model('mapdata', model)
             ids_found = set(model_cls.objects.filter(pk__in=ids).values_list('pk', flat=True))
-            objects_exist_before[model] = {id_: (id_ in ids_found) for id_ in ids}
+            start_situation.missing_objects = {id_ for id_ in ids if id_ not in ids_found}
 
         # let's find which protected references objects we want to delete have
         potential_fields: dict[ModelName, dict[FieldName, dict[ModelName, set[ObjectID]]]] = {}
-        for model, ids in objects_to_exist_before.items():
+        for model, ids in missing_objects.items():
             for field in apps.get_model('mapdata', model)._meta.get_fields():
                 if isinstance(field, (ManyToOneRel, OneToOneRel)) or field.model._meta.app_label != "mapdata":
                     continue
@@ -286,7 +298,6 @@ class ChangedObjectCollection(BaseSchema):
                                             {}).setdefault(field.field.attname, {})[model] = ids
 
         # collect all references
-        found_obj_references: dict[ModelName, dict[ObjectID, set[FoundObjectReference]]] = {}
         for model, fields in potential_fields.items():
             model_cls = apps.get_model('mapdata', model)
             q = Q()
@@ -300,16 +311,10 @@ class ChangedObjectCollection(BaseSchema):
                 source_ref = ObjectReference(model=model, id=result.pop("id"))
                 for field, target_id in result.items():
                     target_model = targets_reverse[field][target_id]
-                    found_obj_references.setdefault(target_model, {}).setdefault(target_id, set()).add(
+                    start_situation.obj_references.setdefault(target_model, {}).setdefault(target_id, set()).add(
                         FoundObjectReference(obj=source_ref, field=field,
                                              on_delete=model_cls._meta.get_field(field).on_delete.__name__)
                     )
-
-        errors = []
-
-        old_operations_with_dependencies = operations_with_dependencies
-        for operation_with_dependencies in old_operations_with_dependencies:
-            pass
 
         # todo: continue here
 
