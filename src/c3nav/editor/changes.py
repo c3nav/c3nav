@@ -58,6 +58,7 @@ OperationDependency = Union[
 
 
 class SingleOperationWithDependencies(BaseSchema):
+    uid: tuple
     operation: DatabaseOperation
     dependencies: set[OperationDependency] = set()
 
@@ -207,6 +208,7 @@ class ChangedObjectCollection(BaseSchema):
                         continue
                     operations_with_dependencies.append(
                         SingleOperationWithDependencies(
+                            uid=(changed_obj.obj, "delete"),
                             operation=DeleteObjectOperation(obj=changed_obj.obj),
                             dependencies={OperationDependencyNoProtectedReference(obj=changed_obj.obj)}
                         ),
@@ -240,12 +242,14 @@ class ChangedObjectCollection(BaseSchema):
 
                     initial_fields[name] = DummyValue
                     obj_operations.append(SingleOperationWithDependencies(
+                        uid=(changed_obj.obj, f"field_{name}"),
                         operation=UpdateObjectOperation(obj=changed_obj.obj, fields={name: value}),
                         dependencies=dependencies
                     ))
 
                 obj_operations.insert(0, SingleOperationWithDependencies(
                     operation=(CreateObjectOperation if changed_obj.created else UpdateObjectOperation)(
+                        uid=(changed_obj.obj, f"main"),
                         obj=changed_obj.obj,
                         fields=initial_fields,
                     )
