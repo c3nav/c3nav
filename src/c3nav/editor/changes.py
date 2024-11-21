@@ -1,7 +1,8 @@
+import bisect
 import operator
 from functools import reduce
 from itertools import chain
-from typing import Type, Any, Union
+from typing import Type, Any, Union, Self, TypeVar, Generic
 
 from django.apps import apps
 from django.db.models import Model, Q
@@ -31,6 +32,8 @@ class ChangedObject(BaseSchema):
 
 
 class OperationDependencyObjectExists(BaseSchema):
+    model_config = ConfigDict(frozen=True)
+
     obj: ObjectReference
     nullable: bool
 
@@ -57,26 +60,26 @@ OperationDependency = Union[
 ]
 
 
-class SingleOperationWithDependencies(BaseSchema):
+class SingleOperationWithDependencies[OperationT: Type[DatabaseOperation]](BaseSchema):
     uid: tuple
-    operation: DatabaseOperation
+    operation: OperationT
     dependencies: set[OperationDependency] = set()
 
     @property
-    def main_operation(self) -> DatabaseOperation:
-        return self.operation
+    def main_op(self) -> Self:
+        return self
 
 
 class MergableOperationsWithDependencies(BaseSchema):
-    children: list[SingleOperationWithDependencies]
+    main_op: Union[
+        SingleOperationWithDependencies[CreateObjectOperation],
+        SingleOperationWithDependencies[UpdateObjectOperation],
+    ]
+    sub_ops: list[SingleOperationWithDependencies[UpdateObjectOperation]]
 
     @property
     def dependencies(self) -> set[OperationDependency]:
         return reduce(operator.or_, (c.dependencies for c in self.children), set())
-
-    @property
-    def main_operation(self) -> DatabaseOperation:
-        return self.children[0].operation
 
 
 OperationWithDependencies = Union[
@@ -101,6 +104,9 @@ class OperationSituation(BaseSchema):
     # operations done so far
     operations: list[DatabaseOperation] = []
 
+    # uids of operationswithdependencies that are included now
+    operation_uids: frozenset[tuple] = frozenset()
+
     # remaining operations still to do
     remaining_operations_with_dependencies: list[OperationWithDependencies] = []
 
@@ -112,6 +118,22 @@ class OperationSituation(BaseSchema):
 
     # references to objects that need to be removed for in this run
     obj_references: dict[ModelName, dict[ObjectID, set[FoundObjectReference]]] = {}
+
+    def fulfils_dependency(self, dependency: OperationDependency) -> bool:
+        if isinstance(dependency, OperationDependencyObjectExists):
+            return dependency.obj.id not in self.missing_objects.get(dependency.obj.model, set())
+
+        if isinstance(dependency, OperationDependencyNoProtectedReference):
+            return dependency.obj.id not in self.obj_references.get(dependency.obj.model, set())
+
+        if isinstance(dependency, OperationDependencyUniqueValue):
+            return dependency.value not in self.values_to_clear.get(dependency.obj.model,
+                                                                    {}).get(dependency.field, set())
+
+        raise ValueError
+
+    def fulfils_dependencies(self, dependencies: set[OperationDependency]) -> bool:
+        return all(self.fulfils_dependency(dependency) for dependency in dependencies)
 
 
 class ChangedObjectCollection(BaseSchema):
@@ -216,13 +238,14 @@ class ChangedObjectCollection(BaseSchema):
                     continue
 
                 initial_fields = dict()
-                obj_operations: list[OperationWithDependencies] = []
+                obj_sub_operations: list[OperationWithDependencies] = []
+                base_dependencies: set[OperationDependency] = {OperationDependencyObjectExists(obj=changed_obj.obj)}
                 for name, value in changed_obj.fields.items():
                     if value is None:
                         initial_fields[name] = None
                         continue
                     field = model._meta.get_field(name)
-                    dependencies = set()
+                    dependencies = base_dependencies.copy()
                     # todo: prev
                     if field.is_relation:
                         dependencies.add(OperationDependencyObjectExists(obj=ObjectReference(
@@ -230,35 +253,39 @@ class ChangedObjectCollection(BaseSchema):
                             id=value,
                         )))
                     if field.unique:
-                        dependencies.add(OperationDependencyUniqueValue(obj=ObjectReference(
+                        dependencies.add(OperationDependencyUniqueValue(
                             model=model._meta.model_name,
                             field=name,
                             value=value,
-                        )))
+                        ))
 
                     if not dependencies:
                         initial_fields[name] = None
                         continue
 
                     initial_fields[name] = DummyValue
-                    obj_operations.append(SingleOperationWithDependencies(
+                    obj_sub_operations.append(SingleOperationWithDependencies(
                         uid=(changed_obj.obj, f"field_{name}"),
                         operation=UpdateObjectOperation(obj=changed_obj.obj, fields={name: value}),
                         dependencies=dependencies
                     ))
 
-                obj_operations.insert(0, SingleOperationWithDependencies(
+                obj_main_operation = SingleOperationWithDependencies(
                     operation=(CreateObjectOperation if changed_obj.created else UpdateObjectOperation)(
                         uid=(changed_obj.obj, f"main"),
                         obj=changed_obj.obj,
                         fields=initial_fields,
-                    )
-                ))
+                    ),
+                    dependencies=base_dependencies,
+                )
 
-                if len(obj_operations) == 1:
-                    operations_with_dependencies.append(obj_operations[0])
+                if not obj_sub_operations:
+                    operations_with_dependencies.append(obj_main_operation)
                 else:
-                    operations_with_dependencies.append(MergableOperationsWithDependencies(operations=obj_operations))
+                    operations_with_dependencies.append(MergableOperationsWithDependencies(
+                        main_op=obj_main_operation,
+                        sub_ops=obj_sub_operations,
+                    ))
 
         from pprint import pprint
         pprint(operations_with_dependencies)
@@ -270,13 +297,6 @@ class ChangedObjectCollection(BaseSchema):
         # categorize operations to collect data for simulation/solving and problem detection
         missing_objects: dict[ModelName, set[ObjectID]] = {}  # objects that need to exist before
         for operation in operations_with_dependencies:
-            main_operation = operation.main_operation
-            if isinstance(main_operation, DeleteObjectOperation):
-                missing_objects.setdefault(main_operation.obj.model, set()).add(main_operation.obj.id)
-
-            if isinstance(main_operation, UpdateObjectOperation):
-                missing_objects.setdefault(main_operation.obj.model, set()).add(main_operation.obj.id)
-
             for dependency in operation.dependencies:
                 if isinstance(dependency, OperationDependencyObjectExists):
                     missing_objects.setdefault(dependency.obj.model, set()).add(dependency.obj.id)
@@ -295,6 +315,7 @@ class ChangedObjectCollection(BaseSchema):
         # let's find which protected references objects we want to delete have
         potential_fields: dict[ModelName, dict[FieldName, dict[ModelName, set[ObjectID]]]] = {}
         for model, ids in missing_objects.items():
+            # todo: this shouldn't be using missing_objects, should it?
             for field in apps.get_model('mapdata', model)._meta.get_fields():
                 if isinstance(field, (ManyToOneRel, OneToOneRel)) or field.model._meta.app_label != "mapdata":
                     continue
@@ -320,6 +341,87 @@ class ChangedObjectCollection(BaseSchema):
                                              on_delete=model_cls._meta.get_field(field).on_delete.__name__)
                     )
 
-        # todo: continue here
+        # todo: do the same with valuea_to_clear
 
-        return DatabaseOperationCollection()
+        # situations still to deal with, sorted by number of operations
+        open_situations: list[OperationSituation] = [start_situation]
+
+        # situation that solves for all operations
+        done_situation: OperationSituation | None = None
+
+        # situations that ended prematurely, todo: sort by something?
+        ended_situations: list[OperationSituation] = []
+
+        # situations already encountered by set of operation uuids included, values are number of operations
+        best_uids:  dict[frozenset[tuple], int] = {}
+
+        while open_situations and not done_situation:
+            situation = open_situations.pop(0)
+            continued = False
+            for i, remaining_operation in enumerate(situation.remaining_operation_with_dependencies):
+                # check if the main operation can be ran
+                if not situation.fulfils_dependencies(remaining_operation.main_op.dependencies):
+                    continue
+
+                # determine changes to state
+                new_operation = remaining_operation.main_op.operation
+                new_remaining_operations = []
+                uids_to_add: set[tuple] = set(remaining_operation.main_op.uid)
+                if isinstance(remaining_operation, MergableOperationsWithDependencies):
+                    # sub_ops to be merged into this one or become pending operations
+                    new_operation: Union[CreateObjectOperation, UpdateObjectOperation]
+                    for sub_op in remaining_operation.sub_ops:
+                        if situation.fulfils_dependencies(sub_op.dependencies):
+                            new_operation.fields.update(sub_op.operation.fields)
+                            uids_to_add.add(sub_op.uid)
+                        else:
+                            new_remaining_operations.append(sub_op)
+
+                # todo: placeholder for references or unique values
+
+                # construct new situation
+                new_situation = situation.model_copy(deep=True)
+                new_situation.remaining_operations_with_dependencies.pop(i)
+                new_situation.operations.append(new_operation)
+                new_situation.remaining_operations_with_dependencies.extend(new_remaining_operations)
+                new_situation.operation_uids = new_situation.operation_uids | uids_to_add
+
+                # even if we don't actually continue cause better paths existed, this situation is not a deadlock
+                continued = True
+
+                if not new_situation.remaining_operations_with_dependencies:
+                    # nothing left to do, congratulations we did it!
+                    done_situation = new_situation
+                    break
+
+                if best_uids.get(new_situation.operation_uids, 1000000) <= len(new_situation.operations):
+                    # we already reached this situation with the same or less amount of operations
+                    continue
+
+                # todo: finish this...
+
+                if isinstance(new_operation, CreateObjectOperation):
+                    # if an object was created it's no longer missing
+                    new_situation.missing_objects.get(new_operation.obj.model, set()).discard(new_operation.obj.id)
+
+                if isinstance(new_operation, DeleteObjectOperation):
+                    # if an object was created it's no longer missing
+                    new_situation.missing_objects.get(new_operation.obj.model, set()).discard(new_operation.obj.id)
+
+                # todo: ...to this
+
+                # finally insert new situation
+                bisect.insort(open_situations, new_situation, key=lambda s: len(s.operations))
+                best_uids[new_situation.operation_uids] = len(new_situation.operations)
+
+            if not continued:
+                ended_situations.append(situation)
+
+        if done_situation:
+            return DatabaseOperationCollection(
+                prev=self.prev,
+                _operations=done_situation.operations,
+            )
+
+        # todo: what to do if we can't fully solve it?
+        raise NotImplementedError('couldnt fully solve as_operations')
