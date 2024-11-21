@@ -1,11 +1,13 @@
 import bisect
 import operator
+import random
 from functools import reduce
 from itertools import chain
 from typing import Type, Any, Union, Self, TypeVar, Generic
 
 from django.apps import apps
-from django.db.models import Model, Q
+from django.db.models import Model, Q, CharField, SlugField, DecimalField
+from django.db.models.fields import IntegerField, SmallIntegerField, PositiveIntegerField, PositiveSmallIntegerField
 from django.db.models.fields.reverse_related import ManyToOneRel, OneToOneRel
 from pydantic.config import ConfigDict
 
@@ -60,7 +62,11 @@ OperationDependency = Union[
 ]
 
 
-class SingleOperationWithDependencies[OperationT: Type[DatabaseOperation]](BaseSchema):
+# todo: switch to new syntax once pydantic supports it
+OperationT = TypeVar('OperationT', bound=DatabaseOperation)
+
+
+class SingleOperationWithDependencies(BaseSchema, Generic[OperationT]):
     uid: tuple
     operation: OperationT
     dependencies: set[OperationDependency] = set()
@@ -114,7 +120,7 @@ class OperationSituation(BaseSchema):
     missing_objects: dict[ModelName, set[ObjectID]] = {}
 
     # unique values relevant for these operations that are currently not free
-    occupied_unique_values: dict[ModelName, dict[FieldName: set]] = {}
+    occupied_unique_values: dict[ModelName, dict[FieldName, set]] = {}
 
     # references to objects that need to be removed for in this run
     obj_references: dict[ModelName, dict[ObjectID, set[FoundObjectReference]]] = {}
@@ -407,7 +413,45 @@ class ChangedObjectCollection(BaseSchema):
                         else:
                             new_remaining_operations.append(sub_op)
 
-                # todo: placeholder for references or unique values
+                if isinstance(new_operation, (CreateObjectOperation, UpdateObjectOperation)):
+                    model_cls = apps.get_model('mapdata', new_operation.obj.model)
+                    for field_name, value in tuple(new_operation.fields.items()):
+                        if value is DummyValue:
+                            field = model_cls._meta.get_field(field_name)
+                            if field.null:
+                                new_operation.fields[field_name] = None
+                                continue
+
+                            # todo: tell user about DummyValue result somehow
+                            if field.is_relation:
+                                qs = field.related_model.objects.only('pk')
+                                if field.unique:
+                                    qs = qs.exclude(
+                                        **{f'{field_name}__in': model_cls.objects.values_list(field_name, flat=True)}
+                                    )
+                                first = qs.first()
+                                if first is None:
+                                    raise NotImplementedError  # todo: inform user about impossibility
+                                new_operation.fields[field_name] = first.pk
+                                continue
+
+                            if field.is_relation:
+                                occupied = (
+                                    frozenset(model_cls.objects.values_list(field_name, flat=True))
+                                    if field.unique else frozenset()
+                                )
+                                if isinstance(field, (SlugField, CharField)):
+                                    new_val = "dummyvalue"
+                                    while new_val in occupied:
+                                        new_val = "dummyvalue"+str(random.randrange(1, 10000000))
+                                elif isinstance(field, (DecimalField, IntegerField, SmallIntegerField,
+                                                        PositiveIntegerField, PositiveSmallIntegerField)):
+                                    new_val = 0
+                                    while new_val in occupied:
+                                        new_val += 1
+                                else:
+                                    raise NotImplementedError
+                                new_operation.fields[field_name] = new_val
 
                 # construct new situation
                 new_situation = situation.model_copy(deep=True)
