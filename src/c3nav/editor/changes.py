@@ -400,6 +400,8 @@ class ChangedObjectCollection(BaseSchema):
 
                 # todo: finish this...
 
+                # todo: don't forget nullable references and unique values
+
                 if isinstance(new_operation, CreateObjectOperation):
                     # if an object was created it's no longer missing
                     new_situation.missing_objects.get(new_operation.obj.model, set()).discard(new_operation.obj.id)
