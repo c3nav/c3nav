@@ -446,7 +446,7 @@ class ChangedObjectCollection(BaseSchema):
                                         dummy_unique_value_avoid.setdefault(
                                             new_operation.obj.model, {}
                                         )[field_name] = frozenset(
-                                            model_cls.objects.values_list(field_name, flat=True)
+                                            model_cls.objects.values_list(field_name.attname, flat=True)
                                         ) | unique_values_needed.get(new_operation.obj.model, {}).get(field_name, set())
 
                                     choices = (
@@ -492,7 +492,7 @@ class ChangedObjectCollection(BaseSchema):
                                     raise NotImplementedError
                                 new_operation.fields[field_name] = new_val
 
-                # construct new situation
+                # construct new situation   # todo: merge create operations one day
                 new_situation = situation.model_copy(deep=True)
                 new_situation.remaining_operations_with_dependencies.pop(i)
                 new_situation.operations.append(new_operation)
@@ -510,8 +510,6 @@ class ChangedObjectCollection(BaseSchema):
                 if best_uids.get(new_situation.operation_uids, 1000000) <= len(new_situation.operations):
                     # we already reached this situation with the same or less amount of operations
                     continue
-
-                # todo: finish this...
 
                 # todo: don't forget nullable references and unique values
 
@@ -532,11 +530,6 @@ class ChangedObjectCollection(BaseSchema):
                             }
                         if field.is_relation:
                             relations_changed.add(field_name)
-                            # unique field was changed? remove unique value entry [might be readded below]
-                            occupied_unique_values[field_name] = {
-                                val: pk for val, pk in occupied_unique_values[field_name].items()
-                                if pk != new_operation.obj.model
-                            }
 
                     if relations_changed:
                         # relation field was changed? remove reference entry [might be readded below]
@@ -563,11 +556,28 @@ class ChangedObjectCollection(BaseSchema):
                             if ref.obj != new_operation.obj
                         }
 
-                    # todo: cascading…?
+                    # wwe ignore cascading for now
                 else:
-                    pass  # todo: add new unique values and references
-
-                # todo: ...to this
+                    for field_name, value in new_operation.fields.items():
+                        field = model_cls._meta.get_field(field_name)
+                        if value is None:
+                            continue
+                        if field.unique:
+                            # unique field was changed? add unique value entry
+                            new_situation.occupied_unique_values.setdefault(
+                                new_operation.obj.model, {}
+                            ).setdefault(field_name, {})[value] = new_operation.obj.id
+                        if field.is_relation:
+                            # relation field was changed? add foundobjectreference
+                            new_situation.obj_references.setdefault(
+                                field.related_model._meta.model_name, {}
+                            ).setdefault(value, set()).add(
+                                FoundObjectReference(
+                                    obj=new_operation.obj,
+                                    field=field_name,
+                                    on_delete=field.on_delete.__name__,
+                                )
+                            )
 
                 # finally insert new situation
                 bisect.insort(open_situations, new_situation, key=lambda s: len(s.operations))
