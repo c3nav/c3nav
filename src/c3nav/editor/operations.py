@@ -203,6 +203,9 @@ class DatabaseOperationCollection(BaseSchema):
     def __len__(self):
         return len(self._operations)
 
+    def extend(self, items: list[DatabaseOperation]):
+        self._operations.extend(items)
+
     def append(self, item: DatabaseOperation):
         self._operations.append(item)
 

@@ -589,10 +589,11 @@ class ChangedObjectCollection(BaseSchema):
                 ended_situations.append(situation)
 
         if done_situation:
-            return DatabaseOperationCollection(
+            result = DatabaseOperationCollection(
                 prev=self.prev,
-                _operations=done_situation.operations,
             )
+            result.extend(done_situation.operations)
+            return result
 
         # todo: what to do if we can't fully solve it?
         raise NotImplementedError('couldnt fully solve as_operations')
