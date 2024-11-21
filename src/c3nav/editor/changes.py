@@ -214,12 +214,7 @@ class ChangedObjectCollection(BaseSchema):
         # todo: move this to some kind of "usage explanation" function, implement rest of this
 
     @property
-    def as_operations(self) -> DatabaseOperationCollection:
-        current_objects = {}
-        for model_name, changed_objects in self.objects.items():
-            model = apps.get_model("mapdata", model_name)
-            current_objects[model_name] = {obj.pk: obj for obj in model.objects.filter(pk__in=changed_objects.keys())}
-
+    def as_operations_with_dependencies(self) -> list[OperationWithDependencies]:
         operations_with_dependencies: list[OperationWithDependencies] = []
         for model_name, changed_objects in self.objects.items():
             model = apps.get_model("mapdata", model_name)
@@ -286,6 +281,10 @@ class ChangedObjectCollection(BaseSchema):
                         main_op=obj_main_operation,
                         sub_ops=obj_sub_operations,
                     ))
+        return operations_with_dependencies
+
+    def create_start_operation_situation(self) -> OperationSituation:
+        operations_with_dependencies = self.as_operations_with_dependencies
 
         from pprint import pprint
         pprint(operations_with_dependencies)
@@ -342,6 +341,17 @@ class ChangedObjectCollection(BaseSchema):
                     )
 
         # todo: do the same with valuea_to_clear
+
+        return start_situation
+
+    @property
+    def as_operations(self) -> DatabaseOperationCollection:
+        current_objects = {}
+        for model_name, changed_objects in self.objects.items():
+            model = apps.get_model("mapdata", model_name)
+            current_objects[model_name] = {obj.pk: obj for obj in model.objects.filter(pk__in=changed_objects.keys())}
+
+        start_situation = self.create_start_operation_situation()
 
         # situations still to deal with, sorted by number of operations
         open_situations: list[OperationSituation] = [start_situation]
