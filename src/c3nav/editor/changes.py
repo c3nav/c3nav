@@ -114,7 +114,7 @@ class OperationSituation(BaseSchema):
     missing_objects: dict[ModelName, set[ObjectID]] = {}
 
     # unique values relevant for these operations that are currently not free
-    values_to_clear: dict[ModelName, dict[FieldName: set]] = {}
+    occupied_unique_values: dict[ModelName, dict[FieldName: set]] = {}
 
     # references to objects that need to be removed for in this run
     obj_references: dict[ModelName, dict[ObjectID, set[FoundObjectReference]]] = {}
@@ -124,11 +124,14 @@ class OperationSituation(BaseSchema):
             return dependency.obj.id not in self.missing_objects.get(dependency.obj.model, set())
 
         if isinstance(dependency, OperationDependencyNoProtectedReference):
-            return dependency.obj.id not in self.obj_references.get(dependency.obj.model, set())
+            return not any(
+                (reference.on_delete == "PROTECT") for reference in
+                self.obj_references.get(dependency.obj.model, {}).get(dependency.obj.id, ())
+            )
 
         if isinstance(dependency, OperationDependencyUniqueValue):
-            return dependency.value not in self.values_to_clear.get(dependency.obj.model,
-                                                                    {}).get(dependency.field, set())
+            return dependency.value not in self.occupied_unique_values.get(dependency.obj.model,
+                                                                           {}).get(dependency.field, set())
 
         raise ValueError
 
@@ -220,6 +223,10 @@ class ChangedObjectCollection(BaseSchema):
             model = apps.get_model("mapdata", model_name)
 
             for changed_obj in changed_objects.values():
+                base_dependencies: set[OperationDependency] = (
+                    set() if changed_obj.created else {OperationDependencyObjectExists(obj=changed_obj.obj)}
+                )
+
                 if changed_obj.deleted:
                     if changed_obj.created:
                         continue
@@ -227,14 +234,15 @@ class ChangedObjectCollection(BaseSchema):
                         SingleOperationWithDependencies(
                             uid=(changed_obj.obj, "delete"),
                             operation=DeleteObjectOperation(obj=changed_obj.obj),
-                            dependencies={OperationDependencyNoProtectedReference(obj=changed_obj.obj)}
+                            dependencies=(
+                                base_dependencies | {OperationDependencyNoProtectedReference(obj=changed_obj.obj)}
+                            ),
                         ),
                     )
                     continue
 
                 initial_fields = dict()
                 obj_sub_operations: list[OperationWithDependencies] = []
-                base_dependencies: set[OperationDependency] = {OperationDependencyObjectExists(obj=changed_obj.obj)}
                 for name, value in changed_obj.fields.items():
                     if value is None:
                         initial_fields[name] = None
@@ -289,39 +297,53 @@ class ChangedObjectCollection(BaseSchema):
         from pprint import pprint
         pprint(operations_with_dependencies)
 
-        start_situation = OperationSituation(
-            remaining_operations_with_dependencies = operations_with_dependencies,
-        )
+        start_situation = OperationSituation(remaining_operations_with_dependencies=operations_with_dependencies)
 
-        # categorize operations to collect data for simulation/solving and problem detection
-        missing_objects: dict[ModelName, set[ObjectID]] = {}  # objects that need to exist before
+        referenced_objects: dict[ModelName, set[ObjectID]] = {}  # objects that need to exist before
+        deleted_existing_objects: dict[ModelName, set[ObjectID]] = {}  # objects that need to exist before
+        unique_values_needed: dict[ModelName, dict[FieldName: set]] = {}
         for operation in operations_with_dependencies:
             for dependency in operation.dependencies:
                 if isinstance(dependency, OperationDependencyObjectExists):
-                    missing_objects.setdefault(dependency.obj.model, set()).add(dependency.obj.id)
+                    referenced_objects.setdefault(dependency.obj.model, set()).add(dependency.obj.id)
                 elif isinstance(dependency, OperationDependencyUniqueValue):
-                    start_situation.values_to_clear.setdefault(
+                    unique_values_needed.setdefault(
                         dependency.obj.model, {}
                     ).setdefault(dependency.field, set()).add(dependency.value)
-                    # todo: check for duplicate unique values
+                elif isinstance(dependency, OperationDependencyNoProtectedReference):
+                    deleted_existing_objects.setdefault(dependency.obj.model, set()).add(dependency.obj.id)
 
         # let's find which objects that need to exist before actually exist
-        for model, ids in missing_objects.items():
+        for model, ids in referenced_objects.items():
             model_cls = apps.get_model('mapdata', model)
             ids_found = set(model_cls.objects.filter(pk__in=ids).values_list('pk', flat=True))
-            start_situation.missing_objects = {id_ for id_ in ids if id_ not in ids_found}
+            start_situation.missing_objects[model] = {id_ for id_ in ids if id_ not in ids_found}
 
-        # let's find which protected references objects we want to delete have
+        # lets find which unique values are actually occupied right now
+        for model, fields in unique_values_needed.items():
+            model_cls = apps.get_model('mapdata', model)
+            q = Q()
+            for field_name, values in fields.items():
+                q |= Q(**{f'{field_name}__in': values})
+            field_names = tuple(fields.keys())
+            occupied_values = dict(zip(field_names, zip(*model_cls.objects.filter(q).values_list(*field_names))))
+            start_situation.occupied_unique_values[model] = {
+                field_name: (values & set(occupied_values.get(field_name, ())))
+                for field_name, values in fields.items()
+            }
+
+        # let's find which protected references to objects we want to delete have
         potential_fields: dict[ModelName, dict[FieldName, dict[ModelName, set[ObjectID]]]] = {}
-        for model, ids in missing_objects.items():
-            # todo: this shouldn't be using missing_objects, should it?
+        for model, ids in deleted_existing_objects.items():
+            # don't check this for objects that don't exist anymore
+            ids -= start_situation.missing_objects.get(model, set())
             for field in apps.get_model('mapdata', model)._meta.get_fields():
                 if isinstance(field, (ManyToOneRel, OneToOneRel)) or field.model._meta.app_label != "mapdata":
                     continue
                 potential_fields.setdefault(field.related_model._meta.model_name,
                                             {}).setdefault(field.field.attname, {})[model] = ids
 
-        # collect all references
+        # collect all references to objects we want to delete
         for model, fields in potential_fields.items():
             model_cls = apps.get_model('mapdata', model)
             q = Q()
@@ -339,8 +361,6 @@ class ChangedObjectCollection(BaseSchema):
                         FoundObjectReference(obj=source_ref, field=field,
                                              on_delete=model_cls._meta.get_field(field).on_delete.__name__)
                     )
-
-        # todo: do the same with valuea_to_clear
 
         return start_situation
 
