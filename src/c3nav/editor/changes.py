@@ -487,6 +487,33 @@ class ChangedObjectCollection(BaseSchema):
                     # if an object was created it's no longer missing
                     new_situation.missing_objects.get(new_operation.obj.model, set()).discard(new_operation.obj.id)
 
+                if isinstance(new_operation, UpdateObjectOperation):
+                    occupied_unique_values = new_situation.occupied_unique_values.get(new_operation.obj.model, {})
+                    relations_changed = set()
+                    for field_name in new_operation.fields:
+                        field = model_cls._meta.get_field(field_name)
+                        if field.unique:
+                            # unique field was changed? remove unique value entry [might be readded below]
+                            occupied_unique_values[field_name] = {
+                                val: pk for val, pk in occupied_unique_values[field_name].items()
+                                if pk != new_operation.obj.model
+                            }
+                        if field.is_relation:
+                            relations_changed.add(field_name)
+                            # unique field was changed? remove unique value entry [might be readded below]
+                            occupied_unique_values[field_name] = {
+                                val: pk for val, pk in occupied_unique_values[field_name].items()
+                                if pk != new_operation.obj.model
+                            }
+
+                    if relations_changed:
+                        # relation field was changed? remove reference entry [might be readded below]
+                        for model_name, references in tuple(new_situation.obj_references.items()):
+                            new_situation.obj_references[model_name] = {
+                                pk: ref for pk, ref in references.items()
+                                if ref.obj != new_operation.obj or ref.field not in relations_changed
+                            }
+
                 if isinstance(new_operation, DeleteObjectOperation):
                     # if an object was deleted it will now be missing
                     new_situation.missing_objects.get(new_operation.obj.model, set()).add(new_operation.obj.id)
@@ -498,13 +525,15 @@ class ChangedObjectCollection(BaseSchema):
                                                               if pk != new_operation.obj.model}
 
                     # all references that came from it, will no longer exist
-                    for model_name, references in tuple(new_situation.obj_references):
+                    for model_name, references in tuple(new_situation.obj_references.items()):
                         new_situation.obj_references[model_name] = {
                             pk: ref for pk, ref in references.items()
                             if ref.obj != new_operation.obj
                         }
 
                     # todo: cascading…?
+                else:
+                    pass  # todo: add new unique values and references
 
                 # todo: ...to this
 
