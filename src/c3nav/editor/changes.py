@@ -299,7 +299,7 @@ class ChangedObjectCollection(BaseSchema):
                     ))
         return operations_with_dependencies
 
-    def create_start_operation_situation(self) -> OperationSituation:
+    def create_start_operation_situation(self) -> tuple[OperationSituation, dict[ModelName, dict[FieldName: set]]]:
         operations_with_dependencies = self.as_operations_with_dependencies
 
         from pprint import pprint
@@ -370,7 +370,7 @@ class ChangedObjectCollection(BaseSchema):
                                              on_delete=model_cls._meta.get_field(field).on_delete.__name__)
                     )
 
-        return start_situation
+        return start_situation, unique_values_needed
 
     @property
     def as_operations(self) -> DatabaseOperationCollection:
@@ -384,7 +384,7 @@ class ChangedObjectCollection(BaseSchema):
                 )
             }
 
-        start_situation = self.create_start_operation_situation()
+        start_situation, unique_values_needed = self.create_start_operation_situation()
 
         # situations still to deal with, sorted by number of operations
         open_situations: list[OperationSituation] = [start_situation]
@@ -398,8 +398,13 @@ class ChangedObjectCollection(BaseSchema):
         # situations already encountered by set of operation uuids included, values are number of operations
         best_uids:  dict[frozenset[tuple], int] = {}
 
+        # unique values in db [only want to check for them once]
+        dummy_unique_value_avoid: dict[ModelName, dict[FieldName, frozenset]] = {}
+        available_model_ids: dict[ModelName, frozenset] = {}
+
         while open_situations and not done_situation:
             situation = open_situations.pop(0)
+
             continued = False
             for i, remaining_operation in enumerate(situation.remaining_operation_with_dependencies):
                 # check if the main operation can be ran
@@ -431,22 +436,49 @@ class ChangedObjectCollection(BaseSchema):
 
                             # todo: tell user about DummyValue result somehow
                             if field.is_relation:
-                                qs = field.related_model.objects.only('pk')
-                                if field.unique:
-                                    qs = qs.exclude(
-                                        **{f'{field_name}__in': model_cls.objects.values_list(field_name, flat=True)}
+
+                                if available_model_ids.get(field.related_model._meta.model_name) is None:
+                                    available_model_ids[field.related_model._meta.model_name] = frozenset(
+                                        field.related_model.objects.values_list('pk', flat=True)
                                     )
-                                first = qs.first()
-                                if first is None:
+                                if field.unique:
+                                    if dummy_unique_value_avoid.get(new_operation.obj.model, {}).get(field_name) is None:
+                                        dummy_unique_value_avoid.setdefault(
+                                            new_operation.obj.model, {}
+                                        )[field_name] = frozenset(
+                                            model_cls.objects.values_list(field_name, flat=True)
+                                        ) | unique_values_needed.get(new_operation.obj.model, {}).get(field_name, set())
+
+                                    choices = (
+                                        available_model_ids[field.related_model._meta.model_name] -
+                                        dummy_unique_value_avoid[new_operation.obj.model][field_name] -
+                                        set(
+                                            situation.occupied_unique_values[new_operation.obj.model][field_name].keys()
+                                        )
+                                    )
+                                else:
+                                    choices = available_model_ids[field.related_model._meta.model_name]
+                                if not choices:
                                     raise NotImplementedError  # todo: inform user about impossibility
-                                new_operation.fields[field_name] = first.pk
+                                new_operation.fields[field_name] = next(iter(choices))
                                 continue
 
                             if field.is_relation:
-                                occupied = (
-                                    frozenset(model_cls.objects.values_list(field_name, flat=True))
-                                    if field.unique else frozenset()
-                                )
+                                if field.unique:
+                                    if dummy_unique_value_avoid.get(new_operation.obj.model, {}).get(field_name) is None:
+                                        dummy_unique_value_avoid.setdefault(
+                                            new_operation.obj.model, {}
+                                        )[field_name] = frozenset(
+                                            model_cls.objects.values_list(field_name, flat=True)
+                                        ) | unique_values_needed.get(new_operation.obj.model, {}).get(field_name, set())
+                                    occupied = (
+                                        dummy_unique_value_avoid[new_operation.obj.model][field_name] -
+                                        set(
+                                            situation.occupied_unique_values[new_operation.obj.model][field_name].keys()
+                                        )
+                                    )
+                                else:
+                                    occupied = frozenset()
                                 if isinstance(field, (SlugField, CharField)):
                                     new_val = "dummyvalue"
                                     while new_val in occupied:
