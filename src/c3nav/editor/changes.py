@@ -39,7 +39,6 @@ class OperationDependencyObjectExists(BaseSchema):
     model_config = ConfigDict(frozen=True)
 
     obj: ObjectReference
-    nullable: bool
 
 
 class OperationDependencyUniqueValue(BaseSchema):
@@ -48,7 +47,6 @@ class OperationDependencyUniqueValue(BaseSchema):
     model: str
     field: FieldName
     value: Any
-    nullable: bool
 
 
 class OperationDependencyNoProtectedReference(BaseSchema):
@@ -87,7 +85,7 @@ class MergableOperationsWithDependencies(BaseSchema):
 
     @property
     def dependencies(self) -> set[OperationDependency]:
-        return reduce(operator.or_, (c.dependencies for c in self.children), set())
+        return self.main_op.dependencies | reduce(operator.or_, (op.dependencies for op in self.sub_ops), set())
 
 
 OperationWithDependencies = Union[
@@ -282,8 +280,8 @@ class ChangedObjectCollection(BaseSchema):
                     ))
 
                 obj_main_operation = SingleOperationWithDependencies(
+                    uid=(changed_obj.obj, f"main"),
                     operation=(CreateObjectOperation if changed_obj.created else UpdateObjectOperation)(
-                        uid=(changed_obj.obj, f"main"),
                         obj=changed_obj.obj,
                         fields=initial_fields,
                     ),
@@ -402,11 +400,15 @@ class ChangedObjectCollection(BaseSchema):
         dummy_unique_value_avoid: dict[ModelName, dict[FieldName, frozenset]] = {}
         available_model_ids: dict[ModelName, frozenset] = {}
 
+        if not start_situation.remaining_operations_with_dependencies:
+            # nothing to do? then we're done
+            done_situation = start_situation
+
         while open_situations and not done_situation:
             situation = open_situations.pop(0)
 
             continued = False
-            for i, remaining_operation in enumerate(situation.remaining_operation_with_dependencies):
+            for i, remaining_operation in enumerate(situation.remaining_operations_with_dependencies):
                 # check if the main operation can be ran
                 if not situation.fulfils_dependencies(remaining_operation.main_op.dependencies):
                     continue
