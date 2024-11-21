@@ -1,4 +1,5 @@
 import bisect
+import json
 import operator
 import random
 from functools import reduce
@@ -6,6 +7,7 @@ from itertools import chain
 from typing import Type, Any, Union, Self, TypeVar, Generic
 
 from django.apps import apps
+from django.core import serializers
 from django.db.models import Model, Q, CharField, SlugField, DecimalField
 from django.db.models.fields import IntegerField, SmallIntegerField, PositiveIntegerField, PositiveSmallIntegerField
 from django.db.models.fields.reverse_related import ManyToOneRel, OneToOneRel
@@ -120,7 +122,7 @@ class OperationSituation(BaseSchema):
     missing_objects: dict[ModelName, set[ObjectID]] = {}
 
     # unique values relevant for these operations that are currently not free
-    occupied_unique_values: dict[ModelName, dict[FieldName, set]] = {}
+    occupied_unique_values: dict[ModelName, dict[FieldName, dict[Any, ObjectID]]] = {}
 
     # references to objects that need to be removed for in this run
     obj_references: dict[ModelName, dict[ObjectID, set[FoundObjectReference]]] = {}
@@ -325,18 +327,18 @@ class ChangedObjectCollection(BaseSchema):
             ids_found = set(model_cls.objects.filter(pk__in=ids).values_list('pk', flat=True))
             start_situation.missing_objects[model] = {id_ for id_ in ids if id_ not in ids_found}
 
-        # lets find which unique values are actually occupied right now
+        # let's find which unique values are actually occupied right now
         for model, fields in unique_values_needed.items():
             model_cls = apps.get_model('mapdata', model)
             q = Q()
             for field_name, values in fields.items():
                 q |= Q(**{f'{field_name}__in': values})
-            field_names = tuple(fields.keys())
-            occupied_values = dict(zip(field_names, zip(*model_cls.objects.filter(q).values_list(*field_names))))
-            start_situation.occupied_unique_values[model] = {
-                field_name: (values & set(occupied_values.get(field_name, ())))
-                for field_name, values in fields.items()
-            }
+            start_situation.occupied_unique_values[model] = {}
+            for result in model_cls.objects.filter(q).values("id", *fields.keys()):
+                pk = result.pop("id")
+                for field_name, value in result.items():
+                    if value in fields[field_name]:
+                        start_situation.occupied_unique_values[model].setdefault(field_name, {})[value] = pk
 
         # let's find which protected references to objects we want to delete have
         potential_fields: dict[ModelName, dict[FieldName, dict[ModelName, set[ObjectID]]]] = {}
@@ -375,7 +377,12 @@ class ChangedObjectCollection(BaseSchema):
         current_objects = {}
         for model_name, changed_objects in self.objects.items():
             model = apps.get_model("mapdata", model_name)
-            current_objects[model_name] = {obj.pk: obj for obj in model.objects.filter(pk__in=changed_objects.keys())}
+            current_objects[model_name] = {
+                obj["pk"]: obj["fields"]
+                for obj in json.loads(
+                    serializers.serialize("json", model.objects.filter(pk__in=changed_objects.keys()))
+                )
+            }
 
         start_situation = self.create_start_operation_situation()
 
@@ -413,8 +420,8 @@ class ChangedObjectCollection(BaseSchema):
                         else:
                             new_remaining_operations.append(sub_op)
 
+                model_cls = apps.get_model('mapdata', new_operation.obj.model)
                 if isinstance(new_operation, (CreateObjectOperation, UpdateObjectOperation)):
-                    model_cls = apps.get_model('mapdata', new_operation.obj.model)
                     for field_name, value in tuple(new_operation.fields.items()):
                         if value is DummyValue:
                             field = model_cls._meta.get_field(field_name)
@@ -481,8 +488,23 @@ class ChangedObjectCollection(BaseSchema):
                     new_situation.missing_objects.get(new_operation.obj.model, set()).discard(new_operation.obj.id)
 
                 if isinstance(new_operation, DeleteObjectOperation):
-                    # if an object was created it's no longer missing
-                    new_situation.missing_objects.get(new_operation.obj.model, set()).discard(new_operation.obj.id)
+                    # if an object was deleted it will now be missing
+                    new_situation.missing_objects.get(new_operation.obj.model, set()).add(new_operation.obj.id)
+
+                    # all unique values it occupied will no longer be occupied
+                    occupied_unique_values = new_situation.occupied_unique_values.get(new_operation.obj.model, {})
+                    for field_name, values in tuple(occupied_unique_values.items()):
+                        occupied_unique_values[field_name] = {val: pk for val, pk in values.items()
+                                                              if pk != new_operation.obj.model}
+
+                    # all references that came from it, will no longer exist
+                    for model_name, references in tuple(new_situation.obj_references):
+                        new_situation.obj_references[model_name] = {
+                            pk: ref for pk, ref in references.items()
+                            if ref.obj != new_operation.obj
+                        }
+
+                    # todo: cascading…?
 
                 # todo: ...to this
 

@@ -1,4 +1,3 @@
-import copy
 import json
 from contextlib import contextmanager
 from dataclasses import dataclass, field
@@ -9,10 +8,9 @@ from django.db import transaction
 from django.db.models import Model
 from django.db.models.fields.related import ManyToManyField
 
-from c3nav.editor.changes import ChangedObjectCollection
-from c3nav.editor.operations import DatabaseOperation, CreateObjectOperation, \
+from c3nav.editor.operations import CreateObjectOperation, \
     UpdateObjectOperation, DeleteObjectOperation, ClearManyToManyOperation, UpdateManyToManyOperation, \
-    DatabaseOperationCollection, FieldValuesDict, ObjectReference, PreviousObjectCollection
+    DatabaseOperationCollection, FieldValuesDict, ObjectReference
 from c3nav.mapdata.fields import I18nField
 from c3nav.mapdata.models import LocationSlug
 
