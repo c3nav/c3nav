@@ -1,12 +1,12 @@
 editor = {
     options: {
-		position: 'bottomright'
-	},
+        position: 'bottomright'
+    },
 
     init: function () {
         // Init Map
         editor.map = L.map('map', {
-            renderer: L.svg({ padding: 2 }),
+            renderer: L.svg({padding: 2}),
             zoom: 2,
             maxZoom: 10,
             minZoom: -5,
@@ -55,11 +55,11 @@ editor = {
 
         L.control.scale({imperial: false}).addTo(editor.map);
 
-        $('#show_map').click(function(e) {
+        $('#show_map').click(function (e) {
             e.preventDefault();
             $('body').addClass('show-map');
         });
-        $('#show_details').click(function(e) {
+        $('#show_details').click(function (e) {
             e.preventDefault();
             $('body').removeClass('show-map');
         });
@@ -74,7 +74,7 @@ editor = {
         editor.init_scancollector();
         editor.sidebar_content_loaded();
     },
-    _inform_mobile_client: function(elem) {
+    _inform_mobile_client: function (elem) {
         if (!window.mobileclient || !elem.length) return;
         var data = JSON.parse(elem.attr('data-user-data'));
         data.changes_count_display = elem.attr('data-count-display');
@@ -82,7 +82,7 @@ editor = {
         data.has_changeset = elem.is('[data-has-changeset]');
         mobileclient.setUserData(JSON.stringify(data));
     },
-    _onbeforeunload: function(e) {
+    _onbeforeunload: function (e) {
         if ($('#sidebar').find('[data-onbeforeunload]').length) {
             e.returnValue = true;
         }
@@ -142,26 +142,26 @@ editor = {
     get_location_path: function () {
         return window.location.pathname + window.location.search;
     },
-    init_sidebar: function() {
+    init_sidebar: function () {
         // init the sidebar. sed listeners for form submits and link clicks
         $('#sidebar').find('.content').on('click', 'a[href]', editor._sidebar_link_click)
-                                      .on('click', 'button[type=submit]', editor._sidebar_submit_btn_click)
-                                      .on('submit', 'form', editor._sidebar_submit);
+            .on('click', 'button[type=submit]', editor._sidebar_submit_btn_click)
+            .on('submit', 'form', editor._sidebar_submit);
         $('nav.navbar').on('click', 'a[href]', editor._sidebar_link_click);
         var location_path = editor.get_location_path();
         editor._sidebar_loaded();
         history.replaceState({}, '', location_path);
-        window.onpopstate = function() {
+        window.onpopstate = function () {
             editor.sidebar_get(editor.get_location_path(), true);
         };
     },
-    sidebar_get: function(location, no_push) {
+    sidebar_get: function (location, no_push) {
         // load a new page into the sidebar using a GET request
         if (!no_push) history.pushState({}, '', location);
         editor._sidebar_unload();
         $.get(location, editor._sidebar_loaded).fail(editor._sidebar_error);
     },
-    _sidebar_unload: function() {
+    _sidebar_unload: function () {
         // unload the sidebar. called on sidebar_get and form submit.
         editor._level_control.disable();
         editor._sublevel_control.disable();
@@ -202,12 +202,15 @@ editor = {
         level_control.current_id = parseInt(level_list.attr('data-current-id'));
     },
 
-    sidebar_content_loaded: function() {
+    sidebar_content_loaded: function () {
         if (document.querySelector('#sidebar [data-themed-color]')) {
             editor.theme_editor_loaded();
         }
+        if (document.querySelector('TODO')) {
+
+        }
     },
-    theme_editor_loaded: function() {
+    theme_editor_loaded: function () {
         const filter_show_all = () => {
             for (const input of document.querySelectorAll('#sidebar [data-themed-color]')) {
                 input.parentElement.classList.remove('theme-color-hidden');
@@ -263,7 +266,8 @@ editor = {
     },
 
     _in_modal: false,
-    _sidebar_loaded: function(data) {
+    sidebar_extra_data: {},
+    _sidebar_loaded: function (data) {
         // sidebar was loaded. load the content. check if there are any redirects. call _check_start_editing.
         var content = $('#sidebar').removeClass('loading').find('.content');
         if (data !== undefined) {
@@ -286,6 +290,14 @@ editor = {
         editor._inform_mobile_client(content.find('[data-user-data]'));
 
         editor._beacon_layer.clearLayers();
+
+        const extraData = content.find('#sidebar-extra-data').first().text();
+
+        if (extraData) {
+            editor.sidebar_extra_data = JSON.parse(extraData);
+        } else {
+            editor.sidebar_extra_data = null;
+        }
 
         var group;
         if (content.find('[name=fixed_x]').length) {
@@ -311,13 +323,15 @@ editor = {
 
             content.find('[name=left], [name=bottom], [name=right], [name=top]').change(editor._source_image_bounds_changed);
             content.find('[name=scale_x], [name=scale_y]').change(editor._source_image_scale_changed);
-            content.find('[name=left], [name=bottom], [name=right], [name=top]').each(function() { $(this).data('oldval', $(this).val()); });
+            content.find('[name=left], [name=bottom], [name=right], [name=top]').each(function () {
+                $(this).data('oldval', $(this).val());
+            });
 
             content.find('[name=lock_aspect], [name=lock_scale]').closest('.form-group').addClass('source-wizard');
 
             var source_width = (parseFloat(content.find('[name=right]').val()) || 0) - (parseFloat(content.find('[name=left]').val()) || 0),
                 source_height = (parseFloat(content.find('[name=top]').val()) || 0) - (parseFloat(content.find('[name=bottom]').val()) || 0);
-            editor._source_aspect_ratio = source_width/(source_height || 1);
+            editor._source_aspect_ratio = source_width / (source_height || 1);
         }
         if (content.find('[name=left]').length) {
             group = $('<div class="form-group-group">');
@@ -402,8 +416,8 @@ editor = {
             var level_control_offset = $(editor._level_control_container).position();
             var offset_parent = $(editor._level_control_container).offsetParent();
             $(editor._sublevel_control._container).css({
-                bottom: offset_parent.outerHeight()-level_control_offset.top-editor._level_control_container.outerHeight()-parseInt(editor._level_control_container.css('margin-bottom')),
-                right: offset_parent.outerWidth()-level_control_offset.left
+                bottom: offset_parent.outerHeight() - level_control_offset.top - editor._level_control_container.outerHeight() - parseInt(editor._level_control_container.css('margin-bottom')),
+                right: offset_parent.outerWidth() - level_control_offset.left
             });
         } else {
             $body.removeClass('show-map');
@@ -433,12 +447,12 @@ editor = {
             data_field.after(collector);
         }
     },
-    _sidebar_error: function(data) {
-        $('#sidebar').removeClass('loading').find('.content').html('<h3>Error '+data.status+'</h3>'+data.statusText);
+    _sidebar_error: function (data) {
+        $('#sidebar').removeClass('loading').find('.content').html('<h3>Error ' + data.status + '</h3>' + data.statusText);
         editor._level_control.hide();
         editor._sublevel_control.hide();
     },
-    _sidebar_link_click: function(e) {
+    _sidebar_link_click: function (e) {
         // listener for link-clicks in the sidebar.
         var href = $(this).attr('href');
         if (href && !href.startsWith('/editor/')) return;
@@ -449,14 +463,14 @@ editor = {
         if ($(this).is('[data-no-next-zoom]')) editor._next_zoom = false;
         editor.sidebar_get($(this).attr('href'));
     },
-    _sidebar_submit_btn_click: function() {
+    _sidebar_submit_btn_click: function () {
         // listener for submit-button-clicks in the sidebar, so the submit event will know which button submitted.
         if (editor._loading_geometry) return;
-        $(this).closest('form').data('btn', $(this)).clearQueue().delay(300).queue(function() {
+        $(this).closest('form').data('btn', $(this)).clearQueue().delay(300).queue(function () {
             $(this).data('btn', null);
         });
     },
-    _sidebar_submit: function(e) {
+    _sidebar_submit: function (e) {
         // listener for form submits in the sidebar.
         e.preventDefault();
         if (editor._loading_geometry || $(this).is('.creation-lock') || $(this).is('.scan-lock')) return;
@@ -485,17 +499,17 @@ editor = {
     _source_image_aspect_ratio: 0,
     _source_image_untouched: 0,
     _source_image_layer: null,
-    _source_name_selected: function() {
+    _source_name_selected: function () {
         if (editor._source_image_layer) {
             editor._source_image_layer.remove();
             editor._source_image_layer = null;
         }
         // noinspection HtmlRequiredAltAttribute
-        $('<img src="/editor/sourceimage/'+$(this).val()+'">').on('load', editor._source_name_selected_ajax_callback);
+        $('<img src="/editor/sourceimage/' + $(this).val() + '">').on('load', editor._source_name_selected_ajax_callback);
         $('#sidebar form').removeClass('show-source-wizard');
         $('body').removeClass('map-enabled');
     },
-    _source_name_selected_ajax_callback: function() {
+    _source_name_selected_ajax_callback: function () {
         if ($(this).attr('src').endsWith($('#sidebar [name=name]').val())) {
             $('#sidebar form').addClass('show-source-wizard');
             $(this).appendTo('body').hide();
@@ -505,26 +519,26 @@ editor = {
             $('body').addClass('map-enabled');
             var content = $('#sidebar');
             if (content.find('[data-new]').length || isNaN(parseFloat(content.find('[name=right]').val())) || isNaN(parseFloat(content.find('[name=left]').val())) || isNaN(parseFloat(content.find('[name=top]').val())) || isNaN(parseFloat(content.find('[name=bottom]').val()))) {
-                editor._source_aspect_ratio = $(this).width()/$(this).height();
+                editor._source_aspect_ratio = $(this).width() / $(this).height();
                 content.find('[name=left]').val(0).data('oldval', 0);
                 content.find('[name=bottom]').val(0).data('oldval', 0);
                 var factor = 1;
-                while(factor < 1000 && (editor._source_image_orig_width/factor)>1500) {
+                while (factor < 1000 && (editor._source_image_orig_width / factor) > 1500) {
                     factor *= 10;
                 }
-                var width = (editor._source_image_orig_width/factor).toFixed(2),
-                    height = (editor._source_image_orig_height/factor).toFixed(2);
+                var width = (editor._source_image_orig_width / factor).toFixed(2),
+                    height = (editor._source_image_orig_height / factor).toFixed(2);
                 content.find('[name=right]').val(width).data('oldval', width);
                 content.find('[name=top]').val(height).data('oldval', height);
-                content.find('[name=scale_x]').val(1/factor);
-                content.find('[name=scale_y]').val(1/factor);
+                content.find('[name=scale_x]').val(1 / factor);
+                content.find('[name=scale_y]').val(1 / factor);
             } else {
                 editor._source_image_calculate_scale();
             }
             editor._source_image_repositioned();
         }
     },
-    _source_image_repositioned: function() {
+    _source_image_repositioned: function () {
         var content = $('#sidebar');
         if (isNaN(parseFloat(content.find('[name=right]').val())) || isNaN(parseFloat(content.find('[name=left]').val())) || isNaN(parseFloat(content.find('[name=top]').val())) || isNaN(parseFloat(content.find('[name=bottom]').val()))) {
             return;
@@ -536,40 +550,48 @@ editor = {
         if (editor._source_image_layer) {
             editor._source_image_layer.setBounds(bounds)
         } else {
-            editor._source_image_layer = L.imageOverlay('/editor/sourceimage/'+content.find('[name=name]').val(), bounds, {opacity: 0.3, zIndex: 10000});
+            editor._source_image_layer = L.imageOverlay('/editor/sourceimage/' + content.find('[name=name]').val(), bounds, {
+                opacity: 0.3,
+                zIndex: 10000
+            });
             editor._source_image_layer.addTo(editor.map);
             if (content.find('[data-new]').length) {
                 editor.map.fitBounds(bounds, {padding: [30, 50]});
             }
         }
     },
-    _source_image_calculate_scale: function() {
+    _source_image_calculate_scale: function () {
         var content = $('#sidebar');
         var source_width = parseFloat(content.find('[name=right]').val()) - parseFloat(content.find('[name=left]').val()),
             source_height = parseFloat(content.find('[name=top]').val()) - parseFloat(content.find('[name=bottom]').val());
         if (isNaN(source_width) || isNaN(source_height)) return;
-        var scale_x = (source_width/editor._source_image_orig_width).toFixed(3),
-            scale_y = (source_height/editor._source_image_orig_height).toFixed(3);
+        var scale_x = (source_width / editor._source_image_orig_width).toFixed(3),
+            scale_y = (source_height / editor._source_image_orig_height).toFixed(3);
         content.find('[name=scale_x]').val(scale_x);
         content.find('[name=scale_y]').val(scale_y);
         if (scale_x !== scale_y) {
             content.find('[name=lock_aspect]').prop('checked', false);
         }
     },
-    _source_image_bounds_changed: function() {
+    _source_image_bounds_changed: function () {
         var content = $('#sidebar'),
             lock_scale = content.find('[name=lock_scale]').prop('checked'),
             oldval = $(this).data('oldval'),
             newval = $(this).val(),
-            diff = parseFloat(newval)-parseFloat(oldval);
+            diff = parseFloat(newval) - parseFloat(oldval);
         $(this).data('oldval', newval);
         if (lock_scale) {
             if (!isNaN(diff)) {
-                var other_field_name = {left: 'right', right: 'left', top: 'bottom', bottom: 'top'}[$(this).attr('name')],
-                    other_field = content.find('[name='+other_field_name+']'),
+                var other_field_name = {
+                        left: 'right',
+                        right: 'left',
+                        top: 'bottom',
+                        bottom: 'top'
+                    }[$(this).attr('name')],
+                    other_field = content.find('[name=' + other_field_name + ']'),
                     other_val = parseFloat(other_field.val());
                 if (!isNaN(other_val)) {
-                    other_field.val((other_val+diff).toFixed(2)).data('oldval', other_val);
+                    other_field.val((other_val + diff).toFixed(2)).data('oldval', other_val);
                 }
             }
         } else {
@@ -577,12 +599,12 @@ editor = {
         }
         editor._source_image_repositioned();
     },
-    _source_image_scale_changed: function() {
+    _source_image_scale_changed: function () {
         var content = $('#sidebar'),
             lock_aspect = content.find('[name=lock_scale]').prop('checked');
         if (lock_aspect) {
             var other_field_name = {scale_x: 'scale_y', scale_y: 'scale_x'}[$(this).attr('name')],
-                other_field = content.find('[name='+other_field_name+']');
+                other_field = content.find('[name=' + other_field_name + ']');
             other_field.val($(this).val());
         }
         var f_scale_x = content.find('[name=scale_x]'),
@@ -601,14 +623,14 @@ editor = {
 
         if (isNaN(scale_x) || isNaN(scale_y) || isNaN(fixed_x) || isNaN(fixed_y) || isNaN(left) || isNaN(bottom) || isNaN(right) || isNaN(top)) return;
 
-        var fixed_x_relative = (fixed_x-left)/(right-left),
-            fixed_y_relative = (fixed_y-bottom)/(top-bottom),
-            width = editor._source_image_orig_width*scale_x,
-            height = editor._source_image_orig_height*scale_y;
-        left = fixed_x-(width*fixed_x_relative);
-        bottom = fixed_y-(height*fixed_y_relative);
-        right = left+width;
-        top = bottom+height;
+        var fixed_x_relative = (fixed_x - left) / (right - left),
+            fixed_y_relative = (fixed_y - bottom) / (top - bottom),
+            width = editor._source_image_orig_width * scale_x,
+            height = editor._source_image_orig_height * scale_y;
+        left = fixed_x - (width * fixed_x_relative);
+        bottom = fixed_y - (height * fixed_y_relative);
+        right = left + width;
+        top = bottom + height;
 
         left = left.toFixed(2);
         bottom = bottom.toFixed(2);
@@ -622,7 +644,7 @@ editor = {
 
         editor._source_image_repositioned();
     },
-    _fixed_point_changed: function() {
+    _fixed_point_changed: function () {
         var content = $('#sidebar'),
             fixed_x = parseFloat(content.find('[name=fixed_x]').val()),
             fixed_y = parseFloat(content.find('[name=fixed_y]').val()),
@@ -637,7 +659,7 @@ editor = {
                 editor._fixed_point_layer = null;
             }
         } else if (valid) {
-            editor._fixed_point_layer = L.marker(latlng, {draggable: true, autoPan: true}).on('dragend', function(e) {
+            editor._fixed_point_layer = L.marker(latlng, {draggable: true, autoPan: true}).on('dragend', function (e) {
                 var coords = L.GeoJSON.latLngToCoords(e.target.getLatLng());
                 content.find('[name=fixed_x]').val(coords[0].toFixed(3));
                 content.find('[name=fixed_y]').val(coords[1].toFixed(3));
@@ -645,14 +667,14 @@ editor = {
             editor._fixed_point_layer.addTo(editor.map);
         }
     },
-    _copy_from_changed: function() {
+    _copy_from_changed: function () {
         var content = $('#sidebar'),
             value = JSON.parse($(this).val());
         $(this).val('');
-        if (!confirm('Are you sure you want to copy settings from '+value.name+'?')) return;
+        if (!confirm('Are you sure you want to copy settings from ' + value.name + '?')) return;
         delete value.name;
         for (var key in value) {
-            if (value.hasOwnProperty(key)) content.find('[name='+key+']').val(value[key]);
+            if (value.hasOwnProperty(key)) content.find('[name=' + key + ']').val(value[key]);
         }
         editor._source_image_calculate_scale();
         editor._source_image_repositioned();
@@ -690,8 +712,8 @@ editor = {
         editor._highlight_layer = L.layerGroup().addTo(editor.map);
 
         $('#sidebar').find('.content').on('mouseenter', '.itemtable tr[data-pk]', editor._hover_mapitem_row)
-                                      .on('mouseleave', '.itemtable tr[data-pk]', editor._unhover_mapitem_row)
-                                      .on('click', '.itemtable tr[data-pk] td:not(:last-child)', editor._click_mapitem_row);
+            .on('mouseleave', '.itemtable tr[data-pk]', editor._unhover_mapitem_row)
+            .on('click', '.itemtable tr[data-pk] td:not(:last-child)', editor._click_mapitem_row);
 
         editor.map.on('editable:drawing:commit', editor._done_creating);
         editor.map.on('editable:editing', editor._update_editing);
@@ -699,27 +721,27 @@ editor = {
         editor.map.on('editable:vertex:click', function () {
             editor.map.doubleClickZoom.disable();
         });
-        editor.map.on('editable:drawing:start editable:drawing:end', function() {
+        editor.map.on('editable:drawing:start editable:drawing:end', function () {
             editor._last_vertex = null;
             editor._num_vertices = 0;
         });
-        editor.map.on('editable:vertex:new', function(e) {
+        editor.map.on('editable:vertex:new', function (e) {
             if (editor._shift_pressed && editor._creating && editor._creating_type === 'polygon' && editor._num_vertices === 1) {
                 var firstPoint = new L.Point(editor._last_vertex.latlng.lng, editor._last_vertex.latlng.lat),
                     secondPoint = new L.Point(e.vertex.latlng.lng, e.vertex.latlng.lat),
-                    center = new L.Point((firstPoint.x+secondPoint.x)/2, (firstPoint.y+secondPoint.y)/2),
-                    radius = firstPoint.distanceTo(secondPoint)/2,
+                    center = new L.Point((firstPoint.x + secondPoint.x) / 2, (firstPoint.y + secondPoint.y) / 2),
+                    radius = firstPoint.distanceTo(secondPoint) / 2,
                     options = e.layer.options,
-                    points = Math.min(32, 8+Math.floor(radius*5)*2),
+                    points = Math.min(32, 8 + Math.floor(radius * 5) * 2),
                     vertices = [];
-                for (var i=0;i<points;i++) {
+                for (var i = 0; i < points; i++) {
                     vertices.push([
-                        center.x+Math.sin(Math.PI*2/points*i)*radius,
-                        center.y+Math.cos(Math.PI*2/points*i)*radius
+                        center.x + Math.sin(Math.PI * 2 / points * i) * radius,
+                        center.y + Math.cos(Math.PI * 2 / points * i) * radius
                     ])
                 }
                 var polygon = L.polygon(L.GeoJSON.coordsToLatLngs(vertices), options).addTo(editor.map);
-                window.setTimeout(function() {
+                window.setTimeout(function () {
                     editor.map.editTools.stopDrawing();
                     polygon.enableEdit();
                     editor._done_creating({layer: polygon});
@@ -740,11 +762,11 @@ editor = {
                     dy = e.latlng.lat - editor._orig_vertex_pos[0],
                     angle = Math.atan2(dy, dx) * (180 / Math.PI),
                     distance = Math.hypot(dx, dy),
-                    newangle = Math.round(angle/15)*15 / (180 / Math.PI);
-                e.latlng.lat = editor._orig_vertex_pos[0] + Math.sin(newangle)*distance;
-                e.latlng.lng = editor._orig_vertex_pos[1] + Math.cos(newangle)*distance;
+                    newangle = Math.round(angle / 15) * 15 / (180 / Math.PI);
+                e.latlng.lat = editor._orig_vertex_pos[0] + Math.sin(newangle) * distance;
+                e.latlng.lng = editor._orig_vertex_pos[1] + Math.cos(newangle) * distance;
             }
-            e.vertex.setLatLng([Math.round(e.latlng.lat*100)/100, Math.round(e.latlng.lng*100)/100]);
+            e.vertex.setLatLng([Math.round(e.latlng.lat * 100) / 100, Math.round(e.latlng.lng * 100) / 100]);
         });
         editor.map.on('editable:drawing:click editable:drawing:move', function (e) {
             if (e.originalEvent.ctrlKey && editor._last_vertex) {
@@ -752,12 +774,12 @@ editor = {
                     dy = e.latlng.lat - editor._last_vertex.latlng.lat,
                     angle = Math.atan2(dy, dx) * (180 / Math.PI),
                     distance = Math.hypot(dx, dy),
-                    newangle = Math.round(angle/15)*15 / (180 / Math.PI);
-                e.latlng.lat = editor._last_vertex.latlng.lat + Math.sin(newangle)*distance;
-                e.latlng.lng = editor._last_vertex.latlng.lng + Math.cos(newangle)*distance;
+                    newangle = Math.round(angle / 15) * 15 / (180 / Math.PI);
+                e.latlng.lat = editor._last_vertex.latlng.lat + Math.sin(newangle) * distance;
+                e.latlng.lng = editor._last_vertex.latlng.lng + Math.cos(newangle) * distance;
             }
-            e.latlng.lat = Math.round(e.latlng.lat*100)/100;
-            e.latlng.lng = Math.round(e.latlng.lng*100)/100;
+            e.latlng.lat = Math.round(e.latlng.lat * 100) / 100;
+            e.latlng.lng = Math.round(e.latlng.lng * 100) / 100;
         });
         editor.map.on('editable:drawing:click', function (e) {
             editor._shift_pressed = e.originalEvent.altKey;
@@ -786,7 +808,7 @@ editor = {
 
         editor._beacon_layer = L.layerGroup().addTo(editor.map);
     },
-    _set_max_bounds: function(bounds) {
+    _set_max_bounds: function (bounds) {
         bounds = bounds ? L.latLngBounds(editor._max_bounds[0], editor._max_bounds[1]).extend(bounds) : editor._max_bounds;
         editor.map.setMaxBounds(bounds);
     },
@@ -813,13 +835,13 @@ editor = {
         editor._set_max_bounds();
 
         if (same_url && editor._last_geometry_update_cache_key) {
-            geometry_url += '?update_cache_key='+editor._last_geometry_update_cache_key;
+            geometry_url += '?update_cache_key=' + editor._last_geometry_update_cache_key;
         }
         c3nav_api.get(geometry_url)
             .then(result => {
                 var geometries = [], feature, new_cache = {}, feature_type, feature_id;
                 // geometries cache logic
-                for (var i=0;i<result.length;i++) {
+                for (var i = 0; i < result.length; i++) {
                     feature = result[i];
                     if (Array.isArray(feature)) {
                         if (feature[0] === 'update_cache_key') {
@@ -855,11 +877,11 @@ editor = {
                 }
                 var remove_feature = null;
                 if (editor._editing_id !== null) {
-                    for (i=0;i<geometries.length;i++) {
+                    for (i = 0; i < geometries.length; i++) {
                         feature = geometries[i];
-                        if (feature.properties.original_type !== null && feature.properties.original_type+'-'+String(feature.properties.original_id) === editor._editing_id) {
+                        if (feature.properties.original_type !== null && feature.properties.original_type + '-' + String(feature.properties.original_id) === editor._editing_id) {
                             remove_feature = i;
-                        } else if (feature.original_geometry !== null && feature.properties.type+'-'+String(feature.properties.id) === editor._editing_id) {
+                        } else if (feature.original_geometry !== null && feature.properties.type + '-' + String(feature.properties.id) === editor._editing_id) {
                             feature.geometry = feature.original_geometry;
                             break;
                         }
@@ -869,8 +891,17 @@ editor = {
                     geometries.splice(remove_feature, 1);
                 }
                 if (editor._last_graph_path === null) {
-                    geometries = geometries.filter(function(val) { return val.properties.type !== 'graphnode' && val.properties.type !== 'graphedge' })
+                    geometries = geometries.filter(function (val) {
+                        return val.properties.type !== 'graphnode' && val.properties.type !== 'graphedge'
+                    })
                 }
+
+                if (editor.sidebar_extra_data?.activeOverlayId) {
+                    geometries = geometries.filter(g => g.properties.type !== 'dataoverlayfeature' || g.properties.overlay === editor.sidebar_extra_data.activeOverlayId);
+                } else {
+                    geometries = geometries.filter(g => g.properties.type !== 'dataoverlayfeature');
+                }
+
                 editor._geometries_layer = L.geoJSON(geometries, {
                     style: editor._get_geometry_style,
                     pointToLayer: editor._point_to_layer,
@@ -900,11 +931,11 @@ editor = {
                     } else {
                         defs.innerHTML = '';
                     }
-                    for(i=0;i<editor._arrow_colors.length;i++) {
+                    for (i = 0; i < editor._arrow_colors.length; i++) {
                         var color = editor._arrow_colors[i];
                         defs = editor.map.options.renderer._container.querySelector('defs');
                         // noinspection HtmlUnknownAttribute
-                        defs.insertAdjacentHTML('beforeend', '<marker id="graph-edge-arrow-'+String(i)+'" markerWidth="2" markerHeight="3" refX="3.5" refY="1.5" orient="auto"><path d="M0,0 L2,1.5 L0,3 L0,0" fill="'+color+'"></path></marker>');
+                        defs.insertAdjacentHTML('beforeend', '<marker id="graph-edge-arrow-' + String(i) + '" markerWidth="2" markerHeight="3" refX="3.5" refY="1.5" orient="auto"><path d="M0,0 L2,1.5 L0,3 L0,0" fill="' + color + '"></path></marker>');
                     }
                 }
 
@@ -916,23 +947,23 @@ editor = {
             editor.load_geometries(editor._last_geometry_url);
         }
     },
-    _weight_for_zoom: function() {
-        return Math.pow(2, editor.map.getZoom())*0.1;
+    _weight_for_zoom: function () {
+        return Math.pow(2, editor.map.getZoom()) * 0.1;
     },
-    _adjust_line_zoom: function() {
-        var weight = Math.pow(2, editor.map.getZoom())*0.1,
+    _adjust_line_zoom: function () {
+        var weight = Math.pow(2, editor.map.getZoom()) * 0.1,
             factor = Math.pow(2, editor.map.getZoom());
         editor._arrow_colors = [];
-        for(var i=0;i<editor._line_geometries.length;i++) {
+        for (var i = 0; i < editor._line_geometries.length; i++) {
             var layer = editor._line_geometries[i];
             if (layer.feature.properties.type === 'stair') {
-                layer.setStyle({weight: weight/2});
+                layer.setStyle({weight: weight / 2});
             } else {
                 layer.setStyle({weight: weight});
             }
             if (layer.feature.properties.type === 'graphedge') {
                 var start_pos = 0.1,
-                    end_pos = layer.length-0.1,
+                    end_pos = layer.length - 0.1,
                     color_index = editor._arrow_colors.indexOf(layer._path.getAttribute('stroke')),
                     other = (editor._graph_edges_to[layer.feature.properties.from_node] !== undefined) ? editor._graph_edges_to[layer.feature.properties.from_node][layer.feature.properties.to_node] : undefined;
                 if (color_index === -1) {
@@ -940,19 +971,19 @@ editor = {
                     editor._arrow_colors.push(layer._path.getAttribute('stroke'));
                 }
                 if (other !== undefined) {
-                    start_pos = layer.length/2-0.01;
+                    start_pos = layer.length / 2 - 0.01;
                 }
                 if (other === undefined || layer._path.getAttribute('stroke') !== other._path.getAttribute('stroke')) {
-                    end_pos = layer.length-0.3;
-                    layer._path.setAttribute('marker-end', 'url(#graph-edge-arrow-'+String(color_index)+')');
+                    end_pos = layer.length - 0.3;
+                    layer._path.setAttribute('marker-end', 'url(#graph-edge-arrow-' + String(color_index) + ')');
                 }
                 layer.setStyle({
-                    dashArray: '0 '+String(start_pos*factor)+' '+String((end_pos-start_pos)*factor)+' '+String(layer.length*factor)
+                    dashArray: '0 ' + String(start_pos * factor) + ' ' + String((end_pos - start_pos) * factor) + ' ' + String(layer.length * factor)
                 });
             }
         }
     },
-    _line_draw_geometry_style: function(style) {
+    _line_draw_geometry_style: function (style) {
         style.stroke = true;
         style.color = style.fillColor;
         style.weight = editor._weight_for_zoom();
@@ -990,6 +1021,13 @@ editor = {
         if (feature.properties.opacity !== null) {
             style.fillOpacity = feature.properties.opacity;
         }
+
+        if (feature.properties.type === 'dataoverlayfeature') {
+            style.stroke = true;
+            style.weight = 3;
+            style.fillOpacity = 0.5;
+        }
+
         return style
     },
     _get_mapitem_type_style: function (mapitem_type) {
@@ -1005,13 +1043,13 @@ editor = {
         // onEachFeature callback for GeoJSON loader – register all needed events
         if (feature.geometry.type === 'LineString') {
             editor._line_geometries.push(layer);
-            layer.length = Math.pow(Math.pow(layer._latlngs[0].lat-layer._latlngs[1].lat, 2)+Math.pow(layer._latlngs[0].lng-layer._latlngs[1].lng, 2), 0.5);
+            layer.length = Math.pow(Math.pow(layer._latlngs[0].lat - layer._latlngs[1].lat, 2) + Math.pow(layer._latlngs[0].lng - layer._latlngs[1].lng, 2), 0.5);
         }
         if (feature.properties.type === editor._highlight_type) {
-            var list_elem = $('#sidebar').find('[data-list] tr[data-pk='+String(feature.properties.id)+']');
+            var list_elem = $('#sidebar').find('[data-list] tr[data-pk=' + String(feature.properties.id) + ']');
             if (list_elem.length === 0) return;
             var highlight_layer = L.geoJSON(layer.feature, {
-                style: function() {
+                style: function () {
                     return {
                         weight: 3,
                         opacity: 0,
@@ -1024,17 +1062,17 @@ editor = {
             highlight_layer.list_elem = list_elem;
             editor._highlight_geometries[feature.properties.id] = highlight_layer;
             highlight_layer.on('mouseover', editor._hover_geometry_layer)
-                 .on('mouseout', editor._unhover_geometry_layer)
-                 .on('click', editor._click_geometry_layer)
-                 .on('dblclick', editor._dblclick_geometry_layer);
-        } else if (feature.properties.type+'-'+String(feature.properties.id) === editor._editing_id) {
+                .on('mouseout', editor._unhover_geometry_layer)
+                .on('click', editor._click_geometry_layer)
+                .on('dblclick', editor._dblclick_geometry_layer);
+        } else if (feature.properties.type + '-' + String(feature.properties.id) === editor._editing_id) {
             editor._editing_layer = layer;
             editor._bounds_layer = layer;
         } else if (feature.properties.bounds === true) {
             editor._bounds_layer = layer;
             if (editor._graph_creating) {
                 var space_layer = L.geoJSON(layer.feature, {
-                    style: function() {
+                    style: function () {
                         return {
                             weight: 0,
                             opacity: 0,
@@ -1047,7 +1085,7 @@ editor = {
             }
         } else if (feature.properties.type === 'graphnode' && editor._graph_editing) {
             var node_layer = L.geoJSON(layer.feature, {
-                style: function() {
+                style: function () {
                     return {
                         weight: 3,
                         opacity: 0,
@@ -1063,7 +1101,7 @@ editor = {
                 .on('click', editor._click_graph_node);
         } else if (feature.properties.type === 'space' && editor._graph_editing && !editor._graph_creating) {
             var other_space_layer = L.geoJSON(layer.feature, {
-                style: function() {
+                style: function () {
                     return {
                         weight: 3,
                         opacity: 0,
@@ -1132,11 +1170,10 @@ editor = {
         e.target.list_elem.find('td:last-child a').click();
         editor.map.doubleClickZoom.disable();
     },
-    _highlight_geometry: function(id) {
+    _highlight_geometry: function (id) {
         // highlight a geometries layer and itemtable row if they both exist
         var geometry = editor._highlight_geometries[id];
         if (!geometry) return;
-        if (Object.keys(geometry._bounds).length === 0) return; // ignore geometries with empty bounds
         geometry.setStyle({
             color: '#FFFFDD',
             weight: 3,
@@ -1145,11 +1182,10 @@ editor = {
         });
         geometry.list_elem.addClass('highlight');
     },
-    _unhighlight_geometry: function(id) {
+    _unhighlight_geometry: function (id) {
         // unhighlight whatever is highlighted currently
         var geometry = editor._highlight_geometries[id];
         if (!geometry) return;
-        if (Object.keys(geometry._bounds).length === 0) return; // ignore geometries with empty bounds
         geometry.setStyle({
             weight: 3,
             opacity: 0,
@@ -1159,7 +1195,7 @@ editor = {
     },
 
     // graph events
-    _hover_graph_item: function(e) {
+    _hover_graph_item: function (e) {
         // hover callback for a graph node
         if (editor._loading_geometry) return;
         e.target.setStyle({
@@ -1169,7 +1205,7 @@ editor = {
             fillOpacity: 0
         });
     },
-    _unhover_graph_item: function(e) {
+    _unhover_graph_item: function (e) {
         // unhover callback for a graph node
         if (editor._loading_geometry) return;
         e.target.setStyle({
@@ -1178,13 +1214,13 @@ editor = {
             fillOpacity: 0
         });
     },
-    _click_graph_current_space: function(e) {
+    _click_graph_current_space: function (e) {
         // click callback for a current graph space
         if (editor._loading_geometry) return;
         $('#id_clicked_position').val(JSON.stringify(L.marker(e.latlng).toGeoJSON().geometry)).closest('form').submit();
         editor.map.doubleClickZoom.disable();
     },
-    _click_graph_node: function(e) {
+    _click_graph_node: function (e) {
         // click callback for a graph node
         if (editor._loading_geometry) return;
         if (editor._active_graph_node === e.target.feature.properties.id) {
@@ -1204,7 +1240,7 @@ editor = {
         $('#id_clicked_node').val(e.target.feature.properties.id).closest('form').submit();
         editor.map.doubleClickZoom.disable();
     },
-    _dblclick_graph_other_space: function(e) {
+    _dblclick_graph_other_space: function (e) {
         // click callback for an other graph space
         if (editor._loading_geometry) return;
         editor._next_zoom = true;
@@ -1213,7 +1249,7 @@ editor = {
     },
 
     // edit and create geometries
-    _check_start_editing: function() {
+    _check_start_editing: function () {
         // called on sidebar load. start editing or creating depending on how the sidebar may require it
         var sidebarcontent = $('#sidebar').find('.content');
 
@@ -1237,7 +1273,9 @@ editor = {
                 }
                 if (options) {
                     editor._editing_layer = L.geoJSON(JSON.parse(geometry_field.val()), {
-                        style: function() { return options; },
+                        style: function () {
+                            return options;
+                        },
                         pointToLayer: editor._point_to_layer,
                     }).getLayers()[0].addTo(editor._geometries_layer);
                     editor._editing_layer.enableEdit();
@@ -1252,21 +1290,43 @@ editor = {
                     options.fillOpacity = 0.5;
                 }
                 form.addClass('creation-lock');
-                var geomtype = form.attr('data-geomtype');
-                editor._creating_type = geomtype;
-                if (geomtype === 'polygon') {
-                    editor.map.editTools.startPolygon(null, options);
-                } else if (geomtype === 'linestring') {
-                    options = editor._line_draw_geometry_style(options);
-                    editor.map.editTools.startPolyline(null, options);
-                } else if (geomtype === 'point') {
-                    editor.map.editTools.startMarker(null, options);
+                const geomtypes = form.attr('data-geomtype').split(',');
+
+                const startGeomEditing = (geomtype) => {
+                    editor._creating_type = geomtype;
+                    editor._creating = true;
+                    if (editor._current_editing_shape) {
+                        editor._current_editing_shape.remove();
+                    }
+                    if (geomtype === 'polygon') {
+                        editor._current_editing_shape = editor.map.editTools.startPolygon(null, options);
+                    } else if (geomtype === 'linestring') {
+                        options = editor._line_draw_geometry_style(options);
+                        editor._current_editing_shape = editor.map.editTools.startPolyline(null, options);
+                    } else if (geomtype === 'point') {
+                        editor._current_editing_shape = editor.map.editTools.startMarker(null, options);
+                    }
                 }
-                editor._creating = true;
+
+                if (geomtypes.length > 1) {
+                    const selector = $('<select id="geomtype-selector"></select>');
+                    const geomtypeNames = {
+                        polygon: 'Polygon',
+                        linestring: 'Line string',
+                        point: 'Point'
+                    }; // TODO: translations
+                    for(const geomtype of geomtypes) {
+                        selector.append(`<option value="${geomtype}">${geomtypeNames[geomtype]}</option>`);
+                    }
+
+                    selector.on('change', e => startGeomEditing(e.target.value));
+                    form.prepend(selector);
+                }
+                startGeomEditing(geomtypes[0]);
             }
         }
     },
-    _cancel_editing: function() {
+    _cancel_editing: function () {
         // called on sidebar unload. cancel all editing and creating.
         if (editor._creating) {
             editor._creating = false;
@@ -1285,7 +1345,7 @@ editor = {
             //e.layer.remove();
         }
     },
-    _done_creating: function(e) {
+    _done_creating: function (e) {
         // called when creating is completed (by clicking on the last point). fills in the form and switches to editing.
         if (editor._creating) {
             editor._creating = false;
@@ -1319,16 +1379,16 @@ editor = {
         editor._highlight_layer = L.layerGroup().addTo(editor.map);
 
         $('#sidebar').on('click', '.scancollector .start', editor._scancollector_start)
-                     .on('click', '.scancollector .stop', editor._scancollector_stop)
-                     .on('click', '.scancollector .reset', editor._scancollector_reset);
+            .on('click', '.scancollector .stop', editor._scancollector_stop)
+            .on('click', '.scancollector .reset', editor._scancollector_reset);
         window.setInterval(editor._scancollector_wifi_scan_perhaps, 1000);
     },
     _scancollector_lookup: {},
     load_scancollector_lookup: function () {
         c3nav_api.get('editor/beacons-lookup')
-                    .then(data => {
-                        editor._scancollector_lookup = data;
-                    })
+            .then(data => {
+                editor._scancollector_lookup = data;
+            })
     },
     _scancollector_data: {
         wifi: [],
@@ -1350,7 +1410,7 @@ editor = {
         // todo: maybe reset if either is empty?
         if (!editor._scancollector_data.wifi.length && editor._scancollector_data.ibeacon.length) return editor._scancollector_reset();
         var $collector = $('#sidebar').find('.scancollector');
-        $collector.removeClass('running').delay(1000).queue(function(n) {
+        $collector.removeClass('running').delay(1000).queue(function (n) {
             $(this).addClass('done');
             n();
         });
@@ -1358,25 +1418,27 @@ editor = {
     },
     _scancollector_reset: function () {
         var $collector = $('#sidebar').find('.scancollector');
-        $collector.removeClass('done').removeClass('running').addClass('empty').find('table tbody').each(function(elem) {elem.innerHTML = "";});
+        $collector.removeClass('done').removeClass('running').addClass('empty').find('table tbody').each(function (elem) {
+            elem.innerHTML = "";
+        });
         $collector.siblings('[name=data]').val('');
         $collector.closest('form').addClass('scan-lock');
         editor._beacon_layer.clearLayers();
     },
     _scancollector_wifi_last_max_last: 0,
     _scancollector_wifi_last_result: 0,
-    _scancollector_wifi_result: function(data) {
+    _scancollector_wifi_result: function (data) {
         var $collector = $('#sidebar').find('.scancollector.running'),
             $table = $collector.find('.wifi-table tbody'),
             item, i, line, apid, color, max_last = 0, now = Date.now(), match;
         editor._wifi_scan_waits = false;
 
         if (!data.length) return;
-        if (now-2000 < editor._scancollector_wifi_last_result) return;
+        if (now - 2000 < editor._scancollector_wifi_last_result) return;
         editor._scancollector_wifi_last_result = now;
 
         // ignore this scan?
-        for (i=0; i < data.length; i++) {
+        for (i = 0; i < data.length; i++) {
             item = data[i];
             if (item.last) {
                 max_last = Math.max(max_last, item.last);
@@ -1386,7 +1448,7 @@ editor = {
         editor._scancollector_wifi_last_max_last = max_last;
 
         $table.find('tr').addClass('old');
-        for (i=0; i < data.length; i++) {
+        for (i = 0; i < data.length; i++) {
             item = data[i];
             // App version < 4.2.4 use level instead fo rssi
             if (item.level !== undefined) {
@@ -1400,10 +1462,10 @@ editor = {
                 delete item.rtt;
             }
 
-            apid = 'ap-'+item.bssid.replace(/:/g, '-');
-            line = $table.find('tr.'+apid);
-            color = Math.max(0, Math.min(50, item.rssi+80));
-            color = 'rgb('+String(250-color*5)+', '+String(color*4)+', 0)';
+            apid = 'ap-' + item.bssid.replace(/:/g, '-');
+            line = $table.find('tr.' + apid);
+            color = Math.max(0, Math.min(50, item.rssi + 80));
+            color = 'rgb(' + String(250 - color * 5) + ', ' + String(color * 4) + ', 0)';
             if (line.length) {
                 line.removeClass('old').find(':last-child').text(item.rssi).css('color', color);
             } else {
@@ -1417,7 +1479,7 @@ editor = {
                 }
                 shortened_ssid = item.ssid;
                 if (shortened_ssid.length > 20) {
-                    shortened_ssid = shortened_ssid.slice(0, 20)+'…';
+                    shortened_ssid = shortened_ssid.slice(0, 20) + '…';
                 }
                 line = $('<tr>').addClass(apid);
                 line.append($('<td>').text(item.bssid));
@@ -1431,7 +1493,7 @@ editor = {
         $collector.find('.wifi-count').text(editor._scancollector_data.wifi.length);
         $collector.siblings('[name=data]').val(JSON.stringify(editor._scancollector_data));
     },
-    _scancollector_ibeacon_result: function(data) {
+    _scancollector_ibeacon_result: function (data) {
         var $collector = $('#sidebar').find('.scancollector.running'),
             $table = $collector.find('.ibeacon-table tbody'),
             item, i, line, beaconid, color = Date.now(), match;
@@ -1439,14 +1501,14 @@ editor = {
         if (!data.length) return;
 
         $table.find('tr').addClass('old');
-        for (i=0; i < data.length; i++) {
+        for (i = 0; i < data.length; i++) {
             item = data[i];
-            beaconid = 'beacon-'+item.uuid+'-'+item.major+'-'+item.minor;
-            line = $table.find('tr.'+beaconid);
+            beaconid = 'beacon-' + item.uuid + '-' + item.major + '-' + item.minor;
+            line = $table.find('tr.' + beaconid);
             color = Math.max(0, Math.min(50, item.distance));
-            color = 'rgb('+String(color*5)+', '+String(200-color*4)+', 0)';
+            color = 'rgb(' + String(color * 5) + ', ' + String(200 - color * 4) + ', 0)';
             if (line.length) {
-                line.removeClass('old').find(':last-child').text(Math.round(item.distance*100)/100).css('color', color);
+                line.removeClass('old').find(':last-child').text(Math.round(item.distance * 100) / 100).css('color', color);
             } else {
                 match = editor._scancollector_lookup.ibeacons?.[item.uuid]?.[item.major]?.[item.minor];
                 if (match && match.point) {
@@ -1460,7 +1522,7 @@ editor = {
                 line.append($('<td>').text(item.major));
                 line.append($('<td>').text(item.minor));
                 line.append($('<td>').text(match ? match.name : ''));
-                line.append($('<td>').text(Math.round(item.distance*100)/100).css('color', color));
+                line.append($('<td>').text(Math.round(item.distance * 100) / 100).css('color', color));
                 $table.append(line);
             }
         }
@@ -1469,7 +1531,7 @@ editor = {
         $collector.siblings('[name=data]').val(JSON.stringify(editor._scancollector_data));
     },
     _wifi_scan_waits: false,
-    _scancollector_wifi_scan_perhaps: function() {
+    _scancollector_wifi_scan_perhaps: function () {
         if (!editor._wifi_scan_waits && $('#sidebar').find('.scancollector.running').length) {
             editor._wifi_scan_waits = true;
             mobileclient.scanNow();
@@ -1487,21 +1549,21 @@ function ibeacon_results_available() {
 
 LevelControl = L.Control.extend({
     options: {
-		position: 'bottomright',
+        position: 'bottomright',
         addClasses: ''
-	},
+    },
 
-	onAdd: function () {
-		this._container = L.DomUtil.create('div', 'leaflet-control-levels leaflet-bar '+this.options.addClasses);
-		this._levelButtons = [];
-		//noinspection JSUnusedGlobalSymbols
+    onAdd: function () {
+        this._container = L.DomUtil.create('div', 'leaflet-control-levels leaflet-bar ' + this.options.addClasses);
+        this._levelButtons = [];
+        //noinspection JSUnusedGlobalSymbols
         this.current_level_id = null;
-		this.level_ids = [];
-		this._disabled = true;
-		this._expanded = false;
-		this.hide();
+        this.level_ids = [];
+        this._disabled = true;
+        this._expanded = false;
+        this.hide();
 
-		if (!L.Browser.android) {
+        if (!L.Browser.android) {
             L.DomEvent.on(this._container, {
                 mouseenter: this.expand,
                 mouseleave: this.collapse
@@ -1514,28 +1576,28 @@ LevelControl = L.Control.extend({
 
         this._map.on('click', this.collapse, this);
 
-		return this._container;
-	},
+        return this._container;
+    },
 
-	addLevel: function (id, title, href, current) {
+    addLevel: function (id, title, href, current) {
         this.level_ids.push(parseInt(id));
-		if (current) this.current_level_id = parseInt(id);
+        if (current) this.current_level_id = parseInt(id);
 
-		var link = L.DomUtil.create('a', (current ? 'current' : ''), this._container);
-		link.innerHTML = title;
-		link.href = href;
+        var link = L.DomUtil.create('a', (current ? 'current' : ''), this._container);
+        link.innerHTML = title;
+        link.href = href;
 
-		L.DomEvent
-		    .on(link, 'mousedown dblclick', L.DomEvent.stopPropagation)
-		    .on(link, 'click', this._levelClick, this);
+        L.DomEvent
+            .on(link, 'mousedown dblclick', L.DomEvent.stopPropagation)
+            .on(link, 'click', this._levelClick, this);
 
         this._levelButtons.push(link);
-		return link;
-	},
+        return link;
+    },
 
-    clearLevels: function() {
+    clearLevels: function () {
         this.current_level_id = null;
-		this.level_ids = [];
+        this.level_ids = [];
         for (var i = 0; i < this._levelButtons.length; i++) {
             L.DomUtil.remove(this._levelButtons[i]);
         }
@@ -1576,20 +1638,20 @@ LevelControl = L.Control.extend({
             editor.sidebar_get(e.target.href);
             this.collapse();
         }
-	},
+    },
 
     expand: function () {
         if (this._disabled) return;
         this._expanded = true;
-		L.DomUtil.addClass(this._container, 'leaflet-control-levels-expanded');
-		return this;
-	},
+        L.DomUtil.addClass(this._container, 'leaflet-control-levels-expanded');
+        return this;
+    },
 
-	collapse: function () {
+    collapse: function () {
         this._expanded = false;
-		L.DomUtil.removeClass(this._container, 'leaflet-control-levels-expanded');
-		return this;
-	}
+        L.DomUtil.removeClass(this._container, 'leaflet-control-levels-expanded');
+        return this;
+    }
 });
 
 OverlayControl = L.Control.extend({
@@ -1601,7 +1663,7 @@ OverlayControl = L.Control.extend({
 
     onAdd: function () {
         this._initialActiveOverlays = JSON.parse(localStorage.getItem('c3nav.editor.overlays.active-overlays') ?? '[]');
-        this._initialCollapsedGroups = JSON.parse(localStorage.getItem('c3nav.editor.overlays.collapsedGroups') ?? '[]');
+        this._initialCollapsedGroups = JSON.parse(localStorage.getItem('c3nav.editor.overlays.collapsed-groups') ?? '[]');
         const pinned = JSON.parse(localStorage.getItem('c3nav.editor.overlays.pinned') ?? 'false');
 
         this._container = L.DomUtil.create('div', 'leaflet-control-overlays ' + this.options.addClasses);
@@ -1635,9 +1697,9 @@ OverlayControl = L.Control.extend({
         }
 
         for (const group of this._initialCollapsedGroups) {
-           if (group in this._groups) {
-               this._groups[group].expanded = false;
-           }
+            if (group in this._groups) {
+                this._groups[group].expanded = false;
+            }
         }
 
         this.render();
@@ -1677,7 +1739,7 @@ OverlayControl = L.Control.extend({
         this.render();
     },
 
-    updateOverlay: function(id) {
+    updateOverlay: function (id) {
         const overlay = this._overlays[id];
         if (overlay.visible) {
             overlay.layer.addTo(this._map);
@@ -1732,7 +1794,7 @@ OverlayControl = L.Control.extend({
         return this;
     },
 
-    toggleGroup: function(name) {
+    toggleGroup: function (name) {
         const group = this._groups[name];
         group.expanded = !group.expanded;
         group.el.classList.toggle('expanded', group.expanded);
@@ -1740,7 +1802,7 @@ OverlayControl = L.Control.extend({
         localStorage.setItem('c3nav.editor.overlays.collapsed-groups', JSON.stringify(collapsedGroups));
     },
 
-    togglePinned: function() {
+    togglePinned: function () {
         this._pinned = !this._pinned;
         if (this._pinned) {
             this._expanded = true;

@@ -1,0 +1,17 @@
+{% load bootstrap3 %}
+{% load i18n %}
+{% include 'editor/fragment_levels.html' %}
+
+<h3>{% trans 'Data Overlays' %}</h3>
+{% bootstrap_messages %}
+<p>
+    <a href="{% url 'editor.levels.detail' pk=level.pk %}">&laquo; {% trans 'back to level' %}</a>
+</p>
+
+<div class="list-group">
+    {% for overlay in overlays %}
+        <a href="{% url 'editor.levels.overlay' level=level.pk pk=overlay.pk %}" class="list-group-item">
+            {{ overlay.title }}
+        </a>
+    {% endfor %}
+</div>

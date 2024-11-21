@@ -109,10 +109,10 @@ class GeometryField(models.JSONField):
             'multipolygon': (Polygon, MultiPolygon),
             'linestring': (LineString, ),
             'point': (Point, )
-        }[self.geomtype]
+        }.get(self.geomtype, None)
 
     def _validate_geomtype(self, value, exception: typing.Type[Exception] = ValidationError):
-        if not isinstance(value, self.classes):
+        if self.classes is not None and not isinstance(value, self.classes):
             # if you get this error with wrappedgeometry, looked into wrapped_geom
             raise TypeError('Expected %s instance, got %s, %s instead.' % (
                 ' or '.join(c.__name__ for c in self.classes),

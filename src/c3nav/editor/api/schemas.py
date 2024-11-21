@@ -63,6 +63,7 @@ class EditorGeometriesPropertiesSchema(BaseSchema):
         Annotated[str, APIField(title="color")],
         Annotated[None, APIField(title="no color")]
     ] = None
+    overlay: Optional[EditorID] = None
     opacity: Optional[float] = None   # todo: range
 
 

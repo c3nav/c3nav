@@ -1449,6 +1449,7 @@ c3nav = {
         c3nav._routeLayers = {};
         c3nav._routeLayerBounds = {};
         c3nav._userLocationLayers = {};
+        c3nav._overlayLayers = {};
         c3nav._firstRouteLevel = null;
         c3nav._labelLayer = L.LayerGroup.collision({margin: 5}).addTo(c3nav.map);
         for (i = c3nav.levels.length - 1; i >= 0; i--) {
@@ -1458,6 +1459,7 @@ c3nav = {
             c3nav._locationLayers[level[0]] = L.layerGroup().addTo(layerGroup);
             c3nav._routeLayers[level[0]] = L.layerGroup().addTo(layerGroup);
             c3nav._userLocationLayers[level[0]] = L.layerGroup().addTo(layerGroup);
+            c3nav._overlayLayers[level[0]] = L.layerGroup().addTo(layerGroup);
         }
         c3nav._levelControl.finalize();
         c3nav._levelControl.setLevel(c3nav.initial_level);
@@ -1479,6 +1481,8 @@ c3nav = {
         L.control.zoom({
             position: 'bottomright'
         }).addTo(c3nav.map);
+
+        c3nav._update_overlays();
 
         c3nav.map.on('click', c3nav._click_anywhere);
 
@@ -1855,11 +1859,33 @@ c3nav = {
     _set_user_data: function (data) {
         c3nav_api.authenticate();
         c3nav.user_data = data;
+        c3nav._update_overlays();
         var $user = $('header #user');
         $user.find('span').text(data.title);
         $user.find('small').text(data.subtitle || '');
         $('.position-buttons').toggle(data.has_positions);
         if (window.mobileclient) mobileclient.setUserData(JSON.stringify(data));
+    },
+    _current_overlays_key: null,
+    _update_overlays: function () {
+        if (!c3nav.map) return;
+
+        const key = c3nav.user_data.overlays.map(o => o.id).join(',');
+        if (key === c3nav._current_overlays_key) return;
+        c3nav._current_overlays_key = key;
+
+        const control = new OverlayControl({levels: c3nav._overlayLayers});
+        for (const overlay of c3nav.user_data.overlays) {
+            control.addOverlay(new DataOverlay(overlay));
+        }
+
+        if (c3nav._overlayControl) {
+            c3nav.map.removeControl(c3nav._overlayControl);
+        }
+
+        if (c3nav.user_data.overlays.length > 0) {
+            c3nav._overlayControl = control.addTo(c3nav.map);
+        }
     },
 
     _hasLocationPermission: undefined,
@@ -2489,7 +2515,7 @@ KeyControl = L.Control.extend({
         this._pin = L.DomUtil.create('div', 'pin-toggle material-symbols', this._container);
         this._pin.classList.toggle('active', pinned);
         this._pin.innerText = 'push_pin';
-        this._collapsed = L.DomUtil.create('a', 'collapsed-toggle leaflet-control-key-toggle', this._container);
+        this._collapsed = L.DomUtil.create('a', 'collapsed-toggle', this._container);
         this._collapsed.href = '#';
         this._expanded = pinned;
         this._pinned = pinned;
@@ -2500,7 +2526,6 @@ KeyControl = L.Control.extend({
                 mouseleave: this.collapse
             }, this);
         }
-
 
 
         if (L.Browser.touch) {
@@ -2588,6 +2613,162 @@ KeyControl = L.Control.extend({
     },
 });
 
+OverlayControl = L.Control.extend({
+    options: {position: 'topright', addClasses: '', levels: {}},
+    _overlays: {},
+    _groups: {},
+    _initialActiveOverlays: null,
+    _initialCollapsedGroups: null,
+
+    initialize: function ({levels, ...config}) {
+        this.config = config;
+        this._levels = levels;
+    },
+
+    onAdd: function () {
+        this._initialActiveOverlays = JSON.parse(localStorage.getItem('c3nav.overlays.active-overlays') ?? '[]');
+        this._initialCollapsedGroups = JSON.parse(localStorage.getItem('c3nav.overlays.collapsed-groups') ?? '[]');
+        const pinned = JSON.parse(localStorage.getItem('c3nav.overlays.pinned') ?? 'false');
+
+        this._container = L.DomUtil.create('div', 'leaflet-control-overlays ' + this.options.addClasses);
+        this._container.classList.toggle('leaflet-control-overlays-expanded', pinned);
+        this._content = L.DomUtil.create('div', 'content');
+        const collapsed = L.DomUtil.create('div', 'collapsed-toggle');
+        this._pin = L.DomUtil.create('div', 'pin-toggle material-symbols');
+        this._pin.classList.toggle('active', pinned);
+        this._pin.innerText = 'push_pin';
+        this._container.append(this._pin, this._content, collapsed);
+        this._expanded = pinned;
+        this._pinned = pinned;
+
+        if (!L.Browser.android) {
+            L.DomEvent.on(this._container, {
+                mouseenter: this.expand,
+                mouseleave: this.collapse
+            }, this);
+        }
+
+        if (!L.Browser.touch) {
+            L.DomEvent.on(this._container, 'focus', this.expand, this);
+            L.DomEvent.on(this._container, 'blur', this.collapse, this);
+        }
+
+        for (const overlay of this._initialActiveOverlays) {
+            if (overlay in this._overlays) {
+                this._overlays[overlay].visible = true;
+                this._overlays[overlay].enable(this._levels);
+            }
+        }
+
+        for (const group of this._initialCollapsedGroups) {
+            if (group in this._groups) {
+                this._groups[group].expanded = false;
+            }
+        }
+
+        this.render();
+
+        $(this._container).on('change', 'input[type=checkbox]', e => {
+            this._overlays[e.target.dataset.id].visible = e.target.checked;
+            this.updateOverlay(e.target.dataset.id);
+        });
+        $(this._container).on('click', 'div.pin-toggle', e => {
+            this.togglePinned();
+        });
+        $(this._container).on('click', '.content h4', e => {
+            this.toggleGroup(e.target.parentElement.dataset.group);
+        });
+        $(this._container).on('mousedown pointerdown wheel', e => {
+            e.stopPropagation();
+        });
+        return this._container;
+    },
+
+    addOverlay: function (overlay) {
+        this._overlays[overlay.id] = overlay;
+        if (overlay.group in this._groups) {
+            this._groups[overlay.group].overlays.push(overlay);
+        } else {
+            this._groups[overlay.group] = {
+                expanded: this._initialCollapsedGroups === null || !this._initialCollapsedGroups.includes(overlay.group),
+                overlays: [overlay],
+            };
+        }
+        this.render();
+    },
+
+    updateOverlay: function (id) {
+        const overlay = this._overlays[id];
+        if (overlay.visible) {
+            overlay.enable(this._levels);
+        } else {
+            overlay.disable(this._levels);
+        }
+        const activeOverlays = Object.keys(this._overlays).filter(k => this._overlays[k].visible);
+        localStorage.setItem('c3nav.overlays.active-overlays', JSON.stringify(activeOverlays));
+    },
+
+    render: function () {
+        if (!this._content) return;
+        const groups = document.createDocumentFragment();
+        for (const group in this._groups) {
+            const group_container = document.createElement('div');
+            group_container.classList.add('overlay-group');
+            if (this._groups[group].expanded) {
+                group_container.classList.add('expanded');
+            }
+            this._groups[group].el = group_container;
+            group_container.dataset.group = group;
+            const title = document.createElement('h4');
+            title.innerText = group;
+            group_container.append(title);
+            for (const overlay of this._groups[group].overlays) {
+                const label = document.createElement('label');
+                const checkbox = document.createElement('input');
+                checkbox.type = 'checkbox';
+                checkbox.dataset.id = overlay.id;
+                if (overlay.visible) {
+                    checkbox.checked = true;
+                }
+                label.append(checkbox, overlay.name);
+                group_container.append(label);
+            }
+            groups.append(group_container);
+        }
+        this._content.replaceChildren(...groups.children);
+    },
+
+    expand: function () {
+        if (this._pinned) return;
+        this._expanded = true;
+        this._container.classList.add('leaflet-control-overlays-expanded');
+        return this;
+    },
+
+    collapse: function () {
+        if (this._pinned) return;
+        this._expanded = false;
+        this._container.classList.remove('leaflet-control-overlays-expanded');
+        return this;
+    },
+
+    toggleGroup: function (name) {
+        const group = this._groups[name];
+        group.expanded = !group.expanded;
+        group.el.classList.toggle('expanded', group.expanded);
+        const collapsedGroups = Object.keys(this._groups).filter(k => !this._groups[k].expanded);
+        localStorage.setItem('c3nav.overlays.collapsed-groups', JSON.stringify(collapsedGroups));
+    },
+
+    togglePinned: function () {
+        this._pinned = !this._pinned;
+        if (this._pinned) {
+            this._expanded = true;
+        }
+        this._pin.classList.toggle('active', this._pinned);
+        localStorage.setItem('c3nav.overlays.pinned', JSON.stringify(this._pinned));
+    },
+});
 
 var SvgIcon = L.Icon.extend({
     options: {
@@ -2646,3 +2827,98 @@ var SvgIcon = L.Icon.extend({
         return svgEl;
     },
 });
+
+class DataOverlay {
+    levels = null;
+
+    constructor(options) {
+        this.id = options.id;
+        this.name = options.name;
+        this.group = options.group ?? 'ungrouped';
+        this.default_stroke_color = options.stroke_color;
+        this.default_stroke_width = options.stroke_width;
+        this.default_fill_color = options.fill_color;
+    }
+
+    async create() {
+        const features = await c3nav_api.get(`mapdata/overlays/${this.id}/`);
+
+        const levels = {};
+        for (const feature of features) {
+            const level_id = feature.level_id;
+            if (!(level_id in levels)) {
+                levels[level_id] = L.layerGroup([]);
+            }
+            const style = {
+                'color': feature.stroke_color ?? this.default_stroke_color ?? 'var(--color-map-overlay)',
+                'weight': feature.stroke_width ?? this.default_stroke_width ?? 1,
+                'fillColor': feature.fill_color ?? this.default_fill_color ?? 'var(--color-map-overlay)',
+            };
+            const layer = L.geoJson(feature.geometry, {
+                style,
+                interactive: feature.interactive,
+                pointToLayer: (geom, latlng) => {
+                    if (feature.point_icon !== null) {
+                        return L.marker(latlng, {
+                            title: feature.title,
+                            icon: L.divIcon({
+                                className: 'overlay-point-icon',
+                                html: `<span style="color: ${style.color}">${feature.point_icon}</span>`,
+                                iconSize: [24, 24],
+                                iconAnchor: [12, 12],
+                            })
+                        });
+                    } else {
+                        return L.circleMarker(latlng, {
+                            title: feature.title,
+                            ...style
+                        });
+                    }
+                }
+            });
+            if (feature.interactive) {
+                layer.bindPopup(() => {
+                    let html = `<h4>${feature.title}</h4>`;
+                    if (feature.external_url != null) {
+                        html += `<a href="${feature.external_url}" target="_blank">open external link</a>`;
+                    }
+                    if (feature.extra_data != null) {
+                        html += '<table>';
+                        for (const key in feature.extra_data) {
+                            html += `<tr><th>${key}</th><td>${feature.extra_data[key]}</td></tr>`;
+                        }
+
+                        html += '</table>';
+                    }
+                    return html;
+                }, {
+                    className: 'data-overlay-popup'
+                });
+            }
+            levels[level_id].addLayer(layer);
+        }
+
+        this.levels = levels;
+    }
+
+    async enable(levels) {
+        if (!this.levels) {
+            await this.create();
+        }
+        for (const id in levels) {
+            if (id in this.levels) {
+                levels[id].addLayer(this.levels[id]);
+            }
+        }
+    }
+
+    disable(levels) {
+        for (const id in levels) {
+            if (id in this.levels) {
+                levels[id].removeLayer(this.levels[id]);
+            }
+        }
+    }
+
+
+}

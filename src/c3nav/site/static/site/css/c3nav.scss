@@ -1058,7 +1058,7 @@ main:not([data-view=route-result]) #route-summary {
     font-size: 20px;
 }
 
-.leaflet-bar, .leaflet-touch .leaflet-bar, .leaflet-control-key {
+.leaflet-bar, .leaflet-touch .leaflet-bar, .leaflet-control-key, .leaflet-control-overlays {
     overflow: hidden;
     background-color: var(--color-control-background);
     border-radius: var(--border-radius-leaflet-control);
@@ -1676,10 +1676,10 @@ blink {
     margin-top: 48px;
 }
 
-.leaflet-control-key {
+.leaflet-control-key, .leaflet-control-overlays {
     background-clip: padding-box;
 
-    &.leaflet-control-key-expanded > .collapsed-toggle {
+    &.leaflet-control-key-expanded > .collapsed-toggle, &.leaflet-control-overlays-expanded > .collapsed-toggle  {
         display: none;
     }
 
@@ -1699,7 +1699,6 @@ blink {
 
         &::before {
             font-family: 'Material Symbols Outlined';
-            content: 'legend_toggle';
             font-size: 26px;
             line-height: 26px;
         }
@@ -1736,23 +1735,36 @@ blink {
         }
     }
 
-    &.leaflet-control-key-expanded > .pin-toggle {
+    &.leaflet-control-key-expanded > .pin-toggle, &.leaflet-control-overlays-expanded > .pin-toggle {
         display: block;
         .leaflet-touch & {
             display: none;
         }
     }
 
-
     > .content {
         display: none;
-        padding: 1rem 3rem 1rem 1rem;
-        gap: 1rem;
-        grid-template-columns: 2rem 1fr;
+        padding: 1rem 4rem 1rem 1rem;
 
         .leaflet-touch & {
             padding: 1rem;
         }
+    }
+
+    &.leaflet-control-key-expanded > .content {
+        display: grid;
+    }
+}
+
+
+.leaflet-control-key {
+    > .collapsed-toggle::before {
+        content: 'legend_toggle';
+    }
+
+    > .content {
+        gap: 1rem;
+        grid-template-columns: 2rem 1fr;
 
         > .key {
             display: grid;
@@ -1771,6 +1783,59 @@ blink {
 
     &.leaflet-control-key-expanded > .content {
         display: grid;
+    }
+}
+
+.leaflet-control-overlays {
+    > .collapsed-toggle::before {
+        content: 'stacks';
+    }
+
+    > .content {
+        flex-direction: column;
+        gap: 1rem;
+
+        .overlay-group {
+            display: flex;
+            flex-direction: column;
+            h4 {
+                margin-top: 0;
+                margin-bottom: 0;
+                cursor: pointer;
+
+                &::before {
+                    font-family: 'Material Symbols Outlined';
+                    content: 'arrow_right';
+                    vertical-align: middle;
+                }
+            }
+
+            label {
+                cursor: pointer;
+                margin-left: 3ch;
+                margin-bottom: 0;
+            }
+
+            input[type=checkbox] {
+                margin-right: 0.5rem;
+                margin-bottom: 0;
+            }
+        }
+
+        .overlay-group.expanded h4::before {
+            content: 'arrow_drop_down';
+        }
+
+        .overlay-group:not(.expanded) label {
+            height: 0;
+            overflow: hidden;
+            margin-top: 0;
+            margin-bottom: 0;
+        }
+    }
+
+    &.leaflet-control-overlays-expanded > .content {
+        display: flex;
     }
 }
 
@@ -1797,5 +1862,44 @@ blink {
 
     .leaflet-top.leaflet-right {
         margin-top: var(--control-container-minus-size);
+    }
+}
+
+.overlay-point-icon {
+    > span {
+        display: inline-block;
+        width: 24px;
+        height: 24px;
+        line-height: 24px;
+        text-align: center;
+        font-size: 24px;
+        font-family: 'Material Symbols Outlined';
+    }
+}
+
+.data-overlay-popup {
+    .leaflet-popup-content {
+        margin: 0;
+
+        > h4, a {
+            margin: 8px 12px 4px;
+        }
+
+        > table {
+            width: calc(100% + 2px);
+            margin: 4px -2px;
+            border-collapse: collapse;
+
+            th, td {
+                padding: 4px 12px;
+                border: 1px solid var(--color-border);
+                &:first-child {
+                    border-left: 0;
+                }
+                &:last-child {
+                    border-right: 0;
+                }
+            }
+        }
     }
 }

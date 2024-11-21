@@ -1,0 +1,45 @@
+{% load bootstrap3 %}
+{% load i18n %}
+
+{% include 'editor/fragment_levels.html' %}
+
+{% if extra_json_data %}
+    {{ extra_json_data|json_script:"sidebar-extra-data" }}
+{% endif %}
+
+<h3>
+    {% blocktrans %}Overlay "{{ title }}"{% endblocktrans %}
+    {% with level.title as level_title %}
+        <small>{% blocktrans %}on level {{ level_title }}{% endblocktrans %}</small>
+    {% endwith %}
+
+</h3>
+{% bootstrap_messages %}
+{% if can_create %}
+    <a class="btn btn-default btn-xs" accesskey="n" href="{{ create_url }}">
+        <i class="glyphicon glyphicon-plus"></i> {% blocktrans %}New feature{% endblocktrans %}
+    </a>
+{% endif %}
+
+{% trans 'Edit' as edit_caption %}
+
+<table class="table table-condensed itemtable" data-nozoom data-list="dataoverlayfeature" data-overlay-id="{{ overlay_id }}">
+    <tbody>
+        {% for feature in features %}
+            {% if forloop.counter0|divisibleby:10 %}
+                <tr>
+                    <td><a href="{{ back_url }}" data-no-next-zoom>&laquo; {{ back_title }}</a></td>
+                <td></td>
+                </tr>
+            {% endif %}
+            <tr data-pk="{{ feature.pk }}">
+                <td>{{ feature.title }}</td>
+                <td><a href="{{ feature.edit_url }}">{{ edit_caption }}</a></td>
+            </tr>
+        {% endfor %}
+        <tr>
+            <td><a href="{{ back_url }}" data-no-next-zoom>&laquo; {{ back_title }}</a></td>
+            <td></td>
+        </tr>
+    </tbody>
+</table>

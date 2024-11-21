@@ -26,7 +26,8 @@
 </p>
 
 {% url 'editor.levels.graph' level=level.pk as graph_url %}
-{% include 'editor/fragment_child_models.html' with graph_url=graph_url %}
+{% url 'editor.levels.overlays' level=level.pk as overlays_url %}
+{% include 'editor/fragment_child_models.html' with graph_url=graph_url overlays_url=overlays_url %}
 
 <div class="clearfix"></div>
 

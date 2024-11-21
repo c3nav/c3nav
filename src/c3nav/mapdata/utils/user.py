@@ -3,6 +3,7 @@ from django.utils.functional import lazy
 from django.utils.translation import gettext_lazy as _
 from django.utils.translation import ngettext_lazy
 
+from c3nav.mapdata.models import DataOverlay
 from c3nav.mapdata.models.access import AccessPermission, AccessRestriction
 from c3nav.mapdata.models.locations import Position
 
@@ -30,6 +31,18 @@ def get_user_data(request):
         })
     if request.user.is_authenticated:
         result['title'] = request.user.username
+
+    # TODO: permissions for overlays
+    result.update({
+        'overlays': [{
+            'id': overlay.pk,
+            'name': overlay.title,
+            'group': None, # TODO
+            'stroke_color': overlay.stroke_color,
+            'stroke_width': overlay.stroke_width,
+            'fill_color': overlay.fill_color,
+        } for overlay in DataOverlay.objects.all()]
+    })
     return result
 
 

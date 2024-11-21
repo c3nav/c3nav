@@ -8,7 +8,7 @@ from c3nav.api.auth import auth_responses, validate_responses
 from c3nav.api.exceptions import API404
 from c3nav.mapdata.api.base import api_etag, optimize_query
 from c3nav.mapdata.models import (Area, Building, Door, Hole, Level, LocationGroup, LocationGroupCategory, Source,
-                                  Space, Stair)
+                                  Space, Stair, DataOverlay, DataOverlayFeature)
 from c3nav.mapdata.models.access import AccessRestriction, AccessRestrictionGroup
 from c3nav.mapdata.models.geometry.space import (POI, Column, CrossDescription, LeaveDescription, LineObstacle,
                                                  Obstacle, Ramp)
@@ -20,7 +20,8 @@ from c3nav.mapdata.schemas.models import (AccessRestrictionGroupSchema, AccessRe
                                           BuildingSchema, ColumnSchema, CrossDescriptionSchema, DoorSchema,
                                           DynamicLocationSchema, HoleSchema, LeaveDescriptionSchema, LevelSchema,
                                           LineObstacleSchema, LocationGroupCategorySchema, LocationGroupSchema,
-                                          ObstacleSchema, POISchema, RampSchema, SourceSchema, SpaceSchema, StairSchema)
+                                          ObstacleSchema, POISchema, RampSchema, SourceSchema, SpaceSchema, StairSchema,
+                                          DataOverlaySchema, DataOverlayFeatureSchema)
 
 mapdata_api_router = APIRouter(tags=["mapdata"])
 
@@ -487,3 +488,33 @@ def dynamiclocation_list(request):
 @api_etag()
 def dynamiclocation_by_id(request, dynamiclocation_id: int):
     return mapdata_retrieve_endpoint(request, DynamicLocation, pk=dynamiclocation_id)
+
+
+"""
+Data overlays
+"""
+
+
+@mapdata_api_router.get('/overlays/', summary="data overlay list",
+                        tags=["mapdata-root"], description=schema_description(DynamicLocationSchema),
+                        response={200: list[DataOverlaySchema], **auth_responses})
+@api_etag()
+def dataoverlay_list(request):
+    return mapdata_list_endpoint(request, model=DataOverlay)
+
+
+@mapdata_api_router.get('/overlays/{overlay_id}/', summary="features for overlay by overlay ID",
+                        tags=["mapdata-root"], description=schema_description(DynamicLocationSchema),
+                        response={200: list[DataOverlayFeatureSchema], **API404.dict(), **auth_responses})
+# @api_etag()
+def dataoverlay_by_id(request, overlay_id: int):
+    qs = optimize_query(
+        DataOverlayFeature.qs_for_request(request)
+    )
+
+    qs = qs.filter(overlay_id=overlay_id)
+
+    # order_by
+    qs = qs.order_by('pk')
+
+    return qs

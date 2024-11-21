@@ -52,6 +52,9 @@ def _get_geometries_for_one_level(level):
         results.append(door)
 
     results.extend(sorted(spaces.values(), key=space_sorting_func))
+
+    results.extend(level.data_overlay_features.all())
+
     return results
 
 
@@ -121,6 +124,7 @@ def get_level_geometries_result(request, level_id: int, update_cache_key: str, u
     LocationGroup = request.changeset.wrap_model('LocationGroup')
     BeaconMeasurement = request.changeset.wrap_model('BeaconMeasurement')
     RangingBeacon = request.changeset.wrap_model('RangingBeacon')
+    DataOverlayFeature = request.changeset.wrap_model('DataOverlayFeature')
 
     try:
         level = Level.objects.filter(Level.q_for_request(request)).get(pk=level_id)
@@ -151,7 +155,8 @@ def get_level_geometries_result(request, level_id: int, update_cache_key: str, u
         Prefetch('spaces__altitudemarkers', AltitudeMarker.objects.only('geometry', 'space')),
         Prefetch('spaces__beacon_measurements', BeaconMeasurement.objects.only('geometry', 'space')),
         Prefetch('spaces__ranging_beacons', RangingBeacon.objects.only('geometry', 'space')),
-        Prefetch('spaces__graphnodes', graphnodes_qs)
+        Prefetch('spaces__graphnodes', graphnodes_qs),
+        Prefetch('data_overlay_features', DataOverlayFeature.objects.only('geometry', 'overlay_id', 'level'))
     )
 
     levels = {s.pk: s for s in levels}

@@ -60,6 +60,7 @@ def main_index(request):
             child_model(request, 'LabelSettings'),
             child_model(request, 'Source'),
             child_model(request, 'Theme'),
+            child_model(request, 'DataOverlay'),
         ],
     }, fields=('can_create_level', 'child_models'))
 

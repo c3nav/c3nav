@@ -12,4 +12,7 @@
             {% trans 'Graph' %}
         </a>
     {% endif %}
+    {% if overlays_url %}
+        <a href="{{ overlays_url }}" class="list-group-item">{% trans 'Overlays' %}</a>
+    {% endif %}
 </div>

@@ -4,7 +4,7 @@ from pydantic import Discriminator
 from pydantic import Field as APIField
 from pydantic import NonNegativeFloat, PositiveFloat, PositiveInt
 
-from c3nav.api.schema import BaseSchema, GeometrySchema, PointSchema
+from c3nav.api.schema import BaseSchema, GeometrySchema, PointSchema, AnyGeometrySchema
 from c3nav.api.utils import NonEmptyStr
 from c3nav.mapdata.models import LocationGroup
 from c3nav.mapdata.schemas.model_base import (AnyLocationID, AnyPositionID, CustomLocationID, DjangoModelSchema,
@@ -315,6 +315,27 @@ class DynamicLocationSchema(SpecificLocationSchema, DjangoModelSchema):
     A dynamic location is a specific location, and can therefore be routed to and from,
     as well as belong to location groups.
     """
+    pass
+
+
+class DataOverlaySchema(TitledSchema, DjangoModelSchema):
+    # TODO
+    pass
+
+
+class DataOverlayFeatureSchema(TitledSchema, DjangoModelSchema):
+    geometry: AnyGeometrySchema
+    level_id: PositiveInt
+    stroke_color: Optional[str]
+    stroke_width: Optional[float]
+    fill_color: Optional[str]
+    show_label: bool
+    show_geometry: bool
+    interactive: bool
+    point_icon: Optional[str]
+    external_url: Optional[str]
+    extra_data: Optional[dict[str, str]]
+    # TODO
     pass
 
 
@@ -652,7 +673,6 @@ SlimLocationSchema = Annotated[
     ],
     Discriminator("locationtype"),
 ]
-
 
 listable_location_definitions = schema_definitions(
     (LevelSchema, SpaceSchema, AreaSchema, POISchema, DynamicLocationSchema, LocationGroupSchema)

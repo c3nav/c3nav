@@ -5,6 +5,7 @@ from c3nav.editor.converters import EditPkConverter
 from c3nav.editor.views.account import change_password_view, login_view, logout_view, register_view
 from c3nav.editor.views.changes import changeset_detail, changeset_edit, changeset_redirect
 from c3nav.editor.views.edit import edit, graph_edit, level_detail, list_objects, main_index, sourceimage, space_detail
+from c3nav.editor.views.overlays import overlays_list, overlay_features, overlay_feature_edit
 from c3nav.editor.views.users import user_detail, user_redirect
 
 register_converter(EditPkConverter, 'editpk')
@@ -42,6 +43,10 @@ urlpatterns = [
          name='editor.levels_on_top.create'),
     path('levels/<editpk:level>/graph/', graph_edit, name='editor.levels.graph'),
     path('spaces/<editpk:space>/graph/', graph_edit, name='editor.spaces.graph'),
+    path('levels/<editpk:level>/overlays/', overlays_list, name='editor.levels.overlays'),
+    path('levels/<editpk:level>/overlays/<editpk:pk>/', overlay_features, name='editor.levels.overlay'),
+    path('levels/<editpk:level>/overlays/<editpk:overlay>/create', overlay_feature_edit, name='editor.levels.overlay.create'),
+    path('levels/<editpk:level>/overlays/<editpk:overlay>/features/<editpk:pk>', overlay_feature_edit, name='editor.levels.overlay.edit'),
     path('changeset/', changeset_redirect, name='editor.changesets.current'),
     path('changesets/<editpk:pk>/', changeset_detail, name='editor.changesets.detail'),
     path('changesets/<editpk:pk>/edit', changeset_edit, name='editor.changesets.edit'),
@@ -66,6 +71,7 @@ urlpatterns.extend(add_editor_urls('AccessRestrictionGroup'))
 urlpatterns.extend(add_editor_urls('Source'))
 urlpatterns.extend(add_editor_urls('LabelSettings'))
 urlpatterns.extend(add_editor_urls('Theme'))
+urlpatterns.extend(add_editor_urls('DataOverlay'))
 urlpatterns.extend(add_editor_urls('Building', 'Level'))
 urlpatterns.extend(add_editor_urls('Space', 'Level', explicit_edit=True))
 urlpatterns.extend(add_editor_urls('Door', 'Level'))

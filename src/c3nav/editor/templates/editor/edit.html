@@ -3,6 +3,10 @@
 
 {% include 'editor/fragment_levels.html' %}
 
+{% if extra_json_data %}
+    {{ extra_json_data|json_script:"sidebar-extra-data" }}
+{% endif %}
+
 <h3>
     {% if new %}
         {% blocktrans %}New {{ model_title }}{% endblocktrans %}

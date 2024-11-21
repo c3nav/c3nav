@@ -53,6 +53,7 @@ def geometrystyles(request):
         'altitudemarker': '#0000FF',
         'beaconmeasurement': '#DDDD00',
         'rangingbeacon': '#CC00CC',
+        'dataoverlayfeature': '#3366ff',
     }
 
 
