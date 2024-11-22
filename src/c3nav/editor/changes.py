@@ -595,5 +595,7 @@ class ChangedObjectCollection(BaseSchema):
             result.extend(done_situation.operations)
             return result
 
+        # todo: m2m
+
         # todo: what to do if we can't fully solve it?
         raise NotImplementedError('couldnt fully solve as_operations')
