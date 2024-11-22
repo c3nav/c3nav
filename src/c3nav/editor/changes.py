@@ -611,3 +611,5 @@ class ChangedObjectCollection(BaseSchema):
         )
         result.extend(operations)
         return result
+
+        # todo: everything still needs to work if the field has changed / been removed / whatever
