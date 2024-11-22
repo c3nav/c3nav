@@ -8,6 +8,7 @@ from typing import Type, Any, Union, Self, TypeVar, Generic
 
 from django.apps import apps
 from django.core import serializers
+from django.core.exceptions import FieldDoesNotExist
 from django.db.models import Model, Q, CharField, SlugField, DecimalField
 from django.db.models.fields import IntegerField, SmallIntegerField, PositiveIntegerField, PositiveSmallIntegerField
 from django.db.models.fields.reverse_related import ManyToOneRel, OneToOneRel
@@ -250,10 +251,15 @@ class ChangedObjectCollection(BaseSchema):
                 initial_fields = dict()
                 obj_sub_operations: list[OperationWithDependencies] = []
                 for name, value in changed_obj.fields.items():
+                    try:
+                        field = model._meta.get_field(name)
+                    except FieldDoesNotExist:
+                        # todo: alert user that this field no longer exists
+                        continue
+
                     if value is None:
                         initial_fields[name] = None
                         continue
-                    field = model._meta.get_field(name)
                     dependencies = base_dependencies.copy()
                     # todo: prev
                     if field.is_relation:
@@ -325,8 +331,12 @@ class ChangedObjectCollection(BaseSchema):
             # todo: how do we want m2m to work when it's cleared by the user but things were added in the meantime
             for changed_obj in changed_objects.values():
                 for field_name, m2m_changes in changed_obj.m2m_changes.items():
+                    try:
+                        field = model._meta.get_field(field_name)
+                    except FieldDoesNotExist:
+                        continue  # todo: alert user that this field no longer exists
                     referenced_objects.setdefault(
-                        model._meta.get_field(field_name).related_model._meta.model_name, set()
+                        field.related_model._meta.model_name, set()
                     ).update(set(m2m_changes.added + m2m_changes.removed))
 
         # let's find which objects that need to exist before actually exist
@@ -611,5 +621,3 @@ class ChangedObjectCollection(BaseSchema):
         )
         result.extend(operations)
         return result
-
-        # todo: everything still needs to work if the field has changed / been removed / whatever
