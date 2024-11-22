@@ -319,6 +319,16 @@ class ChangedObjectCollection(BaseSchema):
                 elif isinstance(dependency, OperationDependencyNoProtectedReference):
                     deleted_existing_objects.setdefault(dependency.obj.model, set()).add(dependency.obj.id)
 
+        # references from m2m changes need also to be checked if they exist
+        for model_name, changed_objects in self.objects.items():
+            model = apps.get_model("mapdata", model_name)
+            # todo: how do we want m2m to work when it's cleared by the user but things were added in the meantime
+            for changed_obj in changed_objects.values():
+                for field_name, m2m_changes in changed_obj.m2m_changes.items():
+                    referenced_objects.setdefault(
+                        model._meta.get_field(field_name).related_model._meta.model_name, set()
+                    ).update(set(m2m_changes.added + m2m_changes.removed))
+
         # let's find which objects that need to exist before actually exist
         for model, ids in referenced_objects.items():
             model_cls = apps.get_model('mapdata', model)
