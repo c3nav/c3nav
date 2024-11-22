@@ -578,7 +578,7 @@ class ChangedObjectCollection(BaseSchema):
                             if ref.obj != new_operation.obj
                         }
 
-                    # wwe ignore cascading for now
+                    # todo: we ignore cascading for now, do we want to keep it that way?
                 else:
                     for field_name, value in new_operation.fields.items():
                         field = model_cls._meta.get_field(field_name)
