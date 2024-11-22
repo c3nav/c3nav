@@ -589,13 +589,15 @@ class ChangedObjectCollection(BaseSchema):
                 ended_situations.append(situation)
 
         if done_situation:
-            result = DatabaseOperationCollection(
-                prev=self.prev,
-            )
-            result.extend(done_situation.operations)
-            return result
+            operations = done_situation.operations
+        else:
+            # todo: what to do if we can't fully solve it?
+            raise NotImplementedError('couldnt fully solve as_operations')
 
         # todo: m2m
 
-        # todo: what to do if we can't fully solve it?
-        raise NotImplementedError('couldnt fully solve as_operations')
+        result = DatabaseOperationCollection(
+            prev=self.prev,
+        )
+        result.extend(operations)
+        return result
