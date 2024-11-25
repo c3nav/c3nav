@@ -85,7 +85,7 @@ class CreateObjectOperation(BaseOperation):
     type: Literal["create"] = "create"
     fields: FieldValuesDict
 
-    def apply_create(self) -> Model:
+    def get_data(self):
         model = apps.get_model('mapdata', self.obj.model)
         data = []
         if issubclass(model, LocationSlug):
@@ -104,10 +104,30 @@ class CreateObjectOperation(BaseOperation):
             "pk": self.obj.id,
             "fields": values,
         })
+        return data
+
+    def apply_create(self) -> dict[ObjectReference, Model]:
+        data = self.get_data()
         instances = list(serializers.deserialize("json", json.dumps(data)))
         for instance in instances:
             instance.save(save_m2m=False)
-        return instances[-1].object
+        return {self.obj: instances[-1].object}
+
+
+class CreateMultipleObjectsOperation(BaseSchema):
+    type: Literal["create"] = "create_multiple"
+    objects: list[CreateObjectOperation] = []
+
+    def apply_create(self) -> dict[ObjectReference, Model]:
+        indexes = {}
+        data = []
+        for obj in self.objects:
+            data.extend(obj.get_data())
+            indexes[obj.obj] = len(data)-1
+        instances = list(serializers.deserialize("json", json.dumps(data)))
+        for instance in instances:
+            instance.save(save_m2m=False)
+        return {ref: instances[i] for ref, i in indexes.items()}
 
 
 class UpdateObjectOperation(BaseOperation):
@@ -179,6 +199,7 @@ class ClearManyToManyOperation(BaseOperation):
 DatabaseOperation = Annotated[
     Union[
         CreateObjectOperation,
+        CreateMultipleObjectsOperation,
         UpdateObjectOperation,
         DeleteObjectOperation,
         UpdateManyToManyOperation,
@@ -221,8 +242,8 @@ class PrefetchedDatabaseOperationCollection:
     def apply(self):
         # todo: what if unique constraint error occurs?
         for operation in self.operations:
-            if isinstance(operation, CreateObjectOperation):
-                self.instances[operation.obj] = operation.apply_create()
+            if isinstance(operation, (CreateObjectOperation, CreateMultipleObjectsOperation)):
+                self.instances.update(operation.apply_create())
             else:
                 prev_obj = self.operations.prev.get(operation.obj)
                 if prev_obj is None:

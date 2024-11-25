@@ -17,7 +17,7 @@ from pydantic.config import ConfigDict
 from c3nav.api.schema import BaseSchema
 from c3nav.editor.operations import DatabaseOperationCollection, CreateObjectOperation, UpdateObjectOperation, \
     DeleteObjectOperation, ClearManyToManyOperation, FieldValuesDict, ObjectReference, PreviousObjectCollection, \
-    DatabaseOperation, ObjectID, FieldName, ModelName
+    DatabaseOperation, ObjectID, FieldName, ModelName, CreateMultipleObjectsOperation
 from c3nav.mapdata.fields import I18nField
 
 
@@ -514,10 +514,25 @@ class ChangedObjectCollection(BaseSchema):
                                     raise NotImplementedError
                                 new_operation.fields[field_name] = new_val
 
-                # construct new situation   # todo: merge create operations one day
+                # construct new situation
                 new_situation = situation.model_copy(deep=True)
+
+                if isinstance(new_operation, CreateObjectOperation) and new_situation.operations:
+                    last_operation = new_situation.operations[-1]
+                    if (isinstance(last_operation, CreateObjectOperation) and
+                            last_operation.obj.model == new_operation.obj.model):
+                        new_situation.operations[-1] = CreateMultipleObjectsOperation(
+                            objects=[last_operation, new_operation],
+                        )
+                    elif (isinstance(last_operation, CreateMultipleObjectsOperation) and
+                            last_operation.objects[-1].obj.model == new_operation.obj.model):
+                        last_operation.objects.append(new_operation)
+                    else:
+                        new_situation.operations.append(new_operation)
+                else:
+                    new_situation.operations.append(new_operation)
+
                 new_situation.remaining_operations_with_dependencies.pop(i)
-                new_situation.operations.append(new_operation)
                 new_situation.remaining_operations_with_dependencies.extend(new_remaining_operations)
                 new_situation.operation_uids = new_situation.operation_uids | uids_to_add
 
