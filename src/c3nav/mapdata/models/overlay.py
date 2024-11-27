@@ -82,3 +82,6 @@ class DataOverlayFeature(TitledMixin, GeometryMixin, models.Model):
         })
         result['level_id'] = self.level_id
         return result
+
+    class Meta:
+        default_related_name = "overlayfeatures"

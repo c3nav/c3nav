@@ -49,12 +49,8 @@ def overlay_features(request, level, pk):
     }
 
     queryset = DataOverlayFeature.objects.filter(level_id=level, overlay_id=pk).order_by('id')
-    reverse_kwargs = {}
-
     add_cols = []
 
-    reverse_kwargs['level'] = level
-    reverse_kwargs['overlay'] = pk
     level = get_object_or_404(Level.objects.filter(Level.q_for_request(request)), pk=level)
     overlay = get_object_or_404(DataOverlay.objects.filter(DataOverlay.q_for_request(request)), pk=pk)
     edit_utils = LevelChildEditUtils(level, request)
@@ -71,10 +67,8 @@ def overlay_features(request, level, pk):
     })
 
     for obj in queryset:
-        reverse_kwargs['pk'] = obj.pk
-        obj.edit_url = reverse('editor.levels.overlay.edit', kwargs=reverse_kwargs)
+        obj.edit_url = reverse('editor.overlayfeatures.edit', kwargs={'pk': obj.pk})
         obj.add_cols = tuple(getattr(obj, col) for col in add_cols)
-    reverse_kwargs.pop('pk', None)
 
 
     ctx.update({
@@ -93,7 +87,7 @@ def overlay_features(request, level, pk):
 
 @etag(editor_etag_func)
 @sidebar_view(api_hybrid=True)
-def overlay_feature_edit(request, level, overlay, pk=None):
+def overlay_feature_edit(request, level=None, overlay=None, pk=None):
     changeset_exceeded = get_changeset_exceeded(request)
     model_changes = {}
     if changeset_exceeded:
@@ -114,8 +108,8 @@ def overlay_feature_edit(request, level, overlay, pk=None):
         if hasattr(DataOverlayFeature, 'q_for_request'):
             qs = qs.filter(DataOverlayFeature.q_for_request(request))
 
-        kwargs.update({'level__pk': level})
         qs = qs.select_related('level')
+        qs = qs.select_related('overlay')
         utils_cls = LevelChildEditUtils
         
         obj = get_object_or_404(qs, **kwargs)
