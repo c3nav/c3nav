@@ -4,7 +4,7 @@ import operator
 import random
 from functools import reduce
 from itertools import chain
-from typing import Type, Any, Union, Self, TypeVar, Generic
+from typing import Type, Any, Union, Self, TypeVar, Generic, NamedTuple
 
 from django.apps import apps
 from django.core import serializers
@@ -17,7 +17,7 @@ from pydantic.config import ConfigDict
 from c3nav.api.schema import BaseSchema
 from c3nav.editor.operations import DatabaseOperationCollection, CreateObjectOperation, UpdateObjectOperation, \
     DeleteObjectOperation, ClearManyToManyOperation, FieldValuesDict, ObjectReference, PreviousObjectCollection, \
-    DatabaseOperation, ObjectID, FieldName, ModelName, CreateMultipleObjectsOperation
+    DatabaseOperation, ObjectID, FieldName, ModelName, CreateMultipleObjectsOperation, UpdateManyToManyOperation
 from c3nav.mapdata.fields import I18nField
 
 
@@ -223,9 +223,13 @@ class ChangedObjectCollection(BaseSchema):
                         ids.setdefault(related_model._meta.model_name, set()).update(field_changes.removed)
         # todo: move this to some kind of "usage explanation" function, implement rest of this
 
+    class OperationsWithDependencies(NamedTuple):
+        obj_operations: list[OperationWithDependencies]
+        m2m_operations: list[SingleOperationWithDependencies]
+
     @property
-    def as_operations_with_dependencies(self) -> list[OperationWithDependencies]:
-        operations_with_dependencies: list[OperationWithDependencies] = []
+    def as_operations_with_dependencies(self) -> OperationsWithDependencies:
+        operations_with_dependencies = self.OperationsWithDependencies(obj_operations=[], m2m_operations=[])
         for model_name, changed_objects in self.objects.items():
             model = apps.get_model("mapdata", model_name)
 
@@ -237,7 +241,7 @@ class ChangedObjectCollection(BaseSchema):
                 if changed_obj.deleted:
                     if changed_obj.created:
                         continue
-                    operations_with_dependencies.append(
+                    operations_with_dependencies.obj_operations.append(
                         SingleOperationWithDependencies(
                             uid=(changed_obj.obj, "delete"),
                             operation=DeleteObjectOperation(obj=changed_obj.obj),
@@ -295,21 +299,51 @@ class ChangedObjectCollection(BaseSchema):
                 )
 
                 if not obj_sub_operations:
-                    operations_with_dependencies.append(obj_main_operation)
+                    operations_with_dependencies.obj_operations.append(obj_main_operation)
                 else:
-                    operations_with_dependencies.append(MergableOperationsWithDependencies(
+                    operations_with_dependencies.obj_operations.append(MergableOperationsWithDependencies(
                         main_op=obj_main_operation,
                         sub_ops=obj_sub_operations,
                     ))
+
+                for field_name, m2m_changes in changed_obj.m2m_changes.items():
+                    if m2m_changes.cleared:
+                        operations_with_dependencies.m2m_operations.append(SingleOperationWithDependencies(
+                            uid=(changed_obj.obj, f"m2mclear_{field_name}"),
+                            operation=ClearManyToManyOperation(
+                                obj=changed_obj.obj,
+                                field=field_name,
+                            ),
+                            dependencies={OperationDependencyObjectExists(obj=changed_obj.obj)},
+                        ))
+                    if m2m_changes.added or m2m_changes.removed:
+                        operations_with_dependencies.m2m_operations.append(SingleOperationWithDependencies(
+                            uid=(changed_obj.obj, f"m2mupdate_{field_name}"),
+                            operation=UpdateManyToManyOperation(
+                                obj=changed_obj.obj,
+                                field=field_name,
+                                add_values=m2m_changes.added,
+                                remove_values=m2m_changes.removed,
+                            ),
+                            dependencies={OperationDependencyObjectExists(obj=changed_obj.obj)},
+                        ))
+
         return operations_with_dependencies
 
-    def create_start_operation_situation(self) -> tuple[OperationSituation, dict[ModelName, dict[FieldName: set]]]:
+    class CreateStartOperationResult(NamedTuple):
+        situation: OperationSituation
+        unique_values_needed: dict[ModelName, dict[FieldName: set]]
+        m2m_operations: list[SingleOperationWithDependencies]
+
+    def create_start_operation_situation(self) -> CreateStartOperationResult:
         operations_with_dependencies = self.as_operations_with_dependencies
 
         from pprint import pprint
         pprint(operations_with_dependencies)
 
-        start_situation = OperationSituation(remaining_operations_with_dependencies=operations_with_dependencies)
+        start_situation = OperationSituation(
+            remaining_operations_with_dependencies=operations_with_dependencies.obj_operations
+        )
 
         referenced_objects: dict[ModelName, set[ObjectID]] = {}  # objects that need to exist before
         deleted_existing_objects: dict[ModelName, set[ObjectID]] = {}  # objects that need to exist before
@@ -388,7 +422,11 @@ class ChangedObjectCollection(BaseSchema):
                                              on_delete=model_cls._meta.get_field(field).on_delete.__name__)
                     )
 
-        return start_situation, unique_values_needed
+        return self.CreateStartOperationResult(
+            situation=start_situation,
+            unique_values_needed=unique_values_needed,
+            m2m_operations=operations_with_dependencies.m2m_operations
+        )
 
     @property
     def as_operations(self) -> DatabaseOperationCollection:
@@ -402,7 +440,7 @@ class ChangedObjectCollection(BaseSchema):
                 )
             }
 
-        start_situation, unique_values_needed = self.create_start_operation_situation()
+        start_situation, unique_values_needed, m2m_operations = self.create_start_operation_situation()
 
         # situations still to deal with, sorted by number of operations
         open_situations: list[OperationSituation] = [start_situation]
@@ -623,16 +661,20 @@ class ChangedObjectCollection(BaseSchema):
             if not continued:
                 ended_situations.append(situation)
 
-        if done_situation:
-            operations = done_situation.operations
-        else:
-            # todo: what to do if we can't fully solve it?
+        if not done_situation:
+            # todo: choose best option
             raise NotImplementedError('couldnt fully solve as_operations')
 
-        # todo: m2m
+        # add m2m
+        for m2m_operation_with_dependencies in m2m_operations:
+            if not done_situation.fulfils_dependencies(m2m_operation_with_dependencies.dependencies):
+                done_situation.remaining_operations_with_dependencies.append(m2m_operation_with_dependencies)
+                continue
+            done_situation.operations.append(m2m_operation_with_dependencies.operation)
 
-        result = DatabaseOperationCollection(
+        # todo: describe what couldn't be done
+
+        return DatabaseOperationCollection(
             prev=self.prev,
+            operations=done_situation.operations,
         )
-        result.extend(operations)
-        return result

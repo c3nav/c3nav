@@ -216,19 +216,19 @@ class DatabaseOperationCollection(BaseSchema):
     Iterable as a list of DatabaseOperation instances.
     """
     prev: PreviousObjectCollection = PreviousObjectCollection()
-    _operations: list[DatabaseOperation] = []
+    operations: list[DatabaseOperation] = []
 
     def __iter__(self) -> Iterator[DatabaseOperation]:
-        yield from self._operations
+        yield from self.operations
 
     def __len__(self):
-        return len(self._operations)
+        return len(self.operations)
 
     def extend(self, items: list[DatabaseOperation]):
-        self._operations.extend(items)
+        self.operations.extend(items)
 
     def append(self, item: DatabaseOperation):
-        self._operations.append(item)
+        self.operations.append(item)
 
     def prefetch(self) -> "PrefetchedDatabaseOperationCollection":
         return PrefetchedDatabaseOperationCollection(operations=self, instances=self.prev.get_instances())
