@@ -483,7 +483,7 @@ class ChangedObjectCollection(BaseSchema):
         # situation that solves for all operations
         done_situation: OperationSituation | None = None
 
-        # situations that ended prematurely, todo: sort by something?
+        # situations that ended prematurely
         ended_situations: list[OperationSituation] = []
 
         # situations already encountered by set of operation uuids included, values are number of operations
@@ -706,8 +706,7 @@ class ChangedObjectCollection(BaseSchema):
                 ended_situations.append(situation)
 
         if not done_situation:
-            # todo: choose best option
-            raise NotImplementedError('couldnt fully solve as_operations')
+            done_situation = max(ended_situations, key=lambda s: (len(s.operation_uuids), -len(s.operations)))
 
         # add m2m
         for m2m_operation_with_dependencies in m2m_operations:
@@ -716,7 +715,9 @@ class ChangedObjectCollection(BaseSchema):
                 continue
             done_situation.operations.append(m2m_operation_with_dependencies.operation)
 
-        # todo: describe what couldn't be done
+        for remaining_operation in done_situation.remaining_operations_with_dependencies:
+            # todo: describe what couldn't be done, look at dependencies, look at object needs to exists stuff first
+            pass
 
         return self.ChangesAsOperations(
             operations=DatabaseOperationCollection(
