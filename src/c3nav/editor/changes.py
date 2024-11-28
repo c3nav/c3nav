@@ -610,7 +610,9 @@ class ChangedObjectCollection(BaseSchema):
                     else:
                         new_situation.operations.append(new_operation)
                 else:
-                    new_situation.operations.append(new_operation)
+                    if not (isinstance(new_operation, UpdateObjectOperation) and not new_operation.fields):
+                        # we might have empty update operations, those can be ignored
+                        new_situation.operations.append(new_operation)
 
                 new_situation.remaining_operations_with_dependencies.pop(i)
                 new_situation.remaining_operations_with_dependencies.extend(new_remaining_operations)
