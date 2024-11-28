@@ -148,13 +148,15 @@ class OperationSituation(BaseSchema):
 
 class ChangedObjectProblems(BaseSchema):
     field_does_not_exist: set[FieldName] = set()
+    dummy_values: dict[FieldName, Any] = {}
 
 
 class ChangeProblems(BaseSchema):
+    model_does_not_exist: set[ModelName]
     objects: dict[ModelName, dict[ObjectID, ChangedObjectProblems]]
 
 
-# todo: what if model does not exist
+# todo: what if model does not exist…
 
 
 class ChangedObjectCollection(BaseSchema):
@@ -245,7 +247,11 @@ class ChangedObjectCollection(BaseSchema):
         operations_with_dependencies = self.OperationsWithDependencies(obj_operations=[], m2m_operations=[])
         problems = ChangeProblems()
         for model_name, changed_objects in self.objects.items():
-            model = apps.get_model("mapdata", model_name)
+            try:
+                model = apps.get_model("mapdata", model_name)
+            except LookupError:
+                problems.model_does_not_exist.add(model_name)
+                continue
 
             for changed_obj in changed_objects.values():
                 base_dependencies: set[OperationDependency] = (
@@ -378,7 +384,11 @@ class ChangedObjectCollection(BaseSchema):
 
         # references from m2m changes need also to be checked if they exist
         for model_name, changed_objects in self.objects.items():
-            model = apps.get_model("mapdata", model_name)
+            try:
+                model = apps.get_model("mapdata", model_name)
+            except LookupError:
+                # would already have been reported above
+                continue
             # todo: how do we want m2m to work when it's cleared by the user but things were added in the meantime?
             for changed_obj in changed_objects.values():
                 for field_name, m2m_changes in changed_obj.m2m_changes.items():
@@ -492,7 +502,7 @@ class ChangedObjectCollection(BaseSchema):
 
             continued = False
             for i, remaining_operation in enumerate(situation.remaining_operations_with_dependencies):
-                # check if the main operation can be ran
+                # check if the main operation can be run
                 if not situation.fulfils_dependencies(remaining_operation.main_op.dependencies):
                     continue
 
@@ -519,7 +529,6 @@ class ChangedObjectCollection(BaseSchema):
                                 new_operation.fields[field_name] = None
                                 continue
 
-                            # todo: tell user about DummyValue result somehow
                             if field.is_relation:
 
                                 if available_model_ids.get(field.related_model._meta.model_name) is None:
@@ -545,10 +554,8 @@ class ChangedObjectCollection(BaseSchema):
                                     choices = available_model_ids[field.related_model._meta.model_name]
                                 if not choices:
                                     raise NotImplementedError  # todo: inform user about impossibility
-                                new_operation.fields[field_name] = next(iter(choices))
-                                continue
-
-                            if field.is_relation:
+                                dummy_value = next(iter(choices))
+                            else:
                                 if field.unique:
                                     if dummy_unique_value_avoid.get(new_operation.obj.model, {}).get(field_name) is None:
                                         dummy_unique_value_avoid.setdefault(
@@ -575,7 +582,17 @@ class ChangedObjectCollection(BaseSchema):
                                         new_val += 1
                                 else:
                                     raise NotImplementedError
-                                new_operation.fields[field_name] = new_val
+                                dummy_value = new_val
+
+                            problems.objects.setdefault(new_operation.obj.model, {}).setdefault(
+                                new_operation.obj.id, ChangedObjectProblems()
+                            ).dummy_values[field_name] = dummy_value
+                            new_operation.fields[field_name] = dummy_value
+
+                        else:  # not a dummy value
+                            problems.objects.get(new_operation.obj.model, {}).get(
+                                new_operation.obj.id, ChangedObjectProblems()
+                            ).dummy_values.pop(field_name)
 
                 # construct new situation
                 new_situation = situation.model_copy(deep=True)
