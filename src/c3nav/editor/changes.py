@@ -4,7 +4,7 @@ import operator
 import random
 from functools import reduce
 from itertools import chain
-from typing import Type, Any, Union, Self, TypeVar, Generic, NamedTuple
+from typing import Type, Any, Union, Self, TypeVar, Generic, NamedTuple, TypeAlias
 
 from django.apps import apps
 from django.core import serializers
@@ -146,6 +146,17 @@ class OperationSituation(BaseSchema):
         return all(self.fulfils_dependency(dependency) for dependency in dependencies)
 
 
+class ChangedObjectProblems(BaseSchema):
+    field_does_not_exist: set[FieldName] = set()
+
+
+class ChangeProblems(BaseSchema):
+    objects: dict[ModelName, dict[ObjectID, ChangedObjectProblems]]
+
+
+# todo: what if model does not exist
+
+
 class ChangedObjectCollection(BaseSchema):
     """
     A collection of ChangedObject instances, sorted by model and id.
@@ -204,6 +215,7 @@ class ChangedObjectCollection(BaseSchema):
                                                  | operation.remove_values)
 
     def clean_and_complete_prev(self):
+        # todo: what the heck was this function for?
         ids: dict[ModelName, set[ObjectID]] = {}
         for model_name, changed_objects in self.objects.items():
             ids.setdefault(model_name, set()).update(set(changed_objects.keys()))
@@ -226,10 +238,12 @@ class ChangedObjectCollection(BaseSchema):
     class OperationsWithDependencies(NamedTuple):
         obj_operations: list[OperationWithDependencies]
         m2m_operations: list[SingleOperationWithDependencies]
+        problems: ChangeProblems
 
     @property
-    def as_operations_with_dependencies(self) -> OperationsWithDependencies:
+    def as_operations_with_dependencies(self) -> tuple[OperationsWithDependencies, ChangeProblems]:
         operations_with_dependencies = self.OperationsWithDependencies(obj_operations=[], m2m_operations=[])
+        problems = ChangeProblems()
         for model_name, changed_objects in self.objects.items():
             model = apps.get_model("mapdata", model_name)
 
@@ -254,15 +268,17 @@ class ChangedObjectCollection(BaseSchema):
 
                 initial_fields = dict()
                 obj_sub_operations: list[OperationWithDependencies] = []
-                for name, value in changed_obj.fields.items():
+                for field_name, value in changed_obj.fields.items():
                     try:
-                        field = model._meta.get_field(name)
+                        field = model._meta.get_field(field_name)
                     except FieldDoesNotExist:
-                        # todo: alert user that this field no longer exists
+                        problems.objects.setdefault(model_name, {}).setdefault(
+                            changed_obj.obj.id, ChangedObjectProblems()
+                        ).field_does_not_exist.add(field_name)
                         continue
 
                     if value is None:
-                        initial_fields[name] = None
+                        initial_fields[field_name] = None
                         continue
                     dependencies = base_dependencies.copy()
                     # todo: prev
@@ -274,18 +290,18 @@ class ChangedObjectCollection(BaseSchema):
                     if field.unique:
                         dependencies.add(OperationDependencyUniqueValue(
                             model=model._meta.model_name,
-                            field=name,
+                            field=field_name,
                             value=value,
                         ))
 
                     if not dependencies:
-                        initial_fields[name] = None
+                        initial_fields[field_name] = None
                         continue
 
-                    initial_fields[name] = DummyValue
+                    initial_fields[field_name] = DummyValue
                     obj_sub_operations.append(SingleOperationWithDependencies(
-                        uid=(changed_obj.obj, f"field_{name}"),
-                        operation=UpdateObjectOperation(obj=changed_obj.obj, fields={name: value}),
+                        uid=(changed_obj.obj, f"field_{field_name}"),
+                        operation=UpdateObjectOperation(obj=changed_obj.obj, fields={field_name: value}),
                         dependencies=dependencies
                     ))
 
@@ -328,15 +344,16 @@ class ChangedObjectCollection(BaseSchema):
                             dependencies={OperationDependencyObjectExists(obj=changed_obj.obj)},
                         ))
 
-        return operations_with_dependencies
+        return operations_with_dependencies, problems
 
     class CreateStartOperationResult(NamedTuple):
         situation: OperationSituation
         unique_values_needed: dict[ModelName, dict[FieldName: set]]
         m2m_operations: list[SingleOperationWithDependencies]
+        problems: ChangeProblems
 
     def create_start_operation_situation(self) -> CreateStartOperationResult:
-        operations_with_dependencies = self.as_operations_with_dependencies
+        operations_with_dependencies, problems = self.as_operations_with_dependencies
 
         from pprint import pprint
         pprint(operations_with_dependencies)
@@ -362,13 +379,16 @@ class ChangedObjectCollection(BaseSchema):
         # references from m2m changes need also to be checked if they exist
         for model_name, changed_objects in self.objects.items():
             model = apps.get_model("mapdata", model_name)
-            # todo: how do we want m2m to work when it's cleared by the user but things were added in the meantime
+            # todo: how do we want m2m to work when it's cleared by the user but things were added in the meantime?
             for changed_obj in changed_objects.values():
                 for field_name, m2m_changes in changed_obj.m2m_changes.items():
                     try:
                         field = model._meta.get_field(field_name)
                     except FieldDoesNotExist:
-                        continue  # todo: alert user that this field no longer exists
+                        problems.objects.setdefault(model_name, {}).setdefault(
+                            changed_obj.obj.id, ChangedObjectProblems()
+                        ).field_does_not_exist.add(field_name)
+                        continue
                     referenced_objects.setdefault(
                         field.related_model._meta.model_name, set()
                     ).update(set(m2m_changes.added + m2m_changes.removed))
@@ -425,11 +445,16 @@ class ChangedObjectCollection(BaseSchema):
         return self.CreateStartOperationResult(
             situation=start_situation,
             unique_values_needed=unique_values_needed,
-            m2m_operations=operations_with_dependencies.m2m_operations
+            m2m_operations=operations_with_dependencies.m2m_operations,
+            problems=problems,
         )
 
+    class ChangesAsOperations(NamedTuple):
+        operations: DatabaseOperationCollection
+        problems: ChangeProblems
+
     @property
-    def as_operations(self) -> DatabaseOperationCollection:
+    def as_operations(self) -> ChangesAsOperations:
         current_objects = {}
         for model_name, changed_objects in self.objects.items():
             model = apps.get_model("mapdata", model_name)
@@ -440,7 +465,7 @@ class ChangedObjectCollection(BaseSchema):
                 )
             }
 
-        start_situation, unique_values_needed, m2m_operations = self.create_start_operation_situation()
+        start_situation, unique_values_needed, m2m_operations, problems = self.create_start_operation_situation()
 
         # situations still to deal with, sorted by number of operations
         open_situations: list[OperationSituation] = [start_situation]
@@ -674,7 +699,10 @@ class ChangedObjectCollection(BaseSchema):
 
         # todo: describe what couldn't be done
 
-        return DatabaseOperationCollection(
-            prev=self.prev,
-            operations=done_situation.operations,
+        return self.ChangesAsOperations(
+            operations=DatabaseOperationCollection(
+                prev=self.prev,
+                operations=done_situation.operations,
+            ),
+            problems=problems
         )

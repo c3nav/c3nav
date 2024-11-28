@@ -73,7 +73,7 @@ def accesses_mapdata(func):
             # For non-direct editing, we will interact with the changeset
             with maybe_lock_changeset_to_edit(request=request):
                 # Turn the changes from the changeset into a list of operations
-                operations = request.changeset.changes.as_operations  # todo: cache this
+                operations, problems = request.changeset.changes.as_operations  # todo: cache this
 
                 # Enable the overlay manager, temporarily applying the changeset changes
                 # commit is set to false, meaning all changes will be reset once we leave the manager
