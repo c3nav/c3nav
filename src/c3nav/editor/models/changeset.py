@@ -3,6 +3,7 @@ from contextlib import contextmanager
 
 from django.apps import apps
 from django.conf import settings
+from django.core.cache import cache
 from django.core.exceptions import FieldDoesNotExist
 from django.db import models, transaction
 from django.urls import reverse
@@ -12,7 +13,8 @@ from django.utils.translation import gettext_lazy as _
 from django.utils.translation import ngettext_lazy
 from django_pydantic_field import SchemaField
 
-from c3nav.editor.changes import ChangedObjectCollection
+from c3nav.editor.changes import ChangedObjectCollection, ChangeProblems
+from c3nav.editor.operations import DatabaseOperationCollection
 from c3nav.editor.tasks import send_changeset_proposed_notification
 from c3nav.mapdata.models import LocationSlug, MapUpdate
 from c3nav.mapdata.models.locations import LocationRedirect
@@ -454,3 +456,22 @@ class ChangeSet(models.Model):
     @property
     def style(self):
         return self.STATE_STYLES[self.state]
+
+    def get_changes_as_operations(self) -> ChangedObjectCollection.ChangesAsOperations:
+        """
+        preferably don't use this one but use as_operations or problems
+        """
+        cache_key = '%s:changes_as_operations' % self.cache_key_by_changes
+        changes_as_operations = cache.get(cache_key)
+        if changes_as_operations:
+            changes_as_operations = self.changes.as_operations
+            cache.set(cache_key, changes_as_operations, 900)
+        return changes_as_operations
+
+    @property
+    def as_operations(self) -> DatabaseOperationCollection:
+        return self.get_changes_as_operations().operations
+
+    @property
+    def problems(self) -> ChangeProblems:
+        return self.get_changes_as_operations().problems
