@@ -191,6 +191,11 @@ def changeset_detail(request, pk):
 
     changed_objects_data = []
 
+    problems = changeset.problems
+    any_problems = problems.any
+
+    # todo: unable to resolve errors like "removed what is already gone"
+
     added_redirects = {}
     removed_redirects = {}
     for changed_object in changeset.changes:
@@ -210,6 +215,8 @@ def changeset_detail(request, pk):
         if model == LocationRedirect:
             continue
         changes = []
+
+        obj_problems = problems.get_object(changed_object.obj)
 
         title = None
         if changed_object.titles:
@@ -252,7 +259,20 @@ def changeset_detail(request, pk):
                 'class': 'success',
                 'empty': True,
                 'title': _('created'),
+                'problem': _("can't create this object") if obj_problems.cant_create else None,
             })
+        else:
+            changes.append({
+                'icon': 'warning-sign',
+                'class': 'danger',
+                'empty': True,
+                'title': _('no longer exists'),
+                'problem': (
+                    _("can't update this object because it no longer exists")
+                    if obj_problems.obj_does_not_exist else None
+                ),
+            })
+            # todo: make it possible for the user to get rid of this
 
         update_changes = []
         for name, value in changed_object.fields.items():
@@ -260,7 +280,14 @@ def changeset_detail(request, pk):
                 'icon': 'option-vertical',
                 'class': 'muted',
             }
-            if name == 'geometry':
+            if name in obj_problems.field_does_not_exist:
+                change_data.update({
+                    'title': name,
+                    'value': value,
+                    'order': (10,),
+                    'problem': _("this field no longer exists"),
+                })
+            elif name == 'geometry':
                 change_data.update({
                     'icon': 'map-marker',
                     'class': 'info',
@@ -313,6 +340,8 @@ def changeset_detail(request, pk):
                             'title': format_lazy(_('remove {field_title}'), field_title=field_title),
                         })
                     else:
+                        # todo: if this is a reference, we wanna not show the id but something betterẞ
+                        # todo: display if dummy value was used or other problem exists with this field
                         change_data.update({
                             'title': field_title,
                             'value': value,
@@ -330,6 +359,7 @@ def changeset_detail(request, pk):
 
         for name, m2m_changes in changed_object.m2m_changes.items():
             field = model._meta.get_field(name)
+            # todo: display problems with m2m values
             for item in m2m_changes.added:
                 changes.append({
                     'icon': 'chevron-right',
@@ -346,6 +376,7 @@ def changeset_detail(request, pk):
                 })
 
         if issubclass(model, LocationSlug):
+            # todo: display problems with redirect slugs
             for slug in added_redirects.get(changed_object.obj.id, ()):
                 changes.append({
                     'icon': 'chevron-right',
@@ -367,6 +398,10 @@ def changeset_detail(request, pk):
                 'class': 'danger',
                 'empty': True,
                 'title': _('deleted'),
+                'problem': (
+                    _("can't delete this object because of protected references")
+                    if obj_problems.protected_references else None
+                ),
             })
 
         changed_objects_data.append(changed_object_data)
