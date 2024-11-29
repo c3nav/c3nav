@@ -561,20 +561,26 @@ class ChangedObjectCollection(BaseSchema):
 
                 model_cls = apps.get_model('mapdata', new_operation.obj.model)
                 if isinstance(new_operation, (CreateObjectOperation, UpdateObjectOperation)):
+                    couldnt_fill_dummy = False
                     for field_name, value in tuple(new_operation.fields.items()):
                         if value is DummyValue:
+                            # if there's a dummy value to fill, we need to find a dummy value
                             field = model_cls._meta.get_field(field_name)
                             if field.null:
+                                # if it's nullable, we can just null it, todo: will it even be a dummy value then?
                                 new_operation.fields[field_name] = None
                                 continue
 
                             if field.is_relation:
-
+                                # for a relation, we will try to find a valid other object to reference
                                 if available_model_ids.get(field.related_model._meta.model_name) is None:
+                                    # find available model ids, we only query these once for less queries
                                     available_model_ids[field.related_model._meta.model_name] = frozenset(
                                         field.related_model.objects.values_list('pk', flat=True)
                                     )
                                 if field.unique:
+                                    # if the field is unique we need to fin a value that isn't occupied
+                                    # and, to be sure, that we haven't used as a dummyvalue before
                                     if dummy_unique_value_avoid.get(new_operation.obj.model, {}).get(field_name) is None:
                                         dummy_unique_value_avoid.setdefault(
                                             new_operation.obj.model, {}
@@ -592,10 +598,12 @@ class ChangedObjectCollection(BaseSchema):
                                 else:
                                     choices = available_model_ids[field.related_model._meta.model_name]
                                 if not choices:
-                                    raise NotImplementedError  # todo: inform user about impossibility
+                                    couldnt_fill_dummy = True
+                                    break
                                 dummy_value = next(iter(choices))
                             else:
                                 if field.unique:
+                                    # otherwise, an non-relational field needs a unique value
                                     if dummy_unique_value_avoid.get(new_operation.obj.model, {}).get(field_name) is None:
                                         dummy_unique_value_avoid.setdefault(
                                             new_operation.obj.model, {}
@@ -609,7 +617,11 @@ class ChangedObjectCollection(BaseSchema):
                                         )
                                     )
                                 else:
-                                    occupied = frozenset()
+                                    # this shouldn't happen, because dummy values are only used by non-relation fields
+                                    # for unique constraints
+                                    raise NotImplementedError
+
+                                # generate a value that works
                                 if isinstance(field, (SlugField, CharField)):
                                     new_val = "dummyvalue"
                                     while new_val in occupied:
@@ -623,10 +635,15 @@ class ChangedObjectCollection(BaseSchema):
                                     raise NotImplementedError
                                 dummy_value = new_val
 
+                            # store the dummyvalue so we can tell the user about it
                             problems.get_object(new_operation.obj).dummy_values[field_name] = dummy_value
 
-                        else:  # not a dummy value
+                        else:
+                            # we have set this field to a non-dummy value, if we used one before we can forget it
                             problems.get_object(new_operation.obj).dummy_values.pop(field_name, None)
+
+                    if couldnt_fill_dummy:
+                        continue  # if we couldn't fill a dummy value this operation is not doable, skip it
 
                 # construct new situation
                 new_situation = situation.model_copy(deep=True)
