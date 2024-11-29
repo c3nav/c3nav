@@ -186,7 +186,7 @@ class ChangeProblems(BaseSchema):
             model_name: problem_objects for
             model_name, problem_objects in (
                 (model_name, {pk: obj for pk, obj in problem_objects.items() if obj.clean()})
-                for model_name, problem_objects in self.objects_items()
+                for model_name, problem_objects in self.objects.items()
             )
             if problem_objects
         }

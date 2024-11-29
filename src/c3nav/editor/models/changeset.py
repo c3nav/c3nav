@@ -463,7 +463,7 @@ class ChangeSet(models.Model):
         """
         cache_key = '%s:changes_as_operations' % self.cache_key_by_changes
         changes_as_operations = cache.get(cache_key)
-        if changes_as_operations:
+        if not changes_as_operations:
             changes_as_operations = self.changes.as_operations
             cache.set(cache_key, changes_as_operations, 900)
         return changes_as_operations
